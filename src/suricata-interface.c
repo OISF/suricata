@@ -302,7 +302,6 @@ ThreadVars *suricata_initialise_worker_thread(SuricataCtx *ctx, const char *inte
     ctx->n_workers_created++;
     pthread_mutex_unlock(&ctx->lock);
 
-    RunModeSpawnWorker(tv);
     return tv;
 }
 
@@ -355,6 +354,18 @@ uint16_t suricata_register_worker_max_counter(ThreadVars *tv, const char *counte
  */
 void suricata_register_global_counter(const char *counter_name, uint64_t (*func)(void)) {
     StatsRegisterGlobalCounter(counter_name, func);
+}
+
+/**
+ * \brief Complete initialization of a Suricata worker.
+ *
+ * This function is meant to be invoked after `suricata_initialise_worker_thread` and after
+ * registering the per worker counters.
+ *
+ * \param tv           Pointer to the per-thread structure.
+ */
+void suricata_worker_post_init(ThreadVars *tv) {
+    RunModeSpawnWorker(tv);
 }
 
 /**

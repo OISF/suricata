@@ -49,6 +49,28 @@ The library expects that the client creates a number of threads equal to the num
 *n_workers* parameter provided in the :ref:`suricata_create_ctx` method and that each of these
 threads invoke the above API in their routine.
 
+suricata_worker_post_init
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The function prototype is:
+
+.. code-block:: c
+
+    /**
+    * \brief  Complete initialization of a Suricata worker.
+    *
+    * This function is meant to be invoked after `suricata_initialise_worker_thread` and after
+    * registering the per worker counters.
+    *
+    * \param tv           Pointer to the per-thread structure.
+    */
+    void suricata_worker_post_init(ThreadVars *tv);
+
+This method will complete the initialization of a Suricata worker. It is meant to be invoked after
+registering counters via :ref:`counters_api`.
+
+.. _suricata_post_init:
+
 suricata_post_init
 ~~~~~~~~~~~~~~~~~~
 

@@ -436,6 +436,7 @@ static void *TmThreadsLib(void *td)
             }
         }
     }
+    StatsSetupPrivate(tv);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 

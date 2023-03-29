@@ -66,6 +66,8 @@ TmEcode DecodeLibThreadInit(ThreadVars *tv, const void *initdata, void **data) {
 TmEcode DecodeLibThreadDeinit(ThreadVars *tv, void *data) {
     if (data != NULL)
         DecodeThreadVarsFree(tv, data);
+
+    time_set = false;
     SCReturnInt(TM_ECODE_OK);
 }
 

@@ -181,6 +181,7 @@ void *suricataWorker(void *td) {
     HandlerCtx hc = {tv, 0, 0, 0, 0, 0, tc->user_ctx};
     struct timeval start_ts, end_ts;
 
+    suricata_worker_post_init(tv);
     if (tc->preload) {
         if (tc->input_type == TYPE_PACKET && preload_pcap(tc->input_filename, &hc.pcap_cache,
                                                           &hc.datalink) < 0) {

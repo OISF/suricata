@@ -16,7 +16,10 @@ The function prototype is:
     */
     void suricata_get_stats(void);
 
-The above method allows to compute the engine stats and invoke the corresponding callback.
+The above method allows to compute the engine stats and invoke the corresponding callback. It is
+meant to be invoked after :ref:`suricata_post_init`.
+
+.. _counters_api:
 
 Counters API
 ~~~~~~~~~~~~
