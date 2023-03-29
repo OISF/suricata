@@ -194,6 +194,7 @@ uint32_t UtRunTests(const char *regex_arg)
     int ret = 0, rcomp = 0;
     int ov[MAX_SUBSTRINGS];
 
+    EngineModeSetIDS();
     StreamTcpInitMemuse();
     StreamTcpReassembleInitMemuse();
 
