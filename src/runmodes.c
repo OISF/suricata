@@ -615,6 +615,20 @@ void RunModeShutDown(void)
     /* Reset logger counts. */
     file_logger_count = 0;
     filedata_logger_count = 0;
+
+    /* Cleanup runmodes. */
+    for (int i = 0; i < RUNMODE_USER_MAX; i++) {
+        for (int j = 0; j < runmodes[i].cnt; j++) {
+            if (runmodes[i].runmodes[j].name) {
+                SCFree((void *)runmodes[i].runmodes[j].name);
+            }
+            if (runmodes[i].runmodes[j].description) {
+                SCFree((void *)runmodes[i].runmodes[j].description);
+            }
+        }
+        SCFree(runmodes[i].runmodes);
+        runmodes[i].cnt = 0;
+    }
 }
 
 /** \internal

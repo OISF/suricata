@@ -765,6 +765,20 @@ int DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx)
     return r;
 }
 
+/** \brief Free `g_mpm_list`. */
+void DetectMpmFreeMpms(void) {
+    for (int i = 0; i < DETECT_BUFFER_MPM_TYPE_SIZE; i++) {
+        DetectBufferMpmRegistery *entry = g_mpm_list[i];
+        while (entry) {
+            DetectBufferMpmRegistery *next = entry->next;
+            SCFree(entry);
+            entry = next;
+        }
+        g_mpm_list[i] = NULL;
+        g_mpm_list_cnt[i] = 0;
+    }
+}
+
 /**
  *  \brief check if a signature has patterns that are to be inspected
  *         against a packets payload (as opposed to the stream payload)

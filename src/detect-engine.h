@@ -46,6 +46,7 @@ InspectionBuffer *InspectionBufferMultipleForListGet(
 /* start up registery funcs */
 
 int DetectBufferTypeRegister(const char *name);
+void DetectBufferTypeFree(void);
 int DetectBufferTypeGetByName(const char *name);
 void DetectBufferTypeSupportsMpm(const char *name);
 void DetectBufferTypeSupportsPacket(const char *name);
@@ -164,6 +165,7 @@ void DetectAppLayerInspectEngineRegister2(const char *name,
 void DetectPktInspectEngineRegister(const char *name,
         InspectionBufferGetPktDataPtr GetPktData,
         InspectionBufferPktInspectFunc Callback);
+void DetectInspectEnginesFree(void);
 
 void DetectFrameInspectEngineRegister(const char *name, int dir,
         InspectionBufferFrameInspectFunc Callback, AppProto alproto, uint8_t type);

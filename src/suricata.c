@@ -357,6 +357,7 @@ void GlobalsDestroy(SCInstance *suri)
     }
     DetectEnginePruneFreeList();
 
+    StorageCleanup();
     AppLayerDeSetup();
     DatasetsSave();
     DatasetsDestroy();

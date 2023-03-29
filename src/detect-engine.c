@@ -171,6 +171,24 @@ void DetectPktInspectEngineRegister(const char *name,
     }
 }
 
+void DetectInspectEnginesFree(void) {
+    DetectEngineAppInspectionEngine *app_engine = g_app_inspect_engines;
+    while (app_engine) {
+        DetectEngineAppInspectionEngine *next = app_engine->next;
+        SCFree(app_engine);
+        app_engine = next;
+    }
+    g_app_inspect_engines = NULL;
+
+    DetectEnginePktInspectionEngine *pkt_engine = g_pkt_inspect_engines;
+    while (pkt_engine) {
+        DetectEnginePktInspectionEngine *next = pkt_engine->next;
+        SCFree(pkt_engine);
+        pkt_engine = next;
+    }
+    g_pkt_inspect_engines = NULL;
+}
+
 /** \brief register inspect engine at start up time
  *
  *  \note errors are fatal */
@@ -985,9 +1003,8 @@ static int DetectBufferTypeInit(void)
 
     return 0;
 }
-#if 0
-static void DetectBufferTypeFree(void)
-{
+
+void DetectBufferTypeFree(void) {
     if (g_buffer_type_hash == NULL)
         return;
 
@@ -995,7 +1012,7 @@ static void DetectBufferTypeFree(void)
     g_buffer_type_hash = NULL;
     return;
 }
-#endif
+
 static int DetectBufferTypeAdd(const char *string)
 {
     BUG_ON(string == NULL || strlen(string) >= 32);

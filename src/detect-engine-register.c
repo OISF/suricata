@@ -695,7 +695,17 @@ void SigTableSetup(void)
 
 void SigTableCleanup(void)
 {
+    /* Reopen keyword registration for next iteration. */
     DetectBufferTypeResetRegistration();
+
+    /* Cleanup mpm list. */
+    DetectMpmFreeMpms();
+
+    /* Cleanup global inspection engines. */
+    DetectInspectEnginesFree();
+
+    /* Cleanup global buffer type. */
+    DetectBufferTypeFree();
 }
 
 #ifdef UNITTESTS
