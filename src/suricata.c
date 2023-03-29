@@ -248,6 +248,12 @@ int SuriHasSigFile(void)
 
 int EngineModeIsIPS(void)
 {
+#ifdef DEBUG
+    static enum EngineMode prev_engine_mode = ENGINE_MODE_UNKNOWN;
+    BUG_ON((prev_engine_mode != ENGINE_MODE_UNKNOWN) && (g_engine_mode != prev_engine_mode));
+    prev_engine_mode = g_engine_mode; // engine mode can not change since the first query
+#endif
+
     return (g_engine_mode == ENGINE_MODE_IPS);
 }
 
