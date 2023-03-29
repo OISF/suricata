@@ -103,10 +103,10 @@ typedef struct HttpInfo {
 } HttpInfo;
 
 /* App layer event information included in alerts and fileinfo events. */
-typedef union app_layer {
+typedef union AppLayer {
     HttpInfo *http;
     void *nta; /* JsonBuilder object but avoid including rust.h */
-} app_layer;
+} AppLayer;
 
 /* Struct representing a single alert. */
 typedef struct Alert{
@@ -178,7 +178,7 @@ typedef struct AlertEvent {
     Alert alert;
 
     /* App layer event information, if any */
-    app_layer app_layer;
+    AppLayer app_layer;
 } AlertEvent;
 
 /* Struct representing a fileinfo event. It will be passed along in the callback. */
@@ -220,7 +220,7 @@ typedef struct FileinfoEvent {
     } fileinfo;
 
     /* App layer event information, if any */
-    app_layer app_layer;
+    AppLayer app_layer;
 } FileinfoEvent;
 
 

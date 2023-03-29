@@ -22,9 +22,9 @@ void EventAddCommonInfo(const Packet *p, enum OutputJsonLogDirection dir, Common
 /* Add common information from a flow object. */
 void EventAddCommonInfoFromFlow(const Flow *f, Common *common, JsonAddrInfo *addr);
 /* Add app layer information (alert and fileinfo). */
-void CallbackAddAppLayer(const Packet *p, const uint64_t tx_id, app_layer *app_layer);
+void CallbackAddAppLayer(const Packet *p, const uint64_t tx_id, AppLayer *app_layer);
 /* Free any memory allocated for app layer information (alert and fileinfo). */
-void CallbackCleanupAppLayer(const Packet *p, const uint64_t tx_id, app_layer *app_layer);
+void CallbackCleanupAppLayer(const Packet *p, const uint64_t tx_id, AppLayer *app_layer);
 /* Register the output module. */
 void OutputCallbackRegister(void);
 #endif /* __OUTPUT_CALLBACK_H__ */

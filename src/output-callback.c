@@ -168,7 +168,7 @@ void EventAddCommonInfoFromFlow(const Flow *f, Common *common, JsonAddrInfo *add
 }
 
 /* Add app layer information (alert and fileinfo). */
-void CallbackAddAppLayer(const Packet *p, const uint64_t tx_id, app_layer *app_layer) {
+void CallbackAddAppLayer(const Packet *p, const uint64_t tx_id, AppLayer *app_layer) {
     if (p->flow == NULL) {
         return;
     }
@@ -226,7 +226,7 @@ void CallbackAddAppLayer(const Packet *p, const uint64_t tx_id, app_layer *app_l
 }
 
 /* Free any memory allocated for app layer information (alert and fileinfo). */
-void CallbackCleanupAppLayer(const Packet *p, const uint64_t tx_id, union app_layer *app_layer) {
+void CallbackCleanupAppLayer(const Packet *p, const uint64_t tx_id, AppLayer *app_layer) {
     if (p->flow == NULL) {
         return;
     }
