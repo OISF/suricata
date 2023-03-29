@@ -93,6 +93,8 @@
     CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0lzma_enabled)                         \
     CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0max_res_ignored_lines)                \
     CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0remove_nonprintable_chars_header)     \
+    CFG_ENTRY(decoder0geneve0enabled)                                                              \
+    CFG_ENTRY(decoder0geneve0ports)                                                                \
     CFG_ENTRY(decoder0teredo0enabled)                                                              \
     CFG_ENTRY(decoder0vntag0enabled)                                                               \
     CFG_ENTRY(decoder0vxlan0enabled)                                                               \
@@ -208,6 +210,13 @@
     CFG_ENTRY(stream0reassembly0depth)                                                             \
     CFG_ENTRY(stream0reassembly0toserver_chunk_size)                                               \
     CFG_ENTRY(stream0reassembly0toclient_chunk_size)                                               \
+    CFG_ENTRY(threading0set_cpu_affinity)                                                          \
+    CFG_ENTRY(threading0cpu_affinity0management_cpu_set0cpu)                                       \
+    CFG_ENTRY(threading0cpu_affinity0management_cpu_set0mode)                                      \
+    CFG_ENTRY(threading0cpu_affinity0management_cpu_set0prio0default)                              \
+    CFG_ENTRY(threading0cpu_affinity0worker_cpu_set0cpu)                                           \
+    CFG_ENTRY(threading0cpu_affinity0worker_cpu_set0mode)                                          \
+    CFG_ENTRY(threading0cpu_affinity0worker_cpu_set0prio0default)                                  \
     CFG_ENTRY(vars0address_groups0AIM_SERVERS)                                                     \
     CFG_ENTRY(vars0address_groups0CUST_HOME_NET)                                                   \
     CFG_ENTRY(vars0address_groups0DNP3_CLIENT)                                                     \
@@ -225,6 +234,7 @@
     CFG_ENTRY(vars0address_groups0SQL_SERVERS)                                                     \
     CFG_ENTRY(vars0address_groups0TELNET_NET)                                                      \
     CFG_ENTRY(vars0port_groups0DNP3_PORTS)                                                         \
+    CFG_ENTRY(vars0port_groups0GENEVE_PORTS)                                                       \
     CFG_ENTRY(vars0port_groups0HTTP_PORTS)                                                         \
     CFG_ENTRY(vars0port_groups0ORACLE_PORTS)                                                       \
     CFG_ENTRY(vars0port_groups0SHELLCODE_PORTS)                                                    \

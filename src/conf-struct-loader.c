@@ -39,6 +39,13 @@ typedef struct LoggingModulesIdx {
     int callback;
 } LoggingModulesIdx;
 
+/* Threading modules indices */
+typedef struct ThreadingModulesIdx {
+    int invalid;
+    int management;
+    int worker;
+} ThreadingModulesIdx;
+
 /* Default output modules indices.
  * These can change if we load a yaml file and we need to make sure we avoid ending up with
    overlapping indices. */
@@ -46,6 +53,19 @@ static OutputModulesIdx default_output_modules_idx = {-1, 1, 3, 6, 9};
 
 /* Default logging modules indices. */
 static LoggingModulesIdx default_logging_modules_idx = {-1, 0, 1, 2};
+
+/* Default threading modules indices. */
+static ThreadingModulesIdx default_threading_modules_idx = {-1, 0, 1};
+
+/* List of configuration nodes that are sequence objects in the yaml and a comma separated string
+ * in the configuration struct. */
+static const char *sequenceNodes[] = {
+    "callback.nta.tls.custom",
+    "file-store.force-hash",
+    "rule-files",
+    "lua.scripts",
+    NULL,
+};
 
 /** \brief Mangle a SuricataCfg field into the format of the Configuration tree.
   *        This means replacing '_' characters with '-' and '0' with '.'.
@@ -78,9 +98,10 @@ static const char *mangleCfgField(const char *field) {
 
     /* Check if it is a supported output module and extend the name to include the sequence
      * index. */
+    int idx = default_output_modules_idx.invalid;
+    const char *prefix = NULL;
+    const char *suffix = NULL;
     if(strncmp(out, "outputs", 7) == 0) {
-        uint8_t idx = default_output_modules_idx.invalid;
-
         if (strncmp(out + 8, "file-store", 10) == 0) {
             idx = default_output_modules_idx.filestore;
         } else if (strncmp(out + 8, "callback", 8) == 0) {
@@ -90,37 +111,8 @@ static const char *mangleCfgField(const char *field) {
         } else if (strncmp(out + 8, "lua", 3) == 0) {
             idx = default_output_modules_idx.lua;
         }
-
-        if (idx == default_output_modules_idx.invalid) {
-            /* Something is off, just return the field without further modifications. */
-            return out;
-        }
-
-        /* We need to add room for the index, the dot and NULL. */
-        int n_digits = 0;
-        int idx_copy = idx;
-         do {
-            idx_copy /= 10;
-            ++n_digits;
-        } while (idx_copy != 0);
-
-        size_t node_len = strlen(out) + n_digits + 2;
-        char *node_name_ext = SCMalloc(node_len * sizeof(char));
-
-        if (node_name_ext == NULL) {
-            /* Something is off, just return the field without further modifications. */
-            return out;
-        }
-
-        snprintf(node_name_ext, node_len + 1, "outputs.%d.%s", idx, out + 8);
-
-        /* Swap out with node_name_ext. */
-        SCFree((void *)out);
-        out = node_name_ext;
+        prefix = "outputs";
     } else if (strncmp(out, "logging.outputs", 15) == 0) {
-        /* Same process for logging modules. */
-        uint8_t idx = default_logging_modules_idx.invalid;
-
         if (strncmp(out + 16, "console", 7) == 0) {
             idx = default_logging_modules_idx.console;
         } else if (strncmp(out + 16, "file", 4) == 0) {
@@ -129,46 +121,183 @@ static const char *mangleCfgField(const char *field) {
             idx = default_logging_modules_idx.callback;
         }
 
-        if (idx == default_logging_modules_idx.invalid) {
-            /* Something is off, just return the field without further modifications. */
-            return out;
+        prefix = "logging.outputs";
+    } else if (strncmp(out, "threading.cpu-affinity", 22) == 0) {
+        int offset = 23;
+        if (strncmp(out + offset, "management-cpu-set", 18) == 0) {
+            idx = default_threading_modules_idx.management;
+            offset += 19;
+        } else if (strncmp(out + 23, "worker-cpu-set", 14) == 0) {
+            idx = default_threading_modules_idx.worker;
+            offset += 15;
         }
+        prefix = "threading.cpu-affinity";
 
-        /* Assume a single digit is enough (there are not that many logging modules). */
-        size_t node_len = strlen(out) + 3;
-        char *node_name_ext = SCMalloc(node_len * sizeof(char));
-
-        if (node_name_ext == NULL) {
-            /* Something is off, just return the field without further modifications. */
-            return out;
+        /* Check if we have a nested sequence object. */
+        if (strstr(out + offset, "cpu") != NULL || strstr(out + offset, "low") != NULL ||
+            strstr(out + offset, "medium") != NULL || strstr(out + offset, "high") != NULL) {
+            suffix = "0";
         }
-
-        snprintf(node_name_ext, node_len + 1, "logging.outputs.%d.%s", idx, out + 16);
-
-        /* Swap out with node_name_ext. */
-        SCFree((void *)out);
-        out = node_name_ext;
     }
+
+    if (idx == default_output_modules_idx.invalid) {
+        /* Nothing to do */
+        return out;
+    }
+
+    /* We need to add room for the index, the dot and NULL. */
+    int idx_copy = idx;
+    int n_digits = 0;
+        do {
+        idx_copy /= 10;
+        ++n_digits;
+    } while (idx_copy != 0);
+
+    size_t node_len = strlen(out) + n_digits + 2;
+
+    if (suffix != NULL) {
+        node_len += strlen(suffix) + 1;
+    }
+
+    char *node_name_ext = SCMalloc(node_len * sizeof(char));
+    if (node_name_ext == NULL) {
+        /* Something is off, just return the field without further modifications. */
+        return out;
+    }
+
+    snprintf(node_name_ext, node_len, "%s.%d.%s", prefix, idx, out + strlen(prefix) + 1);
+
+    if (suffix != NULL) {
+        int offset = node_len - (strlen(suffix) + 2);
+        snprintf(node_name_ext + offset, node_len, ".%s", suffix);
+    }
+
+    /* Swap out with node_name_ext. */
+    SCFree((void *)out);
+    out = node_name_ext;
 
     return out;
 }
 
-/** \brief Convert a yaml sequence object into a comma separated list of values and store it in
-  *        the configuration object. Currently used by the "rule-files" and
-  *        "output.callbacks.nta.tls.custom" nodes.
-  *
-  * \param cfg    The SuricataCfg object.
-  * \param name   The name of the configuration node to convert.
-  */
-static void CfgSetSequence(SuricataCfg *cfg, const char *name) {
+/** \brief Update the modules indices.
+ *         When reading the configuration from a yaml file, the module indixes might differ from
+ *         the defaults defined above and need to be udpated.
+ */
+static void CfgUpdateModuleIndices(void) {
+    /* Outputs. */
+    ConfNode *module = ConfGetNode("outputs");
+    if (module != NULL) {
+        ConfNode *output, *child;
+
+        TAILQ_FOREACH(output, &module->head, next) {
+            child = ConfNodeLookupChild(output, output->val);
+
+            if (child == NULL) {
+                /* Should not happen but ignore anyway. */
+                continue;
+            }
+
+            if (strncmp(child->name, "file-store", 10) == 0) {
+                default_output_modules_idx.filestore = atoi(output->name);
+            } else if (strncmp(child->name, "callback", 8) == 0) {
+                default_output_modules_idx.callback = atoi(output->name);
+            } else if (strncmp(child->name, "content-snip", 12) == 0) {
+                default_output_modules_idx.content_snip = atoi(output->name);
+            } else if (strncmp(child->name, "lua", 3) == 0) {
+                default_output_modules_idx.lua = atoi(output->name);
+            }
+        }
+    }
+
+    /* Logging. */
+    module = ConfGetNode("logging.outputs");
+    if (module != NULL) {
+        ConfNode *output, *child;
+
+        TAILQ_FOREACH(output, &module->head, next) {
+            child = ConfNodeLookupChild(output, output->val);
+
+            if (child == NULL) {
+                /* Should not happen but ignore anyway. */
+                continue;
+            }
+
+            if (strncmp(child->name, "console", 7) == 0) {
+                default_logging_modules_idx.console = atoi(output->name);
+            } else if (strncmp(child->name, "file", 4) == 0) {
+                default_logging_modules_idx.file = atoi(output->name);
+            } else if (strncmp(child->name, "callback", 8) == 0) {
+                default_logging_modules_idx.callback = atoi(output->name);
+            }
+        }
+    }
+
+    /* Threading. */
+    module = ConfGetNode("threading.cpu-affinity");
+    if (module != NULL) {
+        ConfNode *output, *child;
+
+        TAILQ_FOREACH(output, &module->head, next) {
+            child = ConfNodeLookupChild(output, output->val);
+
+            if (child == NULL) {
+                /* Should not happen but ignore anyway. */
+                continue;
+            }
+
+            if (strncmp(child->name, "management", 10) == 0) {
+                default_threading_modules_idx.management = atoi(output->name);
+            } else if (strncmp(child->name, "worker", 6) == 0) {
+                default_threading_modules_idx.worker = atoi(output->name);
+            }
+        }
+    }
+}
+
+
+/** \brief Check if a configuration node is a sequence formatted as a comma separated string.
+ *         Sequence objects in the configuration struct (formatted as comma separated string) need
+ *         to be unwrapped in the suricata ConfNode object.
+ *
+ * \param name   The name of the configuration node to check.
+ * \return int   1 on success, 0 on failure.
+ */
+static int CfgIsNodeSequenceAsString(const char *name) {
+    int i = 0;
+
+    while (sequenceNodes[i] != NULL) {
+        if (strstr(name, sequenceNodes[i]) != NULL) {
+            /* If we are matching on index 3 ("lua.scripts") we meed too make sure we don't have a
+             * collision on "lua.scripts-dir". Need to find a better solution for this. */
+            if (i == 3 && strstr(name, "lua.scripts-dir") != NULL) {
+                return 0;
+            }
+
+            /* Match found. */
+            return 1;
+        }
+
+        i++;
+    }
+
+    return 0;
+}
+
+/** \brief Convert a yaml sequence object into a comma separated string to be set in the
+ *         configuration struct.
+ *
+ * \param name   The name of the configuration node to convert.
+ * \param out    The output parameter that will contain the converted node.
+ * \return int   1 on success, 0 on failure.
+ */
+static int CfgConvertSequenceToString(const char *name, char *out) {
     ConfNode *node;
     node = ConfGetNode(name);
     if (node == NULL) {
-        return;
+        return 0;
     }
 
     ConfNode *value;
-    char values[NODE_VALUE_MAX];
     int i = 0;
 
     TAILQ_FOREACH(value, &node->head, next) {
@@ -180,37 +309,115 @@ static void CfgSetSequence(SuricataCfg *cfg, const char *name) {
             break;
         }
         /* Append the filename. */
-        i += snprintf(values + i, value_len + 2, "%s,", value->val);
+        i += snprintf(out + i, value_len + 2, "%s,", value->val);
     }
 
     if (i == 0) {
         /* No values in the sequence. */
-        return;
+        return 0;
     }
 
     /* Remove trailing ','. */
-    values[i - 1] = '\0';
+    out[i - 1] = '\0';
+    return 1;
+}
 
-    if (strncmp(name, "rule-files", 10) == 0) {
+/** \brief Convert the relevant yaml sequence objects into a comma separated string and store it in
+  *        the configuration object.
+  *
+  * \param  cfg    The SuricataCfg object.
+  */
+static void CfgLoadSequences(SuricataCfg *cfg) {
+    char out[NODE_VALUE_MAX];
+    char name[64];
+
+    if (CfgConvertSequenceToString("rule-files", out)) {
         if (cfg->rule_files) {
             SCFree((void *)cfg->rule_files);
         }
-        cfg->rule_files = SCStrdup(values);
-    } else if (strstr(name, "callback.nta.tls.custom") != NULL) {
+        cfg->rule_files = SCStrdup(out);
+    }
+
+    snprintf(name, sizeof(name), "outputs.%d.callback.nta.tls.custom",
+             default_output_modules_idx.callback);
+    if (CfgConvertSequenceToString(name, out)) {
         if (cfg->outputs0callback0nta0tls0custom) {
             SCFree((void *)cfg->outputs0callback0nta0tls0custom);
         }
-        cfg->outputs0callback0nta0tls0custom = SCStrdup(values);
-    } else if (strstr(name, "lua.scripts") != NULL) {
-        if (cfg->outputs0lua0scripts) {
-            SCFree((void *)cfg->outputs0lua0scripts);
-        }
-        cfg->outputs0lua0scripts = SCStrdup(values);
-    } else if (strstr(name, "file-store.force-hash") != NULL) {
+        cfg->outputs0callback0nta0tls0custom = SCStrdup(out);
+    }
+
+    snprintf(name, sizeof(name), "outputs.%d.file-store.force-hash",
+             default_output_modules_idx.filestore);
+    if (CfgConvertSequenceToString(name, out)) {
         if (cfg->outputs0file_store0force_hash) {
             SCFree((void *)cfg->outputs0file_store0force_hash);
         }
-        cfg->outputs0file_store0force_hash = SCStrdup(values);
+        cfg->outputs0file_store0force_hash = SCStrdup(out);
+    }
+
+    snprintf(name, sizeof(name), "outputs.%d.lua.scripts", default_output_modules_idx.lua);
+    if (CfgConvertSequenceToString(name, out)) {
+        if (cfg->outputs0lua0scripts) {
+            SCFree((void *)cfg->outputs0lua0scripts);
+        }
+        cfg->outputs0lua0scripts = SCStrdup(out);
+    }
+}
+
+/** \brief Finalize the sequence nodes in the suricata ConfNode tree.
+  *
+  * \param  cfg    The SuricataCfg object.
+  */
+static void CfgFinalizeSequences(SuricataCfg *cfg) {
+    char node_name[64] = {0};
+
+    /* Outputs. */
+    snprintf(node_name, sizeof(node_name), "outputs.%d", default_output_modules_idx.filestore);
+    ConfSetFinal(node_name, "file-store");
+
+    snprintf(node_name, sizeof(node_name), "outputs.%d", default_output_modules_idx.callback);
+    ConfSetFinal(node_name, "callback");
+
+    snprintf(node_name, sizeof(node_name), "outputs.%d", default_output_modules_idx.content_snip);
+    ConfSetFinal(node_name, "content-snip");
+
+    snprintf(node_name, sizeof(node_name), "outputs.%d", default_output_modules_idx.lua);
+    ConfSetFinal(node_name, "lua");
+
+    /* Logging. */
+    snprintf(node_name, sizeof(node_name), "logging.outputs.%d",
+             default_logging_modules_idx.console);
+    ConfSetFinal(node_name, "console");
+
+    snprintf(node_name, sizeof(node_name), "logging.outputs.%d", default_logging_modules_idx.file);
+    ConfSetFinal(node_name, "file");
+
+    snprintf(node_name, sizeof(node_name), "logging.outputs.%d",
+             default_logging_modules_idx.callback);
+    ConfSetFinal(node_name, "callback");
+
+    /* Threading. */
+    snprintf(node_name, sizeof(node_name), "threading.cpu-affinity.%d",
+             default_threading_modules_idx.management);
+    ConfSetFinal(node_name, "management-cpu-set");
+
+    if (cfg->threading0cpu_affinity0management_cpu_set0cpu) {
+        snprintf(node_name, sizeof(node_name),
+                 "threading.cpu-affinity.%d.management-cpu-set.cpu.0",
+                 default_threading_modules_idx.management);
+        ConfSetFinal(node_name, cfg->threading0cpu_affinity0management_cpu_set0cpu);
+    }
+
+    snprintf(node_name, sizeof(node_name), "threading.cpu-affinity.%d",
+             default_threading_modules_idx.worker);
+    ConfSetFinal(node_name, "worker-cpu-set");
+
+    if (cfg->threading0cpu_affinity0worker_cpu_set0cpu) {
+        snprintf(node_name, sizeof(node_name),
+                 "threading.cpu-affinity.%d.worker-cpu-set.cpu.0",
+                 default_threading_modules_idx.worker);
+        ConfSetFinal(node_name, cfg->threading0cpu_affinity0worker_cpu_set0cpu);
     }
 }
 
@@ -234,8 +441,8 @@ SuricataCfg CfgGetDefault(void) {
         .outputs0callback0http0extended = SCStrdup("yes"),
         .outputs0content_snip0enabled = SCStrdup("false"),
         .outputs0content_snip0dir = SCStrdup("pcaps"),
+        .outputs0file_store0enabled = SCStrdup("false"),
         .outputs0lua0enabled = SCStrdup("false"),
-        .outputs0file_store0enabled = SCStrdup("false")
     };
     return c;
 }
@@ -255,55 +462,8 @@ int CfgLoadYaml(const char *filename, SuricataCfg *cfg) {
         return ret;
     }
 
-    /* Loop over the output modules and update the indices since they might differ from the default
-     * ones above. */
-    ConfNode *outputs = ConfGetNode("outputs");
-
-    if (outputs != NULL) {
-        ConfNode *output, *child;
-
-        TAILQ_FOREACH(output, &outputs->head, next) {
-            child = ConfNodeLookupChild(output, output->val);
-
-            if (child == NULL) {
-                /* Should not happen but ignore anyway. */
-                continue;
-            }
-
-            if (strncmp(child->name, "file-store", 10) == 0) {
-                default_output_modules_idx.filestore = atoi(output->name);
-            } else if (strncmp(child->name, "callback", 8) == 0) {
-                default_output_modules_idx.callback = atoi(output->name);
-            } else if (strncmp(child->name, "content-snip", 12) == 0) {
-                default_output_modules_idx.content_snip = atoi(output->name);
-            } else if (strncmp(child->name, "lua", 3) == 0) {
-                default_output_modules_idx.lua = atoi(output->name);
-            }
-        }
-    }
-
-    /* Same process for the logging modules. */
-    outputs = ConfGetNode("logging.outputs");
-    if (outputs != NULL) {
-        ConfNode *output, *child;
-
-        TAILQ_FOREACH(output, &outputs->head, next) {
-            child = ConfNodeLookupChild(output, output->val);
-
-            if (child == NULL) {
-                /* Should not happen but ignore anyway. */
-                continue;
-            }
-
-            if (strncmp(child->name, "console", 7) == 0) {
-                default_logging_modules_idx.console = atoi(output->name);
-            } else if (strncmp(child->name, "file", 4) == 0) {
-                default_logging_modules_idx.file = atoi(output->name);
-            } else if (strncmp(child->name, "callback", 8) == 0) {
-                default_logging_modules_idx.callback = atoi(output->name);
-            }
-        }
-    }
+    /* Update module indices after reading the yaml file. */
+    CfgUpdateModuleIndices();
 
     /* Configuration is now parsed. Iterate over the struct fields, setting the relevant fields. */
 #define CFG_ENTRY(name) do {                                                                    \
@@ -315,7 +475,7 @@ int CfgLoadYaml(const char *filename, SuricataCfg *cfg) {
                                                                                                 \
         const char *value;                                                                      \
         if (ConfGetValue(node_name, &value) == 1) {                                             \
-           const char *copy = SCStrdup(value);                                                  \
+            const char *copy = SCStrdup(value);                                                 \
             if (unlikely(copy == NULL)) {                                                       \
                 SCLogError("Failed to allocate memory for config node: %s", node_name);         \
                 SCFree((void *)node_name);                                                      \
@@ -334,21 +494,9 @@ int CfgLoadYaml(const char *filename, SuricataCfg *cfg) {
     CFG_FIELDS
 #undef CFG_ENTRY
 
-    /* Handle "rule-files", "outputs.callback.nta.tls.custom" and "outputs.lua.scripts" and
-     * "outputs.filestore.force-hash" separately as they are a sequence objects in the yaml. */
-    CfgSetSequence(cfg, "rule-files");
-
-    char name[64];
-    snprintf(name, sizeof(name), "outputs.%d.callback.nta.tls.custom",
-             default_output_modules_idx.callback);
-    CfgSetSequence(cfg, name);
-
-    snprintf(name, sizeof(name), "outputs.%d.lua.scripts", default_output_modules_idx.lua);
-    CfgSetSequence(cfg, name);
-
-    snprintf(name, sizeof(name), "outputs.%d.file-store.force-hash",
-             default_output_modules_idx.filestore);
-    CfgSetSequence(cfg, name);
+    /* Handle yaml sequence objects. Those need to be converted in a comma separated string to be
+     * stored in the config struct. */
+    CfgLoadSequences(cfg);
 
     /* Deinit reinit the configuration tree used later by the engine. */
     ConfDeInit();
@@ -373,12 +521,7 @@ int CfgLoadStruct(SuricataCfg *cfg) {
                return !ret;                                                                     \
            }                                                                                    \
                                                                                                 \
-           /* TODO: this is ugly, refactor at some point. */                                    \
-           if (strncmp(node_name, "rule-files", 10) == 0 ||                                     \
-               strstr(node_name, "callback.nta.tls.custom") != NULL ||                          \
-               (strstr(node_name, "lua.scripts") != NULL &&                                     \
-                strstr(node_name, "lua.scripts-dir") == NULL) ||                                \
-               strstr(node_name, "file-store.force-hash") != NULL) {                            \
+           if (CfgIsNodeSequenceAsString(node_name)) {                                          \
                /* Handle these nodes differently because they are a sequence of comma           \
                 * separated values. */                                                          \
                ret = ConfSetFromSequence(node_name, cfg->name);                                 \
@@ -398,28 +541,7 @@ int CfgLoadStruct(SuricataCfg *cfg) {
 
     /* Need to set in the configuration tree an additional node for each output module as it is
      * a sequence in the yaml. */
-    char node_name[32] = {0};
-
-    snprintf(node_name, 32, "outputs.%d", default_output_modules_idx.filestore);
-    ConfSetFinal(node_name, "file-store");
-
-    snprintf(node_name, 32, "outputs.%d", default_output_modules_idx.callback);
-    ConfSetFinal(node_name, "callback");
-
-    snprintf(node_name, 32, "outputs.%d", default_output_modules_idx.content_snip);
-    ConfSetFinal(node_name, "content-snip");
-
-    snprintf(node_name, 32, "outputs.%d", default_output_modules_idx.lua);
-    ConfSetFinal(node_name, "lua");
-
-    snprintf(node_name, 32, "logging.outputs.%d", default_logging_modules_idx.console);
-    ConfSetFinal(node_name, "console");
-
-    snprintf(node_name, 32, "logging.outputs.%d", default_logging_modules_idx.file);
-    ConfSetFinal(node_name, "file");
-
-    snprintf(node_name, 32, "logging.outputs.%d", default_logging_modules_idx.callback);
-    ConfSetFinal(node_name, "callback");
+    CfgFinalizeSequences(cfg);
 
     return 0;
 }

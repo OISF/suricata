@@ -2979,10 +2979,6 @@ int SuricataInit(const char *progname)
         exit(EXIT_SUCCESS);
     }
 
-    return EXIT_SUCCESS;
-}
-
-void SuricataPostInit(void) {
     SCSetStartTime(&suricata);
 
     RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode,
@@ -2992,6 +2988,10 @@ void SuricataPostInit(void) {
         UnixManagerThreadSpawnNonRunmode(suricata.unix_socket_enabled);
     }
 
+    return EXIT_SUCCESS;
+}
+
+void SuricataPostInit(void) {
     /* Wait till all the threads have been initialized */
     if (TmThreadWaitOnThreadInit() == TM_ECODE_FAILED) {
         FatalError("Engine initialization failed, "
