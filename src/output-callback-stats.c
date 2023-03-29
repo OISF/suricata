@@ -8,8 +8,11 @@
  */
 
 #include "suricata-common.h"
+#include "output.h"
 #include "output-callback-stats.h"
 #include "util-debug.h"
+
+#define MODULE_NAME "CallbackStatsLog"
 
 
 typedef struct CallbackStatsCtx {
@@ -20,53 +23,62 @@ typedef struct CallbackStatsCtx {
 
 static CallbackStatsCtx StatsCtx;
 
-void CallbackStatsLogInit(void *user_ctx, CallbackFuncStats cb) {
-    bool stats_totals = true;
-    bool stats_per_thread = false;
+/* Mock ThreadInit/DeInit methods.
+ * Callback doest store any per-thread information. */
+static TmEcode CallbackStatsLogThreadInit(ThreadVars *t, const void *initdata, void **data) {
+    return TM_ECODE_OK;
+}
 
-    memset(&StatsCtx, 0, sizeof(StatsCtx));
+static TmEcode CallbackStatsLogThreadDeinit(ThreadVars *t, void *data) {
+    return TM_ECODE_OK;
+}
 
+void CallbackStatsRegisterCallback(void *user_ctx, CallbackFuncStats cb) {
     StatsCtx.cb = cb;
     StatsCtx.user_ctx = user_ctx;
+}
 
-    ConfNode *root = ConfGetNode("outputs");
-    ConfNode *node = NULL;
-    ConfNode *stats = NULL;
-    if (root != NULL) {
-        TAILQ_FOREACH(node, &root->head, next) {
-            if (strcmp(node->val, "stats") == 0) {
-                stats = node->head.tqh_first;
-                break;
-            }
-        }
+static OutputInitResult CallbackStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx) {
+    OutputInitResult result = { NULL, false };
+
+    if (!StatsEnabled()) {
+        SCLogError("callback.stats: stats are disabled globally: set stats.enabled to true.");
+        return result;
     }
 
-    if (stats != NULL) {
-        int b;
-        int ret = ConfGetChildValueBool(stats, "totals", &b);
-        if (ret) {
-            stats_totals = (b == 1);
-        }
-        ret = ConfGetChildValueBool(stats, "threads", &b);
-        if (ret) {
-            stats_per_thread = (b == 1);
-        }
-    }
+    /* Enable aggregated stats by default. */
+    StatsCtx.flags = JSON_STATS_TOTALS;
 
-    if (stats_totals) {
-        StatsCtx.flags |= JSON_STATS_TOTALS;
-    }
-    if (stats_per_thread) {
-        StatsCtx.flags |= JSON_STATS_THREADS;
+    if (conf != NULL) {
+        const char *totals = ConfNodeLookupChildValue(conf, "totals");
+        const char *threads = ConfNodeLookupChildValue(conf, "threads");
+
+        SCLogDebug("totals %s threads %s", totals, threads);
+
+        if ((totals != NULL && ConfValIsFalse(totals)) &&
+            (threads != NULL && ConfValIsFalse(threads))) {
+            SCLogError("Cannot disable both totals and threads in stats logging");
+            return result;
+        }
+
+        if (totals != NULL && ConfValIsFalse(totals)) {
+            StatsCtx.flags &= ~JSON_STATS_TOTALS;
+        }
+        if (threads != NULL && ConfValIsTrue(threads)) {
+            StatsCtx.flags |= JSON_STATS_THREADS;
+        }
     }
 
     SCLogDebug("stats flags %08x", flags);
+
+    result.ok = true;
+    return result;
 }
 
-void CallbackStatsLogger(const StatsTable *st) {
+int CallbackStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st) {
     if (StatsCtx.cb == NULL) {
         SCLogError("Stats callback is NULL, stats cannot be provided");
-        return;
+        return 0;
     }
 
     struct timeval tval;
@@ -74,7 +86,7 @@ void CallbackStatsLogger(const StatsTable *st) {
 
     json_t *js = json_object();
     if (unlikely(js == NULL)) {
-        return;
+        return 0;
     }
 
     char timebuf[64];
@@ -85,7 +97,7 @@ void CallbackStatsLogger(const StatsTable *st) {
     json_t *js_stats = StatsToJSON(st, StatsCtx.flags);
     if (js_stats == NULL) {
         json_decref(js);
-        return;
+        return 0;
     }
 
     json_object_set_new(js, "stats", js_stats);
@@ -101,4 +113,11 @@ void CallbackStatsLogger(const StatsTable *st) {
     json_object_del(js, "stats");
     json_object_clear(js);
     json_decref(js);
+    return 0;
+}
+
+void CallbackStatsLogRegister(void) {
+    OutputRegisterStatsSubModule(LOGGER_CALLBACK_STATS, "callback", MODULE_NAME, "callback.stats",
+                                 CallbackStatsLogInitSub, CallbackStatsLogger,
+                                 CallbackStatsLogThreadInit, CallbackStatsLogThreadDeinit, NULL);
 }

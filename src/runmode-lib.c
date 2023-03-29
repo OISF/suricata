@@ -45,11 +45,18 @@ int RunModeIdsLibLive(void) {
  *  This method just creates a context representing the worker, which is handled from the library
  *  client. No actual thread (pthread_t) is created.
  *
- *  \return Pointer to ThreadVars structure representing the worker thread */
-void *RunModeCreateWorker(void) {
+ * \param interface The interface name this worker is linked to (optional).
+ * \return Pointer to ThreadVars structure representing the worker thread */
+void *RunModeCreateWorker(const char *interface) {
     char tname[TM_THREAD_NAME_MAX];
     TmModule *tm_module = NULL;
     snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, ++g_thread_id);
+
+    if (interface) {
+        /* Append the interface name to the worker name. */
+        size_t tname_len = strlen(tname);
+        snprintf(tname + tname_len, sizeof(tname) - tname_len, "-%s", interface);
+    }
 
     ThreadVars *tv = TmThreadCreatePacketHandler(tname, "packetpool", "packetpool", "packetpool",
                                                  "packetpool", "lib");

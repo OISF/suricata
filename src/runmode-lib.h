@@ -22,8 +22,9 @@ int RunModeIdsLibOffline(void);
  *  This method just creates a context representing the worker, which is handled from the library
  *  client. No actual thread (pthread_t) is created.
  *
- *  \return Pointer to ThreadVars structure representing the worker thread */
-void *RunModeCreateWorker(void);
+ * \param interface The interface name this worker is linked to (optional).
+ * \return Pointer to ThreadVars structure representing the worker thread */
+void *RunModeCreateWorker(const char *interface);
 
 /** \brief start the "fake" worker.
  *

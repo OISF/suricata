@@ -177,6 +177,10 @@
     CFG_ENTRY(outputs0callback0nta0smb)                                                            \
     CFG_ENTRY(outputs0callback0nta0tls0extended)                                                   \
     CFG_ENTRY(outputs0callback0nta0tls0custom)                                                     \
+    CFG_ENTRY(outputs0callback0stats0enabled)                                                      \
+    CFG_ENTRY(outputs0callback0stats0totals)                                                       \
+    CFG_ENTRY(outputs0callback0stats0threads)                                                      \
+    CFG_ENTRY(outputs0callback0stats0threads_compact)                                              \
     CFG_ENTRY(outputs0lua0enabled)                                                                 \
     CFG_ENTRY(outputs0lua0scripts_dir)                                                             \
     CFG_ENTRY(outputs0lua0scripts)                                                                 \
@@ -188,11 +192,6 @@
     CFG_ENTRY(outputs0file_store0force_magic)                                                      \
     CFG_ENTRY(outputs0file_store0stream_depth)                                                     \
     CFG_ENTRY(outputs0file_store0write_fileinfo)                                                   \
-    CFG_ENTRY(outputs0stats0enabled)                                                               \
-    CFG_ENTRY(outputs0stats0append)                                                                \
-    CFG_ENTRY(outputs0stats0totals)                                                                \
-    CFG_ENTRY(outputs0stats0threads)                                                               \
-    CFG_ENTRY(outputs0stats0threads_compact)                                                       \
     CFG_ENTRY(pcre0match_limit)                                                                    \
     CFG_ENTRY(pcre0match_limit_recursion)                                                          \
     CFG_ENTRY(stats0enabled)                                                                       \

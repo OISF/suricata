@@ -177,7 +177,7 @@ void replay_stream(ThreadCtx *tc, HandlerCtx *hc) {
 
 void *suricataWorker(void *td) {
     ThreadCtx *tc = (ThreadCtx *)td;
-    ThreadVars *tv = suricata_initialise_worker_thread(tc->ctx);
+    ThreadVars *tv = suricata_initialise_worker_thread(tc->ctx, NULL);
     HandlerCtx hc = {tv, 0, 0, 0, 0, 0, tc->user_ctx};
     struct timeval start_ts, end_ts;
 

@@ -25,7 +25,6 @@
 /* Output modules indices */
 typedef struct OutputModulesIdx {
     int invalid;
-    int stats;
     int filestore;
     int content_snip;
     int callback;
@@ -43,7 +42,7 @@ typedef struct LoggingModulesIdx {
 /* Default output modules indices.
  * These can change if we load a yaml file and we need to make sure we avoid ending up with
    overlapping indices. */
-static OutputModulesIdx default_output_modules_idx = {-1, 1, 3, 6, 9, 12};
+static OutputModulesIdx default_output_modules_idx = {-1, 1, 3, 6, 9};
 
 /* Default logging modules indices. */
 static LoggingModulesIdx default_logging_modules_idx = {-1, 0, 1, 2};
@@ -51,8 +50,8 @@ static LoggingModulesIdx default_logging_modules_idx = {-1, 0, 1, 2};
 /** \brief Mangle a SuricataCfg field into the format of the Configuration tree.
   *        This means replacing '_' characters with '-' and '0' with '.'.
   *        Allow '_' within the "vars" leaf nodes.
-  *        For output modules (filestore/stats) we also need to add the index as it is a sequence
-  *        in the yaml.
+  *        For output modules (filestore/flowsnip) we also need to add the index as it is a
+  *        sequence in the yaml.
   *
   * \param field           The SuricataCfg field.
   * \param idx_from_yaml   The output module sequence index when loading a yaml file.
@@ -82,9 +81,7 @@ static const char *mangleCfgField(const char *field) {
     if(strncmp(out, "outputs", 7) == 0) {
         uint8_t idx = default_output_modules_idx.invalid;
 
-        if (strncmp(out + 8, "stats", 5) == 0) {
-            idx = default_output_modules_idx.stats;
-        } else if (strncmp(out + 8, "file-store", 10) == 0) {
+        if (strncmp(out + 8, "file-store", 10) == 0) {
             idx = default_output_modules_idx.filestore;
         } else if (strncmp(out + 8, "callback", 8) == 0) {
             idx = default_output_modules_idx.callback;
@@ -238,8 +235,7 @@ SuricataCfg CfgGetDefault(void) {
         .outputs0content_snip0enabled = SCStrdup("false"),
         .outputs0content_snip0dir = SCStrdup("pcaps"),
         .outputs0lua0enabled = SCStrdup("false"),
-        .outputs0file_store0enabled = SCStrdup("false"),
-        .outputs0stats0enabled = SCStrdup("false")
+        .outputs0file_store0enabled = SCStrdup("false")
     };
     return c;
 }
@@ -274,9 +270,7 @@ int CfgLoadYaml(const char *filename, SuricataCfg *cfg) {
                 continue;
             }
 
-            if (strncmp(child->name, "stats", 5) == 0) {
-                default_output_modules_idx.stats = atoi(output->name);
-            } else if (strncmp(child->name, "file-store", 10) == 0) {
+            if (strncmp(child->name, "file-store", 10) == 0) {
                 default_output_modules_idx.filestore = atoi(output->name);
             } else if (strncmp(child->name, "callback", 8) == 0) {
                 default_output_modules_idx.callback = atoi(output->name);
@@ -405,9 +399,6 @@ int CfgLoadStruct(SuricataCfg *cfg) {
     /* Need to set in the configuration tree an additional node for each output module as it is
      * a sequence in the yaml. */
     char node_name[32] = {0};
-
-    snprintf(node_name, 32, "outputs.%d", default_output_modules_idx.stats);
-    ConfSetFinal(node_name, "stats");
 
     snprintf(node_name, 32, "outputs.%d", default_output_modules_idx.filestore);
     ConfSetFinal(node_name, "file-store");

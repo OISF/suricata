@@ -69,6 +69,7 @@
 #include "output-callback-file.h"
 #include "output-json-file.h"
 #include "output-json-smtp.h"
+#include "output-callback-stats.h"
 #include "output-json-stats.h"
 #include "log-tcp-data.h"
 #include "log-stats.h"
@@ -1111,6 +1112,7 @@ void OutputRegisterLoggers(void)
     JsonNetFlowLogRegister();
     /* json stats */
     JsonStatsLogRegister();
+    CallbackStatsLogRegister();
 
     /* DNP3. */
     JsonDNP3LogRegister();

@@ -6,7 +6,7 @@
  * Generate KRB5 events and invoke corresponding callback (NTA).
  *
  */
-#include "output-callback-dns.h"
+#include "output-callback-krb5.h"
 #include "suricata-common.h"
 #include "app-layer-parser.h"
 #include "output-json.h"

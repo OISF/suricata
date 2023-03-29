@@ -310,7 +310,7 @@ static void StatsInitCtxPostOutput(void)
         FatalError("error initializing sts mutex");
     }
 
-    if (stats_enabled && !OutputStatsLoggersRegistered() && RunmodeGetCurrent() != RUNMODE_LIB) {
+    if (stats_enabled && !OutputStatsLoggersRegistered()) {
         stats_loggers_active = 0;
 
         /* if the unix command socket is enabled we do the background
@@ -846,7 +846,7 @@ void StatsPoll(void) {
 
     StatsCompute();
 
-    CallbackStatsLogger(&stats_table);
+    CallbackStatsLogger(NULL, NULL, &stats_table);
 }
 
 #ifdef BUILD_UNIX_SOCKET

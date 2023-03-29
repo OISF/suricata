@@ -16,6 +16,7 @@
 #include "util-callbacks.h"
 
 
-void CallbackStatsLogInit(void *user_ctx, CallbackFuncStats cb);
-void CallbackStatsLogger(const StatsTable *st);
+int CallbackStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st);
+void CallbackStatsLogRegister(void);
+void CallbackStatsRegisterCallback(void *user_ctx, CallbackFuncStats cb);
 #endif /* __OUTPUT_CALLBACK_STATS_H__ */

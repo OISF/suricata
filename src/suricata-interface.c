@@ -181,9 +181,11 @@ void suricata_register_sig_cb(SuricataCtx *ctx, CallbackFuncSig callback) {
  * \param callback       Pointer to a callback function.
  */
 void suricata_register_stats_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncStats callback) {
-    /* Enable stats in the config and initialize callback module. */
+    CallbackStatsRegisterCallback(user_ctx, callback);
+
+    /* Enable stats globally and stats callback in the config. */
     CfgSet(ctx->cfg, "stats.enabled", "yes");
-    CallbackStatsLogInit(user_ctx, callback);
+    CfgSet(ctx->cfg, "outputs.callback.stats.enabled", "yes");
 }
 
 /**
@@ -284,10 +286,11 @@ void suricata_init(SuricataCtx *ctx) {
  * is not managed by the library, i.e it needs to be created and destroyed by the user.
  * This function has to be invoked before "suricata_handle_packet" or "suricata_handle_stream".
  *
- * \param ctx Pointer to the Suricata context.
- * \return    Pointer to the worker context.
+ * \param ctx       Pointer to the Suricata context.
+ * \param interface The interface name this worker is linked to (optional).
+ * \return          Pointer to the worker context.
  */
-ThreadVars *suricata_initialise_worker_thread(SuricataCtx *ctx) {
+ThreadVars *suricata_initialise_worker_thread(SuricataCtx *ctx, const char *interface) {
     pthread_mutex_lock(&ctx->lock);
 
     if (ctx->n_workers_created == ctx->n_workers) {
@@ -295,7 +298,7 @@ ThreadVars *suricata_initialise_worker_thread(SuricataCtx *ctx) {
         return NULL;
     }
 
-    ThreadVars *tv = RunModeCreateWorker();
+    ThreadVars *tv = RunModeCreateWorker(interface);
     ctx->n_workers_created++;
     pthread_mutex_unlock(&ctx->lock);
 

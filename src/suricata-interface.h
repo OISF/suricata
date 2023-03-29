@@ -173,12 +173,13 @@ void suricata_init(SuricataCtx *ctx);
  *
  * This function is meant to be invoked by a thread in charge of processing packets. The thread
  * is not managed by the library, i.e it needs to be created and destroyed by the user.
- * This function has to be invoked before "suricata_handle_packet".
+ * This function has to be invoked before "suricata_handle_packet" or "suricata_handle_stream".
  *
- * \param ctx Pointer to the Suricata context.
- * \return    Pointer to the worker context.
+ * \param ctx       Pointer to the Suricata context.
+ * \param interface The interface name this worker is linked to (optional).
+ * \return          Pointer to the worker context.
  */
-ThreadVars *suricata_initialise_worker_thread(SuricataCtx *ctx);
+ThreadVars *suricata_initialise_worker_thread(SuricataCtx *ctx, const char *interface);
 
 /**
  * \brief Suricata post initialization tasks.
