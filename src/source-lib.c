@@ -127,6 +127,13 @@ TmEcode DecodeLib(ThreadVars *tv, Packet *p, void *data) {
 int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
                             struct timeval ts, uint32_t len, int ignore_pkt_checksum,
                             uint64_t *tenant_uuid, uint32_t tenant_id, void *user_ctx) {
+
+    /* If the packet is NULL, consider it as a read timeout. */
+    if (data == NULL) {
+        TmThreadsCaptureHandleTimeout(tv, NULL);
+        SCReturnInt(TM_ECODE_OK);
+    }
+
     Packet *p = PacketGetFromQueueOrAlloc();
 
     if (unlikely(p == NULL)) {

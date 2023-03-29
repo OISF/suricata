@@ -328,6 +328,7 @@ int LiveDeviceListClean(void)
         SCFree(pd);
     }
 
+    TAILQ_INIT(&live_devices);
     SCReturnInt(TM_ECODE_OK);
 }
 
