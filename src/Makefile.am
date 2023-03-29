@@ -606,7 +606,7 @@ noinst_HEADERS = \
 	win32-syscall.h \
 	win32-syslog.h
 
-libsuricata_c_a_SOURCES = \
+libsuricata_la_SOURCES = \
 	alert-debuglog.c \
 	alert-fastlog.c \
 	alert-syslog.c \
@@ -1312,6 +1312,9 @@ EXTRA_DIST = \
 	tests/detect.c \
 	tests/stream-tcp.c
 
+libsuricata_la_LDFLAGS = -release $(VERSION)
+libsuricata_la_LIBADD = $(HTP_LDADD) $(RUST_LDADD) $(RUST_SURICATA_LIB) -lm
+
 install-headers:
 	mkdir -p $(DESTDIR)${includedir}/suricata
 	for header in $(noinst_HEADERS); do \
@@ -1321,51 +1324,26 @@ install-headers:
 # set the include path found by configure
 AM_CPPFLAGS = $(all_includes)
 
-lib_LIBRARIES = libsuricata_c.a
+lib_LTLIBRARIES = libsuricata.la
 library_includedir = $(includedir)/$(GENERIC_LIBRARY_NAME)
 library_include_HEADERS = $(h_sources)
 
 suricata_SOURCES = main.c
 
 # the library search path.
-suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS} -Wl,--whole-archive,libsuricata_c.a,--no-whole-archive
-suricata_LDADD = $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
-suricata_DEPENDENCIES = libsuricata_c.a
+suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
 
-if BUILD_SHARED_LIBRARY
-libsuricata.so.$(VERSION): libsuricata_c.a
-	$(CC) -shared -o $@ -Wl,-soname,$@ -Wl,--whole-archive \
-		libsuricata_c.a \
-		$(RUST_SURICATA_LIB) \
-		-Wl,--no-whole-archive
-libsuricata.so: libsuricata.so.$(VERSION)
-else
-libsuricata.so:
-	@echo "shared library support not enabled"
-	@exit 1
+if !BUILD_SHARED_LIBRARY
+suricata_LDFLAGS += -Wl,--whole-archive,$(RUST_SURICATA_LIB),--no-whole-archive
 endif
 
-if BUILD_SHARED_LIBRARY
-install-library: libsuricata.so.$(VERSION)
-else
-install-library:
-endif
-	$(MKDIR_P) "$(DESTDIR)$(libdir)"
-	$(INSTALL_DATA) libsuricata_c.a "$(DESTDIR)$(libdir)"
-if BUILD_SHARED_LIBRARY
-	$(INSTALL) libsuricata.so.$(VERSION) "$(DESTDIR)$(libdir)"
-	ln -sf libsuricata.so.$(VERSION) "$(DESTDIR)$(libdir)/libsuricata.so"
-endif
-
-uninstall-local:
-	rm -f "$(DESTDIR)$(libdir)/libsuricata_c.a"
-	rm -f "$(DESTDIR)$(libdir)/libsuricata.so"
-	rm -f "$(DESTDIR)$(libdir)/libsuricata.$(VERSION)"
+suricata_LDADD = libsuricata.la
+suricata_DEPENDENCIES = libsuricata.la
 
 if BUILD_FUZZTARGETS
 
 LDFLAGS_FUZZ = $(all_libraries) $(SECLDFLAGS)
-LDADD_FUZZ = libsuricata_c.a $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+LDADD_FUZZ = libsuricata.la
 
 fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c
 fuzz_applayerprotodetectgetproto_LDFLAGS = $(LDFLAGS_FUZZ)

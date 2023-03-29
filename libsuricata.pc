@@ -6,6 +6,5 @@ includedir=${prefix}/include
 Name: LibSuricata
 Description: Next Generation Intrusion Detection and Prevention System (library version).
 Version: 6.0.4
-Requires.private: breakpad-client, htp, jansson, libcap-ng, libhs, liblz4, libpcre, luajit, nspr, nss, yaml-0.1, zlib
-Libs: -Wl,--whole-archive,-lsuricata_c,--no-whole-archive -lsuricata_rust -lbreakpad_client -lcap-ng -ldl -lhtp -lhs -ljansson -llltic_sql_client -lluajit-5.1 -llz4 -lmagic -lnspr4 -lnet -lnss3 -lpcap -lpcre -lyaml -lz
-Cflags: -I${includedir}
+Requires.private: luajit, nss
+Libs: -lsuricata
