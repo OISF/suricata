@@ -377,7 +377,7 @@ static int NetmapConfigGeThreadsCount(void *conf)
 
 int NetmapRunModeIsIPS(void)
 {
-    int nlive = LiveGetDeviceCount();
+    int nlive = LiveGetDeviceNameCount();
     int ldev;
     ConfNode *if_root;
     ConfNode *if_default = NULL;
@@ -394,7 +394,7 @@ int NetmapRunModeIsIPS(void)
     if_default = ConfNodeLookupKeyValue(netmap_node, "interface", "default");
 
     for (ldev = 0; ldev < nlive; ldev++) {
-        const char *live_dev = LiveGetDeviceName(ldev);
+        const char *live_dev = LiveGetDeviceNameName(ldev);
         if (live_dev == NULL) {
             SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
             return 0;
@@ -426,7 +426,7 @@ int NetmapRunModeIsIPS(void)
                 "Netmap using both IPS and TAP/IDS mode, this will not be "
                 "allowed in Suricata 8 due to undefined behavior. See ticket #5588.");
         for (ldev = 0; ldev < nlive; ldev++) {
-            const char *live_dev = LiveGetDeviceName(ldev);
+            const char *live_dev = LiveGetDeviceNameName(ldev);
             if (live_dev == NULL) {
                 SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
                 return 0;
