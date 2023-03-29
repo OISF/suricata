@@ -55,9 +55,10 @@
 #include "output-json-drop.h"
 #include "output-eve-stream.h"
 #include "log-httplog.h"
-#include "output-callback-http.h"
 #include "output-json-http.h"
+#include "output-callback-http.h"
 #include "output-json-dns.h"
+#include "output-callback-dns.h"
 #include "output-json-modbus.h"
 #include "log-tlslog.h"
 #include "log-tlsstore.h"
@@ -78,6 +79,7 @@
 #include "output-callback-smb.h"
 #include "output-json-ike.h"
 #include "output-json-krb5.h"
+#include "output-callback-krb5.h"
 #include "output-json-quic.h"
 #include "output-json-dhcp.h"
 #include "output-callback-dhcp.h"
@@ -1091,6 +1093,7 @@ void OutputRegisterLoggers(void)
     CallbackFileLogRegister();
     OutputFilestoreRegister();
     /* dns */
+    CallbackDnsLogRegister();
     JsonDnsLogRegister();
     /* modbus */
     JsonModbusLogRegister();
@@ -1125,7 +1128,9 @@ void OutputRegisterLoggers(void)
     /* IKE JSON logger. */
     JsonIKELogRegister();
     /* KRB5 JSON logger. */
+    /* KRB5 logger. */
     JsonKRB5LogRegister();
+    CallbackKrb5LogRegister();
     /* QUIC JSON logger. */
     JsonQuicLogRegister();
     /* DHCP JSON logger. */

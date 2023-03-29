@@ -5,6 +5,8 @@ Callback invoked for any NTA (Network Traffic Analysis) event. The following eve
 supported:
 
     * DHCP.
+    * DNS.
+    * KRB5.
     * SMB.
     * TLS.
 
@@ -28,6 +30,7 @@ defined as:
     typedef void (CallbackFuncNta)(
         void *data,
         size_t len,
+        const char *event_type,
         uint64_t *tenant_uuid,
         void *user_ctx
     );
@@ -35,6 +38,7 @@ defined as:
 Where:
     * *data* is a JSON formatted string representing the event.
     * *len* is the length of the JSON string.
+    * *event_type* is the event type of the reported event.
     * *tenant_uuid* is the UUID of the (flow) tenant associated to the alert.
     * *user_ctx* is a pointer to a user-defined context that will be passed along when invoking the
       callback.

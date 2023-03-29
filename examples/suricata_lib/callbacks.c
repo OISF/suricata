@@ -66,7 +66,8 @@ void callbackHttp(HttpEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
 }
 
 /* Callback invoked for each NTA event. */
-void callbackNta(void *data, size_t len, uint64_t *tenant_uuid, void *user_ctx) {
+void callbackNta(void *data, size_t len, const char *event_type, uint64_t *tenant_uuid,
+                 void *user_ctx) {
     if (user_ctx == NULL) {
         return;
     }

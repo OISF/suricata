@@ -58,7 +58,7 @@ static int CallbackSmbLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     jb_close(jb);
 
     /* Invoke NTA callback. */
-    tv->callbacks->nta((void *)jb_ptr(jb), jb_len(jb), f->tenant_uuid, f->user_ctx);
+    tv->callbacks->nta((void *)jb_ptr(jb), jb_len(jb), "smb", f->tenant_uuid, f->user_ctx);
 
     jb_free(jb);
     return TM_ECODE_OK;

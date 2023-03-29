@@ -167,9 +167,11 @@
     CFG_ENTRY(outputs0callback0http0xff0header)                                                    \
     CFG_ENTRY(outputs0callback0http0dump_all_headers)                                              \
     CFG_ENTRY(outputs0callback0nta0enabled)                                                        \
-    CFG_ENTRY(outputs0callback0nta0smb)                                                            \
     CFG_ENTRY(outputs0callback0nta0dhcp)                                                           \
     CFG_ENTRY(outputs0callback0nta0dhcp0extended)                                                  \
+    CFG_ENTRY(outputs0callback0nta0dns)                                                            \
+    CFG_ENTRY(outputs0callback0nta0krb5)                                                           \
+    CFG_ENTRY(outputs0callback0nta0smb)                                                            \
     CFG_ENTRY(outputs0callback0nta0tls)                                                            \
     CFG_ENTRY(outputs0callback0nta0tls0extended)                                                   \
     CFG_ENTRY(outputs0callback0nta0tls0custom)                                                     \

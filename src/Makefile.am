@@ -391,9 +391,11 @@ noinst_HEADERS = \
 	output-callback.h \
 	output-callback-alert.h \
 	output-callback-dhcp.h \
+	output-callback-dns.h \
 	output-callback-file.h \
 	output-callback-flow.h \
 	output-callback-http.h \
+	output-callback-krb5.h \
 	output-callback-smb.h \
 	output-callback-stats.h \
 	output-callback-tls.h \
@@ -979,9 +981,11 @@ libsuricata_c_a_SOURCES = \
 	output-callback.c \
 	output-callback-alert.c \
 	output-callback-dhcp.c \
+	output-callback-dns.c \
 	output-callback-file.c \
 	output-callback-flow.c \
 	output-callback-http.c \
+	output-callback-krb5.c \
 	output-callback-smb.c \
 	output-callback-stats.c \
 	output-callback-tls.c \

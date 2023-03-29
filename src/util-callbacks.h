@@ -43,6 +43,7 @@ typedef void (CallbackFuncHttp)(
 typedef void (CallbackFuncNta)(
     void *data,
     size_t len,
+    const char *event_type,
     uint64_t *tenant_uuid,
     void *user_ctx
 );
