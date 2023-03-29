@@ -21,6 +21,12 @@ typedef struct SuricataCtx {
     /* Configuration object. */
     SuricataCfg *cfg;
 
+    /* Whether the initialization step completed successfully. */
+    int init_done;
+
+    /* Whether the post initialization step completed successfully. */
+    int post_init_done;
+
     /* Number of workers that will be created. */
     int n_workers;
 

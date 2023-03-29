@@ -17,6 +17,9 @@ static TmEcode DecodeLibThreadInit(ThreadVars *tv, const void *initdata, void **
 static TmEcode DecodeLibThreadDeinit(ThreadVars *tv, void *data);
 static TmEcode DecodeLib(ThreadVars *tv, Packet *p, void *data);
 
+/* Set time to the first packet timestamp when replaying a PCAP. */
+static bool time_set = false;
+
 /** \brief register a "Decode" module for suricata as a library.
  *
  *  The "Decode" module is the first module invoked when processing a packet */
@@ -121,11 +124,16 @@ TmEcode DecodeLib(ThreadVars *tv, Packet *p, void *data) {
 int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
                             struct timeval ts, uint32_t len, int ignore_pkt_checksum,
                             uint64_t *tenant_uuid, uint32_t tenant_id, void *user_ctx) {
-
     Packet *p = PacketGetFromQueueOrAlloc();
 
     if (unlikely(p == NULL)) {
         SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    /* If we are processing a PCAP and it is the first packet we need to set the timestamp. */
+    if (!time_set && !TimeModeIsLive()) {
+        TmThreadsInitThreadsTimestamp(&ts);
+        time_set = true;
     }
 
     PKT_SET_SRC(p, PKT_SRC_WIRE);
@@ -163,8 +171,8 @@ int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
  * \param tenant_id       Tenant id of the detection engine to use.
  * \param user_ctx        Pointer to a user-defined context object.
  */
-static inline Packet * StreamPacketSetup(FlowStreamInfo *finfo, uint64_t *tenant_uuid,
-                                         uint32_t tenant_id, void *user_ctx) {
+static inline Packet *StreamPacketSetup(FlowStreamInfo *finfo, uint64_t *tenant_uuid,
+                                        uint32_t tenant_id, void *user_ctx) {
     Packet *p = PacketGetFromQueueOrAlloc();
 
     if (unlikely(p == NULL)) {
@@ -301,6 +309,12 @@ int TmModuleLibHandleStream(ThreadVars *tv, FlowStreamInfo *finfo, const uint8_t
     Packet *p = StreamPacketSetup(finfo, tenant_uuid, tenant_id, user_ctx);
     if (unlikely(p == NULL)) {
         SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    /* If we are processing a PCAP and it is the first packet we need to set the timestamp. */
+    if (!time_set && !TimeModeIsLive()) {
+        TmThreadsInitThreadsTimestamp(&finfo->ts);
+        time_set = true;
     }
 
     /* Set payload. */

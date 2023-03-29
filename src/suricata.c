@@ -2978,14 +2978,15 @@ int SuricataInit(const char *progname)
         exit(EXIT_SUCCESS);
     }
 
-    SCSetStartTime(&suricata);
-    RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode,
-                    suricata.capture_plugin_name, suricata.capture_plugin_args);
-
     return EXIT_SUCCESS;
 }
 
 void SuricataPostInit(void) {
+    SCSetStartTime(&suricata);
+
+    RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode,
+                    suricata.capture_plugin_name, suricata.capture_plugin_args);
+
     if (suricata.run_mode != RUNMODE_UNIX_SOCKET) {
         UnixManagerThreadSpawnNonRunmode(suricata.unix_socket_enabled);
     }
@@ -3053,9 +3054,6 @@ void SuricataShutdown(void) {
 
     /* kill remaining threads */
     TmThreadKillThreads();
-
-    GlobalsDestroy(&suricata);
-    return;
 }
 
 int SuricataMain(int argc, char **argv)
@@ -3086,6 +3084,7 @@ int SuricataMain(int argc, char **argv)
 
     /* Shutdown engine. */
     SuricataShutdown();
+    GlobalsDestroy(&suricata);
 
     exit(EXIT_SUCCESS);
 }

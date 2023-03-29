@@ -45,7 +45,7 @@
 #endif
 
 #if HAVE_CONFIG_H
-#include <autoconf.h>
+#include "autoconf.h"
 #endif
 
 #ifndef CLS
@@ -276,8 +276,8 @@ typedef unsigned char u_char;
 
 /* we need this to stringify the defines which are supplied at compiletime see:
    http://gcc.gnu.org/onlinedocs/gcc-3.4.1/cpp/Stringification.html#Stringification */
-#define xstr(s) str(s)
-#define str(s) #s
+#define xstr(s) stringify(s)
+#define stringify(s) #s
 
 #if CPPCHECK==1
     #define BUG_ON(x) if (((x))) exit(1)

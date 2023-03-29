@@ -62,6 +62,18 @@ SuricataCtx *suricata_create_ctx(int n_workers) {
 }
 
 /**
+ * \brief Helper function to destroy a SuricataCtx.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ */
+static void suricata_destroy_ctx(SuricataCtx *ctx) {
+    CfgFree(ctx->cfg);
+    free(ctx->cfg);
+    pthread_mutex_destroy(&ctx->lock);
+    free(ctx);
+}
+
+/**
  * \brief Register a callback that is invoked for every alert.
  *
  * \param ctx            Pointer to SuricataCtx.
@@ -255,7 +267,13 @@ void suricata_init(SuricataCtx *ctx) {
     }
 
     /* Invoke engine initialization. */
-    SuricataInit(SURICATA_PROGNAME);
+    if (SuricataInit(SURICATA_PROGNAME) == EXIT_FAILURE) {
+        GlobalsDestroy(GetInstance());
+        suricata_destroy_ctx(ctx);
+        exit(EXIT_FAILURE);
+    }
+
+    ctx->init_done = 1;
 }
 
 /**
@@ -296,7 +314,7 @@ void suricata_post_init(SuricataCtx *ctx) {
     }
 
     SuricataPostInit();
-    return;
+    ctx->post_init_done = 1;
 }
 
 /**
@@ -311,7 +329,6 @@ void suricata_deinit_worker_thread(SuricataCtx *ctx, ThreadVars *tv) {
     pthread_mutex_unlock(&ctx->lock);
 
     RunModeDestroyWorker(tv);
-    return;
 }
 
 
@@ -360,18 +377,18 @@ int suricata_handle_stream(ThreadVars *tv, FlowStreamInfo *finfo, const uint8_t 
  */
 void suricata_shutdown(SuricataCtx *ctx) {
     /* Wait till all the workers are done */
-    while(ctx->n_workers_done != ctx->n_workers) {
+    while(ctx->n_workers_done != ctx->n_workers_created) {
         usleep(10 * 1000);
     }
 
-    EngineDone(); /* needed only in offlne mode ?. */
-    SuricataShutdown();
+    if (ctx->post_init_done) {
+        EngineDone(); /* needed only in offlne mode ?. */
+        SuricataShutdown();
+    }
 
-    /* Cleanup the Suricata configuration. */
-    CfgFree(ctx->cfg);
-    free(ctx->cfg);
-    pthread_mutex_destroy(&ctx->lock);
-    free(ctx);
+    if (ctx->init_done) {
+        GlobalsDestroy(GetInstance());
+    }
 
-    return;
+    suricata_destroy_ctx(ctx);
 }

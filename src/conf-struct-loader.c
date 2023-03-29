@@ -334,29 +334,23 @@ int CfgLoadStruct(SuricataCfg *cfg) {
     /* Need to set in the configuration tree an additional node for each output module as it is
      * a sequence in the yaml. */
     char node_name[16] = {0};
-    if (cfg->outputs0stats0enabled) {
-            snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.stats);
-        ConfSetFinal(node_name, "stats");
-    }
-    if (cfg->outputs0file_store0enabled) {
-        snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.filestore);
-        ConfSetFinal(node_name, "file-store");
-    }
-    if (cfg->outputs0callback0enabled) {
-        snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.callback);
-        ConfSetFinal(node_name, "callback");
-    }
-    if (cfg->outputs0content_snip0enabled) {
-        snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.content_snip);
-        ConfSetFinal(node_name, "content-snip");
-    }
-    if (cfg->outputs0lua0enabled) {
-        snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.lua);
-        ConfSetFinal(node_name, "lua");
-    }
-    if (cfg->logging0outputs030callback0enabled) {
-        ConfSetFinal("logging.outputs.3", "callback");
-    }
+
+    snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.stats);
+    ConfSetFinal(node_name, "stats");
+
+    snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.filestore);
+    ConfSetFinal(node_name, "file-store");
+
+    snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.callback);
+    ConfSetFinal(node_name, "callback");
+
+    snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.content_snip);
+    ConfSetFinal(node_name, "content-snip");
+
+    snprintf(node_name, 16, "outputs.%d", default_output_modules_idx.lua);
+    ConfSetFinal(node_name, "lua");
+
+    ConfSetFinal("logging.outputs.3", "callback");
 
     return 0;
 }
@@ -371,7 +365,7 @@ int CfgLoadStruct(SuricataCfg *cfg) {
   */
 int CfgSet(SuricataCfg *cfg, const char *key, const char *val) {
     if (key == NULL || val == NULL) {
-        return -1;
+        return 0;
     }
 
     const char * mangled_key = mangleCfgField(key);

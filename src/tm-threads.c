@@ -1357,7 +1357,13 @@ static int TmThreadKillThread(ThreadVars *tv, int family)
     if (family != TVT_PPT) {
         /* join it and flag it as dead */
         pthread_join(tv->t, NULL);
+    } else {
+        /* join only if not running in library mode. */
+        if (GetInstance()->run_mode != RUNMODE_LIB) {
+            pthread_join(tv->t, NULL);
+        }
     }
+
     SCLogDebug("thread %s stopped", tv->name);
     TmThreadsSetFlag(tv, THV_DEAD);
     return 1;
