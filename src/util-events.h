@@ -47,10 +47,10 @@ typedef struct {
     /* Vland ids */
     uint16_t vlan_id[2];
     /* ICMP types and codes. */
-    uint8_t icmp_type;
-    uint8_t icmp_code;
-    uint8_t icmp_response_type;
-    uint8_t icmp_response_code;
+    int8_t icmp_type;
+    int8_t icmp_code;
+    int8_t icmp_response_type;
+    int8_t icmp_response_code;
     /* XFF info */
     const char *xff;
 } Common;
@@ -64,7 +64,7 @@ typedef struct HttpHeader {
 /* Struct representing an Http transactions. Included in variious events. */
 typedef struct HttpInfo {
     /* Transaction id, for correlation with other events */
-    uint64_t tx_id;
+    int tx_id;
     /* Hostname */
     bstr *hostname;
     /* Method */
@@ -121,7 +121,7 @@ typedef struct Alert{
     const char *category;
     const char *metadata;
     /* Transaction id, for correlation with other events */
-    uint64_t tx_id;
+    int tx_id;
     /* Tenant id (suricata) */
     uint32_t tenant_id_suri;
 } Alert;
@@ -216,7 +216,7 @@ typedef struct FileinfoEvent {
         /* File end */
         uint64_t end;
         /* Transaction id, for correlation with other events */
-        uint64_t tx_id;
+        int tx_id;
     } fileinfo;
 
     /* App layer event information, if any */

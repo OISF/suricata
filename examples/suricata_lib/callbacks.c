@@ -1,7 +1,6 @@
 /* Callbacks for various suricata events. */
-
+#include "suricata-interface-events.h"
 #include "callbacks.h"
-#include "eve.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -13,8 +12,17 @@ void callbackAlert(AlertEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
         return;
     }
 
+    char *data = NULL;
+    size_t len = 0;
     FILE *eve_fp = (FILE *)user_ctx;
-    logAlert(eve_fp, event);
+
+    suricata_alert_to_json(event, &data, &len);
+
+    /* Write line and append '\n'. */
+    fwrite(data, 1, len, eve_fp);
+    fwrite("\n", 1, 1, eve_fp);
+
+    free((void *)data);
 }
 
 /* Callback invoked for each Suricata Fileinfo event. */
@@ -24,8 +32,17 @@ void callbackFile(FileinfoEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
         return;
     }
 
+    char *data = NULL;
+    size_t len = 0;
     FILE *eve_fp = (FILE *)user_ctx;
-    logFileinfo(eve_fp, event);
+
+    suricata_fileinfo_to_json(event, &data, &len);
+
+    /* Write line and append '\n'. */
+    fwrite(data, 1, len, eve_fp);
+    fwrite("\n", 1, 1, eve_fp);
+
+    free((void *)data);
 }
 
 /* Callback invoked for each Suricata HTTP event. */
@@ -35,8 +52,17 @@ void callbackHttp(HttpEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
         return;
     }
 
+    char *data = NULL;
+    size_t len = 0;
     FILE *eve_fp = (FILE *)user_ctx;
-    logHttp(eve_fp, event);
+
+    suricata_http_to_json(event, &data, &len);
+
+    /* Write line and append '\n'. */
+    fwrite(data, 1, len, eve_fp);
+    fwrite("\n", 1, 1, eve_fp);
+
+    free((void *)data);
 }
 
 /* Callback invoked for each NTA event. */
@@ -46,7 +72,10 @@ void callbackNta(void *data, size_t len, uint64_t *tenant_uuid, void *user_ctx) 
     }
 
     FILE *eve_fp = (FILE *)user_ctx;
-    logNta(eve_fp, data, len);
+
+    /* Write line and append '\n'. */
+    fwrite(data, 1, len, eve_fp);
+    fwrite("\n", 1, 1, eve_fp);
 }
 
 /* Callback invoked for each Suricata Flow event. */
@@ -55,8 +84,17 @@ void callbackFlow(FlowEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
         return;
     }
 
+    char *data = NULL;
+    size_t len = 0;
     FILE *eve_fp = (FILE *)user_ctx;
-    logFlow(eve_fp, event);
+
+    suricata_flow_to_json(event, &data, &len);
+
+    /* Write line and append '\n'. */
+    fwrite(data, 1, len, eve_fp);
+    fwrite("\n", 1, 1, eve_fp);
+
+    free((void *)data);
 }
 
 /* Callback invoked for each Suricata FlowSnip event. */
@@ -65,8 +103,17 @@ void callbackFlowSnip(FlowSnipEvent *event, uint64_t *tenant_uuid, void *user_ct
         return;
     }
 
+    char *data = NULL;
+    size_t len = 0;
     FILE *eve_fp = (FILE *)user_ctx;
-    logFlowSnip(eve_fp, event);
+
+    suricata_flowsnip_to_json(event, &data, &len);
+
+    /* Write line and append '\n'. */
+    fwrite(data, 1, len, eve_fp);
+    fwrite("\n", 1, 1, eve_fp);
+
+    free((void *)data);
 }
 
 /* Callback invoked for each candidate signature. */
@@ -84,7 +131,10 @@ void callbackStats(void *data, size_t len, void *user_ctx) {
     }
 
     FILE *eve_fp = (FILE *)user_ctx;
-    logNta(eve_fp, data, len);
+
+    /* Write line and append '\n'. */
+    fwrite(data, 1, len, eve_fp);
+    fwrite("\n", 1, 1, eve_fp);
 }
 
 /* Callback invoked for each log message (testing only). */

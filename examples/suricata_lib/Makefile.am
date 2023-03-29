@@ -11,12 +11,10 @@ AM_CPPFLAGS += -I$(top_srcdir)/libhtp
 endif
 
 suricata_client_SOURCES = callbacks.c \
-                          eve.c \
                           preload.c \
                           main.c
 
 noinst_HEADERS = callbacks.h \
-                 eve.h \
                  preload.h
 
 # The library search path.

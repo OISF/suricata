@@ -188,10 +188,15 @@ SuricataCfg CfgGetDefault(void) {
         .runmode = SCStrdup("offline"), /* Default for PCAP/Stream replaying. */
         .flow0managers = SCStrdup("1"),
         .flow0recyclers = SCStrdup("1"),
+        .logging0outputs030callback0enabled = SCStrdup("false"),
         .luajit0states = SCStrdup("512"),
+        .outputs0callback0enabled = SCStrdup("false"),
         .outputs0callback0http0extended = SCStrdup("yes"),
         .outputs0content_snip0enabled = SCStrdup("false"),
-        .outputs0content_snip0dir = SCStrdup("pcaps")
+        .outputs0content_snip0dir = SCStrdup("pcaps"),
+        .outputs0lua0enabled = SCStrdup("false"),
+        .outputs0file_store0enabled = SCStrdup("false"),
+        .outputs0stats0enabled = SCStrdup("false")
     };
     return c;
 }

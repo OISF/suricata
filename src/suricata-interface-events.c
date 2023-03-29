@@ -1,10 +1,17 @@
-/* EVE output module. */
+/** \file
+ *
+ *  \author Angelo Mirabella <mirabellaa@vmware.com>
+ *
+ *  API to convert events to JSON.
+ *
+ *  Notice: all these methods transfer ownership of the generated JSON string to the caller. It is
+ *          up to the caller to free the received string.
+ */
 
-#include "suricata-common.h" /* Ordering matters here. */
+#include "suricata-interface-events.h"
+
 #include "rust.h"
-
-#include "eve.h"
-
+#include "util-debug.h"
 
 /* Log common information. */
 static void logCommon(JsonBuilder *jb, Common *common) {
@@ -117,10 +124,10 @@ static void logHttpInfoCommon(JsonBuilder *jb, HttpInfo *http_info) {
 
         char *p = strchr(content_type, ';');
         if (p != NULL) {
-            len = p - content_type;
+            *p = '\0';
         }
 
-        jb_set_string_from_bytes(jb, "http_content_type", content_type, len);
+        jb_set_string(jb, "http_content_type", content_type);
     }
 
     if (http_info->content_range_raw) {
@@ -247,24 +254,8 @@ static void logAlertCommon(JsonBuilder *jb, Alert *alert) {
     jb_close(jb);
 }
 
-/* Actual logging to file. */
-static void logLine(FILE *fp, const void *data, size_t len) {
-    char *line = malloc((len + 1) + sizeof(char));
-    if (line == NULL) {
-        fprintf(stderr, "Failed allocating buffer for logging EVE event");
-        return;
-    }
-
-    /* Copy buffer and append '\n'. */
-    memcpy(line, data, len);
-    line[len] = '\n';
-
-    fwrite(line, 1, len + 1, fp);
-    free((void *)line);
-}
-
-/* Log an Alert event. */
-void logAlert(FILE *fp, AlertEvent *event) {
+/* Convert an Alert event to JSON. */
+void suricata_alert_to_json(AlertEvent *event, char **data, size_t *len) {
     JsonBuilder *jb = jb_new_object();
 
     /* Log common info. */
@@ -295,14 +286,175 @@ void logAlert(FILE *fp, AlertEvent *event) {
         jb_set_object(jb, event->common.app_proto, (JsonBuilder *)event->app_layer.nta);
     }
 
-    /* Write JSON record. */
+    /* Copy JSON record and pass it to the caller. */
     jb_close(jb);
-    logLine(fp, jb_ptr(jb), jb_len(jb));
+    *len = jb_len(jb);
+    *data = malloc(*len * sizeof(char));
+    if (*data == NULL) {
+        SCLogError("Failed allocating buffer to convert event to JSON");
+        return;
+    }
+
+    memcpy(*data, jb_ptr(jb), *len);
     jb_free(jb);
 }
 
-/* Log an HTTP event. */
-void logHttp(FILE *fp, HttpEvent *event) {
+/* Convert a Fileinfo event to JSON. */
+void suricata_fileinfo_to_json(FileinfoEvent *event, char **data, size_t *len) {
+    JsonBuilder *jb = jb_new_object();
+
+    /* Log common info. */
+    logCommon(jb, &event->common);
+    jb_set_string(jb, "event_type", "fileinfo");
+
+    /* Log alert specific info. */
+    jb_open_object(jb, "fileinfo");
+    jb_set_string_from_bytes(jb, "filename", event->fileinfo.filename,
+                             event->fileinfo.filename_len);
+
+    jb_open_array(jb, "sid");
+    for (uint32_t i = 0; event->fileinfo.sids != NULL && i < event->fileinfo.sid_cnt; i++) {
+        jb_append_uint(jb, event->fileinfo.sids[i]);
+    }
+    jb_close(jb);
+
+    if (event->fileinfo.magic) {
+        jb_set_string(jb, "magic", event->fileinfo.magic);
+    }
+
+    jb_set_bool(jb, "gaps", event->fileinfo.gaps);
+    jb_set_string(jb, "state", event->fileinfo.state);
+    jb_set_uint(jb, "tx_id", event->fileinfo.tx_id);
+
+    if (event->fileinfo.md5) {
+        jb_set_string(jb, "md5", event->fileinfo.md5);
+    }
+
+    if (event->fileinfo.sha1) {
+        jb_set_string(jb, "sha1", event->fileinfo.sha1);
+    }
+
+    if (event->fileinfo.sha256) {
+        jb_set_string(jb, "sha256", event->fileinfo.sha256);
+    }
+
+    jb_set_bool(jb, "stored", event->fileinfo.stored);
+    if (event->fileinfo.stored) {
+        jb_set_uint(jb, "file_id", event->fileinfo.file_id);
+    }
+
+    jb_set_uint(jb, "size", event->fileinfo.size);
+    if (event->fileinfo.end > 0) {
+        jb_set_uint(jb, "start", event->fileinfo.start);
+        jb_set_uint(jb, "end", event->fileinfo.end);
+    }
+
+    /* Close Fileinfo object. */
+    jb_close(jb);
+
+    /* Handle app layer record if present. */
+    if (event->common.app_proto && strcmp(event->common.app_proto, "http") == 0 &&
+        event->app_layer.http) {
+        jb_open_object(jb, "http");
+        logHttpInfoCommon(jb, event->app_layer.http);
+        jb_close(jb);
+    } else if (event->app_layer.nta) {
+        jb_set_object(jb, event->common.app_proto, (JsonBuilder *)event->app_layer.nta);
+    }
+
+    jb_close(jb);
+
+    /* Copy JSON record and pass it to the caller. */
+    *len = jb_len(jb);
+    *data = malloc(*len * sizeof(char));
+    if (*data == NULL) {
+        SCLogError("Failed allocating buffer to convert event to JSON");
+        return;
+    }
+
+    memcpy(*data, jb_ptr(jb), *len);
+    jb_free(jb);
+}
+
+/* Convert a Flow event to JSON. */
+void suricata_flow_to_json(FlowEvent *event, char **data, size_t *len) {
+    JsonBuilder *jb = jb_new_object();
+
+    /* Log common info. */
+    logCommon(jb, &event->common);
+    jb_set_string(jb, "event_type", "flow");
+
+    /* Log flow specific info. */
+    logFlowCommon(jb, &event->flow);
+    logFlowExtended(jb, &event->flow, event->common.proto);
+
+    /* Copy JSON record and pass it to the caller. */
+    jb_close(jb);
+    *len = jb_len(jb);
+    *data = malloc(*len * sizeof(char));
+    if (*data == NULL) {
+        SCLogError("Failed allocating buffer to convert event to JSON");
+        return;
+    }
+
+    memcpy(*data, jb_ptr(jb), *len);
+    jb_free(jb);
+}
+
+/* Convert a FlowSnip event to JSON. */
+void suricata_flowsnip_to_json(FlowSnipEvent *event, char **data, size_t *len) {
+    JsonBuilder *jb = jb_new_object();
+
+    /* Log common info. */
+    logCommon(jb, &event->common);
+    jb_set_string(jb, "event_type", "flow-snip");
+
+    /* Log flow specific info. */
+    logFlowCommon(jb, &event->flow);
+    logFlowExtended(jb, &event->flow, event->common.proto);
+
+    /* Log flow snip specific info. */
+    jb_open_object(jb, "flow-snip");
+    jb_set_uint(jb, "snip_id", event->snip_id);
+    jb_set_uint(jb, "num_packets", event->num_packets);
+    jb_set_uint(jb, "pkt_cnt", event->pkt_cnt);
+    jb_set_string(jb, "timestamp_first", event->timestamp_first);
+    jb_set_string(jb, "timestamp_last", event->timestamp_last);
+
+    /* Log alerts .*/
+    if (event->alerts_size > 0) {
+        JsonBuilder *alertsjb = jb_new_array();
+
+        for (int i = 0; i < event->alerts_size; i++) {
+            JsonBuilder *obj = jb_new_object();
+            logAlertCommon(obj, &event->alerts[i]);
+            jb_close(obj);
+            jb_append_object(alertsjb, obj);
+            jb_free(obj);
+        }
+
+        jb_close(alertsjb);
+        jb_set_object(jb, "alerts", alertsjb);
+        jb_free(alertsjb);
+    }
+
+    jb_close(jb);
+
+    /* Copy JSON record and pass it to the caller. */
+    jb_close(jb);
+    *len = jb_len(jb);
+    *data = malloc(*len * sizeof(char));
+    if (*data == NULL) {
+        SCLogError("Failed allocating buffer to convert event to JSON");
+        return;
+    }
+
+    memcpy(*data, jb_ptr(jb), *len);
+    jb_free(jb);
+}
+
+/* Convert a HTTP event to JSON. */
+void suricata_http_to_json(HttpEvent *event, char **data, size_t *len) {
     JsonBuilder *jb = jb_new_object();
 
     /* Log common info. */
@@ -377,146 +529,15 @@ void logHttp(FILE *fp, HttpEvent *event) {
     /* Close HTTP object. */
     jb_close(jb);
 
-    /* Write JSON record. */
+    /* Copy JSON record and pass it to the caller. */
     jb_close(jb);
-    logLine(fp, jb_ptr(jb), jb_len(jb));
+    *len = jb_len(jb);
+    *data = malloc(*len * sizeof(char));
+    if (*data == NULL) {
+        SCLogError("Failed allocating buffer to convert event to JSON");
+        return;
+    }
+
+    memcpy(*data, jb_ptr(jb), *len);
     jb_free(jb);
-}
-
-/* Log a Fileinfo event. */
-void logFileinfo(FILE *fp, FileinfoEvent *event) {
-    JsonBuilder *jb = jb_new_object();
-
-    /* Log common info. */
-    logCommon(jb, &event->common);
-    jb_set_string(jb, "event_type", "fileinfo");
-
-    /* Log alert specific info. */
-    jb_open_object(jb, "fileinfo");
-    jb_set_string_from_bytes(jb, "filename", event->fileinfo.filename,
-                             event->fileinfo.filename_len);
-
-    jb_open_array(jb, "sid");
-    for (uint32_t i = 0; event->fileinfo.sids != NULL && i < event->fileinfo.sid_cnt; i++) {
-        jb_append_uint(jb, event->fileinfo.sids[i]);
-    }
-    jb_close(jb);
-
-    if (event->fileinfo.magic) {
-        jb_set_string(jb, "magic", event->fileinfo.magic);
-    }
-
-    jb_set_bool(jb, "gaps", event->fileinfo.gaps);
-    jb_set_string(jb, "state", event->fileinfo.state);
-    jb_set_uint(jb, "tx_id", event->fileinfo.tx_id);
-
-    if (event->fileinfo.md5) {
-        jb_set_string(jb, "md5", event->fileinfo.md5);
-    }
-
-    if (event->fileinfo.sha1) {
-        jb_set_string(jb, "sha1", event->fileinfo.sha1);
-    }
-
-    if (event->fileinfo.sha256) {
-        jb_set_string(jb, "sha256", event->fileinfo.sha256);
-    }
-
-    jb_set_bool(jb, "stored", event->fileinfo.stored);
-    if (event->fileinfo.stored) {
-        jb_set_uint(jb, "file_id", event->fileinfo.file_id);
-    }
-
-    jb_set_uint(jb, "size", event->fileinfo.size);
-    if (event->fileinfo.end > 0) {
-        jb_set_uint(jb, "start", event->fileinfo.start);
-        jb_set_uint(jb, "end", event->fileinfo.end);
-    }
-
-    /* Close Fileinfo object. */
-    jb_close(jb);
-
-    /* Handle app layer record if present. */
-    if (event->common.app_proto && strcmp(event->common.app_proto, "http") == 0 &&
-        event->app_layer.http) {
-        jb_open_object(jb, "http");
-        logHttpInfoCommon(jb, event->app_layer.http);
-        jb_close(jb);
-    } else if (event->app_layer.nta) {
-        jb_set_object(jb, event->common.app_proto, (JsonBuilder *)event->app_layer.nta);
-    }
-
-    /* Write JSON record. */
-    jb_close(jb);
-    logLine(fp, jb_ptr(jb), jb_len(jb));
-    jb_free(jb);
-}
-
-/* Log a Flow event. */
-void logFlow(FILE *fp, FlowEvent *event) {
-    JsonBuilder *jb = jb_new_object();
-
-    /* Log common info. */
-    logCommon(jb, &event->common);
-    jb_set_string(jb, "event_type", "flow");
-
-    /* Log flow specific info. */
-    logFlowCommon(jb, &event->flow);
-    logFlowExtended(jb, &event->flow, event->common.proto);
-
-    /* Write JSON record. */
-    jb_close(jb);
-    logLine(fp, jb_ptr(jb), jb_len(jb));
-    jb_free(jb);
-}
-
-/* Log a FlowSnip event. */
-void logFlowSnip(FILE *fp, FlowSnipEvent *event) {
-    JsonBuilder *jb = jb_new_object();
-
-    /* Log common info. */
-    logCommon(jb, &event->common);
-    jb_set_string(jb, "event_type", "flow-snip");
-
-    /* Log flow specific info. */
-    logFlowCommon(jb, &event->flow);
-    logFlowExtended(jb, &event->flow, event->common.proto);
-
-    /* Log flow snip specific info. */
-    jb_open_object(jb, "flow-snip");
-    jb_set_uint(jb, "snip_id", event->snip_id);
-    jb_set_uint(jb, "num_packets", event->num_packets);
-    jb_set_uint(jb, "pkt_cnt", event->pkt_cnt);
-    jb_set_string(jb, "timestamp_first", event->timestamp_first);
-    jb_set_string(jb, "timestamp_last", event->timestamp_last);
-
-    /* Log alerts .*/
-    if (event->alerts_size > 0) {
-        JsonBuilder *alertsjb = jb_new_array();
-
-        for (int i = 0; i < event->alerts_size; i++) {
-            JsonBuilder *obj = jb_new_object();
-            logAlertCommon(obj, &event->alerts[i]);
-            jb_close(obj);
-            jb_append_object(alertsjb, obj);
-            jb_free(obj);
-        }
-
-        jb_close(alertsjb);
-        jb_set_object(jb, "alerts", alertsjb);
-        jb_free(alertsjb);
-    }
-
-    jb_close(jb);
-
-    /* Write JSON record. */
-    jb_close(jb);
-    logLine(fp, jb_ptr(jb), jb_len(jb));
-    jb_free(jb);
-}
-
-/* Log an NTA event. */
-void logNta(FILE *fp, void *data, size_t len) {
-    /* Write JSON record. */
-    logLine(fp, data, len);
 }

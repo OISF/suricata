@@ -1086,6 +1086,7 @@ libsuricata_c_a_SOURCES = \
 	stream-tcp-util.c \
 	suricata.c \
 	suricata-interface.c \
+	suricata-interface-events.c \
 	threads.c \
 	tm-modules.c \
 	tmqh-flow.c \
@@ -1229,6 +1230,7 @@ h_sources = \
 	suricata.h \
 	suricata-common.h \
 	suricata-interface.h \
+	suricata-interface-events.h \
 	suricata-interface-stream.h \
 	suricata-plugin.h \
 	tm-queues.h \
