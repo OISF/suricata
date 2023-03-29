@@ -43,6 +43,8 @@ typedef struct {
     uint32_t iterations;
     /* Datalink layer. */
     int datalink;
+    /* Packet/Stream flags (profiling). */
+    int flags;
     /* PCAP cache head (when in packet mode). */
     PcapCache *pcap_cache;
     /* Stream cache head (when in stream mode). */
@@ -63,7 +65,8 @@ void packetHandler(u_char *hc, const struct pcap_pkthdr *pkthdr, const u_char *p
     tenant_uuid[0] = (uint64_t)handler_ctx->tv + handler_ctx->iterations;
 
     if (suricata_handle_packet(handler_ctx->tv, packet, handler_ctx->datalink, pkthdr->ts,
-                               pkthdr->len, 1, tenant_uuid, 0, handler_ctx->user_ctx)) {
+                               pkthdr->len, 1, tenant_uuid, 0, handler_ctx->flags,
+                               handler_ctx->user_ctx)) {
         fprintf(stderr, "Error while processing packet %d from worker %p", i, handler_ctx->tv);
     }
     handler_ctx->bytes += pkthdr->len;
@@ -78,7 +81,8 @@ void streamHandler(HandlerCtx *hc, FlowStreamInfo *finfo, uint32_t len, const ui
     /* Use the worker thread address as tenant_uuid to have 1 per worker. */
     tenant_uuid[0] = (uint64_t) hc->tv + hc->iterations;
 
-    if (suricata_handle_stream(hc->tv, finfo, data, len, tenant_uuid, 0, hc->user_ctx)) {
+    if (suricata_handle_stream(hc->tv, finfo, data, len, tenant_uuid, 0, hc->flags,
+                               hc->user_ctx)) {
         fprintf(stderr, "Error while processing stream segment %d from worker thread %p", i,
                 hc->tv);
     }
@@ -178,7 +182,7 @@ void replay_stream(ThreadCtx *tc, HandlerCtx *hc) {
 void *suricataWorker(void *td) {
     ThreadCtx *tc = (ThreadCtx *)td;
     ThreadVars *tv = suricata_initialise_worker_thread(tc->ctx, NULL);
-    HandlerCtx hc = {tv, 0, 0, 0, 0, 0, tc->user_ctx};
+    HandlerCtx hc = {tv, 0, 0, 0, 0, 0, 0, tc->user_ctx};
     struct timeval start_ts, end_ts;
 
     suricata_worker_post_init(tv);
@@ -243,15 +247,19 @@ void *suricataWorker(void *td) {
 
 void printUsage() {
     printf("suricata_client [options] <pcap_file(s)>\n\n"
-           "%-30s %s\n%-30s %s\n%-30s %s\n%-30s %s\n%-30s %s\n%-30s %s\n%-30s %s\n\n"
+           "%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n"
+           "%-40s %s\n%-40s %s\n\n"
            "Example usage: ./suricata_client -c suricata.yaml input.pcap\n",
            "-c", "Path to (optional) configuration file.",
            "-h", "Print this help and exit.",
            "-l", "Path to log directory.",
            "-K, --preload-pcap", "Preloads packets into RAM before sending",
-           "-L, --loop=num", "Loop through the capture file(s) X times",
-           "-m, --mode=mode", "Set the kind of input to feed to the engine (packet|stream)",
-           "-o, --output=output", "Path of the EVE output file (eve-json.log by default)");
+           "-I, --simulate-ips", "Force engine into IPS mode",
+           "-L <num>, --loop=num", "Loop through the capture file(s) X times",
+           "-m <mode>, --mode=mode", "Set the kind of input to feed to the engine (packet|stream)",
+           "-o <output>, --output=output", "Path of the EVE output file (eve.json by default)",
+           "-s <name=value>, --set name=value", "Set a configuration value",
+           "-S <path>", "Absolute path to signature file loaded exclusively");
 }
 
 int main(int argc, char **argv) {
@@ -260,6 +268,7 @@ int main(int argc, char **argv) {
     int n_workers = 0;
     int loop_rounds = 1; /* Loop once by default. */
     int preload = 0; /* Do not preload by default. */
+    int ips_mode = 0;
     enum InputTypes input_type = TYPE_PACKET; /* Process packets by default. */
     const char *config = NULL;
     const char *logdir = NULL;
@@ -274,11 +283,13 @@ int main(int argc, char **argv) {
         {"mode", required_argument, 0, 'm'},
         {"output", required_argument, 0, 'o'},
         {"preload-pcap", no_argument, 0, 'K'},
+        {"set", required_argument, 0, 's'},
+        {"simulate-ips", no_argument, 0, 'I'},
         {0, 0, 0, 0}
     };
     /* getopt_long stores the option index here. */
     int option_index = 0;
-    char short_opts[] = "hKc:l:m:o:";
+    char short_opts[] = "c:hk:KI:l:L:m:o:s:S:";
 
     /* Parse command line */
     if (argc < 2) {
@@ -316,6 +327,17 @@ int main(int argc, char **argv) {
                 break;
             case 'o':
                 output = optarg;
+                break;
+            case 's':
+                if (set_count == MAX_SET_N) {
+                    break;
+                }
+                set_options[set_count++] = optarg;
+                break;
+            case 'S':
+                sig_file = optarg;
+                break;
+            case 'k':
                 break;
             case 'h':
             default:

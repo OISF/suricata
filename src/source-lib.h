@@ -28,12 +28,14 @@ void TmModuleDecodeLibRegister(void);
  * \param ignore_pkt_checksum   Boolean indicating if we should ignore the packet checksum.
  * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
  * \param tenant_id             Tenant id of the detection engine to use.
+ * \param flags                 Packet flags (currently only used for rule profiling).
  * \param user_ctx              Pointer to a user-defined context object.
  * \return                      Error code.
  */
 int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
                             struct timeval ts, uint32_t len, int ignore_pkt_checksum,
-                            uint64_t *tenant_uuid, uint32_t tenant_id, void *user_ctx);
+                            uint64_t *tenant_uuid, uint32_t tenant_id, uint32_t flags,
+                            void *user_ctx);
 
 /** \brief process a single stream segment.
  *
@@ -43,11 +45,12 @@ int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
  * \param len                   Packet length.
  * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
  * \param tenant_id             Tenant id of the detection engine to use.
+ * \param flags                 Packet flags (currently only used for rule profiling).
  * \param user_ctx              Pointer to a user-defined context object.
  * \return                      Error code.
  */
 int TmModuleLibHandleStream(ThreadVars *tv, FlowStreamInfo *finfo, const uint8_t *data,
                             uint32_t len, uint64_t *tenant_uuid, uint32_t tenant_id,
-                            void *user_ctx);
+                            uint32_t flags, void *user_ctx);
 
 #endif /* __SOURCE_LIB_H__ */

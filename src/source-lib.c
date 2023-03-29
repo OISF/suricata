@@ -121,12 +121,14 @@ TmEcode DecodeLib(ThreadVars *tv, Packet *p, void *data) {
  * \param ignore_pkt_checksum   Boolean indicating if we should ignore the packet checksum.
  * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
  * \param tenant_id             Tenant id of the detection engine to use.
+ * \param flags                 Packet flags (currently only used for rule profiling).
  * \param user_ctx              Pointer to a user-defined context object.
  * \return                      Error code.
  */
 int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
                             struct timeval ts, uint32_t len, int ignore_pkt_checksum,
-                            uint64_t *tenant_uuid, uint32_t tenant_id, void *user_ctx) {
+                            uint64_t *tenant_uuid, uint32_t tenant_id, uint32_t flags,
+                            void *user_ctx) {
 
     /* If the packet is NULL, consider it as a read timeout. */
     if (data == NULL) {
@@ -154,6 +156,7 @@ int TmModuleLibHandlePacket(ThreadVars *tv, const uint8_t *data, int datalink,
     p->tenant_uuid[1] = tenant_uuid[1];
     p->tenant_id = tenant_id;
     p->user_ctx = user_ctx;
+    p->flags |= flags;
 
     /* Set the sniffing interface. */
     if (tv->in_iface) {
@@ -315,12 +318,13 @@ error:
  * \param len                   Packet length.
  * \param tenant_uuid           Tenant uuid (16 bytes) to associate a flow to a tenant.
  * \param tenant_id             Tenant id of the detection engine to use.
+ * \param flags                 Packet flags (currently only used for rule profiling).
  * \param user_ctx              Pointer to a user-defined context object.
  * \return                      Error code.
  */
 int TmModuleLibHandleStream(ThreadVars *tv, FlowStreamInfo *finfo, const uint8_t *data,
                             uint32_t len, uint64_t *tenant_uuid, uint32_t tenant_id,
-                            void *user_ctx) {
+                            uint32_t flags, void *user_ctx) {
     Packet *p = StreamPacketSetup(finfo, tenant_uuid, tenant_id, user_ctx);
     if (unlikely(p == NULL)) {
         SCReturnInt(TM_ECODE_FAILED);
@@ -332,10 +336,11 @@ int TmModuleLibHandleStream(ThreadVars *tv, FlowStreamInfo *finfo, const uint8_t
         time_set = true;
     }
 
-    /* Set payload. */
+    /* Set payload and flags. */
     p->payload = (uint8_t *)data;
     p->payload_len = len;
     p->flags |= PKT_ZERO_COPY;
+    p->flags |= flags;
 
     /* Set the sniffing interface. */
     if (tv->in_iface) {
