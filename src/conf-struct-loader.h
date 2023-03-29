@@ -227,7 +227,7 @@
     CFG_ENTRY(vars0port_groups0DNP3_PORTS)                                                         \
     CFG_ENTRY(vars0port_groups0HTTP_PORTS)                                                         \
     CFG_ENTRY(vars0port_groups0ORACLE_PORTS)                                                       \
-    CFG_ENTRY(vars0port_groups0SHELLCODE_ORTS)                                                     \
+    CFG_ENTRY(vars0port_groups0SHELLCODE_PORTS)                                                    \
     CFG_ENTRY(vars0port_groups0SSH_PORTS)                                                          \
     CFG_ENTRY(vars0port_groups0VXLAN_PORTS)                                                        \
     CFG_ENTRY(vlan0use_for_tracking)

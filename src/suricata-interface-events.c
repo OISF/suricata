@@ -248,7 +248,7 @@ static void logAlertCommon(JsonBuilder *jb, Alert *alert) {
     jb_set_uint(jb, "severity", alert->severity);
 
     if (alert->metadata) {
-        jb_set_string(jb, "metadata", alert->metadata);
+        jb_set_formatted(jb, alert->metadata);
     }
 
     jb_close(jb);

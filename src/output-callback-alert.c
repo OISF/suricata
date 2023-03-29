@@ -9,6 +9,7 @@
 
 #include "suricata-common.h"
 
+#include "detect-engine.h"
 #include "output-callback-alert.h"
 
 #include "action-globals.h"
@@ -251,6 +252,9 @@ static OutputInitResult CallbackAlertLogInitCtxSub(ConfNode *conf, OutputCtx *pa
     }
 
     memset(callback_output_ctx, 0, sizeof(AlertCallbackOutputCtx));
+
+    /* Enable metadata parsing. */
+    DetectEngineSetParseMetadata();
 
     /* XFF. */
     if (conf != NULL && ConfNodeLookupChild(conf, "xff") != NULL) {
