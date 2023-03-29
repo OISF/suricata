@@ -221,6 +221,23 @@ static void AlertJsonDnp3(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
     }
 }
 
+void AlertJsonDnsDo(const uint64_t tx_id, void *txptr, JsonBuilder *js) {
+    if (!txptr) {
+        return;
+    }
+
+    JsonBuilder *qjs = JsonDNSLogQuery(txptr, tx_id);
+    if (qjs != NULL) {
+        jb_set_object(js, "query", qjs);
+        jb_free(qjs);
+    }
+    JsonBuilder *ajs = JsonDNSLogAnswer(txptr, tx_id);
+    if (ajs != NULL) {
+        jb_set_object(js, "answer", ajs);
+        jb_free(ajs);
+    }
+}
+
 static void AlertJsonDns(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
 {
     void *dns_state = (void *)FlowGetAppState(f);
@@ -229,16 +246,7 @@ static void AlertJsonDns(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
                                           dns_state, tx_id);
         if (txptr) {
             jb_open_object(js, "dns");
-            JsonBuilder *qjs = JsonDNSLogQuery(txptr, tx_id);
-            if (qjs != NULL) {
-                jb_set_object(js, "query", qjs);
-                jb_free(qjs);
-            }
-            JsonBuilder *ajs = JsonDNSLogAnswer(txptr, tx_id);
-            if (ajs != NULL) {
-                jb_set_object(js, "answer", ajs);
-                jb_free(ajs);
-            }
+            AlertJsonDnsDo(tx_id, txptr, js);
             jb_close(js);
         }
     }

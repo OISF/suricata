@@ -9,8 +9,10 @@
 
 #include "suricata-common.h"
 #include "app-layer-ftp.h"
+#include "app-layer-parser.h"
 #include "output-callback.h"
 #include "output-callback-http.h"
+#include "output-json-alert.h"
 #include "output-json-http.h"
 #include "output-json-smb.h"
 #include "output-json-smtp.h"
@@ -218,8 +220,21 @@ void CallbackAddAppLayer(const Packet *p, const uint64_t tx_id, AppLayer *app_la
             } else {
                 jb_free(jb);
             }
+            break;
             /* TODO: Add email? */
-
+        case ALPROTO_DNS:
+            ;
+            void *dns_state = (void *)FlowGetAppState(p->flow);
+            if (dns_state) {
+                void *tx_ptr = AppLayerParserGetTx(p->flow->proto, ALPROTO_DNS, dns_state, tx_id);
+                if (tx_ptr) {
+                    jb = jb_new_object();
+                    AlertJsonDnsDo(tx_id, tx_ptr, jb);
+                    jb_close(jb);
+                    app_layer->nta = jb;
+                }
+            }
+            break;
         default:
             break;
     }

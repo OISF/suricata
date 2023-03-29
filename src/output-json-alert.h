@@ -30,6 +30,7 @@
 void JsonAlertLogRegister(void);
 void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuilder *js,
         uint16_t flags, JsonAddrInfo *addr, char *xff_buffer);
+void AlertJsonDnsDo(const uint64_t tx_id, void *txptr, JsonBuilder *js);
 
 #endif /* __OUTPUT_JSON_ALERT_H__ */
 
