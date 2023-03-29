@@ -241,8 +241,9 @@ void CallbackCleanupAppLayer(const Packet *p, const uint64_t tx_id, AppLayer *ap
         case ALPROTO_SMB:
         case ALPROTO_FTPDATA:
         case ALPROTO_SMTP:
+        case ALPROTO_DNS:
             if (app_layer->nta) {
-                SCFree(app_layer->nta);
+                jb_free(app_layer->nta);
             }
             break;
         default:
