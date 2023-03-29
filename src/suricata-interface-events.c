@@ -290,6 +290,7 @@ static void logAlertCommon(JsonBuilder *jb, Alert *alert) {
     jb_open_object(jb, "alert");
 
     jb_set_string(jb, "action", alert->action);
+    jb_set_string(jb, "action_detail", alert->action_detail);
     jb_set_uint(jb, "gid", alert->gid);
     jb_set_uint(jb, "signature_id", alert->sid);
     jb_set_uint(jb, "rev", alert->rev);
