@@ -94,6 +94,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     p->vlan_id[1] = f->vlan_id[1];
     p->vlan_idx = f->vlan_idx;
     p->livedev = (struct LiveDevice_ *)f->livedev;
+    p->user_ctx = f->user_ctx;
 
     if (f->flags & FLOW_NOPACKET_INSPECTION) {
         DecodeSetNoPacketInspectionFlag(p);
