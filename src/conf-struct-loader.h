@@ -18,6 +18,7 @@
     CFG_ENTRY(default_rule_path)                                                                   \
     CFG_ENTRY(engine_analysis0rules_fast_pattern)                                                  \
     CFG_ENTRY(engine_analysis0rules)                                                               \
+    CFG_ENTRY(host_mode)                                                                           \
     CFG_ENTRY(max_pending_packets)                                                                 \
     CFG_ENTRY(mpm_algo)                                                                            \
     CFG_ENTRY(spm_algo)                                                                            \
@@ -74,6 +75,7 @@
     CFG_ENTRY(app_layer0protocols0ntp0enabled)                                                     \
     CFG_ENTRY(app_layer0protocols0dhcp0enabled)                                                    \
     CFG_ENTRY(app_layer0protocols0sip0enabled)                                                     \
+    CFG_ENTRY(app_layer0protocols0snmp0enabled)                                                    \
     CFG_ENTRY(app_layer0protocols0http0enabled)                                                    \
     CFG_ENTRY(app_layer0protocols0http0memcap)                                                     \
     CFG_ENTRY(app_layer0protocols0http0libhtp0default_config0request_body_limit)                   \
