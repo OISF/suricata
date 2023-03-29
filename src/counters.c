@@ -839,6 +839,11 @@ static int StatsOutput(ThreadVars *tv)
  * \brief Invoked when running in library mode to retrieve stats
  */
 void StatsPoll(void) {
+    if (stats_ctx == NULL) {
+        /* Nothing to do, stats module not yet initialized or already freed. */
+        return;
+    }
+
     StatsCompute();
 
     CallbackStatsLogger(&stats_table);

@@ -292,6 +292,7 @@ void suricata_alert_to_json(AlertEvent *event, char **data, size_t *len) {
     *data = malloc(*len * sizeof(char));
     if (*data == NULL) {
         SCLogError("Failed allocating buffer to convert event to JSON");
+        jb_free(jb);
         return;
     }
 
@@ -369,6 +370,7 @@ void suricata_fileinfo_to_json(FileinfoEvent *event, char **data, size_t *len) {
     *data = malloc(*len * sizeof(char));
     if (*data == NULL) {
         SCLogError("Failed allocating buffer to convert event to JSON");
+        jb_free(jb);
         return;
     }
 
@@ -394,6 +396,7 @@ void suricata_flow_to_json(FlowEvent *event, char **data, size_t *len) {
     *data = malloc(*len * sizeof(char));
     if (*data == NULL) {
         SCLogError("Failed allocating buffer to convert event to JSON");
+        jb_free(jb);
         return;
     }
 
@@ -446,6 +449,7 @@ void suricata_flowsnip_to_json(FlowSnipEvent *event, char **data, size_t *len) {
     *data = malloc(*len * sizeof(char));
     if (*data == NULL) {
         SCLogError("Failed allocating buffer to convert event to JSON");
+        jb_free(jb);
         return;
     }
 
@@ -535,6 +539,7 @@ void suricata_http_to_json(HttpEvent *event, char **data, size_t *len) {
     *data = malloc(*len * sizeof(char));
     if (*data == NULL) {
         SCLogError("Failed allocating buffer to convert event to JSON");
+        jb_free(jb);
         return;
     }
 

@@ -156,6 +156,7 @@
     CFG_ENTRY(outputs0callback0alert0xff0mode)                                                     \
     CFG_ENTRY(outputs0callback0alert0xff0deployment)                                               \
     CFG_ENTRY(outputs0callback0fileinfo0enabled)                                                   \
+    CFG_ENTRY(outputs0callback0fileinfo0force_filestore)                                           \
     CFG_ENTRY(outputs0callback0fileinfo0stored_only)                                               \
     CFG_ENTRY(outputs0callback0flow0enabled)                                                       \
     CFG_ENTRY(outputs0callback0flow_snip0enabled)                                                  \
@@ -167,12 +168,10 @@
     CFG_ENTRY(outputs0callback0http0xff0header)                                                    \
     CFG_ENTRY(outputs0callback0http0dump_all_headers)                                              \
     CFG_ENTRY(outputs0callback0nta0enabled)                                                        \
-    CFG_ENTRY(outputs0callback0nta0dhcp)                                                           \
     CFG_ENTRY(outputs0callback0nta0dhcp0extended)                                                  \
     CFG_ENTRY(outputs0callback0nta0dns)                                                            \
     CFG_ENTRY(outputs0callback0nta0krb5)                                                           \
     CFG_ENTRY(outputs0callback0nta0smb)                                                            \
-    CFG_ENTRY(outputs0callback0nta0tls)                                                            \
     CFG_ENTRY(outputs0callback0nta0tls0extended)                                                   \
     CFG_ENTRY(outputs0callback0nta0tls0custom)                                                     \
     CFG_ENTRY(outputs0lua0enabled)                                                                 \
@@ -207,9 +206,27 @@
     CFG_ENTRY(stream0reassembly0depth)                                                             \
     CFG_ENTRY(stream0reassembly0toserver_chunk_size)                                               \
     CFG_ENTRY(stream0reassembly0toclient_chunk_size)                                               \
-    CFG_ENTRY(vars0address_groups0HOME_NET)                                                        \
+    CFG_ENTRY(vars0address_groups0AIM_SERVERS)                                                     \
+    CFG_ENTRY(vars0address_groups0CUST_HOME_NET)                                                   \
+    CFG_ENTRY(vars0address_groups0DNP3_CLIENT)                                                     \
+    CFG_ENTRY(vars0address_groups0DNP3_SERVER)                                                     \
+    CFG_ENTRY(vars0address_groups0DNS_SERVERS)                                                     \
+    CFG_ENTRY(vars0address_groups0ENIP_CLIENT)                                                     \
+    CFG_ENTRY(vars0address_groups0ENIP_SERVER)                                                     \
     CFG_ENTRY(vars0address_groups0EXTERNAL_NET)                                                    \
+    CFG_ENTRY(vars0address_groups0HOME_NET)                                                        \
+    CFG_ENTRY(vars0address_groups0HOME_NETWORK)                                                    \
+    CFG_ENTRY(vars0address_groups0HTTP_SERVERS)                                                    \
+    CFG_ENTRY(vars0address_groups0MODBUS_CLIENT)                                                   \
+    CFG_ENTRY(vars0address_groups0MODBUS_SERVER)                                                   \
+    CFG_ENTRY(vars0address_groups0SMTP_SERVERS)                                                    \
+    CFG_ENTRY(vars0address_groups0SQL_SERVERS)                                                     \
+    CFG_ENTRY(vars0address_groups0TELNET_NET)                                                      \
+    CFG_ENTRY(vars0port_groups0DNP3_PORTS)                                                         \
     CFG_ENTRY(vars0port_groups0HTTP_PORTS)                                                         \
+    CFG_ENTRY(vars0port_groups0ORACLE_PORTS)                                                       \
+    CFG_ENTRY(vars0port_groups0SHELLCODE_ORTS)                                                     \
+    CFG_ENTRY(vars0port_groups0SSH_PORTS)                                                          \
     CFG_ENTRY(vars0port_groups0VXLAN_PORTS)                                                        \
     CFG_ENTRY(vlan0use_for_tracking)
 
