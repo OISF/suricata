@@ -165,16 +165,16 @@ static int CallbackRejectLogger(ThreadVars *tv, void *thread_data, const Packet 
                                                  &event.reject.dns.query_rrname_len);
                     }
                 }
+            }
+
+            /* Need to store the IP header and the first 8 bytes of the IP payload
+             * (at most) for ICMP destination unreachable payload. */
+            if (PKT_IS_IPV4(p)) {
+                event.reject.icmp.payload = (uint8_t *)p->ip4h;
+                event.reject.icmp.payload_len = IPV4_HEADER_LEN + MIN(8, IPV4_GET_IPLEN(p));
             } else {
-                /* Need to store the IP header and the first 8 bytes of the IP payload
-                 * (at most) for ICMP destination unreachable payload. */
-                if (PKT_IS_IPV4(p)) {
-                    event.reject.icmp.payload = (uint8_t *)p->ip4h;
-                    event.reject.icmp.payload_len = IPV4_HEADER_LEN + MIN(8, IPV4_GET_IPLEN(p));
-                } else {
-                    event.reject.icmp.payload = (uint8_t *)p->ip6h;
-                    event.reject.icmp.payload_len = IPV6_HEADER_LEN + MIN(8, IPV6_GET_PLEN(p));
-                }
+                event.reject.icmp.payload = (uint8_t *)p->ip6h;
+                event.reject.icmp.payload_len = IPV6_HEADER_LEN + MIN(8, IPV6_GET_PLEN(p));
             }
         }
 

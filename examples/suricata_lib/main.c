@@ -17,6 +17,9 @@
 #include "preload.h"
 #include "util-base64.h"
 
+/* Maximum number of --set options allowed */
+#define MAX_SET_N 16
+
 /* Processing mode (packet|stream). */
 enum InputTypes {
     TYPE_PACKET,
@@ -270,9 +273,12 @@ int main(int argc, char **argv) {
     int preload = 0; /* Do not preload by default. */
     int ips_mode = 0;
     enum InputTypes input_type = TYPE_PACKET; /* Process packets by default. */
+    char *set_options[MAX_SET_N];
+    int set_count = 0;
     const char *config = NULL;
     const char *logdir = NULL;
     const char *output = "eve-json.log";
+    const char *sig_file = NULL;
     const char **input_files = NULL;
     pthread_t *thread_ids;
     ThreadCtx *tc;
