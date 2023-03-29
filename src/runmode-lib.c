@@ -104,6 +104,8 @@ void RunModeSpawnWorker(void *td) {
     if (TmThreadLibSpawn(tv) != TM_ECODE_OK) {
         FatalError("TmThreadLibSpawn failed");
     }
+
+    TmThreadsSetFlag(tv, THV_RUNNING);
 }
 
 /** \brief destroy a worker thread */

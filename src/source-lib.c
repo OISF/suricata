@@ -206,6 +206,7 @@ static inline Packet *StreamPacketSetup(FlowStreamInfo *finfo, uint32_t len, uin
     p->datalink = DLT_RAW;
     p->proto = IPPROTO_TCP;
     p->ts = SCTIME_FROM_TIMEVAL(&finfo->ts);
+    p->flags |= PKT_APPLAYER_UPDATE;
     p->flags |= PKT_STREAM_EST;
     /* Mark this packet as stream reassembled. */
     p->flags |= PKT_SKIP_STREAM;

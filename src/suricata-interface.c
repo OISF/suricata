@@ -122,20 +122,6 @@ void suricata_register_flow_cb(SuricataCtx *ctx, CallbackFuncFlow callback) {
 }
 
 /**
- * \brief Register a callback that is invoked for every FlowSnip event.
- *
- * \param ctx            Pointer to SuricataCtx.
- * \param callback       Pointer to a callback function.
- */
-void suricata_register_flowsnip_cb(SuricataCtx *ctx, CallbackFuncFlowSnip callback) {
-    SCInstance *suri = GetInstance();
-    suri->callbacks.flowsnip = callback;
-
-    /* Enable callback in the config. */
-    CfgSet(ctx->cfg, "outputs.callback.flow-snip.enabled", "yes");
-}
-
-/**
  * \brief Register a callback that is invoked for every HTTP event.
  *
  * \param ctx            Pointer to SuricataCtx.
@@ -302,6 +288,15 @@ void suricata_enable_test_mode(SuricataCtx *ctx) {
 void suricata_disable_detection(SuricataCtx *ctx) {
     SCInstance *suri = GetInstance();
     suri->disabled_detect = 1;
+}
+
+/**
+ * \brief Disable suricata randomness (testing only).
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ */
+void suricata_disable_randomness(SuricataCtx *ctx) {
+    g_disable_randomness = 1;
 }
 
 /**

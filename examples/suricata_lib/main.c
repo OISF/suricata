@@ -251,7 +251,7 @@ void *suricataWorker(void *td) {
 void printUsage() {
     printf("suricata_client [options] <pcap_file(s)>\n\n"
            "%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n"
-           "%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n\n"
+           "%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n%-40s %s\n\n"
            "Example usage: ./suricata_client -c suricata.yaml input.pcap\n",
            "-c", "Path to (optional) configuration file.",
            "-h", "Print this help and exit.",
@@ -265,6 +265,7 @@ void printUsage() {
            "-L <num>, --loop=num", "Loop through the capture file(s) X times",
            "-m <mode>, --mode=mode", "Set the kind of input to feed to the engine (packet|stream)",
            "-o <output>, --output=output", "Path of the EVE output file (eve.json by default)",
+           "-R --no-random", "Disable suricata randomnsess",
            "-s <name=value>, --set name=value", "Set a configuration value",
            "-S <path>", "Absolute path to signature file loaded exclusively",
            "-T --test-mode", "Enable suricata test mode.");
@@ -276,6 +277,7 @@ int main(int argc, char **argv) {
     int n_workers = 0;
     int engine_analysis = 0;
     int disable_detection = 0;
+    int disable_randomness = 0;
     int init_errors_fatal = 0;
     int loop_rounds = 1; /* Loop once by default. */
     int preload = 0; /* Do not preload by default. */
@@ -287,7 +289,7 @@ int main(int argc, char **argv) {
     const char *config = NULL;
     const char *data_dir = NULL;
     const char *logdir = NULL;
-    const char *output = "eve-json.log";
+    const char *output = "eve.json";
     const char *sig_file = NULL;
     const char **input_files = NULL;
     pthread_t *thread_ids;
@@ -301,6 +303,7 @@ int main(int argc, char **argv) {
         {"init-errors-fatal", no_argument, 0, 'F'},
         {"loop", required_argument, 0, 'L'},
         {"mode", required_argument, 0, 'm'},
+        {"no-random", no_argument, 0, 'R'},
         {"output", required_argument, 0, 'o'},
         {"preload-pcap", no_argument, 0, 'K'},
         {"set", required_argument, 0, 's'},
@@ -310,7 +313,7 @@ int main(int argc, char **argv) {
     };
     /* getopt_long stores the option index here. */
     int option_index = 0;
-    char short_opts[] = "c:dhk:DFKI:l:L:m:o:s:S:T";
+    char short_opts[] = "c:dhk:DFKI:l:L:m:o:Rs:S:T";
 
     /* Parse command line */
     if (argc < 2) {
@@ -370,11 +373,17 @@ int main(int argc, char **argv) {
                 }
                 set_options[set_count++] = optarg;
                 break;
+            case 'R':
+                disable_randomness = 1;
+                break;
             case 'S':
                 sig_file = optarg;
                 break;
             case 'T':
                 test_mode = 1;
+                break;
+            case 'k':
+                /* Ignore checksum option. */
                 break;
             case 'h':
             default:
@@ -454,7 +463,6 @@ int main(int argc, char **argv) {
     suricata_register_http_cb(ctx, callbackHttp);
     suricata_register_nta_cb(ctx, callbackNta);
     suricata_register_flow_cb(ctx, callbackFlow);
-    suricata_register_flowsnip_cb(ctx, callbackFlowSnip);
     suricata_register_prevent_action_cb(ctx, callbackPreventAction);
     suricata_register_sig_failed_loading_cb(ctx, NULL, callbackSigFailedLoading);
     suricata_register_sig_cb(ctx, callbackSigCandidate);
@@ -495,14 +503,14 @@ int main(int argc, char **argv) {
         suricata_enable_engine_analysis_mode(ctx);
     }
 
+    /* Randomness. */
+    if (disable_randomness) {
+        suricata_disable_randomness(ctx);
+    }
+
     /* Init errors. */
     if (init_errors_fatal) {
         suricata_config_set(ctx, "engine.init-failure-fatal", "1");
-    }
-
-    /* Test analysis. */
-    if (engine_analysis) {
-        suricata_enable_test_mode(ctx);
     }
 
     /* Override runmode (required for testing as the yaml we use sets "runmode: single"). */
@@ -511,6 +519,16 @@ int main(int argc, char **argv) {
     /* Override logdir if provided. */
     if (logdir) {
         suricata_config_set(ctx, "default-log-dir", logdir);
+    }
+
+    /* Override rule-files if option 'S' is specified. */
+    if (sig_file) {
+        suricata_config_set(ctx, "rule-files", sig_file);
+    }
+
+    /* Enable IPS mode, if specified. */
+    if (ips_mode) {
+        suricata_enable_ips_mode();
     }
 
     /* Init suricata engine. */

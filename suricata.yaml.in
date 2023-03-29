@@ -437,8 +437,14 @@ outputs:
   # Callback output module for library mode.
   - callback:
       nta:
+        dns:
+          enabled: yes
+        krb5:
+          enabled: yes
         smb:
+          enabled: yes
         tls:
+          enabled: yes
           extended: yes
 
   # a line based alerts log similar to fast.log into syslog

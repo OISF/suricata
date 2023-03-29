@@ -81,14 +81,6 @@ void suricata_register_fileinfo_cb(SuricataCtx *ctx, CallbackFuncFileinfo callba
 void suricata_register_flow_cb(SuricataCtx *ctx, CallbackFuncFlow callback);
 
 /**
- * \brief Register a callback that is invoked for every FlowSnip event.
- *
- * \param ctx            Pointer to SuricataCtx.
- * \param callback       Pointer to a callback function.
- */
-void suricata_register_flowsnip_cb(SuricataCtx *ctx, CallbackFuncFlowSnip callback);
-
-/**
  * \brief Register a callback that is invoked for every HTTP event.
  *
  * \param ctx            Pointer to SuricataCtx.
@@ -197,6 +189,13 @@ void suricata_enable_test_mode(SuricataCtx *ctx);
  * \param ctx            Pointer to SuricataCtx.
  */
 void suricata_disable_detection(SuricataCtx *ctx);
+
+/**
+ * \brief Disable suricata randomness (testing only).
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ */
+void suricata_disable_randomness(SuricataCtx *ctx);
 
 /**
  * \brief Enable suricata IPS mode.

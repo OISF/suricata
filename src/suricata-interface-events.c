@@ -36,7 +36,6 @@ static void logCommon(JsonBuilder *jb, Common *common) {
     jb_set_string(jb, "dest_ip", common->dst_ip);
     jb_set_uint(jb, "dest_port", common->dp);
     jb_set_string(jb, "proto", common->proto);
-    jb_set_string(jb, "direction", common->direction);
 
     jb_set_uint(jb, "flow_id", common->flow_id);
 
@@ -128,8 +127,8 @@ static void logCommon(JsonBuilder *jb, Common *common) {
         jb_set_uint(jb, "response_icmp_code", common->icmp_response_code);
     }
 
-    if (common->xff) {
-        jb_set_string(jb, "xff", common->xff);
+    if (common->pkt_src) {
+        jb_set_string(jb, "pkt_src", common->pkt_src);
     }
 }
 
@@ -214,10 +213,6 @@ static void logHttpInfoCommon(JsonBuilder *jb, HttpInfo *http_info) {
         jb_set_uint(jb, "status", http_info->status);
     }
 
-    if (http_info->direction) {
-        jb_set_string(jb, "direction", http_info->direction);
-    }
-
     jb_set_uint(jb, "length", http_info->response_len);
 }
 
@@ -299,7 +294,6 @@ static void logAlertCommon(JsonBuilder *jb, Alert *alert) {
     jb_open_object(jb, "alert");
 
     jb_set_string(jb, "action", alert->action);
-    jb_set_string(jb, "action_detail", alert->action_detail);
     jb_set_uint(jb, "gid", alert->gid);
     jb_set_uint(jb, "signature_id", alert->sid);
     jb_set_uint(jb, "rev", alert->rev);
@@ -339,6 +333,10 @@ static void logAlertCommon(JsonBuilder *jb, Alert *alert) {
         jb_close(jb);
     }
 
+    if (alert->xff) {
+        jb_set_string(jb, "xff", alert->xff);
+    }
+
     jb_close(jb);
 }
 
@@ -349,6 +347,9 @@ void suricata_alert_to_json(AlertEvent *event, char **data, size_t *len) {
     /* Log common info. */
     logCommon(jb, &event->common);
     jb_set_string(jb, "event_type", "alert");
+
+    /* Alert direction. */
+    jb_set_string(jb, "direction", event->alert.direction);
 
     /* Set Transaction id for correlation with other events. */
     if (event->alert.tx_id != -1) {
@@ -361,6 +362,24 @@ void suricata_alert_to_json(AlertEvent *event, char **data, size_t *len) {
     /* Log flow info only if we have seen some traffic. */
     if (event->flow.bytes_toserver || event->flow.bytes_toclient) {
         logFlowCommon(jb, &event->flow);
+
+        /* Log flow endpoints. */
+        if (strncmp(event->alert.direction, "to_server", 9) == 0) {
+            jb_set_string(jb, "src_ip", event->common.src_ip);
+            jb_set_string(jb, "dest_ip", event->common.dst_ip);
+            if (event->common.sp > 0) {
+                jb_set_uint(jb, "src_port", event->common.sp);
+                jb_set_uint(jb, "dest_port", event->common.dp);
+            }
+        } else {
+            jb_set_string(jb, "src_ip", event->common.dst_ip);
+            jb_set_string(jb, "dest_ip", event->common.src_ip);
+            if (event->common.sp > 0) {
+                jb_set_uint(jb, "src_port", event->common.dp);
+                jb_set_uint(jb, "dest_port", event->common.sp);
+            }
+        }
+
         jb_close(jb);
     }
 

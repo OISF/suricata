@@ -133,29 +133,6 @@ void EventAddCommonInfo(const Packet *p, enum OutputJsonLogDirection dir, Common
     /* Timestamp. */
     CreateIsoTimeString(p->ts, common->timestamp, sizeof(common->timestamp));
 
-    /* Direction. */
-    const char *direction = NULL;
-    switch (dir) {
-        case LOG_DIR_PACKET:
-            if ((PKT_IS_TOCLIENT(p))) {
-                direction = OUTPUT_DIR_PACKET_FLOW_TOCLIENT;
-            } else {
-                direction = OUTPUT_DIR_PACKET_FLOW_TOSERVER;
-            }
-            break;
-        case LOG_DIR_FLOW:
-        case LOG_DIR_FLOW_TOSERVER:
-            direction = OUTPUT_DIR_PACKET_FLOW_TOSERVER;
-            break;
-        case LOG_DIR_FLOW_TOCLIENT:
-            direction = OUTPUT_DIR_PACKET_FLOW_TOCLIENT;
-            break;
-        default:
-            direction = "";
-            break;
-    }
-    common->direction = direction;
-
     /* ICMP. */
     common->icmp_type = common->icmp_code = -1;
     common->icmp_response_code = common->icmp_response_type = -1;
@@ -173,6 +150,8 @@ void EventAddCommonInfo(const Packet *p, enum OutputJsonLogDirection dir, Common
             }
             break;
     }
+
+    common->pkt_src = PktSrcToString(p->pkt_src);
 
     /* App layer protocol, if any. */
     if (f != NULL) {
@@ -250,16 +229,10 @@ void CallbackAddAppLayer(const Packet *p, const uint64_t tx_id, AppLayer *app_la
     JsonBuilder *jb;
 
     switch (proto) {
-        case ALPROTO_HTTP:
+        case ALPROTO_HTTP1:
             ;
-            const char *dir = NULL;
-            if (PKT_IS_TOCLIENT(p)) {
-                dir = LOG_HTTP_DIR_DOWNLOAD;
-            } else {
-                dir = LOG_HTTP_DIR_UPLOAD;
-            }
             HttpInfo *http = SCCalloc(1, sizeof(HttpInfo));
-            if (http && CallbackHttpAddMetadata(p->flow, tx_id, dir, http)) {
+            if (http && CallbackHttpAddMetadata(p->flow, tx_id, http)) {
                 app_layer->http = http;
             } else {
                 SCFree(http);
@@ -278,7 +251,7 @@ void CallbackAddAppLayer(const Packet *p, const uint64_t tx_id, AppLayer *app_la
         case ALPROTO_FTPDATA:
             ;
             jb = jb_new_object();
-            EveFTPDataAddMetadataDo(p->flow, jb);
+            EveFTPDataAddMetadata(p->flow, jb);
             jb_close(jb);
             app_layer->nta = jb;
             break;
@@ -343,7 +316,7 @@ void CallbackCleanupAppLayer(const Packet *p, const uint64_t tx_id, AppLayer *ap
 
     const AppProto proto = FlowGetAppProtocol(p->flow);
     switch (proto) {
-        case ALPROTO_HTTP:
+        case ALPROTO_HTTP1:
             if (app_layer->http) {
                 SCFree(app_layer->http);
             }

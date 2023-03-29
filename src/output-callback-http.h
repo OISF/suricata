@@ -16,6 +16,6 @@
 /* Register the output module. */
 void CallbackHttpLogRegister(void);
 /* Generate a HTTP event. */
-bool CallbackHttpAddMetadata(const Flow *f, uint64_t tx_id, const char *dir, HttpInfo *http);
+bool CallbackHttpAddMetadata(const Flow *f, uint64_t tx_id, HttpInfo *http);
 
 #endif /* __OUTPUT_CALLBACK_HTTP_H__ */

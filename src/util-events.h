@@ -47,8 +47,6 @@ typedef struct {
     const char *app_proto_orig;
     /* Expected app protocol: used in protocol change/upgrade. */
     const char *app_proto_expected;
-    /* Packet direction */
-    const char *direction;
     /* Timestamp */
     char timestamp[TIMESTAMP_LEN];
     /* Flow id */
@@ -60,12 +58,12 @@ typedef struct {
     /* Vland ids */
     uint16_t vlan_id[2];
     /* ICMP types and codes. */
-    int8_t icmp_type;
-    int8_t icmp_code;
-    int8_t icmp_response_type;
-    int8_t icmp_response_code;
-    /* XFF info */
-    const char *xff;
+    int icmp_type;
+    int icmp_code;
+    int icmp_response_type;
+    int icmp_response_code;
+    /* Packet source. */
+    const char *pkt_src;
 } Common;
 
 /* Struct representing an HTTP header. */
@@ -103,8 +101,6 @@ typedef struct HttpInfo {
     bstr *redirect;
     /* Referer */
     bstr *referer;
-    /* Direction */
-    const char *direction;
     /* Response message length. */
     uint64_t response_len;
     /* Response status. */
@@ -168,8 +164,8 @@ typedef struct PreventActionInfo {
 typedef struct Alert {
     /* Action for this alert */
     const char *action;
-    /* Detailed action in case of reject/drop. */
-    const char *action_detail;
+    /* Direction for this alert */
+    const char *direction;
     /* Signature relevant fields */
     uint32_t sid;
     uint32_t gid;
@@ -185,6 +181,8 @@ typedef struct Alert {
     int tx_id;
     /* Tenant id (suricata) */
     uint32_t tenant_id_suri;
+    /* XFF info */
+    const char *xff;
 } Alert;
 
 /* Struct representing a single flow. */

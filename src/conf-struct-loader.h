@@ -25,6 +25,7 @@
     CFG_ENTRY(reference_config_file)                                                               \
     CFG_ENTRY(rule_files)                                                                          \
     CFG_ENTRY(runmode)                                                                             \
+    CFG_ENTRY(threshold_file)                                                                      \
     CFG_ENTRY(app_layer0protocols0rfb0enabled)                                                     \
     CFG_ENTRY(app_layer0error_policy)                                                              \
     CFG_ENTRY(app_layer0protocols0rfb0detection_ports0dp)                                          \
@@ -106,6 +107,7 @@
     CFG_ENTRY(decoder0geneve0ports)                                                                \
     CFG_ENTRY(decoder0erspan0typeI0enabled)                                                        \
     CFG_ENTRY(decoder0teredo0enabled)                                                              \
+    CFG_ENTRY(decoder0teredo0ports)                                                                \
     CFG_ENTRY(decoder0vntag0enabled)                                                               \
     CFG_ENTRY(decoder0vxlan0enabled)                                                               \
     CFG_ENTRY(decoder0vxlan0ports)                                                                 \
@@ -187,16 +189,16 @@
     CFG_ENTRY(outputs0callback0http0xff0header)                                                    \
     CFG_ENTRY(outputs0callback0http0dump_all_headers)                                              \
     CFG_ENTRY(outputs0callback0nta0enabled)                                                        \
-    CFG_ENTRY(outputs0callback0nta0dhcp)                                                           \
+    CFG_ENTRY(outputs0callback0nta0dhcp0enabled)                                                   \
     CFG_ENTRY(outputs0callback0nta0dhcp0extended)                                                  \
-    CFG_ENTRY(outputs0callback0nta0dns)                                                            \
+    CFG_ENTRY(outputs0callback0nta0dns0enabled)                                                    \
     CFG_ENTRY(outputs0callback0nta0dns0requests)                                                   \
     CFG_ENTRY(outputs0callback0nta0dns0responses)                                                  \
     CFG_ENTRY(outputs0callback0nta0dns0types)                                                      \
-    CFG_ENTRY(outputs0callback0nta0krb5)                                                           \
-    CFG_ENTRY(outputs0callback0nta0rdp)                                                            \
-    CFG_ENTRY(outputs0callback0nta0smb)                                                            \
-    CFG_ENTRY(outputs0callback0nta0tls)                                                            \
+    CFG_ENTRY(outputs0callback0nta0krb50enabled)                                                   \
+    CFG_ENTRY(outputs0callback0nta0rdp0enabled)                                                    \
+    CFG_ENTRY(outputs0callback0nta0smb0enabled)                                                    \
+    CFG_ENTRY(outputs0callback0nta0tls0enabled)                                                    \
     CFG_ENTRY(outputs0callback0nta0tls0extended)                                                   \
     CFG_ENTRY(outputs0callback0nta0tls0custom)                                                     \
     CFG_ENTRY(outputs0callback0prevent_action0enabled)                                             \
@@ -265,6 +267,7 @@
     CFG_ENTRY(vars0port_groups0ORACLE_PORTS)                                                       \
     CFG_ENTRY(vars0port_groups0SHELLCODE_PORTS)                                                    \
     CFG_ENTRY(vars0port_groups0SSH_PORTS)                                                          \
+    CFG_ENTRY(vars0port_groups0TEREDO_PORTS)                                                       \
     CFG_ENTRY(vars0port_groups0VXLAN_PORTS)                                                        \
     CFG_ENTRY(vlan0use_for_tracking)
 

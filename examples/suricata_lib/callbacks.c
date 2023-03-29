@@ -103,25 +103,6 @@ void callbackFlow(FlowEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
     free((void *)data);
 }
 
-/* Callback invoked for each Suricata FlowSnip event. */
-void callbackFlowSnip(FlowSnipEvent *event, uint64_t *tenant_uuid, void *user_ctx) {
-    if (user_ctx == NULL) {
-        return;
-    }
-
-    char *data = NULL;
-    size_t len = 0;
-    FILE *eve_fp = (FILE *)user_ctx;
-
-    suricata_flowsnip_to_json(event, &data, &len);
-
-    /* Write line and append '\n'. */
-    fwrite(data, 1, len, eve_fp);
-    fwrite("\n", 1, 1, eve_fp);
-
-    free((void *)data);
-}
-
 /* Callback invoked for each signature that fails to load. */
 void callbackSigFailedLoading(const char *signature, const char *signature_file, int line_number,
                               void *user_ctx) {

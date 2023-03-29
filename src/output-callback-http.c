@@ -207,7 +207,7 @@ static void CallbackHttpLogBasic(htp_tx_t *tx, HttpInfo *http) {
     }
 }
 
-static void CallbackHttpLogExtended(htp_tx_t *tx, const char *dir, HttpInfo *http) {
+static void CallbackHttpLogExtended(htp_tx_t *tx, HttpInfo *http) {
     /* Referer */
     htp_header_t *h_referer = NULL;
     if (tx->request_headers != NULL) {
@@ -241,11 +241,6 @@ static void CallbackHttpLogExtended(htp_tx_t *tx, const char *dir, HttpInfo *htt
             http->redirect = h_location->value;
         }
     }
-
-    /* Direction */
-    if (dir) {
-        http->direction = dir;
-    }
 }
 
 static void CallbackHttpLog(CallbackHttpLogThread *aft, htp_tx_t *tx, const char *dir,
@@ -259,7 +254,7 @@ static void CallbackHttpLog(CallbackHttpLogThread *aft, htp_tx_t *tx, const char
 
     /* Log extra information if configured. */
     if (http_ctx->flags & LOG_HTTP_EXTENDED) {
-        CallbackHttpLogExtended(tx, dir, http);
+        CallbackHttpLogExtended(tx, http);
     }
     if (http_ctx->flags & LOG_HTTP_REQ_HEADERS) {
         CallbackHttpLogHeaders(tx, http, LOG_HTTP_REQ_HEADERS);
@@ -321,14 +316,14 @@ static int CallbackHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p
     return 0;
 }
 
-bool CallbackHttpAddMetadata(const Flow *f, uint64_t tx_id, const char *dir, HttpInfo *http) {
+bool CallbackHttpAddMetadata(const Flow *f, uint64_t tx_id, HttpInfo *http) {
     HtpState *htp_state = (HtpState *)FlowGetAppState(f);
     if (htp_state) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, tx_id);
 
         if (tx) {
             CallbackHttpLogBasic(tx, http);
-            CallbackHttpLogExtended(tx, dir, http);
+            CallbackHttpLogExtended(tx, http);
             return true;
         }
     }
@@ -338,6 +333,6 @@ bool CallbackHttpAddMetadata(const Flow *f, uint64_t tx_id, const char *dir, Htt
 
 void CallbackHttpLogRegister(void) {
     OutputRegisterTxSubModule(LOGGER_CALLBACK_TX, "callback", MODULE_NAME, "callback.http",
-                              CallbackHttpLogInitSub, ALPROTO_HTTP, CallbackHttpLogger,
+                              CallbackHttpLogInitSub, ALPROTO_HTTP1, CallbackHttpLogger,
                               CallbackHttpLogThreadInit, CallbackHttpLogThreadDeinit, NULL);
 }

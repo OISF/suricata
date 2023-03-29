@@ -102,30 +102,20 @@ static void AlertCallbackSourceTarget(const Packet *p, const PacketAlert *pa, Al
 void AlertCallbackHeader(const Packet *p, const PacketAlert *pa, Alert *alert,
                          JsonAddrInfo *addr) {
     const char *action = "allowed";
-    const char *action_detail = "none";
     /* use packet action if rate_filter modified the action */
     if (unlikely(pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED)) {
         if (PacketCheckAction(p, ACTION_DROP_REJECT)) {
             action = "blocked";
-
-            if (PacketCheckAction(p, ACTION_DROP)) {
-                action_detail = "drop";
-            } else {
-                action_detail = "reject";
-            }
         }
     } else {
         if (pa->action & ACTION_REJECT_ANY) {
             action = "blocked";
-            action_detail = "reject";
         } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
             action = "blocked";
-            action_detail = "drop";
         }
     }
 
     alert->action = action;
-    alert->action_detail = action_detail;
     alert->sid = pa->s->id;
     alert->gid = pa->s->gid;
     alert->rev = pa->s->rev;
@@ -178,6 +168,9 @@ static int AlertCallback(ThreadVars *tv, CallbackAlertLogThread *aft, const Pack
         if (p->flow != NULL) {
             CallbackAddAppLayer(p, pa->tx_id, &event.app_layer);
 
+            /* Direction. */
+            event.alert.direction =  p->flowflags & FLOW_PKT_TOSERVER ? "to_server" : "to_client";
+
             /* TODO: Add file info? */
 
             /* Flow info. */
@@ -191,7 +184,7 @@ static int AlertCallback(ThreadVars *tv, CallbackAlertLogThread *aft, const Pack
             HttpXFFCfg *xff_cfg = callback_output_ctx->xff_cfg;
             int have_xff_ip = 0;
             if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED)) {
-                if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
+                if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP1) {
                     if (pa->flags & PACKET_ALERT_FLAG_TX) {
                         have_xff_ip = HttpXFFGetIPFromTx(p->flow, pa->tx_id, xff_cfg,
                                 xff_buffer, XFF_MAXLEN);
@@ -213,7 +206,7 @@ static int AlertCallback(ThreadVars *tv, CallbackAlertLogThread *aft, const Pack
             }
 
             if (have_xff_ip && xff_cfg->flags & XFF_EXTRADATA) {
-                event.common.xff = xff_buffer;
+                event.alert.xff = xff_buffer;
             }
         }
 
