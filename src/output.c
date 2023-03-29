@@ -1022,6 +1022,15 @@ void OutputClearActiveLoggers(void)
     }
 }
 
+void OutputClearRegisteredLoggers(void)
+{
+    RootLogger *logger;
+    while ((logger = TAILQ_FIRST(&registered_loggers)) != NULL) {
+        TAILQ_REMOVE(&registered_loggers, logger, entries);
+        SCFree(logger);
+    }
+}
+
 void TmModuleLoggerRegister(void)
 {
     OutputRegisterRootLoggers();

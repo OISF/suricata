@@ -1673,6 +1673,13 @@ void DetectBufferTypeCloseRegistration(void)
     g_buffer_type_reg_closed = 1;
 }
 
+void DetectBufferTypeResetRegistration(void)
+{
+    BUG_ON(g_buffer_type_hash == NULL);
+
+    g_buffer_type_reg_closed = 0;
+}
+
 int DetectEngineBufferTypeGetByIdTransforms(
         DetectEngineCtx *de_ctx, const int id, TransformData *transforms, int transform_cnt)
 {

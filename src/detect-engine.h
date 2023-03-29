@@ -53,6 +53,7 @@ void DetectBufferTypeSupportsFrames(const char *name);
 void DetectBufferTypeSupportsTransformations(const char *name);
 int DetectBufferTypeMaxId(void);
 void DetectBufferTypeCloseRegistration(void);
+void DetectBufferTypeResetRegistration(void);
 void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc);
 const char *DetectBufferTypeGetDescriptionByName(const char *name);
 void DetectBufferTypeRegisterSetupCallback(const char *name,

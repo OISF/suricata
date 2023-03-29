@@ -372,6 +372,7 @@ void GlobalsDestroy(SCInstance *suri)
         SCReferenceConfDeinit();
         SCClassConfDeinit();
     }
+    SigTableCleanup();
     TmqhCleanup();
     TmModuleRunDeInit();
     ParseSizeDeinit();

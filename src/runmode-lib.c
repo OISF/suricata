@@ -11,6 +11,8 @@
 #include "util-affinity.h"
 
 
+static int g_thread_id = 0;
+
 /** \brief register runmodes for suricata as a library */
 void RunModeIdsLibRegister(void) {
     RunModeRegisterNewRunMode(RUNMODE_LIB, "offline",
@@ -47,8 +49,7 @@ int RunModeIdsLibLive(void) {
 void *RunModeCreateWorker(void) {
     char tname[TM_THREAD_NAME_MAX];
     TmModule *tm_module = NULL;
-    static int thread_id = 0;
-    snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, ++thread_id);
+    snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, ++g_thread_id);
 
     ThreadVars *tv = TmThreadCreatePacketHandler(tname, "packetpool", "packetpool", "packetpool",
                                                  "packetpool", "lib");
@@ -119,6 +120,7 @@ void RunModeDestroyWorker(void *td) {
     }
 
     tv->stream_pq = NULL;
+    --g_thread_id;
     SCLogDebug("%s ending", tv->name);
     TmThreadsSetFlag(tv, THV_CLOSED);
 }

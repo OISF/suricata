@@ -337,6 +337,7 @@ enum DetectKeywordId {
 
 int SigTableList(const char *keyword);
 void SigTableSetup(void);
+void SigTableCleanup(void);
 void SigTableRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_REGISTER_H__ */

@@ -610,6 +610,7 @@ void RunModeShutDown(void)
     OutputFlowShutdown();
 
     OutputClearActiveLoggers();
+    OutputClearRegisteredLoggers();
 
     /* Reset logger counts. */
     file_logger_count = 0;

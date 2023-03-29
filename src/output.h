@@ -207,5 +207,6 @@ void OutputLoggerExitPrintStats(ThreadVars *, void *);
 
 void OutputSetupActiveLoggers(void);
 void OutputClearActiveLoggers(void);
+void OutputClearRegisteredLoggers(void);
 
 #endif /* ! __OUTPUT_H__ */

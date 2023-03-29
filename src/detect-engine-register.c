@@ -693,6 +693,11 @@ void SigTableSetup(void)
     DetectBufferTypeCloseRegistration();
 }
 
+void SigTableCleanup(void)
+{
+    DetectBufferTypeResetRegistration();
+}
+
 #ifdef UNITTESTS
 void SigTableRegisterTests(void)
 {
