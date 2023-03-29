@@ -327,6 +327,8 @@ typedef struct AFPThreadVars_
 
     int promisc;
 
+    int loopback;
+
     int down_count;
 
     uint16_t cluster_id;
@@ -898,6 +900,14 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
             goto next_frame;
         }
 
+        /* Drop outgoing packets on loopback interfaces, only process incoming ones. */
+        if ( ptv->loopback ) {
+            const struct sockaddr_ll *sll =
+                    (const struct sockaddr_ll*)((uint8_t*)h.h2 + TPACKET_ALIGN(sizeof(struct tpacket2_hdr)));
+            if (sll->sll_pkttype == PACKET_OUTGOING)
+                goto next_frame;
+        }
+
         Packet *p = PacketGetFromQueueOrAlloc();
         if (p == NULL) {
             return AFPSuriFailure(ptv, h);
@@ -988,8 +998,19 @@ static inline int AFPWalkBlock(AFPThreadVars *ptv, struct tpacket_block_desc *pb
 {
     const int num_pkts = pbd->hdr.bh1.num_pkts;
     uint8_t *ppd = (uint8_t *)pbd + pbd->hdr.bh1.offset_to_first_pkt;
+    const int loopback = ptv->loopback;
 
     for (int i = 0; i < num_pkts; ++i) {
+        /* Drop outgoing packets on loopback interfaces, only process incoming ones. */
+        if ( loopback ) {
+            const struct sockaddr_ll *sll =
+                    (const struct sockaddr_ll*)(ppd + TPACKET_ALIGN(sizeof(struct tpacket3_hdr)));
+
+            if (sll->sll_pkttype == PACKET_OUTGOING) {
+                ppd = ppd + ((struct tpacket3_hdr *)ppd)->tp_next_offset;
+                continue;
+            }
+        }
         int ret = AFPParsePacketV3(ptv, pbd, (struct tpacket3_hdr *)ppd);
         switch (ret) {
             case AFP_READ_OK:
@@ -1876,6 +1897,8 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         ret = AFP_RECOVERABLE_ERROR;
         goto socket_err;
     }
+
+    ptv->loopback = if_flags & IFF_LOOPBACK;
 
     if (ptv->promisc != 0) {
         /* Force promiscuous mode */
