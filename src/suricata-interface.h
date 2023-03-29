@@ -221,7 +221,14 @@ int suricata_handle_stream(ThreadVars *tv, FlowStreamInfo *finfo, const uint8_t 
                            void *user_ctx);
 
 /**
- * \brief Destroy a worker thread.
+ * \brief Reload the detection engine (rule set).
+ *
+ * \param ctx Pointer to the Suricata context.
+ */
+void suricata_engine_reload(SuricataCtx *ctx);
+
+/**
+ * \brief Cleanup a Suricata worker.
  *
  * \param ctx Pointer to the Suricata context.
  * \param tv  Pointer to the worker context.

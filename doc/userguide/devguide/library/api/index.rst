@@ -14,5 +14,6 @@ is the same a client **must** use when invoking them.
    callbacks/index.rst
    initialization
    input
+   rule_reload
    stats
    cleanup

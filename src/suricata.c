@@ -2526,7 +2526,7 @@ static void PostRunStartedDetectSetup(const SCInstance *suri)
     /* registering signal handlers we use. We setup usr2 here, so that one
      * can't call it during the first sig load phase or while threads are still
      * starting up. */
-    if (DetectEngineEnabled() && suri->delayed_detect == 0) {
+    if (DetectEngineEnabled() && suri->delayed_detect == 0 && suri->run_mode != RUNMODE_LIB) {
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
         UtilSignalUnblock(SIGUSR2);
     }

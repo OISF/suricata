@@ -13,6 +13,7 @@
 
 #include "conf-struct-loader.h"
 #include "counters.h"
+#include "detect-engine.h"
 #include "output-callback-stats.h"
 #include "flow-manager.h"
 #include "runmode-lib.h"
@@ -368,6 +369,22 @@ int suricata_handle_stream(ThreadVars *tv, FlowStreamInfo *finfo, const uint8_t 
                            uint32_t len, uint64_t *tenant_uuid, uint32_t tenant_id,
                            void *user_ctx) {
     return TmModuleLibHandleStream(tv, finfo, data, len, tenant_uuid, tenant_id, user_ctx);
+}
+
+/**
+ * \brief Reload the detection engine (rule set).
+ *
+ * \param ctx Pointer to the Suricata context.
+ */
+void suricata_engine_reload(SuricataCtx *ctx) {
+    // Do nothing the engine is not yet fully initialized or a reload is already in progress.
+    if (!ctx->post_init_done || DetectEngineReloadIsStart()) {
+        return;
+    }
+
+    DetectEngineReloadStart();
+    DetectEngineReload(GetInstance());
+    DetectEngineReloadSetIdle();
 }
 
 /**
