@@ -22,7 +22,7 @@ Settings:
 * loaders: number of 'loader' threads, for parallel tenant loading at startup
 * tenants: list of tenants
 
-  * id: tenant id
+  * id: tenant id (numeric values only)
   * yaml: separate yaml file with the tenant specific settings
 
 * mappings:
