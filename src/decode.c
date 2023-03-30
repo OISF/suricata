@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -606,6 +606,15 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_defrag_ipv6_reassembled = StatsRegisterCounter("defrag.ipv6.reassembled", tv);
     dtv->counter_defrag_max_hit =
         StatsRegisterCounter("defrag.max_frag_hits", tv);
+    /* Counters for Exception Policy Defrag values */
+    dtv->counter_defrag_memcap_eps_reject =
+            StatsRegisterCounter("defrag.memcap_exception_policy.reject", tv);
+    dtv->counter_defrag_memcap_eps_bypass =
+            StatsRegisterCounter("defrag.memcap_exception_policy.bypass", tv);
+    dtv->counter_defrag_memcap_eps_pass_packet =
+            StatsRegisterCounter("defrag.memcap_exception_policy.pass_packet", tv);
+    dtv->counter_defrag_memcap_eps_drop_packet =
+            StatsRegisterCounter("defrag.memcap_exception_policy.drop_packet", tv);
 
     for (int i = 0; i < DECODE_EVENT_MAX; i++) {
         BUG_ON(i != (int)DEvents[i].code);
