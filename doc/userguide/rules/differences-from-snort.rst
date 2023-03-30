@@ -263,6 +263,12 @@ See :doc:`http-keywords` for all HTTP keywords.
    use ``byte_extract`` and ``byte_test`` to verify that they
    work as expected.
 
+``byte_math`` Keyword
+---------------------
+
+- Suricata will never match if there's a zero divisor. Division by 0 is undefined.
+
+
 ``isdataat`` Keyword
 --------------------
 

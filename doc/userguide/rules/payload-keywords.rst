@@ -379,6 +379,8 @@ an existing variable or a specified value.
 
 When ``relative`` is included, there must be a previous ``content`` or ``pcre`` match.
 
+Note: if ``oper`` is ``/`` and the divisor is 0, there will never be a match on the ``byte_math`` keyword.
+
 The result can be stored in a result variable and referenced by
 other rule options later in the rule.
 
