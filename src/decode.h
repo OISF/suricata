@@ -706,10 +706,8 @@ typedef struct DecodeThreadVars_
     /** frag stats - defrag runs in the context of the decoder. */
     uint16_t counter_defrag_ipv4_fragments;
     uint16_t counter_defrag_ipv4_reassembled;
-    uint16_t counter_defrag_ipv4_timeouts;
     uint16_t counter_defrag_ipv6_fragments;
     uint16_t counter_defrag_ipv6_reassembled;
-    uint16_t counter_defrag_ipv6_timeouts;
     uint16_t counter_defrag_max_hit;
 
     uint16_t counter_flow_memcap;
