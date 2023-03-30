@@ -237,8 +237,8 @@ static int B64DecodeInCompleteString(void)
      * SGVsbG8gV29ybGR6 : Hello Worldz
      * */
     const char *src = "SGVsbG8gV29ybGR";
-    const char *fin_str = "Hello Wor"; // bc it'll error out on last 3 bytes
-    TEST_RFC2045(src, fin_str, strlen(fin_str), strlen(fin_str), strlen(src) - 3, BASE64_ECODE_OK);
+    const char *fin_str = "Hello World";
+    TEST_RFC2045(src, fin_str, 12, strlen(fin_str), strlen(src), BASE64_ECODE_OK);
     PASS;
 }
 
@@ -262,8 +262,9 @@ static int B64DecodeInCompleteStringWSp(void)
      * */
 
     const char *src = "SGVs bG8 gV29y bGQ";
-    const char *fin_str = "Hello Wor";
-    TEST_RFC2045(src, fin_str, strlen(fin_str), strlen(fin_str), strlen(src) - 3, BASE64_ECODE_OK);
+    const char *fin_str = "Hello World";
+    TEST_RFC2045(src, fin_str, strlen(fin_str) + 1 /* 12 B in dest_size */, strlen(fin_str),
+            strlen(src), BASE64_ECODE_OK);
     PASS;
 }
 
@@ -288,8 +289,8 @@ static int B64DecodeStringEndingSpaces(void)
     Base64Ecode code = DecodeBase64(dst, sizeof(dst), (const uint8_t *)src, strlen(src),
             &consumed_bytes, &num_decoded, BASE64_MODE_RFC2045);
     FAIL_IF(code != BASE64_ECODE_OK);
-    FAIL_IF(num_decoded != 3);
-    FAIL_IF(consumed_bytes != 4);
+    FAIL_IF(num_decoded != 5);
+    FAIL_IF(consumed_bytes != 9);
     PASS;
 }
 
@@ -334,7 +335,7 @@ static int B64TestVectorsRFC2045(void)
     TEST_RFC2045(src7, fin_str7, ASCII_BLOCK * 2, strlen(fin_str7), strlen(src7), BASE64_ECODE_OK);
     TEST_RFC2045(src8, fin_str8, ASCII_BLOCK * 2, strlen(fin_str8), strlen(src8), BASE64_ECODE_OK);
     TEST_RFC2045(src9, fin_str9, ASCII_BLOCK * 2, strlen(fin_str9), strlen(src9), BASE64_ECODE_OK);
-    TEST_RFC2045(src10, fin_str10, strlen(fin_str10) + 3, strlen(fin_str10), strlen(src10),
+    TEST_RFC2045(src10, fin_str10, strlen(fin_str10) + 2, strlen(fin_str10), strlen(src10),
             BASE64_ECODE_OK);
     PASS;
 }
