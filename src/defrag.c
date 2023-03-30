@@ -1043,6 +1043,8 @@ Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
     tracker = DefragGetTracker(tv, dtv, p);
     if (tracker == NULL) {
         StatsIncr(tv, dtv->counter_defrag_max_hit);
+        /* currently, whenever tracker is NULL, ExceptionPolicyApply has been called */
+        StatsIncr(tv, dtv->counter_defrag_memcap_exc_policy);
         return NULL;
     }
 

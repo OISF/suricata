@@ -4747,6 +4747,9 @@
                         "max_frag_hits": {
                             "type": "integer"
                         },
+                        "memcap_exception_policy": {
+                            "type": "integer"
+                        },
                         "ipv4": {
                             "type": "object",
                             "properties": {
