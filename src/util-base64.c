@@ -196,7 +196,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
     {                                                                                              \
         uint32_t consumed_bytes = 0, num_decoded = 0;                                              \
         uint8_t dst[dest_size];                                                                    \
-        Base64Ecode code = DecodeBase64(dst, strlen(fin_str), (const uint8_t *)src, strlen(src),   \
+        Base64Ecode code = DecodeBase64(dst, dest_size, (const uint8_t *)src, strlen(src),         \
                 &consumed_bytes, &num_decoded, BASE64_MODE_RFC2045);                               \
         FAIL_IF(code != ecode);                                                                    \
         FAIL_IF(memcmp(dst, fin_str, strlen(fin_str)) != 0);                                       \
@@ -208,7 +208,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
     {                                                                                              \
         uint32_t consumed_bytes = 0, num_decoded = 0;                                              \
         uint8_t dst[dest_size];                                                                    \
-        Base64Ecode code = DecodeBase64(dst, strlen(fin_str), (const uint8_t *)src, strlen(src),   \
+        Base64Ecode code = DecodeBase64(dst, dest_size, (const uint8_t *)src, strlen(src),         \
                 &consumed_bytes, &num_decoded, BASE64_MODE_RFC4648);                               \
         FAIL_IF(code != ecode);                                                                    \
         FAIL_IF(memcmp(dst, fin_str, strlen(fin_str)) != 0);                                       \
