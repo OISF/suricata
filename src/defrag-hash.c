@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -72,6 +72,11 @@ uint64_t DefragTrackerGetMemuse(void)
 {
     uint64_t memusecopy = (uint64_t)SC_ATOMIC_GET(defrag_memuse);
     return memusecopy;
+}
+
+enum ExceptionPolicy DefragGetMemcapExceptionPolicy(void)
+{
+    return defrag_config.memcap_policy;
 }
 
 uint32_t DefragTrackerSpareQueueGetSize(void)
@@ -461,6 +466,15 @@ static inline int DefragTrackerCompare(DefragTracker *t, Packet *p)
     return CMP_DEFRAGTRACKER(t, p, id);
 }
 
+static void DefragExceptionPolicyStatsIncr(
+        ThreadVars *tv, DecodeThreadVars *dtv, enum ExceptionPolicy policy)
+{
+    uint16_t id = dtv->counter_defrag_memcap_eps.eps_id[policy];
+    if (likely(tv && id > 0)) {
+        StatsIncr(tv, id);
+    }
+}
+
 /**
  *  \brief Get a new defrag tracker
  *
@@ -469,12 +483,13 @@ static inline int DefragTrackerCompare(DefragTracker *t, Packet *p)
  *
  *  \retval dt *LOCKED* tracker on success, NULL on error.
  */
-static DefragTracker *DefragTrackerGetNew(Packet *p)
+static DefragTracker *DefragTrackerGetNew(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
 #ifdef DEBUG
     if (g_eps_defrag_memcap != UINT64_MAX && g_eps_defrag_memcap == p->pcap_cnt) {
         SCLogNotice("simulating memcap hit for packet %" PRIu64, p->pcap_cnt);
         ExceptionPolicyApply(p, defrag_config.memcap_policy, PKT_DROP_REASON_DEFRAG_MEMCAP);
+        DefragExceptionPolicyStatsIncr(tv, dtv, defrag_config.memcap_policy);
         return NULL;
     }
 #endif
@@ -499,6 +514,7 @@ static DefragTracker *DefragTrackerGetNew(Packet *p)
             dt = DefragTrackerGetUsedDefragTracker();
             if (dt == NULL) {
                 ExceptionPolicyApply(p, defrag_config.memcap_policy, PKT_DROP_REASON_DEFRAG_MEMCAP);
+                DefragExceptionPolicyStatsIncr(tv, dtv, defrag_config.memcap_policy);
                 return NULL;
             }
 
@@ -508,6 +524,7 @@ static DefragTracker *DefragTrackerGetNew(Packet *p)
             dt = DefragTrackerAlloc();
             if (dt == NULL) {
                 ExceptionPolicyApply(p, defrag_config.memcap_policy, PKT_DROP_REASON_DEFRAG_MEMCAP);
+                DefragExceptionPolicyStatsIncr(tv, dtv, defrag_config.memcap_policy);
                 return NULL;
             }
 
@@ -532,7 +549,7 @@ static DefragTracker *DefragTrackerGetNew(Packet *p)
  *
  * returns a *LOCKED* tracker or NULL
  */
-DefragTracker *DefragGetTrackerFromHash (Packet *p)
+DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
     DefragTracker *dt = NULL;
 
@@ -544,7 +561,7 @@ DefragTracker *DefragGetTrackerFromHash (Packet *p)
 
     /* see if the bucket already has a tracker */
     if (hb->head == NULL) {
-        dt = DefragTrackerGetNew(p);
+        dt = DefragTrackerGetNew(tv, dtv, p);
         if (dt == NULL) {
             DRLOCK_UNLOCK(hb);
             return NULL;
@@ -573,7 +590,7 @@ DefragTracker *DefragGetTrackerFromHash (Packet *p)
             dt = dt->hnext;
 
             if (dt == NULL) {
-                dt = pdt->hnext = DefragTrackerGetNew(p);
+                dt = pdt->hnext = DefragTrackerGetNew(tv, dtv, p);
                 if (dt == NULL) {
                     DRLOCK_UNLOCK(hb);
                     return NULL;
