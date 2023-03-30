@@ -159,7 +159,13 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
     if (bbidx > 0 && bbidx < 4 && ((!valid && mode == BASE64_MODE_RFC4648))) {
         /* Decoded bytes for 1 or 2 base64 encoded bytes is 1 */
         padding = bbidx > 1 ? B64_BLOCK - bbidx : 2;
-        *decoded_bytes += ASCII_BLOCK - padding;
+        uint32_t numDecoded_blk = ASCII_BLOCK - (padding < B64_BLOCK ? padding : ASCII_BLOCK);
+        if (dest_size < *decoded_bytes + numDecoded_blk) {
+            SCLogDebug("Destination buffer full");
+            ecode = BASE64_ECODE_BUF;
+            return ecode;
+        }
+        *decoded_bytes += numDecoded_blk;
         DecodeBase64Block(dptr, b64);
         *consumed_bytes += bbidx;
     }
