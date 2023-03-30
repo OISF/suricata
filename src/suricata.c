@@ -471,13 +471,6 @@ static int SetBpfString(int argc, char *argv[])
     if (bpf_len == 0)
         return TM_ECODE_OK;
 
-    if (EngineModeIsIPS()) {
-        SCLogError(SC_ERR_NOT_SUPPORTED,
-                   "BPF filter not available in IPS mode."
-                   " Use firewall filtering if possible.");
-        return TM_ECODE_FAILED;
-    }
-
     bpf_filter = SCMalloc(bpf_len);
     if (unlikely(bpf_filter == NULL))
         return TM_ECODE_OK;

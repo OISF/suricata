@@ -157,14 +157,6 @@ static void *ParseAFPConfig(const char *iface)
     aconf->ebpf_t_config.cpus_count = UtilCpuGetNumProcessorsConfigured();
 #endif
 
-    if (ConfGet("bpf-filter", &bpf_filter) == 1) {
-        if (strlen(bpf_filter) > 0) {
-            aconf->bpf_filter = bpf_filter;
-            SCLogConfig("Going to use command-line provided bpf filter '%s'",
-                       aconf->bpf_filter);
-        }
-    }
-
     /* Find initial node */
     af_packet_node = ConfGetNode("af-packet");
     if (af_packet_node == NULL) {
@@ -372,11 +364,18 @@ static void *ParseAFPConfig(const char *iface)
 
     /*load af_packet bpf filter*/
     /* command line value has precedence */
-    if (ConfGet("bpf-filter", &bpf_filter) != 1) {
-        if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
-            if (strlen(bpf_filter) > 0) {
-                aconf->bpf_filter = bpf_filter;
-                SCLogConfig("Going to use bpf filter %s", aconf->bpf_filter);
+    if (ConfGet("bpf-filter", &bpf_filter) == 1) {
+        if (strlen(bpf_filter) > 0) {
+            aconf->bpf_filter = bpf_filter;
+            SCLogConfig("Going to use command-line provided bpf filter '%s'", aconf->bpf_filter);
+        }
+    } else { // reading from the file
+        if (aconf->bpf_filter == NULL) {
+            if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
+                if (strlen(bpf_filter) > 0) {
+                    aconf->bpf_filter = bpf_filter;
+                    SCLogConfig("Going to use file provided bpf filter '%s'", aconf->bpf_filter);
+                }
             }
         }
     }

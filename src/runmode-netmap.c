@@ -142,15 +142,6 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         ns->real = true;
     }
 
-    const char *bpf_filter = NULL;
-    if (ConfGet("bpf-filter", &bpf_filter) == 1) {
-        if (strlen(bpf_filter) > 0) {
-            ns->bpf_filter = bpf_filter;
-            SCLogInfo("Going to use command-line provided bpf filter '%s'",
-                    ns->bpf_filter);
-        }
-    }
-
     if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find netmap config for "
                 "interface \"%s\" or \"default\", using default values",
@@ -183,11 +174,19 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
 
     /* load netmap bpf filter */
     /* command line value has precedence */
-    if (ns->bpf_filter == NULL) {
-        if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
-            if (strlen(bpf_filter) > 0) {
-                ns->bpf_filter = bpf_filter;
-                SCLogInfo("Going to use bpf filter %s", ns->bpf_filter);
+    const char *bpf_filter = NULL;
+    if (ConfGet("bpf-filter", &bpf_filter) == 1) {
+        if (strlen(bpf_filter) > 0) {
+            ns->bpf_filter = bpf_filter;
+            SCLogInfo("Going to use command-line provided bpf filter '%s'", ns->bpf_filter);
+        }
+    } else { // reading from the file
+        if (ns->bpf_filter == NULL) {
+            if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
+                if (strlen(bpf_filter) > 0) {
+                    ns->bpf_filter = bpf_filter;
+                    SCLogInfo("Going to use file provided bpf filter %s", ns->bpf_filter);
+                }
             }
         }
     }

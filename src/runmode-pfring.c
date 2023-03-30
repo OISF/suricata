@@ -319,26 +319,29 @@ static void *ParsePfringConfig(const char *iface)
         if (strlen(bpf_filter) > 0) {
             pfconf->bpf_filter = SCStrdup(bpf_filter);
             if (unlikely(pfconf->bpf_filter == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC,
-                           "Can't allocate BPF filter string");
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate BPF filter string");
             } else {
-                SCLogDebug("Going to use command-line provided bpf filter %s",
-                           pfconf->bpf_filter);
+                SCLogConfig("Going to use command-line provided bpf filter %s", pfconf->bpf_filter);
             }
         }
     } else {
-        if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
-            if (strlen(bpf_filter) > 0) {
-                pfconf->bpf_filter = SCStrdup(bpf_filter);
-                if (unlikely(pfconf->bpf_filter == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC,
-                               "Can't allocate BPF filter string");
-                } else {
-                    SCLogDebug("Going to use bpf filter %s",
-                               pfconf->bpf_filter);
+        if (pfconf->bpf_filter == NULL) {
+            if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
+                if (strlen(bpf_filter) > 0) {
+                    pfconf->bpf_filter = SCStrdup(bpf_filter);
+                    if (unlikely(pfconf->bpf_filter == NULL)) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate BPF filter string");
+                    } else {
+                        SCLogConfig("Going to use file provided bpf filter %s", pfconf->bpf_filter);
+                    }
                 }
             }
         }
+    }
+
+    if (pfconf->bpf_filter != NULL && EngineModeIsIPS()) {
+        FatalError(SC_ERR_NOT_SUPPORTED,
+                "BPF filter not available in IPS mode. Use firewall filtering if possible.");
     }
 
     if (ConfGet("pfring.cluster-type", &tmpctype) == 1) {
