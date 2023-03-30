@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -62,11 +62,15 @@
 #include "decode-erspan.h"
 #include "decode-teredo.h"
 
+#include "defrag-hash.h"
+
 #include "util-hash.h"
 #include "util-hash-string.h"
 #include "util-print.h"
 #include "util-profiling.h"
 #include "util-validate.h"
+#include "util-debug.h"
+#include "util-exception-policy.h"
 #include "action-globals.h"
 
 uint32_t default_packet_size = 0;
@@ -75,6 +79,32 @@ extern const char *stats_decoder_events_prefix;
 extern bool stats_stream_events;
 uint8_t decoder_max_layers = PKT_DEFAULT_MAX_DECODED_LAYERS;
 uint16_t packet_alert_max = PACKET_ALERT_MAX;
+
+/* Settings order as in the enum */
+// clang-format off
+ExceptionPolicyStatsSetts defrag_memcap_eps_stats = {
+    .valid_settings_ids = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  true,
+    /* EXCEPTION_POLICY_PASS_FLOW */    false,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+    .valid_settings_ips = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  true,
+    /* EXCEPTION_POLICY_PASS_FLOW */    false,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  true,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+};
+// clang-format on
 
 /* Settings order as in the enum */
 // clang-format off
@@ -551,6 +581,14 @@ void DecodeUnregisterCounters(void)
     SCMutexUnlock(&g_counter_table_mutex);
 }
 
+static bool IsDefragMemcapExceptionPolicyStatsValid(enum ExceptionPolicy policy)
+{
+    if (EngineModeIsIPS()) {
+        return defrag_memcap_eps_stats.valid_settings_ips[policy];
+    }
+    return defrag_memcap_eps_stats.valid_settings_ids[policy];
+}
+
 static bool IsFlowMemcapExceptionPolicyStatsValid(enum ExceptionPolicy policy)
 {
     if (EngineModeIsIPS()) {
@@ -637,6 +675,10 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_defrag_ipv6_reassembled = StatsRegisterCounter("defrag.ipv6.reassembled", tv);
     dtv->counter_defrag_max_hit =
         StatsRegisterCounter("defrag.max_frag_hits", tv);
+
+    ExceptionPolicySetStatsCounters(tv, &dtv->counter_defrag_memcap_eps, &defrag_memcap_eps_stats,
+            DefragGetMemcapExceptionPolicy(), "defrag.memcap_exception_policy.",
+            IsDefragMemcapExceptionPolicyStatsValid);
 
     for (int i = 0; i < DECODE_EVENT_MAX; i++) {
         BUG_ON(i != (int)DEvents[i].code);
