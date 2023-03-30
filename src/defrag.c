@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1038,7 +1038,7 @@ DefragGetOsPolicy(Packet *p)
 static DefragTracker *
 DefragGetTracker(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
-    return DefragGetTrackerFromHash(p);
+    return DefragGetTrackerFromHash(tv, dtv, p);
 }
 
 /**
