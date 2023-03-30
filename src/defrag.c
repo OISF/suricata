@@ -1041,8 +1041,10 @@ Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 
     /* return a locked tracker or NULL */
     tracker = DefragGetTracker(tv, dtv, p);
-    if (tracker == NULL)
+    if (tracker == NULL) {
+        StatsIncr(tv, dtv->counter_defrag_max_hit);
         return NULL;
+    }
 
     Packet *rp = DefragInsertFrag(tv, dtv, tracker, p);
     DefragTrackerRelease(tracker);
