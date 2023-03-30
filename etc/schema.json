@@ -4907,6 +4907,11 @@
                         "max_frag_hits": {
                             "type": "integer"
                         },
+                        "memcap_exception_policy": {
+                            "description":
+                                    "How many times defrag memcap exception policy was applied, and which one",
+                            "$ref": "#/$defs/exceptionPolicy"
+                        },
                         "ipv4": {
                             "type": "object",
                             "properties": {
