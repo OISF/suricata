@@ -165,6 +165,11 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
             ecode = BASE64_ECODE_BUF;
             return ecode;
         }
+        /* if the destination size is not at least 3 Bytes long, it'll give a dynamic
+         * buffer overflow while decoding, so, return and let the caller take care of the
+         * remaining bytes to be decoded which should always be < 4 at this stage */
+        if (dest_size - *decoded_bytes < 3)
+            return BASE64_ECODE_BUF;
         *decoded_bytes += numDecoded_blk;
         DecodeBase64Block(dptr, b64);
         *consumed_bytes += bbidx;
