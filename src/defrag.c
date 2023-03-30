@@ -991,7 +991,7 @@ DefragGetOsPolicy(Packet *p)
 static DefragTracker *
 DefragGetTracker(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
-    return DefragGetTrackerFromHash(p);
+    return DefragGetTrackerFromHash(tv, dtv, p);
 }
 
 /**

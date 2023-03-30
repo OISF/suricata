@@ -92,7 +92,7 @@ void DefragInitConfig(bool quiet);
 void DefragHashShutdown(void);
 
 DefragTracker *DefragLookupTrackerFromHash (Packet *);
-DefragTracker *DefragGetTrackerFromHash (Packet *);
+DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, Packet *);
 void DefragTrackerRelease(DefragTracker *);
 void DefragTrackerClearMemory(DefragTracker *);
 void DefragTrackerMoveToSpare(DefragTracker *);

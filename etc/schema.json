@@ -4753,6 +4753,32 @@
                         "max_frag_hits": {
                             "type": "integer"
                         },
+                        "memcap_exception_policy": {
+                            "type": "object",
+                            "anyOf": [
+                                {
+                                    "$ref": "#/$defs/drop_flow"
+                                },
+                                {
+                                    "$ref": "#/$defs/drop_packet"
+                                },
+                                {
+                                    "$ref": "#/$defs/pass_flow"
+                                },
+                                {
+                                    "$ref": "#/$defs/pass_packet"
+                                },
+                                {
+                                    "$ref": "#/$defs/bypass"
+                                },
+                                {
+                                    "$ref": "#/$defs/ignore"
+                                },
+                                {
+                                    "$ref": "#/$defs/reject"
+                                }
+                            ]
+                        },
                         "ipv4": {
                             "type": "object",
                             "properties": {
@@ -4910,8 +4936,7 @@
                                 {
                                     "$ref": "#/$defs/reject"
                                 }
-                            ],
-                            "additionalProperties": "false"
+                            ]
                         },
                         "memuse": {
                             "type": "integer"

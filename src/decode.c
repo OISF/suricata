@@ -612,6 +612,21 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_defrag_ipv6_reassembled = StatsRegisterCounter("defrag.ipv6.reassembled", tv);
     dtv->counter_defrag_max_hit =
         StatsRegisterCounter("defrag.max_frag_hits", tv);
+    /* Counters for Exception Policy Defrag values */
+    dtv->counter_defrag_memcap_eps_ignore =
+            StatsRegisterCounter("defrag.memcap_exception_policy.ignore", tv);
+    dtv->counter_defrag_memcap_eps_reject =
+            StatsRegisterCounter("defrag.memcap_exception_policy.reject", tv);
+    dtv->counter_defrag_memcap_eps_bypass =
+            StatsRegisterCounter("defrag.memcap_exception_policy.bypass", tv);
+    dtv->counter_defrag_memcap_eps_pass_flow =
+            StatsRegisterCounter("defrag.memcap_exception_policy.pass_flow", tv);
+    dtv->counter_defrag_memcap_eps_pass_packet =
+            StatsRegisterCounter("defrag.memcap_exception_policy.pass_packet", tv);
+    dtv->counter_defrag_memcap_eps_drop_flow =
+            StatsRegisterCounter("defrag.memcap_exception_policy.drop_flow", tv);
+    dtv->counter_defrag_memcap_eps_drop_packet =
+            StatsRegisterCounter("defrag.memcap_exception_policy.drop_packet", tv);
 
     for (int i = 0; i < DECODE_EVENT_MAX; i++) {
         BUG_ON(i != (int)DEvents[i].code);
