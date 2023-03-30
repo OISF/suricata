@@ -584,16 +584,10 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
 
     dtv->counter_defrag_ipv4_fragments =
         StatsRegisterCounter("defrag.ipv4.fragments", tv);
-    dtv->counter_defrag_ipv4_reassembled =
-        StatsRegisterCounter("defrag.ipv4.reassembled", tv);
-    dtv->counter_defrag_ipv4_timeouts =
-        StatsRegisterCounter("defrag.ipv4.timeouts", tv);
+    dtv->counter_defrag_ipv4_reassembled = StatsRegisterCounter("defrag.ipv4.reassembled", tv);
     dtv->counter_defrag_ipv6_fragments =
         StatsRegisterCounter("defrag.ipv6.fragments", tv);
-    dtv->counter_defrag_ipv6_reassembled =
-        StatsRegisterCounter("defrag.ipv6.reassembled", tv);
-    dtv->counter_defrag_ipv6_timeouts =
-        StatsRegisterCounter("defrag.ipv6.timeouts", tv);
+    dtv->counter_defrag_ipv6_reassembled = StatsRegisterCounter("defrag.ipv6.reassembled", tv);
     dtv->counter_defrag_max_hit =
         StatsRegisterCounter("defrag.max_frag_hits", tv);
 
