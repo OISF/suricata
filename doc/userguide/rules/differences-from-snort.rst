@@ -276,6 +276,8 @@ See :doc:`http-keywords` for all HTTP keywords.
    uint32 value. Snort rejects ``rvalue`` values of ``0`` and requires
    values to be between ``[1..max-uint32 value]``.
 
+- Suricata will never match if there's a zero divisor. Division by 0 is undefined.
+
 
 ``isdataat`` Keyword
 --------------------
