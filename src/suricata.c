@@ -456,15 +456,9 @@ static int SetBpfString(int argc, char *argv[])
     if (bpf_len == 0)
         return TM_ECODE_OK;
 
-    if (EngineModeIsIPS()) {
-        SCLogError("BPF filter not available in IPS mode."
-                   " Use firewall filtering if possible.");
-        return TM_ECODE_FAILED;
-    }
-
     bpf_filter = SCMalloc(bpf_len);
     if (unlikely(bpf_filter == NULL))
-        return TM_ECODE_OK;
+        return TM_ECODE_FAILED;
     memset(bpf_filter, 0x00, bpf_len);
 
     tmpindex = optind;
@@ -501,11 +495,6 @@ static void SetBpfStringFromFile(char *filename)
 #endif /* OS_WIN32 */
     FILE *fp = NULL;
     size_t nm = 0;
-
-    if (EngineModeIsIPS()) {
-        FatalError("BPF filter not available in IPS mode."
-                   " Use firewall filtering if possible.");
-    }
 
     fp = fopen(filename, "r");
     if (fp == NULL) {
