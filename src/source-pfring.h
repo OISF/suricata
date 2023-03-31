@@ -44,7 +44,7 @@ typedef struct PfringIfaceConfig_
     /* number of threads */
     int threads;
 
-    char *bpf_filter;
+    const char *bpf_filter;
 
     ChecksumValidationMode checksum_mode;
     SC_ATOMIC_DECLARE(unsigned int, ref);
