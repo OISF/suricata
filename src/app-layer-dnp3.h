@@ -19,6 +19,9 @@
 #define __APP_LAYER_DNP3_H__
 
 #include "rust.h"
+#if __BYTE_ORDER == __BIG_ENDIAN
+#include "util-byte.h"
+#endif
 
 /**
  * The maximum size of a DNP3 link PDU.
