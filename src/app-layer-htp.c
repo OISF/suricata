@@ -1449,7 +1449,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 for (; filedata_len < chunks_buffer_len; filedata_len++) {
                     // take as much as we can until the beginning of a new line
                     if (chunks_buffer[filedata_len] == '\r') {
-                        if (filedata_len + 1 == expected_boundary_len ||
+                        if (filedata_len + 1 == chunks_buffer_len ||
                                 chunks_buffer[filedata_len + 1] == '\n') {
                             break;
                         }
