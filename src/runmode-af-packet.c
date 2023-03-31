@@ -57,6 +57,7 @@
 #include "util-byte.h"
 
 #include "source-af-packet.h"
+#include "util-bpf.h"
 
 extern intmax_t max_pending_packets;
 
@@ -205,7 +206,6 @@ static void *ParseAFPConfig(const char *iface)
     const char *copymodestr;
     intmax_t value;
     int boolval;
-    const char *bpf_filter = NULL;
     const char *out_iface = NULL;
     int cluster_type = PACKET_FANOUT_HASH;
     const char *ebpf_file = NULL;
@@ -243,14 +243,6 @@ static void *ParseAFPConfig(const char *iface)
 #ifdef HAVE_PACKET_EBPF
     aconf->ebpf_t_config.cpus_count = UtilCpuGetNumProcessorsConfigured();
 #endif
-
-    if (ConfGet("bpf-filter", &bpf_filter) == 1) {
-        if (strlen(bpf_filter) > 0) {
-            aconf->bpf_filter = bpf_filter;
-            SCLogConfig(
-                    "%s: using command-line provided bpf filter '%s'", iface, aconf->bpf_filter);
-        }
-    }
 
     /* Find initial node */
     af_packet_node = ConfGetNode("af-packet");
@@ -435,16 +427,7 @@ static void *ParseAFPConfig(const char *iface)
                 iface);
     }
 
-    /*load af_packet bpf filter*/
-    /* command line value has precedence */
-    if (ConfGet("bpf-filter", &bpf_filter) != 1) {
-        if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
-            if (strlen(bpf_filter) > 0) {
-                aconf->bpf_filter = bpf_filter;
-                SCLogConfig("%s: bpf filter %s", iface, aconf->bpf_filter);
-            }
-        }
-    }
+    ConfSetBPFFilter(if_root, if_default, iface, &aconf->bpf_filter);
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "ebpf-lb-file", &ebpf_file) != 1) {
         aconf->ebpf_lb_file = NULL;

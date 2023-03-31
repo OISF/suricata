@@ -24,6 +24,31 @@
 #include "suricata-common.h"
 #include "util-bpf.h"
 #include "threads.h"
+#include "conf.h"
+#include "util-debug.h"
+
+void ConfSetBPFFilter(
+        ConfNode *if_root, ConfNode *if_default, const char *iface, const char **bpf_filter)
+{
+    if (*bpf_filter != NULL) {
+        SCLogInfo("BPF filter already configured");
+        return;
+    }
+
+    /* command line value has precedence */
+    if (ConfGet("bpf-filter", bpf_filter) == 1) {
+        if (strlen(*bpf_filter) > 0) {
+            SCLogConfig("%s: using command-line provided bpf filter '%s'", iface, *bpf_filter);
+        }
+    } else if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", bpf_filter) ==
+               1) { // reading from a file
+        if (strlen(*bpf_filter) > 0) {
+            SCLogConfig("%s: using file provided bpf filter %s", iface, *bpf_filter);
+        }
+    } else {
+        SCLogDebug("No BPF filter found, skipping");
+    }
+}
 
 #if !defined __OpenBSD__
 
