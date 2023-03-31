@@ -48,6 +48,7 @@
 #include "source-netmap.h"
 #include "util-conf.h"
 #include "suricata.h"
+#include "util-bpf.h"
 
 extern int max_pending_packets;
 
@@ -205,14 +206,6 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         ns->real = true;
     }
 
-    const char *bpf_filter = NULL;
-    if (ConfGet("bpf-filter", &bpf_filter) == 1) {
-        if (strlen(bpf_filter) > 0) {
-            ns->bpf_filter = bpf_filter;
-            SCLogInfo("%s: using command-line provided bpf filter '%s'", iface, ns->bpf_filter);
-        }
-    }
-
     if (if_root == NULL && if_default == NULL) {
         SCLogInfo("%s: unable to find netmap config for interface \"%s\" or \"default\", using "
                   "default values",
@@ -242,16 +235,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         }
     }
 
-    /* load netmap bpf filter */
-    /* command line value has precedence */
-    if (ns->bpf_filter == NULL) {
-        if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
-            if (strlen(bpf_filter) > 0) {
-                ns->bpf_filter = bpf_filter;
-                SCLogInfo("%s: using bpf filter %s", iface, ns->bpf_filter);
-            }
-        }
-    }
+    ConfSetBPFFilter(if_root, if_default, iface, &ns->bpf_filter);
 
     int boolval = 0;
     (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", (int *)&boolval);

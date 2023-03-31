@@ -24,6 +24,11 @@
 #ifndef __UTIL_BPF_H__
 #define __UTIL_BPF_H__
 
+#include "conf.h"
+
+void ConfSetBPFFilter(
+        ConfNode *if_root, ConfNode *if_default, const char *iface, const char **bpf_filter);
+
 #if !defined __OpenBSD__
 
 int SCBPFCompile(int snaplen_arg, int linktype_arg, struct bpf_program *program,
