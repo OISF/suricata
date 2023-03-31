@@ -168,7 +168,7 @@ int run_mode = RUNMODE_UNKNOWN;
 
 /** Engine mode: inline (ENGINE_MODE_IPS) or just
   * detection mode (ENGINE_MODE_IDS by default) */
-static enum EngineMode g_engine_mode = ENGINE_MODE_IDS;
+static enum EngineMode g_engine_mode = ENGINE_MODE_UNKNOWN;
 
 /** Host mode: set if box is sniffing only
  * or is a router */
@@ -208,13 +208,24 @@ int SuriHasSigFile(void)
     return (suricata.sig_file != NULL);
 }
 
+int EngineModeIsUnknown(void)
+{
+    return (g_engine_mode == ENGINE_MODE_UNKNOWN);
+}
+
 int EngineModeIsIPS(void)
 {
+#ifdef DEBUG
+    BUG_ON(g_engine_mode == ENGINE_MODE_UNKNOWN);
+#endif
     return (g_engine_mode == ENGINE_MODE_IPS);
 }
 
 int EngineModeIsIDS(void)
 {
+#ifdef DEBUG
+    BUG_ON(g_engine_mode == ENGINE_MODE_UNKNOWN);
+#endif
     return (g_engine_mode == ENGINE_MODE_IDS);
 }
 
@@ -2672,6 +2683,11 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     RunModeEngineIsIPS(
             suricata.run_mode, suricata.runmode_custom_mode, suricata.capture_plugin_name);
+
+    if (EngineModeIsUnknown()) { // if still uninitialized the set the default
+        SCLogInfo("Setting engine mode to IDS mode by default");
+        EngineModeSetIDS();
+    }
 
     AppLayerSetup();
 
