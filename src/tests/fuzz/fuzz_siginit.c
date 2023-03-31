@@ -26,6 +26,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         run_mode = RUNMODE_UNITTEST;
         MpmTableSetup();
         SpmTableSetup();
+        EngineModeSetIDS();
         SigTableSetup();
         SCReferenceConfInit();
         SCClassConfInit();
