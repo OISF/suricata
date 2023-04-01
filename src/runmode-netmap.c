@@ -295,7 +295,7 @@ finalize:
     if (ns->threads_auto) {
         /* As NetmapGetRSSCount used to be broken on Linux,
          * fall back to GetIfaceRSSQueuesNum if needed. */
-        ns->threads = NetmapGetRSSCount(ns->iface);
+        ns->threads = NetmapGetRSSCount(base_name);
         if (ns->threads == 0) {
             /* need to use base_name of interface here */
             ns->threads = GetIfaceRSSQueuesNum(base_name);
@@ -377,15 +377,17 @@ static void *ParseNetmapConfig(const char *iface_name)
         LiveRegisterDevice(live_buf);
     }
 
+    /* we need the base interface name with any trailing software
+     * ring marker stripped for HW offloading checks */
+    char base_name[sizeof(aconf->in.iface)];
+    strlcpy(base_name, aconf->in.iface, sizeof(base_name));
+    /* for a sw_ring enabled device name, strip the trailing char */
+    if (aconf->in.sw_ring) {
+        base_name[strlen(base_name) - 1] = '\0';
+    }
+
     /* netmap needs all offloading to be disabled */
     if (aconf->in.real) {
-        char base_name[sizeof(aconf->in.iface)];
-        strlcpy(base_name, aconf->in.iface, sizeof(base_name));
-        /* for a sw_ring enabled device name, strip the trailing char */
-        if (aconf->in.sw_ring) {
-            base_name[strlen(base_name) - 1] = '\0';
-        }
-
         if (LiveGetOffload() == 0) {
             (void)GetIfaceOffloading(base_name, 1, 1);
         } else {
