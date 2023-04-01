@@ -188,7 +188,7 @@ int NetmapGetRSSCount(const char *ifname)
         goto error_open;
     }
 
-    /* query netmap interface info */
+    /* query netmap interface info for ring count */
     memset(&req, 0, sizeof(req));
     memset(&hdr, 0, sizeof(hdr));
     hdr.nr_version = NETMAP_API;
@@ -197,7 +197,8 @@ int NetmapGetRSSCount(const char *ifname)
     strlcpy(hdr.nr_name, base_name, sizeof(hdr.nr_name));
 
     if (ioctl(fd, NIOCCTRL, &hdr) != 0) {
-        SCLogError("%s: failed to query netmap for device info: %s", ifname, strerror(errno));
+        SCLogError(
+                "Query of netmap HW rings count on %s failed; error: %s", ifname, strerror(errno));
         goto error_fd;
     };
 
@@ -613,8 +614,21 @@ static TmEcode NetmapWritePacket(NetmapThreadVars *ntv, Packet *p)
         SCMutexLock(&ntv->ifdst->netmap_dev_lock);
     }
 
+    int write_tries = 0;
+try_write:
     /* attempt to write the packet into the netmap ring buffer(s) */
     if (nmport_inject(ntv->ifdst->nmd, GET_PKT_DATA(p), GET_PKT_LEN(p)) == 0) {
+
+        /* writing the packet failed, but ask kernel to sync TX rings
+         * for us as the ring buffers may simply be full */
+        (void)ioctl(ntv->ifdst->nmd->fd, NIOCTXSYNC, 0);
+
+        /* Try write up to 2 more times before giving up */
+        if (write_tries < 3) {
+            write_tries++;
+            goto try_write;
+        }
+
         if (ntv->flags & NETMAP_FLAG_EXCL_RING_ACCESS) {
             SCMutexUnlock(&ntv->ifdst->netmap_dev_lock);
         }
@@ -627,7 +641,7 @@ static TmEcode NetmapWritePacket(NetmapThreadVars *ntv, Packet *p)
             ntv->ifdst->ifname, ntv->ifdst->ring, GET_PKT_LEN(p));
 
     /* Instruct netmap to push the data on the TX ring on the destination port */
-    ioctl(ntv->ifdst->nmd->fd, NIOCTXSYNC, 0);
+    (void)ioctl(ntv->ifdst->nmd->fd, NIOCTXSYNC, 0);
     if (ntv->flags & NETMAP_FLAG_EXCL_RING_ACCESS) {
         SCMutexUnlock(&ntv->ifdst->netmap_dev_lock);
     }
