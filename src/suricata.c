@@ -2677,12 +2677,12 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     MacSetRegisterFlowStorage();
 
-    SetMasterExceptionPolicy();
-
     LiveDeviceFinalize(); // must be after EBPF extension registration
 
     RunModeEngineIsIPS(
             suricata.run_mode, suricata.runmode_custom_mode, suricata.capture_plugin_name);
+
+    SetMasterExceptionPolicy();
 
     AppLayerSetup();
 
