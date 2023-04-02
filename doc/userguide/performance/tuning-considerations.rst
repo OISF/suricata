@@ -62,6 +62,88 @@ either ``detect.profile: high`` or bigger custom group size settings can be
 used as explained above which offers better performance than ``ac`` and 
 ``ac-ks`` even with ``detect.sgh-mpm-context: full``.
 
+DPDK
+~~~~
+
+Deployment
+----------
+
+Runnning Suricata in an optimal environment comes with certain performance 
+benefits. Therefore, to squeeze out as much performance as possible, it is 
+advised to:
+
+- Run on physical hardware,
+- Run each Suricata worker on a separate core,
+- Analyze your NUMA-node setup and, if possible, locate the whole deployment 
+  on one NUMA node. This includes:
+  - Suricata workers (CPU cores),
+  - Networks Interface Cards (NICs),
+  - hugepages (RAM).
+- Adjust Suricata settings to fit your network behavior, but do not necessarily
+  overallocate resources,
+- When allocating hugepages, it is preferred to allocate bigger hugepages 
+  (e.g., 1 GB instead of 2 MB, or in other words the fewer the better) and to 
+  allocate them on or right after boot (to ensure successful allocation),
+- Isolate CPU cores dedicated to the Suricata workers to prevent interference 
+  from other processes (isolcpus),
+- Disable power-saving features like C-states and P-states in BIOS to prevent 
+  performance fluctuations.
+
+Monitoring performance of DPDK capture module
+---------------------------------------------------
+
+To monitor the DPDK performance, watch for the following counters: 
+
+- capture.dpdk.imissed,
+- capture.dpdk.no_mbufs,
+- capture.dpdk.ierrors.
+
+On Suricata startup, you can also use the `-vvvv` command line parameter to 
+enable `extended statistics (xstats) 
+<http://doc.dpdk.org/api/structrte__eth__stats.html>`_.
+These statistics are displayed on Suricata shutdown. 
+They can increase visibility into the problem and be used to identify areas 
+for improvement.
+
+In both cases, pay attention to the following counters:
+
+- no_mbufs - If this value is high, it indicates that you should increase 
+  the DPDK mempool size. The recommended
+  mempool size is specified in the Suricata YAML configuration file.
+- rx-missed (imissed) - A high value suggests that you should increase the 
+  rx/tx DPDK descriptors.
+- rx-errors (ierrors) - This metric does not necessarily indicate a packet 
+  receive issue but rather highlights that incoming packets were erroneous. 
+  High values in this metric may require further investigation to determine 
+  the cause of the errors.
+
+When an increase in the DPDK settings does not help and the aforementioned 
+counters are still high, you can add more Suricata workers. As a rule of thumb,
+you need 1 Suricata worker per 500 Mbps of network traffic. This, however, 
+depends hugely on the traffic that Suricata inspects, rules that Suricata 
+uses for inspection, and the depth/complexity of the inspection (what is 
+parsed/exported).
+In case you cannot add more Suricata workers, you may want to:
+
+- improve the performance of other Suricata modules,
+- upgrading the machine,
+- reduce the ruleset,
+- relax your inspection settings (e.g., lowering the TCP reassembly depth, 
+  disabling an export of e.g., TLS certificates or similar).
+
+Please note that the last two suggestions may lead to decreased visibility 
+if evaluated incorrectly.
+
+For a high-performance setup, it is possible to use the following settings 
+as a starting point:
+
+:: 
+
+  mempool-size: 262143 # 262143 mbufs in the global memory pool
+  mempool-cache-size: 511 # 511 mbufs in local lcore memory pool cache
+  rx-descriptors: 4096
+  tx-descriptors: 4096
+
 af-packet
 ~~~~~~~~~
 
