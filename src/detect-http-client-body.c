@@ -76,6 +76,219 @@ static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
 static int PrefilterMpmHttpRequestBodyRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         MpmCtx *mpm_ctx, const DetectBufferMpmRegistery *mpm_reg, int list_id);
 
+static inline InspectionBuffer *FiledataWithXformsGetDataCallback(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, const int list_id, int local_file_id,
+        InspectionBuffer *base_buffer)
+{
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_file_id);
+    if (buffer == NULL) {
+        SCLogDebug("list_id: %d: no buffer", list_id);
+        return NULL;
+    }
+    if (buffer->initialized) {
+        SCLogDebug("list_id: %d: returning %p", list_id, buffer);
+        return buffer;
+    }
+
+    InspectionBufferSetupMulti(buffer, transforms, base_buffer->inspect, base_buffer->inspect_len);
+    buffer->inspect_offset = base_buffer->inspect_offset;
+    SCLogDebug("xformed buffer %p size %u", buffer, buffer->inspect_len);
+    SCReturnPtr(buffer, "InspectionBuffer");
+}
+
+static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, uint8_t flow_flags, File *cur_file,
+        const int list_id, const int base_id, int local_file_id)
+{
+    SCEnter();
+    SCLogDebug("starting: list_id %d base_id %d", list_id, base_id);
+
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, base_id, local_file_id);
+    SCLogDebug("base: buffer %p", buffer);
+    if (buffer == NULL)
+        return NULL;
+    if (base_id != list_id && buffer->inspect != NULL) {
+        SCLogDebug("handle xform %s", (list_id != base_id) ? "true" : "false");
+        return FiledataWithXformsGetDataCallback(
+                det_ctx, transforms, list_id, local_file_id, buffer);
+    }
+    if (buffer->initialized) {
+        SCLogDebug("base_id: %d, not first: use %p", base_id, buffer);
+        return buffer;
+    }
+
+    const uint64_t file_size = FileDataSize(cur_file);
+    const DetectEngineCtx *de_ctx = det_ctx->de_ctx;
+    const uint32_t content_limit = de_ctx->filedata_config[f->alproto].content_limit;
+    const uint32_t content_inspect_min_size =
+            de_ctx->filedata_config[f->alproto].content_inspect_min_size;
+    // TODO this is unused, is that right?
+    // const uint32_t content_inspect_window =
+    // de_ctx->filedata_config[f->alproto].content_inspect_window;
+
+    SCLogDebug("[list %d] content_limit %u, content_inspect_min_size %u", list_id, content_limit,
+            content_inspect_min_size);
+
+    SCLogDebug("[list %d] file %p size %" PRIu64 ", state %d", list_id, cur_file, file_size,
+            cur_file->state);
+
+    /* no new data */
+    if (cur_file->content_inspected == file_size) {
+        SCLogDebug("no new data");
+        InspectionBufferSetupMultiEmpty(buffer);
+        return NULL;
+    }
+
+    if (file_size == 0) {
+        SCLogDebug("no data to inspect for this transaction");
+        InspectionBufferSetupMultiEmpty(buffer);
+        return NULL;
+    }
+
+    if ((content_limit == 0 || file_size < content_limit) && file_size < content_inspect_min_size &&
+            !(flow_flags & STREAM_EOF) && !(cur_file->state > FILE_STATE_OPENED)) {
+        SCLogDebug("we still haven't seen the entire content. "
+                   "Let's defer content inspection till we see the "
+                   "entire content.");
+        InspectionBufferSetupMultiEmpty(buffer);
+        return NULL;
+    }
+
+    const uint8_t *data;
+    uint32_t data_len;
+
+    StreamingBufferGetDataAtOffset(cur_file->sb, &data, &data_len, cur_file->content_inspected);
+    InspectionBufferSetupMulti(buffer, NULL, data, data_len);
+    SCLogDebug("[list %d] [before] buffer offset %" PRIu64 "; buffer len %" PRIu32
+               "; data_len %" PRIu32 "; file_size %" PRIu64,
+            list_id, buffer->inspect_offset, buffer->inspect_len, data_len, file_size);
+    buffer->inspect_offset = cur_file->content_inspected;
+
+    /* update inspected tracker */
+    cur_file->content_inspected = buffer->inspect_len + buffer->inspect_offset;
+    SCLogDebug("content inspected: %" PRIu64, cur_file->content_inspected);
+
+    /* get buffer for the list id if it is different from the base id */
+    if (list_id != base_id) {
+        SCLogDebug("regular %d has been set up: now handle xforms id %d", base_id, list_id);
+        InspectionBuffer *tbuffer = FiledataWithXformsGetDataCallback(
+                det_ctx, transforms, list_id, local_file_id, buffer);
+        SCReturnPtr(tbuffer, "InspectionBuffer");
+    } else {
+        SCLogDebug("regular buffer %p size %u", buffer, buffer->inspect_len);
+        SCReturnPtr(buffer, "InspectionBuffer");
+    }
+}
+
+static uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id)
+{
+    int r = 0;
+    int match = 0;
+
+    const DetectEngineTransforms *transforms = NULL;
+    if (!engine->mpm) {
+        transforms = engine->v2.transforms;
+    }
+
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(f, alstate, txv, flags);
+    FileContainer *ffc = files.fc;
+    if (ffc == NULL) {
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
+    }
+
+    int local_file_id = 0;
+    File *file = ffc->head;
+    for (; file != NULL; file = file->next) {
+        InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx, transforms, f, flags, file,
+                engine->sm_list, engine->sm_list_base, local_file_id);
+        if (buffer == NULL)
+            continue;
+
+        bool eof = (file->state == FILE_STATE_CLOSED);
+        uint8_t ciflags = eof ? DETECT_CI_FLAGS_END : 0;
+        if (buffer->inspect_offset == 0)
+            ciflags |= DETECT_CI_FLAGS_START;
+
+        det_ctx->buffer_offset = 0;
+        det_ctx->discontinue_matching = 0;
+        det_ctx->inspection_recursion_counter = 0;
+        match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
+                (uint8_t *)buffer->inspect, buffer->inspect_len, buffer->inspect_offset, ciflags,
+                DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+        if (match == 1) {
+            r = 1;
+            break;
+        }
+        local_file_id++;
+    }
+
+    if (r == 1)
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    else
+        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+}
+
+typedef struct PrefilterMpmFiledata {
+    int list_id;
+    int base_list_id;
+    const MpmCtx *mpm_ctx;
+    const DetectEngineTransforms *transforms;
+} PrefilterMpmFiledata;
+
+static void PrefilterMpmFiledataFree(void *ptr)
+{
+    SCFree(ptr);
+}
+
+static void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
+        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *txd, const uint8_t flags)
+{
+    SCEnter();
+
+    if (!AppLayerParserHasFilesInDir(txd, flags))
+        return;
+
+    const PrefilterMpmFiledata *ctx = (const PrefilterMpmFiledata *)pectx;
+    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
+    const int list_id = ctx->list_id;
+
+    AppLayerGetFileState files = AppLayerParserGetTxFiles(f, f->alstate, txv, flags);
+    FileContainer *ffc = files.fc;
+    if (ffc != NULL) {
+        int local_file_id = 0;
+        for (File *file = ffc->head; file != NULL; file = file->next) {
+            InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx, ctx->transforms, f, flags,
+                    file, list_id, ctx->base_list_id, local_file_id);
+            if (buffer == NULL)
+                continue;
+
+            if (buffer->inspect_len >= mpm_ctx->minlen) {
+                (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq,
+                        buffer->inspect, buffer->inspect_len);
+                PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
+            }
+            local_file_id++;
+        }
+    }
+}
+
+static int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+{
+    PrefilterMpmFiledata *pectx = SCCalloc(1, sizeof(*pectx));
+    if (pectx == NULL)
+        return -1;
+    pectx->list_id = list_id;
+    pectx->base_list_id = mpm_reg->sm_list_base;
+    pectx->mpm_ctx = mpm_ctx;
+    pectx->transforms = &mpm_reg->transforms;
+
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxFiledata, mpm_reg->app_v2.alproto,
+            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmFiledataFree, mpm_reg->pname);
+}
+
 /**
  * \brief Registers the keyword handlers for the "http_client_body" keyword.
  */
@@ -106,6 +319,11 @@ void DetectHttpClientBodyRegister(void)
 
     DetectAppLayerMpmRegister2("http_client_body", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmHttpRequestBodyRegister, NULL, ALPROTO_HTTP1, HTP_REQUEST_BODY);
+
+    DetectAppLayerInspectEngineRegister2("http_client_body", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateDataClient, DetectEngineInspectFiledata, NULL);
+    DetectAppLayerMpmRegister2("http_client_body", SIG_FLAG_TOSERVER, 2,
+            PrefilterMpmFiledataRegister, NULL, ALPROTO_HTTP2, HTTP2StateDataClient);
 
     DetectBufferTypeSetDescriptionByName("http_client_body",
             "http request body");
@@ -158,7 +376,7 @@ static int DetectHttpClientBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s
 {
     if (DetectBufferSetActiveList(s, g_http_client_body_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
     return 0;
 }
