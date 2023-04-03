@@ -100,7 +100,7 @@ static TmEcode NoNFQSupportExit(ThreadVars *tv, const void *initdata, void **dat
 extern int max_pending_packets;
 
 #define MAX_ALREADY_TREATED 5
-#define NFQ_VERDICT_RETRY_TIME 3
+#define NFQ_VERDICT_RETRY_COUNT 3
 static int already_seen_warning;
 static int runmode_workers;
 
@@ -315,7 +315,7 @@ static void NFQVerdictCacheFlush(NFQQueueVars *t)
             ret = nfq_set_verdict_batch(t->qh,
                                         t->verdict_cache.packet_id,
                                         t->verdict_cache.verdict);
-    } while ((ret < 0) && (iter++ < NFQ_VERDICT_RETRY_TIME));
+    } while ((ret < 0) && (iter++ < NFQ_VERDICT_RETRY_COUNT));
 
     if (ret < 0) {
         SCLogWarning("nfq_set_verdict_batch failed: %s", strerror(errno));
@@ -428,7 +428,7 @@ static int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
             already_seen_warning++;
             do {
                 ret = nfq_set_verdict(qh, p->nfq_v.id, NF_ACCEPT, 0, NULL);
-            } while ((ret < 0) && (iter++ < NFQ_VERDICT_RETRY_TIME));
+            } while ((ret < 0) && (iter++ < NFQ_VERDICT_RETRY_COUNT));
             if (ret < 0) {
                 SCLogWarning(
                         "nfq_set_verdict of %p failed %" PRId32 ": %s", p, ret, strerror(errno));
@@ -1175,7 +1175,7 @@ TmEcode NFQSetVerdict(Packet *p)
 #endif /* HAVE_NFQ_SET_VERDICT2 */
                 break;
         }
-    } while ((ret < 0) && (iter++ < NFQ_VERDICT_RETRY_TIME));
+    } while ((ret < 0) && (iter++ < NFQ_VERDICT_RETRY_COUNT));
 
     NFQMutexUnlock(t);
 
