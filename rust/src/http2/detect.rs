@@ -265,7 +265,7 @@ fn http2_detect_settingsctx_match(
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer {
         for i in 0..tx.frames_ts.len() {
-            if let HTTP2FrameTypeData::SETTINGS(set ) = &tx.frames_ts[i].data {
+            if let HTTP2FrameTypeData::SETTINGS(set) = &tx.frames_ts[i].data {
                 if http2_detect_settings_match(set, ctx) != 0 {
                     return 1;
                 }
@@ -296,7 +296,9 @@ fn http2_detect_sizeupdate_match(
     blocks: &[parser::HTTP2FrameHeaderBlock], ctx: &DetectUintData<u64>,
 ) -> std::os::raw::c_int {
     for block in blocks.iter() {
-        if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate && detect_match_uint(ctx, block.sizeupdate) {
+        if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
+            && detect_match_uint(ctx, block.sizeupdate)
+        {
             return 1;
         }
     }
@@ -492,6 +494,42 @@ fn http2_frames_get_header_value<'a>(
         let value = &tx.escaped[idx];
         return Ok(value);
     }
+}
+
+fn http2_tx_get_req_line(tx: &mut HTTP2Transaction) {
+    if !tx.req_line.is_empty() {
+        return;
+    }
+    let empty = Vec::new();
+    let mut req_line = Vec::new();
+    let method =
+        if let Ok(value) = http2_frames_get_header_firstvalue(tx, Direction::ToServer, ":method") {
+            value
+        } else {
+            &empty
+        };
+    req_line.extend(method);
+    req_line.push(b' ');
+
+    let uri =
+        if let Ok(value) = http2_frames_get_header_firstvalue(tx, Direction::ToServer, ":path") {
+            value
+        } else {
+            &empty
+        };
+    req_line.extend(uri);
+    req_line.extend(b" HTTP/2\r\n");
+    tx.req_line.extend(req_line)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_http2_tx_get_request_line(
+    tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    http2_tx_get_req_line(tx);
+    *buffer = tx.req_line.as_ptr(); //unsafe
+    *buffer_len = tx.req_line.len() as u32;
+    return 1;
 }
 
 #[no_mangle]
