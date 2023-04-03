@@ -143,6 +143,7 @@ pub struct HTTP2Transaction {
     //must be attached to transaction for memory management (be freed at the right time)
     pub escaped: Vec<Vec<u8>>,
     pub req_line: Vec<u8>,
+    pub resp_line: Vec<u8>,
 }
 
 impl Transaction for HTTP2Transaction {
@@ -173,6 +174,7 @@ impl HTTP2Transaction {
             ft_ts: FileTransferTracker::new(),
             escaped: Vec::with_capacity(16),
             req_line: Vec::new(),
+            resp_line: Vec::new(),
         }
     }
 

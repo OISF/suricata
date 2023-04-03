@@ -532,6 +532,35 @@ pub unsafe extern "C" fn rs_http2_tx_get_request_line(
     return 1;
 }
 
+fn http2_tx_get_resp_line(tx: &mut HTTP2Transaction) {
+    if !tx.resp_line.is_empty() {
+        return;
+    }
+    let empty = Vec::new();
+    let mut resp_line : Vec<u8> = Vec::new();
+
+    let status =
+        if let Ok(value) = http2_frames_get_header_firstvalue(tx, Direction::ToClient, ":status") {
+            value
+        } else {
+            &empty
+        };
+    resp_line.extend(b" HTTP/2 ");
+    resp_line.extend(status);
+    resp_line.extend(b"\r\n");
+    tx.resp_line.extend(resp_line)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_http2_tx_get_response_line(
+    tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    http2_tx_get_resp_line(tx);
+    *buffer = tx.resp_line.as_ptr(); //unsafe
+    *buffer_len = tx.resp_line.len() as u32;
+    return 1;
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_tx_get_uri(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
