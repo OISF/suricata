@@ -43,6 +43,8 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
+// PrefilterMpmFiledata
+#include "detect-file-data.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -107,6 +109,11 @@ void DetectHttpClientBodyRegister(void)
     DetectAppLayerMpmRegister2("http_client_body", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmHttpRequestBodyRegister, NULL, ALPROTO_HTTP1, HTP_REQUEST_BODY);
 
+    DetectAppLayerInspectEngineRegister2("http_client_body", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateDataClient, DetectEngineInspectFiledata, NULL);
+    DetectAppLayerMpmRegister2("http_client_body", SIG_FLAG_TOSERVER, 2,
+            PrefilterMpmFiledataRegister, NULL, ALPROTO_HTTP2, HTTP2StateDataClient);
+
     DetectBufferTypeSetDescriptionByName("http_client_body",
             "http request body");
 
@@ -158,7 +165,7 @@ static int DetectHttpClientBodySetupSticky(DetectEngineCtx *de_ctx, Signature *s
 {
     if (DetectBufferSetActiveList(s, g_http_client_body_buffer_id) < 0)
         return -1;
-    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP1) < 0)
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) < 0)
         return -1;
     return 0;
 }

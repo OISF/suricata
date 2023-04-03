@@ -66,13 +66,6 @@ static int PrefilterMpmHTTPFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHea
         MpmCtx *mpm_ctx, const DetectBufferMpmRegistery *mpm_reg, int list_id);
 
 /* file API */
-static uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
-        void *alstate, void *txv, uint64_t tx_id);
-int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id);
-
 static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
@@ -239,13 +232,6 @@ static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
 }
 
 /* common */
-
-typedef struct PrefilterMpmFiledata {
-    int list_id;
-    int base_list_id;
-    const MpmCtx *mpm_ctx;
-    const DetectEngineTransforms *transforms;
-} PrefilterMpmFiledata;
 
 static void PrefilterMpmFiledataFree(void *ptr)
 {
@@ -588,7 +574,7 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
         void *alstate, void *txv, uint64_t tx_id)
 {
