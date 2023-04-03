@@ -3261,9 +3261,13 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt, TcpSession *
             return -1;
         }
 
-        if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq) ||
-            SEQ_GT(TCP_GET_SEQ(p), (ssn->client.last_ack + ssn->client.window)))
-        {
+        const uint32_t pkt_re = TCP_GET_SEQ(p) + p->payload_len;
+        SCLogDebug("ssn %p: -> SEQ %u, re %u. last_ack %u next_win %u", ssn, TCP_GET_SEQ(p), pkt_re,
+                ssn->client.last_ack, ssn->client.next_win);
+        if (SEQ_GEQ(TCP_GET_SEQ(p), ssn->client.last_ack) &&
+                SEQ_LEQ(pkt_re, ssn->client.next_win)) {
+            // within expectations
+        } else {
             SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 " != "
                     "%" PRIu32 " from stream", ssn, TCP_GET_SEQ(p),
                     ssn->client.next_seq);
@@ -3314,9 +3318,13 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt, TcpSession *
             return -1;
         }
 
-        if (SEQ_LT(TCP_GET_SEQ(p), ssn->server.next_seq) ||
-                SEQ_GT(TCP_GET_SEQ(p), (ssn->server.last_ack + ssn->server.window)))
-        {
+        const uint32_t pkt_re = TCP_GET_SEQ(p) + p->payload_len;
+        SCLogDebug("ssn %p: -> SEQ %u, re %u. last_ack %u next_win %u", ssn, TCP_GET_SEQ(p), pkt_re,
+                ssn->server.last_ack, ssn->server.next_win);
+        if (SEQ_GEQ(TCP_GET_SEQ(p), ssn->server.last_ack) &&
+                SEQ_LEQ(pkt_re, ssn->server.next_win)) {
+            // within expectations
+        } else {
             SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 " != "
                     "%" PRIu32 " from stream (last_ack %u win %u = %u)", ssn, TCP_GET_SEQ(p),
                     ssn->server.next_seq, ssn->server.last_ack, ssn->server.window, (ssn->server.last_ack + ssn->server.window));
