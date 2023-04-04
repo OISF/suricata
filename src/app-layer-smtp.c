@@ -1285,6 +1285,15 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
     }
 }
 
+static inline void ResetLine(SMTPLine *line)
+{
+    if (line != NULL) {
+        line->len = 0;
+        line->delim_len = 0;
+        line->buf = NULL;
+    }
+}
+
 static int SMTPPreProcessCommands(
         SMTPState *state, Flow *f, AppLayerParserState *pstate, SMTPInput *input, SMTPLine *line)
 {
@@ -1299,16 +1308,17 @@ static int SMTPPreProcessCommands(
 
     bool line_complete = false;
     const int32_t input_len = input->len;
+    const int32_t offset = input->consumed;
     for (int32_t i = 0; i < input_len; i++) {
-        if (input->buf[i] == 0x0d) {
-            if (i < input_len - 1 && input->buf[i + 1] == 0x0a) {
+        if (input->buf[offset + i] == 0x0d) {
+            if (i < input_len - 1 && input->buf[offset + i + 1] == 0x0a) {
                 i++;
                 line->delim_len++;
             }
             /* Line is just ending in CR */
             line->delim_len++;
             line_complete = true;
-        } else if (input->buf[i] == 0x0a) {
+        } else if (input->buf[offset + i] == 0x0a) {
             /* Line is just ending in LF */
             line->delim_len++;
             line_complete = true;
@@ -1324,11 +1334,16 @@ static int SMTPPreProcessCommands(
                 SCLogDebug("Possible boundary, yield to GetLine");
                 return 1;
             }
-            int32_t total_consumed = i + 1;
+            /* total_consumed should be input consumed so far + i + 1 */
+            int32_t total_consumed = offset + i + 1;
             int32_t current_line_consumed = total_consumed - input->consumed;
+            DEBUG_VALIDATE_BUG_ON(current_line_consumed < line->delim_len);
             line->buf = input->buf + input->consumed;
             line->len = current_line_consumed - line->delim_len;
             DEBUG_VALIDATE_BUG_ON(line->len < 0);
+            if (line->len < 0) {
+                return -1;
+            }
             input->consumed = total_consumed;
             input->len -= current_line_consumed;
             DEBUG_VALIDATE_BUG_ON(input->consumed + input->len != input->orig_len);
@@ -1374,8 +1389,11 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
                     (state->current_command == SMTP_COMMAND_BDAT)) &&
                 (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
             int ret = SMTPPreProcessCommands(state, f, pstate, &input, &line);
+            DEBUG_VALIDATE_BUG_ON(ret != 0 && ret != -1 && ret != 1);
             if (ret == 0 && input.consumed == input.orig_len) {
                 SCReturnStruct(APP_LAYER_OK);
+            } else if (ret < 0) {
+                SCReturnStruct(APP_LAYER_ERROR);
             }
         }
         AppLayerResult res = SMTPGetLine(state, &input, &line);
@@ -1388,6 +1406,24 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
                 input.consumed = input.len + 1; // For the newly found LF
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_TRUNCATED_LINE);
                 break;
+            }
+            /* If request was successfully parsed, reset line as it has already been used
+             * wherever it had to be */
+            ResetLine(&line);
+
+            /* If DATA mode was entered in the middle of input parsing, exempt it from GetLine as we
+             * don't want input limits to be exercised on DATA data. Here, SMTPPreProcessCommands
+             * should either consume all the data or return in case it encounters another boundary.
+             * In case of another boundary, the control should be passed to SMTPGetLine */
+            if ((input.len > 0) && (state->current_command == SMTP_COMMAND_DATA) &&
+                    (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+                int ret = SMTPPreProcessCommands(state, f, pstate, &input, &line);
+                DEBUG_VALIDATE_BUG_ON(ret != 0 && ret != -1 && ret != 1);
+                if (ret == 0 && input.consumed == input.orig_len) {
+                    SCReturnStruct(APP_LAYER_OK);
+                } else if (ret < 0) {
+                    SCReturnStruct(APP_LAYER_ERROR);
+                }
             }
             res = SMTPGetLine(state, &input, &line);
         }
