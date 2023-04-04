@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
+#include "app-layer-smtp.h"
 #include "util-decode-mime.h"
 #include "util-ip.h"
 #include "util-spm-bs.h"
@@ -1676,7 +1677,7 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
     MimeDecConfig *mdcfg = MimeDecGetConfig();
 
     /* should not get here with incomplete lines */
-    DEBUG_VALIDATE_BUG_ON(state->current_line_delimiter_len == 0);
+    DEBUG_VALIDATE_BUG_ON(state->current_line_delimiter_len == 0 && blen < SMTP_LINE_BUFFER_LIMIT);
 
     /* Find first header */
     hname = FindMimeHeaderStart(buf, blen, &hlen);
