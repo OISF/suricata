@@ -1213,6 +1213,15 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
     }
 }
 
+static inline void ResetLine(SMTPState *state)
+{
+    if (state != NULL) {
+        state->current_line_len = 0;
+        state->current_line_delimiter_len = 0;
+        state->current_line = NULL;
+    }
+}
+
 static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState *pstate)
 {
     DEBUG_VALIDATE_BUG_ON((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) == 0);
@@ -1225,17 +1234,18 @@ static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState
         return 1;
 
     bool line_complete = false;
+    const int32_t offset = state->consumed;
     int32_t input_len = state->input_len;
     for (int32_t i = 0; i < input_len; i++) {
-        if (state->input[i] == 0x0d) {
-            if (i < input_len - 1 && state->input[i + 1] == 0x0a) {
+        if (state->input[offset + i] == 0x0d) {
+            if (i < input_len - 1 && state->input[offset + i + 1] == 0x0a) {
                 i++;
                 state->current_line_delimiter_len++;
             }
             /* Line is just ending in CR */
             state->current_line_delimiter_len++;
             line_complete = true;
-        } else if (state->input[i] == 0x0a) {
+        } else if (state->input[offset + i] == 0x0a) {
             /* Line is just ending in LF */
             state->current_line_delimiter_len++;
             line_complete = true;
@@ -1251,8 +1261,9 @@ static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState
                 SCLogDebug("Possible boundary, yield to GetLine");
                 return 1;
             }
-            int32_t total_consumed = i + 1;
+            int32_t total_consumed = offset + i + 1;
             int32_t current_line_consumed = total_consumed - state->consumed;
+            DEBUG_VALIDATE_BUG_ON(current_line_consumed < state->current_line_delimiter_len);
             state->current_line = state->input + state->consumed;
             state->current_line_len = current_line_consumed - state->current_line_delimiter_len;
             DEBUG_VALIDATE_BUG_ON(state->current_line_len < 0);
@@ -1300,8 +1311,11 @@ static AppLayerResult SMTPParse(int direction, Flow *f, SMTPState *state,
                     (state->current_command == SMTP_COMMAND_BDAT)) &&
                 (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
             int ret = SMTPPreProcessCommands(state, f, pstate);
+            DEBUG_VALIDATE_BUG_ON(ret != 0 && ret != -1 && ret != 1);
             if (ret == 0 && state->consumed == state->orig_input_len) {
                 SCReturnStruct(APP_LAYER_OK);
+            } else if (ret < 0) {
+                SCReturnStruct(APP_LAYER_ERROR);
             }
         }
     }
@@ -1319,6 +1333,24 @@ static AppLayerResult SMTPParse(int direction, Flow *f, SMTPState *state,
                 state->consumed = state->input_len + 1; // For the newly found LF
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_TRUNCATED_LINE);
                 break;
+            }
+            /* If request was successfully parsed, reset line as it has already been used
+             * wherever it had to be */
+            ResetLine(state);
+
+            /* If DATA mode was entered in the middle of input parsing, exempt it from GetLine as we
+             * don't want input limits to be exercised on DATA data. Here, SMTPPreProcessCommands
+             * should either consume all the data or return in case it encounters another boundary.
+             * In case of another boundary, the control should be passed to SMTPGetLine */
+            if ((state->input_len > 0) && (state->current_command == SMTP_COMMAND_DATA) &&
+                    (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+                int ret = SMTPPreProcessCommands(state, f, pstate);
+                DEBUG_VALIDATE_BUG_ON(ret != 0 && ret != -1 && ret != 1);
+                if (ret == 0 && state->consumed == state->orig_input_len) {
+                    SCReturnStruct(APP_LAYER_OK);
+                } else if (ret < 0) {
+                    SCReturnStruct(APP_LAYER_ERROR);
+                }
             }
             res = SMTPGetLine(state);
         }
