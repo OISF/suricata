@@ -22,7 +22,9 @@ You can follow the [Suricata user guide](https://docs.suricata.io/en/latest/) to
 Contributing
 ------------
 
-We're happily taking patches and other contributions. Please see https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Contributing for how to get started.
+We're happily taking patches and other contributions. Please see our
+[Contribution Process](https://docs.suricata.io/en/latest/devguide/codebase/contributing/contribution-process.html)
+for how to get started.
 
 Suricata is a complex piece of software dealing with mostly untrusted input. Mishandling this input will have serious consequences:
 
@@ -91,9 +93,12 @@ A: It depends, if it's a major feature or considered a high risk change, it will
 
 __Q: Why was my PR closed?__
 
-A: As documented in the Suricata GitHub workflow here https://redmine.openinfosecfoundation.org/projects/suricata/wiki/GitHub_work_flow, we expect a new pull request for every change.
+A: As documented in the [Suricata GitHub workflow](https://docs.suricata.io/en/latest/devguide/codebase/contributing/github-pr-workflow.html),
+we expect a new pull request for every change.
 
-Normally, the team (or community) will give feedback on a pull request after which it is expected to be replaced by an improved PR. So look at the comments. If you disagree with the comments we can still discuss them in the closed PR.
+Normally, the team (or community) will give feedback on a pull request after which
+it is expected to be replaced by an improved PR. So look at the comments. If you
+disagree with the comments we can still discuss them in the closed PR.
 
 If the PR was closed without comments it's likely due to QA failure. If the GitHub-CI checks failed, the PR should be fixed right away. No need for a discussion about it, unless you believe the QA failure is incorrect.
 

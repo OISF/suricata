@@ -1,7 +1,8 @@
 Contributing to Suricata
 ========================
 
-We're happily taking patches and other contributions. The process is documented at https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Contributing Please have a look at this document before submitting.
+We're happily taking patches and other contributions. The process is documented at
+[Contribution Process](https://docs.suricata.io/en/latest/devguide/codebase/contributing/contribution-process.html). Please have a look at this document before submitting.
 
 Contribution Agreement
 ----------------------
