@@ -447,8 +447,8 @@ static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadDat
 /** \internal
  *  \brief process flows injected into our queue by other threads
  */
-static inline void FlowWorkerProcessInjectedFlows(ThreadVars *tv,
-        FlowWorkerThreadData *fw, Packet *p, void *detect_thread)
+static inline void FlowWorkerProcessInjectedFlows(
+        ThreadVars *tv, FlowWorkerThreadData *fw, Packet *p)
 {
     /* take injected flows and append to our work queue */
     FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_FLOW_INJECTED);
@@ -588,7 +588,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 housekeeping:
 
     /* take injected flows and process them */
-    FlowWorkerProcessInjectedFlows(tv, fw, p, detect_thread);
+    FlowWorkerProcessInjectedFlows(tv, fw, p);
 
     /* process local work queue */
     FlowWorkerProcessLocalFlows(tv, fw, p, detect_thread);
