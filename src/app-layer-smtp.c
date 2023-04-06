@@ -111,8 +111,6 @@
 #define SMTP_EHLO_EXTENSION_DSN
 #define SMTP_EHLO_EXTENSION_STARTTLS
 #define SMTP_EHLO_EXTENSION_8BITMIME
-/* Limit till the data would be buffered in current line */
-#define SMTP_LINE_BUFFER_LIMIT 4096
 
 typedef struct SMTPInput_ {
     /* current input that is being parsed */
