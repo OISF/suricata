@@ -2272,23 +2272,6 @@ uint16_t TmThreadsGetWorkerThreadMax(void)
     return (uint16_t)thread_max;
 }
 
-static inline void ThreadBreakLoop(ThreadVars *tv)
-{
-    if ((tv->tmm_flags & TM_FLAG_RECEIVE_TM) == 0) {
-        return;
-    }
-    /* find the correct slot */
-    TmSlot *s = tv->tm_slots;
-    TmModule *tm = TmModuleGetById(s->tm_id);
-    if (tm->flags & TM_FLAG_RECEIVE_TM) {
-        /* if the method supports it, BreakLoop. Otherwise we rely on
-         * the capture method's recv timeout */
-        if (tm->PktAcqLoop && tm->PktAcqBreakLoop) {
-            tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(s->slot_data));
-        }
-    }
-}
-
 /** \brief inject a flow into a threads flow queue
  */
 void TmThreadsInjectFlowById(Flow *f, const int id)
@@ -2308,6 +2291,6 @@ void TmThreadsInjectFlowById(Flow *f, const int id)
     if (tv->inq != NULL) {
         SCCondSignal(&tv->inq->pq->cond_q);
     } else if (tv->break_loop) {
-        ThreadBreakLoop(tv);
+        TmThreadsCaptureBreakLoop(tv);
     }
 }
