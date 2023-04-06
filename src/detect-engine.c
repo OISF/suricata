@@ -2271,21 +2271,24 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
 
     InjectPackets(detect_tvs, new_det_ctx, no_of_detect_tvs);
 
+    uint32_t threads_done = 0;
+retry:
     for (i = 0; i < no_of_detect_tvs; i++) {
-        int break_out = 0;
-        usleep(1000);
-        while (SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) != 1) {
-            if (suricata_ctl_flags != 0) {
-                break_out = 1;
-                break;
-            }
-
-            BreakCapture();
-            usleep(1000);
-        }
-        if (break_out)
+        if (suricata_ctl_flags != 0) {
+            threads_done = no_of_detect_tvs;
             break;
-        SCLogDebug("new_det_ctx - %p used by detect engine", new_det_ctx[i]);
+        }
+        usleep(1000);
+        if (SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) == 1) {
+            SCLogDebug("new_det_ctx - %p used by detect engine", new_det_ctx[i]);
+            threads_done++;
+        }
+    }
+    if (threads_done < no_of_detect_tvs) {
+        BreakCapture();
+        threads_done = 0;
+        sleep(1);
+        goto retry;
     }
 
     /* this is to make sure that if someone initiated shutdown during a live
