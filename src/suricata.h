@@ -191,8 +191,12 @@ int SuriHasSigFile(void);
 
 extern int run_mode;
 
+int SuricataInit(int argc, char **argv);
+void SuricataPostInit(void);
 int SuricataMain(int argc, char **argv);
+void SuricataShutdown(void);
 int InitGlobal(void);
+void GlobalsDestroy(SCInstance *suri);
 int PostConfLoadedSetup(SCInstance *suri);
 void PostConfLoadedDetectSetup(SCInstance *suri);
 
