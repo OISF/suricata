@@ -76,6 +76,8 @@ typedef enum {
 
     TMM_UNIXMANAGER,
 
+    TMM_DECODELIB,
+
     TMM_SIZE,
 } TmmId;
 
