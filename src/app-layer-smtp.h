@@ -28,6 +28,9 @@
 #include "util-streaming-buffer.h"
 #include "rust.h"
 
+/* Limit till the data would be buffered in current line */
+#define SMTP_LINE_BUFFER_LIMIT 4096
+
 enum {
     SMTP_DECODER_EVENT_INVALID_REPLY,
     SMTP_DECODER_EVENT_UNABLE_TO_MATCH_REPLY_WITH_REQUEST,
