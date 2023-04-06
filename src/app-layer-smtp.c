@@ -110,8 +110,6 @@
 #define SMTP_EHLO_EXTENSION_DSN
 #define SMTP_EHLO_EXTENSION_STARTTLS
 #define SMTP_EHLO_EXTENSION_8BITMIME
-/* Limit till the data would be buffered in current line */
-#define SMTP_LINE_BUFFER_LIMIT 4096
 
 SCEnumCharMap smtp_decoder_event_table[] = {
     { "INVALID_REPLY", SMTP_DECODER_EVENT_INVALID_REPLY },
