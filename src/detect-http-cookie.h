@@ -25,9 +25,7 @@
 #define	_DETECT_HTTP_COOKIE_H
 
 /* prototypes */
-void DetectHttpCookieRegister (void);
-int DetectHttpCookieDoMatch(DetectEngineThreadCtx *, Signature *, SigMatch *,
-                            Flow *, uint8_t, void *);
+void DetectHttpCookieRegister(void);
 
 #endif	/* _DETECT_HTTP_COOKIE_H */
 

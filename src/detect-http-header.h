@@ -27,6 +27,4 @@
 void DetectHttpHeaderRegister(void);
 void DetectHttpRawHeaderRegister(void);
 
-void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *det_ctx);
-
 #endif /* __DETECT_HTTP_HEADER_H__ */

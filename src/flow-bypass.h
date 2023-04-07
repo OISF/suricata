@@ -39,8 +39,6 @@ typedef int (*BypassedCheckFuncInit)(ThreadVars *th_v,
                                      struct timespec *curtime, void *data);
 typedef int (*BypassedUpdateFunc)(Flow *f, Packet *p, void *data);
 
-void FlowAddToBypassed(Flow *f);
-
 void BypassedFlowManagerThreadSpawn(void);
 void TmModuleBypassedFlowManagerRegister(void);
 

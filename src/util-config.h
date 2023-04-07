@@ -25,7 +25,6 @@
 #define __UTIL_CONFIG_H__
 
 enum ConfigAction {
-    CONFIG_ACTION_UNSET = 0,
     CONFIG_ACTION_SET = 1,
 };
 

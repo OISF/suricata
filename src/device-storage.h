@@ -41,8 +41,6 @@ void *LiveDevAllocStorageById(LiveDevice *d, LiveDevStorageId id);
 void LiveDevFreeStorageById(LiveDevice *d, LiveDevStorageId id);
 void LiveDevFreeStorage(LiveDevice *d);
 
-void RegisterLiveDevStorageTests(void);
-
 LiveDevStorageId LiveDevStorageRegister(const char *name, const unsigned int size,
         void *(*Alloc)(unsigned int), void (*Free)(void *));
 

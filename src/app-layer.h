@@ -103,7 +103,7 @@ int AppLayerDeSetup(void);
 AppLayerThreadCtx *AppLayerGetCtxThread(ThreadVars *tv);
 
 /**
- * \brief Destroys the context created by AppLayeGetCtxThread().
+ * \brief Destroys the context created by AppLayerGetCtxThread().
  *
  * \param tctx Pointer to the thread context to destroy.
  */
@@ -149,11 +149,6 @@ void AppLayerIncAllocErrorCounter(ThreadVars *tv, Flow *f);
 void AppLayerIncParserErrorCounter(ThreadVars *tv, Flow *f);
 void AppLayerIncInternalErrorCounter(ThreadVars *tv, Flow *f);
 
-static inline uint8_t StreamSliceGetFlags(const StreamSlice *stream_slice)
-{
-    return stream_slice->flags;
-}
-
 static inline const uint8_t *StreamSliceGetData(const StreamSlice *stream_slice)
 {
     return stream_slice->input;
@@ -164,13 +159,4 @@ static inline uint32_t StreamSliceGetDataLen(const StreamSlice *stream_slice)
     return stream_slice->input_len;
 }
 
-static inline bool StreamSliceIsGap(const StreamSlice *stream_slice)
-{
-    return stream_slice->input == NULL && stream_slice->input_len > 0;
-}
-
-static inline uint32_t StreamSliceGetGapSize(const StreamSlice *stream_slice)
-{
-    return StreamSliceGetDataLen(stream_slice);
-}
 #endif

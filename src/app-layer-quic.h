@@ -24,6 +24,5 @@
 #define __APP_LAYER_QUIC_H__
 
 void RegisterQuicParsers(void);
-void QuicParserRegisterTests(void);
 
 #endif /* __APP_LAYER_QUIC_H__ */

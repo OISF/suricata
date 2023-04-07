@@ -98,22 +98,6 @@ extern const FtpCommand FtpCommands[FTP_COMMAND_MAX + 1];
 
 typedef uint32_t FtpRequestCommandArgOfs;
 
-typedef uint16_t FtpResponseCode;
-
-enum {
-    FTP_FIELD_NONE = 0,
-
-    FTP_FIELD_REQUEST_LINE,
-    FTP_FIELD_REQUEST_COMMAND,
-    FTP_FIELD_REQUEST_ARGS,
-
-    FTP_FIELD_RESPONSE_LINE,
-    FTP_FIELD_REPONSE_CODE,
-
-    /* must be last */
-    FTP_FIELD_MAX,
-};
-
 /** used to hold the line state when we have fragmentation. */
 typedef struct FtpLineState_ {
     /** used to indicate if the current_line buffer is a malloced buffer.  We
@@ -173,8 +157,6 @@ typedef struct FtpState_ {
     uint8_t *port_line;
 
     uint16_t dyn_port;
-    /* specifies which loggers are done logging */
-    uint32_t logged;
 
     AppLayerStateData state_data;
 } FtpState;
