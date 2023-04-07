@@ -91,8 +91,6 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_pseudo_failed;
     /** packets rejected because their csum is invalid */
     uint16_t counter_tcp_invalid_checksum;
-    /** sessions reused */
-    uint16_t counter_tcp_reused_ssn;
     /** midstream pickups */
     uint16_t counter_tcp_midstream_pickups;
     /** wrong thread */

@@ -85,7 +85,6 @@ void FlowQueueDestroy (FlowQueue *);
 void FlowEnqueue (FlowQueue *, Flow *);
 Flow *FlowDequeue (FlowQueue *);
 void FlowQueueRemove(FlowQueue *fq, Flow *f);
-void FlowQueueRemoveLock(FlowQueue *fq, Flow *f);
 
 void FlowQueuePrivateAppendFlow(FlowQueuePrivate *fqc, Flow *f);
 void FlowQueuePrivatePrependFlow(FlowQueuePrivate *fqc, Flow *f);

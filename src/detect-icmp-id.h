@@ -31,4 +31,4 @@ typedef struct DetectIcmpIdData_ {
 /* prototypes */
 void DetectIcmpIdRegister(void);
 
-#endif /* __DETECT_ICMP_ID__ */
+#endif /* __DETECT_ICMP_ID_H__ */

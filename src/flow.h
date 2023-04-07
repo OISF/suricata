@@ -38,8 +38,7 @@ typedef struct FlowStorageId FlowStorageId;
  * The actual declaration is in app-layer-parser.c */
 typedef struct AppLayerParserState_ AppLayerParserState;
 
-#define FLOW_QUIET   true
-#define FLOW_VERBOSE false
+#define FLOW_QUIET true
 
 #define TOSERVER 0
 #define TOCLIENT 1
@@ -199,14 +198,6 @@ typedef struct AppLayerParserState_ AppLayerParserState;
         (a)->addr_data32[3] = 0;                                  \
     } while (0)
 
-/* clear the address structure by setting all fields to 0 */
-#define FLOW_CLEAR_ADDR(a) do {  \
-        (a)->addr_data32[0] = 0; \
-        (a)->addr_data32[1] = 0; \
-        (a)->addr_data32[2] = 0; \
-        (a)->addr_data32[3] = 0; \
-    } while (0)
-
 /* Set the IPv6 addressesinto the Addrs of the Packet.
  * Make sure p->ip6h is initialized and validated. */
 #define FLOW_SET_IPV6_SRC_ADDR_FROM_PACKET(p, a) do {   \
@@ -291,14 +282,11 @@ typedef struct FlowCnf_
 {
     uint32_t hash_rand;
     uint32_t hash_size;
-    uint32_t max_flows;
     uint32_t prealloc;
 
     uint32_t timeout_new;
     uint32_t timeout_est;
 
-    uint32_t emerg_timeout_new;
-    uint32_t emerg_timeout_est;
     uint32_t emergency_recovery;
 
     enum ExceptionPolicy memcap_policy;
@@ -327,8 +315,6 @@ typedef struct FlowAddress_ {
 #define addr_data32 address.address_un_data32
 #define addr_data16 address.address_un_data16
 #define addr_data8  address.address_un_data8
-
-typedef unsigned short FlowRefCount;
 
 typedef unsigned short FlowStateType;
 
@@ -555,7 +541,6 @@ typedef struct FlowLookupStruct_ // TODO name
 void FlowSetupPacket(Packet *p);
 void FlowHandlePacket (ThreadVars *, FlowLookupStruct *, Packet *);
 void FlowInitConfig(bool);
-void FlowPrintQueueInfo (void);
 void FlowReset(void);
 void FlowShutdown(void);
 void FlowSetIPOnlyFlag(Flow *, int);
@@ -567,13 +552,8 @@ void FlowUnsetChangeProtoFlag(Flow *);
 int FlowChangeProto(Flow *);
 void FlowSwap(Flow *);
 
-void FlowRegisterTests (void);
-int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
-int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
-int FlowSetProtoFreeFunc (uint8_t , void (*Free)(void *));
-void FlowUpdateQueue(Flow *);
-
-int FlowUpdateSpareFlows(void);
+void FlowRegisterTests(void);
+int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
 
 static inline void FlowSetNoPacketInspectionFlag(Flow *);
 static inline void FlowSetNoPayloadInspectionFlag(Flow *);

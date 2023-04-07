@@ -33,7 +33,6 @@
 #define LOG_NODE_MAXOUTPUTLEN 8192
 
 #define TIMESTAMP_DEFAULT_FORMAT "%D-%H:%M:%S"
-#define TIMESTAMP_DEFAULT_FORMAT_LEN 62
 
 /* Common format nodes */
 #define LOG_CF_NONE "-"

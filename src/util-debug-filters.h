@@ -132,4 +132,4 @@ void SCLogAddToFGFLineList(SCLogFGFilterFunc *,
                                          int);
 
 void SCLogReleaseFDFilter(SCLogFDFilter *);
-#endif /* __DEBUG_H__ */
+#endif /* __DEBUG_FILTERS_H__ */

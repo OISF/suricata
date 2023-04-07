@@ -25,6 +25,5 @@
 #define __APP_LAYER_RDP_H__
 
 void RegisterRdpParsers(void);
-void RdpParserRegisterTests(void);
 
 #endif /* __APP_LAYER_RDP_H__ */

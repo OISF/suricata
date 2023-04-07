@@ -125,7 +125,6 @@ typedef struct DefragTracker_ {
 
 void DefragInit(void);
 void DefragDestroy(void);
-void DefragReload(void); /**< use only in unittests */
 
 uint8_t DefragGetOsPolicy(Packet *);
 void DefragTrackerFreeFrags(DefragTracker *);

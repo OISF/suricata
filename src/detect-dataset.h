@@ -31,8 +31,6 @@
 #define DETECT_DATASET_CMD_ISNOTSET 2
 #define DETECT_DATASET_CMD_ISSET    3
 
-#define DETECT_DATASET_CMD_MAX      4
-
 typedef struct DetectDatasetData_ {
     Dataset *set;
     uint8_t cmd;

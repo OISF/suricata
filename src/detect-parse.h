@@ -53,7 +53,6 @@ int SignatureInitDataBufferCheckExpand(Signature *s);
 Signature *SigAlloc(void);
 void SigFree(DetectEngineCtx *de_ctx, Signature *s);
 Signature *SigInit(DetectEngineCtx *, const char *sigstr);
-Signature *SigInitReal(DetectEngineCtx *, const char *);
 SigMatchData* SigMatchList2DataArray(SigMatch *head);
 void SigParseRegisterTests(void);
 Signature *DetectEngineAppendSig(DetectEngineCtx *, const char *);

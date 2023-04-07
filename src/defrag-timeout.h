@@ -26,8 +26,5 @@
 
 uint32_t DefragTimeoutHash(SCTime_t ts);
 
-uint32_t DefragGetSpareCount(void);
-uint32_t DefragGetActiveCount(void);
-
 #endif
 
