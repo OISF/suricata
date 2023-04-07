@@ -247,6 +247,13 @@ typedef struct HtpState_ {
     htp_conn_t *conn;
     Flow *f;                /**< Needed to retrieve the original flow when using HTPLib callbacks */
     uint64_t transaction_cnt;
+    // tx_freed is the number of already freed transactions
+    // This is needed as libhtp only keeps the live transactions :
+    // To get the total number of transactions, we need to add
+    // the number of transactions tracked by libhtp to this number.
+    // It is also needed as an offset to translate between suricata
+    // transaction id to libhtp offset in its list/array
+    uint64_t tx_freed;
     const struct HTPCfgRec_ *cfg;
     uint16_t flags;
     uint16_t events;
