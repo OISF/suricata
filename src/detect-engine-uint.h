@@ -60,4 +60,4 @@ DetectUintData_u16 *DetectU16Parse(const char *u16str);
 void PrefilterPacketU16Set(PrefilterPacketHeaderValue *v, void *smctx);
 bool PrefilterPacketU16Compare(PrefilterPacketHeaderValue v, void *smctx);
 
-#endif /* __DETECT_UTIL_UINT_H */
+#endif /* __DETECT_ENGINE_UINT_H */

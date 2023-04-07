@@ -25,8 +25,6 @@
 #define __LOG_HTTPLOG_H__
 
 void LogHttpLogRegister(void);
-void TmModuleLogHttpLogIPv4Register (void);
-void TmModuleLogHttpLogIPv6Register (void);
 OutputInitResult LogHttpLogInitCtx(ConfNode *);
 
 #endif /* __LOG_HTTPLOG_H__ */

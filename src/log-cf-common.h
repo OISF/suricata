@@ -22,7 +22,7 @@
  * \author Ignacio Sanchez <sanchezmartin.ji@gmail.com>
  * \author Paulo Pacheco <fooinha@gmail.com>
  *
- * Common custom loggging format
+ * Common custom logging format
  */
 
 #ifndef __LOG_CF_COMMON_H__
@@ -33,7 +33,6 @@
 #define LOG_NODE_MAXOUTPUTLEN 8192
 
 #define TIMESTAMP_DEFAULT_FORMAT "%D-%H:%M:%S"
-#define TIMESTAMP_DEFAULT_FORMAT_LEN 62
 
 /* Common format nodes */
 #define LOG_CF_NONE "-"

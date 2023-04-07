@@ -149,9 +149,6 @@ typedef struct LogFileCtx_ {
     /* Flag set when file rotation notification is received. */
     int rotation_flag;
 
-    /* Set to true if the filename should not be timestamped. */
-    bool nostamp;
-
     /* if set to true EVE will add a pcap file record */
     bool is_pcap_offline;
 
@@ -166,8 +163,6 @@ typedef struct LogFileCtx_ {
 #define LOGFILE_RECONN_MIN_TIME     500
 
 /* flags for LogFileCtx */
-#define LOGFILE_HEADER_WRITTEN  0x01
-#define LOGFILE_ALERTS_PRINTED  0x02
 #define LOGFILE_ROTATE_INTERVAL 0x04
 
 LogFileCtx *LogFileNewCtx(void);

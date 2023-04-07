@@ -172,8 +172,6 @@ void DetectEngineFrameInspectEngineRegister(DetectEngineCtx *de_ctx, const char 
 int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature *s);
 void DetectEngineAppInspectionEngineSignatureFree(DetectEngineCtx *, Signature *s);
 
-bool DetectEngineFrameInspectionRun(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, Flow *f, Packet *p, uint8_t *alert_flags);
 bool DetectEnginePktInspectionRun(ThreadVars *tv,
         DetectEngineThreadCtx *det_ctx, const Signature *s,
         Flow *f, Packet *p,
@@ -200,9 +198,6 @@ DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
 void DetectRunStoreStateTx(const SigGroupHead *sgh, Flow *f, void *tx, uint64_t tx_id,
         const Signature *s, uint32_t inspect_flags, uint8_t flow_flags,
         const uint16_t file_no_match);
-
-void DetectRunStoreStateTxFileOnly(const SigGroupHead *sgh, Flow *f, void *tx, uint64_t tx_id,
-        const uint8_t flow_flags, const uint16_t file_no_match);
 
 void DetectEngineStateResetTxs(Flow *f);
 

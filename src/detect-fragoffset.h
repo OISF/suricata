@@ -35,4 +35,4 @@ typedef struct DetectFragOffsetData_ {
 /* prototypes */
 void DetectFragOffsetRegister(void);
 
-#endif /* __DETECT_FRAGOFFSET__ */
+#endif /* __DETECT_FRAGOFFSET_H__ */

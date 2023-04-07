@@ -27,8 +27,6 @@
 #include "flow.h"
 #include "stream-tcp-private.h"
 
-#define COPY_TIMESTAMP(src, dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec)
-
 #define RESET_COUNTERS(f)                                                                          \
     do {                                                                                           \
         (f)->todstpktcnt = 0;                                                                      \
@@ -146,7 +144,6 @@
             SC_ATOMIC_GET(flow_config.memcap)))
 
 Flow *FlowAlloc(void);
-Flow *FlowAllocDirect(void);
 void FlowFree(Flow *);
 uint8_t FlowGetProtoMapping(uint8_t);
 void FlowInit(Flow *, const Packet *);

@@ -24,9 +24,6 @@
 #ifndef __UTIL_DAEMON_H__
 #define __UTIL_DAEMON_H__
 
-/** \todo Adjust path */
-#define DAEMON_WORKING_DIRECTORY "/"
-
 #ifdef OS_WIN32
 #define Daemonize()
 #else

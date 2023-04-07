@@ -26,7 +26,7 @@
  *
  * \section dev_doc Developer documentation
  *
- * You've reach the automically generated documentation of Suricata. This
+ * You've reach the automatically generated documentation of Suricata. This
  * document contains information about architecture and code structure. It
  * is attended for developers wanting to understand or contribute to Suricata.
  *
@@ -114,8 +114,7 @@ enum {
     SURI_HOST_IS_ROUTER,
 };
 
-#define IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode)  ((host_mode) == SURI_HOST_IS_SNIFFER_ONLY)
-#define IS_SURI_HOST_MODE_ROUTER(host_mode)  ((host_mode) == SURI_HOST_IS_ROUTER)
+#define IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) ((host_mode) == SURI_HOST_IS_SNIFFER_ONLY)
 
 #include "runmodes.h"
 
@@ -184,7 +183,6 @@ int RunmodeIsUnittests(void);
 #define RunmodeIsUnittests() 0
 #endif
 int RunmodeGetCurrent(void);
-int IsRuleReloadSet(int quiet);
 
 int SuriHasSigFile(void);
 
