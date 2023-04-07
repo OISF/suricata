@@ -35,7 +35,6 @@
 typedef struct RpcMsg_ {
      uint32_t xid;
      uint32_t type;     /**< CALL = 0 (We only search for CALLS */
-     uint32_t rpcvers;  /**< must be equal to two (2) */
      uint32_t prog;
      uint32_t vers;
      uint32_t proc;

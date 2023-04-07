@@ -859,9 +859,6 @@ typedef struct DetectEngineCtx_ {
     /* maximum recursion depth for content inspection */
     int inspection_recursion_limit;
 
-    /* conf parameter that limits the length of the http request body inspected */
-    int hcbd_buffer_limit;
-
     /* array containing all sgh's in use so we can loop
      * through it in Stage4. */
     struct SigGroupHead_ **sgh_array;
@@ -1191,7 +1188,6 @@ typedef struct DetectEngineThreadCtx_ {
     struct SCProfileSghData_ *sgh_perf_data;
 
     struct SCProfilePrefilterData_ *prefilter_perf_data;
-    int prefilter_perf_size;
     /** bytes inspected by current prefilter callback call */
     uint64_t prefilter_bytes;
     /** number of times we inspected a buffer */

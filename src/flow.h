@@ -283,14 +283,12 @@ typedef struct FlowCnf_
 {
     uint32_t hash_rand;
     uint32_t hash_size;
-    uint32_t max_flows;
     uint32_t prealloc;
 
     uint32_t timeout_new;
     uint32_t timeout_est;
 
     uint32_t emerg_timeout_new;
-    uint32_t emerg_timeout_est;
     uint32_t emergency_recovery;
 
     enum ExceptionPolicy memcap_policy;
