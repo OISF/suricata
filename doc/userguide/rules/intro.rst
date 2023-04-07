@@ -84,7 +84,9 @@ There are a couple of additional TCP related protocol options:
 There are also a few so-called application layer protocols, or layer 7 protocols
 you can pick from. These are:
 
-* http
+* http (either HTTP1 or HTTP2)
+* http1
+* http2
 * ftp
 * tls (this includes ssl)
 * smb
@@ -108,7 +110,6 @@ you can pick from. These are:
 * snmp
 * tftp
 * sip
-* http2
 
 The availability of these protocols depends on whether the protocol
 is enabled in the configuration file, suricata.yaml.
