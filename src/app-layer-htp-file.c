@@ -179,7 +179,8 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     }
 
     // Then, we will try to handle reassembly of different ranges of the same file
-    htp_tx_t *tx = htp_list_get(s->conn->transactions, txid);
+    // TODO have the caller pass directly the tx
+    htp_tx_t *tx = htp_list_get(s->conn->transactions, txid - s->tx_freed);
     if (!tx) {
         SCReturnInt(-1);
     }
