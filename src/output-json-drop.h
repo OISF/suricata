@@ -27,4 +27,4 @@
 
 void JsonDropLogRegister(void);
 
-#endif /* __OUTPUT_DROPLOG_H__ */
+#endif /* __OUTPUT_JSON_DROP_H__ */

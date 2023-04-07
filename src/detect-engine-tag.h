@@ -36,8 +36,6 @@
  * create a limit for bytes and a limit for number of packets */
 #define TAG_MAX_LAST_TIME_SEEN 600
 
-#define TAG_TIMEOUT_CHECK_INTERVAL 60
-
 /* Used for tagged data (sid and gid of the packets that
  * follow the one that triggered the rule with tag option) */
 #define TAG_SIG_GEN           2
@@ -46,7 +44,6 @@
 int TagHashAddTag(DetectTagDataEntry *, Packet *);
 int TagFlowAdd(Packet *, DetectTagDataEntry *);
 
-void TagContextDestroy(void);
 void TagHandlePacket(DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
 
 void TagInitCtx(void);

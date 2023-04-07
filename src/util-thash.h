@@ -118,9 +118,6 @@ typedef struct THashDataQueue_
 #endif
 } THashDataQueue;
 
-#define THASH_VERBOSE    0
-#define THASH_QUIET      1
-
 typedef int (*THashOutputFunc)(void *output_ctx, const uint8_t *data, const uint32_t data_len);
 typedef int (*THashFormatFunc)(const void *in_data, char *output, size_t output_size);
 
@@ -169,20 +166,6 @@ typedef struct THashTableContext_ {
     (void)SC_ATOMIC_ADD((h)->use_cnt, 1)
 #define THashDecrUsecnt(h) \
     (void)SC_ATOMIC_SUB((h)->use_cnt, 1)
-
-#define THashReference(dst_h_ptr, h) do {            \
-        if ((h) != NULL) {                          \
-            THashIncrUsecnt((h));                    \
-            *(dst_h_ptr) = h;                       \
-        }                                           \
-    } while (0)
-
-#define THashDeReference(src_h_ptr) do {               \
-        if (*(src_h_ptr) != NULL) {                   \
-            THashDecrUsecnt(*(src_h_ptr));             \
-            *(src_h_ptr) = NULL;                      \
-        }                                             \
-    } while (0)
 
 THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
         int (*DataSet)(void *dst, void *src), void (*DataFree)(void *),
