@@ -65,9 +65,6 @@ typedef struct DefragTrackerHashRow_ {
 /** defrag tracker hash table */
 extern DefragTrackerHashRow *defragtracker_hash;
 
-#define DEFRAG_VERBOSE    0
-#define DEFRAG_QUIET      1
-
 typedef struct DefragConfig_ {
     SC_ATOMIC_DECLARE(uint64_t, memcap);
     uint32_t hash_rand;

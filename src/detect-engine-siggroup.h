@@ -30,23 +30,13 @@ int SigGroupHeadCopySigs(DetectEngineCtx *, SigGroupHead *, SigGroupHead **);
 
 void SigGroupHeadFree(const DetectEngineCtx *de_ctx, SigGroupHead *);
 
-void SigGroupHeadFreeMpmArrays(DetectEngineCtx *);
-
 SigGroupHead *SigGroupHeadHashLookup(DetectEngineCtx *, SigGroupHead *);
-SigGroupHead *SigGroupHeadMpmHashLookup(DetectEngineCtx *, SigGroupHead *);
-SigGroupHead *SigGroupHeadDPortHashLookup(DetectEngineCtx *, SigGroupHead *);
 
-int SigGroupHeadMpmHashAdd(DetectEngineCtx *, SigGroupHead *);
 int SigGroupHeadHashAdd(DetectEngineCtx *, SigGroupHead *);
-int SigGroupHeadDPortHashAdd(DetectEngineCtx *, SigGroupHead *);
 
 void SigGroupHeadHashFree(DetectEngineCtx *);
-void SigGroupHeadMpmHashFree(DetectEngineCtx *);
-void SigGroupHeadDPortHashFree(DetectEngineCtx *);
 
 int SigGroupHeadHashInit(DetectEngineCtx *);
-int SigGroupHeadMpmHashInit(DetectEngineCtx *);
-int SigGroupHeadDPortHashInit(DetectEngineCtx *);
 
 int SigGroupHeadHashRemove(DetectEngineCtx *, SigGroupHead *);
 
@@ -54,9 +44,7 @@ void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid);
 void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx);
 void SigGroupHeadSetProtoAndDirection(SigGroupHead *sgh,
                                       uint8_t ipproto, int dir);
-int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-                                 uint32_t max_idx);
-void SigGroupHeadFreeSigArrays(DetectEngineCtx *de_ctx);
+int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t max_idx);
 
 int SigGroupHeadContainsSigId (DetectEngineCtx *de_ctx, SigGroupHead *sgh,
                                uint32_t sid);
@@ -69,8 +57,6 @@ void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFilestoreCount(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFileHashFlag(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *, SigGroupHead *);
-uint16_t SigGroupHeadGetMinMpmSize(DetectEngineCtx *de_ctx,
-                                   SigGroupHead *sgh, int list);
 
 int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 

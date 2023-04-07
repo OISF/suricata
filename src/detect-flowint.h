@@ -50,7 +50,6 @@ enum {
     FLOWINT_TARGET_VAL,
     FLOWINT_TARGET_VAR,
     FLOWINT_TARGET_SELF,
-    FLOWINT_TARGET_UNKNOWN
 };
 
 /** If the target is another var, get the name and the idx */

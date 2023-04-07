@@ -93,11 +93,6 @@ typedef struct SCRadixTree_ {
     void (*Free)(void *);
 } SCRadixTree;
 
-
-struct in_addr *SCRadixValidateIPV4Address(const char *);
-struct in6_addr *SCRadixValidateIPV6Address(const char *);
-void SCRadixChopIPAddressAgainstNetmask(uint8_t *, uint8_t, uint16_t);
-
 SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*), void (*PrintData)(void*));
 void SCRadixReleaseRadixTree(SCRadixTree *);
 

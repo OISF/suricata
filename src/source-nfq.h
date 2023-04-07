@@ -92,9 +92,7 @@ typedef struct NFQGlobalVars_
 void NFQInitConfig(bool quiet);
 int NFQRegisterQueue(const uint16_t number);
 int NFQParseAndRegisterQueues(const char *queues);
-int NFQGetQueueCount(void);
 void *NFQGetQueue(int number);
-int NFQGetQueueNum(int number);
 void *NFQGetThread(int number);
 void NFQContextsClean(void);
 #endif /* NFQ */

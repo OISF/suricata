@@ -26,8 +26,6 @@
 
 bool DetectUrilenValidateContent(const Signature *s, int list, const char **);
 void DetectUrilenApplyToContent(Signature *s, int list);
-int DetectUrilenMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
-                       uint8_t, void *, Signature *, SigMatch *);
 void DetectUrilenRegister(void);
 
 #endif	/* _DETECT_URILEN_H */

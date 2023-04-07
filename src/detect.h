@@ -251,8 +251,8 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_PACKET                BIT_U32(1)  /**< signature has matches against a packet (as opposed to app layer) */
 #define SIG_FLAG_INIT_FLOW                  BIT_U32(2)  /**< signature has a flow setting */
 #define SIG_FLAG_INIT_BIDIREC               BIT_U32(3)  /**< signature has bidirectional operator */
-#define SIG_FLAG_INIT_FIRST_IPPROTO_SEEN    BIT_U32(4)  /** < signature has seen the first ip_proto keyword */
-#define SIG_FLAG_INIT_HAS_TRANSFORM         BIT_U32(5)
+#define SIG_FLAG_INIT_FIRST_IPPROTO_SEEN                                                           \
+    BIT_U32(4) /** < signature has seen the first ip_proto keyword */
 #define SIG_FLAG_INIT_STATE_MATCH           BIT_U32(6)  /**< signature has matches that require stateful inspection */
 #define SIG_FLAG_INIT_NEED_FLUSH            BIT_U32(7)
 #define SIG_FLAG_INIT_PRIO_EXPLICIT                                                                \
@@ -993,7 +993,6 @@ enum {
     ENGINE_PROFILE_MEDIUM,
     ENGINE_PROFILE_HIGH,
     ENGINE_PROFILE_CUSTOM,
-    ENGINE_PROFILE_MAX
 };
 
 /* Siggroup mpm context profile */
@@ -1513,15 +1512,9 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data);
 
 SigMatch *SigMatchAlloc(void);
 Signature *SigFindSignatureBySidGid(DetectEngineCtx *, uint32_t, uint32_t);
-void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *,
-                                       Packet *, SignatureMask,
-                                       uint16_t);
 void SigMatchFree(DetectEngineCtx *, SigMatch *sm);
 
 void SigRegisterTests(void);
-void TmModuleDetectRegister (void);
-
-void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
 void DisableDetectFlowFileFlags(Flow *f);
 char *DetectLoadCompleteSigPath(const DetectEngineCtx *, const char *sig_file);
@@ -1531,8 +1524,6 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
 
 int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s);
 const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx, const Packet *p);
-
-Signature *DetectGetTagSignature(void);
 
 int DetectUnregisterThreadCtxFuncs(DetectEngineCtx *, void *data, const char *name);
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int);

@@ -49,14 +49,12 @@ enum {
 enum {
     DETECT_TAG_DIR_SRC,
     DETECT_TAG_DIR_DST,
-    DETECT_TAG_DIR_MAX
 };
 
 enum {
     DETECT_TAG_METRIC_PACKET,
     DETECT_TAG_METRIC_SECONDS,
     DETECT_TAG_METRIC_BYTES,
-    DETECT_TAG_METRIC_MAX
 };
 
 /** This will be the rule options/parameters */

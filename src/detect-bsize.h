@@ -28,4 +28,4 @@ void DetectBsizeRegister(void);
 int DetectBsizeMatch(const SigMatchCtx *ctx, const uint64_t buffer_size, bool eof);
 bool DetectBsizeValidateContentCallback(Signature *s, const SignatureInitDataBuffer *);
 
-#endif	/* __DETECT_URILEN_H__ */
+#endif /* __DETECT_BSIZE_H__ */

@@ -130,15 +130,11 @@ typedef struct MpmCtxFactoryContainer_ {
 } MpmCtxFactoryContainer;
 
 /** pattern is case insensitive */
-#define MPM_PATTERN_FLAG_NOCASE     0x01
-/** pattern is negated */
-#define MPM_PATTERN_FLAG_NEGATED    0x02
+#define MPM_PATTERN_FLAG_NOCASE 0x01
 /** pattern has a depth setting */
 #define MPM_PATTERN_FLAG_DEPTH      0x04
 /** pattern has an offset setting */
-#define MPM_PATTERN_FLAG_OFFSET     0x08
-/** one byte pattern (used in b2g) */
-#define MPM_PATTERN_ONE_BYTE        0x10
+#define MPM_PATTERN_FLAG_OFFSET 0x08
 /** the ctx uses it's own internal id instead of
  *  what is passed through the API */
 #define MPM_PATTERN_CTX_OWNS_ID     0x20
