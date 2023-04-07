@@ -401,7 +401,7 @@ void HTPStateFree(void *state)
         uint64_t total_txs = HTPStateGetTxCnt(state);
         /* free the list of body chunks */
         if (s->conn != NULL) {
-            for (tx_id = 0; tx_id < total_txs; tx_id++) {
+            for (tx_id = s->tx_freed; tx_id < total_txs; tx_id++) {
                 htp_tx_t *tx = HTPStateGetTx(s, tx_id);
                 if (tx != NULL) {
                     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
@@ -458,8 +458,10 @@ static void HTPStateTransactionFree(void *state, uint64_t id)
             tx->request_progress = HTP_REQUEST_COMPLETE;
             tx->response_progress = HTP_RESPONSE_COMPLETE;
         }
+        // replaces tx in the s->conn->transactions list by NULL
         htp_tx_destroy(tx);
     }
+    s->tx_freed += htp_connp_tx_freed(s->connp);
 }
 
 /**
@@ -3077,7 +3079,7 @@ static uint64_t HTPStateGetTxCnt(void *alstate)
         if (size < 0)
             return 0ULL;
         SCLogDebug("size %"PRIu64, size);
-        return (uint64_t)size;
+        return (uint64_t)size + http_state->tx_freed;
     } else {
         return 0ULL;
     }
@@ -3087,8 +3089,8 @@ static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
 {
     HtpState *http_state = (HtpState *)alstate;
 
-    if (http_state != NULL && http_state->conn != NULL)
-        return htp_list_get(http_state->conn->transactions, tx_id);
+    if (http_state != NULL && http_state->conn != NULL && tx_id >= http_state->tx_freed)
+        return htp_list_get(http_state->conn->transactions, tx_id - http_state->tx_freed);
     else
         return NULL;
 }
@@ -3098,9 +3100,9 @@ void *HtpGetTxForH2(void *alstate)
     // gets last transaction
     HtpState *http_state = (HtpState *)alstate;
     if (http_state != NULL && http_state->conn != NULL) {
-        size_t txid = htp_list_array_size(http_state->conn->transactions);
-        if (txid > 0) {
-            return htp_list_get(http_state->conn->transactions, txid - 1);
+        size_t txid = HTPStateGetTxCnt(http_state);
+        if (txid > http_state->tx_freed) {
+            return htp_list_get(http_state->conn->transactions, txid - http_state->tx_freed - 1);
         }
     }
     return NULL;
