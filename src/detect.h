@@ -861,8 +861,6 @@ typedef struct DetectEngineCtx_ {
 
     /* conf parameter that limits the length of the http request body inspected */
     int hcbd_buffer_limit;
-    /* conf parameter that limits the length of the http response body inspected */
-    int hsbd_buffer_limit;
 
     /* array containing all sgh's in use so we can loop
      * through it in Stage4. */

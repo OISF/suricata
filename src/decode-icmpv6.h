@@ -80,15 +80,12 @@
 #define ICMP6_DST_UNREACH_NOROUTE       0 /* no route to destination */
 #define ICMP6_DST_UNREACH_ADMIN         1 /* communication with destination */
                                           /* administratively prohibited */
-#define ICMP6_DST_UNREACH_BEYONDSCOPE   2 /* beyond scope of source address */
-#define ICMP6_DST_UNREACH_ADDR          3 /* address unreachable */
 #define ICMP6_DST_UNREACH_NOPORT        4 /* bad port */
 #define ICMP6_DST_UNREACH_FAILEDPOLICY  5 /* Source address failed ingress/egress policy */
 #define ICMP6_DST_UNREACH_REJECTROUTE   6 /* Reject route to destination */
 
 
 /** Time Exceeded Message (type=3) Code: */
-#define ICMP6_TIME_EXCEED_TRANSIT     0 /* Hop Limit == 0 in transit */
 #define ICMP6_TIME_EXCEED_REASSEMBLY  1 /* Reassembly time out */
 
 /** Parameter Problem Message (type=4) Code: */

@@ -32,7 +32,6 @@
 #define B64_BLOCK           4
 
 typedef enum {
-    BASE64_MODE_RELAX,
     /* If the following strings were to be passed to the decoder with RFC2045 mode,
      * the results would be as follows. See the unittest B64TestVectorsRFC2045 in
      * src/util-base64.c

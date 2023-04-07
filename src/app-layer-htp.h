@@ -195,9 +195,7 @@ typedef struct HtpBody_ {
     uint64_t body_inspected;
 } HtpBody;
 
-#define HTP_CONTENTTYPE_SET     BIT_U8(0)    /**< We have the content type */
 #define HTP_BOUNDARY_SET        BIT_U8(1)    /**< We have a boundary string */
-#define HTP_BOUNDARY_OPEN       BIT_U8(2)    /**< We have a boundary string */
 #define HTP_FILENAME_SET        BIT_U8(3)    /**< filename is registered in the flow */
 #define HTP_DONTSTORE           BIT_U8(4)    /**< not storing this file */
 #define HTP_STREAM_DEPTH_SET    BIT_U8(5)    /**< stream-depth is set */

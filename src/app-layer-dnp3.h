@@ -23,10 +23,6 @@
 #include "util-byte.h"
 #endif
 
-/**
- * The maximum size of a DNP3 link PDU.
- */
-#define DNP3_MAX_LINK_PDU_LEN 292
 
 /* DNP3 application request function codes. */
 #define DNP3_APP_FC_CONFIRM                0x00

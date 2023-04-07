@@ -182,9 +182,6 @@ void AppLayerParserRegisterLocalStorageFunc(uint8_t ipproto, AppProto proto,
 //     AppLayerDecoderEvents *(*StateGetEvents)(void *) __attribute__((nonnull)));
 void AppLayerParserRegisterGetTxFilesFunc(uint8_t ipproto, AppProto alproto,
         AppLayerGetFileState (*GetTxFiles)(void *, void *, uint8_t));
-void AppLayerParserRegisterLoggerFuncs(uint8_t ipproto, AppProto alproto,
-                         LoggerId (*StateGetTxLogged)(void *, void *),
-                         void (*StateSetTxLogged)(void *, void *, LoggerId));
 void AppLayerParserRegisterLogger(uint8_t ipproto, AppProto alproto);
 void AppLayerParserRegisterLoggerBits(uint8_t ipproto, AppProto alproto, LoggerId bits);
 void AppLayerParserRegisterTruncateFunc(uint8_t ipproto, AppProto alproto,
