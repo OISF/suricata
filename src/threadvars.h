@@ -28,6 +28,7 @@
 #include "counters.h"
 #include "packet-queue.h"
 #include "util-atomic.h"
+#include "util-callbacks.h"
 
 struct TmSlot_;
 
@@ -135,6 +136,8 @@ typedef struct ThreadVars_ {
     struct FlowQueue_ *flow_queue;
     bool break_loop;
 
+    /* callbacks to invoke for each event when running as a library */
+    Callbacks *callbacks;
 } ThreadVars;
 
 /** Thread setup flags: */
