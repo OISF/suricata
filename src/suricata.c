@@ -217,6 +217,9 @@ bool g_disable_hashing = false;
 /** Suricata instance */
 SCInstance suricata;
 
+SystemHugepageSnapshot *prerun_snap;
+SystemHugepageSnapshot *postrun_snap;
+
 int SuriHasSigFile(void)
 {
     return (suricata.sig_file != NULL);
@@ -1137,6 +1140,11 @@ const char *GetProgramVersion(void)
         return PROG_VER;
 #endif
     }
+}
+
+SCInstance *GetInstance(void)
+{
+    return &suricata;
 }
 
 static TmEcode PrintVersion(void)
@@ -2252,6 +2260,7 @@ void PreRunInit(const int runmode)
 void PreRunPostPrivsDropInit(const int runmode)
 {
     StatsSetupPostConfigPreOutput();
+    RunModeInitializeCallbacks(suricata.callback_ids);
     RunModeInitializeOutputs();
     DatasetsInit();
 
@@ -2889,10 +2898,13 @@ int InitGlobal(void)
     return 0;
 }
 
+void SuricataPreInit(const char *progname)
+{
+    SCInstanceInit(&suricata, progname);
+}
+
 int SuricataInit(int argc, char **argv)
 {
-    SCInstanceInit(&suricata, argv[0]);
-
     if (InitGlobal() != 0) {
         exit(EXIT_FAILURE);
     }
@@ -2991,7 +3003,7 @@ int SuricataInit(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 
-    SystemHugepageSnapshot *prerun_snap = SystemHugepageSnapshotCreate();
+    prerun_snap = SystemHugepageSnapshotCreate();
     SCSetStartTime(&suricata);
     RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode, suricata.capture_plugin_name,
             suricata.capture_plugin_args);
@@ -3056,7 +3068,7 @@ void SuricataPostInit(void)
 
     PostRunStartedDetectSetup(&suricata);
 
-    SystemHugepageSnapshot *postrun_snap = SystemHugepageSnapshotCreate();
+    postrun_snap = SystemHugepageSnapshotCreate();
     if (run_mode == RUNMODE_DPDK) // only DPDK uses hpages at the moment
         SystemHugepageEvaluateHugepages(prerun_snap, postrun_snap);
     SystemHugepageSnapshotDestroy(prerun_snap);
@@ -3083,6 +3095,8 @@ void SuricataShutdown(void)
 int SuricataMain(int argc, char **argv)
 {
     /* Initialize engine. */
+    SuricataPreInit(argv[0]);
+
     if (SuricataInit(argc, argv) == EXIT_FAILURE) {
         GlobalsDestroy(&suricata);
         exit(EXIT_FAILURE);
