@@ -390,6 +390,11 @@ noinst_HEADERS = \
 	output-filestore.h \
 	output-flow.h \
 	output.h \
+	output-callback.h \
+	output-callback-alert.h \
+	output-callback-file.h \
+	output-callback-flow.h \
+	output-callback-http.h \
 	output-json-alert.h \
 	output-json-anomaly.h \
 	output-json-bittorrent-dht.h \
@@ -508,6 +513,7 @@ noinst_HEADERS = \
 	util-action.h \
 	util-affinity.h \
 	util-atomic.h \
+	util-callbacks.h \
 	util-base64.h \
 	util-bloomfilter-counting.h \
 	util-bloomfilter.h \
@@ -537,6 +543,7 @@ noinst_HEADERS = \
 	util-ebpf.h \
 	util-enum.h \
 	util-error.h \
+	util-events.h \
 	util-exception-policy.h \
 	util-file-decompression.h \
 	util-file.h \
@@ -995,6 +1002,11 @@ libsuricata_c_a_SOURCES = \
 	log-tlslog.c \
 	log-tlsstore.c \
 	output.c \
+	output-callback.c \
+	output-callback-alert.c \
+	output-callback-file.c \
+	output-callback-flow.c \
+	output-callback-http.c \
 	output-eve-stream.c \
 	output-file.c \
 	output-filedata.c \

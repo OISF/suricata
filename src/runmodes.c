@@ -980,6 +980,19 @@ void RunModeInitializeOutputs(void)
     OutputSetupActiveLoggers();
 }
 
+void RunModeInitializeCallbacks(uint32_t *callback_ids)
+{
+    for (int i = 0; i < MAX_CALLBACKS && callback_ids[i]; ++i) {
+        OutputModule *module;
+        TAILQ_FOREACH (module, &output_modules, entries) {
+            if (module->logger_id == callback_ids[i]) {
+                AddOutputToFreeList(module, NULL);
+                SetupOutput(module->name, module, NULL);
+            }
+        }
+    }
+}
+
 float threading_detect_ratio = 1;
 
 /**
