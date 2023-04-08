@@ -90,27 +90,31 @@ static char **split_config_string(const char *config, int *argc)
 }
 
 /**
- * \brief Initialize a Suricata context.
+ * \brief Utility method to register the callback id into the suricata instance.
  *
- * \param config      Configuration string.
- * \param n_workers   Number of worker threads will be allocated.
- * \return SCInstance Pointer to the initialized Suricata context.
+ * \param id    Id of the callback to register.
  */
-SuricataCtx *suricata_init(const char *config, int n_workers)
+static void setCallbackId(uint32_t id)
 {
-    /* Convert the config string into the argc/argv format */
-    int i = 2;
-    int argc = 0;
-    char **argv = split_config_string(config, &argc);
+    SCInstance *suri = GetInstance();
+    int i = 0;
 
-    SuricataInit(argc, argv);
-
-    while (i < argc) {
-        free(argv[i]);
+    while (suri->callback_ids[i]) {
         i++;
     }
-    free(argv);
+    assert(i < MAX_CALLBACKS);
 
+    suri->callback_ids[i] = id;
+}
+
+/**
+ * \brief Create a Suricata context.
+ *
+ * \param n_workers    Number of worker threads that will be allocated.
+ * \return SuricataCtx Pointer to the initialized Suricata context.
+ */
+SuricataCtx *suricata_create_ctx(int n_workers)
+{
     /* Create the SuricataCtx */
     if (n_workers == 0) {
         fprintf(stderr, "The number of suricata worker threads must be > 0");
@@ -130,7 +134,94 @@ SuricataCtx *suricata_init(const char *config, int n_workers)
 
     ctx->n_workers = n_workers;
 
+    /* Setup the inner suricata instance. */
+    SuricataPreInit("suricata");
+
     return ctx;
+}
+
+/**
+ * \brief Register a callback that is invoked for every alert.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param user_ctx       Pointer to a user-defined context object.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_alert_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncAlert callback)
+{
+    ctx->callbacks.alert.func = callback;
+    ctx->callbacks.alert.user_ctx = user_ctx;
+
+    /* Set the callback id into the suricata array to later register the output module. */
+    setCallbackId(LOGGER_CALLBACK_ALERT);
+}
+
+/**
+ * \brief Register a callback that is invoked for every fileinfo event.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param user_ctx       Pointer to a user-defined context object.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_fileinfo_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncFileinfo callback)
+{
+    ctx->callbacks.fileinfo.func = callback;
+    ctx->callbacks.fileinfo.user_ctx = user_ctx;
+
+    /* Set the callback id into the suricata array to later register the output module. */
+    setCallbackId(LOGGER_CALLBACK_FILE);
+}
+/**
+ * \brief Register a callback that is invoked for every flow.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param user_ctx       Pointer to a user-defined context object.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_flow_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncFlow callback)
+{
+    ctx->callbacks.flow.func = callback;
+    ctx->callbacks.flow.user_ctx = user_ctx;
+
+    /* Set the callback id into the suricata array to later register the output module. */
+    setCallbackId(LOGGER_CALLBACK_FLOW);
+}
+
+/**
+ * \brief Register a callback that is invoked for every HTTP event.
+ *
+ * \param ctx            Pointer to SuricataCtx.
+ * \param user_ctx       Pointer to a user-defined context object.
+ * \param callback       Pointer to a callback function.
+ */
+void suricata_register_http_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncHttp callback)
+{
+    ctx->callbacks.http.func = callback;
+    ctx->callbacks.http.user_ctx = user_ctx;
+
+    /* Set the callback id into the suricata array to later register the output module. */
+    setCallbackId(LOGGER_CALLBACK_TX);
+}
+
+/**
+ * \brief Initialize a Suricata context.
+ *
+ * \param config      Configuration string.
+ */
+void suricata_init(const char *config)
+{
+    /* Convert the config string into the argc/argv format */
+    int i = 2;
+    int argc = 0;
+    char **argv = split_config_string(config, &argc);
+
+    SuricataInit(argc, argv);
+
+    while (i < argc) {
+        free(argv[i]);
+        i++;
+    }
+    free(argv);
 }
 
 /**
@@ -149,6 +240,7 @@ ThreadVars *suricata_create_worker_thread(SuricataCtx *ctx)
     }
 
     ThreadVars *tv = RunModeCreateWorker();
+    tv->callbacks = &ctx->callbacks;
     ctx->n_workers_created++;
     pthread_mutex_unlock(&ctx->lock);
 
