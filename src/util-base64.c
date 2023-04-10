@@ -24,6 +24,7 @@
 
 #include "util-base64.h"
 #include "util-debug.h"
+#include "util-validate.h"
 #include "util-unittest.h"
 /* Constants */
 #define BASE64_TABLE_MAX  122
@@ -156,7 +157,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
                 ecode = BASE64_ECODE_BUF;
                 break;
             }
-
+            DEBUG_VALIDATE_BUG_ON(ecode == BASE64_ECODE_BUF);
             /* Decode base-64 block into ascii block and move pointer */
             DecodeBase64Block(dptr, b64);
             dptr += numDecoded_blk;
@@ -165,6 +166,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
             bbidx = 0;
             padding = 0;
             *consumed_bytes += B64_BLOCK + sp;
+            DEBUG_VALIDATE_BUG_ON(*consumed_bytes > len);
             sp = 0;
             leading_sp = 0;
             memset(&b64, 0, sizeof(b64));
@@ -188,20 +190,24 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
         *decoded_bytes += numDecoded_blk;
         DecodeBase64Block(dptr, b64);
         *consumed_bytes += bbidx;
+        DEBUG_VALIDATE_BUG_ON(*consumed_bytes > len);
     }
 
     /* Finish remaining b64 bytes by padding */
     if (valid && bbidx > 0 && (mode != BASE64_MODE_RFC2045)) {
         /* Decode remaining */
+        DEBUG_VALIDATE_BUG_ON(ecode == BASE64_ECODE_BUF);
         *decoded_bytes += ASCII_BLOCK - (B64_BLOCK - bbidx);
         DecodeBase64Block(dptr, b64);
     }
 
     if (*decoded_bytes == 0) {
+        DEBUG_VALIDATE_BUG_ON(consumed_bytes == 0 && ecode != BASE64_ECODE_ERR);
         SCLogDebug("base64 decoding failed");
     }
 
     *consumed_bytes += leading_sp;
+    DEBUG_VALIDATE_BUG_ON(*consumed_bytes > len);
     return ecode;
 }
 
