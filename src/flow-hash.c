@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -646,6 +646,36 @@ static inline void NoFlowHandleIPS(Packet *p)
     ExceptionPolicyApply(p, flow_config.memcap_policy, PKT_DROP_REASON_FLOW_MEMCAP);
 }
 
+static void FlowExceptionPolicyStatsIncr(
+        ThreadVars *tv, FlowLookupStruct *fls, enum ExceptionPolicy policy)
+{
+    switch (policy) {
+        case EXCEPTION_POLICY_NOT_SET:
+            // We're not logging stats when exception policies are ignored
+            break;
+        case EXCEPTION_POLICY_REJECT:
+            StatsIncr(tv, fls->dtv->counter_flow_memcap_eps_reject);
+            break;
+        case EXCEPTION_POLICY_BYPASS_FLOW:
+            StatsIncr(tv, fls->dtv->counter_flow_memcap_eps_bypass);
+            break;
+        case EXCEPTION_POLICY_DROP_FLOW:
+            // Doesn't apply to flow
+            break;
+        case EXCEPTION_POLICY_DROP_PACKET:
+            StatsIncr(tv, fls->dtv->counter_flow_memcap_eps_drop_packet);
+            break;
+        case EXCEPTION_POLICY_PASS_PACKET:
+            StatsIncr(tv, fls->dtv->counter_flow_memcap_eps_pass_packet);
+            break;
+        case EXCEPTION_POLICY_PASS_FLOW:
+            // Doesn't apply to flow
+            break;
+        case EXCEPTION_POLICY_AUTO:
+            break;
+    }
+}
+
 /**
  *  \brief Get a new flow
  *
@@ -665,6 +695,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
     if (g_eps_flow_memcap != UINT64_MAX && g_eps_flow_memcap == p->pcap_cnt) {
         NoFlowHandleIPS(p);
         StatsIncr(tv, fls->dtv->counter_flow_memcap);
+        FlowExceptionPolicyStatsIncr(tv, fls, flow_config.memcap_policy);
         return NULL;
     }
 #endif
@@ -690,6 +721,14 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
             f = FlowGetUsedFlow(tv, fls->dtv, p->ts);
             if (f == NULL) {
                 NoFlowHandleIPS(p);
+#ifdef UNITTESTS
+                if (tv != NULL && fls->dtv != NULL) {
+#endif
+                    StatsIncr(tv, fls->dtv->counter_flow_memcap);
+                    FlowExceptionPolicyStatsIncr(tv, fls, flow_config.memcap_policy);
+#ifdef UNITTESTS
+                }
+#endif
                 return NULL;
             }
 #ifdef UNITTESTS
@@ -715,6 +754,7 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
             }
 #endif
             NoFlowHandleIPS(p);
+            FlowExceptionPolicyStatsIncr(tv, fls, flow_config.memcap_policy);
             return NULL;
         }
 

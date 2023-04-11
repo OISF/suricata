@@ -4890,6 +4890,24 @@
                         "memcap": {
                             "type": "integer"
                         },
+                        "memcap_exception_policy": {
+                            "type": "object",
+                            "anyOf": [
+                                {
+                                    "$ref": "#/$defs/drop_packet"
+                                },
+                                {
+                                    "$ref": "#/$defs/pass_packet"
+                                },
+                                {
+                                    "$ref": "#/$defs/bypass"
+                                },
+                                {
+                                    "$ref": "#/$defs/reject"
+                                }
+                            ],
+                            "additionalProperties": "false"
+                        },
                         "memuse": {
                             "type": "integer"
                         },
@@ -5566,6 +5584,24 @@
                     ]
                 }
             }
+        },
+        "drop_flow": {
+            "type": "object"
+        },
+        "drop_packet": {
+            "type": "object"
+        },
+        "pass_flow": {
+            "type": "object"
+        },
+        "pass_packet": {
+            "type": "object"
+        },
+        "bypass": {
+            "type": "object"
+        },
+        "reject": {
+            "type": "object"
         }
     }
 }
