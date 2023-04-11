@@ -564,6 +564,21 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_erspan = StatsRegisterMaxCounter("decoder.erspan", tv);
     dtv->counter_nsh = StatsRegisterMaxCounter("decoder.nsh", tv);
     dtv->counter_flow_memcap = StatsRegisterCounter("flow.memcap", tv);
+    /* Register stats counters for all exception policy values */
+    dtv->counter_flow_memcap_eps_ignore =
+            StatsRegisterCounter("flow.memcap_exception_policy.ignore", tv);
+    dtv->counter_flow_memcap_eps_reject =
+            StatsRegisterCounter("flow.memcap_exception_policy.reject", tv);
+    dtv->counter_flow_memcap_eps_bypass =
+            StatsRegisterCounter("flow.memcap_exception_policy.bypass", tv);
+    dtv->counter_flow_memcap_eps_pass_flow =
+            StatsRegisterCounter("flow.memcap_exception_policy.pass_flow", tv);
+    dtv->counter_flow_memcap_eps_pass_packet =
+            StatsRegisterCounter("flow.memcap_exception_policy.pass_packet", tv);
+    dtv->counter_flow_memcap_eps_drop_flow =
+            StatsRegisterCounter("flow.memcap_exception_policy.drop_flow", tv);
+    dtv->counter_flow_memcap_eps_drop_packet =
+            StatsRegisterCounter("flow.memcap_exception_policy.drop_packet", tv);
 
     dtv->counter_tcp_active_sessions = StatsRegisterCounter("tcp.active_sessions", tv);
     dtv->counter_flow_total = StatsRegisterCounter("flow.total", tv);
