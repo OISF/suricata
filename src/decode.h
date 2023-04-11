@@ -32,6 +32,7 @@
 #include "threadvars.h"
 #include "util-debug.h"
 #include "decode-events.h"
+#include "util-exception-policy-types.h"
 #ifdef PROFILING
 #include "flow-worker.h"
 #include "app-layer-protos.h"
@@ -723,6 +724,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_defrag_max_hit;
 
     uint16_t counter_flow_memcap;
+    ExceptionPolicyCounters counter_flow_memcap_eps;
 
     uint16_t counter_tcp_active_sessions;
     uint16_t counter_flow_total;

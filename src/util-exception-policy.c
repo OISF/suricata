@@ -294,6 +294,22 @@ enum ExceptionPolicy ExceptionPolicyMidstreamParse(bool midstream_enabled)
     return policy;
 }
 
+void ExceptionPolicySetStatsCounters(ThreadVars *tv, ExceptionPolicyCounters *counter,
+        ExceptionPolicyStatsSetts *setting, enum ExceptionPolicy conf_policy,
+        const char *default_str, bool (*isExceptionPolicyValid)(enum ExceptionPolicy))
+{
+    if (conf_policy != EXCEPTION_POLICY_NOT_SET) {
+        /* set-up policy counters */
+        for (enum ExceptionPolicy i = EXCEPTION_POLICY_NOT_SET + 1; i < EXCEPTION_POLICY_MAX; i++) {
+            if (isExceptionPolicyValid(i)) {
+                snprintf(setting->eps_name[i], sizeof(setting->eps_name[i]), "%s%s", default_str,
+                        ExceptionPolicyEnumToString(i, true));
+                counter->eps_id[i] = StatsRegisterCounter(setting->eps_name[i], tv);
+            }
+        }
+    }
+}
+
 #ifndef DEBUG
 
 int ExceptionSimulationCommandLineParser(const char *name, const char *arg)

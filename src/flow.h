@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -30,6 +30,7 @@ typedef struct FlowStorageId FlowStorageId;
 #include "decode.h"
 #include "util-time.h"
 #include "util-exception-policy.h"
+#include "util-exception-policy-types.h"
 #include "util-var.h"
 #include "util-optimize.h"
 #include "app-layer-protos.h"
@@ -572,6 +573,7 @@ void FlowUpdateState(Flow *f, enum FlowState s);
 int FlowSetMemcap(uint64_t size);
 uint64_t FlowGetMemcap(void);
 uint64_t FlowGetMemuse(void);
+enum ExceptionPolicy FlowGetMemcapExceptionPolicy(void);
 
 FlowStorageId GetFlowBypassInfoID(void);
 void RegisterFlowBypassInfo(void);
