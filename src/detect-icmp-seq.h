@@ -32,4 +32,3 @@ typedef struct DetectIcmpSeqData_ {
 void DetectIcmpSeqRegister(void);
 
 #endif /* __DETECT_ICMP_SEQ_H__ */
-
