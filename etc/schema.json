@@ -5043,6 +5043,11 @@
                         "memcap": {
                             "type": "integer"
                         },
+                        "memcap_exception_policy": {
+                            "description":
+                                    "How many times flow memcap exception policy was applied, and which one",
+                            "$ref": "#/$defs/exceptionPolicy"
+                        },
                         "memuse": {
                             "type": "integer"
                         },
@@ -5721,6 +5726,35 @@
                             ]
                         }
                     ]
+                }
+            }
+        },
+        "exceptionPolicy": {
+            "type": "object",
+            "properties": {
+                "drop_flow": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "drop_packet": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "pass_flow": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "pass_packet": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "bypass": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "reject": {
+                    "type": "integer",
+                    "minimum": 0
                 }
             }
         }
