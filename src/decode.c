@@ -76,6 +76,32 @@ extern bool stats_stream_events;
 uint8_t decoder_max_layers = PKT_DEFAULT_MAX_DECODED_LAYERS;
 uint16_t packet_alert_max = PACKET_ALERT_MAX;
 
+/* Settings order as in the enum */
+// clang-format off
+ExceptionPolicyStatsSetts flow_memcap_eps_stats = {
+    .valid_settings_ids = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  true,
+    /* EXCEPTION_POLICY_PASS_FLOW */    false,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  false,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+    .valid_settings_ips = {
+    /* EXCEPTION_POLICY_NOT_SET */      false,
+    /* EXCEPTION_POLICY_AUTO */         false,
+    /* EXCEPTION_POLICY_PASS_PACKET */  true,
+    /* EXCEPTION_POLICY_PASS_FLOW */    false,
+    /* EXCEPTION_POLICY_BYPASS_FLOW */  true,
+    /* EXCEPTION_POLICY_DROP_PACKET */  true,
+    /* EXCEPTION_POLICY_DROP_FLOW */    false,
+    /* EXCEPTION_POLICY_REJECT */       true,
+    },
+};
+// clang-format on
+
 /**
  * \brief Initialize PacketAlerts with dynamic alerts array size
  *
@@ -522,6 +548,14 @@ void DecodeUnregisterCounters(void)
     SCMutexUnlock(&g_counter_table_mutex);
 }
 
+static bool IsFlowMemcapExceptionPolicyStatsValid(uint8_t policy)
+{
+    if (EngineModeIsIPS()) {
+        return flow_memcap_eps_stats.valid_settings_ips[policy];
+    }
+    return flow_memcap_eps_stats.valid_settings_ids[policy];
+}
+
 void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
 {
     /* register counters */
@@ -569,6 +603,22 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_erspan = StatsRegisterMaxCounter("decoder.erspan", tv);
     dtv->counter_nsh = StatsRegisterMaxCounter("decoder.nsh", tv);
     dtv->counter_flow_memcap = StatsRegisterCounter("flow.memcap", tv);
+    /* We don't log stats counters if exception policy is `ignore`/`not set` */
+    if (FlowGetMemcapExceptionPolicy() != EXCEPTION_POLICY_NOT_SET) {
+        /* Register stats counters for all valid exception policy values */
+        const char *eps_flow_str = "flow.memcap_exception_policy.";
+        bool is_eps_valid = false;
+        for (uint8_t i = 0; i < EXCEPTION_POLICY_MAX; i++) {
+            is_eps_valid = IsFlowMemcapExceptionPolicyStatsValid(i);
+            if (is_eps_valid) {
+                snprintf(flow_memcap_eps_stats.eps_name[i],
+                        sizeof(flow_memcap_eps_stats.eps_name[i]), "%s%s", eps_flow_str,
+                        ExceptionPolicyEnumToString(i, true));
+                dtv->counter_flow_memcap_eps.eps_id[i] =
+                        StatsRegisterCounter(flow_memcap_eps_stats.eps_name[i], tv);
+            }
+        }
+    }
 
     dtv->counter_tcp_active_sessions = StatsRegisterCounter("tcp.active_sessions", tv);
     dtv->counter_flow_total = StatsRegisterCounter("flow.total", tv);

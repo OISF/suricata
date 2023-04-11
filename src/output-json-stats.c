@@ -1,4 +1,4 @@
-/* Copyright (C) 2014-2020 Open Information Security Foundation
+/* Copyright (C) 2014-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -52,6 +52,7 @@
 
 extern bool stats_decoder_events;
 extern const char *stats_decoder_events_prefix;
+extern bool stats_eps_zero_counters;
 
 /**
  * specify which engine info will be printed in stats log.
@@ -227,8 +228,17 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
     uint32_t u = 0;
     if (flags & JSON_STATS_TOTALS) {
         for (u = 0; u < st->nstats; u++) {
+            bool is_exception_policy_counter = false;
             if (st->stats[u].name == NULL)
                 continue;
+            if (strstr(st->stats[u].name, "exception_policy") != NULL) {
+                is_exception_policy_counter = true;
+                if (is_exception_policy_counter && !stats_eps_zero_counters &&
+                        st->stats[u].value == 0) {
+                    continue;
+                }
+            }
+
             json_t *js_type = NULL;
             const char *stat_name = st->stats[u].short_name;
             /*
@@ -276,8 +286,16 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
 
             /* for each counter */
             for (u = offset; u < (offset + st->nstats); u++) {
+                bool is_exception_policy_counter = false;
                 if (st->tstats[u].name == NULL)
                     continue;
+                if (strstr(st->tstats[u].name, "exception_policy") != NULL) {
+                    is_exception_policy_counter = true;
+                    if (is_exception_policy_counter && !stats_eps_zero_counters &&
+                            st->tstats[u].value == 0) {
+                        continue;
+                    }
+                }
 
                 // Seems this holds, but assert in debug builds.
                 DEBUG_VALIDATE_BUG_ON(

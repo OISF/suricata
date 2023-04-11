@@ -74,6 +74,9 @@ stats:
   #decoder-events-prefix: "decoder.event"
   # Add stream events as stats.
   #stream-events: false
+  # Exception policy stats counters options
+  # (Note: if exception policy: ignore, counters are not logged)
+  #eps-zero-valued-counters: false  # default: false. True will log counters: 0
 
 # Plugins -- Experimental -- specify the filename for each plugin shared object
 plugins:
