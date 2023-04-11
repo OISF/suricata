@@ -730,6 +730,7 @@ typedef struct DecodeThreadVars_
     ExceptionPolicyCounters counter_defrag_memcap_eps;
 
     uint16_t counter_flow_memcap;
+    ExceptionPolicyCounters counter_flow_memcap_eps;
 
     uint16_t counter_tcp_active_sessions;
     uint16_t counter_flow_total;
