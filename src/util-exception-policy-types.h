@@ -38,7 +38,7 @@ enum ExceptionPolicy {
 /* Max length = possible exception policy scenarios + counter names
  * + exception policy type. E.g.:
  * "tcp.reassembly_exception_policy.drop_packet" + 1 */
-#define EXCEPTION_POLICY_COUNTER_MAX_LEN 44
+#define EXCEPTION_POLICY_COUNTER_MAX_LEN 45
 
 typedef struct ExceptionPolicyCounters_ {
     /* Follows enum order */
