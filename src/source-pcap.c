@@ -323,7 +323,7 @@ static TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
 
         int r = pcap_dispatch(ptv->pcap_handle, packet_q_len,
                           (pcap_handler)PcapCallbackLoop, (u_char *)ptv);
-        if (unlikely(r == 0 || r == PCAP_ERROR_BREAK)) {
+        if (unlikely(r == 0 || r == PCAP_ERROR_BREAK || r < packet_q_len)) {
             if (r == PCAP_ERROR_BREAK && ptv->cb_result == TM_ECODE_FAILED) {
                 SCReturnInt(TM_ECODE_FAILED);
             }
