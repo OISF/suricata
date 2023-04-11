@@ -893,6 +893,7 @@ typedef struct DetectEngineCtx_ {
     int rule_line;
     bool sigerror_silent;
     bool sigerror_ok;
+    bool sigerror_once;
     const char *sigerror;
 
     /** hash list of keywords that need thread local ctxs */

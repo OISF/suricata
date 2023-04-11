@@ -297,6 +297,7 @@ noinst_HEADERS = \
 	detect-snmp-pdu_type.h \
 	detect-snmp-usm.h \
 	detect-snmp-version.h \
+	detect-min-version.h \
 	detect-dhcp-leasetime.h \
 	detect-dhcp-rebinding-time.h \
 	detect-dhcp-renewal-time.h \
@@ -906,6 +907,7 @@ libsuricata_c_a_SOURCES = \
 	detect-snmp-pdu_type.c \
 	detect-snmp-usm.c \
 	detect-snmp-version.c \
+	detect-min-version.c \
 	detect-dhcp-leasetime.c \
 	detect-dhcp-rebinding-time.c \
 	detect-dhcp-renewal-time.c \
