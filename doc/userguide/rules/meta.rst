@@ -211,3 +211,16 @@ The format is::
 If the value is src_ip then the source IP in the generated event (src_ip
 field in JSON) is the target of the attack. If target is set to dest_ip
 then the target is the destination IP in the generated event.
+
+min_version
+-----------
+
+The min_version keyword allows the rules writer to specify a minimum version
+of Suricata for the rule to be loaded. If Suricata does not meet the requires
+version, a warning is printed, but loading the other rules goes on.
+
+The format can include up to a patch version::
+
+   min_version: 7
+   min_version: 5.1
+   min_version: 6.0.10

@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,11 +15,9 @@
  * 02110-1301, USA.
  */
 
-pub mod byte_math;
-pub mod error;
-pub mod iprep;
-pub mod parser;
-pub mod stream_size;
-pub mod uint;
-pub mod uri;
-pub mod minversion;
+#ifndef __DETECT_MIN_VERSION_H__
+#define __DETECT_MIN_VERSION_H__
+
+void DetectSuricataMinVersionRegister(void);
+
+#endif /* __DETECT_MIN_VERSION_H__ */

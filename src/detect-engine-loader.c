@@ -188,7 +188,7 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
             SCLogDebug("signature %"PRIu32" loaded", sig->id);
             good++;
         } else {
-            if (!de_ctx->sigerror_silent) {
+            if (!de_ctx->sigerror_silent && !de_ctx->sigerror_once) {
                 SCLogError("error parsing signature \"%s\" from "
                            "file %s at line %" PRId32 "",
                         line, sig_file, lineno - multiline);
@@ -206,7 +206,11 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
                 EngineAnalysisRulesFailure(line, sig_file, lineno - multiline);
             }
             if (!de_ctx->sigerror_ok) {
-                bad++;
+                if (de_ctx->sigerror_once) {
+                    de_ctx->sigerror_once = false;
+                } else {
+                    bad++;
+                }
             }
         }
         multiline = 0;
