@@ -30,6 +30,7 @@
 enum ExceptionPolicy g_eps_master_switch = EXCEPTION_POLICY_NOT_SET;
 /** true if exception policy was defined in config */
 static bool g_eps_have_exception_policy = false;
+extern bool g_eps_stats_counters;
 
 const char *ExceptionPolicyEnumToString(enum ExceptionPolicy policy, bool is_json)
 {
@@ -292,6 +293,22 @@ enum ExceptionPolicy ExceptionPolicyMidstreamParse(bool midstream_enabled)
     }
 
     return policy;
+}
+
+void ExceptionPolicySetStatsCounters(ThreadVars *tv, ExceptionPolicyCounters *counter,
+        ExceptionPolicyStatsSetts *setting, enum ExceptionPolicy conf_policy,
+        const char *default_str, bool (*isExceptionPolicyValid)(enum ExceptionPolicy))
+{
+    if (conf_policy != EXCEPTION_POLICY_NOT_SET && g_eps_stats_counters) {
+        /* set-up policy counters */
+        for (enum ExceptionPolicy i = EXCEPTION_POLICY_NOT_SET + 1; i < EXCEPTION_POLICY_MAX; i++) {
+            if (isExceptionPolicyValid(i)) {
+                snprintf(setting->eps_name[i], sizeof(setting->eps_name[i]), "%s%s", default_str,
+                        ExceptionPolicyEnumToString(i, true));
+                counter->eps_id[i] = StatsRegisterCounter(setting->eps_name[i], tv);
+            }
+        }
+    }
 }
 
 #ifndef DEBUG
