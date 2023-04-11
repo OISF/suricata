@@ -39,7 +39,6 @@ typedef struct FlowStorageId FlowStorageId;
 typedef struct AppLayerParserState_ AppLayerParserState;
 
 #define FLOW_QUIET   true
-#define FLOW_VERBOSE false
 
 #define TOSERVER 0
 #define TOCLIENT 1
@@ -288,7 +287,6 @@ typedef struct FlowCnf_
     uint32_t timeout_new;
     uint32_t timeout_est;
 
-    uint32_t emerg_timeout_new;
     uint32_t emergency_recovery;
 
     enum ExceptionPolicy memcap_policy;
@@ -543,7 +541,6 @@ typedef struct FlowLookupStruct_ // TODO name
 void FlowSetupPacket(Packet *p);
 void FlowHandlePacket (ThreadVars *, FlowLookupStruct *, Packet *);
 void FlowInitConfig(bool);
-void FlowPrintQueueInfo (void);
 void FlowReset(void);
 void FlowShutdown(void);
 void FlowSetIPOnlyFlag(Flow *, int);
@@ -556,12 +553,7 @@ int FlowChangeProto(Flow *);
 void FlowSwap(Flow *);
 
 void FlowRegisterTests (void);
-int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
-int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoFreeFunc (uint8_t , void (*Free)(void *));
-void FlowUpdateQueue(Flow *);
-
-int FlowUpdateSpareFlows(void);
 
 static inline void FlowSetNoPacketInspectionFlag(Flow *);
 static inline void FlowSetNoPayloadInspectionFlag(Flow *);

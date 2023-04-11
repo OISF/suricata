@@ -25,9 +25,6 @@
 #define	_DETECT_HTTP_STAT_CODE_H
 
 /* prototypes */
-int DetectHttpStatCodeMatch (ThreadVars *, DetectEngineThreadCtx *,
-                           Flow *, uint8_t , void *, Signature *,
-                           SigMatch *);
 void DetectHttpStatCodeRegister(void);
 
 #endif	/* _DETECT_HTTP_STAT_CODE_H */

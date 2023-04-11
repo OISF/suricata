@@ -208,8 +208,6 @@ typedef struct Address_ {
 #define GET_IPV4_SRC_ADDR_PTR(p) ((p)->src.addr_data32)
 #define GET_IPV4_DST_ADDR_PTR(p) ((p)->dst.addr_data32)
 
-#define GET_IPV6_SRC_IN6ADDR(p) ((p)->src.addr_in6addr)
-#define GET_IPV6_DST_IN6ADDR(p) ((p)->dst.addr_in6addr)
 #define GET_IPV6_SRC_ADDR(p) ((p)->src.addr_data32)
 #define GET_IPV6_DST_ADDR(p) ((p)->dst.addr_data32)
 #define GET_TCP_SRC_PORT(p)  ((p)->sp)
@@ -228,7 +226,6 @@ typedef struct Address_ {
 /* Port is just a uint16_t */
 typedef uint16_t Port;
 #define SET_PORT(v, p) ((p) = (v))
-#define COPY_PORT(a,b) ((b) = (a))
 
 #define CMP_ADDR(a1, a2) \
     (((a1)->addr_data32[3] == (a2)->addr_data32[3] && \
@@ -651,7 +648,6 @@ typedef struct Packet_
 
 /** highest mtu of the interfaces we monitor */
 #define DEFAULT_MTU 1500
-#define MINIMUM_MTU 68      /**< ipv4 minimum: rfc791 */
 
 #define DEFAULT_PACKET_SIZE (DEFAULT_MTU + ETHERNET_HEADER_LEN)
 /* storage: maximum ip packet size + link header */

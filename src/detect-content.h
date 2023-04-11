@@ -115,7 +115,6 @@ typedef struct DetectContentData_ {
 
 /* prototypes */
 void DetectContentRegister (void);
-uint32_t DetectContentMaxId(DetectEngineCtx *);
 DetectContentData *DetectContentParse(SpmGlobalThreadCtx *spm_global_thread_ctx,
                                       const char *contentstr);
 int DetectContentDataParse(const char *keyword, const char *contentstr,

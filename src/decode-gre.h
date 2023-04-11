@@ -74,10 +74,8 @@ typedef struct GRESreHdr_
 #define GRE_FLAG_ISSET_SSR(r)       (r->flags & 0x08)
 #define GRE_FLAG_ISSET_RECUR(r)     (r->flags & 0x07)
 #define GRE_GET_VERSION(r)   (r->version & 0x07)
-#define GRE_GET_FLAGS(r)     (r->version & 0xF8)
 #define GRE_GET_PROTO(r)     SCNtohs(r->ether_type)
 
-#define GREV1_HDR_LEN           8
 #define GREV1_ACK_LEN           4
 #define GREV1_FLAG_ISSET_FLAGS(r)  (r->version & 0x78)
 #define GREV1_FLAG_ISSET_ACK(r)    (r->version & 0x80)

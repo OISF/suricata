@@ -46,6 +46,4 @@ typedef struct SCTPHdr_
     (p)->sctph = NULL; \
 } while (0)
 
-void DecodeSCTPRegisterTests(void);
-
 #endif /* __DECODE_SCTP_H__ */

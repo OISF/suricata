@@ -246,7 +246,6 @@ typedef struct HtpState_ {
     htp_conn_t *conn;
     Flow *f;                /**< Needed to retrieve the original flow when using HTPLib callbacks */
     uint64_t transaction_cnt;
-    uint64_t store_tx_id;
     const struct HTPCfgRec_ *cfg;
     uint16_t flags;
     uint16_t events;

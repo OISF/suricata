@@ -112,9 +112,6 @@ enum {
 /* flag to indicate that handshake is done */
 #define SSL_AL_FLAG_HANDSHAKE_DONE              BIT_U32(18)
 
-/* A session ID in the Client Hello message, indicating the client
-   wants to resume a session */
-#define SSL_AL_FLAG_SSL_CLIENT_SESSION_ID       BIT_U32(19)
 /* Session resumed without a full handshake */
 #define SSL_AL_FLAG_SESSION_RESUMED             BIT_U32(20)
 
@@ -307,7 +304,6 @@ typedef struct SSLState_ {
 } SSLState;
 
 void RegisterSSLParsers(void);
-void SSLParserRegisterTests(void);
 void SSLVersionToString(uint16_t, char *);
 void SSLEnableJA3(void);
 bool SSLJA3IsEnabled(void);

@@ -86,7 +86,6 @@ typedef struct IPPairHashRow_ {
 /** ippair hash table */
 extern IPPairHashRow *ippair_hash;
 
-#define IPPAIR_VERBOSE    0
 #define IPPAIR_QUIET      1
 
 typedef struct IPPairConfig_ {
@@ -111,19 +110,6 @@ typedef struct IPPairConfig_ {
 #define IPPairDecrUsecnt(h) \
     (void)SC_ATOMIC_SUB((h)->use_cnt, 1)
 
-#define IPPairReference(dst_h_ptr, h) do {            \
-        if ((h) != NULL) {                          \
-            IPPairIncrUsecnt((h));                    \
-            *(dst_h_ptr) = h;                       \
-        }                                           \
-    } while (0)
-
-#define IPPairDeReference(src_h_ptr) do {               \
-        if (*(src_h_ptr) != NULL) {                   \
-            IPPairDecrUsecnt(*(src_h_ptr));             \
-            *(src_h_ptr) = NULL;                      \
-        }                                             \
-    } while (0)
 
 extern IPPairConfig ippair_config;
 SC_ATOMIC_EXTERN(uint64_t,ippair_memuse);

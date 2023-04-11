@@ -213,8 +213,6 @@ int FileStore(File *);
  */
 void FileDisableStoringForTransaction(Flow *f, const uint8_t direction, void *tx, uint64_t tx_id);
 
-void FlowFileDisableStoringForTransaction(struct Flow_ *f, uint64_t tx_id);
-
 void FileForceFilestoreEnable(void);
 int FileForceFilestore(void);
 void FileReassemblyDepthEnable(uint32_t size);

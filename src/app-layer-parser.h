@@ -207,9 +207,6 @@ void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
 void AppLayerParserRegisterGetFrameFuncs(uint8_t ipproto, AppProto alproto,
         AppLayerParserGetFrameIdByNameFn GetFrameIdByName,
         AppLayerParserGetFrameNameByIdFn GetFrameNameById);
-void AppLayerParserRegisterGetStreamDepth(uint8_t ipproto,
-                                          AppProto alproto,
-                                          uint32_t (*GetStreamDepth)(void));
 void AppLayerParserRegisterSetStreamDepthFlag(uint8_t ipproto, AppProto alproto,
         void (*SetStreamDepthFlag)(void *tx, uint8_t flags));
 
