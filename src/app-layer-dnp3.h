@@ -23,7 +23,6 @@
 #include "util-byte.h"
 #endif
 
-
 /* DNP3 application request function codes. */
 #define DNP3_APP_FC_CONFIRM                0x00
 #define DNP3_APP_FC_READ                   0x01
