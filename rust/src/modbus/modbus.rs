@@ -1185,7 +1185,7 @@ mod tests {
     fn fragmentation_1_adu_in_2_tcp_packets() {
         let mut state = ModbusState::new();
         assert_eq!(
-            AppLayerResult::incomplete(0, 15),
+            AppLayerResult::incomplete(0, 12),
             state.parse(
                 &RD_COILS_REQ[0..(RD_COILS_REQ.len() - 3)],
                 Direction::ToServer
