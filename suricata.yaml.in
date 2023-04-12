@@ -76,6 +76,8 @@ stats:
   # Exception policy stats counters options
   # (Note: if exception policy: ignore, counters are not logged)
   #eps-zero-valued-counters: false  # default: false. True will log counters: 0
+  #eps-per-app-proto-errors: false  # default: false. True will log errors for
+                                    # each app-proto. Warning: VERY verbose
 
 # Plugins -- Experimental -- specify the filename for each plugin shared object
 plugins:

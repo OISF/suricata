@@ -247,8 +247,8 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
                 js_type = OutputStats2Json(js_stats, st->stats[u].name);
             }
             if (js_type != NULL) {
-                if (is_exception_policy_counter && st->stats[u].value == 0 &&
-                        !stats_eps_zero_counters) {
+                if (is_exception_policy_counter && !stats_eps_zero_counters &&
+                        st->stats[u].value == 0) {
                     continue;
                 }
                 json_object_set_new(js_type, stat_name, json_integer(st->stats[u].value));
@@ -274,10 +274,10 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
         uint32_t x;
         for (x = 0; x < st->ntstats; x++) {
             uint32_t offset = x * st->nstats;
-            bool is_exception_policy_counter = false;
 
             /* for each counter */
             for (u = offset; u < (offset + st->nstats); u++) {
+                bool is_exception_policy_counter = false;
                 if (st->tstats[u].name == NULL)
                     continue;
 
@@ -297,8 +297,8 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
                 }
 
                 if (js_type != NULL) {
-                    if (is_exception_policy_counter && st->stats[u].value == 0 &&
-                            !stats_eps_zero_counters) {
+                    if (is_exception_policy_counter && !stats_eps_zero_counters &&
+                            st->tstats[u].value == 0) {
                         continue;
                     }
                     json_object_set_new(js_type, stat_name, json_integer(st->tstats[u].value));

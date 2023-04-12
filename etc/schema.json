@@ -1113,7 +1113,7 @@
                         },
                         "authorities": {
                             "$ref": "#/$defs/dns.authorities"
-			}
+                        }
                     },
                     "additionalProperties": false
                 },
@@ -3686,6 +3686,29 @@
                         "error": {
                             "type": "object",
                             "properties": {
+                                "exception_policy": {
+                                    "type": "object",
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/$defs/drop_flow"
+                                        },
+                                        {
+                                            "$ref": "#/$defs/drop_packet"
+                                        },
+                                        {
+                                            "$ref": "#/$defs/pass_flow"
+                                        },
+                                        {
+                                            "$ref": "#/$defs/pass_packet"
+                                        },
+                                        {
+                                            "$ref": "#/$defs/bypass"
+                                        },
+                                        {
+                                            "$ref": "#/$defs/reject"
+                                        }
+                                    ]
+                                },
                                 "bittorrent-dht": {
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
@@ -3792,7 +3815,7 @@
                                     "$ref": "#/$defs/stats_applayer_error"
                                 }
                             },
-                            "additionalProperties": false
+                            "additionalProperties": true
                         },
                         "flow": {
                             "type": "object",
@@ -5559,6 +5582,29 @@
                 },
                 "internal": {
                     "type": "integer"
+                },
+                "exception_policy": {
+                    "type": "object",
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/drop_flow"
+                        },
+                        {
+                            "$ref": "#/$defs/drop_packet"
+                        },
+                        {
+                            "$ref": "#/$defs/pass_flow"
+                        },
+                        {
+                            "$ref": "#/$defs/pass_packet"
+                        },
+                        {
+                            "$ref": "#/$defs/bypass"
+                        },
+                        {
+                            "$ref": "#/$defs/reject"
+                        }
+                    ]
                 }
             },
             "additionalProperties": false
