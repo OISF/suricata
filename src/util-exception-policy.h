@@ -1,4 +1,4 @@
-/* Copyright (C) 2022-2023 Open Information Security Foundation
+/* Copyright (C) 2022-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -34,6 +34,17 @@ enum ExceptionPolicy {
     EXCEPTION_POLICY_DROP_FLOW,
     EXCEPTION_POLICY_REJECT,
 };
+
+#define EXCEPTION_POLICY_MAX EXCEPTION_POLICY_REJECT + 1
+
+typedef struct ExceptionPolicyCounters_ {
+    uint16_t reject_id;
+    uint16_t bypass_id;
+    uint16_t pass_flow_id;
+    uint16_t pass_packet_id;
+    uint16_t drop_flow_id;
+    uint16_t drop_packet_id;
+} ExceptionPolicyCounters;
 
 void SetMasterExceptionPolicy(void);
 void ExceptionPolicyApply(
