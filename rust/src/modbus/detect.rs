@@ -238,7 +238,7 @@ fn inspect_data(msg: &Message, modbus: &DetectModbusRust) -> bool {
         return true;
     };
 
-    if let Some(value) = msg.get_write_value_at_address(&sig_address) {
+    if let Some(value) = msg.get_write_value_at_address(sig_address) {
         check_match(sig_value, value)
     } else {
         false
