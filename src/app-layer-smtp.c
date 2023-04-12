@@ -1272,6 +1272,7 @@ static AppLayerResult SMTPParse(int direction, Flow *f, SMTPState *state,
     state->orig_input_len = input_len;
     state->input_len = input_len;
     state->consumed = 0;
+    state->current_line_len = 0;
     state->current_line_delimiter_len = 0;
     state->direction = direction;
     if (direction == 0) {
