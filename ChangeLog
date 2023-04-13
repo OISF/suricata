@@ -1,3 +1,34 @@
+6.0.11 -- 2023-04-13
+
+Security #5947: byte_math: Division by zero possible. (6.0.x backport)
+Bug #5970: detect: reload can stall if flow housekeeping takes too long (6.0.x backport)
+Bug #5967: flowworker: Assertion in CheckWorkQueue (6.0.x backport)
+Bug #5953: http: multipart data is not filled up to request.body-limit (6.0.x backport)
+Bug #5951: detect: multi-tenancy crash (6.0.x backport)
+Bug #5950: http2: quadratic complexity when reducing dynamic headers table size (6.0.x backport)
+Bug #5949: smtp: quadratic complexity for tx iterator with linked list (6.0.x backport)
+Bug #5948: fast_pattern assignment of specific content in combination with urilen results in FN (6.0.x backport)
+Bug #5946: flow/manager: fix unhandled division by 0 (prealloc: 0) (6.0.x backport)
+Bug #5942: exception/policy: flow action doesn't fall back to packet action when there's no flow (6.0.x backports)
+Bug #5933: smb: tx logs sometimes have duplicate `tree_id` output (6.0.x backport)
+Bug #5932: rfb/eve: depth in pixel format logged twice (6.0.x backport)
+Bug #5906: dns: unused events field can overflow as an integer
+Bug #5903: UBSAN: undefined shift in DetectByteMathDoMatch (6.0.x backport)
+Bug #5899: smb: no consistency check between NBSS length and length field for some SMB operations (6.0.x backport)
+Bug #5898: smb: possible evasion with trailing nbss data (6.0.x backport)
+Bug #5896: base64_decode not populating up to an invalid character (6.0.x backport)
+Bug #5895: stream: connections time out too early (6.0.x backport)
+Bug #5889: stream: SYN/ACK timestamp checking blocks valid traffic (6.0.x backport)
+Bug #5888: false-positive drop event_types possible on passed packets (6.0.x backport)
+Bug #5887: stream: overlap with different data false positive (6.0.x backport)
+Bug #5886: mime: debug assertion on fuzz input (6.0.x backport)
+Bug #5879: netmap: Module registration displays whether info about new API usage
+Bug #5863: netmap: packet stalls (6.0.x backport)
+Bug #5854: SMTP does not handle LF post line limit properly (6.0.x backport)
+Bug #5852: tcp/stream: session reuse on tcp flows w/o sessions (6.0.x backport)
+Feature #5853: yaml: set suricata version in generated config (6.0.x backport)
+Task #5985: libhtp 0.5.43 (6.0.x backport)
+
 6.0.10 -- 2023-01-31
 
 Security #5804: Suricata crashes while processing FTP (6.0.x backport)
