@@ -1071,6 +1071,7 @@ jobs:
                 automake \
                 autoconf \
                 build-essential \
+                cbindgen \
                 ccache \
                 curl \
                 git \
@@ -1097,11 +1098,10 @@ jobs:
                 make \
                 python3-yaml \
                 pkg-config \
+                rustc \
                 sudo \
                 zlib1g \
                 zlib1g-dev
-      - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
       - uses: actions/download-artifact@v2
@@ -1110,11 +1110,6 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
-      - name: Setup cbindgen
-        run: |
-          mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
-          chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets
       - run: make -j2
