@@ -34,7 +34,7 @@ md5 = "0.7.0"
 flate2 = { version = "1.0", optional = true }
 brotli = { version = "3.3.0", optional = true }
 
-der-parser = "4.0"
+der-parser = "4.1.1"
 kerberos-parser = "0.5"
 
 ntp-parser = "0.4"
@@ -46,3 +46,6 @@ libc = "0.2.67"
 
 [dev-dependencies]
 test-case = "~1.0.1"
+
+[patch.crates-io]
+der-parser = { git = "https://github.com/jasonish/suricata-vendor-der-parser", branch = "der-parser-4.1.x-suricata-6.0" }
