@@ -255,6 +255,8 @@ static int DetectEngineContentInspectionTest12(void) {
     TEST_RUN("abcXYZ", 6, "content:\"abc\"; content:\"XYZ\"; distance:0; within:3; endswith;", true, 2);
     TEST_RUN("abcXYZ", 6, "content:\"XYZ\"; distance:3; within:3; endswith;", true, 1);
     TEST_RUN("abcXYZ", 6, "content:\"cXY\"; distance:2; within:3; endswith;", false, 1);
+    TEST_RUN("abcXYZ", 6, "content:!\"cXY\"; endswith;", true, 1);
+    TEST_RUN("abcXYZ", 6, "content:!\"XYZ\"; endswith;", false, 1);
 
     TEST_RUN("xxxxxxxxxxxxxxxxxyYYYYYYYYYYYYYYYY", 34, "content:\"yYYYYYYYYYYYYYYYY\"; distance:9; within:29; endswith;", true, 1);
     TEST_FOOTER;
