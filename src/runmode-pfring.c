@@ -96,7 +96,7 @@ static void *OldParsePfringConfig(const char *iface)
     PfringIfaceConfig *pfconf = SCMalloc(sizeof(*pfconf));
     const char *tmpclusterid;
     const char *tmpctype = NULL;
-    cluster_type default_ctype = CLUSTER_ROUND_ROBIN;
+    cluster_type default_ctype = CLUSTER_FLOW;
 
     if (unlikely(pfconf == NULL)) {
         return NULL;
@@ -202,7 +202,7 @@ static void *ParsePfringConfig(const char *iface)
     PfringIfaceConfig *pfconf = SCMalloc(sizeof(*pfconf));
     const char *tmpclusterid;
     const char *tmpctype = NULL;
-    cluster_type default_ctype = CLUSTER_ROUND_ROBIN;
+    cluster_type default_ctype = CLUSTER_FLOW;
     int getctype = 0;
     const char *bpf_filter = NULL;
     int bool_val;
@@ -360,7 +360,8 @@ static void *ParsePfringConfig(const char *iface)
 
     if (getctype) {
         if (strcmp(tmpctype, "cluster_round_robin") == 0) {
-            SCLogInfo("Using round-robin cluster mode for PF_RING (iface %s)",
+            SCLogInfo("Using round-robin cluster mode for PF_RING (iface %s)."
+                      " This mode is not recommended.",
                     pfconf->iface);
             pfconf->ctype = CLUSTER_ROUND_ROBIN;
         } else if (strcmp(tmpctype, "cluster_flow") == 0) {
