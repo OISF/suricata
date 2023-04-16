@@ -1953,7 +1953,13 @@ pfring:
     cluster-id: 99
 
     # Default PF_RING cluster type. PF_RING can load balance per flow.
-    # Possible values are cluster_flow or cluster_round_robin.
+    # Possible values are:
+    # - cluster_flow:               6-tuple: <src ip, src_port, dst ip, dst port, proto, vlan>
+    # - cluster_inner_flow:         6-tuple: <src ip, src port, dst ip, dst port, proto, vlan>
+    # - cluster_inner_flow_2_tuple: 2-tuple: <src ip,           dst ip                       >
+    # - cluster_inner_flow_4_tuple: 4-tuple: <src ip, src port, dst ip, dst port             >
+    # - cluster_inner_flow_5_tuple: 5-tuple: <src ip, src port, dst ip, dst port, proto      >
+    # - cluster_round_robin (NOT RECOMMENDED)
     cluster-type: cluster_flow
 
     # bpf filter for this interface
