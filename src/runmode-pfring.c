@@ -367,6 +367,21 @@ static void *ParsePfringConfig(const char *iface)
             SCLogInfo("Using flow cluster mode for PF_RING (iface %s)",
                     pfconf->iface);
             pfconf->ctype = CLUSTER_FLOW;
+        } else if (strcmp(tmpctype, "cluster_inner_flow") == 0) {
+            SCLogInfo("Using flow cluster mode inner mode for PF_RING (iface %s)", pfconf->iface);
+            pfconf->ctype = CLUSTER_INNER_FLOW;
+        } else if (strcmp(tmpctype, "cluster_inner_flow_2_tuple") == 0) {
+            SCLogInfo(
+                    "Using flow cluster inner 2 tuple mode for PF_RING (iface %s)", pfconf->iface);
+            pfconf->ctype = CLUSTER_INNER_FLOW_2_TUPLE;
+        } else if (strcmp(tmpctype, "cluster_inner_flow_4_tuple") == 0) {
+            SCLogInfo(
+                    "Using flow cluster inner 4 tuple mode for PF_RING (iface %s)", pfconf->iface);
+            pfconf->ctype = CLUSTER_INNER_FLOW_4_TUPLE;
+        } else if (strcmp(tmpctype, "cluster_inner_flow_5_tuple") == 0) {
+            SCLogInfo(
+                    "Using flow cluster inner 5 tuple mode for PF_RING (iface %s)", pfconf->iface);
+            pfconf->ctype = CLUSTER_INNER_FLOW_5_TUPLE;
         } else {
             SCLogError("invalid cluster-type %s", tmpctype);
             SCFree(pfconf);
