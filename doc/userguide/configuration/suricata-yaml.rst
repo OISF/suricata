@@ -1914,10 +1914,27 @@ is making use of clusters with the same id.
   cluster-id: 99
 
 Pf_ring can load balance traffic using pf_ring-clusters. All traffic
-for pf_ring can be load balanced in one of two ways, in a round robin
-manner or a per flow manner that are part of the same cluster. All
-traffic for pf_ring will be load balanced across acquisition threads
-of the same cluster id.
+for pf_ring can be load balanced according to the configured cluster
+type value; in a round robin manner or a per flow manner that are part
+of the same cluster. All traffic for pf_ring will be load balanced across
+acquisition threads of the same cluster id.
+
++----------------------------+--------------------------------------------------+
+| Cluster Type               | Value                                            |
++============================+==================================================+
+| cluster_flow               | src ip, src_port, dst ip, dst port, proto, vlan  |
++----------------------------+--------------------------------------------------+
+| cluster_inner_flow         | src ip, src port, dst ip, dst port, proto, vlan  |
++----------------------------+--------------------------------------------------+
+| cluster_inner_flow_2_tuple | src ip, dst ip                                   |
++----------------------------+--------------------------------------------------+
+| cluster_inner_flow_4_tuple | src ip, src port, dst ip, dst port               |
++----------------------------+--------------------------------------------------+
+| cluster_inner_flow_5_tuple | src ip, src port, dst ip, dst port, proto        |
++----------------------------+--------------------------------------------------+
+| cluster_round_robin        | not recommended                                  |
++----------------------------+--------------------------------------------------+
+
 
 The cluster_round_robin manner is a way of distributing packets one at
 a time to each thread (like distributing playing cards to fellow
@@ -1925,9 +1942,14 @@ players). The cluster_flow manner is a way of distributing all packets
 of the same flow to the same thread. The flows itself will be
 distributed to the threads in a round-robin manner.
 
+If your deployment has VLANs, the cluster types with "inner" will use the innermost
+tuple for distribution.
+
+Round-robin is not recommended with Suricata.
+
 ::
 
-   cluster-type: cluster_round_robin
+   cluster-type: cluster_inner_flow_5_tuple
 
 .. _suricata-yaml-nfq:
 
