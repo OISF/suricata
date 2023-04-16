@@ -157,7 +157,7 @@ struct PfringThreadVars_
 };
 
 /**
- * \brief Registration Function for RecievePfring.
+ * \brief Registration Function for ReceivePfring.
  * \todo Unit tests are needed for this module.
  */
 void TmModuleReceivePfringRegister (void)
@@ -330,9 +330,9 @@ static int PfringBypassCallback(Packet *p)
 #endif
 
 /**
- * \brief Recieves packets from an interface via libpfring.
+ * \brief Receives packets from an interface via libpfring.
  *
- *  This function recieves packets from an interface and passes
+ *  This function receives packets from an interface and passes
  *  the packet on to the pfring callback function.
  *
  * \param tv pointer to ThreadVars
@@ -473,9 +473,9 @@ TmEcode PfringBreakLoop(ThreadVars *tv, void *data)
 }
 
 /**
- * \brief Init function for RecievePfring.
+ * \brief Init function for ReceivePfring.
  *
- * This is a setup function for recieving packets
+ * This is a setup function for receiving packets
  * via libpfring.
  *
  * \param tv pointer to ThreadVars
@@ -627,7 +627,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
 #endif
 
     /* If kernel is older than 3.0, VLAN is not stripped so we don't
-     * get the info from packt extended header but we will use a standard
+     * get the info from packet extended header but we will use a standard
      * parsing */
     ptv->vlan_in_ext_header = 1;
     if (! SCKernelVersionIsAtLeast(3, 0)) {
@@ -745,7 +745,7 @@ TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data)
  * \brief This an Init function for DecodePfring
  *
  * \param tv pointer to ThreadVars
- * \param initdata pointer to initilization data.
+ * \param initdata pointer to initialization data.
  * \param data pointer that gets cast into PfringThreadVars for ptv
  * \retval TM_ECODE_OK is returned on success
  * \retval TM_ECODE_FAILED is returned on error
