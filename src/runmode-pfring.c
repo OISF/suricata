@@ -87,7 +87,7 @@ static void PfringDerefConfig(void *conf)
  * to thread or to reparse the file for each thread (and thus have
  * new structure.
  *
- * If old config system is used, then return the smae parameters
+ * If old config system is used, then return the same parameters
  * value for each interface.
  *
  * \return a PfringIfaceConfig corresponding to the interface name
