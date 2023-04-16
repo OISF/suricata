@@ -69,8 +69,16 @@ void TmModuleDecodePfringRegister (void);
 int PfringConfGetThreads(void);
 void PfringLoadConfig(void);
 
-/* We don't have to use an enum that sucks in our code */
+/*
+ * We don't have to use an enum that sucks in our code
+ * these values must match with cluster_type in the kernel
+ * include file pf_ring.h
+ */
 #define CLUSTER_FLOW 0
 #define CLUSTER_ROUND_ROBIN 1
 #define CLUSTER_FLOW_5_TUPLE 4
+#define CLUSTER_INNER_FLOW         6
+#define CLUSTER_INNER_FLOW_2_TUPLE 7
+#define CLUSTER_INNER_FLOW_4_TUPLE 8
+#define CLUSTER_INNER_FLOW_5_TUPLE 9
 #endif /* __SOURCE_PFRING_H__ */
