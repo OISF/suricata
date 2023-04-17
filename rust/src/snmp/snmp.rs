@@ -23,9 +23,9 @@ use crate::applayer::{self, *};
 use std;
 use std::ffi::CString;
 
+use asn1_rs::Oid;
 use der_parser::ber::BerObjectContent;
 use der_parser::der::parse_der_sequence;
-use der_parser::oid::Oid;
 use nom7::{Err, IResult};
 use nom7::error::{ErrorKind, make_error};
 
