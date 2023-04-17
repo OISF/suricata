@@ -991,6 +991,7 @@ dependencies = [
  "byteorder",
  "crc",
  "der-parser 6.0.1",
+ "der-parser 8.2.0",
  "digest",
  "flate2",
  "hex",
