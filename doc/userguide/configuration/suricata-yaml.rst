@@ -2085,6 +2085,9 @@ type value; in a round robin manner or a per flow manner that are part
 of the same cluster. All traffic for pf_ring will be load balanced across
 acquisition threads of the same cluster id.
 
+The "inner" flow means that the traffic will be load balanced based on
+address tuple after the outer vlan has been removed.
+
 +----------------------------+--------------------------------------------------+
 | Cluster Type               | Value                                            |
 +============================+==================================================+
@@ -2109,9 +2112,9 @@ of the same flow to the same thread. The flows itself will be
 distributed to the threads in a round-robin manner.
 
 If your deployment has VLANs, the cluster types with "inner" will use the innermost
-tuple for distribution.
+address tuple for distribution.
 
-Round-robin is not recommended with Suricata.
+The default cluster type is ``cluster_flow``; the ``cluster_round_robin`` is not recommended with Suricata.
 
 ::
 
