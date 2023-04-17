@@ -955,11 +955,11 @@ checksum = "7bd3e3206899af3f8b12af284fafc038cc1dc2b41d1b89dd17297221c5d225de"
 
 [[package]]
 name = "snmp-parser"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f7f0b0216476fe1afa2dbcabea4e2a8e2ed3c1389d6208f37f242aa07a8407a"
+checksum = "773a26ad6742636f4259e7cc32262efb31feabd56bc34f0b2f28de9801aa24b3"
 dependencies = [
- "der-parser 6.0.1",
+ "asn1-rs",
  "nom 7.1.3",
  "rusticata-macros",
  "thiserror",
@@ -983,6 +983,7 @@ version = "7.0.0-rc2-dev"
 dependencies = [
  "aes",
  "aes-gcm",
+ "asn1-rs",
  "base64",
  "bendy",
  "bitflags",
