@@ -139,7 +139,7 @@ static void *OldParsePfringConfig(const char *iface)
     (void) SC_ATOMIC_ADD(pfconf->ref, pfconf->threads);
 
     if (strncmp(pfconf->iface, "zc", 2) == 0) {
-        SCLogInfo("ZC interface detected, not setting cluster-id");
+        SCLogInfo("%s: ZC interface detected, not setting cluster-id", pfconf->iface);
     }
     else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
         SCLogInfo("DNA interface detected, not setting cluster-id");
@@ -156,20 +156,17 @@ static void *OldParsePfringConfig(const char *iface)
     }
 
     if (strncmp(pfconf->iface, "zc", 2) == 0) {
-        SCLogInfo("ZC interface detected, not setting cluster type for PF_RING (iface %s)",
-                pfconf->iface);
+        SCLogInfo("%s: ZC interface detected, not setting cluster type for PF_RING", pfconf->iface);
     } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
-        SCLogInfo("DNA interface detected, not setting cluster type for PF_RING (iface %s)",
-                pfconf->iface);
+        SCLogInfo(
+                "%s: DNA interface detected, not setting cluster type for PF_RING", pfconf->iface);
     } else if (ConfGet("pfring.cluster-type", &tmpctype) != 1) {
         SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get cluster-type from config");
     } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
-        SCLogInfo("Using round-robin cluster mode for PF_RING (iface %s)",
-                pfconf->iface);
+        SCLogInfo("%s: Using round-robin cluster mode for PF_RING", pfconf->iface);
         pfconf->ctype = (cluster_type)tmpctype;
     } else if (strcmp(tmpctype, "cluster_flow") == 0) {
-        SCLogInfo("Using flow cluster mode for PF_RING (iface %s)",
-                pfconf->iface);
+        SCLogInfo("%s: Using flow cluster mode for PF_RING", pfconf->iface);
         pfconf->ctype = (cluster_type)tmpctype;
     } else {
         SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
@@ -294,10 +291,10 @@ static void *ParsePfringConfig(const char *iface)
     } else {
 
         if (strncmp(pfconf->iface, "zc", 2) == 0) {
-            SCLogInfo("ZC interface detected, not setting cluster-id for PF_RING (iface %s)",
-                    pfconf->iface);
+            SCLogInfo(
+                    "%s: ZC interface detected, not setting cluster-id for PF_RING", pfconf->iface);
         } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
-            SCLogInfo("DNA interface detected, not setting cluster-id for PF_RING (iface %s)",
+            SCLogInfo("%s: DNA interface detected, not setting cluster-id for PF_RING",
                     pfconf->iface);
         } else if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,
@@ -346,10 +343,10 @@ static void *ParsePfringConfig(const char *iface)
         getctype = 1;
     } else {
         if (strncmp(pfconf->iface, "zc", 2) == 0) {
-            SCLogInfo("ZC interface detected, not setting cluster type for PF_RING (iface %s)",
+            SCLogInfo("%s: ZC interface detected, not setting cluster type for PF_RING",
                     pfconf->iface);
         } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
-            SCLogInfo("DNA interface detected, not setting cluster type for PF_RING (iface %s)",
+            SCLogInfo("%s: DNA interface detected, not setting cluster type for PF_RING",
                     pfconf->iface);
         } else if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
             SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,
@@ -361,28 +358,24 @@ static void *ParsePfringConfig(const char *iface)
 
     if (getctype) {
         if (strcmp(tmpctype, "cluster_round_robin") == 0) {
-            SCLogInfo("Using round-robin cluster mode for PF_RING (iface %s)."
+            SCLogInfo("%s: Using round-robin cluster mode for PF_RING."
                       " This mode is not recommended.",
                     pfconf->iface);
             pfconf->ctype = CLUSTER_ROUND_ROBIN;
         } else if (strcmp(tmpctype, "cluster_flow") == 0) {
-            SCLogInfo("Using flow cluster mode for PF_RING (iface %s)",
-                    pfconf->iface);
+            SCLogInfo("%s: Using flow cluster mode for PF_RING", pfconf->iface);
             pfconf->ctype = CLUSTER_FLOW;
         } else if (strcmp(tmpctype, "cluster_inner_flow") == 0) {
-            SCLogInfo("Using flow cluster mode inner mode for PF_RING (iface %s)", pfconf->iface);
+            SCLogInfo("%s: Using flow cluster mode inner mode for PF_RING", pfconf->iface);
             pfconf->ctype = CLUSTER_INNER_FLOW;
         } else if (strcmp(tmpctype, "cluster_inner_flow_2_tuple") == 0) {
-            SCLogInfo(
-                    "Using flow cluster inner 2 tuple mode for PF_RING (iface %s)", pfconf->iface);
+            SCLogInfo("%s: Using flow cluster inner 2 tuple mode for PF_RING", pfconf->iface);
             pfconf->ctype = CLUSTER_INNER_FLOW_2_TUPLE;
         } else if (strcmp(tmpctype, "cluster_inner_flow_4_tuple") == 0) {
-            SCLogInfo(
-                    "Using flow cluster inner 4 tuple mode for PF_RING (iface %s)", pfconf->iface);
+            SCLogInfo("%s: Using flow cluster inner 4 tuple mode for PF_RING", pfconf->iface);
             pfconf->ctype = CLUSTER_INNER_FLOW_4_TUPLE;
         } else if (strcmp(tmpctype, "cluster_inner_flow_5_tuple") == 0) {
-            SCLogInfo(
-                    "Using flow cluster inner 5 tuple mode for PF_RING (iface %s)", pfconf->iface);
+            SCLogInfo("%s: Using flow cluster inner 5 tuple mode for PF_RING", pfconf->iface);
             pfconf->ctype = CLUSTER_INNER_FLOW_5_TUPLE;
         } else {
             SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,
@@ -402,14 +395,16 @@ static void *ParsePfringConfig(const char *iface)
         } else if (strcmp(tmpctype, "rx-only") == 0) {
             pfconf->checksum_mode = CHECKSUM_VALIDATION_RXONLY;
         } else {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for checksum-checks for %s", pfconf->iface);
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "%s: Invalid value for checksum-checks",
+                    pfconf->iface);
         }
     }
 
     if (ConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &bool_val) == 1) {
         if (bool_val) {
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
-            SCLogConfig("Enabling bypass support in PF_RING for iface %s (if supported by underlying hw)", pfconf->iface);
+            SCLogConfig("%s: Enabling bypass support in PF_RING (if supported by underlying hw)",
+                    pfconf->iface);
             pfconf->flags |= PFRING_CONF_FLAGS_BYPASS;
 #else
             SCLogError(SC_ERR_BYPASS_NOT_SUPPORTED, "Bypass is not supported by this Pfring version, please upgrade");
