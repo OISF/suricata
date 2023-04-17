@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use der_parser::ber::{parse_ber_recursive, BerObject, BerObjectContent, BerTag};
+use der_parser::ber::{parse_ber_recursive, BerObject, BerObjectContent, Tag};
 use nom7::Err;
 use std::convert::TryFrom;
 
@@ -86,7 +86,7 @@ impl<'a> Asn1<'a> {
     fn check_object(obj: &BerObject, ad: &DetectAsn1Data) -> Option<Asn1Check> {
         // get length
         // Note that if length is indefinite (BER), this will return None
-        let len = obj.header.len.primitive().ok()?;
+        let len = obj.header.length().definite().ok()?;
         // oversize_length will check if a node has a length greater than
         // the user supplied length
         if let Some(oversize_length) = ad.oversize_length {
@@ -101,7 +101,7 @@ impl<'a> Asn1<'a> {
         // to ignore is greater than the length decoded (in bits)
         if ad.bitstring_overflow
             && (obj.header.is_universal()
-                && obj.header.tag == BerTag::BitString
+                && obj.header.tag() == Tag::BitString
                 && obj.header.is_primitive())
         {
             if let BerObjectContent::BitString(bits, _v) = &obj.content {
@@ -118,7 +118,7 @@ impl<'a> Asn1<'a> {
         // and the buffer is greater than 256, the array is overflown
         if ad.double_overflow
             && (obj.header.is_universal()
-                && obj.header.tag == BerTag::RealType
+                && obj.header.tag() == Tag::RealType
                 && obj.header.is_primitive())
         {
             if let Ok(data) = obj.content.as_slice() {

@@ -18,9 +18,9 @@
 use nom7::IResult;
 use nom7::error::{ErrorKind, ParseError};
 use nom7::number::streaming::le_u16;
-use der_parser;
-use der_parser::der::parse_der_oid;
-use der_parser::error::BerError;
+use der_parser6;
+use der_parser6::der::parse_der_oid;
+use der_parser6::error::BerError;
 use kerberos_parser::krb5::{ApReq, PrincipalName, Realm};
 use kerberos_parser::krb5_parser::parse_ap_req;
 
@@ -56,7 +56,7 @@ pub struct Kerberos5Ticket {
 
 fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq, SecBlobError>
 {
-    let (_,b) = der_parser::parse_der(blob).map_err(nom7::Err::convert)?;
+    let (_,b) = der_parser6::parse_der(blob).map_err(nom7::Err::convert)?;
     let blob = b.as_slice().or(
         Err(nom7::Err::Error(SecBlobError::KrbFmtError))
     )?;
