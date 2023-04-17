@@ -22,7 +22,7 @@ use std::ffi::CString;
 use nom7::{Err, IResult};
 use nom7::number::streaming::be_u32;
 use der_parser::der::der_read_element_header;
-use der_parser::ber::BerClass;
+use der_parser::ber::Class;
 use kerberos_parser::krb5_parser;
 use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,Realm};
 use crate::applayer::{self, *};
@@ -129,8 +129,8 @@ impl KRB5State {
         match der_read_element_header(i) {
             Ok((_rem,hdr)) => {
                 // Kerberos messages start with an APPLICATION header
-                if hdr.class != BerClass::Application { return 0; }
-                match hdr.tag.0 {
+                if hdr.class() != Class::Application { return 0; }
+                match hdr.tag().0 {
                     10 => {
                         self.req_id = 10;
                     },
@@ -190,7 +190,7 @@ impl KRB5State {
                         };
                         self.req_id = 0;
                     },
-                    _ => { SCLogDebug!("unknown/unsupported tag {}", hdr.tag); },
+                    _ => { SCLogDebug!("unknown/unsupported tag {}", hdr.tag()); },
                 }
                 0
             },
@@ -338,9 +338,9 @@ pub unsafe extern "C" fn rs_krb5_probing_parser(_flow: *const Flow,
     match der_read_element_header(slice) {
         Ok((rem, ref hdr)) => {
             // Kerberos messages start with an APPLICATION header
-            if hdr.class != BerClass::Application { return ALPROTO_FAILED; }
+            if hdr.class() != Class::Application { return ALPROTO_FAILED; }
             // Tag number should be <= 30
-            if hdr.tag.0 > 30 { return ALPROTO_FAILED; }
+            if hdr.tag().0 > 30 { return ALPROTO_FAILED; }
             // Kerberos messages contain sequences
             if rem.is_empty() || rem[0] != 0x30 { return ALPROTO_FAILED; }
             // Check kerberos version
