@@ -1520,7 +1520,10 @@ static void TcpStateQueueInitFromPktSynAck(const Packet *p, TcpStateQueue *q)
 {
 #if defined(DEBUG_VALIDATION) || defined(DEBUG)
     const TcpSession *ssn = p->flow->protoctx;
-    BUG_ON(ssn->state != TCP_SYN_SENT);
+    if ((ssn->flags & STREAMTCP_FLAG_TCP_FAST_OPEN) == 0)
+        BUG_ON(ssn->state != TCP_SYN_SENT);
+    else
+        BUG_ON(ssn->state != TCP_ESTABLISHED);
 #endif
     memset(q, 0, sizeof(*q));
 
