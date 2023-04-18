@@ -804,7 +804,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     int r = StreamTcpReassembleInsertSegment(
             tv, ra_ctx, stream, seg, p, TCP_GET_SEQ(p), p->payload, p->payload_len);
     if (r < 0) {
-        if (r == -ENOMEM) {
+        if (r == -SC_ENOMEM) {
             ssn->flags |= STREAMTCP_FLAG_LOSSY_BE_LIBERAL;
         }
         SCLogDebug("StreamTcpReassembleInsertSegment failed");
