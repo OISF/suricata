@@ -268,17 +268,17 @@ void TmModuleDecodeDPDKRegister(void)
 
 static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
 {
-    struct rte_eth_stats eth_stats;
-    int retval = rte_eth_stats_get(ptv->port_id, &eth_stats);
-    if (unlikely(retval != 0)) {
-        SCLogError("Failed to get stats for port id %d: %s", ptv->port_id, rte_strerror(-retval));
-        return;
-    }
-
     /* Some NICs (e.g. Intel) do not support queue statistics and the drops can be fetched only on
      * the port level. Therefore setting it to the first worker to have at least continuous update
      * on the dropped packets. */
     if (ptv->queue_id == 0) {
+        struct rte_eth_stats eth_stats;
+        int retval = rte_eth_stats_get(ptv->port_id, &eth_stats);
+        if (unlikely(retval != 0)) {
+            SCLogError("%s: failed to get stats: %s", ptv->livedev->dev, rte_strerror(-retval));
+            return;
+        }
+
         StatsSetUI64(ptv->tv, ptv->capture_dpdk_packets,
                 ptv->pkts + eth_stats.imissed + eth_stats.ierrors + eth_stats.rx_nombuf);
         SC_ATOMIC_SET(ptv->livedev->pkts,
