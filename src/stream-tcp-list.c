@@ -70,8 +70,8 @@ int TcpSegmentCompare(struct TcpSegment *a, struct TcpSegment *b)
  *  \param data segment data after overlap handling (if any)
  *  \param data_len data length
  *
- *  \return 0 on success
- *  \return -1 on error (memory allocation error)
+ *  \return SC_OK on success
+ *  \return SC_ENOMEM on error (memory allocation error)
  */
 static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, uint8_t *data, uint16_t data_len)
 {
@@ -93,7 +93,7 @@ static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, ui
                data_offset, seg->seq, stream->base_seq, data_len);
     DEBUG_VALIDATE_BUG_ON(data_offset > data_len);
     if (data_len <= data_offset) {
-        SCReturnInt(0);
+        SCReturnInt(SC_OK);
     }
 
     int ret = StreamingBufferInsertAt(&stream->sb, &stream_config.sbcnf, &seg->sbseg,
@@ -102,7 +102,7 @@ static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, ui
         /* StreamingBufferInsertAt can return -2 only if the offset is wrong, which should be
          * impossible in this path. */
         DEBUG_VALIDATE_BUG_ON(ret != -1);
-        SCReturnInt(-1);
+        SCReturnInt(SC_ENOMEM);
     }
 #ifdef DEBUG
     {
@@ -116,7 +116,7 @@ static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, ui
         //PrintRawDataFp(stdout, mydata, mydata_len);
     }
 #endif
-    SCReturnInt(0);
+    SCReturnInt(SC_OK);
 }
 
 /** \internal
@@ -547,8 +547,8 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     /* insert the temp buffer now that we've (possibly) updated
      * it to account for the overlap policies */
     int res = InsertSegmentDataCustom(stream, handle, buf, p->payload_len);
-    if (res < 0) {
-        if (res == -1) {
+    if (res != SC_OK) {
+        if (res == SC_ENOMEM) {
             StatsIncr(tv, ra_ctx->counter_tcp_segment_memcap);
         }
         return -1;
@@ -648,15 +648,13 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     if (likely(r == 0)) {
         /* no overlap, straight data insert */
         int res = InsertSegmentDataCustom(stream, seg, pkt_data, pkt_datalen);
-        if (res < 0) {
-            if (res == -1) {
-                StatsIncr(tv, ra_ctx->counter_tcp_segment_memcap);
-            }
+        if (res != SC_OK) {
             StatsIncr(tv, ra_ctx->counter_tcp_reass_data_normal_fail);
             StreamTcpRemoveSegmentFromStream(stream, seg);
             StreamTcpSegmentReturntoPool(seg);
-            if (res == -1) {
-                SCReturnInt(-ENOMEM);
+            if (res == SC_ENOMEM) {
+                StatsIncr(tv, ra_ctx->counter_tcp_segment_memcap);
+                SCReturnInt(-SC_ENOMEM);
             }
             SCReturnInt(-1);
         }
