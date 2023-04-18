@@ -113,6 +113,91 @@ are:
 The *Drop*, *pass* and *reject* are similar to the rule actions described in :ref:`rule
 actions<suricata-yaml-action-order>`.
 
+Exception Policies and Midstream Pick-up Sessions
+-------------------------------------------------
+
+Suricata behavior can be difficult to track in case of midstream session
+pick-ups. Consider this matrix illustrating the different interactions for
+midstream pick-ups enabled or not and the various exception policy values:
+
+.. list-table:: **Exception Policy Behaviors - IDS Mode**
+   :widths: auto
+   :header-rows: 1
+   :stub-columns: 1
+
+   * - Exception Policy
+     - Midstream pick-up sessions ENABLED (stream.midstream=true)
+     - Midstream pick-up sessions DISABLED (stream.midstream=false)
+   * - Ignore
+     - Session tracket and parsed.
+     - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
+   * - Drop-flow
+     - Not valid.*
+     - Not valid.*
+   * - Drop-packet
+     - Not valid.*
+     - Not valid.*
+   * - Reject
+     - Not valid.*
+     - Session not tracked, flow REJECTED.
+   * - Pass-flow
+     - Track session, inspect and log app-layer traffic, no detection.
+     - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
+   * - Pass-packet
+     - Not valid.*
+     - Not valid.*
+   * - Bypass
+     - Not valid.*
+     - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
+   * - Auto
+     - Midstream policy applied: "ignore". Same behavior.
+     - Midstream policy applied: "ignore". Same behavior.
+
+The main difference between IDS and IPS scenarios is that in IPS mode flows can
+be allowed or blocked (as in with the PASS and DROP rule actions). Packet
+actions are not valid, as midstream pick-up is a configuration that affects the
+whole flow.
+
+.. list-table:: **Exception Policy Behaviors - IPS Mode**
+   :widths: 15 42 43
+   :header-rows: 1
+   :stub-columns: 1
+
+   * - Exception Policy
+     - Midstream pick-up sessions ENABLED (stream.midstream=true)
+     - Midstream pick-up sessions DISABLED (stream.midstream=false)
+   * - Ignore
+     - Session tracket and parsed.
+     - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
+   * - Drop-flow
+     - Not valid.*
+     - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
+       Flow DROPPED.
+   * - Drop-packet
+     - Not valid.*
+     - Not valid.*
+   * - Reject
+     - Not valid.*
+     - Session not tracked, flow DROPPED and REJECTED.
+   * - Pass-flow
+     - Track session, inspect and log app-layer traffic, no detection.
+     - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
+   * - Pass-packet
+     - Not valid.*
+     - Not valid.*
+   * - Bypass
+     - Not valid.*
+     - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
+       Packets ALLOWED.
+   * - Auto
+     - Midstream policy applied: "ignore". Same behavior.
+     - Midstream policy applied: "drop-flow". Same behavior.
+
+Notes:
+
+   * Not valid means that Suricata will error out and won't start.
+   * ``REJECT`` will make Suricata send a Reset-packet unreach error to the sender of the matching packet.
+
 Command-line Options for Simulating Exceptions
 ----------------------------------------------
 
