@@ -1519,37 +1519,16 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
         stream->raw_progress_rel += slide;
         stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
 
-    /* if app is active and beyond raw, sync raw to app */
-    } else if (progress == 0 && STREAM_APP_PROGRESS(stream) > STREAM_RAW_PROGRESS(stream) &&
-               !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
-        /* if trigger raw is set we sync the 2 trackers */
-        if (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW)
-        {
-            uint32_t slide = STREAM_APP_PROGRESS(stream) - STREAM_RAW_PROGRESS(stream);
-            stream->raw_progress_rel += slide;
-            stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
-
-        /* otherwise mix in the tcp window */
-        } else {
-            uint64_t tcp_window = stream->window;
-            if (tcp_window > 0 && STREAM_APP_PROGRESS(stream) > tcp_window) {
-                uint64_t new_raw = STREAM_APP_PROGRESS(stream) - tcp_window;
-                if (new_raw > STREAM_RAW_PROGRESS(stream)) {
-                    uint32_t slide = new_raw - STREAM_RAW_PROGRESS(stream);
-                    stream->raw_progress_rel += slide;
-                }
-            }
-        }
-    /* app is dead */
     } else if (progress == 0) {
-        uint64_t tcp_window = stream->window;
-        const uint64_t stream_right_edge = StreamingBufferGetConsecutiveDataRightEdge(&stream->sb);
-        if (tcp_window < stream_right_edge) {
-            uint64_t new_raw = stream_right_edge - tcp_window;
-            if (new_raw > STREAM_RAW_PROGRESS(stream)) {
-                uint32_t slide = new_raw - STREAM_RAW_PROGRESS(stream);
-                stream->raw_progress_rel += slide;
-            }
+        uint64_t target;
+        if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) == 0) {
+            target = STREAM_APP_PROGRESS(stream);
+        } else {
+            target = GetAbsLastAck(stream);
+        }
+        if (target > STREAM_RAW_PROGRESS(stream)) {
+            uint32_t slide = target - STREAM_RAW_PROGRESS(stream);
+            stream->raw_progress_rel += slide;
         }
         stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
 
