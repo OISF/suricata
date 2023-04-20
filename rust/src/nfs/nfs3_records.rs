@@ -991,7 +991,7 @@ mod tests {
                 assert_eq!(reply.attr_follows, 1);
                 assert_eq!(reply.attr_blob.len(), 84);
                 assert_eq!(reply.count, 11);
-                assert_eq!(reply.eof, true);
+                assert!(reply.eof);
                 assert_eq!(reply.data_len, 11);
                 assert_eq!(reply.data, "the b file\n".as_bytes());
             }

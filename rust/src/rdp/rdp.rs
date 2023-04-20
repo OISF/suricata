@@ -517,25 +517,25 @@ mod tests {
     #[test]
     fn test_probe_rdp() {
         let buf: &[u8] = &[0x03, 0x00];
-        assert_eq!(true, probe_rdp(buf));
+        assert!(probe_rdp(buf));
     }
 
     #[test]
     fn test_probe_rdp_other() {
         let buf: &[u8] = &[0x04, 0x00];
-        assert_eq!(false, probe_rdp(buf));
+        assert!(!probe_rdp(buf));
     }
 
     #[test]
     fn test_probe_tls_handshake() {
         let buf: &[u8] = &[0x16, 0x00];
-        assert_eq!(true, probe_tls_handshake(buf));
+        assert!(probe_tls_handshake(buf));
     }
 
     #[test]
     fn test_probe_tls_handshake_other() {
         let buf: &[u8] = &[0x17, 0x00];
-        assert_eq!(false, probe_tls_handshake(buf));
+        assert!(!probe_tls_handshake(buf));
     }
 
     #[test]
@@ -614,8 +614,8 @@ mod tests {
         assert_eq!(2, state.transactions.len());
         assert_eq!(1, state.transactions[0].id);
         assert_eq!(2, state.transactions[1].id);
-        assert_eq!(false, state.tls_parsing);
-        assert_eq!(false, state.bypass_parsing);
+        assert!(!state.tls_parsing);
+        assert!(!state.bypass_parsing);
     }
 
     #[test]
