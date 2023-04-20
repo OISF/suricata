@@ -336,10 +336,10 @@ jobs:
         run: cargo clippy --all-features
         working-directory: rust
 
-  # This build also creates the distribution package that some other builds
-  # depend on.
+  # AlmaLinux 8 builder and distribution archive builder that some
+  # other builds will depend on.
   almalinux-8:
-    name: AlmaLinux 8
+    name: AlmaLinux 8 (Dist builder)
     runs-on: ubuntu-latest
     container: almalinux:8
     needs: [prepare-deps, prepare-cbindgen]
@@ -1221,17 +1221,21 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
 
-  fedora-36-non-root:
-    name: Fedora 36 (non-root, debug, clang, asan, wshadow, rust-strict, systemd)
+  # This job builds and tests Suricata as a non-root user as some
+  # issues only show up when not running as root, and by default all
+  # jobs in GitHub actions are run as root inside the container.
+  fedora-37-non-root:
+    name: Fedora 37 (non-root, debug, clang, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
-    container: fedora:36
-    needs: [prepare-deps, prepare-cbindgen]
+    container: fedora:37
+    needs: [prepare-deps]
     steps:
       - run: |
           dnf -y install \
                 autoconf \
                 automake \
                 cargo \
+                cbindgen \
                 ccache \
                 clang \
                 diffutils \
@@ -1276,13 +1280,6 @@ jobs:
       - run: mkdir /home/suricata/suricata
       - run: cp -a . /home/suricata/suricata
       - run: chown -R suricata:suricata /home/suricata
-
-      - run: sudo -u suricata -s mkdir -p .cargo/bin
-        working-directory: /home/suricata
-      - run: sudo -u suricata -s cp suricata/prep/cbindgen .cargo/bin
-        working-directory: /home/suricata
-      - run: sudo -u suricata -s chmod 755 .cargo/bin/cbindgen
-        working-directory: /home/suricata
 
       - run: sudo -u suricata -s ./autogen.sh
         working-directory: /home/suricata/suricata
