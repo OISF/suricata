@@ -32,7 +32,8 @@ pub enum Level {
     Info,
     _Perf,
     Config,
-    _Debug,
+    #[cfg(feature = "debug")]
+    Debug,
 }
 
 pub static mut LEVEL: i32 = Level::NotSet as i32;
