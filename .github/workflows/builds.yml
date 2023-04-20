@@ -142,7 +142,7 @@ jobs:
     name: AlmaLinux 9
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [prepare-deps]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -169,20 +169,15 @@ jobs:
       - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - run: tar xvf prep/suricata-verify.tar.gz
-      - name: Setup cbindgen
-        run: |
-          mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
-          chmod 755 $HOME/.cargo/bin/cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Install system packages
         run: |
-          dnf -y install dnf-plugins-core
+          dnf -y install dnf-plugins-core epel-release
           dnf config-manager --set-enabled crb
           dnf -y install \
                 autoconf \
                 automake \
                 cargo-vendor \
+                cbindgen \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -255,7 +250,7 @@ jobs:
     name: AlmaLinux 9 Test Templates
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [prepare-deps]
     steps:
       - name: Cache RPMs
         uses: actions/cache@v3
@@ -285,11 +280,12 @@ jobs:
       - run: tar xvf prep/suricata-verify.tar.gz
       - name: Install system packages
         run: |
-          dnf -y install dnf-plugins-core
+          dnf -y install dnf-plugins-core epel-release
           dnf config-manager --set-enabled crb
           dnf -y install \
                 autoconf \
                 automake \
+                cbindgen \
                 diffutils \
                 numactl-devel \
                 dpdk-devel \
@@ -323,8 +319,6 @@ jobs:
                 zlib-devel
       - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - run: cp prep/cbindgen $HOME/.cargo/bin
-      - run: chmod 755 $HOME/.cargo/bin/cbindgen
       - run: rustup component add rustfmt
       - run: rustup component add clippy
       - name: Build
@@ -1123,11 +1117,12 @@ jobs:
       - run: sudo -u suricata -s python3 ./suricata-verify/run.py -q
         working-directory: /home/suricata/suricata
 
+  # Test that ./configure fails out of libjansson is not available.
   almalinux-9-no-jansson:
     name: AlmaLinux 9 (no jansson)
     runs-on: ubuntu-latest
     container: almalinux:9
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [prepare-deps]
     steps:
 
       # Cache Rust stuff.
@@ -1145,12 +1140,13 @@ jobs:
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
       - run: |
-          dnf -y install dnf-plugins-core
+          dnf -y install dnf-plugins-core epel-release
           dnf config-manager --set-enable crb
           dnf -y install \
                 autoconf \
                 automake \
                 cargo \
+                cbindgen \
                 clang \
                 diffutils \
                 file-devel \
@@ -1184,12 +1180,6 @@ jobs:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
-      - name: Setup cbindgen
-        run: |
-          mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
-          chmod 755 $HOME/.cargo/bin/cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: |
           if ./configure; then
