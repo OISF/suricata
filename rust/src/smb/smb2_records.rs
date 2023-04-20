@@ -32,11 +32,6 @@ pub struct Smb2SecBlobRecord<'a> {
     pub data: &'a[u8],
 }
 
-pub fn parse_smb2_sec_blob(i: &[u8]) -> IResult<&[u8], Smb2SecBlobRecord> {
-    let (i, data) = rest(i)?;
-    Ok((i, Smb2SecBlobRecord { data }))
-}
-
 #[derive(Debug,PartialEq, Eq)]
 pub struct Smb2RecordDir<> {
     pub request: bool,
@@ -66,10 +61,6 @@ pub struct Smb2Record<'a> {
 }
 
 impl<'a> Smb2Record<'a> {
-    pub fn is_async(&self) -> bool {
-        self.async_id != 0
-    }
-
     pub fn is_request(&self) -> bool {
         self.direction == 0
     }

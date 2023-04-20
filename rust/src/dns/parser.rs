@@ -191,13 +191,6 @@ fn dns_parse_answer<'a>(
     return Ok((input, answers));
 }
 
-/// Parse a DNS response.
-pub fn dns_parse_response(message: &[u8]) -> IResult<&[u8], DNSResponse> {
-    let i = message;
-    let (i, header) = dns_parse_header(i)?;
-    dns_parse_response_body(i, message, header)
-}
-
 pub fn dns_parse_response_body<'a>(
     i: &'a [u8], message: &'a [u8], header: DNSHeader,
 ) -> IResult<&'a [u8], DNSResponse> {
@@ -527,6 +520,13 @@ mod tests {
                 assert!(false);
             }
         }
+    }
+
+    /// Parse a DNS response.
+    fn dns_parse_response(message: &[u8]) -> IResult<&[u8], DNSResponse> {
+        let i = message;
+        let (i, header) = dns_parse_header(i)?;
+        dns_parse_response_body(i, message, header)
     }
 
     #[test]

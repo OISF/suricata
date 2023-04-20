@@ -435,15 +435,6 @@ impl DCERPCState {
         None
     }
 
-    pub fn get_hdr_rpc_vers(&self) -> Option<u8> {
-        debug_validate_bug_on!(self.header.is_none());
-        if let Some(ref hdr) = self.header {
-            return Some(hdr.rpc_vers);
-        }
-        // Shouldn't happen
-        None
-    }
-
     pub fn get_hdr_call_id(&self) -> Option<u32> {
         debug_validate_bug_on!(self.header.is_none());
         if let Some(ref hdr) = self.header {
@@ -451,20 +442,6 @@ impl DCERPCState {
         }
         // Shouldn't happen
         None
-    }
-
-    pub fn handle_gap_ts(&mut self) -> u8 {
-        if !self.buffer_ts.is_empty() {
-            self.buffer_ts.clear();
-        }
-        return 0;
-    }
-
-    pub fn handle_gap_tc(&mut self) -> u8 {
-        if !self.buffer_tc.is_empty() {
-            self.buffer_tc.clear();
-        }
-        return 0;
     }
 
     pub fn clean_buffer(&mut self, direction: Direction) {

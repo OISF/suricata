@@ -132,9 +132,11 @@ pub fn smb_dos_error_string(c: u16) -> String {
 }
 
 pub const NTLMSSP_NEGOTIATE:               u32 = 1;
+#[cfg(feature = "debug")]
 pub const NTLMSSP_CHALLENGE:               u32 = 2;
 pub const NTLMSSP_AUTH:                    u32 = 3;
 
+#[cfg(feature = "debug")]
 pub fn ntlmssp_type_string(c: u32) -> String {
     match c {
         NTLMSSP_NEGOTIATE   => "NTLMSSP_NEGOTIATE",
@@ -560,7 +562,7 @@ pub const SMBHDR_TYPE_FILENAME:    u32 = 3;
 pub const SMBHDR_TYPE_OFFSET:      u32 = 4;
 pub const SMBHDR_TYPE_GENERICTX:   u32 = 5;
 pub const SMBHDR_TYPE_HEADER:      u32 = 6;
-pub const SMBHDR_TYPE_MAX_SIZE:    u32 = 7; // max resp size for SMB1_COMMAND_TRANS
+//unused pub const SMBHDR_TYPE_MAX_SIZE:    u32 = 7; // max resp size for SMB1_COMMAND_TRANS
 pub const SMBHDR_TYPE_TRANS_FRAG:  u32 = 8;
 pub const SMBHDR_TYPE_TREE:        u32 = 9;
 pub const SMBHDR_TYPE_DCERPCTX:    u32 = 10;
@@ -1039,26 +1041,6 @@ impl SMBState {
         self.transactions.push_back(tx);
         let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
-    }
-
-    pub fn get_create_tx_by_hdr(&mut self, hdr: &SMBCommonHdr)
-        -> Option<&mut SMBTransaction>
-    {
-        for tx in &mut self.transactions {
-            let found = match tx.type_data {
-                Some(SMBTransactionTypeData::CREATE(ref _d)) => {
-                    tx.hdr.compare(hdr)
-                },
-                _ => { false },
-            };
-
-            if found {
-                SCLogDebug!("SMB: Found SMB create TX with ID {}", tx.id);
-                return Some(tx);
-            }
-        }
-        SCLogDebug!("SMB: Failed to find SMB create TX with key {:?}", hdr);
-        return None;
     }
 
     pub fn get_service_for_guid(&self, guid: &[u8]) -> (&'static str, bool)

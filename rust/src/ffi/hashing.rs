@@ -24,10 +24,6 @@ use std::os::raw::c_char;
 pub const SC_SHA1_LEN: usize = 20;
 pub const SC_SHA256_LEN: usize = 32;
 
-// Length of hex digests without trailing NUL.
-pub const SC_MD5_HEX_LEN: usize = 32;
-pub const SC_SHA256_HEX_LEN: usize = 64;
-
 // Wrap the Rust Sha256 in a new type named SCSha256 to give this type
 // the "SC" prefix. The one drawback is we must access the actual context
 // with .0.
@@ -208,6 +204,10 @@ unsafe fn finalize<D: Digest>(digest: D, out: *mut u8, len: u32) {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    // Length of hex digests without trailing NUL.
+    const SC_MD5_HEX_LEN: usize = 32;
+    const SC_SHA256_HEX_LEN: usize = 64;
 
     // A test around SCSha256 primarily to check that the ouput is
     // correctly copied into a C string.
