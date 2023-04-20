@@ -20,7 +20,6 @@
 use std;
 use crate::core::{self,DetectEngineState,Flow,AppLayerEventType,AppProto,Direction};
 use crate::filecontainer::FileContainer;
-use crate::applayer;
 use std::os::raw::{c_void,c_char,c_int};
 use crate::core::SC;
 use std::ffi::CStr;
@@ -42,6 +41,7 @@ pub struct StreamSlice {
 impl StreamSlice {
 
     /// Create a StreamSlice from a Rust slice. Useful in unit tests.
+    #[cfg(test)]
     pub fn from_slice(slice: &[u8], flags: u8, offset: u64) -> Self {
         Self {
             input: slice.as_ptr() as *const u8,
@@ -86,16 +86,6 @@ impl AppLayerTxConfig {
         Self {
             log_flags: 0,
         }
-    }
-
-    pub fn add_log_flags(&mut self, flags: u8) {
-        self.log_flags |= flags;
-    }
-    pub fn set_log_flags(&mut self, flags: u8) {
-        self.log_flags = flags;
-    }
-    pub fn get_log_flags(&self) -> u8 {
-        self.log_flags
     }
 }
 
@@ -233,9 +223,6 @@ impl AppLayerStateData {
             file_flags: 0,
         }
     }
-    pub fn update_file_flags(&mut self, flags: u16) {
-        self.file_flags |= flags;
-    }
 }
 
 #[macro_export]
@@ -285,14 +272,8 @@ impl AppLayerResult {
         };
     }
 
-    pub fn is_ok(self) -> bool {
-        self.status == 0
-    }
     pub fn is_incomplete(self) -> bool {
         self.status == 1
-    }
-    pub fn is_err(self) -> bool {
-        self.status == -1
     }
 }
 
@@ -502,20 +483,11 @@ pub const APP_LAYER_PARSER_OPT_UNIDIR_TXS: u32 = BIT_U32!(1);
 
 pub const APP_LAYER_TX_SKIP_INSPECT_FLAG: u64 = BIT_U64!(62);
 
-pub type AppLayerGetTxIteratorFn = unsafe extern "C" fn (ipproto: u8,
-                                                  alproto: AppProto,
-                                                  alstate: *mut c_void,
-                                                  min_tx_id: u64,
-                                                  max_tx_id: u64,
-                                                  istate: &mut u64) -> applayer::AppLayerGetTxIterTuple;
-
 extern {
     pub fn AppLayerParserStateSetFlag(state: *mut c_void, flag: u16);
     pub fn AppLayerParserStateIssetFlag(state: *mut c_void, flag: u16) -> u16;
     pub fn AppLayerParserSetStreamDepth(ipproto: u8, alproto: AppProto, stream_depth: u32);
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
-    pub fn AppLayerParserRegisterGetTxIterator(ipproto: u8, alproto: AppProto, fun: AppLayerGetTxIteratorFn);
-    pub fn AppLayerParserRegisterOptionFlags(ipproto: u8, alproto: AppProto, flags: u32);
 }
 
 #[repr(C)]

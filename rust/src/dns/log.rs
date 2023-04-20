@@ -22,9 +22,6 @@ use std::string::String;
 use crate::dns::dns::*;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
-pub const LOG_QUERIES: u64 = BIT_U64!(0);
-pub const LOG_ANSWER: u64 = BIT_U64!(1);
-
 pub const LOG_A: u64 = BIT_U64!(2);
 pub const LOG_NS: u64 = BIT_U64!(3);
 pub const LOG_MD: u64 = BIT_U64!(4);
