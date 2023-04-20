@@ -62,6 +62,7 @@ Example::
         memcap: 10mb
         hashsize: 1024
 
+.. note:: The `hashsize` should be close to the amount of entries in the dataset to avoid collisions. If it's set too low, this could result in rather long startup time.
 
 Rule keywords
 -------------
