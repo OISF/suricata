@@ -156,48 +156,44 @@ mod test {
 
     #[test]
     fn test_match_opcode() {
-        assert_eq!(
+        assert!(
             match_opcode(
                 &DetectDnsOpcode {
                     negate: false,
                     opcode: 0,
                 },
                 0b0000_0000_0000_0000,
-            ),
-            true
+            )
         );
 
-        assert_eq!(
-            match_opcode(
+        assert!(
+            !match_opcode(
                 &DetectDnsOpcode {
                     negate: true,
                     opcode: 0,
                 },
                 0b0000_0000_0000_0000,
-            ),
-            false
+            )
         );
 
-        assert_eq!(
+        assert!(
             match_opcode(
                 &DetectDnsOpcode {
                     negate: false,
                     opcode: 4,
                 },
                 0b0010_0000_0000_0000,
-            ),
-            true
+            )
         );
 
-        assert_eq!(
-            match_opcode(
+        assert!(
+            !match_opcode(
                 &DetectDnsOpcode {
                     negate: true,
                     opcode: 4,
                 },
                 0b0010_0000_0000_0000,
-            ),
-            false
+            )
         );
     }
 }

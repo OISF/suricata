@@ -279,7 +279,7 @@ mod tests {
             Ok((rem, ctx)) => {
                 match ctx {
                     DetectKrb5TicketEncryptionData::WEAK(w) => {
-                        assert_eq!(w, true);
+                        assert!(w);
                     }
                     _ => {
                         panic!("Result should have been weak.");
@@ -296,7 +296,7 @@ mod tests {
             Ok((rem, ctx)) => {
                 match ctx {
                     DetectKrb5TicketEncryptionData::WEAK(w) => {
-                        assert_eq!(w, false);
+                        assert!(!w);
                     }
                     _ => {
                         panic!("Result should have been weak.");
@@ -313,9 +313,9 @@ mod tests {
             Ok((rem, ctx)) => {
                 match ctx {
                     DetectKrb5TicketEncryptionData::LIST(l) => {
-                        assert_eq!(l.positive[EncryptionType::DES_CBC_CRC.0 as usize], true);
-                        assert_eq!(l.negative[128], true);
-                        assert_eq!(l.positive[2], true);
+                        assert!(l.positive[EncryptionType::DES_CBC_CRC.0 as usize]);
+                        assert!(l.negative[128]);
+                        assert!(l.positive[2]);
                         assert_eq!(l.other.len(), 1);
                         assert_eq!(l.other[0], EncryptionType(257));
                     }
