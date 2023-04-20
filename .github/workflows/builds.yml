@@ -548,11 +548,11 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
 
-  fedora-36-sv-codecov:
-    name: Fedora 36 (Suricata Verify codecov)
+  fedora-38-sv-codecov:
+    name: Fedora 38 (Suricata Verify codecov)
     runs-on: ubuntu-latest
-    container: fedora:36
-    needs: [prepare-deps, prepare-cbindgen]
+    container: fedora:38
+    needs: [prepare-deps]
     steps:
 
       # Cache Rust stuff.
@@ -573,6 +573,7 @@ jobs:
           dnf -y install \
                 autoconf \
                 automake \
+                cbindgen \
                 ccache \
                 clang \
                 curl \
@@ -617,11 +618,6 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
-      - name: Setup cbindgen
-        run: |
-          mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
-          chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
       - run: ./configure --disable-shared
         env:
