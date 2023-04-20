@@ -27,7 +27,7 @@ mod log;
 
 #[repr(u32)]
 pub enum X509DecodeError {
-    Success = 0,
+    _Success = 0,
     /// Generic decoding error
     InvalidCert,
     /// Some length does not match, or certificate is incomplete

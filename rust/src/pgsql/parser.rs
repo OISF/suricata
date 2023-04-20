@@ -160,31 +160,11 @@ pub struct ErrorNoticeMessage {
     pub message_body: Vec<PgsqlErrorNoticeMessageField>,
 }
 
-impl ErrorNoticeMessage {
-    pub fn new(identifier: u8, length: u32) -> Self {
-        ErrorNoticeMessage {
-            identifier,
-            length,
-            message_body: Vec::new(),
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum SSLResponseMessage {
     SSLAccepted,
     SSLRejected,
     InvalidResponse,
-}
-
-impl SSLResponseMessage {
-    pub fn to_str(&self) -> &'static str {
-        match self {
-            SSLResponseMessage::SSLAccepted => "SSL Accepted",
-            SSLResponseMessage::SSLRejected => "SSL Rejected",
-            SSLResponseMessage::InvalidResponse => "Invalid server response",
-        }
-    }
 }
 
 impl From<u8> for SSLResponseMessage {
@@ -1090,6 +1070,16 @@ mod tests {
 
     use super::*;
     use nom7::Needed;
+
+    impl ErrorNoticeMessage {
+        pub fn new(identifier: u8, length: u32) -> Self {
+            ErrorNoticeMessage {
+                identifier,
+                length,
+                message_body: Vec::new(),
+            }
+        }
+    }
 
     #[test]
     fn test_parse_request() {

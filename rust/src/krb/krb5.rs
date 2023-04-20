@@ -97,14 +97,6 @@ impl Transaction for KRB5Transaction {
     }
 }
 
-pub fn to_hex_string(bytes: &[u8]) -> String {
-    let mut s = String::new();
-    for &b in bytes {
-        s.push_str(&format!("{:02X}", b));
-    }
-    s
-}
-
 impl Default for KRB5State {
     fn default() -> Self {
         Self::new()

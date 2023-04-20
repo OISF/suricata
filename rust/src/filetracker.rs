@@ -122,12 +122,6 @@ impl FileTransferTracker {
         self.cur_ooo = 0;
     }
 
-    pub fn create(&mut self, _name: &[u8], _file_size: u64) {
-        if self.file_open { panic!("close existing file first"); }
-
-        SCLogDebug!("CREATE: name {:?} file_size {}", _name, _file_size);
-    }
-
     pub fn new_chunk(&mut self, config: &'static SuricataFileContext,
             name: &[u8], data: &[u8], chunk_offset: u64, chunk_size: u32,
             fill_bytes: u8, is_last: bool, xid: &u32) -> u32

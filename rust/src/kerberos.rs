@@ -28,7 +28,6 @@ use kerberos_parser::krb5_parser::parse_ap_req;
 pub enum SecBlobError {
     NotSpNego,
     KrbFmtError,
-    KrbReqError,
     Ber(BerError),
     NomError(ErrorKind),
 }

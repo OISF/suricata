@@ -35,8 +35,6 @@ pub enum IKEV2ConnectionState {
     InitNonceSent,
     RespSASent,
     RespKESent,
-    RespNonceSent,
-    RespCertReqSent,
 
     ParsingDone,
 
@@ -52,8 +50,7 @@ impl IKEV2ConnectionState {
             (&InitKESent, &IkeV2PayloadContent::Nonce(_)) => InitNonceSent,
             (&InitNonceSent, &IkeV2PayloadContent::SA(_)) => RespSASent,
             (&RespSASent, &IkeV2PayloadContent::KE(_)) => RespKESent,
-            (&RespKESent, &IkeV2PayloadContent::Nonce(_)) => ParsingDone, // RespNonceSent,
-            (&RespNonceSent, &IkeV2PayloadContent::CertificateRequest(_)) => ParsingDone, // RespCertReqSent,
+            (&RespKESent, &IkeV2PayloadContent::Nonce(_)) => ParsingDone, // should go to RespNonceSent,
             (&ParsingDone, _) => self.clone(),
             (_, &IkeV2PayloadContent::Notify(_)) => self.clone(),
             (_, &IkeV2PayloadContent::Dummy) => self.clone(),
