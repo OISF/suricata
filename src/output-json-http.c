@@ -569,21 +569,13 @@ static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_c
         ConfNode *custom;
         if ((custom = ConfNodeLookupChild(conf, "custom")) != NULL) {
             ConfNode *field;
-            TAILQ_FOREACH(field, &custom->head, next)
-            {
-                if (field != NULL)
-                {
-                    HttpField f;
-                    for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++)
-                    {
-                        if ((strcmp(http_fields[f].config_field,
-                                   field->val) == 0) ||
-                            (strcasecmp(http_fields[f].htp_field,
-                                        field->val) == 0))
-                        {
-                            http_ctx->fields |= (1ULL<<f);
-                            break;
-                        }
+            TAILQ_FOREACH (field, &custom->head, next) {
+                HttpField f;
+                for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++) {
+                    if ((strcmp(http_fields[f].config_field, field->val) == 0) ||
+                            (strcasecmp(http_fields[f].htp_field, field->val) == 0)) {
+                        http_ctx->fields |= (1ULL << f);
+                        break;
                     }
                 }
             }

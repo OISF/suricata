@@ -455,19 +455,12 @@ static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, ConfNode *conf,
     if ((custom = ConfNodeLookupChild(conf, answer_types_key)) != NULL) {
         dnslog_ctx->flags &= ~LOG_ALL_RRTYPES;
         ConfNode *field;
-        TAILQ_FOREACH(field, &custom->head, next)
-        {
-            if (field != NULL)
-            {
-                DnsRRTypes f;
-                for (f = DNS_RRTYPE_A; f < DNS_RRTYPE_MAX; f++)
-                {
-                    if (strcasecmp(dns_rrtype_fields[f].config_rrtype,
-                                   field->val) == 0)
-                    {
-                        dnslog_ctx->flags |= dns_rrtype_fields[f].flags;
-                        break;
-                    }
+        TAILQ_FOREACH (field, &custom->head, next) {
+            DnsRRTypes f;
+            for (f = DNS_RRTYPE_A; f < DNS_RRTYPE_MAX; f++) {
+                if (strcasecmp(dns_rrtype_fields[f].config_rrtype, field->val) == 0) {
+                    dnslog_ctx->flags |= dns_rrtype_fields[f].flags;
+                    break;
                 }
             }
         }

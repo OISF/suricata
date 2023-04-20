@@ -404,20 +404,15 @@ void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx)
         ConfNode *custom;
         if ((custom = ConfNodeLookupChild(conf, "custom")) != NULL) {
             ConfNode *field;
-            TAILQ_FOREACH(field, &custom->head, next) {
-                if (field != NULL) {
-                    int f = 0;
-                    while(email_fields[f].config_field) {
-                        if ((strcmp(email_fields[f].config_field,
-                                   field->val) == 0) ||
-                            (strcasecmp(email_fields[f].email_field,
-                                        field->val) == 0))
-                        {
-                            email_ctx->fields |= (1ULL<<f);
-                            break;
-                        }
-                        f++;
+            TAILQ_FOREACH (field, &custom->head, next) {
+                int f = 0;
+                while (email_fields[f].config_field) {
+                    if ((strcmp(email_fields[f].config_field, field->val) == 0) ||
+                            (strcasecmp(email_fields[f].email_field, field->val) == 0)) {
+                        email_ctx->fields |= (1ULL << f);
+                        break;
                     }
+                    f++;
                 }
             }
         }
@@ -426,16 +421,14 @@ void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx)
         ConfNode *md5_conf;
         if ((md5_conf = ConfNodeLookupChild(conf, "md5")) != NULL) {
             ConfNode *field;
-            TAILQ_FOREACH(field, &md5_conf->head, next) {
-                if (field != NULL) {
-                    if (strcmp("body", field->val) == 0) {
-                        SCLogInfo("Going to log the md5 sum of email body");
-                        email_ctx->flags |= LOG_EMAIL_BODY_MD5;
-                    }
-                    if (strcmp("subject", field->val) == 0) {
-                        SCLogInfo("Going to log the md5 sum of email subject");
-                        email_ctx->flags |= LOG_EMAIL_SUBJECT_MD5;
-                    }
+            TAILQ_FOREACH (field, &md5_conf->head, next) {
+                if (strcmp("body", field->val) == 0) {
+                    SCLogInfo("Going to log the md5 sum of email body");
+                    email_ctx->flags |= LOG_EMAIL_BODY_MD5;
+                }
+                if (strcmp("subject", field->val) == 0) {
+                    SCLogInfo("Going to log the md5 sum of email subject");
+                    email_ctx->flags |= LOG_EMAIL_SUBJECT_MD5;
                 }
             }
         }
