@@ -102,6 +102,8 @@
 #define DEBUG_VALIDATE_FLOW(f)
 #define DEBUG_VALIDATE_PACKET(p)
 #define DEBUG_VALIDATE_BUG_ON(exp) BUG_ON((exp))
+/* define macro so we also get #ifdef DEBUG_VALIDATION code */
+#define DEBUG_VALIDATION           1
 
 #else /* DEBUG_VALIDATE */
 
