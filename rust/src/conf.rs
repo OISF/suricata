@@ -306,15 +306,15 @@ mod tests {
     #[test]
     fn test_memval_erroneous_val() {
         let s = "5eb";
-        assert_eq!(true, get_memval(s).is_err());
+        assert!(get_memval(s).is_err());
 
         let s = "5 1kb";
-        assert_eq!(true, get_memval(s).is_err());
+        assert!(get_memval(s).is_err());
 
         let s = "61k b";
-        assert_eq!(true, get_memval(s).is_err());
+        assert!(get_memval(s).is_err());
 
         let s = "8 8 k b";
-        assert_eq!(true, get_memval(s).is_err());
+        assert!(get_memval(s).is_err());
     }
 }

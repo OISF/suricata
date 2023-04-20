@@ -1900,7 +1900,7 @@ mod tests {
         assert_eq!(res_entry1.name, "data".as_bytes());
 
         let (_, res_rd) = nfs4_res_readdir_ok(&buf[8..]).unwrap();
-        assert_eq!(res_rd.eof, true);
+        assert!(res_rd.eof);
         assert_eq!(res_rd.listing, [Some(res_entry0), Some(res_entry1)]);
 
         let (_, response) = nfs4_res_readdir(&buf[4..]).unwrap();
