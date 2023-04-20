@@ -1869,7 +1869,7 @@ mod tests {
         assert_eq!(9, tx.opnum);
         assert_eq!(1, tx.first_request_seen);
         assert_eq!(1000, tx.stub_data_buffer_ts.len());
-        assert_eq!(true, tx.stub_data_buffer_reset_ts);
+        assert!(tx.stub_data_buffer_reset_ts);
     }
 
     #[test]

@@ -764,9 +764,9 @@ mod tests {
         match result {
             Ok((remainder, message)) => {
                 assert_eq!(message.message_type, MQTTTypeCode::PUBLISH);
-                assert_eq!(message.dup_flag, false);
+                assert!(!message.dup_flag);
                 assert_eq!(message.qos_level, 0);
-                assert_eq!(message.retain, false);
+                assert!(!message.retain);
                 assert_eq!(message.remaining_length, 35767);
                 assert_eq!(remainder.len(), 17);
             }
@@ -823,12 +823,12 @@ mod tests {
             Ok((remainder, message)) => {
                 assert_eq!(message.protocol_string, "MQTT");
                 assert_eq!(message.protocol_version, 5);
-                assert_eq!(message.username_flag, true);
-                assert_eq!(message.password_flag, true);
-                assert_eq!(message.will_retain, false);
+                assert!(message.username_flag);
+                assert!(message.password_flag);
+                assert!(!message.will_retain);
                 assert_eq!(message.will_qos, 0);
-                assert_eq!(message.will_flag, false);
-                assert_eq!(message.clean_session, true);
+                assert!(!message.will_flag);
+                assert!(message.clean_session);
                 assert_eq!(message.keepalive, 60);
                 assert_eq!(remainder.len(), 0);
             }
@@ -869,7 +869,7 @@ mod tests {
                     MQTTProperty::ASSIGNED_CLIENT_IDENTIFIER(client_identifier.to_string())
                 );
                 assert_eq!(message.return_code, 0);
-                assert_eq!(message.session_present, false);
+                assert!(!message.session_present);
                 assert_eq!(remainder.len(), 0);
             }
 
@@ -1118,9 +1118,9 @@ mod tests {
         match result {
             Ok((remainder, message)) => {
                 assert_eq!(message.header.message_type, MQTTTypeCode::CONNECT);
-                assert_eq!(message.header.dup_flag, false);
+                assert!(!message.header.dup_flag);
                 assert_eq!(message.header.qos_level, 0);
-                assert_eq!(message.header.retain, false);
+                assert!(!message.header.retain);
                 assert_eq!(remainder.len(), 49);
             }
 

@@ -620,22 +620,19 @@ mod tests {
 
     #[test]
     fn test_parser_string_invalid() {
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, string decimal"
             )
             .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, string hexadecimal"
             )
             .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, string octal"
             )
@@ -646,73 +643,61 @@ mod tests {
     #[test]
     // bytes must be between 1 and 10; when combined with rshift/lshift, must be 4 or less
     fn test_parser_bytes_invalid() {
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 0, offset 3933, oper +, rvalue myrvalue, result foo").is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 11, offset 3933, oper +, rvalue myrvalue, result foo").is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 5, offset 3933, oper >>, rvalue myrvalue, result foo").is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 5, offset 3933, oper <<, rvalue myrvalue, result foo").is_err()
         );
     }
 
     #[test]
     fn test_parser_bitmask_invalid() {
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, bitmask 0x")
                 .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, bitmask x12345678"
             )
             .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, bitmask X12345678"
             )
             .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, bitmask 0x123456789012"
             )
             .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, bitmask 0q")
                 .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, bitmask maple"
             )
             .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, bitmask 0xGHIJKLMN"
             )
             .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, bitmask #*#*@-"
             )
@@ -833,15 +818,13 @@ mod tests {
 
     #[test]
     fn test_parser_endian_invalid() {
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, endian bigger"
             )
             .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, endian smaller"
             )
@@ -849,22 +832,19 @@ mod tests {
         );
 
         // endianess can only be specified once
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, endian big, dce"
             )
             .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, endian small, endian big"
             )
             .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, endian small, dce"
             )
@@ -946,28 +926,22 @@ mod tests {
 
     #[test]
     fn test_parser_oper_invalid() {
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset 0, oper !, rvalue myvalue, result foo").is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset 0, oper ^, rvalue myvalue, result foo").is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset 0, oper <>, rvalue myvalue, result foo").is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset 0, oper ><, rvalue myvalue, result foo").is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset 0, oper <, rvalue myvalue, result foo").is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset 0, oper >, rvalue myvalue, result foo").is_err()
         );
     }
@@ -1017,8 +991,7 @@ mod tests {
 
     #[test]
     fn test_parser_rvalue_invalid() {
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset 47303, oper *, rvalue 4294967296, result foo").is_err()
         );
     }
@@ -1061,89 +1034,77 @@ mod tests {
     #[test]
     // offset: numeric values must be between -65535 and 65535
     fn test_parser_offset_invalid() {
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset -70000, oper *, rvalue myvalue, result foo").is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset 70000, oper +, rvalue myvalue, result foo").is_err()
         );
     }
 
     #[test]
     fn test_parser_incomplete_args() {
-        assert_eq!(true, parse_bytemath("").is_err());
-        assert_eq!(true, parse_bytemath("bytes 4").is_err());
-        assert_eq!(true, parse_bytemath("bytes 4, offset 0").is_err());
-        assert_eq!(true, parse_bytemath("bytes 4, offset 0, oper <<").is_err());
+        assert!(parse_bytemath("").is_err());
+        assert!(parse_bytemath("bytes 4").is_err());
+        assert!(parse_bytemath("bytes 4, offset 0").is_err());
+        assert!(parse_bytemath("bytes 4, offset 0, oper <<").is_err());
     }
 
     #[test]
     fn test_parser_missing_required() {
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("endian big, offset 3933, oper +, rvalue myrvalue, result foo").is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, endian big, oper +, rvalue myrvalue, result foo,").is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset 3933, endian big, rvalue myrvalue, result foo")
                 .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset 3933, oper +, endian big, result foo").is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset 3933, oper +, rvalue myrvalue, endian big").is_err()
         );
     }
 
     #[test]
     fn test_parser_invalid_args() {
-        assert_eq!(true, parse_bytemath("monkey banana").is_err());
-        assert_eq!(true, parse_bytemath("bytes nan").is_err());
-        assert_eq!(true, parse_bytemath("bytes 4, offset nan").is_err());
-        assert_eq!(true, parse_bytemath("bytes 4, offset 0, three 3, four 4, five 5, six 6, seven 7, eight 8, nine 9, ten 10, eleven 11").is_err());
-        assert_eq!(
-            true,
+        assert!(parse_bytemath("monkey banana").is_err());
+        assert!(parse_bytemath("bytes nan").is_err());
+        assert!(parse_bytemath("bytes 4, offset nan").is_err());
+        assert!(parse_bytemath("bytes 4, offset 0, three 3, four 4, five 5, six 6, seven 7, eight 8, nine 9, ten 10, eleven 11").is_err());
+        assert!(
             parse_bytemath("bytes 4, offset 0, oper ><, rvalue myrvalue").is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath("bytes 4, offset 0, oper +, rvalue myrvalue, endian endian").is_err()
         );
     }
     #[test]
     fn test_parser_multiple() {
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, bytes 4, offset 0, oper +, rvalue myrvalue, result myresult, endian big"
             )
             .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 0, offset 0, oper +, rvalue myrvalue, result myresult, endian big"
             )
             .is_err()
         );
-        assert_eq!(
-            true,
+        assert!(
             parse_bytemath(
                 "bytes 4, offset 0, oper +, oper +, rvalue myrvalue, result myresult, endian big"
             )
             .is_err()
         );
-        assert_eq!(true, parse_bytemath("bytes 4, offset 0, oper +, rvalue myrvalue, rvalue myrvalue, result myresult, endian big").is_err());
-        assert_eq!(true, parse_bytemath("bytes 4, offset 0, oper +, rvalue myrvalue, result myresult, result myresult, endian big").is_err());
-        assert_eq!(true, parse_bytemath("bytes 4, offset 0, oper +, rvalue myrvalue, result myresult, endian big, endian big").is_err());
+        assert!(parse_bytemath("bytes 4, offset 0, oper +, rvalue myrvalue, rvalue myrvalue, result myresult, endian big").is_err());
+        assert!(parse_bytemath("bytes 4, offset 0, oper +, rvalue myrvalue, result myresult, result myresult, endian big").is_err());
+        assert!(parse_bytemath("bytes 4, offset 0, oper +, rvalue myrvalue, result myresult, endian big, endian big").is_err());
     }
 }

@@ -200,7 +200,7 @@ mod tests {
                 assert_eq!(response.attr_follows, 1);
                 assert_eq!(response.attr_blob.len(), 68);
                 assert_eq!(response.count, response.data_len);
-                assert_eq!(response.eof, false);
+                assert!(!response.eof);
                 assert_eq!(response.data_len, 11);
                 assert_eq!(response.data, &buf[76..87]);
             }
