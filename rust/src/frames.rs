@@ -33,7 +33,6 @@ extern {
     ) -> *const CFrame;
     fn AppLayerFrameAddEventById(flow: *const Flow, dir: i32, id: i64, event: u8);
     fn AppLayerFrameSetLengthById(flow: *const Flow, dir: i32, id: i64, len: i64);
-    fn AppLayerFrameSetTxIdById(flow: *const Flow, dir: i32, id: i64, tx_id: u64);
     fn AppLayerFrameGetId(frame: *const CFrame) -> i64;
 }
 
@@ -97,13 +96,6 @@ impl Frame {
     pub fn set_len(&self, flow: *const Flow, len: i64) {
         unsafe {
             AppLayerFrameSetLengthById(flow, self.direction(), self.id, len);
-        };
-    }
-
-    #[allow(clippy::not_unsafe_ptr_arg_deref)]
-    pub fn set_tx(&self, flow: *const Flow, tx_id: u64) {
-        unsafe {
-            AppLayerFrameSetTxIdById(flow, self.direction(), self.id, tx_id);
         };
     }
 

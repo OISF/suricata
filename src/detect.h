@@ -26,7 +26,6 @@
 
 #include "suricata-common.h"
 #include "flow.h"
-#include "app-layer-events.h"
 
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
@@ -1551,8 +1550,6 @@ void DetectMetadataHashFree(DetectEngineCtx *de_ctx);
 /* events */
 void DetectEngineSetEvent(DetectEngineThreadCtx *det_ctx, uint8_t e);
 AppLayerDecoderEvents *DetectEngineGetEvents(DetectEngineThreadCtx *det_ctx);
-int DetectEngineGetEventInfo(const char *event_name, int *event_id,
-                             AppLayerEventType *event_type);
 
 void DumpPatterns(DetectEngineCtx *de_ctx);
 

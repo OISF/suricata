@@ -19,8 +19,7 @@ use std::cmp::min;
 
 use crate::dhcp::dhcp::*;
 use nom7::bytes::streaming::take;
-use nom7::combinator::{complete, verify};
-use nom7::multi::many0;
+use nom7::combinator::verify;
 use nom7::number::streaming::{be_u16, be_u32, be_u8};
 use nom7::IResult;
 
@@ -194,12 +193,6 @@ pub fn parse_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
         DHCP_OPT_REBINDING_TIME => parse_address_time_option(i),
         _ => parse_generic_option(i),
     }
-}
-
-// Parse and return all the options. Upon the end of option indicator
-// all the data will be consumed.
-pub fn parse_all_options(i: &[u8]) -> IResult<&[u8], Vec<DHCPOption>> {
-    many0(complete(parse_option))(i)
 }
 
 pub fn dhcp_parse(input: &[u8]) -> IResult<&[u8], DHCPMessage> {

@@ -42,7 +42,7 @@ pub struct TelnetTransaction {
 }
 
 impl TelnetTransaction {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Default::default()
     }
 }

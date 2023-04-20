@@ -141,3 +141,41 @@ void AppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events)
     }
 }
 
+SCEnumCharMap det_ctx_event_table[] = {
+#ifdef UNITTESTS
+    { "TEST", DET_CTX_EVENT_TEST },
+#endif
+    { "NO_MEMORY", FILE_DECODER_EVENT_NO_MEM },
+    { "INVALID_SWF_LENGTH", FILE_DECODER_EVENT_INVALID_SWF_LENGTH },
+    { "INVALID_SWF_VERSION", FILE_DECODER_EVENT_INVALID_SWF_VERSION },
+    { "Z_DATA_ERROR", FILE_DECODER_EVENT_Z_DATA_ERROR },
+    { "Z_STREAM_ERROR", FILE_DECODER_EVENT_Z_STREAM_ERROR },
+    { "Z_BUF_ERROR", FILE_DECODER_EVENT_Z_BUF_ERROR },
+    { "Z_UNKNOWN_ERROR", FILE_DECODER_EVENT_Z_UNKNOWN_ERROR },
+    { "LZMA_IO_ERROR", FILE_DECODER_EVENT_LZMA_IO_ERROR },
+    { "LZMA_HEADER_TOO_SHORT_ERROR", FILE_DECODER_EVENT_LZMA_HEADER_TOO_SHORT_ERROR },
+    { "LZMA_DECODER_ERROR", FILE_DECODER_EVENT_LZMA_DECODER_ERROR },
+    { "LZMA_MEMLIMIT_ERROR", FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR },
+    { "LZMA_XZ_ERROR", FILE_DECODER_EVENT_LZMA_XZ_ERROR },
+    { "LZMA_UNKNOWN_ERROR", FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR },
+    {
+            "TOO_MANY_BUFFERS",
+            DETECT_EVENT_TOO_MANY_BUFFERS,
+    },
+    { NULL, -1 },
+};
+
+int DetectEngineGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type)
+{
+    *event_id = SCMapEnumNameToValue(event_name, det_ctx_event_table);
+    if (*event_id == -1) {
+        SCLogError("event \"%s\" not present in "
+                   "det_ctx's enum map table.",
+                event_name);
+        /* this should be treated as fatal */
+        return -1;
+    }
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+
+    return 0;
+}

@@ -24,12 +24,14 @@ use crate::debug_validate_fail;
 /// Opaque C types.
 pub enum DetectEngineState {}
 pub enum AppLayerDecoderEvents {}
-pub enum AppLayerParserState {}
 
-// From app-layer-events.h
-pub type AppLayerEventType = std::os::raw::c_int;
-pub const APP_LAYER_EVENT_TYPE_TRANSACTION : i32 = 1;
-pub const APP_LAYER_EVENT_TYPE_PACKET      : i32 = 2;
+#[repr(C)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[allow(non_camel_case_types)]
+pub enum AppLayerEventType {
+    APP_LAYER_EVENT_TYPE_TRANSACTION = 1,
+    APP_LAYER_EVENT_TYPE_PACKET = 2,
+}
 
 pub const STREAM_START:    u8 = 0x01;
 pub const STREAM_EOF:      u8 = 0x02;
