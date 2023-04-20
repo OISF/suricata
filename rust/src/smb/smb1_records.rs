@@ -821,9 +821,6 @@ impl<'a> SmbRecord<'a> {
     pub fn has_unicode_support(&self) -> bool {
         self.flags2 & 0x8000_u16 != 0
     }
-    pub fn is_dos_error(&self) -> bool {
-        self.flags2 & 0x4000_u16 != 0
-    }
 
     /// Return true if record is a request.
     pub fn is_request(&self) -> bool {

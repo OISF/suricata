@@ -98,7 +98,6 @@ impl PgsqlTransaction {
 pub enum PgsqlStateProgress {
     IdleState,
     SSLRequestReceived,
-    SSLAcceptedReceived,
     SSLRejectedReceived,
     StartupMessageReceived,
     SASLAuthenticationReceived,
@@ -119,6 +118,7 @@ pub enum PgsqlStateProgress {
     CommandCompletedReceived,
     ErrorMessageReceived,
     ConnectionTerminated,
+    #[cfg(test)]
     UnknownState,
     Finished,
 }
@@ -244,7 +244,6 @@ impl PgsqlState {
     /// responses, we must track State progress to decide on tx completion
     fn is_tx_completed(&self) -> bool {
         if let PgsqlStateProgress::ReadyForQueryReceived
-        | PgsqlStateProgress::SSLAcceptedReceived
         | PgsqlStateProgress::SSLRejectedReceived
         | PgsqlStateProgress::SimpleAuthenticationReceived
         | PgsqlStateProgress::SASLAuthenticationReceived

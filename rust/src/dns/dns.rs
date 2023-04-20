@@ -104,7 +104,7 @@ pub const DNS_RCODE_NOTZONE: u16 = 10;
 // Support for OPT RR from RFC6891 will be needed to
 // parse RCODE values over 15
 pub const DNS_RCODE_BADVERS: u16 = 16;
-pub const DNS_RCODE_BADSIG: u16 = 16;
+//also pub const DNS_RCODE_BADSIG: u16 = 16;
 pub const DNS_RCODE_BADKEY: u16 = 17;
 pub const DNS_RCODE_BADTIME: u16 = 18;
 pub const DNS_RCODE_BADMODE: u16 = 19;

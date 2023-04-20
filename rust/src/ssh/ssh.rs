@@ -92,12 +92,6 @@ pub struct SSHTransaction {
     tx_data: AppLayerTxData,
 }
 
-impl SSHTransaction {
-    pub fn new() -> SSHTransaction {
-        Default::default()
-    }
-}
-
 #[derive(Default)]
 pub struct SSHState {
     state_data: AppLayerStateData,

@@ -57,12 +57,6 @@ pub struct Response {
     pub body_len: u16,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub enum Method {
-    Register,
-    Custom(String),
-}
-
 #[inline]
 fn is_token_char(b: u8) -> bool {
     is_alphanumeric(b) || b"!%'*+-._`".contains(&b)
