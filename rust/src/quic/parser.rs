@@ -40,7 +40,6 @@ use std::convert::TryFrom;
 pub struct QuicVersion(pub u32);
 
 impl QuicVersion {
-    pub const Q039: QuicVersion = QuicVersion(0x51303339);
     pub const Q043: QuicVersion = QuicVersion(0x51303433);
     pub const Q044: QuicVersion = QuicVersion(0x51303434);
     pub const Q045: QuicVersion = QuicVersion(0x51303435);

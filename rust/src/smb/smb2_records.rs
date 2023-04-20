@@ -66,10 +66,6 @@ pub struct Smb2Record<'a> {
 }
 
 impl<'a> Smb2Record<'a> {
-    pub fn is_async(&self) -> bool {
-        self.async_id != 0
-    }
-
     pub fn is_request(&self) -> bool {
         self.direction == 0
     }
