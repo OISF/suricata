@@ -63,7 +63,7 @@ pub enum ByteMathOperator {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 // endian <big|little|dce>
 pub enum ByteMathEndian {
-    EndianNone = 0,
+    _EndianNone = 0,
     BigEndian = 1,
     LittleEndian = 2,
     EndianDCE = 3,
@@ -73,7 +73,7 @@ pub const DETECT_BYTEMATH_ENDIAN_DEFAULT: ByteMathEndian = ByteMathEndian::BigEn
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ByteMathBase {
-    BaseNone = 0,
+    _BaseNone = 0,
     BaseOct = 8,
     BaseDec = 10,
     BaseHex = 16,

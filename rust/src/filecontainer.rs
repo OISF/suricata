@@ -27,26 +27,6 @@ extern {
 pub const FILE_USE_DETECT:    u16 = BIT_U16!(13);
 
 
-// Generic file structure, so it can be used by different protocols
-#[derive(Debug, Default)]
-pub struct Files {
-    pub files_ts: FileContainer,
-    pub files_tc: FileContainer,
-    pub flags_ts: u16,
-    pub flags_tc: u16,
-}
-
-impl Files {
-    pub fn get(&mut self, direction: Direction) -> (&mut FileContainer, u16)
-    {
-        if direction == Direction::ToServer {
-            (&mut self.files_ts, self.flags_ts)
-        } else {
-            (&mut self.files_tc, self.flags_tc)
-        }
-    }
-}
-
 #[repr(C)]
 #[derive(Debug)]
 pub struct FileContainer {

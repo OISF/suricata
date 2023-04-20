@@ -99,7 +99,7 @@ pub enum T123TpktChild {
 pub enum X224Type {
     ConnectionConfirm = 0xd,
     ConnectionRequest = 0xe,
-    Data = 0xf,
+    _Data = 0xf,
 }
 
 /// x.224-spec, section 13.3

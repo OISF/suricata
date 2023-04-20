@@ -25,13 +25,14 @@ use crate::core::*;
 #[repr(C)]
 pub enum Level {
     NotSet = -1,
-    None = 0,
+    _None = 0,
     Error,
-    Warning,
+    _Warning,
     Notice,
     Info,
-    Perf,
+    _Perf,
     Config,
+    #[cfg(feature = "debug")]
     Debug,
 }
 
