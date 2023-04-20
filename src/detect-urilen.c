@@ -154,8 +154,7 @@ void DetectUrilenApplyToContent(Signature *s, int list)
         uint16_t high = UINT16_MAX;
         bool found = false;
 
-        SigMatch *sm = s->init_data->buffers[x].head;
-        for (; sm != NULL; sm = sm->next) {
+        for (SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_AL_URILEN)
                 continue;
 
@@ -194,8 +193,7 @@ void DetectUrilenApplyToContent(Signature *s, int list)
 
         SCLogDebug("high %u", high);
 
-        sm = s->init_data->smlists[list];
-        for (; sm != NULL; sm = sm->next) {
+        for (SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT) {
                 continue;
             }
@@ -220,8 +218,7 @@ bool DetectUrilenValidateContent(const Signature *s, int list, const char **sige
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         if (s->init_data->buffers[x].id != (uint32_t)list)
             continue;
-        const SigMatch *sm = s->init_data->buffers[x].head;
-        for (; sm != NULL; sm = sm->next) {
+        for (const SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT) {
                 continue;
             }
