@@ -41,12 +41,6 @@ pub struct TelnetTransaction {
     tx_data: AppLayerTxData,
 }
 
-impl TelnetTransaction {
-    fn new() -> Self {
-        Default::default()
-    }
-}
-
 impl Transaction for TelnetTransaction {
     fn id(&self) -> u64 {
         self.tx_id
@@ -132,13 +126,6 @@ impl TelnetState {
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&TelnetTransaction> {
         self.transactions.iter().find(|tx| tx.tx_id == tx_id + 1)
-    }
-
-    fn _new_tx(&mut self) -> TelnetTransaction {
-        let mut tx = TelnetTransaction::new();
-        self.tx_id += 1;
-        tx.tx_id = self.tx_id;
-        return tx;
     }
 
     fn _find_request(&mut self) -> Option<&mut TelnetTransaction> {
