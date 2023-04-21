@@ -688,8 +688,8 @@ static void PrintUsage(const char *progname)
 
 static void PrintBuildInfo(void)
 {
-    const char *bits = "<unknown>-bits";
-    const char *endian = "<unknown>-endian";
+    const char *bits;
+    const char *endian;
     char features[2048] = "";
     const char *tls;
 
@@ -821,12 +821,16 @@ static void PrintBuildInfo(void)
     bits = "64-bits";
 #elif __WORDSIZE == 32
     bits = "32-bits";
+#else
+    bits = "<unknown>-bits";
 #endif
 
 #if __BYTE_ORDER == __BIG_ENDIAN
     endian = "Big-endian";
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
     endian = "Little-endian";
+#else
+    endian = "<unknown>-endian";
 #endif
 
     printf("%s, %s architecture\n", bits, endian);
