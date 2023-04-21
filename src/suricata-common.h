@@ -36,6 +36,12 @@
 #define _GNU_SOURCE
 #define __USE_GNU
 
+#if defined(__clang_analyzer__)
+/* clang analyzer acts as DEBUG_VALIDATION in some places, so
+ * force this so #ifdef DEBUG_VALIDATION code gets included */
+#define DEBUG_VALIDATION 1
+#endif
+
 #if HAVE_CONFIG_H
 #include <autoconf.h>
 #endif
