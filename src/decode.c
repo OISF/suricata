@@ -740,7 +740,7 @@ inline int PacketSetData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
 
 const char *PktSrcToString(enum PktSrcEnum pkt_src)
 {
-    const char *pkt_src_str = "<unknown>";
+    const char *pkt_src_str = NULL;
     switch (pkt_src) {
         case PKT_SRC_WIRE:
             pkt_src_str = "wire/pcap";
@@ -779,6 +779,7 @@ const char *PktSrcToString(enum PktSrcEnum pkt_src)
             pkt_src_str = "capture timeout flush";
             break;
     }
+    DEBUG_VALIDATE_BUG_ON(pkt_src_str == NULL);
     return pkt_src_str;
 }
 
