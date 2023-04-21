@@ -1233,6 +1233,11 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     return retval;
 }
 
+#define NO_TX                                                                                      \
+    {                                                                                              \
+        NULL, 0, NULL, NULL, 0, 0, 0, 0, 0,                                                        \
+    }
+
 /** \internal
  *  \brief get a DetectTransaction object
  *  \retval struct filled with relevant info or all nulls/0s
@@ -1241,34 +1246,24 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         void *alstate, const uint64_t tx_id, void *tx_ptr, const int tx_end_state,
         const uint8_t flow_flags)
 {
-    uint64_t detect_flags;
     AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx_ptr);
-    if (likely(txd != NULL)) {
-        detect_flags = (flow_flags & STREAM_TOSERVER) ? txd->detect_flags_ts : txd->detect_flags_tc;
-    } else {
-        detect_flags = 0;
+    if (unlikely(txd == NULL)) {
+        DetectTransaction no_tx = NO_TX;
+        return no_tx;
     }
+    uint64_t detect_flags =
+            (flow_flags & STREAM_TOSERVER) ? txd->detect_flags_ts : txd->detect_flags_tc;
     if (detect_flags & APP_LAYER_TX_INSPECTED_FLAG) {
         SCLogDebug("%"PRIu64" tx already fully inspected for %s. Flags %016"PRIx64,
                 tx_id, flow_flags & STREAM_TOSERVER ? "toserver" : "toclient",
                 detect_flags);
-        DetectTransaction no_tx = { NULL, 0, NULL, NULL, 0, 0, 0, 0, 0, };
+        DetectTransaction no_tx = NO_TX;
         return no_tx;
     }
     if (detect_flags & APP_LAYER_TX_SKIP_INSPECT_FLAG) {
         SCLogDebug("%" PRIu64 " tx should not be inspected in direction %s. Flags %016" PRIx64,
                 tx_id, flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
-        DetectTransaction no_tx = {
-            NULL,
-            0,
-            NULL,
-            NULL,
-            0,
-            0,
-            0,
-            0,
-            0,
-        };
+        DetectTransaction no_tx = NO_TX;
         return no_tx;
     }
 
