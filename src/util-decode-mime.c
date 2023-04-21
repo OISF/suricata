@@ -180,27 +180,21 @@ void MimeDecFreeEntity (MimeDecEntity *entity)
     MimeDecEntity *lastSibling = findLastSibling(entity);
     while (entity != NULL)
     {
-        /**
-         * Move child to next
-         * Transform tree into list
-         */
-        if (entity->child != NULL)
-        {
+        /* move child to next to transform the tree into a list */
+        if (entity->child != NULL) {
             lastSibling->next = entity->child;
+            entity->child = NULL;
             lastSibling = findLastSibling(lastSibling);
         }
 
-        /**
-         * Move to next element
-         */
-        MimeDecEntity *old = entity;
-        entity = entity->next;
-
-        MimeDecFreeField(old->field_list);
-        MimeDecFreeUrl(old->url_list);
-        SCFree(old->filename);
-
-        SCFree(old);
+        MimeDecEntity *next = entity->next;
+        DEBUG_VALIDATE_BUG_ON(
+                (next != NULL && entity == lastSibling) || (next == NULL && entity != lastSibling));
+        MimeDecFreeField(entity->field_list);
+        MimeDecFreeUrl(entity->url_list);
+        SCFree(entity->filename);
+        SCFree(entity);
+        entity = next;
     }
 }
 
@@ -423,9 +417,13 @@ MimeDecEntity * MimeDecAddEntity(MimeDecEntity *parent)
  * \param vlen Length of the value
  *
  * \return The field or NULL if the operation fails
+ *
+ * name and val are passed as ptr to ptr and each will be set to NULL
+ * only if the pointer is consumed. This gives the caller an easy way
+ * to free the memory if not consumed.
  */
-static MimeDecField * MimeDecFillField(MimeDecEntity *entity, uint8_t *name,
-        uint32_t nlen, const uint8_t *value, uint32_t vlen)
+static MimeDecField *MimeDecFillField(
+        MimeDecEntity *entity, uint8_t **name, uint32_t nlen, uint8_t **value, uint32_t vlen)
 {
     if (nlen == 0 && vlen == 0)
         return NULL;
@@ -436,18 +434,21 @@ static MimeDecField * MimeDecFillField(MimeDecEntity *entity, uint8_t *name,
     }
 
     if (nlen > 0) {
-        /* convert to lowercase and store */
-        uint32_t u;
-        for (u = 0; u < nlen; u++)
-            name[u] = u8_tolower(name[u]);
+        uint8_t *n = *name;
 
-        field->name = (uint8_t *)name;
+        /* convert to lowercase and store */
+        for (uint32_t u = 0; u < nlen; u++)
+            n[u] = u8_tolower(n[u]);
+
+        field->name = (uint8_t *)n;
         field->name_len = nlen;
+        *name = NULL;
     }
 
     if (vlen > 0) {
-        field->value = (uint8_t *)value;
+        field->value = (uint8_t *)*value;
         field->value_len = vlen;
+        *value = NULL;
     }
 
     return field;
@@ -789,41 +790,38 @@ static uint8_t * GetToken(uint8_t *buf, uint32_t blen, const char *delims,
  */
 static int StoreMimeHeader(MimeDecParseState *state)
 {
-    int ret = MIME_DEC_OK, stored = 0;
-    uint8_t *val;
-    uint32_t vlen;
+    int ret = MIME_DEC_OK;
 
     /* Lets save the most recent header */
     if (state->hname != NULL || state->hvalue != NULL) {
         SCLogDebug("Storing last header");
-        val = GetFullValue(state->hvalue, &vlen);
+        uint32_t vlen;
+        uint8_t *val = GetFullValue(state->hvalue, &vlen);
         if (val != NULL) {
             if (state->hname == NULL) {
                 SCLogDebug("Error: Invalid parser state - header value without"
                         " name");
                 ret = MIME_DEC_ERR_PARSE;
+
             } else if (state->stack->top != NULL) {
                 /* Store each header name and value */
-                if (MimeDecFillField(state->stack->top->data, state->hname, state->hlen, val,
+                if (MimeDecFillField(state->stack->top->data, &state->hname, state->hlen, &val,
                             vlen) == NULL) {
                     ret = MIME_DEC_ERR_MEM;
-                } else {
-                    stored = 1;
                 }
             } else {
                 SCLogDebug("Error: Stack pointer missing");
                 ret = MIME_DEC_ERR_DATA;
             }
-        } else if (state->hvalue != NULL) {
-            /* Memory allocation must have failed since val is NULL */
-            ret = MIME_DEC_ERR_MEM;
+        } else {
+            if (state->hvalue != NULL) {
+                /* Memory allocation must have failed since val is NULL */
+                ret = MIME_DEC_ERR_MEM;
+            }
         }
 
-        /* Do cleanup here */
-        if (!stored) {
-            SCFree(state->hname);
-            SCFree(val);
-        }
+        SCFree(val);
+        SCFree(state->hname);
         state->hname = NULL;
         FreeDataValue(state->hvalue);
         state->hvalue = NULL;
