@@ -562,17 +562,12 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
     int32_t r_state = 0;
 
     if ((ctx->state_count < 32767) || construct_both_16_and_32_state_tables) {
-        ctx->state_table_u16 = SCMalloc(ctx->state_count *
-                                        sizeof(SC_AC_STATE_TYPE_U16) * 256);
+        ctx->state_table_u16 = SCCalloc(ctx->state_count, sizeof(*ctx->state_table_u16));
         if (ctx->state_table_u16 == NULL) {
             FatalError(SC_ERR_FATAL, "Error allocating memory");
         }
-        memset(ctx->state_table_u16, 0,
-               ctx->state_count * sizeof(SC_AC_STATE_TYPE_U16) * 256);
-
         mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size += (ctx->state_count *
-                                 sizeof(SC_AC_STATE_TYPE_U16) * 256);
+        mpm_ctx->memory_size += (ctx->state_count * sizeof(*ctx->state_table_u16));
 
         StateQueue q;
         memset(&q, 0, sizeof(StateQueue));
@@ -604,17 +599,12 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         /* create space for the state table.  We could have used the existing goto
          * table, but since we have it set to hold 32 bit state values, we will create
          * a new state table here of type SC_AC_STATE_TYPE(current set to uint16_t) */
-        ctx->state_table_u32 = SCMalloc(ctx->state_count *
-                                        sizeof(SC_AC_STATE_TYPE_U32) * 256);
+        ctx->state_table_u32 = SCCalloc(ctx->state_count, sizeof(*ctx->state_table_u32));
         if (ctx->state_table_u32 == NULL) {
             FatalError(SC_ERR_FATAL, "Error allocating memory");
         }
-        memset(ctx->state_table_u32, 0,
-               ctx->state_count * sizeof(SC_AC_STATE_TYPE_U32) * 256);
-
         mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size += (ctx->state_count *
-                                 sizeof(SC_AC_STATE_TYPE_U32) * 256);
+        mpm_ctx->memory_size += (ctx->state_count * sizeof(*ctx->state_table_u32));
 
         StateQueue q;
         memset(&q, 0, sizeof(StateQueue));
