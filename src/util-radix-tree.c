@@ -33,6 +33,7 @@
 #include "util-byte.h"
 #include "util-cidr.h"
 #include "util-print.h"
+#include "util-validate.h"
 
 /**
  * \brief Allocates and returns a new instance of SCRadixUserData.
@@ -587,6 +588,9 @@ static SCRadixNode *SCRadixAddKey(
     /* we need to keep a reference to the bottom-most node, that actually holds
      * the prefix */
     bottom_node = node;
+
+    DEBUG_VALIDATE_BUG_ON(bottom_node == NULL);
+    DEBUG_VALIDATE_BUG_ON(bottom_node->prefix == NULL);
 
     /* get the first bit position where the ips differ */
     check_bit = (node->bit < bitlen)? node->bit: bitlen;
