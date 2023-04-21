@@ -46,20 +46,10 @@ typedef struct SCSigSignatureWrapper_ {
     /* the wrapped signature */
     Signature *sig;
 
-    /* used as the lower limit SCSigSignatureWrapper that is used by the next
-     * ordering function, which will order the incoming Sigwrapper after this
-     * (min) wrapper */
-    struct SCSigSignatureWrapper_ *min;
-    /* used as the upper limit SCSigSignatureWrapper that is used by the next
-     * ordering function, which will order the incoming Sigwrapper below this
-     * (max) wrapper */
-    struct SCSigSignatureWrapper_ *max;
-
     /* user data that is to be associated with this sigwrapper */
     int user[SC_RADIX_USER_DATA_MAX];
 
     struct SCSigSignatureWrapper_ *next;
-    struct SCSigSignatureWrapper_ *prev;
 } SCSigSignatureWrapper;
 
 /**
