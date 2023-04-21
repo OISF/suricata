@@ -130,7 +130,7 @@ void StreamTcpIncrMemuse(uint64_t size)
 
 void StreamTcpDecrMemuse(uint64_t size)
 {
-#ifdef DEBUG_VALIDATION
+#if defined(DEBUG_VALIDATION) && defined(UNITTESTS)
     uint64_t presize = SC_ATOMIC_GET(st_memuse);
     if (RunmodeIsUnittests()) {
         BUG_ON(presize > UINT_MAX);
@@ -139,7 +139,7 @@ void StreamTcpDecrMemuse(uint64_t size)
 
     (void) SC_ATOMIC_SUB(st_memuse, size);
 
-#ifdef DEBUG_VALIDATION
+#if defined(DEBUG_VALIDATION) && defined(UNITTESTS)
     if (RunmodeIsUnittests()) {
         uint64_t postsize = SC_ATOMIC_GET(st_memuse);
         BUG_ON(postsize > presize);
