@@ -918,7 +918,9 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
             goto next_frame;
         }
 
-        const struct sockaddr_ll *sll = (const struct sockaddr_ll*)((uint8_t*)h.h2 + TPACKET_ALIGN(sizeof(struct tpacket2_hdr)));
+        const struct sockaddr_ll *sll =
+                (const struct sockaddr_ll *)((uint8_t *)h.h2 +
+                                             TPACKET_ALIGN(sizeof(struct tpacket2_hdr)));
         if (unlikely(AFPShouldIgnoreFrame(ptv, sll)))
             goto next_frame;
 
@@ -1014,7 +1016,8 @@ static inline int AFPWalkBlock(AFPThreadVars *ptv, struct tpacket_block_desc *pb
     uint8_t *ppd = (uint8_t *)pbd + pbd->hdr.bh1.offset_to_first_pkt;
 
     for (int i = 0; i < num_pkts; ++i) {
-        const struct sockaddr_ll *sll =  (const struct sockaddr_ll*)(ppd + TPACKET_ALIGN(sizeof(struct tpacket3_hdr)));
+        const struct sockaddr_ll *sll =
+                (const struct sockaddr_ll *)(ppd + TPACKET_ALIGN(sizeof(struct tpacket3_hdr)));
         if (unlikely(AFPShouldIgnoreFrame(ptv, sll))) {
             ppd = ppd + ((struct tpacket3_hdr *)ppd)->tp_next_offset;
             continue;
@@ -1907,7 +1910,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
     }
 
     /* ignore outgoing packets on loopback interfaces */
-    if ( if_flags & IFF_LOOPBACK )
+    if (if_flags & IFF_LOOPBACK)
         ptv->pkttype_filter_mask |= BIT_U32(PACKET_OUTGOING);
 
     if (ptv->promisc != 0) {
