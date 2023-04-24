@@ -19,6 +19,7 @@ use std;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::ffi::CString;
+use std::panic::catch_unwind;
 
 use crate::applayer::*;
 use crate::core::{self, *};
@@ -769,8 +770,10 @@ pub unsafe extern "C" fn rs_dns_parse_request(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
-    let state = cast_pointer!(state, DNSState);
-    state.parse_request_udp(flow, stream_slice);
+    let _ = catch_unwind(|| {
+        let state = cast_pointer!(state, DNSState);
+        state.parse_request_udp(flow, stream_slice);
+    });
     AppLayerResult::ok()
 }
 
@@ -779,8 +782,10 @@ pub unsafe extern "C" fn rs_dns_parse_response(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
-    let state = cast_pointer!(state, DNSState);
-    state.parse_response_udp(flow, stream_slice);
+    let _ = catch_unwind(|| {
+        let state = cast_pointer!(state, DNSState);
+        state.parse_response_udp(flow, stream_slice);
+    });
     AppLayerResult::ok()
 }
 
@@ -790,13 +795,18 @@ pub unsafe extern "C" fn rs_dns_parse_request_tcp(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
-    let state = cast_pointer!(state, DNSState);
-    if stream_slice.is_gap() {
-        state.request_gap(stream_slice.gap_size());
-    } else if !stream_slice.is_empty() {
-        return state.parse_request_tcp(flow, stream_slice);
+    match catch_unwind(|| {
+        let state = cast_pointer!(state, DNSState);
+        if stream_slice.is_gap() {
+            state.request_gap(stream_slice.gap_size());
+        } else if !stream_slice.is_empty() {
+            return state.parse_request_tcp(flow, stream_slice);
+        }
+        return AppLayerResult::ok();
+    }) {
+        Ok(result) => result,
+        Result::Err(_) => AppLayerResult::err(),
     }
-    AppLayerResult::ok()
 }
 
 #[no_mangle]
@@ -804,13 +814,21 @@ pub unsafe extern "C" fn rs_dns_parse_response_tcp(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
-    let state = cast_pointer!(state, DNSState);
-    if stream_slice.is_gap() {
-        state.response_gap(stream_slice.gap_size());
-    } else if !stream_slice.is_empty() {
-        return state.parse_response_tcp(flow, stream_slice);
+    match catch_unwind(|| {
+        let state = cast_pointer!(state, DNSState);
+        if stream_slice.is_gap() {
+            state.response_gap(stream_slice.gap_size());
+        } else if !stream_slice.is_empty() {
+            return state.parse_response_tcp(flow, stream_slice);
+        }
+        return AppLayerResult::ok();
+    }) {
+        Ok(result) => result,
+        Result::Err(_) => {
+	    println!("caught error!");
+	    return AppLayerResult::err();
+	}
     }
-    AppLayerResult::ok()
 }
 
 #[no_mangle]
@@ -938,24 +956,29 @@ pub unsafe extern "C" fn rs_dns_probe(
 pub unsafe extern "C" fn rs_dns_probe_tcp(
     _flow: *const core::Flow, direction: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
-    if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 + 2 {
-        return core::ALPROTO_UNKNOWN;
-    }
-    let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
-    //is_incomplete is checked by caller
-    let (is_dns, is_request, _) = probe_tcp(slice);
-    if is_dns {
-        let dir = if is_request {
-            Direction::ToServer
-        } else {
-            Direction::ToClient
-        };
-        if (direction & DIR_BOTH) != dir.into() {
-            *rdir = dir as u8;
+    match catch_unwind(|| {
+        if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 + 2 {
+            return core::ALPROTO_UNKNOWN;
         }
-        return ALPROTO_DNS;
+        let slice: &[u8] = std::slice::from_raw_parts(input as *mut u8, len as usize);
+        //is_incomplete is checked by caller
+        let (is_dns, is_request, _) = probe_tcp(slice);
+        if is_dns {
+            let dir = if is_request {
+                Direction::ToServer
+            } else {
+                Direction::ToClient
+            };
+            if (direction & DIR_BOTH) != dir.into() {
+                *rdir = dir as u8;
+            }
+            return ALPROTO_DNS;
+        }
+        return 0;
+    }) {
+        Ok(proto) => proto,
+        Result::Err(_) => ALPROTO_UNKNOWN,
     }
-    return 0;
 }
 
 #[no_mangle]
