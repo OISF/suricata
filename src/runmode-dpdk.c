@@ -201,7 +201,7 @@ static char *AllocAndSetOption(const char *arg)
 static void ArgumentsInit(struct Arguments *args, unsigned capacity)
 {
     SCEnter();
-    args->argv = SCCalloc(capacity, sizeof(ptrdiff_t)); // alloc array of pointers
+    args->argv = SCCalloc(capacity, sizeof(*args->argv)); // alloc array of pointers
     if (args->argv == NULL)
         FatalError("Could not allocate memory for Arguments structure");
 
@@ -275,7 +275,7 @@ static void InitEal(void)
     }
 
     // creating a shallow copy for cleanup because rte_eal_init changes array contents
-    eal_argv = SCMalloc(args.argc * sizeof(args.argv));
+    eal_argv = SCCalloc(args.argc, sizeof(*args.argv));
     if (eal_argv == NULL) {
         FatalError("Failed to allocate memory for the array of DPDK EAL arguments");
     }
