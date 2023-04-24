@@ -66,28 +66,26 @@ Exception policies are implemented for:
      - Expected behavior
    * - stream.memcap
      - memcap-policy
-     - If a stream memcap limit is reached, call the memcap policy on the packet
-       and flow.
+     - If a stream memcap limit is reached, apply the memcap policy to the packet and/or
+       flow.
    * - stream.midstream
      - midstream-policy
-     - If a session is picked up midstream, call the memcap policy on the packet
-       and flow.
+     - If a session is picked up midstream, apply the midstream policy to the flow.
    * - stream.reassembly.memcap
      - memcap-policy
-     - If stream reassembly reaches memcap limit, call the memcap policy on the
-       packet and flow.
+     - If stream reassembly reaches memcap limit, apply memcap policy to the
+       packet and/or flow.
    * - flow.memcap
      - memcap-policy
      - Apply policy when the memcap limit for flows is reached and no flow could
-       be freed up. Apply policy to the packet.
+       be freed up. **Policy can only be applied to the packet.**
    * - defrag.memcap
      - memcap-policy
      - Apply policy when the memcap limit for defrag is reached and no tracker
-       could be picked up. Apply policy to the packet.
+       could be picked up. **Policy can only be applied to the packet.**
    * - app-layer
      - error-policy
-     - Apply policy if a parser reaches an error state. Apply policy to the
-       packet and flow.
+     - Apply policy if a parser reaches an error state. Policy can be applied to packet and/or flow.
 
 To change any of these, go to the specific section in the suricata.yaml file
 (for more configuration details, check the :doc:`suricata.yaml's<suricata-yaml>`
