@@ -46,7 +46,7 @@
 SC_ATOMIC_DECLARE(uint32_t, srep_eversion);
 /** reputation version set to the host's reputation,
  *  this will be set to 1 before rep files are loaded,
- *  so hosts will always have a minial value of 1 */
+ *  so hosts will always have a minimal value of 1 */
 static uint32_t srep_version = 0;
 
 static uint32_t SRepIncrVersion(void)
@@ -167,7 +167,7 @@ uint8_t SRepCIDRGetIPRepDst(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint
 }
 
 /** \brief Increment effective reputation version after
- *         a rule/reputatio reload is complete. */
+ *         a rule/reputation reload is complete. */
 void SRepReloadComplete(void)
 {
     (void) SC_ATOMIC_ADD(srep_eversion, 1);
