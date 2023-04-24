@@ -520,7 +520,6 @@ static int DetectFastPatternTest14(void)
     Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int alertcnt = 0;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -548,9 +547,7 @@ static int DetectFastPatternTest14(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)){
-        alertcnt++;
-    }else{
+    if (!PacketAlertCheck(p, 1)) {
         SCLogInfo("could not match on sig 1 with when fast_pattern is inspecting payload");
         goto end;
     }
