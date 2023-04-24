@@ -482,11 +482,12 @@ void SCRadixReleaseRadixTree(SCRadixTree *tree)
  *                   this key
  * \param netmask    The netmask (cidr) if we are adding an IP netblock; 255
  *                   if we are not adding an IP netblock
+ * \param exclusive  True if the node should be added iff it doesn't exist.
  *
  * \retval node Pointer to the newly created node
  */
-static SCRadixNode *SCRadixAddKey(
-        uint8_t *key_stream, uint8_t key_bitlen, SCRadixTree *tree, void *user, uint8_t netmask)
+static SCRadixNode *SCRadixAddKeyInternal(uint8_t *key_stream, uint8_t key_bitlen,
+        SCRadixTree *tree, void *user, uint8_t netmask, bool exclusive)
 {
     SCRadixNode *node = NULL;
     SCRadixNode *new_node = NULL;
@@ -506,6 +507,7 @@ static SCRadixNode *SCRadixAddKey(
 
     if (tree == NULL) {
         SCLogError("Argument \"tree\" NULL");
+        sc_errno = SC_EINVAL;
         return NULL;
     }
 
@@ -518,18 +520,23 @@ static SCRadixNode *SCRadixAddKey(
         if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
                         netmask)) == NULL) {
             SCLogError("Error creating prefix");
+            sc_errno = SC_EINVAL;
             return NULL;
         }
         node = SCRadixCreateNode();
         if (node == NULL) {
             SCRadixReleasePrefix(prefix, tree);
+            sc_errno = SC_ENOMEM;
             return NULL;
         }
         node->prefix = prefix;
         node->bit = prefix->bitlen;
         tree->head = node;
-        if (netmask == 255 || (netmask == 32 && key_bitlen == 32) || (netmask == 128 && key_bitlen == 128))
+        if (netmask == 255 || (netmask == 32 && key_bitlen == 32) ||
+                (netmask == 128 && key_bitlen == 128)) {
+            sc_errno = SC_EINVAL;
             return node;
+        }
 
         /* if we have reached here, we are actually having a proper netblock in
          * our hand(i.e. < 32 for ipv4 and < 128 for ipv6).  Add the netmask for
@@ -545,6 +552,7 @@ static SCRadixNode *SCRadixAddKey(
             SCFree(node->netmasks);
             node->netmasks = NULL;
             SCLogError("Fatal error encountered in SCRadixAddKey. Mem not allocated");
+            sc_errno = SC_ENOMEM;
             return NULL;
         }
         node->netmasks = ptmp;
@@ -640,6 +648,11 @@ static SCRadixNode *SCRadixAddKey(
             if (SCRadixPrefixContainNetmask(node->prefix, netmask)) {
                 /* Basically we already have this stream prefix, as well as the
                  * netblock entry for this.  A perfect duplicate. */
+                if (exclusive) {
+                    SCLogDebug("not inserting since it already exists");
+                    sc_errno = SC_EEXIST;
+                    return NULL;
+                }
                 SCLogDebug("Duplicate entry for this ip address/netblock");
             } else {
                 /* Basically we already have this stream prefix, but we don't
@@ -672,6 +685,7 @@ static SCRadixNode *SCRadixAddKey(
                     SCFree(node->netmasks);
                     node->netmasks = NULL;
                     SCLogError("Fatal error encountered in SCRadixAddKey. Mem not allocated...");
+                    sc_errno = SC_ENOMEM;
                     return NULL;
                 }
                 node->netmasks = ptmp;
@@ -705,6 +719,7 @@ static SCRadixNode *SCRadixAddKey(
     if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
                     netmask)) == NULL) {
         SCLogError("Error creating prefix");
+        sc_errno = SC_EINVAL;
         return NULL;
     }
     new_node = SCRadixCreateNode();
@@ -754,6 +769,7 @@ static SCRadixNode *SCRadixAddKey(
                     SCLogError("Fatal error encountered in SCRadixAddKey. Mem not allocated...");
                     SCRadixReleaseNode(inter_node, tree);
                     SCRadixReleaseNode(new_node, tree);
+                    sc_errno = SC_ENOMEM;
                     return NULL;
                 }
 
@@ -822,6 +838,18 @@ static SCRadixNode *SCRadixAddKey(
     }
 
     return new_node;
+}
+
+static SCRadixNode *SCRadixAddKeyExclusive(
+        uint8_t *key_stream, uint8_t key_bitlen, SCRadixTree *tree, void *user, uint8_t netmask)
+{
+    return SCRadixAddKeyInternal(key_stream, key_bitlen, tree, user, netmask, true);
+}
+
+static SCRadixNode *SCRadixAddKey(
+        uint8_t *key_stream, uint8_t key_bitlen, SCRadixTree *tree, void *user, uint8_t netmask)
+{
+    return SCRadixAddKeyInternal(key_stream, key_bitlen, tree, user, netmask, false);
 }
 
 /**
@@ -959,9 +987,14 @@ SCRadixNode *SCRadixAddKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
  * \param user       Pointer to the user data that has to be associated with
  *                   the key
  *
- * \retval node Pointer to the newly created node
+ * \retval bool true (false) if the node was (wasn't) added.
+ *
+ * sc_errno is set:
+ * - SC_OK: Node added
+ * - SC_EEXIST: Node already exists
+ * - SC_EINVAL: Parameter value error
  */
-SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *user)
+bool SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *user)
 {
     uint32_t ip;
     uint8_t netmask = 32;
@@ -980,12 +1013,14 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
 
         /* Dotted type netmask not supported (yet) */
         if (strchr(mask_str, '.') != NULL) {
-            return NULL;
+            sc_errno = SC_EINVAL;
+            return false;
         }
 
         /* Get binary values for cidr mask */
         if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask_str, 0, 32) < 0) {
-            return NULL;
+            sc_errno = SC_EINVAL;
+            return false;
         }
 
         netmask = (uint8_t)cidr;
@@ -993,7 +1028,8 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
 
     /* Validate the IP */
     if (inet_pton(AF_INET, ip_str, &addr) <= 0) {
-        return NULL;
+        sc_errno = SC_EINVAL;
+        return false;
     }
     ip = addr.s_addr;
     if (netmask != 32) {
@@ -1009,7 +1045,14 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
         SCRadixValidateIPv4Key((uint8_t *)&ip, netmask);
 #endif
     }
-    return SCRadixAddKey((uint8_t *)&ip, 32, tree, user, netmask);
+
+    SCLogDebug("trying to add %s, but only if it doesn't exist", ip_str);
+    /* Add, but only if not there */
+    if (SCRadixAddKeyExclusive((uint8_t *)&ip, 32, tree, user, netmask) == NULL) {
+        return false;
+    }
+
+    return true;
 }
 
 /**
@@ -1020,9 +1063,13 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
  * \param user       Pointer to the user data that has to be associated with
  *                   the key
  *
- * \retval node Pointer to the newly created node
+ * \retval bool true (false) if the node was (wasn't) added.
+ * sc_errno is set:
+ * - SC_OK: Node added
+ * - SC_EEXIST: Node already exists
+ * - SC_EINVAL: Parameter value error
  */
-SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *user)
+bool SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *user)
 {
     uint8_t netmask = 128;
     char ip_str[80]; /* Max length for full ipv6/mask string with NUL */
@@ -1040,12 +1087,14 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
 
         /* Dotted type netmask not supported (yet) */
         if (strchr(mask_str, '.') != NULL) {
-            return NULL;
+            sc_errno = SC_EINVAL;
+            return false;
         }
 
         /* Get binary values for cidr mask */
         if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask_str, 0, 128) < 0) {
-            return NULL;
+            sc_errno = SC_EINVAL;
+            return false;
         }
 
         netmask = (uint8_t)cidr;
@@ -1053,7 +1102,8 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
 
     /* Validate the IP */
     if (inet_pton(AF_INET6, ip_str, &addr) <= 0) {
-        return NULL;
+        sc_errno = SC_EINVAL;
+        return false;
     }
 
     if (netmask != 128) {
@@ -1075,7 +1125,14 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
 #endif
     }
 
-    return SCRadixAddKey(addr.s6_addr, 128, tree, user, netmask);
+    SCLogDebug("trying to add %s, but only if it doesn't exist", str);
+    /* Add, but only if not there */
+    if (SCRadixAddKeyExclusive(addr.s6_addr, 128, tree, user, netmask) == NULL) {
+        return false;
+    }
+
+    sc_errno = SC_OK;
+    return true;
 }
 
 static void SCRadixTransferNetmasksBWNodes(SCRadixNode *dest, SCRadixNode *src)
