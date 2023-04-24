@@ -345,6 +345,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
     uint16_t nb_rx;
     time_t last_dump = 0;
     time_t current_time;
+    bool segmented_mbufs_warned = 0;
 
     DPDKThreadVars *ptv = (DPDKThreadVars *)data;
     TmSlot *s = (TmSlot *)slot;
@@ -407,6 +408,23 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
                         p->level4_comp_csum = 0;
                     }
                 }
+            }
+
+            if (!rte_pktmbuf_is_contiguous(p->dpdk_v.mbuf) && !segmented_mbufs_warned) {
+                char warn_s[] = "Segmented mbufs detected! Redmine Ticket #6012 "
+                                "Check your configuration or report the issue";
+                enum rte_proc_type_t eal_t = rte_eal_process_type();
+                if (eal_t == RTE_PROC_SECONDARY) {
+                    SCLogWarning("%s. To avoid segmented mbufs, "
+                                 "try to increase mbuf size in your primary application",
+                            warn_s);
+                } else if (eal_t == RTE_PROC_PRIMARY) {
+                    SCLogWarning("%s. To avoid segmented mbufs, "
+                                 "try to increase MTU in your suricata.yaml",
+                            warn_s);
+                }
+
+                segmented_mbufs_warned = 1;
             }
 
             PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
