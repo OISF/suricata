@@ -1,0 +1,70 @@
+name: Scan-build
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  scan-build:
+    name: Scan-build
+    runs-on: ubuntu-latest
+    container: ubuntu:23.04
+    steps:
+      - name: Cache scan-build
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: scan-build
+
+      - name: Install system packages
+        run: |
+          apt update
+          apt -y install \
+                libpcre2-dev \
+                build-essential \
+                autoconf \
+                automake \
+                cargo \
+                cbindgen \
+                clang-16 \
+                clang-tools-16 \
+                git \
+                jq \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libnuma-dev \
+                libhiredis-dev \
+                libhyperscan-dev \
+                liblua5.1-dev \
+                libjansson-dev \
+                libevent-dev \
+                libevent-pthreads-2.1-7 \
+                libjansson-dev \
+                llvm-16-dev \
+                make \
+                parallel \
+                python3-yaml \
+                rustc \
+                software-properties-common \
+                zlib1g \
+                zlib1g-dev
+      - uses: actions/checkout@v3.3.0
+      - run: ./scripts/bundle.sh
+      - run: ./autogen.sh
+      - run: scan-build-16 ./configure
+        env:
+          CC: clang-16
+      # exclude libhtp from the analysis
+      - run: scan-build-16 --status-bugs --exclude libhtp/ make
+        env:
+          CC: clang-16
