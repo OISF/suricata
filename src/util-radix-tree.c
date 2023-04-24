@@ -295,16 +295,14 @@ static int SCRadixPrefixNetmaskCount(SCRadixPrefix *prefix)
  *
  * \param prefix      Pointer to the ip prefix that is being checked.
  * \param netmask     The netmask value for which we will have to return the user_data
- * \param exact_match Bool flag which indicates if we should check if the prefix
+ * \param exact_match flag which indicates if we should check if the prefix
  *                    holds proper netblock(< 32 for ipv4 and < 128 for ipv6) or not.
  *
  * \retval 1 On match.
  * \retval 0 On no match.
  */
-static int SCRadixPrefixContainNetmaskAndSetUserData(SCRadixPrefix *prefix,
-                                                     uint16_t netmask,
-                                                     int exact_match,
-                                                     void **user_data_result)
+static int SCRadixPrefixContainNetmaskAndSetUserData(
+        SCRadixPrefix *prefix, uint16_t netmask, bool exact_match, void **user_data_result)
 {
     SCRadixUserData *user_data = NULL;
 
@@ -1449,7 +1447,8 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(
 
             if (key_bitlen % 8 == 0 ||
                 (node->prefix->stream[bytes] & mask) == (key_stream[bytes] & mask)) {
-                if (SCRadixPrefixContainNetmaskAndSetUserData(node->prefix, netmask_node->netmasks[j], 0, user_data_result))
+                if (SCRadixPrefixContainNetmaskAndSetUserData(
+                            node->prefix, netmask_node->netmasks[j], false, user_data_result))
                     return node;
             }
         }
@@ -1469,7 +1468,7 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(
  * \param netmask     Netmask used during exact match
  */
 static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint8_t key_bitlen, uint8_t netmask,
-        SCRadixTree *tree, int exact_match, void **user_data_result)
+        SCRadixTree *tree, bool exact_match, void **user_data_result)
 {
     if (tree == NULL || tree->head == NULL)
         return NULL;
@@ -1506,7 +1505,7 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint8_t key_bitlen, uint
         if (key_bitlen % 8 == 0 ||
             (node->prefix->stream[bytes] & mask) == (tmp_stream[bytes] & mask)) {
             if (SCRadixPrefixContainNetmaskAndSetUserData(
-                        node->prefix, netmask, 1, user_data_result)) {
+                        node->prefix, netmask, true, user_data_result)) {
                 return node;
             }
         }
@@ -1530,7 +1529,7 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint8_t key_bitlen, uint
  */
 SCRadixNode *SCRadixFindKeyIPV4ExactMatch(uint8_t *key_stream, SCRadixTree *tree, void **user_data_result)
 {
-    return SCRadixFindKey(key_stream, 32, 32, tree, 1, user_data_result);
+    return SCRadixFindKey(key_stream, 32, 32, tree, true, user_data_result);
 }
 
 /**
@@ -1542,7 +1541,7 @@ SCRadixNode *SCRadixFindKeyIPV4ExactMatch(uint8_t *key_stream, SCRadixTree *tree
  */
 SCRadixNode *SCRadixFindKeyIPV4BestMatch(uint8_t *key_stream, SCRadixTree *tree, void **user_data_result)
 {
-    return SCRadixFindKey(key_stream, 32, 32, tree, 0, user_data_result);
+    return SCRadixFindKey(key_stream, 32, 32, tree, false, user_data_result);
 }
 
 /**
@@ -1558,7 +1557,7 @@ SCRadixNode *SCRadixFindKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
 #if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
     SCRadixValidateIPv4Key(key_stream, netmask);
 #endif
-    SCRadixNode *node = SCRadixFindKey(key_stream, 32, netmask, tree, 1, user_data_result);
+    SCRadixNode *node = SCRadixFindKey(key_stream, 32, netmask, tree, true, user_data_result);
     return node;
 }
 
@@ -1575,7 +1574,7 @@ SCRadixNode *SCRadixFindKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
 #if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
     SCRadixValidateIPv6Key(key_stream, netmask);
 #endif
-    SCRadixNode *node = SCRadixFindKey(key_stream, 128, netmask, tree, 1, user_data_result);
+    SCRadixNode *node = SCRadixFindKey(key_stream, 128, netmask, tree, true, user_data_result);
     return node;
 }
 
@@ -1588,7 +1587,7 @@ SCRadixNode *SCRadixFindKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
  */
 SCRadixNode *SCRadixFindKeyIPV6ExactMatch(uint8_t *key_stream, SCRadixTree *tree, void **user_data_result)
 {
-    return SCRadixFindKey(key_stream, 128, 128, tree, 1, user_data_result);
+    return SCRadixFindKey(key_stream, 128, 128, tree, true, user_data_result);
 }
 
 /**
@@ -1600,7 +1599,7 @@ SCRadixNode *SCRadixFindKeyIPV6ExactMatch(uint8_t *key_stream, SCRadixTree *tree
  */
 SCRadixNode *SCRadixFindKeyIPV6BestMatch(uint8_t *key_stream, SCRadixTree *tree, void **user_data_result)
 {
-    return SCRadixFindKey(key_stream, 128, 128, tree, 0, user_data_result);
+    return SCRadixFindKey(key_stream, 128, 128, tree, false, user_data_result);
 }
 
 /**
