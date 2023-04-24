@@ -38,8 +38,8 @@
 #define SCFree free
 #define SCStrdup strdup
 #define SCStrndup strndup
-#define SCMallocAligned _mm_malloc
-#define SCFreeAligned _mm_free
+#define SCMallocAligned(size, align) malloc((size))
+#define SCFreeAligned                free
 #else /* CPPCHECK */
 
 
