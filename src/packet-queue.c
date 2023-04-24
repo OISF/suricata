@@ -166,6 +166,7 @@ static inline void PacketEnqueueDo(PacketQueue *q, Packet *p)
 
 void PacketEnqueueNoLock(PacketQueueNoLock *qnl, Packet *p)
 {
+    BUG_ON(p->pkt_src == 0);
     PacketQueue *q = (PacketQueue *)qnl;
     PacketEnqueueDo(q, p);
 }
@@ -206,7 +207,10 @@ static inline Packet *PacketDequeueDo (PacketQueue *q)
 Packet *PacketDequeueNoLock (PacketQueueNoLock *qnl)
 {
     PacketQueue *q = (PacketQueue *)qnl;
-    return PacketDequeueDo(q);
+    Packet *p = PacketDequeueDo(q);
+    if (p)
+        BUG_ON(p->pkt_src == 0);
+    return p;
 }
 
 Packet *PacketDequeue (PacketQueue *q)
