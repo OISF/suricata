@@ -46,7 +46,7 @@
 SC_ATOMIC_DECLARE(uint32_t, srep_eversion);
 /** reputation version set to the host's reputation,
  *  this will be set to 1 before rep files are loaded,
- *  so hosts will always have a minial value of 1 */
+ *  so hosts will always have a minimal value of 1 */
 static uint32_t srep_version = 0;
 
 static uint32_t SRepIncrVersion(void)
