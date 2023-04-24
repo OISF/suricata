@@ -1009,6 +1009,12 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
         SCRadixValidateIPv4Key((uint8_t *)&ip, netmask);
 #endif
     }
+
+    if (SCRadixFindKeyIPV4Netblock((uint8_t *)&ip, tree, netmask, NULL) != NULL) {
+        SCLogWarning("IP already added; skipping");
+        return NULL;
+    }
+
     return SCRadixAddKey((uint8_t *)&ip, 32, tree, user, netmask);
 }
 
@@ -1075,6 +1081,10 @@ SCRadixNode *SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *u
 #endif
     }
 
+    if (SCRadixFindKeyIPV6Netblock(addr.s6_addr, tree, netmask, NULL) != NULL) {
+        SCLogWarning("IP already added; skipping");
+        return NULL;
+    }
     return SCRadixAddKey(addr.s6_addr, 128, tree, user, netmask);
 }
 
