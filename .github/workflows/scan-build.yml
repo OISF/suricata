@@ -66,6 +66,27 @@ jobs:
         env:
           CC: clang-16
       # exclude libhtp from the analysis
-      - run: scan-build-16 --status-bugs --exclude libhtp/ make
+      - run: |
+          scan-build-16 --status-bugs --exclude libhtp/ \
+                -enable-checker valist.Uninitialized \
+                -enable-checker valist.CopyToSelf \
+                -enable-checker valist.Unterminated \
+                -enable-checker security.insecureAPI.bcmp \
+                -enable-checker security.insecureAPI.bcopy \
+                -enable-checker security.insecureAPI.bzero \
+                -enable-checker security.insecureAPI.rand \
+                -enable-checker security.insecureAPI.strcpy \
+                -enable-checker security.insecureAPI.decodeValueOfObjCType \
+                -enable-checker security.FloatLoopCounter \
+                -enable-checker optin.portability.UnixAPI \
+                -enable-checker optin.performance.GCDAntipattern \
+                -enable-checker nullability.NullableReturnedFromNonnull \
+                -enable-checker nullability.NullablePassedToNonnull \
+                -enable-checker nullability.NullableDereferenced \
+                \
+                -disable-checker security.insecureAPI.DeprecatedOrUnsafeBufferHandling \
+                -disable-checker optin.performance.Padding \
+                \
+                make
         env:
           CC: clang-16
