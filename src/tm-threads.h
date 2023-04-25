@@ -253,6 +253,10 @@ static inline void TmThreadsCaptureHandleTimeout(ThreadVars *tv, Packet *p)
         tv->tmqh_out(tv, p);
 }
 
+/**
+ * Note: Only ever called if tv->break_loop is true and
+ *   tm->PktAcqBreakLoop is set.
+ */
 static inline void TmThreadsCaptureBreakLoop(ThreadVars *tv)
 {
     if (unlikely(!tv->break_loop))
@@ -265,12 +269,9 @@ static inline void TmThreadsCaptureBreakLoop(ThreadVars *tv)
     TmSlot *s = tv->tm_slots;
     TmModule *tm = TmModuleGetById(s->tm_id);
     if (tm->flags & TM_FLAG_RECEIVE_TM) {
-        /* if the method supports it, BreakLoop. Otherwise we rely on
-         * the capture method's recv timeout */
         if (tm->PktAcqLoop && tm->PktAcqBreakLoop) {
             tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(s->slot_data));
         }
-        TmThreadsSetFlag(tv, THV_CAPTURE_INJECT_PKT);
     }
 }
 

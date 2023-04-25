@@ -2278,8 +2278,14 @@ retry:
         if (SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) == 1) {
             SCLogDebug("new_det_ctx - %p used by detect engine", new_det_ctx[i]);
             threads_done++;
-        } else if (detect_tvs[i]->break_loop) {
-            TmThreadsCaptureBreakLoop(detect_tvs[i]);
+        } else {
+            /* If the capture method supports it, BreakLoop, otherwise
+               rely on the capture method's receive timeout. */
+            if (detect_tvs[i]->break_loop) {
+                TmThreadsCaptureBreakLoop(detect_tvs[i]);
+            } else {
+                TmThreadsSetFlag(detect_tvs[i], THV_CAPTURE_INJECT_PKT);
+            }
         }
     }
     if (threads_done < no_of_detect_tvs) {
