@@ -5727,6 +5727,11 @@ int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn
 
 TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueueNoLock *pq)
 {
+    DEBUG_VALIDATE_BUG_ON(p->flow == NULL);
+    if (unlikely(p->flow == NULL)) {
+        return TM_ECODE_OK;
+    }
+
     StreamTcpThread *stt = (StreamTcpThread *)data;
 
     SCLogDebug("p->pcap_cnt %" PRIu64 " direction %s pkt_src %s", p->pcap_cnt,
@@ -5736,11 +5741,6 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueueNoLock *pq)
     t_pcapcnt = p->pcap_cnt;
 
     if (!(PKT_IS_TCP(p))) {
-        return TM_ECODE_OK;
-    }
-
-    if (p->flow == NULL) {
-        StatsIncr(tv, stt->counter_tcp_no_flow);
         return TM_ECODE_OK;
     }
 
@@ -5787,7 +5787,6 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_pseudo = StatsRegisterCounter("tcp.pseudo", tv);
     stt->counter_tcp_pseudo_failed = StatsRegisterCounter("tcp.pseudo_failed", tv);
     stt->counter_tcp_invalid_checksum = StatsRegisterCounter("tcp.invalid_checksum", tv);
-    stt->counter_tcp_no_flow = StatsRegisterCounter("tcp.no_flow", tv);
     stt->counter_tcp_syn = StatsRegisterCounter("tcp.syn", tv);
     stt->counter_tcp_synack = StatsRegisterCounter("tcp.synack", tv);
     stt->counter_tcp_rst = StatsRegisterCounter("tcp.rst", tv);
