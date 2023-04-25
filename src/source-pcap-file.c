@@ -32,7 +32,7 @@
 #include "runmode-unix-socket.h"
 #include "suricata.h"
 
-extern int max_pending_packets;
+extern intmax_t max_pending_packets;
 PcapFileGlobalVars pcap_g;
 
 /**
