@@ -259,6 +259,15 @@ int DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         return TM_ECODE_FAILED;
     }
 
+    /* update counters */
+    if ((p->tcph->th_flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
+        StatsIncr(tv, dtv->counter_tcp_synack);
+    } else if (p->tcph->th_flags & (TH_SYN)) {
+        StatsIncr(tv, dtv->counter_tcp_syn);
+    }
+    if (p->tcph->th_flags & (TH_RST)) {
+        StatsIncr(tv, dtv->counter_tcp_rst);
+    }
 #ifdef DEBUG
     SCLogDebug("TCP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 " %s%s%s%s%s%s",
         GET_TCP_SRC_PORT(p), GET_TCP_DST_PORT(p), TCP_GET_HLEN(p), len,
