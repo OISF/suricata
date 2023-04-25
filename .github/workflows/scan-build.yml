@@ -28,8 +28,8 @@ jobs:
                 cbindgen \
                 clang-16 \
                 clang-tools-16 \
+                dpdk-dev \
                 git \
-                jq \
                 libtool \
                 libpcap-dev \
                 libnet1-dev \
@@ -38,6 +38,7 @@ jobs:
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
+                libnetfilter-log-dev \
                 libnetfilter-queue-dev \
                 libnetfilter-queue1 \
                 libnfnetlink-dev \
@@ -50,9 +51,9 @@ jobs:
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
                 libjansson-dev \
+                liblz4-dev \
                 llvm-16-dev \
                 make \
-                parallel \
                 python3-yaml \
                 rustc \
                 software-properties-common \
@@ -61,7 +62,7 @@ jobs:
       - uses: actions/checkout@v3.3.0
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
-      - run: scan-build-16 ./configure
+      - run: scan-build-16 ./configure --enable-dpdk --enable-nfqueue --enable-nflog
         env:
           CC: clang-16
       # exclude libhtp from the analysis
