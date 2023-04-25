@@ -628,6 +628,7 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
         if (SetIfaceFlags(ptv->iface, IFF_PROMISC | IFF_UP) != 0) {
             SCLogError("Failed to switch interface (%s) to promiscuous, error %s", ptv->iface,
                     strerror(errno));
+            SCFree(ptv);
             SCReturnInt(TM_ECODE_FAILED);
         }
     }
@@ -672,10 +673,12 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
 
     /* Reserve memory for umem  */
     if (AcquireBuffer(ptv) != TM_ECODE_OK) {
+        SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     if (AFXDPSocketCreation(ptv) != TM_ECODE_OK) {
+        ReceiveAFXDPThreadDeinit(tv, ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
