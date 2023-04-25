@@ -438,7 +438,6 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         uint32_t cnt = 0;
         for (el = sgh->init->pkt_engines ; el != NULL; el = el->next) {
             cnt++;
-            de_ctx->prefilter_maxid = MAX(de_ctx->prefilter_maxid, el->gid);
         }
         sgh->pkt_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
         if (sgh->pkt_engines == NULL) {
@@ -463,7 +462,6 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         uint32_t cnt = 0;
         for (el = sgh->init->payload_engines ; el != NULL; el = el->next) {
             cnt++;
-            de_ctx->prefilter_maxid = MAX(de_ctx->prefilter_maxid, el->gid);
         }
         sgh->payload_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
         if (sgh->payload_engines == NULL) {
@@ -488,7 +486,6 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         uint32_t cnt = 0;
         for (el = sgh->init->tx_engines ; el != NULL; el = el->next) {
             cnt++;
-            de_ctx->prefilter_maxid = MAX(de_ctx->prefilter_maxid, el->gid);
         }
         sgh->tx_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
         if (sgh->tx_engines == NULL) {
@@ -565,7 +562,6 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         uint32_t cnt = 0;
         for (el = sgh->init->frame_engines; el != NULL; el = el->next) {
             cnt++;
-            de_ctx->prefilter_maxid = MAX(de_ctx->prefilter_maxid, el->gid);
         }
         sgh->frame_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
         if (sgh->frame_engines == NULL) {

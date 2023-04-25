@@ -852,8 +852,6 @@ typedef struct DetectEngineCtx_ {
     /* max flowbit id that is used */
     uint32_t max_fb_id;
 
-    uint32_t max_fp_id;
-
     MpmCtxFactoryContainer *mpm_ctx_factory_container;
 
     /* maximum recursion depth for content inspection */
@@ -909,8 +907,6 @@ typedef struct DetectEngineCtx_ {
     struct SCProfileSghDetectCtx_ *profile_sgh_ctx;
     uint32_t profile_match_logging_threshold;
 #endif
-    uint32_t prefilter_maxid;
-
     char config_prefix[64];
 
     enum DetectEngineType type;
