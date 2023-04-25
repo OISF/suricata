@@ -58,7 +58,7 @@
 
 #include "source-af-packet.h"
 
-extern int max_pending_packets;
+extern intmax_t max_pending_packets;
 
 const char *RunModeAFPGetDefaultMode(void)
 {
