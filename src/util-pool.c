@@ -101,6 +101,10 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,
         sc_errno = SC_EINVAL;
         goto error;
     }
+    if (elt_size == 0 && Alloc == NULL) {
+        sc_errno = SC_EINVAL;
+        goto error;
+    }
 
     /* setup the filter */
     p = SCMalloc(sizeof(Pool));

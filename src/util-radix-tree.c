@@ -133,7 +133,7 @@ static SCRadixPrefix *SCRadixCreatePrefix(uint8_t *key_stream,
 {
     SCRadixPrefix *prefix = NULL;
 
-    if ((key_bitlen % 8 != 0)) {
+    if (key_bitlen == 0 || (key_bitlen % 8 != 0)) {
         SCLogError("Invalid argument bitlen - %d", key_bitlen);
         return NULL;
     }
