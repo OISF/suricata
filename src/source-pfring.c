@@ -56,7 +56,7 @@ TmEcode DecodePfringThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodePfring(ThreadVars *, Packet *, void *);
 TmEcode DecodePfringThreadDeinit(ThreadVars *tv, void *data);
 
-extern int max_pending_packets;
+extern intmax_t max_pending_packets;
 
 #ifndef HAVE_PFRING
 

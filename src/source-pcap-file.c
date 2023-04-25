@@ -30,7 +30,7 @@
 #include "flow-manager.h"
 #include "util-checksum.h"
 
-extern int max_pending_packets;
+extern intmax_t max_pending_packets;
 PcapFileGlobalVars pcap_g;
 
 /**

@@ -97,7 +97,7 @@ TmEcode NoIPFWSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #else /* We have IPFW compiled in */
 
-extern int max_pending_packets;
+extern intmax_t max_pending_packets;
 
 /**
  * \brief Structure to hold thread specific variables.

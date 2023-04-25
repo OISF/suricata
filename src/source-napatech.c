@@ -77,7 +77,7 @@ TmEcode NoNapatechSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #include <numa.h>
 #include <nt.h>
 
-extern int max_pending_packets;
+extern intmax_t max_pending_packets;
 
 typedef struct NapatechThreadVars_
 {
