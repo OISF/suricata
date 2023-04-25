@@ -1139,6 +1139,15 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
     SCEnter();
     SMTPTransaction *tx = state->curr_tx;
 
+    state->toserver_data_count += (line->len + line->delim_len);
+
+    /* If current input is to be discarded because it completes a long line,
+     * line's length and delimeter len are reset to 0. Skip processing this line.
+     * This line is only to get us out of the state where we should discard any
+     * data till LF. */
+    if (line->len == 0 && line->delim_len == 0) {
+        return 0;
+    }
     if (state->curr_tx == NULL || (state->curr_tx->done && !NoNewTx(state, line))) {
         tx = SMTPTransactionCreate();
         if (tx == NULL)
@@ -1152,8 +1161,6 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
         StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER,
                 smtp_config.content_inspect_min_size);
     }
-
-    state->toserver_data_count += (line->len + line->delim_len);
 
     if (!(state->parser_state & SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         SMTPSetEvent(state, SMTP_DECODER_EVENT_NO_SERVER_WELCOME_MESSAGE);
