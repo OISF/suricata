@@ -1051,6 +1051,13 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
     SCEnter();
     SMTPTransaction *tx = state->curr_tx;
 
+    /* If current input is to be discarded because it completes a long line,
+     * line's length and delimeter len are reset to 0. Skip processing this line.
+     * This line is only to get us out of the state where we should discard any
+     * data till LF. */
+    if (state->current_line_len == 0 && state->current_line_delimiter_len == 0) {
+        return 0;
+    }
     if (state->curr_tx == NULL || (state->curr_tx->done && !NoNewTx(state))) {
         tx = SMTPTransactionCreate();
         if (tx == NULL)
