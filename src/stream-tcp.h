@@ -93,12 +93,6 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_invalid_checksum;
     /** sessions reused */
     uint16_t counter_tcp_reused_ssn;
-    /** syn pkts */
-    uint16_t counter_tcp_syn;
-    /** syn/ack pkts */
-    uint16_t counter_tcp_synack;
-    /** rst pkts */
-    uint16_t counter_tcp_rst;
     /** midstream pickups */
     uint16_t counter_tcp_midstream_pickups;
     /** wrong thread */

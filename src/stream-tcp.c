@@ -5346,16 +5346,6 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         }
     }
 
-    /* update counters */
-    if ((p->tcph->th_flags & (TH_SYN|TH_ACK)) == (TH_SYN|TH_ACK)) {
-        StatsIncr(tv, stt->counter_tcp_synack);
-    } else if (p->tcph->th_flags & (TH_SYN)) {
-        StatsIncr(tv, stt->counter_tcp_syn);
-    }
-    if (p->tcph->th_flags & (TH_RST)) {
-        StatsIncr(tv, stt->counter_tcp_rst);
-    }
-
     /* broken TCP http://ask.wireshark.org/questions/3183/acknowledgment-number-broken-tcp-the-acknowledge-field-is-nonzero-while-the-ack-flag-is-not-set */
     if (!(p->tcph->th_flags & TH_ACK) && TCP_GET_ACK(p) != 0) {
         StreamTcpSetEvent(p, STREAM_PKT_BROKEN_ACK);
@@ -5787,9 +5777,6 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_pseudo = StatsRegisterCounter("tcp.pseudo", tv);
     stt->counter_tcp_pseudo_failed = StatsRegisterCounter("tcp.pseudo_failed", tv);
     stt->counter_tcp_invalid_checksum = StatsRegisterCounter("tcp.invalid_checksum", tv);
-    stt->counter_tcp_syn = StatsRegisterCounter("tcp.syn", tv);
-    stt->counter_tcp_synack = StatsRegisterCounter("tcp.synack", tv);
-    stt->counter_tcp_rst = StatsRegisterCounter("tcp.rst", tv);
     stt->counter_tcp_midstream_pickups = StatsRegisterCounter("tcp.midstream_pickups", tv);
     stt->counter_tcp_wrong_thread = StatsRegisterCounter("tcp.pkt_on_wrong_thread", tv);
     stt->counter_tcp_ack_unseen_data = StatsRegisterCounter("tcp.ack_unseen_data", tv);
