@@ -820,8 +820,6 @@ typedef struct DetectEngineCtx_ {
     /* main sigs */
     DetectEngineLookupFlow flow_gh[FLOW_STATES];
 
-    uint32_t gh_unique, gh_reuse;
-
     /* init phase vars */
     HashListTable *sgh_hash_table;
 
