@@ -29,6 +29,7 @@
 #include "tm-threads-common.h"
 #include "tm-modules.h"
 #include "flow.h" // for the FlowQueue
+#include "util-validate.h"
 
 #ifdef OS_WIN32
 static inline void SleepUsec(uint64_t usec)
@@ -259,20 +260,16 @@ static inline void TmThreadsCaptureHandleTimeout(ThreadVars *tv, Packet *p)
  */
 static inline void TmThreadsCaptureBreakLoop(ThreadVars *tv)
 {
-    if (unlikely(!tv->break_loop))
-        return;
+    DEBUG_VALIDATE_BUG_ON(!tv->break_loop);
+    DEBUG_VALIDATE_BUG_ON((tv->tmm_flags & TM_FLAG_RECEIVE_TM) == 0);
 
-    if ((tv->tmm_flags & TM_FLAG_RECEIVE_TM) == 0) {
-        return;
-    }
     /* find the correct slot */
     TmSlot *s = tv->tm_slots;
     TmModule *tm = TmModuleGetById(s->tm_id);
-    if (tm->flags & TM_FLAG_RECEIVE_TM) {
-        if (tm->PktAcqLoop && tm->PktAcqBreakLoop) {
-            tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(s->slot_data));
-        }
-    }
+    DEBUG_VALIDATE_BUG_ON((tm->flags & TM_FLAG_RECEIVE_TM) == 0);
+    DEBUG_VALIDATE_BUG_ON(!tm->PktAcqLoop);
+    DEBUG_VALIDATE_BUG_ON(!tm->PktAcqBreakLoop);
+    tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(s->slot_data));
 }
 
 void TmThreadsListThreads(void);

@@ -133,6 +133,8 @@ typedef struct ThreadVars_ {
     SCCtrlCondT *ctrl_cond;
 
     struct FlowQueue_ *flow_queue;
+
+    /** true if capture method supports PktAcqLoop and PktAcqBreakLoop */
     bool break_loop;
 
 } ThreadVars;
