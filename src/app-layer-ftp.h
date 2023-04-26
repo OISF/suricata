@@ -90,8 +90,8 @@ typedef enum {
 } FtpRequestCommand;
 
 typedef struct FtpCommand_ {
-    FtpRequestCommand command;
     const char *command_name;
+    FtpRequestCommand command;
     const uint8_t command_length;
 } FtpCommand;
 extern const FtpCommand FtpCommands[FTP_COMMAND_MAX + 1];
