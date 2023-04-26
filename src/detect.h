@@ -1062,8 +1062,6 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t counter_match_list;
 #endif
 
-    int inspect_list; /**< list we're currently inspecting, DETECT_SM_LIST_* */
-
     struct {
         InspectionBuffer *buffers;
         uint32_t buffers_size;          /**< in number of elements */
@@ -1180,7 +1178,6 @@ typedef struct DetectEngineThreadCtx_ {
     struct SCProfileSghData_ *sgh_perf_data;
 
     struct SCProfilePrefilterData_ *prefilter_perf_data;
-    int prefilter_perf_size;
     /** bytes inspected by current prefilter callback call */
     uint64_t prefilter_bytes;
     /** number of times we inspected a buffer */
