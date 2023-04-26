@@ -66,6 +66,8 @@ jobs:
         env:
           CC: clang-16
       # exclude libhtp from the analysis
+      # disable security.insecureAPI.DeprecatedOrUnsafeBufferHandling explicitly as
+      # this will require significant effort to address.
       - run: |
           scan-build-16 --status-bugs --exclude libhtp/ \
                 -enable-checker valist.Uninitialized \
@@ -83,9 +85,9 @@ jobs:
                 -enable-checker nullability.NullableReturnedFromNonnull \
                 -enable-checker nullability.NullablePassedToNonnull \
                 -enable-checker nullability.NullableDereferenced \
+                -enable-checker optin.performance.Padding \
                 \
                 -disable-checker security.insecureAPI.DeprecatedOrUnsafeBufferHandling \
-                -disable-checker optin.performance.Padding \
                 \
                 make
         env:
