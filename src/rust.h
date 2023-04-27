@@ -18,7 +18,6 @@
 #ifndef __RUST_H__
 #define __RUST_H__
 
-#include "app-layer-events.h"
 #include "util-file.h"
 
 // hack for include orders cf SCSha256
