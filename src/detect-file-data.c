@@ -59,8 +59,6 @@ static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
                                         Signature *s);
 static int g_file_data_buffer_id = 0;
 
-static inline HtpBody *GetResponseBody(htp_tx_t *tx);
-
 /* file API */
 static uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
@@ -242,19 +240,6 @@ typedef struct PrefilterMpmFiledata {
 static void PrefilterMpmFiledataFree(void *ptr)
 {
     SCFree(ptr);
-}
-
-/* HTTP based detection */
-
-static inline HtpBody *GetResponseBody(htp_tx_t *tx)
-{
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (htud == NULL) {
-        SCLogDebug("no htud");
-        return NULL;
-    }
-
-    return &htud->response_body;
 }
 
 /* file API based inspection */
