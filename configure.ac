@@ -220,6 +220,13 @@
             #include <sys/random.h> 
             ])
 
+    AC_CHECK_HEADERS([malloc.h])
+    AC_CHECK_DECL([malloc_trim],
+        AC_DEFINE([HAVE_MALLOC_TRIM], [1], [Use malloc_trim]),
+        [], [
+            #include <malloc.h> 
+            ])
+
     OCFLAGS=$CFLAGS
     CFLAGS=""
     AC_CHECK_FUNCS([strlcpy strlcat])
