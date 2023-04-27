@@ -27,6 +27,7 @@
 
 /* contains fwd declaration of AppLayerDecoderEvents_ */
 #include "decode.h"
+#include "rust.h"
 
 /**
  * \brief Data structure to store app layer decoder events.
@@ -52,12 +53,6 @@ enum {
     APPLAYER_UNEXPECTED_PROTOCOL,
 };
 
-/* the event types for app events */
-typedef enum AppLayerEventType_ {
-    APP_LAYER_EVENT_TYPE_TRANSACTION = 1,
-    APP_LAYER_EVENT_TYPE_PACKET,
-} AppLayerEventType;
-
 int AppLayerGetPktEventInfo(const char *event_name, int *event_id);
 
 int AppLayerGetEventInfoById(int event_id, const char **event_name,
@@ -82,6 +77,7 @@ static inline int AppLayerDecoderEventsIsEventSet(AppLayerDecoderEvents *devents
 
 void AppLayerDecoderEventsResetEvents(AppLayerDecoderEvents *events);
 void AppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events);
+int DetectEngineGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type);
 
 #endif /* __APP_LAYER_EVENTS_H__ */
 

@@ -26,7 +26,6 @@
 
 #include "suricata-common.h"
 #include "flow.h"
-#include "app-layer-events.h"
 
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
@@ -1249,9 +1248,6 @@ typedef struct SigTableElmt_ {
 
 /* event code */
 enum {
-#ifdef UNITTESTS
-    DET_CTX_EVENT_TEST,
-#endif
     FILE_DECODER_EVENT_NO_MEM,
     FILE_DECODER_EVENT_INVALID_SWF_LENGTH,
     FILE_DECODER_EVENT_INVALID_SWF_VERSION,
@@ -1554,8 +1550,6 @@ void DetectMetadataHashFree(DetectEngineCtx *de_ctx);
 /* events */
 void DetectEngineSetEvent(DetectEngineThreadCtx *det_ctx, uint8_t e);
 AppLayerDecoderEvents *DetectEngineGetEvents(DetectEngineThreadCtx *det_ctx);
-int DetectEngineGetEventInfo(const char *event_name, int *event_id,
-                             AppLayerEventType *event_type);
 
 void DumpPatterns(DetectEngineCtx *de_ctx);
 
