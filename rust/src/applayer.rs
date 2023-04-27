@@ -588,7 +588,7 @@ pub unsafe fn get_event_info<T: AppLayerEvent>(
         Ok(Some(event)) => event.as_i32(),
         _ => -1,
     };
-    *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+    *event_type = core::AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
     *event_id = event as std::os::raw::c_int;
     return 0;
 }
@@ -603,7 +603,7 @@ pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
 ) -> i8 {
     if let Some(e) = T::from_id(event_id) {
         *event_name = e.to_cstring().as_ptr() as *const std::os::raw::c_char;
-        *event_type = core::APP_LAYER_EVENT_TYPE_TRANSACTION;
+        *event_type = core::AppLayerEventType::APP_LAYER_EVENT_TYPE_TRANSACTION;
         return 0;
     }
     return -1;
