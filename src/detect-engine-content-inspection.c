@@ -118,7 +118,8 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
         SCReturnInt(0);
     }
 
-    if (smd == NULL || buffer_len == 0) {
+    // we want the ability to match on bsize: 0
+    if (smd == NULL || buffer == NULL) {
         KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
         SCReturnInt(0);
     }
