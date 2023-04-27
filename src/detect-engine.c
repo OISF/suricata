@@ -4797,6 +4797,15 @@ int DetectEngineReload(const SCInstance *suri)
     SCLogDebug("old_de_ctx should have been freed");
 
     SCLogNotice("rule reload complete");
+
+#ifdef HAVE_MALLOC_TRIM
+    /* The reload process potentially frees up large amounts of memory.
+     * Encourage the memory management system to reclaim as much as it
+     * can.
+     */
+    malloc_trim(0);
+#endif
+
     return 0;
 }
 
