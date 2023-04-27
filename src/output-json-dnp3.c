@@ -257,13 +257,11 @@ static int JsonDNP3Logger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 {
     SCEnter();
     DNP3Transaction *tx = vtx;
-    static int count = 0;
     if (tx->is_request && tx->done) {
         JsonDNP3LoggerToServer(tv, thread_data, p, f, state, vtx, tx_id);
     } else if (!tx->is_request && tx->done) {
         JsonDNP3LoggerToClient(tv, thread_data, p, f, state, vtx, tx_id);
     }
-    SCLogNotice("count = %d", ++count);
     SCReturnInt(TM_ECODE_OK);
 }
 

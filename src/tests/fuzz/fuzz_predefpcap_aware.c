@@ -122,6 +122,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
     p->ts = SCTIME_FROM_TIMEVAL(&header.ts);
     p->datalink = pkts.datalink;
+    p->pkt_src = PKT_SRC_WIRE;
     while (r > 0) {
         if (PacketCopyData(p, pkt, header.caplen) == 0) {
             // DecodePcapFile
@@ -150,6 +151,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         p->datalink = pkts.datalink;
         pcap_cnt++;
         p->pcap_cnt = pcap_cnt;
+        p->pkt_src = PKT_SRC_WIRE;
     }
 bail:
     PacketFree(p);

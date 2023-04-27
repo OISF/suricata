@@ -2394,8 +2394,6 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
         }
     }
 
-    de_ctx->max_fp_id = max_id;
-
     HashListTableFree(ht);
 
     return 0;

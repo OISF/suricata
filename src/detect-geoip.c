@@ -468,11 +468,11 @@ static int GeoipParseTest(const char *rule, int ncountries, const char **countri
     FAIL_IF(de_ctx->sig_list == NULL);
 
     s = de_ctx->sig_list;
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_MATCH] == NULL);
+    FAIL_IF(s->init_data->smlists_tail[DETECT_SM_LIST_MATCH] == NULL);
 
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_MATCH]->type != DETECT_GEOIP);
+    FAIL_IF(s->init_data->smlists_tail[DETECT_SM_LIST_MATCH]->type != DETECT_GEOIP);
 
-    data = (DetectGeoipData *)s->sm_lists_tail[DETECT_SM_LIST_MATCH]->ctx;
+    data = (DetectGeoipData *)s->init_data->smlists_tail[DETECT_SM_LIST_MATCH]->ctx;
     FAIL_IF(data->flags != flags);
 
     FAIL_IF(data->nlocations!=ncountries);

@@ -131,6 +131,6 @@ void DetectContentPropagateLimits(Signature *s);
 
 void DetectContentPatternPrettyPrint(const DetectContentData *cd, char *str, size_t str_len);
 void SigParseRequiredContentSize(
-        const Signature *s, const int max, int list, int *len, int *offset);
+        const Signature *s, const int max, const SigMatch *sm, int *len, int *offset);
 
 #endif /* __DETECT_CONTENT_H__ */

@@ -328,10 +328,10 @@ static int DetectAppLayerProtocolTest03(void)
 
     FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
 
-    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
-    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_MATCH]);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx);
 
-    data = (DetectAppLayerProtocolData *)s->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
+    data = (DetectAppLayerProtocolData *)s->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx;
     FAIL_IF(data->alproto != ALPROTO_HTTP);
     FAIL_IF(data->negated);
     DetectEngineCtxFree(de_ctx);
@@ -352,10 +352,10 @@ static int DetectAppLayerProtocolTest04(void)
     FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
     FAIL_IF(s->flags & SIG_FLAG_APPLAYER);
 
-    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
-    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_MATCH]);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx);
 
-    data = (DetectAppLayerProtocolData*)s->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
+    data = (DetectAppLayerProtocolData *)s->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx;
     FAIL_IF_NULL(data);
     FAIL_IF(data->alproto != ALPROTO_HTTP);
     FAIL_IF(data->negated == 0);
@@ -378,15 +378,15 @@ static int DetectAppLayerProtocolTest05(void)
     FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
     FAIL_IF(s->flags & SIG_FLAG_APPLAYER);
 
-    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
-    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_MATCH]);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx);
 
-    data = (DetectAppLayerProtocolData*)s->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
+    data = (DetectAppLayerProtocolData *)s->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx;
     FAIL_IF_NULL(data);
     FAIL_IF(data->alproto != ALPROTO_HTTP);
     FAIL_IF(data->negated == 0);
 
-    data = (DetectAppLayerProtocolData*)s->sm_lists[DETECT_SM_LIST_MATCH]->next->ctx;
+    data = (DetectAppLayerProtocolData *)s->init_data->smlists[DETECT_SM_LIST_MATCH]->next->ctx;
     FAIL_IF_NULL(data);
     FAIL_IF(data->alproto != ALPROTO_SMTP);
     FAIL_IF(data->negated == 0);
@@ -499,10 +499,10 @@ static int DetectAppLayerProtocolTest13(void)
 
     FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
 
-    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
-    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_MATCH]);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx);
 
-    data = (DetectAppLayerProtocolData *)s->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
+    data = (DetectAppLayerProtocolData *)s->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx;
     FAIL_IF(data->alproto != ALPROTO_FAILED);
     FAIL_IF(data->negated);
     DetectEngineCtxFree(de_ctx);
@@ -520,9 +520,9 @@ static int DetectAppLayerProtocolTest14(void)
             "(app-layer-protocol:http; flowbits:set,blah; sid:1;)");
     FAIL_IF_NULL(s1);
     FAIL_IF(s1->alproto != ALPROTO_UNKNOWN);
-    FAIL_IF_NULL(s1->sm_lists[DETECT_SM_LIST_MATCH]);
-    FAIL_IF_NULL(s1->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-    data = (DetectAppLayerProtocolData *)s1->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
+    FAIL_IF_NULL(s1->init_data->smlists[DETECT_SM_LIST_MATCH]);
+    FAIL_IF_NULL(s1->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx);
+    data = (DetectAppLayerProtocolData *)s1->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx;
     FAIL_IF(data->alproto != ALPROTO_HTTP);
     FAIL_IF(data->negated);
 
@@ -530,9 +530,9 @@ static int DetectAppLayerProtocolTest14(void)
             "(app-layer-protocol:http; flow:to_client; sid:2;)");
     FAIL_IF_NULL(s2);
     FAIL_IF(s2->alproto != ALPROTO_UNKNOWN);
-    FAIL_IF_NULL(s2->sm_lists[DETECT_SM_LIST_MATCH]);
-    FAIL_IF_NULL(s2->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-    data = (DetectAppLayerProtocolData *)s2->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
+    FAIL_IF_NULL(s2->init_data->smlists[DETECT_SM_LIST_MATCH]);
+    FAIL_IF_NULL(s2->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx);
+    data = (DetectAppLayerProtocolData *)s2->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx;
     FAIL_IF(data->alproto != ALPROTO_HTTP);
     FAIL_IF(data->negated);
 
@@ -541,9 +541,9 @@ static int DetectAppLayerProtocolTest14(void)
             "(app-layer-protocol:http; flow:to_client,established; sid:3;)");
     FAIL_IF_NULL(s3);
     FAIL_IF(s3->alproto != ALPROTO_UNKNOWN);
-    FAIL_IF_NULL(s3->sm_lists[DETECT_SM_LIST_MATCH]);
-    FAIL_IF_NULL(s3->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-    data = (DetectAppLayerProtocolData *)s3->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
+    FAIL_IF_NULL(s3->init_data->smlists[DETECT_SM_LIST_MATCH]);
+    FAIL_IF_NULL(s3->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx);
+    data = (DetectAppLayerProtocolData *)s3->init_data->smlists[DETECT_SM_LIST_MATCH]->ctx;
     FAIL_IF(data->alproto != ALPROTO_HTTP);
     FAIL_IF(data->negated);
 

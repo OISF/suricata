@@ -597,7 +597,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(value, s, &index)) {
             SCLogError("Unknown byte_extract var "
-                       "seen in byte_test - %s\n",
+                       "seen in byte_test - %s",
                     value);
             goto error;
         }
@@ -611,7 +611,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(offset, s, &index)) {
             SCLogError("Unknown byte_extract var "
-                       "seen in byte_test - %s\n",
+                       "seen in byte_test - %s",
                     offset);
             goto error;
         }
@@ -1121,12 +1121,13 @@ static int DetectBytetestTestParse20(void)
         goto end;
     }
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_BYTETEST);
-    bd = (DetectBytetestData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
+
+    SigMatch *sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NULL(sm->next);
+    sm = sm->next;
+    FAIL_IF_NOT(sm->type == DETECT_BYTETEST);
+    bd = (DetectBytetestData *)sm->ctx;
     if (!(bd->flags & DETECT_BYTETEST_DCE) &&
         !(bd->flags & DETECT_BYTETEST_RELATIVE) &&
         (bd->flags & DETECT_BYTETEST_STRING) &&
@@ -1148,12 +1149,12 @@ static int DetectBytetestTestParse20(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_BYTETEST);
-    bd = (DetectBytetestData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
+
+    sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NULL(sm->next);
+    sm = sm->next;
+    bd = (DetectBytetestData *)sm->ctx;
     if (!(bd->flags & DETECT_BYTETEST_DCE) &&
         !(bd->flags & DETECT_BYTETEST_RELATIVE) &&
         (bd->flags & DETECT_BYTETEST_STRING) &&
@@ -1175,12 +1176,11 @@ static int DetectBytetestTestParse20(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_BYTETEST);
-    bd = (DetectBytetestData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
+    sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NULL(sm->next);
+    sm = sm->next;
+    bd = (DetectBytetestData *)sm->ctx;
     if ((bd->flags & DETECT_BYTETEST_DCE) &&
         !(bd->flags & DETECT_BYTETEST_RELATIVE) &&
         (bd->flags & DETECT_BYTETEST_STRING) &&
@@ -1343,17 +1343,10 @@ static int DetectBytetestTestParse22(void)
     }
 
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[g_file_data_buffer_id] == NULL) {
-        printf("empty server body list: ");
-        goto end;
-    }
-
-    if (s->sm_lists_tail[g_file_data_buffer_id]->type != DETECT_BYTETEST) {
-        printf("bytetest not last sm in server body list: ");
-        goto end;
-    }
-
-    bd = (DetectBytetestData *)s->sm_lists_tail[g_file_data_buffer_id]->ctx;
+    SigMatch *sm = DetectBufferGetFirstSigMatch(s, g_file_data_buffer_id);
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_BYTETEST);
+    bd = (DetectBytetestData *)sm->ctx;
     if (bd->flags & DETECT_BYTETEST_DCE &&
         bd->flags & DETECT_BYTETEST_RELATIVE &&
         (bd->flags & DETECT_BYTETEST_STRING) &&

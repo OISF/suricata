@@ -52,9 +52,6 @@ static int DetectFtpbounceALMatch(DetectEngineThreadCtx *,
         const Signature *, const SigMatchCtx *);
 
 static int DetectFtpbounceSetup(DetectEngineCtx *, Signature *, const char *);
-#ifdef UNITTESTS
-static void DetectFtpbounceRegisterTests(void);
-#endif
 static int g_ftp_request_list_id = 0;
 
 /**
@@ -67,9 +64,6 @@ void DetectFtpbounceRegister(void)
     sigmatch_table[DETECT_FTPBOUNCE].desc = "detect FTP bounce attacks";
     sigmatch_table[DETECT_FTPBOUNCE].Setup = DetectFtpbounceSetup;
     sigmatch_table[DETECT_FTPBOUNCE].AppLayerTxMatch = DetectFtpbounceALMatch;
-#ifdef UNITTESTS
-    sigmatch_table[DETECT_FTPBOUNCE].RegisterTests = DetectFtpbounceRegisterTests;
-#endif
     sigmatch_table[DETECT_FTPBOUNCE].url = "/rules/ftp-keywords.html#ftpbounce";
     sigmatch_table[DETECT_FTPBOUNCE].flags = SIGMATCH_NOOPT;
 
@@ -239,33 +233,3 @@ int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *ftpb
     SigMatchAppendSMToList(s, sm, g_ftp_request_list_id);
     SCReturnInt(0);
 }
-
-#ifdef UNITTESTS
-#include "detect-engine-alert.h"
-
-/**
- * \test DetectFtpbounceTestSetup01 is a test for the Setup ftpbounce
- */
-static int DetectFtpbounceTestSetup01(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    Signature *s = SigAlloc();
-    FAIL_IF (s == NULL);
-
-    /* ftpbounce doesn't accept options so the str is NULL */
-    FAIL_IF_NOT(DetectFtpbounceSetup(de_ctx, s, NULL) == 0);
-    FAIL_IF(s->sm_lists[g_ftp_request_list_id] == NULL);
-    FAIL_IF_NOT(s->sm_lists[g_ftp_request_list_id]->type & DETECT_FTPBOUNCE);
-
-    SigFree(de_ctx, s);
-    PASS;
-}
-
-/**
- * \brief this function registers unit tests for DetectFtpbounce
- */
-static void DetectFtpbounceRegisterTests(void)
-{
-    UtRegisterTest("DetectFtpbounceTestSetup01", DetectFtpbounceTestSetup01);
-}
-#endif /* UNITTESTS */

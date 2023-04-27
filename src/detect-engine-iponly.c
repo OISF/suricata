@@ -875,33 +875,24 @@ error:
  */
 void IPOnlyInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx)
 {
-    io_ctx->tree_ipv4src = SCRadixCreateRadixTree(SigNumArrayFree,
-                                                  SigNumArrayPrint);
-    io_ctx->tree_ipv4dst = SCRadixCreateRadixTree(SigNumArrayFree,
-                                                  SigNumArrayPrint);
-    io_ctx->tree_ipv6src = SCRadixCreateRadixTree(SigNumArrayFree,
-                                                  SigNumArrayPrint);
-    io_ctx->tree_ipv6dst = SCRadixCreateRadixTree(SigNumArrayFree,
-                                                  SigNumArrayPrint);
+    io_ctx->tree_ipv4src = SCRadixCreateRadixTree(SigNumArrayFree, SigNumArrayPrint);
+    io_ctx->tree_ipv4dst = SCRadixCreateRadixTree(SigNumArrayFree, SigNumArrayPrint);
+    io_ctx->tree_ipv6src = SCRadixCreateRadixTree(SigNumArrayFree, SigNumArrayPrint);
+    io_ctx->tree_ipv6dst = SCRadixCreateRadixTree(SigNumArrayFree, SigNumArrayPrint);
+
+    io_ctx->sig_mapping = SCCalloc(1, de_ctx->sig_array_len * sizeof(uint32_t));
+    if (io_ctx->sig_mapping == NULL) {
+        FatalError("Unable to allocate iponly signature tracking area");
+    }
+    io_ctx->sig_mapping_size = 0;
 }
 
-/**
- * \brief Setup the IP Only thread detection engine context
- *
- * \param de_ctx Pointer to the current detection engine
- * \param io_ctx Pointer to the current ip only thread detection engine
- */
-void DetectEngineIPOnlyThreadInit(DetectEngineCtx *de_ctx,
-                                  DetectEngineIPOnlyThreadCtx *io_tctx)
+SigIntId IPOnlyTrackSigNum(DetectEngineIPOnlyCtx *io_ctx, SigIntId signum)
 {
-    /* initialize the signature bitarray */
-    io_tctx->sig_match_size = de_ctx->io_ctx.max_idx / 8 + 1;
-    io_tctx->sig_match_array = SCMalloc(io_tctx->sig_match_size);
-    if (io_tctx->sig_match_array == NULL) {
-        exit(EXIT_FAILURE);
-    }
-
-    memset(io_tctx->sig_match_array, 0, io_tctx->sig_match_size);
+    SigIntId loc = io_ctx->sig_mapping_size;
+    io_ctx->sig_mapping[loc] = signum;
+    io_ctx->sig_mapping_size++;
+    return loc;
 }
 
 /**
@@ -942,17 +933,10 @@ void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx)
     if (io_ctx->tree_ipv6dst != NULL)
         SCRadixReleaseRadixTree(io_ctx->tree_ipv6dst);
     io_ctx->tree_ipv6dst = NULL;
-}
 
-/**
- * \brief Deinitialize the IP Only thread detection engine context
- *
- * \param de_ctx Pointer to the current detection engine
- * \param io_ctx Pointer to the current ip only detection engine
- */
-void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *io_tctx)
-{
-    SCFree(io_tctx->sig_match_array);
+    if (io_ctx->sig_mapping != NULL)
+        SCFree(io_ctx->sig_mapping);
+    io_ctx->sig_mapping = NULL;
 }
 
 static inline
@@ -988,11 +972,8 @@ int IPOnlyMatchCompatSMs(ThreadVars *tv,
  * \param io_ctx Pointer to the current ip only thread detection engine
  * \param p Pointer to the Packet to match against
  */
-void IPOnlyMatchPacket(ThreadVars *tv,
-                       const DetectEngineCtx *de_ctx,
-                       DetectEngineThreadCtx *det_ctx,
-                       const DetectEngineIPOnlyCtx *io_ctx,
-                       DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p)
+void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const DetectEngineIPOnlyCtx *io_ctx, Packet *p)
 {
     SigNumArray *src = NULL;
     SigNumArray *dst = NULL;
@@ -1026,20 +1007,18 @@ void IPOnlyMatchPacket(ThreadVars *tv,
     for (u = 0; u < src->size; u++) {
         SCLogDebug("And %"PRIu8" & %"PRIu8, src->array[u], dst->array[u]);
 
-        /* The final results will be at io_tctx */
-        io_tctx->sig_match_array[u] = dst->array[u] & src->array[u];
+        uint8_t bitarray = dst->array[u] & src->array[u];
 
         /* We have to move the logic of the signature checking
          * to the main detect loop, in order to apply the
          * priority of actions (pass, drop, reject, alert) */
-        if (io_tctx->sig_match_array[u] != 0) {
+        if (bitarray) {
             /* We have a match :) Let's see from which signum's */
-            uint8_t bitarray = io_tctx->sig_match_array[u];
             uint8_t i = 0;
 
             for (; i < 8; i++, bitarray = bitarray >> 1) {
                 if (bitarray & 0x01) {
-                    Signature *s = de_ctx->sig_array[u * 8 + i];
+                    Signature *s = de_ctx->sig_array[io_ctx->sig_mapping[u * 8 + i]];
 
                     if ((s->proto.flags & DETECT_PROTO_IPV4) && !PKT_IS_IPV4(p)) {
                         SCLogDebug("ip version didn't match");
@@ -1548,10 +1527,13 @@ void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
     if (!(s->flags & SIG_FLAG_IPONLY))
         return;
 
+    SigIntId mapped_signum = IPOnlyTrackSigNum(io_ctx, s->num);
+    SCLogDebug("Adding IPs from rule: %" PRIu32 " (%s) as %" PRIu32 " mapped to %" PRIu32 "\n",
+            s->id, s->msg, s->num, mapped_signum);
     /* Set the internal signum to the list before merging */
-    IPOnlyCIDRListSetSigNum(s->cidr_src, s->num);
+    IPOnlyCIDRListSetSigNum(s->cidr_src, mapped_signum);
 
-    IPOnlyCIDRListSetSigNum(s->cidr_dst, s->num);
+    IPOnlyCIDRListSetSigNum(s->cidr_dst, mapped_signum);
 
     /**
      * ipv4 and ipv6 are mixed, but later we will separate them into
@@ -1560,8 +1542,8 @@ void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
     io_ctx->ip_src = IPOnlyCIDRItemInsert(io_ctx->ip_src, s->cidr_src);
     io_ctx->ip_dst = IPOnlyCIDRItemInsert(io_ctx->ip_dst, s->cidr_dst);
 
-    if (s->num > io_ctx->max_idx)
-        io_ctx->max_idx = s->num;
+    if (mapped_signum > io_ctx->max_idx)
+        io_ctx->max_idx = mapped_signum;
 
     /** no longer ref to this, it's in the table now */
     s->cidr_src = NULL;

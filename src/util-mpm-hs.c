@@ -231,7 +231,7 @@ static inline int SCHSInitHashAdd(SCHSCtx *ctx, SCHSPattern *p)
     uint32_t hash = SCHSInitHash(p);
 
     if (ctx->init_hash == NULL) {
-        return 0;
+        return -1;
     }
 
     if (ctx->init_hash[hash] == NULL) {
@@ -309,7 +309,8 @@ static int SCHSAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
         memcpy(p->original_pat, pat, patlen);
 
         /* put in the pattern hash */
-        SCHSInitHashAdd(ctx, p);
+        if (SCHSInitHashAdd(ctx, p) != 0)
+            goto error;
 
         mpm_ctx->pattern_cnt++;
 

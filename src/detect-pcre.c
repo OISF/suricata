@@ -1170,7 +1170,8 @@ static int DetectPcreParseTest10(void)
     FAIL_IF(DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
 
     FAIL_IF_NOT(DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
-    FAIL_IF_NOT(s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    FAIL_IF_NOT(DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id) == NULL);
+    FAIL_IF_NOT(s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(de_ctx, s);
 
@@ -1179,175 +1180,10 @@ static int DetectPcreParseTest10(void)
 
     /* failure since we have no preceding content/pcre/bytejump */
     FAIL_IF_NOT(DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
-    FAIL_IF_NOT(s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    FAIL_IF_NOT(DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id) == NULL);
+    FAIL_IF_NOT(s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(de_ctx, s);
-    DetectEngineCtxFree(de_ctx);
-
-    PASS;
-}
-
-/**
- * \test Test pcre option for dce sig.
- */
-static int DetectPcreParseTest11(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    Signature *s = NULL;
-    DetectPcreData *data = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing bytejump_body\"; "
-                               "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                               "dce_stub_data; "
-                               "pcre:/bamboo/R; sid:1;)");
-    FAIL_IF(de_ctx == NULL);
-    s = de_ctx->sig_list;
-    FAIL_IF(s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL);
-    FAIL_IF_NOT(s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_PCRE);
-    data = (DetectPcreData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
-    FAIL_IF(data->flags & DETECT_PCRE_RAWBYTES ||
-        !(data->flags & DETECT_PCRE_RELATIVE));
-
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytejump_body\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "pcre:/bamboo/R; sid:1;)");
-    FAIL_IF_NULL(s->next);
-    s = s->next;
-    FAIL_IF(s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL);
-    FAIL_IF_NOT(s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_PCRE);
-    data = (DetectPcreData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
-    FAIL_IF(data->flags & DETECT_PCRE_RAWBYTES ||
-        !(data->flags & DETECT_PCRE_RELATIVE));
-
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytejump_body\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "pcre:/bamboo/RB; sid:1;)");
-    FAIL_IF(s->next == NULL);
-    s = s->next;
-    FAIL_IF(s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL);
-    FAIL_IF_NOT(s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_PCRE);
-    data = (DetectPcreData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
-    FAIL_IF(!(data->flags & DETECT_PCRE_RAWBYTES) ||
-        !(data->flags & DETECT_PCRE_RELATIVE));
-
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytejump_body\"; "
-                      "content:\"one\"; pcre:/bamboo/; sid:1;)");
-    FAIL_IF(s->next == NULL);
-    s = s->next;
-    FAIL_IF(s->sm_lists_tail[g_dce_stub_data_buffer_id] != NULL);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    PASS;
-}
-
-/**
- * \test Test pcre option with file data. pcre is relative to file_data,
- *       so relative flag should be unset.
- */
-static int DetectPcreParseTest12(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    Signature *s = NULL;
-    DetectPcreData *data = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(file_data; pcre:/abc/R; sid:1;)");
-    FAIL_IF (de_ctx->sig_list == NULL);
-
-    s = de_ctx->sig_list;
-    FAIL_IF(s->sm_lists_tail[g_file_data_buffer_id] == NULL);
-
-    FAIL_IF(s->sm_lists_tail[g_file_data_buffer_id]->type != DETECT_PCRE);
-
-    data = (DetectPcreData *)s->sm_lists_tail[g_file_data_buffer_id]->ctx;
-    FAIL_IF(data->flags & DETECT_PCRE_RAWBYTES ||
-        !(data->flags & DETECT_PCRE_RELATIVE));
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    PASS;
-}
-
-/**
- * \test Test pcre option with file data.
- */
-static int DetectPcreParseTest13(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    Signature *s = NULL;
-    DetectPcreData *data = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(file_data; content:\"abc\"; pcre:/def/R; sid:1;)");
-    FAIL_IF(de_ctx->sig_list == NULL);
-
-    s = de_ctx->sig_list;
-    FAIL_IF(s->sm_lists_tail[g_file_data_buffer_id] == NULL);
-
-    FAIL_IF(s->sm_lists_tail[g_file_data_buffer_id]->type != DETECT_PCRE);
-
-    data = (DetectPcreData *)s->sm_lists_tail[g_file_data_buffer_id]->ctx;
-    FAIL_IF(data->flags & DETECT_PCRE_RAWBYTES ||
-        !(data->flags & DETECT_PCRE_RELATIVE));
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    PASS;
-}
-
-/**
- * \test Test pcre option with file data.
- */
-static int DetectPcreParseTest14(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    Signature *s = NULL;
-    DetectPcreData *data = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF(de_ctx == NULL);
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(file_data; pcre:/def/; sid:1;)");
-    FAIL_IF(de_ctx->sig_list == NULL);
-
-    s = de_ctx->sig_list;
-    FAIL_IF(s->sm_lists_tail[g_file_data_buffer_id] == NULL);
-
-    FAIL_IF(s->sm_lists_tail[g_file_data_buffer_id]->type != DETECT_PCRE);
-
-    data = (DetectPcreData *)s->sm_lists_tail[g_file_data_buffer_id]->ctx;
-    FAIL_IF(data->flags & DETECT_PCRE_RAWBYTES ||
-        data->flags & DETECT_PCRE_RELATIVE);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     PASS;
@@ -2185,10 +2021,6 @@ static void DetectPcreRegisterTests(void)
     UtRegisterTest("DetectPcreParseTest08", DetectPcreParseTest08);
     UtRegisterTest("DetectPcreParseTest09", DetectPcreParseTest09);
     UtRegisterTest("DetectPcreParseTest10", DetectPcreParseTest10);
-    UtRegisterTest("DetectPcreParseTest11", DetectPcreParseTest11);
-    UtRegisterTest("DetectPcreParseTest12", DetectPcreParseTest12);
-    UtRegisterTest("DetectPcreParseTest13", DetectPcreParseTest13);
-    UtRegisterTest("DetectPcreParseTest14", DetectPcreParseTest14);
     UtRegisterTest("DetectPcreParseTest15", DetectPcreParseTest15);
     UtRegisterTest("DetectPcreParseTest16", DetectPcreParseTest16);
     UtRegisterTest("DetectPcreParseTest17", DetectPcreParseTest17);

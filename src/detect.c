@@ -562,7 +562,7 @@ static void DetectRunInspectIPOnly(ThreadVars *tv, const DetectEngineCtx *de_ctx
             SCLogDebug("testing against \"ip-only\" signatures");
 
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_IPONLY);
-            IPOnlyMatchPacket(tv, de_ctx, det_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
+            IPOnlyMatchPacket(tv, de_ctx, det_ctx, &de_ctx->io_ctx, p);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_IPONLY);
 
             /* save in the flow that we scanned this direction... */
@@ -573,8 +573,7 @@ static void DetectRunInspectIPOnly(ThreadVars *tv, const DetectEngineCtx *de_ctx
 
         /* Even without flow we should match the packet src/dst */
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_IPONLY);
-        IPOnlyMatchPacket(tv, de_ctx, det_ctx, &de_ctx->io_ctx,
-                          &det_ctx->io_ctx, p);
+        IPOnlyMatchPacket(tv, de_ctx, det_ctx, &de_ctx->io_ctx, p);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_IPONLY);
     }
 }
@@ -1234,6 +1233,11 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     return retval;
 }
 
+#define NO_TX                                                                                      \
+    {                                                                                              \
+        NULL, 0, NULL, NULL, 0, 0, 0, 0, 0,                                                        \
+    }
+
 /** \internal
  *  \brief get a DetectTransaction object
  *  \retval struct filled with relevant info or all nulls/0s
@@ -1242,34 +1246,24 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         void *alstate, const uint64_t tx_id, void *tx_ptr, const int tx_end_state,
         const uint8_t flow_flags)
 {
-    uint64_t detect_flags;
     AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx_ptr);
-    if (likely(txd != NULL)) {
-        detect_flags = (flow_flags & STREAM_TOSERVER) ? txd->detect_flags_ts : txd->detect_flags_tc;
-    } else {
-        detect_flags = 0;
+    if (unlikely(txd == NULL)) {
+        DetectTransaction no_tx = NO_TX;
+        return no_tx;
     }
+    uint64_t detect_flags =
+            (flow_flags & STREAM_TOSERVER) ? txd->detect_flags_ts : txd->detect_flags_tc;
     if (detect_flags & APP_LAYER_TX_INSPECTED_FLAG) {
         SCLogDebug("%"PRIu64" tx already fully inspected for %s. Flags %016"PRIx64,
                 tx_id, flow_flags & STREAM_TOSERVER ? "toserver" : "toclient",
                 detect_flags);
-        DetectTransaction no_tx = { NULL, 0, NULL, NULL, 0, 0, 0, 0, 0, };
+        DetectTransaction no_tx = NO_TX;
         return no_tx;
     }
     if (detect_flags & APP_LAYER_TX_SKIP_INSPECT_FLAG) {
         SCLogDebug("%" PRIu64 " tx should not be inspected in direction %s. Flags %016" PRIx64,
                 tx_id, flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
-        DetectTransaction no_tx = {
-            NULL,
-            0,
-            NULL,
-            NULL,
-            0,
-            0,
-            0,
-            0,
-            0,
-        };
+        DetectTransaction no_tx = NO_TX;
         return no_tx;
     }
 

@@ -1686,7 +1686,6 @@ SigMatchData* SigMatchList2DataArray(SigMatch *head)
 static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 {
     uint32_t sig_flags = 0;
-    SigMatch *sm;
     const int nlists = s->init_data->smlists_array_size;
 
     SCEnter();
@@ -1779,24 +1778,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCReturnInt(0);
     }
 
-#if 0 // TODO figure out why this is even necessary
-    if ((s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_SMTP) ||
-        s->init_data->smlists[DETECT_SM_LIST_UMATCH] != NULL ||
-        s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
-        s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
-        s->init_data->smlists[DETECT_SM_LIST_HUADMATCH] != NULL) {
-        sig_flags |= SIG_FLAG_TOSERVER;
-        s->flags |= SIG_FLAG_TOSERVER;
-        s->flags &= ~SIG_FLAG_TOCLIENT;
-    }
-    if ((s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_HTTP1) ||
-        s->init_data->smlists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
-        s->init_data->smlists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
-        sig_flags |= SIG_FLAG_TOCLIENT;
-        s->flags |= SIG_FLAG_TOCLIENT;
-        s->flags &= ~SIG_FLAG_TOSERVER;
-    }
-#endif
     if ((sig_flags & (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) {
         SCLogError("You seem to have mixed keywords "
                    "that require inspection in both directions.  Atm we only "
@@ -1860,24 +1841,22 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         if (s->init_data->smlists[DETECT_SM_LIST_PMATCH]) {
             if (!(s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM))) {
                 s->flags |= SIG_FLAG_REQUIRE_STREAM;
-                sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
-                while (sm != NULL) {
+                for (SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH]; sm != NULL;
+                        sm = sm->next) {
                     if (sm->type == DETECT_CONTENT &&
                             (((DetectContentData *)(sm->ctx))->flags &
                              (DETECT_CONTENT_DEPTH | DETECT_CONTENT_OFFSET))) {
                         s->flags |= SIG_FLAG_REQUIRE_PACKET;
                         break;
                     }
-                    sm = sm->next;
                 }
                 /* if stream_size is in use, also inspect packets */
-                sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
-                while (sm != NULL) {
+                for (SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL;
+                        sm = sm->next) {
                     if (sm->type == DETECT_STREAM_SIZE) {
                         s->flags |= SIG_FLAG_REQUIRE_PACKET;
                         break;
                     }
-                    sm = sm->next;
                 }
             }
         }
@@ -1911,10 +1890,9 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 #endif
 
 #ifdef DEBUG
-    int i;
-    for (i = 0; i < nlists; i++) {
+    for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] != NULL) {
-            for (sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
+            for (SigMatch *sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
                 BUG_ON(sm == sm->prev);
                 BUG_ON(sm == sm->next);
             }

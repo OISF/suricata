@@ -1,0 +1,94 @@
+name: Scan-build
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  scan-build:
+    name: Scan-build
+    runs-on: ubuntu-latest
+    container: ubuntu:23.04
+    steps:
+      - name: Cache scan-build
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: scan-build
+
+      - name: Install system packages
+        run: |
+          apt update
+          apt -y install \
+                libpcre2-dev \
+                build-essential \
+                autoconf \
+                automake \
+                cargo \
+                cbindgen \
+                clang-16 \
+                clang-tools-16 \
+                dpdk-dev \
+                git \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-log-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libnuma-dev \
+                libhiredis-dev \
+                libhyperscan-dev \
+                liblua5.1-dev \
+                libjansson-dev \
+                libevent-dev \
+                libevent-pthreads-2.1-7 \
+                libjansson-dev \
+                liblz4-dev \
+                llvm-16-dev \
+                make \
+                python3-yaml \
+                rustc \
+                software-properties-common \
+                zlib1g \
+                zlib1g-dev
+      - uses: actions/checkout@v3.3.0
+      - run: ./scripts/bundle.sh
+      - run: ./autogen.sh
+      - run: scan-build-16 ./configure --enable-dpdk --enable-nfqueue --enable-nflog
+        env:
+          CC: clang-16
+      # exclude libhtp from the analysis
+      # disable security.insecureAPI.DeprecatedOrUnsafeBufferHandling explicitly as
+      # this will require significant effort to address.
+      - run: |
+          scan-build-16 --status-bugs --exclude libhtp/ \
+                -enable-checker valist.Uninitialized \
+                -enable-checker valist.CopyToSelf \
+                -enable-checker valist.Unterminated \
+                -enable-checker security.insecureAPI.bcmp \
+                -enable-checker security.insecureAPI.bcopy \
+                -enable-checker security.insecureAPI.bzero \
+                -enable-checker security.insecureAPI.rand \
+                -enable-checker security.insecureAPI.strcpy \
+                -enable-checker security.insecureAPI.decodeValueOfObjCType \
+                -enable-checker security.FloatLoopCounter \
+                -enable-checker optin.portability.UnixAPI \
+                -enable-checker optin.performance.GCDAntipattern \
+                -enable-checker nullability.NullableReturnedFromNonnull \
+                -enable-checker nullability.NullablePassedToNonnull \
+                -enable-checker nullability.NullableDereferenced \
+                -enable-checker optin.performance.Padding \
+                \
+                -disable-checker security.insecureAPI.DeprecatedOrUnsafeBufferHandling \
+                \
+                make
+        env:
+          CC: clang-16

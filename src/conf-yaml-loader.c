@@ -388,7 +388,6 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
             SCLogDebug("event.type=YAML_MAPPING_START_EVENT; state=%d", state);
             if (state == CONF_INCLUDE) {
                 SCLogError("Include fields cannot be a mapping: line %zu", parser->mark.line);
-                retval = -1;
                 goto fail;
             }
             if (inseq) {

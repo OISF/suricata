@@ -535,13 +535,11 @@ static void RunOutputFreeList(void)
 {
     OutputFreeList *output;
     while ((output = TAILQ_FIRST(&output_free_list))) {
-        SCLogDebug("output %s %p %p", output->output_module->name, output,
-            output->output_ctx);
+        TAILQ_REMOVE(&output_free_list, output, entries);
 
+        SCLogDebug("output %s %p %p", output->output_module->name, output, output->output_ctx);
         if (output->output_ctx != NULL && output->output_ctx->DeInit != NULL)
             output->output_ctx->DeInit(output->output_ctx);
-
-        TAILQ_REMOVE(&output_free_list, output, entries);
         SCFree(output);
     }
 }

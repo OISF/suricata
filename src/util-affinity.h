@@ -65,10 +65,10 @@ enum {
 typedef struct ThreadsAffinityType_ {
     const char *name;
     uint8_t mode_flag;
+    uint16_t lcpu; /* use by exclusive mode */
     int prio;
     uint32_t nb_threads;
     SCMutex taf_mutex;
-    uint16_t lcpu; /* use by exclusive mode */
 
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
     cpu_set_t cpu_set;

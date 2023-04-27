@@ -116,10 +116,10 @@ mod tests {
                 assert_ne!(p.message_type, NBSS_MSGTYPE_KEEP_ALIVE);
 
                 // this packet had an acceptable length, we don't need more
-                assert_eq!(p.needs_more(), false);
+                assert!(!p.needs_more());
 
                 // does this really look like smb?
-                assert_eq!(p.is_smb(), true);
+                assert!(p.is_smb());
 
                 // there should be nothing left
                 assert_eq!(remainder.len(), 0);
@@ -159,11 +159,11 @@ mod tests {
                 assert_ne!(p_not_smb.message_type, NBSS_MSGTYPE_KEEP_ALIVE);
 
                 // this packet had an acceptable length, we don't need more
-                assert_eq!(p_not_smb.needs_more(), false);
+                assert!(!p_not_smb.needs_more());
 
                 // this packet doesn't have the SMB keyword
                 // is_smb must be false
-                assert_eq!(p_not_smb.is_smb(), false);
+                assert!(!p_not_smb.is_smb());
 
                 // there should be nothing left
                 assert_eq!(remainder.len(), 0);
@@ -200,10 +200,10 @@ mod tests {
                 assert_ne!(p.message_type, NBSS_MSGTYPE_KEEP_ALIVE);
 
                 // this packet had an acceptable length, we don't need more
-                assert_eq!(p.needs_more(), false);
+                assert!(!p.needs_more());
 
                 // does this really look like smb?
-                assert_eq!(p.is_smb(), true);
+                assert!(p.is_smb());
 
                 // there should be nothing left
                 assert_eq!(remainder.len(), 0);

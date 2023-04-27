@@ -704,11 +704,6 @@ typedef struct SCFPSupportSMList_ {
     struct SCFPSupportSMList_ *next;
 } SCFPSupportSMList;
 
-typedef struct DetectEngineIPOnlyThreadCtx_ {
-    uint8_t *sig_match_array; /* bit array of sig nums */
-    uint32_t sig_match_size;  /* size in bytes of the array */
-} DetectEngineIPOnlyThreadCtx;
-
 /** \brief IP only rules matching ctx. */
 typedef struct DetectEngineIPOnlyCtx_ {
     /* Lookup trees */
@@ -718,6 +713,11 @@ typedef struct DetectEngineIPOnlyCtx_ {
     /* Used to build the radix trees */
     IPOnlyCIDRItem *ip_src, *ip_dst;
     uint32_t max_idx;
+
+    /* Used to map large signums to smaller values to compact the bitsets
+     * stored in the radix trees */
+    uint32_t *sig_mapping;
+    uint32_t sig_mapping_size;
 } DetectEngineIPOnlyCtx;
 
 typedef struct DetectEngineLookupFlow_ {
@@ -785,7 +785,6 @@ enum DetectEngineType
 
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
-    uint8_t flags;
     int failure_fatal;
 
     int tenant_id;
@@ -820,8 +819,6 @@ typedef struct DetectEngineCtx_ {
     /* main sigs */
     DetectEngineLookupFlow flow_gh[FLOW_STATES];
 
-    uint32_t gh_unique, gh_reuse;
-
     /* init phase vars */
     HashListTable *sgh_hash_table;
 
@@ -834,8 +831,12 @@ typedef struct DetectEngineCtx_ {
     DetectEngineIPOnlyCtx io_ctx;
     ThresholdCtx ths_ctx;
 
+    uint8_t flags;        /**< only DE_QUIET */
     uint8_t mpm_matcher;  /**< mpm matcher this ctx uses */
     uint16_t spm_matcher; /**< spm matcher this ctx uses */
+
+    /* maximum recursion depth for content inspection */
+    int inspection_recursion_limit;
 
     /* spm thread context prototype, built as spm matchers are constructed and
      * later used to construct thread context for each thread. */
@@ -846,13 +847,8 @@ typedef struct DetectEngineCtx_ {
     uint16_t max_uniq_toclient_groups;
     uint16_t max_uniq_toserver_groups;
 
-    /* specify the configuration for mpm context factory */
-    uint8_t sgh_mpm_ctx_cnf;
-
     /* max flowbit id that is used */
     uint32_t max_fb_id;
-
-    uint32_t max_fp_id;
 
     MpmCtxFactoryContainer *mpm_ctx_factory_container;
 
@@ -884,22 +880,26 @@ typedef struct DetectEngineCtx_ {
     uint32_t base64_decode_max_len;
 
     /** Store rule file and line so that parsers can use them in errors. */
-    char *rule_file;
     int rule_line;
+    char *rule_file;
+    const char *sigerror;
     bool sigerror_silent;
     bool sigerror_ok;
-    const char *sigerror;
 
+    bool filedata_config_initialized;
+
+    /* specify the configuration for mpm context factory */
+    uint8_t sgh_mpm_ctx_cnf;
+
+    int keyword_id;
     /** hash list of keywords that need thread local ctxs */
     HashListTable *keyword_hash;
-    int keyword_id;
 
     struct {
         uint32_t content_limit;
         uint32_t content_inspect_min_size;
         uint32_t content_inspect_window;
     } filedata_config[ALPROTO_MAX];
-    bool filedata_config_initialized;
 
 #ifdef PROFILING
     struct SCProfileDetectCtx_ *profile_ctx;
@@ -909,8 +909,6 @@ typedef struct DetectEngineCtx_ {
     struct SCProfileSghDetectCtx_ *profile_sgh_ctx;
     uint32_t profile_match_logging_threshold;
 #endif
-    uint32_t prefilter_maxid;
-
     char config_prefix[64];
 
     enum DetectEngineType type;
@@ -943,11 +941,11 @@ typedef struct DetectEngineCtx_ {
     HashListTable *buffer_type_hash_id;
     uint32_t buffer_type_id;
 
+    uint32_t app_mpms_list_cnt;
+    DetectBufferMpmRegistery *app_mpms_list;
     /* list with app inspect engines. Both the start-time registered ones and
      * the rule-time registered ones. */
     DetectEngineAppInspectionEngine *app_inspect_engines;
-    DetectBufferMpmRegistery *app_mpms_list;
-    uint32_t app_mpms_list_cnt;
     DetectEnginePktInspectionEngine *pkt_inspect_engines;
     DetectBufferMpmRegistery *pkt_mpms_list;
     uint32_t pkt_mpms_list_cnt;
@@ -964,15 +962,15 @@ typedef struct DetectEngineCtx_ {
     /** signatures stats */
     SigFileLoaderStat sig_stat;
 
+    /* list of Fast Pattern registrations. Initially filled using a copy of
+     * `g_fp_support_smlist_list`, then extended at rule loading time if needed */
+    SCFPSupportSMList *fp_support_smlist_list;
+
     /** per keyword flag indicating if a prefilter has been
      *  set for it. If true, the setup function will have to
      *  run. */
     bool sm_types_prefilter[DETECT_TBLSIZE];
     bool sm_types_silent_error[DETECT_TBLSIZE];
-
-    /* list of Fast Pattern registrations. Initially filled using a copy of
-     * `g_fp_support_smlist_list`, then extended at rule loading time if needed */
-    SCFPSupportSMList *fp_support_smlist_list;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
@@ -1130,9 +1128,6 @@ typedef struct DetectEngineThreadCtx_ {
     /** SPM thread context used for scanning. This has been cloned from the
      * prototype held by DetectEngineCtx. */
     SpmThreadCtx *spm_thread_ctx;
-
-    /** ip only rules ctx */
-    DetectEngineIPOnlyThreadCtx io_ctx;
 
     /* byte_* values */
     uint64_t *byte_values;

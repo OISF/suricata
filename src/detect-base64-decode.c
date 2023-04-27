@@ -203,13 +203,6 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
 
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
         sm_list = s->init_data->list;
-#if 0
-        if (data->relative) {
-            pm = SigMatchGetLastSMFromLists(s, 4,
-                DETECT_CONTENT, s->sm_lists_tail[sm_list],
-                DETECT_PCRE, s->sm_lists_tail[sm_list]);
-        }
-#endif
     }
     else {
         pm = DetectGetLastSMFromLists(s,
@@ -355,88 +348,17 @@ end:
  */
 static int DetectBase64DecodeTestSetup(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    Signature *s;
-    int retval = 0;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any ("
+                                                 "base64_decode; content:\"content\"; "
+                                                 "sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]);
 
-    de_ctx->sig_list = SigInit(de_ctx,
-        "alert tcp any any -> any any ("
-        "msg:\"DetectBase64DecodeTestSetup\"; "
-        "base64_decode; content:\"content\"; "
-        "sid:1; rev:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
-    s = de_ctx->sig_list;
-    if (s == NULL) {
-        goto end;
-    }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
-        goto end;
-    }
-
-    retval = 1;
-end:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
-    return retval;
-}
-
-/**
- * Test keyword setup when the prior rule has a content modifier on
- * it.
- */
-static int DetectBase64DecodeHttpHeaderTestSetup(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    Signature *s;
-    int retval = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
-    de_ctx->sig_list = SigInit(de_ctx,
-        "alert tcp any any -> any any ("
-        "msg:\"DetectBase64DecodeTestSetup\"; "
-        "content:\"Authorization: basic \"; http_header; "
-        "base64_decode; content:\"content\"; "
-        "sid:1; rev:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
-    s = de_ctx->sig_list;
-    if (s == NULL) {
-        goto end;
-    }
-
-    /* I'm not complete sure if this list should not be NULL. */
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
-        goto end;
-    }
-
-    /* Test that the http header list is not NULL. */
-    if (s->sm_lists_tail[g_http_header_buffer_id] == NULL) {
-        goto end;
-    }
-
-    retval = 1;
-end:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
-    return retval;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 static int DetectBase64DecodeTestDecode(void)
@@ -677,8 +599,6 @@ static void DetectBase64DecodeRegisterTests(void)
 
     UtRegisterTest("DetectBase64TestDecodeParse", DetectBase64TestDecodeParse);
     UtRegisterTest("DetectBase64DecodeTestSetup", DetectBase64DecodeTestSetup);
-    UtRegisterTest("DetectBase64DecodeHttpHeaderTestSetup",
-                   DetectBase64DecodeHttpHeaderTestSetup);
     UtRegisterTest("DetectBase64DecodeTestDecode",
                    DetectBase64DecodeTestDecode);
     UtRegisterTest("DetectBase64DecodeTestDecodeWithOffset",

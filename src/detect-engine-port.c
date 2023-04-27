@@ -1137,15 +1137,12 @@ static int DetectPortParseMergeNotPorts(const DetectEngineCtx *de_ctx,
 
             r = DetectPortCmp(ag, ag2);
             if (r == PORT_EQ || r == PORT_EB) { /* XXX more ??? */
-                if (ag2->prev == NULL) {
-                    *head = ag2->next;
-                } else {
+                if (ag2->prev != NULL)
                     ag2->prev->next = ag2->next;
-                }
-
-                if (ag2->next != NULL) {
+                if (ag2->next != NULL)
                     ag2->next->prev = ag2->prev;
-                }
+                if (*head == ag2)
+                    *head = ag2->next;
                 /** store the next ptr and remove the group */
                 DetectPort *next_ag2 = ag2->next;
                 DetectPortFree(de_ctx,ag2);

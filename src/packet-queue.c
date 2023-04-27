@@ -30,6 +30,7 @@
 #include "suricata.h"
 #include "util-var.h"
 #include "pkt-var.h"
+#include "util-validate.h"
 
 #ifdef DEBUG
 void PacketQueueValidateDebug(PacketQueue *q);
@@ -166,6 +167,7 @@ static inline void PacketEnqueueDo(PacketQueue *q, Packet *p)
 
 void PacketEnqueueNoLock(PacketQueueNoLock *qnl, Packet *p)
 {
+    DEBUG_VALIDATE_BUG_ON(p->pkt_src == 0);
     PacketQueue *q = (PacketQueue *)qnl;
     PacketEnqueueDo(q, p);
 }
@@ -206,7 +208,9 @@ static inline Packet *PacketDequeueDo (PacketQueue *q)
 Packet *PacketDequeueNoLock (PacketQueueNoLock *qnl)
 {
     PacketQueue *q = (PacketQueue *)qnl;
-    return PacketDequeueDo(q);
+    Packet *p = PacketDequeueDo(q);
+    DEBUG_VALIDATE_BUG_ON(p != NULL && p->pkt_src == 0);
+    return p;
 }
 
 Packet *PacketDequeue (PacketQueue *q)

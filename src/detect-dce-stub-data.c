@@ -173,7 +173,7 @@ static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 {
     if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
         return -1;
-    if (DetectBufferSetActiveList(s, g_dce_stub_data_buffer_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_dce_stub_data_buffer_id) < 0)
         return -1;
     return 0;
 }
@@ -182,19 +182,6 @@ static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
 #ifdef UNITTESTS
 #include "detect-engine-alert.h"
-
-static int DetectDceStubDataTestParse01(void)
-{
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-    de_ctx->flags = DE_QUIET;
-    Signature *s = DetectEngineAppendSig(de_ctx,
-            "alert tcp any any -> any any (dce_stub_data; content:\"1\"; sid:1;)");
-    FAIL_IF_NULL(s);
-    FAIL_IF_NULL(s->sm_lists[g_dce_stub_data_buffer_id]);
-    DetectEngineCtxFree(de_ctx);
-    PASS;
-}
 
 /**
  * \test Test a valid dce_stub_data entry with  bind, bind_ack, request frags.
@@ -1864,8 +1851,6 @@ static int DetectDceStubDataTestParse06(void)
 
 static void DetectDceStubDataRegisterTests(void)
 {
-    UtRegisterTest("DetectDceStubDataTestParse01",
-                   DetectDceStubDataTestParse01);
     UtRegisterTest("DetectDceStubDataTestParse02",
                    DetectDceStubDataTestParse02);
     UtRegisterTest("DetectDceStubDataTestParse03",

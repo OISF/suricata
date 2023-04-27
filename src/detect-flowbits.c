@@ -111,6 +111,10 @@ static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, cha
     next:
         arrptr = NULL;
     }
+    if (i == 0) {
+        SCLogError("No valid flowbits specified");
+        return -1;
+    }
 
     cd->or_list_size = i;
     cd->or_list = SCCalloc(cd->or_list_size, sizeof(uint32_t));

@@ -98,7 +98,7 @@ static int DetectBase64DataSetupTest01(void)
         goto end;
     }
 
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm == NULL) {
         printf("DETECT_SM_LIST_PMATCH should not be NULL: ");
         goto end;
@@ -108,102 +108,9 @@ static int DetectBase64DataSetupTest01(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_BASE64_DATA] == NULL) {
+    if (de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_BASE64_DATA] == NULL) {
         printf("DETECT_SM_LIST_BASE64_DATA should not be NULL: ");
        goto end;
-    }
-
-    retval = 1;
-end:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
-    return retval;
-}
-
-static int DetectBase64DataSetupTest02(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    SigMatch *sm;
-    int retval = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-        "alert smtp any any -> any any ( "
-        "msg:\"DetectBase64DataSetupTest\"; "
-        "file_data; "
-        "content:\"SGV\"; "
-        "base64_decode: bytes 16; "
-        "base64_data; "
-        "content:\"content\"; "
-        "sid:1; rev:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("SigInit failed: ");
-        goto end;
-    }
-
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
-    if (sm != NULL) {
-        printf("DETECT_SM_LIST_PMATCH is not NULL: ");
-        goto end;
-    }
-
-    sm = de_ctx->sig_list->sm_lists[g_file_data_buffer_id];
-    if (sm == NULL) {
-        printf("DETECT_SM_LIST_FILEDATA is NULL: ");
-        goto end;
-    }
-
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_BASE64_DATA];
-    if (sm == NULL) {
-        printf("DETECT_SM_LIST_BASE64_DATA is NULL: ");
-        goto end;
-    }
-
-    retval = 1;
-end:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
-    return retval;
-}
-
-/**
- * \test Test that the rule fails to load if the detection list is
- *     changed after base64_data.
- */
-static int DetectBase64DataSetupTest03(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int retval = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-        "alert smtp any any -> any any ( "
-        "msg:\"DetectBase64DataSetupTest\"; "
-        "base64_decode: bytes 16; "
-        "base64_data; "
-        "content:\"content\"; "
-        "file_data; "
-        "content:\"SGV\"; "
-        "sid:1; rev:1;)");
-    if (de_ctx->sig_list != NULL) {
-        printf("SigInit should have failed: ");
-        goto end;
     }
 
     retval = 1;
@@ -253,8 +160,6 @@ static void DetectBase64DataRegisterTests(void)
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
 
     UtRegisterTest("DetectBase64DataSetupTest01", DetectBase64DataSetupTest01);
-    UtRegisterTest("DetectBase64DataSetupTest02", DetectBase64DataSetupTest02);
-    UtRegisterTest("DetectBase64DataSetupTest03", DetectBase64DataSetupTest03);
     UtRegisterTest("DetectBase64DataSetupTest04", DetectBase64DataSetupTest04);
 }
 #endif /* UNITTESTS */

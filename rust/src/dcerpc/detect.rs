@@ -338,7 +338,7 @@ mod test {
         );
 
         let op_version = "@1";
-        assert_eq!(true, extract_op_version(op_version).is_err());
+        assert!(extract_op_version(op_version).is_err());
 
         let op_version = "";
         assert_eq!(Err(()), extract_op_version(op_version));
@@ -352,10 +352,10 @@ mod test {
             arg2: 0,
         };
         let version: u16 = 10;
-        assert_eq!(true, detect_match_uint(&iface_data, version));
+        assert!(detect_match_uint(&iface_data, version));
 
         let version: u16 = 2;
-        assert_eq!(false, detect_match_uint(&iface_data, version));
+        assert!(!detect_match_uint(&iface_data, version));
     }
 
     #[test]
@@ -399,39 +399,39 @@ mod test {
 
         let arg = "12345678-1234-1234-1234-123456789ABC,>1,ay_frag";
         let iface_data = parse_iface_data(arg);
-        assert_eq!(iface_data.is_err(), true);
+        assert!(iface_data.is_err());
 
         let arg = "12345678-1234-1234-1234-12345679ABC,>1,any_frag";
         let iface_data = parse_iface_data(arg);
-        assert_eq!(iface_data.is_err(), true);
+        assert!(iface_data.is_err());
 
         let arg = "12345678-1234-1234-134-123456789ABC,>1,any_frag";
         let iface_data = parse_iface_data(arg);
-        assert_eq!(iface_data.is_err(), true);
+        assert!(iface_data.is_err());
 
         let arg = "12345678-123-124-1234-123456789ABC,>1,any_frag";
         let iface_data = parse_iface_data(arg);
-        assert_eq!(iface_data.is_err(), true);
+        assert!(iface_data.is_err());
 
         let arg = "1234568-1234-1234-1234-123456789ABC,>1,any_frag";
         let iface_data = parse_iface_data(arg);
-        assert_eq!(iface_data.is_err(), true);
+        assert!(iface_data.is_err());
 
         let arg = "12345678-1234-1234-1234-123456789ABC,>65536,any_frag";
         let iface_data = parse_iface_data(arg);
-        assert_eq!(iface_data.is_err(), true);
+        assert!(iface_data.is_err());
 
         let arg = "12345678-1234-1234-1234-123456789ABC,>=0,any_frag";
         let iface_data = parse_iface_data(arg);
-        assert_eq!(iface_data.is_err(), true);
+        assert!(iface_data.is_err());
 
         let arg = "12345678-1234-1234-1234-123456789ABC,<0,any_frag";
         let iface_data = parse_iface_data(arg);
-        assert_eq!(iface_data.is_err(), true);
+        assert!(iface_data.is_err());
 
         let arg = "12345678-1234-1234-1234-123456789ABC,>65535,any_frag";
         let iface_data = parse_iface_data(arg);
-        assert_eq!(iface_data.is_err(), true);
+        assert!(iface_data.is_err());
     }
 
     #[test]
@@ -474,10 +474,10 @@ mod test {
 
         let arg = "12,26,62,61,6513--";
         let opnum_data = parse_opnum_data(arg);
-        assert_eq!(true, opnum_data.is_err());
+        assert!(opnum_data.is_err());
 
         let arg = "12-14,12,121,62-8";
         let opnum_data = parse_opnum_data(arg);
-        assert_eq!(true, opnum_data.is_err());
+        assert!(opnum_data.is_err());
     }
 }

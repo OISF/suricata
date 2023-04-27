@@ -1844,111 +1844,6 @@ end:
     return result;
 }
 
-/**
- * \test Checks if a http_stat_code is registered in a Signature, if content is not
- *       specified in the signature or rawbyes is specified or fast_pattern is
- *       provided in the signature.
- */
-static int DetectHttpStatCodeTest01(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ((de_ctx = DetectEngineCtxInit()) == NULL) {
-        printf("DetectEngineCtxInit failed: ");
-        goto end;
-    }
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"Testing http_stat_code\"; http_stat_code; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        printf("sid 1 parse failed to error out: ");
-        goto end;
-    }
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"Testing http_stat_code\"; content:\"|FF F1|\";"
-            " rawbytes; http_stat_code; sid:2;)");
-    if (de_ctx->sig_list != NULL) {
-        printf("sid 2 parse failed to error out: ");
-        goto end;
-    }
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"Testing http_stat_code\"; content:\"100\";"
-            "fast_pattern; http_stat_code; sid:3;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sid 3 parse failed: ");
-        goto end;
-    }
-    if (!(((DetectContentData *)de_ctx->sig_list->sm_lists[g_http_stat_code_buffer_id]->ctx)->flags &
-        DETECT_CONTENT_FAST_PATTERN))
-    {
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-/**
- * \test Checks if a http_stat_code is registered in a Signature and also checks
- *       the nocase
- */
-static int DetectHttpStatCodeTest02(void)
-{
-    SigMatch *sm = NULL;
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_stat_code\"; content:\"one\"; "
-                               "http_stat_code; content:\"200\"; http_stat_code; "
-                               "content:\"two hundred\"; nocase; http_stat_code; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    result = 0;
-    sm = de_ctx->sig_list->sm_lists[g_http_stat_code_buffer_id];
-    if (sm == NULL) {
-        printf("no sigmatch(es): ");
-        goto end;
-    }
-
-    SigMatch *prev = NULL;
-    while (sm != NULL) {
-        if (sm->type == DETECT_CONTENT) {
-            result = 1;
-        } else {
-            printf("expected DETECT_CONTENT for http_stat_code, got %d: ", sm->type);
-            goto end;
-        }
-        prev = sm;
-        sm = sm->next;
-    }
-
-    if (! (((DetectContentData *)prev->ctx)->flags &
-           DETECT_CONTENT_NOCASE))
-    {
-        result = 0;
-    }
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
 /** \test Check the signature working to alert when http_stat_code is matched . */
 static int DetectHttpStatCodeSigTest01(void)
 {
@@ -2418,8 +2313,6 @@ void DetectHttpStatCodeRegisterTests (void)
     UtRegisterTest("DetectEngineHttpStatCodeTest15",
                    DetectEngineHttpStatCodeTest15);
 
-    UtRegisterTest("DetectHttpStatCodeTest01", DetectHttpStatCodeTest01);
-    UtRegisterTest("DetectHttpStatCodeTest02", DetectHttpStatCodeTest02);
     UtRegisterTest("DetectHttpStatCodeSigTest01", DetectHttpStatCodeSigTest01);
     UtRegisterTest("DetectHttpStatCodeSigTest02", DetectHttpStatCodeSigTest02);
     UtRegisterTest("DetectHttpStatCodeSigTest03", DetectHttpStatCodeSigTest03);

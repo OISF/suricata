@@ -218,26 +218,29 @@ static int WARN_UNUSED SBBInit(StreamingBuffer *sb, const StreamingBufferConfig 
     }
     sbb->offset = sb->region.stream_offset;
     sbb->len = sb->region.buf_offset;
+    (void)SBB_RB_INSERT(&sb->sbb_tree, sbb);
+    sb->head = sbb;
+    sb->sbb_size = sbb->len;
 
     StreamingBufferBlock *sbb2 = CALLOC(cfg, 1, sizeof(*sbb2));
     if (sbb2 == NULL) {
-        FREE(cfg, sbb, sizeof(*sbb));
         return -1;
     }
     sbb2->offset = region->stream_offset + rel_offset;
     sbb2->len = data_len;
-
-    sb->head = sbb;
-    sb->sbb_size = sbb->len + sbb2->len;
-    SBB_RB_INSERT(&sb->sbb_tree, sbb);
-    SBB_RB_INSERT(&sb->sbb_tree, sbb2);
-
+    DEBUG_VALIDATE_BUG_ON(sbb2->offset < sbb->len);
     SCLogDebug("sbb1 %" PRIu64 ", len %u, sbb2 %" PRIu64 ", len %u", sbb->offset, sbb->len,
             sbb2->offset, sbb2->len);
+
+    sb->sbb_size += sbb2->len;
+    if (SBB_RB_INSERT(&sb->sbb_tree, sbb2) != NULL) {
+        FREE(cfg, sbb2, sizeof(*sbb2));
+        return -1;
+    }
+
 #ifdef DEBUG
     SBBPrintList(sb);
 #endif
-    BUG_ON(sbb2->offset < sbb->len);
     return 0;
 }
 
@@ -258,7 +261,7 @@ static int WARN_UNUSED SBBInitLeadingGap(StreamingBuffer *sb, const StreamingBuf
 
     sb->head = sbb;
     sb->sbb_size = sbb->len;
-    SBB_RB_INSERT(&sb->sbb_tree, sbb);
+    (void)SBB_RB_INSERT(&sb->sbb_tree, sbb);
 
     SCLogDebug("sbb %" PRIu64 ", len %u", sbb->offset, sbb->len);
 #ifdef DEBUG

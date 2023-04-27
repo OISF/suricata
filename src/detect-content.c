@@ -412,13 +412,8 @@ void DetectContentFree(DetectEngineCtx *de_ctx, void *ptr)
  *  - Negated content values are checked but not accumulated for the required size.
  */
 void SigParseRequiredContentSize(
-        const Signature *s, const int max_size, int list, int *len, int *offset)
+        const Signature *s, const int max_size, const SigMatch *sm, int *len, int *offset)
 {
-    if (list > (int)s->init_data->smlists_array_size) {
-        return;
-    }
-
-    SigMatch *sm = s->init_data->smlists[list];
     int max_offset = 0, total_len = 0;
     bool first = true;
     for (; sm != NULL; sm = sm->next) {
@@ -1180,8 +1175,10 @@ static int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pkts
     }
     de_ctx->sig_list->next = NULL;
 
-    if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_CONTENT) {
-        DetectContentData *co = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
+    if (de_ctx->sig_list->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_CONTENT) {
+        DetectContentData *co = (DetectContentData *)de_ctx->sig_list->init_data
+                                        ->smlists_tail[DETECT_SM_LIST_PMATCH]
+                                        ->ctx;
         if (co->flags & DETECT_CONTENT_RELATIVE_NEXT) {
             printf("relative next flag set on final match which is content: ");
             goto end;
@@ -1189,7 +1186,7 @@ static int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pkts
     }
 
     SCLogDebug("---DetectContentLongPatternMatchTest---");
-    DetectContentPrintAll(de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH]);
+    DetectContentPrintAll(de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_MATCH]);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1456,34 +1453,26 @@ end:
  */
 static int DetectContentParseTest18(void)
 {
-    Signature *s = SigAlloc();
-    int result = 1;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
-        goto end;
-
-    result &= (DetectContentSetup(de_ctx, s, "one") == 0);
-    result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
-
+    Signature *s = SigAlloc();
+    FAIL_IF_NULL(s);
+    FAIL_IF(DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
+    FAIL_IF_NOT(DetectContentSetup(de_ctx, s, "one") == 0);
+    FAIL_IF(DetectBufferIsPresent(s, g_dce_stub_data_buffer_id));
+    FAIL_IF_NOT(s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL);
     SigFree(de_ctx, s);
 
     s = SigAlloc();
-    if (s == NULL)
-        return 0;
-
-    result &= (DetectContentSetup(de_ctx, s, "one") == 0);
-    result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
-
- end:
+    FAIL_IF_NULL(s);
+    FAIL_IF_NOT(DetectContentSetup(de_ctx, s, "one") == 0);
+    FAIL_IF(DetectBufferIsPresent(s, g_dce_stub_data_buffer_id));
+    FAIL_IF_NOT(s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL);
     SigFree(de_ctx, s);
-    DetectEngineCtxFree(de_ctx);
 
-    return result;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /**
@@ -1492,288 +1481,75 @@ static int DetectContentParseTest18(void)
 
 static int DetectContentParseTest19(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-    Signature *s = NULL;
-    DetectContentData *data = NULL;
 
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing dce iface, stub_data with content\"; "
-                               "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                               "dce_stub_data; "
-                               "content:\"one\"; distance:0; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf ("failed dce iface, stub_data with content ");
-        result = 0;
-        goto end;
-    }
-    s = de_ctx->sig_list;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
-    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        data->flags & DETECT_CONTENT_WITHIN ||
-        !(data->flags & DETECT_CONTENT_DISTANCE) ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ||
-        result == 0) {
-        result = 0;
-        goto end;
-    }
 
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing dce iface, stub_data with contents & distance, within\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; distance:0; content:\"two\"; within:10; sid:1;)");
-    if (s->next == NULL) {
-        printf("failed dce iface, stub_data with content & distance, within");
-        result = 0;
-        goto end;
-    }
-    s = s->next;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
-    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        !(data->flags & DETECT_CONTENT_WITHIN) ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ||
-        result == 0) {
-        result = 0;
-        goto end;
-    }
-    result &= (data->within == 10);
-/*
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing dce iface, stub_data with contents & offset, depth\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; offset:5; depth:9; "
-                      "content:\"two\"; within:10; sid:1;)");
-    if (s->next == NULL) {
-        printf ("failed dce iface, stub_data with contents & offset, depth");
-        result = 0;
-        goto end;
-    }
-    s = s->next;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
-    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        data->flags & DETECT_CONTENT_WITHIN ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ||
-        result == 0) {
-        result = 0;
-        goto end;
-    }
-    result &= (data->offset == 5 && data->depth == 9);
-    data = (DetectContentData *)s->sm_lists[g_dce_stub_data_buffer_id]->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        !(data->flags & DETECT_CONTENT_WITHIN) ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ||
-        result == 0) {
-        result = 0;
-        goto end;
-    }
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                          "(msg:\"Testing dce iface, stub_data with content\"; "
+                                          "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                                          "dce_stub_data; "
+                                          "content:\"one\"; distance:0; sid:1;)");
+    FAIL_IF_NULL(s);
 
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing dce iface, stub with contents, distance\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; distance:0; "
-                      "content:\"two\"; distance:2; sid:1;)");
-    if (s->next == NULL) {
-        result = 0;
-        goto end;
-    }
-    s = s->next;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
-    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        data->flags & DETECT_CONTENT_WITHIN ||
-        !(data->flags & DETECT_CONTENT_DISTANCE) ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ||
-        result == 0) {
-        result = 0;
-        goto end;
-    }
-    result &= (data->distance == 2);
-*/
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing dce iface, stub with contents, distance, within\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; distance:0; "
-                      "content:\"two\"; within:10; distance:2; sid:1;)");
-    if (s->next == NULL) {
-        result = 0;
-        goto end;
-    }
-    s = s->next;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
-    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        !(data->flags & DETECT_CONTENT_WITHIN) ||
-        !(data->flags & DETECT_CONTENT_DISTANCE) ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ||
-        result == 0) {
-        result = 0;
-        goto end;
-    }
-    result &= (data->within == 10 && data->distance == 2);
-/*
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing dce iface, stub_data with content, offset\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; offset:10; sid:1;)");
-    if (s->next == NULL) {
-        printf ("Failed dce iface, stub_data with content, offset ");
-        result = 0;
-        goto end;
-    }
-    s = s->next;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
-    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        data->flags & DETECT_CONTENT_WITHIN ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ||
-        result == 0) {
-        result = 0;
-        goto end;
-    }
-    result &= (data->offset == 10);
+    SigMatch *sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_CONTENT);
+    FAIL_IF_NOT(s->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL);
 
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing dce iface, stub_data with content, depth\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; depth:10; sid:1;)");
-    if (s->next == NULL) {
-        printf ("failed dce iface, stub_data with content, depth");
-        result = 0;
-        goto end;
-    }
-    s = s->next;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
-    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        data->flags & DETECT_CONTENT_WITHIN ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ||
-        result == 0) {
-        result = 0;
-        goto end;
-    }
-    result &= (data->depth == 10);
+    DetectContentData *data = (DetectContentData *)sm->ctx;
+    FAIL_IF_NOT(data->flags == DETECT_CONTENT_DISTANCE);
 
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing dce iface, stub_data with content, offset, depth\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; offset:10; depth:3; sid:1;)");
-    if (s->next == NULL) {
-        printf("failed dce iface, stub_data with content, offset, depth");
-        result = 0;
-        goto end;
-    }
-    s = s->next;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
-    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        data->flags & DETECT_CONTENT_WITHIN ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ||
-        result == 0) {
-        result = 0;
-        goto end;
-    }
-    result &= (data->offset == 10 && data->depth == 13);
-*/
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing content\"; "
-                      "content:\"one\"; sid:1;)");
-    if (s->next == NULL) {
-        printf ("failed testing content");
-        result = 0;
-        goto end;
-    }
-    s = s->next;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] != NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
+            "(msg:\"Testing dce iface, stub_data with contents & distance, within\"; "
+            "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+            "dce_stub_data; "
+            "content:\"one\"; distance:0; content:\"two\"; within:10; sid:2;)");
+    FAIL_IF_NULL(s);
+    sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_CONTENT);
+    FAIL_IF_NULL(sm->next);
+    sm = sm->next;
+    FAIL_IF_NOT(sm->type == DETECT_CONTENT);
+    FAIL_IF_NOT(s->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL);
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    data = (DetectContentData *)sm->ctx;
+    FAIL_IF_NOT(data->flags == DETECT_CONTENT_WITHIN);
+    FAIL_IF_NOT(data->within == 10);
+
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
+            "(msg:\"Testing dce iface, stub with contents, distance, within\"; "
+            "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+            "dce_stub_data; "
+            "content:\"one\"; distance:0; "
+            "content:\"two\"; within:10; distance:2; sid:3;)");
+    FAIL_IF_NULL(s);
+    sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_CONTENT);
+    FAIL_IF_NULL(sm->next);
+    sm = sm->next;
+    FAIL_IF_NOT(sm->type == DETECT_CONTENT);
+    data = (DetectContentData *)sm->ctx;
+    FAIL_IF_NOT(data->flags == (DETECT_CONTENT_WITHIN | DETECT_CONTENT_DISTANCE));
+    FAIL_IF_NOT(data->within == 10);
+    FAIL_IF_NOT(data->distance == 2);
+    FAIL_IF_NOT(s->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL);
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                      "(msg:\"Testing content\"; "
+                                      "content:\"one\"; sid:4;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF(DetectBufferIsPresent(s, g_dce_stub_data_buffer_id));
+    FAIL_IF(s->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL);
+
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -1916,13 +1692,14 @@ static int DetectContentParseTest24(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL || s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL ||
+            s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]->ctx == NULL) {
         printf("de_ctx->pmatch_tail == NULL || de_ctx->pmatch_tail->ctx == NULL: ");
         result = 0;
         goto end;
     }
 
-    cd = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
+    cd = (DetectContentData *)s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     result = (strncmp("boo", (char *)cd->content, cd->content_len) == 0);
 
 end:
@@ -2252,126 +2029,6 @@ static int DetectContentParseTest35(void)
     return result;
 }
 
-/**
- * \test Parsing test: file_data
- */
-static int DetectContentParseTest36(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content still in PMATCH list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-        printf("content not in FILEDATA list: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
- * \test Parsing test: file_data
- */
-static int DetectContentParseTest37(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; content:\"def\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content still in PMATCH list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-        printf("content not in FILEDATA list: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
- * \test Parsing test: file_data
- */
-static int DetectContentParseTest38(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; content:\"def\"; within:8; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content still in PMATCH list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-        printf("content not in FILEDATA list: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
 static int SigTestPositiveTestContent(const char *rule, uint8_t *buf)
 {
     uint16_t buflen = strlen((char *)buf);
@@ -2402,86 +2059,6 @@ static int SigTestPositiveTestContent(const char *rule, uint8_t *buf)
 
     UTHFreePackets(&p, 1);
     PASS;
-}
-
-/**
- * \test Parsing test: file_data, within relative to file_data
- */
-static int DetectContentParseTest39(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; within:8; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content still in PMATCH list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-        printf("content not in FILEDATA list: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
- * \test Parsing test: file_data, distance relative to file_data
- */
-static int DetectContentParseTest40(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; distance:3; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("content still in PMATCH list: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
-        printf("content not in FILEDATA list: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
 }
 
 static int DetectContentParseTest41(void)
@@ -3216,11 +2793,6 @@ static void DetectContentRegisterTests(void)
     UtRegisterTest("DetectContentParseTest33", DetectContentParseTest33);
     UtRegisterTest("DetectContentParseTest34", DetectContentParseTest34);
     UtRegisterTest("DetectContentParseTest35", DetectContentParseTest35);
-    UtRegisterTest("DetectContentParseTest36", DetectContentParseTest36);
-    UtRegisterTest("DetectContentParseTest37", DetectContentParseTest37);
-    UtRegisterTest("DetectContentParseTest38", DetectContentParseTest38);
-    UtRegisterTest("DetectContentParseTest39", DetectContentParseTest39);
-    UtRegisterTest("DetectContentParseTest40", DetectContentParseTest40);
     UtRegisterTest("DetectContentParseTest41", DetectContentParseTest41);
     UtRegisterTest("DetectContentParseTest42", DetectContentParseTest42);
     UtRegisterTest("DetectContentParseTest43", DetectContentParseTest43);

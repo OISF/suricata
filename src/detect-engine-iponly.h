@@ -26,15 +26,13 @@
 
 void IPOnlyCIDRListFree(IPOnlyCIDRItem *tmphead);
 int IPOnlySigParseAddress(const DetectEngineCtx *, Signature *, const char *, char);
-void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *,
-                       DetectEngineThreadCtx *, const DetectEngineIPOnlyCtx *,
-                       DetectEngineIPOnlyThreadCtx *, Packet *);
+void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *, DetectEngineThreadCtx *,
+        const DetectEngineIPOnlyCtx *, Packet *);
 void IPOnlyInit(DetectEngineCtx *, DetectEngineIPOnlyCtx *);
 void IPOnlyPrint(DetectEngineCtx *, DetectEngineIPOnlyCtx *);
 void IPOnlyDeinit(DetectEngineCtx *, DetectEngineIPOnlyCtx *);
 void IPOnlyPrepare(DetectEngineCtx *);
-void DetectEngineIPOnlyThreadInit(DetectEngineCtx *, DetectEngineIPOnlyThreadCtx *);
-void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *);
+SigIntId IPOnlyTrackSigNum(DetectEngineIPOnlyCtx *, SigIntId);
 void IPOnlyAddSignature(DetectEngineCtx *, DetectEngineIPOnlyCtx *, Signature *);
 void IPOnlyRegisterTests(void);
 

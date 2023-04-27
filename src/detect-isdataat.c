@@ -400,134 +400,27 @@ static int DetectIsdataatTestParse03 (void)
 static int DetectIsdataatTestParse04(void)
 {
     Signature *s = SigAlloc();
-    int result = 1;
+    FAIL_IF_NULL(s);
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0) {
-        SigFree(NULL, s);
-        return 0;
-    }
+    FAIL_IF(DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
 
-    result &= (DetectIsdataatSetup(NULL, s, "30") == 0);
-    result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    FAIL_IF_NOT(DetectIsdataatSetup(NULL, s, "30") == 0);
+    SigMatch *sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
+    FAIL_IF_NOT_NULL(sm);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_PMATCH]);
     SigFree(NULL, s);
 
     s = SigAlloc();
-    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0) {
-        SigFree(NULL, s);
-        return 0;
-    }
-    /* failure since we have no preceding content/pcre/bytejump */
-    result &= (DetectIsdataatSetup(NULL, s, "30,relative") == 0);
-    result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    FAIL_IF_NULL(s);
+    FAIL_IF(DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
+    /* relative w/o preceeding match defaults to "pmatch" */
+    FAIL_IF_NOT(DetectIsdataatSetup(NULL, s, "30,relative") == 0);
+    sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
+    FAIL_IF_NOT_NULL(sm);
+    FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_PMATCH]);
 
     SigFree(NULL, s);
-
-    return result;
-}
-
-/**
- * \test Test isdataat option for dce sig.
- */
-static int DetectIsdataatTestParse05(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
-    Signature *s = NULL;
-    DetectIsdataatData *data = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing bytejump_body\"; "
-                               "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                               "dce_stub_data; "
-                               "content:\"one\"; distance:0; "
-                               "isdataat:4,relative; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
-    s = de_ctx->sig_list;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_ISDATAAT);
-    data = (DetectIsdataatData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
-    if ( !(data->flags & ISDATAAT_RELATIVE) ||
-         (data->flags & ISDATAAT_RAWBYTES) ) {
-        result = 0;
-        goto end;
-    }
-
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytejump_body\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; distance:0; "
-                      "isdataat:4,relative; sid:1;)");
-    if (s->next == NULL) {
-        result = 0;
-        goto end;
-    }
-    s = s->next;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_ISDATAAT);
-    data = (DetectIsdataatData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
-    if ( !(data->flags & ISDATAAT_RELATIVE) ||
-         (data->flags & ISDATAAT_RAWBYTES) ) {
-        result = 0;
-        goto end;
-    }
-
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytejump_body\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; distance:0; "
-                      "isdataat:4,relative,rawbytes; sid:1;)");
-    if (s->next == NULL) {
-        result = 0;
-        goto end;
-    }
-    s = s->next;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
-        result = 0;
-        goto end;
-    }
-    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_ISDATAAT);
-    data = (DetectIsdataatData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
-    if ( !(data->flags & ISDATAAT_RELATIVE) ||
-         !(data->flags & ISDATAAT_RAWBYTES) ) {
-        result = 0;
-        goto end;
-    }
-
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytejump_body\"; "
-                      "content:\"one\"; isdataat:4,relative,rawbytes; sid:1;)");
-    if (s->next == NULL) {
-        result = 0;
-        goto end;
-    }
-    s = s->next;
-    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] != NULL) {
-        result = 0;
-        goto end;
-    }
-
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 static int DetectIsdataatTestParse06(void)
@@ -542,10 +435,11 @@ static int DetectIsdataatTestParse06(void)
                                "isdataat:!4,relative; sid:1;)");
     FAIL_IF(s == NULL);
 
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL);
+    FAIL_IF(s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL);
 
-    FAIL_IF_NOT(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_ISDATAAT);
-    DetectIsdataatData *data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
+    FAIL_IF_NOT(s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_ISDATAAT);
+    DetectIsdataatData *data =
+            (DetectIsdataatData *)s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]->ctx;
 
     FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
     FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
@@ -557,10 +451,10 @@ static int DetectIsdataatTestParse06(void)
                                "isdataat: !4,relative; sid:2;)");
     FAIL_IF(s == NULL);
 
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL);
+    FAIL_IF(s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL);
 
-    FAIL_IF_NOT(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_ISDATAAT);
-    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
+    FAIL_IF_NOT(s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]->ctx;
 
     FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
     FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
@@ -686,7 +580,6 @@ void DetectIsdataatRegisterTests(void)
     UtRegisterTest("DetectIsdataatTestParse02", DetectIsdataatTestParse02);
     UtRegisterTest("DetectIsdataatTestParse03", DetectIsdataatTestParse03);
     UtRegisterTest("DetectIsdataatTestParse04", DetectIsdataatTestParse04);
-    UtRegisterTest("DetectIsdataatTestParse05", DetectIsdataatTestParse05);
     UtRegisterTest("DetectIsdataatTestParse06", DetectIsdataatTestParse06);
 
     UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01);

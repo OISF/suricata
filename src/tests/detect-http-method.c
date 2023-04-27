@@ -1733,132 +1733,6 @@ static int DetectHttpMethodTest05(void)
     return result;
 }
 
-/** \test setting the nocase flag */
-static int DetectHttpMethodTest12(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    if (DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(content:\"one\"; http_method; nocase; sid:1;)") == NULL) {
-        printf("DetectEngineAppend == NULL: ");
-        goto end;
-    }
-    if (DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(content:\"one\"; nocase; http_method; sid:2;)") == NULL) {
-        printf("DetectEngineAppend == NULL: ");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[g_http_method_buffer_id] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[g_http_method_buffer_id] == NULL: ");
-        goto end;
-    }
-
-    DetectContentData *hmd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_method_buffer_id]->ctx;
-    DetectContentData *hmd2 = (DetectContentData *)de_ctx->sig_list->next->sm_lists_tail[g_http_method_buffer_id]->ctx;
-
-    if (!(hmd1->flags & DETECT_CONTENT_NOCASE)) {
-        printf("nocase flag not set on sig 1: ");
-        goto end;
-    }
-
-    if (!(hmd2->flags & DETECT_CONTENT_NOCASE)) {
-        printf("nocase flag not set on sig 2: ");
-        goto end;
-    }
-    result = 1;
-
- end:
-    DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-/** \test Check a signature with method + within and pcre with /M (should work) */
-static int DetectHttpMethodTest13(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "pcre:\"/HE/M\"; "
-                               "content:\"AD\"; "
-                               "within:2; http_method; sid:1;)");
-
-    if (de_ctx->sig_list != NULL) {
-        result = 1;
-    }
-
- end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-/** \test Check a signature with method + within and pcre without /M (should fail) */
-static int DetectHttpMethodTest14(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "pcre:\"/HE/\"; "
-                               "content:\"AD\"; "
-                               "http_method; within:2; sid:1;)");
-
-    if (de_ctx->sig_list != NULL) {
-        result = 1;
-    }
-
- end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-/** \test Check a signature with method + within and pcre with /M (should work) */
-static int DetectHttpMethodTest15(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "pcre:\"/HE/M\"; "
-                               "content:\"AD\"; "
-                               "http_method; within:2; sid:1;)");
-
-    if (de_ctx->sig_list != NULL) {
-        result = 1;
-    }
-
- end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return result;
-}
 /** \test Check a signature with an known request method */
 static int DetectHttpMethodSigTest01(void)
 {
@@ -2262,7 +2136,7 @@ static int DetectHttpMethodIsdataatParseTest(void)
             "isdataat:!4,relative; sid:1;)");
     FAIL_IF_NULL(s);
 
-    SigMatch *sm = s->init_data->smlists_tail[g_http_method_buffer_id];
+    SigMatch *sm = DetectBufferGetLastSigMatch(s, g_http_method_buffer_id);
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
 
@@ -2285,11 +2159,6 @@ void DetectHttpMethodRegisterTests(void)
     UtRegisterTest("DetectHttpMethodTest03", DetectHttpMethodTest03);
     UtRegisterTest("DetectHttpMethodTest04", DetectHttpMethodTest04);
     UtRegisterTest("DetectHttpMethodTest05", DetectHttpMethodTest05);
-    UtRegisterTest("DetectHttpMethodTest12 -- nocase flag",
-                   DetectHttpMethodTest12);
-    UtRegisterTest("DetectHttpMethodTest13", DetectHttpMethodTest13);
-    UtRegisterTest("DetectHttpMethodTest14", DetectHttpMethodTest14);
-    UtRegisterTest("DetectHttpMethodTest15", DetectHttpMethodTest15);
     UtRegisterTest("DetectHttpMethodSigTest01", DetectHttpMethodSigTest01);
     UtRegisterTest("DetectHttpMethodSigTest02", DetectHttpMethodSigTest02);
     UtRegisterTest("DetectHttpMethodSigTest03", DetectHttpMethodSigTest03);

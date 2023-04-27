@@ -166,7 +166,7 @@ static int DetectDistanceTest01(void)
             "44 55 66 77 88 99 AA BB CC DD EE|\"; distance: 4; within: 19; sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
-    SigMatch *sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
+    SigMatch *sm = de_ctx->sig_list->init_data->smlists[DETECT_SM_LIST_PMATCH];
     FAIL_IF_NULL(sm);
 
     sm = sm->next;

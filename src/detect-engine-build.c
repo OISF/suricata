@@ -1056,16 +1056,12 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
 
             SigGroupHeadHashAdd(de_ctx, sgh_ts[p]);
             SigGroupHeadStore(de_ctx, sgh_ts[p]);
-
-            de_ctx->gh_unique++;
             own++;
         } else {
             SCLogDebug("proto group %d sgh %p is a copy", p, sgh_ts[p]);
 
             SigGroupHeadFree(de_ctx, sgh_ts[p]);
             sgh_ts[p] = lookup_sgh;
-
-            de_ctx->gh_reuse++;
             ref++;
         }
     }
@@ -1092,8 +1088,6 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
 
             SigGroupHeadHashAdd(de_ctx, sgh_tc[p]);
             SigGroupHeadStore(de_ctx, sgh_tc[p]);
-
-            de_ctx->gh_unique++;
             own++;
 
         } else {
@@ -1101,8 +1095,6 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
 
             SigGroupHeadFree(de_ctx, sgh_tc[p]);
             sgh_tc[p] = lookup_sgh;
-
-            de_ctx->gh_reuse++;
             ref++;
         }
     }
@@ -1298,7 +1290,6 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             SigGroupHeadHashAdd(de_ctx, iter->sh);
             SigGroupHeadStore(de_ctx, iter->sh);
             iter->flags |= PORT_SIGGROUPHEAD_COPY;
-            de_ctx->gh_unique++;
             own++;
         } else {
             SCLogDebug("port group %p sgh %p is a copy", iter, iter->sh);
@@ -1306,8 +1297,6 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             SigGroupHeadFree(de_ctx, iter->sh);
             iter->sh = lookup_sgh;
             iter->flags |= PORT_SIGGROUPHEAD_COPY;
-
-            de_ctx->gh_reuse++;
             ref++;
         }
     }

@@ -39,6 +39,7 @@
 #include "util-action.h"
 #include "action-globals.h"
 #include "flow-util.h"
+#include "util-validate.h"
 
 #define DETECT_FLOWVAR_NOT_USED      1
 #define DETECT_FLOWVAR_TYPE_READ     2
@@ -517,10 +518,13 @@ static int SCSigLessThan(SCSigSignatureWrapper *sw1,
     return sw1->sig->id < sw2->sig->id;
 }
 
-/* Merge sort based on a list of compare functions */
+/* Merge sort based on a list of compare functions
+ * debug asserts are here to guide scan-build */
 static SCSigSignatureWrapper *SCSigOrder(SCSigSignatureWrapper *sw,
                                          SCSigOrderFunc *cmp_func_list)
 {
+    DEBUG_VALIDATE_BUG_ON(sw == NULL);
+
     SCSigSignatureWrapper *subA = NULL;
     SCSigSignatureWrapper *subB = NULL;
     SCSigSignatureWrapper *first;
@@ -549,10 +553,13 @@ static SCSigSignatureWrapper *SCSigOrder(SCSigSignatureWrapper *sw,
         /* Only zero or one element on the list. */
         return subA;
     }
+    DEBUG_VALIDATE_BUG_ON(subA == NULL);
 
     /* Now sort each list */
     subA = SCSigOrder(subA, cmp_func_list);
     subB = SCSigOrder(subB, cmp_func_list);
+    DEBUG_VALIDATE_BUG_ON(subA == NULL);
+    DEBUG_VALIDATE_BUG_ON(subB == NULL);
 
     /* Merge the two sorted lists. */
     while (subA != NULL && subB != NULL) {
@@ -560,8 +567,8 @@ static SCSigSignatureWrapper *SCSigOrder(SCSigSignatureWrapper *sw,
             new = subA;
             subA = subA->next;
         } else {
-          new = subB;
-          subB = subB->next;
+            new = subB;
+            subB = subB->next;
         }
         /* Push onto the end of the output list. */
         new->next = NULL;
@@ -727,6 +734,11 @@ static inline SCSigSignatureWrapper *SCSigAllocSignatureWrapper(Signature *sig)
  */
 void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
 {
+    if (de_ctx->sig_list == NULL) {
+        SCLogDebug("no signatures to order");
+        return;
+    }
+
     Signature *sig = NULL;
     SCSigSignatureWrapper *sigw = NULL;
     SCSigSignatureWrapper *sigw_list = NULL;

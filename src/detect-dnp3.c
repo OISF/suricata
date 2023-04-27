@@ -534,7 +534,7 @@ static int DetectDNP3DataSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (DetectSignatureSetAppProto(s, ALPROTO_DNP3) != 0)
         return -1;
 
-    if (DetectBufferSetActiveList(s, g_dnp3_data_buffer_id) != 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_dnp3_data_buffer_id) != 0)
         return -1;
 
     SCReturnInt(0);
@@ -632,27 +632,22 @@ static int DetectDNP3FuncParseFunctionCodeTest(void)
 
 static int DetectDNP3FuncTest01(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    DetectDNP3 *dnp3func = NULL;
-
-    de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    de_ctx->sig_list = SigInit(de_ctx,
-        "alert dnp3 any any -> any any "
-        "(msg:\"SURICATA DNP3 Write request\"; "
-        "dnp3_func:2; sid:5000009; rev:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert dnp3 any any -> any any "
+                                                 "(msg:\"SURICATA DNP3 Write request\"; "
+                                                 "dnp3_func:2; sid:5000009; rev:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_dnp3_match_buffer_id]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_dnp3_match_buffer_id]->ctx);
+    SigMatch *sm = DetectBufferGetFirstSigMatch(s, g_dnp3_match_buffer_id);
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NULL(sm->ctx);
 
-    dnp3func = (DetectDNP3 *)de_ctx->sig_list->sm_lists_tail[g_dnp3_match_buffer_id]->ctx;
+    DetectDNP3 *dnp3func = (DetectDNP3 *)sm->ctx;
     FAIL_IF(dnp3func->function_code != 2);
 
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 
@@ -698,28 +693,23 @@ static int DetectDNP3IndTestParseByName(void)
 
 static int DetectDNP3ObjSetupTest(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    DetectDNP3 *detect = NULL;
-
-    de_ctx = DetectEngineCtxInit();
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
 
-    de_ctx->sig_list = SigInit(de_ctx,
-        "alert dnp3 any any -> any any "
-        "(msg:\"SURICATA DNP3 Object Test\"; "
-        "dnp3_obj:99,99; sid:1; rev:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert dnp3 any any -> any any "
+                                                 "(msg:\"SURICATA DNP3 Object Test\"; "
+                                                 "dnp3_obj:99,99; sid:1; rev:1;)");
     FAIL_IF(de_ctx->sig_list == NULL);
 
-    FAIL_IF(de_ctx->sig_list->sm_lists_tail[g_dnp3_match_buffer_id] == NULL);
-    FAIL_IF(de_ctx->sig_list->sm_lists_tail[g_dnp3_match_buffer_id]->ctx == NULL);
+    SigMatch *sm = DetectBufferGetFirstSigMatch(s, g_dnp3_match_buffer_id);
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NULL(sm->ctx);
 
-    detect = (DetectDNP3 *)de_ctx->sig_list->sm_lists_tail[g_dnp3_match_buffer_id]->ctx;
+    DetectDNP3 *detect = (DetectDNP3 *)sm->ctx;
     FAIL_IF(detect->obj_group != 99);
     FAIL_IF(detect->obj_variation != 99);
 
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
+    DetectEngineCtxFree(de_ctx);
     PASS;
 }
 

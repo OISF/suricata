@@ -1004,14 +1004,16 @@ static TmEcode PcapLogInitRingBuffer(PcapLogData *pl)
     if (pl->file_cnt > pl->max_files) {
         PcapFileName *pf = TAILQ_FIRST(&pl->pcap_file_list);
         while (pf != NULL && pl->file_cnt > pl->max_files) {
+            TAILQ_REMOVE(&pl->pcap_file_list, pf, next);
+
             SCLogDebug("Removing PCAP file %s", pf->filename);
             if (remove(pf->filename) != 0) {
                 SCLogWarning("Failed to remove PCAP file %s: %s", pf->filename, strerror(errno));
             }
-            TAILQ_REMOVE(&pl->pcap_file_list, pf, next);
             PcapFileNameFree(pf);
-            pf = TAILQ_FIRST(&pl->pcap_file_list);
             pl->file_cnt--;
+
+            pf = TAILQ_FIRST(&pl->pcap_file_list);
         }
     }
 
