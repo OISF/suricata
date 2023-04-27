@@ -215,6 +215,10 @@ typedef unsigned char u_char;
 #include <netdb.h>
 #endif
 
+#if HAVE_MALLOC_H
+#include <malloc.h>
+#endif
+
 #if __CYGWIN__
 #if !defined _X86_ && !defined __x86_64
 #define _X86_
