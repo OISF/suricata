@@ -266,7 +266,7 @@ static inline InspectionBuffer *FiledataWithXformsGetDataCallback(DetectEngineTh
 
 static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, uint8_t flow_flags, File *cur_file,
-        const int list_id, const int base_id, int local_file_id)
+        const int list_id, const int base_id, int local_file_id, void *txv)
 {
     SCEnter();
     SCLogDebug("starting: list_id %d base_id %d", list_id, base_id);
@@ -301,40 +301,118 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     /* no new data */
     if (cur_file->content_inspected == file_size) {
         SCLogDebug("no new data");
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
+        goto empty_return;
     }
 
     if (file_size == 0) {
         SCLogDebug("no data to inspect for this transaction");
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
+        goto empty_return;
     }
 
-    if ((content_limit == 0 || file_size < content_limit) &&
-        file_size < content_inspect_min_size &&
-        !(flow_flags & STREAM_EOF) && !(cur_file->state > FILE_STATE_OPENED)) {
-        SCLogDebug("we still haven't seen the entire content. "
-                   "Let's defer content inspection till we see the "
-                   "entire content.");
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
+    uint64_t offset = 0;
+    if (f->alproto == ALPROTO_HTTP1 && flow_flags & STREAM_TOCLIENT) {
+
+        htp_tx_t *tx = txv;
+        HtpState *htp_state = f->alstate;
+
+        SCLogDebug("response.body_limit %u response_body.content_len_so_far %" PRIu64
+                   ", response.inspect_min_size %" PRIu32 ", EOF %s, progress > body? %s",
+                htp_state->cfg->response.body_limit, file_size,
+                htp_state->cfg->response.inspect_min_size,
+                flow_flags & STREAM_EOF ? "true" : "false",
+                (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flow_flags) >
+                        HTP_RESPONSE_BODY)
+                        ? "true"
+                        : "false");
+
+        if (!htp_state->cfg->http_body_inline) {
+            /* inspect the body if the transfer is complete or we have hit
+             * our body size limit */
+            if ((htp_state->cfg->response.body_limit == 0 ||
+                        file_size < htp_state->cfg->response.body_limit) &&
+                    file_size < htp_state->cfg->response.inspect_min_size &&
+                    !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flow_flags) >
+                            HTP_RESPONSE_BODY) &&
+                    !(flow_flags & STREAM_EOF)) {
+                SCLogDebug("we still haven't seen the entire response body.  "
+                           "Let's defer body inspection till we see the "
+                           "entire body.");
+                goto empty_return;
+            }
+            SCLogDebug("inline and we're continuing");
+        }
+
+        /* get the inspect buffer
+         *
+         * make sure that we have at least the configured inspect_win size.
+         * If we have more, take at least 1/4 of the inspect win size before
+         * the new data.
+         */
+        SCLogDebug("cur_file->content_inspected %ld htp_state->cfg->response.inspect_min_size %d",
+                cur_file->content_inspected, htp_state->cfg->response.inspect_min_size);
+        if (cur_file->content_inspected > htp_state->cfg->response.inspect_min_size) {
+            BUG_ON(file_size < cur_file->content_inspected);
+            uint64_t inspect_win = file_size - cur_file->content_inspected;
+            SCLogDebug("inspect_win %" PRIu64 " cfg.response.inspect_window: %d", inspect_win,
+                    htp_state->cfg->response.inspect_window);
+            if (inspect_win < htp_state->cfg->response.inspect_window) {
+                uint64_t inspect_short = htp_state->cfg->response.inspect_window - inspect_win;
+                if (cur_file->content_inspected < inspect_short)
+                    offset = 0;
+                else {
+                    offset = htp_state->cfg->response.inspect_window - cur_file->content_inspected;
+                    SCLogDebug("%ld = file_size[%ld] - inspect_short[%ld]", offset, file_size,
+                            inspect_short);
+                }
+            } else {
+                offset = file_size - (htp_state->cfg->response.inspect_window / 4);
+                SCLogDebug(
+                        "%ld = file_size - (htp_state->cfg->response.inspect_window / 4", offset);
+            }
+        } else {
+            offset = cur_file->content_inspected;
+        }
+    } else {
+        if ((content_limit == 0 || file_size < content_limit) &&
+                file_size < content_inspect_min_size && !(flow_flags & STREAM_EOF) &&
+                !(cur_file->state > FILE_STATE_OPENED)) {
+            SCLogDebug("we still haven't seen the entire content. "
+                       "Let's defer content inspection till we see the "
+                       "entire content. We've seen %ld and need at least %d",
+                    file_size, content_inspect_min_size);
+            goto empty_return;
+        }
+        offset = cur_file->content_inspected;
     }
 
     const uint8_t *data;
     uint32_t data_len;
 
-    StreamingBufferGetDataAtOffset(cur_file->sb,
-            &data, &data_len,
-            cur_file->content_inspected);
+    StreamingBufferGetDataAtOffset(cur_file->sb, &data, &data_len, offset);
     InspectionBufferSetupMulti(buffer, NULL, data, data_len);
     SCLogDebug("[list %d] [before] buffer offset %" PRIu64 "; buffer len %" PRIu32
                "; data_len %" PRIu32 "; file_size %" PRIu64,
             list_id, buffer->inspect_offset, buffer->inspect_len, data_len, file_size);
-    buffer->inspect_offset = cur_file->content_inspected;
+
+    if (f->alproto == ALPROTO_HTTP1 && flow_flags & STREAM_TOCLIENT) {
+        HtpState *htp_state = f->alstate;
+        /* built-in 'transformation' */
+        if (htp_state->cfg->swf_decompression_enabled) {
+            int swf_file_type = FileIsSwfFile(data, data_len);
+            if (swf_file_type == FILE_SWF_ZLIB_COMPRESSION ||
+                    swf_file_type == FILE_SWF_LZMA_COMPRESSION) {
+                SCLogDebug("decompressing ...");
+                (void)FileSwfDecompression(data, data_len, det_ctx, buffer,
+                        htp_state->cfg->swf_compression_type, htp_state->cfg->swf_decompress_depth,
+                        htp_state->cfg->swf_compress_depth);
+                SCLogDebug("uncompressed buffer %p size %u; buf: \"%s\"", buffer,
+                        buffer->inspect_len, (char *)buffer->inspect);
+            }
+        }
+    }
 
     /* update inspected tracker */
-    cur_file->content_inspected = buffer->inspect_len + buffer->inspect_offset;
+    buffer->inspect_offset = offset;
     SCLogDebug("content inspected: %" PRIu64, cur_file->content_inspected);
 
     /* get buffer for the list id if it is different from the base id */
@@ -343,19 +421,20 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
         InspectionBuffer *tbuffer = FiledataWithXformsGetDataCallback(
                 det_ctx, transforms, list_id, local_file_id, buffer);
         SCReturnPtr(tbuffer, "InspectionBuffer");
-    } else {
-        SCLogDebug("regular buffer %p size %u", buffer, buffer->inspect_len);
-        SCReturnPtr(buffer, "InspectionBuffer");
     }
+    SCLogDebug("regular buffer %p size %ld; buf: \"%.*s\"", buffer, cur_file->content_inspected,
+            buffer->inspect_len, (char *)buffer->inspect);
+    SCReturnPtr(buffer, "InspectionBuffer");
+
+empty_return:
+    InspectionBufferSetupMultiEmpty(buffer);
+    return NULL;
 }
 
 static uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
         void *alstate, void *txv, uint64_t tx_id)
 {
-    int r = 0;
-    int match = 0;
-
     const DetectEngineTransforms *transforms = NULL;
     if (!engine->mpm) {
         transforms = engine->v2.transforms;
@@ -367,11 +446,12 @@ static uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngine
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
     }
 
+    bool match = false;
     int local_file_id = 0;
     File *file = ffc->head;
     for (; file != NULL; file = file->next) {
         InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx, transforms, f, flags, file,
-                engine->sm_list, engine->sm_list_base, local_file_id);
+                engine->sm_list, engine->sm_list_base, local_file_id, txv);
         if (buffer == NULL)
             continue;
 
@@ -389,14 +469,13 @@ static uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngine
                                               buffer->inspect_len,
                                               buffer->inspect_offset, ciflags,
                                               DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-        if (match == 1) {
-            r = 1;
+        if (match) {
             break;
         }
         local_file_id++;
     }
 
-    if (r == 1)
+    if (match)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     else
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
@@ -430,7 +509,7 @@ static void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx, const void *pect
         int local_file_id = 0;
         for (File *file = ffc->head; file != NULL; file = file->next) {
             InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx, ctx->transforms, f, flags,
-                    file, list_id, ctx->base_list_id, local_file_id);
+                    file, list_id, ctx->base_list_id, local_file_id, txv);
             if (buffer == NULL)
                 continue;
 
