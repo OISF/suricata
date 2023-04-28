@@ -1928,11 +1928,13 @@ static int StreamTcpPacketStateSynSent(
                 SCLogDebug("ssn->server.flags |= STREAMTCP_STREAM_FLAG_RST_RECV");
                 ssn->server.flags |= STREAMTCP_STREAM_FLAG_RST_RECV;
                 StreamTcpCloseSsnWithReset(p, ssn);
+                StreamTcp3wsFreeQueue(ssn);
             }
         } else {
             ssn->client.flags |= STREAMTCP_STREAM_FLAG_RST_RECV;
             SCLogDebug("ssn->client.flags |= STREAMTCP_STREAM_FLAG_RST_RECV");
             StreamTcpCloseSsnWithReset(p, ssn);
+            StreamTcp3wsFreeQueue(ssn);
         }
 
         /* FIN */
@@ -2043,6 +2045,7 @@ static int StreamTcpPacketStateSynSent(
         ssn->flags |= STREAMTCP_FLAG_ASYNC;
         StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
         SCLogDebug("ssn %p: =~ ssn state is now TCP_ESTABLISHED", ssn);
+        StreamTcp3wsFreeQueue(ssn);
 
         ssn->client.window = TCP_GET_WINDOW(p);
         ssn->client.last_ack = TCP_GET_SEQ(p);
