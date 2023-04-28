@@ -1505,7 +1505,7 @@ bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p)
  *  Additionally, this function is tasked with disabling raw
  *  reassembly if the app-layer requested to disable it.
  */
-void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t progress)
+void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, const uint64_t progress)
 {
     TcpStream *stream;
     if (PKT_IS_TOSERVER(p)) {
