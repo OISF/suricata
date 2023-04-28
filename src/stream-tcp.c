@@ -5610,13 +5610,15 @@ static int TcpSessionReuseDoneEnoughSyn(const Packet *p, const Flow *f, const Tc
                     p->pcap_cnt, ssn);
             return 1;
         }
-        if (SEQ_EQ(ssn->client.isn, TCP_GET_SEQ(p))) {
-            SCLogDebug("steam starter packet %"PRIu64", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.", p->pcap_cnt, ssn);
-            return 0;
-        }
         if (ssn->state >= TCP_LAST_ACK) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
+        }
+        if (SEQ_EQ(ssn->client.isn, TCP_GET_SEQ(p))) {
+            SCLogDebug("steam starter packet %" PRIu64
+                       ", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.",
+                    p->pcap_cnt, ssn);
+            return 0;
         } else if (ssn->state == TCP_NONE) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
             return 1;
