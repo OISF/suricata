@@ -171,6 +171,15 @@ The following is an example of installing Suricata 6.0 on CentOS. If you wish to
 
 .. _install-advanced:
 
+Arch Based
+^^^^^^^^^^
+
+The ArchLinux AUR contains suricata and suricata-nfqueue packages, with commonly used configurations for compilation (may also be edited to your liking). You may use makepkg, yay (sample below), or other AUR helpers to compile and build suricata packages. 
+
+::
+
+    yay -S suricata
+
 Advanced Installation
 ---------------------
 
