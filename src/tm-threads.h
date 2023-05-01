@@ -255,9 +255,6 @@ static inline void TmThreadsCaptureHandleTimeout(ThreadVars *tv, Packet *p)
 
 static inline void TmThreadsCaptureBreakLoop(ThreadVars *tv)
 {
-    if (unlikely(!tv->break_loop))
-        return;
-
     if ((tv->tmm_flags & TM_FLAG_RECEIVE_TM) == 0) {
         return;
     }
