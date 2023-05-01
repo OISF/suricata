@@ -227,6 +227,18 @@ To reload rules::
 
 .. _install-advanced:
 
+Arch Based
+^^^^^^^^^^
+
+The ArchLinux AUR contains Suricata and suricata-nfqueue packages, with commonly
+used configurations for compilation (may also be edited to your liking). You may
+use makepkg, yay (sample below), or other AUR helpers to compile and build
+Suricata packages.
+
+::
+
+    yay -S suricata
+
 Advanced Installation
 ---------------------
 
