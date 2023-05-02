@@ -1550,20 +1550,18 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, const uint64_
 }
 
 /** \internal
-  * \brief get a buffer around the current packet and run the callback on it
-  *
-  * The inline/IPS scanning method takes the current payload and wraps it in
-  * data from other segments.
-  *
-  * How much data is inspected is controlled by the available data, chunk_size
-  * and the payload size of the packet.
-  *
-  * Large packets: if payload size is close to the chunk_size, where close is
-  * defined as more than 67% of the chunk_size, a larger chunk_size will be
-  * used: payload_len + 33% of the chunk_size.
-  * If the payload size if equal to or bigger than the chunk_size, we use
-  * payload len + 33% of the chunk size.
-  */
+ * \brief get a buffer around the current packet and run the callback on it
+ *
+ * The inline/IPS scanning method takes the current payload and wraps it in
+ * data from other segments.
+ *
+ * How much data is inspected is controlled by the available data, chunk_size
+ * and the payload size of the packet.
+ *
+ * Large packets: if payload size is close to the chunk_size, where close is
+ * defined as more than 67% of the chunk_size, a larger chunk_size will be
+ * used: payload_len + 33% of the chunk_size.
+ */
 static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
         StreamReassembleRawFunc Callback, void *cb_data, uint64_t *progress_out)
 {
@@ -1589,12 +1587,8 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
         stream_config.reassembly_toclient_chunk_size;
     if (chunk_size <= p->payload_len) {
         chunk_size = p->payload_len + (chunk_size / 3);
-        SCLogDebug("packet payload len %u, so chunk_size adjusted to %u",
-                p->payload_len, chunk_size);
-    } else if (((chunk_size / 3 ) * 2) < p->payload_len) {
-        chunk_size = p->payload_len + ((chunk_size / 3));
-        SCLogDebug("packet payload len %u, so chunk_size adjusted to %u",
-                p->payload_len, chunk_size);
+        SCLogDebug(
+                "packet payload len %u, so chunk_size adjusted to %u", p->payload_len, chunk_size);
     }
 
     uint64_t packet_leftedge_abs = STREAM_BASE_OFFSET(stream) + (TCP_GET_SEQ(p) - stream->base_seq);
