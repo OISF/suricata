@@ -1674,9 +1674,12 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
     int finish_header = 0, new_header = 0;
     MimeDecConfig *mdcfg = MimeDecGetConfig();
 
+/* TODO enable the following check once https://redmine.openinfosecfoundation.org/issues/6019 is
+ * resolved */
+#if 0
     /* should not get here with incomplete lines */
     DEBUG_VALIDATE_BUG_ON(state->current_line_delimiter_len == 0 && blen < SMTP_LINE_BUFFER_LIMIT);
-
+#endif
     /* Find first header */
     hname = FindMimeHeaderStart(buf, blen, &hlen);
     if (hname != NULL) {
