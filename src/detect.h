@@ -332,9 +332,7 @@ typedef struct IPOnlyCIDRItem_ {
 /** \brief Used to start a pointer to SigMatch context
  * Should never be dereferenced without casting to something else.
  */
-typedef struct SigMatchCtx_ {
-    int foo;
-} SigMatchCtx;
+typedef void SigMatchCtx;
 
 /** \brief a single match condition for a signature */
 typedef struct SigMatch_ {
