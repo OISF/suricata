@@ -1,9 +1,7 @@
-Important Data Structures
-=========================
+Important Data Structures Overview
+==================================
 
-Introduction
-------------
+.. toctree::
+   :maxdepth: 2
 
-This section explains the most important Suricata Data structures.
-
-For a complete overview, see the doxygen: https://doxygen.openinfosecfoundation.org
+   important-data-structures.rst
