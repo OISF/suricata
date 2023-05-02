@@ -190,14 +190,27 @@ static inline void OutputWriteLock(pthread_mutex_t *m)
 }
 
 /**
+ * \brief Flush a file without conditions
+ */
+static inline void SCFlushFile(LogFileCtx *log_ctx)
+{
+    if (log_ctx->fp) {
+        log_ctx->flush_count++;
+        if (log_ctx->bytes_since_last_flush) {
+            SCLogNotice("flushing %ld bytes...", log_ctx->bytes_since_last_flush);
+            log_ctx->bytes_since_last_flush = 0;
+        }
+        (void)(*log_ctx->Flush)(log_ctx->fp);
+    }
+}
+
+/**
  * \brief Write buffer to log file.
  * \retval 0 on failure; otherwise, the return value of fwrite_unlocked (number of
  * characters successfully written).
  */
 static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *log_ctx)
 {
-    int ret = 0;
-
     BUG_ON(log_ctx->is_sock);
 
     /* Check for rotation. */
@@ -215,7 +228,7 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
     }
 
     if (log_ctx->fp) {
-        SCClearErrUnlocked(log_ctx->fp);
+        (*log_ctx->ClearError)(log_ctx->fp);
         if (1 != SCFwriteUnlocked(buffer, buffer_len, 1, log_ctx->fp)) {
             /* Only the first error is logged */
             if (!log_ctx->output_errors) {
@@ -224,12 +237,21 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
                         log_ctx->filename);
             }
             log_ctx->output_errors++;
+            return 0;
+        }
+
+        if (log_ctx->flush_threshold) {
+            log_ctx->bytes_since_last_flush += buffer_len;
+            if (log_ctx->bytes_since_last_flush >= log_ctx->flush_threshold) {
+                log_ctx->bytes_threshold_flush += log_ctx->bytes_since_last_flush;
+                SCFlushFile(log_ctx);
+            }
         } else {
-            SCFflushUnlocked(log_ctx->fp);
+            SCFlushFile(log_ctx);
         }
     }
 
-    return ret;
+    return 0;
 }
 
 /**
@@ -240,7 +262,7 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
 static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ctx)
 {
     OutputWriteLock(&log_ctx->fp_mutex);
-    int ret = 0;
+    int ret;
 
 #ifdef BUILD_WITH_UNIXSOCKET
     if (log_ctx->is_sock) {
@@ -248,35 +270,7 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
     } else
 #endif
     {
-
-        /* Check for rotation. */
-        if (log_ctx->rotation_flag) {
-            log_ctx->rotation_flag = 0;
-            SCConfLogReopen(log_ctx);
-        }
-
-        if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
-            time_t now = time(NULL);
-            if (now >= log_ctx->rotate_time) {
-                SCConfLogReopen(log_ctx);
-                log_ctx->rotate_time = now + log_ctx->rotate_interval;
-            }
-        }
-
-        if (log_ctx->fp) {
-            clearerr(log_ctx->fp);
-            if (1 != fwrite(buffer, buffer_len, 1, log_ctx->fp)) {
-                /* Only the first error is logged */
-                if (!log_ctx->output_errors) {
-                    SCLogError("%s error while writing to %s",
-                            ferror(log_ctx->fp) ? strerror(errno) : "unknown error",
-                            log_ctx->filename);
-                }
-                log_ctx->output_errors++;
-            } else {
-                fflush(log_ctx->fp);
-            }
-        }
+        ret = SCLogFileWriteNoLock(buffer, buffer_len, log_ctx);
     }
 
     SCMutexUnlock(&log_ctx->fp_mutex);
@@ -308,12 +302,23 @@ static char *SCLogFilenameFromPattern(const char *pattern)
 static void SCLogFileCloseNoLock(LogFileCtx *log_ctx)
 {
     SCLogDebug("Closing %s", log_ctx->filename);
-    if (log_ctx->fp)
+    if (log_ctx->fp) {
+        if (log_ctx->flush_threshold) {
+            SCLogNotice("%s: Flushing remaining %ld bytes left unflushed", log_ctx->filename, log_ctx->bytes_since_last_flush);
+            if (log_ctx->bytes_since_last_flush) {
+                SCFlushFile(log_ctx);
+            }
+        }
         fclose(log_ctx->fp);
+    }
 
     if (log_ctx->output_errors) {
         SCLogError("There were %" PRIu64 " output errors to %s", log_ctx->output_errors,
                 log_ctx->filename);
+    }
+
+    if (log_ctx->flush_count) {
+        SCLogNotice("There were %" PRIu64 " calls to fflush for %s. %ld bytes flushed due to threshold", log_ctx->flush_count, log_ctx->filename, log_ctx->bytes_threshold_flush);
     }
 }
 
@@ -517,6 +522,14 @@ SCConfLogOpenGeneric(ConfNode *conf,
     if (filetype == NULL)
         filetype = DEFAULT_LOG_FILETYPE;
 
+    const char *flush_threshold = ConfNodeLookupChildValue(conf, "flush-threshold");
+    uint64_t threshold = 0;
+    if (flush_threshold != NULL &&
+            StringParseUint64(&threshold, 10, (uint16_t)strlen(flush_threshold), flush_threshold) >
+                    0) {
+        log_ctx->flush_threshold = threshold;
+    }
+
     const char *filemode = ConfNodeLookupChildValue(conf, "filemode");
     uint32_t mode = 0;
     if (filemode != NULL && StringParseUint32(&mode, 8, (uint16_t)strlen(filemode), filemode) > 0) {
@@ -667,6 +680,8 @@ LogFileCtx *LogFileNewCtx(void)
 
     lf_ctx->Write = SCLogFileWrite;
     lf_ctx->Close = SCLogFileClose;
+    lf_ctx->ClearError = clearerr;
+    lf_ctx->Flush = fflush;
 
     return lf_ctx;
 }
@@ -828,6 +843,8 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
         thread->is_regular = true;
         thread->Write = SCLogFileWriteNoLock;
         thread->Close = SCLogFileCloseNoLock;
+        thread->ClearError = SCClearErrUnlocked;
+        thread->Flush = SCFflushUnlocked;
         OutputRegisterFileRotationFlag(&thread->rotation_flag);
     } else if (parent_ctx->type == LOGFILE_TYPE_PLUGIN) {
         entry->slot_number = SC_ATOMIC_ADD(eve_file_id, 1);
@@ -906,6 +923,24 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
     SCFree(lf_ctx);
 
     SCReturnInt(1);
+}
+
+inline int LogFileFlush(LogFileCtx *file_ctx)
+{
+    if (file_ctx->type == LOGFILE_TYPE_FILE || file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
+            file_ctx->type == LOGFILE_TYPE_UNIX_STREAM) {
+        file_ctx->Flush(file_ctx->fp);
+    } else if (file_ctx->type == LOGFILE_TYPE_PLUGIN) {
+        SCLogNotice("not supported for plugins (yet)");
+    }
+#ifdef HAVE_LIBHIREDIS
+    else if (file_ctx->type == LOGFILE_TYPE_REDIS) {
+        SCLogNotice("not supported for redis (yet)");
+    }
+#endif
+
+    return 0;
+
 }
 
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)

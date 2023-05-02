@@ -88,6 +88,10 @@ typedef struct LogFileCtx_ {
     int (*Write)(const char *buffer, int buffer_len, struct LogFileCtx_ *fp);
     void (*Close)(struct LogFileCtx_ *fp);
 
+    /* use locked/nolocked versions */
+    void (*ClearError)(FILE *fp);
+    int (*Flush)(FILE *fp);
+
     LogFilePluginCtx plugin;
 
     /** It will be locked if the log/alert
@@ -157,6 +161,17 @@ typedef struct LogFileCtx_ {
     uint64_t dropped;
 
     uint64_t output_errors;
+
+    /* For reducing fflush() calls.
+     * A flush threshold can be applied -- the default value is 0 -- and calls
+     * to fflush() will occur if the threshold is 0 or the bytes written exceed
+     * the threshold
+     */
+    uint64_t flush_threshold;
+    uint64_t bytes_since_last_flush;
+    uint64_t bytes_threshold_flush;
+    uint64_t flush_count;
+    ;
 } LogFileCtx;
 
 /* Min time (msecs) before trying to reconnect a Unix domain socket */
@@ -168,6 +183,7 @@ typedef struct LogFileCtx_ {
 LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
+int LogFileFlush(LogFileCtx *file_ctx);
 
 LogFileCtx *LogFileEnsureExists(LogFileCtx *lf_ctx);
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
