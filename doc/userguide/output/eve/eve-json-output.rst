@@ -30,6 +30,12 @@ Output types::
       # Enable for multi-threaded eve.json output; output files are amended
       # with an identifier, e.g., eve.9.json. Default: off
       #threaded: off
+      # Control for calls to flush file contents:
+      # - 0 Flush after each write
+      # - <byte-count> Flush periodically. Track bytes written; when bytes
+      #   written is equal to or greater, flush file contents. The next
+      #   flush occurs when the bytes written meets or exceeds this value.
+      #flush-threshold: 0
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
@@ -295,7 +301,7 @@ The example above adds epoch time to the filename. All the date modifiers from t
 C library should be supported. See the man page for ``strftime`` for all supported
 modifiers.
 
-.. _output_eve_rotate:
+.. _output_eve_threaded:
 
 Threaded file output
 ~~~~~~~~~~~~~~~~~~~~
@@ -316,6 +322,32 @@ the aggregate of each file's contents must be treated together.
 This example will cause each Suricata thread to write to its own "eve.json" file. Filenames are constructed
 by adding a unique identifier to the filename.  For example, ``eve.7.json``.
 
+
+.. _output_eve_flush:
+
+Flushing file contents
+--~~~~~~~~~~~~~~~~~~~~
+
+By default, Suricata will call ``flush`` each time the file is written. ``flush-threshold``
+can be set to a byte-count to reduce the number of ``fflush`` calls. When non-zero, ``fflush`` is called
+when the bytes written to the file are equal to or exceed the value; subsequent calls to ``fflush`` occur.
+
+Reducing the number of ``fflush`` calls can reduce write overhead at the expense of risk of leaving
+up to ``flush-threshold`` bytes unbuffered/unwritten should Suricata unexpectedly terminate.
+
+The default value is ``0``.
+
+::
+
+   outputs:
+     - eve-log:
+         filename: eve.json
+         flush-threshold: 4096
+
+This example will cause Suricata to call ``fflush`` every time 4096 bytes have been written to ``eve.json``.
+
+
+.. _output_eve_rotate:
 
 Rotate log file
 ~~~~~~~~~~~~~~~
