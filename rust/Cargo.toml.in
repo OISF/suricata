@@ -60,9 +60,12 @@ md-5 = "~0.10.1"
 regex = "~1.5.5"
 lazy_static = "~1.4.0"
 base64 = "~0.13.0"
-time = "=0.3.13"
 bendy = { version = "~0.3.3", default-features = false }
 asn1-rs = { version = "~0.5.2" }
+
+# The time crate has a policy of supporting Rust versions up to 6
+# month olds, so it needs to be pinned even at the patch level.
+time = "=0.3.13"
 
 suricata-derive = { path = "./derive" }
 
