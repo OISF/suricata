@@ -7,6 +7,12 @@ outputs:
       # Enable for multi-threaded eve.json output; output files are amended
       # with an identifier, e.g., eve.9.json
       #threaded: false
+      # Control for calls to flush file contents:
+      # - 0 Flush contents after each write
+      # - <byte-count> Flush periodically. Track bytes written; when bytes
+      #   written is equal to or greater, flush file contents. The next
+      #   flush occurs when the bytes written meets or exceeds this value.
+      #flush-threshold: 0
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
