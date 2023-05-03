@@ -30,6 +30,7 @@ void TmModuleNapatechDecodeRegister(void);
 
 #ifdef HAVE_NAPATECH
 #include <nt.h>
+#include "runmode-napatech.h"
 
 struct NapatechStreamDevConf
 {

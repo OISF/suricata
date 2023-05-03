@@ -39,6 +39,7 @@
 #include "tmqh-packetpool.h"
 #include "util-napatech.h"
 #include "source-napatech.h"
+#include "action-globals.h"
 
 #ifndef HAVE_NAPATECH
 
@@ -741,22 +742,22 @@ static void RecommendNUMAConfig(SCLogLevel log_level)
     }
 
     if (set_cpu_affinity) {
-        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
+        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module,
                 "Minimum host buffers that should be defined in ntservice.ini:");
 
-        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, "   NUMA Node 0: %d",
+        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module, "   NUMA Node 0: %d",
                 (SC_ATOMIC_GET(numa0_count)));
 
         if (numa_max_node() >= 1)
-            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
+            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module,
                     "   NUMA Node 1: %d ", (SC_ATOMIC_GET(numa1_count)));
 
         if (numa_max_node() >= 2)
-            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
+            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module,
                     "   NUMA Node 2: %d ", (SC_ATOMIC_GET(numa2_count)));
 
         if (numa_max_node() >= 3)
-            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
+            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module,
                     "   NUMA Node 3: %d ", (SC_ATOMIC_GET(numa3_count)));
 
         snprintf(string0, 16, "[%d, 16, 0]", SC_ATOMIC_GET(numa0_count));
@@ -767,7 +768,7 @@ static void RecommendNUMAConfig(SCLogLevel log_level)
         snprintf(string3, 16, (numa_max_node() >= 3 ? ",[%d, 16, 3]" : ""),
                 SC_ATOMIC_GET(numa3_count));
 
-        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
+        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module,
                 "E.g.: HostBuffersRx=%s%s%s%s", string0, string1, string2,
                 string3);
     } else if (log_level == SC_LOG_ERROR) {
@@ -933,6 +934,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         p->ntpv.bypass = 0;
 #endif
 
+        PKT_SET_SRC(p, PKT_SRC_WIRE);
         p->ntpv.rx_stream = ntv->rx_stream;
 
         if (unlikely(p == NULL)) {
@@ -949,24 +951,29 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
          */
         switch (NT_NET_GET_PKT_TIMESTAMP_TYPE(packet_buffer)) {
             case NT_TIMESTAMP_TYPE_NATIVE_UNIX:
-                p->ts = SCTIME_FROM_SECS(pkt_ts / 100000000);
-                p->ts += SCTIME_FROM_USECS(
-                        ((pkt_ts % 100000000) / 100) + ((pkt_ts % 100) > 50 ? 1 : 0));
+                p->ts = (SCTime_t){
+                    .secs = pkt_ts / 100000000,
+                    .usecs = ((pkt_ts % 100000000) / 100) + ((pkt_ts % 100) > 50 ? 1 : 0)
+                    };
                 break;
             case NT_TIMESTAMP_TYPE_PCAP:
-                p->ts = SCTIME_FROM_SECS(pkt_ts >> 32);
-                p->ts += SCTIME_FROM_USECS(pkt_ts & 0xFFFFFFFF);
+                p->ts = (SCTime_t){
+                    .secs = pkt_ts >> 32,
+                    .usecs = pkt_ts & 0xFFFFFFFF
+                    };
                 break;
             case NT_TIMESTAMP_TYPE_PCAP_NANOTIME:
-                p->ts = SCTIME_FROM_SECS(pkt_ts >> 32);
-                p->ts += SCTIME_FROM_USECS(
-                        ((pkt_ts & 0xFFFFFFFF) / 1000) + ((pkt_ts % 1000) > 500 ? 1 : 0));
+                p->ts = (SCTime_t){
+                    .secs = pkt_ts >> 32,
+                    .usecs = ((pkt_ts & 0xFFFFFFFF) / 1000) + ((pkt_ts % 1000) > 500 ? 1 : 0)
+                    };
                 break;
             case NT_TIMESTAMP_TYPE_NATIVE_NDIS:
                 /* number of seconds between 1/1/1601 and 1/1/1970 */
-                p->ts = SCTIME_FROM_SECS((pkt_ts / 100000000) - 11644473600);
-                p->ts += SCTIME_FROM_USECS(
-                        ((pkt_ts % 100000000) / 100) + ((pkt_ts % 100) > 50 ? 1 : 0));
+                p->ts = (SCTime_t){
+                    .secs = (pkt_ts / 100000000) - 11644473600,
+                    .usecs = ((pkt_ts % 100000000) / 100) + ((pkt_ts % 100) > 50 ? 1 : 0)
+                    };
                 break;
             default:
                 SCLogError("Packet from Napatech Stream: %u does not have a supported timestamp "

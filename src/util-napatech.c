@@ -643,6 +643,7 @@ static void *NapatechStatsLoop(void *arg)
     }
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
+    TmThreadsSetFlag(tv, THV_RUNNING);
     while (1) {
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
             SCLogDebug("NapatechStatsLoop THV_KILL detected");
@@ -1027,6 +1028,7 @@ static void *NapatechBufMonitorLoop(void *arg)
     }
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
+    TmThreadsSetFlag(tv, THV_RUNNING);
     while (1) {
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
             SCLogDebug("NapatechBufMonitorLoop THV_KILL detected");
