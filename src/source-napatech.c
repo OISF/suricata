@@ -26,6 +26,7 @@
  *
  */
 #include "suricata-common.h"
+#include "action-globals.h"
 #include "decode.h"
 #include "packet.h"
 #include "suricata.h"
@@ -39,6 +40,7 @@
 #include "tmqh-packetpool.h"
 #include "util-napatech.h"
 #include "source-napatech.h"
+#include "runmode-napatech.h"
 
 #ifndef HAVE_NAPATECH
 
@@ -724,10 +726,8 @@ static int GetNumaNode(void)
 /**
  * \brief Outputs hints on the optimal host-buffer configuration to aid tuning.
  *
- * \param log_level of the currently running instance.
- *
  */
-static void RecommendNUMAConfig(SCLogLevel log_level)
+static void RecommendNUMAConfig(void)
 {
     char string0[16];
     char string1[16];
@@ -740,23 +740,18 @@ static void RecommendNUMAConfig(SCLogLevel log_level)
     }
 
     if (set_cpu_affinity) {
-        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
-                "Minimum host buffers that should be defined in ntservice.ini:");
+        SCLogPerf("Minimum host buffers that should be defined in ntservice.ini:");
 
-        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, "   NUMA Node 0: %d",
-                (SC_ATOMIC_GET(numa0_count)));
+        SCLogPerf("   NUMA Node 0: %d", (SC_ATOMIC_GET(numa0_count)));
 
         if (numa_max_node() >= 1)
-            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
-                    "   NUMA Node 1: %d ", (SC_ATOMIC_GET(numa1_count)));
+            SCLogPerf("   NUMA Node 1: %d ", (SC_ATOMIC_GET(numa1_count)));
 
         if (numa_max_node() >= 2)
-            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
-                    "   NUMA Node 2: %d ", (SC_ATOMIC_GET(numa2_count)));
+            SCLogPerf("   NUMA Node 2: %d ", (SC_ATOMIC_GET(numa2_count)));
 
         if (numa_max_node() >= 3)
-            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
-                    "   NUMA Node 3: %d ", (SC_ATOMIC_GET(numa3_count)));
+            SCLogPerf("   NUMA Node 3: %d ", (SC_ATOMIC_GET(numa3_count)));
 
         snprintf(string0, 16, "[%d, 16, 0]", SC_ATOMIC_GET(numa0_count));
         snprintf(string1, 16, (numa_max_node() >= 1 ? ",[%d, 16, 1]" : ""),
@@ -766,12 +761,7 @@ static void RecommendNUMAConfig(SCLogLevel log_level)
         snprintf(string3, 16, (numa_max_node() >= 3 ? ",[%d, 16, 3]" : ""),
                 SC_ATOMIC_GET(numa3_count));
 
-        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
-                "E.g.: HostBuffersRx=%s%s%s%s", string0, string1, string2,
-                string3);
-    } else if (log_level == SC_LOG_ERROR) {
-        SCLogError("Or, try running /opt/napatech3/bin/ntpl -e \"delete=all\" to clean-up stream "
-                   "NUMA config.");
+        SCLogPerf("E.g.: HostBuffersRx=%s%s%s%s", string0, string1, string2, string3);
     }
 }
 
@@ -866,13 +856,13 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
 
             if (status == 0x20002061) {
                 SCLogError("Check host buffer configuration in ntservice.ini.");
-                RecommendNUMAConfig(SC_LOG_ERROR);
+                RecommendNUMAConfig();
                 exit(EXIT_FAILURE);
 
             } else if (status == 0x20000008) {
                 FatalError("Check napatech.ports in the suricata config file.");
             }
-            RecommendNUMAConfig(SC_LOG_PERF);
+            RecommendNUMAConfig();
             SCLogNotice("Napatech packet input engine started.");
         }
     } // is_autoconfig
@@ -949,23 +939,20 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         switch (NT_NET_GET_PKT_TIMESTAMP_TYPE(packet_buffer)) {
             case NT_TIMESTAMP_TYPE_NATIVE_UNIX:
                 p->ts = SCTIME_FROM_SECS(pkt_ts / 100000000);
-                p->ts += SCTIME_FROM_USECS(
-                        ((pkt_ts % 100000000) / 100) + ((pkt_ts % 100) > 50 ? 1 : 0));
+                p->ts = SCTIME_ADD_USECS(p->ts, ((pkt_ts % 100000000) / 100) + ((pkt_ts % 100) > 50 ? 1 : 0));
                 break;
             case NT_TIMESTAMP_TYPE_PCAP:
                 p->ts = SCTIME_FROM_SECS(pkt_ts >> 32);
-                p->ts += SCTIME_FROM_USECS(pkt_ts & 0xFFFFFFFF);
+                p->ts = SCTIME_ADD_USECS(p->ts, pkt_ts & 0xFFFFFFFF);
                 break;
             case NT_TIMESTAMP_TYPE_PCAP_NANOTIME:
                 p->ts = SCTIME_FROM_SECS(pkt_ts >> 32);
-                p->ts += SCTIME_FROM_USECS(
-                        ((pkt_ts & 0xFFFFFFFF) / 1000) + ((pkt_ts % 1000) > 500 ? 1 : 0));
+                p->ts = SCTIME_ADD_USECS(p->ts, ((pkt_ts & 0xFFFFFFFF) / 1000) + ((pkt_ts % 1000) > 500 ? 1 : 0));
                 break;
             case NT_TIMESTAMP_TYPE_NATIVE_NDIS:
                 /* number of seconds between 1/1/1601 and 1/1/1970 */
                 p->ts = SCTIME_FROM_SECS((pkt_ts / 100000000) - 11644473600);
-                p->ts += SCTIME_FROM_USECS(
-                        ((pkt_ts % 100000000) / 100) + ((pkt_ts % 100) > 50 ? 1 : 0));
+                p->ts = SCTIME_ADD_USECS(p->ts, ((pkt_ts % 100000000) / 100) + ((pkt_ts % 100) > 50 ? 1 : 0));
                 break;
             default:
                 SCLogError("Packet from Napatech Stream: %u does not have a supported timestamp "

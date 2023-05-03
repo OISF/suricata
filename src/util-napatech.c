@@ -33,6 +33,7 @@
 #include "tm-threads.h"
 #include "util-napatech.h"
 #include "source-napatech.h"
+#include "runmode-napatech.h"
 
 #ifdef NAPATECH_ENABLE_BYPASS
 
@@ -642,7 +643,7 @@ static void *NapatechStatsLoop(void *arg)
                      "active streams.");
     }
 
-    TmThreadsSetFlag(tv, THV_INIT_DONE);
+    TmThreadsSetFlag(tv, THV_RUNNING);
     while (1) {
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
             SCLogDebug("NapatechStatsLoop THV_KILL detected");
@@ -1026,7 +1027,7 @@ static void *NapatechBufMonitorLoop(void *arg)
         exit(EXIT_FAILURE);
     }
 
-    TmThreadsSetFlag(tv, THV_INIT_DONE);
+    TmThreadsSetFlag(tv, THV_RUNNING);
     while (1) {
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
             SCLogDebug("NapatechBufMonitorLoop THV_KILL detected");
@@ -1454,14 +1455,18 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
             if (strchr(port->val, '-')) {
                 stream_spec = CONFIG_SPECIFIER_RANGE;
 
-                ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val);
-                ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0, strchr(port->val, '-')+1);
+                if (ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val) == -1) {
+                    SCLogWarning("Invalid value in napatech.ports specification in conf file.");
+                };
+
+                if (ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0, strchr(port->val, '-')+1) == -1) {
+                    SCLogWarning("Invalid value in napatech.ports specification in conf file.");
+                };
 
                 if (ports_spec.first[iteration] == ports_spec.second[iteration]) {
                     if (is_inline) {
-                        FatalError(
-                                "Error with napatech.ports in conf file.  When running in inline "
-                                "mode the two ports specifying a segment must be different.");
+                        FatalError("Error with napatech.ports in conf file.  When running in inline "
+                                   "mode the two ports specifying a segment must be different.");
                     } else {
                         /* SPAN port configuration */
                         is_span_port[ports_spec.first[iteration]] = 1;
@@ -1533,8 +1538,14 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
                 }
                 stream_spec = CONFIG_SPECIFIER_RANGE;
 
-                ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val);
-                ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0, strchr(port->val, '-') + 1);
+                if (ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val) == -1) {
+                    SCLogWarning("Invalid value in napatech.ports specification in conf file.");
+                };
+
+                if (ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0, strchr(port->val, '-')+1) == -1) {
+                    SCLogWarning("Invalid value in napatech.ports specification in conf file.");
+                };
+
                 snprintf(ports_spec.str, sizeof (ports_spec.str), "(%d..%d)", ports_spec.first[iteration], ports_spec.second[iteration]);
             } else {
                 /* check that the sting in the config file is correctly specified */
@@ -1544,7 +1555,9 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
                 }
                 stream_spec = CONFIG_SPECIFIER_INDIVIDUAL;
 
-                ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val);
+                if (ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val) == -1) {
+                    SCLogError("Invalid value in napatech.ports specification in conf file.");
+                };
 
                 /* Determine the ports to use on the NTPL assign statement*/
                 if (iteration == 0) {
