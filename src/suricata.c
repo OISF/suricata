@@ -54,6 +54,7 @@
 #include "util-device.h"
 #include "util-misc.h"
 #include "util-running-modes.h"
+#include "util-validate.h"
 
 #include "detect-engine.h"
 #include "detect-parse.h"
@@ -207,7 +208,7 @@ int run_mode = RUNMODE_UNKNOWN;
 
 /** Engine mode: inline (ENGINE_MODE_IPS) or just
   * detection mode (ENGINE_MODE_IDS by default) */
-static enum EngineMode g_engine_mode = ENGINE_MODE_IDS;
+static enum EngineMode g_engine_mode = ENGINE_MODE_UNKNOWN;
 
 /** Host mode: set if box is sniffing only
  * or is a router */
@@ -246,13 +247,20 @@ int SuriHasSigFile(void)
     return (suricata.sig_file != NULL);
 }
 
+int EngineModeIsUnknown(void)
+{
+    return (g_engine_mode == ENGINE_MODE_UNKNOWN);
+}
+
 int EngineModeIsIPS(void)
 {
+    DEBUG_VALIDATE_BUG_ON(g_engine_mode == ENGINE_MODE_UNKNOWN);
     return (g_engine_mode == ENGINE_MODE_IPS);
 }
 
 int EngineModeIsIDS(void)
 {
+    DEBUG_VALIDATE_BUG_ON(g_engine_mode == ENGINE_MODE_UNKNOWN);
     return (g_engine_mode == ENGINE_MODE_IDS);
 }
 
@@ -510,12 +518,6 @@ static void SetBpfStringFromFile(char *filename)
 #endif /* OS_WIN32 */
     FILE *fp = NULL;
     size_t nm = 0;
-
-    if (EngineModeIsIPS()) {
-                   FatalError(SC_ERR_FATAL,
-                              "BPF filter not available in IPS mode."
-                              " Use firewall filtering if possible.");
-    }
 
 #ifdef OS_WIN32
     if(_stat(filename, &st) != 0) {
@@ -2460,6 +2462,7 @@ static void RunModeEngineIsIPS(SCInstance *suri)
         if (AFPRunModeIsIPS()) {
             SCLogInfo("AF_PACKET: Setting IPS mode");
             EngineModeSetIPS();
+            return;
         }
     }
 #endif
@@ -2468,11 +2471,10 @@ static void RunModeEngineIsIPS(SCInstance *suri)
         if (NetmapRunModeIsIPS()) {
             SCLogInfo("Netmap: Setting IPS mode");
             EngineModeSetIPS();
+            return;
         }
     }
 #endif
-
-    SCReturnInt(TM_ECODE_OK);
 }
 
 static void PostConfLoadedSetupHostMode(void)
@@ -2599,6 +2601,11 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     /* set engine mode if L2 IPS */
     RunModeEngineIsIPS(suri);
+
+    if (EngineModeIsUnknown()) { // if still uninitialized the set the default
+        SCLogInfo("Setting engine mode to IDS mode by default");
+        EngineModeSetIDS();
+    }
 
     AppLayerSetup();
 

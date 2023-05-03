@@ -228,6 +228,7 @@ void RunUnittests(int list_unittests, const char *regex_arg)
 #ifdef UNITTESTS
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
     GlobalsInitPreConfig();
+    EngineModeSetIDS();
 
 #ifdef HAVE_LUAJIT
     if (LuajitSetupStatesPool() != 0) {
