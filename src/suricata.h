@@ -100,12 +100,14 @@ enum {
 
 /* Engine is acting as */
 enum EngineMode {
+    ENGINE_MODE_UNKNOWN,
     ENGINE_MODE_IDS,
     ENGINE_MODE_IPS,
 };
 
 void EngineModeSetIPS(void);
 void EngineModeSetIDS(void);
+int EngineModeIsUnknown(void);
 int EngineModeIsIPS(void);
 int EngineModeIsIDS(void);
 
