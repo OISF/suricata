@@ -2453,10 +2453,8 @@ void PostConfLoadedDetectSetup(SCInstance *suri)
     }
 }
 
-static int PostDeviceFinalizedSetup(SCInstance *suri)
+static void RunModeEngineIsIPS(SCInstance *suri)
 {
-    SCEnter();
-
 #ifdef HAVE_AF_PACKET
     if (suri->run_mode == RUNMODE_AFP_DEV) {
         if (AFPRunModeIsIPS()) {
@@ -2599,6 +2597,9 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     MacSetRegisterFlowStorage();
 
+    /* set engine mode if L2 IPS */
+    RunModeEngineIsIPS(suri);
+
     AppLayerSetup();
 
     /* Suricata will use this umask if provided. By default it will use the
@@ -2717,11 +2718,6 @@ int PostConfLoadedSetup(SCInstance *suri)
     DecodeGlobalConfig();
 
     LiveDeviceFinalize();
-
-    /* set engine mode if L2 IPS */
-    if (PostDeviceFinalizedSetup(suri) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
 
     /* hostmode depends on engine mode being set */
     PostConfLoadedSetupHostMode();
