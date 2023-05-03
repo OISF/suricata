@@ -31,7 +31,7 @@
 #include "source-pcap-file.h"
 #include "util-exception-policy.h"
 
-extern intmax_t max_pending_packets;
+extern uint16_t max_pending_packets;
 extern PcapFileGlobalVars pcap_g;
 
 static void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt);

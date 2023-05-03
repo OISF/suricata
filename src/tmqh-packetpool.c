@@ -283,7 +283,7 @@ void PacketPoolInitEmpty(void)
 
 void PacketPoolInit(void)
 {
-    extern intmax_t max_pending_packets;
+    extern uint16_t max_pending_packets;
 
     PktPool *my_pool = GetThreadPacketPool();
 
@@ -499,8 +499,8 @@ void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
  */
 void PacketPoolPostRunmodes(void)
 {
-    extern intmax_t max_pending_packets;
-    intmax_t pending_packets = max_pending_packets;
+    extern uint16_t max_pending_packets;
+    uint16_t pending_packets = max_pending_packets;
     if (pending_packets < RESERVED_PACKETS) {
         FatalError("'max-pending-packets' setting "
                    "must be at least %d",
