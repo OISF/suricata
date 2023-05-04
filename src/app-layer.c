@@ -514,6 +514,10 @@ static int TCPProtoDetect(ThreadVars *tv,
         if (r < 0) {
             goto parser_error;
         }
+        // If AppLayerParserParse disabled us (because of detection-only)
+        if (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) {
+            AppLayerIncFlowCounter(tv, f);
+        }
     } else {
         /* if the ssn is midstream, we may end up with a case where the
          * start of an HTTP request is missing. We won't detect HTTP based
