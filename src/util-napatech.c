@@ -1456,11 +1456,11 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
                 stream_spec = CONFIG_SPECIFIER_RANGE;
 
                 if (ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val) == -1) {
-                    SCLogError("Invalid value in napatech.ports specification in conf file.");
+                    SCLogWarning("Invalid value in napatech.ports specification in conf file.");
                 };
 
                 if (ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0, strchr(port->val, '-')+1) == -1) {
-                    SCLogError("Invalid value in napatech.ports specification in conf file.");
+                    SCLogWarning("Invalid value in napatech.ports specification in conf file.");
                 };
 
                 if (ports_spec.first[iteration] == ports_spec.second[iteration]) {
@@ -1539,11 +1539,11 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
                 stream_spec = CONFIG_SPECIFIER_RANGE;
 
                 if (ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val) == -1) {
-                    SCLogError("Invalid value in napatech.ports specification in conf file.");
+                    SCLogWarning("Invalid value in napatech.ports specification in conf file.");
                 };
 
                 if (ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0, strchr(port->val, '-')+1) == -1) {
-                    SCLogError("Invalid value in napatech.ports specification in conf file.");
+                    SCLogWarning("Invalid value in napatech.ports specification in conf file.");
                 };
 
                 snprintf(ports_spec.str, sizeof (ports_spec.str), "(%d..%d)", ports_spec.first[iteration], ports_spec.second[iteration]);
