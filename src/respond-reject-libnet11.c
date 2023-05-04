@@ -431,7 +431,7 @@ int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
     if (c == NULL)
         return 1;
 
-    lpacket.len = LIBNET_IPV6_H + LIBNET_TCP_H;
+    lpacket.len = LIBNET_TCP_H;
     lpacket.dsize = p->payload_len;
 
     switch (dir) {
@@ -452,7 +452,7 @@ int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
 
     BuildTCP(c, &lpacket);
 
-    if (BuildIPv6(c, &lpacket, IPPROTO_ICMP) < 0)
+    if (BuildIPv6(c, &lpacket, IPPROTO_TCP) < 0)
         goto cleanup;
 
     if (t_inject_mode == LIBNET_LINK) {
