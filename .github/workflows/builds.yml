@@ -2553,7 +2553,7 @@ jobs:
   windows-msys2-mingw64-libpcap:
     name: Windows MSYS2 MINGW64 (libpcap)
     runs-on: windows-latest
-    needs: [prepare-deps]
+    needs: [prepare-deps, debian-12-dist]
     defaults:
       run:
         shell: msys2 {0}
@@ -2563,27 +2563,23 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
-      - uses: actions/checkout@v3.5.3
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
           install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
-      # hack: install our own cbindgen system wide as we can't get the
-      # preinstalled one to be picked up by configure
-      - name: cbindgen
-        run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
-      - uses: actions/checkout@v3.5.3
       - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
-      - run: tar xf prep/suricata-update.tar.gz
+      - name: Download suricata.tar.gz
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        with:
+          name: dist
+      - run: tar xvf suricata-*.tar.gz --strip-components=1
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Build
         run: |
-          ./autogen.sh
           CFLAGS="-ggdb -Werror" ./configure --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared --with-libpcap-includes=/npcap/Include --with-libpcap-libraries=/npcap/Lib/x64
           make -j3
       - name: Run
