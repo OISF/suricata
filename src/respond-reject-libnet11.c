@@ -259,14 +259,11 @@ static inline int BuildEthernet(libnet_t *c, Libnet11Packet *lpacket, uint16_t p
 
 static inline int BuildEthernetVLAN(libnet_t *c, Libnet11Packet *lpacket, uint16_t proto, uint16_t vlan_id)
 {
-    if (libnet_build_802_1q(
-                lpacket->dmac, lpacket->smac, ETHERTYPE_VLAN,
-                0x000, 0x000, vlan_id, proto,
-                NULL,                                   /* payload */
-                0,                                      /* payload size */
-                c,                                      /* libnet handle */
-                0) < 0)
-    {
+    if (libnet_build_802_1q(lpacket->dmac, lpacket->smac, ETHERTYPE_VLAN, 0x00, 0x00, vlan_id,
+                proto, NULL, /* payload */
+                0,           /* payload size */
+                c,           /* libnet handle */
+                0) < 0) {
         SCLogError(SC_ERR_LIBNET_BUILD_FAILED,"libnet_build_802_1q %s", libnet_geterror(c));
         return -1;
     }
