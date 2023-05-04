@@ -98,11 +98,8 @@ static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, ui
 
     int ret = StreamingBufferInsertAt(&stream->sb, &stream_config.sbcnf, &seg->sbseg,
             data + data_offset, data_len - data_offset, stream_offset);
-    if (ret != 0) {
-        /* StreamingBufferInsertAt can return -2 only if the offset is wrong, which should be
-         * impossible in this path. */
-        DEBUG_VALIDATE_BUG_ON(ret != -1);
-        SCReturnInt(SC_ENOMEM);
+    if (ret != SC_OK) {
+        SCReturnInt(ret);
     }
 #ifdef DEBUG
     {
@@ -550,6 +547,13 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     if (res != SC_OK) {
         if (res == SC_ENOMEM) {
             StatsIncr(tv, ra_ctx->counter_tcp_segment_memcap);
+            StreamTcpSetEvent(p, STREAM_REASSEMBLY_INSERT_MEMCAP);
+        } else if (res == SC_ELIMIT) {
+            StreamTcpSetEvent(p, STREAM_REASSEMBLY_INSERT_LIMIT);
+        } else if (res == SC_EINVAL) {
+            StreamTcpSetEvent(p, STREAM_REASSEMBLY_INSERT_INVALID);
+        } else {
+            DEBUG_VALIDATE_BUG_ON(1);
         }
         return -1;
     }

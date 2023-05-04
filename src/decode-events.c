@@ -856,6 +856,18 @@ const struct DecodeEvents_ DEvents[] = {
             "stream.reassembly_depth_reached",
             STREAM_REASSEMBLY_DEPTH_REACHED,
     },
+    {
+            "stream.reassembly_insert_memcap",
+            STREAM_REASSEMBLY_INSERT_MEMCAP,
+    },
+    {
+            "stream.reassembly_insert_limit",
+            STREAM_REASSEMBLY_INSERT_LIMIT,
+    },
+    {
+            "stream.reassembly_insert_invalid",
+            STREAM_REASSEMBLY_INSERT_INVALID,
+    },
 
     { NULL, 0 },
 };
