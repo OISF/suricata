@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,12 +17,10 @@
 
 /**
  * \file
- *
- * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __ERROR_H__
-#define __ERROR_H__
+#ifndef __UTIL_ERROR_H__
+#define __UTIL_ERROR_H__
 
 /* different error types */
 typedef enum {
@@ -40,4 +38,4 @@ const char *SCErrorToString(SCError);
 
 extern thread_local SCError sc_errno;
 
-#endif /* __ERROR_H__ */
+#endif /* __UTIL_ERROR_H__ */
