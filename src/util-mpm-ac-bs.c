@@ -33,14 +33,14 @@
  *           If you can fit the ruleset with this mpm on your box without hitting
  *           swap, this is the MPM to go for.
  *
- * \todo - Do a proper analyis of our existing MPMs and suggest a good one based
+ * \todo - Do a proper analysis of our existing MPMs and suggest a good one based
  *         on the pattern distribution and the expected traffic(say http).
  *       - Tried out loop unrolling without any perf increase.  Need to dig deeper.
  *       - Irrespective of whether we cross 2 ** 16 states or not,shift to using
  *         uint32_t for state type, so that we can integrate it's status as a
  *         final state or not in the topmost byte.  We are already doing it if
  *         state_count is > 2 ** 16.
- *       - Test case-senstive patterns if they have any ascii chars.  If they
+ *       - Test case-sensitive patterns if they have any ascii chars.  If they
  *         don't treat them as nocase.
  *       - Carry out other optimizations we are working on.  hashes, compression.
  */
@@ -721,7 +721,7 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
                 k++;
             }
             /* if we have any non 0 transitions from our previous for search,
-             * store the acii codes as well the corresponding states */
+             * store the ascii codes as well the corresponding states */
             if (k > 0) {
                 no_of_entries[0] = k;
                 if (state != 0)
@@ -793,7 +793,7 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
                 k++;
             }
             /* if we have any non 0 transitions from our previous for search,
-             * store the acii codes as well the corresponding states */
+             * store the ascii codes as well the corresponding states */
             if (k > 0) {
                 no_of_entries[0] = k;
                 if (state != 0)
