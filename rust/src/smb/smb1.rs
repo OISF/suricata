@@ -1131,7 +1131,7 @@ fn smb1_request_record_generic(state: &mut SMBState, r: &SmbRecord, events: Vec<
     }
 }
 
-/// update or create a tx for a command / reponse pair based
+/// update or create a tx for a command / response pair based
 /// on the response. We only create a tx for the response side
 /// if we didn't already update a tx, and we have to set events
 fn smb1_response_record_generic(state: &mut SMBState, r: &SmbRecord, events: Vec<SMBEvent>) {

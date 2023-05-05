@@ -656,7 +656,7 @@ pub enum Nfs4ResponseContent<'a> {
     DestroyClientID(u32),
 }
 
-// might need improvment with a stateid_present = yes case
+// might need improvement with a stateid_present = yes case
 fn nfs4_res_layoutreturn(i:&[u8]) -> IResult<&[u8], Nfs4ResponseContent> {
     let (i, status) = be_u32(i)?;
     let (i, _stateid_present) = verify(be_u32, |&v| v <= 1)(i)?;
@@ -1443,7 +1443,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nfs4_request_sequenece() {
+    fn test_nfs4_request_sequence() {
         #[rustfmt::skip]
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x35, /*opcode*/
@@ -1469,7 +1469,7 @@ mod tests {
         #[rustfmt::skip]
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x0f, /*opcode*/
-            0x00, 0x00, 0x00, 0x04, 0x76, 0x6f, 0x6c, 0x31, /*fiename: (vol1)*/
+            0x00, 0x00, 0x00, 0x04, 0x76, 0x6f, 0x6c, 0x31, /*filename: (vol1)*/
         ];
 
         let (_, filename_buf) = nfs4_parse_nfsstring(&buf[4..]).unwrap();
