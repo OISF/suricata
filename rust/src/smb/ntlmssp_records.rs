@@ -74,7 +74,12 @@ pub struct NTLMSSPNegotiateFlags {
 
 fn parse_ntlm_auth_nego_flags(i: &[u8]) -> IResult<&[u8], NTLMSSPNegotiateFlags> {
     let (i, raw) = le_u32(i)?;
-    return Ok((i, NTLMSSPNegotiateFlags{version: (raw & 0x2000000) != 0}));
+    return Ok((
+        i,
+        NTLMSSPNegotiateFlags {
+            version: (raw & 0x2000000) != 0,
+        },
+    ));
 }
 
 const NTLMSSP_IDTYPE_LEN: usize = 12;
