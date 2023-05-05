@@ -558,7 +558,7 @@ Documentation #3017: No documentation for "rawbytes" keyword
 
 Feature #2689: http: Normalized HTTP client body buffer 
 Feature #4121: http2: support file inspection API 
-Bug #1275: ET Rule 2003927 not matchin in suricata 
+Bug #1275: ET Rule 2003927 not matching in suricata 
 Bug #3467: Alert metadata not present in EVE output when using Socket Control Pcap Processing Mode 
 Bug #3616: strip_whitespace causes FN 
 Bug #3726: Segmentation fault on rule reload when using libmagic 
@@ -590,7 +590,7 @@ Bug #4156: dnp3: signed integer overflow
 Bug #4158: PacketCopyData sets packet length even on failure 
 Bug #4173: dnp3: SV tests fail on big endian 
 Bug #4177: Rustc nightly warning getting the inner pointer of a temporary `CString` 
-Optimization #4114: Optmize Rust logging macros: SCLogInfo, SCLogDebug and friends 
+Optimization #4114: Optimize Rust logging macros: SCLogInfo, SCLogDebug and friends 
 Task #4137: deprecate: eve.dns v1 record support 
 Task #4180: libhtp 0.5.36
 
@@ -660,7 +660,7 @@ Bug #3866: http2: http1 to http2 upgrade support
 Bug #3871: Include acsite.m4 in distribution
 Bug #3872: Fail CROSS_COMPILE check for PCRE JIT EXEC
 Bug #3874: configure: fails to check for netfilter_queue headers on older header packages
-Bug #3879: detasets related memleak
+Bug #3879: datasets related memleak
 Bug #3880: http parsing/alerting - continue
 Bug #3882: Plugin support typo
 Bug #3883: Runmode Single Memory Leak
@@ -872,7 +872,7 @@ Bug #3340: DNS: DNS over TCP transactions logged with wrong direction.
 Bug #3341: tcp.hdr content matches don't work as expected
 Bug #3345: App-Layer: Not all parsers register TX detect flags that should
 Bug #3346: BPF filter on command line not honored for pcap file
-Bug #3362: cross compiling not affecting rust component of surrcata
+Bug #3362: cross compiling not affecting rust component of suricata
 Bug #3376: http: pipelining tx id handling broken
 Bug #3386: Suricata is unable to get MTU from NIC after 4.1.0
 Bug #3389: EXTERNAL_NET no longer working in 5.0 as expected
@@ -898,7 +898,7 @@ Bug #2490: Filehash rule does not fire without filestore keyword
 Bug #2668: make install-full fails if CARGO_TARGET_DIR has spaces in the directory path
 Bug #2669: make install-full fails due to being unable to find libhtp.so.2
 Bug #2955: lua issues on arm (fedora:29)
-Bug #3113: python-yaml dependency is actually ptyhon3-yaml dependency
+Bug #3113: python-yaml dependency is actually python3-yaml dependency
 Bug #3139: enip: compile warnings on gcc-8
 Bug #3143: datasets: don't use list in global config
 Bug #3190: file_data inspection inhibited by additional (non-file_data) content match rule
@@ -951,7 +951,7 @@ Feature #3074: DNS full domain matching within the dns_query buffer
 Feature #3080: Provide a IP pair XDP load balancing
 Feature #3081: Decapsulation of GRE in XDP filter
 Feature #3084: SIP parser, logging and detection
-Feature #3165: New rule keyword: dns.opcode; For matching on the the opcode in the DNS header.
+Feature #3165: New rule keyword: dns.opcode; For matching on the opcode in the DNS header.
 Bug #941: Support multiple stacked compression, compression that specifies the wrong compression type
 Bug #1271: Creating core dump with dropped privileges
 Bug #1656: several silent bypasses at the HTTP application level (chunking, compression, HTTP 0.9...)
@@ -959,7 +959,7 @@ Bug #1776: Multiple Content-Length headers causes HTP_STREAM_ERROR
 Bug #2080: Rules with bad port group var do not error
 Bug #2146: DNS answer not logged with eve-log
 Bug #2210: logging: SC_LOG_OP_FILTER still displays some lines not matching filter
-Bug #2264: file-store.stream-depth not working as expected when configured to a specfic value
+Bug #2264: file-store.stream-depth not working as expected when configured to a specific value
 Bug #2395: File_data inspection depth while inspecting base64 decoded data
 Bug #2619: Malformed HTTP causes FN using http_header_names;
 Bug #2626: doc/err: More descriptive message on err for escaping backslash
@@ -985,7 +985,7 @@ Bug #2999: AddressSanitizer: heap-buffer-overflow in HTPParseContentRange
 Bug #3000: tftp: missing logs because of broken tx handling
 Bug #3004: SC_ERR_PCAP_DISPATCH with message "error code -2" upon rule reload completion
 Bug #3006: improve rule keyword alproto registration
-Bug #3007: rust: updated libc crate causes depration warnings
+Bug #3007: rust: updated libc crate causes deprecation warnings
 Bug #3009: Fixes warning about size of integers in string formats
 Bug #3051: mingw/msys: compile errors
 Bug #3054: Build failure with --enable-rust-debug
@@ -1010,7 +1010,7 @@ Bug #3185: decode/der: crafted input can lead to resource starvation (5.x)
 Bug #3189: NSS Shutdown triggers crashes in test mode (5.x)
 Optimization #879: update configure.ac with autoupdate
 Optimization #1218: BoyerMooreNocase could avoid tolower() call
-Optimization #1220: Boyer Moore SPM pass in ctx instead of indivual bmBc and bmBg
+Optimization #1220: Boyer Moore SPM pass in ctx instead of individual bmBc and bmBg
 Optimization #2602: add keywords to --list-keywords output
 Optimization #2843: suricatact/filestore/prune: check that directory is a filestore directory before removing files
 Optimization #2848: Rule reload when run with -s or -S arguments
@@ -1075,7 +1075,7 @@ Bug #2798: --engine-analysis is unaware of http_host buffer
 Bug #2800: Undocumented commands for suricatasc
 Bug #2812: suricatasc multiple python issues
 Bug #2813: suricatasc: failure with extra commands
-Bug #2817: Syricata.yaml encrypt-handling instead encryption-handling
+Bug #2817: Suricata.yaml encrypt-handling instead encryption-handling
 Bug #2821: netmap/afpacket IPS: stream.inline: auto broken (5.0.x)
 Bug #2822: SSLv3 - AddressSanitizer heap-buffer-overflow (5.0.x)
 Bug #2833: mem leak - rules loading hunt rules
@@ -1097,7 +1097,7 @@ Bug #2944: ssh: heap buffer overflow (master)
 Bug #2945: mpls: heapbuffer overflow in file decode-mpls.c (master)
 Bug #2946: decode-ethernet: heapbuffer overflow in file decode-ethernet.c (master)
 Bug #2947: rust/dhcp: panic in dhcp parser (master)
-Bug #2948: mpls: cast of misaligned data leads to undefined behvaviour (master)
+Bug #2948: mpls: cast of misaligned data leads to undefined behaviour (master)
 Bug #2949: rust/ftp: panic in ftp parser (master)
 Bug #2950: rust/nfs: integer underflow (master)
 Task #2297: deprecate: dns.log
@@ -1235,7 +1235,7 @@ Feature #2222: Batch submission of PCAPs over the socket
 Feature #2253: Log rule metadata in alert event
 Feature #2285: modify memcaps over unix socket
 Feature #2295: decoder: support PCAP LINKTYPE_IPV4
-Feature #2299: pcap: read directory with pcaps from the commandline
+Feature #2299: pcap: read directory with pcaps from the command-line
 Feature #2303: file-store enhancements (aka file-store v2): deduplication; hash-based naming; json metadata and cleanup tooling
 Feature #2352: eve: add "metadata" field to alert (rework of vars)
 Feature #2382: deprecate: CUDA support
@@ -1268,9 +1268,9 @@ Bug #2356: coverity issues in new pcap file/directory handling
 Bug #2360: possible deadlock with signal handling
 Bug #2364: rust/dns: logging missing string versions of rtypes and rcodes
 Bug #2365: rust/dns: flooded by 'LogDnsLogger not implemented for Rust DNS'
-Bug #2367: Conf: Multipe NULL-pointer dereferences in HostInitConfig
-Bug #2368: Conf: Multipe NULL-pointer dereferences after ConfGetBool in StreamTcpInitConfig
-Bug #2370: Conf: Multipe NULL-pointer dereferences in PostConfLoadedSetup
+Bug #2367: Conf: Multiple NULL-pointer dereferences in HostInitConfig
+Bug #2368: Conf: Multiple NULL-pointer dereferences after ConfGetBool in StreamTcpInitConfig
+Bug #2370: Conf: Multiple NULL-pointer dereferences in PostConfLoadedSetup
 Bug #2390: mingw linker error with rust
 Bug #2391: libhtp 0.5.26
 Bug #2394: Pcap Directory May Miss Files
@@ -1316,7 +1316,7 @@ Feature #2152: Packet and Drop Counters for Napatech
 
 Feature #2138: Create a sample systemd service file.
 Feature #2184: rust: increase minimally supported rustc version to 1.15
-Bug #2169: dns/tcp: reponse traffic leads to 'app_proto_tc: failed'
+Bug #2169: dns/tcp: response traffic leads to 'app_proto_tc: failed'
 Bug #2170: Suricata fails on large BPFs with AF_PACKET
 Bug #2185: rust: build failure if libjansson is missing
 Bug #2186: smb dcerpc segfaults in StubDataParser
@@ -1820,7 +1820,7 @@ Bug #1206: ZC pf_ring not working with Suricata 2.0.1 (or latest git)
 Bug #1211: defrag issue
 Bug #1212: core dump (after a while) when app-layer.protocols.http.enabled = yes
 Bug #1214: Global Thresholds (sig_id 0, gid_id 0) not applied correctly if a signature has event vars
-Bug #1217: Segfault in unix-manager.c line 529 when using --unix-socket and sending pcap files to be analized via socket
+Bug #1217: Segfault in unix-manager.c line 529 when using --unix-socket and sending pcap files to be analyzed via socket
 Feature #781: IDS using NFLOG iptables target
 Feature #1158: Parser DNS TXT data parsing and logging
 Feature #1197: liblua support
@@ -2005,7 +2005,7 @@ Feature #944: detect nic offloading
 Feature #956: Implement IPv6 reject
 Feature #957: reject: iface setup
 Feature #959: Move post config initialisation code to PostConfLoadedSetup
-Feature #981: Update all switch case fall throughs with comments on false throughs
+Feature #981: Update all switch case fall-throughs with comments on fall-throughs
 Feature #983: Provide rule support for specifying icmpv4 and icmpv6.
 Feature #986: set htp request and response size limits
 Feature #1008: Optionally have http_uri buffer start with uri path for use in proxied environments
@@ -2120,7 +2120,7 @@ Optimization #1041: remove mkinstalldirs from git
 
 - Decoder event matching fixed (#672)
 - Unified2 would overwrite files if file rotation happened within a second of file creation, leading to loss of events/alerts (#665)
-- Add more events to IPv6 extension header anomolies (#678)
+- Add more events to IPv6 extension header anomalies (#678)
 - Fix ICMPv6 payload and checksum calculation (#677, #674)
 - Clean up flow timeout handling (#656)
 - Fix a shutdown bug when using AF_PACKET under high load (#653)
@@ -2130,14 +2130,14 @@ Optimization #1041: remove mkinstalldirs from git
 
 - Flow engine memory leak fixed by Ludovico Cavedon (#651)
 - Unified2 would overwrite files if file rotation happened within a second of file creation, leading to loss of events/alerts (#664)
-- Flow manager mutex used unintialized, fixed by Ludovico Cavedon (#654)
+- Flow manager mutex used uninitialized, fixed by Ludovico Cavedon (#654)
 - Windows building in CYGWIN fixed (#630)
 
 1.4rc1 2012-11-29
 
 - Interactive unix socket mode (#571, #552)
 - IP Reputation: loading and matching (#647)
-- Improved --list-keywords commandline option gives detailed info for supported keyword, including doc link (#435)
+- Improved --list-keywords command-line option gives detailed info for supported keyword, including doc link (#435)
 - Rule analyzer improvement wrt ipv4/ipv6, invalid rules (#494)
 - User-Agent added to file log and filestore meta files (#629)
 - Endace DAG supports live stats and at exit drop stats (#638)
@@ -2170,7 +2170,7 @@ Optimization #1041: remove mkinstalldirs from git
 - fixes and improvements to daemon mode (#624)
 - fix drop rules not working correctly when thresholded (#613)
 - fixed a possible FP when a regular and "chopped" fast_pattern were the same (#581)
-- fix a false possitive condition in http_header (#607)
+- fix a false positive condition in http_header (#607)
 - fix inaccuracy in byte_jump keyword when using "from_beginning" option (#627)
 - fixes to rule profiling (#576)
 - cleanups and misc fixes (#379, #395)
@@ -2191,9 +2191,9 @@ Optimization #1041: remove mkinstalldirs from git
 1.3.3 -- 2012-11-01
 
 - fix drop rules not working correctly when thresholded (#615)
-- fix a false possitive condition in http_header (#606)
+- fix a false positive condition in http_header (#606)
 - fix extracted file corruption (#601)
-- fix a false possitive condition with the pcre keyword and relative matching (#588)
+- fix a false positive condition with the pcre keyword and relative matching (#588)
 - fix PF_RING set cluster problem on dma interfaces (#598)
 - improve http handling in low memory conditions (#586, #587)
 - fix FreeBSD inline mode crash (#612)
@@ -2213,7 +2213,7 @@ Optimization #1041: remove mkinstalldirs from git
 - If not explicit fast_pattern is set, pick HTTP patterns over stream patterns. HTTP method, stat code and stat msg are excluded.
 - Fix compilation on architectures other than x86 and x86_64 (#572)
 - Fix FP with anchored pcre combined with relative matching (#529)
-- Fix engine hanging instead of exitting if the pcap device doesn't exist (#533)
+- Fix engine hanging instead of exiting if the pcap device doesn't exist (#533)
 - Work around for potential FP, will get properly fixed in next release (#574)
 - Improve ERF handling. Thanks to Jason Ish
 - Always set cluster_id in PF_RING
@@ -2340,7 +2340,7 @@ Optimization #1041: remove mkinstalldirs from git
 - Scripts for looking up files / file md5's at Virus Total and others (contributed by Martin Holste)
 - Test mode: -T option to test the config (#271)
 - Ringbuffer and zero copy support for AF_PACKET
-- Commandline options to list supported app layer protocols and keywords (#344, #414)
+- CommandLine options to list supported app layer protocols and keywords (#344, #414)
 - File extraction for HTTP POST request that do not use multipart bodies
 - On the fly md5 checksum calculation of extracted files
 - Line based file log, in json format
@@ -2359,7 +2359,7 @@ Optimization #1041: remove mkinstalldirs from git
 - Much improved file extraction
 - CUDA build fixes (#421)
 - Various FP's reported by Rmkml (#403, #405, #411)
-- IPv6 decoding and detection issues (reported by Michel Sarborde)
+- IPv6 decoding and detection issues (reported by Michel Saborde)
 - PCAP logging crash (#422)
 - Fixed many (potential) issues with the help of the Coverity source code analyzer
 - Fixed several (potential) issues with the help of the cppcheck and clang/scan-build source code analyzers
@@ -2390,7 +2390,7 @@ Optimization #1041: remove mkinstalldirs from git
 - PCRE-JIT is now enabled by default if available (#356)
 - many file inspection and extraction improvements
 - flowbits and flowints are now modified in a post-match action list
-- general performance increasements
+- general performance increments
 - fixed parsing really high sid numbers >2 Billion (#393)
 - fixed ICMPv6 not matching in IP-only sigs (#363)
 
@@ -2501,7 +2501,7 @@ Optimization #1041: remove mkinstalldirs from git
 
 - LibHTP updated to 0.2.6
 - Large number of (potential) issues fixed after a source code scan with Coverity generously contributed by RedHat.
-- Large number of (potential) issues fixed after source code scans with the Clang static analizer.
+- Large number of (potential) issues fixed after source code scans with the Clang static analyzer.
 
 1.0.3 -- 2011-04-13
 
