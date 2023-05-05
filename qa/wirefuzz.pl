@@ -19,10 +19,10 @@
 #02110-1301, USA.
 
 #This script is useful if you want to fuzz and or otherwise try to make suricata explode during decoding/proto parsing using saved pcaps.
-#It is simply a reimplimentation of the technique described here, hence the name:
+#It is simply a reimplementation of the technique described here, hence the name:
 #http://wiki.wireshark.org/FuzzTesting
 #
-#Options for getting thre required perl modules:
+#Options for getting the required perl modules:
 #Ubuntu 9.10
 #sudo apt-get install libdevel-gdb-perl libcapture-tiny-perl
 #
@@ -37,7 +37,7 @@
 #Fedora Core 12
 #yum -y install perl-Capture-Tiny perl-Devel-GDB
 #
-#Other debain based versions, try the Ubunutu instructions if this doesn't work try the following.
+#Other debian based versions, try the Ubuntu instructions if this doesn't work try the following.
 #sudo apt-get install dh-make-perl
 #mkdir fuzzmodules && cd fuzzmodules
 #dh-make-perl --cpan Devel-GDB --build
@@ -315,8 +315,8 @@ sub printhelp {
         -p=<path to the suricata bin>
         -l=<(optional) log dir for output if not specified will use current directory.>
         -v=<(optional) (memcheck|drd|helgrind|callgrind) will run the command through one of the specified valgrind tools.>
-        -x=<(optional) regex for excluding certian files incase something blows up but we want to continue fuzzing .>
-        -z=<(optional) regex for excluding certian files from fuzzing but still process them note: the original files will be processed and not removed.>
+        -x=<(optional) regex for excluding certain files incase something blows up but we want to continue fuzzing .>
+        -z=<(optional) regex for excluding certain files from fuzzing but still process them note: the original files will be processed and not removed.>
         -y <shuffle the array, this is useful if running multiple instances of this script.>
         -k <will keep alert-debug.log fast.log http.log and stats.log instead of removing them at the end of each run.>
         Example usage:
@@ -333,13 +333,13 @@ sub printhelp {
         3.-y Shuffle the array of pcaps this is useful if running multiple instances of this script.
         4.-c Tell suricata to use the suricata.yaml in the current dir.
         6.-e Tell editcap to introduce a 2% error ratio, i.e. there is a 2% chance that a byte will be fuzzed see http://wiki.wireshark.org/FuzzTesting for more info.
-        7.-p Use src/suricata as our suricata bin file. The script will determin if the argument passed is a bin file or a txt wrapper and will adjust accordingly.
+        7.-p Use src/suricata as our suricata bin file. The script will determine if the argument passed is a bin file or a txt wrapper and will adjust accordingly.
 
         /usr/bin/wirefuzz.pl -r=/home/somepath/pcaps/*/* -s=/home/somepath/current-all.rules -y -c=suricata.yaml -e=0.02 -p src/suricata
 
         If an error is encountered a file named <fuzzedfile>ERR.txt will be created in the log dir (current dir in this example) that will contain output from stderr,stdout, and gdb.
 
-        Take a look at the opts make it work for you environtment and from the OISF QA team thanks for helping us make our meerkat fuzzier! ;-)\n";
+        Take a look at the opts make it work for you environment and from the OISF QA team thanks for helping us make our meerkat fuzzier! ;-)\n";
         exit;
 }
 
@@ -496,7 +496,7 @@ while ( $successcnt < $loopnum ) {
         if ( $exit ne 0 ) {
             my $knownerr = 0;
 
-            #fuzzer genrated some random link type we can't deal with
+            #fuzzer generated some random link type we can't deal with
             if ( $err =~
                     /datalink type \d+ not \(yet\) supported in module PcapFile\./ )
             {
@@ -589,7 +589,7 @@ sub process_core_dump {
     my @coredumps = <${coremask}>;
     if (@coredumps eq 1 ) {
         my $corefile = $coredumps[0];
-        print "gdb: core dump found $corefile processesing with";
+        print "gdb: core dump found $corefile processing with";
         if ( $useltsuri eq "yes" ) {
             $gdbbin = $ltsuribin;
         }
