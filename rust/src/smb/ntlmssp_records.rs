@@ -171,7 +171,7 @@ mod tests {
         let result = parse_ntlm_auth_nego_flags(&blob);
         match result {
             Ok((remainder, flags)) => {
-                assert_eq!(flags.version, true);
+                assert!(flags.version);
                 assert_eq!(remainder.len(), 0);
             }
             Err(Err::Error(err)) => {
@@ -189,7 +189,7 @@ mod tests {
         let result = parse_ntlm_auth_nego_flags(&blob);
         match result {
             Ok((remainder, flags)) => {
-                assert_eq!(flags.version, false);
+                assert!(!flags.version);
                 assert_eq!(remainder.len(), 0);
             }
             Err(Err::Error(err)) => {
