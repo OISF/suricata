@@ -15,21 +15,21 @@
  * 02110-1301, USA.
  */
 
-use crate::smb::smb::*;
 use crate::smb::nbss_records::NBSS_MSGTYPE_SESSION_MESSAGE;
+use crate::smb::smb::*;
 use nom7::bytes::streaming::{tag, take};
 use nom7::combinator::{cond, map_parser, rest};
 use nom7::error::{make_error, ErrorKind};
 use nom7::multi::count;
-use nom7::number::streaming::{le_u8, le_u16, le_u32, le_u64};
+use nom7::number::streaming::{le_u16, le_u32, le_u64, le_u8};
 use nom7::{Err, IResult, Needed};
 
 const SMB2_FLAGS_SERVER_TO_REDIR: u32 = 0x0000_0001;
 const SMB2_FLAGS_ASYNC_COMMAND: u32 = 0x0000_0002;
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb2SecBlobRecord<'a> {
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 pub fn parse_smb2_sec_blob(i: &[u8]) -> IResult<&[u8], Smb2SecBlobRecord> {
@@ -37,8 +37,8 @@ pub fn parse_smb2_sec_blob(i: &[u8]) -> IResult<&[u8], Smb2SecBlobRecord> {
     Ok((i, Smb2SecBlobRecord { data }))
 }
 
-#[derive(Debug,PartialEq, Eq)]
-pub struct Smb2RecordDir<> {
+#[derive(Debug, PartialEq, Eq)]
+pub struct Smb2RecordDir {
     pub request: bool,
 }
 
@@ -52,9 +52,9 @@ pub fn parse_smb2_record_direction(i: &[u8]) -> IResult<&[u8], Smb2RecordDir> {
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb2Record<'a> {
-    pub direction: u8,    // 0 req, 1 res
+    pub direction: u8, // 0 req, 1 res
     pub header_len: u16,
     pub nt_status: u32,
     pub command: u16,
@@ -62,7 +62,7 @@ pub struct Smb2Record<'a> {
     pub tree_id: u32,
     pub async_id: u64,
     pub session_id: u64,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 impl<'a> Smb2Record<'a> {
@@ -89,10 +89,13 @@ fn parse_smb2_flags(i: &[u8]) -> IResult<&[u8], SmbFlags> {
     let (i, val) = le_u32(i)?;
     let direction = u8::from(val & SMB2_FLAGS_SERVER_TO_REDIR != 0);
     let async_command = u8::from(val & SMB2_FLAGS_ASYNC_COMMAND != 0);
-    Ok((i, SmbFlags {
-        direction,
-        async_command,
-    }))
+    Ok((
+        i,
+        SmbFlags {
+            direction,
+            async_command,
+        },
+    ))
 }
 
 pub fn parse_smb2_request_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
@@ -129,13 +132,15 @@ pub fn parse_smb2_request_record(i: &[u8]) -> IResult<&[u8], Smb2Record> {
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb2NegotiateProtocolRequestRecord<'a> {
     pub dialects_vec: Vec<u16>,
-    pub client_guid: &'a[u8],
+    pub client_guid: &'a [u8],
 }
 
-pub fn parse_smb2_request_negotiate_protocol(i: &[u8]) -> IResult<&[u8], Smb2NegotiateProtocolRequestRecord> {
+pub fn parse_smb2_request_negotiate_protocol(
+    i: &[u8],
+) -> IResult<&[u8], Smb2NegotiateProtocolRequestRecord> {
     let (i, _struct_size) = take(2_usize)(i)?;
     let (i, dialects_count) = le_u16(i)?;
     let (i, _sec_mode) = le_u16(i)?;
@@ -153,16 +158,18 @@ pub fn parse_smb2_request_negotiate_protocol(i: &[u8]) -> IResult<&[u8], Smb2Neg
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb2NegotiateProtocolResponseRecord<'a> {
     pub dialect: u16,
-    pub server_guid: &'a[u8],
+    pub server_guid: &'a [u8],
     pub max_trans_size: u32,
     pub max_read_size: u32,
     pub max_write_size: u32,
 }
 
-pub fn parse_smb2_response_negotiate_protocol(i: &[u8]) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord> {
+pub fn parse_smb2_response_negotiate_protocol(
+    i: &[u8],
+) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord> {
     let (i, _struct_size) = take(2_usize)(i)?;
     let (i, _skip1) = take(2_usize)(i)?;
     let (i, dialect) = le_u16(i)?;
@@ -177,12 +184,14 @@ pub fn parse_smb2_response_negotiate_protocol(i: &[u8]) -> IResult<&[u8], Smb2Ne
         server_guid,
         max_trans_size,
         max_read_size,
-        max_write_size
+        max_write_size,
     };
     Ok((i, record))
 }
 
-pub fn parse_smb2_response_negotiate_protocol_error(i: &[u8]) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord> {
+pub fn parse_smb2_response_negotiate_protocol_error(
+    i: &[u8],
+) -> IResult<&[u8], Smb2NegotiateProtocolResponseRecord> {
     let (i, _struct_size) = take(2_usize)(i)?;
     let (i, _skip1) = take(2_usize)(i)?;
     let record = Smb2NegotiateProtocolResponseRecord {
@@ -190,15 +199,14 @@ pub fn parse_smb2_response_negotiate_protocol_error(i: &[u8]) -> IResult<&[u8], 
         server_guid: &[],
         max_trans_size: 0,
         max_read_size: 0,
-        max_write_size: 0
+        max_write_size: 0,
     };
     Ok((i, record))
 }
 
-
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb2SessionSetupRequestRecord<'a> {
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 pub fn parse_smb2_request_session_setup(i: &[u8]) -> IResult<&[u8], Smb2SessionSetupRequestRecord> {
@@ -215,23 +223,21 @@ pub fn parse_smb2_request_session_setup(i: &[u8]) -> IResult<&[u8], Smb2SessionS
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb2TreeConnectRequestRecord<'a> {
-    pub share_name: &'a[u8],
+    pub share_name: &'a [u8],
 }
 
 pub fn parse_smb2_request_tree_connect(i: &[u8]) -> IResult<&[u8], Smb2TreeConnectRequestRecord> {
     let (i, _struct_size) = take(2_usize)(i)?;
     let (i, _offset_length) = take(4_usize)(i)?;
     let (i, data) = rest(i)?;
-    let record = Smb2TreeConnectRequestRecord {
-        share_name:data,
-    };
+    let record = Smb2TreeConnectRequestRecord { share_name: data };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
-pub struct Smb2TreeConnectResponseRecord<> {
+#[derive(Debug, PartialEq, Eq)]
+pub struct Smb2TreeConnectResponseRecord {
     pub share_type: u8,
 }
 
@@ -245,11 +251,11 @@ pub fn parse_smb2_response_tree_connect(i: &[u8]) -> IResult<&[u8], Smb2TreeConn
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb2CreateRequestRecord<'a> {
     pub disposition: u32,
     pub create_options: u32,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 pub fn parse_smb2_request_create(i: &[u8]) -> IResult<&[u8], Smb2CreateRequestRecord> {
@@ -264,22 +270,22 @@ pub fn parse_smb2_request_create(i: &[u8]) -> IResult<&[u8], Smb2CreateRequestRe
     let record = Smb2CreateRequestRecord {
         disposition,
         create_options,
-        data
+        data,
     };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb2IOCtlRequestRecord<'a> {
     pub is_pipe: bool,
     pub function: u32,
-    pub guid: &'a[u8],
-    pub data: &'a[u8],
+    pub guid: &'a [u8],
+    pub data: &'a [u8],
 }
 
 pub fn parse_smb2_request_ioctl(i: &[u8]) -> IResult<&[u8], Smb2IOCtlRequestRecord> {
-    let (i, _skip) = take(2_usize)  (i)?;// structure size
-    let (i, _) = take(2_usize)        (i)?;// reserved
+    let (i, _skip) = take(2_usize)(i)?; // structure size
+    let (i, _) = take(2_usize)(i)?; // reserved
     let (i, func) = le_u32(i)?;
     let (i, guid) = take(16_usize)(i)?;
     let (i, _indata_offset) = le_u32(i)?;
@@ -298,11 +304,11 @@ pub fn parse_smb2_request_ioctl(i: &[u8]) -> IResult<&[u8], Smb2IOCtlRequestReco
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb2IOCtlResponseRecord<'a> {
     pub is_pipe: bool,
-    pub guid: &'a[u8],
-    pub data: &'a[u8],
+    pub guid: &'a [u8],
+    pub data: &'a [u8],
     pub indata_len: u32,
     pub outdata_len: u32,
     pub indata_offset: u32,
@@ -333,9 +339,9 @@ pub fn parse_smb2_response_ioctl(i: &[u8]) -> IResult<&[u8], Smb2IOCtlResponseRe
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb2CloseRequestRecord<'a> {
-    pub guid: &'a[u8],
+    pub guid: &'a [u8],
 }
 
 pub fn parse_smb2_request_close(i: &[u8]) -> IResult<&[u8], Smb2CloseRequestRecord> {
@@ -347,7 +353,7 @@ pub fn parse_smb2_request_close(i: &[u8]) -> IResult<&[u8], Smb2CloseRequestReco
 
 #[derive(Debug, PartialEq)]
 pub struct Smb2SetInfoRequestRenameRecord<'a> {
-    pub name: &'a[u8],
+    pub name: &'a [u8],
 }
 
 pub fn parse_smb2_request_setinfo_rename(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequestData> {
@@ -382,7 +388,7 @@ pub enum Smb2SetInfoRequestData<'a> {
 
 #[derive(Debug)]
 pub struct Smb2SetInfoRequestRecord<'a> {
-    pub guid: &'a[u8],
+    pub guid: &'a [u8],
     pub class: u8,
     pub infolvl: u8,
     pub data: Smb2SetInfoRequestData<'a>,
@@ -415,10 +421,9 @@ pub fn parse_smb2_request_setinfo(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequest
     let (i, _reserved) = take(2_usize)(i)?;
     let (i, _additional_info) = le_u32(i)?;
     let (i, guid) = take(16_usize)(i)?;
-    let (i, data) = map_parser(
-        take(setinfo_size),
-        |b| parse_smb2_request_setinfo_data(b, class, infolvl)
-    )(i)?;
+    let (i, data) = map_parser(take(setinfo_size), |b| {
+        parse_smb2_request_setinfo_data(b, class, infolvl)
+    })(i)?;
     let record = Smb2SetInfoRequestRecord {
         guid,
         class,
@@ -428,12 +433,12 @@ pub fn parse_smb2_request_setinfo(i: &[u8]) -> IResult<&[u8], Smb2SetInfoRequest
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb2WriteRequestRecord<'a> {
     pub wr_len: u32,
     pub wr_offset: u64,
-    pub guid: &'a[u8],
-    pub data: &'a[u8],
+    pub guid: &'a [u8],
+    pub data: &'a [u8],
 }
 
 // can be called on incomplete records
@@ -456,11 +461,11 @@ pub fn parse_smb2_request_write(i: &[u8]) -> IResult<&[u8], Smb2WriteRequestReco
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb2ReadRequestRecord<'a> {
     pub rd_len: u32,
     pub rd_offset: u64,
-    pub guid: &'a[u8],
+    pub guid: &'a [u8],
 }
 
 pub fn parse_smb2_request_read(i: &[u8]) -> IResult<&[u8], Smb2ReadRequestRecord> {
@@ -480,18 +485,16 @@ pub fn parse_smb2_request_read(i: &[u8]) -> IResult<&[u8], Smb2ReadRequestRecord
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb2ReadResponseRecord<'a> {
     pub len: u32,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 // parse read/write data. If all is available, 'take' it.
 // otherwise just return what we have. So this may return
 // partial data.
-fn parse_smb2_data(i: &[u8], len: u32)
-    -> IResult<&[u8], &[u8]>
-{
+fn parse_smb2_data(i: &[u8], len: u32) -> IResult<&[u8], &[u8]> {
     if len as usize > i.len() {
         rest(i)
     } else {
@@ -507,16 +510,13 @@ pub fn parse_smb2_response_read(i: &[u8]) -> IResult<&[u8], Smb2ReadResponseReco
     let (i, _rd_rem) = le_u32(i)?;
     let (i, _padding) = take(4_usize)(i)?;
     let (i, data) = parse_smb2_data(i, rd_len)?;
-    let record = Smb2ReadResponseRecord {
-        len: rd_len,
-        data,
-    };
+    let record = Smb2ReadResponseRecord { len: rd_len, data };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb2CreateResponseRecord<'a> {
-    pub guid: &'a[u8],
+    pub guid: &'a [u8],
     pub create_ts: SMBFiletime,
     pub last_access_ts: SMBFiletime,
     pub last_write_ts: SMBFiletime,
@@ -550,8 +550,8 @@ pub fn parse_smb2_response_create(i: &[u8]) -> IResult<&[u8], Smb2CreateResponse
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
-pub struct Smb2WriteResponseRecord<> {
+#[derive(Debug, PartialEq, Eq)]
+pub struct Smb2WriteResponseRecord {
     pub wr_cnt: u32,
 }
 
@@ -618,7 +618,7 @@ pub fn search_smb_record(i: &[u8]) -> IResult<&[u8], &[u8]> {
         }
         if d[index - 1] == 0xfe || d[index - 1] == 0xff || d[index - 1] == 0xfd {
             // if we have enough data, check nbss
-            if index < 5 || d[index-5] == NBSS_MSGTYPE_SESSION_MESSAGE {
+            if index < 5 || d[index - 5] == NBSS_MSGTYPE_SESSION_MESSAGE {
                 return Ok((&d[index + 3..], &d[index - 1..]));
             }
         }
@@ -627,12 +627,11 @@ pub fn search_smb_record(i: &[u8]) -> IResult<&[u8], &[u8]> {
     Err(Err::Incomplete(Needed::new(4_usize - d.len())))
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-	use crate::smb::smb2::smb2_dialect_string;
-	use std::convert::TryInto;
+    use crate::smb::smb2::smb2_dialect_string;
+    use std::convert::TryInto;
     fn guid_to_string(guid: &[u8]) -> String {
         if guid.len() == 16 {
             let output = format!("{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
@@ -650,17 +649,20 @@ mod tests {
         let data = hex::decode("fe534d42400000000000000000000100010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap();
         let result = parse_smb2_request_record(&data).unwrap();
         let record: Smb2Record = result.1;
-        assert_eq!(record, Smb2Record {
-            direction: 1,
-            header_len: 64,
-            nt_status: 0,
-            command: 0,
-            message_id: 0,
-            tree_id: 0,
-            async_id: 0,
-            session_id: 0,
-            data: &[],
-        });
+        assert_eq!(
+            record,
+            Smb2Record {
+                direction: 1,
+                header_len: 64,
+                nt_status: 0,
+                command: 0,
+                message_id: 0,
+                tree_id: 0,
+                async_id: 0,
+                session_id: 0,
+                data: &[],
+            }
+        );
     }
     #[test]
     fn test_parse_smb2_request_negotiate_protocol() {
@@ -669,9 +671,19 @@ mod tests {
         let data = hex::decode("24000800010000007f00000016ab4fd9625676488cd1707d08e52b5878000000020000000202100222022402000302031003110300000000010026000000000001002000010067e5f669ff3e0ad12e89ad84ceb1d35dfee53ede3e4858a6d1a9099ac1635a9600000200060000000000020001000200").unwrap();
         let result = parse_smb2_request_negotiate_protocol(&data).unwrap();
         let record: Smb2NegotiateProtocolRequestRecord = result.1;
-        let dialects:Vec<String> = record.dialects_vec.iter().map(|d|smb2_dialect_string(*d)).collect();
-        assert_eq!(dialects, ["2.02", "2.10", "2.22", "2.24", "3.00", "3.02", "3.10", "3.11"]);
-        assert_eq!(guid_to_string(record.client_guid), "d94fab16-5662-4876-d18c-7d70582be508"); // TODO: guid order
+        let dialects: Vec<String> = record
+            .dialects_vec
+            .iter()
+            .map(|d| smb2_dialect_string(*d))
+            .collect();
+        assert_eq!(
+            dialects,
+            ["2.02", "2.10", "2.22", "2.24", "3.00", "3.02", "3.10", "3.11"]
+        );
+        assert_eq!(
+            guid_to_string(record.client_guid),
+            "d94fab16-5662-4876-d18c-7d70582be508"
+        ); // TODO: guid order
     }
 
     #[test]
@@ -705,20 +717,29 @@ mod tests {
         let data = hex::decode("1800000000000000490000000000000005000000ffffffff").unwrap();
         let result = parse_smb2_request_close(&data).unwrap();
         let record: Smb2CloseRequestRecord = result.1;
-        assert_eq!(guid_to_string(record.guid), "00000049-0000-0000-0005-0000ffffffff");
+        assert_eq!(
+            guid_to_string(record.guid),
+            "00000049-0000-0000-0005-0000ffffffff"
+        );
     }
 
     #[test]
     fn test_parse_smb2_request_setinfo() {
         // https://raw.githubusercontent.com/bro/bro/master/testing/btest/Traces/smb/smb2.pcap
         // filter:tcp.stream eq 0 no.36
-        let data = hex::decode("210001140800000060000000000000004d0000000000000009000000ffffffff4b06170000000000").unwrap();
+        let data = hex::decode(
+            "210001140800000060000000000000004d0000000000000009000000ffffffff4b06170000000000",
+        )
+        .unwrap();
         let result = parse_smb2_request_setinfo(&data).unwrap();
         let record: Smb2SetInfoRequestRecord = result.1;
         assert_eq!(record.class, 1);
         assert_eq!(record.infolvl, 20);
         assert_eq!(record.data, Smb2SetInfoRequestData::UNHANDLED);
-        assert_eq!(guid_to_string(record.guid), "0000004d-0000-0000-0009-0000ffffffff");
+        assert_eq!(
+            guid_to_string(record.guid),
+            "0000004d-0000-0000-0009-0000ffffffff"
+        );
     }
 
     #[test]
@@ -730,7 +751,10 @@ mod tests {
         let record: Smb2ReadRequestRecord = result.1;
         assert_eq!(record.rd_len, 1024);
         assert_eq!(record.rd_offset, 0);
-        assert_eq!(guid_to_string(record.guid), "00000049-0000-0000-0005-0000ffffffff");
+        assert_eq!(
+            guid_to_string(record.guid),
+            "00000049-0000-0000-0005-0000ffffffff"
+        );
     }
 
     #[test]
@@ -742,10 +766,12 @@ mod tests {
         let record: Smb2WriteRequestRecord = result.1;
         assert_eq!(record.wr_len, 116);
         assert_eq!(record.wr_offset, 0);
-        assert_eq!(guid_to_string(record.guid), "00000049-0000-0000-0005-0000ffffffff");
+        assert_eq!(
+            guid_to_string(record.guid),
+            "00000049-0000-0000-0005-0000ffffffff"
+        );
         assert_eq!(record.data.len(), 116);
     }
-
 
     #[test]
     fn test_parse_smb2_response_read() {
@@ -756,7 +782,6 @@ mod tests {
         let record: Smb2ReadResponseRecord = result.1;
         assert_eq!(record.len, 92);
         assert_eq!(record.data.len(), 92);
-
     }
     #[test]
     fn test_parse_smb2_record_direction() {
@@ -770,44 +795,53 @@ mod tests {
         assert!(record.request);
     }
 
-	#[test]
-	fn test_parse_smb2_request_tree_connect() {
-		let data = hex::decode("0900000048002c005c005c003100390032002e003100360038002e003100390039002e003100330033005c004900500043002400").unwrap();
-		let result = parse_smb2_request_tree_connect(&data);
+    #[test]
+    fn test_parse_smb2_request_tree_connect() {
+        let data = hex::decode("0900000048002c005c005c003100390032002e003100360038002e003100390039002e003100330033005c004900500043002400").unwrap();
+        let result = parse_smb2_request_tree_connect(&data);
         assert!(result.is_ok());
         let record = result.unwrap().1;
         assert!(record.share_name.len() > 2);
-		let share_name_len = u16::from_le_bytes(record.share_name[0..2].try_into().unwrap());
-		assert_eq!(share_name_len ,44);
-		assert_eq!(record.share_name.len() ,share_name_len as usize + 2);
-		let mut share_name = record.share_name[2..].to_vec();
-		share_name.retain(|&i|i != 0x00);
-		assert_eq!(String::from_utf8_lossy(&share_name), "\\\\192.168.199.133\\IPC$");
-	}
+        let share_name_len = u16::from_le_bytes(record.share_name[0..2].try_into().unwrap());
+        assert_eq!(share_name_len, 44);
+        assert_eq!(record.share_name.len(), share_name_len as usize + 2);
+        let mut share_name = record.share_name[2..].to_vec();
+        share_name.retain(|&i| i != 0x00);
+        assert_eq!(
+            String::from_utf8_lossy(&share_name),
+            "\\\\192.168.199.133\\IPC$"
+        );
+    }
 
-	#[test]
-	fn test_parse_smb2_response_record() {
+    #[test]
+    fn test_parse_smb2_response_record() {
         let data = hex::decode("fe534d4240000000000000000000010001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000041000100ff020000966eafa3357f0440a5f9643e1bfa8c56070000000000800000008000000080001064882d8527d201a1f3ae878427d20180004001000000006082013c06062b0601050502a08201303082012ca01a3018060a2b06010401823702021e060a2b06010401823702020aa282010c048201084e45474f45585453010000000000000060000000700000007fb23ba7cacc4e216323ca8472061efbd2c4f6d6b3017012f0bf4f7202ec684ee801ef64e55401ab86b1c9ebde4e39ea0000000000000000600000000100000000000000000000005c33530deaf90d4db2ec4ae3786ec3084e45474f45585453030000000100000040000000980000007fb23ba7cacc4e216323ca8472061efb5c33530deaf90d4db2ec4ae3786ec30840000000580000003056a05430523027802530233121301f06035504031318546f6b656e205369676e696e67205075626c6963204b65793027802530233121301f06035504031318546f6b656e205369676e696e67205075626c6963204b6579").unwrap();
         let result = parse_smb2_response_record(&data);
         assert!(result.is_ok());
         let record = result.unwrap().1;
         assert_eq!(record.direction, 1);
-		assert_eq!(record.header_len, 64);
-		assert_eq!(record.nt_status, 0);
-		assert_eq!(record.command, crate::smb::smb2::SMB2_COMMAND_NEGOTIATE_PROTOCOL);
-		assert_eq!(record.message_id, 0);
-		assert_eq!(record.tree_id, 0);
-		assert_eq!(record.async_id, 0);
-		assert_eq!(record.session_id, 0);
-		let neg_proto_result = parse_smb2_response_negotiate_protocol(record.data);
+        assert_eq!(record.header_len, 64);
+        assert_eq!(record.nt_status, 0);
+        assert_eq!(
+            record.command,
+            crate::smb::smb2::SMB2_COMMAND_NEGOTIATE_PROTOCOL
+        );
+        assert_eq!(record.message_id, 0);
+        assert_eq!(record.tree_id, 0);
+        assert_eq!(record.async_id, 0);
+        assert_eq!(record.session_id, 0);
+        let neg_proto_result = parse_smb2_response_negotiate_protocol(record.data);
         assert!(neg_proto_result.is_ok());
         let neg_proto = neg_proto_result.unwrap().1;
-		assert_eq!(guid_to_string(neg_proto.server_guid), "a3af6e96-7f35-4004-f9a5-3e64568cfa1b");
-		assert_eq!(neg_proto.dialect, 0x2ff);
-		assert_eq!(smb2_dialect_string(neg_proto.dialect), "2.??".to_string());
-		assert_eq!(neg_proto.max_trans_size, 0x800000);
-		assert_eq!(neg_proto.max_read_size, 0x800000);
-		assert_eq!(neg_proto.max_write_size, 0x800000);
+        assert_eq!(
+            guid_to_string(neg_proto.server_guid),
+            "a3af6e96-7f35-4004-f9a5-3e64568cfa1b"
+        );
+        assert_eq!(neg_proto.dialect, 0x2ff);
+        assert_eq!(smb2_dialect_string(neg_proto.dialect), "2.??".to_string());
+        assert_eq!(neg_proto.max_trans_size, 0x800000);
+        assert_eq!(neg_proto.max_read_size, 0x800000);
+        assert_eq!(neg_proto.max_write_size, 0x800000);
     }
 
     #[test]
@@ -815,51 +849,59 @@ mod tests {
         // TODO: find pcap
     }
 
-	#[test]
-	fn test_parse_smb2_response_write() {
+    #[test]
+    fn test_parse_smb2_response_write() {
         let data = hex::decode("11000000a00000000000000000000000").unwrap();
         let result = parse_smb2_response_write(&data);
         assert!(result.is_ok());
         let record = result.unwrap().1;
-		assert_eq!(record.wr_cnt, 160);
-	}
-	#[test]
-	fn test_parse_smb2_response_create() {
+        assert_eq!(record.wr_cnt, 160);
+    }
+    #[test]
+    fn test_parse_smb2_response_create() {
         let data = hex::decode("5900000001000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000800000000000000001000000db3b5a009a29ea00000000000000000000000000").unwrap();
         let result = parse_smb2_response_create(&data);
         assert!(result.is_ok());
         let record = result.unwrap().1;
-		assert_eq!(guid_to_string(record.guid), "00000001-3bdb-005a-299a-00ea00000000");
-		assert_eq!(record.create_ts, SMBFiletime::new(0));
-		assert_eq!(record.last_access_ts, SMBFiletime::new(0));
-		assert_eq!(record.last_write_ts, SMBFiletime::new(0));
-		assert_eq!(record.last_change_ts, SMBFiletime::new(0));
-		assert_eq!(record.size, 0);
-
-	}
-	#[test]
-	fn test_parse_smb2_response_ioctl() {
+        assert_eq!(
+            guid_to_string(record.guid),
+            "00000001-3bdb-005a-299a-00ea00000000"
+        );
+        assert_eq!(record.create_ts, SMBFiletime::new(0));
+        assert_eq!(record.last_access_ts, SMBFiletime::new(0));
+        assert_eq!(record.last_write_ts, SMBFiletime::new(0));
+        assert_eq!(record.last_change_ts, SMBFiletime::new(0));
+        assert_eq!(record.size, 0);
+    }
+    #[test]
+    fn test_parse_smb2_response_ioctl() {
         let data = hex::decode("31000000fc011400ffffffffffffffffffffffffffffffff7000000000000000700000003001000000000000000000009800000004000000010000000000000000ca9a3b0000000002000000c0a8c7850000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000010000000000000000ca9a3b000000001700000000000000fe8000000000000065b53a9792d191990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap();
         let result = parse_smb2_response_ioctl(&data);
         assert!(result.is_ok());
         let record = result.unwrap().1;
-		assert_eq!(record.indata_len, 0);
-		assert_eq!(guid_to_string(record.guid), "ffffffff-ffff-ffff-ffff-ffffffffffff");
-		assert!(!record.is_pipe);
-		assert_eq!(record.outdata_len, 304);
-		assert_eq!(record.indata_offset, 112);
-		assert_eq!(record.outdata_offset, 112);
-	}
+        assert_eq!(record.indata_len, 0);
+        assert_eq!(
+            guid_to_string(record.guid),
+            "ffffffff-ffff-ffff-ffff-ffffffffffff"
+        );
+        assert!(!record.is_pipe);
+        assert_eq!(record.outdata_len, 304);
+        assert_eq!(record.indata_offset, 112);
+        assert_eq!(record.outdata_offset, 112);
+    }
 
-	#[test]
-	fn test_parse_smb2_request_ioctl() {
+    #[test]
+    fn test_parse_smb2_request_ioctl() {
         let data = hex::decode("39000000fc011400ffffffffffffffffffffffffffffffff7800000000000000000000007800000000000000000001000100000000000000").unwrap();
         let result = parse_smb2_request_ioctl(&data);
         assert!(result.is_ok());
         let record = result.unwrap().1;
-		assert_eq!(guid_to_string(record.guid), "ffffffff-ffff-ffff-ffff-ffffffffffff");
-		assert!(!record.is_pipe);
-		assert_eq!(record.function, 0x1401fc);
-		assert_eq!(record.data, &[]);
-	}
+        assert_eq!(
+            guid_to_string(record.guid),
+            "ffffffff-ffff-ffff-ffff-ffffffffffff"
+        );
+        assert!(!record.is_pipe);
+        assert_eq!(record.function, 0x1401fc);
+        assert_eq!(record.data, &[]);
+    }
 }
