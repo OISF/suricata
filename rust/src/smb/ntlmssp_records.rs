@@ -98,7 +98,7 @@ fn extract_ntlm_substring(i: &[u8], offset: u32, length: u16) -> IResult<&[u8], 
 
 pub fn parse_ntlm_auth_record(i: &[u8]) -> IResult<&[u8], NTLMSSPAuthRecord> {
     let orig_i = i;
-    let record_len = i.len() + NTLMSSP_IDTYPE_LEN; // idenfier (8) and type (4) are cut before we are called
+    let record_len = i.len() + NTLMSSP_IDTYPE_LEN; // identifier (8) and type (4) are cut before we are called
 
     let (i, _lm_blob_len) = verify(le_u16, |&v| (v as usize) < record_len)(i)?;
     let (i, _lm_blob_maxlen) = le_u16(i)?;

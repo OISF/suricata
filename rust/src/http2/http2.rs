@@ -110,7 +110,7 @@ pub enum HTTP2TransactionState {
     HTTP2StateDataServer = 5,
     HTTP2StateHalfClosedServer = 6,
     HTTP2StateClosed = 7,
-    //not a RFC-defined state, used for stream 0 frames appyling to the global connection
+    //not a RFC-defined state, used for stream 0 frames applying to the global connection
     HTTP2StateGlobal = 8,
     //not a RFC-defined state, dropping this old tx because we have too many
     HTTP2StateTodrop = 9,
