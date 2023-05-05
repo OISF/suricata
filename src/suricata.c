@@ -367,7 +367,6 @@ static void GlobalsDestroy(SCInstance *suri)
     AppLayerDeSetup();
     DatasetsSave();
     DatasetsDestroy();
-    HttpRangeContainersDestroy();
     TagDestroyCtx();
 
     LiveDeviceListClean();
@@ -2301,6 +2300,7 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     HostCleanup();
     StreamTcpFreeConfig(STREAM_VERBOSE);
     DefragDestroy();
+    HttpRangeContainersDestroy();
 
     TmqResetQueues();
 #ifdef PROFILING
