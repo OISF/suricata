@@ -868,7 +868,7 @@ per available CPU/CPU core.
       - worker-cpu-set:
           cpu: [ "all" ]
           mode: "exclusive"
-          # Use explicitely 3 threads and don't compute number by using
+          # Use explicitly 3 threads and don't compute number by using
           # detect-thread-ratio variable:
           # threads: 3
           prio:
@@ -1182,7 +1182,7 @@ Suricata inspects traffic in a sliding window manner.
 
 .. image:: suricata-yaml/inline_mode.png
 
-**Example 13     Normal/IDS (reasembly on ACK'D data)**
+**Example 13     Normal/IDS (reassembly on ACK'D data)**
 
 .. image:: suricata-yaml/Normal_ids_ack_d.png
 
@@ -1488,7 +1488,7 @@ use of libhtp.
        # detection change between runs. It is set to 'yes' by default.
        #randomize-inspection-sizes: yes
        # If randomize-inspection-sizes is active, the value of various
-       # inspection size will be choosen in the [1 - range%, 1 + range%]
+       # inspection size will be chosen in the [1 - range%, 1 + range%]
        # range
        # Default value of randomize-inspection-range is 10.
        #randomize-inspection-range: 10
@@ -1980,7 +1980,7 @@ be found in other capture interfaces. The individual items contain the usual con
 such as `threads`/`copy-mode`/`checksum-checks` settings. Other capture interfaces, such as AF_PACKET, rely on the user that NICs are appropriately configured.
 Configuration through kernel does not apply to applications running under DPDK. The application is solely responsible for the
 initialization of NICs it is using. So, before the start of Suricata, NICs that Suricata uses, must undergo the process of initialization.
-As a result, there are extra extra configuration options (how NICs can be configured) in the items (interfaces) of the `dpdk.interfaces` list.
+As a result, there are extra configuration options (how NICs can be configured) in the items (interfaces) of the `dpdk.interfaces` list.
 At the start of the configuration process, all NIC offloads are disabled to prevent any packet modification.
 According to the configuration, checksum validation offload can be enabled to drop invalid packets.
 Other offloads can not be currently enabled.

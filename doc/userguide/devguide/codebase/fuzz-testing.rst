@@ -28,4 +28,4 @@ Adding Fuzz Targets
 Oss-Fuzz
 --------
 
-Suricata is continuesly fuzz tested in Oss-Fuzz. See https://github.com/google/oss-fuzz/tree/master/projects/suricata
+Suricata is continuously fuzz tested in Oss-Fuzz. See https://github.com/google/oss-fuzz/tree/master/projects/suricata
