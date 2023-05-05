@@ -1565,7 +1565,8 @@ snaplen: MTU ?
 tp_hdrlen determine_version in daq_afpacket
 in V1:  sizeof(struct tpacket_hdr);
 in V2: val in getsockopt(instance->fd, SOL_PACKET, PACKET_HDRLEN, &val, &len)
-frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
+frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct
+sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
 
      */
     int tp_hdrlen = sizeof(struct tpacket_hdr);

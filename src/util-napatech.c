@@ -1459,8 +1459,9 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
 
                 if (ports_spec.first[iteration] == ports_spec.second[iteration]) {
                     if (is_inline) {
-                        FatalError("Error with napatech.ports in conf file.  When running in inline "
-                                   "mode the two ports specifying a segment must be different.");
+                        FatalError(
+                                "Error with napatech.ports in conf file.  When running in inline "
+                                "mode the two ports specifying a segment must be different.");
                     } else {
                         /* SPAN port configuration */
                         is_span_port[ports_spec.first[iteration]] = 1;

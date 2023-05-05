@@ -2557,7 +2557,7 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
             if (r.retval < 0 || r.retval > input_len) {
                 DEBUG_VALIDATE_BUG_ON(r.retval > input_len);
                 SCLogDebug("Error parsing SSLv2. Resetting parser "
-                        "state. Let's get outta here");
+                           "state. Let's get outta here");
                 SSLParserReset(ssl_state);
                 SSLSetEvent(ssl_state,
                         TLS_DECODER_EVENT_INVALID_SSL_RECORD);
@@ -2584,7 +2584,7 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
             if (r.retval < 0 || r.retval > input_len) {
                 DEBUG_VALIDATE_BUG_ON(r.retval > input_len);
                 SCLogDebug("Error parsing TLS. Resetting parser "
-                        "state.  Let's get outta here");
+                           "state.  Let's get outta here");
                 SSLParserReset(ssl_state);
                 return APP_LAYER_ERROR;
             } else if (r.needed) {
