@@ -253,7 +253,7 @@ static uint16_t TestStreamConfig(
 /**
  * \brief  Updates Napatech packet counters
  *
- * \param tv Pointer to TheardVars structure
+ * \param tv Pointer to ThreadVars structure
  * \param hInfo Handle to Napatech Info Stream.
  * \param hstat_stream Handle to Napatech Statistics stream
  * \param num_streams the number of streams that are currently active
@@ -472,7 +472,7 @@ static uint32_t UpdateStreamStats(ThreadVars *tv,
  * Instantiated on the stats thread. Periodically retrieves
  * statistics from the Napatech card and updates the packet counters
  *
- * \param arg Pointer that is cast into a TheardVars structure
+ * \param arg Pointer that is cast into a ThreadVars structure
  */
 static void *NapatechStatsLoop(void *arg)
 {
@@ -1459,8 +1459,9 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
 
                 if (ports_spec.first[iteration] == ports_spec.second[iteration]) {
                     if (is_inline) {
-                        FatalError("Error with napatec.ports in conf file.  When running in inline "
-                                   "mode the two ports specifying a segment must be different.");
+                        FatalError(
+                                "Error with napatech.ports in conf file.  When running in inline "
+                                "mode the two ports specifying a segment must be different.");
                     } else {
                         /* SPAN port configuration */
                         is_span_port[ports_spec.first[iteration]] = 1;

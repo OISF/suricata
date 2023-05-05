@@ -400,7 +400,7 @@ void TmModuleReceiveAFPRegister (void)
  *
  * AF_PACKET has an IPS mode were interface are peered: packet from
  * on interface are sent the peered interface and the other way. The ::AFPPeer
- * list is maitaining the list of peers. Each ::AFPPeer is storing the needed
+ * list is maintaining the list of peers. Each ::AFPPeer is storing the needed
  * information to be able to send packet on the interface.
  * A element of the list must not be destroyed during the run of Suricata as it
  * is used by ::Packet and other threads.
@@ -562,7 +562,7 @@ static void AFPPeersListReachedInc(void)
 
     if ((SC_ATOMIC_ADD(peerslist.reached, 1) + 1) == peerslist.turn) {
         (void)SC_ATOMIC_SET(peerslist.reached, 0);
-        /* Set turn to 0 to skip syncrhonization when ReceiveAFPLoop is
+        /* Set turn to 0 to skip synchronization when ReceiveAFPLoop is
          * restarted.
          */
         peerslist.turn = 0;
@@ -1560,12 +1560,13 @@ static int AFPComputeRingParams(AFPThreadVars *ptv, int order)
 
        Compute frame size:
        described in packet_mmap.txt
-       dependant on snaplen (need to use a variable ?)
+       dependent on snaplen (need to use a variable ?)
 snaplen: MTU ?
 tp_hdrlen determine_version in daq_afpacket
 in V1:  sizeof(struct tpacket_hdr);
 in V2: val in getsockopt(instance->fd, SOL_PACKET, PACKET_HDRLEN, &val, &len)
-frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
+frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct
+sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
 
      */
     int tp_hdrlen = sizeof(struct tpacket_hdr);
@@ -1967,7 +1968,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 
 
 #ifdef HAVE_PACKET_FANOUT
-    /* add binded socket to fanout group */
+    /* add bound socket to fanout group */
     if (ptv->threads > 1) {
         uint32_t mode = ptv->cluster_type;
         uint16_t id = ptv->cluster_id;

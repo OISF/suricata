@@ -287,7 +287,7 @@ static void InitEal(void)
     ArgumentsCleanup(&args);
     SCFree(eal_argv);
 
-    if (retval < 0) { // retval binded to the result of rte_eal_init
+    if (retval < 0) { // retval bound to the result of rte_eal_init
         FatalError("DPDK EAL initialization error: %s", rte_strerror(-retval));
     }
     DPDKSetTimevalOfMachineStart();

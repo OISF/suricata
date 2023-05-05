@@ -203,7 +203,7 @@ static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
 
 /**
  * \brief Receives packet from a nflog group via libnetfilter_log
- * This is a setup function for recieving packets via libnetfilter_log.
+ * This is a setup function for receiving packets via libnetfilter_log.
  * \param tv pointer to ThreadVars
  * \param initdata pointer to the group passed from the user
  * \param data pointer gets populated with NFLOGThreadVars
@@ -410,7 +410,7 @@ static int NFLOGSetnlbufsiz(void *data, unsigned int size)
 /**
  * \brief Recieves packets from a group via libnetfilter_log.
  *
- *  This function recieves packets from a group and passes
+ *  This function receives packets from a group and passes
  *  the packet on to the nflog callback function.
  *
  * \param tv pointer to ThreadVars
@@ -535,7 +535,7 @@ TmEcode DecodeNFLOG(ThreadVars *tv, Packet *p, void *data)
  * \brief This an Init function for DecodeNFLOG
  *
  * \param tv pointer to ThreadVars
- * \param initdata pointer to initilization data.
+ * \param initdata pointer to initialization data.
  * \param data pointer that gets cast into NFLOGThreadVars
  * \retval TM_ECODE_OK is returned on success
  * \retval TM_ECODE_FAILED is returned on error
