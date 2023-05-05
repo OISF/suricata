@@ -695,8 +695,8 @@ mod tests {
         assert_eq!(record.data, &[]);
         let del = record.create_options & 0x0000_1000 != 0;
         let dir = record.create_options & 0x0000_0001 != 0;
-        assert_eq!(del, false);
-        assert_eq!(dir, true);
+        assert!(!del);
+        assert!(dir);
     }
     #[test]
     fn test_parse_smb2_request_close() {
@@ -763,18 +763,18 @@ mod tests {
         let data = hex::decode("fe534d42400000000000000000000100010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap();
         let result = parse_smb2_record_direction(&data).unwrap();
         let record: Smb2RecordDir = result.1;
-        assert_eq!(record.request, false);
+        assert!(!record.request);
         let data = hex::decode("fe534d4240000000000000000100080000000000000000000100000000000000fffe000000000000000000000000000000000000000000000000000000000000").unwrap();
         let result = parse_smb2_record_direction(&data).unwrap();
         let record: Smb2RecordDir = result.1;
-        assert_eq!(record.request, true);
+        assert!(record.request);
     }
 
 	#[test]
 	fn test_parse_smb2_request_tree_connect() {
 		let data = hex::decode("0900000048002c005c005c003100390032002e003100360038002e003100390039002e003100330033005c004900500043002400").unwrap();
 		let result = parse_smb2_request_tree_connect(&data);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
         let record = result.unwrap().1;
         assert!(record.share_name.len() > 2);
 		let share_name_len = u16::from_le_bytes(record.share_name[0..2].try_into().unwrap());
@@ -789,7 +789,7 @@ mod tests {
 	fn test_parse_smb2_response_record() {
         let data = hex::decode("fe534d4240000000000000000000010001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000041000100ff020000966eafa3357f0440a5f9643e1bfa8c56070000000000800000008000000080001064882d8527d201a1f3ae878427d20180004001000000006082013c06062b0601050502a08201303082012ca01a3018060a2b06010401823702021e060a2b06010401823702020aa282010c048201084e45474f45585453010000000000000060000000700000007fb23ba7cacc4e216323ca8472061efbd2c4f6d6b3017012f0bf4f7202ec684ee801ef64e55401ab86b1c9ebde4e39ea0000000000000000600000000100000000000000000000005c33530deaf90d4db2ec4ae3786ec3084e45474f45585453030000000100000040000000980000007fb23ba7cacc4e216323ca8472061efb5c33530deaf90d4db2ec4ae3786ec30840000000580000003056a05430523027802530233121301f06035504031318546f6b656e205369676e696e67205075626c6963204b65793027802530233121301f06035504031318546f6b656e205369676e696e67205075626c6963204b6579").unwrap();
         let result = parse_smb2_response_record(&data);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
         let record = result.unwrap().1;
         assert_eq!(record.direction, 1);
 		assert_eq!(record.header_len, 64);
@@ -800,7 +800,7 @@ mod tests {
 		assert_eq!(record.async_id, 0);
 		assert_eq!(record.session_id, 0);
 		let neg_proto_result = parse_smb2_response_negotiate_protocol(record.data);
-        assert_eq!(neg_proto_result.is_ok(), true);
+        assert!(neg_proto_result.is_ok());
         let neg_proto = neg_proto_result.unwrap().1;
 		assert_eq!(guid_to_string(neg_proto.server_guid), "a3af6e96-7f35-4004-f9a5-3e64568cfa1b");
 		assert_eq!(neg_proto.dialect, 0x2ff);
@@ -819,7 +819,7 @@ mod tests {
 	fn test_parse_smb2_response_write() {
         let data = hex::decode("11000000a00000000000000000000000").unwrap();
         let result = parse_smb2_response_write(&data);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
         let record = result.unwrap().1;
 		assert_eq!(record.wr_cnt, 160);
 	}
@@ -827,7 +827,7 @@ mod tests {
 	fn test_parse_smb2_response_create() {
         let data = hex::decode("5900000001000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000800000000000000001000000db3b5a009a29ea00000000000000000000000000").unwrap();
         let result = parse_smb2_response_create(&data);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
         let record = result.unwrap().1;
 		assert_eq!(guid_to_string(record.guid), "00000001-3bdb-005a-299a-00ea00000000");
 		assert_eq!(record.create_ts, SMBFiletime::new(0));
@@ -841,11 +841,11 @@ mod tests {
 	fn test_parse_smb2_response_ioctl() {
         let data = hex::decode("31000000fc011400ffffffffffffffffffffffffffffffff7000000000000000700000003001000000000000000000009800000004000000010000000000000000ca9a3b0000000002000000c0a8c7850000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000010000000000000000ca9a3b000000001700000000000000fe8000000000000065b53a9792d191990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap();
         let result = parse_smb2_response_ioctl(&data);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
         let record = result.unwrap().1;
 		assert_eq!(record.indata_len, 0);
 		assert_eq!(guid_to_string(record.guid), "ffffffff-ffff-ffff-ffff-ffffffffffff");
-		assert_eq!(record.is_pipe, false);
+		assert!(!record.is_pipe);
 		assert_eq!(record.outdata_len, 304);
 		assert_eq!(record.indata_offset, 112);
 		assert_eq!(record.outdata_offset, 112);
@@ -855,10 +855,10 @@ mod tests {
 	fn test_parse_smb2_request_ioctl() {
         let data = hex::decode("39000000fc011400ffffffffffffffffffffffffffffffff7800000000000000000000007800000000000000000001000100000000000000").unwrap();
         let result = parse_smb2_request_ioctl(&data);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
         let record = result.unwrap().1;
 		assert_eq!(guid_to_string(record.guid), "ffffffff-ffff-ffff-ffff-ffffffffffff");
-		assert_eq!(record.is_pipe, false);
+		assert!(!record.is_pipe);
 		assert_eq!(record.function, 0x1401fc);
 		assert_eq!(record.data, &[]);
 	}
