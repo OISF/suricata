@@ -25,8 +25,7 @@
 #ifndef __DECODE_TEMPLATE_H__
 #define __DECODE_TEMPLATE_H__
 
-
-/* Header layout. Keep things like alignment and endianess in
+/* Header layout. Keep things like alignment and endianness in
  * mind while constructing this. */
 
 typedef struct TemplateHdr_ {

@@ -21,13 +21,12 @@
  * @{
  */
 
-
 /**
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Decode linkype null:
+ * Decode linktype null:
  * http://www.tcpdump.org/linktypes.html
  */
 

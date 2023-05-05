@@ -148,12 +148,12 @@ void DecodeGeneveConfig(void)
 
 static inline bool IsValidGeneveVersion(const GeneveHeader *geneve_hdr)
 {
-    const int valid_verisons[] = VALID_GENEVE_VERSIONS;
-    const int num_versions = sizeof(valid_verisons) / sizeof(int);
+    const int valid_versions[] = VALID_GENEVE_VERSIONS;
+    const int num_versions = sizeof(valid_versions) / sizeof(int);
     const uint8_t cur_version = GENEVE_VERSION(geneve_hdr);
 
     for (int i = 0; i < num_versions; i++) {
-        if (valid_verisons[i] == cur_version)
+        if (valid_versions[i] == cur_version)
             return true;
     }
 
