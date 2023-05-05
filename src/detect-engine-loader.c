@@ -582,6 +582,7 @@ static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
     DetectLoaderThreadData *ftd = (DetectLoaderThreadData *)thread_data;
     BUG_ON(ftd == NULL);
 
+    TmThreadsSetFlag(th_v, THV_INIT_DONE | THV_RUNNING);
     SCLogDebug("loader thread started");
     while (1)
     {
@@ -618,6 +619,10 @@ static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
 
         SCLogDebug("woke up...");
     }
+
+    TmThreadsSetFlag(th_v, THV_RUNNING_DONE);
+    TmThreadWaitForFlag(th_v, THV_DEINIT);
+    TmThreadsSetFlag(th_v, THV_CLOSED);
 
     return TM_ECODE_OK;
 }
