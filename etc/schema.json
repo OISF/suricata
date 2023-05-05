@@ -348,7 +348,9 @@
                 "response": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["id"],
+                    "required": [
+                        "id"
+                    ],
                     "properties": {
                         "id": {
                             "type": "string"
@@ -361,10 +363,10 @@
                                     "type": "object",
                                     "additionalProperties": false,
                                     "required": [
-					"id",
-					"ip",
-					"port"
-				    ],
+                                        "id",
+                                        "ip",
+                                        "port"
+                                    ],
                                     "properties": {
                                         "id": {
                                             "type": "string"
@@ -385,10 +387,10 @@
                                 "type": "object",
                                 "additionalProperties": false,
                                 "required": [
-				    "id",
-				    "ip",
-				    "port"
-				],
+                                    "id",
+                                    "ip",
+                                    "port"
+                                ],
                                 "properties": {
                                     "id": {
                                         "type": "string"
@@ -1339,9 +1341,9 @@
                 "has_exe_url": {
                     "type": "boolean"
                 },
-		"message_id": {
-		    "type": "string"
-		}
+                "message_id": {
+                    "type": "string"
+                }
             },
             "additionalProperties": false
         },
@@ -1475,7 +1477,7 @@
                             "type": "integer"
                         }
                     },
-                    "additionalProperites": false
+                    "additionalProperties": false
                 },
                 "bytes_toclient": {
                     "type": "integer"
