@@ -341,7 +341,7 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
                 goto final;
             }
             /* otherwise, if nonmpm is done jump to final for mpm
-             * mpm ptrs alrady updated */
+             * mpm ptrs already updated */
             if (unlikely(--n_cnt == 0)) {
                 final_ptr = mpm_ptr;
                 final_cnt = m_cnt;
@@ -1049,7 +1049,7 @@ DetectRunTxSortHelper(const void *a, const void *b)
  *  detection.
  *
  *  \param stored_flags pointer to stored flags or NULL.
- *         If stored_flags is set it means we're continueing
+ *         If stored_flags is set it means we're continuing
  *         inspection from an earlier run.
  *
  *  \retval bool true sig matched, false didn't match
@@ -1486,7 +1486,7 @@ static void DetectRunTx(ThreadVars *tv,
 
             if (inspect_flags) {
                 /* continue previous inspection */
-                SCLogDebug("%p/%"PRIu64" Continueing sid %u", tx.tx_ptr, tx.tx_id, s->id);
+                SCLogDebug("%p/%" PRIu64 " Continuing sid %u", tx.tx_ptr, tx.tx_id, s->id);
             } else {
                 /* start new inspection */
                 SCLogDebug("%p/%"PRIu64" Start sid %u", tx.tx_ptr, tx.tx_id, s->id);
@@ -1681,7 +1681,7 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
 static DetectEngineThreadCtx *GetTenantById(HashTable *h, uint32_t id)
 {
     /* technically we need to pass a DetectEngineThreadCtx struct with the
-     * tentant_id member. But as that member is the first in the struct, we
+     * tenant_id member. But as that member is the first in the struct, we
      * can use the id directly. */
     return HashTableLookup(h, &id, 0);
 }
@@ -1724,7 +1724,7 @@ static void DetectNoFlow(ThreadVars *tv,
                          DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                          Packet *p)
 {
-    /* No need to perform any detection on this packet, if the the given flag is set.*/
+    /* No need to perform any detection on this packet, if the given flag is set.*/
     if ((p->flags & PKT_NOPACKET_INSPECTION) || (PacketCheckAction(p, ACTION_DROP))) {
         return;
     }

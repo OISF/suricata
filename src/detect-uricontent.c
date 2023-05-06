@@ -81,7 +81,7 @@ void DetectUricontentRegister (void)
 /**
  * \brief this function will Free memory associated with DetectContentData
  *
- * \param cd pointer to DetectUricotentData
+ * \param cd pointer to DetectUricontentData
  */
 void DetectUricontentFree(DetectEngineCtx *de_ctx, void *ptr)
 {
@@ -115,7 +115,7 @@ int DetectUricontentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *con
     const char *legacy = NULL;
     if (ConfGet("legacy.uricontent", &legacy) == 1) {
         if (strcasecmp("disabled", legacy) == 0) {
-            SCLogError("uriconent deprecated.  To "
+            SCLogError("uricontent deprecated.  To "
                        "use a rule with \"uricontent\", either set the "
                        "option - \"legacy.uricontent\" in the conf to "
                        "\"enabled\" OR replace uricontent with "
@@ -126,7 +126,7 @@ int DetectUricontentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *con
             ;
         } else {
             SCLogError("Invalid value found "
-                       "for legacy.uriconent - \"%s\".  Valid values are "
+                       "for legacy.uricontent - \"%s\".  Valid values are "
                        "\"enabled\" OR \"disabled\".",
                     legacy);
             goto error;

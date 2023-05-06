@@ -86,7 +86,7 @@ void DetectFlowintRegister(void)
  * \param m pointer to the sigmatch that we will cast into DetectFlowintData
  *
  * \retval 0 no match, when a var doesn't exist
- * \retval 1 match, when a var is initialized well, add/substracted, or a true
+ * \retval 1 match, when a var is initialized well, add/subtracted, or a true
  * condition
  */
 int DetectFlowintMatch(DetectEngineThreadCtx *det_ctx,
@@ -157,7 +157,7 @@ int DetectFlowintMatch(DetectEngineThreadCtx *det_ctx,
         }
 
         if (sfd->modifier == FLOWINT_MODIFIER_SUB) {
-            SCLogDebug("Substracting %u to %s", targetval, sfd->name);
+            SCLogDebug("Subtracting %u to %s", targetval, sfd->name);
             FlowVarAddIntNoLock(p->flow, sfd->idx, fv->data.fv_int.value -
                            targetval);
             ret = 1;
@@ -430,7 +430,7 @@ void DetectFlowintFree(DetectEngineCtx *de_ctx, void *tmp)
 #ifdef UNITTESTS
 #include "detect-engine-alert.h"
 /**
- * \brief This is a helper funtion used for debugging purposes
+ * \brief This is a helper function used for debugging purposes
  */
 static void DetectFlowintPrintData(DetectFlowintData *sfd)
 {
@@ -685,7 +685,7 @@ static int DetectFlowintTestParseVar04(void)
 
 /**
  * \test DetectFlowintTestParseVal05 is a test to make sure that we set the
- *  DetectFlowint correctly for cheking if not equal to a valid target value
+ *  DetectFlowint correctly for checking if not equal to a valid target value
  */
 static int DetectFlowintTestParseVal05(void)
 {
@@ -742,7 +742,7 @@ static int DetectFlowintTestParseVar05(void)
 
 /**
  * \test DetectFlowintTestParseVal06 is a test to make sure that we set the
- *  DetectFlowint correctly for cheking if greater than a valid target value
+ *  DetectFlowint correctly for checking if greater than a valid target value
  */
 static int DetectFlowintTestParseVal06(void)
 {
@@ -799,7 +799,7 @@ static int DetectFlowintTestParseVar06(void)
 
 /**
  * \test DetectFlowintTestParseVal07 is a test to make sure that we set the
- *  DetectFlowint correctly for cheking if greater or equal than a valid target value
+ *  DetectFlowint correctly for checking if greater or equal than a valid target value
  */
 static int DetectFlowintTestParseVal07(void)
 {
@@ -856,7 +856,7 @@ static int DetectFlowintTestParseVar07(void)
 
 /**
  * \test DetectFlowintTestParseVal08 is a test to make sure that we set the
- *  DetectFlowint correctly for cheking if lower or equal than a valid target value
+ *  DetectFlowint correctly for checking if lower or equal than a valid target value
  */
 static int DetectFlowintTestParseVal08(void)
 {
@@ -913,7 +913,7 @@ static int DetectFlowintTestParseVar08(void)
 
 /**
  * \test DetectFlowintTestParseVal09 is a test to make sure that we set the
- *  DetectFlowint correctly for cheking if lower than a valid target value
+ *  DetectFlowint correctly for checking if lower than a valid target value
  */
 static int DetectFlowintTestParseVal09(void)
 {
@@ -1097,7 +1097,7 @@ error:
  *        and when that counter reach 6 packets.
  *
  *        All the Signatures generate an alert(its for testing)
- *        but the ignature that increment the second counter +1, that has
+ *        but the signature that increment the second counter +1, that has
  *        a "noalert", so we can do all increments
  *        silently until we reach 6 next packets counted
  */
