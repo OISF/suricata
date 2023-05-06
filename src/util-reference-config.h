@@ -50,8 +50,8 @@ void SCRConfRegisterTests(void);
 
 /* these below functions are only used by unittests */
 FILE *SCRConfGenerateValidDummyReferenceConfigFD01(void);
-FILE *SCRConfGenerateInValidDummyReferenceConfigFD02(void);
-FILE *SCRConfGenerateInValidDummyReferenceConfigFD03(void);
+FILE *SCRConfGenerateInvalidDummyReferenceConfigFD02(void);
+FILE *SCRConfGenerateInvalidDummyReferenceConfigFD03(void);
 
 void SCReferenceConfInit(void);
 void SCReferenceConfDeinit(void);
