@@ -22,7 +22,7 @@
  * \author Ignacio Sanchez <sanchezmartin.ji@gmail.com>
  * \author Paulo Pacheco <fooinha@gmail.com>
  *
- * Common custom loggging format
+ * Common custom logging format
  */
 
 #ifndef __LOG_CF_COMMON_H__
@@ -50,8 +50,7 @@
 #define LOG_CF_SPACE_SEPARATOR " "
 #define LOG_CF_UNKNOWN_VALUE "-"
 
-#define LOG_CF_WRITE_STAR_SEPATATOR(buffer) \
-    MemBufferWriteString(buffer, LOG_CF_STAR_SEPARATOR);
+#define LOG_CF_WRITE_STAR_SEPARATOR(buffer) MemBufferWriteString(buffer, LOG_CF_STAR_SEPARATOR);
 
 #define LOG_CF_WRITE_SPACE_SEPARATOR(buffer) \
     MemBufferWriteString(buffer, LOG_CF_SPACE_SEPARATOR);
@@ -65,7 +64,7 @@
 
 typedef struct LogCustomFormatNode_ {
     uint32_t type;              /**< Node format type. ie: LOG_CF_LITERAL, ... */
-    uint32_t maxlen;            /**< Maximun length of the data */
+    uint32_t maxlen;            /**< Maximum length of the data */
     char data[LOG_NODE_STRLEN]; /**< optional data. ie: http header name */
 } LogCustomFormatNode;
 
