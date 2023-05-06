@@ -100,7 +100,7 @@ extern int unittests_fatal;
 /**
  * \brief Pass the test.
  *
- * Only to be used at the end of a function instead instead of "return 1."
+ * Only to be used at the end of a function instead of "return 1."
  */
 #define PASS do { \
         return 1; \

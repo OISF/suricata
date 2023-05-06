@@ -145,7 +145,7 @@ uint32_t UTHSetIPv4Address(const char *str)
  * \brief UTHBuildPacketReal is a function that create tcp/udp packets for unittests
  * specifying ip and port sources and destinations (IPV6)
  *
- * \param payload pointer to the payloadd buffer
+ * \param payload pointer to the payload buffer
  * \param payload_len pointer to the length of the payload
  * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
  * \param src pointer to a string containing the ip source
@@ -231,7 +231,7 @@ error:
  * \brief UTHBuildPacketReal is a function that create tcp/udp packets for unittests
  * specifying ip and port sources and destinations
  *
- * \param payload pointer to the payloadd buffer
+ * \param payload pointer to the payload buffer
  * \param payload_len pointer to the length of the payload
  * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
  * \param src pointer to a string containing the ip source
@@ -328,7 +328,7 @@ error:
  * \brief UTHBuildPacket is a wrapper that build packets with default ip
  * and port fields
  *
- * \param payload pointer to the payloadd buffer
+ * \param payload pointer to the payload buffer
  * \param payload_len pointer to the length of the payload
  * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
  *
@@ -409,7 +409,7 @@ Packet *UTHBuildPacketFromEth(uint8_t *raw_eth, uint16_t pktsize)
  * \brief UTHBuildPacketSrcDst is a wrapper that build packets specifying IPs
  * and defaulting ports
  *
- * \param payload pointer to the payloadd buffer
+ * \param payload pointer to the payload buffer
  * \param payload_len pointer to the length of the payload
  * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
  *
@@ -445,7 +445,7 @@ Packet *UTHBuildPacketIPV6SrcDst(uint8_t *payload, uint16_t payload_len,
  * \brief UTHBuildPacketSrcDstPorts is a wrapper that build packets specifying
  * src and dst ports and defaulting IPs
  *
- * \param payload pointer to the payloadd buffer
+ * \param payload pointer to the payload buffer
  * \param payload_len pointer to the length of the payload
  * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
  *
@@ -579,10 +579,10 @@ int UTHRemoveSessionFromFlow(Flow *f)
 }
 
 /**
- * \brief UTHGenericTest: function that perfom a generic check taking care of
+ * \brief UTHGenericTest: function that perform a generic check taking care of
  *                      as maximum common unittest elements as possible.
  *                      It will create a detection engine, append an array
- *                      of signatures an check the spected results for each
+ *                      of signatures an check the expected results for each
  *                      of them, it check matches for an array of packets
  *
  * \param pkt pointer to the array of packets
@@ -641,8 +641,7 @@ end:
  * \retval int 1 if the match of all the sids is the specified has the
  *             specified results; 0 if not
  */
-int UTHCheckPacketMatchResults(Packet *p, uint32_t sids[],
-        uint32_t results[], int numsids)
+int UTHCheckPacketMatchResults(Packet *p, uint32_t sids[], uint32_t results[], int numsigs)
 {
     if (p == NULL || sids == NULL) {
         SCLogError("Arguments invalid, check if the "
@@ -652,7 +651,7 @@ int UTHCheckPacketMatchResults(Packet *p, uint32_t sids[],
 
     int i = 0;
     int res = 1;
-    for (; i < numsids; i++) {
+    for (; i < numsigs; i++) {
         uint32_t r = PacketAlertCheck(p, sids[i]);
         if (r != results[i]) {
             SCLogInfo("Sid %" PRIu32 " matched %" PRIu32 " times, and not %" PRIu32 " as expected",
@@ -673,7 +672,7 @@ int UTHCheckPacketMatchResults(Packet *p, uint32_t sids[],
  * \param numsigs number of signatures to load from the array
  *                (size of the array)
  *
- * \retval int 0 if we have errors; 1 if all the signatures loaded succesfuly
+ * \retval int 0 if we have errors; 1 if all the signatures loaded successfully
  */
 int UTHAppendSigs(DetectEngineCtx *de_ctx, const char *sigs[], int numsigs)
 {
@@ -701,7 +700,7 @@ int UTHAppendSigs(DetectEngineCtx *de_ctx, const char *sigs[], int numsigs)
 
 /**
  * \test UTHMatchPacketsWithResults Match a packet or a array of packets against sigs
- * of a de_ctx, checking that each signature match match X times for certain packets
+ * of a de_ctx, checking that each signature matches X times for certain packets
  *
  * \param de_ctx pointer with the signatures loaded
  * \param p pointer to the array of packets
@@ -911,7 +910,7 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir)
             FLOWLOCK_UNLOCK(p->flow);
         }
 
-        /* Now the queues shoul be updated */
+        /* Now the queues should be updated */
         UTHFreePacket(p);
     }
 
