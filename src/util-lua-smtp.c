@@ -61,7 +61,7 @@ static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name)
 {
     /* extract state from flow */
     SMTPState *state = (SMTPState *) FlowGetAppState(flow);
-    /* check that state exsists */
+    /* check that state exists */
     if(state == NULL) {
         return LuaCallbackError(luastate, "Internal error: no state in flow");
     }
@@ -70,13 +70,13 @@ static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name)
     if(smtp_tx == NULL) {
         return LuaCallbackError(luastate, "Transaction ending or not found");
     }
-    /* pointer to tail of msg list of MimeDecEntitys in current transaction. */
+    /* pointer to tail of msg list of MimeDecEntities in current transaction. */
     MimeDecEntity *mime = smtp_tx->msg_tail;
     /* check if msg_tail was hit */
     if(mime == NULL){
         return LuaCallbackError(luastate, "Internal error: no fields in transaction");
     }
-    /* extract MIME field based on spesific field name. */
+    /* extract MIME field based on specific field name. */
     MimeDecField *field = MimeDecFindField(mime, name);
     /* check MIME field */
     if(field == NULL) {
@@ -203,7 +203,7 @@ static int SMTPGetMimeList(lua_State *luastate)
  * \param flow flow to get state for SMTP
  *
  * \retval 1 if mailfrom field found.
- * Retruns error int and msg pushed to luastate stack if error occurs
+ * Returns error int and msg pushed to luastate stack if error occurs
  */
 
 static int GetMailFrom(lua_State *luastate, Flow *flow)
@@ -233,7 +233,7 @@ static int GetMailFrom(lua_State *luastate, Flow *flow)
  * \param luastate luastate stack to pop and push attributes for I/O to lua.
  *
  * \retval 1 if mailfrom field found.
- * Retruns error int and msg pushed to luastate stack if error occurs
+ * Returns error int and msg pushed to luastate stack if error occurs
  */
 
 static int SMTPGetMailFrom(lua_State *luastate)
@@ -257,7 +257,7 @@ static int SMTPGetMailFrom(lua_State *luastate)
  * \brief intern function used by SMTPGetRcpList
  *
  * \params luastate luastate stack for internal communication with Lua.
- * Used to hand over data to the recieveing luascript.
+ * Used to hand over data to the receiving luascript.
  *
  * \retval 1 if the table is pushed to lua.
  * Returns error int and msg pushed to luastate stack if error occurs
@@ -287,7 +287,7 @@ static int GetRcptList(lua_State *luastate, Flow *flow)
         LuaPushStringBuffer(luastate, rcpt->str, rcpt->len);
         lua_settable(luastate, -3);
     }
-    /* return 1 since we allways push one table to luastate */
+    /* return 1 since we always push one table to luastate */
     return 1;
 }
 
@@ -297,7 +297,7 @@ static int GetRcptList(lua_State *luastate, Flow *flow)
  * Then pushing it to the luastate stack.
  *
  * \params luastate luastate stack for internal communication with Lua.
- * Used to hand over data to the recieveing luascript.
+ * Used to hand over data to the receiving luascript.
  *
  * \retval 1 if the table is pushed to lua.
  * Returns error int and msg pushed to luastate stack if error occurs
@@ -317,7 +317,7 @@ static int SMTPGetRcptList(lua_State *luastate)
 
     GetRcptList(luastate, flow);
 
-    /* return 1 since we allways push one table to luastate */
+    /* return 1 since we always push one table to luastate */
     return 1;
 }
 

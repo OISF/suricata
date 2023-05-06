@@ -37,7 +37,7 @@
  *  of getting the states. We protect the pool with a lock as the detect
  *  threads access it during their init and cleanup.
  *
- *  Pool size is automagically determined based on number of keyword occurences,
+ *  Pool size is automagically determined based on number of keyword occurrences,
  *  cpus/cores and rule reloads being enabled or not.
  *
  *  Alternatively, the "detect-engine.luajit-states" var can be set.
