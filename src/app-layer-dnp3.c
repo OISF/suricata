@@ -321,7 +321,7 @@ static uint16_t DNP3ProbingParser(Flow *f, uint8_t direction,
 }
 
 /**
- * \brief Caculate the length of the transport layer with CRCs removed.
+ * \brief Calculate the length of the transport layer with CRCs removed.
  *
  * \param input_len The length of the transport layer buffer.
  *
@@ -663,7 +663,7 @@ static void DNP3ObjectFree(DNP3Object *object)
 }
 
 /**
- * \breif Allocate a DNP3 object.
+ * \brief Allocate a DNP3 object.
  */
 static DNP3Object *DNP3ObjectAlloc(void)
 {

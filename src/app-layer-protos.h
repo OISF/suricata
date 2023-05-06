@@ -84,7 +84,7 @@ static inline bool AppProtoIsValid(AppProto a)
     return ((a > ALPROTO_UNKNOWN && a < ALPROTO_FAILED));
 }
 
-// wether a signature AppProto matches a flow (or signature) AppProto
+// whether a signature AppProto matches a flow (or signature) AppProto
 static inline bool AppProtoEquals(AppProto sigproto, AppProto alproto)
 {
     switch (sigproto) {
