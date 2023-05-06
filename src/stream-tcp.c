@@ -1491,7 +1491,7 @@ static void StreamTcp3whsSynAckUpdate(TcpSession *ssn, Packet *p, TcpStateQueue 
     ssn->client.last_ack = q->ack;
     ssn->server.last_ack = ssn->server.isn + 1;
 
-    /** check for the presense of the ws ptr to determine if we
+    /** check for the presence of the ws ptr to determine if we
      *  support wscale at all */
     if ((ssn->flags & STREAMTCP_FLAG_SERVER_WSCALE) &&
             (q->flags & STREAMTCP_QUEUE_FLAG_WS))
@@ -1738,7 +1738,7 @@ static inline void StreamTcp3whsStoreSynApplyToSsn(TcpSession *ssn, const TcpSta
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 
 static int StreamTcpPacketStateSynSent(
@@ -2029,7 +2029,7 @@ static int StreamTcpPacketStateSynSent(
         if (!stream_config.async_oneside)
             return 0;
 
-        /* we are in AYNC (one side) mode now. */
+        /* we are in ASYNC (one side) mode now. */
 
         /* one side async means we won't see a SYN/ACK, so we can
          * only check the SYN. */
@@ -2103,7 +2103,7 @@ static int StreamTcpPacketStateSynSent(
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  *
  *  \retval  0 ok
  *  \retval -1 error
@@ -2119,7 +2119,7 @@ static int StreamTcpPacketStateSynRecv(
             return -1;
 
         bool reset = true;
-        /* After receiveing the RST in SYN_RECV state and if detection
+        /* After receiving the RST in SYN_RECV state and if detection
            evasion flags has been set, then the following operating
            systems will not closed the connection. As they consider the
            packet as stray packet and not belonging to the current
@@ -2524,7 +2524,7 @@ static int StreamTcpPacketStateSynRecv(
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param  ssn     Pointer to the current TCP session
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 static int HandleEstablishedPacketToServer(
         ThreadVars *tv, TcpSession *ssn, Packet *p, StreamTcpThread *stt)
@@ -2554,11 +2554,11 @@ static int HandleEstablishedPacketToServer(
     /* normal pkt */
     } else if (!(SEQ_GEQ((TCP_GET_SEQ(p)+p->payload_len), ssn->client.last_ack))) {
         if (ssn->flags & STREAMTCP_FLAG_ASYNC) {
-            SCLogDebug("ssn %p: server => Asynchrouns stream, packet SEQ"
-                    " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
-                    " ssn->client.last_ack %" PRIu32 ", ssn->client.next_win"
-                    "%" PRIu32"(%"PRIu32")", ssn, TCP_GET_SEQ(p),
-                    p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
+            SCLogDebug("ssn %p: server => Asynchronous stream, packet SEQ"
+                       " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
+                       " ssn->client.last_ack %" PRIu32 ", ssn->client.next_win"
+                       "%" PRIu32 "(%" PRIu32 ")",
+                    ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
                     ssn->client.last_ack, ssn->client.next_win,
                     TCP_GET_SEQ(p) + p->payload_len - ssn->client.next_win);
 
@@ -2700,7 +2700,7 @@ static int HandleEstablishedPacketToServer(
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param  ssn     Pointer to the current TCP session
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 static int HandleEstablishedPacketToClient(
         ThreadVars *tv, TcpSession *ssn, Packet *p, StreamTcpThread *stt)
@@ -2743,11 +2743,11 @@ static int HandleEstablishedPacketToClient(
     } else if (!(SEQ_GEQ((TCP_GET_SEQ(p)+p->payload_len), ssn->server.last_ack))) {
         if (ssn->flags & STREAMTCP_FLAG_ASYNC) {
 
-            SCLogDebug("ssn %p: client => Asynchrouns stream, packet SEQ"
-                    " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
-                    " ssn->client.last_ack %" PRIu32 ", ssn->client.next_win"
-                    " %"PRIu32"(%"PRIu32")", ssn, TCP_GET_SEQ(p),
-                    p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
+            SCLogDebug("ssn %p: client => Asynchronous stream, packet SEQ"
+                       " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
+                       " ssn->client.last_ack %" PRIu32 ", ssn->client.next_win"
+                       " %" PRIu32 "(%" PRIu32 ")",
+                    ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
                     ssn->server.last_ack, ssn->server.next_win,
                     TCP_GET_SEQ(p) + p->payload_len - ssn->server.next_win);
 
@@ -3047,7 +3047,7 @@ static int StreamTcpPacketIsSpuriousRetransmission(const TcpSession *ssn, Packet
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 
 static int StreamTcpPacketStateEstablished(
@@ -3248,7 +3248,7 @@ static int StreamTcpPacketStateEstablished(
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  *
  *  \retval 0 success
  *  \retval -1 something wrong with the packet
@@ -3376,7 +3376,7 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt, TcpSession *
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  *
  *  \retval 0 success
  *  \retval -1 something wrong with the packet
@@ -3823,7 +3823,7 @@ static int StreamTcpPacketStateFinWait1(
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 
 static int StreamTcpPacketStateFinWait2(
@@ -4125,7 +4125,7 @@ static int StreamTcpPacketStateFinWait2(
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 
 static int StreamTcpPacketStateClosing(
@@ -4286,7 +4286,7 @@ static int StreamTcpPacketStateClosing(
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 
 static int StreamTcpPacketStateCloseWait(
@@ -4585,7 +4585,7 @@ static int StreamTcpPacketStateCloseWait(
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 
 static int StreamTcpPacketStateLastAck(
@@ -4707,7 +4707,7 @@ static int StreamTcpPacketStateLastAck(
  *
  *  \param  tv      Thread Variable containing  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
- *  \param  stt     Strean Thread module registered to handle the stream handling
+ *  \param  stt     Stream Thread module registered to handle the stream handling
  */
 
 static int StreamTcpPacketStateTimeWait(
@@ -5919,7 +5919,7 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
     }
 
     /* RFC 2385 md5 signature header or RFC 5925 TCP AO headerpresent. Since we can't
-     * validate these (requires key that is set/transfered out of band), we can't know
+     * validate these (requires key that is set/transferred out of band), we can't know
      * if the RST will be accepted or rejected by the end host. We accept it, but keep
      * tracking if the sender of it ignores it, which would be a sign of injection. */
     if (p->tcpvars.md5_option_present || p->tcpvars.ao_option_present) {
@@ -6416,8 +6416,8 @@ static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *stream, Packe
     if (ssn->state > TCP_SYN_SENT && SEQ_GT(ack, stream->next_win)) {
         SCLogDebug("ACK %"PRIu32" is after next_win %"PRIu32, ack, stream->next_win);
         goto invalid;
-    /* a toclient RST as a reponse to SYN, next_win is 0, ack will be isn+1, just like
-     * the syn ack */
+        /* a toclient RST as a response to SYN, next_win is 0, ack will be isn+1, just like
+         * the syn ack */
     } else if (ssn->state == TCP_SYN_SENT && PKT_IS_TOCLIENT(p) &&
             p->tcph->th_flags & TH_RST &&
             SEQ_EQ(ack, stream->isn + 1)) {
