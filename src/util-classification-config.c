@@ -523,7 +523,7 @@ void SCClassConfClasstypeHashFree(void *ch)
  * \param de_ctx Pointer to the Detection Engine Context that should be updated
  *               with Classtype information.
  */
-bool SCClassConfLoadClassficationConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
+bool SCClassConfLoadClassificationConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     fd = SCClassConfInitContextAndLocalResources(de_ctx, fd);
     if (fd == NULL) {
