@@ -63,7 +63,7 @@ LogCustomFormat *LogCustomFormatAlloc(void)
 
 /**
  *  \brief Frees memory held by a custom format node
- *  \param LogCustomFormatNode * node - node to relaease
+ *  \param LogCustomFormatNode * node - node to release
  */
 void LogCustomFormatNodeFree(LogCustomFormatNode *node)
 {
@@ -75,7 +75,7 @@ void LogCustomFormatNodeFree(LogCustomFormatNode *node)
 
 /**
  *  \brief Frees memory held by a custom format
- *  \param LogCustomFormat * cf - format to relaease
+ *  \param LogCustomFormat * cf - format to release
  */
 void LogCustomFormatFree(LogCustomFormat *cf)
 {
@@ -205,7 +205,7 @@ void LogCustomFormatAddNode(LogCustomFormat *cf, LogCustomFormatNode *node)
  *  \brief Writes a timestamp with given format into a MemBuffer
  *  \param MemBuffer * buffer - where to write
  *  \param const char * fmt - format to be used write timestamp
- *  \param const struct timeveal *ts  - the timetstamp
+ *  \param const struct timeveal *ts  - the timestamp
  *
  */
 void LogCustomFormatWriteTimestamp(MemBuffer *buffer, const char *fmt, const SCTime_t ts)

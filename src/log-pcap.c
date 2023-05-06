@@ -341,7 +341,7 @@ static void PcapFileNameFree(PcapFileName *pf)
  * \param t Thread Variable containing  input/output queue, cpu affinity etc.
  * \param pl PcapLog thread variable.
  *
- * \retval 0 on succces
+ * \retval 0 on success
  * \retval -1 on failure
  */
 static int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
@@ -680,7 +680,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
                 return TM_ECODE_OK;
             }
 
-            /* PcapLogDumpSegment has writtens over the PcapLogData variables so need to update */
+            /* PcapLogDumpSegment has written over the PcapLogData variables so need to update */
             pl->h->ts.tv_sec = SCTIME_SECS(p->ts);
             pl->h->ts.tv_usec = SCTIME_USECS(p->ts);
             if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
@@ -1068,7 +1068,7 @@ static TmEcode PcapLogDataInit(ThreadVars *t, const void *initdata, void **data)
 
     PcapLogLock(td->pcap_log);
 
-    /** Use the Ouptut Context (file pointer and mutex) */
+    /** Use the Output Context (file pointer and mutex) */
     td->pcap_log->pkt_cnt = 0;
     td->pcap_log->pcap_dead_handle = NULL;
     td->pcap_log->pcap_dumper = NULL;
@@ -1186,7 +1186,7 @@ static void PcapLogDataFree(PcapLogData *pl)
  *
  *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param data PcapLog thread data.
- *  \retval TM_ECODE_OK on succces
+ *  \retval TM_ECODE_OK on success
  *  \retval TM_ECODE_FAILED on failure
  */
 static TmEcode PcapLogDataDeinit(ThreadVars *t, void *thread_data)
@@ -1371,7 +1371,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
 
     const char *filename = NULL;
 
-    if (conf != NULL) { /* To faciliate unit tests. */
+    if (conf != NULL) { /* To facilitate unit tests. */
         filename = ConfNodeLookupChildValue(conf, "filename");
     }
 
@@ -1615,7 +1615,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     }
 
     const char *ts_format = NULL;
-    if (conf != NULL) { /* To faciliate unit tests. */
+    if (conf != NULL) { /* To facilitate unit tests. */
         ts_format = ConfNodeLookupChildValue(conf, "ts-format");
     }
     if (ts_format != NULL) {
@@ -1630,7 +1630,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     }
 
     const char *use_stream_depth = NULL;
-    if (conf != NULL) { /* To faciliate unit tests. */
+    if (conf != NULL) { /* To facilitate unit tests. */
         use_stream_depth = ConfNodeLookupChildValue(conf, "use-stream-depth");
     }
     if (use_stream_depth != NULL) {
@@ -1644,7 +1644,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     }
 
     const char *honor_pass_rules = NULL;
-    if (conf != NULL) { /* To faciliate unit tests. */
+    if (conf != NULL) { /* To facilitate unit tests. */
         honor_pass_rules = ConfNodeLookupChildValue(conf, "honor-pass-rules");
     }
     if (honor_pass_rules != NULL) {
