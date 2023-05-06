@@ -351,7 +351,7 @@ static DetectGeoipData *DetectGeoipDataParse (DetectEngineCtx *de_ctx, const cha
                 }
 
                 if (geoipdata->nlocations >= GEOOPTION_MAXLOCATIONS) {
-                    SCLogError("too many arguements for geoip keyword");
+                    SCLogError("too many arguments for geoip keyword");
                     goto error;
                 }
 

@@ -70,7 +70,7 @@
  *
  * The following keywords are inspected:
  * - content, including all the http and dce modified contents
- * - isdaatat
+ * - isdataat
  * - pcre
  * - bytejump
  * - bytetest
