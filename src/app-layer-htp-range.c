@@ -352,7 +352,7 @@ static HttpRangeContainerBlock *HttpRangeOpenFile(HttpRangeContainerFile *c, uin
     HttpRangeContainerBlock *r =
             HttpRangeOpenFileAux(c, start, end, total, sbcfg, name, name_len, flags);
     if (HttpRangeAppendData(sbcfg, r, data, len) < 0) {
-        SCLogDebug("Failed to append data while openeing");
+        SCLogDebug("Failed to append data while opening");
     }
     return r;
 }
@@ -409,7 +409,7 @@ int HttpRangeAppendData(const StreamingBufferConfig *sbcfg, HttpRangeContainerBl
         int r = 0;
         if (c->files) {
             if (data == NULL) {
-                // gap overlaping already known data
+                // gap overlapping already known data
                 r = FileAppendData(c->files, sbcfg, NULL, len - c->toskip);
             } else {
                 r = FileAppendData(c->files, sbcfg, data + c->toskip, len - c->toskip);
@@ -464,7 +464,7 @@ static void HttpRangeFileClose(
 }
 
 /**
- *  \note if `f` is non-NULL, the ownership of the file is transfered to the caller.
+ *  \note if `f` is non-NULL, the ownership of the file is transferred to the caller.
  */
 File *HttpRangeClose(const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock *c, uint16_t flags)
 {
