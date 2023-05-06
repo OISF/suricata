@@ -130,6 +130,7 @@ typedef struct SMTPLine_ {
     /** length of the line in current_line.  Doesn't include the delimiter */
     int32_t len;
     uint8_t delim_len;
+    bool lf_found;
 } SMTPLine;
 
 SCEnumCharMap smtp_decoder_event_table[] = {
@@ -664,6 +665,7 @@ static AppLayerResult SMTPGetLine(SMTPState *state, SMTPInput *input, SMTPLine *
         uint32_t o_consumed = input->consumed;
         input->consumed = lf_idx - input->buf + 1;
         line->len = input->consumed - o_consumed;
+        line->lf_found = true;
         DEBUG_VALIDATE_BUG_ON(line->len < 0);
         if (line->len < 0)
             SCReturnStruct(APP_LAYER_ERROR);
@@ -1418,7 +1420,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
     }
 
     SMTPInput input = { .buf = input_buf, .len = input_len, .orig_len = input_len, .consumed = 0 };
-    SMTPLine line = { NULL, 0, 0 };
+    SMTPLine line = { NULL, 0, 0, false };
 
     /* toserver */
     if (direction == 0) {
@@ -1439,7 +1441,9 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
             if (retval != 0)
                 SCReturnStruct(APP_LAYER_ERROR);
             if (line.delim_len == 0 && line.len == SMTP_LINE_BUFFER_LIMIT) {
-                state->discard_till_lf = true;
+                if (!line.lf_found) {
+                    state->discard_till_lf = true;
+                }
                 input.consumed = input.len + 1; // For the newly found LF
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_TRUNCATED_LINE);
                 break;
@@ -1473,7 +1477,9 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
             if (SMTPProcessReply(state, f, pstate, thread_data, &input, &line) != 0)
                 SCReturnStruct(APP_LAYER_ERROR);
             if (line.delim_len == 0 && line.len == SMTP_LINE_BUFFER_LIMIT) {
-                state->discard_till_lf = true;
+                if (!line.lf_found) {
+                    state->discard_till_lf = true;
+                }
                 input.consumed = input.len + 1; // For the newly found LF
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_TRUNCATED_LINE);
                 break;
