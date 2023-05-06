@@ -304,14 +304,14 @@ uint32_t hashlittle( const void *key, size_t length, uint32_t initval)
     }
 
     /*----------------------------- handle the last (probably partial) block */
-    /* 
+    /*
      * "k[2]&0xffffff" actually reads beyond the end of the string, but
      * then masks off the part it's not allowed to read.  Because the
      * string is aligned, the masked-off tail is in the same word as the
      * rest of the string.  Every machine with memory protection I've seen
      * does it on word boundaries, so is OK with this.  But VALGRIND will
      * still catch it and complain.  The masking trick does make the hash
-     * noticably faster for short strings (like English words).
+     * noticeably faster for short strings (like English words).
      */
 #ifndef VALGRIND
 
@@ -663,14 +663,14 @@ void hashlittle2(
     }
 
     /*----------------------------- handle the last (probably partial) block */
-    /* 
+    /*
      * "k[2]&0xffffff" actually reads beyond the end of the string, but
      * then masks off the part it's not allowed to read.  Because the
      * string is aligned, the masked-off tail is in the same word as the
      * rest of the string.  Every machine with memory protection I've seen
      * does it on word boundaries, so is OK with this.  But VALGRIND will
      * still catch it and complain.  The masking trick does make the hash
-     * noticably faster for short strings (like English words).
+     * noticeably faster for short strings (like English words).
      */
 #ifndef VALGRIND
 
@@ -839,14 +839,14 @@ uint32_t hashbig( const void *key, size_t length, uint32_t initval)
     }
 
     /*----------------------------- handle the last (probably partial) block */
-    /* 
+    /*
      * "k[2]<<8" actually reads beyond the end of the string, but
      * then shifts out the part it's not allowed to read.  Because the
      * string is aligned, the illegal read is in the same word as the
      * rest of the string.  Every machine with memory protection I've seen
      * does it on word boundaries, so is OK with this.  But VALGRIND will
      * still catch it and complain.  The masking trick does make the hash
-     * noticably faster for short strings (like English words).
+     * noticeably faster for short strings (like English words).
      */
 #ifndef VALGRIND
 
@@ -978,47 +978,49 @@ void driver2(void)
     {
       for (j=0; j<8; ++j)   /*------------------------ for each input bit, */
       {
-	for (m=1; m<8; ++m) /*------------ for serveral possible initvals, */
-	{
-	  for (l=0; l<HASHSTATE; ++l)
-	    e[l]=f[l]=g[l]=h[l]=x[l]=y[l]=~((uint32_t)0);
+          for (m = 1; m < 8; ++m) /*------------ for several possible initvals, */
+          {
+              for (l = 0; l < HASHSTATE; ++l)
+                  e[l] = f[l] = g[l] = h[l] = x[l] = y[l] = ~((uint32_t)0);
 
-      	  /*---- check that every output bit is affected by that input bit */
-	  for (k=0; k<MAXPAIR; k+=2)
-	  { 
-	    uint32_t finished=1;
-	    /* keys have one bit different */
-	    for (l=0; l<hlen+1; ++l) {a[l] = b[l] = (uint8_t)0;}
-	    /* have a and b be two keys differing in only one bit */
-	    a[i] ^= (k<<j);
-	    a[i] ^= (k>>(8-j));
-	     c[0] = hashlittle(a, hlen, m);
-	    b[i] ^= ((k+1)<<j);
-	    b[i] ^= ((k+1)>>(8-j));
-	     d[0] = hashlittle(b, hlen, m);
-	    /* check every bit is 1, 0, set, and not set at least once */
-	    for (l=0; l<HASHSTATE; ++l)
-	    {
-	      e[l] &= (c[l]^d[l]);
-	      f[l] &= ~(c[l]^d[l]);
-	      g[l] &= c[l];
-	      h[l] &= ~c[l];
-	      x[l] &= d[l];
-	      y[l] &= ~d[l];
-	      if (e[l]|f[l]|g[l]|h[l]|x[l]|y[l]) finished=0;
-	    }
-	    if (finished) break;
-	  }
-	  if (k>z) z=k;
-	  if (k==MAXPAIR) 
-	  {
-	     printf("Some bit didn't change: ");
-	     printf("%.8x %.8x %.8x %.8x %.8x %.8x  ",
-	            e[0],f[0],g[0],h[0],x[0],y[0]);
-	     printf("i %d j %d m %d len %d\n", i, j, m, hlen);
-	  }
-	  if (z==MAXPAIR) goto done;
-	}
+              /*---- check that every output bit is affected by that input bit */
+              for (k = 0; k < MAXPAIR; k += 2) {
+                  uint32_t finished = 1;
+                  /* keys have one bit different */
+                  for (l = 0; l < hlen + 1; ++l) {
+                      a[l] = b[l] = (uint8_t)0;
+                  }
+                  /* have a and b be two keys differing in only one bit */
+                  a[i] ^= (k << j);
+                  a[i] ^= (k >> (8 - j));
+                  c[0] = hashlittle(a, hlen, m);
+                  b[i] ^= ((k + 1) << j);
+                  b[i] ^= ((k + 1) >> (8 - j));
+                  d[0] = hashlittle(b, hlen, m);
+                  /* check every bit is 1, 0, set, and not set at least once */
+                  for (l = 0; l < HASHSTATE; ++l) {
+                      e[l] &= (c[l] ^ d[l]);
+                      f[l] &= ~(c[l] ^ d[l]);
+                      g[l] &= c[l];
+                      h[l] &= ~c[l];
+                      x[l] &= d[l];
+                      y[l] &= ~d[l];
+                      if (e[l] | f[l] | g[l] | h[l] | x[l] | y[l])
+                          finished = 0;
+                  }
+                  if (finished)
+                      break;
+              }
+              if (k > z)
+                  z = k;
+              if (k == MAXPAIR) {
+                  printf("Some bit didn't change: ");
+                  printf("%.8x %.8x %.8x %.8x %.8x %.8x  ", e[0], f[0], g[0], h[0], x[0], y[0]);
+                  printf("i %d j %d m %d len %d\n", i, j, m, hlen);
+              }
+              if (z == MAXPAIR)
+                  goto done;
+          }
       }
     }
    done:
