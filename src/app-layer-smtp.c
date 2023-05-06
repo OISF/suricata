@@ -574,6 +574,7 @@ static AppLayerResult SMTPGetLine(SMTPState *state)
         uint32_t o_consumed = state->consumed;
         state->consumed = lf_idx - state->input + 1;
         state->current_line_len = state->consumed - o_consumed;
+        state->current_line_lf_found = true;
         DEBUG_VALIDATE_BUG_ON(state->current_line_len < 0);
         if (state->current_line_len < 0)
             SCReturnStruct(APP_LAYER_ERROR);
@@ -1338,7 +1339,10 @@ static AppLayerResult SMTPParse(int direction, Flow *f, SMTPState *state,
     state->consumed = 0;
     state->current_line_len = 0;
     state->current_line_delimiter_len = 0;
+    state->current_line_lf_found = false;
     state->direction = direction;
+
+    /* toserver */
     if (direction == 0) {
         if (((state->current_command == SMTP_COMMAND_DATA) ||
                     (state->current_command == SMTP_COMMAND_BDAT)) &&
@@ -1362,7 +1366,9 @@ static AppLayerResult SMTPParse(int direction, Flow *f, SMTPState *state,
                 SCReturnStruct(APP_LAYER_ERROR);
             if (state->current_line_delimiter_len == 0 &&
                     state->current_line_len == SMTP_LINE_BUFFER_LIMIT) {
-                state->discard_till_lf = true;
+                if (!state->current_line_lf_found) {
+                    state->discard_till_lf = true;
+                }
                 state->consumed = state->input_len + 1; // For the newly found LF
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_TRUNCATED_LINE);
                 break;
@@ -1396,7 +1402,9 @@ static AppLayerResult SMTPParse(int direction, Flow *f, SMTPState *state,
                 SCReturnStruct(APP_LAYER_ERROR);
             if (state->current_line_delimiter_len == 0 &&
                     state->current_line_len == SMTP_LINE_BUFFER_LIMIT) {
-                state->discard_till_lf = true;
+                if (!state->current_line_lf_found) {
+                    state->discard_till_lf = true;
+                }
                 state->consumed = state->input_len + 1; // For the newly found LF
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_TRUNCATED_LINE);
                 break;
