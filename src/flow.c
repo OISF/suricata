@@ -81,7 +81,7 @@ SC_ATOMIC_DECLARE(FlowProtoTimeoutPtr, flow_timeouts);
 /** atomic int that is used when freeing a flow from the hash. In this
  *  case we walk the hash to find a flow to free. This var records where
  *  we left off in the hash. Without this only the top rows of the hash
- *  are freed. This isn't just about fairness. Under severe presure, the
+ *  are freed. This isn't just about fairness. Under severe pressure, the
  *  hash rows on top would be all freed and the time to find a flow to
  *  free increased with every run. */
 SC_ATOMIC_DECLARE(unsigned int, flow_prune_idx);
@@ -527,7 +527,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
 void FlowHandlePacket(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
 {
     /* Get this packet's flow from the hash. FlowHandlePacket() will setup
-     * a new flow if nescesary. If we get NULL, we're out of flow memory.
+     * a new flow if necessary. If we get NULL, we're out of flow memory.
      * The returned flow is locked. */
     Flow *f = FlowGetFlowFromHash(tv, fls, p, &p->flow);
     if (f == NULL)
@@ -1144,7 +1144,7 @@ int FlowSetProtoFreeFunc (uint8_t proto, void (*Free)(void *))
 /**
  *  \brief get 'disruption' flags: GAP/DEPTH/PASS
  *  \param f locked flow
- *  \param flags existing flags to be ammended
+ *  \param flags existing flags to be amended
  *  \retval flags original flags + disrupt flags (if any)
  *  \TODO handle UDP
  */
@@ -1188,7 +1188,7 @@ void FlowUpdateState(Flow *f, const enum FlowState s)
 #ifdef UNITTESTS
     if (f->fb != NULL) {
 #endif
-        /* and reset the flow bucket's next_ts value so that the flow manager
+        /* and reset the flow bucket next_ts value so that the flow manager
          * has to revisit this row */
         SC_ATOMIC_SET(f->fb->next_ts, 0);
 #ifdef UNITTESTS
