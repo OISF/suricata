@@ -7,7 +7,6 @@ INSTALL \
 NEWS \
 README \
 TODO \
-INSTALL.WINDOWS \
 \
 Basic_Setup.txt \
 Setting_up_IPSinline_for_Linux.txt \
