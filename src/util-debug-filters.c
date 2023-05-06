@@ -44,7 +44,7 @@ int sc_log_fd_filters_present = 0;
 SCLogFGFilterFile *sc_log_fg_filters[SC_LOG_FILTER_MAX] = { NULL, NULL };
 
 /**
- * \brief Mutex for accessing the fine-grained fiters sc_log_fg_filters
+ * \brief Mutex for accessing the fine-grained filters sc_log_fg_filters
  */
 static SCMutex sc_log_fg_filters_m[SC_LOG_FILTER_MAX] = { SCMUTEX_INITIALIZER,
                                                           SCMUTEX_INITIALIZER };
@@ -301,7 +301,7 @@ int SCLogMatchFGFilterWL(const char *file, const char *function, int line)
  *        of the FG filters.  If there is a match it rejects the logging
  *        for that messages, else it allows that message to be logged
  *
- * \praram file    File_name from where the log_message originated
+ * \param file    File_name from where the log_message originated
  * \param function Function_name from where the log_message originated
  * \param line     Line number from where the log_message originated
  *
@@ -319,7 +319,7 @@ int SCLogMatchFGFilterBL(const char *file, const char *function, int line)
  *        allows messages that match this filter, to be logged, while the filter
  *        is defined using a file_name, function_name and line_number.
  *
- *        If a particular paramter in the fg-filter(file, function and line),
+ *        If a particular parameter in the fg-filter(file, function and line),
  *        shouldn't be considered while logging the message, one can supply
  *        NULL for the file_name or function_name and a negative line_no.
  *
@@ -340,7 +340,7 @@ int SCLogAddFGFilterWL(const char *file, const char *function, int line)
  *        allows messages that don't match this filter, to be logged, while the
  *        filter is defined using a file_name, function_name and line_number
  *
- *        If a particular paramter in the fg-filter(file, function and line),
+ *        If a particular parameter in the fg-filter(file, function and line),
  *        shouldn't be considered while logging the message, one can supply
  *        NULL for the file_name or function_name and a negative line_no.
  *
