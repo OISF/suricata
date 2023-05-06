@@ -158,7 +158,7 @@ volatile sig_atomic_t sigusr2_count = 0;
  */
 SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 
-/* Max packets processed simultaniously per thread. */
+/* Max packets processed simultaneously per thread. */
 #define DEFAULT_MAX_PENDING_PACKETS 1024
 
 /** suricata engine control flags */
@@ -186,7 +186,7 @@ int sc_set_caps = FALSE;
 
 bool g_system = false;
 
-/** disable randomness to get reproducible results accross runs */
+/** disable randomness to get reproducible results across runs */
 #ifndef AFLFUZZ_NO_RANDOM
 int g_disable_randomness = 0;
 #else
@@ -1755,7 +1755,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 }
                 if (ConfigCheckDataDirectory(optarg) != TM_ECODE_OK) {
                     SCLogError("The data directory \"%s\""
-                               " supplied at the commandline (-d %s) doesn't "
+                               " supplied at the command-line (-d %s) doesn't "
                                "exist. Shutting down the engine.",
                             optarg, optarg);
                     return TM_ECODE_FAILED;
@@ -1879,14 +1879,14 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             if (ConfigCheckLogDirectoryExists(optarg) != TM_ECODE_OK) {
                 SCLogError("The logging directory \"%s\""
-                           " supplied at the commandline (-l %s) doesn't "
+                           " supplied at the command-line (-l %s) doesn't "
                            "exist. Shutting down the engine.",
                         optarg, optarg);
                 return TM_ECODE_FAILED;
             }
             if (!IsLogDirectoryWritable(optarg)) {
                 SCLogError("The logging directory \"%s\""
-                           " supplied at the commandline (-l %s) is not "
+                           " supplied at the command-line (-l %s) is not "
                            "writable. Shutting down the engine.",
                         optarg, optarg);
                 return TM_ECODE_FAILED;
@@ -2042,7 +2042,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         return TM_ECODE_FAILED;
     }
 
-    /* save the runmode from the commandline (if any) */
+    /* save the runmode from the command-line (if any) */
     suri->aux_run_mode = suri->run_mode;
 
     if (list_app_layer_protocols)
@@ -2344,19 +2344,19 @@ static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
             if (SCServiceInstall(argc, argv)) {
                 return TM_ECODE_FAILED;
             }
-            SCLogInfo("Suricata service has been successfuly installed.");
+            SCLogInfo("Suricata service has been successfully installed.");
             return TM_ECODE_DONE;
         case RUNMODE_REMOVE_SERVICE:
             if (SCServiceRemove(argc, argv)) {
                 return TM_ECODE_FAILED;
             }
-            SCLogInfo("Suricata service has been successfuly removed.");
+            SCLogInfo("Suricata service has been successfully removed.");
             return TM_ECODE_DONE;
         case RUNMODE_CHANGE_SERVICE_PARAMS:
             if (SCServiceChangeParams(argc, argv)) {
                 return TM_ECODE_FAILED;
             }
-            SCLogInfo("Suricata service startup parameters has been successfuly changed.");
+            SCLogInfo("Suricata service startup parameters has been successfully changed.");
             return TM_ECODE_DONE;
 #endif /* OS_WIN32 */
         default:
@@ -2767,7 +2767,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     if (InitSignalHandler(suri) != TM_ECODE_OK)
         SCReturnInt(TM_ECODE_FAILED);
 
-    /* Check for the existance of the default logging directory which we pick
+    /* Check for the existence of the default logging directory which we pick
      * from suricata.yaml.  If not found, shut the engine down */
     suri->log_dir = ConfigGetLogDirectory();
 

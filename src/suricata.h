@@ -26,7 +26,7 @@
  *
  * \section dev_doc Developer documentation
  *
- * You've reach the automically generated documentation of Suricata. This
+ * You've reach the automatically generated documentation of Suricata. This
  * document contains information about architecture and code structure. It
  * is attended for developers wanting to understand or contribute to Suricata.
  *
