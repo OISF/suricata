@@ -66,7 +66,8 @@ void CoredumpEnable(void)
     dumpable = prctl(PR_GET_DUMPABLE, 0, 0, 0, 0);
     if (dumpable == -1) {
         SCLogNotice("Failed to get dumpable state of process, "
-           "core dumps may not be abled: %s", strerror(errno));
+                    "core dumps may not be enabled: %s",
+                strerror(errno));
     }
     else if (unlimited || max_dump > 0) {
         /* try to enable core dump for this process */
@@ -216,7 +217,7 @@ int32_t CoredumpLoadConfig (void)
         }
 
         if (errno == EINVAL || errno == EPERM) {
-            /* could't increase the hard limit, or the soft limit exceeded the hard
+            /* couldn't increase the hard limit, or the soft limit exceeded the hard
              * limit; try to raise the soft limit to the hard limit */
             if ((lim.rlim_cur < max_dump && lim.rlim_cur < lim.rlim_max)
 #ifdef RLIM_SAVED_CUR
@@ -233,7 +234,7 @@ int32_t CoredumpLoadConfig (void)
         }
     }
     /* failed to set the coredump limit */
-    SCLogInfo ("Could't set coredump size to %s.", dump_size_config);
+    SCLogInfo("Couldn't set coredump size to %s.", dump_size_config);
 #endif /* HAVE_SYS_RESOURCE_H */
     return 0;
 }

@@ -71,7 +71,7 @@ void MemBufferFree(MemBuffer *buffer);
  *        onetwo|EF|three|ED|five
  *
  * \param buffer Pointer to the src MemBuffer instance to write.
- * \param fp     Pointer to the file file instance to write to.
+ * \param fp     Pointer to the file instance to write to.
  */
 #define MemBufferPrintToFP(buffer, fp) do {             \
         uint32_t i;                                     \
@@ -88,7 +88,7 @@ void MemBufferFree(MemBuffer *buffer);
  * \brief Write a buffer to the file pointer as a printable char string.
  *
  * \param buffer Pointer to the src MemBuffer instance to write.
- * \param fp     Pointer to the file file instance to write to.
+ * \param fp     Pointer to the file instance to write to.
  */
 #define MemBufferPrintToFPAsString(mem_buffer, fp) ({                           \
     fwrite((mem_buffer)->buffer, sizeof(uint8_t), (mem_buffer)->offset, fp);    \
@@ -98,7 +98,7 @@ void MemBufferFree(MemBuffer *buffer);
  * \brief Write a buffer in hex format.
  *
  * \param buffer Pointer to the src MemBuffer instance to write.
- * \param fp     Pointer to the file file instance to write to.
+ * \param fp     Pointer to the file instance to write to.
  */
 #define MemBufferPrintToFPAsHex(mem_buffer, fp) do {        \
         uint32_t i;                                     \

@@ -62,7 +62,7 @@ char *SCStrndupFunc(const char *s, size_t n);
 
 /** \brief wrapper for allocing aligned mem
  *  \param a size
- *  \param b alignement
+ *  \param b alignment
  */
 void *SCMallocAlignedFunc(const size_t size, const size_t align);
 #define SCMallocAligned(size, align) SCMallocAlignedFunc((size), (align))
