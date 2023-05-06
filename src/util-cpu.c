@@ -181,14 +181,14 @@ void UtilCpuPrintSummary(void)
     if (cpus_online > 0)
         SCLogInfo("CPUs/cores online: %"PRIu16, cpus_online);
     if (cpus_online == 0 && cpus_conf == 0)
-        SCLogInfo("Couldn't retireve any information of CPU's, please, send your operating "
+        SCLogInfo("Couldn't retrieve any information of CPU's, please, send your operating "
                   "system info and check util-cpu.{c,h}");
 }
 
 /**
  * Get the current number of ticks from the CPU.
  *
- * \todo We'll have to deal with removig ticks from the extra cpuids inbetween
+ * \todo We'll have to deal with removing ticks from the extra cpuids in between
  *       2 calls.
  */
 uint64_t UtilCpuGetTicks(void)

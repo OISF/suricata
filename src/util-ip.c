@@ -148,7 +148,7 @@ struct in_addr *ValidateIPV4Address(const char *addr_str)
 
 /**
  * \brief Validates an IPV6 address and returns the network endian arranged
- *        version of the IPV6 addresss
+ *        version of the IPV6 address
  *
  * \param addr Pointer to a character string containing an IPV6 address
  *
