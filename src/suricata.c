@@ -2731,7 +2731,7 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
-    SigTableApplyStrictCommandlineOption(suri->strict_rule_parsing_string);
+    SigTableApplyStrictCommandLineOption(suri->strict_rule_parsing_string);
     TmqhSetup();
 
     TagInitCtx();
