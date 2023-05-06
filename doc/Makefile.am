@@ -7,7 +7,6 @@ INSTALL \
 NEWS \
 README \
 TODO \
-INSTALL.PF_RING \
 INSTALL.WINDOWS \
 \
 Basic_Setup.txt \
