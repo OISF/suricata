@@ -561,7 +561,7 @@ FILE *SCRConfGenerateValidDummyReferenceConfigFD01(void)
  * \brief Creates a dummy reference config, with some valid references and a
  *        couple of invalid references, for testing purposes.
  */
-FILE *SCRConfGenerateInValidDummyReferenceConfigFD02(void)
+FILE *SCRConfGenerateInvalidDummyReferenceConfigFD02(void)
 {
     const char *buffer =
         "config reference: one http://www.one.com\n"
@@ -581,7 +581,7 @@ FILE *SCRConfGenerateInValidDummyReferenceConfigFD02(void)
  * \brief Creates a dummy reference config, with all invalid references, for
  *        testing purposes.
  */
-FILE *SCRConfGenerateInValidDummyReferenceConfigFD03(void)
+FILE *SCRConfGenerateInvalidDummyReferenceConfigFD03(void)
 {
     const char *buffer =
         "config reference one http://www.one.com\n"
@@ -636,7 +636,7 @@ static int SCRConfTest02(void)
     if (de_ctx == NULL)
         return result;
 
-    FILE *fd = SCRConfGenerateInValidDummyReferenceConfigFD03();
+    FILE *fd = SCRConfGenerateInvalidDummyReferenceConfigFD03();
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     if (de_ctx->reference_conf_ht == NULL)
@@ -663,7 +663,7 @@ static int SCRConfTest03(void)
     if (de_ctx == NULL)
         return result;
 
-    FILE *fd = SCRConfGenerateInValidDummyReferenceConfigFD02();
+    FILE *fd = SCRConfGenerateInvalidDummyReferenceConfigFD02();
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     if (de_ctx->reference_conf_ht == NULL)
@@ -721,7 +721,7 @@ static int SCRConfTest05(void)
     if (de_ctx == NULL)
         return 0;
 
-    FILE *fd = SCRConfGenerateInValidDummyReferenceConfigFD03();
+    FILE *fd = SCRConfGenerateInvalidDummyReferenceConfigFD03();
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     if (de_ctx->reference_conf_ht == NULL)
@@ -753,7 +753,7 @@ static int SCRConfTest06(void)
     if (de_ctx == NULL)
         return 0;
 
-    FILE *fd = SCRConfGenerateInValidDummyReferenceConfigFD02();
+    FILE *fd = SCRConfGenerateInvalidDummyReferenceConfigFD02();
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     if (de_ctx->reference_conf_ht == NULL)
