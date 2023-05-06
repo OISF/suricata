@@ -640,7 +640,7 @@ enum DetectBufferMpmType {
 };
 
 /** \brief one time registration of keywords at start up */
-typedef struct DetectBufferMpmRegistery_ {
+typedef struct DetectBufferMpmRegistry_ {
     const char *name;
     char pname[32];             /**< name used in profiling */
     int direction;              /**< SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT */
@@ -651,9 +651,8 @@ typedef struct DetectBufferMpmRegistery_ {
     enum DetectBufferMpmType type;
     int sgh_mpm_context;
 
-    int (*PrefilterRegisterWithListId)(struct DetectEngineCtx_ *de_ctx,
-            struct SigGroupHead_ *sgh, MpmCtx *mpm_ctx,
-            const struct DetectBufferMpmRegistery_ *mpm_reg, int list_id);
+    int (*PrefilterRegisterWithListId)(struct DetectEngineCtx_ *de_ctx, struct SigGroupHead_ *sgh,
+            MpmCtx *mpm_ctx, const struct DetectBufferMpmRegistry_ *mpm_reg, int list_id);
     DetectEngineTransforms transforms;
 
     union {
@@ -668,7 +667,7 @@ typedef struct DetectBufferMpmRegistery_ {
         struct {
             int (*PrefilterRegisterWithListId)(struct DetectEngineCtx_ *de_ctx,
                     struct SigGroupHead_ *sgh, MpmCtx *mpm_ctx,
-                    const struct DetectBufferMpmRegistery_ *mpm_reg, int list_id);
+                    const struct DetectBufferMpmRegistry_ *mpm_reg, int list_id);
             InspectionBufferGetPktDataPtr GetData;
         } pkt_v1;
 
@@ -679,8 +678,8 @@ typedef struct DetectBufferMpmRegistery_ {
         } frame_v1;
     };
 
-    struct DetectBufferMpmRegistery_ *next;
-} DetectBufferMpmRegistery;
+    struct DetectBufferMpmRegistry_ *next;
+} DetectBufferMpmRegistry;
 
 /* helper structure to track pattern stats and assign pattern id's. */
 typedef struct DetectPatternTracker {
@@ -954,15 +953,15 @@ typedef struct DetectEngineCtx_ {
     uint32_t buffer_type_id;
 
     uint32_t app_mpms_list_cnt;
-    DetectBufferMpmRegistery *app_mpms_list;
+    DetectBufferMpmRegistry *app_mpms_list;
     /* list with app inspect engines. Both the start-time registered ones and
      * the rule-time registered ones. */
     DetectEngineAppInspectionEngine *app_inspect_engines;
     DetectEnginePktInspectionEngine *pkt_inspect_engines;
-    DetectBufferMpmRegistery *pkt_mpms_list;
+    DetectBufferMpmRegistry *pkt_mpms_list;
     uint32_t pkt_mpms_list_cnt;
     DetectEngineFrameInspectionEngine *frame_inspect_engines;
-    DetectBufferMpmRegistery *frame_mpms_list;
+    DetectBufferMpmRegistry *frame_mpms_list;
     uint32_t frame_mpms_list_cnt;
 
     uint32_t prefilter_id;

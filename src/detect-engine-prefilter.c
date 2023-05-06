@@ -742,9 +742,8 @@ static void PrefilterGenericMpmFree(void *ptr)
     SCFree(ptr);
 }
 
-int PrefilterGenericMpmRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+int PrefilterGenericMpmRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     SCEnter();
     PrefilterMpmCtx *pectx = SCCalloc(1, sizeof(*pectx));
@@ -813,9 +812,8 @@ static void PrefilterMpmPktFree(void *ptr)
     SCFree(ptr);
 }
 
-int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistery *mpm_reg, int list_id)
+int PrefilterGenericMpmPktRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
     SCEnter();
     PrefilterMpmPktCtx *pectx = SCCalloc(1, sizeof(*pectx));
