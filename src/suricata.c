@@ -1799,7 +1799,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     }
                 }
             } else {
-                int r = ExceptionSimulationCommandlineParser(
+                int r = ExceptionSimulationCommandLineParser(
                         (long_opts[option_index]).name, optarg);
                 if (r < 0)
                     return TM_ECODE_FAILED;
