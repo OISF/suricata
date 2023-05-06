@@ -205,7 +205,7 @@ static int DetectClasstypeTest01(void)
 
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     FAIL_IF_NULL(fd);
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+    SCClassConfLoadClassificationConfigFile(de_ctx, fd);
     Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Classtype test\"; "
                                "Classtype:not_available; sid:1;)");
@@ -228,7 +228,7 @@ static int DetectClasstypeTest02(void)
 
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     FAIL_IF_NULL(fd);
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+    SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                   "(Classtype:bad-unknown; sid:1;)");
@@ -272,7 +272,7 @@ static int DetectClasstypeTest03(void)
 
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     FAIL_IF_NULL(fd);
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+    SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                   "(msg:\"Classtype test\"; Classtype:bad-unknown; priority:1; sid:1;)");

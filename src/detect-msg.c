@@ -130,7 +130,7 @@ static int DetectMsgParseTest01(void)
     FAIL_IF_NULL(de_ctx);
 
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+    SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     Signature *sig = DetectEngineAppendSig(de_ctx,
             "alert tcp any any -> any any (msg:\"flow stateless to_server\"; "
@@ -170,7 +170,7 @@ static int DetectMsgParseTest03(void)
     FAIL_IF_NULL(de_ctx);
 
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+    SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     Signature *sig = DetectEngineAppendSig(de_ctx,
             "alert tcp any any -> any any (msg: \"flow stateless to_server\"; "
