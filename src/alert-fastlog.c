@@ -282,7 +282,7 @@ static int AlertFastLogTest01(void)
     de_ctx->flags |= DE_QUIET;
 
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+    SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
             "(msg:\"FastLog test\"; content:\"GET\"; "
@@ -323,7 +323,7 @@ static int AlertFastLogTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+    SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
             "(msg:\"FastLog test\"; content:\"GET\"; "

@@ -45,7 +45,7 @@ typedef struct SCClassConfClasstype_ {
     char *classtype_desc;
 } SCClassConfClasstype;
 
-bool SCClassConfLoadClassficationConfigFile(DetectEngineCtx *, FILE *fd);
+bool SCClassConfLoadClassificationConfigFile(DetectEngineCtx *, FILE *fd);
 int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t index);
 SCClassConfClasstype *SCClassConfGetClasstype(const char *,
                                               DetectEngineCtx *);
