@@ -145,7 +145,7 @@ static int StreamTcpTest02(void)
 }
 
 /**
- *  \test   Test the setting up a TCP session when we missed the intial
+ *  \test   Test the setting up a TCP session when we missed the initial
  *          SYN packet of the session. The session is setup only if midstream
  *          sessions are allowed to setup.
  *
@@ -219,7 +219,7 @@ end:
 }
 
 /**
- *  \test   Test the setting up a TCP session when we missed the intial
+ *  \test   Test the setting up a TCP session when we missed the initial
  *          SYN/ACK packet of the session. The session is setup only if
  *          midstream sessions are allowed to setup.
  *
@@ -286,7 +286,7 @@ end:
 }
 
 /**
- *  \test   Test the setting up a TCP session when we missed the intial
+ *  \test   Test the setting up a TCP session when we missed the initial
  *          3WHS packet of the session. The session is setup only if
  *          midstream sessions are allowed to setup.
  *
@@ -509,7 +509,7 @@ static int StreamTcpTest07(void)
 }
 
 /**
- *  \test   Test the working on PAWS. The packet will be accpeted by engine as
+ *  \test   Test the working on PAWS. The packet will be accepted by engine as
  *          the timestamp is valid and it is in window.
  */
 
@@ -1962,7 +1962,7 @@ end:
 }
 
 /** \test   Test the various OS policies based on different IP addresses from
-            confuguration defined in 'dummy_conf_string1' */
+            configuration defined in 'dummy_conf_string1' */
 static int StreamTcpTest18(void)
 {
     StreamTcpThread stt;
@@ -2009,7 +2009,7 @@ end:
     return ret;
 }
 /** \test   Test the various OS policies based on different IP addresses from
-            confuguration defined in 'dummy_conf_string1' */
+            configuration defined in 'dummy_conf_string1' */
 static int StreamTcpTest19(void)
 {
     StreamTcpThread stt;
@@ -2059,7 +2059,7 @@ end:
     return ret;
 }
 /** \test   Test the various OS policies based on different IP addresses from
-            confuguration defined in 'dummy_conf_string1' */
+            configuration defined in 'dummy_conf_string1' */
 static int StreamTcpTest20(void)
 {
     StreamTcpThread stt;
@@ -2109,7 +2109,7 @@ end:
     return ret;
 }
 /** \test   Test the various OS policies based on different IP addresses from
-            confuguration defined in 'dummy_conf_string1' */
+            configuration defined in 'dummy_conf_string1' */
 static int StreamTcpTest21(void)
 {
     StreamTcpThread stt;
@@ -2159,7 +2159,7 @@ end:
     return ret;
 }
 /** \test   Test the various OS policies based on different IP addresses from
-            confuguration defined in 'dummy_conf_string1' */
+            configuration defined in 'dummy_conf_string1' */
 static int StreamTcpTest22(void)
 {
     StreamTcpThread stt;
@@ -2692,7 +2692,7 @@ static int StreamTcpTest37(void)
     }
 
     if (((TcpSession *)p->flow->protoctx)->state != TCP_ESTABLISHED) {
-        printf("the TCP state should be TCP_ESTABLISEHD\n");
+        printf("the TCP state should be TCP_ESTABLISHED\n");
         goto end;
     }
 
