@@ -2419,7 +2419,7 @@ end:
 }
 
 /**
- * \test Test that a signature containting a http_host is correctly parsed
+ * \test Test that a signature containing a http_host is correctly parsed
  *       and the keyword is registered.
  */
 static int DetectHttpHHTest01(void)
