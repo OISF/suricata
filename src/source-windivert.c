@@ -88,6 +88,8 @@ TmEcode NoWinDivertSupportExit(ThreadVars *tv, const void *initdata,
 }
 
 #else /* implied we do have WinDivert support */
+#include "action-globals.h"
+#include "win32-syscall.h"
 
 typedef struct WinDivertThreadVars_ {
     WinDivertHandle filter_handle;
