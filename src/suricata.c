@@ -143,6 +143,11 @@
 #include "util-time.h"
 #include "util-validate.h"
 
+#ifdef WINDIVERT
+#include "decode-sll.h"
+#include "win32-syscall.h"
+#endif
+
 /*
  * we put this here, because we only use it here in main.
  */
@@ -2449,9 +2454,9 @@ static int ConfigGetCaptureValue(SCInstance *suri)
         int strip_trailing_plus = 0;
         switch (suri->run_mode) {
 #ifdef WINDIVERT
-            case RUNMODE_WINDIVERT:
+            case RUNMODE_WINDIVERT: {
                 /* by default, WinDivert collects from all devices */
-                mtu = GetGlobalMTUWin32();
+                const int mtu = GetGlobalMTUWin32();
 
                 if (mtu > 0) {
                     /* SLL_HEADER_LEN is the longest header + 8 for VLAN */
@@ -2460,6 +2465,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                 }
                 default_packet_size = DEFAULT_PACKET_SIZE;
                 break;
+            }
 #endif /* WINDIVERT */
             case RUNMODE_NETMAP:
                 /* in netmap igb0+ has a special meaning, however the
