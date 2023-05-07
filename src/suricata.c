@@ -673,7 +673,7 @@ static void PrintUsage(const char *progname)
 #ifdef HAVE_LIBNET11
     printf("\t--reject-dev <dev>                   : send reject packets from this interface\n");
 #endif
-    printf("\t--include <path>                     : additonal configuration file\n");
+    printf("\t--include <path>                     : additional configuration file\n");
     printf("\t--set name=value                     : set a configuration value\n");
     printf("\n");
     printf("\nTo run the engine with default configuration on "

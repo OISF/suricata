@@ -507,10 +507,10 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
         // some PMDs requires additional actions only after the device has started
         DevicePostStartPMDSpecificActions(ptv, dev_info.driver_name);
 
-        uint16_t inconsist_numa_cnt = SC_ATOMIC_GET(dpdk_config->inconsitent_numa_cnt);
-        if (inconsist_numa_cnt > 0) {
+        uint16_t inconsistent_numa_cnt = SC_ATOMIC_GET(dpdk_config->inconsitent_numa_cnt);
+        if (inconsistent_numa_cnt > 0) {
             SCLogWarning("%s: NIC is on NUMA %d, %u threads on different NUMA node(s)",
-                    dpdk_config->iface, rte_eth_dev_socket_id(ptv->port_id), inconsist_numa_cnt);
+                    dpdk_config->iface, rte_eth_dev_socket_id(ptv->port_id), inconsistent_numa_cnt);
         }
     }
 

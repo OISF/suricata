@@ -68,7 +68,7 @@ typedef struct MpmPattern_ {
     uint8_t *original_pat;
     /* case sensitive */
     uint8_t *cs;
-    /* case INsensitive */
+    /* case Insensitive */
     uint8_t *ci;
     /* pattern id */
     uint32_t id;

@@ -941,7 +941,7 @@ static int DetectCsumValidArgsTestParse01(void)
     FAIL_IF_NULL(de_ctx);\
     Signature *s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("mystr(kwstr)"-csum:vaid; sid:1;)");\
     FAIL_IF(s);\
-    s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("mystr(kwstr)"-csum:invaalid; sid:2;)");\
+    s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("mystr(kwstr)"-csum:invalid; sid:2;)");\
     FAIL_IF(s);\
     s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("mystr(kwstr)"-csum:vaLiid; sid:3;)");\
     FAIL_IF(s);\

@@ -20,7 +20,7 @@
  *
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  *
- * Logs alerts in a line based text format in to syslog.
+ * Logs alerts in a line based text format into syslog.
  *
  */
 

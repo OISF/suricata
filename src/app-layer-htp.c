@@ -2187,7 +2187,7 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
 
 /**
  *  \brief  callback for request to store the recent incoming request
-            in to the recent_in_tx for the given htp state
+            into the recent_in_tx for the given htp state
  *  \param  connp   pointer to the current connection parser which has the htp
  *                  state in it as user data
  */

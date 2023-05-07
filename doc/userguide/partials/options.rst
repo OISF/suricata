@@ -14,9 +14,9 @@
 
 .. option:: --include <path>
 
-   Additional configuration files to include. Multiple additonal
+   Additional configuration files to include. Multiple additional
    configuration files can be provided and will be included in the
-   order specified on the command line.  These additonal configuration
+   order specified on the command line.  These additional configuration
    files are loaded as if they existed at the end of the main
    configuration file.
 

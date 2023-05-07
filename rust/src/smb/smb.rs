@@ -603,7 +603,7 @@ impl SMBCommonHdr {
     pub fn from2_notree(r: &Smb2Record, rec_type: u32) -> SMBCommonHdr {
         // async responses do not have a tree id (even if the request has it)
         // making thus the match between the two impossible.
-        // Per spec, MessageId should be enough to identifiy a message request and response uniquely
+        // Per spec, MessageId should be enough to identify a message request and response uniquely
         // across all messages that are sent on the same SMB2 Protocol transport connection.
         // cf https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/ea4560b7-90da-4803-82b5-344754b92a79
         let msg_id = match rec_type {
@@ -858,7 +858,7 @@ impl SMBState {
                 }
                 SCLogDebug!("Found SMB TX: id {} ver:{} cmd:{} progress {}/{} type_data {:?}",
                         tx.id, ver, _smbcmd, tx.request_done, tx.response_done, tx.type_data);
-                /* hack: apply flow file flags to file tx here to make sure its propegated */
+                /* hack: apply flow file flags to file tx here to make sure its propagated */
                 if let Some(SMBTransactionTypeData::FILE(ref mut d)) = tx.type_data {
                     tx.tx_data.update_file_flags(self.state_data.file_flags);
                     d.update_file_flags(tx.tx_data.file_flags);

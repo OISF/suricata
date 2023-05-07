@@ -256,7 +256,7 @@ static int SMTPGetMailFrom(lua_State *luastate)
 /**
  * \brief intern function used by SMTPGetRcpList
  *
- * \params luastate luastate stack for internal communication with Lua.
+ * \param luastate luastate stack for internal communication with Lua.
  * Used to hand over data to the receiving luascript.
  *
  * \retval 1 if the table is pushed to lua.
@@ -296,7 +296,7 @@ static int GetRcptList(lua_State *luastate, Flow *flow)
  * flow->SMTPState->SMTPTransaction, adding all items to a table.
  * Then pushing it to the luastate stack.
  *
- * \params luastate luastate stack for internal communication with Lua.
+ * \param luastate luastate stack for internal communication with Lua.
  * Used to hand over data to the receiving luascript.
  *
  * \retval 1 if the table is pushed to lua.
