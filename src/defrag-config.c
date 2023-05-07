@@ -49,15 +49,24 @@ static void DefragPolicyAddHostInfo(char *host_ip_range, uint64_t timeout)
 
     *user_data = timeout;
 
+    bool is_duplicate;
     if (strchr(host_ip_range, ':') != NULL) {
         SCLogDebug("adding ipv6 host %s", host_ip_range);
-        if (SCRadixAddKeyIPV6String(host_ip_range, defrag_tree, (void *)user_data) == NULL) {
+        if (SCRadixAddKeyIPV6String(host_ip_range, defrag_tree, (void *)user_data, &is_duplicate) ==
+                NULL) {
+            SCFree(user_data);
             SCLogWarning("failed to add ipv6 host %s", host_ip_range);
+        } else if (is_duplicate) {
+            SCFree(user_data);
         }
     } else {
         SCLogDebug("adding ipv4 host %s", host_ip_range);
-        if (SCRadixAddKeyIPV4String(host_ip_range, defrag_tree, (void *)user_data) == NULL) {
+        if (SCRadixAddKeyIPV4String(host_ip_range, defrag_tree, (void *)user_data, &is_duplicate) ==
+                NULL) {
+            SCFree(user_data);
             SCLogWarning("failed to add ipv4 host %s", host_ip_range);
+        } else if (is_duplicate) {
+            SCFree(user_data);
         }
     }
 }
