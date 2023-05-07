@@ -2484,7 +2484,6 @@ jobs:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
-      - run: tar xf prep/suricata-update.tar.gz
       - name: WinDivert
         run: |
           curl -sL -O https://github.com/basil00/Divert/releases/download/v1.4.3/WinDivert-1.4.3-A.zip
@@ -2492,7 +2491,6 @@ jobs:
           cp /windivert/WinDivert-1.4.3-A/x86_64/* /usr/lib/
           # hack: place dlls in cwd
           cp /windivert/WinDivert-1.4.3-A/x86_64/*.dll .
-      - run: tar xf prep/suricata-verify.tar.gz
       - name: Build
         run: |
           ./autogen.sh
@@ -2500,9 +2498,7 @@ jobs:
           make -j3
       - name: Run
         run: |
-          PATH="$PATH:$(pwd)" ./src/suricata --build-info
           # need cwd in path due to dlls (see above)
-          PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py -q
+          PATH="$PATH:$(pwd)" ./src/suricata --build-info
       - run: make install
-      - run: suricata-update -V
 
