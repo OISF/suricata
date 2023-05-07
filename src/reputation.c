@@ -99,9 +99,11 @@ static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, uint8
         }
 
         SCLogDebug("adding ipv6 host %s", ip);
-        if (SCRadixAddKeyIPV6String(ip, cidr_ctx->srepIPV6_tree[cat], (void *)user_data) == NULL) {
+        if (!SCRadixAddKeyIPV6String(ip, cidr_ctx->srepIPV6_tree[cat], (void *)user_data)) {
             SCFree(user_data);
             SCLogWarning("failed to add ipv6 host %s", ip);
+        } else if (sc_errno == SC_EEXIST) {
+            SCFree(user_data);
         }
 
     } else {
@@ -115,9 +117,11 @@ static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, uint8
         }
 
         SCLogDebug("adding ipv4 host %s", ip);
-        if (SCRadixAddKeyIPV4String(ip, cidr_ctx->srepIPV4_tree[cat], (void *)user_data) == NULL) {
+        if (!SCRadixAddKeyIPV4String(ip, cidr_ctx->srepIPV4_tree[cat], (void *)user_data)) {
             SCFree(user_data);
-            SCLogWarning("failed to add ipv4 host %s", ip);
+            SCLogWarning("failed to add ipv6 host %s", ip);
+        } else if (sc_errno == SC_EEXIST) {
+            SCFree(user_data);
         }
     }
 }

@@ -1019,8 +1019,7 @@ bool SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *user)
 #endif
     }
 
-    SCRadixNode *node = SCRadixFindKeyIPV4Netblock((uint8_t *)&ip, tree, netmask, NULL);
-    if (node) {
+    if (SCRadixFindKeyIPV4Netblock((uint8_t *)&ip, tree, netmask, NULL) != NULL) {
         SCLogDebug("IP already added; returning existing node");
         sc_errno = SC_EEXIST;
         return true;
@@ -1107,8 +1106,7 @@ bool SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *user)
 #endif
     }
 
-    SCRadixNode *node = SCRadixFindKeyIPV6Netblock(addr.s6_addr, tree, netmask, NULL);
-    if (node) {
+    if (SCRadixFindKeyIPV6Netblock(addr.s6_addr, tree, netmask, NULL) != NULL) {
         SCLogDebug("IP already added; returning existing node");
         sc_errno = SC_EEXIST;
         return true;
