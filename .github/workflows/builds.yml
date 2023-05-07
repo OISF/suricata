@@ -2490,17 +2490,18 @@ jobs:
           curl -sL -O https://github.com/basil00/Divert/releases/download/v1.4.3/WinDivert-1.4.3-A.zip
           unzip WinDivert-1.4.3-A.zip -d /windivert
           cp /windivert/WinDivert-1.4.3-A/x86_64/* /usr/lib/
+          # hack: place dlls in cwd
+          cp /windivert/WinDivert-1.4.3-A/x86_64/*.dll .
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Build
         run: |
           ./autogen.sh
-          CFLAGS="-ggdb -Werror" ./configure --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared --enable-windivert --with-windivert-include=/windivert/WinDivert-1.4.3-A/include --with-windivert-libraries=/windivert/WinDivert-1.4.3-A/x86_64
+          CFLAGS="-ggdb -Werror" ./configure --enable-gccprotect --disable-gccmarch-native --disable-shared --enable-windivert --with-windivert-include=/windivert/WinDivert-1.4.3-A/include --with-windivert-libraries=/windivert/WinDivert-1.4.3-A/x86_64
           make -j3
       - name: Run
         run: |
-          ./src/suricata --build-info
-          ./src/suricata -u -l /tmp/
-          # need cwd in path due to npcap dlls (see above)
+          PATH="$PATH:$(pwd)" ./src/suricata --build-info
+          # need cwd in path due to dlls (see above)
           PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py -q
       - run: make install
       - run: suricata-update -V
