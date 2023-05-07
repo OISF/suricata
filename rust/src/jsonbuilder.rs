@@ -159,7 +159,7 @@ impl JsonBuilder {
             State::None => {
                 debug_validate_fail!("invalid state");
                 Err(JsonError::InvalidState)
-            },
+            }
         }
     }
 
@@ -334,7 +334,7 @@ impl JsonBuilder {
             State::ArrayFirst => {
                 self.buf.push('"');
                 for i in 0..val.len() {
-                    self.buf.push(HEX[(val[i] >>  4) as usize] as char);
+                    self.buf.push(HEX[(val[i] >> 4) as usize] as char);
                     self.buf.push(HEX[(val[i] & 0xf) as usize] as char);
                 }
                 self.buf.push('"');
@@ -345,7 +345,7 @@ impl JsonBuilder {
                 self.buf.push(',');
                 self.buf.push('"');
                 for i in 0..val.len() {
-                    self.buf.push(HEX[(val[i] >>  4) as usize] as char);
+                    self.buf.push(HEX[(val[i] >> 4) as usize] as char);
                     self.buf.push(HEX[(val[i] & 0xf) as usize] as char);
                 }
                 self.buf.push('"');
@@ -522,7 +522,7 @@ impl JsonBuilder {
         self.buf.push_str(key);
         self.buf.push_str("\":\"");
         for i in 0..val.len() {
-            self.buf.push(HEX[(val[i] >>  4) as usize] as char);
+            self.buf.push(HEX[(val[i] >> 4) as usize] as char);
             self.buf.push(HEX[(val[i] & 0xf) as usize] as char);
         }
         self.buf.push('"');
