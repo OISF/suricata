@@ -217,7 +217,7 @@ Splitting configuration in multiple files
 -----------------------------------------
 
 Some users might have a need or a wish to split their suricata.yaml
-file in to separate files, this is available via the 'include' and
+file into separate files, this is available via the 'include' and
 '!include' keyword. The first example is of taking the contents of the
 outputs section and storing them in outputs.yaml.
 
