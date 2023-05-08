@@ -8,4 +8,5 @@ python:
 
   # Use an empty install section to avoid RTD from picking up a non-python
   # requirements.txt file.
-  install: []
+  install:
+    - requirements: doc/userguide/requirements.txt
