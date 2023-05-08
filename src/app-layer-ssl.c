@@ -1684,7 +1684,7 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
             continue;
         }
 
-        /* if the message lenght exceeds our input_len, we have a tls fragment. */
+        /* if the message length exceeds our input_len, we have a tls fragment. */
         if (record_len > input_len) {
             const uint32_t avail = input_len;
             const uint32_t size = avail + (4096 - (avail % 4096));

@@ -396,7 +396,7 @@ void DetectContentFree(DetectEngineCtx *de_ctx, void *ptr)
  *  \param max_size Maximum buffer/data size allowed.
  *  \param list signature match list.
  *  \param len Maximum length required
- *  \param offset Maximum offset encounted
+ *  \param offset Maximum offset encountered
  *
  *  Note that negated content does not contribute to the maximum
  *  required size value. However, each negated content's values

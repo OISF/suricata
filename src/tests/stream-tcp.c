@@ -1119,7 +1119,7 @@ static int StreamTcpTest14(void)
 
     StreamTcpUTInit(&stt.ra_ctx);
 
-    /* Load the config string in to parser */
+    /* Load the config string into parser */
     ConfCreateContextBackup();
     ConfInit();
     ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
@@ -1509,7 +1509,7 @@ static int StreamTcpTest15(void)
 
     StreamTcpUTInit(&stt.ra_ctx);
 
-    /* Load the config string in to parser */
+    /* Load the config string into parser */
     ConfCreateContextBackup();
     ConfInit();
     ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
@@ -1671,7 +1671,7 @@ static int StreamTcpTest16(void)
 
     StreamTcpUTInit(&stt.ra_ctx);
 
-    /* Load the config string in to parser */
+    /* Load the config string into parser */
     ConfCreateContextBackup();
     ConfInit();
     ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
@@ -1834,7 +1834,7 @@ static int StreamTcpTest17(void)
 
     StreamTcpUTInit(&stt.ra_ctx);
 
-    /* Load the config string in to parser */
+    /* Load the config string into parser */
     ConfCreateContextBackup();
     ConfInit();
     ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
@@ -1982,7 +1982,7 @@ static int StreamTcpTest18(void)
     StreamTcpUTInit(&stt.ra_ctx);
     SCHInfoCleanResources();
 
-    /* Load the config string in to parser */
+    /* Load the config string into parser */
     ConfCreateContextBackup();
     ConfInit();
     ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
@@ -2029,7 +2029,7 @@ static int StreamTcpTest19(void)
     StreamTcpUTInit(&stt.ra_ctx);
     SCHInfoCleanResources();
 
-    /* Load the config string in to parser */
+    /* Load the config string into parser */
     ConfCreateContextBackup();
     ConfInit();
     ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
@@ -2079,7 +2079,7 @@ static int StreamTcpTest20(void)
     StreamTcpUTInit(&stt.ra_ctx);
     SCHInfoCleanResources();
 
-    /* Load the config string in to parser */
+    /* Load the config string into parser */
     ConfCreateContextBackup();
     ConfInit();
     ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
@@ -2129,7 +2129,7 @@ static int StreamTcpTest21(void)
     StreamTcpUTInit(&stt.ra_ctx);
     SCHInfoCleanResources();
 
-    /* Load the config string in to parser */
+    /* Load the config string into parser */
     ConfCreateContextBackup();
     ConfInit();
     ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));
@@ -2179,7 +2179,7 @@ static int StreamTcpTest22(void)
     StreamTcpUTInit(&stt.ra_ctx);
     SCHInfoCleanResources();
 
-    /* Load the config string in to parser */
+    /* Load the config string into parser */
     ConfCreateContextBackup();
     ConfInit();
     ConfYamlLoadString(dummy_conf_string1, strlen(dummy_conf_string1));

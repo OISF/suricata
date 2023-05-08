@@ -1140,7 +1140,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
     SMTPTransaction *tx = state->curr_tx;
 
     /* If current input is to be discarded because it completes a long line,
-     * line's length and delimeter len are reset to 0. Skip processing this line.
+     * line's length and delimiter len are reset to 0. Skip processing this line.
      * This line is only to get us out of the state where we should discard any
      * data till LF. */
     if (line->len == 0 && line->delim_len == 0) {
