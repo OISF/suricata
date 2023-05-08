@@ -68,7 +68,7 @@ Other changes
 
 Logging changes
 ~~~~~~~~~~~~~~~
-- Protocol values and their names are built-in to Suricata instead of using the system's ``/etc/protocols`` file. Some names and casing may have changed
+- Protocol values and their names are built into Suricata instead of using the system's ``/etc/protocols`` file. Some names and casing may have changed
   in the values ``proto`` in ``eve.json`` log entries and other logs containing protocol names and values.
   See https://redmine.openinfosecfoundation.org/issues/4267 for more information.
 

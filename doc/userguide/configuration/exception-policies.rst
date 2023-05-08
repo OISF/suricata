@@ -51,7 +51,7 @@ to disable this default, by setting the exception policies' "master switch" yaml
 config option to ``ignore``.
 
 **In IDS mode**, setting ``auto`` mode actually means disabling the
-``master-swtich``, or ignoring the exception policies.
+``master-switch``, or ignoring the exception policies.
 
 Specific settings
 ~~~~~~~~~~~~~~~~~
