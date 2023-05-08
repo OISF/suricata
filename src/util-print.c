@@ -51,7 +51,7 @@ void PrintBufferRawLineHex(char *nbuf, int *offset, int max_size, const uint8_t 
 }
 
 /**
- *  \brief print a buffer as hex on a single line in to retbuf buffer
+ *  \brief print a buffer as hex on a single line into retbuf buffer
  *
  *  Prints in the format "00 AA BB"
  *
