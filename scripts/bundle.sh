@@ -32,7 +32,7 @@ DESTDIR=${DESTDIR:-.}
 what="$1"
 
 # Transforms a branch name in the form of "pr/<NUMBER>" or
-# "mr/<NUMBER>" into a proper ref for GitHub or Gitlab.
+# "mr/<NUMBER>" into a proper ref for GitHub or GitLab.
 transform_branch() {
     pr=$(echo "${1}" | sed -n 's/^pr\/\([[:digit:]]\+\)$/\1/p')
     if [ "${pr}" ]; then
