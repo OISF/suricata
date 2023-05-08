@@ -182,7 +182,7 @@ impl<'a> SNMPState<'a> {
     /// Returns 0 if successful, or -1 on error
     fn parse(&mut self, i: &'a [u8], direction: Direction) -> i32 {
         if self.version == 0 {
-            if let Ok((_, x)) = parse_pdu_enveloppe_version(i) {
+            if let Ok((_, x)) = parse_pdu_envelope_version(i) {
                 self.version = x;
             }
         }
@@ -325,7 +325,7 @@ pub extern "C" fn rs_snmp_tx_get_alstate_progress(_tx: *mut std::os::raw::c_void
 static mut ALPROTO_SNMP : AppProto = ALPROTO_UNKNOWN;
 
 // Read PDU sequence and extract version, if similar to SNMP definition
-fn parse_pdu_enveloppe_version(i:&[u8]) -> IResult<&[u8],u32> {
+fn parse_pdu_envelope_version(i:&[u8]) -> IResult<&[u8],u32> {
     match parse_der_sequence(i) {
         Ok((_,x))     => {
             #[allow(clippy::single_match)]
@@ -360,7 +360,7 @@ pub unsafe extern "C" fn rs_snmp_probing_parser(_flow: *const Flow,
     let slice = build_slice!(input,input_len as usize);
     let alproto = ALPROTO_SNMP;
     if slice.len() < 4 { return ALPROTO_FAILED; }
-    match parse_pdu_enveloppe_version(slice) {
+    match parse_pdu_envelope_version(slice) {
         Ok((_,_))               => alproto,
         Err(Err::Incomplete(_)) => ALPROTO_UNKNOWN,
         _                       => ALPROTO_FAILED,
