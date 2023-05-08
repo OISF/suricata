@@ -73,8 +73,8 @@ static int VALIDATE(TcpStream *stream, uint8_t *data, uint32_t data_len)
     INLINE_ADD_PAYLOAD((rseq), (seg), (seglen), (packet), (packetlen));                            \
     FAIL_IF(!(VALIDATE(stream, (uint8_t *)(buf), (buflen))));
 
-int UTHCheckGapAtPostion(TcpStream *stream, int pos, uint64_t offset, uint32_t len);
-int UTHCheckDataAtPostion(
+int UTHCheckGapAtPosition(TcpStream *stream, int pos, uint64_t offset, uint32_t len);
+int UTHCheckDataAtPosition(
         TcpStream *stream, int pos, uint64_t offset, const char *data, uint32_t len);
 
 /** \test full overlap */
@@ -109,8 +109,8 @@ static int StreamTcpInlineTest04(void)
 {
     INLINE_START(0);
     INLINE_ADD_PAYLOAD(3, "ABCDE", 5, "ABCDE", 5);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 2) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 2, "ABCDE", 5) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 0, 0, 2) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 1, 2, "ABCDE", 5) == 1);
     INLINE_STEP(1, "xxxxx", 5, "xxABCDE", 7, "xxABC", 5);
     INLINE_END;
 }
@@ -120,12 +120,12 @@ static int StreamTcpInlineTest05(void)
 {
     INLINE_START(0);
     INLINE_ADD_PAYLOAD(8, "ABCDE", 5, "ABCDE", 5);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 7) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 7, "ABCDE", 5) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 0, 0, 7) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 1, 7, "ABCDE", 5) == 1);
     INLINE_ADD_PAYLOAD(1, "xxxxx", 5, "xxxxx", 5);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 0, 0, "xxxxx", 5) == 1);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 1, 5, 2) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 2, 7, "ABCDE", 5) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 0, 0, "xxxxx", 5) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 1, 5, 2) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 2, 7, "ABCDE", 5) == 1);
     INLINE_END;
 }
 
@@ -134,29 +134,29 @@ static int StreamTcpInlineTest06(void)
 {
     INLINE_START(0);
     INLINE_ADD_PAYLOAD(2, "A", 1, "A", 1);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 1) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 1, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 0, 0, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 1, 1, "A", 1) == 1);
     INLINE_ADD_PAYLOAD(4, "A", 1, "A", 1);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 1) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 1, "A", 1) == 1);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 2, 2, 1) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 3, 3, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 0, 0, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 1, 1, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 2, 2, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 3, 3, "A", 1) == 1);
     INLINE_ADD_PAYLOAD(6, "A", 1, "A", 1);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 1) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 1, "A", 1) == 1);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 2, 2, 1) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 3, 3, "A", 1) == 1);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 4, 4, 1) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 5, 5, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 0, 0, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 1, 1, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 2, 2, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 3, 3, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 4, 4, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 5, 5, "A", 1) == 1);
     INLINE_ADD_PAYLOAD(8, "A", 1, "A", 1);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 1) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 1, "A", 1) == 1);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 2, 2, 1) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 3, 3, "A", 1) == 1);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 4, 4, 1) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 5, 5, "A", 1) == 1);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 6, 6, 1) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 7, 7, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 0, 0, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 1, 1, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 2, 2, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 3, 3, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 4, 4, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 5, 5, "A", 1) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 6, 6, 1) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 7, 7, "A", 1) == 1);
     INLINE_STEP(1, "xxxxxxxxx", 9, "xAxAxAxAx", 9, "xAxAxAxAx", 9);
     INLINE_END;
 }
@@ -166,8 +166,8 @@ static int StreamTcpInlineTest07(void)
 {
     INLINE_START(0);
     INLINE_ADD_PAYLOAD(3, "ABCDE", 5, "ABCDE", 5);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 2) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 2, "ABCDE", 5) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 0, 0, 2) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 1, 2, "ABCDE", 5) == 1);
     INLINE_STEP(1, "XXABC", 5, "XXABCDE", 7, "XXABC", 5);
     INLINE_END;
 }
