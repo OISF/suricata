@@ -1,3 +1,27 @@
+6.0.12 -- 2023-05-08
+
+Bug #6040: tcp: failed assertion ASSERT: !(ssn->state != TCP_SYN_SENT) (6.0.x backport)
+Bug #6039: TCP resets have incorrect len, nh in IPv6 (6.0.x backport)
+Bug #6034: time: integer comparison with different signs (6.0.x backport)
+Bug #6031: af-packet: reload not occurring until packets are seen (6.0.x backport)
+Bug #6020: smtp: fuzz debug assertion trigger (6.0.x backport)
+Bug #6018: scan-build warning for mime decoder (6.0.x backport)
+Bug #6017: scan-build warnings for ac implementations (6.0.x backport)
+Bug #6016: scan-build warnings in radix implementation (6.0.x backport)
+Bug #6015: scan-build warning for detect sigordering (6.0.x backport)
+Bug #6014: scan-build warnings for detect address handling (6.0.x backport)
+Bug #6013: scan-build warning for detect port handling (6.0.x backport)
+Bug #6007: Unexpected behavior of `endswith` in combination with negated content matches (6.0.x backport)
+Bug #5999: exception/policy: make work with simulated flow memcap (6.0.x backport)
+Bug #5997: perf shows excessive time in IPOnlyMatchPacket (6.0.x backport)
+Bug #5980: rust: warning for future compile errors
+Bug #5961: smb: wrong endian conversion when parse NTLM Negotiate Flags (6.0.x backport)
+Bug #5958: bpf: postpone IPS check after IPS runmode is determined from the configuration file (6.0.x backport)
+Bug #5934: app-layer-htp: Condition depending on enabled IPS mode never true (6.0.x backport)
+Optimization #6033: detect using uninitialized engine mode (6.0.x backport)
+Feature #5996: Add support for 'inner' PF_RING clustering modes (6.0.x backport)
+Task #6052: github-ci: add windows + windivert build (6.0.x backport)
+
 6.0.11 -- 2023-04-13
 
 Security #5947: byte_math: Division by zero possible. (6.0.x backport)
