@@ -209,7 +209,7 @@ unsafe fn finalize<D: Digest>(digest: D, out: *mut u8, len: u32) {
 mod test {
     use super::*;
 
-    // A test around SCSha256 primarily to check that the ouput is
+    // A test around SCSha256 primarily to check that the output is
     // correctly copied into a C string.
     #[test]
     fn test_sha256() {
@@ -229,7 +229,7 @@ mod test {
         }
     }
 
-    // A test around SCSha256 primarily to check that the ouput is
+    // A test around SCSha256 primarily to check that the output is
     // correctly copied into a C string.
     #[test]
     fn test_md5() {

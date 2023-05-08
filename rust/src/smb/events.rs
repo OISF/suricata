@@ -46,7 +46,7 @@ pub enum SMBEvent {
     WriteRequestTooLarge,
     WriteQueueSizeExceeded,
     WriteQueueCntExceeded,
-    /// Unusal NTLMSSP fields order
+    /// Unusual NTLMSSP fields order
     UnusualNtlmsspOrder,
     /// Too many live transactions in one flow
     TooManyTransactions,
