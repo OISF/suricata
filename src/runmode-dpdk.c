@@ -1055,8 +1055,8 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
         rxq_conf.rx_thresh.wthresh = 0;
         rxq_conf.rx_free_thresh = 0;
         rxq_conf.rx_drop_en = 0;
-        SCLogPerf("%s: rx queue setup: queue:%d port:%d rx_desc:%d tx_desc:%d rx: htresh: %d "
-                  "pthresh %d wtresh %d free_tresh %d drop_en %d offloads %lu",
+        SCLogPerf("%s: rx queue setup: queue:%d port:%d rx_desc:%d tx_desc:%d rx: hthresh: %d "
+                  "pthresh %d wthresh %d free_thresh %d drop_en %d offloads %lu",
                 iconf->iface, queue_id, iconf->port_id, iconf->nb_rx_desc, iconf->nb_tx_desc,
                 rxq_conf.rx_thresh.hthresh, rxq_conf.rx_thresh.pthresh, rxq_conf.rx_thresh.wthresh,
                 rxq_conf.rx_free_thresh, rxq_conf.rx_drop_en, rxq_conf.offloads);
