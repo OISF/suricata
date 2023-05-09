@@ -660,11 +660,32 @@ static void FlowWorkerExitPrintStats(ThreadVars *tv, void *data)
     OutputLoggerExitPrintStats(tv, fw->output_thread);
 }
 
+static bool FlowWorkerIsBusy(ThreadVars *tv, void *flow_worker)
+{
+    FlowWorkerThreadData *fw = flow_worker;
+    if (fw->pq.len)
+        return true;
+    if (fw->fls.work_queue.len)
+        return true;
+
+    if (tv->flow_queue) {
+        FQLOCK_LOCK(tv->flow_queue);
+        bool fq_done = (tv->flow_queue->qlen == 0);
+        FQLOCK_UNLOCK(tv->flow_queue);
+        if (!fq_done) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void TmModuleFlowWorkerRegister (void)
 {
     tmm_modules[TMM_FLOWWORKER].name = "FlowWorker";
     tmm_modules[TMM_FLOWWORKER].ThreadInit = FlowWorkerThreadInit;
     tmm_modules[TMM_FLOWWORKER].Func = FlowWorker;
+    tmm_modules[TMM_FLOWWORKER].ThreadBusy = FlowWorkerIsBusy;
     tmm_modules[TMM_FLOWWORKER].ThreadDeinit = FlowWorkerThreadDeinit;
     tmm_modules[TMM_FLOWWORKER].ThreadExitPrintStats = FlowWorkerExitPrintStats;
     tmm_modules[TMM_FLOWWORKER].cap_flags = 0;
