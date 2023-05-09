@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,6 +17,7 @@
 
 #![allow(clippy::missing_safety_doc)]
 
+use std::collections::TryReserveError;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::str::Utf8Error;
@@ -27,6 +28,7 @@ const INIT_SIZE: usize = 4096;
 pub enum JsonError {
     InvalidState,
     Utf8Error(Utf8Error),
+    Memory,
 }
 
 impl std::error::Error for JsonError {}
@@ -36,7 +38,14 @@ impl std::fmt::Display for JsonError {
         match self {
             JsonError::InvalidState => write!(f, "invalid state"),
             JsonError::Utf8Error(ref e) => e.fmt(f),
+            JsonError::Memory => write!(f, "memory error"),
         }
+    }
+}
+
+impl From<TryReserveError> for JsonError {
+    fn from(_: TryReserveError) -> Self {
+        JsonError::Memory
     }
 }
 
@@ -98,33 +107,35 @@ pub struct JsonBuilder {
 
 impl JsonBuilder {
     /// Returns a new JsonBuilder in object state.
-    pub fn new_object() -> Self {
-        Self::new_object_with_capacity(INIT_SIZE)
+    pub fn try_new_object() -> Result<Self, JsonError> {
+        Self::try_new_object_with_capacity(INIT_SIZE)
     }
 
-    pub fn new_object_with_capacity(capacity: usize) -> Self {
-        let mut buf = String::with_capacity(capacity);
+    pub fn try_new_object_with_capacity(capacity: usize) -> Result<Self, JsonError> {
+        let mut buf = String::new();
+        buf.try_reserve(capacity)?;
         buf.push('{');
-        Self {
+        Ok(Self {
             buf,
             state: vec![State::None, State::ObjectFirst],
             init_type: Type::Object,
-        }
+        })
     }
 
     /// Returns a new JsonBuilder in array state.
-    pub fn new_array() -> Self {
-        Self::new_array_with_capacity(INIT_SIZE)
+    pub fn try_new_array() -> Result<Self, JsonError> {
+        Self::try_new_array_with_capacity(INIT_SIZE)
     }
 
-    pub fn new_array_with_capacity(capacity: usize) -> Self {
-        let mut buf = String::with_capacity(capacity);
+    pub fn try_new_array_with_capacity(capacity: usize) -> Result<Self, JsonError> {
+        let mut buf = String::new();
+        buf.try_reserve(capacity)?;
         buf.push('[');
-        Self {
+        Ok(Self {
             buf,
             state: vec![State::None, State::ArrayFirst],
             init_type: Type::Array,
-        }
+        })
     }
 
     // Reset the builder to its initial state, without losing
@@ -675,14 +686,24 @@ fn string_from_bytes(input: &[u8]) -> String {
 
 #[no_mangle]
 pub extern "C" fn jb_new_object() -> *mut JsonBuilder {
-    let boxed = Box::new(JsonBuilder::new_object());
-    Box::into_raw(boxed)
+    match JsonBuilder::try_new_object() {
+        Ok(js) => {
+            let boxed = Box::new(js);
+            Box::into_raw(boxed)
+        }
+        Err(_) => std::ptr::null_mut(),
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn jb_new_array() -> *mut JsonBuilder {
-    let boxed = Box::new(JsonBuilder::new_array());
-    Box::into_raw(boxed)
+    match JsonBuilder::try_new_array() {
+        Ok(js) => {
+            let boxed = Box::new(js);
+            Box::into_raw(boxed)
+        }
+        Err(_) => std::ptr::null_mut(),
+    }
 }
 
 #[no_mangle]
@@ -909,14 +930,26 @@ mod test {
     use super::*;
 
     #[test]
+    fn test_try_reserve() {
+        // Just a sanity check that try_reserve works as I expect.
+        let mut buf = String::new();
+        assert_eq!(buf.len(), 0);
+        assert_eq!(buf.capacity(), 0);
+
+        buf.try_reserve(1).unwrap();
+        assert_eq!(buf.len(), 0);
+        assert!(buf.capacity() >= 1);
+    }
+
+    #[test]
     fn test_set_bool() {
-        let mut jb = JsonBuilder::new_object();
+        let mut jb = JsonBuilder::try_new_object().unwrap();
         jb.set_bool("first", true).unwrap();
         assert_eq!(jb.buf, r#"{"first":true"#);
         jb.set_bool("second", false).unwrap();
         assert_eq!(jb.buf, r#"{"first":true,"second":false"#);
 
-        let mut jb = JsonBuilder::new_object();
+        let mut jb = JsonBuilder::try_new_object().unwrap();
         jb.set_bool("first", false).unwrap();
         assert_eq!(jb.buf, r#"{"first":false"#);
         jb.set_bool("second", true).unwrap();
@@ -925,7 +958,7 @@ mod test {
 
     #[test]
     fn test_object_in_object() -> Result<(), JsonError> {
-        let mut js = JsonBuilder::new_object();
+        let mut js = JsonBuilder::try_new_object().unwrap();
 
         js.open_object("object")?;
         assert_eq!(js.current_state(), State::ObjectFirst);
@@ -948,7 +981,7 @@ mod test {
 
     #[test]
     fn test_empty_array_in_object() -> Result<(), JsonError> {
-        let mut js = JsonBuilder::new_object();
+        let mut js = JsonBuilder::try_new_object().unwrap();
 
         js.open_array("array")?;
         assert_eq!(js.current_state(), State::ArrayFirst);
@@ -966,7 +999,7 @@ mod test {
     #[test]
     #[cfg(not(feature = "debug-validate"))]
     fn test_array_in_object() -> Result<(), JsonError> {
-        let mut js = JsonBuilder::new_object();
+        let mut js = JsonBuilder::try_new_object().unwrap();
 
         // Attempt to add an item, should fail.
         assert_eq!(
@@ -1002,7 +1035,7 @@ mod test {
 
     #[test]
     fn basic_test() -> Result<(), JsonError> {
-        let mut js = JsonBuilder::new_object();
+        let mut js = JsonBuilder::try_new_object().unwrap();
         assert_eq!(js.current_state(), State::ObjectFirst);
         assert_eq!(js.buf, "{");
 
@@ -1023,11 +1056,11 @@ mod test {
 
     #[test]
     fn test_combine() -> Result<(), JsonError> {
-        let mut main = JsonBuilder::new_object();
-        let mut obj = JsonBuilder::new_object();
+        let mut main = JsonBuilder::try_new_object().unwrap();
+        let mut obj = JsonBuilder::try_new_object().unwrap();
         obj.close()?;
 
-        let mut array = JsonBuilder::new_array();
+        let mut array = JsonBuilder::try_new_array().unwrap();
         array.append_string("one")?;
         array.append_uint(2)?;
         array.close()?;
@@ -1042,7 +1075,7 @@ mod test {
 
     #[test]
     fn test_objects_in_array() -> Result<(), JsonError> {
-        let mut js = JsonBuilder::new_array();
+        let mut js = JsonBuilder::try_new_array()?;
         assert_eq!(js.buf, r#"["#);
 
         js.start_object()?;
@@ -1071,16 +1104,25 @@ mod test {
 
     #[test]
     fn test_grow() -> Result<(), JsonError> {
-        let mut jb = JsonBuilder::new_object_with_capacity(1);
-        assert_eq!(jb.capacity(), 1);
-        jb.set_string("foo", "bar")?;
-        assert!(jb.capacity() > 1);
+        let mut jb = JsonBuilder::try_new_object_with_capacity(1).unwrap();
+
+        // For efficiency reasons, more capacity may be allocated than
+        // requested.
+        assert!(jb.capacity() > 0);
+        let capacity = jb.capacity();
+
+        let mut value = String::new();
+        for i in 0..capacity {
+            value.push_str((i % 10).to_string().as_str());
+        }
+        jb.set_string("foo", &value)?;
+        assert!(jb.capacity() > capacity);
         Ok(())
     }
 
     #[test]
     fn test_reset() -> Result<(), JsonError> {
-        let mut jb = JsonBuilder::new_object();
+        let mut jb = JsonBuilder::try_new_object().unwrap();
         assert_eq!(jb.buf, "{");
         jb.set_string("foo", "bar")?;
         let cap = jb.capacity();
@@ -1092,13 +1134,13 @@ mod test {
 
     #[test]
     fn test_append_string_from_bytes() -> Result<(), JsonError> {
-        let mut jb = JsonBuilder::new_array();
+        let mut jb = JsonBuilder::try_new_array().unwrap();
         let s = &[0x41, 0x41, 0x41, 0x00];
         jb.append_string_from_bytes(s)?;
         assert_eq!(jb.buf, r#"["AAA\u0000""#);
 
         let s = &[0x00, 0x01, 0x02, 0x03];
-        let mut jb = JsonBuilder::new_array();
+        let mut jb = JsonBuilder::try_new_array().unwrap();
         jb.append_string_from_bytes(s)?;
         assert_eq!(jb.buf, r#"["\u0000\u0001\u0002\u0003""#);
 
@@ -1107,7 +1149,7 @@ mod test {
 
     #[test]
     fn test_set_string_from_bytes() {
-        let mut jb = JsonBuilder::new_object();
+        let mut jb = JsonBuilder::try_new_object().unwrap();
         jb.set_string_from_bytes("first", &[]).unwrap();
         assert_eq!(jb.buf, r#"{"first":"""#);
         jb.set_string_from_bytes("second", &[]).unwrap();
@@ -1117,15 +1159,13 @@ mod test {
     #[test]
     fn test_append_string_from_bytes_grow() -> Result<(), JsonError> {
         let s = &[0x00, 0x01, 0x02, 0x03];
-        let mut jb = JsonBuilder::new_array();
+        let mut jb = JsonBuilder::try_new_array().unwrap();
         jb.append_string_from_bytes(s)?;
 
         for i in 1..1000 {
             let mut s = Vec::new();
-            for _ in 0..i {
-                s.push(0x41);
-            }
-            let mut jb = JsonBuilder::new_array();
+	    s.resize(i, 0x41);
+            let mut jb = JsonBuilder::try_new_array().unwrap();
             jb.append_string_from_bytes(&s)?;
         }
 
@@ -1134,19 +1174,19 @@ mod test {
 
     #[test]
     fn test_invalid_utf8() {
-        let mut jb = JsonBuilder::new_object();
+        let mut jb = JsonBuilder::try_new_object().unwrap();
         jb.set_string_from_bytes("invalid", &[0xf0, 0xf1, 0xf2])
             .unwrap();
         assert_eq!(jb.buf, r#"{"invalid":"\\xf0\\xf1\\xf2""#);
 
-        let mut jb = JsonBuilder::new_array();
+        let mut jb = JsonBuilder::try_new_array().unwrap();
         jb.append_string_from_bytes(&[0xf0, 0xf1, 0xf2]).unwrap();
         assert_eq!(jb.buf, r#"["\\xf0\\xf1\\xf2""#);
     }
 
     #[test]
     fn test_marks() {
-        let mut jb = JsonBuilder::new_object();
+        let mut jb = JsonBuilder::try_new_object().unwrap();
         jb.set_string("foo", "bar").unwrap();
         assert_eq!(jb.buf, r#"{"foo":"bar""#);
         assert_eq!(jb.current_state(), State::ObjectNth);
@@ -1169,7 +1209,7 @@ mod test {
 
     #[test]
     fn test_set_formatted() {
-        let mut jb = JsonBuilder::new_object();
+        let mut jb = JsonBuilder::try_new_object().unwrap();
         jb.set_formatted("\"foo\":\"bar\"").unwrap();
         assert_eq!(jb.buf, r#"{"foo":"bar""#);
         jb.set_formatted("\"bar\":\"foo\"").unwrap();
@@ -1180,7 +1220,7 @@ mod test {
 
     #[test]
     fn test_set_float() {
-        let mut jb = JsonBuilder::new_object();
+        let mut jb = JsonBuilder::try_new_object().unwrap();
         jb.set_float("one", 1.1).unwrap();
         jb.set_float("two", 2.2).unwrap();
         jb.close().unwrap();
@@ -1189,7 +1229,7 @@ mod test {
 
     #[test]
     fn test_append_float() {
-        let mut jb = JsonBuilder::new_array();
+        let mut jb = JsonBuilder::try_new_array().unwrap();
         jb.append_float(1.1).unwrap();
         jb.append_float(2.2).unwrap();
         jb.close().unwrap();
