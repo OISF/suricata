@@ -20,7 +20,7 @@ http://people.redhat.com/sgrubb/libcap-ng/ChangeLog
   make install
 
 Download, configure, compile and install Suricata for your particular setup.
-See :doc:`../install`. Depending on your environment, you may need to add the
+See :doc:`../install/install`. Depending on your environment, you may need to add the
 --with-libpcap_ng-libraries and --with-libpcap_ng-includes options
 during the configure step. e.g:
 
