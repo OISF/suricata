@@ -635,18 +635,26 @@ impl JsonBuilder {
     /// The string is encoded into an intermediate vector as its faster
     /// than building onto the buffer.
     ///
-    /// TODO: Allocate memory in a fallible way.
+    /// TODO: Revisit this, would be nice to build directly onto the
+    ///    existing buffer.
     #[inline(always)]
     fn encode_string(&mut self, val: &str) -> Result<(), JsonError> {
-        let mut buf = vec![0; val.len() * 2 + 2];
+	let mut buf = Vec::new();
+
+	// Start by allocating a reasonable size buffer, it will be
+	// grown if needed.
+	buf.try_reserve(val.len() * 2 + 2)?;
+	buf.resize(val.len() * 2 + 2, 0);
+
         let mut offset = 0;
         let bytes = val.as_bytes();
         buf[offset] = b'"';
         offset += 1;
         for &x in bytes.iter() {
             if offset + 7 >= buf.capacity() {
-                let mut extend = vec![0; buf.capacity()];
-                buf.append(&mut extend);
+		// We could be smarter, but just double the buffer size.
+		buf.try_reserve(buf.capacity())?;
+		buf.resize(buf.capacity(), 0);
             }
             let escape = ESCAPED[x as usize];
             if escape == 0 {
