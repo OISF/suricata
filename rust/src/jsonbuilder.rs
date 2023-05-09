@@ -341,7 +341,7 @@ impl JsonBuilder {
         match self.current_state() {
             State::ArrayFirst => {
                 self.push('"')?;
-                base64::encode_config_buf(val, base64::STANDARD, &mut self.buf);
+                self.encode_base64(val)?;
                 self.push('"')?;
                 self.set_state(State::ArrayNth);
                 Ok(self)
@@ -349,7 +349,7 @@ impl JsonBuilder {
             State::ArrayNth => {
                 self.push(',')?;
                 self.push('"')?;
-                base64::encode_config_buf(val, base64::STANDARD, &mut self.buf);
+                self.encode_base64(val)?;
                 self.push('"')?;
                 Ok(self)
             }
@@ -530,7 +530,7 @@ impl JsonBuilder {
         self.push('"')?;
         self.push_str(key)?;
         self.push_str("\":\"")?;
-        base64::encode_config_buf(val, base64::STANDARD, &mut self.buf);
+        self.encode_base64(val)?;
         self.push('"')?;
 
         Ok(self)
@@ -639,12 +639,12 @@ impl JsonBuilder {
     ///    existing buffer.
     #[inline(always)]
     fn encode_string(&mut self, val: &str) -> Result<(), JsonError> {
-	let mut buf = Vec::new();
+        let mut buf = Vec::new();
 
-	// Start by allocating a reasonable size buffer, it will be
-	// grown if needed.
-	buf.try_reserve(val.len() * 2 + 2)?;
-	buf.resize(val.len() * 2 + 2, 0);
+        // Start by allocating a reasonable size buffer, it will be
+        // grown if needed.
+        buf.try_reserve(val.len() * 2 + 2)?;
+        buf.resize(val.len() * 2 + 2, 0);
 
         let mut offset = 0;
         let bytes = val.as_bytes();
@@ -652,9 +652,9 @@ impl JsonBuilder {
         offset += 1;
         for &x in bytes.iter() {
             if offset + 7 >= buf.capacity() {
-		// We could be smarter, but just double the buffer size.
-		buf.try_reserve(buf.capacity())?;
-		buf.resize(buf.capacity(), 0);
+                // We could be smarter, but just double the buffer size.
+                buf.try_reserve(buf.capacity())?;
+                buf.resize(buf.capacity(), 0);
             }
             let escape = ESCAPED[x as usize];
             if escape == 0 {
@@ -697,6 +697,15 @@ impl JsonBuilder {
             }
         }
         Ok(())
+    }
+
+    fn encode_base64(&mut self, val: &[u8]) -> Result<&mut Self, JsonError> {
+        // Before base64 encoding, make sure enough space is reserved.
+        if self.buf.capacity() < self.buf.len() + val.len() * 2 {
+            self.buf.try_reserve(val.len() * 2)?;
+        }
+        base64::encode_config_buf(val, base64::STANDARD, &mut self.buf);
+        Ok(self)
     }
 }
 
