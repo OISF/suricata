@@ -778,6 +778,9 @@ const char *PktSrcToString(enum PktSrcEnum pkt_src)
         case PKT_SRC_CAPTURE_TIMEOUT:
             pkt_src_str = "capture timeout flush";
             break;
+        case PKT_SRC_SHUTDOWN_FLUSH:
+            pkt_src_str = "shutdown flush";
+            break;
     }
     DEBUG_VALIDATE_BUG_ON(pkt_src_str == NULL);
     return pkt_src_str;
