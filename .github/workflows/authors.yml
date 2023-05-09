@@ -34,5 +34,3 @@ jobs:
                  echo has_new_authors="yes" >> $GITHUB_ENV
              fi
           done < commit-authors.txt
-      - if: ${{ env.has_new_authors == 'yes' }}
-        run: exit 1
