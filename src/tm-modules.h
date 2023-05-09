@@ -56,6 +56,12 @@ typedef struct TmModule_ {
     /** terminates the capture loop in PktAcqLoop */
     TmEcode (*PktAcqBreakLoop)(ThreadVars *, void *);
 
+    /** does a thread still have tasks to complete before it can be killed?
+     *  \retval bool
+     *  \param tv threadvars
+     *  \param thread_data thread module thread data (e.g. FlowWorkerThreadData for FlowWorker) */
+    bool (*ThreadBusy)(ThreadVars *tv, void *thread_data);
+
     TmEcode (*Management)(ThreadVars *, void *);
 
     /** global Init/DeInit */
