@@ -949,6 +949,29 @@ int DatasetsInit(void)
                 }
                 SCLogDebug("dataset %s: id %u type %s", set_name, dset->id, set_type->val);
                 dset->from_yaml = true;
+
+	    } else if (strcmp(set_type->val, "ipv4") == 0) {
+                Dataset *dset = DatasetGet(set_name, DATASET_TYPE_IPV4, save, load,
+                        memcap > 0 ? memcap : default_memcap,
+                        hashsize > 0 ? hashsize : default_hashsize);
+                if (dset == NULL) {
+                    FatalErrorOnInit("failed to setup dataset for %s", set_name);
+                    continue;
+                }
+                SCLogDebug("dataset %s: id %u type %s", set_name, dset->id, set_type->val);
+                dset->from_yaml = true;
+
+            } else if (strcmp(set_type->val, "ip") == 0) {
+                Dataset *dset = DatasetGet(set_name, DATASET_TYPE_IPV6, save, load,
+                        memcap > 0 ? memcap : default_memcap,
+                        hashsize > 0 ? hashsize : default_hashsize);
+                if (dset == NULL) {
+                    FatalErrorOnInit("failed to setup dataset for %s", set_name);
+                    continue;
+                }
+                SCLogDebug("dataset %s: id %u type %s", set_name, dset->id, set_type->val);
+                dset->from_yaml = true;
+
             }
 
             list_pos++;
