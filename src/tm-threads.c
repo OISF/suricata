@@ -1263,6 +1263,18 @@ static int TmThreadKillThread(ThreadVars *tv)
     return 1;
 }
 
+static bool ThreadBusy(ThreadVars *tv)
+{
+    for (TmSlot *s = tv->tm_slots; s != NULL; s = s->slot_next) {
+        TmModule *tm = TmModuleGetById(s->tm_id);
+        if (tm && tm->ThreadBusy != NULL) {
+            if (tm->ThreadBusy(tv, SC_ATOMIC_GET(s->slot_data)))
+                return true;
+        }
+    }
+    return false;
+}
+
 /** \internal
  *
  *  \brief make sure that all packet threads are done processing their
@@ -1298,28 +1310,23 @@ again:
             SleepMsec(1);
             goto again;
         }
-        if (tv->flow_queue) {
-            FQLOCK_LOCK(tv->flow_queue);
-            bool fq_done = (tv->flow_queue->qlen == 0);
-            FQLOCK_UNLOCK(tv->flow_queue);
-            if (!fq_done) {
-                SCMutexUnlock(&tv_root_lock);
+        if (ThreadBusy(tv)) {
+            SCMutexUnlock(&tv_root_lock);
 
-                Packet *p = PacketGetFromAlloc();
-                if (p != NULL) {
-                    p->flags |= PKT_PSEUDO_STREAM_END;
-                    PKT_SET_SRC(p, PKT_SRC_SHUTDOWN_FLUSH);
-                    PacketQueue *q = tv->stream_pq;
-                    SCMutexLock(&q->mutex_q);
-                    PacketEnqueue(q, p);
-                    SCCondSignal(&q->cond_q);
-                    SCMutexUnlock(&q->mutex_q);
-                }
-
-                /* don't sleep while holding a lock */
-                SleepMsec(1);
-                goto again;
+            Packet *p = PacketGetFromAlloc();
+            if (p != NULL) {
+                p->flags |= PKT_PSEUDO_STREAM_END;
+                PKT_SET_SRC(p, PKT_SRC_SHUTDOWN_FLUSH);
+                PacketQueue *q = tv->stream_pq;
+                SCMutexLock(&q->mutex_q);
+                PacketEnqueue(q, p);
+                SCCondSignal(&q->cond_q);
+                SCMutexUnlock(&q->mutex_q);
             }
+
+            /* don't sleep while holding a lock */
+            SleepMsec(1);
+            goto again;
         }
         tv = tv->next;
     }
@@ -1387,28 +1394,23 @@ again:
                 goto again;
             }
 
-            if (tv->flow_queue) {
-                FQLOCK_LOCK(tv->flow_queue);
-                bool fq_done = (tv->flow_queue->qlen == 0);
-                FQLOCK_UNLOCK(tv->flow_queue);
-                if (!fq_done) {
-                    SCMutexUnlock(&tv_root_lock);
+            if (ThreadBusy(tv)) {
+                SCMutexUnlock(&tv_root_lock);
 
-                    Packet *p = PacketGetFromAlloc();
-                    if (p != NULL) {
-                        p->flags |= PKT_PSEUDO_STREAM_END;
-                        PKT_SET_SRC(p, PKT_SRC_SHUTDOWN_FLUSH);
-                        PacketQueue *q = tv->stream_pq;
-                        SCMutexLock(&q->mutex_q);
-                        PacketEnqueue(q, p);
-                        SCCondSignal(&q->cond_q);
-                        SCMutexUnlock(&q->mutex_q);
-                    }
-
-                    /* don't sleep while holding a lock */
-                    SleepMsec(1);
-                    goto again;
+                Packet *p = PacketGetFromAlloc();
+                if (p != NULL) {
+                    p->flags |= PKT_PSEUDO_STREAM_END;
+                    PKT_SET_SRC(p, PKT_SRC_SHUTDOWN_FLUSH);
+                    PacketQueue *q = tv->stream_pq;
+                    SCMutexLock(&q->mutex_q);
+                    PacketEnqueue(q, p);
+                    SCCondSignal(&q->cond_q);
+                    SCMutexUnlock(&q->mutex_q);
                 }
+
+                /* don't sleep while holding a lock */
+                SleepMsec(1);
+                goto again;
             }
 
             /* we found a receive TV. Send it a KILL_PKTACQ signal. */
