@@ -7,7 +7,7 @@ Suricata User Guide
 
    what-is-suricata
    quickstart
-   install.rst
+   install/index.rst
    upgrade.rst
    command-line-options
    rules/index.rst
