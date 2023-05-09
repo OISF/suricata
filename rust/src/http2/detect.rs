@@ -886,7 +886,8 @@ pub unsafe extern "C" fn rs_http2_tx_set_uri(
 }
 
 fn http2_tx_set_settings(state: &mut HTTP2State, input: &[u8]) {
-    match base64::decode(input) {
+    use base64::Engine;
+    match base64::engine::general_purpose::STANDARD.decode(input) {
         Ok(dec) => {
             if dec.len() % 6 != 0 {
                 state.set_event(HTTP2Event::InvalidHTTP1Settings);

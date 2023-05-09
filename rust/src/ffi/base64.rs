@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use base64::Engine;
 use std::os::raw::c_uchar;
 use libc::c_ulong;
 
@@ -42,7 +43,7 @@ pub unsafe extern "C" fn Base64Encode(
         return Base64ReturnCode::SC_BASE64_INVALID_ARG;
     }
     let input = std::slice::from_raw_parts(input, input_len as usize);
-    let encoded = base64::encode(input);
+    let encoded = base64::engine::general_purpose::STANDARD.encode(input);
     if encoded.len() + 1 > *output_len as usize {
         return Base64ReturnCode::SC_BASE64_OVERFLOW;
     }

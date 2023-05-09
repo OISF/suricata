@@ -17,6 +17,7 @@
 
 #![allow(clippy::missing_safety_doc)]
 
+use base64::Engine;
 use std::cmp::max;
 use std::collections::TryReserveError;
 use std::ffi::CStr;
@@ -704,7 +705,7 @@ impl JsonBuilder {
         if self.buf.capacity() < self.buf.len() + val.len() * 2 {
             self.buf.try_reserve(val.len() * 2)?;
         }
-        base64::encode_config_buf(val, base64::STANDARD, &mut self.buf);
+        base64::engine::general_purpose::STANDARD.encode_string(val, &mut self.buf);
         Ok(self)
     }
 }
