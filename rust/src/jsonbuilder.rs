@@ -17,6 +17,7 @@
 
 #![allow(clippy::missing_safety_doc)]
 
+use std::cmp::max;
 use std::collections::TryReserveError;
 use std::ffi::CStr;
 use std::os::raw::c_char;
@@ -29,6 +30,7 @@ pub enum JsonError {
     InvalidState,
     Utf8Error(Utf8Error),
     Memory,
+    TooLarge,
 }
 
 impl std::error::Error for JsonError {}
@@ -39,6 +41,7 @@ impl std::fmt::Display for JsonError {
             JsonError::InvalidState => write!(f, "invalid state"),
             JsonError::Utf8Error(ref e) => e.fmt(f),
             JsonError::Memory => write!(f, "memory error"),
+            JsonError::TooLarge => write!(f, "too large"),
         }
     }
 }
@@ -115,9 +118,12 @@ impl JsonBuilder {
         let mut buf = String::new();
         buf.try_reserve(capacity)?;
         buf.push('{');
+        let mut state = Vec::new();
+        state.try_reserve(32)?;
+        state.extend_from_slice(&[State::None, State::ObjectFirst]);
         Ok(Self {
             buf,
-            state: vec![State::None, State::ObjectFirst],
+            state,
             init_type: Type::Object,
         })
     }
@@ -131,25 +137,51 @@ impl JsonBuilder {
         let mut buf = String::new();
         buf.try_reserve(capacity)?;
         buf.push('[');
+        let mut state = Vec::new();
+        state.try_reserve(32)?;
+        state.extend_from_slice(&[State::None, State::ArrayFirst]);
         Ok(Self {
             buf,
-            state: vec![State::None, State::ArrayFirst],
+            state,
             init_type: Type::Array,
         })
+    }
+
+    /// A wrapper around String::push that pre-allocates data return
+    /// an error if unable to.
+    pub fn push(&mut self, ch: char) -> Result<&mut Self, JsonError> {
+        if self.buf.capacity() == self.buf.len() {
+            self.buf.try_reserve(INIT_SIZE)?;
+        }
+        self.buf.push(ch);
+        Ok(self)
+    }
+
+    /// A wrapper around String::push_str that pre-allocates data
+    /// return an error if unable to.
+    pub fn push_str(&mut self, s: &str) -> Result<&mut Self, JsonError> {
+        if self.buf.capacity() < self.buf.len() + s.len() {
+            self.buf.try_reserve(max(INIT_SIZE, s.len()))?;
+        }
+        self.buf.push_str(s);
+        Ok(self)
     }
 
     // Reset the builder to its initial state, without losing
     // the current capacity.
     pub fn reset(&mut self) {
         self.buf.truncate(0);
+        self.state.clear();
         match self.init_type {
             Type::Array => {
                 self.buf.push('[');
-                self.state = vec![State::None, State::ArrayFirst];
+                self.state
+                    .extend_from_slice(&[State::None, State::ArrayFirst]);
             }
             Type::Object => {
                 self.buf.push('{');
-                self.state = vec![State::None, State::ObjectFirst];
+                self.state
+                    .extend_from_slice(&[State::None, State::ObjectFirst]);
             }
         }
     }
@@ -158,12 +190,12 @@ impl JsonBuilder {
     pub fn close(&mut self) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ObjectFirst | State::ObjectNth => {
-                self.buf.push('}');
+                self.push('}')?;
                 self.pop_state();
                 Ok(self)
             }
             State::ArrayFirst | State::ArrayNth => {
-                self.buf.push(']');
+                self.push(']')?;
                 self.pop_state();
                 Ok(self)
             }
@@ -184,8 +216,12 @@ impl JsonBuilder {
     }
 
     /// Move to a new state.
-    fn push_state(&mut self, state: State) {
+    fn push_state(&mut self, state: State) -> Result<(), JsonError> {
+        if self.state.len() == self.state.capacity() {
+            self.state.try_reserve(32)?;
+        }
         self.state.push(state);
+        Ok(())
     }
 
     /// Go back to the previous state.
@@ -225,20 +261,20 @@ impl JsonBuilder {
     pub fn open_object(&mut self, key: &str) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ObjectFirst => {
-                self.buf.push('"');
+                self.push('"')?;
                 self.set_state(State::ObjectNth);
             }
             State::ObjectNth => {
-                self.buf.push_str(",\"");
+                self.push_str(",\"")?;
             }
             _ => {
                 debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
-        self.buf.push_str(key);
-        self.buf.push_str("\":{");
-        self.push_state(State::ObjectFirst);
+        self.push_str(key)?;
+        self.push_str("\":{")?;
+        self.push_state(State::ObjectFirst)?;
         Ok(self)
     }
 
@@ -251,16 +287,16 @@ impl JsonBuilder {
         match self.current_state() {
             State::ArrayFirst => {}
             State::ArrayNth => {
-                self.buf.push(',');
+                self.push(',')?;
             }
             _ => {
                 debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
-        self.buf.push('{');
+        self.push('{')?;
         self.set_state(State::ArrayNth);
-        self.push_state(State::ObjectFirst);
+        self.push_state(State::ObjectFirst)?;
         Ok(self)
     }
 
@@ -273,18 +309,18 @@ impl JsonBuilder {
         match self.current_state() {
             State::ObjectFirst => {}
             State::ObjectNth => {
-                self.buf.push(',');
+                self.push(',')?;
             }
             _ => {
                 debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
-        self.buf.push('"');
-        self.buf.push_str(key);
-        self.buf.push_str("\":[");
+        self.push('"')?;
+        self.push_str(key)?;
+        self.push_str("\":[")?;
         self.set_state(State::ObjectNth);
-        self.push_state(State::ArrayFirst);
+        self.push_state(State::ArrayFirst)?;
         Ok(self)
     }
 
@@ -297,7 +333,7 @@ impl JsonBuilder {
                 Ok(self)
             }
             State::ArrayNth => {
-                self.buf.push(',');
+                self.push(',')?;
                 self.encode_string(val)?;
                 Ok(self)
             }
@@ -311,7 +347,7 @@ impl JsonBuilder {
     pub fn append_string_from_bytes(&mut self, val: &[u8]) -> Result<&mut Self, JsonError> {
         match std::str::from_utf8(val) {
             Ok(s) => self.append_string(s),
-            Err(_) => self.append_string(&string_from_bytes(val)),
+            Err(_) => self.append_string(&try_string_from_bytes(val)?),
         }
     }
 
@@ -319,17 +355,17 @@ impl JsonBuilder {
     pub fn append_base64(&mut self, val: &[u8]) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ArrayFirst => {
-                self.buf.push('"');
-                base64::encode_config_buf(val, base64::STANDARD, &mut self.buf);
-                self.buf.push('"');
+                self.push('"')?;
+                self.encode_base64(val)?;
+                self.push('"')?;
                 self.set_state(State::ArrayNth);
                 Ok(self)
             }
             State::ArrayNth => {
-                self.buf.push(',');
-                self.buf.push('"');
-                base64::encode_config_buf(val, base64::STANDARD, &mut self.buf);
-                self.buf.push('"');
+                self.push(',')?;
+                self.push('"')?;
+                self.encode_base64(val)?;
+                self.push('"')?;
                 Ok(self)
             }
             _ => {
@@ -343,23 +379,23 @@ impl JsonBuilder {
     pub fn append_hex(&mut self, val: &[u8]) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ArrayFirst => {
-                self.buf.push('"');
+                self.push('"')?;
                 for i in 0..val.len() {
-                    self.buf.push(HEX[(val[i] >> 4) as usize] as char);
-                    self.buf.push(HEX[(val[i] & 0xf) as usize] as char);
+                    self.push(HEX[(val[i] >> 4) as usize] as char)?;
+                    self.push(HEX[(val[i] & 0xf) as usize] as char)?;
                 }
-                self.buf.push('"');
+                self.push('"')?;
                 self.set_state(State::ArrayNth);
                 Ok(self)
             }
             State::ArrayNth => {
-                self.buf.push(',');
-                self.buf.push('"');
+                self.push(',')?;
+                self.push('"')?;
                 for i in 0..val.len() {
-                    self.buf.push(HEX[(val[i] >> 4) as usize] as char);
-                    self.buf.push(HEX[(val[i] & 0xf) as usize] as char);
+                    self.push(HEX[(val[i] >> 4) as usize] as char)?;
+                    self.push(HEX[(val[i] & 0xf) as usize] as char)?;
                 }
-                self.buf.push('"');
+                self.push('"')?;
                 Ok(self)
             }
             _ => {
@@ -376,15 +412,14 @@ impl JsonBuilder {
                 self.set_state(State::ArrayNth);
             }
             State::ArrayNth => {
-                self.buf.push(',');
+                self.push(',')?;
             }
             _ => {
                 debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
-        self.buf.push_str(&val.to_string());
-        Ok(self)
+        self.push_str(&val.to_string())
     }
 
     pub fn append_float(&mut self, val: f64) -> Result<&mut Self, JsonError> {
@@ -393,21 +428,21 @@ impl JsonBuilder {
                 self.set_state(State::ArrayNth);
             }
             State::ArrayNth => {
-                self.buf.push(',');
+                self.push(',')?;
             }
             _ => {
                 debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
-        self.buf.push_str(&val.to_string());
+        self.push_str(&val.to_string())?;
         Ok(self)
     }
 
     pub fn set_object(&mut self, key: &str, js: &JsonBuilder) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ObjectNth => {
-                self.buf.push(',');
+                self.push(',')?;
             }
             State::ObjectFirst => {
                 self.set_state(State::ObjectNth);
@@ -417,10 +452,10 @@ impl JsonBuilder {
                 return Err(JsonError::InvalidState);
             }
         }
-        self.buf.push('"');
-        self.buf.push_str(key);
-        self.buf.push_str("\":");
-        self.buf.push_str(&js.buf);
+        self.push('"')?;
+        self.push_str(key)?;
+        self.push_str("\":")?;
+        self.push_str(&js.buf)?;
         Ok(self)
     }
 
@@ -434,14 +469,14 @@ impl JsonBuilder {
                 self.set_state(State::ArrayNth);
             }
             State::ArrayNth => {
-                self.buf.push(',');
+                self.push(',')?;
             }
             _ => {
                 debug_validate_fail!("invalid state");
                 return Err(JsonError::InvalidState);
             }
         }
-        self.buf.push_str(&js.buf);
+        self.push_str(&js.buf)?;
         Ok(self)
     }
 
@@ -450,7 +485,7 @@ impl JsonBuilder {
     pub fn set_string(&mut self, key: &str, val: &str) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ObjectNth => {
-                self.buf.push(',');
+                self.push(',')?;
             }
             State::ObjectFirst => {
                 self.set_state(State::ObjectNth);
@@ -460,9 +495,9 @@ impl JsonBuilder {
                 return Err(JsonError::InvalidState);
             }
         }
-        self.buf.push('"');
-        self.buf.push_str(key);
-        self.buf.push_str("\":");
+        self.push('"')?;
+        self.push_str(key)?;
+        self.push_str("\":")?;
         self.encode_string(val)?;
         Ok(self)
     }
@@ -470,7 +505,7 @@ impl JsonBuilder {
     pub fn set_formatted(&mut self, formatted: &str) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ObjectNth => {
-                self.buf.push(',');
+                self.push(',')?;
             }
             State::ObjectFirst => {
                 self.set_state(State::ObjectNth);
@@ -480,7 +515,7 @@ impl JsonBuilder {
                 return Err(JsonError::InvalidState);
             }
         }
-        self.buf.push_str(formatted);
+        self.push_str(formatted)?;
         Ok(self)
     }
 
@@ -488,7 +523,7 @@ impl JsonBuilder {
     pub fn set_string_from_bytes(&mut self, key: &str, val: &[u8]) -> Result<&mut Self, JsonError> {
         match std::str::from_utf8(val) {
             Ok(s) => self.set_string(key, s),
-            Err(_) => self.set_string(key, &string_from_bytes(val)),
+            Err(_) => self.set_string(key, &try_string_from_bytes(val)?),
         }
     }
 
@@ -496,7 +531,7 @@ impl JsonBuilder {
     pub fn set_base64(&mut self, key: &str, val: &[u8]) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ObjectNth => {
-                self.buf.push(',');
+                self.push(',')?;
             }
             State::ObjectFirst => {
                 self.set_state(State::ObjectNth);
@@ -506,11 +541,11 @@ impl JsonBuilder {
                 return Err(JsonError::InvalidState);
             }
         }
-        self.buf.push('"');
-        self.buf.push_str(key);
-        self.buf.push_str("\":\"");
-        base64::encode_config_buf(val, base64::STANDARD, &mut self.buf);
-        self.buf.push('"');
+        self.push('"')?;
+        self.push_str(key)?;
+        self.push_str("\":\"")?;
+        self.encode_base64(val)?;
+        self.push('"')?;
 
         Ok(self)
     }
@@ -519,7 +554,7 @@ impl JsonBuilder {
     pub fn set_hex(&mut self, key: &str, val: &[u8]) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ObjectNth => {
-                self.buf.push(',');
+                self.push(',')?;
             }
             State::ObjectFirst => {
                 self.set_state(State::ObjectNth);
@@ -529,14 +564,14 @@ impl JsonBuilder {
                 return Err(JsonError::InvalidState);
             }
         }
-        self.buf.push('"');
-        self.buf.push_str(key);
-        self.buf.push_str("\":\"");
+        self.push('"')?;
+        self.push_str(key)?;
+        self.push_str("\":\"")?;
         for i in 0..val.len() {
-            self.buf.push(HEX[(val[i] >> 4) as usize] as char);
-            self.buf.push(HEX[(val[i] & 0xf) as usize] as char);
+            self.push(HEX[(val[i] >> 4) as usize] as char)?;
+            self.push(HEX[(val[i] & 0xf) as usize] as char)?;
         }
-        self.buf.push('"');
+        self.push('"')?;
 
         Ok(self)
     }
@@ -545,7 +580,7 @@ impl JsonBuilder {
     pub fn set_uint(&mut self, key: &str, val: u64) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ObjectNth => {
-                self.buf.push(',');
+                self.push(',')?;
             }
             State::ObjectFirst => {
                 self.set_state(State::ObjectNth);
@@ -555,17 +590,17 @@ impl JsonBuilder {
                 return Err(JsonError::InvalidState);
             }
         }
-        self.buf.push('"');
-        self.buf.push_str(key);
-        self.buf.push_str("\":");
-        self.buf.push_str(&val.to_string());
+        self.push('"')?;
+        self.push_str(key)?;
+        self.push_str("\":")?;
+        self.push_str(&val.to_string())?;
         Ok(self)
     }
 
     pub fn set_float(&mut self, key: &str, val: f64) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ObjectNth => {
-                self.buf.push(',');
+                self.push(',')?;
             }
             State::ObjectFirst => {
                 self.set_state(State::ObjectNth);
@@ -575,17 +610,17 @@ impl JsonBuilder {
                 return Err(JsonError::InvalidState);
             }
         }
-        self.buf.push('"');
-        self.buf.push_str(key);
-        self.buf.push_str("\":");
-        self.buf.push_str(&val.to_string());
+        self.push('"')?;
+        self.push_str(key)?;
+        self.push_str("\":")?;
+        self.push_str(&val.to_string())?;
         Ok(self)
     }
 
     pub fn set_bool(&mut self, key: &str, val: bool) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ObjectNth => {
-                self.buf.push(',');
+                self.push(',')?;
             }
             State::ObjectFirst => {
                 self.set_state(State::ObjectNth);
@@ -595,12 +630,12 @@ impl JsonBuilder {
                 return Err(JsonError::InvalidState);
             }
         }
-        self.buf.push('"');
-        self.buf.push_str(key);
+        self.push('"')?;
+        self.push_str(key)?;
         if val {
-            self.buf.push_str("\":true");
+            self.push_str("\":true")?;
         } else {
-            self.buf.push_str("\":false");
+            self.push_str("\":false")?;
         }
         Ok(self)
     }
@@ -613,17 +648,27 @@ impl JsonBuilder {
     ///
     /// The string is encoded into an intermediate vector as its faster
     /// than building onto the buffer.
+    ///
+    /// TODO: Revisit this, would be nice to build directly onto the
+    ///    existing buffer.
     #[inline(always)]
     fn encode_string(&mut self, val: &str) -> Result<(), JsonError> {
-        let mut buf = vec![0; val.len() * 2 + 2];
+        let mut buf = Vec::new();
+
+        // Start by allocating a reasonable size buffer, it will be
+        // grown if needed.
+        buf.try_reserve(val.len() * 2 + 2)?;
+        buf.resize(val.len() * 2 + 2, 0);
+
         let mut offset = 0;
         let bytes = val.as_bytes();
         buf[offset] = b'"';
         offset += 1;
         for &x in bytes.iter() {
             if offset + 7 >= buf.capacity() {
-                let mut extend = vec![0; buf.capacity()];
-                buf.append(&mut extend);
+                // We could be smarter, but just double the buffer size.
+                buf.try_reserve(buf.capacity())?;
+                buf.resize(buf.capacity(), 0);
             }
             let escape = ESCAPED[x as usize];
             if escape == 0 {
@@ -653,7 +698,7 @@ impl JsonBuilder {
         offset += 1;
         match std::str::from_utf8(&buf[0..offset]) {
             Ok(s) => {
-                self.buf.push_str(s);
+                self.push_str(s)?;
             }
             Err(err) => {
                 let error = format!(
@@ -662,18 +707,35 @@ impl JsonBuilder {
                     &buf[0..offset],
                     val.as_bytes(),
                 );
-                self.buf.push_str(&error);
+                self.push_str(&error)?;
             }
         }
         Ok(())
+    }
+
+    fn encode_base64(&mut self, val: &[u8]) -> Result<&mut Self, JsonError> {
+        // Before base64 encoding, make sure enough space is
+        // reserved. This may return None if the size is in the upper
+        // bounds of usize, so convert that to an error.
+        let encoded_len = base64::encoded_len(val.len(), true).ok_or(JsonError::TooLarge)?;
+        if self.buf.capacity() < self.buf.len() + encoded_len {
+            self.buf.try_reserve(val.len() * 2)?;
+        }
+        base64::encode_config_buf(val, base64::STANDARD, &mut self.buf);
+        Ok(self)
     }
 }
 
 /// A Suricata specific function to create a string from bytes when UTF-8 decoding fails.
 ///
 /// For bytes over 0x0f, we encode as hex like "\xf2".
-fn string_from_bytes(input: &[u8]) -> String {
-    let mut out = String::with_capacity(input.len());
+fn try_string_from_bytes(input: &[u8]) -> Result<String, JsonError> {
+    let mut out = String::new();
+
+    // Allocate enough data to handle the worst case scenario of every
+    // byte needing to be presented as a byte.
+    out.try_reserve(input.len() * 4)?;
+
     for b in input.iter() {
         if *b < 128 {
             out.push(*b as char);
@@ -681,7 +743,7 @@ fn string_from_bytes(input: &[u8]) -> String {
             out.push_str(&format!("\\x{:02x}", *b));
         }
     }
-    return out;
+    return Ok(out);
 }
 
 #[no_mangle]
@@ -1164,7 +1226,7 @@ mod test {
 
         for i in 1..1000 {
             let mut s = Vec::new();
-	    s.resize(i, 0x41);
+            s.resize(i, 0x41);
             let mut jb = JsonBuilder::try_new_array().unwrap();
             jb.append_string_from_bytes(&s)?;
         }
