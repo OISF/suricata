@@ -63,6 +63,7 @@ enum PktSrcEnum {
     PKT_SRC_DETECT_RELOAD_FLUSH,
     PKT_SRC_CAPTURE_TIMEOUT,
     PKT_SRC_DECODER_GENEVE,
+    PKT_SRC_SHUTDOWN_FLUSH,
 };
 
 #include "source-nflog.h"

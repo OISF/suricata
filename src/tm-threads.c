@@ -1308,7 +1308,7 @@ again:
                 Packet *p = PacketGetFromAlloc();
                 if (p != NULL) {
                     p->flags |= PKT_PSEUDO_STREAM_END;
-                    PKT_SET_SRC(p, PKT_SRC_DETECT_RELOAD_FLUSH);
+                    PKT_SET_SRC(p, PKT_SRC_SHUTDOWN_FLUSH);
                     PacketQueue *q = tv->stream_pq;
                     SCMutexLock(&q->mutex_q);
                     PacketEnqueue(q, p);
@@ -1397,7 +1397,7 @@ again:
                     Packet *p = PacketGetFromAlloc();
                     if (p != NULL) {
                         p->flags |= PKT_PSEUDO_STREAM_END;
-                        PKT_SET_SRC(p, PKT_SRC_DETECT_RELOAD_FLUSH);
+                        PKT_SET_SRC(p, PKT_SRC_SHUTDOWN_FLUSH);
                         PacketQueue *q = tv->stream_pq;
                         SCMutexLock(&q->mutex_q);
                         PacketEnqueue(q, p);
