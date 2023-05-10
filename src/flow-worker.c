@@ -485,7 +485,7 @@ static inline void FlowWorkerProcessInjectedFlows(
 static inline void FlowWorkerProcessLocalFlows(ThreadVars *tv, FlowWorkerThreadData *fw, Packet *p)
 {
     uint32_t max_work = 2;
-    if (p->pkt_src == PKT_SRC_SHUTDOWN_FLUSH)
+    if (p->pkt_src == PKT_SRC_SHUTDOWN_FLUSH || p->pkt_src == PKT_SRC_CAPTURE_TIMEOUT)
         max_work = 0;
 
     FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_FLOW_EVICTED);
