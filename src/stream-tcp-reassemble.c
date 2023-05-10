@@ -2213,9 +2213,9 @@ static int VALIDATE(TcpStream *stream, uint8_t *data, uint32_t data_len)
 #define MISSED_ADD_PAYLOAD(seq, seg, seglen)                                                       \
     StreamTcpUTAddPayload(&tv, ra_ctx, &ssn, stream, (seq), (uint8_t *)(seg), (seglen));
 
-int UTHCheckGapAtPostion(TcpStream *stream, int pos, uint64_t offset, uint32_t len);
+int UTHCheckGapAtPosition(TcpStream *stream, int pos, uint64_t offset, uint32_t len);
 
-int UTHCheckGapAtPostion(TcpStream *stream, int pos, uint64_t offset, uint32_t len)
+int UTHCheckGapAtPosition(TcpStream *stream, int pos, uint64_t offset, uint32_t len)
 {
     int cnt = 0;
     uint64_t last_re = 0;
@@ -2235,10 +2235,10 @@ int UTHCheckGapAtPostion(TcpStream *stream, int pos, uint64_t offset, uint32_t l
     return 0;
 }
 
-int UTHCheckDataAtPostion(
+int UTHCheckDataAtPosition(
         TcpStream *stream, int pos, uint64_t offset, const char *data, uint32_t len);
 
-int UTHCheckDataAtPostion(
+int UTHCheckDataAtPosition(
         TcpStream *stream, int pos, uint64_t offset, const char *data, uint32_t len)
 {
     int cnt = 0;
@@ -2278,11 +2278,11 @@ static int StreamTcpReassembleTest25 (void)
 {
     MISSED_START(6);
     MISSED_ADD_PAYLOAD(10, "BB", 2);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 3) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 3, "BB", 2) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 0, 0, 3) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 1, 3, "BB", 2) == 1);
     MISSED_ADD_PAYLOAD(12, "CC", 2);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 3) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 3, "BBCC", 4) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 0, 0, 3) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 1, 3, "BBCC", 4) == 1);
     MISSED_STEP(7, "AAA", 3, "AAABBCC", 7);
     MISSED_END;
     PASS;
@@ -2300,9 +2300,9 @@ static int StreamTcpReassembleTest26 (void)
     MISSED_START(9);
     MISSED_STEP(10, "AAA", 3, "AAA", 3);
     MISSED_ADD_PAYLOAD(15, "CC", 2);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 0, 0, "AAA", 3) == 1);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 1, 3, 2) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 2, 5, "CC", 2) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 0, 0, "AAA", 3) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 1, 3, 2) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 2, 5, "CC", 2) == 1);
     MISSED_STEP(13, "BB", 2, "AAABBCC", 7);
     MISSED_END;
 }
@@ -2335,15 +2335,15 @@ static int StreamTcpReassembleTest28 (void)
 {
     MISSED_START(6);
     MISSED_ADD_PAYLOAD(10, "AAA", 3);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 3) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 3, "AAA", 3) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 0, 0, 3) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 1, 3, "AAA", 3) == 1);
     MISSED_ADD_PAYLOAD(13, "BB", 2);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 3) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 3, "AAABB", 5) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 0, 0, 3) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 1, 3, "AAABB", 5) == 1);
     ssn.state = TCP_TIME_WAIT;
     MISSED_ADD_PAYLOAD(15, "CC", 2);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 0, 0, 3) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 1, 3, "AAABBCC", 7) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 0, 0, 3) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 1, 3, "AAABBCC", 7) == 1);
     MISSED_END;
 }
 
@@ -2361,9 +2361,9 @@ static int StreamTcpReassembleTest29 (void)
     MISSED_STEP(10, "AAA", 3, "AAA", 3);
     ssn.state = TCP_TIME_WAIT;
     MISSED_ADD_PAYLOAD(15, "CC", 2);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 0, 0, "AAA", 3) == 1);
-    FAIL_IF_NOT(UTHCheckGapAtPostion(stream, 1, 3, 2) == 1);
-    FAIL_IF_NOT(UTHCheckDataAtPostion(stream, 2, 5, "CC", 2) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 0, 0, "AAA", 3) == 1);
+    FAIL_IF_NOT(UTHCheckGapAtPosition(stream, 1, 3, 2) == 1);
+    FAIL_IF_NOT(UTHCheckDataAtPosition(stream, 2, 5, "CC", 2) == 1);
     MISSED_END;
 }
 

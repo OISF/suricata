@@ -149,7 +149,7 @@ static bool DetectSshHasshHashValidateCallback(const Signature *s,
             for (size_t i = 0; i < cd->content_len; ++i) {
                 if (!isxdigit(cd->content[i])) {
                     *sigerror =
-                            "Invalid ssh.hassh string (should be string of hexademical characters)."
+                            "Invalid ssh.hassh string (should be string of hexadecimal characters)."
                             "This rule will therefore never match.";
                     SCLogWarning("rule %u: %s", s->id, *sigerror);
                     return false;

@@ -172,7 +172,7 @@ typedef struct AFXDPThreadVars_ {
     char iface[AFXDP_IFACE_NAME_LENGTH];
     uint32_t ifindex;
 
-    /* AF_XDP stucture */
+    /* AF_XDP structure */
     struct UmemInfo umem;
     struct XskSockInfo xsk;
     uint32_t gro_flush_timeout;
@@ -263,7 +263,7 @@ static inline void AFXDPDumpCounters(AFXDPThreadVars *ptv)
 /**
  * \brief Init function for socket creation.
  *
- * Mutex used to synchonise initialisation - each socket opens a
+ * Mutex used to synchronise initialisation - each socket opens a
  * different queue. The specific order in which each queue is
  * opened is not important, but it is vital the queue_num's
  * are different.

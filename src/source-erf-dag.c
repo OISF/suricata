@@ -89,7 +89,7 @@ NoErfDagSupportExit(ThreadVars *tv, const void *initdata, void **data)
 /* Number of bytes per loop to process before fetching more data. */
 #define BYTES_PER_LOOP (4 * 1024 * 1024) /* 4 MB */
 
-extern intmax_t max_pending_packets;
+extern uint16_t max_pending_packets;
 
 typedef struct ErfDagThreadVars_ {
     ThreadVars *tv;
@@ -501,7 +501,7 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
     p->datalink = LINKTYPE_ETHERNET;
 
     /* Take into account for link type Ethernet ETH frame starts
-     * after ther ERF header + pad.
+     * after the ERF header + pad.
      */
     if (unlikely(PacketCopyData(p, pload->eth.dst, GET_PKT_LEN(p)))) {
         TmqhOutputPacketpool(ewtn->tv, p);

@@ -50,7 +50,7 @@
  *               the alphabet, so that it is constant inside the
  *               function for better optimization.
  *
- * \todo - Do a proper analyis of our existing MPMs and suggest a good
+ * \todo - Do a proper analysis of our existing MPMs and suggest a good
  *         one based on the pattern distribution and the expected
  *         traffic(say http).
 
@@ -59,7 +59,7 @@
  *         integrate it's status as a final state or not in the
  *         topmost byte.  We are already doing it if state_count is >
  *         2 ** 16.
- *       - Test case-senstive patterns if they have any ascii chars.
+ *       - Test case-sensitive patterns if they have any ascii chars.
  *         If they don't treat them as nocase.
  *       - Reorder the compressed alphabet to put the most common characters
  *         first.
@@ -169,10 +169,9 @@ static void SCACTileGetConfig(void)
 {
 }
 
-
 /**
  * \internal
- * \brief Count the occurences of each character in the pattern and
+ * \brief Count the occurrences of each character in the pattern and
  * accumulate into a histogram. Really only used to detect unused
  * characters, so could just set to 1 instead of counting.
  */
@@ -184,7 +183,7 @@ static inline void SCACTileHistogramAlphabet(SCACTileCtx *ctx,
     }
 }
 
-/* Use Alpahbet Histogram to create compressed alphabet.
+/* Use Alphabet Histogram to create compressed alphabet.
  */
 static void SCACTileInitTranslateTable(SCACTileCtx *ctx)
 {
@@ -212,7 +211,7 @@ static void SCACTileInitTranslateTable(SCACTileCtx *ctx)
     SCLogDebug("  Alphabet size %d", ctx->alphabet_size);
 
     /* Round alphabet size up to next power-of-two Leave one extra
-     * space For the unused-chararacters = 0 mapping.
+     * space For the unused-characters = 0 mapping.
      */
     ctx->alphabet_size += 1; /* Extra space for unused-character */
     if (ctx->alphabet_size  <= 8) {
@@ -1175,7 +1174,7 @@ static int CheckMatch(const SCACTileSearchCtx *ctx, PrefilterRuleStore *pmq,
         if (mpm_bitarray[pindex / 8] & (1 << (pindex % 8))) {
             /* Pattern already seen by this MPM. */
             /* NOTE: This is faster then rechecking if it is a case-sensitive match
-             * since we know this pattern has already been seen, but imcrementing
+             * since we know this pattern has already been seen, but incrementing
              * matches here could over report matches. For example if the case-sensitive
              * pattern is "Foo" and the string is "Foo bar foo", matches would be reported
              * as 2, when it should really be 1, since "foo" is not a true match.
@@ -1188,7 +1187,7 @@ static int CheckMatch(const SCACTileSearchCtx *ctx, PrefilterRuleStore *pmq,
         if (offset < (int)pat->offset || (pat->depth && i > pat->depth))
             continue;
 
-        /* Double check case-sensitve match now. */
+        /* Double check case-sensitive match now. */
         if (patterns[k] >> 31) {
             const uint16_t patlen = pat->patlen;
             if (SCMemcmp(pat->cs, buf_offset - patlen, patlen) != 0) {

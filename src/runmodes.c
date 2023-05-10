@@ -122,7 +122,7 @@ static TAILQ_HEAD(, OutputFreeList_) output_free_list =
 
 /**
  * \internal
- * \brief Translate a runmode mode to a printale string.
+ * \brief Translate a runmode mode to a printable string.
  *
  * \param runmode Runmode to be converted into a printable string.
  *
@@ -192,8 +192,8 @@ static const char *RunModeTranslateModeToName(int runmode)
  * \brief Dispatcher function for runmodes.  Calls the required runmode function
  *        based on runmode + runmode_custom_id.
  *
- * \param runmode            The runmode type.
- * \param runmode_customd_id The runmode custom id.
+ * \param runmode           The runmode type.
+ * \param runmode_custom_id The runmode custom id.
  */
 static RunMode *RunModeGetCustomMode(enum RunModes runmode, const char *custom_mode)
 {
@@ -382,7 +382,7 @@ static const char *RunModeGetConfOrDefault(int capture_mode, const char *capture
                 return NULL;
         }
     } else {
-        /* Add compability with old 'worker' name */
+        /* Add compatibility with old 'worker' name */
         if (!strcmp("worker", custom_mode)) {
             SCLogWarning("'worker' mode have been renamed "
                          "to 'workers', please modify your setup.");

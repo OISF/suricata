@@ -19,8 +19,8 @@
  *  \file
  *  \author Victor Julien <victor@inliniac.net>
  *
- * Tracks chunk based file transfers. Chunks may be transfered out
- * of order, but cannot be transfered in parallel. So only one
+ * Tracks chunk based file transfers. Chunks may be transferred out
+ * of order, but cannot be transferred in parallel. So only one
  * chunk at a time.
  *
  * GAP handling. If a data gap is encountered, the file is truncated
@@ -226,7 +226,7 @@ impl FileTransferTracker {
                             self.file_is_truncated = true;
                         },
                         _ => {
-                            SCLogDebug!("got error so truncing file");
+                            SCLogDebug!("got error so truncating file");
                             self.file_is_truncated = true;
                         },
                     }
@@ -279,7 +279,7 @@ impl FileTransferTracker {
                                             self.file_is_truncated = true;
                                         },
                                         _ => {
-                                            SCLogDebug!("got error so truncing file");
+                                            SCLogDebug!("got error so truncating file");
                                             self.file_is_truncated = true;
                                         },
                                     }
@@ -319,7 +319,7 @@ impl FileTransferTracker {
                             self.file_is_truncated = true;
                         },
                         _ => {
-                            SCLogDebug!("got error so truncing file");
+                            SCLogDebug!("got error so truncating file");
                             self.file_is_truncated = true;
                         },
                     }

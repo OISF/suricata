@@ -392,7 +392,7 @@ int ConfGetChildValueWithDefault(const ConfNode *base, const ConfNode *dflt,
  * configuration value.
  *
  * \retval 1 will be returned if the name is found and was properly
- * converted to an interger, otherwise 0 will be returned.
+ * converted to an integer, otherwise 0 will be returned.
  */
 int ConfGetInt(const char *name, intmax_t *val)
 {
@@ -468,9 +468,8 @@ int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt,
     return ret;
 }
 
-
 /**
- * \brief Retrieve a configuration value as an boolen.
+ * \brief Retrieve a configuration value as a boolean.
  *
  * \param name Name of configuration parameter to get.
  * \param val Pointer to an int that will be set to 1 for true, or 0
@@ -940,7 +939,7 @@ void ConfNodePrune(ConfNode *node)
  *
  * \param node the node to check.
  *
- * \return 1 if node is a seuence, otherwise 0.
+ * \return 1 if node is a sequence, otherwise 0.
  */
 int ConfNodeIsSequence(const ConfNode *node)
 {
@@ -949,7 +948,7 @@ int ConfNodeIsSequence(const ConfNode *node)
 
 /**
  * @brief Finds an interface from the list of interfaces.
- * @param ifaces_node_name - name of the node which holds a list of intefaces
+ * @param ifaces_node_name - name of the node which holds a list of interfaces
  * @param iface - interfaces name
  * @return NULL on failure otherwise a valid pointer
  */
@@ -1059,7 +1058,7 @@ static int ConfTestOverrideValue1(void)
 }
 
 /**
- * Test that a final value will not be overrided by a ConfSet.
+ * Test that a final value will not be overridden by a ConfSet.
  */
 static int ConfTestOverrideValue2(void)
 {

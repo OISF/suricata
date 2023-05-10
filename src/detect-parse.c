@@ -335,7 +335,7 @@ bool SigMatchStrictEnabled(const enum DetectKeywordId id)
     return false;
 }
 
-void SigTableApplyStrictCommandlineOption(const char *str)
+void SigTableApplyStrictCommandLineOption(const char *str)
 {
     if (str == NULL) {
         /* nothing to be done */
@@ -1004,7 +1004,7 @@ error:
  *                 protocol has to be added.
  * \param protostr Pointer to the character string containing the protocol name.
  *
- * \retval  0 On successfully parsing the protocl sent as the argument.
+ * \retval  0 On successfully parsing the protocol sent as the argument.
  * \retval -1 On failure
  */
 static int SigParseProto(Signature *s, const char *protostr)
@@ -2712,7 +2712,7 @@ static int SigParseTest02 (void)
         goto end;
 
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+    SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:2003055; rev:4;)");
     if (sig == NULL) {
@@ -4175,7 +4175,7 @@ end:
     return result;
 }
 
-static int SigParseTestUnblanacedQuotes01(void)
+static int SigParseTestUnbalancedQuotes01(void)
 {
     DetectEngineCtx *de_ctx;
     Signature *s;
@@ -4184,7 +4184,10 @@ static int SigParseTestUnblanacedQuotes01(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert http any any -> any any (msg:\"SigParseTestUnblanacedQuotes01\"; pcre:\"/\\/[a-z]+\\.php\\?[a-z]+?=\\d{7}&[a-z]+?=\\d{7,8}$/U\" flowbits:set,et.exploitkitlanding; classtype:trojan-activity; sid:2017078; rev:5;)");
+    s = SigInit(de_ctx,
+            "alert http any any -> any any (msg:\"SigParseTestUnbalancedQuotes01\"; "
+            "pcre:\"/\\/[a-z]+\\.php\\?[a-z]+?=\\d{7}&[a-z]+?=\\d{7,8}$/U\" "
+            "flowbits:set,et.exploitkitlanding; classtype:trojan-activity; sid:2017078; rev:5;)");
     FAIL_IF_NOT_NULL(s);
 
     PASS;
@@ -4395,8 +4398,7 @@ void SigParseRegisterTests(void)
     UtRegisterTest("SigParseTestAppLayerTLS01", SigParseTestAppLayerTLS01);
     UtRegisterTest("SigParseTestAppLayerTLS02", SigParseTestAppLayerTLS02);
     UtRegisterTest("SigParseTestAppLayerTLS03", SigParseTestAppLayerTLS03);
-    UtRegisterTest("SigParseTestUnblanacedQuotes01",
-        SigParseTestUnblanacedQuotes01);
+    UtRegisterTest("SigParseTestUnbalancedQuotes01", SigParseTestUnbalancedQuotes01);
 
     UtRegisterTest("SigParseTestContentGtDsize01",
             SigParseTestContentGtDsize01);

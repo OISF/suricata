@@ -952,7 +952,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f, AppLayerParserState *psta
         /* reply but not a command we have stored, fall through */
     } else if (IsReplyToCommand(state, SMTP_COMMAND_STARTTLS)) {
         if (reply_code == SMTP_REPLY_220) {
-            /* we are entering STARRTTLS data mode */
+            /* we are entering STARTTLS data mode */
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
             if (!AppLayerRequestProtocolTLSUpgrade(f)) {
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE);
@@ -1139,6 +1139,13 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
     SCEnter();
     SMTPTransaction *tx = state->curr_tx;
 
+    /* If current input is to be discarded because it completes a long line,
+     * line's length and delimiter len are reset to 0. Skip processing this line.
+     * This line is only to get us out of the state where we should discard any
+     * data till LF. */
+    if (line->len == 0 && line->delim_len == 0) {
+        return 0;
+    }
     if (state->curr_tx == NULL || (state->curr_tx->done && !NoNewTx(state, line))) {
         tx = SMTPTransactionCreate();
         if (tx == NULL)

@@ -102,7 +102,7 @@ TmEcode NoIPFWSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #include "action-globals.h"
 
-extern intmax_t max_pending_packets;
+extern uint16_t max_pending_packets;
 
 /**
  * \brief Structure to hold thread specific variables.
@@ -316,7 +316,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 /**
  * \brief Init function for RecieveIPFW.
  *
- * This is a setup function for recieving packets
+ * This is a setup function for receiving packets
  * via ipfw divert, binds a socket, and prepares to
  * to read from it.
  *

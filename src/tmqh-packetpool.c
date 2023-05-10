@@ -283,7 +283,7 @@ void PacketPoolInitEmpty(void)
 
 void PacketPoolInit(void)
 {
-    extern intmax_t max_pending_packets;
+    extern uint16_t max_pending_packets;
 
     PktPool *my_pool = GetThreadPacketPool();
 
@@ -478,7 +478,7 @@ void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
     return;
 }
 
-/** number of packets to keep reserved when calculating the the pending
+/** number of packets to keep reserved when calculating the pending
  *  return packets count. This assumes we need at max 10 packets in one
  *  PacketPoolWaitForN call. The actual number is 9 now, so this has a
  *  bit of margin. */
@@ -487,7 +487,7 @@ void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
 /**
  *  \brief Set the max_pending_return_packets value
  *
- *  Set it to the max pending packets value, devided by the number
+ *  Set it to the max pending packets value, divided by the number
  *  of lister threads. Normally, in autofp these are the stream/detect/log
  *  worker threads.
  *
@@ -499,8 +499,8 @@ void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
  */
 void PacketPoolPostRunmodes(void)
 {
-    extern intmax_t max_pending_packets;
-    intmax_t pending_packets = max_pending_packets;
+    extern uint16_t max_pending_packets;
+    uint16_t pending_packets = max_pending_packets;
     if (pending_packets < RESERVED_PACKETS) {
         FatalError("'max-pending-packets' setting "
                    "must be at least %d",

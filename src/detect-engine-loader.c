@@ -334,7 +334,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
         }
     }
 
-    /* If a Signature file is specified from commandline, parse it too */
+    /* If a Signature file is specified from command-line, parse it too */
     if (sig_file != NULL) {
         ret = ProcessSigFiles(de_ctx, sig_file, sig_stat, &good_sigs, &bad_sigs);
 
@@ -582,6 +582,7 @@ static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
     DetectLoaderThreadData *ftd = (DetectLoaderThreadData *)thread_data;
     BUG_ON(ftd == NULL);
 
+    TmThreadsSetFlag(th_v, THV_INIT_DONE | THV_RUNNING);
     SCLogDebug("loader thread started");
     while (1)
     {
@@ -618,6 +619,10 @@ static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
 
         SCLogDebug("woke up...");
     }
+
+    TmThreadsSetFlag(th_v, THV_RUNNING_DONE);
+    TmThreadWaitForFlag(th_v, THV_DEINIT);
+    TmThreadsSetFlag(th_v, THV_CLOSED);
 
     return TM_ECODE_OK;
 }

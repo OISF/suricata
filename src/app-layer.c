@@ -464,7 +464,7 @@ static int TCPProtoDetect(ThreadVars *tv,
          *
          * \todo We need to figure out a more robust solution for this,
          *       as this can lead to easy evasion tactics, where the
-         *       attackeer can first send some dummy data in the wrong
+         *       attacker can first send some dummy data in the wrong
          *       direction first to mislead our proto detection process.
          *       While doing this we need to update the parsers as well,
          *       since the parsers must be robust to see such wrong

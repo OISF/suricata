@@ -43,7 +43,7 @@ SCInstance surifuzz;
 
 #include "confyaml.c"
 
-static void SigGenereateAware(const uint8_t *data, size_t size, char *r, size_t *len)
+static void SigGenerateAware(const uint8_t *data, size_t size, char *r, size_t *len)
 {
     *len = snprintf(r, 511, "alert ip any any -> any any (");
     for (size_t i = 0; i + 1 < size && *len < 511; i++) {
@@ -115,7 +115,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         tmm_modules[TMM_FLOWWORKER].ThreadInit(&tv, NULL, &fwd);
         StatsSetupPrivate(&tv);
 
-        extern intmax_t max_pending_packets;
+        extern uint16_t max_pending_packets;
         max_pending_packets = 128;
         PacketPoolInit();
         initialized = 1;
@@ -137,7 +137,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     // dump signatures to a file so as to reuse SigLoadSignatures
     char sigaware[512];
     size_t len;
-    SigGenereateAware(data, pos + 1, sigaware, &len);
+    SigGenerateAware(data, pos + 1, sigaware, &len);
     if (TestHelperBufferToFile(surifuzz.sig_file, (uint8_t *)sigaware, len) < 0) {
         return 0;
     }

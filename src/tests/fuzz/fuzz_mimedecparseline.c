@@ -18,7 +18,7 @@ static int MimeParserDataFromFileCB(const uint8_t *chunk, uint32_t len,
                                     MimeDecParseState *state)
 {
     if (len > 0 && chunk[len-1] == 0) {
-        // do not get optimizd away
+        // do not get optimized away
         dummy++;
     }
     return MIME_DEC_OK;

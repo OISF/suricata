@@ -335,7 +335,7 @@ static int DetectProtoTestSetup01(void)
 }
 
 /**
- * \test DetectrotoTestSetup02 is a test for a icmpv4 and icmpv6
+ * \test DetectProtoTestSetup02 is a test for a icmpv4 and icmpv6
  *       protocol setting up in signature.
  */
 static int DetectProtoTestSetup02(void)

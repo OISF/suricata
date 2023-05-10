@@ -45,7 +45,7 @@ enum {
     FLOWINT_MODIFIER_UNKNOWN
 };
 
-/** The target can be a value, or another variable arleady declared */
+/** The target can be a value, or another variable already declared */
 enum {
     FLOWINT_TARGET_VAL,
     FLOWINT_TARGET_VAR,

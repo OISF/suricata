@@ -64,8 +64,8 @@ typedef struct TmModule_ {
 #ifdef UNITTESTS
     void (*RegisterTests)(void);
 #endif
-    uint8_t cap_flags;   /**< Flags to indicate the capability requierment of
-                             the given TmModule */
+    uint8_t cap_flags; /**< Flags to indicate the capability requirement of
+                           the given TmModule */
     /* Other flags used by the module */
     uint8_t flags;
 } TmModule;

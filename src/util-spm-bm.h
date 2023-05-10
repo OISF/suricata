@@ -29,7 +29,7 @@
 
 #define ALPHABET_SIZE 256
 
-/* Context for booyer moore */
+/* Context for boyer moore */
 typedef struct BmCtx_ {
     uint16_t bmBc[ALPHABET_SIZE];
     //C99 "flexible array member"

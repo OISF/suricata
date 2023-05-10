@@ -118,7 +118,7 @@ struct bpf_program {
 
 #endif /* HAVE_AF_PACKET */
 
-extern intmax_t max_pending_packets;
+extern uint16_t max_pending_packets;
 
 #ifndef HAVE_AF_PACKET
 
@@ -327,6 +327,9 @@ typedef struct AFPThreadVars_
 
     int promisc;
 
+    /* bitmask of ignored ssl_pkttypes */
+    uint32_t pkttype_filter_mask;
+
     int down_count;
 
     uint16_t cluster_id;
@@ -397,7 +400,7 @@ void TmModuleReceiveAFPRegister (void)
  *
  * AF_PACKET has an IPS mode were interface are peered: packet from
  * on interface are sent the peered interface and the other way. The ::AFPPeer
- * list is maitaining the list of peers. Each ::AFPPeer is storing the needed
+ * list is maintaining the list of peers. Each ::AFPPeer is storing the needed
  * information to be able to send packet on the interface.
  * A element of the list must not be destroyed during the run of Suricata as it
  * is used by ::Packet and other threads.
@@ -559,7 +562,7 @@ static void AFPPeersListReachedInc(void)
 
     if ((SC_ATOMIC_ADD(peerslist.reached, 1) + 1) == peerslist.turn) {
         (void)SC_ATOMIC_SET(peerslist.reached, 0);
-        /* Set turn to 0 to skip syncrhonization when ReceiveAFPLoop is
+        /* Set turn to 0 to skip synchronization when ReceiveAFPLoop is
          * restarted.
          */
         peerslist.turn = 0;
@@ -854,6 +857,25 @@ static inline int AFPReadFromRingWaitForPacket(AFPThreadVars *ptv)
 }
 
 /**
+ * \brief AF packet frame ignore logic
+ *
+ * Given a sockaddr_ll of a frame, use the pkttype_filter_mask to decide if the
+ * frame should be ignored. Protect from undefined behavior if there's ever
+ * a sll_pkttype that would shift by too much. At this point, only outgoing
+ * packets (4) are ignored. The highest value in if_linux.h is PACKET_KERNEL (7),
+ * this extra check is being overly cautious.
+ *
+ * \retval true if the frame should be ignored
+ */
+static inline bool AFPShouldIgnoreFrame(AFPThreadVars *ptv, const struct sockaddr_ll *sll)
+{
+    if (unlikely(sll->sll_pkttype > 31))
+        return false;
+
+    return (ptv->pkttype_filter_mask & BIT_U32(sll->sll_pkttype)) != 0;
+}
+
+/**
  * \brief AF packet read function for ring
  *
  * This function fills
@@ -897,6 +919,12 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
             h.h2->tp_status = TP_STATUS_KERNEL;
             goto next_frame;
         }
+
+        const struct sockaddr_ll *sll =
+                (const struct sockaddr_ll *)((uint8_t *)h.h2 +
+                                             TPACKET_ALIGN(sizeof(struct tpacket2_hdr)));
+        if (unlikely(AFPShouldIgnoreFrame(ptv, sll)))
+            goto next_frame;
 
         Packet *p = PacketGetFromQueueOrAlloc();
         if (p == NULL) {
@@ -990,6 +1018,12 @@ static inline int AFPWalkBlock(AFPThreadVars *ptv, struct tpacket_block_desc *pb
     uint8_t *ppd = (uint8_t *)pbd + pbd->hdr.bh1.offset_to_first_pkt;
 
     for (int i = 0; i < num_pkts; ++i) {
+        const struct sockaddr_ll *sll =
+                (const struct sockaddr_ll *)(ppd + TPACKET_ALIGN(sizeof(struct tpacket3_hdr)));
+        if (unlikely(AFPShouldIgnoreFrame(ptv, sll))) {
+            ppd = ppd + ((struct tpacket3_hdr *)ppd)->tp_next_offset;
+            continue;
+        }
         int ret = AFPParsePacketV3(ptv, pbd, (struct tpacket3_hdr *)ppd);
         switch (ret) {
             case AFP_READ_OK:
@@ -1526,12 +1560,13 @@ static int AFPComputeRingParams(AFPThreadVars *ptv, int order)
 
        Compute frame size:
        described in packet_mmap.txt
-       dependant on snaplen (need to use a variable ?)
+       dependent on snaplen (need to use a variable ?)
 snaplen: MTU ?
 tp_hdrlen determine_version in daq_afpacket
 in V1:  sizeof(struct tpacket_hdr);
 in V2: val in getsockopt(instance->fd, SOL_PACKET, PACKET_HDRLEN, &val, &len)
-frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
+frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct
+sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
 
      */
     int tp_hdrlen = sizeof(struct tpacket_hdr);
@@ -1877,6 +1912,10 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         goto socket_err;
     }
 
+    /* ignore outgoing packets on loopback interfaces */
+    if (if_flags & IFF_LOOPBACK)
+        ptv->pkttype_filter_mask |= BIT_U32(PACKET_OUTGOING);
+
     if (ptv->promisc != 0) {
         /* Force promiscuous mode */
         memset(&sock_params, 0, sizeof(sock_params));
@@ -1929,7 +1968,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 
 
 #ifdef HAVE_PACKET_FANOUT
-    /* add binded socket to fanout group */
+    /* add bound socket to fanout group */
     if (ptv->threads > 1) {
         uint32_t mode = ptv->cluster_type;
         uint16_t id = ptv->cluster_id;

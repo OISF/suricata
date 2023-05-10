@@ -128,7 +128,7 @@ jobs:
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           rustup target add x86_64-unknown-linux-musl
-      - name: Buliding static cbindgen for Linux
+      - name: Building static cbindgen for Linux
         run: |
           cargo install --target x86_64-unknown-linux-musl --debug cbindgen
           cp $HOME/.cargo/bin/cbindgen .
@@ -360,7 +360,7 @@ jobs:
 
       - uses: actions/checkout@v3.3.0
 
-      # Prebuild check for duplicat SIDs
+      # Prebuild check for duplicate SIDs
       - name: Check for duplicate SIDs
         run: |
           dups=$(sed -n 's/^alert.*sid:\([[:digit:]]*\);.*/\1/p' ./rules/*.rules|sort|uniq -d|tr '\n' ' ')
@@ -2454,3 +2454,51 @@ jobs:
           python3 ./suricata-verify/run.py -q
       - run: make install
       - run: suricata-update -V
+
+  windows-msys2-mingw64-windivert:
+    name: Windows MSYS2 MINGW64 (WinDivert)
+    runs-on: windows-latest
+    needs: [prepare-deps]
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+      - uses: actions/checkout@v3.3.0
+      - uses: msys2/setup-msys2@fa138fa56e2558760b9f2205135313c7345c5f3f
+        with:
+          msystem: MINGW64
+          update: true
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
+      # hack: install our own cbindgen system wide as we can't get the
+      # preinstalled one to be picked up by configure
+      - name: cbindgen
+        run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
+      - uses: actions/checkout@v3.3.0
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - name: WinDivert
+        run: |
+          curl -sL -O https://github.com/basil00/Divert/releases/download/v1.4.3/WinDivert-1.4.3-A.zip
+          unzip WinDivert-1.4.3-A.zip -d /windivert
+          cp /windivert/WinDivert-1.4.3-A/x86_64/* /usr/lib/
+          # hack: place dlls in cwd
+          cp /windivert/WinDivert-1.4.3-A/x86_64/*.dll .
+      - name: Build
+        run: |
+          ./autogen.sh
+          CFLAGS="-ggdb -Werror" ./configure --enable-gccprotect --disable-gccmarch-native --disable-shared --enable-windivert --with-windivert-include=/windivert/WinDivert-1.4.3-A/include --with-windivert-libraries=/windivert/WinDivert-1.4.3-A/x86_64
+          make -j3
+      - name: Run
+        run: |
+          # need cwd in path due to dlls (see above)
+          PATH="$PATH:$(pwd)" ./src/suricata --build-info
+      - run: make install
+

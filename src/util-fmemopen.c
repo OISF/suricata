@@ -79,7 +79,7 @@ typedef struct SCFmem_ {
 /**
  * \brief Seek the mem file from offset and whence
  * \param handler pointer to the memfile
- * \param osffset number of bytes to move from whence
+ * \param offset number of bytes to move from whence
  * \param whence SEEK_SET, SEEK_CUR, SEEK_END
  * \retval pos the position by the last operation, -1 if sizes are out of bounds
  */
@@ -144,7 +144,7 @@ static int ReadFn(void *handler, char *buf, int size)
  * \param handler pointer to the memfile
  * \param buf buffer to write in the handler
  * \param number of bytes to write
- * \retval count , the number of bytes writen
+ * \retval count , the number of bytes written
  */
 static int WriteFn(void *handler, const char *buf, int size)
 {

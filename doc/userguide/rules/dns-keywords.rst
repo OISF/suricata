@@ -25,7 +25,7 @@ Match on DNS requests and responses with **opcode** 4::
 
   dns.opcode:4;
 
-Match on DNS requests whre the **opcode** is NOT 0::
+Match on DNS requests where the **opcode** is NOT 0::
 
   dns.opcode:!0;
 

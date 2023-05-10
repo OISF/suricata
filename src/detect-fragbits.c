@@ -391,7 +391,7 @@ static bool PrefilterFragBitsIsPrefilterable(const Signature *s)
 /**
  * \test FragBitsTestParse01 is a test for a  valid fragbits value
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int FragBitsTestParse01 (void)
@@ -409,7 +409,7 @@ static int FragBitsTestParse01 (void)
 /**
  * \test FragBitsTestParse02 is a test for an invalid fragbits value
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 static int FragBitsTestParse02 (void)

@@ -2184,10 +2184,9 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
     SCReturnInt(HTP_OK);
 }
 
-
 /**
  *  \brief  callback for request to store the recent incoming request
-            in to the recent_in_tx for the given htp state
+            into the recent_in_tx for the given htp state
  *  \param  connp   pointer to the current connection parser which has the htp
  *                  state in it as user data
  */
@@ -3174,7 +3173,7 @@ static int HTPRegisterPatternsForProtocolDetection(void)
         }
     }
 
-    /* Loop through all the http verions patterns that are TO_CLIENT */
+    /* Loop through all the http version patterns that are TO_CLIENT */
     for (versions_pos = 0; versions[versions_pos]; versions_pos++) {
         register_result = AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_HTTP1,
                 versions[versions_pos], (uint16_t)strlen(versions[versions_pos]), 0,

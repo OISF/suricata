@@ -951,7 +951,7 @@ union bpf_attr {
  * 	Description
  * 		Retrieve the realm or the route, that is to say the
  * 		**tclassid** field of the destination for the *skb*. The
- * 		indentifier retrieved is a user-provided tag, similar to the
+ * 		identifier retrieved is a user-provided tag, similar to the
  * 		one used with the net_cls cgroup (see description for
  * 		**bpf_get_cgroup_classid**\ () helper), but here this tag is
  * 		held by a route (a destination entry), not by a task.
@@ -971,12 +971,10 @@ union bpf_attr {
  * 		The realm of the route for the packet associated to *skb*, or 0
  * 		if none was found.
  *
- * int bpf_perf_event_output(struct pt_reg *ctx, struct bpf_map *map, u64 flags, void *data, u64 size)
- * 	Description
- * 		Write raw *data* blob into a special BPF perf event held by
- * 		*map* of type **BPF_MAP_TYPE_PERF_EVENT_ARRAY**. This perf
- * 		event must have the following attributes: **PERF_SAMPLE_RAW**
- * 		as **sample_type**, **PERF_TYPE_SOFTWARE** as **type**, and
+ * int bpf_perf_event_output(struct pt_reg *ctx, struct bpf_map *map, u64 flags, void *data, u64
+ *size) Description Write raw *data* blob into a special BPF perf event held by *map* of type
+ ***BPF_MAP_TYPE_PERF_EVENT_ARRAY**. This perf event must have the following attributes:
+ ***PERF_SAMPLE_RAW** as **sample_type**, **PERF_TYPE_SOFTWARE** as **type**, and
  * 		**PERF_COUNT_SW_BPF_OUTPUT** as **config**.
  *
  * 		The *flags* are used to indicate the index in *map* for which
@@ -1459,13 +1457,11 @@ union bpf_attr {
  * 	Return
  * 		0
  *
- * int bpf_setsockopt(struct bpf_sock_ops *bpf_socket, int level, int optname, char *optval, int optlen)
- * 	Description
- * 		Emulate a call to **setsockopt()** on the socket associated to
- * 		*bpf_socket*, which must be a full socket. The *level* at
- * 		which the option resides and the name *optname* of the option
- * 		must be specified, see **setsockopt(2)** for more information.
- * 		The option value of length *optlen* is pointed by *optval*.
+ * int bpf_setsockopt(struct bpf_sock_ops *bpf_socket, int level, int optname, char *optval, int
+ *optlen) Description Emulate a call to **setsockopt()** on the socket associated to *bpf_socket*,
+ *which must be a full socket. The *level* at which the option resides and the name *optname* of the
+ *option must be specified, see **setsockopt(2)** for more information. The option value of length
+ **optlen* is pointed by *optval*.
  *
  * 		This helper actually implements a subset of **setsockopt()**.
  * 		It supports the following *level*\ s:
@@ -1581,10 +1577,9 @@ union bpf_attr {
  * 	Return
  * 		0 on success, or a negative error in case of failure.
  *
- * int bpf_perf_event_read_value(struct bpf_map *map, u64 flags, struct bpf_perf_event_value *buf, u32 buf_size)
- * 	Description
- * 		Read the value of a perf event counter, and store it into *buf*
- * 		of size *buf_size*. This helper relies on a *map* of type
+ * int bpf_perf_event_read_value(struct bpf_map *map, u64 flags, struct bpf_perf_event_value *buf,
+ *u32 buf_size) Description Read the value of a perf event counter, and store it into *buf* of size
+ **buf_size*. This helper relies on a *map* of type
  * 		**BPF_MAP_TYPE_PERF_EVENT_ARRAY**. The nature of the perf event
  * 		counter is selected when *map* is updated with perf event file
  * 		descriptors. The *map* is an array whose size is the number of
@@ -1625,31 +1620,24 @@ union bpf_attr {
  * 		the time running for event since last normalization. The
  * 		enabled and running times are accumulated since the perf event
  * 		open. To achieve scaling factor between two invocations of an
- * 		eBPF program, users can can use CPU id as the key (which is
- * 		typical for perf array usage model) to remember the previous
- * 		value and do the calculation inside the eBPF program.
+ * 		eBPF program, users can use CPU id as the key (which is typical
+ * 		for perf array usage model) to remember the previous value and
+ * 		do the calculation inside the eBPF program.
  * 	Return
  * 		0 on success, or a negative error in case of failure.
  *
- * int bpf_perf_prog_read_value(struct bpf_perf_event_data *ctx, struct bpf_perf_event_value *buf, u32 buf_size)
- * 	Description
- * 		For en eBPF program attached to a perf event, retrieve the
- * 		value of the event counter associated to *ctx* and store it in
- * 		the structure pointed by *buf* and of size *buf_size*. Enabled
- * 		and running times are also stored in the structure (see
- * 		description of helper **bpf_perf_event_read_value**\ () for
- * 		more details).
- * 	Return
- * 		0 on success, or a negative error in case of failure.
+ * int bpf_perf_prog_read_value(struct bpf_perf_event_data *ctx, struct bpf_perf_event_value *buf,
+ *u32 buf_size) Description For en eBPF program attached to a perf event, retrieve the value of the
+ *event counter associated to *ctx* and store it in the structure pointed by *buf* and of size
+ **buf_size*. Enabled and running times are also stored in the structure (see description of helper
+ ***bpf_perf_event_read_value**\ () for more details). Return 0 on success, or a negative error in
+ *case of failure.
  *
- * int bpf_getsockopt(struct bpf_sock_ops *bpf_socket, int level, int optname, char *optval, int optlen)
- * 	Description
- * 		Emulate a call to **getsockopt()** on the socket associated to
- * 		*bpf_socket*, which must be a full socket. The *level* at
- * 		which the option resides and the name *optname* of the option
- * 		must be specified, see **getsockopt(2)** for more information.
- * 		The retrieved value is stored in the structure pointed by
- * 		*opval* and of length *optlen*.
+ * int bpf_getsockopt(struct bpf_sock_ops *bpf_socket, int level, int optname, char *optval, int
+ *optlen) Description Emulate a call to **getsockopt()** on the socket associated to *bpf_socket*,
+ *which must be a full socket. The *level* at which the option resides and the name *optname* of the
+ *option must be specified, see **getsockopt(2)** for more information. The retrieved value is
+ *stored in the structure pointed by *opval* and of length *optlen*.
  *
  * 		This helper actually implements a subset of **getsockopt()**.
  * 		It supports the following *level*\ s:
@@ -1668,7 +1656,7 @@ union bpf_attr {
  * 		The first argument is the context *regs* on which the kprobe
  * 		works.
  *
- * 		This helper works by setting setting the PC (program counter)
+ * 		This helper works by setting the PC (program counter)
  * 		to an override function which is run in place of the original
  * 		probed function. This means the probed function is not run at
  * 		all. The replacement function just returns with the required
@@ -1850,9 +1838,8 @@ union bpf_attr {
  * 	Return
  * 		0 on success, or a negative error in case of failure.
  *
- * int bpf_skb_get_xfrm_state(struct sk_buff *skb, u32 index, struct bpf_xfrm_state *xfrm_state, u32 size, u64 flags)
- * 	Description
- * 		Retrieve the XFRM state (IP transform framework, see also
+ * int bpf_skb_get_xfrm_state(struct sk_buff *skb, u32 index, struct bpf_xfrm_state *xfrm_state, u32
+ *size, u64 flags) Description Retrieve the XFRM state (IP transform framework, see also
  * 		**ip-xfrm(8)**) at *index* in XFRM "security path" for *skb*.
  *
  * 		The retrieved value is stored in the **struct bpf_xfrm_state**
@@ -1899,14 +1886,12 @@ union bpf_attr {
  * 		A non-negative value equal to or less than *size* on success,
  * 		or a negative error in case of failure.
  *
- * int bpf_skb_load_bytes_relative(const struct sk_buff *skb, u32 offset, void *to, u32 len, u32 start_header)
- * 	Description
- * 		This helper is similar to **bpf_skb_load_bytes**\ () in that
- * 		it provides an easy way to load *len* bytes from *offset*
- * 		from the packet associated to *skb*, into the buffer pointed
- * 		by *to*. The difference to **bpf_skb_load_bytes**\ () is that
- * 		a fifth argument *start_header* exists in order to select a
- * 		base offset to start from. *start_header* can be one of:
+ * int bpf_skb_load_bytes_relative(const struct sk_buff *skb, u32 offset, void *to, u32 len, u32
+ *start_header) Description This helper is similar to **bpf_skb_load_bytes**\ () in that it provides
+ *an easy way to load *len* bytes from *offset* from the packet associated to *skb*, into the buffer
+ *pointed by *to*. The difference to **bpf_skb_load_bytes**\ () is that a fifth argument
+ **start_header* exists in order to select a base offset to start from. *start_header* can be one
+ *of:
  *
  * 		**BPF_HDR_START_MAC**
  * 			Base offset to load data from is *skb*'s mac header.
@@ -1952,11 +1937,9 @@ union bpf_attr {
  *		* > 0 one of **BPF_FIB_LKUP_RET_** codes explaining why the
  *		  packet is not forwarded or needs assist from full stack
  *
- * int bpf_sock_hash_update(struct bpf_sock_ops_kern *skops, struct bpf_map *map, void *key, u64 flags)
- *	Description
- *		Add an entry to, or update a sockhash *map* referencing sockets.
- *		The *skops* is used as a new value for the entry associated to
- *		*key*. *flags* is one of:
+ * int bpf_sock_hash_update(struct bpf_sock_ops_kern *skops, struct bpf_map *map, void *key, u64
+ *flags) Description Add an entry to, or update a sockhash *map* referencing sockets. The *skops* is
+ *used as a new value for the entry associated to *key*. *flags* is one of:
  *
  *		**BPF_NOEXIST**
  *			The entry for *key* must not exist in the map.
@@ -1989,7 +1972,7 @@ union bpf_attr {
  *	Description
  *		This helper is used in programs implementing policies at the
  *		skb socket level. If the sk_buff *skb* is allowed to pass (i.e.
- *		if the verdeict eBPF program returns **SK_PASS**), redirect it
+ *		if the verdict eBPF program returns **SK_PASS**), redirect it
  *		to the socket referenced by *map* (of type
  *		**BPF_MAP_TYPE_SOCKHASH**) using hash *key*. Both ingress and
  *		egress interfaces can be used for redirection. The
@@ -2185,20 +2168,18 @@ union bpf_attr {
  *	Return
  *		A pointer to the local storage area.
  *
- * int bpf_sk_select_reuseport(struct sk_reuseport_md *reuse, struct bpf_map *map, void *key, u64 flags)
- *	Description
- *		Select a **SO_REUSEPORT** socket from a
+ * int bpf_sk_select_reuseport(struct sk_reuseport_md *reuse, struct bpf_map *map, void *key, u64
+ *flags) Description Select a **SO_REUSEPORT** socket from a
  *		**BPF_MAP_TYPE_REUSEPORT_ARRAY** *map*.
  *		It checks the selected socket is matching the incoming
  *		request in the socket buffer.
  *	Return
  *		0 on success, or a negative error in case of failure.
  *
- * struct bpf_sock *bpf_sk_lookup_tcp(void *ctx, struct bpf_sock_tuple *tuple, u32 tuple_size, u64 netns, u64 flags)
- *	Description
- *		Look for TCP socket matching *tuple*, optionally in a child
- *		network namespace *netns*. The return value must be checked,
- *		and if non-**NULL**, released via **bpf_sk_release**\ ().
+ * struct bpf_sock *bpf_sk_lookup_tcp(void *ctx, struct bpf_sock_tuple *tuple, u32 tuple_size, u64
+ *netns, u64 flags) Description Look for TCP socket matching *tuple*, optionally in a child network
+ *namespace *netns*. The return value must be checked, and if non-**NULL**, released via
+ ***bpf_sk_release**\ ().
  *
  *		The *ctx* should point to the context of the program, such as
  *		the skb or socket (depending on the hook in use). This is used
@@ -2230,11 +2211,10 @@ union bpf_attr {
  *		For sockets with reuseport option, the **struct bpf_sock**
  *		result is from **reuse->socks**\ [] using the hash of the tuple.
  *
- * struct bpf_sock *bpf_sk_lookup_udp(void *ctx, struct bpf_sock_tuple *tuple, u32 tuple_size, u64 netns, u64 flags)
- *	Description
- *		Look for UDP socket matching *tuple*, optionally in a child
- *		network namespace *netns*. The return value must be checked,
- *		and if non-**NULL**, released via **bpf_sk_release**\ ().
+ * struct bpf_sock *bpf_sk_lookup_udp(void *ctx, struct bpf_sock_tuple *tuple, u32 tuple_size, u64
+ *netns, u64 flags) Description Look for UDP socket matching *tuple*, optionally in a child network
+ *namespace *netns*. The return value must be checked, and if non-**NULL**, released via
+ ***bpf_sk_release**\ ().
  *
  *		The *ctx* should point to the context of the program, such as
  *		the skb or socket (depending on the hook in use). This is used
@@ -2573,7 +2553,7 @@ struct bpf_xfrm_state {
  * provide backwards compatibility with existing SCHED_CLS and SCHED_ACT
  * programs.
  *
- * XDP is handled seprately, see XDP_*.
+ * XDP is handled separately, see XDP_*.
  */
 enum bpf_ret_code {
 	BPF_OK = 0,
@@ -2755,7 +2735,7 @@ struct bpf_btf_info {
 
 /* User bpf_sock_addr struct to access socket fields and sockaddr struct passed
  * by user and intended to be used by socket (e.g. to bind to, depends on
- * attach attach type).
+ * attach type).
  */
 struct bpf_sock_addr {
 	__u32 user_family;	/* Allows 4-byte read, but no write. */

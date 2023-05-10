@@ -132,42 +132,13 @@ def patch_app_layer_protos_c(protoname):
     print("Patching %s." % (filename))
     output = io.StringIO()
 
-    # Read in all the lines as we'll be doing some multi-line
-    # duplications.
-    inlines = open(filename).readlines()
-    for i, line in enumerate(inlines):
-
-        if line.find("case ALPROTO_TEMPLATE:") > -1:
-            # Duplicate the section starting at this line and
-            # including the following 2 lines.
-            for j in range(i, i + 3):
-                temp = inlines[j]
-                temp = temp.replace("TEMPLATE", protoname.upper())
-                temp = temp.replace("template", protoname.lower())
-                output.write(temp)
-
-        if line.find("strcmp(proto_name, \"template\")") > -1:
-            # Duplicate the section starting at this line and
-            # including the following line.
-            for j in range(i, i + 2):
-                temp = inlines[j]
-                temp = temp.replace("TEMPLATE", protoname.upper())
-                temp = temp.replace("template", protoname.lower())
-                output.write(temp)
-
-        output.write(line)
-    open(filename, "w").write(output.getvalue())
-
-def patch_app_layer_detect_proto_c(proto):
-    filename = "src/app-layer-detect-proto.c"
-    print("Patching %s." % (filename))
-    output = io.StringIO()
-    inlines = open(filename).readlines()
-    for i, line in enumerate(inlines):
-        if line.find("== ALPROTO_TEMPLATE)") > -1:
-            output.write(inlines[i].replace("TEMPLATE", proto.upper()))
-            output.write(inlines[i+1].replace("TEMPLATE", proto.upper()))
-        output.write(line)
+    with open(filename) as infile:
+        for line in infile:
+            if line.find("TEMPLATE") > -1:
+                new_line = line.replace("TEMPLATE", protoname.upper()).replace(
+                    "template", protoname.lower())
+                output.write(new_line)
+            output.write(line)
     open(filename, "w").write(output.getvalue())
 
 def patch_app_layer_parser_c(proto):
@@ -222,16 +193,6 @@ def logger_patch_suricata_yaml_in(proto):
 
     open(filename, "w").write(output.getvalue())
 
-def logger_patch_suricata_common_h(proto):
-    filename = "src/suricata-common.h"
-    print("Patching %s." % (filename))
-    output = io.StringIO()
-    with open(filename) as infile:
-        for line in infile:
-            if line.find("LOGGER_JSON_TEMPLATE,") > -1:
-                output.write(line.replace("TEMPLATE", proto.upper()))
-            output.write(line)
-    open(filename, "w").write(output.getvalue())
 
 def logger_patch_output_c(proto):
     filename = "src/output.c"
@@ -251,9 +212,9 @@ def logger_copy_templates(proto):
     lower = proto.lower()
     
     pairs = (
-        ("src/output-json-template-rust.h",
+        ("src/output-json-template.h",
          "src/output-json-%s.h" % (lower)),
-        ("src/output-json-template-rust.c",
+        ("src/output-json-template.c",
          "src/output-json-%s.c" % (lower)),
         ("rust/src/applayertemplate/logger.rs",
          "rust/src/applayer%s/logger.rs" % (lower)),
@@ -272,16 +233,6 @@ def logger_patch_makefile_am(protoname):
             output.write(line)
     open(filename, "w").write(output.getvalue())
 
-def logger_patch_util_profiling_c(proto):
-    filename = "src/util-profiling.c"
-    print("Patching %s." % (filename))
-    output = io.StringIO()
-    with open(filename) as infile:
-        for line in infile:
-            if line.find("(LOGGER_JSON_TEMPLATE);") > -1:
-                output.write(line.replace("TEMPLATE", proto.upper()))
-            output.write(line)
-    open(filename, "w").write(output.getvalue())
 
 def detect_copy_templates(proto, buffername):
     lower = proto.lower()
@@ -435,7 +386,6 @@ def main():
         patch_rust_lib_rs(proto)
         patch_app_layer_protos_h(proto)
         patch_app_layer_protos_c(proto)
-        patch_app_layer_detect_proto_c(proto)
         patch_app_layer_parser_c(proto)
         patch_suricata_yaml_in(proto)
 
@@ -445,10 +395,8 @@ def main():
         logger_copy_templates(proto)
         patch_rust_applayer_mod_rs(proto)
         logger_patch_makefile_am(proto)
-        logger_patch_suricata_common_h(proto)
         logger_patch_output_c(proto)
         logger_patch_suricata_yaml_in(proto)
-        logger_patch_util_profiling_c(proto)
 
     if detect:
         if not proto_exists(proto):

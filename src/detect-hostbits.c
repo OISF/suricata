@@ -62,10 +62,11 @@ TODO:
     hostbits:set,bitname,both,120;
  */
 
-#define PARSE_REGEX "^([a-z]+)"          /* Action */                    \
-    "(?:\\s*,\\s*([^\\s,]+))?(?:\\s*)?" /* Name. */                     \
-    "(?:\\s*,\\s*([^,\\s]+))?(?:\\s*)?" /* Direction. */                \
-    "(.+)?"                             /* Any remainding data. */
+#define PARSE_REGEX                                                                                \
+    "^([a-z]+)"                         /* Action */                                               \
+    "(?:\\s*,\\s*([^\\s,]+))?(?:\\s*)?" /* Name. */                                                \
+    "(?:\\s*,\\s*([^,\\s]+))?(?:\\s*)?" /* Direction. */                                           \
+    "(.+)?"                             /* Any remaining data. */
 static DetectParseRegex parse_regex;
 
 static int DetectHostbitMatch (DetectEngineThreadCtx *, Packet *,
@@ -544,7 +545,7 @@ static int HostBitsTestParse01(void)
 /**
  * \test HostBitsTestSig01 is a test for a valid noalert flowbits option
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -594,7 +595,7 @@ static int HostBitsTestSig01(void)
 /**
  * \test various options
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 
@@ -643,7 +644,7 @@ static int HostBitsTestSig02(void)
 /**
  * \test HostBitsTestSig03 is a test check idx value
  *
- *  \retval 1 on succces
+ *  \retval 1 on success
  *  \retval 0 on failure
  */
 

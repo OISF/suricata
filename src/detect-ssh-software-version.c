@@ -27,7 +27,7 @@
  * also specify the version, something like
  * ssh.softwareversion:"PuTTY-Release-0.55"
  * I find this useful to match over a known vulnerable server/client
- * software version incombination to other checks, so you can know
+ * software version in combination to other checks, so you can know
  * that the risk is higher
  */
 

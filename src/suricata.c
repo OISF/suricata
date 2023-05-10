@@ -143,6 +143,11 @@
 #include "util-time.h"
 #include "util-validate.h"
 
+#ifdef WINDIVERT
+#include "decode-sll.h"
+#include "win32-syscall.h"
+#endif
+
 /*
  * we put this here, because we only use it here in main.
  */
@@ -158,7 +163,7 @@ volatile sig_atomic_t sigusr2_count = 0;
  */
 SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 
-/* Max packets processed simultaniously per thread. */
+/* Max packets processed simultaneously per thread. */
 #define DEFAULT_MAX_PENDING_PACKETS 1024
 
 /** suricata engine control flags */
@@ -176,7 +181,7 @@ static enum EngineMode g_engine_mode = ENGINE_MODE_UNKNOWN;
 uint8_t host_mode = SURI_HOST_IS_SNIFFER_ONLY;
 
 /** Maximum packets to simultaneously process. */
-intmax_t max_pending_packets;
+uint16_t max_pending_packets;
 
 /** global indicating if detection is enabled */
 int g_detect_disabled = 0;
@@ -186,7 +191,7 @@ int sc_set_caps = FALSE;
 
 bool g_system = false;
 
-/** disable randomness to get reproducible results accross runs */
+/** disable randomness to get reproducible results across runs */
 #ifndef AFLFUZZ_NO_RANDOM
 int g_disable_randomness = 0;
 #else
@@ -367,7 +372,6 @@ static void GlobalsDestroy(SCInstance *suri)
     AppLayerDeSetup();
     DatasetsSave();
     DatasetsDestroy();
-    HttpRangeContainersDestroy();
     TagDestroyCtx();
 
     LiveDeviceListClean();
@@ -674,7 +678,7 @@ static void PrintUsage(const char *progname)
 #ifdef HAVE_LIBNET11
     printf("\t--reject-dev <dev>                   : send reject packets from this interface\n");
 #endif
-    printf("\t--include <path>                     : additonal configuration file\n");
+    printf("\t--include <path>                     : additional configuration file\n");
     printf("\t--set name=value                     : set a configuration value\n");
     printf("\n");
     printf("\nTo run the engine with default configuration on "
@@ -1756,7 +1760,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 }
                 if (ConfigCheckDataDirectory(optarg) != TM_ECODE_OK) {
                     SCLogError("The data directory \"%s\""
-                               " supplied at the commandline (-d %s) doesn't "
+                               " supplied at the command-line (-d %s) doesn't "
                                "exist. Shutting down the engine.",
                             optarg, optarg);
                     return TM_ECODE_FAILED;
@@ -1799,7 +1803,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     }
                 }
             } else {
-                int r = ExceptionSimulationCommandlineParser(
+                int r = ExceptionSimulationCommandLineParser(
                         (long_opts[option_index]).name, optarg);
                 if (r < 0)
                     return TM_ECODE_FAILED;
@@ -1880,14 +1884,14 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             if (ConfigCheckLogDirectoryExists(optarg) != TM_ECODE_OK) {
                 SCLogError("The logging directory \"%s\""
-                           " supplied at the commandline (-l %s) doesn't "
+                           " supplied at the command-line (-l %s) doesn't "
                            "exist. Shutting down the engine.",
                         optarg, optarg);
                 return TM_ECODE_FAILED;
             }
             if (!IsLogDirectoryWritable(optarg)) {
                 SCLogError("The logging directory \"%s\""
-                           " supplied at the commandline (-l %s) is not "
+                           " supplied at the command-line (-l %s) is not "
                            "writable. Shutting down the engine.",
                         optarg, optarg);
                 return TM_ECODE_FAILED;
@@ -2043,7 +2047,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         return TM_ECODE_FAILED;
     }
 
-    /* save the runmode from the commandline (if any) */
+    /* save the runmode from the command-line (if any) */
     suri->aux_run_mode = suri->run_mode;
 
     if (list_app_layer_protocols)
@@ -2301,6 +2305,7 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     HostCleanup();
     StreamTcpFreeConfig(STREAM_VERBOSE);
     DefragDestroy();
+    HttpRangeContainersDestroy();
 
     TmqResetQueues();
 #ifdef PROFILING
@@ -2344,19 +2349,19 @@ static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
             if (SCServiceInstall(argc, argv)) {
                 return TM_ECODE_FAILED;
             }
-            SCLogInfo("Suricata service has been successfuly installed.");
+            SCLogInfo("Suricata service has been successfully installed.");
             return TM_ECODE_DONE;
         case RUNMODE_REMOVE_SERVICE:
             if (SCServiceRemove(argc, argv)) {
                 return TM_ECODE_FAILED;
             }
-            SCLogInfo("Suricata service has been successfuly removed.");
+            SCLogInfo("Suricata service has been successfully removed.");
             return TM_ECODE_DONE;
         case RUNMODE_CHANGE_SERVICE_PARAMS:
             if (SCServiceChangeParams(argc, argv)) {
                 return TM_ECODE_FAILED;
             }
-            SCLogInfo("Suricata service startup parameters has been successfuly changed.");
+            SCLogInfo("Suricata service startup parameters has been successfully changed.");
             return TM_ECODE_DONE;
 #endif /* OS_WIN32 */
         default:
@@ -2426,16 +2431,19 @@ static int ConfigGetCaptureValue(SCInstance *suri)
 {
     /* Pull the max pending packets from the config, if not found fall
      * back on a sane default. */
-    if (ConfGetInt("max-pending-packets", &max_pending_packets) != 1)
-        max_pending_packets = DEFAULT_MAX_PENDING_PACKETS;
-    if (max_pending_packets >= 65535) {
-        SCLogError("Maximum max-pending-packets setting is 65534. "
+    intmax_t tmp_max_pending_packets;
+    if (ConfGetInt("max-pending-packets", &tmp_max_pending_packets) != 1)
+        tmp_max_pending_packets = DEFAULT_MAX_PENDING_PACKETS;
+    if (tmp_max_pending_packets < 1 || tmp_max_pending_packets >= UINT16_MAX) {
+        SCLogError("Maximum max-pending-packets setting is 65534 and must be greater than 0. "
                    "Please check %s for errors",
                 suri->conf_filename);
         return TM_ECODE_FAILED;
+    } else {
+        max_pending_packets = (uint16_t)tmp_max_pending_packets;
     }
 
-    SCLogDebug("Max pending packets set to %"PRIiMAX, max_pending_packets);
+    SCLogDebug("Max pending packets set to %" PRIu16, max_pending_packets);
 
     /* Pull the default packet size from the config, if not found fall
      * back on a sane default. */
@@ -2446,9 +2454,9 @@ static int ConfigGetCaptureValue(SCInstance *suri)
         int strip_trailing_plus = 0;
         switch (suri->run_mode) {
 #ifdef WINDIVERT
-            case RUNMODE_WINDIVERT:
+            case RUNMODE_WINDIVERT: {
                 /* by default, WinDivert collects from all devices */
-                mtu = GetGlobalMTUWin32();
+                const int mtu = GetGlobalMTUWin32();
 
                 if (mtu > 0) {
                     /* SLL_HEADER_LEN is the longest header + 8 for VLAN */
@@ -2457,6 +2465,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                 }
                 default_packet_size = DEFAULT_PACKET_SIZE;
                 break;
+            }
 #endif /* WINDIVERT */
             case RUNMODE_NETMAP:
                 /* in netmap igb0+ has a special meaning, however the
@@ -2728,7 +2737,7 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     /* hardcoded initialization code */
     SigTableSetup(); /* load the rule keywords */
-    SigTableApplyStrictCommandlineOption(suri->strict_rule_parsing_string);
+    SigTableApplyStrictCommandLineOption(suri->strict_rule_parsing_string);
     TmqhSetup();
 
     TagInitCtx();
@@ -2764,7 +2773,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     if (InitSignalHandler(suri) != TM_ECODE_OK)
         SCReturnInt(TM_ECODE_FAILED);
 
-    /* Check for the existance of the default logging directory which we pick
+    /* Check for the existence of the default logging directory which we pick
      * from suricata.yaml.  If not found, shut the engine down */
     suri->log_dir = ConfigGetLogDirectory();
 

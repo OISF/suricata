@@ -171,7 +171,7 @@ $HOME_NET                           Your setting of HOME_NET in yaml
 .. note::
 
    Please note that the source and destination address can also be matched via the ``ip.src`` and ``ip.dst`` keywords (See :ref:`ipaddr`). These
-   keywords are mostly used in conjuction with the dataset feature (:ref:`datasets`).
+   keywords are mostly used in conjunction with the dataset feature (:ref:`datasets`).
 
 Ports (source and destination)
 ------------------------------

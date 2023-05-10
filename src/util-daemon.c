@@ -105,7 +105,7 @@ void Daemonize (void)
     /* Register the signal handler */
     signal(SIGUSR1, SignalHandlerSigusr1);
 
-    /** \todo We should check if wie allow more than 1 instance
+    /** \todo We should check if we allow more than 1 instance
               to run simultaneously. Maybe change the behaviour
               through conf file */
 

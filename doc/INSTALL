@@ -1,14 +1,5 @@
-About
-=====
-Suricata is a multi-threaded intrusion detection/prevention engine.
-engine available from the Open Information Security Foundation 
-(https://www.openinfosecfoundation.org).
+See doc/userguide/install.rst
 
-Suricata and the HTP library are licensed under the GPLv2. A copy of this
-license is available in this tarball, or at:
-http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+An hosted version of this can be found at Read The Docs:
 
-Up to date installation guides are available online, at:
-https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_Installation
-
-
+https://suricata.readthedocs.io/en/latest/install.html

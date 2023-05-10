@@ -59,7 +59,7 @@ static int DetectParseTestNoOpt(void)
     PASS;
 }
 
-static int SigParseTestNegatationNoWhitespace(void)
+static int SigParseTestNegationNoWhitespace(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -147,7 +147,7 @@ void DetectParseRegisterTests(void)
 {
     UtRegisterTest("DetectParseTest01", DetectParseTest01);
     UtRegisterTest("DetectParseTestNoOpt", DetectParseTestNoOpt);
-    UtRegisterTest("SigParseTestNegatationNoWhitespace", SigParseTestNegatationNoWhitespace);
+    UtRegisterTest("SigParseTestNegationNoWhitespace", SigParseTestNegationNoWhitespace);
     UtRegisterTest("SigParseTestWhitespaceLessThan14", SigParseTestWhitespaceLessThan14);
     UtRegisterTest("SigParseTestWhitespace14Spaces", SigParseTestWhitespace14Spaces);
     UtRegisterTest("SigParseTestWhitespaceMoreThan14", SigParseTestWhitespaceMoreThan14);

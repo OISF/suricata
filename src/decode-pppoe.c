@@ -376,7 +376,7 @@ static int DecodePPPOEtest04 (void)
 }
 
 /** DecodePPPOEtest05
- *  \brief Valid exaple PADO PPPOE packet taken from RFC2516, but too short for given length
+ *  \brief Valid example PADO PPPOE packet taken from RFC2516, but too short for given length
  *  \retval 0 Expected test value
  */
 static int DecodePPPOEtest05 (void)

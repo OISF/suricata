@@ -198,7 +198,7 @@ TmEcode AlertFastLogThreadInit(ThreadVars *t, const void *initdata, void **data)
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
-    /** Use the Ouptut Context (file pointer and mutex) */
+    /** Use the Output Context (file pointer and mutex) */
     aft->file_ctx = ((OutputCtx *)initdata)->data;
 
     *data = (void *)aft;
@@ -282,7 +282,7 @@ static int AlertFastLogTest01(void)
     de_ctx->flags |= DE_QUIET;
 
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+    SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
             "(msg:\"FastLog test\"; content:\"GET\"; "
@@ -323,7 +323,7 @@ static int AlertFastLogTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+    SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
             "(msg:\"FastLog test\"; content:\"GET\"; "

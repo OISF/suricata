@@ -158,7 +158,7 @@ static int CIPPathMatch(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
 
 /**
  * \brief Matches the rule to the ENIP Transaction
- * @param enip_data - the ENIP transation
+ * @param enip_data - the ENIP transaction
  * * @param cipserviced - the CIP service rule
  */
 

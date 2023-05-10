@@ -1132,7 +1132,7 @@ static int ICMPV6EchoRepTest02(void)
     PASS;
 }
 
-/**\test icmpv6 packet decoding and setting up of payload_len and payload buufer
+/**\test icmpv6 packet decoding and setting up of payload_len and payload buffer
  * \retval retval 0 = Error ; 1 = ok
  */
 static int ICMPV6PayloadTest01(void)
@@ -1556,8 +1556,7 @@ void DecodeICMPV6RegisterTests(void)
 #ifdef UNITTESTS
     UtRegisterTest("ICMPV6CalculateValidChecksumtest01",
                    ICMPV6CalculateValidChecksumtest01);
-    UtRegisterTest("ICMPV6CalculateInValidChecksumtest02",
-                   ICMPV6CalculateInvalidChecksumtest02);
+    UtRegisterTest("ICMPV6CalculateInvalidChecksumtest02", ICMPV6CalculateInvalidChecksumtest02);
 
     UtRegisterTest("ICMPV6ParamProbTest01 (Valid)", ICMPV6ParamProbTest01);
     UtRegisterTest("ICMPV6DestUnreachTest01 (Valid)", ICMPV6DestUnreachTest01);

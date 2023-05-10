@@ -19,7 +19,7 @@
  *
  * \author Giuseppe Longo <giuseppe@glongo.it>
  *
- * \brief Decompress files transfered via HTTP corresponding to file_data
+ * \brief Decompress files transferred via HTTP corresponding to file_data
  * keyword.
  *
  */
@@ -60,13 +60,13 @@ int FileIsSwfFile(const uint8_t *buffer, uint32_t buffer_len)
  * \param buffer compressed buffer
  * \param buffer_len compressed buffer length
  * \param decompressed_buffer buffer that store decompressed data
- * \param decompressed_buffer_len decompressesd data length
+ * \param decompressed_buffer_len decompressed data length
  * \param swf_type decompression algorithm to use
  * \param decompress_depth how much decompressed data we want to store
  * \param compress_depth how much compressed data we want to decompress
  *
  * \retval 1 if decompression works
- * \retval 0 an error occured, and event set
+ * \retval 0 an error occurred, and event set
  */
 int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
                          DetectEngineThreadCtx *det_ctx,

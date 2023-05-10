@@ -396,7 +396,7 @@ void DetectContentFree(DetectEngineCtx *de_ctx, void *ptr)
  *  \param max_size Maximum buffer/data size allowed.
  *  \param list signature match list.
  *  \param len Maximum length required
- *  \param offset Maximum offset encounted
+ *  \param offset Maximum offset encountered
  *
  *  Note that negated content does not contribute to the maximum
  *  required size value. However, each negated content's values
@@ -907,7 +907,7 @@ static int g_file_data_buffer_id = 0;
 static int g_dce_stub_data_buffer_id = 0;
 
 /**
- * \test DetectCotentParseTest01 this is a test to make sure we can deal with escaped colons
+ * \test DetectContentParseTest01 this is a test to make sure we can deal with escaped colons
  */
 static int DetectContentParseTest01 (void)
 {
@@ -938,7 +938,7 @@ static int DetectContentParseTest01 (void)
 }
 
 /**
- * \test DetectCotentParseTest02 this is a test to make sure we can deal with escaped semi-colons
+ * \test DetectContentParseTest02 this is a test to make sure we can deal with escaped semi-colons
  */
 static int DetectContentParseTest02 (void)
 {
@@ -969,7 +969,7 @@ static int DetectContentParseTest02 (void)
 }
 
 /**
- * \test DetectCotentParseTest03 this is a test to make sure we can deal with escaped double-quotes
+ * \test DetectContentParseTest03 this is a test to make sure we can deal with escaped double-quotes
  */
 static int DetectContentParseTest03 (void)
 {
@@ -1000,7 +1000,7 @@ static int DetectContentParseTest03 (void)
 }
 
 /**
- * \test DetectCotentParseTest04 this is a test to make sure we can deal with escaped backslashes
+ * \test DetectContentParseTest04 this is a test to make sure we can deal with escaped backslashes
  */
 static int DetectContentParseTest04 (void)
 {
@@ -1032,7 +1032,7 @@ static int DetectContentParseTest04 (void)
 }
 
 /**
- * \test DetectCotentParseTest05 test illegal escape
+ * \test DetectContentParseTest05 test illegal escape
  */
 static int DetectContentParseTest05 (void)
 {
@@ -1057,7 +1057,7 @@ static int DetectContentParseTest05 (void)
 }
 
 /**
- * \test DetectCotentParseTest06 test a binary content
+ * \test DetectContentParseTest06 test a binary content
  */
 static int DetectContentParseTest06 (void)
 {
@@ -1089,7 +1089,7 @@ static int DetectContentParseTest06 (void)
 }
 
 /**
- * \test DetectCotentParseTest07 test an empty content
+ * \test DetectContentParseTest07 test an empty content
  */
 static int DetectContentParseTest07 (void)
 {
@@ -1112,7 +1112,7 @@ static int DetectContentParseTest07 (void)
 }
 
 /**
- * \test DetectCotentParseTest08 test an empty content
+ * \test DetectContentParseTest08 test an empty content
  */
 static int DetectContentParseTest08 (void)
 {
@@ -2290,8 +2290,10 @@ static int SigTest41aTestNegatedContent(void)
  *       the negated content within the specified depth
  */
 static int SigTest42TestNegatedContent(void)
-{                                                                                                                                                        // 01   5    10   15   20  24
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!\"twentythree\"; depth:22; offset:35; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+{
+    return SigTestPositiveTestContent(
+            "alert tcp any any -> any any (content:!\"eeeeeeeeeee\"; depth:22; offset:35; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff gggggggg hhhhhhhh");
 }
 
 /**
@@ -2303,7 +2305,9 @@ static int SigTest42TestNegatedContent(void)
  */
 static int SigTest43TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (content:!\"twentythree\"; depth:34; offset:23; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent(
+            "alert tcp any any -> any any (content:!\"eeeeeeeeeee\"; depth:34; offset:23; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff gggggggg hhhhhhhh");
 }
 
 /**
@@ -2313,7 +2317,9 @@ static int SigTest43TestNegatedContent(void)
  */
 static int SigTest44TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!\"twentythree\"; offset:40; depth:35; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent(
+            "alert tcp any any -> any any (content:!\"eeeeeeeeeee\"; offset:40; depth:35; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff gggggggg hhhhhhhh");
 }
 
 /**
@@ -2322,7 +2328,9 @@ static int SigTest44TestNegatedContent(void)
  */
 static int SigTest45TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"one\"; depth:5; content:!\"twentythree\"; depth:23; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (content:\"aaa\"; depth:5; "
+                                      "content:!\"eeeeeeeeeee\"; depth:23; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff gggggggg hhhhhhhh");
 }
 
 /**
@@ -2331,7 +2339,9 @@ static int SigTest45TestNegatedContent(void)
  */
 static int SigTest46TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"onee\"; content:!\"twentythree\"; depth:23; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"aaaE\"; "
+                                      "content:!\"eeeeeeeeeee\"; depth:23; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff gggggggg hhhhhhhh");
 }
 
 /**
@@ -2341,7 +2351,9 @@ static int SigTest46TestNegatedContent(void)
  */
 static int SigTest47TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"one\"; offset:5; content:!\"twentythree\"; depth:23; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"aaa\"; offset:5; "
+                                      "content:!\"eeeeeeeeeee\"; depth:23; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff gggggggg hhhhhhhh");
 }
 
 /**
@@ -2350,7 +2362,10 @@ static int SigTest47TestNegatedContent(void)
  */
 static int SigTest48TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET\"; content:!\"GES\"; within:26; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+    return SigTestPositiveTestContent(
+            "alert tcp any any -> any any (content:\"GET\"; content:!\"GES\"; within:26; sid:1;)",
+            (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ "
+                       "HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
 }
 
 /**
@@ -2359,7 +2374,10 @@ static int SigTest48TestNegatedContent(void)
  */
 static int SigTest49TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET\"; content:!\"Host\"; within:26; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+    return SigTestNegativeTestContent(
+            "alert tcp any any -> any any (content:\"GET\"; content:!\"Host\"; within:26; sid:1;)",
+            (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ "
+                       "HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
 }
 
 /**
@@ -2368,7 +2386,10 @@ static int SigTest49TestNegatedContent(void)
  */
 static int SigTest50TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET\"; content:!\"GES\"; distance:25; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+    return SigTestPositiveTestContent(
+            "alert tcp any any -> any any (content:\"GET\"; content:!\"GES\"; distance:25; sid:1;)",
+            (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ "
+                       "HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
 }
 
 /**
@@ -2389,7 +2410,10 @@ static int SigTest51TestNegatedContent(void)
  */
 static int SigTest52TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GES\"; content:!\"BOO\"; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+    return SigTestNegativeTestContent(
+            "alert tcp any any -> any any (content:\"GES\"; content:!\"BOO\"; sid:1;)",
+            (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ "
+                       "HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
 }
 
 /**
@@ -2398,7 +2422,9 @@ static int SigTest52TestNegatedContent(void)
  */
 static int SigTest53TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"one\"; content:!\"fourty\"; within:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent(
+            "alert tcp any any -> any any (content:\"aaa\"; content:!\"Ggggg\"; within:56; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 /**
@@ -2407,7 +2433,9 @@ static int SigTest53TestNegatedContent(void)
  */
 static int SigTest54TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"one\"; content:!\"fourty\"; within:20; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (content:\"aaa\"; "
+                                      "content:!\"gggggg\"; within:20; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff ggggggggg hhhhhhhh");
 }
 
 /**
@@ -2416,7 +2444,9 @@ static int SigTest54TestNegatedContent(void)
  */
 static int SigTest55TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!\"one\"; depth:5; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent(
+            "alert tcp any any -> any any (content:!\"aaa\"; depth:5; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff gggggggg hhhhhhhh");
 }
 
 /**
@@ -2425,7 +2455,9 @@ static int SigTest55TestNegatedContent(void)
  */
 static int SigTest56TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"one\"; content:\"fourty\"; within:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent(
+            "alert tcp any any -> any any (content:\"aaa\"; content:\"Ggggg\"; within:56; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Gggggggg hhhhhhhh");
 }
 
 /**
@@ -2434,7 +2466,9 @@ static int SigTest56TestNegatedContent(void)
  */
 static int SigTest57TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"one\"; content:!\"fourty\"; within:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent(
+            "alert tcp any any -> any any (content:\"aaa\"; content:!\"Ggggg\"; within:56; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 /**
@@ -2443,7 +2477,9 @@ static int SigTest57TestNegatedContent(void)
  */
 static int SigTest58TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"one\"; content:!\"fourty\"; distance:57; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (content:\"aaa\"; "
+                                      "content:!\"Ggggg\"; distance:57; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 /**
@@ -2452,92 +2488,124 @@ static int SigTest58TestNegatedContent(void)
  */
 static int SigTest59TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"one\"; content:!\"fourty\"; distance:30; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"aaa\"; "
+                                      "content:!\"Gggg\"; distance:30; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 static int SigTest60TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:!\"one\"; content:\"fourty\"; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent(
+            "alert tcp any any -> any any (content:!\"aaa\"; content:\"Ggggg\"; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 static int SigTest61TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (content:\"one\"; depth:10; content:!\"fourty\"; within:30; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (content:\"aaa\"; depth:10; "
+                                      "content:!\"Ggggg\"; within:30; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 /** \test Test negation in combination with within and depth
  *
- *  Match of "one" at offset:0, depth:3
- *  Match of "fourty" at offset:46, depth:52
+ *  Match of "aaa" at offset:0, depth:3
+ *  Match of "Gggggg" at offset:46, depth:52
  *
  *  This signature should not match for the test to pass.
  */
 static int SigTest62TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"one\"; depth:10; content:!\"fourty\"; within:49; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"aaa\"; depth:10; "
+                                      "content:!\"Gggggg\"; within:49; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 static int SigTest63TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"one\"; depth:10; content:!\"fourty\"; within:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"aaa\"; depth:10; "
+                                      "content:!\"Gggggg\"; within:56; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 static int SigTest64TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (content:\"one\"; depth:10; content:!\"fourty\"; within:30; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (content:\"aaa\"; depth:10; "
+                                      "content:!\"Gggggg\"; within:30; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 /** \test Test negation in combination with within and depth
  *
- *  Match of "one" at offset:0, depth:3
- *  Match of "fourty" at offset:46, depth:52
+ *  Match of "aaa" at offset:0, depth:3
+ *  Match of "gggggg" at offset:46, depth:52
  *
  *  This signature should not match for the test to pass.
  */
 static int SigTest65TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"one\"; depth:10; content:!\"fourty\"; distance:0; within:49; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"aaa\"; depth:10; "
+                                      "content:!\"Gggggg\"; distance:0; within:49; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 static int SigTest66TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (content:\"one\"; depth:10; content:!\"fourty\"; within:30; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (content:\"aaa\"; depth:10; "
+                                      "content:!\"Gggggg\"; within:30; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 static int SigTest67TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"one\"; depth:10; content:!\"four\"; within:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"aaa\"; depth:10; "
+                                      "content:!\"XXXX\"; within:56; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc XXXXdddd eeeeeeeeeee ffffffffff XXXXggggg hhhhhhhh");
 }
 
 static int SigTest68TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (content:\"one\"; depth:10; content:\"nine\"; offset:8; content:!\"fourty\"; within:28; content:\"fiftysix\"; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent(
+            "alert tcp any any -> any any (content:\"aaa\"; depth:10; content:\"cccc\"; offset:8; "
+            "content:!\"Gggggg\"; within:28; content:\"hhhhhhhh\"; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 static int SigTest69TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"one\"; depth:10; content:\"nine\"; offset:8; content:!\"fourty\"; within:48; content:\"fiftysix\"; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent(
+            "alert tcp any any -> any any (content:\"aaa\"; depth:10; content:\"cccc\"; offset:8; "
+            "content:!\"Gggggg\"; within:48; content:\"hhhhhhhh\"; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 static int SigTest70TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"one\"; content:!\"fourty\"; within:52; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"aaa\"; "
+                                      "content:!\"Gggggg\"; within:52; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 /** \test within and distance */
 static int SigTest71TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"one\"; content:!\"fourty\"; within:40; distance:43; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"aaa\"; "
+                                      "content:!\"Gggggg\"; within:40; distance:43; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 static int SigTest72TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"one\"; content:!\"fourty\"; within:49; distance:43; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"aaa\"; "
+                                      "content:!\"Gggggg\"; within:49; distance:43; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff Ggggggggg hhhhhhhh");
 }
 
 static int SigTest73TestNegatedContent(void)
 {
-    return SigTestNegativeTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"one\"; depth:5; content:!\"twentythree\"; depth:35; sid:1;)",  (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestNegativeTestContent("alert tcp any any -> any any (content:\"aaa\"; depth:5; "
+                                      "content:!\"eeeeeeeeeee\"; depth:35; sid:1;)",
+            (uint8_t *)"aaa bbbb cccc dddddddd eeeeeeeeeee ffffffffff ggggggggg hhhhhhhh");
 }
 
 static int SigTest74TestNegatedContent(void)

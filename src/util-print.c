@@ -36,7 +36,7 @@
  *  Prints in the format "00 AA BB"
  *
  *  \param nbuf buffer into which the output is written
- *  \param offset of where to start writting into the buffer
+ *  \param offset of where to start writing into the buffer
  *  \param max_size the size of the output buffer
  *  \param buf buffer to print from
  *  \param buflen length of the input buffer
@@ -51,7 +51,7 @@ void PrintBufferRawLineHex(char *nbuf, int *offset, int max_size, const uint8_t 
 }
 
 /**
- *  \brief print a buffer as hex on a single line in to retbuf buffer
+ *  \brief print a buffer as hex on a single line into retbuf buffer
  *
  *  Prints in the format "00 AA BB"
  *

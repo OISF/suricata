@@ -67,9 +67,9 @@ typedef struct AlertDebugLogThread_ {
 } AlertDebugLogThread;
 
 /**
- *  \brief Function to log the FlowVars in to alert-debug.log
+ *  \brief Function to log the FlowVars into alert-debug.log
  *
- *  \param aft Pointer to AltertDebugLog Thread
+ *  \param aft Pointer to AlertDebugLog Thread
  *  \param p Pointer to the packet
  *
  */
@@ -115,9 +115,9 @@ static void AlertDebugLogFlowVars(AlertDebugLogThread *aft, const Packet *p)
 }
 
 /**
- *  \brief Function to log the PktVars in to alert-debug.log
+ *  \brief Function to log the PktVars into alert-debug.log
  *
- *  \param aft Pointer to AltertDebugLog Thread
+ *  \param aft Pointer to AlertDebugLog Thread
  *  \param p Pointer to the packet
  *
  */
@@ -385,7 +385,7 @@ static TmEcode AlertDebugLogThreadInit(ThreadVars *t, const void *initdata, void
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
-    /** Use the Ouptut Context (file pointer and mutex) */
+    /** Use the Output Context (file pointer and mutex) */
     aft->file_ctx = ((OutputCtx *)initdata)->data;
 
     /* 1 mb seems sufficient enough */

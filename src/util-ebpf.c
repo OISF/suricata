@@ -513,7 +513,7 @@ static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, LiveDevice *dev,
         return false;
 
     /* set accounting, we can't know the direction, so let's just start to
-     * server then if we already have something in to server to client. We need
+     * serve them if we already have something from server to client. We need
      * these numbers as we will use it to see if we have new traffic coming
      * on the flow */
     FlowBypassInfo *fc = FlowGetStorageById(f, GetFlowBypassInfoID());

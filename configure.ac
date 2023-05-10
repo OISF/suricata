@@ -323,7 +323,7 @@
 
     #Enable support for gcc compile time security options. There is no great way to do detection of valid cflags that I have found
     #AX_CFLAGS_GCC_OPTION don't seem to do a better job than the code below and are a pain because of extra m4 files etc.
-    #These flags seem to be supported on CentOS 5+, Ubuntu 8.04+, and FedoreCore 11+
+    #These flags seem to be supported on CentOS 5+, Ubuntu 8.04+, and FedoraCore 11+
     #Options are taken from https://wiki.ubuntu.com/CompilerFlags
     AC_ARG_ENABLE(gccprotect,
            AS_HELP_STRING([--enable-gccprotect], [Detect and use gcc hardening options]),[enable_gccprotect=$enableval],[enable_gccprotect=no])
@@ -1467,7 +1467,7 @@
         [Disable suricata-update]), [enable_suricata_update=$enableval],
       [enable_suricata_update="yes"])
 
-    # Assume suircata-update will not be installed.
+    # Assume suricata-update will not be installed.
     have_suricata_update="no"
 
     if test "$enable_suricata_update" = "yes"; then
@@ -2405,7 +2405,7 @@ fi
         CFLAGS_ORIG=$CFLAGS
         CFLAGS="-Werror"
         AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[while (__AFL_LOOP(1000))]])],
-                [AC_DEFINE([AFLFUZZ_PERSISTANT_MODE], [1], [Enable AFL PERSISTANT_MODE])],
+                [AC_DEFINE([AFLFUZZ_PERSISTENT_MODE], [1], [Enable AFL PERSISTENT_MODE])],
                 [])
         CFLAGS=$CFLAGS_ORIG
         AC_LANG_PUSH(C++)

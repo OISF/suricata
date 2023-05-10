@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -28,8 +28,6 @@
  *  \todo come up with a way for users to specify icmp unreachable type
  *  \todo Possibly default to port unreachable for UDP traffic this seems
  *        to be the default in flexresp and iptables
- *  \todo implement ipv6 resets
- *  \todo implement pre-alloc resets for speed
  */
 
 #include "suricata-common.h"
@@ -262,14 +260,11 @@ static inline int BuildEthernet(libnet_t *c, Libnet11Packet *lpacket, uint16_t p
 
 static inline int BuildEthernetVLAN(libnet_t *c, Libnet11Packet *lpacket, uint16_t proto, uint16_t vlan_id)
 {
-    if (libnet_build_802_1q(
-                lpacket->dmac, lpacket->smac, ETHERTYPE_VLAN,
-                0x000, 0x000, vlan_id, proto,
-                NULL,                                   /* payload */
-                0,                                      /* payload size */
-                c,                                      /* libnet handle */
-                0) < 0)
-    {
+    if (libnet_build_802_1q(lpacket->dmac, lpacket->smac, ETHERTYPE_VLAN, 0, 0, vlan_id, proto,
+                NULL, /* payload */
+                0,    /* payload size */
+                c,    /* libnet handle */
+                0) < 0) {
         SCLogError("libnet_build_802_1q %s", libnet_geterror(c));
         return -1;
     }
@@ -437,7 +432,7 @@ int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
     if (c == NULL)
         return 1;
 
-    lpacket.len = LIBNET_IPV6_H + LIBNET_TCP_H;
+    lpacket.len = LIBNET_TCP_H;
     lpacket.dsize = p->payload_len;
 
     switch (dir) {
@@ -458,7 +453,7 @@ int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
 
     BuildTCP(c, &lpacket);
 
-    if (BuildIPv6(c, &lpacket, IPPROTO_ICMP) < 0)
+    if (BuildIPv6(c, &lpacket, IPPROTO_TCP) < 0)
         goto cleanup;
 
     if (t_inject_mode == LIBNET_LINK) {

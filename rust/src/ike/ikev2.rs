@@ -222,7 +222,7 @@ fn add_proposals(
                 IkeV2Transform::Auth(ref auth) => {
                     match *auth {
                         IkeTransformAuthType::NONE => {
-                            // Note: this could be expected with an AEAD encription alg.
+                            // Note: this could be expected with an AEAD encryption alg.
                             // See rule 4
                         }
                         IkeTransformAuthType::AUTH_HMAC_MD5_96

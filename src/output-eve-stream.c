@@ -80,7 +80,7 @@ static TmEcode EveStreamLogThreadInit(ThreadVars *t, const void *initdata, void 
         goto error_exit;
     }
 
-    /** Use the Ouptut Context (file pointer and mutex) */
+    /** Use the Output Context (file pointer and mutex) */
     aft->stream_ctx = ((OutputCtx *)initdata)->data;
     aft->ctx = CreateEveThreadCtx(t, aft->stream_ctx->eve_ctx);
     if (!aft->ctx) {

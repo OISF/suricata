@@ -263,7 +263,7 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     HostBitInitCtx();
 
     StorageFinalize();
-   /* test and initialize the unittesting subsystem */
+    /* test and initialize the unit testing subsystem */
     if (regex_arg == NULL){
         regex_arg = ".*";
         UtRunSelftest(regex_arg); /* inits and cleans up again */
@@ -278,7 +278,7 @@ void RunUnittests(int list_unittests, const char *regex_arg)
         UtListTests(regex_arg);
     } else {
         /* global packet pool */
-        extern intmax_t max_pending_packets;
+        extern uint16_t max_pending_packets;
         max_pending_packets = 128;
         PacketPoolInit();
 

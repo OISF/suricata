@@ -148,7 +148,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 #include "stream-tcp-reassemble.h"
 
 /**
- * \test Test that a signature containting a http_response_line is correctly parsed
+ * \test Test that a signature containing a http_response_line is correctly parsed
  *       and the keyword is registered.
  */
 static int DetectHttpResponseLineTest01(void)

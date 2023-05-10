@@ -152,7 +152,7 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
     if (this_file)  {
         FileStoreFileById(fc, file_id);
     } else if (this_tx) {
-        /* set in AppLayerTxData. Parsers and logger will propegate it to the
+        /* set in AppLayerTxData. Parsers and logger will propagate it to the
          * individual files, both new and current. */
         void *txv = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, tx_id);
         DEBUG_VALIDATE_BUG_ON(txv == NULL);

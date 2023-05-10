@@ -523,7 +523,7 @@ void SCClassConfClasstypeHashFree(void *ch)
  * \param de_ctx Pointer to the Detection Engine Context that should be updated
  *               with Classtype information.
  */
-bool SCClassConfLoadClassficationConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
+bool SCClassConfLoadClassificationConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     fd = SCClassConfInitContextAndLocalResources(de_ctx, fd);
     if (fd == NULL) {
@@ -595,7 +595,7 @@ FILE *SCClassConfGenerateValidDummyClassConfigFD01(void)
 
     FILE *fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
-        SCLogDebug("Error with SCFmemopen() called by Classifiation Config test code");
+        SCLogDebug("Error with SCFmemopen() called by Classification Config test code");
 
     return fd;
 }
@@ -606,7 +606,7 @@ FILE *SCClassConfGenerateValidDummyClassConfigFD01(void)
  *
  * \file_path Pointer to the file_path for the dummy classification file.
  */
-FILE *SCClassConfGenerateInValidDummyClassConfigFD02(void)
+FILE *SCClassConfGenerateInvalidDummyClassConfigFD02(void)
 {
     const char *buffer =
         "config classification: not-suspicious,Not Suspicious Traffic,3\n"
@@ -619,7 +619,7 @@ FILE *SCClassConfGenerateInValidDummyClassConfigFD02(void)
 
     FILE *fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
-        SCLogDebug("Error with SCFmemopen() called by Classifiation Config test code");
+        SCLogDebug("Error with SCFmemopen() called by Classification Config test code");
 
     return fd;
 }
@@ -630,7 +630,7 @@ FILE *SCClassConfGenerateInValidDummyClassConfigFD02(void)
  *
  * \file_path Pointer to the file_path for the dummy classification file.
  */
-FILE *SCClassConfGenerateInValidDummyClassConfigFD03(void)
+FILE *SCClassConfGenerateInvalidDummyClassConfigFD03(void)
 {
     const char *buffer =
         "conig classification: not-suspicious,Not Suspicious Traffic,3\n"
@@ -640,7 +640,7 @@ FILE *SCClassConfGenerateInValidDummyClassConfigFD03(void)
 
     FILE *fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
-        SCLogDebug("Error with SCFmemopen() called by Classifiation Config test code");
+        SCLogDebug("Error with SCFmemopen() called by Classification Config test code");
 
     return fd;
 }
@@ -658,7 +658,7 @@ static int SCClassConfTest01(void)
         return result;
 
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+    SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     if (de_ctx->class_conf_ht == NULL)
         return result;
@@ -683,8 +683,8 @@ static int SCClassConfTest02(void)
     if (de_ctx == NULL)
         return result;
 
-    FILE *fd = SCClassConfGenerateInValidDummyClassConfigFD03();
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+    FILE *fd = SCClassConfGenerateInvalidDummyClassConfigFD03();
+    SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     if (de_ctx->class_conf_ht == NULL)
         return result;
@@ -698,7 +698,7 @@ static int SCClassConfTest02(void)
 
 /**
  * \test Check that only valid classtypes are loaded into the hash table from
- *       the classfication.config file.
+ *       the classification.config file.
  */
 static int SCClassConfTest03(void)
 {
@@ -706,8 +706,8 @@ static int SCClassConfTest03(void)
 
     FAIL_IF_NULL(de_ctx);
 
-    FILE *fd = SCClassConfGenerateInValidDummyClassConfigFD02();
-    FAIL_IF(SCClassConfLoadClassficationConfigFile(de_ctx, fd));
+    FILE *fd = SCClassConfGenerateInvalidDummyClassConfigFD02();
+    FAIL_IF(SCClassConfLoadClassificationConfigFile(de_ctx, fd));
 
     DetectEngineCtxFree(de_ctx);
 
@@ -727,7 +727,7 @@ static int SCClassConfTest04(void)
         return 0;
 
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+    SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     if (de_ctx->class_conf_ht == NULL)
         return 0;
@@ -759,8 +759,8 @@ static int SCClassConfTest05(void)
     if (de_ctx == NULL)
         return 0;
 
-    FILE *fd = SCClassConfGenerateInValidDummyClassConfigFD03();
-    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+    FILE *fd = SCClassConfGenerateInvalidDummyClassConfigFD03();
+    SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     if (de_ctx->class_conf_ht == NULL)
         return 0;

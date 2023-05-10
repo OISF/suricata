@@ -431,7 +431,8 @@ function CheckBranch {
             Error "Branch requires formatting"
             Debug "View required changes with clang-format: ${italic}$format_changes${normal}"
             Error "View required changes with: ${italic}$EXEC $command --diff${normal}"
-            Error "Use ${italic}$EXEC rewrite-branch${normal} or ${italic}$EXEC branch${normal} to fix formatting"
+            Error "Use ${italic}./scripts/$EXEC branch${normal} to fix formatting,
+            then add formatting changes to a new commit"
             ExitWith $EXIT_CODE_FORMATTING_REQUIRED
         else
             return $EXIT_CODE_FORMATTING_REQUIRED
@@ -588,7 +589,7 @@ if [ $((clang_format_version_major + 0)) -lt $((CLANG_FORMAT_REQUIRED_VERSION + 
     Die "Require clang version $CLANG_FORMAT_REQUIRED_VERSION, found $clang_format_version_major ($clang_format_version)."
 fi
 
-# overwite git-clang-version for --diffstat as upstream does not have that yet
+# overwrite git-clang-version for --diffstat as upstream does not have that yet
 RequireProgram GIT_CLANG_FORMAT_DIFFSTAT scripts/git-clang-format-custom
 if [ "$GIT_CLANG_FORMAT_BINARY" != "clang-format" ]; then
     GIT_CLANG_FORMAT="$GIT_CLANG_FORMAT --binary $GIT_CLANG_FORMAT_BINARY"

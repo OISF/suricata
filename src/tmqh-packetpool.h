@@ -42,7 +42,7 @@ typedef struct PktPool_ {
      */
     Packet *head;
     /* Packets waiting (pending) to be returned to the given Packet
-     * Pool. Accumulate packets for the same pool until a theshold is
+     * Pool. Accumulate packets for the same pool until a threshold is
      * reached, then return them all at once.  Keep the head and tail
      * to fast insertion of the entire list onto a return stack.
      */

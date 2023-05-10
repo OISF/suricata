@@ -24,6 +24,6 @@
 #ifndef __OUTPUT_JSON_TEMPLATE_RUST_H__
 #define __OUTPUT_JSON_TEMPLATE_RUST_H__
 
-void JsonTemplateRustLogRegister(void);
+void JsonTemplateLogRegister(void);
 
 #endif /* __OUTPUT_JSON_TEMPLATE_RUST_H__ */

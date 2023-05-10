@@ -1684,7 +1684,7 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
             continue;
         }
 
-        /* if the message lenght exceeds our input_len, we have a tls fragment. */
+        /* if the message length exceeds our input_len, we have a tls fragment. */
         if (record_len > input_len) {
             const uint32_t avail = input_len;
             const uint32_t size = avail + (4096 - (avail % 4096));
@@ -2374,7 +2374,7 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
                     ((ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0))
                 break;
 
-            /* if we see (encrypted) aplication data, then this means the
+            /* if we see (encrypted) application data, then this means the
                handshake must be done */
             ssl_state->flags |= SSL_AL_FLAG_HANDSHAKE_DONE;
 
@@ -2400,7 +2400,7 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
         case SSLV3_HANDSHAKE_PROTOCOL: {
             if (ssl_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) {
                 /* In TLSv1.3, ChangeCipherSpec is only used for middlebox
-                   compability (rfc8446, appendix D.4). */
+                   compatibility (rfc8446, appendix D.4). */
                 // Client hello flags is needed to have a valid version
                 if ((ssl_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
                         (ssl_state->client_connp.version > TLS_VERSION_12) &&
@@ -2474,7 +2474,7 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
  * \brief SSLv2, SSLv23, SSLv3, TLSv1.1, TLSv1.2, TLSv1.3 parser.
  *
  *        On parsing error, this should be the only function that should reset
- *        the parser state, to avoid multiple functions in the chain reseting
+ *        the parser state, to avoid multiple functions in the chain resetting
  *        the parser state.
  *
  * \param direction 0 for toserver, 1 for toclient.
@@ -2556,8 +2556,8 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
                     SSLv2Decode(direction, ssl_state, pstate, input, input_len, stream_slice);
             if (r.retval < 0 || r.retval > input_len) {
                 DEBUG_VALIDATE_BUG_ON(r.retval > input_len);
-                SCLogDebug("Error parsing SSLv2. Reseting parser "
-                        "state. Let's get outta here");
+                SCLogDebug("Error parsing SSLv2. Resetting parser "
+                           "state. Let's get outta here");
                 SSLParserReset(ssl_state);
                 SSLSetEvent(ssl_state,
                         TLS_DECODER_EVENT_INVALID_SSL_RECORD);
@@ -2583,8 +2583,8 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
                     SSLv3Decode(direction, ssl_state, pstate, input, input_len, stream_slice);
             if (r.retval < 0 || r.retval > input_len) {
                 DEBUG_VALIDATE_BUG_ON(r.retval > input_len);
-                SCLogDebug("Error parsing TLS. Reseting parser "
-                        "state.  Let's get outta here");
+                SCLogDebug("Error parsing TLS. Resetting parser "
+                           "state.  Let's get outta here");
                 SSLParserReset(ssl_state);
                 return APP_LAYER_ERROR;
             } else if (r.needed) {

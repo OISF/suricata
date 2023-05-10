@@ -27,7 +27,7 @@ Using Hyperscan
 
 To use the hyperscan support edit your suricata.yaml. Change the mpm-algo and spm-algo values to 'hs'.
 
-Alternatively, use this commandline option: --set mpm-algo=hs --set spm-algo=hs
+Alternatively, use this command-line option: --set mpm-algo=hs --set spm-algo=hs
 
 
 

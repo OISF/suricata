@@ -177,7 +177,7 @@ impl RdpState {
             if self.tls_parsing {
                 match parse_tls_plaintext(available) {
                     Ok((remainder, _tls)) => {
-                        // bytes available for futher parsing are what remain
+                        // bytes available for further parsing are what remain
                         available = remainder;
                     }
 
@@ -198,7 +198,7 @@ impl RdpState {
                 match parse_t123_tpkt(available) {
                     // success
                     Ok((remainder, t123)) => {
-                        // bytes available for futher parsing are what remain
+                        // bytes available for further parsing are what remain
                         available = remainder;
                         // evaluate message within the tpkt
                         match t123.child {
@@ -271,7 +271,7 @@ impl RdpState {
             if self.tls_parsing {
                 match parse_tls_plaintext(available) {
                     Ok((remainder, tls)) => {
-                        // bytes available for futher parsing are what remain
+                        // bytes available for further parsing are what remain
                         available = remainder;
                         for message in &tls.msg {
                             #[allow(clippy::single_match)]
@@ -312,7 +312,7 @@ impl RdpState {
                 match parse_t123_tpkt(available) {
                     // success
                     Ok((remainder, t123)) => {
-                        // bytes available for futher parsing are what remain
+                        // bytes available for further parsing are what remain
                         available = remainder;
                         // evaluate message within the tpkt
                         match t123.child {
@@ -492,7 +492,7 @@ pub unsafe extern "C" fn rs_rdp_register_parser() {
         get_tx_data: rs_rdp_get_tx_data,
         get_state_data: rs_rdp_get_state_data,
         apply_tx_config: None,
-        flags: APP_LAYER_PARSER_OPT_UNIDIR_TXS,
+        flags: 0,
         truncate: None,
         get_frame_id_by_name: None,
         get_frame_name_by_id: None,
