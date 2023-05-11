@@ -192,6 +192,7 @@ fn log_http2_frames(frames: &[HTTP2Frame], js: &mut JsonBuilder) -> Result<bool,
 }
 
 fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonError> {
+    js.open_object("http")?;
     js.set_string("version", "2")?;
 
     let mut common: HashMap<HeaderName, &Vec<u8>> = HashMap::new();
@@ -261,8 +262,8 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
     let has_response = log_http2_frames(&tx.frames_tc, js)?;
     js.close()?;
 
-    // Close http2.
-    js.close()?;
+    js.close()?; // http2
+    js.close()?; // http
 
     return Ok(has_request || has_response || has_headers);
 }

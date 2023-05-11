@@ -48,17 +48,6 @@
 
 #include "rust.h"
 
-void JsonSIPAddMetadata(JsonBuilder *js, const Flow *f, uint64_t tx_id)
-{
-    SIPState *state = FlowGetAppState(f);
-    if (state) {
-        SIPTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_SIP, state, tx_id);
-        if (tx) {
-            rs_sip_log_json(tx, js);
-        }
-    }
-}
-
 static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {

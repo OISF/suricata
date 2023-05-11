@@ -59,11 +59,9 @@ static int JsonSNMPLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    jb_open_object(jb, "snmp");
-    if (!rs_snmp_log_json_response(jb, snmptx)) {
+    if (!rs_snmp_log_json_response(snmptx, jb)) {
         goto error;
     }
-    jb_close(jb);
 
     OutputJsonBuilderBuffer(jb, thread);
 

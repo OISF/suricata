@@ -140,19 +140,6 @@ static TmEcode JsonQuicLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-bool JsonQuicAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
-{
-    void *state = FlowGetAppState(f);
-    if (state) {
-        void *tx = AppLayerParserGetTx(f->proto, ALPROTO_QUIC, state, tx_id);
-        if (tx) {
-            return rs_quic_to_json(tx, js);
-        }
-    }
-
-    return false;
-}
-
 void JsonQuicLogRegister(void)
 {
     /* Register as an eve sub-module. */
