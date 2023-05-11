@@ -51,7 +51,7 @@
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
 
-static void EveSmtpDataLogger(const Flow *f, void *state, void *vtx, uint64_t tx_id, JsonBuilder *js)
+static void EveSmtpDataLogger(void *state, void *vtx, JsonBuilder *js)
 {
     SMTPTransaction *tx = vtx;
     SMTPString *rcptto_str;
@@ -81,7 +81,7 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
         return TM_ECODE_OK;
 
     jb_open_object(jb, "smtp");
-    EveSmtpDataLogger(f, state, tx, tx_id, jb);
+    EveSmtpDataLogger(state, tx, jb);
     jb_close(jb);
 
     EveEmailLogJson(jhl, jb, p, f, state, tx, tx_id);
@@ -99,7 +99,7 @@ bool EveSMTPAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
     if (smtp_state) {
         SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, smtp_state, tx_id);
         if (tx) {
-            EveSmtpDataLogger(f, smtp_state, tx, tx_id, js);
+            EveSmtpDataLogger(smtp_state, tx, js);
             return true;
         }
     }
