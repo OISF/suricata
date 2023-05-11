@@ -26,7 +26,7 @@
 
 void JsonDnsLogRegister(void);
 
-JsonBuilder *JsonDNSLogQuery(void *txptr, uint64_t tx_id) __attribute__((nonnull));
-JsonBuilder *JsonDNSLogAnswer(void *txptr, uint64_t tx_id) __attribute__((nonnull));
+JsonBuilder *JsonDNSLogQuery(void *txptr) __attribute__((nonnull));
+JsonBuilder *JsonDNSLogAnswer(void *txptr) __attribute__((nonnull));
 
 #endif /* __OUTPUT_JSON_DNS_H__ */
