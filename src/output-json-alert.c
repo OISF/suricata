@@ -229,12 +229,12 @@ static void AlertJsonDns(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
                                           dns_state, tx_id);
         if (txptr) {
             jb_open_object(js, "dns");
-            JsonBuilder *qjs = JsonDNSLogQuery(txptr, tx_id);
+            JsonBuilder *qjs = JsonDNSLogQuery(txptr);
             if (qjs != NULL) {
                 jb_set_object(js, "query", qjs);
                 jb_free(qjs);
             }
-            JsonBuilder *ajs = JsonDNSLogAnswer(txptr, tx_id);
+            JsonBuilder *ajs = JsonDNSLogAnswer(txptr);
             if (ajs != NULL) {
                 jb_set_object(js, "answer", ajs);
                 jb_free(ajs);
