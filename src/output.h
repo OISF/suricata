@@ -208,4 +208,13 @@ void OutputLoggerExitPrintStats(ThreadVars *, void *);
 void OutputSetupActiveLoggers(void);
 void OutputClearActiveLoggers(void);
 
+typedef bool (*SimpleJsonTxLogFunc)(void *, struct JsonBuilder *);
+
+typedef struct SimpleJsonAppLayerLogger {
+    AppProto proto;
+    SimpleJsonTxLogFunc LogTx;
+} SimpleJsonAppLayerLogger;
+
+SimpleJsonAppLayerLogger *GetAppProtoSimpleJsonLogger(AppProto alproto);
+
 #endif /* ! __OUTPUT_H__ */

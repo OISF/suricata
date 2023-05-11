@@ -123,6 +123,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
         return NULL;
 
     JsonBuilderMark mark = { 0, 0, 0 };
+    SimpleJsonAppLayerLogger *al;
     switch (p->flow->alproto) {
         case ALPROTO_HTTP1:
             jb_open_object(js, "http");
@@ -172,13 +173,19 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
                 jb_restore_mark(js, &mark);
             }
             break;
-        case ALPROTO_HTTP2:
-            jb_get_mark(js, &mark);
-            jb_open_object(js, "http");
-            if (EveHTTP2AddMetadata(p->flow, tx_id, js)) {
-                jb_close(js);
-            } else {
-                jb_restore_mark(js, &mark);
+        default:
+            al = GetAppProtoSimpleJsonLogger(p->flow->alproto);
+            if (al && al->LogTx) {
+                void *state = FlowGetAppState(p->flow);
+                if (state) {
+                    tx = AppLayerParserGetTx(p->flow->proto, p->flow->alproto, state, tx_id);
+                    if (tx) {
+                        jb_get_mark(js, &mark);
+                        if (!al->LogTx(tx, js)) {
+                            jb_restore_mark(js, &mark);
+                        }
+                    }
+                }
             }
             break;
     }

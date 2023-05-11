@@ -263,7 +263,7 @@ typedef struct LogDnsLogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogDnsLogThread;
 
-JsonBuilder *JsonDNSLogQuery(void *txptr)
+static JsonBuilder *JsonDNSLogQuery(void *txptr)
 {
     JsonBuilder *queryjb = jb_new_array();
     if (queryjb == NULL) {
@@ -292,7 +292,7 @@ JsonBuilder *JsonDNSLogQuery(void *txptr)
     return queryjb;
 }
 
-JsonBuilder *JsonDNSLogAnswer(void *txptr)
+static JsonBuilder *JsonDNSLogAnswer(void *txptr)
 {
     if (!rs_dns_do_log_answer(txptr, LOG_ALL_RRTYPES)) {
         return NULL;
@@ -302,6 +302,23 @@ JsonBuilder *JsonDNSLogAnswer(void *txptr)
         jb_close(js);
         return js;
     }
+}
+
+bool AlertJsonDns(void *txptr, JsonBuilder *js)
+{
+    jb_open_object(js, "dns");
+    JsonBuilder *qjs = JsonDNSLogQuery(txptr);
+    if (qjs != NULL) {
+        jb_set_object(js, "query", qjs);
+        jb_free(qjs);
+    }
+    JsonBuilder *ajs = JsonDNSLogAnswer(txptr);
+    if (ajs != NULL) {
+        jb_set_object(js, "answer", ajs);
+        jb_free(ajs);
+    }
+    jb_close(js);
+    return true;
 }
 
 static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,

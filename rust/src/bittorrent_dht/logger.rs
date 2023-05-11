@@ -48,6 +48,7 @@ fn print_ip_addr(addr: &[u8]) -> std::string::String {
 fn log_bittorrent_dht(
     tx: &BitTorrentDHTTransaction, js: &mut JsonBuilder,
 ) -> Result<(), JsonError> {
+    js.open_object("bittorrent_dht")?;
     js.set_hex("transaction_id", &tx.transaction_id)?;
     if let Some(client_version) = &tx.client_version {
         js.set_hex("client_version", client_version)?;
@@ -125,6 +126,7 @@ fn log_bittorrent_dht(
         }
         js.close()?;
     };
+    js.close()?;
     Ok(())
 }
 
