@@ -1130,7 +1130,7 @@ void OutputRegisterLoggers(void)
 static AppLayerLogger alert_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_UNKNOWN, NULL, NULL },
     { ALPROTO_HTTP1, NULL, NULL }, // TODO empty http object and option_flags
-    { ALPROTO_FTP, NULL, NULL },
+    { ALPROTO_FTP, "ftp", EveFTPLogCommand },
     { ALPROTO_SMTP, NULL, NULL }, // TODO state, + log email
     { ALPROTO_TLS, NULL, NULL },  // TODO log state
     { ALPROTO_SSH, "ssh", rs_ssh_log_json },
