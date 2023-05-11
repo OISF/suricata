@@ -26,7 +26,6 @@
 
 void JsonDnsLogRegister(void);
 
-JsonBuilder *JsonDNSLogQuery(void *txptr) __attribute__((nonnull));
-JsonBuilder *JsonDNSLogAnswer(void *txptr) __attribute__((nonnull));
+bool AlertJsonDns(void *vtx, JsonBuilder *js);
 
 #endif /* __OUTPUT_JSON_DNS_H__ */
