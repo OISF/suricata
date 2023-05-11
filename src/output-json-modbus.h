@@ -19,6 +19,5 @@
 #define __OUTPUT_JSON_MODBUS_H__
 
 void JsonModbusLogRegister(void);
-bool JsonModbusAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
 
 #endif /* __OUTPUT_JSON_MODBUS_H__ */
