@@ -24,5 +24,6 @@ void JsonDNP3LogRequest(JsonBuilder *js, DNP3Transaction *);
 void JsonDNP3LogResponse(JsonBuilder *js, DNP3Transaction *);
 
 void JsonDNP3LogRegister(void);
+bool AlertJsonDnp3(void *vtx, JsonBuilder *js);
 
 #endif /* __OUTPUT_JSON_DNP3_H__ */

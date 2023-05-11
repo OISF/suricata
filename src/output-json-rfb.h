@@ -26,6 +26,4 @@
 
 void JsonRFBLogRegister(void);
 
-bool JsonRFBAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
-
 #endif /* __OUTPUT_JSON_RFB_H__ */
