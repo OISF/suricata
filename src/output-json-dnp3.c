@@ -210,6 +210,25 @@ void JsonDNP3LogResponse(JsonBuilder *js, DNP3Transaction *dnp3tx)
     jb_close(js);
 }
 
+bool AlertJsonDnp3(void *vtx, JsonBuilder *js)
+{
+    DNP3Transaction *tx = (DNP3Transaction *)vtx;
+    bool logged = false;
+    if (tx->is_request && tx->done) {
+        jb_open_object(js, "request");
+        JsonDNP3LogRequest(js, tx);
+        jb_close(js);
+        logged = true;
+    }
+    if (!tx->is_request && tx->done) {
+        jb_open_object(js, "response");
+        JsonDNP3LogResponse(js, tx);
+        jb_close(js);
+        logged = true;
+    }
+    return logged;
+}
+
 static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
 {

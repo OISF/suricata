@@ -208,4 +208,12 @@ void OutputLoggerExitPrintStats(ThreadVars *, void *);
 void OutputSetupActiveLoggers(void);
 void OutputClearActiveLoggers(void);
 
+typedef struct AppLayerLogger {
+    AppProto proto;
+    const char *name;
+    bool (*log)(void *tx, struct JsonBuilder *jb);
+} AppLayerLogger;
+
+AppLayerLogger *GetAppProtoLogger(AppProto alproto);
+
 #endif /* ! __OUTPUT_H__ */

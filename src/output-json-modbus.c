@@ -53,10 +53,12 @@ static int JsonModbusLogger(ThreadVars *tv, void *thread_data, const Packet *p, 
     if (unlikely(js == NULL)) {
         return TM_ECODE_OK;
     }
+    jb_open_object(js, "modbus");
     if (!rs_modbus_to_json(tx, js)) {
         jb_free(js);
         return TM_ECODE_FAILED;
     }
+    jb_close(js);
     OutputJsonBuilderBuffer(js, thread->ctx);
 
     jb_free(js);
@@ -134,19 +136,6 @@ static TmEcode JsonModbusLogThreadDeinit(ThreadVars *t, void *data)
     FreeEveThreadCtx(thread->ctx);
     SCFree(thread);
     return TM_ECODE_OK;
-}
-
-bool JsonModbusAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
-{
-    void *state = FlowGetAppState(f);
-    if (state) {
-        void *tx = AppLayerParserGetTx(f->proto, ALPROTO_MODBUS, state, tx_id);
-        if (tx) {
-            return rs_modbus_to_json(tx, js);
-        }
-    }
-
-    return false;
 }
 
 void JsonModbusLogRegister(void)
