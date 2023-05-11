@@ -1146,7 +1146,7 @@ static AppLayerLogger alert_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_NFS, NULL, NULL },     // TODO log rpc field
     { ALPROTO_NTP, NULL, NULL },     // no logging
     { ALPROTO_FTPDATA, NULL, NULL }, // TODO state
-    { ALPROTO_TFTP, NULL, NULL },
+    { ALPROTO_TFTP, "tftp", (bool (*)(void *tx, struct JsonBuilder *jb))rs_tftp_log_json_request },
     { ALPROTO_IKE, NULL, NULL },  // TODO state + option
     { ALPROTO_KRB5, NULL, NULL }, // TODO state
     { ALPROTO_QUIC, "quic", rs_quic_to_json },
