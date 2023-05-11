@@ -263,7 +263,7 @@ typedef struct LogDnsLogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogDnsLogThread;
 
-JsonBuilder *JsonDNSLogQuery(void *txptr, uint64_t tx_id)
+JsonBuilder *JsonDNSLogQuery(void *txptr)
 {
     JsonBuilder *queryjb = jb_new_array();
     if (queryjb == NULL) {
@@ -292,7 +292,7 @@ JsonBuilder *JsonDNSLogQuery(void *txptr, uint64_t tx_id)
     return queryjb;
 }
 
-JsonBuilder *JsonDNSLogAnswer(void *txptr, uint64_t tx_id)
+JsonBuilder *JsonDNSLogAnswer(void *txptr)
 {
     if (!rs_dns_do_log_answer(txptr, LOG_ALL_RRTYPES)) {
         return NULL;
