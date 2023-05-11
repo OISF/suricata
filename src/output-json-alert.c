@@ -137,164 +137,6 @@ static int AlertJsonDumpStreamSegmentCallback(
     return 1;
 }
 
-static void AlertJsonTls(const Flow *f, JsonBuilder *js)
-{
-    SSLState *ssl_state = (SSLState *)FlowGetAppState(f);
-    if (ssl_state) {
-        jb_open_object(js, "tls");
-
-        JsonTlsLogJSONExtended(js, ssl_state);
-
-        jb_close(js);
-    }
-
-    return;
-}
-
-static void AlertJsonSsh(const Flow *f, JsonBuilder *js)
-{
-    void *ssh_state = FlowGetAppState(f);
-    if (ssh_state) {
-        JsonBuilderMark mark = { 0, 0, 0 };
-        void *tx_ptr = rs_ssh_state_get_tx(ssh_state, 0);
-        jb_get_mark(js, &mark);
-        jb_open_object(js, "ssh");
-        if (rs_ssh_log_json(tx_ptr, js)) {
-            jb_close(js);
-        } else {
-            jb_restore_mark(js, &mark);
-        }
-    }
-
-    return;
-}
-
-static void AlertJsonHttp2(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
-{
-    void *h2_state = FlowGetAppState(f);
-    if (h2_state) {
-        void *tx_ptr = rs_http2_state_get_tx(h2_state, tx_id);
-        if (tx_ptr) {
-            JsonBuilderMark mark = { 0, 0, 0 };
-            jb_get_mark(js, &mark);
-            jb_open_object(js, "http");
-            if (rs_http2_log_json(tx_ptr, js)) {
-                jb_close(js);
-            } else {
-                jb_restore_mark(js, &mark);
-            }
-        }
-    }
-
-    return;
-}
-
-static void AlertJsonDnp3(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
-{
-    DNP3State *dnp3_state = (DNP3State *)FlowGetAppState(f);
-    if (dnp3_state) {
-        DNP3Transaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_DNP3,
-            dnp3_state, tx_id);
-        if (tx) {
-            JsonBuilderMark mark = { 0, 0, 0 };
-            jb_get_mark(js, &mark);
-            bool logged = false;
-            jb_open_object(js, "dnp3");
-            if (tx->is_request && tx->done) {
-                jb_open_object(js, "request");
-                JsonDNP3LogRequest(js, tx);
-                jb_close(js);
-                logged = true;
-            }
-            if (!tx->is_request && tx->done) {
-                jb_open_object(js, "response");
-                JsonDNP3LogResponse(js, tx);
-                jb_close(js);
-                logged = true;
-            }
-            if (logged) {
-                /* Close dnp3 object. */
-                jb_close(js);
-            } else {
-                jb_restore_mark(js, &mark);
-            }
-        }
-    }
-}
-
-static void AlertJsonDns(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
-{
-    void *dns_state = (void *)FlowGetAppState(f);
-    if (dns_state) {
-        void *txptr = AppLayerParserGetTx(f->proto, ALPROTO_DNS,
-                                          dns_state, tx_id);
-        if (txptr) {
-            jb_open_object(js, "dns");
-            JsonBuilder *qjs = JsonDNSLogQuery(txptr);
-            if (qjs != NULL) {
-                jb_set_object(js, "query", qjs);
-                jb_free(qjs);
-            }
-            JsonBuilder *ajs = JsonDNSLogAnswer(txptr);
-            if (ajs != NULL) {
-                jb_set_object(js, "answer", ajs);
-                jb_free(ajs);
-            }
-            jb_close(js);
-        }
-    }
-    return;
-}
-
-static void AlertJsonSNMP(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
-{
-    void *snmp_state = (void *)FlowGetAppState(f);
-    if (snmp_state != NULL) {
-        void *tx = AppLayerParserGetTx(f->proto, ALPROTO_SNMP, snmp_state,
-                tx_id);
-        if (tx != NULL) {
-            jb_open_object(js, "snmp");
-            rs_snmp_log_json_response(js, tx);
-            jb_close(js);
-        }
-    }
-}
-
-static void AlertJsonRDP(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
-{
-    void *rdp_state = (void *)FlowGetAppState(f);
-    if (rdp_state != NULL) {
-        void *tx = AppLayerParserGetTx(f->proto, ALPROTO_RDP, rdp_state,
-                tx_id);
-        if (tx != NULL) {
-            JsonBuilderMark mark = { 0, 0, 0 };
-            jb_get_mark(js, &mark);
-            if (!rs_rdp_to_json(tx, js)) {
-                jb_restore_mark(js, &mark);
-            }
-        }
-    }
-}
-
-static void AlertJsonBitTorrentDHT(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
-{
-    void *bittorrent_dht_state = (void *)FlowGetAppState(f);
-    if (bittorrent_dht_state != NULL) {
-        void *tx =
-                AppLayerParserGetTx(f->proto, ALPROTO_BITTORRENT_DHT, bittorrent_dht_state, tx_id);
-        if (tx != NULL) {
-            JsonBuilderMark mark = { 0, 0, 0 };
-            jb_get_mark(js, &mark);
-            jb_open_object(js, "bittorrent_dht");
-            if (rs_bittorrent_dht_logger_log(tx, js)) {
-                jb_close(js);
-            } else {
-                jb_restore_mark(js, &mark);
-            }
-        }
-    }
-}
-
 static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
                                   JsonBuilder *js, JsonAddrInfo *addr)
 {
@@ -471,7 +313,21 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
         const uint64_t tx_id, const uint16_t option_flags)
 {
     const AppProto proto = FlowGetAppProtocol(p->flow);
+    EveJsonSimpleAppLayerLogger *al = SCEveJsonSimpleGetLogger(proto);
     JsonBuilderMark mark = { 0, 0, 0 };
+    if (al && al->LogTx) {
+        void *state = FlowGetAppState(p->flow);
+        if (state) {
+            void *tx = AppLayerParserGetTx(p->flow->proto, proto, state, tx_id);
+            if (tx) {
+                jb_get_mark(jb, &mark);
+                if (!al->LogTx(tx, jb)) {
+                    jb_restore_mark(jb, &mark);
+                }
+            }
+        }
+        return;
+    }
     switch (proto) {
         case ALPROTO_HTTP1:
             // TODO: Could result in an empty http object being logged.
@@ -485,12 +341,6 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
                 }
             }
             jb_close(jb);
-            break;
-        case ALPROTO_TLS:
-            AlertJsonTls(p->flow, jb);
-            break;
-        case ALPROTO_SSH:
-            AlertJsonSsh(p->flow, jb);
             break;
         case ALPROTO_SMTP:
             jb_get_mark(jb, &mark);
@@ -535,62 +385,11 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
                 jb_restore_mark(jb, &mark);
             }
             break;
-        case ALPROTO_SIP:
-            JsonSIPAddMetadata(jb, p->flow, tx_id);
-            break;
-        case ALPROTO_RFB:
-            jb_get_mark(jb, &mark);
-            if (!JsonRFBAddMetadata(p->flow, tx_id, jb)) {
-                jb_restore_mark(jb, &mark);
-            }
-            break;
-        case ALPROTO_FTPDATA:
-            jb_get_mark(jb, &mark);
-            jb_open_object(jb, "ftp_data");
-            EveFTPDataAddMetadata(p->flow, jb);
-            jb_close(jb);
-            break;
-        case ALPROTO_DNP3:
-            AlertJsonDnp3(p->flow, tx_id, jb);
-            break;
-        case ALPROTO_HTTP2:
-            AlertJsonHttp2(p->flow, tx_id, jb);
-            break;
-        case ALPROTO_DNS:
-            AlertJsonDns(p->flow, tx_id, jb);
-            break;
         case ALPROTO_IKE:
             jb_get_mark(jb, &mark);
             if (!EveIKEAddMetadata(p->flow, tx_id, jb)) {
                 jb_restore_mark(jb, &mark);
             }
-            break;
-        case ALPROTO_MQTT:
-            jb_get_mark(jb, &mark);
-            if (!JsonMQTTAddMetadata(p->flow, tx_id, jb)) {
-                jb_restore_mark(jb, &mark);
-            }
-            break;
-        case ALPROTO_QUIC:
-            jb_get_mark(jb, &mark);
-            if (!JsonQuicAddMetadata(p->flow, tx_id, jb)) {
-                jb_restore_mark(jb, &mark);
-            }
-            break;
-        case ALPROTO_SNMP:
-            AlertJsonSNMP(p->flow, tx_id, jb);
-            break;
-        case ALPROTO_RDP:
-            AlertJsonRDP(p->flow, tx_id, jb);
-            break;
-        case ALPROTO_MODBUS:
-            jb_get_mark(jb, &mark);
-            if (!JsonModbusAddMetadata(p->flow, tx_id, jb)) {
-                jb_restore_mark(jb, &mark);
-            }
-            break;
-        case ALPROTO_BITTORRENT_DHT:
-            AlertJsonBitTorrentDHT(p->flow, tx_id, jb);
             break;
         default:
             break;

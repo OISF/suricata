@@ -20,12 +20,14 @@ use crate::jsonbuilder::{JsonBuilder, JsonError};
 use std;
 
 fn log_template(tx: &TemplateTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
+    js.open_object("template")?;
     if let Some(ref request) = tx.request {
         js.set_string("request", request)?;
     }
     if let Some(ref response) = tx.response {
         js.set_string("response", response)?;
     }
+    js.close()?;
     Ok(())
 }
 

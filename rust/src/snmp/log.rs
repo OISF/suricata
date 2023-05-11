@@ -39,6 +39,7 @@ fn str_of_pdu_type(t:&PduType) -> Cow<str> {
 
 fn snmp_log_response(jsb: &mut JsonBuilder, tx: &mut SNMPTransaction) -> Result<(), JsonError>
 {
+    jsb.open_object("snmp")?;
     jsb.set_uint("version", tx.version as u64)?;
     if tx.encrypted {
         jsb.set_string("pdu_type", "encrypted")?;
@@ -71,11 +72,12 @@ fn snmp_log_response(jsb: &mut JsonBuilder, tx: &mut SNMPTransaction) -> Result<
         }
     }
 
+    jsb.close()?;
     return Ok(());
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_log_json_response(jsb: &mut JsonBuilder, tx: &mut SNMPTransaction) -> bool
+pub extern "C" fn rs_snmp_log_json_response(tx: &mut SNMPTransaction, jsb: &mut JsonBuilder) -> bool
 {
     snmp_log_response(jsb, tx).is_ok()
 }
