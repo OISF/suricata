@@ -200,6 +200,10 @@ def logger_patch_output_c(proto):
     output = io.StringIO()
     inlines = open(filename).readlines()
     for i, line in enumerate(inlines):
+        if line.find("ALPROTO_TEMPLATE") > -1:
+            new_line = line.replace("TEMPLATE", proto.upper()).replace(
+                    "template", proto.lower())
+            output.write(new_line)
         if line.find("output-json-template.h") > -1:
             output.write(line.replace("template", proto.lower()))
         if line.find("/* Template JSON logger.") > -1:

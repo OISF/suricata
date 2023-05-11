@@ -67,6 +67,8 @@
 #include "log-stats.h"
 #include "output-json-nfs.h"
 #include "output-json-ftp.h"
+// for misplaced EveFTPDataAddMetadata
+#include "app-layer-ftp.h"
 #include "output-json-tftp.h"
 #include "output-json-smb.h"
 #include "output-json-ike.h"
@@ -1125,4 +1127,54 @@ void OutputRegisterLoggers(void)
     JsonFrameLogRegister();
     /* BitTorrent DHT JSON logger */
     JsonBitTorrentDHTLogRegister();
+}
+
+static SimpleJsonAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
+    { ALPROTO_UNKNOWN, NULL },
+    { ALPROTO_HTTP1, NULL }, // special: uses some options flags
+    { ALPROTO_FTP, NULL },   // TODO missing
+    { ALPROTO_SMTP, NULL },  // special: uses state
+    { ALPROTO_TLS, JsonTlsLogJSONExtended },
+    { ALPROTO_SSH, rs_ssh_log_json },
+    { ALPROTO_IMAP, NULL },   // protocol detection only
+    { ALPROTO_JABBER, NULL }, // no parser, no logging
+    { ALPROTO_SMB, NULL },    // special: uses state
+    { ALPROTO_DCERPC, NULL }, // TODO missing
+    { ALPROTO_IRC, NULL },    // no parser, no logging
+    { ALPROTO_DNS, AlertJsonDns },
+    { ALPROTO_MODBUS, (SimpleJsonTxLogFunc)rs_modbus_to_json },
+    { ALPROTO_ENIP, NULL }, // no logging
+    { ALPROTO_DNP3, AlertJsonDnp3 },
+    { ALPROTO_NFS, NULL }, // special: uses state
+    { ALPROTO_NTP, NULL }, // no logging
+    { ALPROTO_FTPDATA, EveFTPDataAddMetadata },
+    { ALPROTO_TFTP, NULL }, // TODO missing
+    { ALPROTO_IKE, NULL },  // special: uses state
+    { ALPROTO_KRB5, NULL }, // TODO missing
+    { ALPROTO_QUIC, rs_quic_to_json },
+    { ALPROTO_DHCP, NULL }, // TODO missing
+    { ALPROTO_SNMP, (SimpleJsonTxLogFunc)rs_snmp_log_json_response },
+    { ALPROTO_SIP, (SimpleJsonTxLogFunc)rs_sip_log_json },
+    { ALPROTO_RFB, rs_rfb_logger_log },
+    { ALPROTO_MQTT, JsonMQTTAddMetadata },
+    { ALPROTO_PGSQL, NULL },  // TODO missing
+    { ALPROTO_TELNET, NULL }, // no logging
+    { ALPROTO_TEMPLATE, rs_template_logger_log },
+    { ALPROTO_RDP, (SimpleJsonTxLogFunc)rs_rdp_to_json },
+    { ALPROTO_HTTP2, rs_http2_log_json },
+    { ALPROTO_BITTORRENT_DHT, rs_bittorrent_dht_logger_log },
+    { ALPROTO_HTTP, NULL }, // signature protocol, not for app-layer logging
+    { ALPROTO_FAILED, NULL },
+#ifdef UNITTESTS
+    { ALPROTO_TEST, NULL },
+#endif /* UNITESTS */
+};
+
+SimpleJsonAppLayerLogger *GetAppProtoSimpleJsonLogger(AppProto alproto)
+{
+    if (alproto < ALPROTO_MAX) {
+        BUG_ON(simple_json_applayer_loggers[alproto].proto != alproto);
+        return &simple_json_applayer_loggers[alproto];
+    }
+    return NULL;
 }
