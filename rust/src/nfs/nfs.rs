@@ -175,7 +175,7 @@ pub struct NFSTransaction {
     pub file_handle: Vec<u8>,
 
     /// Procedure type specific data
-    /// TODO see if this can be an Option<Box<NFSTransactionTypeData>>. Initial
+    /// TODO see if this can be an `Option<Box<NFSTransactionTypeData>>`. Initial
     /// attempt failed.
     pub type_data: Option<NFSTransactionTypeData>,
 
