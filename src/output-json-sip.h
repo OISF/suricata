@@ -26,6 +26,4 @@
 
 void JsonSIPLogRegister(void);
 
-void JsonSIPAddMetadata(JsonBuilder *js, const Flow *f, uint64_t tx_id);
-
 #endif /* __OUTPUT_JSON_SIP_H__ */
