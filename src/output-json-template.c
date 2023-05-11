@@ -74,11 +74,9 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data, const Packet *p
         return TM_ECODE_FAILED;
     }
 
-    jb_open_object(js, "template");
     if (!rs_template_logger_log(tx, js)) {
         goto error;
     }
-    jb_close(js);
 
     OutputJsonBuilderBuffer(js, thread->ctx);
     jb_free(js);

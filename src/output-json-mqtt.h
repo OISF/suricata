@@ -25,6 +25,6 @@
 #define __OUTPUT_JSON_MQTT_H__
 
 void JsonMQTTLogRegister(void);
-bool JsonMQTTAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
+bool JsonMQTTAddMetadata(void *vtx, JsonBuilder *js);
 
 #endif /* __OUTPUT_JSON_MQTT_H__ */

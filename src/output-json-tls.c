@@ -392,8 +392,9 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, JsonBuilder *js,
     }
 }
 
-void JsonTlsLogJSONExtended(JsonBuilder *tjs, SSLState * state)
+static bool JsonTlsLogJSONExtendedAux(void *vtx, JsonBuilder *tjs)
 {
+    SSLState *state = (SSLState *)vtx;
     JsonTlsLogJSONBasic(tjs, state);
 
     /* tls serial */
@@ -425,6 +426,15 @@ void JsonTlsLogJSONExtended(JsonBuilder *tjs, SSLState * state)
         JsonTlsLogClientCert(tjs, &state->client_connp, false, false);
         jb_close(tjs);
     }
+    return true;
+}
+
+bool JsonTlsLogJSONExtended(void *vtx, JsonBuilder *tjs)
+{
+    jb_open_object(tjs, "tls");
+    bool r = JsonTlsLogJSONExtendedAux(vtx, tjs);
+    jb_close(tjs);
+    return r;
 }
 
 static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
@@ -459,7 +469,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     }
     /* log extended */
     else if (tls_ctx->flags & LOG_TLS_EXTENDED) {
-        JsonTlsLogJSONExtended(js, ssl_state);
+        JsonTlsLogJSONExtendedAux(ssl_state, js);
     }
     /* log basic */
     else {
