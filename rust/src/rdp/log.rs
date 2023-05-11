@@ -30,7 +30,6 @@ pub extern "C" fn rs_rdp_to_json(tx: &mut RdpTransaction, js: &mut JsonBuilder) 
 
 /// populate a json object with transactional information, for logging
 fn log(tx: &RdpTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    js.open_object("rdp")?;
     js.set_uint("tx_id", tx.id)?;
 
     match &tx.item {
@@ -58,7 +57,6 @@ fn log(tx: &RdpTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
         }
     }
 
-    js.close()?;
     Ok(())
 }
 
