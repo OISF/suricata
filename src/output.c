@@ -1126,3 +1126,53 @@ void OutputRegisterLoggers(void)
     /* BitTorrent DHT JSON logger */
     JsonBitTorrentDHTLogRegister();
 }
+
+static AppLayerLogger alert_applayer_loggers[ALPROTO_MAX] = {
+    { ALPROTO_UNKNOWN, NULL, NULL },
+    { ALPROTO_HTTP1, NULL, NULL }, // TODO empty http object and option_flags
+    { ALPROTO_FTP, NULL, NULL },
+    { ALPROTO_SMTP, NULL, NULL }, // TODO state, + log email
+    { ALPROTO_TLS, NULL, NULL },  // TODO log state
+    { ALPROTO_SSH, "ssh", rs_ssh_log_json },
+    { ALPROTO_IMAP, NULL, NULL },   // protocol detection only
+    { ALPROTO_JABBER, NULL, NULL }, // no parser, no logging
+    { ALPROTO_SMB, NULL, NULL },    // TODO state
+    { ALPROTO_DCERPC, NULL, NULL }, // TODO
+    { ALPROTO_IRC, NULL, NULL },    // no parser, no logging
+    { ALPROTO_DNS, "dns", AlertJsonDns },
+    { ALPROTO_MODBUS, "modbus", (SimpleTxLogFunc)rs_modbus_to_json },
+    { ALPROTO_ENIP, NULL, NULL }, // no logging
+    { ALPROTO_DNP3, "dnp3", AlertJsonDnp3 },
+    { ALPROTO_NFS, NULL, NULL },     // TODO log rpc field
+    { ALPROTO_NTP, NULL, NULL },     // no logging
+    { ALPROTO_FTPDATA, NULL, NULL }, // TODO state
+    { ALPROTO_TFTP, NULL, NULL },
+    { ALPROTO_IKE, NULL, NULL },  // TODO state + option
+    { ALPROTO_KRB5, NULL, NULL }, // TODO state
+    { ALPROTO_QUIC, "quic", rs_quic_to_json },
+    { ALPROTO_DHCP, NULL, NULL }, // TODO logger with option
+    { ALPROTO_SNMP, NULL, NULL }, // TODO state
+    { ALPROTO_SIP, "sip", (SimpleTxLogFunc)rs_sip_log_json },
+    { ALPROTO_RFB, NULL, NULL },    // TODO state
+    { ALPROTO_MQTT, NULL, NULL },   // TODO state + option
+    { ALPROTO_PGSQL, NULL, NULL },  // TODO flags
+    { ALPROTO_TELNET, NULL, NULL }, // no logging
+    { ALPROTO_TEMPLATE, "template", rs_template_logger_log },
+    { ALPROTO_RDP, "rdp", (SimpleTxLogFunc)rs_rdp_to_json },
+    { ALPROTO_HTTP2, "http", rs_http2_log_json },
+    { ALPROTO_BITTORRENT_DHT, "bittorrent_dht", rs_bittorrent_dht_logger_log },
+    { ALPROTO_HTTP, NULL, NULL }, // signature protocol, not for app-layer logging
+    { ALPROTO_FAILED, NULL, NULL },
+#ifdef UNITTESTS
+    { ALPROTO_TEST, NULL, NULL },
+#endif /* UNITESTS */
+};
+
+AppLayerLogger *GetAppProtoLogger(AppProto alproto)
+{
+    if (alproto < ALPROTO_MAX) {
+        BUG_ON(alert_applayer_loggers[alproto].proto != alproto);
+        return &alert_applayer_loggers[alproto];
+    }
+    return NULL;
+}
