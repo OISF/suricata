@@ -19,6 +19,7 @@ use super::ssh::SSHTransaction;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
 fn log_ssh(tx: &SSHTransaction, js: &mut JsonBuilder) -> Result<bool, JsonError> {
+    js.open_object("ssh")?;
     if tx.cli_hdr.protover.is_empty() && tx.srv_hdr.protover.is_empty() {
         return Ok(false);
     }
@@ -58,6 +59,7 @@ fn log_ssh(tx: &SSHTransaction, js: &mut JsonBuilder) -> Result<bool, JsonError>
         }
         js.close()?;
     }
+    js.close()?;
     return Ok(true);
 }
 

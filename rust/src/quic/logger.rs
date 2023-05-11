@@ -88,7 +88,7 @@ fn quic_tls_extension_name(e: u16) -> Option<String> {
     }
 }
 
-fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
+fn log_quic(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("quic")?;
     if tx.header.ty != QuicType::Short {
         js.set_string("version", String::from(tx.header.version).as_str())?;
@@ -153,5 +153,5 @@ pub unsafe extern "C" fn rs_quic_to_json(
     tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, QuicTransaction);
-    log_template(tx, js).is_ok()
+    log_quic(tx, js).is_ok()
 }

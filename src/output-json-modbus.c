@@ -136,19 +136,6 @@ static TmEcode JsonModbusLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-bool JsonModbusAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
-{
-    void *state = FlowGetAppState(f);
-    if (state) {
-        void *tx = AppLayerParserGetTx(f->proto, ALPROTO_MODBUS, state, tx_id);
-        if (tx) {
-            return rs_modbus_to_json(tx, js);
-        }
-    }
-
-    return false;
-}
-
 void JsonModbusLogRegister(void)
 {
     /* Register as an eve sub-module. */

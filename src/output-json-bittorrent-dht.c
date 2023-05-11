@@ -65,11 +65,9 @@ static int JsonBitTorrentDHTLogger(ThreadVars *tv, void *thread_data, const Pack
         return TM_ECODE_FAILED;
     }
 
-    jb_open_object(js, "bittorrent_dht");
     if (!rs_bittorrent_dht_logger_log(tx, js)) {
         goto error;
     }
-    jb_close(js);
 
     OutputJsonBuilderBuffer(js, thread->ctx);
     jb_free(js);

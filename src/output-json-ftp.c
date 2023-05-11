@@ -57,6 +57,7 @@ static void EveFTPLogCommand(FTPTransaction *tx, JsonBuilder *jb)
             return;
         }
     }
+    jb_open_object(jb, "ftp");
     jb_set_string(jb, "command", tx->command_descriptor->command_name);
     uint32_t min_length = tx->command_descriptor->command_length + 1; /* command + space */
     if (tx->request_length > min_length) {
@@ -149,6 +150,7 @@ static void EveFTPLogCommand(FTPTransaction *tx, JsonBuilder *jb)
     } else {
         JB_SET_FALSE(jb, "reply_truncated");
     }
+    jb_close(jb);
 }
 
 
@@ -169,15 +171,12 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
     JsonBuilder *jb =
             CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, event_type, NULL, tx_id, thread->ctx);
     if (likely(jb)) {
-        jb_open_object(jb, event_type);
         if (f->alproto == ALPROTO_FTPDATA) {
-            EveFTPDataAddMetadata(f, jb);
+            if (!EveFTPDataAddMetadata(vtx, jb)) {
+                goto fail;
+            }
         } else {
             EveFTPLogCommand(tx, jb);
-        }
-
-        if (!jb_close(jb)) {
-            goto fail;
         }
 
         OutputJsonBuilderBuffer(jb, thread);
