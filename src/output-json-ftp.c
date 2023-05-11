@@ -46,7 +46,7 @@
 #include "app-layer-ftp.h"
 #include "output-json-ftp.h"
 
-static void EveFTPLogCommand(Flow *f, FTPTransaction *tx, JsonBuilder *jb)
+static void EveFTPLogCommand(FTPTransaction *tx, JsonBuilder *jb)
 {
     /* Preallocate array objects to simplify failure case */
     JsonBuilder *js_resplist = NULL;
@@ -173,7 +173,7 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
         if (f->alproto == ALPROTO_FTPDATA) {
             EveFTPDataAddMetadata(f, jb);
         } else {
-            EveFTPLogCommand(f, tx, jb);
+            EveFTPLogCommand(tx, jb);
         }
 
         if (!jb_close(jb)) {
