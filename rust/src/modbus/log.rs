@@ -27,7 +27,6 @@ pub extern "C" fn rs_modbus_to_json(tx: &mut ModbusTransaction, js: &mut JsonBui
 
 /// populate a json object with transactional information, for logging
 fn log(tx: &ModbusTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    js.open_object("modbus")?;
     js.set_uint("id", tx.id)?;
 
     if let Some(req) = &tx.request {
@@ -42,7 +41,6 @@ fn log(tx: &ModbusTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
         js.close()?;
     }
 
-    js.close()?;
     Ok(())
 }
 

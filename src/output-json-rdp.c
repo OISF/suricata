@@ -51,10 +51,12 @@ static int JsonRdpLogger(ThreadVars *tv, void *thread_data,
     if (unlikely(js == NULL)) {
         return TM_ECODE_OK;
     }
+    jb_open_object(js, "rdp");
     if (!rs_rdp_to_json(tx, js)) {
         jb_free(js);
         return TM_ECODE_FAILED;
     }
+    jb_close(js);
     OutputJsonBuilderBuffer(js, thread);
 
     jb_free(js);

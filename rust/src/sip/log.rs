@@ -21,8 +21,6 @@ use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::sip::sip::SIPTransaction;
 
 fn log(tx: &SIPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    js.open_object("sip")?;
-
     if let Some(req) = &tx.request {
         js.set_string("method", &req.method)?
             .set_string("uri", &req.path)?
@@ -42,8 +40,6 @@ fn log(tx: &SIPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     if let Some(resp_line) = &tx.response_line {
         js.set_string("response_line", resp_line)?;
     }
-
-    js.close()?;
 
     Ok(())
 }

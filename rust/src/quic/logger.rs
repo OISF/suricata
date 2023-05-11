@@ -89,7 +89,6 @@ fn quic_tls_extension_name(e: u16) -> Option<String> {
 }
 
 fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    js.open_object("quic")?;
     if tx.header.ty != QuicType::Short {
         js.set_string("version", String::from(tx.header.version).as_str())?;
 
@@ -144,7 +143,6 @@ fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonEr
         js.close()?;
     }
 
-    js.close()?;
     Ok(())
 }
 
