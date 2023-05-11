@@ -1631,10 +1631,10 @@ static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc D
             return DatasetOpIPv4(set, (uint8_t *)&in.s_addr, 4);
         }
         case DATASET_TYPE_IPV6: {
-            struct in_addr in;
+            struct in6_addr in;
             if (inet_pton(AF_INET6, string, &in) != 1)
                 return -2;
-            return DatasetOpIPv6(set, (uint8_t *)&in.s_addr, 16);
+            return DatasetOpIPv6(set, (uint8_t *)&in.s6_addr, 16);
         }
     }
     return -1;
