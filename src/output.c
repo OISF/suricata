@@ -1151,7 +1151,7 @@ static AppLayerLogger alert_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_KRB5, NULL, NULL }, // TODO state
     { ALPROTO_QUIC, "quic", rs_quic_to_json },
     { ALPROTO_DHCP, NULL, NULL }, // TODO logger with option
-    { ALPROTO_SNMP, NULL, NULL }, // TODO state
+    { ALPROTO_SNMP, "snmp", (SimpleTxLogFunc)rs_snmp_log_json_response },
     { ALPROTO_SIP, "sip", (SimpleTxLogFunc)rs_sip_log_json },
     { ALPROTO_RFB, "rfb", rs_rfb_logger_log },
     { ALPROTO_MQTT, "mqtt", JsonMQTTAddMetadata },

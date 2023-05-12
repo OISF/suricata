@@ -150,20 +150,6 @@ static void AlertJsonTls(const Flow *f, JsonBuilder *js)
     return;
 }
 
-static void AlertJsonSNMP(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
-{
-    void *snmp_state = (void *)FlowGetAppState(f);
-    if (snmp_state != NULL) {
-        void *tx = AppLayerParserGetTx(f->proto, ALPROTO_SNMP, snmp_state,
-                tx_id);
-        if (tx != NULL) {
-            jb_open_object(js, "snmp");
-            rs_snmp_log_json_response(js, tx);
-            jb_close(js);
-        }
-    }
-}
-
 static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
                                   JsonBuilder *js, JsonAddrInfo *addr)
 {
@@ -429,9 +415,6 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             if (!EveIKEAddMetadata(p->flow, tx_id, jb)) {
                 jb_restore_mark(jb, &mark);
             }
-            break;
-        case ALPROTO_SNMP:
-            AlertJsonSNMP(p->flow, tx_id, jb);
             break;
         default:
             break;
