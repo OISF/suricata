@@ -346,6 +346,8 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
     time_t last_dump = 0;
     time_t current_time;
     bool segmented_mbufs_warned = 0;
+    SCTime_t t = DPDKSetTimevalReal(&machine_start_time);
+    uint64_t last_timeout_msec = SCTIME_MSECS(t);
 
     DPDKThreadVars *ptv = (DPDKThreadVars *)data;
     TmSlot *s = (TmSlot *)slot;
@@ -366,6 +368,12 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
 
         nb_rx = rte_eth_rx_burst(ptv->port_id, ptv->queue_id, ptv->received_mbufs, BURST_SIZE);
         if (unlikely(nb_rx == 0)) {
+            t = DPDKSetTimevalReal(&machine_start_time);
+            uint64_t msecs = SCTIME_MSECS(t);
+            if (msecs > last_timeout_msec + 100) {
+                TmThreadsCaptureHandleTimeout(tv, NULL);
+                last_timeout_msec = msecs;
+            }
             continue;
         }
 
