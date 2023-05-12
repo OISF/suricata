@@ -1,8 +1,16 @@
 name: builds
 
 on:
-  - push
-  - pull_request
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      LIBHTP_REPO:
+      LIBHTP_BRANCH:
+      SU_REPO:
+      SU_BRANCH:
+      SV_REPO:
+      SV_BRANCH:
 
 permissions: read-all
 
@@ -56,7 +64,24 @@ jobs:
               SV_REPO=$(echo "${body}" | awk -F = '/^SV_REPO=/ { print $2 }')
               SV_BRANCH=$(echo "${body}" | awk -F = '/^SV_BRANCH=/ { print $2 }')
           else
-              echo "No pull request body, will use defaults."
+              echo "No pull request body, will use inputs or defaults."
+              LIBHTP_REPO=${{ inputs.LIBHTP_REPO }}
+              LIBHTP_BRANCH=${{ inputs.LIBHTP_BRANCH }}
+              SU_REPO=${{ inputs.SU_REPO }}
+              SU_BRANCH=${{ inputs.SU_BRANCH }}
+              SV_REPO=${{ inputs.SV_REPO }}
+              SV_BRANCH=${{ inputs.SV_BRANCH }}
+          fi
+
+          # If the _REPO variables don't contain a full URL, add GitHub.
+          if [ "${LIBHTP_REPO}" ] && ! echo "${LIBHTP_REPO}" | grep -q '^https://'; then
+              LIBHTP_REPO="https://github.com/${LIBHTP_REPO}"
+          fi
+          if [ "${SU_REPO}" ] && ! echo "${SU_REPO}" | grep -q '^https://'; then
+              SU_REPO="https://github.com/${SU_REPO}"
+          fi
+          if [ "${SV_REPO}" ] && ! echo "${SV_REPO}" | grep -q '^https://'; then
+              SV_REPO="https://github.com/${SV_REPO}"
           fi
 
           echo LIBHTP_REPO=${LIBHTP_REPO} | tee -a ${GITHUB_ENV}
