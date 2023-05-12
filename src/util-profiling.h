@@ -410,8 +410,7 @@ void SCProfilingRuleThreatAggregate(DetectEngineThreadCtx *det_ctx);
     uint64_t profile_rule_end_ = 0;                                                                \
     if (profiling_rules_enabled && SCProfileRuleStart((p))) {                                      \
         if (profiling_rules_entered > 0) {                                                         \
-            SCLogError("Re-entered profiling, exiting.");                                          \
-            exit(1);                                                                               \
+            FatalError("Re-entered profiling, exiting.");                                          \
         }                                                                                          \
         profiling_rules_entered++;                                                                 \
         profile_rule_start_ = UtilCpuGetTicks();                                                   \
