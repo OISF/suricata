@@ -43,7 +43,6 @@ fn log_mqtt_header(js: &mut JsonBuilder, hdr: &FixedHeader) -> Result<(), JsonEr
 }
 
 fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    js.open_object("mqtt")?;
     for msg in tx.msg.iter() {
         match msg.op {
             MQTTOperation::CONNECT(ref conn) => {
@@ -291,7 +290,6 @@ fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<()
             MQTTOperation::UNASSIGNED => {}
         }
     }
-    js.close()?; // mqtt
 
     return Ok(());
 }
