@@ -366,6 +366,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
 
         nb_rx = rte_eth_rx_burst(ptv->port_id, ptv->queue_id, ptv->received_mbufs, BURST_SIZE);
         if (unlikely(nb_rx == 0)) {
+            TmThreadsCaptureHandleTimeout(tv, NULL);
             continue;
         }
 
