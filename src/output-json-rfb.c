@@ -46,19 +46,6 @@
 
 #include "rust-bindings.h"
 
-bool JsonRFBAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
-{
-    void *state = FlowGetAppState(f);
-    if (state) {
-        RFBTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_RFB, state, tx_id);
-        if (tx) {
-            return rs_rfb_logger_log(tx, js);
-        }
-    }
-
-    return false;
-}
-
 static int JsonRFBLogger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
@@ -69,9 +56,11 @@ static int JsonRFBLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
+    jb_open_object(js, "rfb");
     if (!rs_rfb_logger_log(tx, js)) {
         goto error;
     }
+    jb_close(js);
 
     OutputJsonBuilderBuffer(js, thread);
     jb_free(js);
