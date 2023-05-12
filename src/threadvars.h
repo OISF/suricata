@@ -127,9 +127,6 @@ typedef struct ThreadVars_ {
     /** public counter store: counter syncs update this */
     StatsPublicThreadContext perf_public_ctx;
 
-    /** profile sync needed */
-    uint32_t profile_flag;
-
     /* mutex and condition used by management threads */
 
     SCCtrlMutex *ctrl_mutex;
