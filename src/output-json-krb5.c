@@ -60,7 +60,7 @@ static int JsonKRB5Logger(ThreadVars *tv, void *thread_data,
     }
 
     jb_open_object(jb, "krb5");
-    if (!rs_krb5_log_json_response(jb, state, krb5tx)) {
+    if (!rs_krb5_log_json_response(krb5tx, jb)) {
         goto error;
     }
     jb_close(jb);
