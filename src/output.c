@@ -1153,8 +1153,8 @@ static AppLayerLogger alert_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_DHCP, NULL, NULL }, // TODO logger with option
     { ALPROTO_SNMP, NULL, NULL }, // TODO state
     { ALPROTO_SIP, "sip", (bool (*)(void *tx, struct JsonBuilder *jb))rs_sip_log_json },
-    { ALPROTO_RFB, NULL, NULL },    // TODO state
-    { ALPROTO_MQTT, NULL, NULL },   // TODO state + option
+    { ALPROTO_RFB, NULL, NULL }, // TODO state
+    { ALPROTO_MQTT, "mqtt", JsonMQTTAddMetadata },
     { ALPROTO_PGSQL, NULL, NULL },  // TODO flags
     { ALPROTO_TELNET, NULL, NULL }, // no logging
     { ALPROTO_TEMPLATE, "template", rs_template_logger_log },
