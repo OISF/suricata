@@ -798,12 +798,7 @@ static TmEcode UnixManagerRulesetProfileCommand(json_t *cmd, json_t *server_msg,
 static TmEcode UnixManagerRulesetProfileStartCommand(json_t *cmd, json_t *server_msg, void *data)
 {
     SCEnter();
-
-    int ret = SCProfileRuleStartCollection();
-    if (ret != TM_ECODE_OK) {
-        json_object_set_new(server_msg, "message", json_string("NOK"));
-        SCReturnInt(TM_ECODE_FAILED);
-    }
+    SCProfileRuleStartCollection();
     json_object_set_new(server_msg, "message", json_string("OK"));
     SCReturnInt(TM_ECODE_OK);
 }
@@ -811,16 +806,10 @@ static TmEcode UnixManagerRulesetProfileStartCommand(json_t *cmd, json_t *server
 static TmEcode UnixManagerRulesetProfileStopCommand(json_t *cmd, json_t *server_msg, void *data)
 {
     SCEnter();
-
-    int ret = SCProfileRuleStopCollection();
-    if (ret != TM_ECODE_OK) {
-        json_object_set_new(server_msg, "message", json_string("NOK"));
-        SCReturnInt(TM_ECODE_FAILED);
-    }
+    SCProfileRuleStopCollection();
     json_object_set_new(server_msg, "message", json_string("OK"));
     SCReturnInt(TM_ECODE_OK);
 }
-
 #endif
 
 static TmEcode UnixManagerShowFailedRules(json_t *cmd,
