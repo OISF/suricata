@@ -1,7 +1,7 @@
 Rules Profiling
 ===============
 
-If Suricata is built with the --enable-profiling-rules then the ruleset profiling
+If Suricata is built with the `--enable-profiling-rules` then the ruleset profiling
 can be activated on demand from the unix socket and dumped from it.
 
 To start profiling ::
@@ -25,4 +25,4 @@ A typical scenario to get rules performance would be ::
 
 On busy systems, using the sampling capability to capture performance
 on a subset of packets can be obtained via the `sample-rate` variable
-in the `profiling` section.
+in the `profiling` section in the `suricata.yaml` file.
