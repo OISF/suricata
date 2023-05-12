@@ -1421,13 +1421,14 @@ thread_local int profiling_rules_entered = 0;
 int profiling_output_to_file = 0;
 static SC_ATOMIC_DECLARE(uint64_t, samples);
 static uint64_t rate = 0;
-int profiling_rules_active = 0;
+static SC_ATOMIC_DECLARE(bool, profiling_rules_active);
 
 /**
  * \brief Initialize profiling.
  */
 void SCProfilingInit(void)
 {
+    SC_ATOMIC_INIT(profiling_rules_active);
     SC_ATOMIC_INIT(samples);
     intmax_t rate_v = 0;
 
@@ -1451,7 +1452,7 @@ void SCProfilingInit(void)
 /* see if we want to profile rules for this packet */
 int SCProfileRuleStart(Packet *p)
 {
-    if (profiling_rules_active != 1) {
+    if (!SC_ATOMIC_GET(profiling_rules_active)) {
         return 0;
     }
     uint64_t sample = SC_ATOMIC_ADD(samples, 1);
@@ -1467,13 +1468,13 @@ int SCProfileRuleStart(Packet *p)
 
 int SCProfileRuleStartCollection(void)
 {
-    profiling_rules_active = 1;
+    SC_ATOMIC_SET(profiling_rules_active, true);
     SCReturnInt(TM_ECODE_OK);
 }
 
 int SCProfileRuleStopCollection(void)
 {
-    profiling_rules_active = 0;
+    SC_ATOMIC_SET(profiling_rules_active, false);
     SCReturnInt(TM_ECODE_OK);
 }
 
