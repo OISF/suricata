@@ -1188,6 +1188,7 @@ typedef struct DetectEngineThreadCtx_ {
 #ifdef PROFILE_RULES
     struct SCProfileData_ *rule_perf_data;
     int rule_perf_data_size;
+    uint32_t rule_perf_last_sync;
 #endif
 #ifdef PROFILING
     struct SCProfileKeywordData_ *keyword_perf_data;

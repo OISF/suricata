@@ -1792,6 +1792,15 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data)
     } else {
         DetectNoFlow(tv, de_ctx, det_ctx, p);
     }
+
+#ifdef PROFILE_RULES
+    /* aggregate statistics */
+    if (SCTIME_SECS(p->ts) != det_ctx->rule_perf_last_sync) {
+        SCProfilingRuleThreatAggregate(det_ctx);
+        det_ctx->rule_perf_last_sync = SCTIME_SECS(p->ts);
+    }
+#endif
+
     return TM_ECODE_OK;
 error:
     return TM_ECODE_FAILED;
