@@ -18,7 +18,7 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::jsonbuilder::{JsonBuilder, JsonError};
-use crate::snmp::snmp::{SNMPState,SNMPTransaction};
+use crate::snmp::snmp::SNMPTransaction;
 use crate::snmp::snmp_parser::{NetworkAddress,PduType};
 use std::borrow::Cow;
 
@@ -37,9 +37,9 @@ fn str_of_pdu_type(t:&PduType) -> Cow<str> {
     }
 }
 
-fn snmp_log_response(jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMPTransaction) -> Result<(), JsonError>
+fn snmp_log_response(jsb: &mut JsonBuilder, tx: &mut SNMPTransaction) -> Result<(), JsonError>
 {
-    jsb.set_uint("version", state.version as u64)?;
+    jsb.set_uint("version", tx.version as u64)?;
     if tx.encrypted {
         jsb.set_string("pdu_type", "encrypted")?;
     } else {
@@ -75,7 +75,7 @@ fn snmp_log_response(jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMP
 }
 
 #[no_mangle]
-pub extern "C" fn rs_snmp_log_json_response(jsb: &mut JsonBuilder, state: &mut SNMPState, tx: &mut SNMPTransaction) -> bool
+pub extern "C" fn rs_snmp_log_json_response(tx: &mut SNMPTransaction, jsb: &mut JsonBuilder) -> bool
 {
-    snmp_log_response(jsb, state, tx).is_ok()
+    snmp_log_response(jsb, tx).is_ok()
 }
