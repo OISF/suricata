@@ -19,12 +19,10 @@
 
 use std;
 use std::fmt::Write;
-use super::rfb::{RFBState, RFBTransaction};
+use super::rfb::RFBTransaction;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
 fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    js.open_object("rfb")?;
-
     // Protocol version
     if let Some(tx_spv) = &tx.tc_server_protocol_version {
         js.open_object("server_protocol_version")?;
@@ -107,14 +105,11 @@ fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
         js.close()?;
     }
 
-    js.close()?;
-
     return Ok(());
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rfb_logger_log(_state: &mut RFBState,
-                                    tx: *mut std::os::raw::c_void,
+pub unsafe extern "C" fn rs_rfb_logger_log(tx: *mut std::os::raw::c_void,
                                     js: &mut JsonBuilder) -> bool {
     let tx = cast_pointer!(tx, RFBTransaction);
     log_rfb(tx, js).is_ok()
