@@ -600,14 +600,13 @@ void SCProfilingRuleThreadSetup(SCProfileDetectCtx *ctx, DetectEngineThreadCtx *
 }
 
 static void SCProfilingRuleThreadMerge(
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, int reset)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, bool reset)
 {
     if (de_ctx == NULL || de_ctx->profile_ctx == NULL || de_ctx->profile_ctx->data == NULL ||
             det_ctx == NULL || det_ctx->rule_perf_data == NULL)
         return;
 
-    int i;
-    for (i = 0; i < det_ctx->rule_perf_data_size; i++) {
+    for (int i = 0; i < det_ctx->rule_perf_data_size; i++) {
         de_ctx->profile_ctx->data[i].checks += det_ctx->rule_perf_data[i].checks;
         de_ctx->profile_ctx->data[i].matches += det_ctx->rule_perf_data[i].matches;
         de_ctx->profile_ctx->data[i].ticks_match += det_ctx->rule_perf_data[i].ticks_match;
@@ -629,7 +628,7 @@ void SCProfilingRuleThreadCleanup(DetectEngineThreadCtx *det_ctx)
         return;
 
     pthread_mutex_lock(&det_ctx->de_ctx->profile_ctx->data_m);
-    SCProfilingRuleThreadMerge(det_ctx->de_ctx, det_ctx, 0);
+    SCProfilingRuleThreadMerge(det_ctx->de_ctx, det_ctx, false);
     pthread_mutex_unlock(&det_ctx->de_ctx->profile_ctx->data_m);
 
     SCFree(det_ctx->rule_perf_data);
@@ -643,7 +642,7 @@ void SCProfilingRuleThreatAggregate(DetectEngineThreadCtx *det_ctx)
     if (det_ctx == NULL || det_ctx->de_ctx == NULL || det_ctx->de_ctx->profile_ctx == NULL)
         return;
     pthread_mutex_lock(&det_ctx->de_ctx->profile_ctx->data_m);
-    SCProfilingRuleThreadMerge(det_ctx->de_ctx, det_ctx, 1);
+    SCProfilingRuleThreadMerge(det_ctx->de_ctx, det_ctx, true);
     pthread_mutex_unlock(&det_ctx->de_ctx->profile_ctx->data_m);
 }
 
