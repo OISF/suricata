@@ -1466,16 +1466,14 @@ int SCProfileRuleStart(Packet *p)
     return 0;
 }
 
-int SCProfileRuleStartCollection(void)
+void SCProfileRuleStartCollection(void)
 {
     SC_ATOMIC_SET(profiling_rules_active, true);
-    SCReturnInt(TM_ECODE_OK);
 }
 
-int SCProfileRuleStopCollection(void)
+void SCProfileRuleStopCollection(void)
 {
     SC_ATOMIC_SET(profiling_rules_active, false);
-    SCReturnInt(TM_ECODE_OK);
 }
 
 #endif /* PROFILING */
