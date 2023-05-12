@@ -418,12 +418,6 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
                 jb_restore_mark(jb, &mark);
             }
             break;
-        case ALPROTO_RFB:
-            jb_get_mark(jb, &mark);
-            if (!JsonRFBAddMetadata(p->flow, tx_id, jb)) {
-                jb_restore_mark(jb, &mark);
-            }
-            break;
         case ALPROTO_FTPDATA:
             jb_get_mark(jb, &mark);
             jb_open_object(jb, "ftp_data");
