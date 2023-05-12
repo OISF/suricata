@@ -1147,8 +1147,8 @@ static AppLayerLogger alert_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_NTP, NULL, NULL },     // no logging
     { ALPROTO_FTPDATA, NULL, NULL }, // TODO state
     { ALPROTO_TFTP, "tftp", (bool (*)(void *tx, struct JsonBuilder *jb))rs_tftp_log_json_request },
-    { ALPROTO_IKE, NULL, NULL },  // TODO state + option
-    { ALPROTO_KRB5, NULL, NULL }, // TODO state
+    { ALPROTO_IKE, NULL, NULL }, // TODO state + option
+    { ALPROTO_KRB5, "krb5", (bool (*)(void *tx, struct JsonBuilder *jb))rs_krb5_log_json_response },
     { ALPROTO_QUIC, "quic", rs_quic_to_json },
     { ALPROTO_DHCP, NULL, NULL }, // TODO logger with option
     { ALPROTO_SNMP, "snmp", (bool (*)(void *tx, struct JsonBuilder *jb))rs_snmp_log_json_response },
