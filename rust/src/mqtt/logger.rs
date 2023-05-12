@@ -17,7 +17,7 @@
 
 // written by Sascha Steinbiss <sascha@steinbiss.name>
 
-use super::mqtt::{MQTTState, MQTTTransaction};
+use super::mqtt::MQTTTransaction;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::mqtt::mqtt_message::{MQTTOperation, MQTTSubscribeTopicData};
 use crate::mqtt::parser::FixedHeader;
@@ -43,7 +43,6 @@ fn log_mqtt_header(js: &mut JsonBuilder, hdr: &FixedHeader) -> Result<(), JsonEr
 }
 
 fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
-    js.open_object("mqtt")?;
     for msg in tx.msg.iter() {
         match msg.op {
             MQTTOperation::CONNECT(ref conn) => {
@@ -291,14 +290,13 @@ fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<()
             MQTTOperation::UNASSIGNED => {}
         }
     }
-    js.close()?; // mqtt
 
     return Ok(());
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_logger_log(
-    _state: &mut MQTTState, tx: *mut std::os::raw::c_void, flags: u32, js: &mut JsonBuilder,
+    tx: *mut std::os::raw::c_void, flags: u32, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, MQTTTransaction);
     log_mqtt(tx, flags, js).is_ok()
