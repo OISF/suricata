@@ -614,14 +614,6 @@ housekeeping:
     /* process local work queue */
     FlowWorkerProcessLocalFlows(tv, fw, p);
 
-#ifdef PROFILE_RULES
-    /* aggregate statistics */
-    if (tv->profile_flag == 1) {
-        SCProfilingRuleThreatAggregate((DetectEngineThreadCtx *)detect_thread);
-        tv->profile_flag = 0;
-    }
-#endif
-
     return TM_ECODE_OK;
 }
 
