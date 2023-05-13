@@ -84,25 +84,25 @@ void CleanupPcapDirectoryFromThreadVars(PcapFileThreadVars *tv, PcapFileDirector
     }
 }
 
-void CleanupPcapFileThreadVars(PcapFileThreadVars *tv)
+void CleanupPcapFileThreadVars(PcapFileThreadVars *ptv)
 {
-    if(tv != NULL) {
-        if (tv->is_directory == 0) {
-            if (tv->behavior.file != NULL) {
-                CleanupPcapFileFromThreadVars(tv, tv->behavior.file);
+    if (ptv != NULL) {
+        if (ptv->is_directory == 0) {
+            if (ptv->behavior.file != NULL) {
+                CleanupPcapFileFromThreadVars(ptv, ptv->behavior.file);
             }
-            tv->behavior.file = NULL;
+            ptv->behavior.file = NULL;
         } else {
-            if (tv->behavior.directory != NULL) {
-                CleanupPcapDirectoryFromThreadVars(tv, tv->behavior.directory);
+            if (ptv->behavior.directory != NULL) {
+                CleanupPcapDirectoryFromThreadVars(ptv, ptv->behavior.directory);
             }
-            tv->behavior.directory = NULL;
+            ptv->behavior.directory = NULL;
         }
-        if (tv->shared.bpf_string != NULL) {
-            SCFree(tv->shared.bpf_string);
-            tv->shared.bpf_string = NULL;
+        if (ptv->shared.bpf_string != NULL) {
+            SCFree(ptv->shared.bpf_string);
+            ptv->shared.bpf_string = NULL;
         }
-        SCFree(tv);
+        SCFree(ptv);
     }
 }
 
