@@ -68,7 +68,6 @@ static TmEcode DecodePcapFileThreadDeinit(ThreadVars *tv, void *data);
 static void CleanupPcapDirectoryFromThreadVars(PcapFileThreadVars *tv,
                                                PcapFileDirectoryVars *ptv);
 static void CleanupPcapFileFromThreadVars(PcapFileThreadVars *tv, PcapFileFileVars *pfv);
-static void CleanupPcapFileThreadVars(PcapFileThreadVars *tv);
 static TmEcode PcapFileExit(TmEcode status, struct timespec *last_processed);
 
 void CleanupPcapFileFromThreadVars(PcapFileThreadVars *tv, PcapFileFileVars *pfv)
@@ -87,7 +86,7 @@ void CleanupPcapDirectoryFromThreadVars(PcapFileThreadVars *tv, PcapFileDirector
     }
 }
 
-void CleanupPcapFileThreadVars(PcapFileThreadVars *ptv)
+static void CleanupPcapFileThreadVars(ThreadVars *tv, PcapFileThreadVars *ptv)
 {
     if (ptv != NULL) {
         if (ptv->is_directory == 0) {
@@ -229,7 +228,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         if (unlikely(ptv->shared.bpf_string == NULL)) {
             SCLogError("Failed to allocate bpf_string");
 
-            CleanupPcapFileThreadVars(ptv);
+            CleanupPcapFileThreadVars(tv, ptv);
 
             SCReturnInt(TM_ECODE_OK);
         }
@@ -244,7 +243,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
     DIR *directory = NULL;
     SCLogDebug("checking file or directory %s", (char*)initdata);
     if(PcapDetermineDirectoryOrFile((char *)initdata, &directory) == TM_ECODE_FAILED) {
-        CleanupPcapFileThreadVars(ptv);
+        CleanupPcapFileThreadVars(tv, ptv);
         SCReturnInt(TM_ECODE_OK);
     }
 
@@ -253,7 +252,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         PcapFileFileVars *pv = SCCalloc(1, sizeof(PcapFileFileVars));
         if (unlikely(pv == NULL)) {
             SCLogError("Failed to allocate file vars");
-            CleanupPcapFileThreadVars(ptv);
+            CleanupPcapFileThreadVars(tv, ptv);
             SCReturnInt(TM_ECODE_OK);
         }
 
@@ -261,7 +260,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         if (unlikely(pv->filename == NULL)) {
             SCLogError("Failed to allocate filename");
             CleanupPcapFileFileVars(pv);
-            CleanupPcapFileThreadVars(ptv);
+            CleanupPcapFileThreadVars(tv, ptv);
             SCReturnInt(TM_ECODE_OK);
         }
 
@@ -273,7 +272,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         } else {
             SCLogWarning("Failed to init pcap file %s, skipping", pv->filename);
             CleanupPcapFileFileVars(pv);
-            CleanupPcapFileThreadVars(ptv);
+            CleanupPcapFileThreadVars(tv, ptv);
             SCReturnInt(TM_ECODE_OK);
         }
     } else {
@@ -282,7 +281,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         if (unlikely(pv == NULL)) {
             SCLogError("Failed to allocate directory vars");
             closedir(directory);
-            CleanupPcapFileThreadVars(ptv);
+            CleanupPcapFileThreadVars(tv, ptv);
             SCReturnInt(TM_ECODE_OK);
         }
 
@@ -291,7 +290,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
             SCLogError("Failed to allocate filename");
             closedir(directory);
             CleanupPcapFileDirectoryVars(pv);
-            CleanupPcapFileThreadVars(ptv);
+            CleanupPcapFileThreadVars(tv, ptv);
             SCReturnInt(TM_ECODE_OK);
         }
         pv->cur_dir_depth = 0;
@@ -313,7 +312,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
                        "cannot be used together.");
             closedir(directory);
             CleanupPcapFileDirectoryVars(pv);
-            CleanupPcapFileThreadVars(ptv);
+            CleanupPcapFileThreadVars(tv, ptv);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
@@ -396,7 +395,7 @@ TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data)
     SCEnter();
     if(data != NULL) {
         PcapFileThreadVars *ptv = (PcapFileThreadVars *) data;
-        CleanupPcapFileThreadVars(ptv);
+        CleanupPcapFileThreadVars(tv, ptv);
     }
     SCReturnInt(TM_ECODE_OK);
 }
