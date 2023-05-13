@@ -163,7 +163,7 @@ void TmModuleDecodeNapatechRegister(int slot)
     tmm_modules[slot].ThreadExitPrintStats = NULL;
     tmm_modules[slot].ThreadDeinit = NapatechDecodeThreadDeinit;
     tmm_modules[slot].cap_flags = 0;
-    tmm_modules[slot].flags = TM_FLAG_DECODE_TM;
+    tmm_modules[slot].flags = 0;
 }
 
 #ifdef NAPATECH_ENABLE_BYPASS
