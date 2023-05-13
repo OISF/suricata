@@ -156,7 +156,6 @@ void TmModuleDecodePcapRegister (void)
     tmm_modules[TMM_DECODEPCAP].ThreadInit = DecodePcapThreadInit;
     tmm_modules[TMM_DECODEPCAP].Func = DecodePcap;
     tmm_modules[TMM_DECODEPCAP].ThreadDeinit = DecodePcapThreadDeinit;
-    tmm_modules[TMM_DECODEPCAP].flags = TM_FLAG_DECODE_TM;
 }
 
 /**

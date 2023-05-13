@@ -30,7 +30,7 @@
 
 /* thread flags */
 #define TM_FLAG_RECEIVE_TM      0x01
-#define TM_FLAG_DECODE_TM       0x02
+//
 #define TM_FLAG_STREAM_TM       0x04
 #define TM_FLAG_DETECT_TM       0x08
 #define TM_FLAG_LOGAPI_TM       0x10 /**< TM is run by Log API */

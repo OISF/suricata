@@ -69,7 +69,6 @@ void TmModuleDecodeDPDKRegister(void)
     tmm_modules[TMM_DECODEDPDK].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEDPDK].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEDPDK].cap_flags = 0;
-    tmm_modules[TMM_DECODEDPDK].flags = TM_FLAG_DECODE_TM;
 }
 
 /**
@@ -323,7 +322,6 @@ void TmModuleDecodeDPDKRegister(void)
     tmm_modules[TMM_DECODEDPDK].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEDPDK].ThreadDeinit = DecodeDPDKThreadDeinit;
     tmm_modules[TMM_DECODEDPDK].cap_flags = 0;
-    tmm_modules[TMM_DECODEDPDK].flags = TM_FLAG_DECODE_TM;
 }
 
 static inline void DPDKDumpCounters(DPDKThreadVars *ptv)

@@ -133,7 +133,6 @@ void TmModuleDecodePcapFileRegister (void)
     tmm_modules[TMM_DECODEPCAPFILE].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEPCAPFILE].ThreadDeinit = DecodePcapFileThreadDeinit;
     tmm_modules[TMM_DECODEPCAPFILE].cap_flags = 0;
-    tmm_modules[TMM_DECODEPCAPFILE].flags = TM_FLAG_DECODE_TM;
 }
 
 void PcapFileGlobalInit(void)

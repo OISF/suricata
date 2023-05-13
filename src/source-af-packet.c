@@ -146,7 +146,6 @@ void TmModuleDecodeAFPRegister (void)
     tmm_modules[TMM_DECODEAFP].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEAFP].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEAFP].cap_flags = 0;
-    tmm_modules[TMM_DECODEAFP].flags = TM_FLAG_DECODE_TM;
 }
 
 /**
@@ -607,7 +606,6 @@ void TmModuleDecodeAFPRegister (void)
     tmm_modules[TMM_DECODEAFP].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEAFP].ThreadDeinit = DecodeAFPThreadDeinit;
     tmm_modules[TMM_DECODEAFP].cap_flags = 0;
-    tmm_modules[TMM_DECODEAFP].flags = TM_FLAG_DECODE_TM;
 }
 
 
