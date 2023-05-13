@@ -103,7 +103,6 @@ TmModuleDecodeErfFileRegister(void)
     tmm_modules[TMM_DECODEERFFILE].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEERFFILE].ThreadDeinit = DecodeErfFileThreadDeinit;
     tmm_modules[TMM_DECODEERFFILE].cap_flags = 0;
-    tmm_modules[TMM_DECODEERFFILE].flags = TM_FLAG_DECODE_TM;
 }
 
 /**

@@ -84,7 +84,6 @@ void TmModuleDecodeNFQRegister (void)
     tmm_modules[TMM_DECODENFQ].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODENFQ].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODENFQ].cap_flags = 0;
-    tmm_modules[TMM_DECODENFQ].flags = TM_FLAG_DECODE_TM;
 }
 
 static TmEcode NoNFQSupportExit(ThreadVars *tv, const void *initdata, void **data)
@@ -195,7 +194,6 @@ void TmModuleDecodeNFQRegister (void)
     tmm_modules[TMM_DECODENFQ].ThreadInit = DecodeNFQThreadInit;
     tmm_modules[TMM_DECODENFQ].Func = DecodeNFQ;
     tmm_modules[TMM_DECODENFQ].ThreadDeinit = DecodeNFQThreadDeinit;
-    tmm_modules[TMM_DECODENFQ].flags = TM_FLAG_DECODE_TM;
 }
 
 /** \brief          To initialize the NFQ global configuration data

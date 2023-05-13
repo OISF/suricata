@@ -96,7 +96,6 @@ void TmModuleDecodeAFXDPRegister(void)
     tmm_modules[TMM_DECODEAFXDP].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEAFXDP].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEAFXDP].cap_flags = 0;
-    tmm_modules[TMM_DECODEAFXDP].flags = TM_FLAG_DECODE_TM;
 }
 
 /**
@@ -236,7 +235,6 @@ void TmModuleDecodeAFXDPRegister(void)
     tmm_modules[TMM_DECODEAFXDP].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEAFXDP].ThreadDeinit = DecodeAFXDPThreadDeinit;
     tmm_modules[TMM_DECODEAFXDP].cap_flags = 0;
-    tmm_modules[TMM_DECODEAFXDP].flags = TM_FLAG_DECODE_TM;
 }
 
 static inline void AFXDPDumpCounters(AFXDPThreadVars *ptv)
