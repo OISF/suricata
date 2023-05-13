@@ -751,7 +751,7 @@ void SCProfilingDumpPacketStats(void)
 
 static void PrintCSVHeader(void)
 {
-    fprintf(packet_profile_csv_fp, "pcap_cnt,total,receive,decode,flowworker,");
+    fprintf(packet_profile_csv_fp, "pcap_cnt,total,receive,flowworker,");
     fprintf(packet_profile_csv_fp, "threading,");
     fprintf(packet_profile_csv_fp, "proto detect,");
 
@@ -782,7 +782,6 @@ void SCProfilingPrintPacketProfile(Packet *p)
 
     uint64_t tmm_total = 0;
     uint64_t receive = 0;
-    uint64_t decode = 0;
 
     /* total cost from acquisition to return to packetpool */
     uint64_t delta = p->profile->ticks_end - p->profile->ticks_start;
@@ -798,18 +797,11 @@ void SCProfilingPrintPacketProfile(Packet *p)
                 receive = tmm_delta;
             }
             continue;
-
-        } else if (tmm_modules[i].flags & TM_FLAG_DECODE_TM) {
-            if (tmm_delta) {
-                decode = tmm_delta;
-            }
-            continue;
         }
 
         tmm_total += tmm_delta;
     }
-    fprintf(packet_profile_csv_fp, "%"PRIu64",", receive);
-    fprintf(packet_profile_csv_fp, "%"PRIu64",", decode);
+    fprintf(packet_profile_csv_fp, "%" PRIu64 ",", receive);
     PktProfilingTmmData *fw_pdt = &p->profile->tmm[TMM_FLOWWORKER];
     fprintf(packet_profile_csv_fp, "%"PRIu64",", fw_pdt->ticks_end - fw_pdt->ticks_start);
     fprintf(packet_profile_csv_fp, "%"PRIu64",", delta - tmm_total);
