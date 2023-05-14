@@ -146,7 +146,6 @@ static inline void TmThreadsSlotProcessPktFail(ThreadVars *tv, Packet *p)
     if (p != NULL) {
         TmqhOutputPacketpool(tv, p);
     }
-    TmThreadsCleanDecodePQ(&tv->decode_pq);
     if (tv->stream_pq_local) {
         SCMutexLock(&tv->stream_pq_local->mutex_q);
         TmqhReleasePacketsToPacketPool(tv->stream_pq_local);
