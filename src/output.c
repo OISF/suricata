@@ -88,7 +88,7 @@
 #include "output-json-metadata.h"
 #include "output-json-dcerpc.h"
 #include "output-json-frame.h"
-#include "output-json-bittorrent-dht.h"
+#include "app-layer-parser.h"
 #include "output-filestore.h"
 
 typedef struct RootLogger_ {
@@ -1034,6 +1034,104 @@ void OutputRegisterRootLoggers(void)
     OutputStreamingLoggerRegister();
 }
 
+typedef struct LogGenericLogThread_ {
+    OutputJsonCtx *eve_ctx;
+    OutputJsonThreadCtx *ctx;
+} LogGenericLogThread;
+
+static void OutputGenericLogDeInitCtxSub(OutputCtx *output_ctx)
+{
+    SCFree(output_ctx);
+}
+
+static OutputInitResult OutputGenericLogInitSub(ConfNode *conf, OutputCtx *parent_ctx, uint8_t ipproto, AppProto proto)
+{
+    OutputInitResult result = { NULL, false };
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
+    if (unlikely(output_ctx == NULL)) {
+        return result;
+    }
+    output_ctx->data = parent_ctx->data;
+    output_ctx->DeInit = OutputGenericLogDeInitCtxSub;
+    AppLayerParserRegisterLogger(ipproto, proto);
+
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
+}
+
+static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *state, void *tx, uint64_t tx_id)
+{
+    LogGenericLogThread *thread = thread_data;
+    AppLayerLogger *al = GetAppProtoLogger(f->alproto);
+    if (al == NULL) {
+        return TM_ECODE_FAILED;
+    }
+
+    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, al->name, NULL, thread->eve_ctx);
+    if (unlikely(js == NULL)) {
+        return TM_ECODE_FAILED;
+    }
+
+    jb_open_object(js, al->name);
+    if (!al->log(tx, js)) {
+        goto error;
+    }
+    jb_close(js);
+
+    OutputJsonBuilderBuffer(js, thread->ctx);
+    jb_free(js);
+
+    return TM_ECODE_OK;
+
+error:
+    jb_free(js);
+    return TM_ECODE_FAILED;
+}
+
+static TmEcode JsonGenericLogThreadInit(ThreadVars *t, const void *initdata, void **data)
+{
+    LogGenericLogThread *thread = SCCalloc(1, sizeof(*thread));
+    if (unlikely(thread == NULL)) {
+        return TM_ECODE_FAILED;
+    }
+
+    if (initdata == NULL) {
+        SCLogDebug("Error getting context for EveLogGeneric.  \"initdata\" is NULL.");
+        goto error_exit;
+    }
+
+    thread->eve_ctx = ((OutputCtx *)initdata)->data;
+    thread->ctx = CreateEveThreadCtx(t, thread->eve_ctx);
+    if (!thread->ctx) {
+        goto error_exit;
+    }
+    *data = (void *)thread;
+
+    return TM_ECODE_OK;
+
+error_exit:
+    SCFree(thread);
+    return TM_ECODE_FAILED;
+}
+
+static TmEcode JsonGenericLogThreadDeinit(ThreadVars *t, void *data)
+{
+    LogGenericLogThread *thread = (LogGenericLogThread *)data;
+    if (thread == NULL) {
+        return TM_ECODE_OK;
+    }
+    FreeEveThreadCtx(thread->ctx);
+    SCFree(thread);
+    return TM_ECODE_OK;
+}
+
+static OutputInitResult OutputBitTorrentDHTLogInitSub(ConfNode *conf, OutputCtx *parent_ctx) {
+    return OutputGenericLogInitSub(conf, parent_ctx, IPPROTO_UDP, ALPROTO_BITTORRENT_DHT);
+}
+
 /**
  * \brief Register all non-root logging modules.
  */
@@ -1126,7 +1224,13 @@ void OutputRegisterLoggers(void)
     /* app layer frames */
     JsonFrameLogRegister();
     /* BitTorrent DHT JSON logger */
-    JsonBitTorrentDHTLogRegister();
+    if (ConfGetNode("app-layer.protocols.bittorrent-dht") != NULL) {
+        /* Register as an eve sub-module. */
+        OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonBitTorrentDHTLog",
+                "eve-log.bittorrent-dht", OutputBitTorrentDHTLogInitSub, ALPROTO_BITTORRENT_DHT,
+                                  JsonGenericLogger, JsonGenericLogThreadInit,
+                                  JsonGenericLogThreadDeinit, NULL);
+    }
 }
 
 static AppLayerLogger alert_applayer_loggers[ALPROTO_MAX] = {
