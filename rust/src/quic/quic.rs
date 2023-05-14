@@ -496,6 +496,7 @@ pub unsafe extern "C" fn rs_quic_register_parser() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust quic parser registered.");
+        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_QUIC);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for quic.");
     }
