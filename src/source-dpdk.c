@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2021-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -59,20 +59,6 @@ void TmModuleReceiveDPDKRegister(void)
 }
 
 /**
- * \brief Registration Function for DecodeDPDK.
- */
-void TmModuleDecodeDPDKRegister(void)
-{
-    tmm_modules[TMM_DECODEDPDK].name = "DecodeDPDK";
-    tmm_modules[TMM_DECODEDPDK].ThreadInit = NoDPDKSupportExit;
-    tmm_modules[TMM_DECODEDPDK].Func = NULL;
-    tmm_modules[TMM_DECODEDPDK].ThreadExitPrintStats = NULL;
-    tmm_modules[TMM_DECODEDPDK].ThreadDeinit = NULL;
-    tmm_modules[TMM_DECODEDPDK].cap_flags = 0;
-    tmm_modules[TMM_DECODEDPDK].flags = TM_FLAG_DECODE_TM;
-}
-
-/**
  * \brief this function prints an error message and exits.
  */
 TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
@@ -107,6 +93,7 @@ typedef struct DPDKThreadVars_ {
     /* counters */
     uint64_t pkts;
     ThreadVars *tv;
+    DecodeThreadVars *dtv;
     TmSlot *slot;
     LiveDevice *livedev;
     ChecksumValidationMode checksum_mode;
@@ -141,9 +128,7 @@ static void ReceiveDPDKThreadExitStats(ThreadVars *, void *);
 static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *, void *);
 static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot);
 
-static TmEcode DecodeDPDKThreadInit(ThreadVars *, const void *, void **);
-static TmEcode DecodeDPDKThreadDeinit(ThreadVars *tv, void *data);
-static TmEcode DecodeDPDK(ThreadVars *, Packet *, void *);
+static void DecodeDPDK(ThreadVars *, Packet *, DecodeThreadVars *);
 
 static void DPDKFreeMbufArray(struct rte_mbuf **mbuf_array, uint16_t mbuf_cnt, uint16_t offset);
 static bool InterruptsRXEnable(uint16_t port_id, uint16_t queue_id)
@@ -253,21 +238,6 @@ void TmModuleReceiveDPDKRegister(void)
     tmm_modules[TMM_RECEIVEDPDK].ThreadDeinit = ReceiveDPDKThreadDeinit;
     tmm_modules[TMM_RECEIVEDPDK].cap_flags = SC_CAP_NET_RAW;
     tmm_modules[TMM_RECEIVEDPDK].flags = TM_FLAG_RECEIVE_TM;
-}
-
-/**
- * \brief Registration Function for DecodeDPDK.
- * \todo Unit tests are needed for this module.
- */
-void TmModuleDecodeDPDKRegister(void)
-{
-    tmm_modules[TMM_DECODEDPDK].name = "DecodeDPDK";
-    tmm_modules[TMM_DECODEDPDK].ThreadInit = DecodeDPDKThreadInit;
-    tmm_modules[TMM_DECODEDPDK].Func = DecodeDPDK;
-    tmm_modules[TMM_DECODEDPDK].ThreadExitPrintStats = NULL;
-    tmm_modules[TMM_DECODEDPDK].ThreadDeinit = DecodeDPDKThreadDeinit;
-    tmm_modules[TMM_DECODEDPDK].cap_flags = 0;
-    tmm_modules[TMM_DECODEDPDK].flags = TM_FLAG_DECODE_TM;
 }
 
 static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
@@ -541,6 +511,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
             DPDKSegmentedMbufWarning(ptv->received_mbufs[i]);
             PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
                     rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
+            DecodeDPDK(tv, p, ptv->dtv);
             if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
                 TmqhOutputPacketpool(ptv->tv, p);
                 DPDKFreeMbufArray(ptv->received_mbufs, nb_rx - i - 1, i + 1);
@@ -580,6 +551,12 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
         SCLogError("Unable to allocate memory");
         goto fail;
     }
+    ptv->dtv = DecodeThreadVarsAlloc(tv);
+    if (unlikely(tv == NULL)) {
+        SCLogError("Unable to allocate memory");
+        goto fail;
+    }
+    DecodeRegisterPerfCounters(ptv->dtv, tv);
 
     ptv->tv = tv;
     ptv->pkts = 0;
@@ -658,8 +635,9 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
 fail:
     if (dpdk_config != NULL)
         dpdk_config->DerefFunc(dpdk_config);
-    if (ptv != NULL)
-        SCFree(ptv);
+    if (ptv != NULL) {
+        ReceiveDPDKThreadDeinit(tv, ptv);
+    }
     SCReturnInt(TM_ECODE_FAILED);
 }
 
@@ -765,6 +743,9 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
 
     ptv->pkt_mempool = NULL; // MP is released when device is closed
 
+    if (ptv->dtv != NULL) {
+        DecodeThreadVarsFree(tv, ptv->dtv);
+    }
     SCFree(ptv);
     SCReturnInt(TM_ECODE_OK);
 }
@@ -777,15 +758,10 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
  *
  * \param t pointer to ThreadVars
  * \param p pointer to the current packet
- * \param data pointer that gets cast into DPDKThreadVars for ptv
+ * \param dtv DecodeThreadVars
  */
-static TmEcode DecodeDPDK(ThreadVars *tv, Packet *p, void *data)
+static void DecodeDPDK(ThreadVars *tv, Packet *p, DecodeThreadVars *dtv)
 {
-    SCEnter();
-    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
-
-    BUG_ON(PKT_IS_PSEUDOPKT(p));
-
     /* update counters */
     DecodeUpdatePacketCounters(tv, dtv, p);
 
@@ -798,33 +774,6 @@ static TmEcode DecodeDPDK(ThreadVars *tv, Packet *p, void *data)
     DecodeLinkLayer(tv, dtv, p->datalink, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     PacketDecodeFinalize(tv, dtv, p);
-
-    SCReturnInt(TM_ECODE_OK);
-}
-
-static TmEcode DecodeDPDKThreadInit(ThreadVars *tv, const void *initdata, void **data)
-{
-    SCEnter();
-    DecodeThreadVars *dtv = NULL;
-
-    dtv = DecodeThreadVarsAlloc(tv);
-
-    if (dtv == NULL)
-        SCReturnInt(TM_ECODE_FAILED);
-
-    DecodeRegisterPerfCounters(dtv, tv);
-
-    *data = (void *)dtv;
-
-    SCReturnInt(TM_ECODE_OK);
-}
-
-static TmEcode DecodeDPDKThreadDeinit(ThreadVars *tv, void *data)
-{
-    SCEnter();
-    if (data != NULL)
-        DecodeThreadVarsFree(tv, data);
-    SCReturnInt(TM_ECODE_OK);
 }
 
 #endif /* HAVE_DPDK */

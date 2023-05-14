@@ -119,6 +119,7 @@ TmEcode TmThreadsProcessDecodePseudoPackets(
         DEBUG_VALIDATE_BUG_ON(extra_p->flow != NULL);
 
         if (TmThreadsSlotProcessPkt(tv, slot, extra_p) != TM_ECODE_OK) {
+            TmThreadsCleanDecodePQ(decode_pq);
             SCReturnInt(TM_ECODE_FAILED);
         }
     }
@@ -141,12 +142,6 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot)
             /* Encountered error.  Return packets to packetpool and return */
             TmThreadsSlotProcessPktFail(tv, NULL);
             return TM_ECODE_FAILED;
-        }
-        if (s->tm_flags & TM_FLAG_DECODE_TM) {
-            if (TmThreadsProcessDecodePseudoPackets(tv, &tv->decode_pq, s->slot_next) !=
-                    TM_ECODE_OK) {
-                return TM_ECODE_FAILED;
-            }
         }
     }
 
@@ -2057,10 +2052,6 @@ static void TmThreadDumpThreads(void)
                     SCLogNotice("tv %p: ==> stream_pq_local: pq.len %u packet src %s",
                             tv, tv->stream_pq_local->len, PktSrcToString(xp->pkt_src));
                 }
-            }
-            for (Packet *xp = tv->decode_pq.top; xp != NULL; xp = xp->next) {
-                SCLogNotice("tv %p: ==> decode_pq: decode_pq.len %u packet src %s",
-                        tv, tv->decode_pq.len, PktSrcToString(xp->pkt_src));
             }
             TmThreadDoDumpSlots(tv);
             tv = tv->next;

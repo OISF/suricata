@@ -540,7 +540,7 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     if (unlikely(IPV4_GET_RAW_FRAGOFFSET(ip4h) > 0 || IPV4_GET_RAW_FLAG_MF(ip4h))) {
         Packet *rp = Defrag(tv, dtv, p);
         if (rp != NULL) {
-            PacketEnqueueNoLock(&tv->decode_pq, rp);
+            PacketEnqueueNoLock(&dtv->decode_pq, rp);
         }
         p->flags |= PKT_IS_FRAGMENT;
         return TM_ECODE_OK;
@@ -591,7 +591,7 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                 Packet *tp = PacketTunnelPktSetup(tv, dtv, p, data, data_len, DECODE_TUNNEL_IPV6);
                 if (tp != NULL) {
                     PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
-                    PacketEnqueueNoLock(&tv->decode_pq,tp);
+                    PacketEnqueueNoLock(&dtv->decode_pq, tp);
                 }
                 FlowSetupPacket(p);
                 break;
@@ -1307,7 +1307,7 @@ static int DecodeIPV4DefragTest01(void)
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
                GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
     FAIL_IF(PacketIsTCP(p));
-    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
+    Packet *tp = PacketDequeueNoLock(&dtv.decode_pq);
     FAIL_IF_NULL(tp);
     FAIL_IF(tp->recursion_level != p->recursion_level);
     FAIL_IF_NOT(PacketIsIPv4(tp));
@@ -1404,7 +1404,7 @@ static int DecodeIPV4DefragTest02(void)
     DecodeIPV4(&tv, &dtv, p, GET_PKT_DATA(p) + ETHERNET_HEADER_LEN,
                GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
     FAIL_IF(PacketIsTCP(p));
-    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
+    Packet *tp = PacketDequeueNoLock(&dtv.decode_pq);
     FAIL_IF_NULL(tp);
     FAIL_IF(tp->recursion_level != p->recursion_level);
     FAIL_IF_NOT(PacketIsIPv4(tp));
@@ -1502,7 +1502,7 @@ static int DecodeIPV4DefragTest03(void)
                GET_PKT_LEN(p) - ETHERNET_HEADER_LEN);
     FAIL_IF(PacketIsTCP(p));
 
-    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
+    Packet *tp = PacketDequeueNoLock(&dtv.decode_pq);
     FAIL_IF_NULL(tp);
     FAIL_IF(!(tp->flags & PKT_WANTS_FLOW));
     FAIL_IF(tp->flow_hash != p->flow_hash);

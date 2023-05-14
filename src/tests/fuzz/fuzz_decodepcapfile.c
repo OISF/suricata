@@ -30,7 +30,6 @@ pcap-file:\n\
 ";
 
 ThreadVars *tv;
-DecodeThreadVars *dtv;
 SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
@@ -70,13 +69,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             return 0;
         }
         TmSlotSetFuncAppend(tv, tm_module, "/tmp/fuzz.pcap");
-        tm_module = TmModuleGetByName("DecodePcapFile");
-        if (tm_module == NULL) {
-            return 0;
-        }
-        TmSlotSetFuncAppend(tv, tm_module, NULL);
-        tmm_modules[TMM_DECODEPCAPFILE].ThreadInit(tv, NULL, (void **) &dtv);
-        (void)SC_ATOMIC_SET(tv->tm_slots->slot_next->slot_data, dtv);
 
         extern uint16_t max_pending_packets;
         max_pending_packets = 128;

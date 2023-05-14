@@ -944,6 +944,9 @@ static inline bool PacketIsARP(const Packet *p)
 /** \brief Structure to hold thread specific data for all decode modules */
 typedef struct DecodeThreadVars_
 {
+    /** packet queue for decoders to store tunnel packets. */
+    PacketQueueNoLock decode_pq;
+
     /** Specific context for udp protocol detection (here atm) */
     AppLayerThreadCtx *app_tctx;
 

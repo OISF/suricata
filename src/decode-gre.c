@@ -207,7 +207,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
                     len - header_len, DECODE_TUNNEL_IPV4);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                PacketEnqueueNoLock(&tv->decode_pq,tp);
+                PacketEnqueueNoLock(&dtv->decode_pq, tp);
             }
             break;
         }
@@ -221,7 +221,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
                     len - header_len, DECODE_TUNNEL_PPP);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                PacketEnqueueNoLock(&tv->decode_pq,tp);
+                PacketEnqueueNoLock(&dtv->decode_pq, tp);
             }
             break;
         }
@@ -232,7 +232,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
                     len - header_len, DECODE_TUNNEL_IPV6);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                PacketEnqueueNoLock(&tv->decode_pq,tp);
+                PacketEnqueueNoLock(&dtv->decode_pq, tp);
             }
             break;
         }
@@ -243,7 +243,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
                     len - header_len, DECODE_TUNNEL_VLAN);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                PacketEnqueueNoLock(&tv->decode_pq,tp);
+                PacketEnqueueNoLock(&dtv->decode_pq, tp);
             }
             break;
         }
@@ -258,7 +258,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
                     GRE_FLAG_ISSET_SQ(greh) == 0 ? DECODE_TUNNEL_ERSPANI : DECODE_TUNNEL_ERSPANII);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                PacketEnqueueNoLock(&tv->decode_pq,tp);
+                PacketEnqueueNoLock(&dtv->decode_pq, tp);
             }
             break;
         }
@@ -269,7 +269,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
                     len - header_len, DECODE_TUNNEL_ETHERNET);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                PacketEnqueueNoLock(&tv->decode_pq,tp);
+                PacketEnqueueNoLock(&dtv->decode_pq, tp);
             }
             break;
         }
@@ -279,7 +279,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
                     tv, dtv, p, pkt + header_len, len - header_len, DECODE_TUNNEL_ARP);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
-                PacketEnqueueNoLock(&tv->decode_pq, tp);
+                PacketEnqueueNoLock(&dtv->decode_pq, tp);
             }
             break;
         }

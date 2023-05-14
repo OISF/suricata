@@ -183,8 +183,7 @@ typedef struct AFPPacketVars_
  * @}
  */
 
-void TmModuleReceiveAFPRegister (void);
-void TmModuleDecodeAFPRegister (void);
+void TmModuleReceiveAFPRegister(void);
 
 TmEcode AFPPeersListInit(void);
 TmEcode AFPPeersListCheck(void);

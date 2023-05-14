@@ -30,6 +30,7 @@
 #include "util-profiling.h"
 #include "source-pcap-file.h"
 #include "util-exception-policy.h"
+#include "tm-threads.h"
 
 extern uint16_t max_pending_packets;
 extern PcapFileGlobalVars pcap_g;
@@ -104,6 +105,33 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     }
 
     PACKET_PROFILING_TMM_END(p, TMM_RECEIVEPCAPFILE);
+
+    /* update counters */
+    DecodeUpdatePacketCounters(ptv->shared->tv, ptv->shared->dtv, p);
+
+    DecoderFunc DecoderFn;
+    if (ValidateLinkType(p->datalink, &DecoderFn) == TM_ECODE_OK) {
+
+        /* call the decoder */
+        DecoderFn(ptv->shared->tv, ptv->shared->dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
+
+#ifdef DEBUG
+        BUG_ON(p->pkt_src != PKT_SRC_WIRE && p->pkt_src != PKT_SRC_FFR);
+#endif
+
+        PacketDecodeFinalize(ptv->shared->tv, ptv->shared->dtv, p);
+
+        if (TmThreadsProcessDecodePseudoPackets(ptv->shared->tv, &ptv->shared->dtv->decode_pq,
+                    ptv->shared->slot) != TM_ECODE_OK) {
+            pcap_breakloop(ptv->pcap_handle);
+            ptv->shared->cb_result = TM_ECODE_FAILED;
+            SCReturn;
+        }
+    } else {
+        pcap_breakloop(ptv->pcap_handle);
+        ptv->shared->cb_result = TM_ECODE_FAILED;
+        SCReturn;
+    }
 
     if (TmThreadsSlotProcessPkt(ptv->shared->tv, ptv->shared->slot, p) != TM_ECODE_OK) {
         pcap_breakloop(ptv->pcap_handle);

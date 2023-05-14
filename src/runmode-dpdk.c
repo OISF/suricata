@@ -1723,7 +1723,7 @@ int RunModeIdsDpdkWorkers(void)
 
     InitEal();
     ret = RunModeSetLiveCaptureWorkers(ParseDpdkConfigAndConfigureDevice, DPDKConfigGetThreadsCount,
-            "ReceiveDPDK", "DecodeDPDK", thread_name_workers, NULL);
+            "ReceiveDPDK", NULL, thread_name_workers, NULL);
     if (ret != 0) {
         FatalError("Unable to start runmode");
     }

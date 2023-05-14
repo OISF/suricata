@@ -95,6 +95,7 @@ typedef struct PcapThreadVars_
 
     ThreadVars *tv;
     TmSlot *slot;
+    DecodeThreadVars *dtv;
 
     /** callback result -- set if one of the thread module failed. */
     int cb_result;
@@ -116,10 +117,6 @@ static TmEcode ReceivePcapThreadDeinit(ThreadVars *tv, void *data);
 static void ReceivePcapThreadExitStats(ThreadVars *, void *);
 static TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot);
 static TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data);
-
-static TmEcode DecodePcapThreadInit(ThreadVars *, const void *, void **);
-static TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data);
-static TmEcode DecodePcap(ThreadVars *, Packet *, void *);
 
 #ifdef UNITTESTS
 static void SourcePcapRegisterTests(void);
@@ -145,18 +142,6 @@ void TmModuleReceivePcapRegister (void)
 #ifdef UNITTESTS
     tmm_modules[TMM_RECEIVEPCAP].RegisterTests = SourcePcapRegisterTests;
 #endif
-}
-
-/**
- * \brief Registration Function for DecodePcap.
- */
-void TmModuleDecodePcapRegister (void)
-{
-    tmm_modules[TMM_DECODEPCAP].name = "DecodePcap";
-    tmm_modules[TMM_DECODEPCAP].ThreadInit = DecodePcapThreadInit;
-    tmm_modules[TMM_DECODEPCAP].Func = DecodePcap;
-    tmm_modules[TMM_DECODEPCAP].ThreadDeinit = DecodePcapThreadDeinit;
-    tmm_modules[TMM_DECODEPCAP].flags = TM_FLAG_DECODE_TM;
 }
 
 /**
@@ -365,6 +350,20 @@ static void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
             break;
     }
 
+    /* update counters */
+    DecodeUpdatePacketCounters(ptv->tv, ptv->dtv, p);
+
+    DecodeLinkLayer(ptv->tv, ptv->dtv, p->datalink, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
+
+    PacketDecodeFinalize(ptv->tv, ptv->dtv, p);
+
+    if (TmThreadsProcessDecodePseudoPackets(ptv->tv, &ptv->dtv->decode_pq, ptv->slot) !=
+            TM_ECODE_OK) {
+        pcap_breakloop(ptv->pcap_handle);
+        ptv->cb_result = TM_ECODE_FAILED;
+        SCReturn;
+    }
+
     if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
         pcap_breakloop(ptv->pcap_handle);
         ptv->cb_result = TM_ECODE_FAILED;
@@ -492,6 +491,14 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
 
     ptv->tv = tv;
 
+    ptv->dtv = DecodeThreadVarsAlloc(tv);
+    if (ptv->dtv == NULL) {
+        pcapconfig->DerefFunc(pcapconfig);
+        ReceivePcapThreadDeinit(tv, ptv);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    DecodeRegisterPerfCounters(ptv->dtv, tv);
+
     ptv->livedev = LiveGetDevice(pcapconfig->iface);
     if (ptv->livedev == NULL) {
         SCLogError("unable to find Live device");
@@ -599,57 +606,9 @@ static TmEcode ReceivePcapThreadDeinit(ThreadVars *tv, void *data)
         if (ptv->filter.bf_insns) {
             SCBPFFree(&ptv->filter);
         }
+        DecodeThreadVarsFree(tv, ptv->dtv);
         SCFree(ptv);
     }
-    SCReturnInt(TM_ECODE_OK);
-}
-
-/**
- * \brief This function passes off to link type decoders.
- *
- * DecodePcap decodes packets from libpcap and passes
- * them off to the proper link type decoder.
- *
- * \param t pointer to ThreadVars
- * \param p pointer to the current packet
- * \param data pointer that gets cast into PcapThreadVars for ptv
- */
-static TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data)
-{
-    SCEnter();
-    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
-
-    BUG_ON(PKT_IS_PSEUDOPKT(p));
-
-    /* update counters */
-    DecodeUpdatePacketCounters(tv, dtv, p);
-
-    DecodeLinkLayer(tv, dtv, p->datalink, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
-
-    PacketDecodeFinalize(tv, dtv, p);
-
-    SCReturnInt(TM_ECODE_OK);
-}
-
-static TmEcode DecodePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
-{
-    SCEnter();
-
-    DecodeThreadVars *dtv = DecodeThreadVarsAlloc(tv);
-    if (dtv == NULL)
-        SCReturnInt(TM_ECODE_FAILED);
-
-    DecodeRegisterPerfCounters(dtv, tv);
-
-    *data = (void *)dtv;
-
-    SCReturnInt(TM_ECODE_OK);
-}
-
-static TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data)
-{
-    if (data != NULL)
-        DecodeThreadVarsFree(tv, data);
     SCReturnInt(TM_ECODE_OK);
 }
 

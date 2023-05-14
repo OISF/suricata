@@ -257,7 +257,7 @@ int DecodeGeneve(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
 
         if (tp != NULL) {
             PKT_SET_SRC(tp, PKT_SRC_DECODER_GENEVE);
-            PacketEnqueueNoLock(&tv->decode_pq, tp);
+            PacketEnqueueNoLock(&dtv->decode_pq, tp);
         }
     }
 
@@ -306,9 +306,9 @@ static int DecodeGeneveTest01(void)
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
 
     FAIL_IF_NOT(PacketIsUDP(p));
-    FAIL_IF(tv.decode_pq.top == NULL);
+    FAIL_IF(dtv.decode_pq.top == NULL);
 
-    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
+    Packet *tp = PacketDequeueNoLock(&dtv.decode_pq);
     FAIL_IF_NOT(PacketIsUDP(tp));
     FAIL_IF_NOT(tp->sp == 546);
 
@@ -348,9 +348,9 @@ static int DecodeGeneveTest02(void)
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
 
     FAIL_IF_NOT(PacketIsUDP(p));
-    FAIL_IF(tv.decode_pq.top == NULL);
+    FAIL_IF(dtv.decode_pq.top == NULL);
 
-    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
+    Packet *tp = PacketDequeueNoLock(&dtv.decode_pq);
     FAIL_IF_NOT(PacketIsUDP(tp));
     FAIL_IF_NOT(tp->sp == 53);
 
@@ -395,9 +395,9 @@ static int DecodeGeneveTest03(void)
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
 
     FAIL_IF_NOT(PacketIsUDP(p));
-    FAIL_IF(tv.decode_pq.top == NULL);
+    FAIL_IF(dtv.decode_pq.top == NULL);
 
-    Packet *tp = PacketDequeueNoLock(&tv.decode_pq);
+    Packet *tp = PacketDequeueNoLock(&dtv.decode_pq);
     FAIL_IF_NOT(PacketIsUDP(tp));
     FAIL_IF_NOT(tp->sp == 53);
 
@@ -439,7 +439,7 @@ static int DecodeGeneveTest04(void)
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
 
     FAIL_IF_NOT(PacketIsUDP(p));
-    FAIL_IF(tv.decode_pq.top != NULL); /* Geneve packet should not have been processed */
+    FAIL_IF(dtv.decode_pq.top != NULL); /* Geneve packet should not have been processed */
 
     DecodeGeneveConfigPorts(GENEVE_DEFAULT_PORT_S); /* Reset Geneve port list for future calls */
     FlowShutdown();
@@ -479,7 +479,7 @@ static int DecodeGeneveTest05(void)
     DecodeUDP(&tv, &dtv, p, raw_geneve, sizeof(raw_geneve));
 
     FAIL_IF_NOT(PacketIsUDP(p));
-    FAIL_IF(tv.decode_pq.top != NULL); /* Geneve packet should not have been processed */
+    FAIL_IF(dtv.decode_pq.top != NULL); /* Geneve packet should not have been processed */
 
     FlowShutdown();
     PacketFree(p);

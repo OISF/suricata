@@ -49,6 +49,7 @@ typedef struct PcapFileSharedVars_
 
     ThreadVars *tv;
     TmSlot *slot;
+    DecodeThreadVars *dtv;
 
     /* counters */
     uint64_t pkts;
