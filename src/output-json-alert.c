@@ -136,20 +136,6 @@ static int AlertJsonDumpStreamSegmentCallback(
     return 1;
 }
 
-static void AlertJsonTls(const Flow *f, JsonBuilder *js)
-{
-    SSLState *ssl_state = (SSLState *)FlowGetAppState(f);
-    if (ssl_state) {
-        jb_open_object(js, "tls");
-
-        JsonTlsLogJSONExtended(js, ssl_state);
-
-        jb_close(js);
-    }
-
-    return;
-}
-
 static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
                                   JsonBuilder *js, JsonAddrInfo *addr)
 {
@@ -357,9 +343,6 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
                 }
             }
             jb_close(jb);
-            break;
-        case ALPROTO_TLS:
-            AlertJsonTls(p->flow, jb);
             break;
         case ALPROTO_SMTP:
             jb_get_mark(jb, &mark);

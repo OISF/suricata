@@ -1134,7 +1134,7 @@ static AppLayerLogger alert_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_HTTP1, NULL, NULL }, // TODO empty http object and option_flags
     { ALPROTO_FTP, NULL, NULL },
     { ALPROTO_SMTP, NULL, NULL }, // TODO state, + log email
-    { ALPROTO_TLS, NULL, NULL },  // TODO log state
+    { ALPROTO_TLS, "tls", JsonTlsLogJSONExtended },
     { ALPROTO_SSH, "ssh", rs_ssh_log_json },
     { ALPROTO_IMAP, NULL, NULL },   // protocol detection only
     { ALPROTO_JABBER, NULL, NULL }, // no parser, no logging
