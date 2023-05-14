@@ -67,6 +67,8 @@
 #include "log-stats.h"
 #include "output-json-nfs.h"
 #include "output-json-ftp.h"
+// for misplaced EveFTPDataAddMetadata
+#include "app-layer-ftp.h"
 #include "output-json-tftp.h"
 #include "output-json-smb.h"
 #include "output-json-ike.h"
@@ -1143,9 +1145,9 @@ static AppLayerLogger alert_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_MODBUS, "modbus", (bool (*)(void *tx, struct JsonBuilder *jb))rs_modbus_to_json },
     { ALPROTO_ENIP, NULL, NULL }, // no logging
     { ALPROTO_DNP3, "dnp3", AlertJsonDnp3 },
-    { ALPROTO_NFS, NULL, NULL },     // TODO log rpc field
-    { ALPROTO_NTP, NULL, NULL },     // no logging
-    { ALPROTO_FTPDATA, NULL, NULL }, // TODO state
+    { ALPROTO_NFS, NULL, NULL }, // TODO log rpc field
+    { ALPROTO_NTP, NULL, NULL }, // no logging
+    { ALPROTO_FTPDATA, "ftp_data", EveFTPDataAddMetadata },
     { ALPROTO_TFTP, "tftp", (bool (*)(void *tx, struct JsonBuilder *jb))rs_tftp_log_json_request },
     { ALPROTO_IKE, NULL, NULL }, // TODO state + option
     { ALPROTO_KRB5, "krb5", (bool (*)(void *tx, struct JsonBuilder *jb))rs_krb5_log_json_response },
