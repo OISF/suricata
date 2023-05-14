@@ -416,6 +416,7 @@ pub unsafe extern "C" fn rs_modbus_register_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
+        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_MODBUS);
     }
 }
 

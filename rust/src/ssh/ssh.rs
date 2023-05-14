@@ -477,6 +477,7 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
+        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SSH);
         SCLogDebug!("Rust ssh parser registered.");
     } else {
         SCLogNotice!("Protocol detector and parser disabled for SSH.");

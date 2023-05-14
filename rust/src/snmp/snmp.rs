@@ -423,6 +423,7 @@ pub unsafe extern "C" fn rs_register_snmp_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
+        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SNMP);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for SNMP.");
     }

@@ -864,6 +864,7 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust rfb parser registered.");
+        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_RFB);
     } else {
         SCLogDebug!("Protocol detector and parser disabled for RFB.");
     }
