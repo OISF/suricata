@@ -403,7 +403,6 @@ noinst_HEADERS = \
 	output.h \
 	output-json-alert.h \
 	output-json-anomaly.h \
-	output-json-bittorrent-dht.h \
 	output-json-dcerpc.h \
 	output-json-dhcp.h \
 	output-json-dnp3.h \
@@ -416,27 +415,16 @@ noinst_HEADERS = \
 	output-json-frame.h \
 	output-json-ftp.h \
 	output-json.h \
-	output-json-http2.h \
 	output-json-http.h \
 	output-json-ike.h \
-	output-json-krb5.h \
 	output-json-metadata.h \
-	output-json-modbus.h \
-	output-json-quic.h \
 	output-json-mqtt.h \
 	output-json-netflow.h \
 	output-json-nfs.h \
 	output-json-pgsql.h \
-	output-json-rdp.h \
-	output-json-rfb.h \
-	output-json-sip.h \
 	output-json-smb.h \
 	output-json-smtp.h \
-	output-json-snmp.h \
-	output-json-ssh.h \
 	output-json-stats.h \
-	output-json-template.h \
-	output-json-tftp.h \
 	output-json-tls.h \
 	output-eve-syslog.h \
 	output-lua.h \
@@ -1023,7 +1011,6 @@ libsuricata_c_a_SOURCES = \
 	output-flow.c \
 	output-json-alert.c \
 	output-json-anomaly.c \
-	output-json-bittorrent-dht.c \
 	output-json.c \
 	output-json-common.c \
 	output-json-dcerpc.c \
@@ -1037,27 +1024,16 @@ libsuricata_c_a_SOURCES = \
 	output-json-flow.c \
 	output-json-frame.c \
 	output-json-ftp.c \
-	output-json-http2.c \
 	output-json-http.c \
 	output-json-ike.c \
-	output-json-krb5.c \
 	output-json-metadata.c \
-	output-json-modbus.c \
-	output-json-quic.c \
 	output-json-mqtt.c \
 	output-json-netflow.c \
 	output-json-nfs.c \
 	output-json-pgsql.c \
-	output-json-rdp.c \
-	output-json-rfb.c \
-	output-json-sip.c \
 	output-json-smb.c \
 	output-json-smtp.c \
-	output-json-snmp.c \
-	output-json-ssh.c \
 	output-json-stats.c \
-	output-json-template.c \
-	output-json-tftp.c \
 	output-json-tls.c \
 	output-eve.c \
 	output-eve-syslog.c \
