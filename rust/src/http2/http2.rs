@@ -1401,6 +1401,7 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
                 SCLogError!("Invalid value for http2.max-reassembly-size");
             }
         }
+        AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP2);
         SCLogDebug!("Rust http2 parser registered.");
     } else {
         SCLogNotice!("Protocol detector and parser disabled for HTTP2.");

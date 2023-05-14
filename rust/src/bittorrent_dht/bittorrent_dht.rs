@@ -318,6 +318,7 @@ pub unsafe extern "C" fn rs_bittorrent_dht_udp_register_parser() {
         {
             SCLogDebug!("Failed to register protocol detection pattern for direction TOCLIENT");
         }
+        AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_BITTORRENT_DHT);
 
         SCLogDebug!("Parser registered for bittorrent-dht.");
     } else {
