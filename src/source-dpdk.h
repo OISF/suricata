@@ -98,6 +98,5 @@ typedef struct DPDKPacketVars_ {
 } DPDKPacketVars;
 
 void TmModuleReceiveDPDKRegister(void);
-void TmModuleDecodeDPDKRegister(void);
 
 #endif /* SURICATA_SOURCE_DPDK_H */
