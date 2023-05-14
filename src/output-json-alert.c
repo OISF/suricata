@@ -404,12 +404,6 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
                 jb_restore_mark(jb, &mark);
             }
             break;
-        case ALPROTO_FTPDATA:
-            jb_get_mark(jb, &mark);
-            jb_open_object(jb, "ftp_data");
-            EveFTPDataAddMetadata(p->flow, jb);
-            jb_close(jb);
-            break;
         case ALPROTO_IKE:
             jb_get_mark(jb, &mark);
             if (!EveIKEAddMetadata(p->flow, tx_id, jb)) {

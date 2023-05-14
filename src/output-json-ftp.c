@@ -171,7 +171,7 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
     if (likely(jb)) {
         jb_open_object(jb, event_type);
         if (f->alproto == ALPROTO_FTPDATA) {
-            EveFTPDataAddMetadata(f, jb);
+            EveFTPDataAddMetadata(vtx, jb);
         } else {
             EveFTPLogCommand(tx, jb);
         }

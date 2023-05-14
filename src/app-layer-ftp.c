@@ -1407,13 +1407,9 @@ uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len)
     return c == NULL ? len : (uint16_t)(c - buffer + 1);
 }
 
-void EveFTPDataAddMetadata(const Flow *f, JsonBuilder *jb)
+bool EveFTPDataAddMetadata(void *vtx, JsonBuilder *jb)
 {
-    const FtpDataState *ftp_state = NULL;
-    if (f->alstate == NULL)
-        return;
-
-    ftp_state = (FtpDataState *)f->alstate;
+    const FtpDataState *ftp_state = (FtpDataState *)vtx;
 
     if (ftp_state->file_name) {
         jb_set_string_from_bytes(jb, "filename", ftp_state->file_name, ftp_state->file_len);
@@ -1428,6 +1424,7 @@ void EveFTPDataAddMetadata(const Flow *f, JsonBuilder *jb)
         default:
             break;
     }
+    return true;
 }
 
 /**
