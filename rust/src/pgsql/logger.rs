@@ -156,19 +156,7 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             auth_type: _,
             payload,
         })
-        | PgsqlBEMessage::AuthenticationGSS(AuthenticationMessage {
-            identifier: _,
-            length: _,
-            auth_type: _,
-            payload,
-        })
         | PgsqlBEMessage::AuthenticationSSPI(AuthenticationMessage {
-            identifier: _,
-            length: _,
-            auth_type: _,
-            payload,
-        })
-        | PgsqlBEMessage::AuthenticationGSSContinue(AuthenticationMessage {
             identifier: _,
             length: _,
             auth_type: _,
@@ -197,7 +185,6 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             jb.set_string_from_bytes("payload", payload)?;
         }
         PgsqlBEMessage::AuthenticationOk(_)
-        | PgsqlBEMessage::AuthenticationKerb5(_)
         | PgsqlBEMessage::AuthenticationCleartextPassword(_)
         | PgsqlBEMessage::AuthenticationSASL(_)
         | PgsqlBEMessage::AuthenticationSASLContinue(_) => {
