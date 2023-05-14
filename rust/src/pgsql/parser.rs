@@ -233,12 +233,9 @@ pub enum PgsqlBEMessage {
     ErrorResponse(ErrorNoticeMessage),
     NoticeResponse(ErrorNoticeMessage),
     AuthenticationOk(AuthenticationMessage),
-    AuthenticationKerb5(AuthenticationMessage),
     AuthenticationCleartextPassword(AuthenticationMessage),
     AuthenticationMD5Password(AuthenticationMessage),
-    AuthenticationGSS(AuthenticationMessage),
     AuthenticationSSPI(AuthenticationMessage),
-    AuthenticationGSSContinue(AuthenticationMessage),
     AuthenticationSASL(AuthenticationSASLMechanismMessage),
     AuthenticationSASLContinue(AuthenticationMessage),
     AuthenticationSASLFinal(AuthenticationMessage),
@@ -260,14 +257,11 @@ impl PgsqlBEMessage {
             PgsqlBEMessage::ErrorResponse(_) => "error_response",
             PgsqlBEMessage::NoticeResponse(_) => "notice_response",
             PgsqlBEMessage::AuthenticationOk(_) => "authentication_ok",
-            PgsqlBEMessage::AuthenticationKerb5(_) => "authentication_kerb5",
             PgsqlBEMessage::AuthenticationCleartextPassword(_) => {
                 "authentication_cleartext_password"
             }
             PgsqlBEMessage::AuthenticationMD5Password(_) => "authentication_md5_password",
-            PgsqlBEMessage::AuthenticationGSS(_) => "authentication_gss",
             PgsqlBEMessage::AuthenticationSSPI(_) => "authentication_sspi",
-            PgsqlBEMessage::AuthenticationGSSContinue(_) => "authentication_gss_continue",
             PgsqlBEMessage::AuthenticationSASL(_) => "authentication_sasl",
             PgsqlBEMessage::AuthenticationSASLContinue(_) => "authentication_sasl_continue",
             PgsqlBEMessage::AuthenticationSASLFinal(_) => "authentication_sasl_final",
