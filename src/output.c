@@ -54,12 +54,12 @@
 #include "log-httplog.h"
 #include "output-json-http.h"
 #include "output-json-dns.h"
-#include "output-json-modbus.h"
 #include "log-tlslog.h"
 #include "log-tlsstore.h"
 #include "output-json-tls.h"
-#include "output-json-ssh.h"
 #include "log-pcap.h"
+// for SSHTxLogCondition
+#include "app-layer-ssh.h"
 #include "output-json-file.h"
 #include "output-json-smtp.h"
 #include "output-json-stats.h"
@@ -69,26 +69,17 @@
 #include "output-json-ftp.h"
 // for misplaced EveFTPDataAddMetadata
 #include "app-layer-ftp.h"
-#include "output-json-tftp.h"
 #include "output-json-smb.h"
 #include "output-json-ike.h"
-#include "output-json-krb5.h"
-#include "output-json-quic.h"
 #include "output-json-dhcp.h"
-#include "output-json-snmp.h"
-#include "output-json-sip.h"
-#include "output-json-rfb.h"
 #include "output-json-mqtt.h"
 #include "output-json-pgsql.h"
-#include "output-json-template.h"
-#include "output-json-rdp.h"
-#include "output-json-http2.h"
 #include "output-lua.h"
 #include "output-json-dnp3.h"
 #include "output-json-metadata.h"
 #include "output-json-dcerpc.h"
 #include "output-json-frame.h"
-#include "output-json-bittorrent-dht.h"
+#include "app-layer-parser.h"
 #include "output-filestore.h"
 
 typedef struct RootLogger_ {
@@ -1034,6 +1025,149 @@ void OutputRegisterRootLoggers(void)
     OutputStreamingLoggerRegister();
 }
 
+static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *state, void *tx, uint64_t tx_id, int dir)
+{
+    OutputJsonThreadCtx *thread = thread_data;
+    EveJsonSimpleAppLayerLogger *al = SCEveJsonSimpleGetLogger(f->alproto);
+    if (al == NULL) {
+        return TM_ECODE_FAILED;
+    }
+
+    const char *name;
+    switch (al->proto) {
+        case ALPROTO_HTTP2:
+            // special case
+            name = "http";
+            break;
+        case ALPROTO_FTPDATA:
+            // underscore instead of dash
+            name = "ftp_data";
+            break;
+        case ALPROTO_BITTORRENT_DHT:
+            // underscore instead of dash
+            name = "bittorrent_dht";
+            break;
+        default:
+            name = AppProtoToString(al->proto);
+    }
+    JsonBuilder *js = CreateEveHeader(p, dir, name, NULL, thread->ctx);
+    if (unlikely(js == NULL)) {
+        return TM_ECODE_FAILED;
+    }
+
+    if (!al->LogTx(tx, js)) {
+        goto error;
+    }
+
+    OutputJsonBuilderBuffer(js, thread);
+    jb_free(js);
+
+    return TM_ECODE_OK;
+
+error:
+    jb_free(js);
+    return TM_ECODE_FAILED;
+}
+
+static int JsonGenericDirPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *state, void *tx, uint64_t tx_id)
+{
+    return JsonGenericLogger(tv, thread_data, p, f, state, tx, tx_id, LOG_DIR_PACKET);
+}
+
+static int JsonGenericDirFlowLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *state, void *tx, uint64_t tx_id)
+{
+    return JsonGenericLogger(tv, thread_data, p, f, state, tx, tx_id, LOG_DIR_FLOW);
+}
+
+static OutputInitResult OutputBitTorrentDHTLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_BITTORRENT_DHT);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
+static OutputInitResult OutputRdpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_RDP);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
+static OutputInitResult OutputRFBLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_RFB);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
+static OutputInitResult OutputTemplateLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TEMPLATE);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
+static OutputInitResult OutputSIPLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SIP);
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SIP);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
+static OutputInitResult OutputSNMPLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SNMP);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
+static OutputInitResult OutputQuicLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_QUIC);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
+static OutputInitResult OutputKRB5LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_KRB5);
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_KRB5);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
+static OutputInitResult OutputTFTPLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_TFTP);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
+static OutputInitResult OutputModbusLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_MODBUS);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
+static OutputInitResult OutputHttp2LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP2);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
+static OutputInitResult OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SSH);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
+static OutputInitResult OutputFTPLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_FTP);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
+static OutputInitResult OutputFTPDataLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_FTPDATA);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
 /**
  * \brief Register all non-root logging modules.
  */
@@ -1058,13 +1192,17 @@ void OutputRegisterLoggers(void)
     /* http log */
     LogHttpLogRegister();
     JsonHttpLogRegister();
-    JsonHttp2LogRegister();
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", "LogHttp2Log", "eve-log.http2",
+            OutputHttp2LogInitSub, ALPROTO_HTTP2, JsonGenericDirFlowLogger, HTTP2StateClosed,
+            HTTP2StateClosed, JsonLogThreadInit, JsonLogThreadDeinit, NULL);
     /* tls log */
     LogTlsLogRegister();
     JsonTlsLogRegister();
     LogTlsStoreRegister();
     /* ssh */
-    JsonSshLogRegister();
+    OutputRegisterTxSubModuleWithCondition(LOGGER_JSON_TX, "eve-log", "JsonSshLog", "eve-log.ssh",
+            OutputSshLogInitSub, ALPROTO_SSH, JsonGenericDirFlowLogger, SSHTxLogCondition,
+            JsonLogThreadInit, JsonLogThreadDeinit, NULL);
     /* pcap log */
     PcapLogRegister();
     /* file log */
@@ -1073,7 +1211,11 @@ void OutputRegisterLoggers(void)
     /* dns */
     JsonDnsLogRegister();
     /* modbus */
-    JsonModbusLogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonModbusLog", "eve-log.modbus",
+            OutputModbusLogInitSub, ALPROTO_MODBUS, JsonGenericDirFlowLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
+
+    SCLogDebug("modbus json logger registered.");
     /* tcp streaming data */
     LogTcpDataLogRegister();
     /* log stats */
@@ -1094,39 +1236,78 @@ void OutputRegisterLoggers(void)
     /* NFS JSON logger. */
     JsonNFSLogRegister();
     /* TFTP JSON logger. */
-    JsonTFTPLogRegister();
-    /* FTP JSON logger. */
-    JsonFTPLogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTFTPLog", "eve-log.tftp",
+            OutputTFTPLogInitSub, ALPROTO_TFTP, JsonGenericDirPacketLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
+
+    SCLogDebug("TFTP JSON logger registered.");
+    /* FTP and FTP-DATA JSON loggers. */
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonFTPLog", "eve-log.ftp",
+            OutputFTPLogInitSub, ALPROTO_FTP, JsonGenericDirFlowLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonFTPLog", "eve-log.ftp",
+            OutputFTPDataLogInitSub, ALPROTO_FTPDATA, JsonGenericDirFlowLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
+    SCLogDebug("FTP JSON logger registered.");
+
     /* SMB JSON logger. */
     JsonSMBLogRegister();
     /* IKE JSON logger. */
     JsonIKELogRegister();
     /* KRB5 JSON logger. */
-    JsonKRB5LogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonKRB5Log", "eve-log.krb5",
+            OutputKRB5LogInitSub, ALPROTO_KRB5, JsonGenericDirPacketLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
+
+    SCLogDebug("KRB5 JSON logger registered.");
     /* QUIC JSON logger. */
-    JsonQuicLogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonQuicLog", "eve-log.quic",
+            OutputQuicLogInitSub, ALPROTO_QUIC, JsonGenericDirPacketLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
+
+    SCLogDebug("quic json logger registered.");
     /* DHCP JSON logger. */
     JsonDHCPLogRegister();
     /* SNMP JSON logger. */
-    JsonSNMPLogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSNMPLog", "eve-log.snmp",
+            OutputSNMPLogInitSub, ALPROTO_SNMP, JsonGenericDirPacketLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
+
+    SCLogDebug("SNMP JSON logger registered.");
     /* SIP JSON logger. */
-    JsonSIPLogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSIPLog", "eve-log.sip",
+            OutputSIPLogInitSub, ALPROTO_SIP, JsonGenericDirPacketLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
+
+    SCLogDebug("SIP JSON logger registered.");
     /* RFB JSON logger. */
-    JsonRFBLogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonRFBLog", "eve-log.rfb",
+            OutputRFBLogInitSub, ALPROTO_RFB, JsonGenericDirPacketLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
     /* MQTT JSON logger. */
     JsonMQTTLogRegister();
     /* Pgsql JSON logger. */
     JsonPgsqlLogRegister();
     /* Template JSON logger. */
-    JsonTemplateLogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTemplateLog", "eve-log.template",
+            OutputTemplateLogInitSub, ALPROTO_TEMPLATE, JsonGenericDirPacketLogger,
+            JsonLogThreadInit, JsonLogThreadDeinit, NULL);
     /* RDP JSON logger. */
-    JsonRdpLogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonRdpLog", "eve-log.rdp",
+            OutputRdpLogInitSub, ALPROTO_RDP, JsonGenericDirPacketLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
+    SCLogDebug("rdp json logger registered.");
     /* DCERPC JSON logger. */
     JsonDCERPCLogRegister();
     /* app layer frames */
     JsonFrameLogRegister();
     /* BitTorrent DHT JSON logger */
-    JsonBitTorrentDHTLogRegister();
+    if (ConfGetNode("app-layer.protocols.bittorrent-dht") != NULL) {
+        /* Register as an eve sub-module. */
+        OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonBitTorrentDHTLog",
+                "eve-log.bittorrent-dht", OutputBitTorrentDHTLogInitSub, ALPROTO_BITTORRENT_DHT,
+                JsonGenericDirPacketLogger, JsonLogThreadInit, JsonLogThreadDeinit, NULL);
+    }
 }
 
 static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
