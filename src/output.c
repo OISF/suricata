@@ -1131,33 +1131,33 @@ void OutputRegisterLoggers(void)
 
 static AppLayerLogger alert_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_UNKNOWN, NULL, NULL },
-    { ALPROTO_HTTP1, NULL, NULL }, // TODO empty http object and option_flags
-    { ALPROTO_FTP, NULL, NULL },
-    { ALPROTO_SMTP, NULL, NULL }, // TODO state, + log email
+    { ALPROTO_HTTP1, NULL, NULL }, // special: uses some options flags
+    { ALPROTO_FTP, NULL, NULL },   // TODO missing
+    { ALPROTO_SMTP, NULL, NULL },  // special: logs both smtp and email fields
     { ALPROTO_TLS, "tls", JsonTlsLogJSONExtended },
     { ALPROTO_SSH, "ssh", rs_ssh_log_json },
     { ALPROTO_IMAP, NULL, NULL },   // protocol detection only
     { ALPROTO_JABBER, NULL, NULL }, // no parser, no logging
-    { ALPROTO_SMB, NULL, NULL },    // TODO state
-    { ALPROTO_DCERPC, NULL, NULL }, // TODO
+    { ALPROTO_SMB, NULL, NULL },    // special: uses state
+    { ALPROTO_DCERPC, NULL, NULL }, // TODO missing
     { ALPROTO_IRC, NULL, NULL },    // no parser, no logging
     { ALPROTO_DNS, "dns", AlertJsonDns },
     { ALPROTO_MODBUS, "modbus", (SimpleTxLogFunc)rs_modbus_to_json },
     { ALPROTO_ENIP, NULL, NULL }, // no logging
     { ALPROTO_DNP3, "dnp3", AlertJsonDnp3 },
-    { ALPROTO_NFS, NULL, NULL },     // TODO log rpc field
-    { ALPROTO_NTP, NULL, NULL },     // no logging
+    { ALPROTO_NFS, NULL, NULL }, // special: logs both nfs and rpc fields
+    { ALPROTO_NTP, NULL, NULL }, // no logging
     { ALPROTO_FTPDATA, "ftp_data", EveFTPDataAddMetadata },
-    { ALPROTO_TFTP, NULL, NULL },
-    { ALPROTO_IKE, NULL, NULL },  // TODO state + option
-    { ALPROTO_KRB5, NULL, NULL }, // TODO state
+    { ALPROTO_TFTP, NULL, NULL }, // TODO missing
+    { ALPROTO_IKE, NULL, NULL },  // special: uses state
+    { ALPROTO_KRB5, NULL, NULL }, // TODO missing
     { ALPROTO_QUIC, "quic", rs_quic_to_json },
-    { ALPROTO_DHCP, NULL, NULL }, // TODO logger with option
+    { ALPROTO_DHCP, NULL, NULL }, // TODO missing
     { ALPROTO_SNMP, "snmp", (SimpleTxLogFunc)rs_snmp_log_json_response },
     { ALPROTO_SIP, "sip", (SimpleTxLogFunc)rs_sip_log_json },
     { ALPROTO_RFB, "rfb", rs_rfb_logger_log },
     { ALPROTO_MQTT, "mqtt", JsonMQTTAddMetadata },
-    { ALPROTO_PGSQL, NULL, NULL },  // TODO flags
+    { ALPROTO_PGSQL, NULL, NULL },  // TODO missing
     { ALPROTO_TELNET, NULL, NULL }, // no logging
     { ALPROTO_TEMPLATE, "template", rs_template_logger_log },
     { ALPROTO_RDP, "rdp", (SimpleTxLogFunc)rs_rdp_to_json },
