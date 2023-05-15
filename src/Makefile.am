@@ -408,7 +408,6 @@ noinst_HEADERS = \
 	output-json-http2.h \
 	output-json-http.h \
 	output-json-ike.h \
-	output-json-krb5.h \
 	output-json-metadata.h \
 	output-json-modbus.h \
 	output-json-mqtt.h \
@@ -1011,7 +1010,6 @@ libsuricata_c_a_SOURCES = \
 	output-json-http2.c \
 	output-json-http.c \
 	output-json-ike.c \
-	output-json-krb5.c \
 	output-json-metadata.c \
 	output-json-modbus.c \
 	output-json-mqtt.c \

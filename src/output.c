@@ -72,7 +72,6 @@
 #include "output-json-tftp.h"
 #include "output-json-smb.h"
 #include "output-json-ike.h"
-#include "output-json-krb5.h"
 #include "output-json-dhcp.h"
 #include "output-json-mqtt.h"
 #include "output-json-pgsql.h"
@@ -1095,6 +1094,13 @@ static OutputInitResult OutputQuicLogInitSub(ConfNode *conf, OutputCtx *parent_c
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
+static OutputInitResult OutputKRB5LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_KRB5);
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_KRB5);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
 static OutputInitResult OutputHttp2LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP2);
@@ -1171,7 +1177,11 @@ void OutputRegisterLoggers(void)
     /* IKE JSON logger. */
     JsonIKELogRegister();
     /* KRB5 JSON logger. */
-    JsonKRB5LogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonKRB5Log", "eve-log.krb5",
+            OutputKRB5LogInitSub, ALPROTO_KRB5, JsonGenericLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
+
+    SCLogDebug("KRB5 JSON logger registered.");
     /* QUIC JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonQuicLog", "eve-log.quic",
             OutputQuicLogInitSub, ALPROTO_QUIC, JsonGenericLogger, JsonLogThreadInit,
