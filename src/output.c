@@ -1025,8 +1025,8 @@ void OutputRegisterRootLoggers(void)
     OutputStreamingLoggerRegister();
 }
 
-static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
-        void *state, void *tx, uint64_t tx_id)
+static int JsonGenericLoggerAux(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *state, void *tx, uint64_t tx_id, bool with_txid)
 {
     OutputJsonThreadCtx *thread = thread_data;
     AppLayerLogger *al = GetAppProtoLogger(f->alproto);
@@ -1034,7 +1034,12 @@ static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return TM_ECODE_FAILED;
     }
 
-    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, al->name, NULL, thread->ctx);
+    JsonBuilder *js;
+    if (with_txid) {
+        js = CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, al->name, NULL, tx_id, thread->ctx);
+    } else {
+        js = CreateEveHeader(p, LOG_DIR_PACKET, al->name, NULL, thread->ctx);
+    }
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
@@ -1053,6 +1058,18 @@ static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 error:
     jb_free(js);
     return TM_ECODE_FAILED;
+}
+
+static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *state, void *tx, uint64_t tx_id)
+{
+    return JsonGenericLoggerAux(tv, thread_data, p, f, state, tx, tx_id, false);
+}
+
+static int JsonGenericLoggerWithTxId(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *state, void *tx, uint64_t tx_id)
+{
+    return JsonGenericLoggerAux(tv, thread_data, p, f, state, tx, tx_id, true);
 }
 
 static OutputInitResult OutputBitTorrentDHTLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
@@ -1153,7 +1170,7 @@ void OutputRegisterLoggers(void)
     LogHttpLogRegister();
     JsonHttpLogRegister();
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", "LogHttp2Log", "eve-log.http2",
-            OutputHttp2LogInitSub, ALPROTO_HTTP2, JsonGenericLogger, HTTP2StateClosed,
+            OutputHttp2LogInitSub, ALPROTO_HTTP2, JsonGenericLoggerWithTxId, HTTP2StateClosed,
             HTTP2StateClosed, JsonLogThreadInit, JsonLogThreadDeinit, NULL);
     /* tls log */
     LogTlsLogRegister();
@@ -1161,7 +1178,7 @@ void OutputRegisterLoggers(void)
     LogTlsStoreRegister();
     /* ssh */
     OutputRegisterTxSubModuleWithCondition(LOGGER_JSON_TX, "eve-log", "JsonSshLog", "eve-log.ssh",
-            OutputSshLogInitSub, ALPROTO_SSH, JsonGenericLogger, SSHTxLogCondition,
+            OutputSshLogInitSub, ALPROTO_SSH, JsonGenericLoggerWithTxId, SSHTxLogCondition,
             JsonLogThreadInit, JsonLogThreadDeinit, NULL);
     /* pcap log */
     PcapLogRegister();
