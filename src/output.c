@@ -54,7 +54,6 @@
 #include "log-httplog.h"
 #include "output-json-http.h"
 #include "output-json-dns.h"
-#include "output-json-modbus.h"
 #include "log-tlslog.h"
 #include "log-tlsstore.h"
 #include "output-json-tls.h"
@@ -1106,6 +1105,12 @@ static OutputInitResult OutputTFTPLogInitSub(ConfNode *conf, OutputCtx *parent_c
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
+static OutputInitResult OutputModbusLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_MODBUS);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
 static OutputInitResult OutputHttp2LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP2);
@@ -1153,7 +1158,11 @@ void OutputRegisterLoggers(void)
     /* dns */
     JsonDnsLogRegister();
     /* modbus */
-    JsonModbusLogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonModbusLog", "eve-log.modbus",
+            OutputModbusLogInitSub, ALPROTO_MODBUS, JsonGenericLogger, JsonLogThreadInit,
+                              JsonLogThreadDeinit, NULL);
+
+    SCLogDebug("modbus json logger registered.");
     /* tcp streaming data */
     LogTcpDataLogRegister();
     /* log stats */

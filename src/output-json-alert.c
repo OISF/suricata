@@ -73,7 +73,6 @@
 #include "output-json-flow.h"
 #include "output-json-mqtt.h"
 #include "output-json-ike.h"
-#include "output-json-modbus.h"
 #include "output-json-frame.h"
 
 #include "util-byte.h"
