@@ -405,7 +405,6 @@ noinst_HEADERS = \
 	output-json-frame.h \
 	output-json-ftp.h \
 	output-json.h \
-	output-json-http2.h \
 	output-json-http.h \
 	output-json-ike.h \
 	output-json-metadata.h \
@@ -1004,7 +1003,6 @@ libsuricata_c_a_SOURCES = \
 	output-json-flow.c \
 	output-json-frame.c \
 	output-json-ftp.c \
-	output-json-http2.c \
 	output-json-http.c \
 	output-json-ike.c \
 	output-json-metadata.c \

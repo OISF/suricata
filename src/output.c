@@ -75,7 +75,6 @@
 #include "output-json-mqtt.h"
 #include "output-json-pgsql.h"
 #include "output-json-template.h"
-#include "output-json-http2.h"
 #include "output-lua.h"
 #include "output-json-dnp3.h"
 #include "output-json-metadata.h"

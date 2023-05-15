@@ -61,7 +61,6 @@
 #include "output-json-email-common.h"
 #include "output-json-nfs.h"
 #include "output-json-smb.h"
-#include "output-json-http2.h"
 
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
@@ -123,6 +122,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
         return NULL;
 
     JsonBuilderMark mark = { 0, 0, 0 };
+    jb_get_mark(js, &mark);
     switch (p->flow->alproto) {
         case ALPROTO_HTTP1:
             jb_open_object(js, "http");
@@ -130,7 +130,6 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
             jb_close(js);
             break;
         case ALPROTO_SMTP:
-            jb_get_mark(js, &mark);
             jb_open_object(js, "smtp");
             if (EveSMTPAddMetadata(p->flow, tx_id, js)) {
                 jb_close(js);
@@ -147,7 +146,6 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
             break;
         case ALPROTO_NFS:
             /* rpc */
-            jb_get_mark(js, &mark);
             jb_open_object(js, "rpc");
             if (EveNFSAddMetadataRPC(p->flow, tx_id, js)) {
                 jb_close(js);
@@ -164,7 +162,6 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
             }
             break;
         case ALPROTO_SMB:
-            jb_get_mark(js, &mark);
             jb_open_object(js, "smb");
             if (EveSMBAddMetadata(p->flow, tx_id, js)) {
                 jb_close(js);
@@ -173,9 +170,8 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, void *tx,
             }
             break;
         case ALPROTO_HTTP2:
-            jb_get_mark(js, &mark);
             jb_open_object(js, "http2");
-            if (EveHTTP2AddMetadata(p->flow, tx_id, js)) {
+            if (tx && rs_http2_log_json(tx, js)) {
                 jb_close(js);
             } else {
                 jb_restore_mark(js, &mark);
