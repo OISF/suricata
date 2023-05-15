@@ -77,7 +77,6 @@
 #include "output-json-dhcp.h"
 #include "output-json-snmp.h"
 #include "output-json-sip.h"
-#include "output-json-rfb.h"
 #include "output-json-mqtt.h"
 #include "output-json-pgsql.h"
 #include "output-json-template.h"
@@ -1075,6 +1074,12 @@ static OutputInitResult OutputRdpLogInitSub(ConfNode *conf, OutputCtx *parent_ct
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
+static OutputInitResult OutputRFBLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_RFB);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
 static OutputInitResult OutputHttp2LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP2);
@@ -1161,7 +1166,9 @@ void OutputRegisterLoggers(void)
     /* SIP JSON logger. */
     JsonSIPLogRegister();
     /* RFB JSON logger. */
-    JsonRFBLogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonRFBLog", "eve-log.rfb",
+            OutputRFBLogInitSub, ALPROTO_RFB, JsonGenericLogger, JsonLogThreadInit, JsonLogThreadDeinit,
+            NULL);
     /* MQTT JSON logger. */
     JsonMQTTLogRegister();
     /* Pgsql JSON logger. */
