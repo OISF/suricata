@@ -1132,6 +1132,10 @@ static OutputInitResult OutputBitTorrentDHTLogInitSub(ConfNode *conf, OutputCtx 
     return OutputGenericLogInitSub(conf, parent_ctx, IPPROTO_UDP, ALPROTO_BITTORRENT_DHT);
 }
 
+static OutputInitResult OutputHttp2LogInitSub(ConfNode *conf, OutputCtx *parent_ctx) {
+    return OutputGenericLogInitSub(conf, parent_ctx, IPPROTO_TCP, ALPROTO_HTTP2);
+}
+
 /**
  * \brief Register all non-root logging modules.
  */
@@ -1156,7 +1160,9 @@ void OutputRegisterLoggers(void)
     /* http log */
     LogHttpLogRegister();
     JsonHttpLogRegister();
-    JsonHttp2LogRegister();
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", "LogHttp2Log", "eve-log.http2",
+            OutputHttp2LogInitSub, ALPROTO_HTTP2, JsonGenericLogger, HTTP2StateClosed,
+            HTTP2StateClosed, JsonGenericLogThreadInit, JsonGenericLogThreadDeinit, NULL);
     /* tls log */
     LogTlsLogRegister();
     JsonTlsLogRegister();
