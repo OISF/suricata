@@ -703,11 +703,6 @@ static int SMTPProcessCommandDATA(SMTPState *state, SMTPTransaction *tx, Flow *f
                                 flags) != 0) {
                         SCLogDebug("FileOpenFile() failed");
                     }
-                    /* Set storage flag if applicable since only the first file in the
-                     * flow seems to be processed by the 'filestore' detector */
-                    if (tx->files_ts.head->flags & FILE_STORE) {
-                        flags |= FILE_STORE;
-                    }
                     SMTPNewFile(state->curr_tx, tx->files_ts.tail);
                     break;
                 case MimeSmtpFileChunk:
