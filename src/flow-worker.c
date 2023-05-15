@@ -395,12 +395,13 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
         /* no need to keep a flow ref beyond this point */
         FlowDeReference(&x->flow);
 
+        /* no further work to do for this pseudo packet, so we can return
+         * it to the pool immediately. */
         if (timeout) {
             PacketPoolReturnPacket(x);
         } else {
-            /* put these packets in the preq queue so that they are
-             * by the other thread modules before packet 'p'. */
-            PacketEnqueueNoLock(&tv->decode_pq, x);
+            /* to support IPS verdict logic, in the non-timeout case we need to do a bit more */
+            TmqhOutputPacketpool(tv, x);
         }
     }
 }
