@@ -419,7 +419,6 @@ noinst_HEADERS = \
 	output-json-ssh.h \
 	output-json-stats.h \
 	output-json-template.h \
-	output-json-tftp.h \
 	output-json-tls.h \
 	output-eve-syslog.h \
 	output-lua.h \
@@ -1021,7 +1020,6 @@ libsuricata_c_a_SOURCES = \
 	output-json-ssh.c \
 	output-json-stats.c \
 	output-json-template.c \
-	output-json-tftp.c \
 	output-json-tls.c \
 	output-eve-syslog.c \
 	output-lua.c \

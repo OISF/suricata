@@ -69,7 +69,6 @@
 #include "output-json-ftp.h"
 // for misplaced EveFTPDataAddMetadata
 #include "app-layer-ftp.h"
-#include "output-json-tftp.h"
 #include "output-json-smb.h"
 #include "output-json-ike.h"
 #include "output-json-dhcp.h"
@@ -1101,6 +1100,12 @@ static OutputInitResult OutputKRB5LogInitSub(ConfNode *conf, OutputCtx *parent_c
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
+static OutputInitResult OutputTFTPLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_TFTP);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
 static OutputInitResult OutputHttp2LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP2);
@@ -1169,7 +1174,11 @@ void OutputRegisterLoggers(void)
     /* NFS JSON logger. */
     JsonNFSLogRegister();
     /* TFTP JSON logger. */
-    JsonTFTPLogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTFTPLog", "eve-log.tftp",
+            OutputTFTPLogInitSub, ALPROTO_TFTP, JsonGenericLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
+
+    SCLogDebug("TFTP JSON logger registered.");
     /* FTP JSON logger. */
     JsonFTPLogRegister();
     /* SMB JSON logger. */
@@ -1185,7 +1194,7 @@ void OutputRegisterLoggers(void)
     /* QUIC JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonQuicLog", "eve-log.quic",
             OutputQuicLogInitSub, ALPROTO_QUIC, JsonGenericLogger, JsonLogThreadInit,
-                              JsonLogThreadDeinit, NULL);
+            JsonLogThreadDeinit, NULL);
 
     SCLogDebug("quic json logger registered.");
     /* DHCP JSON logger. */
@@ -1198,14 +1207,14 @@ void OutputRegisterLoggers(void)
     SCLogDebug("SNMP JSON logger registered.");
     /* SIP JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSIPLog", "eve-log.sip",
-            OutputSIPLogInitSub, ALPROTO_SIP, JsonGenericLogger, JsonLogThreadInit, JsonLogThreadDeinit,
-            NULL);
+            OutputSIPLogInitSub, ALPROTO_SIP, JsonGenericLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
 
     SCLogDebug("SIP JSON logger registered.");
     /* RFB JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonRFBLog", "eve-log.rfb",
-            OutputRFBLogInitSub, ALPROTO_RFB, JsonGenericLogger, JsonLogThreadInit, JsonLogThreadDeinit,
-            NULL);
+            OutputRFBLogInitSub, ALPROTO_RFB, JsonGenericLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
     /* MQTT JSON logger. */
     JsonMQTTLogRegister();
     /* Pgsql JSON logger. */
