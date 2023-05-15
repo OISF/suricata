@@ -76,7 +76,6 @@
 #include "output-json-quic.h"
 #include "output-json-dhcp.h"
 #include "output-json-snmp.h"
-#include "output-json-sip.h"
 #include "output-json-mqtt.h"
 #include "output-json-pgsql.h"
 #include "output-json-template.h"
@@ -1080,6 +1079,12 @@ static OutputInitResult OutputRFBLogInitSub(ConfNode *conf, OutputCtx *parent_ct
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
+static OutputInitResult OutputSIPLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SIP);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
 static OutputInitResult OutputHttp2LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP2);
@@ -1164,7 +1169,12 @@ void OutputRegisterLoggers(void)
     /* SNMP JSON logger. */
     JsonSNMPLogRegister();
     /* SIP JSON logger. */
-    JsonSIPLogRegister();
+    /* Register as an eve sub-module. */
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSIPLog", "eve-log.sip",
+            OutputSIPLogInitSub, ALPROTO_SIP, JsonGenericLogger, JsonLogThreadInit, JsonLogThreadDeinit,
+            NULL);
+
+    SCLogDebug("SIP JSON logger registered.");
     /* RFB JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonRFBLog", "eve-log.rfb",
             OutputRFBLogInitSub, ALPROTO_RFB, JsonGenericLogger, JsonLogThreadInit, JsonLogThreadDeinit,
