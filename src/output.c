@@ -81,7 +81,6 @@
 #include "output-json-mqtt.h"
 #include "output-json-pgsql.h"
 #include "output-json-template.h"
-#include "output-json-rdp.h"
 #include "output-json-http2.h"
 #include "output-lua.h"
 #include "output-json-dnp3.h"
@@ -1132,6 +1131,10 @@ static OutputInitResult OutputBitTorrentDHTLogInitSub(ConfNode *conf, OutputCtx 
     return OutputGenericLogInitSub(conf, parent_ctx, IPPROTO_UDP, ALPROTO_BITTORRENT_DHT);
 }
 
+static OutputInitResult OutputRdpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx) {
+    return OutputGenericLogInitSub(conf, parent_ctx, IPPROTO_TCP, ALPROTO_RDP);
+}
+
 static OutputInitResult OutputHttp2LogInitSub(ConfNode *conf, OutputCtx *parent_ctx) {
     return OutputGenericLogInitSub(conf, parent_ctx, IPPROTO_TCP, ALPROTO_HTTP2);
 }
@@ -1224,7 +1227,10 @@ void OutputRegisterLoggers(void)
     /* Template JSON logger. */
     JsonTemplateLogRegister();
     /* RDP JSON logger. */
-    JsonRdpLogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonRdpLog", "eve-log.rdp",
+            OutputRdpLogInitSub, ALPROTO_RDP, JsonGenericLogger, JsonGenericLogThreadInit, JsonGenericLogThreadDeinit,
+            NULL);
+    SCLogDebug("rdp json logger registered.");
     /* DCERPC JSON logger. */
     JsonDCERPCLogRegister();
     /* app layer frames */

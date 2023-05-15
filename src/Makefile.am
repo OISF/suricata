@@ -416,7 +416,6 @@ noinst_HEADERS = \
 	output-json-netflow.h \
 	output-json-nfs.h \
 	output-json-pgsql.h \
-	output-json-rdp.h \
 	output-json-rfb.h \
 	output-json-sip.h \
 	output-json-smb.h \
@@ -1024,7 +1023,6 @@ libsuricata_c_a_SOURCES = \
 	output-json-netflow.c \
 	output-json-nfs.c \
 	output-json-pgsql.c \
-	output-json-rdp.c \
 	output-json-rfb.c \
 	output-json-sip.c \
 	output-json-smb.c \
