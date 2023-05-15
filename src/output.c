@@ -73,7 +73,6 @@
 #include "output-json-smb.h"
 #include "output-json-ike.h"
 #include "output-json-krb5.h"
-#include "output-json-quic.h"
 #include "output-json-dhcp.h"
 #include "output-json-mqtt.h"
 #include "output-json-pgsql.h"
@@ -1090,6 +1089,12 @@ static OutputInitResult OutputSNMPLogInitSub(ConfNode *conf, OutputCtx *parent_c
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
+static OutputInitResult OutputQuicLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_QUIC);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
 static OutputInitResult OutputHttp2LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP2);
@@ -1168,7 +1173,11 @@ void OutputRegisterLoggers(void)
     /* KRB5 JSON logger. */
     JsonKRB5LogRegister();
     /* QUIC JSON logger. */
-    JsonQuicLogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonQuicLog", "eve-log.quic",
+            OutputQuicLogInitSub, ALPROTO_QUIC, JsonGenericLogger, JsonLogThreadInit,
+                              JsonLogThreadDeinit, NULL);
+
+    SCLogDebug("quic json logger registered.");
     /* DHCP JSON logger. */
     JsonDHCPLogRegister();
     /* SNMP JSON logger. */
