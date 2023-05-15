@@ -282,7 +282,8 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
     char *origline = line;
 
     while (i < (int)line_len) {
-        if (line[i] == ',' || line[i] == '\n' || line[i] == '\0' || i == (int)(line_len - 1)) {
+        if (line[i] == ',' || line[i] == '\n' || line[i] == '\r' || line[i] == '\0' ||
+                i == (int)(line_len - 1)) {
             line[i] = '\0';
 
             ptrs[idx] = line;
