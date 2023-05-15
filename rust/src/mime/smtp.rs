@@ -108,7 +108,9 @@ impl Default for MimeBase64Decoder {
     }
 }
 
-pub fn mime_smtp_state_init(files: &mut FileContainer, sbcfg: *const StreamingBufferConfig) -> Option<MimeStateSMTP> {
+pub fn mime_smtp_state_init(
+    files: &mut FileContainer, sbcfg: *const StreamingBufferConfig,
+) -> Option<MimeStateSMTP> {
     let r = MimeStateSMTP {
         state_flag: MimeSmtpParserState::MimeSmtpStart,
         headers: Vec::new(),
@@ -131,7 +133,9 @@ pub fn mime_smtp_state_init(files: &mut FileContainer, sbcfg: *const StreamingBu
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_state_init(files: &mut FileContainer, sbcfg: *const StreamingBufferConfig) -> *mut MimeStateSMTP {
+pub unsafe extern "C" fn rs_mime_smtp_state_init(
+    files: &mut FileContainer, sbcfg: *const StreamingBufferConfig,
+) -> *mut MimeStateSMTP {
     if let Some(ctx) = mime_smtp_state_init(files, sbcfg) {
         let boxed = Box::new(ctx);
         return Box::into_raw(boxed) as *mut _;
@@ -261,7 +265,7 @@ extern "C" {
 }
 
 fn hex(i: u8) -> Option<u8> {
-    if (b'0'..=b'9').contains(&i) {
+    if i.is_ascii_digit() {
         return Some(i - b'0');
     }
     if (b'A'..=b'F').contains(&i) {
@@ -540,7 +544,12 @@ fn mime_smtp_parse_line(
                             if let Ok(dec) = mime_base64_decode(decoder, i) {
                                 mime_smtp_find_url_strings(ctx, &dec);
                                 unsafe {
-                                    FileAppendData(ctx.files, ctx.sbcfg, dec.as_ptr(), dec.len() as u32);
+                                    FileAppendData(
+                                        ctx.files,
+                                        ctx.sbcfg,
+                                        dec.as_ptr(),
+                                        dec.len() as u32,
+                                    );
                                 }
                             }
                             // else TODOrust5 set event ?
