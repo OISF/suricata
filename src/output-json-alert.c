@@ -71,7 +71,6 @@
 #include "output-json-nfs.h"
 #include "output-json-smb.h"
 #include "output-json-flow.h"
-#include "output-json-sip.h"
 #include "output-json-mqtt.h"
 #include "output-json-ike.h"
 #include "output-json-modbus.h"
