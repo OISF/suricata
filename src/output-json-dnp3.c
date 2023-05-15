@@ -140,7 +140,7 @@ static void JsonDNP3LogObjects(JsonBuilder *js, DNP3ObjectList *objects)
     }
 }
 
-void JsonDNP3LogRequest(JsonBuilder *js, DNP3Transaction *dnp3tx)
+static void JsonDNP3LogRequest(JsonBuilder *js, DNP3Transaction *dnp3tx)
 {
     JB_SET_STRING(js, "type", "request");
 
@@ -171,7 +171,7 @@ void JsonDNP3LogRequest(JsonBuilder *js, DNP3Transaction *dnp3tx)
     jb_close(js);
 }
 
-void JsonDNP3LogResponse(JsonBuilder *js, DNP3Transaction *dnp3tx)
+static void JsonDNP3LogResponse(JsonBuilder *js, DNP3Transaction *dnp3tx)
 {
     if (dnp3tx->ah.function_code == DNP3_APP_FC_UNSOLICITED_RESP) {
         JB_SET_STRING(js, "type", "unsolicited_response");
