@@ -74,7 +74,6 @@
 #include "output-json-dhcp.h"
 #include "output-json-mqtt.h"
 #include "output-json-pgsql.h"
-#include "output-json-template.h"
 #include "output-lua.h"
 #include "output-json-dnp3.h"
 #include "output-json-metadata.h"
@@ -1074,6 +1073,12 @@ static OutputInitResult OutputRFBLogInitSub(ConfNode *conf, OutputCtx *parent_ct
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
+static OutputInitResult OutputTemplateLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TEMPLATE);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
 static OutputInitResult OutputSIPLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SIP);
@@ -1156,8 +1161,8 @@ void OutputRegisterLoggers(void)
     LogTlsStoreRegister();
     /* ssh */
     OutputRegisterTxSubModuleWithCondition(LOGGER_JSON_TX, "eve-log", "JsonSshLog", "eve-log.ssh",
-            OutputSshLogInitSub, ALPROTO_SSH, JsonGenericLogger, SSHTxLogCondition, JsonLogThreadInit,
-            JsonLogThreadDeinit, NULL);
+            OutputSshLogInitSub, ALPROTO_SSH, JsonGenericLogger, SSHTxLogCondition,
+            JsonLogThreadInit, JsonLogThreadDeinit, NULL);
     /* pcap log */
     PcapLogRegister();
     /* file log */
@@ -1168,7 +1173,7 @@ void OutputRegisterLoggers(void)
     /* modbus */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonModbusLog", "eve-log.modbus",
             OutputModbusLogInitSub, ALPROTO_MODBUS, JsonGenericLogger, JsonLogThreadInit,
-                              JsonLogThreadDeinit, NULL);
+            JsonLogThreadDeinit, NULL);
 
     SCLogDebug("modbus json logger registered.");
     /* tcp streaming data */
@@ -1237,7 +1242,9 @@ void OutputRegisterLoggers(void)
     /* Pgsql JSON logger. */
     JsonPgsqlLogRegister();
     /* Template JSON logger. */
-    JsonTemplateLogRegister();
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTemplateLog", "eve-log.template",
+            OutputTemplateLogInitSub, ALPROTO_TEMPLATE, JsonGenericLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
     /* RDP JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonRdpLog", "eve-log.rdp",
             OutputRdpLogInitSub, ALPROTO_RDP, JsonGenericLogger, JsonLogThreadInit,
