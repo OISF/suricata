@@ -57,8 +57,9 @@
 #include "log-tlslog.h"
 #include "log-tlsstore.h"
 #include "output-json-tls.h"
-#include "output-json-ssh.h"
 #include "log-pcap.h"
+// for SSHTxLogCondition
+#include "app-layer-ssh.h"
 #include "output-json-file.h"
 #include "output-json-smtp.h"
 #include "output-json-stats.h"
@@ -1117,6 +1118,12 @@ static OutputInitResult OutputHttp2LogInitSub(ConfNode *conf, OutputCtx *parent_
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
+static OutputInitResult OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SSH);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
 /**
  * \brief Register all non-root logging modules.
  */
@@ -1149,7 +1156,9 @@ void OutputRegisterLoggers(void)
     JsonTlsLogRegister();
     LogTlsStoreRegister();
     /* ssh */
-    JsonSshLogRegister();
+    OutputRegisterTxSubModuleWithCondition(LOGGER_JSON_TX, "eve-log", "JsonSshLog", "eve-log.ssh",
+            OutputSshLogInitSub, ALPROTO_SSH, JsonGenericLogger, SSHTxLogCondition, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
     /* pcap log */
     PcapLogRegister();
     /* file log */
