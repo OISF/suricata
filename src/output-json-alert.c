@@ -75,7 +75,6 @@
 #include "output-json-ike.h"
 #include "output-json-modbus.h"
 #include "output-json-frame.h"
-#include "output-json-quic.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
