@@ -415,7 +415,6 @@ noinst_HEADERS = \
 	output-json-pgsql.h \
 	output-json-smb.h \
 	output-json-smtp.h \
-	output-json-ssh.h \
 	output-json-stats.h \
 	output-json-template.h \
 	output-json-tls.h \
@@ -1015,7 +1014,6 @@ libsuricata_c_a_SOURCES = \
 	output-json-pgsql.c \
 	output-json-smb.c \
 	output-json-smtp.c \
-	output-json-ssh.c \
 	output-json-stats.c \
 	output-json-template.c \
 	output-json-tls.c \
