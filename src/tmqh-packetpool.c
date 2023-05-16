@@ -266,21 +266,6 @@ void PacketPoolReturnPacket(Packet *p)
     }
 }
 
-void PacketPoolInitEmpty(void)
-{
-    PktPool *my_pool = GetThreadPacketPool();
-
-#ifdef DEBUG_VALIDATION
-    BUG_ON(my_pool->initialized);
-    my_pool->initialized = 1;
-    my_pool->destroyed = 0;
-#endif /* DEBUG_VALIDATION */
-
-    SCMutexInit(&my_pool->return_stack.mutex, NULL);
-    SCCondInit(&my_pool->return_stack.cond, NULL);
-    SC_ATOMIC_INIT(my_pool->return_stack.sync_now);
-}
-
 void PacketPoolInit(void)
 {
     extern uint16_t max_pending_packets;

@@ -144,23 +144,6 @@ end:
     return retval;
 }
 
-int ParseSizeStringU8(const char *size, uint8_t *res)
-{
-    double temp_res = 0;
-
-    *res = 0;
-    int r = ParseSizeString(size, &temp_res);
-    if (r < 0)
-        return r;
-
-    if (temp_res > UINT8_MAX)
-        return -1;
-
-    *res = temp_res;
-
-    return 0;
-}
-
 int ParseSizeStringU16(const char *size, uint16_t *res)
 {
     double temp_res = 0;

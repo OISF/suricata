@@ -74,11 +74,6 @@ uint64_t DefragTrackerGetMemuse(void)
     return memusecopy;
 }
 
-uint32_t DefragTrackerSpareQueueGetSize(void)
-{
-    return DefragTrackerQueueLen(&defragtracker_spare_q);
-}
-
 void DefragTrackerMoveToSpare(DefragTracker *h)
 {
     DefragTrackerEnqueue(&defragtracker_spare_q, h);

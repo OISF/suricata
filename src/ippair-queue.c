@@ -131,12 +131,3 @@ IPPair *IPPairDequeue (IPPairQueue *q)
     HQLOCK_UNLOCK(q);
     return h;
 }
-
-uint32_t IPPairQueueLen(IPPairQueue *q)
-{
-    uint32_t len;
-    HQLOCK_LOCK(q);
-    len = q->len;
-    HQLOCK_UNLOCK(q);
-    return len;
-}
