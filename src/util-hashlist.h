@@ -47,7 +47,6 @@ typedef struct HashListTable_ {
 /* prototypes */
 HashListTable* HashListTableInit(uint32_t, uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *));
 void HashListTableFree(HashListTable *);
-void HashListTablePrint(HashListTable *);
 int HashListTableAdd(HashListTable *, void *, uint16_t);
 int HashListTableRemove(HashListTable *, void *, uint16_t);
 void *HashListTableLookup(HashListTable *, void *, uint16_t);

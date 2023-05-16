@@ -487,25 +487,6 @@ int LiveDevUseBypass(LiveDevice *dev)
 }
 
 /**
- * Set number of currently bypassed flows for a protocol family
- *
- * \param dev pointer to LiveDevice to set stats for
- * \param cnt number of currently bypassed flows
- * \param family AF_INET to set IPv4 count or AF_INET6 to set IPv6 count
- */
-void LiveDevSetBypassStats(LiveDevice *dev, uint64_t cnt, int family)
-{
-    BypassInfo *bpfdata = LiveDevGetStorageById(dev, g_bypass_storage_id);
-    if (bpfdata) {
-        if (family == AF_INET) {
-            SC_ATOMIC_SET(bpfdata->ipv4_hash_count, cnt);
-        } else if (family == AF_INET6) {
-            SC_ATOMIC_SET(bpfdata->ipv6_hash_count, cnt);
-        }
-    }
-}
-
-/**
  * Increase number of currently bypassed flows for a protocol family
  *
  * \param dev pointer to LiveDevice to set stats for
