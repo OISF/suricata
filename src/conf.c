@@ -583,25 +583,6 @@ int ConfValIsFalse(const char *val)
  * \retval 1 will be returned if the name is found and was properly
  * converted to a double, otherwise 0 will be returned.
  */
-int ConfGetDouble(const char *name, double *val)
-{
-    const char *strval = NULL;
-    double tmpdo;
-    char *endptr;
-
-    if (ConfGet(name, &strval) == 0)
-        return 0;
-
-    errno = 0;
-    tmpdo = strtod(strval, &endptr);
-    if (strval[0] == '\0' || *endptr != '\0')
-        return 0;
-    if (errno == ERANGE)
-        return 0;
-
-    *val = tmpdo;
-    return 1;
-}
 
 /**
  * \brief Retrieve a configuration value as a float
@@ -870,36 +851,6 @@ int ConfNodeChildValueIsTrue(const ConfNode *node, const char *key)
  *  \param file The name of the file
  *  \retval str Pointer to the string path + sig_file
  */
-char *ConfLoadCompleteIncludePath(const char *file)
-{
-    const char *defaultpath = NULL;
-    char *path = NULL;
-
-    /* Path not specified */
-    if (PathIsRelative(file)) {
-        if (ConfGet("include-path", &defaultpath) == 1) {
-            SCLogDebug("Default path: %s", defaultpath);
-            size_t path_len = sizeof(char) * (strlen(defaultpath) +
-                          strlen(file) + 2);
-            path = SCMalloc(path_len);
-            if (unlikely(path == NULL))
-                return NULL;
-            strlcpy(path, defaultpath, path_len);
-            if (path[strlen(path) - 1] != '/')
-                strlcat(path, "/", path_len);
-            strlcat(path, file, path_len);
-       } else {
-            path = SCStrdup(file);
-            if (unlikely(path == NULL))
-                return NULL;
-        }
-    } else {
-        path = SCStrdup(file);
-        if (unlikely(path == NULL))
-            return NULL;
-    }
-    return path;
-}
 
 /**
  * \brief Prune a configuration node.

@@ -38,7 +38,6 @@ void *HostGetStorageById(Host *h, HostStorageId id);
 int HostSetStorageById(Host *h, HostStorageId id, void *ptr);
 void *HostAllocStorageById(Host *h, HostStorageId id);
 
-void HostFreeStorageById(Host *h, HostStorageId id);
 void HostFreeStorage(Host *h);
 
 void RegisterHostStorageTests(void);

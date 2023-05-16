@@ -1356,21 +1356,6 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
 }
 
 /**
- * \brief Removes a key from the Radix tree
- *
- * \param key_stream Data that has to be removed from the Radix tree
- * \param key_bitlen The bitlen of the above stream.
- * \param tree       Pointer to the Radix tree from which the key has to be
- *                   removed
- */
-void SCRadixRemoveKeyGeneric(uint8_t *key_stream, uint16_t key_bitlen,
-                             SCRadixTree *tree)
-{
-    SCRadixRemoveKey(key_stream, key_bitlen, tree, 255);
-    return;
-}
-
-/**
  * \brief Removes an IPV4 address netblock key from the Radix tree.
  *
  * \param key_stream Data that has to be removed from the Radix tree.  In this

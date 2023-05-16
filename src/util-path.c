@@ -118,42 +118,6 @@ char *PathMergeAlloc(const char *const dir, const char *const fname)
 }
 
 /**
- * \brief Wrapper to join a directory and filename and resolve using realpath
- *   _fullpath is used for WIN32
- *
- * \param out_buf output buffer.  Up to PATH_MAX will be written.  Unchanged on exit failure.
- * \param buf_size length of output buffer, must be PATH_MAX
- * \param dir the directory
- * \param fname the filename
- *
- * \retval 0 on success
- * \retval -1 on failure
- */
-int PathJoin(char *out_buf, size_t buf_size, const char *const dir, const char *const fname)
-{
-    SCEnter();
-    if (buf_size != PATH_MAX) {
-        return -1;
-    }
-    if (PathMerge(out_buf, buf_size, dir, fname) != 0) {
-        SCLogError("Could not join filename to path");
-        return -1;
-    }
-    char *tmp_buf = SCRealPath(out_buf, NULL);
-    if (tmp_buf == NULL) {
-        SCLogError("Error resolving path: %s", strerror(errno));
-        return -1;
-    }
-    memset(out_buf, 0, buf_size);
-    size_t ret = strlcpy(out_buf, tmp_buf, buf_size);
-    free(tmp_buf);
-    if (ret >= buf_size) {
-        return -1;
-    }
-    return 0;
-}
-
-/**
  * \brief Wrapper around SCMkDir with default mode arguments.
  */
 int SCDefaultMkDir(const char *path)
@@ -243,37 +207,6 @@ bool SCIsRegularDirectory(const struct dirent *const dir_entry)
     }
 #endif
     return false;
-}
-/**
- * \brief OS independent to check for regular file
- *
- * \param dir_entry object to check
- *
- * \retval True if the object is a regular file.  Otherwise false.
- */
-bool SCIsRegularFile(const struct dirent *const dir_entry)
-{
-#ifndef OS_WIN32
-    return dir_entry->d_type == DT_REG;
-#endif
-    return false;
-}
-
-/**
- * \brief OS independent wrapper for realpath
- *
- * \param path the path to resolve
- * \param resolved_path the resolved path; if null, a buffer will be allocated
- *
- * \retval the resolved_path; or a pointer to a new resolved_path buffer
- */
-char *SCRealPath(const char *path, char *resolved_path)
-{
-#ifdef OS_WIN32
-    return _fullpath(resolved_path, path, PATH_MAX);
-#else
-    return realpath(path, resolved_path);
-#endif
 }
 
 /*

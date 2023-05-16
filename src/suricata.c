@@ -232,12 +232,6 @@ int EngineModeIsIPS(void)
     return (g_engine_mode == ENGINE_MODE_IPS);
 }
 
-int EngineModeIsIDS(void)
-{
-    DEBUG_VALIDATE_BUG_ON(g_engine_mode == ENGINE_MODE_UNKNOWN);
-    return (g_engine_mode == ENGINE_MODE_IDS);
-}
-
 void EngineModeSetIPS(void)
 {
     g_engine_mode = ENGINE_MODE_IPS;
