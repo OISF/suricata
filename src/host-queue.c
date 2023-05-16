@@ -131,13 +131,3 @@ Host *HostDequeue (HostQueue *q)
     HQLOCK_UNLOCK(q);
     return h;
 }
-
-uint32_t HostQueueLen(HostQueue *q)
-{
-    uint32_t len;
-    HQLOCK_LOCK(q);
-    len = q->len;
-    HQLOCK_UNLOCK(q);
-    return len;
-}
-

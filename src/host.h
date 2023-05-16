@@ -143,7 +143,6 @@ void HostRelease(Host *);
 void HostLock(Host *);
 void HostClearMemory(Host *);
 void HostMoveToSpare(Host *);
-uint32_t HostSpareQueueGetSize(void);
 void HostPrintStats (void);
 
 void HostRegisterUnittests(void);

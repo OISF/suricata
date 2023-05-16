@@ -83,7 +83,6 @@ bool DetectEngineBufferRunValidateCallback(
 bool DetectEngineBufferTypeValidateTransform(DetectEngineCtx *de_ctx, int sm_list,
         const uint8_t *content, uint16_t content_len, const char **namestr);
 void DetectEngineBufferTypeSupportsFrames(DetectEngineCtx *de_ctx, const char *name);
-void DetectEngineBufferTypeSupportsPacket(DetectEngineCtx *de_ctx, const char *name);
 void DetectEngineBufferTypeSupportsMpm(DetectEngineCtx *de_ctx, const char *name);
 void DetectEngineBufferTypeSupportsTransformations(DetectEngineCtx *de_ctx, const char *name);
 
@@ -168,8 +167,6 @@ void DetectPktInspectEngineRegister(const char *name,
         InspectionBufferGetPktDataPtr GetPktData,
         InspectionBufferPktInspectFunc Callback);
 
-void DetectFrameInspectEngineRegister(const char *name, int dir,
-        InspectionBufferFrameInspectFunc Callback, AppProto alproto, uint8_t type);
 void DetectEngineFrameInspectEngineRegister(DetectEngineCtx *de_ctx, const char *name, int dir,
         InspectionBufferFrameInspectFunc Callback, AppProto alproto, uint8_t type);
 
