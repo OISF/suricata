@@ -72,5 +72,4 @@ void StorageFreeById(Storage *storage, const StorageEnum type, const int id);
 void StorageFreeAll(Storage *storage, const StorageEnum type);
 void StorageFree(Storage **storage, const StorageEnum type);
 
-void StorageRegisterTests(void);
 #endif

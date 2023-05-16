@@ -97,17 +97,6 @@ void *LiveDevGetStorageById(LiveDevice *d, LiveDevStorageId id)
 
 /* Start of "private" function */
 
-void *LiveDevAllocStorageById(LiveDevice *d, LiveDevStorageId id)
-{
-    return StorageAllocByIdPrealloc(
-            (Storage *)((void *)d + sizeof(LiveDevice)), STORAGE_DEVICE, id.id);
-}
-
-void LiveDevFreeStorageById(LiveDevice *d, LiveDevStorageId id)
-{
-    StorageFreeById((Storage *)((void *)d + sizeof(LiveDevice)), STORAGE_DEVICE, id.id);
-}
-
 void LiveDevFreeStorage(LiveDevice *d)
 {
     if (LiveDevStorageSize() > 0)
