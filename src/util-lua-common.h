@@ -30,8 +30,6 @@ int LuaCallbackError(lua_State *luastate, const char *msg);
 const char *LuaGetStringArgument(lua_State *luastate, int argc);
 
 void LuaPushTableKeyValueInt(lua_State *luastate, const char *key, int value);
-void LuaPushTableKeyValueString(lua_State *luastate, const char *key, const char *value);
-void LuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len);
 
 int LuaRegisterFunctions(lua_State *luastate);
 

@@ -1590,7 +1590,6 @@ void DetectMetadataHashFree(DetectEngineCtx *de_ctx);
 
 /* events */
 void DetectEngineSetEvent(DetectEngineThreadCtx *det_ctx, uint8_t e);
-AppLayerDecoderEvents *DetectEngineGetEvents(DetectEngineThreadCtx *det_ctx);
 
 void DumpPatterns(DetectEngineCtx *de_ctx);
 

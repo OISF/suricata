@@ -644,31 +644,6 @@ int StringParseInt32(int32_t *res, int base, size_t len, const char *str)
     return ret;
 }
 
-int StringParseInt16(int16_t *res, int base, size_t len, const char *str)
-{
-    int64_t i64;
-    int ret;
-
-    ret = ByteExtractStringSigned(&i64, base, len, str, true);
-    if (ret <= 0) {
-        return ret;
-    }
-    if (i64 < INT16_MIN || i64 > INT16_MAX) {
-        return -1;
-    }
-
-    *res = (int16_t)i64;
-
-    if ((int64_t)(*res) != i64) {
-        SCLogError("Numeric value out of range "
-                   "(%" PRIi64 " > %" PRIiMAX ")\n",
-                i64, (intmax_t)SHRT_MAX);
-        return -1;
-    }
-
-    return ret;
-}
-
 int StringParseInt8(int8_t *res, int base, size_t len, const char *str)
 {
     int64_t i64;

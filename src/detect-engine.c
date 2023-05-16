@@ -166,53 +166,6 @@ void DetectPktInspectEngineRegister(const char *name,
 /** \brief register inspect engine at start up time
  *
  *  \note errors are fatal */
-void DetectFrameInspectEngineRegister(const char *name, int dir,
-        InspectionBufferFrameInspectFunc Callback, AppProto alproto, uint8_t type)
-{
-    DetectBufferTypeRegister(name);
-    const int sm_list = DetectBufferTypeGetByName(name);
-    if (sm_list == -1) {
-        FatalError("failed to register inspect engine %s", name);
-    }
-
-    if ((sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) || (Callback == NULL)) {
-        SCLogError("Invalid arguments");
-        BUG_ON(1);
-    }
-
-    uint8_t direction;
-    if (dir == SIG_FLAG_TOSERVER) {
-        direction = 0;
-    } else {
-        direction = 1;
-    }
-
-    DetectEngineFrameInspectionEngine *new_engine = SCCalloc(1, sizeof(*new_engine));
-    if (unlikely(new_engine == NULL)) {
-        FatalError("failed to register inspect engine %s: %s", name, strerror(errno));
-    }
-    new_engine->sm_list = (uint16_t)sm_list;
-    new_engine->sm_list_base = (uint16_t)sm_list;
-    new_engine->dir = direction;
-    new_engine->v1.Callback = Callback;
-    new_engine->alproto = alproto;
-    new_engine->type = type;
-
-    if (g_frame_inspect_engines == NULL) {
-        g_frame_inspect_engines = new_engine;
-    } else {
-        DetectEngineFrameInspectionEngine *t = g_frame_inspect_engines;
-        while (t->next != NULL) {
-            t = t->next;
-        }
-
-        t->next = new_engine;
-    }
-}
-
-/** \brief register inspect engine at start up time
- *
- *  \note errors are fatal */
 void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
         int progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData)
 {
@@ -1248,14 +1201,6 @@ void DetectEngineBufferTypeSupportsFrames(DetectEngineCtx *de_ctx, const char *n
     BUG_ON(!exists);
     exists->frame = true;
     SCLogDebug("%p %s -- %d supports frame inspection", exists, name, exists->id);
-}
-
-void DetectEngineBufferTypeSupportsPacket(DetectEngineCtx *de_ctx, const char *name)
-{
-    DetectBufferType *exists = DetectEngineBufferTypeLookupByName(de_ctx, name);
-    BUG_ON(!exists);
-    exists->packet = true;
-    SCLogDebug("%p %s -- %d supports packet inspection", exists, name, exists->id);
 }
 
 void DetectEngineBufferTypeSupportsMpm(DetectEngineCtx *de_ctx, const char *name)
@@ -3516,12 +3461,6 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
     return TM_ECODE_OK;
 }
 
-void DetectEngineThreadCtxInfo(ThreadVars *t, DetectEngineThreadCtx *det_ctx)
-{
-    /* XXX */
-    PatternMatchThreadPrint(&det_ctx->mtc, det_ctx->de_ctx->mpm_matcher);
-}
-
 static uint32_t DetectKeywordCtxHashFunc(HashListTable *ht, void *data, uint16_t datalen)
 {
     DetectEngineThreadKeywordCtxItem *ctx = data;
@@ -4904,11 +4843,6 @@ void DetectEngineSetEvent(DetectEngineThreadCtx *det_ctx, uint8_t e)
 {
     AppLayerDecoderEventsSetEventRaw(&det_ctx->decoder_events, e);
     det_ctx->events++;
-}
-
-AppLayerDecoderEvents *DetectEngineGetEvents(DetectEngineThreadCtx *det_ctx)
-{
-    return det_ctx->decoder_events;
 }
 
 /*************************************Unittest*********************************/

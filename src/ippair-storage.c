@@ -47,11 +47,6 @@ void *IPPairAllocStorageById(IPPair *h, IPPairStorageId id)
     return StorageAllocByIdPrealloc(h->storage, STORAGE_IPPAIR, id.id);
 }
 
-void IPPairFreeStorageById(IPPair *h, IPPairStorageId id)
-{
-    StorageFreeById(h->storage, STORAGE_IPPAIR, id.id);
-}
-
 void IPPairFreeStorage(IPPair *h)
 {
     if (IPPairStorageSize() > 0)

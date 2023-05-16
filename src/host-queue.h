@@ -77,8 +77,7 @@ HostQueue *HostQueueInit(HostQueue *);
 void HostQueueDestroy (HostQueue *);
 
 void HostEnqueue (HostQueue *, Host *);
-Host *HostDequeue (HostQueue *);
-uint32_t HostQueueLen(HostQueue *);
+Host *HostDequeue(HostQueue *);
 
 #endif /* __HOST_QUEUE_H__ */
 
