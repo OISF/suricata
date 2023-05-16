@@ -101,11 +101,6 @@ void *HostAllocStorageById(Host *h, HostStorageId id)
     return StorageAllocByIdPrealloc((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id.id);
 }
 
-void HostFreeStorageById(Host *h, HostStorageId id)
-{
-    StorageFreeById((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id.id);
-}
-
 void HostFreeStorage(Host *h)
 {
     if (HostStorageSize() > 0)
