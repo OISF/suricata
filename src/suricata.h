@@ -108,7 +108,6 @@ void EngineModeSetIPS(void);
 void EngineModeSetIDS(void);
 int EngineModeIsUnknown(void);
 int EngineModeIsIPS(void);
-int EngineModeIsIDS(void);
 
 /* Box is acting as router */
 enum {

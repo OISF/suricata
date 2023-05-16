@@ -221,23 +221,6 @@ uint8_t *Bs2bmSearch(const uint8_t *text, uint32_t textlen,
 }
 
 /**
- * \brief Search a pattern in the text using the Bs2Bm nocase algorithm (build a bad characters array)
- *
- * \param text Text to search in
- * \param textlen length of the text
- * \param needle pattern to search for
- * \param needlelen length of the pattern
- */
-uint8_t *Bs2bmNocaseSearch(const uint8_t *text, uint32_t textlen,
-        const uint8_t *needle, uint16_t needlelen)
-{
-    uint8_t badchars[ALPHABET_SIZE];
-    Bs2BmBadchars(needle, needlelen, badchars);
-
-    return Bs2BmNocase(text, textlen, needle, needlelen, badchars);
-}
-
-/**
  * \brief Search a pattern in the text using Boyer Moore algorithm
  *        (build a bad character shifts array and good prefixes shift array)
  *

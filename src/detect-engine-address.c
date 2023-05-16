@@ -137,23 +137,6 @@ DetectAddress *DetectAddressCopy(DetectAddress *orig)
     return ag;
 }
 
-#ifdef DEBUG
-/**
- * \brief Prints the address data information for all the DetectAddress
- *        instances in the DetectAddress list sent as the argument.
- *
- * \param head Pointer to a list of DetectAddress instances.
- */
-void DetectAddressPrintList(DetectAddress *head)
-{
-    SCLogInfo("list:");
-    for (DetectAddress *cur = head; cur != NULL; cur = cur->next) {
-        DetectAddressPrint(cur);
-    }
-    SCLogInfo("endlist");
-}
-#endif
-
 /**
  * \internal
  * \brief Frees a list of DetectAddress instances.
