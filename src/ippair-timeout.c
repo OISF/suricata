@@ -27,16 +27,6 @@
 #include "ippair-timeout.h"
 #include "detect-engine-threshold.h"
 
-uint32_t IPPairGetSpareCount(void)
-{
-    return IPPairSpareQueueGetSize();
-}
-
-uint32_t IPPairGetActiveCount(void)
-{
-    return SC_ATOMIC_GET(ippair_counter);
-}
-
 /** \internal
  *  \brief See if we can really discard this ippair. Check use_cnt reference.
  *

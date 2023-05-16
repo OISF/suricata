@@ -1365,17 +1365,6 @@ void RegisterFTPParsers(void)
 #endif
 }
 
-void FTPAtExitPrintStats(void)
-{
-#ifdef DEBUG
-    SCMutexLock(&ftp_state_mem_lock);
-    SCLogDebug("ftp_state_memcnt %"PRIu64", ftp_state_memuse %"PRIu64"",
-               ftp_state_memcnt, ftp_state_memuse);
-    SCMutexUnlock(&ftp_state_mem_lock);
-#endif
-}
-
-
 /*
  * \brief Returns the ending offset of the next line from a multi-line buffer.
  *

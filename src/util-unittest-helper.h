@@ -46,7 +46,6 @@ Packet *UTHBuildPacketSrcDstPorts(uint8_t *, uint16_t, uint8_t ipproto, uint16_t
 Packet *UTHBuildPacketIPV6SrcDst(uint8_t *, uint16_t, uint8_t ipproto, const char *, const char *);
 
 int UTHPacketMatchSigMpm(Packet *, char *, uint16_t);
-Packet **UTHBuildPacketArrayFromEth(uint8_t **, int *, int);
 Packet *UTHBuildPacketFromEth(uint8_t *, uint16_t);
 
 void UTHFreePacket(Packet *);

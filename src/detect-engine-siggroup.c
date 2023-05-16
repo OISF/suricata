@@ -283,11 +283,6 @@ int SigGroupHeadHashAdd(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     return ret;
 }
 
-int SigGroupHeadHashRemove(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
-{
-    return HashListTableRemove(de_ctx->sgh_hash_table, (void *)sgh, 0);
-}
-
 /**
  * \brief Used to lookup a SigGroupHead hash from the detection engine context
  *        SigGroupHead hash table.
