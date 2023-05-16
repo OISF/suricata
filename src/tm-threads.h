@@ -129,6 +129,9 @@ TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *);
 
 uint32_t TmThreadCountThreadsByTmmFlags(uint8_t flags);
 
+TmEcode TmThreadsProcessDecodePseudoPackets(
+        ThreadVars *tv, PacketQueueNoLock *decode_pq, TmSlot *slot);
+
 static inline void TmThreadsCleanDecodePQ(PacketQueueNoLock *pq)
 {
     while (1) {
