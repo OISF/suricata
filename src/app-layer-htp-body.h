@@ -29,7 +29,6 @@
 #define SURICATA_APP_LAYER_HTP_BODY_H
 
 int HtpBodyAppendChunk(const HTPCfgDir *, HtpBody *, const uint8_t *, uint32_t);
-void HtpBodyPrint(HtpBody *);
 void HtpBodyFree(const HTPCfgDir *, HtpBody *);
 void HtpBodyPrune(HtpState *, HtpBody *, int);
 

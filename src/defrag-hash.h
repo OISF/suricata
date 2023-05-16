@@ -97,7 +97,6 @@ DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, P
 void DefragTrackerRelease(DefragTracker *);
 void DefragTrackerClearMemory(DefragTracker *);
 void DefragTrackerMoveToSpare(DefragTracker *);
-uint32_t DefragTrackerSpareQueueGetSize(void);
 
 int DefragTrackerSetMemcap(uint64_t);
 uint64_t DefragTrackerGetMemcap(void);

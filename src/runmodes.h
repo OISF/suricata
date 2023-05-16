@@ -89,8 +89,6 @@ void RunModeInitializeThreadSettings(void);
 void RunModeInitializeOutputs(void);
 void RunModeShutDown(void);
 
-/* bool indicating if file logger is enabled */
-int RunModeOutputFileEnabled(void);
 /* bool indicating if filedata logger is enabled */
 int RunModeOutputFiledataEnabled(void);
 /** bool indicating if run mode is offline */
