@@ -77,8 +77,7 @@ DefragTrackerQueue *DefragTrackerQueueInit(DefragTrackerQueue *);
 void DefragTrackerQueueDestroy (DefragTrackerQueue *);
 
 void DefragTrackerEnqueue (DefragTrackerQueue *, DefragTracker *);
-DefragTracker *DefragTrackerDequeue (DefragTrackerQueue *);
-uint32_t DefragTrackerQueueLen(DefragTrackerQueue *);
+DefragTracker *DefragTrackerDequeue(DefragTrackerQueue *);
 
 #endif /* __DEFRAG_QUEUE_H__ */
 

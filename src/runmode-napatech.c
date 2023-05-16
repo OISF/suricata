@@ -273,11 +273,6 @@ static int NapatechInit(int runmode)
     return 0;
 }
 
-int RunModeNapatechAutoFp(void)
-{
-    return NapatechInit(NT_RUNMODE_AUTOFP);
-}
-
 int RunModeNapatechWorkers(void)
 {
     return NapatechInit(NT_RUNMODE_WORKERS);
