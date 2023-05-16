@@ -531,6 +531,7 @@ fn mime_smtp_parse_line(
                 }
                 return (MimeSmtpParserResult::MimeSmtpNeedsMore, 0);
             }
+            let mut warnings = 0;
             match ctx.encoding {
                 MimeSmtpEncoding::Plain => {
                     mime_smtp_find_url_strings(ctx, full);
@@ -541,6 +542,9 @@ fn mime_smtp_parse_line(
                 MimeSmtpEncoding::Base64 => {
                     if unsafe { MIME_SMTP_CONFIG_DECODE_BASE64 } {
                         if let Some(ref mut decoder) = &mut ctx.decoder {
+                            if i.len() as u32 > MAX_LINE_LEN {
+                                warnings |= MIME_ANOM_LONG_ENC_LINE;
+                            }
                             if let Ok(dec) = mime_base64_decode(decoder, i) {
                                 mime_smtp_find_url_strings(ctx, &dec);
                                 unsafe {
@@ -558,6 +562,9 @@ fn mime_smtp_parse_line(
                 }
                 MimeSmtpEncoding::QuotedPrintable => {
                     if unsafe { MIME_SMTP_CONFIG_DECODE_QUOTED } {
+                        if i.len() as u32 > MAX_LINE_LEN {
+                            warnings |= MIME_ANOM_LONG_ENC_LINE;
+                        }
                         let mut c = 0;
                         let mut eol_equal = false;
                         let mut quoted_buffer = Vec::with_capacity(i.len());
@@ -596,12 +603,15 @@ fn mime_smtp_parse_line(
                     }
                 }
             }
-            return (MimeSmtpParserResult::MimeSmtpFileChunk, 0);
+            return (MimeSmtpParserResult::MimeSmtpFileChunk, warnings);
         }
         _ => {}
     }
     return (MimeSmtpParserResult::MimeSmtpNeedsMore, 0);
 }
+
+// Def in RFC 2045, excluding CRLF sequence
+const MAX_LINE_LEN: u32 = 998;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smtp_mime_parse_line(
@@ -611,6 +621,9 @@ pub unsafe extern "C" fn rs_smtp_mime_parse_line(
     let line = &full_line[..input_len as usize];
     let (r, w) = mime_smtp_parse_line(ctx, line, full_line);
     *warnings = w;
+    if input_len > MAX_LINE_LEN {
+        *warnings |= MIME_ANOM_LONG_LINE;
+    }
     return r;
 }
 
