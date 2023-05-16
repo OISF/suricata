@@ -283,11 +283,6 @@ TmEcode AFXDPQueueProtectionInit(void)
     SCReturnInt(TM_ECODE_OK);
 }
 
-void AFXDPMutexClean(void)
-{
-    SCMutexDestroy(&xsk_protect.queue_protect);
-}
-
 static TmEcode AFXDPAssignQueueID(AFXDPThreadVars *ptv)
 {
     if (ptv->xsk.queue.assigned == false) {

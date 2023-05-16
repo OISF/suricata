@@ -74,16 +74,6 @@ void BloomFilterFree(BloomFilter *bf)
     }
 }
 
-void BloomFilterPrint(BloomFilter *bf)
-{
-    printf("\n---------- Bloom Filter Stats -----------\n");
-    printf("Buckets:               %" PRIu32 "\n", bf->bitarray_size);
-    printf("Memory size:           %" PRIu32 " bytes\n", bf->bitarray_size/8 + 1);
-    printf("Hash function pointer: %p\n", bf->Hash);
-    printf("Hash functions:        %" PRIu32 "\n", bf->hash_iterations);
-    printf("-----------------------------------------\n");
-}
-
 int BloomFilterAdd(BloomFilter *bf, const void *data, uint16_t datalen)
 {
     uint8_t iter = 0;
@@ -98,22 +88,6 @@ int BloomFilterAdd(BloomFilter *bf, const void *data, uint16_t datalen)
     }
 
     return 0;
-}
-
-uint32_t BloomFilterMemoryCnt(BloomFilter *bf)
-{
-     if (bf == NULL)
-         return 0;
-
-     return 2;
-}
-
-uint32_t BloomFilterMemorySize(BloomFilter *bf)
-{
-     if (bf == NULL)
-         return 0;
-
-     return (sizeof(BloomFilter) + (bf->bitarray_size/8) + 1);
 }
 
 /*

@@ -132,27 +132,15 @@ void OutputRegisterTxSubModuleWithProgress(LoggerId id, const char *parent_name,
     ThreadDeinitFunc ThreadDeinit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
-void OutputRegisterFileModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc,
-    FileLogger FileLogFunc, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 void OutputRegisterFileSubModule(LoggerId id, const char *parent_name,
     const char *name, const char *conf_name,
     OutputInitSubFunc InitFunc, FileLogger FileLogFunc,
     ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
-void OutputRegisterFiledataModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc,
-    FiledataLogger FiledataLogFunc, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
-void OutputRegisterFiledataSubModule(LoggerId, const char *parent_name,
-    const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
-    FiledataLogger FiledataLogFunc, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
+void OutputRegisterFiledataModule(LoggerId id, const char *name, const char *conf_name,
+        OutputInitFunc InitFunc, FiledataLogger FiledataLogFunc, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit, ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void OutputRegisterFlowSubModule(LoggerId id, const char *parent_name,
     const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
@@ -160,17 +148,10 @@ void OutputRegisterFlowSubModule(LoggerId id, const char *parent_name,
     ThreadDeinitFunc ThreadDeinit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
-void OutputRegisterStreamingModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc,
-    StreamingLogger StreamingLogFunc, enum OutputStreamingType stream_type,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
-void OutputRegisterStreamingSubModule(LoggerId id, const char *parent_name,
-    const char *name, const char *conf_name,
-    OutputInitSubFunc InitFunc, StreamingLogger StreamingLogFunc,
-    enum OutputStreamingType stream_type,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
+void OutputRegisterStreamingModule(LoggerId id, const char *name, const char *conf_name,
+        OutputInitFunc InitFunc, StreamingLogger StreamingLogFunc,
+        enum OutputStreamingType stream_type, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit, ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void OutputRegisterStatsModule(LoggerId id, const char *name,
     const char *conf_name, OutputInitFunc InitFunc,
