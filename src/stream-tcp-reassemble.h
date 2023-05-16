@@ -128,10 +128,6 @@ uint64_t StreamTcpReassembleMemuseGlobalCounter(void);
 void StreamTcpDisableAppLayer(Flow *f);
 int StreamTcpAppLayerIsDisabled(Flow *f);
 
-#ifdef UNITTESTS
-int StreamTcpCheckStreamContents(uint8_t *, uint16_t , TcpStream *);
-#endif
-
 bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p);
 void StreamTcpReassemblySetMinInspectDepth(TcpSession *ssn, int direction, uint32_t depth);
 

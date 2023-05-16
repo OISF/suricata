@@ -218,7 +218,6 @@ void AppLayerParserRegisterStateDataFunc(
 
 /***** Get and transaction functions *****/
 
-uint32_t AppLayerParserGetOptionFlags(uint8_t protomap, AppProto alproto);
 AppLayerGetTxIteratorFunc AppLayerGetTxIterator(const uint8_t ipproto,
          const AppProto alproto);
 
@@ -235,7 +234,6 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
                                 void *alstate, const uint8_t flags, bool tag_txs_as_inspected);
 
 AppLayerDecoderEvents *AppLayerParserGetDecoderEvents(AppLayerParserState *pstate);
-void AppLayerParserSetDecoderEvents(AppLayerParserState *pstate, AppLayerDecoderEvents *devents);
 AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alproto, void *tx);
 AppLayerGetFileState AppLayerParserGetTxFiles(
         const Flow *f, void *state, void *tx, const uint8_t direction);
@@ -314,11 +312,6 @@ AppLayerParserState *AppLayerParserStateAlloc(void);
 void AppLayerParserStateFree(AppLayerParserState *pstate);
 
 void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir);
-
-#ifdef DEBUG
-void AppLayerParserStatePrintDetails(AppLayerParserState *pstate);
-#endif
-
 
 /***** Unittests *****/
 

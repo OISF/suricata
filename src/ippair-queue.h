@@ -77,7 +77,6 @@ IPPairQueue *IPPairQueueInit(IPPairQueue *);
 void IPPairQueueDestroy (IPPairQueue *);
 
 void IPPairEnqueue (IPPairQueue *, IPPair *);
-IPPair *IPPairDequeue (IPPairQueue *);
-uint32_t IPPairQueueLen(IPPairQueue *);
+IPPair *IPPairDequeue(IPPairQueue *);
 
 #endif /* __IPPAIR_QUEUE_H__ */
