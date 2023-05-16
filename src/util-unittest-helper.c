@@ -346,46 +346,6 @@ Packet *UTHBuildPacket(uint8_t *payload, uint16_t payload_len,
 }
 
 /**
- * \brief UTHBuildPacketArrayFromEth is a wrapper that build a packets from an array of
- *        packets in ethernet rawbytes. Hint: It also share the flows.
- *
- * \param raw_eth pointer to the array of ethernet packets in rawbytes
- * \param pktsize pointer to the array of sizes corresponding to each buffer pointed
- *                from pktsize.
- * \param numpkts number of packets in the array
- *
- * \retval Packet pointer to the array of built in packets; NULL if something fail
- */
-Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkts)
-{
-    DecodeThreadVars dtv;
-    ThreadVars th_v;
-    if (raw_eth == NULL || pktsize == NULL || numpkts <= 0) {
-        SCLogError("The arrays cant be null, and the number"
-                   " of packets should be grater thatn zero");
-        return NULL;
-    }
-    Packet **p = NULL;
-    p = SCMalloc(sizeof(Packet *) * numpkts);
-    if (unlikely(p == NULL))
-        return NULL;
-
-    memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&th_v, 0, sizeof(th_v));
-
-    int i = 0;
-    for (; i < numpkts; i++) {
-        p[i] = PacketGetFromAlloc();
-        if (p[i] == NULL) {
-            SCFree(p);
-            return NULL;
-        }
-        DecodeEthernet(&th_v, &dtv, p[i], raw_eth[i], pktsize[i]);
-    }
-    return p;
-}
-
-/**
  * \brief UTHBuildPacketFromEth is a wrapper that build a packet for the rawbytes
  *
  * \param raw_eth pointer to the rawbytes containing an ethernet packet

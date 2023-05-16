@@ -68,17 +68,6 @@ TmModule *TmModuleGetByName(const char *name)
     return NULL;
 }
 
-/** \brief get the id of a module from it's name
- *  \param name registered name of the module
- *  \retval id the id or -1 in case of error */
-int TmModuleGetIdByName(const char *name)
-{
-    TmModule *tm = TmModuleGetByName(name);
-    if (tm == NULL)
-        return -1;
-    return TmModuleGetIDForTM(tm);
-}
-
 /**
  * \brief Returns a TM Module by its id.
  *

@@ -412,11 +412,6 @@ static inline uint64_t GetAbsLastAck(const TcpStream *stream)
     }
 }
 
-uint64_t StreamTcpGetAcked(const TcpStream *stream)
-{
-    return GetAbsLastAck(stream);
-}
-
 // may contain gaps
 uint64_t StreamDataRightEdge(const TcpStream *stream, const bool eof)
 {
@@ -2177,16 +2172,6 @@ void StreamTcpCreateTestPacket(uint8_t *payload, uint8_t value,
  *  \param  stream_policy   Predefined value of stream for different OS policies
  *  \param  stream          Reassembled stream returned from the reassembly functions
  */
-
-int StreamTcpCheckStreamContents(uint8_t *stream_policy, uint16_t sp_size, TcpStream *stream)
-{
-    if (StreamingBufferCompareRawData(&stream->sb, stream_policy,(uint32_t)sp_size) == 0)
-    {
-        //PrintRawDataFp(stdout, stream_policy, sp_size);
-        return 0;
-    }
-    return 1;
-}
 
 static int VALIDATE(TcpStream *stream, uint8_t *data, uint32_t data_len)
 {

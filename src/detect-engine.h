@@ -168,8 +168,6 @@ void DetectPktInspectEngineRegister(const char *name,
         InspectionBufferGetPktDataPtr GetPktData,
         InspectionBufferPktInspectFunc Callback);
 
-void DetectFrameInspectEngineRegister(const char *name, int dir,
-        InspectionBufferFrameInspectFunc Callback, AppProto alproto, uint8_t type);
 void DetectEngineFrameInspectEngineRegister(DetectEngineCtx *de_ctx, const char *name, int dir,
         InspectionBufferFrameInspectFunc Callback, AppProto alproto, uint8_t type);
 

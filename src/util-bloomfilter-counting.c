@@ -83,17 +83,6 @@ void BloomFilterCountingFree(BloomFilterCounting *bf)
     }
 }
 
-void BloomFilterCountingPrint(BloomFilterCounting *bf)
-{
-    printf("\n------ Counting Bloom Filter Stats ------\n");
-    printf("Buckets:               %" PRIu32 "\n", bf->array_size);
-    printf("Counter size:          %" PRIu32 "\n", bf->type);
-    printf("Memory size:           %" PRIu32 " bytes\n", bf->array_size * bf->type);
-    printf("Hash function pointer: %p\n", bf->Hash);
-    printf("Hash functions:        %" PRIu32 "\n", bf->hash_iterations);
-    printf("-----------------------------------------\n");
-}
-
 int BloomFilterCountingAdd(BloomFilterCounting *bf, const void *data, uint16_t datalen)
 {
     uint8_t iter = 0;

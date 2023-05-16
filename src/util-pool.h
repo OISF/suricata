@@ -74,8 +74,6 @@ typedef struct Pool_ {
 /* prototypes */
 Pool* PoolInit(uint32_t, uint32_t, uint32_t, void *(*Alloc)(void), int (*Init)(void *, void *), void *, void (*Cleanup)(void *), void (*Free)(void *));
 void PoolFree(Pool *);
-void PoolPrint(Pool *);
-void PoolPrintSaturation(Pool *p);
 
 void *PoolGet(Pool *);
 void PoolReturn(Pool *, void *);

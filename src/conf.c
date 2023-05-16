@@ -870,36 +870,6 @@ int ConfNodeChildValueIsTrue(const ConfNode *node, const char *key)
  *  \param file The name of the file
  *  \retval str Pointer to the string path + sig_file
  */
-char *ConfLoadCompleteIncludePath(const char *file)
-{
-    const char *defaultpath = NULL;
-    char *path = NULL;
-
-    /* Path not specified */
-    if (PathIsRelative(file)) {
-        if (ConfGet("include-path", &defaultpath) == 1) {
-            SCLogDebug("Default path: %s", defaultpath);
-            size_t path_len = sizeof(char) * (strlen(defaultpath) +
-                          strlen(file) + 2);
-            path = SCMalloc(path_len);
-            if (unlikely(path == NULL))
-                return NULL;
-            strlcpy(path, defaultpath, path_len);
-            if (path[strlen(path) - 1] != '/')
-                strlcat(path, "/", path_len);
-            strlcat(path, file, path_len);
-       } else {
-            path = SCStrdup(file);
-            if (unlikely(path == NULL))
-                return NULL;
-        }
-    } else {
-        path = SCStrdup(file);
-        if (unlikely(path == NULL))
-            return NULL;
-    }
-    return path;
-}
 
 /**
  * \brief Prune a configuration node.

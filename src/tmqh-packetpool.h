@@ -80,7 +80,6 @@ Packet *PacketPoolGetPacket(void);
 void PacketPoolWait(void);
 void PacketPoolReturnPacket(Packet *p);
 void PacketPoolInit(void);
-void PacketPoolInitEmpty(void);
 void PacketPoolDestroy(void);
 void PacketPoolPostRunmodes(void);
 

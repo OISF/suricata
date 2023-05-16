@@ -79,11 +79,6 @@ enum ExceptionPolicy DefragGetMemcapExceptionPolicy(void)
     return defrag_config.memcap_policy;
 }
 
-uint32_t DefragTrackerSpareQueueGetSize(void)
-{
-    return DefragTrackerQueueLen(&defragtracker_spare_q);
-}
-
 void DefragTrackerMoveToSpare(DefragTracker *h)
 {
     DefragTrackerEnqueue(&defragtracker_spare_q, h);

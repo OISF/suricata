@@ -413,44 +413,6 @@ void OutputRegisterTxSubModule(LoggerId id, const char *parent_name,
 }
 
 /**
- * \brief Register a file output module.
- *
- * This function will register an output module so it can be
- * configured with the configuration file.
- *
- * \retval Returns 0 on success, -1 on failure.
- */
-void OutputRegisterFileModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc, FileLogger FileLogFunc,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
-{
-    if (unlikely(FileLogFunc == NULL)) {
-        goto error;
-    }
-
-    OutputModule *module = SCCalloc(1, sizeof(*module));
-    if (unlikely(module == NULL)) {
-        goto error;
-    }
-
-    module->logger_id = id;
-    module->name = name;
-    module->conf_name = conf_name;
-    module->InitFunc = InitFunc;
-    module->FileLogFunc = FileLogFunc;
-    module->ThreadInit = ThreadInit;
-    module->ThreadDeinit = ThreadDeinit;
-    module->ThreadExitPrintStats = ThreadExitPrintStats;
-    TAILQ_INSERT_TAIL(&output_modules, module, entries);
-
-    SCLogDebug("File logger \"%s\" registered.", name);
-    return;
-error:
-    FatalError("Fatal error encountered. Exiting...");
-}
-
-/**
  * \brief Register a file output sub-module.
  *
  * This function will register an output module so it can be
@@ -517,46 +479,6 @@ void OutputRegisterFiledataModule(LoggerId id, const char *name,
     module->name = name;
     module->conf_name = conf_name;
     module->InitFunc = InitFunc;
-    module->FiledataLogFunc = FiledataLogFunc;
-    module->ThreadInit = ThreadInit;
-    module->ThreadDeinit = ThreadDeinit;
-    module->ThreadExitPrintStats = ThreadExitPrintStats;
-    TAILQ_INSERT_TAIL(&output_modules, module, entries);
-
-    SCLogDebug("Filedata logger \"%s\" registered.", name);
-    return;
-error:
-    FatalError("Fatal error encountered. Exiting...");
-}
-
-/**
- * \brief Register a file data output sub-module.
- *
- * This function will register an output module so it can be
- * configured with the configuration file.
- *
- * \retval Returns 0 on success, -1 on failure.
- */
-void OutputRegisterFiledataSubModule(LoggerId id, const char *parent_name,
-    const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
-    FiledataLogger FiledataLogFunc, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
-{
-    if (unlikely(FiledataLogFunc == NULL)) {
-        goto error;
-    }
-
-    OutputModule *module = SCCalloc(1, sizeof(*module));
-    if (unlikely(module == NULL)) {
-        goto error;
-    }
-
-    module->logger_id = id;
-    module->name = name;
-    module->conf_name = conf_name;
-    module->parent_name = parent_name;
-    module->InitSubFunc = InitFunc;
     module->FiledataLogFunc = FiledataLogFunc;
     module->ThreadInit = ThreadInit;
     module->ThreadDeinit = ThreadDeinit;
@@ -637,47 +559,6 @@ void OutputRegisterStreamingModule(LoggerId id, const char *name,
     module->name = name;
     module->conf_name = conf_name;
     module->InitFunc = InitFunc;
-    module->StreamingLogFunc = StreamingLogFunc;
-    module->stream_type = stream_type;
-    module->ThreadInit = ThreadInit;
-    module->ThreadDeinit = ThreadDeinit;
-    module->ThreadExitPrintStats = ThreadExitPrintStats;
-    TAILQ_INSERT_TAIL(&output_modules, module, entries);
-
-    SCLogDebug("Streaming logger \"%s\" registered.", name);
-    return;
-error:
-    FatalError("Fatal error encountered. Exiting...");
-}
-
-/**
- * \brief Register a streaming data output sub-module.
- *
- * This function will register an output module so it can be
- * configured with the configuration file.
- *
- * \retval Returns 0 on success, -1 on failure.
- */
-void OutputRegisterStreamingSubModule(LoggerId id, const char *parent_name,
-    const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
-    StreamingLogger StreamingLogFunc, enum OutputStreamingType stream_type,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
-{
-    if (unlikely(StreamingLogFunc == NULL)) {
-        goto error;
-    }
-
-    OutputModule *module = SCCalloc(1, sizeof(*module));
-    if (unlikely(module == NULL)) {
-        goto error;
-    }
-
-    module->logger_id = id;
-    module->name = name;
-    module->conf_name = conf_name;
-    module->parent_name = parent_name;
-    module->InitSubFunc = InitFunc;
     module->StreamingLogFunc = StreamingLogFunc;
     module->stream_type = stream_type;
     module->ThreadInit = ThreadInit;

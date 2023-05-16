@@ -38,8 +38,6 @@ void SigGroupHeadHashFree(DetectEngineCtx *);
 
 int SigGroupHeadHashInit(DetectEngineCtx *);
 
-int SigGroupHeadHashRemove(DetectEngineCtx *, SigGroupHead *);
-
 void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid);
 void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx);
 bool SigGroupHeadEqual(const SigGroupHead *, const SigGroupHead *);

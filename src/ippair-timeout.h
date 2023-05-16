@@ -26,7 +26,4 @@
 
 uint32_t IPPairTimeoutHash(SCTime_t ts);
 
-uint32_t IPPairGetSpareCount(void);
-uint32_t IPPairGetActiveCount(void);
-
 #endif
