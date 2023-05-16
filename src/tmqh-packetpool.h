@@ -75,7 +75,6 @@ void PacketPoolWait(void);
 void PacketPoolWaitForN(int n);
 void PacketPoolReturnPacket(Packet *p);
 void PacketPoolInit(void);
-void PacketPoolInitEmpty(void);
 void PacketPoolDestroy(void);
 void PacketPoolPostRunmodes(void);
 

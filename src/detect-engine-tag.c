@@ -76,14 +76,6 @@ void TagDestroyCtx(void)
 #endif
 }
 
-/** \brief Reset the tagging engine context
- */
-void TagRestartCtx(void)
-{
-    TagDestroyCtx();
-    TagInitCtx();
-}
-
 int TagHostHasTag(Host *host)
 {
     return HostGetStorageById(host, host_tag_id) ? 1 : 0;

@@ -30,7 +30,6 @@ uint32_t VarNameStoreLookupByName(const char *name, const enum VarTypes type);
 uint32_t VarNameStoreSetupAdd(const char *name, const enum VarTypes type);
 char *VarNameStoreSetupLookup(uint32_t idx, const enum VarTypes type);
 void VarNameStoreActivateStaging(void);
-void VarNameStoreFreeOld(void);
 void VarNameStoreFree(uint32_t de_ctx_version);
 
 #endif

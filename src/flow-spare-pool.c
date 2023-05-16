@@ -119,11 +119,6 @@ void FlowSparePoolReturnFlow(Flow *f)
     SCMutexUnlock(&flow_spare_pool_m);
 }
 
-void FlowSparePoolReturnFlows(FlowQueuePrivate *fqp)
-{
-
-}
-
 FlowQueuePrivate FlowSpareGetFromPool(void)
 {
     SCMutexLock(&flow_spare_pool_m);

@@ -51,7 +51,6 @@ void TagHandlePacket(DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
 
 void TagInitCtx(void);
 void TagDestroyCtx(void);
-void TagRestartCtx(void);
 
 int TagTimeoutCheck(Host *, SCTime_t);
 

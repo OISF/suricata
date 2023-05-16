@@ -30,7 +30,6 @@
 #include <nt.h>
 #endif /* HAVE_NAPATECH */
 
-int RunModeNapatechAutoFp(void);
 int RunModeNapatechWorkers(void);
 void RunModeNapatechRegister(void);
 const char *RunModeNapatechGetDefaultMode(void);

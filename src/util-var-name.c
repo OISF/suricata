@@ -350,17 +350,6 @@ void VarNameStoreActivateStaging(void)
     SCMutexUnlock(&g_varnamestore_staging_m);
 }
 
-void VarNameStoreFreeOld(void)
-{
-    SCMutexLock(&g_varnamestore_staging_m);
-    SCLogDebug("freeing g_varnamestore_old %p", g_varnamestore_old);
-    if (g_varnamestore_old) {
-        VarNameStoreDoFree(g_varnamestore_old);
-        g_varnamestore_old = NULL;
-    }
-    SCMutexUnlock(&g_varnamestore_staging_m);
-}
-
 void VarNameStoreFree(uint32_t de_ctx_version)
 {
     SCLogDebug("freeing detect engine version %u", de_ctx_version);

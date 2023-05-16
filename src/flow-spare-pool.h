@@ -36,6 +36,5 @@ uint32_t FlowSpareGetPoolSize(void);
 FlowQueuePrivate FlowSpareGetFromPool(void);
 
 void FlowSparePoolReturnFlow(Flow *f);
-void FlowSparePoolReturnFlows(FlowQueuePrivate *fqp);
 
 #endif /* __FLOW_SPARE_POOL_H__ */

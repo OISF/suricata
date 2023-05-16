@@ -48,8 +48,6 @@ int SigGroupHeadHashInit(DetectEngineCtx *);
 int SigGroupHeadMpmHashInit(DetectEngineCtx *);
 int SigGroupHeadDPortHashInit(DetectEngineCtx *);
 
-int SigGroupHeadHashRemove(DetectEngineCtx *, SigGroupHead *);
-
 void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid);
 void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx);
 void SigGroupHeadSetProtoAndDirection(SigGroupHead *sgh,

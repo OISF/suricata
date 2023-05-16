@@ -137,10 +137,8 @@ void IPPairCleanup(void);
 IPPair *IPPairLookupIPPairFromHash (Address *, Address *);
 IPPair *IPPairGetIPPairFromHash (Address *, Address *);
 void IPPairRelease(IPPair *);
-void IPPairLock(IPPair *);
 void IPPairClearMemory(IPPair *);
 void IPPairMoveToSpare(IPPair *);
-uint32_t IPPairSpareQueueGetSize(void);
 void IPPairPrintStats (void);
 
 void IPPairRegisterUnittests(void);
@@ -148,7 +146,6 @@ void IPPairRegisterUnittests(void);
 IPPair *IPPairAlloc(void);
 void IPPairFree(IPPair *);
 
-void IPPairLock(IPPair *);
 void IPPairUnlock(IPPair *);
 
 int IPPairSetMemcap(uint64_t size);
