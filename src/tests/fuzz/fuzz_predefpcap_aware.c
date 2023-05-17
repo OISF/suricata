@@ -40,6 +40,7 @@ DecodeThreadVars *dtv;
 // FlowWorkerThreadData
 void *fwd;
 SCInstance surifuzz;
+SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
 #include "confyaml.c"
 
@@ -103,6 +104,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             return 0;
         }
 
+        SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
         initialized = 1;
     }
 
@@ -117,7 +119,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     // loop over packets
     r = FPC_next(&pkts, &header, &pkt);
     p = PacketGetFromAlloc();
-    if (r <= 0 || header.ts.tv_sec >= INT_MAX - 3600) {
+    if (p == NULL || r <= 0 || header.ts.tv_sec >= INT_MAX - 3600) {
         goto bail;
     }
     p->ts = SCTIME_FROM_TIMEVAL(&header.ts);
@@ -154,7 +156,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         p->pkt_src = PKT_SRC_WIRE;
     }
 bail:
-    PacketFree(p);
+    if (p != NULL) {
+        PacketFree(p);
+    }
     FlowReset();
 
     return 0;

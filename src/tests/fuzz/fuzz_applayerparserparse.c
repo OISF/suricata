@@ -36,6 +36,7 @@ AppLayerParserThreadCtx *alp_tctx = NULL;
 const uint8_t separator[] = {0x01, 0xD5, 0xCA, 0x7A};
 SCInstance surifuzz;
 AppProto forceLayer = 0;
+SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
 int LLVMFuzzerInitialize(int *argc, char ***argv)
 {
@@ -75,10 +76,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     // otherwise overflows do not fail as they read the next packet
     uint8_t * isolatedBuffer;
 
-    if (size < HEADER_LEN) {
-        return 0;
-    }
-
     if (alp_tctx == NULL) {
         //Redirects logs to /dev/null
         setenv("SC_LOG_OP_IFACE", "file", 0);
@@ -97,6 +94,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
         PostConfLoadedSetup(&surifuzz);
         alp_tctx = AppLayerParserThreadCtxAlloc();
+        SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
+    }
+
+    if (size < HEADER_LEN) {
+        return 0;
     }
 
     if (data[0] >= ALPROTO_MAX) {
@@ -149,7 +151,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             // only if we have some data
             isolatedBuffer = malloc(alnext - albuffer);
             if (isolatedBuffer == NULL) {
-                return 0;
+                goto bail;
             }
             memcpy(isolatedBuffer, albuffer, alnext - albuffer);
             (void) AppLayerParserParse(NULL, alp_tctx, f, f->alproto, flags, isolatedBuffer, alnext - albuffer);
@@ -192,13 +194,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         flags |= STREAM_EOF;
         isolatedBuffer = malloc(alsize);
         if (isolatedBuffer == NULL) {
-            return 0;
+            goto bail;
         }
         memcpy(isolatedBuffer, albuffer, alsize);
         (void) AppLayerParserParse(NULL, alp_tctx, f, f->alproto, flags, isolatedBuffer, alsize);
         free(isolatedBuffer);
     }
 
+bail:
     FLOWLOCK_UNLOCK(f);
     FlowFree(f);
 

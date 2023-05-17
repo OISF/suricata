@@ -23,6 +23,7 @@
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 AppLayerProtoDetectThreadCtx *alpd_tctx = NULL;
+SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
@@ -31,10 +32,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     bool reverse;
     AppProto alproto;
     AppProto alproto2;
-
-    if (size < HEADER_LEN) {
-        return 0;
-    }
 
     if (alpd_tctx == NULL) {
         //global init
@@ -50,6 +47,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         AppLayerParserSetup();
         AppLayerParserRegisterProtocolParsers();
         alpd_tctx = AppLayerProtoDetectGetCtxThread();
+        SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
+    }
+
+    if (size < HEADER_LEN) {
+        return 0;
     }
 
     f = TestHelperBuildFlow(AF_INET, "1.2.3.4", "5.6.7.8", (uint16_t)((data[2] << 8) | data[3]),
