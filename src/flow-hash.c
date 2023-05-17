@@ -117,7 +117,9 @@ uint32_t FlowGetIpPairProtoHash(const Packet *p)
 {
     uint32_t hash = 0;
     if (p->ip4h != NULL) {
-        FlowHashKey4 fhk;
+        FlowHashKey4 fhk = {
+            .pad[0] = 0,
+        };
 
         int ai = (p->src.addr_data32[0] > p->dst.addr_data32[0]);
         fhk.addrs[1 - ai] = p->src.addr_data32[0];
@@ -132,10 +134,13 @@ uint32_t FlowGetIpPairProtoHash(const Packet *p)
          * is disabled. */
         fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
         fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
+        fhk.vlan_id[2] = p->vlan_id[2] & g_vlan_mask;
 
-        hash = hashword(fhk.u32, 5, flow_config.hash_rand);
+        hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
     } else if (p->ip6h != NULL) {
-        FlowHashKey6 fhk;
+        FlowHashKey6 fhk = {
+            .pad[0] = 0,
+        };
         if (FlowHashRawAddressIPv6GtU32(p->src.addr_data32, p->dst.addr_data32)) {
             fhk.src[0] = p->src.addr_data32[0];
             fhk.src[1] = p->src.addr_data32[1];
@@ -162,8 +167,9 @@ uint32_t FlowGetIpPairProtoHash(const Packet *p)
         fhk.recur = (uint8_t)p->recursion_level;
         fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
         fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
+        fhk.vlan_id[2] = p->vlan_id[2] & g_vlan_mask;
 
-        hash = hashword(fhk.u32, 11, flow_config.hash_rand);
+        hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
     }
     return hash;
 }
