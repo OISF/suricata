@@ -1604,6 +1604,13 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
 
                     if (filedata_len >= (uint32_t)(expected_boundary_len + 2)) {
                         filedata_len -= (expected_boundary_len + 2 - 1);
+                        // take as much as we can until start of boundary
+                        for (size_t nb = 0; nb < expected_boundary_len + 1; nb++) {
+                            if (filedata[filedata_len] == '-') {
+                                break;
+                            }
+                            filedata_len++;
+                        }
                         SCLogDebug("opening file with partial data");
                     } else {
                         filedata = NULL;
