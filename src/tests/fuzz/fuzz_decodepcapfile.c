@@ -31,6 +31,7 @@ pcap-file:\n\
 
 ThreadVars *tv;
 DecodeThreadVars *dtv;
+SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
@@ -80,6 +81,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         extern uint16_t max_pending_packets;
         max_pending_packets = 128;
         PacketPoolInit();
+        SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
 
         initialized = 1;
     }
