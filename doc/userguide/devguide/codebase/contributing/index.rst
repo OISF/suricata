@@ -6,3 +6,4 @@ Contributing
 
     contribution-process
     code-submission-process
+    github-pr-workflow
