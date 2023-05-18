@@ -33,6 +33,7 @@
 #include "tm-threads.h"
 #include "source-pcap.h"
 #include "conf.h"
+#include "util-bpf.h"
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-privs.h"
@@ -110,6 +111,7 @@ typedef struct PcapThreadVars_
 } PcapThreadVars;
 
 static TmEcode ReceivePcapThreadInit(ThreadVars *, const void *, void **);
+static TmEcode ReceivePcapThreadDeinit(ThreadVars *tv, void *data);
 static void ReceivePcapThreadExitStats(ThreadVars *, void *);
 static TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot);
 static TmEcode ReceivePcapBreakLoop(ThreadVars *tv, void *data);
@@ -133,6 +135,7 @@ void TmModuleReceivePcapRegister (void)
 {
     tmm_modules[TMM_RECEIVEPCAP].name = "ReceivePcap";
     tmm_modules[TMM_RECEIVEPCAP].ThreadInit = ReceivePcapThreadInit;
+    tmm_modules[TMM_RECEIVEPCAP].ThreadDeinit = ReceivePcapThreadDeinit;
     tmm_modules[TMM_RECEIVEPCAP].PktAcqLoop = ReceivePcapLoop;
     tmm_modules[TMM_RECEIVEPCAP].PktAcqBreakLoop = ReceivePcapBreakLoop;
     tmm_modules[TMM_RECEIVEPCAP].ThreadExitPrintStats = ReceivePcapThreadExitStats;
@@ -405,7 +408,7 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->livedev = LiveGetDevice(pcapconfig->iface);
     if (ptv->livedev == NULL) {
         SCLogError("unable to find Live device");
-        SCFree(ptv);
+        ReceivePcapThreadDeinit(tv, ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
     SCLogInfo("using interface %s", (char *)pcapconfig->iface);
@@ -434,7 +437,7 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
                        "pcap handler for %s",
                     (char *)pcapconfig->iface);
         }
-        SCFree(ptv);
+        ReceivePcapThreadDeinit(tv, ptv);
         pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -452,7 +455,7 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
             SCLogError("could not set snaplen, "
                        "error: %s",
                     pcap_geterr(ptv->pcap_handle));
-            SCFree(ptv);
+            ReceivePcapThreadDeinit(tv, ptv);
             pcapconfig->DerefFunc(pcapconfig);
             SCReturnInt(TM_ECODE_FAILED);
         }
@@ -466,7 +469,7 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
         SCLogError("could not set promisc mode, "
                    "error %s",
                 pcap_geterr(ptv->pcap_handle));
-        SCFree(ptv);
+        ReceivePcapThreadDeinit(tv, ptv);
         pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -476,7 +479,7 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
         SCLogError("could not set timeout, "
                    "error %s",
                 pcap_geterr(ptv->pcap_handle));
-        SCFree(ptv);
+        ReceivePcapThreadDeinit(tv, ptv);
         pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -492,7 +495,7 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
             SCLogError("could not set "
                        "pcap buffer size, error %s",
                     pcap_geterr(ptv->pcap_handle));
-            SCFree(ptv);
+            ReceivePcapThreadDeinit(tv, ptv);
             pcapconfig->DerefFunc(pcapconfig);
             SCReturnInt(TM_ECODE_FAILED);
         }
@@ -505,7 +508,7 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
         SCLogError("could not activate the "
                    "pcap handler, error %s",
                 pcap_geterr(ptv->pcap_handle));
-        SCFree(ptv);
+        ReceivePcapThreadDeinit(tv, ptv);
         pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -523,7 +526,7 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
             SCLogError("bpf compilation error %s", pcap_geterr(ptv->pcap_handle));
 
             SCMutexUnlock(&pcap_bpf_compile_lock);
-            SCFree(ptv);
+            ReceivePcapThreadDeinit(tv, ptv);
             pcapconfig->DerefFunc(pcapconfig);
             return TM_ECODE_FAILED;
         }
@@ -532,7 +535,7 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
             SCLogError("could not set bpf filter %s", pcap_geterr(ptv->pcap_handle));
 
             SCMutexUnlock(&pcap_bpf_compile_lock);
-            SCFree(ptv);
+            ReceivePcapThreadDeinit(tv, ptv);
             pcapconfig->DerefFunc(pcapconfig);
             return TM_ECODE_FAILED;
         }
@@ -599,6 +602,22 @@ static void ReceivePcapThreadExitStats(ThreadVars *tv, void *data)
                 ptv->last_stats64.ps_recv - ptv->last_stats64.ps_drop,
                 ptv->last_stats64.ps_drop, drop_percent);
     }
+}
+
+static TmEcode ReceivePcapThreadDeinit(ThreadVars *tv, void *data)
+{
+    SCEnter();
+    PcapThreadVars *ptv = (PcapThreadVars *)data;
+    if (ptv != NULL) {
+        if (ptv->pcap_handle != NULL) {
+            pcap_close(ptv->pcap_handle);
+        }
+        if (ptv->filter.bf_insns) {
+            SCBPFFree(&ptv->filter);
+        }
+        SCFree(ptv);
+    }
+    SCReturnInt(TM_ECODE_OK);
 }
 
 /**
