@@ -249,7 +249,7 @@ int RunModeIdsPcapSingle(void)
         FatalError("Runmode start failed");
     }
 
-    SCLogInfo("RunModeIdsPcapSingle initialised");
+    SCLogDebug("RunModeIdsPcapSingle initialised");
 
     SCReturnInt(0);
 }
@@ -286,7 +286,7 @@ int RunModeIdsPcapAutoFp(void)
         FatalError("Runmode start failed");
     }
 
-    SCLogInfo("RunModeIdsPcapAutoFp initialised");
+    SCLogDebug("RunModeIdsPcapAutoFp initialised");
 
     SCReturnInt(0);
 }
@@ -314,7 +314,7 @@ int RunModeIdsPcapWorkers(void)
         FatalError("Unable to start runmode");
     }
 
-    SCLogInfo("RunModeIdsPcapWorkers initialised");
+    SCLogDebug("RunModeIdsPcapWorkers initialised");
 
     SCReturnInt(0);
 }
