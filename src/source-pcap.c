@@ -102,6 +102,7 @@ typedef struct PcapThreadVars_
     /* pcap buffer size */
     int pcap_buffer_size;
     int pcap_snaplen;
+    int promisc;
 
     ChecksumValidationMode checksum_mode;
 
@@ -207,31 +208,117 @@ static inline void PcapDumpCounters(PcapThreadVars *ptv)
     }
 }
 
+static int PcapOpenInterface(PcapThreadVars *ptv)
+{
+    const char *iface = ptv->livedev->dev;
+
+    if (ptv->pcap_handle) {
+        pcap_close(ptv->pcap_handle);
+        ptv->pcap_handle = NULL;
+        if (ptv->filter.bf_insns) {
+            SCBPFFree(&ptv->filter);
+        }
+    }
+
+    if (LiveGetOffload() == 0) {
+        (void)GetIfaceOffloading(iface, 1, 1);
+    } else {
+        DisableIfaceOffloading(ptv->livedev, 1, 1);
+    }
+
+    char errbuf[PCAP_ERRBUF_SIZE];
+    ptv->pcap_handle = pcap_create(iface, errbuf);
+    if (ptv->pcap_handle == NULL) {
+        if (strlen(errbuf)) {
+            SCLogError("%s: could not create a new pcap handler, error %s", iface, errbuf);
+        } else {
+            SCLogError("%s: could not create a new pcap handler", iface);
+        }
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    if (ptv->pcap_snaplen > 0) {
+        /* set Snaplen. Must be called before pcap_activate */
+        int pcap_set_snaplen_r = pcap_set_snaplen(ptv->pcap_handle, ptv->pcap_snaplen);
+        if (pcap_set_snaplen_r != 0) {
+            SCLogError(
+                    "%s: could not set snaplen, error: %s", iface, pcap_geterr(ptv->pcap_handle));
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+        SCLogInfo("%s: snaplen set to %d", iface, ptv->pcap_snaplen);
+    }
+
+    if (ptv->promisc) {
+        /* set Promisc, and Timeout. Must be called before pcap_activate */
+        int pcap_set_promisc_r = pcap_set_promisc(ptv->pcap_handle, ptv->promisc);
+        if (pcap_set_promisc_r != 0) {
+            SCLogError("%s: could not set promisc mode, error %s", iface,
+                    pcap_geterr(ptv->pcap_handle));
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+    }
+
+    int pcap_set_timeout_r = pcap_set_timeout(ptv->pcap_handle, LIBPCAP_COPYWAIT);
+    if (pcap_set_timeout_r != 0) {
+        SCLogError("%s: could not set timeout, error %s", iface, pcap_geterr(ptv->pcap_handle));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+#ifdef HAVE_PCAP_SET_BUFF
+    if (ptv->pcap_buffer_size > 0) {
+        SCLogInfo("%s: going to use pcap buffer size of %" PRId32, iface, ptv->pcap_buffer_size);
+
+        int pcap_set_buffer_size_r = pcap_set_buffer_size(ptv->pcap_handle, ptv->pcap_buffer_size);
+        if (pcap_set_buffer_size_r != 0) {
+            SCLogError("%s: could not set pcap buffer size, error %s", iface,
+                    pcap_geterr(ptv->pcap_handle));
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+    }
+#endif /* HAVE_PCAP_SET_BUFF */
+
+    /* activate the handle */
+    int pcap_activate_r = pcap_activate(ptv->pcap_handle);
+    if (pcap_activate_r != 0) {
+        SCLogError("%s: could not activate the pcap handler, error %s", iface,
+                pcap_geterr(ptv->pcap_handle));
+        pcap_close(ptv->pcap_handle);
+        ptv->pcap_handle = NULL;
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    ptv->pcap_state = PCAP_STATE_UP;
+
+    /* set bpf filter if we have one */
+    if (ptv->bpf_filter) {
+        SCMutexLock(&pcap_bpf_compile_lock);
+
+        if (pcap_compile(ptv->pcap_handle, &ptv->filter, (char *)ptv->bpf_filter, 1, 0) < 0) {
+            SCLogError("%s: bpf compilation error %s", iface, pcap_geterr(ptv->pcap_handle));
+            SCMutexUnlock(&pcap_bpf_compile_lock);
+            return TM_ECODE_FAILED;
+        }
+
+        if (pcap_setfilter(ptv->pcap_handle, &ptv->filter) < 0) {
+            SCLogError("%s: could not set bpf filter %s", iface, pcap_geterr(ptv->pcap_handle));
+            SCMutexUnlock(&pcap_bpf_compile_lock);
+            return TM_ECODE_FAILED;
+        }
+
+        SCMutexUnlock(&pcap_bpf_compile_lock);
+    }
+
+    /* no offloading supported at all */
+    (void)GetIfaceOffloading(iface, 1, 1);
+    return TM_ECODE_OK;
+}
+
 static int PcapTryReopen(PcapThreadVars *ptv)
 {
     ptv->pcap_state = PCAP_STATE_DOWN;
 
-    int pcap_activate_r = pcap_activate(ptv->pcap_handle);
-    if (pcap_activate_r != 0 && pcap_activate_r != PCAP_ERROR_ACTIVATED) {
-        return pcap_activate_r;
-    }
+    if (PcapOpenInterface(ptv) != TM_ECODE_OK)
+        return -1;
 
-    /* set bpf filter if we have one */
-    if (ptv->bpf_filter != NULL) {
-        if (pcap_compile(ptv->pcap_handle, &ptv->filter,
-                    (char *)ptv->bpf_filter, 1, 0) < 0)
-        {
-            SCLogError("bpf compilation error %s", pcap_geterr(ptv->pcap_handle));
-            return -1;
-        }
-
-        if (pcap_setfilter(ptv->pcap_handle, &ptv->filter) < 0) {
-            SCLogError("could not set bpf filter %s", pcap_geterr(ptv->pcap_handle));
-            return -1;
-        }
-    }
-
-    SCLogInfo("Recovering interface listening");
+    SCLogInfo("%s: interface recovered, state is now \"up\"", ptv->livedev->dev);
     ptv->pcap_state = PCAP_STATE_UP;
     return 0;
 }
@@ -411,7 +498,6 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
         ReceivePcapThreadDeinit(tv, ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
-    SCLogInfo("using interface %s", (char *)pcapconfig->iface);
 
     if (LiveGetOffload() == 0) {
         (void)GetIfaceOffloading((char *)pcapconfig->iface, 1, 1);
@@ -421,25 +507,9 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
 
     ptv->checksum_mode = pcapconfig->checksum_mode;
     if (ptv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
-        SCLogInfo("running in 'auto' checksum mode. Detection of interface "
-                "state will require " xstr(CHECKSUM_SAMPLE_COUNT) " packets");
-    }
-
-    char errbuf[PCAP_ERRBUF_SIZE];
-    ptv->pcap_handle = pcap_create((char *)pcapconfig->iface, errbuf);
-    if (ptv->pcap_handle == NULL) {
-        if (strlen(errbuf)) {
-            SCLogError("could not create a new "
-                       "pcap handler for %s, error %s",
-                    (char *)pcapconfig->iface, errbuf);
-        } else {
-            SCLogError("could not create a new "
-                       "pcap handler for %s",
-                    (char *)pcapconfig->iface);
-        }
-        ReceivePcapThreadDeinit(tv, ptv);
-        pcapconfig->DerefFunc(pcapconfig);
-        SCReturnInt(TM_ECODE_FAILED);
+        SCLogInfo("%s: running in 'auto' checksum mode. Detection of interface "
+                  "state will require %llu packets",
+                ptv->livedev->dev, CHECKSUM_SAMPLE_COUNT);
     }
 
     if (pcapconfig->snaplen == 0) {
@@ -448,103 +518,17 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
     } else {
         ptv->pcap_snaplen = pcapconfig->snaplen;
     }
-    if (ptv->pcap_snaplen > 0) {
-        /* set Snaplen. Must be called before pcap_activate */
-        int pcap_set_snaplen_r = pcap_set_snaplen(ptv->pcap_handle, ptv->pcap_snaplen);
-        if (pcap_set_snaplen_r != 0) {
-            SCLogError("could not set snaplen, "
-                       "error: %s",
-                    pcap_geterr(ptv->pcap_handle));
-            ReceivePcapThreadDeinit(tv, ptv);
-            pcapconfig->DerefFunc(pcapconfig);
-            SCReturnInt(TM_ECODE_FAILED);
-        }
-        SCLogInfo("Set snaplen to %d for '%s'", ptv->pcap_snaplen,
-                  pcapconfig->iface);
-    }
 
-    /* set Promisc, and Timeout. Must be called before pcap_activate */
-    int pcap_set_promisc_r = pcap_set_promisc(ptv->pcap_handle, pcapconfig->promisc);
-    if (pcap_set_promisc_r != 0) {
-        SCLogError("could not set promisc mode, "
-                   "error %s",
-                pcap_geterr(ptv->pcap_handle));
-        ReceivePcapThreadDeinit(tv, ptv);
-        pcapconfig->DerefFunc(pcapconfig);
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    int pcap_set_timeout_r = pcap_set_timeout(ptv->pcap_handle, LIBPCAP_COPYWAIT);
-    if (pcap_set_timeout_r != 0) {
-        SCLogError("could not set timeout, "
-                   "error %s",
-                pcap_geterr(ptv->pcap_handle));
-        ReceivePcapThreadDeinit(tv, ptv);
-        pcapconfig->DerefFunc(pcapconfig);
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-#ifdef HAVE_PCAP_SET_BUFF
+    ptv->promisc = pcapconfig->promisc;
     ptv->pcap_buffer_size = pcapconfig->buffer_size;
-    if (ptv->pcap_buffer_size > 0) {
-        SCLogInfo("going to use pcap buffer size of %" PRId32,
-                ptv->pcap_buffer_size);
+    ptv->bpf_filter = pcapconfig->bpf_filter;
 
-        int pcap_set_buffer_size_r = pcap_set_buffer_size(ptv->pcap_handle,
-                ptv->pcap_buffer_size);
-        if (pcap_set_buffer_size_r != 0) {
-            SCLogError("could not set "
-                       "pcap buffer size, error %s",
-                    pcap_geterr(ptv->pcap_handle));
-            ReceivePcapThreadDeinit(tv, ptv);
-            pcapconfig->DerefFunc(pcapconfig);
-            SCReturnInt(TM_ECODE_FAILED);
-        }
-    }
-#endif /* HAVE_PCAP_SET_BUFF */
-
-    /* activate the handle */
-    int pcap_activate_r = pcap_activate(ptv->pcap_handle);
-    if (pcap_activate_r != 0) {
-        SCLogError("could not activate the "
-                   "pcap handler, error %s",
-                pcap_geterr(ptv->pcap_handle));
+    if (PcapOpenInterface(ptv) != TM_ECODE_OK) {
         ReceivePcapThreadDeinit(tv, ptv);
         pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
     ptv->pcap_state = PCAP_STATE_UP;
-
-    /* set bpf filter if we have one */
-    if (pcapconfig->bpf_filter) {
-        SCMutexLock(&pcap_bpf_compile_lock);
-
-        ptv->bpf_filter = pcapconfig->bpf_filter;
-
-        if (pcap_compile(ptv->pcap_handle, &ptv->filter,
-                    (char *)ptv->bpf_filter, 1, 0) < 0)
-        {
-            SCLogError("bpf compilation error %s", pcap_geterr(ptv->pcap_handle));
-
-            SCMutexUnlock(&pcap_bpf_compile_lock);
-            ReceivePcapThreadDeinit(tv, ptv);
-            pcapconfig->DerefFunc(pcapconfig);
-            return TM_ECODE_FAILED;
-        }
-
-        if (pcap_setfilter(ptv->pcap_handle, &ptv->filter) < 0) {
-            SCLogError("could not set bpf filter %s", pcap_geterr(ptv->pcap_handle));
-
-            SCMutexUnlock(&pcap_bpf_compile_lock);
-            ReceivePcapThreadDeinit(tv, ptv);
-            pcapconfig->DerefFunc(pcapconfig);
-            return TM_ECODE_FAILED;
-        }
-
-        SCMutexUnlock(&pcap_bpf_compile_lock);
-    }
-
-    /* no offloading supported at all */
-    (void)GetIfaceOffloading(pcapconfig->iface, 1, 1);
 
     ptv->datalink = pcap_datalink(ptv->pcap_handle);
     DatalinkSetGlobalType(ptv->datalink);
@@ -574,12 +558,13 @@ static void ReceivePcapThreadExitStats(ThreadVars *tv, void *data)
     struct pcap_stat pcap_s;
 
     if (pcap_stats(ptv->pcap_handle, &pcap_s) < 0) {
-        SCLogError("(%s) Failed to get pcap_stats: %s", tv->name, pcap_geterr(ptv->pcap_handle));
-        SCLogInfo("(%s) Packets %" PRIu64 ", bytes %" PRIu64 "", tv->name,
-                ptv->pkts, ptv->bytes);
+        SCLogError("%s: failed to get pcap_stats: %s", ptv->livedev->dev,
+                pcap_geterr(ptv->pcap_handle));
+        SCLogInfo("%s: packets %" PRIu64 ", bytes %" PRIu64 "", ptv->livedev->dev, ptv->pkts,
+                ptv->bytes);
     } else {
-        SCLogInfo("(%s) Packets %" PRIu64 ", bytes %" PRIu64 "", tv->name,
-                ptv->pkts, ptv->bytes);
+        SCLogInfo("%s: packets %" PRIu64 ", bytes %" PRIu64 "", ptv->livedev->dev, ptv->pkts,
+                ptv->bytes);
 
         /* these numbers are not entirely accurate as ps_recv contains packets
          * that are still waiting to be processed at exit. ps_drop only contains
@@ -596,11 +581,10 @@ static void ReceivePcapThreadExitStats(ThreadVars *tv, void *data)
                                   (float)ptv->last_stats64.ps_recv) *
                                   100
                         : 0;
-        SCLogInfo("(%s) Pcap Total:%" PRIu64 " Recv:%" PRIu64 " Drop:%" PRIu64
-                  " (%02.1f%%).",
-                tv->name, ptv->last_stats64.ps_recv,
-                ptv->last_stats64.ps_recv - ptv->last_stats64.ps_drop,
-                ptv->last_stats64.ps_drop, drop_percent);
+        SCLogInfo("%s: pcap total:%" PRIu64 " recv:%" PRIu64 " drop:%" PRIu64 " (%02.1f%%)",
+                ptv->livedev->dev, ptv->last_stats64.ps_recv,
+                ptv->last_stats64.ps_recv - ptv->last_stats64.ps_drop, ptv->last_stats64.ps_drop,
+                drop_percent);
     }
 }
 
