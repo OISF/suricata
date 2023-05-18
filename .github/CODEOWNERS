@@ -7,12 +7,11 @@
 #
 # additionally, it seems only the directory syntax works.
 # e.g. '/src/source-*.[ch]  @regit' seems to have no effect.
-*                           @victorjulien
+*                           @OISF/oisf-team
 /src/                       @victorjulien
 /doc/                       @jufajardini
 /python/                    @jasonish @inashivb
 /.github/                   @jasonish
-/ebpf/                      @regit
 /rust/                      @jasonish
 /rust/src/dcerpc/           @jasonish
 /rust/src/dns/              @jasonish
