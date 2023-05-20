@@ -499,9 +499,9 @@ static int SBBUpdate(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
 #ifdef DEBUG
     SBBPrintList(sb);
 #endif
-    if (sbb->offset == sb->region.stream_offset) {
-        SCLogDebug("insert at head");
-        sb->region.buf_offset = sbb->len;
+    if (sbb->offset == region->stream_offset) {
+        SCLogDebug("insert at region head");
+        region->buf_offset = sbb->len;
     }
     return 0;
 }
