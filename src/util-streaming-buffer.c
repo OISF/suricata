@@ -950,8 +950,7 @@ static void ListRegions(StreamingBuffer *sb)
 {
     if (sb->region.buf == NULL && sb->region.buf_offset == 0 && sb->region.next == NULL)
         return;
-#ifdef DEBUG
-#if DUMP_REGIONS == 1
+#if defined(DEBUG) && DUMP_REGIONS == 1
     uint32_t cnt = 0;
     for (StreamingBufferRegion *r = &sb->region; r != NULL; r = r->next) {
         cnt++;
@@ -979,7 +978,6 @@ static void ListRegions(StreamingBuffer *sb)
     }
     if (at_least_one)
         printf("\n");
-#endif
 #endif
 #if defined(DEBUG) || defined(DEBUG_VALIDATION)
     StreamingBufferBlock *sbb2 = NULL;
