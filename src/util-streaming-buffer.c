@@ -982,6 +982,13 @@ static void ListRegions(StreamingBuffer *sb)
 #endif
 #endif
 #if defined(DEBUG) || defined(DEBUG_VALIDATION)
+    StreamingBufferBlock *sbb2 = NULL;
+    RB_FOREACH(sbb2, SBB, &sb->sbb_tree)
+    {
+        const uint8_t *_data = NULL;
+        uint32_t _data_len = 0;
+        (void)StreamingBufferSBBGetData(sb, sbb2, &_data, &_data_len);
+    }
     Validate(sb);
 #endif
 }
@@ -1470,12 +1477,15 @@ void StreamingBufferSBBGetData(const StreamingBuffer *sb,
                                const StreamingBufferBlock *sbb,
                                const uint8_t **data, uint32_t *data_len)
 {
-    ListRegions((StreamingBuffer *)sb);
     const StreamingBufferRegion *region = GetRegionForOffset(sb, sbb->offset);
     SCLogDebug("first find our region (offset %" PRIu64 ") -> %p", sbb->offset, region);
     if (region) {
         SCLogDebug("region %p found %" PRIu64 "/%u/%u", region, region->stream_offset,
                 region->buf_size, region->buf_offset);
+        DEBUG_VALIDATE_BUG_ON(
+                region->stream_offset == sbb->offset && region->buf_offset > sbb->len);
+        // buf_offset should match first sbb len if it has the same offset
+
         if (sbb->offset >= region->stream_offset) {
             SCLogDebug("1");
             uint64_t offset = sbb->offset - region->stream_offset;
