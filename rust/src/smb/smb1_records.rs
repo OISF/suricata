@@ -114,7 +114,7 @@ pub fn parse_smb1_write_andx_request_record(i : &[u8], andx_offset: usize) -> IR
     let (i, _padding_evasion) = cond(data_offset > ax+4+2*(wct as u16), |b| take(data_offset - (ax+4+2*(wct as u16)))(b))(i)?;
     let (i, file_data) = rest(i)?;
     let record = Smb1WriteRequestRecord {
-        offset: high_offset.map(|ho| (ho as u64) << 32 | offset as u64).unwrap_or(0),
+        offset: ((high_offset.unwrap_or(0) as u64) << 32) | offset as u64,
         len: ((data_len_high as u32) << 16)|(data_len_low as u32),
         fid,
         data: file_data,
