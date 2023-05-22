@@ -145,89 +145,6 @@ static enum ExceptionPolicy PickPacketAction(const char *option, enum ExceptionP
     return p;
 }
 
-/**
- * \brief Evaluate whether the provided exception policy configuration
- * setting is valid in the given midstream policy scenario, and decide on the
- * final exception policy value based on that.
- */
-enum ExceptionPolicy ExceptionPolicyMidstreamParse(
-        enum ExceptionPolicy policy, bool midstream_enabled)
-{
-    if (EngineModeIsIPS()) {
-        if (midstream_enabled) {
-            /* only ignore and pass-flow are valid here */
-            if (policy == EXCEPTION_POLICY_PASS_FLOW) {
-                /* session tracked, inspect and log app-layer, no detection */
-            } else if (policy == EXCEPTION_POLICY_NOT_SET) {
-                /* Maybe here we don't have to do anything, this will be parsed and defined, and
-                 * then once ExceptionPolicyApply() is called, then this would be properly
-                 * processed? Or maybe this will be figured out when we _should_ call it, but, well,
-                 * won't for EPS isn't set */
-            }
-        } else {
-            /* Midstream disabled */
-            switch (policy) {
-                case EXCEPTION_POLICY_NOT_SET:
-                    /* in practice, we won't track nor do anything related to EPS */
-                    break;
-                case EXCEPTION_POLICY_DROP_FLOW:
-                    /* Session not tracked no app-layer inspection or logging. No detection. Flow
-                     * DROPPED*/
-                    break; // unneeded, right
-                case EXCEPTION_POLICY_DROP_PACKET:
-                    /* error out */
-                case EXCEPTION_POLICY_REJECT:
-                    /* Session not tracked flow DROPPED and REJECTED */
-                case EXCEPTION_POLICY_PASS_FLOW:
-                    /* in practice, we won't track nor do anything related to EPS */
-                    break;
-                case EXCEPTION_POLICY_PASS_PACKET:
-                    /* in practice, we won't track nor do anything related to EPS */
-                case EXCEPTION_POLICY_BYPASS_FLOW:
-                    /* in practice, we won't track nor do anything related to EPS. Packets ALLOWED
-                     */
-            }
-        }
-    } else {
-        /* IDS mode */
-        if (midstream_enabled) {
-            /* only ignore and pass-flow are valid here */
-            if (policy == EXCEPTION_POLICY_PASS_FLOW) {
-                /* session tracked, inspect and log app-layer, no detection */
-            } else if (policy == EXCEPTION_POLICY_NOT_SET) {
-                /* Maybe here we don't have to do anything, this will be parsed and defined, and
-                 * then once ExceptionPolicyApply() is called, then this would be properly
-                 * processed? Or maybe this will be figured out when we _should_ call it, but, well,
-                 * won't for EPS isn't set */
-            }
-        } else {
-            /* Midstream disabled */
-            switch (policy) {
-                case EXCEPTION_POLICY_NOT_SET:
-                    /* in practice, we won't track nor do anything related to EPS */
-                    break;
-                case EXCEPTION_POLICY_DROP_FLOW:
-                    /* error out */
-                    break; // unneeded, right
-                case EXCEPTION_POLICY_DROP_PACKET:
-                    /* error out */
-                case EXCEPTION_POLICY_REJECT:
-                    /* Session not tracked flow REJECTED */
-                case EXCEPTION_POLICY_PASS_FLOW:
-                    /* PASS flow */
-                    break;
-                case EXCEPTION_POLICY_PASS_PACKET:
-                    /* error out */
-                case EXCEPTION_POLICY_BYPASS_FLOW:
-                    /* same as ignore */
-            }
-        }
-    }
-
-    /* What do we have to take into account here?
-     iii) is this policy allowed in this scenario? */
-}
-
 enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support_flow)
 {
     enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
@@ -300,6 +217,76 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support
         }
     }
 
+    return policy;
+}
+
+/**
+ * \brief Evaluate whether the provided exception policy configuration
+ * setting is valid in the given midstream policy scenario, and decide on the
+ * final exception policy value based on that.
+ */
+enum ExceptionPolicy ExceptionPolicyMidstreamParse(
+        const char *option, const bool support_flow, bool midstream_enabled)
+{
+    enum ExceptionPolicy policy = ExceptionPolicyParse(option, support_flow);
+    const char *config = ExceptionPolicyEnumToString(policy);
+    if (policy == EXCEPTION_POLICY_DROP_PACKET || policy == EXCEPTION_POLICY_PASS_PACKET) {
+        FatalErrorOnInit("Error parsing stream.midstream-policy from config file. \"%s\" is "
+                         "not a valid exception policy value for this policy."
+                         "See possible values in the docs or in the configuration section.",
+                config);
+    }
+
+    if (midstream_enabled) {
+        /* only ignore and pass-flow are valid here */
+        if (policy == EXCEPTION_POLICY_PASS_FLOW || policy == EXCEPTION_POLICY_NOT_SET) {
+            return policy;
+        } else {
+            /* All other configuration values are not valid. */
+            FatalErrorOnInit("Error parsing stream.midstream-policy from config file. \"%s\" is "
+                             "not a valid exception policy value for stream.midstream-policy when "
+                             "midstream is enabled. Valid options are pass-flow and ignore.",
+                    config);
+        }
+    }
+
+    if (EngineModeIsIPS()) {
+        /* IPS Mode, midstream disabled */
+        switch (policy) {
+            case EXCEPTION_POLICY_DROP_PACKET:
+            case EXCEPTION_POLICY_PASS_PACKET:
+                /* error out */
+                FatalErrorOnInit("Error parsing stream.midstream-policy from config file. \"%s\" "
+                                 "is not a valid exception policy value for this policy. "
+                                 "See possible values in the docs or in the configuration section.",
+                        config);
+                break;
+            case EXCEPTION_POLICY_NOT_SET:
+            case EXCEPTION_POLICY_REJECT:
+            case EXCEPTION_POLICY_DROP_FLOW:
+            case EXCEPTION_POLICY_PASS_FLOW:
+            case EXCEPTION_POLICY_BYPASS_FLOW:
+                break;
+        }
+    } else {
+        /* IDS mode, midstream disabled */
+        switch (policy) {
+            case EXCEPTION_POLICY_NOT_SET:
+            case EXCEPTION_POLICY_REJECT:
+            case EXCEPTION_POLICY_PASS_FLOW:
+            case EXCEPTION_POLICY_BYPASS_FLOW:
+                break;
+            case EXCEPTION_POLICY_DROP_FLOW:
+            case EXCEPTION_POLICY_DROP_PACKET:
+            case EXCEPTION_POLICY_PASS_PACKET:
+                FatalErrorOnInit(
+                        "Error parsing stream.midstream-policy from config file. \"%s\" is not a "
+                        "valid exception policy value for \"stream.midstream-policy\" when "
+                        "midstream is enabled. Valid options are pass-flow and ignore.",
+                        config);
+                break;
+        }
+    }
     return policy;
 }
 
