@@ -93,7 +93,7 @@ named!(pub parse_smb1_write_andx_request_record<Smb1WriteRequestRecord>,
         >>  _padding_evasion: cond!(data_offset > 36+2*(wct as u16), take!(data_offset - (36+2*(wct as u16))))
         >>  file_data: rest
         >> (Smb1WriteRequestRecord {
-                offset: if high_offset != None { ((high_offset.unwrap() as u64) << 32)|(offset as u64) } else { 0 },
+                offset: ((high_offset.unwrap_or(0) as u64) << 32) | offset as u64,
                 len: (((data_len_high as u32) << 16) as u32)|(data_len_low as u32),
                 fid,
                 data:file_data,
