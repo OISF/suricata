@@ -303,8 +303,20 @@ static int SetupSavePath(const DetectEngineCtx *de_ctx,
 {
     SCLogDebug("save %s", save);
 
-    if (PathIsAbsolute(save)) {
-        return 0;
+    int allow_absolute = 0;
+    (void)ConfGetBool("datasets.rules.allow-absolute-filenames", &allow_absolute);
+    if (allow_absolute) {
+        SCLogNotice("Allowing absolute filename for dataset rule: %s", save);
+    } else {
+        if (PathIsAbsolute(save)) {
+            SCLogError("Absolute paths not allowed: %s", save);
+            return -1;
+        }
+
+        if (SCPathContainsTraversal(save)) {
+            SCLogError("Directory traversals not allowed: %s", save);
+            return -1;
+        }
     }
 
     // data dir
