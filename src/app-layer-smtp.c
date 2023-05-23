@@ -639,7 +639,8 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
  * \retval -1 Either when we don't have any new lines to supply anymore or
  *            on failure.
  */
-static AppLayerResult SMTPGetLine(SMTPState *state, SMTPInput *input, SMTPLine *line)
+static AppLayerResult SMTPGetLine(
+        SMTPState *state, SMTPInput *input, SMTPLine *line, uint16_t direction)
 {
     SCEnter();
 
@@ -648,9 +649,10 @@ static AppLayerResult SMTPGetLine(SMTPState *state, SMTPInput *input, SMTPLine *
         return APP_LAYER_ERROR;
 
     uint8_t *lf_idx = memchr(input->buf + input->consumed, 0x0a, input->len);
+    bool discard_till_lf = (direction == 0) ? state->discard_till_lf_ts : state->discard_till_lf_tc;
 
     if (lf_idx == NULL) {
-        if (!state->discard_till_lf && input->len >= SMTP_LINE_BUFFER_LIMIT) {
+        if (!discard_till_lf && input->len >= SMTP_LINE_BUFFER_LIMIT) {
             line->buf = input->buf;
             line->len = SMTP_LINE_BUFFER_LIMIT;
             line->delim_len = 0;
@@ -677,9 +679,13 @@ static AppLayerResult SMTPGetLine(SMTPState *state, SMTPInput *input, SMTPLine *
             line->delim_len = 0;
             SCReturnStruct(APP_LAYER_OK);
         }
-        if (state->discard_till_lf) {
+        if (discard_till_lf) {
             // Whatever came in with first LF should also get discarded
-            state->discard_till_lf = false;
+            if (direction == 0) {
+                state->discard_till_lf_ts = false;
+            } else {
+                state->discard_till_lf_tc = false;
+            }
             line->len = 0;
             line->delim_len = 0;
             SCReturnStruct(APP_LAYER_OK);
@@ -1435,14 +1441,14 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
                 SCReturnStruct(APP_LAYER_ERROR);
             }
         }
-        AppLayerResult res = SMTPGetLine(state, &input, &line);
+        AppLayerResult res = SMTPGetLine(state, &input, &line, direction);
         while (res.status == 0) {
             int retval = SMTPProcessRequest(state, f, pstate, &input, &line);
             if (retval != 0)
                 SCReturnStruct(APP_LAYER_ERROR);
             if (line.delim_len == 0 && line.len == SMTP_LINE_BUFFER_LIMIT) {
                 if (!line.lf_found) {
-                    state->discard_till_lf = true;
+                    state->discard_till_lf_ts = true;
                 }
                 input.consumed = input.len + 1; // For the newly found LF
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_TRUNCATED_LINE);
@@ -1466,25 +1472,25 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
                     SCReturnStruct(APP_LAYER_ERROR);
                 }
             }
-            res = SMTPGetLine(state, &input, &line);
+            res = SMTPGetLine(state, &input, &line, direction);
         }
         if (res.status == 1)
             return res;
         /* toclient */
     } else {
-        AppLayerResult res = SMTPGetLine(state, &input, &line);
+        AppLayerResult res = SMTPGetLine(state, &input, &line, direction);
         while (res.status == 0) {
             if (SMTPProcessReply(state, f, pstate, thread_data, &input, &line) != 0)
                 SCReturnStruct(APP_LAYER_ERROR);
             if (line.delim_len == 0 && line.len == SMTP_LINE_BUFFER_LIMIT) {
                 if (!line.lf_found) {
-                    state->discard_till_lf = true;
+                    state->discard_till_lf_tc = true;
                 }
                 input.consumed = input.len + 1; // For the newly found LF
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_TRUNCATED_LINE);
                 break;
             }
-            res = SMTPGetLine(state, &input, &line);
+            res = SMTPGetLine(state, &input, &line, direction);
         }
         if (res.status == 1)
             return res;

@@ -116,7 +116,8 @@ typedef struct SMTPState_ {
     uint64_t toserver_last_data_stamp;
 
     /* If rest of the bytes should be discarded in case of long line w/o LF */
-    bool discard_till_lf;
+    bool discard_till_lf_ts;
+    bool discard_till_lf_tc;
 
     /** var to indicate parser state */
     uint8_t parser_state;
