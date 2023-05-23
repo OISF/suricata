@@ -31,6 +31,7 @@
 
 int ListKeywords(const char *keyword_info)
 {
+    EngineModeSetList();
     SCLogLoadConfig(0, 0, 0, 0);
     MpmTableSetup();
     SpmTableSetup();
@@ -41,6 +42,7 @@ int ListKeywords(const char *keyword_info)
 
 int ListAppLayerProtocols(const char *conf_filename)
 {
+    EngineModeSetList();
     if (ConfYamlLoadFile(conf_filename) != -1)
         SCLogLoadConfig(0, 0, 0, 0);
     MpmTableSetup();

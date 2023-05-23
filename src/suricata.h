@@ -102,10 +102,12 @@ enum EngineMode {
     ENGINE_MODE_UNKNOWN,
     ENGINE_MODE_IDS,
     ENGINE_MODE_IPS,
+    ENGINE_MODE_LIST,
 };
 
 void EngineModeSetIPS(void);
 void EngineModeSetIDS(void);
+void EngineModeSetList(void);
 int EngineModeIsUnknown(void);
 int EngineModeIsIPS(void);
 int EngineModeIsIDS(void);
