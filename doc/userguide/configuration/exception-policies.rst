@@ -131,11 +131,11 @@ midstream pick-ups enabled or not and the various exception policy values:
      - Session tracket and parsed.
      - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
    * - Drop-flow
-     - Not valid.*
-     - Not valid.*
+     - Drop isn't valid in IDS mode, so the policy is set to `ignore`.
+     - Drop isn't valid in IDS mode, so the policy is set to `ignore`.
    * - Drop-packet
-     - Not valid.*
-     - Not valid.*
+     - Drop isn't valid in IDS mode, so the policy is set to `ignore`.
+     - Drop isn't valid in IDS mode, so the policy is set to `ignore`.
    * - Reject
      - Not valid.*
      - Session not tracked, flow REJECTED.
