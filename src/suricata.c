@@ -241,6 +241,11 @@ void EngineModeSetIDS(void)
     g_engine_mode = ENGINE_MODE_IDS;
 }
 
+void EngineModeSetList(void)
+{
+    g_engine_mode = ENGINE_MODE_LIST;
+}
+
 #ifdef UNITTESTS
 int RunmodeIsUnittests(void)
 {
