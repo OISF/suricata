@@ -247,3 +247,20 @@ const char *SCBasename(const char *path)
 
     return final + 1;
 }
+
+/**
+ * \brief Check for directory traversal
+ *
+ * \param path The path string to check for traversal
+ *
+ * \retval true if directory traversal is found, otherwise false
+ */
+bool SCPathContainsTraversal(const char *path)
+{
+#ifdef OS_WIN32
+    const char *pattern = "..\\";
+#else
+    const char *pattern = "../";
+#endif
+    return strstr(path, pattern) != NULL;
+}

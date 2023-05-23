@@ -998,6 +998,12 @@ asn1-max-frames: 256
 #   defaults:
 #     memcap: 100mb
 #     hashsize: 2048
+#
+#  rules:
+#    # Set to true to allow absolute filenames and filenames that use
+#    # ".." components to reference parent directories in rules that specify
+#    # their filenames.
+#    #allow-absolute-filenames: false
 
 ##############################################################################
 ##
