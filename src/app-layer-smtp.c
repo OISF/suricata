@@ -557,9 +557,11 @@ static AppLayerResult SMTPGetLine(SMTPState *state)
         return APP_LAYER_ERROR;
 
     uint8_t *lf_idx = memchr(state->input + state->consumed, 0x0a, state->input_len);
+    bool discard_till_lf =
+            (state->direction == 0) ? state->discard_till_lf_ts : state->discard_till_lf_tc;
 
     if (lf_idx == NULL) {
-        if (!state->discard_till_lf && state->input_len >= SMTP_LINE_BUFFER_LIMIT) {
+        if (!discard_till_lf && state->input_len >= SMTP_LINE_BUFFER_LIMIT) {
             state->current_line = state->input;
             state->current_line_len = SMTP_LINE_BUFFER_LIMIT;
             state->current_line_delimiter_len = 0;
@@ -586,9 +588,13 @@ static AppLayerResult SMTPGetLine(SMTPState *state)
             state->current_line_delimiter_len = 0;
             SCReturnStruct(APP_LAYER_OK);
         }
-        if (state->discard_till_lf) {
+        if (discard_till_lf) {
             // Whatever came in with first LF should also get discarded
-            state->discard_till_lf = false;
+            if (state->direction == 0) {
+                state->discard_till_lf_ts = false;
+            } else {
+                state->discard_till_lf_tc = false;
+            }
             state->current_line_len = 0;
             state->current_line_delimiter_len = 0;
             SCReturnStruct(APP_LAYER_OK);
@@ -1367,7 +1373,7 @@ static AppLayerResult SMTPParse(int direction, Flow *f, SMTPState *state,
             if (state->current_line_delimiter_len == 0 &&
                     state->current_line_len == SMTP_LINE_BUFFER_LIMIT) {
                 if (!state->current_line_lf_found) {
-                    state->discard_till_lf = true;
+                    state->discard_till_lf_ts = true;
                 }
                 state->consumed = state->input_len + 1; // For the newly found LF
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_TRUNCATED_LINE);
@@ -1403,7 +1409,7 @@ static AppLayerResult SMTPParse(int direction, Flow *f, SMTPState *state,
             if (state->current_line_delimiter_len == 0 &&
                     state->current_line_len == SMTP_LINE_BUFFER_LIMIT) {
                 if (!state->current_line_lf_found) {
-                    state->discard_till_lf = true;
+                    state->discard_till_lf_tc = true;
                 }
                 state->consumed = state->input_len + 1; // For the newly found LF
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_TRUNCATED_LINE);
