@@ -292,9 +292,18 @@
     AC_MSG_RESULT(ok)
 
     # check if our target supports c11
-    AC_MSG_CHECKING(for c11 support)
+    AC_MSG_CHECKING(for required c11 support)
+    # We require c11+ now
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if __STDC_VERSION__ >= 201112L
+                                         int c11_supported;
+                                         #endif
+                                       ]])],
+                                       [AC_MSG_RESULT([yes])],
+                                       [AC_MSG_ERROR([C11 support is required but not available.])])
+
     OCFLAGS=$CFLAGS
     CFLAGS="-std=c11"
+    AC_MSG_CHECKING(for tls support)
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdlib.h>]],
                 [[ static _Thread_local int i; i = 1; i++; ]])],
             AC_MSG_RESULT([yes])
@@ -304,9 +313,6 @@
              CFLAGS="$OCFLAGS"
              have_c11=no
              have_c11_tls=no])
-    if [ test "x$have_c11" = "xno" ]; then
-        CFLAGS="$CFLAGS -std=gnu99"
-    fi
 
     # check if our target supports thread local storage
     AC_MSG_CHECKING(for thread local storage gnu __thread support)
