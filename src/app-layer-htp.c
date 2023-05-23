@@ -2335,6 +2335,7 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
 
     tx_ud = htp_tx_get_user_data(tx);
     if (unlikely(tx_ud == NULL)) {
+        bstr_free(request_uri_normalized);
         return HTP_OK;
     }
     if (unlikely(tx_ud->request_uri_normalized != NULL))
