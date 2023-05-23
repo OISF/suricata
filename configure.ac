@@ -129,6 +129,14 @@
     AM_CONDITIONAL([HAVE_FETCH_COMMAND], [test "x$HAVE_WGET" != "xno" || test "x$HAVE_CURL" != "xno"])
     AM_CONDITIONAL([HAVE_WGET_COMMAND], [test "x$HAVE_WGET" != "xno"])
 
+    # We require c11+
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if __STDC_VERSION__ >= 201112L
+                                         int c11_supported;
+                                         #endif
+                                       ]])],
+                                       [],
+                                       [AC_MSG_ERROR([C11 support is required but not available.])])
+
     # Checks for libraries.
 
     # Checks for header files.
