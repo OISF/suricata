@@ -1524,7 +1524,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
                         Signature *s)
 {
-    if (!(s->flags & SIG_FLAG_IPONLY))
+    if (!(s->type == SIG_TYPE_IPONLY))
         return;
 
     SigIntId mapped_signum = IPOnlyTrackSigNum(io_ctx, s->num);

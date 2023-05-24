@@ -335,10 +335,19 @@ static inline void FlowApplySignatureActions(
      * - match is in applayer
      * - match is in stream */
     if (s->action & (ACTION_DROP | ACTION_PASS)) {
-        if ((pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH)) ||
-                (s->flags & (SIG_FLAG_IPONLY | SIG_FLAG_LIKE_IPONLY | SIG_FLAG_PDONLY |
-                                    SIG_FLAG_APPLAYER))) {
+        DEBUG_VALIDATE_BUG_ON(s->type == SIG_TYPE_NOT_SET);
+        DEBUG_VALIDATE_BUG_ON(s->type == SIG_TYPE_MAX);
+
+        enum SignaturePropertyFlowAction flow_action = signature_properties[s->type].flow_action;
+        if (flow_action == SIG_PROP_FLOW_ACTION_FLOW) {
             pa->flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
+        } else if (flow_action == SIG_PROP_FLOW_ACTION_FLOW_IF_STATEFUL) {
+            if (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH)) {
+                pa->flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
+            }
+        }
+
+        if (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW) {
             SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x (set "
                        "PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)",
                     p->pcap_cnt, s->id, s->action, pa->flags);
