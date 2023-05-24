@@ -106,6 +106,21 @@ static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 static DetectEnginePktInspectionEngine *g_pkt_inspect_engines = NULL;
 static DetectEngineFrameInspectionEngine *g_frame_inspect_engines = NULL;
 
+// clang-format off
+const struct SignatureProperties signature_properties[SIG_TYPE_MAX] = {
+    /* SIG_TYPE_NOT_SET */      { SIG_PROP_FLOW_ACTION_PACKET, },
+    /* SIG_TYPE_IPONLY */       { SIG_PROP_FLOW_ACTION_FLOW, },
+    /* SIG_TYPE_LIKE_IPONLY */  { SIG_PROP_FLOW_ACTION_FLOW, },
+    /* SIG_TYPE_PDONLY */       { SIG_PROP_FLOW_ACTION_FLOW, },
+    /* SIG_TYPE_DEONLY */       { SIG_PROP_FLOW_ACTION_PACKET, },
+    /* SIG_TYPE_PKT */          { SIG_PROP_FLOW_ACTION_PACKET, },
+    /* SIG_TYPE_PKT_STREAM */   { SIG_PROP_FLOW_ACTION_FLOW_IF_STATEFUL, },
+    /* SIG_TYPE_STREAM */       { SIG_PROP_FLOW_ACTION_FLOW_IF_STATEFUL, },
+    /* SIG_TYPE_APPLAYER */     { SIG_PROP_FLOW_ACTION_FLOW, },
+    /* SIG_TYPE_APP_TX */       { SIG_PROP_FLOW_ACTION_FLOW, },
+};
+// clang-format on
+
 SCEnumCharMap det_ctx_event_table[] = {
 #ifdef UNITTESTS
     { "TEST", DET_CTX_EVENT_TEST },
@@ -1312,6 +1327,15 @@ bool DetectEngineBufferTypeSupportsMpmGetById(const DetectEngineCtx *de_ctx, con
         return false;
     SCLogDebug("map %p id %d mpm? %d", map, id, map->mpm);
     return map->mpm;
+}
+
+bool DetectEngineBufferTypeSupportsFramesGetById(const DetectEngineCtx *de_ctx, const int id)
+{
+    const DetectBufferType *map = DetectEngineBufferTypeGetById(de_ctx, id);
+    if (map == NULL)
+        return false;
+    SCLogDebug("map %p id %d frame? %d", map, id, map->frame);
+    return map->frame;
 }
 
 void DetectBufferTypeRegisterSetupCallback(const char *name,
