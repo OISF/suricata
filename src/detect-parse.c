@@ -2126,7 +2126,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     /* check what the type of this sig is */
     SignatureSetType(de_ctx, sig);
 
-    if (sig->flags & SIG_FLAG_IPONLY) {
+    if (sig->type == SIG_TYPE_IPONLY) {
         /* For IPOnly */
         if (IPOnlySigParseAddress(de_ctx, sig, parser.src, SIG_DIREC_SRC ^ dir) < 0)
             goto error;

@@ -863,9 +863,6 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     if (s->flags & SIG_FLAG_APPLAYER) {
         jb_append_string(ctx.js, "applayer");
     }
-    if (s->flags & SIG_FLAG_IPONLY) {
-        jb_append_string(ctx.js, "ip_only");
-    }
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
         jb_append_string(ctx.js, "need_packet");
     }
@@ -898,9 +895,6 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     }
     if (s->flags & SIG_FLAG_PREFILTER) {
         jb_append_string(ctx.js, "prefilter");
-    }
-    if (s->flags & SIG_FLAG_PDONLY) {
-        jb_append_string(ctx.js, "proto_detect_only");
     }
     if (s->flags & SIG_FLAG_SRC_IS_TARGET) {
         jb_append_string(ctx.js, "src_is_target");
@@ -1483,8 +1477,39 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         fprintf(rule_engine_analysis_FD, "== Sid: %u ==\n", s->id);
         fprintf(rule_engine_analysis_FD, "%s\n", line);
 
-        if (s->flags & SIG_FLAG_IPONLY) fprintf(rule_engine_analysis_FD, "    Rule is ip only.\n");
-        if (s->flags & SIG_FLAG_PDONLY) fprintf(rule_engine_analysis_FD, "    Rule is PD only.\n");
+        switch (s->type) {
+            case SIG_TYPE_NOT_SET:
+                break;
+            case SIG_TYPE_IPONLY:
+                fprintf(rule_engine_analysis_FD, "    Rule is ip only.\n");
+                break;
+            case SIG_TYPE_LIKE_IPONLY:
+                fprintf(rule_engine_analysis_FD, "    Rule is like ip only.\n");
+                break;
+            case SIG_TYPE_PDONLY:
+                fprintf(rule_engine_analysis_FD, "    Rule is PD only.\n");
+                break;
+            case SIG_TYPE_DEONLY:
+                fprintf(rule_engine_analysis_FD, "    Rule is DE only.\n");
+                break;
+            case SIG_TYPE_PKT:
+                fprintf(rule_engine_analysis_FD, "    Rule is packet inspecting.\n");
+                break;
+            case SIG_TYPE_PKT_STREAM:
+                fprintf(rule_engine_analysis_FD, "    Rule is packet and stream inspecting.\n");
+                break;
+            case SIG_TYPE_STREAM:
+                fprintf(rule_engine_analysis_FD, "    Rule is stream inspecting.\n");
+                break;
+            case SIG_TYPE_APPLAYER:
+                fprintf(rule_engine_analysis_FD, "    Rule is app-layer inspecting.\n");
+                break;
+            case SIG_TYPE_APP_TX:
+                fprintf(rule_engine_analysis_FD, "    Rule is App-layer TX inspecting.\n");
+                break;
+            case SIG_TYPE_MAX:
+                break;
+        }
         if (rule_ipv6_only) fprintf(rule_engine_analysis_FD, "    Rule is IPv6 only.\n");
         if (rule_ipv4_only) fprintf(rule_engine_analysis_FD, "    Rule is IPv4 only.\n");
         if (packet_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on packets.\n");
