@@ -399,7 +399,7 @@ pub fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
 
 /// Log SOA section fields.
 fn dns_log_soa(soa: &DNSRDataSOA) -> Result<JsonBuilder, JsonError> {
-    let mut js = JsonBuilder::new_object();
+    let mut js = JsonBuilder::try_new_object()?;
 
     js.set_string_from_bytes("mname", &soa.mname)?;
     js.set_string_from_bytes("rname", &soa.rname)?;
@@ -415,7 +415,7 @@ fn dns_log_soa(soa: &DNSRDataSOA) -> Result<JsonBuilder, JsonError> {
 
 /// Log SSHFP section fields.
 fn dns_log_sshfp(sshfp: &DNSRDataSSHFP) -> Result<JsonBuilder, JsonError> {
-    let mut js = JsonBuilder::new_object();
+    let mut js = JsonBuilder::try_new_object()?;
 
     let mut hex = Vec::new();
     for byte in &sshfp.fingerprint {
@@ -432,7 +432,7 @@ fn dns_log_sshfp(sshfp: &DNSRDataSSHFP) -> Result<JsonBuilder, JsonError> {
 
 /// Log SRV section fields.
 fn dns_log_srv(srv: &DNSRDataSRV) -> Result<JsonBuilder, JsonError> {
-    let mut js = JsonBuilder::new_object();
+    let mut js = JsonBuilder::try_new_object()?;
 
     js.set_uint("priority", srv.priority as u64)?;
     js.set_uint("weight", srv.weight as u64)?;
@@ -444,7 +444,7 @@ fn dns_log_srv(srv: &DNSRDataSRV) -> Result<JsonBuilder, JsonError> {
 }
 
 fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, JsonError> {
-    let mut jsa = JsonBuilder::new_object();
+    let mut jsa = JsonBuilder::try_new_object()?;
 
     jsa.set_string_from_bytes("rrname", &answer.name)?;
     jsa.set_string("rrtype", &dns_rrtype_string(answer.rrtype))?;
@@ -516,7 +516,7 @@ fn dns_log_json_answer(
     js.set_string("rcode", &dns_rcode_string(header.flags))?;
 
     if !response.answers.is_empty() {
-        let mut js_answers = JsonBuilder::new_array();
+        let mut js_answers = JsonBuilder::try_new_array()?;
 
         // For grouped answers we use a HashMap keyed by the rrtype.
         let mut answer_types = HashMap::new();
@@ -527,7 +527,7 @@ fn dns_log_json_answer(
                 match &answer.data {
                     DNSRData::A(addr) | DNSRData::AAAA(addr) => {
                         if !answer_types.contains_key(&type_string) {
-                            answer_types.insert(type_string.to_string(), JsonBuilder::new_array());
+                            answer_types.insert(type_string.to_string(), JsonBuilder::try_new_array()?);
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
                             a.append_string(&dns_print_addr(addr))?;
@@ -540,7 +540,7 @@ fn dns_log_json_answer(
                     | DNSRData::NULL(bytes)
                     | DNSRData::PTR(bytes) => {
                         if !answer_types.contains_key(&type_string) {
-                            answer_types.insert(type_string.to_string(), JsonBuilder::new_array());
+                            answer_types.insert(type_string.to_string(), JsonBuilder::try_new_array()?);
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
                             a.append_string_from_bytes(bytes)?;
@@ -548,7 +548,7 @@ fn dns_log_json_answer(
                     }
                     DNSRData::SOA(soa) => {
                         if !answer_types.contains_key(&type_string) {
-                            answer_types.insert(type_string.to_string(), JsonBuilder::new_array());
+                            answer_types.insert(type_string.to_string(), JsonBuilder::try_new_array()?);
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
                             a.append_object(&dns_log_soa(soa)?)?;
@@ -556,7 +556,7 @@ fn dns_log_json_answer(
                     }
                     DNSRData::SSHFP(sshfp) => {
                         if !answer_types.contains_key(&type_string) {
-                            answer_types.insert(type_string.to_string(), JsonBuilder::new_array());
+                            answer_types.insert(type_string.to_string(), JsonBuilder::try_new_array()?);
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
                             a.append_object(&dns_log_sshfp(sshfp)?)?;
@@ -564,7 +564,7 @@ fn dns_log_json_answer(
                     }
                     DNSRData::SRV(srv) => {
                         if !answer_types.contains_key(&type_string) {
-                            answer_types.insert(type_string.to_string(), JsonBuilder::new_array());
+                            answer_types.insert(type_string.to_string(), JsonBuilder::try_new_array()?);
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
                             a.append_object(&dns_log_srv(srv)?)?;
