@@ -841,6 +841,42 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     }
     jb_close(ctx.js);
 
+    switch (s->type) {
+        case SIG_TYPE_NOT_SET:
+            jb_set_string(ctx.js, "type", "unset");
+            break;
+        case SIG_TYPE_IPONLY:
+            jb_set_string(ctx.js, "type", "ip_only");
+            break;
+        case SIG_TYPE_LIKE_IPONLY:
+            jb_set_string(ctx.js, "type", "like_ip_only");
+            break;
+        case SIG_TYPE_PDONLY:
+            jb_set_string(ctx.js, "type", "pd_only");
+            break;
+        case SIG_TYPE_DEONLY:
+            jb_set_string(ctx.js, "type", "de_only");
+            break;
+        case SIG_TYPE_PKT:
+            jb_set_string(ctx.js, "type", "pkt");
+            break;
+        case SIG_TYPE_PKT_STREAM:
+            jb_set_string(ctx.js, "type", "pkt_stream");
+            break;
+        case SIG_TYPE_STREAM:
+            jb_set_string(ctx.js, "type", "stream");
+            break;
+        case SIG_TYPE_APPLAYER:
+            jb_set_string(ctx.js, "type", "app_layer");
+            break;
+        case SIG_TYPE_APP_TX:
+            jb_set_string(ctx.js, "type", "app_tx");
+            break;
+        case SIG_TYPE_MAX:
+            jb_set_string(ctx.js, "type", "error");
+            break;
+    }
+
     jb_open_array(ctx.js, "flags");
     if (s->flags & SIG_FLAG_SRC_ANY) {
         jb_append_string(ctx.js, "src_any");
