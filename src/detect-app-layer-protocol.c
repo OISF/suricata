@@ -53,9 +53,8 @@ static int DetectAppLayerProtocolPacketMatch(
     const DetectAppLayerProtocolData *data = (const DetectAppLayerProtocolData *)ctx;
 
     /* if the sig is PD-only we only match when PD packet flags are set */
-    if ((s->flags & SIG_FLAG_PDONLY) &&
-        (p->flags & (PKT_PROTO_DETECT_TS_DONE|PKT_PROTO_DETECT_TC_DONE)) == 0)
-    {
+    if (s->type == SIG_TYPE_PDONLY &&
+            (p->flags & (PKT_PROTO_DETECT_TS_DONE | PKT_PROTO_DETECT_TC_DONE)) == 0) {
         SCLogDebug("packet %"PRIu64": flags not set", p->pcap_cnt);
         SCReturnInt(0);
     }
@@ -258,7 +257,7 @@ static int PrefilterSetupAppProto(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
 static bool PrefilterAppProtoIsPrefilterable(const Signature *s)
 {
-    if (s->flags & SIG_FLAG_PDONLY) {
+    if (s->type == SIG_TYPE_PDONLY) {
         SCLogDebug("prefilter on PD %u", s->id);
         return true;
     }
@@ -548,9 +547,9 @@ static int DetectAppLayerProtocolTest14(void)
     FAIL_IF(data->negated);
 
     SigGroupBuild(de_ctx);
-    FAIL_IF_NOT(s1->flags & SIG_FLAG_PDONLY);
-    FAIL_IF_NOT(s2->flags & SIG_FLAG_PDONLY);
-    FAIL_IF(s3->flags & SIG_FLAG_PDONLY); // failure now
+    FAIL_IF_NOT(s1->type == SIG_TYPE_PDONLY);
+    FAIL_IF_NOT(s2->type == SIG_TYPE_PDONLY);
+    FAIL_IF(s3->type == SIG_TYPE_PDONLY); // failure now
 
     DetectEngineCtxFree(de_ctx);
     PASS;

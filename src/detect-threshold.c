@@ -512,10 +512,7 @@ static int DetectThresholdTestSig1(void)
 
     SigGroupBuild(de_ctx);
 
-    if (s->flags & SIG_FLAG_IPONLY) {
-        printf("signature is ip-only: ");
-        goto end;
-    }
+    FAIL_IF(s->type == SIG_TYPE_IPONLY);
 
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 

@@ -989,7 +989,7 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
     SigGroupHead *sgh_tc[256] = {NULL};
 
     for ( ; s != NULL; s = s->next) {
-        if (s->flags & SIG_FLAG_IPONLY)
+        if (s->type == SIG_TYPE_IPONLY)
             continue;
 
         int p;
@@ -1168,7 +1168,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     DetectPort *list = NULL;
     while (s) {
         /* IP Only rules are handled separately */
-        if (s->flags & SIG_FLAG_IPONLY)
+        if (s->type == SIG_TYPE_IPONLY)
             goto next;
         if (!(s->proto.proto[ipproto / 8] & (1<<(ipproto % 8)) || (s->proto.flags & DETECT_PROTO_ANY)))
             goto next;
@@ -1300,21 +1300,65 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
 
 void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s)
 {
+    BUG_ON(s->type != SIG_TYPE_NOT_SET);
     int iponly = 0;
 
     /* see if the sig is dp only */
     if (SignatureIsPDOnly(de_ctx, s) == 1) {
-        s->flags |= SIG_FLAG_PDONLY;
+        s->type = SIG_TYPE_PDONLY;
 
-    /* see if the sig is ip only */
+        /* see if the sig is ip only */
     } else if ((iponly = SignatureIsIPOnly(de_ctx, s)) > 0) {
         if (iponly == 1) {
-            s->flags |= SIG_FLAG_IPONLY;
+            s->type = SIG_TYPE_IPONLY;
         } else if (iponly == 2) {
-            s->flags |= SIG_FLAG_LIKE_IPONLY;
+            s->type = SIG_TYPE_LIKE_IPONLY;
         }
     } else if (SignatureIsDEOnly(de_ctx, s) == 1) {
-        s->init_data->init_flags |= SIG_FLAG_INIT_DEONLY;
+        s->type = SIG_TYPE_DEONLY;
+
+    } else {
+        const bool has_match = s->init_data->smlists[DETECT_SM_LIST_MATCH] != NULL;
+        const bool has_pmatch = s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL;
+        bool has_buffer_frame_engine = false;
+        bool has_buffer_packet_engine = false;
+        bool has_buffer_app_engine = false;
+
+        for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+            const uint32_t id = s->init_data->buffers[x].id;
+
+            if (DetectEngineBufferTypeSupportsPacketGetById(de_ctx, id)) {
+                has_buffer_packet_engine = true;
+            } else if (DetectEngineBufferTypeSupportsFramesGetById(de_ctx, id)) {
+                has_buffer_frame_engine = true;
+            } else {
+                has_buffer_app_engine = true;
+            }
+        }
+
+        if (has_buffer_packet_engine) {
+            s->type = SIG_TYPE_PKT;
+        } else if (has_buffer_frame_engine || has_buffer_app_engine) {
+            s->type = SIG_TYPE_APP_TX;
+        } else if (has_pmatch) {
+            if ((s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM)) ==
+                    SIG_FLAG_REQUIRE_PACKET) {
+                s->type = SIG_TYPE_PKT; // TODO review
+            } else if ((s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM)) ==
+                       SIG_FLAG_REQUIRE_STREAM) {
+                s->type = SIG_TYPE_STREAM; // TODO review
+            } else {
+                s->type = SIG_TYPE_PKT_STREAM;
+            }
+        } else if (has_match) {
+            s->type = SIG_TYPE_PKT;
+
+            /* app-layer but no inspect engines */
+        } else if (s->flags & SIG_FLAG_APPLAYER) {
+            s->type = SIG_TYPE_APPLAYER;
+        } else {
+            s->type = SIG_TYPE_PKT;
+        }
     }
 }
 
@@ -1354,15 +1398,15 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
         SCLogDebug("Signature %" PRIu32 ", internal id %" PRIu32 ", ptrs %p %p ", s->id, s->num, s, de_ctx->sig_array[s->num]);
 
-        if (s->flags & SIG_FLAG_PDONLY) {
+        if (s->type == SIG_TYPE_PDONLY) {
             SCLogDebug("Signature %"PRIu32" is considered \"PD only\"", s->id);
-        } else if (s->flags & SIG_FLAG_IPONLY) {
+        } else if (s->type == SIG_TYPE_IPONLY) {
             SCLogDebug("Signature %"PRIu32" is considered \"IP only\"", s->id);
             cnt_iponly++;
         } else if (SignatureIsInspectingPayload(de_ctx, s) == 1) {
             SCLogDebug("Signature %"PRIu32" is considered \"Payload inspecting\"", s->id);
             cnt_payload++;
-        } else if (s->init_data->init_flags & SIG_FLAG_INIT_DEONLY) {
+        } else if (s->type == SIG_TYPE_DEONLY) {
             SCLogDebug("Signature %"PRIu32" is considered \"Decoder Event only\"", s->id);
             cnt_deonly++;
         } else if (s->flags & SIG_FLAG_APPLAYER) {
@@ -1684,11 +1728,9 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx)
     /* now for every rule add the source group to our temp lists */
     for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
         SCLogDebug("s->id %"PRIu32, s->id);
-        if (s->flags & SIG_FLAG_IPONLY) {
+        if (s->type == SIG_TYPE_IPONLY) {
             IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, s);
-        }
-
-        if (s->init_data->init_flags & SIG_FLAG_INIT_DEONLY) {
+        } else if (s->type == SIG_TYPE_DEONLY) {
             DetectEngineAddDecoderEventSig(de_ctx, s);
         }
     }

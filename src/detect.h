@@ -54,6 +54,36 @@
 struct SCSigOrderFunc_;
 struct SCSigSignatureWrapper_;
 
+enum SignatureType {
+    SIG_TYPE_NOT_SET = 0,
+    SIG_TYPE_IPONLY,      // rule is handled by IPONLY engine
+    SIG_TYPE_LIKE_IPONLY, // rule is handled by pkt engine, has action effect like ip-only
+    /** Proto detect only signature.
+     *  Inspected once per direction when protocol detection is done. */
+    SIG_TYPE_PDONLY, // rule is handled by PDONLY engine
+    SIG_TYPE_DEONLY,
+    SIG_TYPE_PKT,
+    SIG_TYPE_PKT_STREAM,
+    SIG_TYPE_STREAM,
+
+    SIG_TYPE_APPLAYER, // app-layer but not tx, e.g. appproto
+    SIG_TYPE_APP_TX,   // rule is handled by TX engine
+
+    SIG_TYPE_MAX,
+};
+
+enum SignaturePropertyFlowAction {
+    SIG_PROP_FLOW_ACTION_PACKET,
+    SIG_PROP_FLOW_ACTION_FLOW,
+    SIG_PROP_FLOW_ACTION_FLOW_IF_STATEFUL,
+};
+
+struct SignatureProperties {
+    enum SignaturePropertyFlowAction flow_action;
+};
+
+extern const struct SignatureProperties signature_properties[SIG_TYPE_MAX];
+
 /*
   The detection engine groups similar signatures/rules together. Internally a
   tree of different types of data is created on initialization. This is it's
@@ -206,11 +236,7 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_NOALERT                BIT_U32(4)  /**< no alert flag is set */
 #define SIG_FLAG_DSIZE                  BIT_U32(5)  /**< signature has a dsize setting */
-#define SIG_FLAG_APPLAYER               BIT_U32(6)  /**< signature applies to app layer instead of packets */
-#define SIG_FLAG_IPONLY                 BIT_U32(7)  /**< ip only signature */
-#define SIG_FLAG_LIKE_IPONLY                                                                       \
-    BIT_U32(8) /**< signature that is almost ip only, but contains negation prevening some iponly  \
-                  optimizations */
+#define SIG_FLAG_APPLAYER               BIT_U32(6) /**< signature applies to app layer instead of packets */
 
 // vacancy
 
@@ -236,9 +262,8 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_PREFILTER              BIT_U32(23) /**< sig is part of a prefilter engine */
 
-/** Proto detect only signature.
- *  Inspected once per direction when protocol detection is done. */
-#define SIG_FLAG_PDONLY                 BIT_U32(24)
+// vacancy
+
 /** Info for Source and Target identification */
 #define SIG_FLAG_SRC_IS_TARGET          BIT_U32(25)
 /** Info for Source and Target identification */
@@ -247,7 +272,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_HAS_TARGET             (SIG_FLAG_DEST_IS_TARGET|SIG_FLAG_SRC_IS_TARGET)
 
 /* signature init flags */
-#define SIG_FLAG_INIT_DEONLY                BIT_U32(0)  /**< decode event only signature */
+// available 0
 #define SIG_FLAG_INIT_PACKET                BIT_U32(1)  /**< signature has matches against a packet (as opposed to app layer) */
 #define SIG_FLAG_INIT_FLOW                  BIT_U32(2)  /**< signature has a flow setting */
 #define SIG_FLAG_INIT_BIDIREC               BIT_U32(3)  /**< signature has bidirectional operator */
@@ -557,6 +582,7 @@ typedef struct SignatureInitData_ {
 typedef struct Signature_ {
     uint32_t flags;
     /* coccinelle: Signature:flags:SIG_FLAG_ */
+    enum SignatureType type;
 
     AppProto alproto;
 

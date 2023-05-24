@@ -72,6 +72,7 @@ bool DetectEngineBufferTypeSupportsMpmGetById(const DetectEngineCtx *de_ctx, con
 bool DetectEngineBufferTypeSupportsPacketGetById(const DetectEngineCtx *de_ctx, const int id);
 bool DetectEngineBufferTypeSupportsMultiInstanceGetById(
         const DetectEngineCtx *de_ctx, const int id);
+bool DetectEngineBufferTypeSupportsFramesGetById(const DetectEngineCtx *de_ctx, const int id);
 const char *DetectEngineBufferTypeGetDescriptionById(const DetectEngineCtx *de_ctx, const int id);
 const DetectBufferType *DetectEngineBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id);
 int DetectEngineBufferTypeGetByIdTransforms(
