@@ -57,6 +57,9 @@ Logging changes
   ``ike.ikev2.errors`` and ``ike.ikev2.notify``.
 - FTP DATA metadata for alerts are now logged in ``ftp_data`` instead of root.
 - Alert ``xff`` field is now logged as ``alert.xff`` for alerts instead of at the root.
+- Protocol values and their names are built into Suricata instead of using the system's ``/etc/protocols`` file. Some names and casing may have changed
+  in the values ``proto`` in ``eve.json`` log entries and other logs containing protocol names and values.
+  See https://redmine.openinfosecfoundation.org/issues/4267 for more information.
 
 Other changes
 ~~~~~~~~~~~~~
@@ -65,12 +68,6 @@ Other changes
 - FTP has been updated with a maximum command request and response line length of 4096 bytes. To change the default see :ref:`suricata-yaml-configure-ftp`.
 - SWF decompression in http has been disabled by default. To change the default see :ref:`suricata-yaml-configure-libhtp`. Users with configurations from previous releases may want to modify their config to match the new default.
   See https://redmine.openinfosecfoundation.org/issues/5632 for more information.
-
-Logging changes
-~~~~~~~~~~~~~~~
-- Protocol values and their names are built into Suricata instead of using the system's ``/etc/protocols`` file. Some names and casing may have changed
-  in the values ``proto`` in ``eve.json`` log entries and other logs containing protocol names and values.
-  See https://redmine.openinfosecfoundation.org/issues/4267 for more information.
 
 Upgrading 5.0 to 6.0
 --------------------
