@@ -46,7 +46,7 @@ fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<
 }
 
 fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonError> {
-    let mut js = JsonBuilder::new_object();
+    let mut js = JsonBuilder::try_new_object()?;
     match req {
         PgsqlFEMessage::StartupMessage(StartupPacket {
             length: _,
@@ -108,7 +108,7 @@ fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonErro
 }
 
 fn log_response_object(tx: &PgsqlTransaction) -> Result<JsonBuilder, JsonError> {
-    let mut jb = JsonBuilder::new_object();
+    let mut jb = JsonBuilder::try_new_object()?;
     let mut array_open = false;
     for response in &tx.responses {
         if let PgsqlBEMessage::ParameterStatus(msg) = response {
@@ -268,7 +268,7 @@ fn log_error_notice_field_types(
 }
 
 fn log_startup_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder, JsonError> {
-    let mut jb = JsonBuilder::new_object();
+    let mut jb = JsonBuilder::try_new_object()?;
     // User is a mandatory field in a pgsql message
     jb.set_string_from_bytes("user", &params.user.value)?;
     if let Some(parameters) = &params.optional_params {
@@ -284,7 +284,7 @@ fn log_startup_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder
 }
 
 fn log_pgsql_param(param: &PgsqlParameter) -> Result<JsonBuilder, JsonError> {
-    let mut jb = JsonBuilder::new_object();
+    let mut jb = JsonBuilder::try_new_object()?;
     jb.set_string_from_bytes(param.name.to_str(), &param.value)?;
     jb.close()?;
     Ok(jb)
