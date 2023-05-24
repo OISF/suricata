@@ -61,6 +61,12 @@ Logging changes
   in the values ``proto`` in ``eve.json`` log entries and other logs containing protocol names and values.
   See https://redmine.openinfosecfoundation.org/issues/4267 for more information.
 
+Deprecations
+~~~~~~~~~~~~
+- Multiple "include" fields in the configuration file will now issue a
+  warning and in Suricata 8.0 will not be supported. See
+  :ref:`includes` for documentation on including multiple files.
+
 Other changes
 ~~~~~~~~~~~~~
 - NSS is no longer required. File hashing and JA3 can now be used without the NSS compile time dependency.
