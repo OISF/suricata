@@ -2133,6 +2133,6 @@ reference-config-file: @e_sysconfdir@reference.config
 # in this configuration file. Files with relative pathnames will be
 # searched for in the same directory as this configuration file. You may
 # use absolute pathnames too.
-# You can specify more than 2 configuration files, if needed.
-#include: include1.yaml
-#include: include2.yaml
+#include:
+#  - include1.yaml
+#  - include2.yaml
