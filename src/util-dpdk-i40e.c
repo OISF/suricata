@@ -372,16 +372,19 @@ int i40eDeviceSetRSS(int port_id, int nb_rx_queues)
     return 0;
 }
 
-void i40eDeviceSetRSSHashFunction(uint64_t *rss_hf)
+void i40eDeviceSetRSSConf(struct rte_eth_rss_conf *rss_conf)
 {
 #if RTE_VERSION >= RTE_VERSION_NUM(20, 0, 0, 0)
-    *rss_hf = RTE_ETH_RSS_FRAG_IPV4 | RTE_ETH_RSS_NONFRAG_IPV4_OTHER | RTE_ETH_RSS_FRAG_IPV6 |
-              RTE_ETH_RSS_NONFRAG_IPV6_OTHER;
+    rss_conf->rss_hf = RTE_ETH_RSS_FRAG_IPV4 | RTE_ETH_RSS_NONFRAG_IPV4_OTHER |
+                       RTE_ETH_RSS_FRAG_IPV6 | RTE_ETH_RSS_NONFRAG_IPV6_OTHER;
+    rss_conf->rss_key = NULL;
+    rss_conf->rss_key_len = 0;
 #else
-    *rss_hf = RTE_ETH_RSS_FRAG_IPV4 | RTE_ETH_RSS_NONFRAG_IPV4_TCP | RTE_ETH_RSS_NONFRAG_IPV4_UDP |
-              RTE_ETH_RSS_NONFRAG_IPV4_SCTP | RTE_ETH_RSS_NONFRAG_IPV4_OTHER |
-              RTE_ETH_RSS_FRAG_IPV6 | RTE_ETH_RSS_NONFRAG_IPV6_TCP | RTE_ETH_RSS_NONFRAG_IPV6_UDP |
-              RTE_ETH_RSS_NONFRAG_IPV6_SCTP | RTE_ETH_RSS_NONFRAG_IPV6_OTHER | RTE_ETH_RSS_SCTP;
+    rss_conf->rss_hf =
+            RTE_ETH_RSS_FRAG_IPV4 | RTE_ETH_RSS_NONFRAG_IPV4_TCP | RTE_ETH_RSS_NONFRAG_IPV4_UDP |
+            RTE_ETH_RSS_NONFRAG_IPV4_SCTP | RTE_ETH_RSS_NONFRAG_IPV4_OTHER | RTE_ETH_RSS_FRAG_IPV6 |
+            RTE_ETH_RSS_NONFRAG_IPV6_TCP | RTE_ETH_RSS_NONFRAG_IPV6_UDP |
+            RTE_ETH_RSS_NONFRAG_IPV6_SCTP | RTE_ETH_RSS_NONFRAG_IPV6_OTHER | RTE_ETH_RSS_SCTP;
 #endif
 }
 
