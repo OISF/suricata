@@ -44,6 +44,7 @@
 #include "util-dpdk-i40e.h"
 #include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
+#include "util-dpdk-bonding.h"
 #include "util-time.h"
 #include "util-conf.h"
 #include "suricata.h"
@@ -1043,7 +1044,12 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
                 .rss_hf = iconf->rss_hf,
             };
 
-            DeviceSetPMDSpecificRSS(&port_conf->rx_adv_conf.rss_conf, dev_info->driver_name);
+            const char *dev_driver = dev_info->driver_name;
+            if (strcmp(dev_info->driver_name, "net_bonding") == 0) {
+                dev_driver = BondingDeviceDriverGet(iconf->port_id);
+            }
+
+            DeviceSetPMDSpecificRSS(&port_conf->rx_adv_conf.rss_conf, dev_driver);
 
             uint64_t rss_hf_tmp =
                     port_conf->rx_adv_conf.rss_conf.rss_hf & dev_info->flow_type_rss_offloads;
@@ -1244,6 +1250,45 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
     SCReturnInt(0);
 }
 
+/**
+ * Function verifies changes in e.g. device info after configuration has
+ * happened. Sometimes (e.g. DPDK Bond PMD with Intel NICs i40e/ixgbe) change
+ * device info only after the device configuration.
+ * @param iconf
+ * @param dev_info
+ * @return 0 on success, -EAGAIN when reconfiguration is needed, <0 on failure
+ */
+static int32_t DeviceVerifyPostConfigure(
+        const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
+{
+    struct rte_eth_dev_info post_conf_dev_info = { 0 };
+    int32_t ret = rte_eth_dev_info_get(iconf->port_id, &post_conf_dev_info);
+    if (ret < 0) {
+        SCLogError("%s: getting device info failed (err: %s)", iconf->iface, rte_strerror(-ret));
+        SCReturnInt(ret);
+    }
+
+    if (dev_info->flow_type_rss_offloads != post_conf_dev_info.flow_type_rss_offloads ||
+            dev_info->rx_offload_capa != post_conf_dev_info.rx_offload_capa ||
+            dev_info->tx_offload_capa != post_conf_dev_info.tx_offload_capa ||
+            dev_info->max_rx_queues != post_conf_dev_info.max_rx_queues ||
+            dev_info->max_tx_queues != post_conf_dev_info.max_tx_queues ||
+            dev_info->max_mtu != post_conf_dev_info.max_mtu) {
+        SCLogWarning("Device information severely changed after configuration, reconfiguring");
+        return -EAGAIN;
+    }
+
+    if (strcmp(dev_info->driver_name, "net_bonding") == 0) {
+        ret = BondingAllDevicesSameDriver(iconf->port_id);
+        if (ret < 0) {
+            SCLogError("%s: bond port uses port with different DPDK drivers", iconf->iface);
+            SCReturnInt(ret);
+        }
+    }
+
+    return 0;
+}
+
 static int DeviceConfigure(DPDKIfaceConfig *iconf)
 {
     SCEnter();
@@ -1301,6 +1346,10 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
                 iconf->port_id, rte_strerror(-retval));
         SCReturnInt(retval);
     }
+
+    retval = DeviceVerifyPostConfigure(iconf, &dev_info);
+    if (retval < 0)
+        return retval;
 
     retval = rte_eth_dev_adjust_nb_rx_tx_desc(
             iconf->port_id, &iconf->nb_rx_desc, &iconf->nb_tx_desc);
@@ -1392,7 +1441,13 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
         FatalError("DPDK configuration could not be parsed");
     }
 
-    if (DeviceConfigure(iconf) != 0) {
+    retval = DeviceConfigure(iconf);
+    if (retval == -EAGAIN) {
+        // for e.g. bonding PMD it needs to be reconfigured
+        retval = DeviceConfigure(iconf);
+    }
+
+    if (retval < 0) { // handles both configure attempts
         iconf->DerefFunc(iconf);
         retval = rte_eal_cleanup();
         if (retval != 0)
