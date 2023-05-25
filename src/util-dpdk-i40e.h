@@ -28,8 +28,10 @@
 
 #ifdef HAVE_DPDK
 
+#include "util-dpdk.h"
+
 int i40eDeviceSetRSS(int port_id, int nb_rx_queues);
-void i40eDeviceSetRSSHashFunction(uint64_t *rss_conf);
+void i40eDeviceSetRSSConf(struct rte_eth_rss_conf *rss_conf);
 
 #endif /* HAVE_DPDK */
 
