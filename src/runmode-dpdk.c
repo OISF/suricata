@@ -1200,14 +1200,9 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
 static int DeviceConfigure(DPDKIfaceConfig *iconf)
 {
     SCEnter();
-    // configure device
-    int retval;
-    struct rte_eth_dev_info dev_info;
-    struct rte_eth_conf port_conf;
-
-    retval = rte_eth_dev_get_port_by_name(iconf->iface, &(iconf->port_id));
+    int32_t retval = rte_eth_dev_get_port_by_name(iconf->iface, &(iconf->port_id));
     if (retval < 0) {
-        SCLogError("%s: getting port id failed (err=%d). Is device enabled?", iconf->iface, retval);
+        SCLogError("%s: getting port id failed (err: %s)", iconf->iface, rte_strerror(-retval));
         SCReturnInt(retval);
     }
 
@@ -1218,13 +1213,14 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
 
     retval = DeviceSetSocketID(iconf->port_id, &iconf->socket_id);
     if (retval < 0) {
-        SCLogError("%s: invalid socket id (err=%d)", iconf->iface, retval);
+        SCLogError("%s: invalid socket id (err: %s)", iconf->iface, rte_strerror(-retval));
         SCReturnInt(retval);
     }
 
+    struct rte_eth_dev_info dev_info = { 0 };
     retval = rte_eth_dev_info_get(iconf->port_id, &dev_info);
-    if (retval != 0) {
-        SCLogError("%s: getting device info failed (err=%d)", iconf->iface, retval);
+    if (retval < 0) {
+        SCLogError("%s: getting device info failed (err: %s)", iconf->iface, rte_strerror(-retval));
         SCReturnInt(retval);
     }
 
@@ -1241,9 +1237,10 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
     }
 
     retval = DeviceValidateMTU(iconf, &dev_info);
-    if (retval != 0)
+    if (retval < 0)
         return retval;
 
+    struct rte_eth_conf port_conf = { 0 };
     DeviceInitPortConf(iconf, &dev_info, &port_conf);
     if (port_conf.rxmode.offloads & RTE_ETH_RX_OFFLOAD_CHECKSUM) {
         // Suricata does not need recalc checksums now
@@ -1252,9 +1249,9 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
 
     retval = rte_eth_dev_configure(
             iconf->port_id, iconf->nb_rx_queues, iconf->nb_tx_queues, &port_conf);
-    if (retval != 0) {
-        SCLogError("%s: failed to configure the device (port %u, err %d)", iconf->iface,
-                iconf->port_id, retval);
+    if (retval < 0) {
+        SCLogError("%s: failed to configure the device (port %u, err %s)", iconf->iface,
+                iconf->port_id, rte_strerror(-retval));
         SCReturnInt(retval);
     }
 
