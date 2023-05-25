@@ -33,6 +33,7 @@
 #include "util-dpdk-i40e.h"
 #include "util-dpdk.h"
 #include "util-debug.h"
+#include "util-dpdk-bonding.h"
 
 #ifdef HAVE_DPDK
 
@@ -110,7 +111,7 @@ static int i40eDeviceSetSymHash(int port_id, const char *port_name, int enable)
     return 0;
 }
 
-static int i40eDeviceSetRSSWithFilter(int port_id, const char *port_name)
+static int i40eDeviceApplyRSSFilter(int port_id, const char *port_name)
 {
     int retval = 0;
 
@@ -140,6 +141,27 @@ static int i40eDeviceSetRSSWithFilter(int port_id, const char *port_name)
 
     retval |= i40eDeviceSetSymHash(port_id, port_name, 1);
     return retval;
+}
+
+static int32_t i40eDeviceSetRSSWithFilter(int port_id, const char *port_name)
+{
+    int32_t ret = BondingIsBond(port_id);
+    if (ret < 0)
+        return -ret;
+
+    if (ret == 1) { // regular device
+        i40eDeviceApplyRSSFilter(port_id, port_name);
+    } else if (ret == 0) { // the device is Bond PMD
+        uint16_t bonded_devs[RTE_MAX_ETHPORTS];
+        ret = BondingMemberDevicesGet(port_id, bonded_devs, RTE_MAX_ETHPORTS);
+        for (int i = 0; i < ret; i++) {
+            i40eDeviceApplyRSSFilter(bonded_devs[i], port_name);
+        }
+    } else {
+        FatalError("Unknown return value from BondingIsBond()");
+    }
+
+    return 0;
 }
 
 #else

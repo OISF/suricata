@@ -28,6 +28,9 @@
 
 #include <rte_eal.h>
 #include <rte_ethdev.h>
+#ifdef HAVE_DPDK_BOND
+#include <rte_eth_bond.h>
+#endif
 #include <rte_launch.h>
 #include <rte_lcore.h>
 #include <rte_log.h>
