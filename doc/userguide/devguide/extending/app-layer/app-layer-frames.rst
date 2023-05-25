@@ -7,7 +7,7 @@ Application Layer Frame Support
 Baseline
 ========
 
-- `Suricata rules format <https://suricata.readthedocs.io/en/latest/rules/intro.html>`_
+- `Suricata rules format <https://docs.suricata.io/en/latest/rules/intro.html>`_
 
 General Concepts
 ================

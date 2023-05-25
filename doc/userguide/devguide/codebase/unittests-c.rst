@@ -19,7 +19,7 @@ If you would like to compile Suricata with unit tests, enter the following durin
 
    ./configure --enable-unittests
 
-The unit tests specific command line options can be found at `Command Line Options <https://suricata.readthedocs.io/en/suricata-6.0.3/command-line-options.html#unit-tests>`_.
+The unit tests specific command line options can be found at `Command Line Options <https://docs.suricata.io/en/suricata-6.0.3/command-line-options.html#unit-tests>`_.
 
 Example:
 You can run tests specifically on flowbits. This is how you should do that::
@@ -42,7 +42,7 @@ This will be very verbose. You can also add the ``SC_LOG_OP_FILTER`` to limit th
     SC_LOG_LEVEL=Debug SC_LOG_OP_FILTER="(something|somethingelse)" suricata -u
 
 This example will show all lines (debug, info, and all other levels) that contain either something or something else.
-Keep in mind the `log level <https://suricata.readthedocs.io/en/latest/manpages/suricata.html#id1>`_  precedence: if you choose *Info* level, for instance, Suricata won't show messages from the other levels.
+Keep in mind the `log level <https://docs.suricata.io/en/latest/manpages/suricata.html#id1>`_  precedence: if you choose *Info* level, for instance, Suricata won't show messages from the other levels.
 
 Writing Unit Tests - C codebase
 ===============================

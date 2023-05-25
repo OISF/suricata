@@ -10,7 +10,7 @@
 
 -- To learn more about all the API functions suricata provides for your lua scripts
 -- and the lua output extension in general see:
--- http://suricata.readthedocs.io/en/latest/output/lua-output.html
+-- http://docs.suricata.io/en/latest/output/lua-output.html
 
 function init()
     local needs     = {}

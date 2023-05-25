@@ -12,12 +12,12 @@ Introduction
 Installation
 ------------
 
-https://suricata.readthedocs.io/en/latest/install.html
+https://docs.suricata.io/en/latest/install.html
 
 User Guide
 ----------
 
-You can follow the [Suricata user guide](https://suricata.readthedocs.io/en/latest/) to get started.
+You can follow the [Suricata user guide](https://docs.suricata.io/en/latest/) to get started.
 
 Contributing
 ------------
