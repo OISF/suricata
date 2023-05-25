@@ -54,7 +54,7 @@ endif
 	@echo "updated and managed with the suricata-update tool."
 	@echo ""
 	@echo "For more information please see:"
-	@echo "  https://suricata.readthedocs.io/en/latest/rule-management/index.html"
+	@echo "  https://docs.suricata.io/en/latest/rule-management/index.html"
 	@echo ""
 
 install-library:

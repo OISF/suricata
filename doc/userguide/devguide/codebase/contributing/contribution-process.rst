@@ -203,7 +203,7 @@ If you are writing or updating *documentation pages*, please:
 * when adding diagrams or images, we prefer alternatives that can be generated
   automatically, if possible;
 * bear in mind that our documentation is published on `Read the Docs <https:/
-  /suricata.readthedocs.io/en/latest/#suricata-user-guide>`_ and can also be
+  /docs.suricata.io/en/latest/#suricata-user-guide>`_ and can also be
   built to pdf, so it is important that it looks good in such formats.
 
 
