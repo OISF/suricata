@@ -1415,6 +1415,19 @@
         fi
         CFLAGS="${CFLAGS} `pkg-config --cflags libdpdk`"
         LIBS="${LIBS} -Wl,-R,`pkg-config --libs-only-L libdpdk | cut -c 3-` -lnuma `pkg-config --libs libdpdk`"
+
+        dpdk_version=`pkg-config --modversion libdpdk`
+        echo "DPDK Version ${dpdk_version}"
+        dpdk_major_version=$(echo $dpdk_version | cut -d'.' -f1)
+        dpdk_minor_version=$(echo $dpdk_version | cut -d'.' -f2)
+
+        if (test "$dpdk_major_version" -gt "20") || (test "$dpdk_major_version" -eq "20" && test "$dpdk_minor_version" -ge "11" ); then
+            echo "majorr greater"
+            LIBS="${LIBS} -lrte_net_bond" # 20.11+
+        else
+            echo "major smaller or major eq minor smaller"
+            LIBS="${LIBS} -lrte_pmd_bond"
+        fi
     ])
 
   # Netmap support
