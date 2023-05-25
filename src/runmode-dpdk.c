@@ -921,6 +921,52 @@ static void DumpRSSFlags(const uint64_t requested, const uint64_t actual)
     SCLogConfig("RTE_ETH_RSS_L4_DST_ONLY %sset", (actual & RTE_ETH_RSS_L4_DST_ONLY) ? "" : "NOT ");
 }
 
+static void DumpRXOffloadCapabilities(const uint64_t rx_offld_capa)
+{
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_VLAN_STRIP - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_VLAN_STRIP ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_IPV4_CKSUM - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_IPV4_CKSUM ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_UDP_CKSUM - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_UDP_CKSUM ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_TCP_CKSUM - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_TCP_CKSUM ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_TCP_LRO - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_TCP_LRO ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_QINQ_STRIP - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_QINQ_STRIP ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_OUTER_IPV4_CKSUM - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_OUTER_IPV4_CKSUM ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_MACSEC_STRIP - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_MACSEC_STRIP ? "" : "NOT ");
+#if RTE_VERSION < RTE_VERSION_NUM(22, 11, 0, 0)
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_HEADER_SPLIT - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_HEADER_SPLIT ? "" : "NOT ");
+#endif
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_VLAN_FILTER - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_VLAN_FILTER ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_VLAN_EXTEND - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_VLAN_EXTEND ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_SCATTER - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_SCATTER ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_TIMESTAMP - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_TIMESTAMP ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_SECURITY - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_SECURITY ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_KEEP_CRC - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_KEEP_CRC ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_SCTP_CKSUM - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_SCTP_CKSUM ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_OUTER_UDP_CKSUM - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_OUTER_UDP_CKSUM ? "" : "NOT ");
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_RSS_HASH - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_RSS_HASH ? "" : "NOT ");
+#if RTE_VERSION >= RTE_VERSION_NUM(20, 11, 0, 0)
+    SCLogConfig("RTE_ETH_RX_OFFLOAD_BUFFER_SPLIT - %savailable",
+            rx_offld_capa & RTE_ETH_RX_OFFLOAD_BUFFER_SPLIT ? "" : "NOT ");
+#endif
+}
+
 static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
 {
     if (iconf->mtu > dev_info->max_mtu || iconf->mtu < dev_info->min_mtu) {
@@ -975,6 +1021,7 @@ static int32_t DeviceSetSocketID(uint16_t port_id, int32_t *socket_id)
 static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
         const struct rte_eth_dev_info *dev_info, struct rte_eth_conf *port_conf)
 {
+    DumpRXOffloadCapabilities(dev_info->rx_offload_capa);
     *port_conf = (struct rte_eth_conf){
             .rxmode = {
                     .mq_mode = RTE_ETH_MQ_RX_NONE,
