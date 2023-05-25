@@ -28,6 +28,7 @@
 
 #include <rte_eal.h>
 #include <rte_ethdev.h>
+#include <rte_eth_bond.h>
 #include <rte_launch.h>
 #include <rte_lcore.h>
 #include <rte_log.h>

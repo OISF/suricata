@@ -87,6 +87,7 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #include "util-dpdk.h"
 #include "util-dpdk-i40e.h"
+#include "util-dpdk-net_bonding.h"
 #include <numa.h>
 
 #define BURST_SIZE 32
@@ -194,6 +195,10 @@ static uint64_t DPDKGetSeconds(void)
 
 static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
 {
+    if (strcmp(driver_name, "net_bonding") == 0) {
+        driver_name = net_bonding_device_driver_get(ptv->port_id);
+    }
+
     // The PMD Driver i40e has a special way to set the RSS, it can be set via rte_flow rules
     // and only after the start of the port
     if (strcmp(driver_name, "net_i40e") == 0)
@@ -203,6 +208,9 @@ static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *d
 static void DevicePreStopPMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
 {
     int retval;
+    if (strcmp(driver_name, "net_bonding") == 0) {
+        driver_name = net_bonding_device_driver_get(ptv->port_id);
+    }
 
     if (strcmp(driver_name, "net_i40e") == 0) {
         // Flush the RSS rules that have been inserted in the post start section
