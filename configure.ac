@@ -1384,6 +1384,7 @@
     ])
 
   # DPDK support
+    enable_dpdk_bond_pmd="no"
     AC_ARG_ENABLE(dpdk,
             AS_HELP_STRING([--enable-dpdk], [Enable DPDK support [default=no]]),
                         [enable_dpdk=$enableval],[enable_dpdk=no])
@@ -1415,6 +1416,23 @@
         fi
         CFLAGS="${CFLAGS} `pkg-config --cflags libdpdk`"
         LIBS="${LIBS} -Wl,-R,`pkg-config --libs-only-L libdpdk | cut -c 3-` -lnuma `pkg-config --libs libdpdk`"
+
+        if test ! -z "$(ldconfig -p | grep librte_net_bond)"; then
+            AC_DEFINE([HAVE_DPDK_BOND],[1],(DPDK Bond PMD support enabled))
+            enable_dpdk_bond_pmd="yes"
+            LIBS="${LIBS} -lrte_net_bond" # 20.11+
+        elif test ! -z "$(ldconfig -p | grep librte_pmd_bond)"; then
+            AC_DEFINE([HAVE_DPDK_BOND],[1],(DPDK Bond PMD support enabled))
+            enable_dpdk_bond_pmd="yes"
+            LIBS="${LIBS} -lrte_pmd_bond"
+        else
+            echo
+            echo "  WARNING: DPDK Bond PMD was not found on your system, "
+            echo "  you will be unable to use DPDK Bond PMD."
+            echo "  You can try to \"sudo ldconfig\" and reconfigure again"
+            echo "  or compile and install DPDK with Bond support enabled."
+            echo
+        fi
     ])
 
   # Netmap support
@@ -2629,6 +2647,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Profiling rules enabled:                 ${enable_profiling_rules}
 
   Plugin support (experimental):           ${plugin_support}
+  DPDK Bond PMD:                           ${enable_dpdk_bond_pmd}
 
 Development settings:
   Coccinelle / spatch:                     ${enable_coccinelle}
