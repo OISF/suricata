@@ -1011,6 +1011,44 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     }
     jb_close(ctx.js);
 
+    jb_open_object(ctx.js, "match_policy");
+    jb_open_array(ctx.js, "actions");
+    if (s->action & ACTION_ALERT) {
+        jb_append_string(ctx.js, "alert");
+    }
+    if (s->action & ACTION_DROP) {
+        jb_append_string(ctx.js, "drop");
+    }
+    if (s->action & ACTION_REJECT) {
+        jb_append_string(ctx.js, "reject");
+    }
+    if (s->action & ACTION_REJECT_DST) {
+        jb_append_string(ctx.js, "reject_dst");
+    }
+    if (s->action & ACTION_REJECT_BOTH) {
+        jb_append_string(ctx.js, "reject_both");
+    }
+    if (s->action & ACTION_CONFIG) {
+        jb_append_string(ctx.js, "config");
+    }
+    if (s->action & ACTION_PASS) {
+        jb_append_string(ctx.js, "pass");
+    }
+    jb_close(ctx.js);
+    enum SignaturePropertyFlowAction flow_action = signature_properties[s->type].flow_action;
+    switch (flow_action) {
+        case SIG_PROP_FLOW_ACTION_PACKET:
+            jb_set_string(ctx.js, "scope", "packet");
+            break;
+        case SIG_PROP_FLOW_ACTION_FLOW:
+            jb_set_string(ctx.js, "scope", "flow");
+            break;
+        case SIG_PROP_FLOW_ACTION_FLOW_IF_STATEFUL:
+            jb_set_string(ctx.js, "scope", "flow_if_stateful");
+            break;
+    }
+    jb_close(ctx.js);
+
     switch (s->type) {
         case SIG_TYPE_NOT_SET:
             jb_set_string(ctx.js, "type", "unset");
