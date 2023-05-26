@@ -42,7 +42,7 @@ def flatten_schema(schema):
                 try:
                     array_type = props["items"]["type"]
                 except KeyError:
-                    print("Array property without items: {}".format(name))
+                    print("Array property without items: {}".format(name), file=sys.stderr)
                     array_type = "unknown"
                 prop_type = "{}[]".format(array_type)
 

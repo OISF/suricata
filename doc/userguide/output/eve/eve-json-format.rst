@@ -2465,6 +2465,8 @@ Example of QUIC logging with a CYU hash:
     ]
   }
 
+.. include:: ../../_generated/quic.rst
+
 Event type: DHCP
 -----------------
 

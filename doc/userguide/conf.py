@@ -338,3 +338,11 @@ rst_epilog = """
     "sysconfdir": os.getenv("sysconfdir", "/etc"),
     "localstatedir": os.getenv("localstatedir", "/var"),
 }
+
+# Custom code generate some documentation.
+evedoc = "./evedoc.py"
+eve_schema = "../../etc/schema.json"
+os.makedirs("_generated", exist_ok=True)
+subprocess.call([evedoc, "--output", "_generated/eve-index.rst", eve_schema])
+for proto in ["quic"]:
+    subprocess.call([evedoc, "--output", "_generated/{}.rst".format(proto), "--object", proto, eve_schema])
