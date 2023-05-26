@@ -344,5 +344,5 @@ evedoc = "./evedoc.py"
 eve_schema = "../../etc/schema.json"
 os.makedirs("_generated", exist_ok=True)
 subprocess.call([evedoc, "--output", "_generated/eve-index.rst", eve_schema])
-for proto in ["quic"]:
+for proto in ["quic", "pgsql"]:
     subprocess.call([evedoc, "--output", "_generated/{}.rst".format(proto), "--object", proto, eve_schema])

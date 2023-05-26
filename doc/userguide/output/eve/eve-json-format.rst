@@ -2218,6 +2218,10 @@ The two ``pgsql`` events in this example represent a rejected ``SSL handshake`` 
     }
   }
 
+Field Reference
+~~~~~~~~~~~~~~~
+
+.. include:: ../../_generated/pgsql.rst
 
 Event type: IKE
 ---------------
