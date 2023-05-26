@@ -915,8 +915,7 @@ void StatsSpawnThreads(void)
     ThreadVars *tv_mgmt = NULL;
 
     /* spawn the stats wakeup thread */
-    tv_wakeup = TmThreadCreateMgmtThread(thread_name_counter_wakeup,
-                                         StatsWakeupThread, 1);
+    tv_wakeup = TmThreadCreateStatsMgmtThread(thread_name_counter_wakeup, StatsWakeupThread, 1);
     if (tv_wakeup == NULL) {
         FatalError("TmThreadCreateMgmtThread "
                    "failed");
@@ -928,8 +927,7 @@ void StatsSpawnThreads(void)
     }
 
     /* spawn the stats mgmt thread */
-    tv_mgmt = TmThreadCreateMgmtThread(thread_name_counter_stats,
-                                       StatsMgmtThread, 1);
+    tv_mgmt = TmThreadCreateStatsMgmtThread(thread_name_counter_stats, StatsMgmtThread, 1);
     if (tv_mgmt == NULL) {
         FatalError("TmThreadCreateMgmtThread failed");
     }

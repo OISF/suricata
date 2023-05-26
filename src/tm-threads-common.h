@@ -91,6 +91,7 @@ enum {
     TVT_PPT,
     TVT_MGMT,
     TVT_CMD,
+    TVT_STATS, /**< as TVT_MGMT, but killed later */
     TVT_MAX,
 };
 

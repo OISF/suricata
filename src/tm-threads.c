@@ -1047,7 +1047,7 @@ ThreadVars *TmThreadCreatePacketHandler(const char *name, const char *inq_name,
 }
 
 /**
- * \brief Creates and returns the TV instance for a Management thread(MGMT).
+ * \brief Creates and returns the TV instance for a Stats Management thread (TVT_STATS).
  *        This function supports only custom slot functions and hence a
  *        function pointer should be sent as an argument.
  *
@@ -1058,15 +1058,12 @@ ThreadVars *TmThreadCreatePacketHandler(const char *name, const char *inq_name,
  *
  * \retval the newly created TV instance, or NULL on error
  */
-ThreadVars *TmThreadCreateMgmtThread(const char *name, void *(fn_p)(void *),
-                                     int mucond)
+ThreadVars *TmThreadCreateStatsMgmtThread(const char *name, void *(fn_p)(void *), int mucond)
 {
-    ThreadVars *tv = NULL;
-
-    tv = TmThreadCreate(name, NULL, NULL, NULL, NULL, "custom", fn_p, mucond);
+    ThreadVars *tv = TmThreadCreate(name, NULL, NULL, NULL, NULL, "custom", fn_p, mucond);
 
     if (tv != NULL) {
-        tv->type = TVT_MGMT;
+        tv->type = TVT_STATS;
         tv->id = TmThreadsRegisterThread(tv, tv->type);
         TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
     }

@@ -2291,19 +2291,14 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
 
     /* kill the stats threads */
     TmThreadKillThreadsFamily(TVT_MGMT);
-    TmThreadClearThreadsFamily(TVT_MGMT);
 
     /* kill packet threads -- already in 'disabled' state */
     TmThreadKillThreadsFamily(TVT_PPT);
-    TmThreadClearThreadsFamily(TVT_PPT);
 
     PacketPoolDestroy();
 
     /* mgt and ppt threads killed, we can run non thread-safe
      * shutdown functions */
-    StatsReleaseResources();
-    DecodeUnregisterCounters();
-    RunModeShutDown();
     FlowShutdown();
     IPPairShutdown();
     HostCleanup();
@@ -2311,12 +2306,22 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     DefragDestroy();
     HttpRangeContainersDestroy();
 
-    TmqResetQueues();
 #ifdef PROFILING
     if (profiling_rules_enabled)
         SCProfilingDump();
     SCProfilingDestroy();
 #endif
+
+    /* kill and flush stats */
+    TmThreadKillThreadsFamily(TVT_STATS);
+
+    TmThreadClearThreadsFamily(TVT_MGMT);
+    TmThreadClearThreadsFamily(TVT_PPT);
+    TmThreadClearThreadsFamily(TVT_STATS);
+    StatsReleaseResources();
+    DecodeUnregisterCounters();
+    TmqResetQueues();
+    RunModeShutDown();
 }
 
 

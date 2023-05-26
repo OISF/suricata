@@ -84,7 +84,7 @@ ThreadVars *TmThreadCreate(const char *, const char *, const char *, const char 
                            void *(fn_p)(void *), int);
 ThreadVars *TmThreadCreatePacketHandler(const char *, const char *, const char *, const char *, const char *,
                                         const char *);
-ThreadVars *TmThreadCreateMgmtThread(const char *name, void *(fn_p)(void *), int);
+ThreadVars *TmThreadCreateStatsMgmtThread(const char *name, void *(fn_p)(void *), int);
 ThreadVars *TmThreadCreateMgmtThreadByName(const char *name, const char *module,
                                      int mucond);
 ThreadVars *TmThreadCreateCmdThreadByName(const char *name, const char *module,
