@@ -3038,9 +3038,11 @@
                         "type": "object",
                         "properties": {
                             "hash": {
+                                "description": "hex representation",
                                 "type": "string"
                             },
                             "string": {
+                                "description": "string representation",
                                 "type": "string"
                             }
                         },
@@ -3063,6 +3065,7 @@
                                 "type": "integer"
                             },
                             "values": {
+                                "description": "extension values",
                                 "type": "array",
                                 "minItems": 1,
                                 "items": {
@@ -3079,9 +3082,11 @@
                     "optional": true,
                     "properties": {
                         "hash": {
+                            "description": "hex representation",
                             "type": "string"
                         },
                         "string": {
+                            "description": "string representation",
                             "type": "string"
                         }
                     },
@@ -3093,9 +3098,11 @@
                     "optional": true,
                     "properties": {
                         "hash": {
+                            "description": "hex representation",
                             "type": "string"
                         },
                         "string": {
+                            "description": "string representation",
                             "type": "string"
                         }
                     },
