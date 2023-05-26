@@ -1038,8 +1038,9 @@ static void Recycler(ThreadVars *tv, FlowRecyclerThreadData *ftd, Flow *f)
 
     FlowClearMemory(f, f->protomap);
     FLOWLOCK_UNLOCK(f);
-    FlowSparePoolReturnFlow(f);
 }
+
+extern uint32_t flow_spare_pool_block_size;
 
 /** \brief Thread that manages timed out flows.
  *
@@ -1051,6 +1052,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
     BUG_ON(ftd == NULL);
     const bool time_is_live = TimeModeIsLive();
     uint64_t recycled_cnt = 0;
+    FlowQueuePrivate ret_queue = { NULL, NULL, 0 };
 
     TmThreadsSetFlag(th_v, THV_RUNNING);
 
@@ -1077,6 +1079,15 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
         while ((f = FlowQueuePrivateGetFromTop(&list)) != NULL) {
             Recycler(th_v, ftd, f);
             cnt++;
+
+            /* for every full sized block, add it to the spare pool */
+            FlowQueuePrivateAppendFlow(&ret_queue, f);
+            if (ret_queue.len == flow_spare_pool_block_size) {
+                FlowSparePoolReturnFlows(&ret_queue);
+            }
+        }
+        if (ret_queue.len > 0) {
+            FlowSparePoolReturnFlows(&ret_queue);
         }
         if (cnt > 0) {
             recycled_cnt += cnt;
