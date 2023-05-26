@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -40,7 +40,7 @@ typedef struct FlowSparePool {
 } FlowSparePool;
 
 static uint32_t flow_spare_pool_flow_cnt = 0;
-static uint32_t flow_spare_pool_block_size = 100;
+uint32_t flow_spare_pool_block_size = 100;
 static FlowSparePool *flow_spare_pool = NULL;
 static SCMutex flow_spare_pool_m = SCMUTEX_INITIALIZER;
 
@@ -121,7 +121,18 @@ void FlowSparePoolReturnFlow(Flow *f)
 
 void FlowSparePoolReturnFlows(FlowQueuePrivate *fqp)
 {
+    FlowSparePool *p = FlowSpareGetPool();
+    DEBUG_VALIDATE_BUG_ON(p == NULL);
+    p->queue = *fqp;
 
+    SCMutexLock(&flow_spare_pool_m);
+    p->next = flow_spare_pool;
+    flow_spare_pool = p;
+    flow_spare_pool_flow_cnt += fqp->len;
+    SCMutexUnlock(&flow_spare_pool_m);
+
+    FlowQueuePrivate empty = { NULL, NULL, 0 };
+    *fqp = empty;
 }
 
 FlowQueuePrivate FlowSpareGetFromPool(void)
