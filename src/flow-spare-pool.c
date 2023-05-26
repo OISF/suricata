@@ -40,7 +40,7 @@ typedef struct FlowSparePool {
 } FlowSparePool;
 
 static uint32_t flow_spare_pool_flow_cnt = 0;
-static uint32_t flow_spare_pool_block_size = 100;
+uint32_t flow_spare_pool_block_size = 100;
 static FlowSparePool *flow_spare_pool = NULL;
 static SCMutex flow_spare_pool_m = SCMUTEX_INITIALIZER;
 
@@ -121,7 +121,16 @@ void FlowSparePoolReturnFlow(Flow *f)
 
 void FlowSparePoolReturnFlows(FlowQueuePrivate *fqp)
 {
-
+    SCMutexLock(&flow_spare_pool_m);
+    FlowSparePool *p = FlowSpareGetPool();
+    DEBUG_VALIDATE_BUG_ON(p == NULL);
+    p->next = flow_spare_pool;
+    flow_spare_pool = p;
+    p->queue = *fqp;
+    flow_spare_pool_flow_cnt += fqp->len;
+    SCMutexUnlock(&flow_spare_pool_m);
+    FlowQueuePrivate empty = { NULL, NULL, 0 };
+    *fqp = empty;
 }
 
 FlowQueuePrivate FlowSpareGetFromPool(void)
