@@ -1072,11 +1072,15 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
         /* Get the time */
         SCLogDebug("ts %" PRIdMAX "", (intmax_t)SCTIME_SECS(TimeGet()));
 
+        uint64_t cnt = 0;
         Flow *f;
         while ((f = FlowQueuePrivateGetFromTop(&list)) != NULL) {
             Recycler(th_v, ftd, f);
-            recycled_cnt++;
-            StatsIncr(th_v, ftd->counter_flows);
+            cnt++;
+        }
+        if (cnt > 0) {
+            recycled_cnt += cnt;
+            StatsAddUI64(th_v, ftd->counter_flows, cnt);
         }
         SC_ATOMIC_SUB(flowrec_busy,1);
 
