@@ -2971,15 +2971,18 @@
             "optional": true,
             "properties": {
                 "cyu": {
+                    "description": "ja3-like fingerprint for versions of QUIC before standardization",
                     "type": "array",
                     "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
                             "hash": {
+                                "description": "cyu hash hex representation",
                                 "type": "string"
                             },
                             "string": {
+                                "description": "cyu hash string representation",
                                 "type": "string"
                             }
                         },
@@ -2987,18 +2990,22 @@
                     }
                 },
                 "extensions": {
+                    "description": "list of extensions in hello",
                     "type": "array",
                     "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
                             "name": {
+                                "description": "human-friendly name of the extension",
                                 "type": "string"
                             },
                             "type": {
+                                "description": "integer identifier of the extension",
                                 "type": "integer"
                             },
                             "values": {
+                                "description": "extension values",
                                 "type": "array",
                                 "minItems": 1,
                                 "items": {
@@ -3010,38 +3017,47 @@
                     }
                 },
                 "ja3": {
+                    "description": "ja3 from client, as in TLS",
                     "type": "object",
                     "optional": true,
                     "properties": {
                         "hash": {
+                            "description": "ja3 hex representation",
                             "type": "string"
                         },
                         "string": {
+                            "description": "ja3 string representation",
                             "type": "string"
                         }
                     },
                     "additionalProperties": false
                 },
                 "ja3s": {
+                    "description": "ja3 from server, as in TLS",
                     "type": "object",
                     "optional": true,
                     "properties": {
                         "hash": {
+                            "description": "ja3s hex representation",
                             "type": "string"
                         },
                         "string": {
+                            "description": "ja3s string representation",
                             "type": "string"
                         }
                     },
                     "additionalProperties": false
                 },
                 "sni": {
+                    "description": "Server Name Indication",
                     "type": "string"
                 },
                 "ua": {
+                    "description": "User Agent for versions of QUIC before standardization",
                     "type": "string"
                 },
                 "version": {
+                    "description": "Quic protocol version",
                     "type": "string"
                 }
             },
