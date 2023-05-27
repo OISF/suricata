@@ -39,7 +39,7 @@ static int MemcmpTest01 (void)
     uint8_t a[] = "abcd";
     uint8_t b[] = "abcd";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a)-1) != 0);
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
     PASS;
 }
 
@@ -48,7 +48,7 @@ static int MemcmpTest02 (void)
     uint8_t a[] = "abcdabcdabcdabcd";
     uint8_t b[] = "abcdabcdabcdabcd";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a)-1) != 0);
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
     PASS;
 }
 
@@ -57,7 +57,7 @@ static int MemcmpTest03 (void)
     uint8_t a[] = "abcdabcd";
     uint8_t b[] = "abcdabcd";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a)-1) != 0);
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
     PASS;
 }
 
@@ -76,7 +76,7 @@ static int MemcmpTest05 (void)
     uint8_t a[] = "abcdabcdabcdabcd";
     uint8_t b[] = "abcDabcdabcdabcd";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a)-1) != 1);
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
     PASS;
 }
 
@@ -85,7 +85,7 @@ static int MemcmpTest06 (void)
     uint8_t a[] = "abcdabcd";
     uint8_t b[] = "abcDabcd";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a)-1) != 1);
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
     PASS;
 }
 
@@ -94,7 +94,7 @@ static int MemcmpTest07 (void)
     uint8_t a[] = "abcd";
     uint8_t b[] = "abcde";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a)-1) != 0);
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
     PASS;
 }
 
@@ -103,7 +103,7 @@ static int MemcmpTest08 (void)
     uint8_t a[] = "abcdabcdabcdabcd";
     uint8_t b[] = "abcdabcdabcdabcde";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a)-1) != 0);
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
     PASS;
 }
 
@@ -112,7 +112,7 @@ static int MemcmpTest09 (void)
     uint8_t a[] = "abcdabcd";
     uint8_t b[] = "abcdabcde";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a)-1) != 0);
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
     PASS;
 }
 
@@ -121,7 +121,7 @@ static int MemcmpTest10 (void)
     uint8_t a[] = "abcd";
     uint8_t b[] = "Zbcde";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a)-1) != 1);
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
     PASS;
 }
 
@@ -130,7 +130,7 @@ static int MemcmpTest11 (void)
     uint8_t a[] = "abcdabcdabcdabcd";
     uint8_t b[] = "Zbcdabcdabcdabcde";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a)-1) != 1);
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
     PASS;
 }
 
@@ -139,7 +139,7 @@ static int MemcmpTest12 (void)
     uint8_t a[] = "abcdabcd";
     uint8_t b[] = "Zbcdabcde";
 
-    FAIL_IF(SCMemcmp(a, b, sizeof(a)-1) != 1);
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
     PASS;
 }
 
@@ -148,7 +148,7 @@ static int MemcmpTest13 (void)
     uint8_t a[] = "abcdefgh";
     uint8_t b[] = "AbCdEfGhIjK";
 
-    FAIL_IF(SCMemcmpLowercase(a, b, sizeof(a)-1) != 0);
+    FAIL_IF(SCMemcmpLowercase(a, b, sizeof(a) - 1) != 0);
     PASS;
 }
 
@@ -339,7 +339,7 @@ static int MemcmpTest18 (void)
 
     while (t && t->a != NULL) {
 
-        FAIL_IF(SCMemcmpLowercase(t->a, t->b, strlen(t->a)-1) != t->result);
+        FAIL_IF(SCMemcmpLowercase(t->a, t->b, strlen(t->a) - 1) != t->result);
         t++;
     }
 
