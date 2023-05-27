@@ -169,10 +169,13 @@ static int FlowFinish(ThreadVars *tv, Flow *f, FlowWorkerThreadData *fw, void *d
     return 1;
 }
 
+extern uint32_t flow_spare_pool_block_size;
+
 /** \param[in] max_work Max flows to process. 0 if unlimited. */
 static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw, FlowTimeoutCounters *counters,
         FlowQueuePrivate *fq, const uint32_t max_work)
 {
+    FlowQueuePrivate ret_queue = { NULL, NULL, 0 };
     uint32_t i = 0;
     Flow *f;
     while ((f = FlowQueuePrivateGetFromTop(fq)) != NULL) {
@@ -205,14 +208,20 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw, FlowTimeout
         FlowClearMemory (f, f->protomap);
         FLOWLOCK_UNLOCK(f);
 
-        if (fw->fls.spare_queue.len >= 200) { // TODO match to API? 200 = 2 * block size
-            FlowSparePoolReturnFlow(f);
+        if (fw->fls.spare_queue.len >= (flow_spare_pool_block_size * 2)) {
+            FlowQueuePrivatePrependFlow(&ret_queue, f);
+            if (ret_queue.len == flow_spare_pool_block_size) {
+                FlowSparePoolReturnFlows(&ret_queue);
+            }
         } else {
             FlowQueuePrivatePrependFlow(&fw->fls.spare_queue, f);
         }
 
         if (max_work != 0 && ++i == max_work)
             break;
+    }
+    if (ret_queue.len > 0) {
+        FlowSparePoolReturnFlows(&ret_queue);
     }
 }
 
