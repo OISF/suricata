@@ -767,7 +767,6 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     uint32_t rows_sec = 0;
     uint32_t rows_per_wu = 0;
     uint64_t sleep_per_wu = 0;
-    bool emerg = false;
     bool prev_emerg = false;
     uint32_t other_last_sec = 0; /**< last sec stamp when defrag etc ran */
     SCTime_t ts;
@@ -784,7 +783,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         StatsSetUI64(th_v, ftd->cnt.memcap_pressure, mp);
         StatsSetUI64(th_v, ftd->cnt.memcap_pressure_max, mp);
     }
-    GetWorkUnitSizing(rows, mp, emerg, &sleep_per_wu, &rows_per_wu, &rows_sec);
+    GetWorkUnitSizing(rows, mp, false, &sleep_per_wu, &rows_per_wu, &rows_sec);
     StatsSetUI64(th_v, ftd->cnt.flow_mgr_rows_sec, rows_sec);
 
     TmThreadsSetFlag(th_v, THV_RUNNING);
@@ -797,9 +796,8 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             TmThreadsUnsetFlag(th_v, THV_PAUSED);
         }
 
-        if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) {
-            emerg = true;
-        }
+        bool emerg = ((SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) != 0);
+
         /* Get the time */
         ts = TimeGet();
         SCLogDebug("ts %" PRIdMAX "", (intmax_t)SCTIME_SECS(ts));
