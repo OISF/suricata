@@ -126,13 +126,50 @@ void FlowSparePoolReturnFlows(FlowQueuePrivate *fqp)
     p->queue = *fqp;
 
     SCMutexLock(&flow_spare_pool_m);
-    p->next = flow_spare_pool;
-    flow_spare_pool = p;
     flow_spare_pool_flow_cnt += fqp->len;
+    if (flow_spare_pool != NULL) {
+        if (p->queue.len == flow_spare_pool_block_size) {
+            /* full block insert */
+
+            if (flow_spare_pool->queue.len < flow_spare_pool_block_size) {
+                p->next = flow_spare_pool->next;
+                flow_spare_pool->next = p;
+                p = NULL;
+            } else {
+                p->next = flow_spare_pool;
+                flow_spare_pool = p;
+                p = NULL;
+            }
+        } else {
+            /* incomplete block insert */
+
+            if (p->queue.len + flow_spare_pool->queue.len <= flow_spare_pool_block_size) {
+                FlowQueuePrivateAppendPrivate(&flow_spare_pool->queue, &p->queue);
+                /* free 'p' outside of lock below */
+            } else {
+                // put smallest first
+                if (p->queue.len < flow_spare_pool->queue.len) {
+                    p->next = flow_spare_pool;
+                    flow_spare_pool = p;
+                } else {
+                    p->next = flow_spare_pool->next;
+                    flow_spare_pool->next = p;
+                }
+                p = NULL;
+            }
+        }
+    } else {
+        p->next = flow_spare_pool;
+        flow_spare_pool = p;
+        p = NULL;
+    }
     SCMutexUnlock(&flow_spare_pool_m);
 
     FlowQueuePrivate empty = { NULL, NULL, 0 };
     *fqp = empty;
+
+    if (p != NULL)
+        SCFree(p);
 }
 
 FlowQueuePrivate FlowSpareGetFromPool(void)
