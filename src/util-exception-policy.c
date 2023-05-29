@@ -25,6 +25,8 @@
 #include "stream-tcp-reassemble.h"
 
 enum ExceptionPolicy g_eps_master_switch = EXCEPTION_POLICY_NOT_SET;
+/** true if exception policy was defined in config */
+static bool g_eps_have_exception_policy = false;
 
 static const char *ExceptionPolicyEnumToString(enum ExceptionPolicy policy)
 {
@@ -144,65 +146,89 @@ static enum ExceptionPolicy SetIPSOption(
     return p;
 }
 
-enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support_flow)
+static enum ExceptionPolicy ExceptionPolicyConfigValueParse(
+        const char *option, const char *value_str)
+{
+    enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
+    if (strcmp(value_str, "drop-flow") == 0) {
+        policy = SetIPSOption(option, value_str, EXCEPTION_POLICY_DROP_FLOW);
+    } else if (strcmp(value_str, "pass-flow") == 0) {
+        policy = EXCEPTION_POLICY_PASS_FLOW;
+    } else if (strcmp(value_str, "bypass") == 0) {
+        policy = EXCEPTION_POLICY_BYPASS_FLOW;
+    } else if (strcmp(value_str, "drop-packet") == 0) {
+        policy = SetIPSOption(option, value_str, EXCEPTION_POLICY_DROP_PACKET);
+    } else if (strcmp(value_str, "pass-packet") == 0) {
+        policy = EXCEPTION_POLICY_PASS_PACKET;
+    } else if (strcmp(value_str, "reject") == 0) {
+        policy = EXCEPTION_POLICY_REJECT;
+    } else if (strcmp(value_str, "ignore") == 0) { // TODO name?
+        policy = EXCEPTION_POLICY_NOT_SET;
+    } else if (strcmp(value_str, "auto") == 0) {
+        if (!EngineModeIsIPS()) {
+            policy = EXCEPTION_POLICY_NOT_SET;
+        } else {
+            policy = EXCEPTION_POLICY_DROP_FLOW;
+        }
+    } else {
+        FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
+                "\"%s\" is not a valid exception policy value. Valid options are drop-flow, "
+                "pass-flow, bypass, reject, drop-packet, pass-packet or ignore.",
+                value_str);
+    }
+
+    return policy;
+}
+
+static enum ExceptionPolicy ExceptionPolicyMasterParse(const char *value)
+{
+    enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
+
+    policy = ExceptionPolicyConfigValueParse("exception-policy", value);
+    g_eps_have_exception_policy = true;
+    policy = SetIPSOption("exception-policy", value, policy);
+    SCLogConfig("exception-policy set to: %s", ExceptionPolicyEnumToString(policy));
+
+    return policy;
+}
+
+static enum ExceptionPolicy ExceptionPolicyGetDefault(const char *option, bool support_flow)
+{
+    enum ExceptionPolicy p = EXCEPTION_POLICY_NOT_SET;
+    if (g_eps_have_exception_policy) {
+        p = GetMasterExceptionPolicy(option);
+        if (!support_flow) {
+            p = PickPacketAction(option, p);
+        }
+        SCLogConfig("%s: %s (defined via 'exception-policy' master switch)", option,
+                ExceptionPolicyEnumToString(p));
+        return p;
+    } else if (EngineModeIsIPS()) {
+        p = EXCEPTION_POLICY_DROP_FLOW;
+    }
+    SCLogConfig("%s: %s (defined via 'built-in default' for %s-mode)", option,
+            ExceptionPolicyEnumToString(p), EngineModeIsIPS() ? "IPS" : "IDS");
+
+    return p;
+}
+
+enum ExceptionPolicy ExceptionPolicyParse(const char *option, bool support_flow)
 {
     enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
     const char *value_str = NULL;
+
     if ((ConfGet(option, &value_str)) == 1 && value_str != NULL) {
-        if (strcmp(value_str, "drop-flow") == 0) {
-            policy = SetIPSOption(option, value_str, EXCEPTION_POLICY_DROP_FLOW);
-            SCLogConfig("%s: %s", option, value_str);
-        } else if (strcmp(value_str, "pass-flow") == 0) {
-            policy = EXCEPTION_POLICY_PASS_FLOW;
-            SCLogConfig("%s: %s", option, value_str);
-        } else if (strcmp(value_str, "bypass") == 0) {
-            policy = EXCEPTION_POLICY_BYPASS_FLOW;
-            SCLogConfig("%s: %s", option, value_str);
-        } else if (strcmp(value_str, "drop-packet") == 0) {
-            policy = SetIPSOption(option, value_str, EXCEPTION_POLICY_DROP_PACKET);
-            SCLogConfig("%s: %s", option, value_str);
-        } else if (strcmp(value_str, "pass-packet") == 0) {
-            policy = EXCEPTION_POLICY_PASS_PACKET;
-            SCLogConfig("%s: %s", option, value_str);
-        } else if (strcmp(value_str, "reject") == 0) {
-            policy = EXCEPTION_POLICY_REJECT;
-            SCLogConfig("%s: %s", option, value_str);
-        } else if (strcmp(value_str, "ignore") == 0) { // TODO name?
-            policy = EXCEPTION_POLICY_NOT_SET;
-            SCLogConfig("%s: %s", option, value_str);
-        } else if (strcmp(value_str, "auto") == 0) {
-            policy = SetIPSOption(option, value_str, EXCEPTION_POLICY_DROP_FLOW);
-            SCLogConfig("%s: %s", option, value_str);
+        if (strcmp(option, "exception-policy") == 0) {
+            policy = ExceptionPolicyMasterParse(value_str);
         } else {
-            FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
-                    "\"%s\" is not a valid exception policy value. Valid options are drop-flow, "
-                    "pass-flow, bypass, drop-packet, pass-packet or ignore.",
-                    value_str);
+            policy = ExceptionPolicyConfigValueParse(option, value_str);
+            if (!support_flow) {
+                policy = PickPacketAction(option, policy);
+            }
+            SCLogConfig("%s: %s", option, ExceptionPolicyEnumToString(policy));
         }
-
-        if (!support_flow) {
-            policy = PickPacketAction(option, policy);
-        }
-
-    } else if (strcmp(option, "exception-policy") == 0) {
-        /* not enabled, we won't change the master exception policy,
-             for now */
-        SCLogInfo("'exception-policy' master switch not set, so ignoring it."
-                  " This behavior will change in Suricata 8, so please update your"
-                  " config. See ticket #5219 for more details.");
-        g_eps_master_switch = EXCEPTION_POLICY_NOT_SET;
     } else {
-        /* Exception Policy was not defined individually */
-        enum ExceptionPolicy master_policy = GetMasterExceptionPolicy(option);
-        if (master_policy == EXCEPTION_POLICY_NOT_SET) {
-            SCLogConfig("%s: ignore", option);
-        } else {
-            /* If the master switch was set and the Exception Policy option was not
-            individually set, use the defined master Exception Policy */
-            const char *value = ExceptionPolicyEnumToString(master_policy);
-            SCLogConfig("%s: %s (defined via 'exception-policy' master switch", option, value);
-            policy = master_policy;
-        }
+        policy = ExceptionPolicyGetDefault(option, support_flow);
     }
     return policy;
 }
