@@ -192,7 +192,8 @@ static enum ExceptionPolicy ExceptionPolicyMasterParse(const char *value)
     return policy;
 }
 
-static enum ExceptionPolicy ExceptionPolicyGetDefault(const char *option, bool support_flow)
+static enum ExceptionPolicy ExceptionPolicyGetDefault(
+        const char *option, bool support_flow, bool midstream)
 {
     enum ExceptionPolicy p = EXCEPTION_POLICY_NOT_SET;
     if (g_eps_have_exception_policy) {
@@ -203,7 +204,7 @@ static enum ExceptionPolicy ExceptionPolicyGetDefault(const char *option, bool s
         SCLogConfig("%s: %s (defined via 'exception-policy' master switch)", option,
                 ExceptionPolicyEnumToString(p));
         return p;
-    } else if (EngineModeIsIPS()) {
+    } else if (EngineModeIsIPS() && !midstream) {
         p = EXCEPTION_POLICY_DROP_FLOW;
     }
     SCLogConfig("%s: %s (defined via 'built-in default' for %s-mode)", option,
@@ -217,7 +218,7 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, bool support_flow)
     enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
     const char *value_str = NULL;
 
-    if ((ConfGet(option, &value_str)) == 1 && value_str != NULL) {
+    if ((ConfGet(option, &value_str) == 1) && value_str != NULL) {
         if (strcmp(option, "exception-policy") == 0) {
             policy = ExceptionPolicyMasterParse(value_str);
         } else {
@@ -228,7 +229,47 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, bool support_flow)
             SCLogConfig("%s: %s", option, ExceptionPolicyEnumToString(policy));
         }
     } else {
-        policy = ExceptionPolicyGetDefault(option, support_flow);
+        policy = ExceptionPolicyGetDefault(option, support_flow, false);
+    }
+
+    return policy;
+}
+
+enum ExceptionPolicy ExceptionPolicyMidstreamParse(bool midstream_enabled)
+{
+    enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
+    const char *value_str = NULL;
+    /* policy was set directly */
+    if ((ConfGet("stream.midstream-policy", &value_str)) == 1 && value_str != NULL) {
+        policy = ExceptionPolicyConfigValueParse("midstream-policy", value_str);
+        if (midstream_enabled) {
+            if (policy != EXCEPTION_POLICY_NOT_SET && policy != EXCEPTION_POLICY_PASS_FLOW) {
+                FatalErrorOnInit(SC_ERR_INVALID_VALUE,
+                        "Error parsing stream.midstream-policy from config file. \"%s\" is "
+                        "not a valid exception policy when midstream is enabled. Valid options "
+                        "are pass-flow and ignore.",
+                        value_str);
+            }
+        }
+        if (!EngineModeIsIPS()) {
+            if (policy == EXCEPTION_POLICY_DROP_FLOW) {
+                FatalErrorOnInit(SC_ERR_INVALID_VALUE,
+                        "Error parsing stream.midstream-policy from config file. \"%s\" is "
+                        "not a valid exception policy in IDS mode. See our documentation for a "
+                        "list of all possible values.",
+                        value_str);
+            }
+        }
+    } else {
+        policy = ExceptionPolicyGetDefault("midstream-policy", true, midstream_enabled);
+    }
+
+    if (policy == EXCEPTION_POLICY_PASS_PACKET || policy == EXCEPTION_POLICY_DROP_PACKET) {
+        FatalErrorOnInit(SC_ERR_INVALID_VALUE,
+                "Error parsing stream.midstream-policy from config file. \"%s\" is "
+                "not valid for this exception policy. See our documentation for a list of "
+                "all possible values.",
+                value_str);
     }
     return policy;
 }
