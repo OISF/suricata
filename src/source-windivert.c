@@ -130,8 +130,12 @@ void *WinDivertGetQueue(int n)
 }
 
 // not defined in MinGW winerror.h
+#ifndef ERROR_INVALID_IMAGE_HASH
 #define ERROR_INVALID_IMAGE_HASH 577L
+#endif
+#ifndef ERROR_DATA_NOT_ACCEPTED
 #define ERROR_DATA_NOT_ACCEPTED 592L
+#endif
 
 /**
  * \brief return an error description for Win32 error values commonly returned
