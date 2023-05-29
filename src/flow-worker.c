@@ -223,6 +223,8 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw, FlowTimeout
     if (ret_queue.len > 0) {
         FlowSparePoolReturnFlows(&ret_queue);
     }
+
+    StatsAddUI64(tv, fw->cnt.flows_removed, (uint64_t)i);
 }
 
 /** \brief handle flow for packet
@@ -500,8 +502,6 @@ static inline void FlowWorkerProcessLocalFlows(ThreadVars *tv, FlowWorkerThreadD
 
     FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_FLOW_EVICTED);
     if (fw->fls.work_queue.len) {
-        StatsAddUI64(tv, fw->cnt.flows_removed, (uint64_t)fw->fls.work_queue.len);
-
         FlowTimeoutCounters counters = { 0, 0, };
         CheckWorkQueue(tv, fw, &counters, &fw->fls.work_queue, max_work);
         UpdateCounters(tv, fw, &counters);
