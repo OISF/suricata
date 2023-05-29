@@ -5044,6 +5044,12 @@
                                 },
                                 "spare_sync_incomplete": {
                                     "type": "integer"
+                                },
+                                "flows_work_queue": {
+                                    "type": "integer"
+                                },
+                                "flows_work_queue_max": {
+                                    "type": "integer"
                                 }
                             },
                             "additionalProperties": false

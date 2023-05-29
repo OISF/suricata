@@ -89,6 +89,8 @@ typedef struct FlowWorkerThreadData_ {
         uint16_t flows_removed;
         uint16_t flows_aside_needs_work;
         uint16_t flows_aside_pkt_inject;
+        uint16_t flows_wq;     /**< local work queue length */
+        uint16_t flows_wq_max; /**< local work queue length (max value) */
     } cnt;
     FlowEndCounters fec;
 
@@ -279,6 +281,9 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, const void *initdata, void *
     fw->cnt.flows_removed = StatsRegisterCounter("flow.wrk.flows_evicted", tv);
     fw->cnt.flows_injected = StatsRegisterCounter("flow.wrk.flows_injected", tv);
     fw->cnt.flows_injected_max = StatsRegisterMaxCounter("flow.wrk.flows_injected_max", tv);
+
+    fw->cnt.flows_wq = StatsRegisterCounter("flow.wrk.flows_work_queue", tv);
+    fw->cnt.flows_wq_max = StatsRegisterMaxCounter("flow.wrk.flows_work_queue_max", tv);
 
     fw->fls.dtv = fw->dtv = DecodeThreadVarsAlloc(tv);
     if (fw->dtv == NULL) {
@@ -497,6 +502,9 @@ static inline void FlowWorkerProcessLocalFlows(ThreadVars *tv, FlowWorkerThreadD
     uint32_t max_work = 2;
     if (p->pkt_src == PKT_SRC_SHUTDOWN_FLUSH || p->pkt_src == PKT_SRC_CAPTURE_TIMEOUT)
         max_work = 0;
+
+    StatsSetUI64(tv, fw->cnt.flows_wq, fw->fls.work_queue.len);
+    StatsSetUI64(tv, fw->cnt.flows_wq_max, fw->fls.work_queue.len);
 
     FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_FLOW_EVICTED);
     if (fw->fls.work_queue.len) {
