@@ -36,6 +36,7 @@ void SetMasterExceptionPolicy(void);
 void ExceptionPolicyApply(
         Packet *p, enum ExceptionPolicy policy, enum PacketDropReason drop_reason);
 enum ExceptionPolicy ExceptionPolicyParse(const char *option, const bool support_flow);
+enum ExceptionPolicy ExceptionPolicyMidstreamParse(bool midstream_enabled);
 
 extern enum ExceptionPolicy g_eps_master_switch;
 #ifdef DEBUG
