@@ -21,6 +21,8 @@ use crate::smb::smb::*;
 use crate::smb::smb_records::*;
 use nom7::bytes::streaming::{tag, take};
 use nom7::combinator::{complete, cond, peek, rest, verify};
+use nom7::error::{make_error, ErrorKind};
+use nom7::Err;
 use nom7::multi::many1;
 use nom7::number::streaming::{le_u8, le_u16, le_u32, le_u64};
 use nom7::IResult;
@@ -94,6 +96,7 @@ pub fn parse_smb1_write_request_record(i: &[u8]) -> IResult<&[u8], Smb1WriteRequ
 }
 
 pub fn parse_smb1_write_andx_request_record(i : &[u8], andx_offset: usize) -> IResult<&[u8], Smb1WriteRequestRecord> {
+    let origin_i = i;
     let ax = andx_offset as u16;
     let (i, wct) = le_u8(i)?;
     let (i, _andx_command) = le_u8(i)?;
@@ -106,16 +109,19 @@ pub fn parse_smb1_write_andx_request_record(i : &[u8], andx_offset: usize) -> IR
     let (i, _remaining) = le_u16(i)?;
     let (i, data_len_high) = le_u16(i)?;
     let (i, data_len_low) = le_u16(i)?;
+    let data_len = ((data_len_high as u32) << 16)|(data_len_low as u32);
     let (i, data_offset) = le_u16(i)?;
+    if data_offset < 0x3c || data_offset < ax{
+        return Err(Err::Error(make_error(i, ErrorKind::LengthValue)));
+    }
     let (i, high_offset) = cond(wct == 14, le_u32)(i)?;
-    let (i, bcc) = le_u16(i)?;
-    //spec [MS-CIFS].pdf says always take one byte padding
-    let (i, _padding) = cond(bcc > data_len_low, |b| take(bcc - data_len_low)(b))(i)?; // TODO figure out how this works with data_len_high
-    let (i, _padding_evasion) = cond(data_offset > ax+4+2*(wct as u16), |b| take(data_offset - (ax+4+2*(wct as u16)))(b))(i)?;
-    let (i, file_data) = rest(i)?;
+    let (_i, _bcc) = le_u16(i)?;
+    let (i, _padding_data) = take(data_offset-ax)(origin_i)?;
+    let (i, file_data) = take(std::cmp::min(data_len, i.len() as u32))(i)?;
+
     let record = Smb1WriteRequestRecord {
         offset: ((high_offset.unwrap_or(0) as u64) << 32) | offset as u64,
-        len: ((data_len_high as u32) << 16)|(data_len_low as u32),
+        len: data_len,
         fid,
         data: file_data,
     };
@@ -861,4 +867,17 @@ pub fn parse_smb_record(i: &[u8]) -> IResult<&[u8], SmbRecord> {
         data,
     };
     Ok((i, record))
+}
+
+#[test]
+fn test_parse_smb1_write_andx_request_record_origin() {
+    let data = hex::decode("0eff000000014000000000ff00000008001400000014003f000000000014004142434445464748494a4b4c4d4e4f5051520a0a").unwrap();
+    let result = parse_smb1_write_andx_request_record(&data, SMB1_HEADER_SIZE);
+	assert!(result.is_ok());
+    let record = result.unwrap().1;
+    assert_eq!(record.offset, 0);
+    assert_eq!(record.len, 20);
+    assert_eq!(record.fid, &[0x01, 0x40]);
+    assert_eq!(record.data.len(), 20);
+    assert_eq!(record.data, b"ABCDEFGHIJKLMNOPQR\n\n");
 }
