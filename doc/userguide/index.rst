@@ -10,6 +10,7 @@ Suricata User Guide
    install.rst
    upgrade.rst
    security.rst
+   support-status.rst
    command-line-options
    rules/index.rst
    rule-management/index.rst
