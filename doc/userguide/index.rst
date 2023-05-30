@@ -9,6 +9,7 @@ Suricata User Guide
    quickstart
    install.rst
    upgrade.rst
+   support-status.rst
    command-line-options
    rules/index.rst
    rule-management/index.rst
