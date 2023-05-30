@@ -1133,6 +1133,23 @@ static int NoNewTx(SMTPState *state, const SMTPLine *line)
 /* XXX have a better name */
 #define rawmsgname "rawmsg"
 
+/*
+ * @brief Process an SMTP Request
+ *
+ * Parse and decide the current command and set appropriate variables on the state
+ * accordingly. Create transactions if needed or update the current transaction
+ * with the appropriate data/params. Pass the control to the respective command
+ * parser in the end.
+ *
+ * @param state  Pointer to current SMTPState
+ * @param f      Pointer to the current Flow
+ * @param pstate Pointer to the current AppLayerParserState
+ * @param input  Pointer to the current input data to SMTP parser
+ * @param line   Pointer to the current line being parsed by the SMTP parser
+ * @return  0 for success
+ *         -1 for errors and inconsistent states
+ *         -2 if MIME state could not be allocated
+ * */
 static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *pstate,
         SMTPInput *input, const SMTPLine *line)
 {
@@ -1294,6 +1311,26 @@ static inline void ResetLine(SMTPLine *line)
     }
 }
 
+/*
+ * @brief Pre Process the data that comes in DATA mode.
+ *
+ * If currently, the command that is being processed is DATA, whatever data
+ * comes as a part of it must be handled by this function. This is because
+ * there should be no char limit imposition on the line arriving in the DATA
+ * mode. Such limits are in place for any lines passed to the GetLine function
+ * and the lines are capped there at SMTP_LINE_BUFFER_LIMIT.
+ * One such limit in DATA mode may lead to file data or parts of e-mail being
+ * truncated if the line were too long.
+ *
+ * @param state  Pointer to the current SMTPState
+ * @param f      Pointer to the current Flow
+ * @param pstate Pointer to the current AppLayerParserState
+ * @param input  Pointer to the current input data to SMTP parser
+ * @param line   Pointer to the current line being parsed by the SMTP parser
+ * @return  0 for success
+ *          1 for handing control over to GetLine
+ *         -1 for errors and inconsistent states
+ * */
 static int SMTPPreProcessCommands(
         SMTPState *state, Flow *f, AppLayerParserState *pstate, SMTPInput *input, SMTPLine *line)
 {
