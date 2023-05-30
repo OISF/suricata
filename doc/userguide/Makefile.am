@@ -29,6 +29,7 @@ EXTRA_DIST = \
 	setting-up-ipsinline-for-linux \
 	setting-up-ipsinline-for-linux.rst \
 	setting-up-ipsinline-for-windows.rst \
+	support-status.rst \
 	unix-socket.rst \
 	what-is-suricata.rst
 
