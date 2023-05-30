@@ -1045,6 +1045,21 @@ static int NoNewTx(SMTPState *state)
     return 0;
 }
 
+/*
+ * @brief Process an SMTP Request
+ *
+ * Parse and decide the current command and set appropriate variables on the state
+ * accordingly. Create transactions if needed or update the current transaction
+ * with the appropriate data/params. Pass the control to the respective command
+ * parser in the end.
+ *
+ * @param state  Pointer to current SMTPState
+ * @param f      Pointer to the current Flow
+ * @param pstate Pointer to the current AppLayerParserState
+ * @return  0 for success
+ *         -1 for errors and inconsistent states
+ *         -2 if MIME state could not be allocated
+ * */
 static int SMTPProcessRequest(SMTPState *state, Flow *f,
                               AppLayerParserState *pstate)
 {
@@ -1222,6 +1237,24 @@ static inline void ResetLine(SMTPState *state)
     }
 }
 
+/*
+ * @brief Pre Process the data that comes in DATA mode.
+ *
+ * If currently, the command that is being processed is DATA, whatever data
+ * comes as a part of it must be handled by this function. This is because
+ * there should be no char limit imposition on the line arriving in the DATA
+ * mode. Such limits are in place for any lines passed to the GetLine function
+ * and the lines are capped there at SMTP_LINE_BUFFER_LIMIT.
+ * One such limit in DATA mode may lead to file data or parts of e-mail being
+ * truncated if the line were too long.
+ *
+ * @param state  Pointer to the current SMTPState
+ * @param f      Pointer to the current Flow
+ * @param pstate Pointer to the current AppLayerParserState
+ * @return  0 for success
+ *          1 for handing control over to GetLine
+ *         -1 for errors and inconsistent states
+ * */
 static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState *pstate)
 {
     DEBUG_VALIDATE_BUG_ON((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) == 0);
