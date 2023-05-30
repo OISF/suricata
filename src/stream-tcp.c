@@ -478,15 +478,7 @@ void StreamTcpInitConfig(char quiet)
     stream_config.ssn_memcap_policy = ExceptionPolicyParse("stream.memcap-policy", true);
     stream_config.reassembly_memcap_policy =
             ExceptionPolicyParse("stream.reassembly.memcap-policy", true);
-    SCLogConfig("memcap-policy: %u/%u", stream_config.ssn_memcap_policy,
-            stream_config.reassembly_memcap_policy);
-    stream_config.midstream_policy = ExceptionPolicyParse("stream.midstream-policy", true);
-    if (stream_config.midstream && stream_config.midstream_policy != EXCEPTION_POLICY_NOT_SET) {
-        SCLogWarning(SC_WARN_COMPATIBILITY,
-                "stream.midstream_policy setting conflicting with stream.midstream enabled. "
-                "Ignoring stream.midstream_policy.");
-        stream_config.midstream_policy = EXCEPTION_POLICY_NOT_SET;
-    }
+    stream_config.midstream_policy = ExceptionPolicyMidstreamParse(stream_config.midstream);
 
     if (!quiet) {
         SCLogConfig("stream.\"inline\": %s",
@@ -962,8 +954,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             return 0;
         }
         if (!(stream_config.midstream_policy == EXCEPTION_POLICY_NOT_SET ||
-                    stream_config.midstream_policy == EXCEPTION_POLICY_PASS_FLOW ||
-                    stream_config.midstream_policy == EXCEPTION_POLICY_PASS_PACKET)) {
+                    stream_config.midstream_policy == EXCEPTION_POLICY_PASS_FLOW)) {
             SCLogDebug("Midstream policy not permissive, so won't pick up a session");
             return 0;
         }
@@ -1133,8 +1124,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             return 0;
         }
         if (!(stream_config.midstream_policy == EXCEPTION_POLICY_NOT_SET ||
-                    stream_config.midstream_policy == EXCEPTION_POLICY_PASS_FLOW ||
-                    stream_config.midstream_policy == EXCEPTION_POLICY_PASS_PACKET)) {
+                    stream_config.midstream_policy == EXCEPTION_POLICY_PASS_FLOW)) {
             SCLogDebug("Midstream policy not permissive, so won't pick up a session");
             return 0;
         }
