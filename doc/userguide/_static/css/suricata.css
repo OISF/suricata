@@ -25,3 +25,10 @@
 .example-rule-options {
     color: #00f;
 }
+
+/* Make tables wrap text to avoid requiring the user to horizontally
+ * scroll. */
+.wy-table-responsive table td, .wy-table-responsive table th {
+    white-space: inherit;
+    vertical-align: top !important;
+}
