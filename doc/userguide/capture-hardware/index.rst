@@ -9,3 +9,4 @@ Using Capture Hardware
    ebpf-xdp
    netmap
    af-xdp
+   dpdk
