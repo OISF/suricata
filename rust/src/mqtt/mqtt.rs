@@ -162,7 +162,7 @@ impl MQTTState {
     }
 
     pub fn get_tx_by_pkt_id(&mut self, pkt_id: u32) -> Option<&mut MQTTTransaction> {
-        for tx in &mut self.transactions {
+        for tx in &mut self.transactions.range_mut(self.tx_index_completed..) {
             if !tx.complete {
                 if let Some(mpktid) = tx.pkt_id {
                     if mpktid == pkt_id {
