@@ -41,4 +41,5 @@ GitHub filter for approved PRs that should go in a next branch is ``is:pr is:ope
 
 Command to get approved PRs is ``gh pr list --json number,reviewDecision --search "state:open type:pr -review:none" | jq '.[] | select(.reviewDecision=="")'``
 
-Once in approved state, the PRs are in the responsibility of the merger, along with the next branches/PRs.
+Once in approved state, the PRs are in the responsibility of the merger, along
+with the next branches/PRs.
