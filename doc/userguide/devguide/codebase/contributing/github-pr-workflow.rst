@@ -32,7 +32,8 @@ either changes requested, approved, or assigned to someone else if more expertis
 GitHub filter for changes-requested PRs is ``is:pr is:open draft:false sort:updated-asc review:changes-requested``
 
 Such a PR may be closed if it has not been updated in two months.
-It is expected that the author creates a new PR with a new version of the patch as described in :ref:`Pull Requests Criteria <pull-requests-criteria>`.
+It is expected that the author creates a new PR with a new version of the patch
+as described in :ref:`Pull Requests Criteria <pull-requests-criteria>`.
 
 #TODO filter does not work cf https://github.com/OISF/suricata/pull/8898
 
