@@ -6,7 +6,8 @@ Draft PRs
 
 A PR should be marked as `draft` if it is not intended to be merged as is,
 but is waiting for some sort of feedback.
-The author of the PR should explicit what kind of feedback is expected (CI/QA run, discussion on the code, etc...)
+The author of the PR should explicit what kind of feedback is expected (CI/QA
+run, discussion on the code, etc...)
 
 GitHub filter is ``is:pr is:open draft:true sort:updated-asc``
 
