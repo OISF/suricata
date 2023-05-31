@@ -25,6 +25,8 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
+
+#include "action-globals.h"
 #include "decode.h"
 #include "conf.h"
 #include "threadvars.h"
@@ -473,6 +475,9 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
         FlowUpdateState(f, FLOW_STATE_ESTABLISHED);
     }
 
+    if (f->flags & FLOW_ACTION_DROP) {
+        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FLOW_DROP);
+    }
     /*set the detection bypass flags*/
     if (f->flags & FLOW_NOPACKET_INSPECTION) {
         SCLogDebug("setting FLOW_NOPACKET_INSPECTION flag on flow %p", f);
