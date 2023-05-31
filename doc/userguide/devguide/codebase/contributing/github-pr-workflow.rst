@@ -27,7 +27,8 @@ A newly created PR should match the filter
 The whole team is responsible to assign a PR to someone precise within 2 weeks.
 
 When someone gets assigned a PR, the PR should get a review status within 2 weeks:
-either changes requested, approved, or assigned to someone else if more expertise is needed.
+either changes requested, approved, or assigned to someone else if more
+expertise is needed.
 
 GitHub filter for changes-requested PRs is ``is:pr is:open draft:false sort:
 updated-asc review:changes-requested``
