@@ -118,4 +118,8 @@ void DPDKCleanupEAL(void);
 
 void DPDKCloseDevice(LiveDevice *ldev);
 
+#ifdef HAVE_DPDK
+const char *DPDKGetPortNameByPortID(uint16_t pid);
+#endif /* HAVE_DPDK */
+
 #endif /* UTIL_DPDK_H */
