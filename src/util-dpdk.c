@@ -57,3 +57,23 @@ void DPDKCloseDevice(LiveDevice *ldev)
     }
 #endif
 }
+
+#ifdef HAVE_DPDK
+
+/**
+ * Retrieves name of the port from port id
+ * Not thread-safe
+ * @param pid
+ * @return static dev_name on success
+ */
+const char *DPDKGetPortNameByPortID(uint16_t pid)
+{
+    static char dev_name[RTE_ETH_NAME_MAX_LEN];
+    int32_t ret = rte_eth_dev_get_name_by_port(pid, dev_name);
+    if (ret < 0) {
+        FatalError("Port %d: Failed to obtain port name (err: %s)", pid, rte_strerror(-ret));
+    }
+    return dev_name;
+}
+
+#endif /* HAVE_DPDK */
