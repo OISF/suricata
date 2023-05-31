@@ -36,6 +36,8 @@ static const char *ExceptionPolicyEnumToString(enum ExceptionPolicy policy)
     switch (policy) {
         case EXCEPTION_POLICY_NOT_SET:
             return "ignore";
+        case EXCEPTION_POLICY_AUTO:
+            return "auto";
         case EXCEPTION_POLICY_REJECT:
             return "reject";
         case EXCEPTION_POLICY_BYPASS_FLOW:
@@ -67,6 +69,8 @@ void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDro
 {
     SCLogDebug("start: pcap_cnt %" PRIu64 ", policy %u", p->pcap_cnt, policy);
     switch (policy) {
+        case EXCEPTION_POLICY_AUTO:
+            break;
         case EXCEPTION_POLICY_NOT_SET:
             break;
         case EXCEPTION_POLICY_REJECT:
@@ -141,6 +145,8 @@ static enum ExceptionPolicy PickPacketAction(const char *option, enum ExceptionP
             break;
         case EXCEPTION_POLICY_NOT_SET:
             break;
+        case EXCEPTION_POLICY_AUTO:
+            break;
     }
     return p;
 }
@@ -150,13 +156,13 @@ static enum ExceptionPolicy ExceptionPolicyConfigValueParse(
 {
     enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
     if (strcmp(value_str, "drop-flow") == 0) {
-        policy = SetIPSOption(option, value_str, EXCEPTION_POLICY_DROP_FLOW);
+        policy = EXCEPTION_POLICY_DROP_FLOW;
     } else if (strcmp(value_str, "pass-flow") == 0) {
         policy = EXCEPTION_POLICY_PASS_FLOW;
     } else if (strcmp(value_str, "bypass") == 0) {
         policy = EXCEPTION_POLICY_BYPASS_FLOW;
     } else if (strcmp(value_str, "drop-packet") == 0) {
-        policy = SetIPSOption(option, value_str, EXCEPTION_POLICY_DROP_PACKET);
+        policy = EXCEPTION_POLICY_DROP_PACKET;
     } else if (strcmp(value_str, "pass-packet") == 0) {
         policy = EXCEPTION_POLICY_PASS_PACKET;
     } else if (strcmp(value_str, "reject") == 0) {
@@ -164,15 +170,11 @@ static enum ExceptionPolicy ExceptionPolicyConfigValueParse(
     } else if (strcmp(value_str, "ignore") == 0) { // TODO name?
         policy = EXCEPTION_POLICY_NOT_SET;
     } else if (strcmp(value_str, "auto") == 0) {
-        if (!EngineModeIsIPS()) {
-            policy = EXCEPTION_POLICY_NOT_SET;
-        } else {
-            policy = EXCEPTION_POLICY_DROP_FLOW;
-        }
+        policy = EXCEPTION_POLICY_AUTO;
     } else {
         FatalErrorOnInit(
                 "\"%s\" is not a valid exception policy value. Valid options are drop-flow, "
-                "pass-flow, bypass, reject, drop-packet, pass-packet or ignore.",
+                "pass-flow, bypass, reject, drop-packet, pass-packet, ignore or auto.",
                 value_str);
     }
 
