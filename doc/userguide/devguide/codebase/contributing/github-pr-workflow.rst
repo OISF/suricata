@@ -18,7 +18,7 @@ Mergeable PRs
 When a Pull Request is intended to be merged as is, the workflow is the following:
  1. get reviewed, and either request changes or get approved
  2. if approved, get staged in a next branch (with other PRs), wait for CI validation
-   (and eventually request changes if CI finds anything)
+    (and eventually request changes if CI finds anything)
  3. get merged and closed
 
 A newly created PR should match the filter
