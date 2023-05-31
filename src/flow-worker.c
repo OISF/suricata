@@ -34,6 +34,8 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
+#include "action-globals.h"
+#include "packet.h"
 #include "decode.h"
 #include "detect.h"
 #include "stream-tcp.h"
@@ -566,9 +568,11 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
         /* handle the app layer part of the UDP packet payload */
     } else if (p->flow && p->proto == IPPROTO_UDP) {
-        FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_APPLAYERUDP);
-        AppLayerHandleUdp(tv, fw->stream_thread->ra_ctx->app_tctx, p, p->flow);
-        FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_APPLAYERUDP);
+        if (!PacketCheckAction(p, ACTION_DROP)) {
+            FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_APPLAYERUDP);
+            AppLayerHandleUdp(tv, fw->stream_thread->ra_ctx->app_tctx, p, p->flow);
+            FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_APPLAYERUDP);
+        }
     }
 
     PacketUpdateEngineEventCounters(tv, fw->dtv, p);
