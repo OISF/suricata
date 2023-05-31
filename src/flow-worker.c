@@ -185,8 +185,9 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw, FlowTimeout
         f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT; //TODO emerg
 
         if (f->proto == IPPROTO_TCP) {
-            if (!(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) && !FlowIsBypassed(f) &&
-                    FlowForceReassemblyNeedReassembly(f) == 1 && f->ffr != 0) {
+            if (!(f->flags & (FLOW_TIMEOUT_REASSEMBLY_DONE | FLOW_ACTION_DROP)) &&
+                    !FlowIsBypassed(f) && FlowForceReassemblyNeedReassembly(f) == 1 &&
+                    f->ffr != 0) {
                 /* read detect thread in case we're doing a reload */
                 void *detect_thread = SC_ATOMIC_GET(fw->detect_thread);
                 int cnt = FlowFinish(tv, f, fw, detect_thread);
