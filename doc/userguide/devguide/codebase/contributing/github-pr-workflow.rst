@@ -42,7 +42,8 @@ as described in :ref:`Pull Requests Criteria <pull-requests-criteria>`.
 GitHub filter for approved PRs that should go in a next branch is ``is:pr is:open
 draft:false sort:updated-asc review:approved``
 
-Command to get approved PRs is ``gh pr list --json number,reviewDecision --search "state:open type:pr -review:none" | jq '.[] | select(.reviewDecision=="")'``
+Command to get approved PRs is ``gh pr list --json number,reviewDecision --search
+"state:open type:pr -review:none" | jq '.[] | select(.reviewDecision=="")'``
 
 Once in approved state, the PRs are in the responsibility of the merger, along
 with the next branches/PRs.
