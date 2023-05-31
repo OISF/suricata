@@ -29,7 +29,8 @@ The whole team is responsible to assign a PR to someone precise within 2 weeks.
 When someone gets assigned a PR, the PR should get a review status within 2 weeks:
 either changes requested, approved, or assigned to someone else if more expertise is needed.
 
-GitHub filter for changes-requested PRs is ``is:pr is:open draft:false sort:updated-asc review:changes-requested``
+GitHub filter for changes-requested PRs is ``is:pr is:open draft:false sort:
+updated-asc review:changes-requested``
 
 Such a PR may be closed if it has not been updated in two months.
 It is expected that the author creates a new PR with a new version of the patch
