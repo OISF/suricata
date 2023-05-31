@@ -5107,11 +5107,9 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
      * applayer detection, then drop the rest of the packets of the
      * same stream and avoid inspecting it any further */
     if (StreamTcpCheckFlowDrops(p) == 1) {
-        SCLogDebug("This flow/stream triggered a drop rule");
-        FlowSetNoPacketInspectionFlag(p->flow);
-        DecodeSetNoPacketInspectionFlag(p);
+        DEBUG_VALIDATE_BUG_ON(!(PKT_IS_PSEUDOPKT(p)) && !PACKET_TEST_ACTION(p, ACTION_DROP));
+        SCLogDebug("flow triggered a drop rule");
         StreamTcpDisableAppLayer(p->flow);
-        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FLOW_DROP);
         /* return the segments to the pool */
         StreamTcpSessionPktFree(p);
         SCReturnInt(0);
