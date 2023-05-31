@@ -39,7 +39,8 @@ as described in :ref:`Pull Requests Criteria <pull-requests-criteria>`.
 
 #TODO filter does not work cf https://github.com/OISF/suricata/pull/8898
 
-GitHub filter for approved PRs that should go in a next branch is ``is:pr is:open draft:false sort:updated-asc review:approved``
+GitHub filter for approved PRs that should go in a next branch is ``is:pr is:open
+draft:false sort:updated-asc review:approved``
 
 Command to get approved PRs is ``gh pr list --json number,reviewDecision --search "state:open type:pr -review:none" | jq '.[] | select(.reviewDecision=="")'``
 
