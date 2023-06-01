@@ -1713,6 +1713,7 @@ static void DetectFlow(ThreadVars *tv,
      * to allow stream engine "invalid" drop packets to still be
      * evaluated by the stream event rules. */
     if (f->flags & FLOW_ACTION_DROP) {
+        DEBUG_VALIDATE_BUG_ON(!(PKT_IS_PSEUDOPKT(p)) && !PacketCheckAction(p, ACTION_DROP));
         SCReturn;
     }
 
