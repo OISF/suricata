@@ -1965,6 +1965,7 @@ The whole DPDK configuration resides in the `dpdk:` node. This node encapsulates
     dpdk:
       eal-params:
         proc-type: primary
+        allow: ["0000:3b:00.0", "0000:3b:00.1"]
       interfaces:
         - interface: 0000:3b:00.0
           threads: auto
@@ -1988,7 +1989,14 @@ are typically provided through the command line, are contained in the node
 parameters. There are two ways to specify arguments: lengthy and short.
 Dashes are omitted when describing the arguments. This setup node can be
 used to set up the memory configuration, accessible NICs, and other EAL-related
-parameters, among other things. The definition of lcore affinity as an EAL
+parameters, among other things. The node `dpdk.eal-params` also supports 
+multiple arguments of the same type. This can be useful for EAL arguments 
+such as `--vdev`, `--allow`, or `--block`. Values for these EAL arguments 
+are specified as a comma-separated list. 
+An example of such usage can be found in the example above where the `allow` 
+argument only makes `0000:3b:00.0` and `0000:3b:00.1` accessible to Suricata. 
+arguments with list node. such as --vdev, --allow, --block eal options.
+The definition of lcore affinity as an EAL
 parameter is a standard practice. However, lcore parameters like `-l`, `-c`,
 and `--lcores`` are specified within the `suricata-yaml-threading`_ section
 to prevent configuration overlap.
