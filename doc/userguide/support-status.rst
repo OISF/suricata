@@ -48,6 +48,14 @@ supported.
 On the other hand, the feature will be removed if the submitter stops
 maintaining it and no-one steps up to take over.
 
+Vendor
+------
+
+Vendor supported features are features specific to a certain vendor
+and usually require software and/or hardware from that vendor. While
+these features may exist in the main Suricata code, they rely on
+support from the vendor to keep the feature in a functional state.
+
 Unmaintained
 ------------
 
@@ -220,11 +228,21 @@ Community
    +--------------------+--------------------------+----+---------------+
    |Endace/DAG          |Community                 |    |               |
    +--------------------+--------------------------+----+---------------+
-   |Napatech            |Community / Napatech      |    |               |
-   +--------------------+--------------------------+----+---------------+
    |AF_XDP              |Community                 |    |               |
    +--------------------+--------------------------+----+---------------+
    |AF_PACKET (eBPF/XDP)|Eric Leblond              |    |               |
+   +--------------------+--------------------------+----+---------------+
+
+Vendor
+^^^^^^
+
+.. table::
+   :width: 100%
+
+   +--------------------+--------------------------+----+---------------+
+   |Capture Type        |Maintainer                |QA  |Notes          |
+   +====================+==========================+====+===============+
+   |Napatech            |Napatech / Community      |    |               |
    +--------------------+--------------------------+----+---------------+
 
 Unmaintained
