@@ -272,6 +272,14 @@ static void InitEal(void)
     ArgumentsAdd(&args, AllocAndSetArgument("suricata"));
 
     TAILQ_FOREACH (param, &eal_params->head, next) {
+        if (ConfNodeIsSequence(param)) {
+            const char *key = param->name;
+            ConfNode *val;
+            TAILQ_FOREACH (val, &param->head, next) {
+                ArgumentsAddOptionAndArgument(&args, key, (const char *)val->val);
+            }
+            continue;
+        }
         ArgumentsAddOptionAndArgument(&args, param->name, param->val);
     }
 
