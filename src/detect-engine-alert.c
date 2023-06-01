@@ -334,7 +334,7 @@ static inline void FlowApplySignatureActions(
      * - sig is IP or PD only
      * - match is in applayer
      * - match is in stream */
-    if (s->action & (ACTION_DROP | ACTION_PASS)) {
+    if (pa->action & (ACTION_DROP | ACTION_PASS)) {
         DEBUG_VALIDATE_BUG_ON(s->type == SIG_TYPE_NOT_SET);
         DEBUG_VALIDATE_BUG_ON(s->type == SIG_TYPE_MAX);
 
