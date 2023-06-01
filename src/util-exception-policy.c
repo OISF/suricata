@@ -183,6 +183,19 @@ static enum ExceptionPolicy ExceptionPolicyConfigValueParse(
     return policy;
 }
 
+static enum ExceptionPolicy ExceptionPolicyPickAuto(bool midstream_enabled, bool support_flow)
+{
+    enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
+    if (!midstream_enabled && EngineModeIsIPS()) {
+        if (support_flow) {
+            policy = EXCEPTION_POLICY_DROP_FLOW;
+        } else {
+            policy = EXCEPTION_POLICY_DROP_PACKET;
+        }
+    }
+    return policy;
+}
+
 static enum ExceptionPolicy ExceptionPolicyMasterParse(const char *value)
 {
     enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
@@ -227,6 +240,9 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, bool support_flow)
             policy = ExceptionPolicyMasterParse(value_str);
         } else {
             policy = ExceptionPolicyConfigValueParse(option, value_str);
+            if (policy == EXCEPTION_POLICY_AUTO) {
+                policy = ExceptionPolicyPickAuto(false, support_flow);
+            }
             if (!support_flow) {
                 policy = PickPacketAction(option, policy);
             }
@@ -246,7 +262,9 @@ enum ExceptionPolicy ExceptionPolicyMidstreamParse(bool midstream_enabled)
     /* policy was set directly */
     if ((ConfGet("stream.midstream-policy", &value_str)) == 1 && value_str != NULL) {
         policy = ExceptionPolicyConfigValueParse("midstream-policy", value_str);
-        if (midstream_enabled) {
+        if (policy == EXCEPTION_POLICY_AUTO) {
+            policy = ExceptionPolicyPickAuto(midstream_enabled, true);
+        } else if (midstream_enabled) {
             if (policy != EXCEPTION_POLICY_NOT_SET && policy != EXCEPTION_POLICY_PASS_FLOW) {
                 FatalErrorOnInit(SC_ERR_INVALID_VALUE,
                         "Error parsing stream.midstream-policy from config file. \"%s\" is "
