@@ -115,7 +115,7 @@ static enum ExceptionPolicy SetIPSOption(
         const char *option, const char *value_str, enum ExceptionPolicy p)
 {
     if (!EngineModeIsIPS()) {
-        SCLogConfig("%s: %s not a valid config in IDS mode. Ignoring it.", option, value_str);
+        SCLogWarning("%s: %s not a valid config in IDS mode. Ignoring it.", option, value_str);
         return EXCEPTION_POLICY_NOT_SET;
     }
     return p;
@@ -188,7 +188,7 @@ static enum ExceptionPolicy ExceptionPolicyMasterParse(const char *value)
     policy = ExceptionPolicyConfigValueParse("exception-policy", value);
     g_eps_have_exception_policy = true;
     policy = SetIPSOption("exception-policy", value, policy);
-    SCLogConfig("exception-policy set to: %s", ExceptionPolicyEnumToString(policy));
+    SCLogWarning("exception-policy set to: %s", ExceptionPolicyEnumToString(policy));
 
     return policy;
 }
@@ -202,13 +202,13 @@ static enum ExceptionPolicy ExceptionPolicyGetDefault(
         if (!support_flow) {
             p = PickPacketAction(option, p);
         }
-        SCLogConfig("%s: %s (defined via 'exception-policy' master switch)", option,
+        SCLogWarning("%s: %s (defined via 'exception-policy' master switch)", option,
                 ExceptionPolicyEnumToString(p));
         return p;
     } else if (EngineModeIsIPS() && !midstream) {
         p = EXCEPTION_POLICY_DROP_FLOW;
     }
-    SCLogConfig("%s: %s (defined via 'built-in default' for %s-mode)", option,
+    SCLogWarning("%s: %s (defined via 'built-in default' for %s-mode)", option,
             ExceptionPolicyEnumToString(p), EngineModeIsIPS() ? "IPS" : "IDS");
 
     return p;
@@ -227,7 +227,7 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, bool support_flow)
             if (!support_flow) {
                 policy = PickPacketAction(option, policy);
             }
-            SCLogConfig("%s: %s", option, ExceptionPolicyEnumToString(policy));
+            SCLogWarning("%s: %s", option, ExceptionPolicyEnumToString(policy));
         }
     } else {
         policy = ExceptionPolicyGetDefault(option, support_flow, false);
