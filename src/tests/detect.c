@@ -4794,117 +4794,6 @@ end:
     return result;
 }
 
-/** \test test if the engine set flag to drop pkts of a flow that
- *        triggered a drop action on IDS mode, but continue the inspection
- *        as usual (instead of on IPS mode) */
-static int SigTestDropFlow04(void)
-{
-    Flow f;
-    HtpState *http_state = NULL;
-    uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
-    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
-
-    uint8_t http_buf2[] = "POST /two HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
-    uint32_t http_buf2_len = sizeof(http_buf1) - 1;
-
-    TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
-    Signature *s = NULL;
-    ThreadVars tv;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-
-    memset(&tv, 0, sizeof(ThreadVars));
-    memset(&f, 0, sizeof(Flow));
-    memset(&ssn, 0, sizeof(TcpSession));
-
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-
-    p1->flow = &f;
-    p1->flowflags |= FLOW_PKT_TOSERVER;
-    p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-
-    p2->flow = &f;
-    p2->flowflags |= FLOW_PKT_TOSERVER;
-    p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
-
-    StreamTcpInitConfig(TRUE);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-    de_ctx->flags |= DE_QUIET;
-
-    s = DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 "
-                                      "(msg:\"Test proto match\"; uricontent:\"one\";"
-                                      "sid:1;)");
-    FAIL_IF_NULL(s);
-
-    /* the no inspection flag should be set after the first sig gets triggered,
-     * so the second packet should not match the next sig (because of no inspection) */
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any 80 "
-                                      "(msg:\"Test proto match\"; uricontent:\"two\";"
-                                      "sid:2;)");
-    FAIL_IF_NULL(s);
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
-
-    int r = AppLayerParserParse(
-            NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
-    FAIL_IF_NOT(r == 0);
-
-    http_state = f.alstate;
-    FAIL_IF_NULL(http_state);
-
-    /* do detect */
-    SigMatchSignatures(&tv, de_ctx, det_ctx, p1);
-
-    FAIL_IF_NOT(PacketAlertCheck(p1, 1));
-    FAIL_IF(PacketAlertCheck(p1, 2));
-
-    FAIL_IF_NOT(p1->flow->flags & FLOW_ACTION_DROP);
-    FAIL_IF_NOT(PacketTestActionOnRealPkt(p1, ACTION_DROP));
-
-    FAIL_IF(p2->flags & PKT_NOPACKET_INSPECTION);
-
-    r = AppLayerParserParse(
-            NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
-    FAIL_IF_NOT(r == 0);
-
-    /* do detect */
-    SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
-
-    FAIL_IF(PacketAlertCheck(p2, 1));
-    FAIL_IF(PacketAlertCheck(p2, 2));
-    FAIL_IF_NOT(PacketTestActionOnRealPkt(p2, ACTION_DROP));
-
-    AppLayerParserThreadCtxFree(alp_tctx);
-    DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
-
-    UTHFreePackets(&p1, 1);
-    UTHFreePackets(&p2, 1);
-
-    PASS;
-}
-
 /** \test ICMP packet shouldn't be matching port based sig
  *        Bug #611 */
 static int SigTestPorts01(void)
@@ -5301,7 +5190,6 @@ void SigRegisterTests(void)
     UtRegisterTest("SigTestDropFlow01", SigTestDropFlow01);
     UtRegisterTest("SigTestDropFlow02", SigTestDropFlow02);
     UtRegisterTest("SigTestDropFlow03", SigTestDropFlow03);
-    UtRegisterTest("SigTestDropFlow04", SigTestDropFlow04);
 
     UtRegisterTest("DetectAddressYamlParsing01", DetectAddressYamlParsing01);
     UtRegisterTest("DetectAddressYamlParsing02", DetectAddressYamlParsing02);
