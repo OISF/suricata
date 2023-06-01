@@ -1566,8 +1566,11 @@ static void DetectFlow(ThreadVars *tv,
         return;
     }
 
-    /* if flow is set to drop, we enforce that here */
+    /* we check the flow drop here, and not the packet drop. This is
+     * to allow stream engine "invalid" drop packets to still be
+     * evaluated by the stream event rules. */
     if (p->flow->flags & FLOW_ACTION_DROP) {
+        DEBUG_VALIDATE_BUG_ON(!(PKT_IS_PSEUDOPKT(p)) && !PACKET_TEST_ACTION(p, ACTION_DROP));
         SCReturn;
     }
 
