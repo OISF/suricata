@@ -118,7 +118,7 @@ static enum ExceptionPolicy SetIPSOption(
         const char *option, const char *value_str, enum ExceptionPolicy p)
 {
     if (!EngineModeIsIPS()) {
-        SCLogConfig("%s: %s not a valid config in IDS mode. Ignoring it.", option, value_str);
+        SCLogWarning("%s: %s not a valid config in IDS mode. Ignoring it.", option, value_str);
         return EXCEPTION_POLICY_NOT_SET;
     }
     return p;
@@ -191,7 +191,8 @@ static enum ExceptionPolicy ExceptionPolicyMasterParse(const char *value)
     policy = ExceptionPolicyConfigValueParse("exception-policy", value);
     g_eps_have_exception_policy = true;
     policy = SetIPSOption("exception-policy", value, policy);
-    SCLogConfig("exception-policy set to: %s", ExceptionPolicyEnumToString(policy));
+
+    SCLogInfo("exception-policy set to: %s", ExceptionPolicyEnumToString(policy));
 
     return policy;
 }
