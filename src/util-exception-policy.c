@@ -181,6 +181,15 @@ static enum ExceptionPolicy ExceptionPolicyConfigValueParse(
     return policy;
 }
 
+static enum ExceptionPolicy ExceptionPolicyPickAuto(bool midstream_enabled)
+{
+    enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
+    if (!midstream_enabled && EngineModeIsIPS()) {
+        policy = EXCEPTION_POLICY_DROP_FLOW;
+    }
+    return policy;
+}
+
 static enum ExceptionPolicy ExceptionPolicyMasterParse(const char *value)
 {
     enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
@@ -189,11 +198,7 @@ static enum ExceptionPolicy ExceptionPolicyMasterParse(const char *value)
         policy = ExceptionPolicyConfigValueParse("exception-policy", value);
         g_eps_have_exception_policy = true;
         if (policy == EXCEPTION_POLICY_AUTO) {
-            if (EngineModeIsIPS()) {
-                policy = EXCEPTION_POLICY_DROP_FLOW;
-            } else {
-                policy = EXCEPTION_POLICY_NOT_SET;
-            }
+            policy = ExceptionPolicyPickAuto(false);
         }
     } else if (EngineModeIsIPS()) {
         policy = EXCEPTION_POLICY_DROP_FLOW;
@@ -235,6 +240,7 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, bool support_flow)
         } else {
             policy = ExceptionPolicyConfigValueParse(option, value_str);
             if (policy == EXCEPTION_POLICY_AUTO) {
+                // Question/TODO Should I just use ExceptionPolicyPickAuto?
                 policy = SetIPSOption(option, value_str, EXCEPTION_POLICY_DROP_FLOW);
             }
             if (!support_flow) {
@@ -257,11 +263,7 @@ enum ExceptionPolicy ExceptionPolicyMidstreamParse(bool midstream_enabled)
     if ((ConfGet("stream.midstream-policy", &value_str)) == 1 && value_str != NULL) {
         policy = ExceptionPolicyConfigValueParse("midstream-policy", value_str);
         if (policy == EXCEPTION_POLICY_AUTO) {
-            if (midstream_enabled) {
-                policy = EXCEPTION_POLICY_NOT_SET;
-            } else if (EngineModeIsIPS()) {
-                policy = EXCEPTION_POLICY_DROP_FLOW;
-            }
+            policy = ExceptionPolicyPickAuto(midstream_enabled);
         } else if (midstream_enabled) {
             if (policy != EXCEPTION_POLICY_NOT_SET && policy != EXCEPTION_POLICY_PASS_FLOW) {
                 FatalErrorOnInit(
