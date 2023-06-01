@@ -557,9 +557,6 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     // Outputs.
     OutputLoggerLog(tv, p, fw->output_thread);
 
-    /* Prune any stored files. */
-    FlowPruneFiles(p);
-
     /*  Release tcp segments. Done here after alerting can use them. */
     if (p->flow != NULL) {
         DEBUG_ASSERT_FLOW_LOCKED(p->flow);
@@ -582,6 +579,9 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
         Flow *f = p->flow;
         FlowDeReference(&p->flow);
         FLOWLOCK_UNLOCK(f);
+
+        /* Prune any stored files. */
+        FlowPruneFiles(p);
     }
 
 housekeeping:
