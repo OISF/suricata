@@ -322,7 +322,7 @@ static inline void FlowApplySignatureActions(
      * - sig is IP or PD only
      * - match is in applayer
      * - match is in stream */
-    if (s->action & (ACTION_DROP | ACTION_PASS)) {
+    if (pa->action & (ACTION_DROP | ACTION_PASS)) {
         if ((pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH)) ||
                 (s->flags & (SIG_FLAG_IPONLY | SIG_FLAG_LIKE_IPONLY | SIG_FLAG_PDONLY |
                                     SIG_FLAG_APPLAYER))) {
