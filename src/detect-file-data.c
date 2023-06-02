@@ -312,16 +312,22 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
                (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) ? "true" : "false");
 
     if (!htp_state->cfg->http_body_inline) {
-        /* inspect the body if the transfer is complete or we have hit
-        * our body size limit */
+        /* Inspect the body if the transfer is complete or we are
+         * within the body. Ideally we would wait for the entire
+         * response body, but if filestore is enabled we have to
+         * inspect earlier. */
         if ((htp_state->cfg->response.body_limit == 0 ||
-             body->content_len_so_far < htp_state->cfg->response.body_limit) &&
-            body->content_len_so_far < htp_state->cfg->response.inspect_min_size &&
-            !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) &&
-            !(flags & STREAM_EOF)) {
+                    body->content_len_so_far < htp_state->cfg->response.body_limit) &&
+                body->content_len_so_far < htp_state->cfg->response.inspect_min_size &&
+                !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) >=
+                        HTP_RESPONSE_BODY) &&
+                !(flags & STREAM_EOF)) {
             SCLogDebug("we still haven't seen the entire response body.  "
                        "Let's defer body inspection till we see the "
                        "entire body.");
+            /* This just here to show this condition is never met, at
+             * least not in the context of Suricata-Verify. */
+            abort();
             return NULL;
         }
     }
