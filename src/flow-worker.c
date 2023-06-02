@@ -552,24 +552,24 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     SCLogDebug("packet %"PRIu64" has flow? %s", p->pcap_cnt, p->flow ? "yes" : "no");
 
     /* handle TCP and app layer */
-    if (p->flow && PKT_IS_TCP(p)) {
-        SCLogDebug("packet %"PRIu64" is TCP. Direction %s", p->pcap_cnt, PKT_IS_TOSERVER(p) ? "TOSERVER" : "TOCLIENT");
-        DEBUG_ASSERT_FLOW_LOCKED(p->flow);
+    if (p->flow) {
+        if (PKT_IS_TCP(p)) {
+            SCLogDebug("packet %" PRIu64 " is TCP. Direction %s", p->pcap_cnt,
+                    PKT_IS_TOSERVER(p) ? "TOSERVER" : "TOCLIENT");
+            DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
-        /* if detect is disabled, we need to apply file flags to the flow
-         * here on the first packet. */
-        if (detect_thread == NULL &&
-                ((PKT_IS_TOSERVER(p) && (p->flowflags & FLOW_PKT_TOSERVER_FIRST)) ||
-                 (PKT_IS_TOCLIENT(p) && (p->flowflags & FLOW_PKT_TOCLIENT_FIRST))))
-        {
-            DisableDetectFlowFileFlags(p->flow);
-        }
+            /* if detect is disabled, we need to apply file flags to the flow
+             * here on the first packet. */
+            if (detect_thread == NULL &&
+                    ((PKT_IS_TOSERVER(p) && (p->flowflags & FLOW_PKT_TOSERVER_FIRST)) ||
+                            (PKT_IS_TOCLIENT(p) && (p->flowflags & FLOW_PKT_TOCLIENT_FIRST)))) {
+                DisableDetectFlowFileFlags(p->flow);
+            }
 
-        FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread, false);
+            FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread, false);
 
-        /* handle the app layer part of the UDP packet payload */
-    } else if (p->flow && p->proto == IPPROTO_UDP) {
-        if (!PacketCheckAction(p, ACTION_DROP)) {
+            /* handle the app layer part of the UDP packet payload */
+        } else if (p->proto == IPPROTO_UDP && !PacketCheckAction(p, ACTION_DROP)) {
             FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_APPLAYERUDP);
             AppLayerHandleUdp(tv, fw->stream_thread->ra_ctx->app_tctx, p, p->flow);
             FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_APPLAYERUDP);
