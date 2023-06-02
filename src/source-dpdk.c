@@ -202,16 +202,16 @@ static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *d
 
 static void DevicePreStopPMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
 {
-    int retval;
-
     if (strcmp(driver_name, "net_i40e") == 0) {
+#if RTE_VERSION > RTE_VERSION_NUM(20, 0, 0, 0)
         // Flush the RSS rules that have been inserted in the post start section
         struct rte_flow_error flush_error = { 0 };
-        retval = rte_flow_flush(ptv->port_id, &flush_error);
+        int32_t retval = rte_flow_flush(ptv->port_id, &flush_error);
         if (retval != 0) {
             SCLogError("Unable to flush rte_flow rules: %s Flush error msg: %s",
                     rte_strerror(-retval), flush_error.message);
         }
+#endif /* RTE_VERSION > RTE_VERSION_NUM(20, 0, 0, 0) */
     }
 }
 
