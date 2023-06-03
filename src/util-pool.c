@@ -54,14 +54,14 @@ static int PoolMemset(void *pitem, void *initdata)
 
 /**
  * \brief Check if data is preallocated
- * \retval 0 if not inside the prealloc'd block, 1 if inside */
-static int PoolDataPreAllocated(Pool *p, void *data)
+ * \retval false if not inside the prealloc'd block, true if inside */
+static bool PoolDataPreAllocated(Pool *p, void *data)
 {
     ptrdiff_t delta = data - p->data_buffer;
     if ((delta < 0) || (delta > p->data_buffer_size)) {
-        return 0;
+        return false;
     }
-    return 1;
+    return true;
 }
 
 /** \brief Init a Pool
@@ -233,7 +233,7 @@ void PoolFree(Pool *p)
         p->alloc_stack = pb->next;
         if (p->Cleanup)
             p->Cleanup(pb->data);
-        if (PoolDataPreAllocated(p, pb->data) == 0) {
+        if (!PoolDataPreAllocated(p, pb->data)) {
             if (p->Free)
                 p->Free(pb->data);
             else
@@ -251,7 +251,7 @@ void PoolFree(Pool *p)
         if (pb->data!= NULL) {
             if (p->Cleanup)
                 p->Cleanup(pb->data);
-            if (PoolDataPreAllocated(p, pb->data) == 0) {
+            if (!PoolDataPreAllocated(p, pb->data)) {
                 if (p->Free)
                     p->Free(pb->data);
                 else
@@ -350,7 +350,7 @@ void PoolReturn(Pool *p, void *data)
         if (p->Cleanup != NULL) {
             p->Cleanup(data);
         }
-        if (PoolDataPreAllocated(p, data) == 0) {
+        if (!PoolDataPreAllocated(p, data)) {
             if (p->Free)
                 p->Free(data);
             else
