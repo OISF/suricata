@@ -347,9 +347,6 @@ void PoolReturn(Pool *p, void *data)
     if (pb == NULL) {
         p->allocated--;
         p->outstanding--;
-        if (p->Cleanup != NULL) {
-            p->Cleanup(data);
-        }
         if (PoolDataPreAllocated(p, data) == 0) {
             if (p->Free)
                 p->Free(data);
