@@ -258,9 +258,7 @@ static void *TcpSegmentPoolAlloc(void)
         return NULL;
     }
 
-    TcpSegment *seg = NULL;
-
-    seg = SCMalloc(sizeof (TcpSegment));
+    TcpSegment *seg = SCMalloc(sizeof(TcpSegment));
     if (unlikely(seg == NULL))
         return NULL;
 
@@ -297,6 +295,15 @@ static void *TcpSegmentPoolAlloc(void)
         seg->pcap_hdr_storage = NULL;
     }
 
+#ifdef DEBUG
+    SCMutexLock(&segment_pool_memuse_mutex);
+    segment_pool_memuse += sizeof(TcpSegment);
+    segment_pool_memcnt++;
+    SCLogDebug("segment_pool_memcnt %" PRIu64 "", segment_pool_memcnt);
+    SCMutexUnlock(&segment_pool_memuse_mutex);
+    SCLogDebug("REASSEMBLY %" PRIu64 ", incr %" PRIu64, StreamTcpReassembleMemuseGlobalCounter(),
+            sizeof(TcpSegment));
+#endif
     return seg;
 }
 
@@ -311,29 +318,18 @@ static int TcpSegmentPoolInit(void *data, void *initdata)
      * won't have uninitialized memory to consider. */
     memset(seg, 0, sizeof (TcpSegment));
 
+    uint32_t memuse = sizeof(TcpSegment);
     if (IsTcpSessionDumpingEnabled()) {
-        uint32_t memuse =
-                sizeof(TcpSegmentPcapHdrStorage) + sizeof(char) * TCPSEG_PKT_HDR_DEFAULT_SIZE;
+        memuse += sizeof(TcpSegmentPcapHdrStorage) + sizeof(char) * TCPSEG_PKT_HDR_DEFAULT_SIZE;
         seg->pcap_hdr_storage = pcap_hdr;
-        if (StreamTcpReassembleCheckMemcap(sizeof(TcpSegment) + memuse) == 0) {
-            return 0;
-        }
-        StreamTcpReassembleIncrMemuse(memuse);
-    } else {
-        if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(TcpSegment)) == 0) {
-            return 0;
-        }
     }
 
-#ifdef DEBUG
-    SCMutexLock(&segment_pool_memuse_mutex);
-    segment_pool_memuse += sizeof(TcpSegment);
-    segment_pool_memcnt++;
-    SCLogDebug("segment_pool_memcnt %"PRIu64"", segment_pool_memcnt);
-    SCMutexUnlock(&segment_pool_memuse_mutex);
-#endif
+    if (StreamTcpReassembleCheckMemcap(memuse) == 0) {
+        return 0;
+    }
 
-    StreamTcpReassembleIncrMemuse((uint32_t)sizeof(TcpSegment));
+    StreamTcpReassembleIncrMemuse(memuse);
+
     return 1;
 }
 
@@ -360,8 +356,10 @@ static void TcpSegmentPoolCleanup(void *ptr)
     SCMutexLock(&segment_pool_memuse_mutex);
     segment_pool_memuse -= sizeof(TcpSegment);
     segment_pool_memcnt--;
-    SCLogDebug("segment_pool_memcnt %"PRIu64"", segment_pool_memcnt);
+    SCLogDebug("segment_pool_memcnt %" PRIu64 "", segment_pool_memcnt);
     SCMutexUnlock(&segment_pool_memuse_mutex);
+    SCLogDebug("REASSEMBLY %" PRIu64 ", decr %" PRIu64, StreamTcpReassembleMemuseGlobalCounter(),
+            sizeof(TcpSegment));
 #endif
 }
 
@@ -546,7 +544,8 @@ void StreamTcpReassembleFree(bool quiet)
 
 #ifdef DEBUG
     if (segment_pool_memuse > 0)
-        SCLogDebug("segment_pool_memuse %" PRIu64 "", segment_pool_memuse);
+        SCLogDebug("segment_pool_memcnt %" PRIu64 " segment_pool_memuse %" PRIu64 "",
+                segment_pool_memcnt, segment_pool_memuse);
     SCMutexDestroy(&segment_pool_memuse_mutex);
 #endif
 }
