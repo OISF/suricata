@@ -1965,7 +1965,7 @@ The whole DPDK configuration resides in the `dpdk:` node. This node encapsulates
     dpdk:
       eal-params:
         proc-type: primary
-        allow: ["0000:3b:00.0"]
+        allow: ["0000:3b:00.0", "0000:3b:00.1"]
       interfaces:
         - interface: 0000:3b:00.0
           threads: auto
