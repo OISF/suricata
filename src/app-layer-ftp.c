@@ -373,20 +373,6 @@ static AppLayerResult FTPGetLineForDirection(
         // e.g. input_len = 5077
         //      lf_idx = 5010
         //      max_line_len = 4096
-        if (!*current_line_truncated && (uint32_t)input->len >= ftp_max_line_len) {
-            *current_line_truncated = true;
-            line->buf = input->buf;
-            line->len = ftp_max_line_len;
-            if (input->consumed >= 2 && input->buf[input->consumed - 2] == 0x0D) {
-                line->delim_len = 2;
-                line->len -= 2;
-            } else {
-                line->delim_len = 1;
-                line->len -= 1;
-            }
-            input->len = 0;
-            SCReturnStruct(APP_LAYER_OK);
-        }
         uint32_t o_consumed = input->consumed;
         input->consumed = lf_idx - input->buf + 1;
         line->len = input->consumed - o_consumed;
