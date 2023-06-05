@@ -340,7 +340,8 @@ typedef struct FtpInput_ {
     int32_t orig_len;
 } FtpInput;
 
-static AppLayerResult FTPGetLineForDirection(FtpState *state, FtpLineState *line, FtpInput *input)
+static AppLayerResult FTPGetLineForDirection(
+        FtpState *state, FtpLineState *line, FtpInput *input, bool *current_line_truncated)
 {
     SCEnter();
 
@@ -351,8 +352,8 @@ static AppLayerResult FTPGetLineForDirection(FtpState *state, FtpLineState *line
     uint8_t *lf_idx = memchr(input->buf + input->consumed, 0x0a, input->len);
 
     if (lf_idx == NULL) {
-        if (!state->current_line_truncated && (uint32_t)input->len >= ftp_max_line_len) {
-            state->current_line_truncated = true;
+        if (!(*current_line_truncated) && (uint32_t)input->len >= ftp_max_line_len) {
+            *current_line_truncated = true;
             line->buf = input->buf;
             line->len = ftp_max_line_len;
             line->delim_len = 0;
@@ -360,9 +361,9 @@ static AppLayerResult FTPGetLineForDirection(FtpState *state, FtpLineState *line
             SCReturnStruct(APP_LAYER_OK);
         }
         SCReturnStruct(APP_LAYER_INCOMPLETE(input->consumed, input->len + 1));
-    } else if (state->current_line_truncated) {
+    } else if (*current_line_truncated) {
         // Whatever came in with first LF should also get discarded
-        state->current_line_truncated = false;
+        *current_line_truncated = false;
         line->len = 0;
         line->delim_len = 0;
         input->len = 0;
@@ -372,8 +373,8 @@ static AppLayerResult FTPGetLineForDirection(FtpState *state, FtpLineState *line
         // e.g. input_len = 5077
         //      lf_idx = 5010
         //      max_line_len = 4096
-        if (!state->current_line_truncated && (uint32_t)input->len >= ftp_max_line_len) {
-            state->current_line_truncated = true;
+        if (!*current_line_truncated && (uint32_t)input->len >= ftp_max_line_len) {
+            *current_line_truncated = true;
             line->buf = input->buf;
             line->len = ftp_max_line_len;
             if (input->consumed >= 2 && input->buf[input->consumed - 2] == 0x0D) {
@@ -392,6 +393,11 @@ static AppLayerResult FTPGetLineForDirection(FtpState *state, FtpLineState *line
         input->len -= line->len;
         DEBUG_VALIDATE_BUG_ON((input->consumed + input->len) != input->orig_len);
         line->buf = input->buf + o_consumed;
+        if (line->len >= ftp_max_line_len) {
+            *current_line_truncated = true;
+            line->len = ftp_max_line_len;
+            SCReturnStruct(APP_LAYER_OK);
+        }
         if (input->consumed >= 2 && input->buf[input->consumed - 2] == 0x0D) {
             line->delim_len = 2;
             line->len -= 2;
@@ -510,7 +516,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
     uint8_t direction = STREAM_TOSERVER;
     AppLayerResult res;
     while (1) {
-        res = FTPGetLineForDirection(state, &line, &ftpi);
+        res = FTPGetLineForDirection(state, &line, &ftpi, &state->current_line_truncated_ts);
         if (res.status == 1) {
             return res;
         } else if (res.status == -1) {
@@ -531,7 +537,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
 
         tx->command_descriptor = cmd_descriptor;
         tx->request_length = CopyCommandLine(&tx->request, &line);
-        tx->request_truncated = state->current_line_truncated;
+        tx->request_truncated = state->current_line_truncated_ts;
 
         if (tx->request_truncated) {
             AppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, FtpEventRequestCommandTooLong);
@@ -700,7 +706,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
     FTPTransaction *lasttx = TAILQ_FIRST(&state->tx_list);
     AppLayerResult res;
     while (1) {
-        res = FTPGetLineForDirection(state, &line, &ftpi);
+        res = FTPGetLineForDirection(state, &line, &ftpi, &state->current_line_truncated_tc);
         if (res.status == 1) {
             return res;
         } else if (res.status == -1) {
@@ -771,7 +777,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
             FTPString *response = FTPStringAlloc();
             if (likely(response)) {
                 response->len = CopyCommandLine(&response->str, &line);
-                response->truncated = state->current_line_truncated;
+                response->truncated = state->current_line_truncated_tc;
                 if (response->truncated) {
                     AppLayerDecoderEventsSetEventRaw(
                             &tx->tx_data.events, FtpEventResponseCommandTooLong);
