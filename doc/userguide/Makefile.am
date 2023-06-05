@@ -1,12 +1,15 @@
 EXTRA_DIST = \
+	_generated \
 	_static \
 	3rd-party-integration \
 	acknowledgements.rst \
+	appendix \
 	capture-hardware \
 	command-line-options.rst \
 	conf.py \
 	configuration \
 	devguide \
+	evedoc.py \
 	file-extraction \
 	index.rst \
 	upgrade \
@@ -95,3 +98,9 @@ clean-local:
 	rm -f $(top_builddir)/doc/userguide/userguide.pdf
 
 endif # SPHINX_BUILD
+
+_generated:
+	mkdir -p _generated
+	./evedoc.py --output _generated/eve-index.rst ../../etc/schema.json
+	./evedoc.py --output _generated/quic.rst --object quic ../../etc/schema.json
+	./evedoc.py --output _generated/pgsql.rst --object pgsql ../../etc/schema.json
