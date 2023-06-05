@@ -34,6 +34,7 @@
 #include "detect-engine-state.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-file.h"
 #include "detect-file-data.h"
 
 #include "app-layer-parser.h"
@@ -88,71 +89,28 @@ void DetectFiledataRegister(void)
 #endif
     sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
-            PrefilterMpmFiledataRegister, NULL,
-            ALPROTO_SMTP, 0);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2, PrefilterMpmHTTPFiledataRegister,
-            NULL, ALPROTO_HTTP1, HTP_RESPONSE_BODY);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2, PrefilterMpmFiledataRegister,
-            NULL, ALPROTO_HTTP1, HTP_REQUEST_BODY);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
-            PrefilterMpmFiledataRegister, NULL,
-            ALPROTO_SMB, 0);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
-            PrefilterMpmFiledataRegister, NULL,
-            ALPROTO_SMB, 0);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
-            PrefilterMpmFiledataRegister, NULL,
-            ALPROTO_HTTP2, HTTP2StateDataClient);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
-            PrefilterMpmFiledataRegister, NULL,
-            ALPROTO_HTTP2, HTTP2StateDataServer);
-    DetectAppLayerMpmRegister2(
-            "file_data", SIG_FLAG_TOSERVER, 2, PrefilterMpmFiledataRegister, NULL, ALPROTO_NFS, 0);
-    DetectAppLayerMpmRegister2(
-            "file_data", SIG_FLAG_TOCLIENT, 2, PrefilterMpmFiledataRegister, NULL, ALPROTO_NFS, 0);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2, PrefilterMpmFiledataRegister,
-            NULL, ALPROTO_FTPDATA, 0);
-    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2, PrefilterMpmFiledataRegister,
-            NULL, ALPROTO_FTPDATA, 0);
-    DetectAppLayerMpmRegister2(
-            "file_data", SIG_FLAG_TOSERVER, 2, PrefilterMpmFiledataRegister, NULL, ALPROTO_FTP, 0);
-    DetectAppLayerMpmRegister2(
-            "file_data", SIG_FLAG_TOCLIENT, 2, PrefilterMpmFiledataRegister, NULL, ALPROTO_FTP, 0);
-
-    DetectAppLayerInspectEngineRegister2("file_data", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_BODY, DetectEngineInspectBufferHttpBody, NULL);
-    DetectAppLayerInspectEngineRegister2("file_data", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_BODY, DetectEngineInspectFiledata, NULL);
-    DetectAppLayerInspectEngineRegister2("file_data",
-            ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectFiledata, NULL);
+    for (int i = 0; file_protos_ts[i].alproto != ALPROTO_UNKNOWN; i++) {
+        DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2, PrefilterMpmFiledataRegister,
+                NULL, file_protos_ts[i].alproto, file_protos_ts[i].progress);
+        DetectAppLayerInspectEngineRegister2("file_data", file_protos_ts[i].alproto,
+                SIG_FLAG_TOSERVER, file_protos_ts[i].progress, DetectEngineInspectFiledata, NULL);
+    }
+    for (int i = 0; file_protos_tc[i].alproto != ALPROTO_UNKNOWN; i++) {
+        if (file_protos_tc[i].alproto == ALPROTO_HTTP1) {
+            // special case for HTTP1
+            DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
+                    PrefilterMpmHTTPFiledataRegister, NULL, ALPROTO_HTTP1, HTP_RESPONSE_BODY);
+            DetectAppLayerInspectEngineRegister2("file_data", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
+                    HTP_RESPONSE_BODY, DetectEngineInspectBufferHttpBody, NULL);
+            continue;
+        }
+        DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2, PrefilterMpmFiledataRegister,
+                NULL, file_protos_tc[i].alproto, file_protos_tc[i].progress);
+        DetectAppLayerInspectEngineRegister2("file_data", file_protos_tc[i].alproto,
+                SIG_FLAG_TOSERVER, file_protos_tc[i].progress, DetectEngineInspectFiledata, NULL);
+    }
     DetectBufferTypeRegisterSetupCallback("file_data",
             DetectFiledataSetupCallback);
-    DetectAppLayerInspectEngineRegister2("file_data",
-            ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectFiledata, NULL);
-    DetectAppLayerInspectEngineRegister2("file_data",
-            ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectFiledata, NULL);
-    DetectAppLayerInspectEngineRegister2("file_data",
-            ALPROTO_HTTP2, SIG_FLAG_TOSERVER, HTTP2StateDataClient,
-            DetectEngineInspectFiledata, NULL);
-    DetectAppLayerInspectEngineRegister2("file_data",
-            ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, HTTP2StateDataServer,
-            DetectEngineInspectFiledata, NULL);
-    DetectAppLayerInspectEngineRegister2(
-            "file_data", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectFiledata, NULL);
-    DetectAppLayerInspectEngineRegister2(
-            "file_data", ALPROTO_NFS, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectFiledata, NULL);
-    DetectAppLayerInspectEngineRegister2(
-            "file_data", ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0, DetectEngineInspectFiledata, NULL);
-    DetectAppLayerInspectEngineRegister2(
-            "file_data", ALPROTO_FTPDATA, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectFiledata, NULL);
-    DetectAppLayerInspectEngineRegister2(
-            "file_data", ALPROTO_FTP, SIG_FLAG_TOSERVER, 0, DetectEngineInspectFiledata, NULL);
-    DetectAppLayerInspectEngineRegister2(
-            "file_data", ALPROTO_FTP, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectFiledata, NULL);
 
     DetectBufferTypeSetDescriptionByName("file_data", "data from tracked files");
     DetectBufferTypeSupportsMultiInstance("file_data");

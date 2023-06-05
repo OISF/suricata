@@ -34,6 +34,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-file.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -135,28 +136,21 @@ void DetectFilemagicRegister(void)
 
     g_file_match_list_id = DetectBufferTypeRegister("files");
 
-    AppProto protos_ts[] = { ALPROTO_HTTP1, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS,
-        ALPROTO_HTTP2, 0 };
-    AppProto protos_tc[] = { ALPROTO_HTTP1, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, ALPROTO_HTTP2,
-        0 };
-
-    for (int i = 0; protos_ts[i] != 0; i++) {
-        DetectAppLayerInspectEngineRegister2("file.magic", protos_ts[i],
-                SIG_FLAG_TOSERVER, 0,
-                DetectEngineInspectFilemagic, NULL);
+    for (int i = 0; file_protos_ts[i].alproto != ALPROTO_UNKNOWN; i++) {
+        DetectAppLayerInspectEngineRegister2("file.magic", file_protos_ts[i].alproto,
+                SIG_FLAG_TOSERVER, file_protos_ts[i].progress, DetectEngineInspectFilemagic, NULL);
 
         DetectAppLayerMpmRegister2("file.magic", SIG_FLAG_TOSERVER, 2,
-                PrefilterMpmFilemagicRegister, NULL, protos_ts[i],
-                0);
+                PrefilterMpmFilemagicRegister, NULL, file_protos_ts[i].alproto,
+                file_protos_ts[i].progress);
     }
-    for (int i = 0; protos_tc[i] != 0; i++) {
-        DetectAppLayerInspectEngineRegister2("file.magic", protos_tc[i],
-                SIG_FLAG_TOCLIENT, 0,
-                DetectEngineInspectFilemagic, NULL);
+    for (int i = 0; file_protos_tc[i].alproto != ALPROTO_UNKNOWN; i++) {
+        DetectAppLayerInspectEngineRegister2("file.magic", file_protos_tc[i].alproto,
+                SIG_FLAG_TOCLIENT, file_protos_tc[i].progress, DetectEngineInspectFilemagic, NULL);
 
         DetectAppLayerMpmRegister2("file.magic", SIG_FLAG_TOCLIENT, 2,
-                PrefilterMpmFilemagicRegister, NULL, protos_tc[i],
-                0);
+                PrefilterMpmFilemagicRegister, NULL, file_protos_tc[i].alproto,
+                file_protos_tc[i].progress);
     }
 
     DetectBufferTypeSetDescriptionByName("file.magic",
