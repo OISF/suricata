@@ -1,12 +1,15 @@
 EXTRA_DIST = \
+	_generated \
 	_static \
 	3rd-party-integration \
 	acknowledgements.rst \
+	appendix \
 	capture-hardware \
 	command-line-options.rst \
 	conf.py \
 	configuration \
 	devguide \
+	evedoc.py \
 	file-extraction \
 	index.rst \
 	upgrade \
@@ -87,6 +90,18 @@ $(dist_man1_MANS): _build/man
 	cp _build/man/$@ .
 
 man: $(dist_man1_MANS)
+
+# For the generated EVE schema docs, we have to list each one so they
+# will generated for the "dist".
+EXTRA_DIST +=	_generated/eve-index.rst \
+	_generated/quic.rst \
+	_generated/pgsql.rst
+
+generate:
+	mkdir -p _generated
+	./evedoc.py --output _generated/eve-index.rst ../../etc/schema.json
+	./evedoc.py --output _generated/quic.rst --object quic ../../etc/schema.json
+	./evedoc.py --output _generated/pgsql.rst --object pgsql ../../etc/schema.json
 
 # Remove build artifacts that aren't tracked by autotools.
 clean-local:
