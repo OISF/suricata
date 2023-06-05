@@ -293,19 +293,22 @@ static JsonBuilder *JsonDNSLogAnswer(void *txptr)
 
 bool AlertJsonDns(void *txptr, JsonBuilder *js)
 {
+    bool r = false;
     jb_open_object(js, "dns");
     JsonBuilder *qjs = JsonDNSLogQuery(txptr);
     if (qjs != NULL) {
         jb_set_object(js, "query", qjs);
         jb_free(qjs);
+        r = true;
     }
     JsonBuilder *ajs = JsonDNSLogAnswer(txptr);
     if (ajs != NULL) {
         jb_set_object(js, "answer", ajs);
         jb_free(ajs);
+        r = true;
     }
     jb_close(js);
-    return true;
+    return r;
 }
 
 static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
