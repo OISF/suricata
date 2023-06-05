@@ -10,6 +10,7 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
 	     scripts/generate-images.sh \
 	     scripts/docs-almalinux9-minimal-build.sh \
 	     scripts/docs-ubuntu-debian-minimal-build.sh \
+       scripts/evedoc.py \
 	     examples/plugins
 SUBDIRS = $(HTP_DIR) rust src plugins qa rules doc contrib etc python ebpf \
           $(SURICATA_UPDATE_DIR)
