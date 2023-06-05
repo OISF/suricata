@@ -105,6 +105,7 @@ typedef struct FtpLineState_ {
     const uint8_t *buf;
     uint32_t len;
     uint8_t delim_len;
+    bool lf_found;
 } FtpLineState;
 
 typedef struct FTPString_ {
