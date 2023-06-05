@@ -253,7 +253,7 @@ static void AlertJsonSNMP(const Flow *f, const uint64_t tx_id, JsonBuilder *js)
                 tx_id);
         if (tx != NULL) {
             jb_open_object(js, "snmp");
-            rs_snmp_log_json_response(js, snmp_state, tx);
+            rs_snmp_log_json_response(js, tx);
             jb_close(js);
         }
     }
