@@ -65,7 +65,7 @@ bool JsonMQTTAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
     if (state) {
         MQTTTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_MQTT, state, tx_id);
         if (tx) {
-            return rs_mqtt_logger_log(state, tx, MQTT_DEFAULTS, js);
+            return rs_mqtt_logger_log(tx, MQTT_DEFAULTS, js);
         }
     }
 
@@ -89,7 +89,7 @@ static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    if (!rs_mqtt_logger_log(state, tx, thread->mqttlog_ctx->flags, js))
+    if (!rs_mqtt_logger_log(tx, thread->mqttlog_ctx->flags, js))
         goto error;
 
     OutputJsonBuilderBuffer(js, thread->ctx);
