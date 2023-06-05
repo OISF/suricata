@@ -103,59 +103,38 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILE_NAME].Setup = DetectFilenameSetupSticky;
     sigmatch_table[DETECT_FILE_NAME].flags = SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_BODY, DetectFileInspectGeneric, NULL);
-    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_BODY, DetectFileInspectGeneric, NULL);
-
-    DetectAppLayerInspectEngineRegister2(
-            "files", ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0, DetectFileInspectGeneric, NULL);
-
-    DetectAppLayerInspectEngineRegister2(
-            "files", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0, DetectFileInspectGeneric, NULL);
-    DetectAppLayerInspectEngineRegister2(
-            "files", ALPROTO_NFS, SIG_FLAG_TOCLIENT, 0, DetectFileInspectGeneric, NULL);
-
-    DetectAppLayerInspectEngineRegister2(
-            "files", ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0, DetectFileInspectGeneric, NULL);
-    DetectAppLayerInspectEngineRegister2(
-            "files", ALPROTO_FTPDATA, SIG_FLAG_TOCLIENT, 0, DetectFileInspectGeneric, NULL);
-
-    DetectAppLayerInspectEngineRegister2(
-            "files", ALPROTO_SMB, SIG_FLAG_TOSERVER, 0, DetectFileInspectGeneric, NULL);
-    DetectAppLayerInspectEngineRegister2(
-            "files", ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0, DetectFileInspectGeneric, NULL);
-
-    //this is used by filestore
-    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateDataClient, DetectFileInspectGeneric, NULL);
-    DetectAppLayerInspectEngineRegister2("files", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateDataServer, DetectFileInspectGeneric, NULL);
-
+    // this is required by filestore, and filesize
+    for (int i = 0; file_protos_ts[i].alproto != ALPROTO_UNKNOWN; i++) {
+        DetectAppLayerInspectEngineRegister2("files", file_protos_ts[i].alproto, SIG_FLAG_TOSERVER,
+                file_protos_ts[i].progress, DetectFileInspectGeneric, NULL);
+    }
+    for (int i = 0; file_protos_tc[i].alproto != ALPROTO_UNKNOWN; i++) {
+        DetectAppLayerInspectEngineRegister2("files", file_protos_tc[i].alproto, SIG_FLAG_TOCLIENT,
+                file_protos_tc[i].progress, DetectFileInspectGeneric, NULL);
+    }
     g_file_match_list_id = DetectBufferTypeGetByName("files");
 
-    AppProto protos_ts[] = { ALPROTO_HTTP1, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_FTPDATA, ALPROTO_SMB,
-        ALPROTO_NFS, 0 };
-    AppProto protos_tc[] = { ALPROTO_HTTP1, ALPROTO_FTP, ALPROTO_FTPDATA, ALPROTO_SMB, ALPROTO_NFS,
-        0 };
+    for (int i = 0; file_protos_ts[i].alproto != ALPROTO_UNKNOWN; i++) {
+        if (file_protos_ts[i].alproto == ALPROTO_HTTP2) {
+            // no filename on HTTP2 files
+            continue;
+        }
+        DetectAppLayerInspectEngineRegister2("file.name", file_protos_ts[i].alproto,
+                SIG_FLAG_TOSERVER, file_protos_ts[i].progress, DetectEngineInspectFilename, NULL);
 
-    for (int i = 0; protos_ts[i] != 0; i++) {
-        DetectAppLayerInspectEngineRegister2("file.name", protos_ts[i],
-                SIG_FLAG_TOSERVER, 0,
-                DetectEngineInspectFilename, NULL);
-
-        DetectAppLayerMpmRegister2("file.name", SIG_FLAG_TOSERVER, 2,
-                PrefilterMpmFilenameRegister, NULL, protos_ts[i],
-                0);
+        DetectAppLayerMpmRegister2("file.name", SIG_FLAG_TOSERVER, 2, PrefilterMpmFilenameRegister,
+                NULL, file_protos_ts[i].alproto, file_protos_ts[i].progress);
     }
-    for (int i = 0; protos_tc[i] != 0; i++) {
-        DetectAppLayerInspectEngineRegister2("file.name", protos_tc[i],
-                SIG_FLAG_TOCLIENT, 0,
-                DetectEngineInspectFilename, NULL);
+    for (int i = 0; file_protos_tc[i].alproto != ALPROTO_UNKNOWN; i++) {
+        if (file_protos_tc[i].alproto == ALPROTO_HTTP2) {
+            // no filename on HTTP2 files
+            continue;
+        }
+        DetectAppLayerInspectEngineRegister2("file.name", file_protos_tc[i].alproto,
+                SIG_FLAG_TOCLIENT, file_protos_tc[i].progress, DetectEngineInspectFilename, NULL);
 
-        DetectAppLayerMpmRegister2("file.name", SIG_FLAG_TOCLIENT, 2,
-                PrefilterMpmFilenameRegister, NULL, protos_tc[i],
-                0);
+        DetectAppLayerMpmRegister2("file.name", SIG_FLAG_TOCLIENT, 2, PrefilterMpmFilenameRegister,
+                NULL, file_protos_tc[i].alproto, file_protos_tc[i].progress);
     }
 
     DetectBufferTypeSetDescriptionByName("file.name", "file name");
