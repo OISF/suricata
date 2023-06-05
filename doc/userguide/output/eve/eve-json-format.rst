@@ -2218,6 +2218,10 @@ The two ``pgsql`` events in this example represent a rejected ``SSL handshake`` 
     }
   }
 
+Field Reference
+~~~~~~~~~~~~~~~
+
+.. include:: ../../_generated/pgsql.rst
 
 Event type: IKE
 ---------------
@@ -2464,6 +2468,11 @@ Example of QUIC logging with a CYU hash:
         }
     ]
   }
+
+Output Reference
+~~~~~~~~~~~~~~~~
+
+.. include:: ../../_generated/quic.rst
 
 Event type: DHCP
 -----------------

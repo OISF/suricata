@@ -1,4 +1,5 @@
 EXTRA_DIST = \
+	_generated \
 	_static \
 	3rd-party-integration \
 	acknowledgements.rst \
@@ -88,6 +89,7 @@ man: $(dist_man1_MANS)
 # Remove build artifacts that aren't tracked by autotools.
 clean-local:
 	rm -rf $(top_builddir)/doc/userguide/_build
+	rm -rf $(top_builddir)/doc/userguide/_generated
 	rm -f $(top_builddir)/doc/userguide/suricata*.1
 	rm -f $(top_builddir)/doc/userguide/userguide.pdf
 
