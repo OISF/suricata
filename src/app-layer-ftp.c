@@ -391,6 +391,7 @@ static AppLayerResult FTPGetLineForDirection(
         input->consumed = lf_idx - input->buf + 1;
         line->len = input->consumed - o_consumed;
         input->len -= line->len;
+        line->lf_found = true;
         DEBUG_VALIDATE_BUG_ON((input->consumed + input->len) != input->orig_len);
         line->buf = input->buf + o_consumed;
         if (line->len >= ftp_max_line_len) {
@@ -511,7 +512,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
     }
 
     FtpInput ftpi = { .buf = input, .len = input_len, .orig_len = input_len, .consumed = 0 };
-    FtpLineState line = { .buf = NULL, .len = 0, .delim_len = 0 };
+    FtpLineState line = { .buf = NULL, .len = 0, .delim_len = 0, .lf_found = false };
 
     uint8_t direction = STREAM_TOSERVER;
     AppLayerResult res;
@@ -539,6 +540,9 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
         tx->request_length = CopyCommandLine(&tx->request, &line);
         tx->request_truncated = state->current_line_truncated_ts;
 
+        if (line.lf_found) {
+            state->current_line_truncated_ts = false;
+        }
         if (tx->request_truncated) {
             AppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, FtpEventRequestCommandTooLong);
         }
@@ -701,7 +705,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
         SCReturnStruct(APP_LAYER_OK);
     }
     FtpInput ftpi = { .buf = input, .len = input_len, .orig_len = input_len, .consumed = 0 };
-    FtpLineState line = { .buf = NULL, .len = 0, .delim_len = 0 };
+    FtpLineState line = { .buf = NULL, .len = 0, .delim_len = 0, .lf_found = false };
 
     FTPTransaction *lasttx = TAILQ_FIRST(&state->tx_list);
     AppLayerResult res;
@@ -781,6 +785,9 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
                 if (response->truncated) {
                     AppLayerDecoderEventsSetEventRaw(
                             &tx->tx_data.events, FtpEventResponseCommandTooLong);
+                }
+                if (line.lf_found) {
+                    state->current_line_truncated_tc = false;
                 }
                 TAILQ_INSERT_TAIL(&tx->response_list, response, next);
             }
