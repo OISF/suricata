@@ -197,11 +197,7 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     SCEnter();
 
     if (!DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
-            (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP1 &&
-                    s->alproto != ALPROTO_SMTP && s->alproto != ALPROTO_SMB &&
-                    s->alproto != ALPROTO_HTTP2 && s->alproto != ALPROTO_FTP &&
-                    s->alproto != ALPROTO_FTPDATA && s->alproto != ALPROTO_HTTP &&
-                    s->alproto != ALPROTO_NFS)) {
+            (s->alproto != ALPROTO_UNKNOWN && !AppLayerParserSupportsFiles(IPPROTO_TCP, s->alproto))) {
         SCLogError("rule contains conflicting keywords.");
         return -1;
     }
