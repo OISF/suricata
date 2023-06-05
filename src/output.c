@@ -58,8 +58,7 @@
 #include "log-tlsstore.h"
 #include "output-json-tls.h"
 #include "log-pcap.h"
-// for SSHTxLogCondition
-#include "app-layer-ssh.h"
+#include "app-layer-ssh.h" // for SSHTxLogCondition
 #include "output-json-file.h"
 #include "output-json-smtp.h"
 #include "output-json-stats.h"
@@ -67,8 +66,7 @@
 #include "log-stats.h"
 #include "output-json-nfs.h"
 #include "output-json-ftp.h"
-// for misplaced EveFTPDataAddMetadata
-#include "app-layer-ftp.h"
+#include "app-layer-ftp.h" // for misplaced EveFTPDataAddMetadata
 #include "output-json-smb.h"
 #include "output-json-ike.h"
 #include "output-json-dhcp.h"
@@ -1040,7 +1038,7 @@ static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     }
 
     jb_open_object(js, al->name);
-    if (!al->log(tx, js)) {
+    if (!al->LogTx(tx, js)) {
         goto error;
     }
     jb_close(js);
@@ -1276,25 +1274,25 @@ static AppLayerLogger alert_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_DCERPC, NULL, NULL }, // TODO missing
     { ALPROTO_IRC, NULL, NULL },    // no parser, no logging
     { ALPROTO_DNS, "dns", AlertJsonDns },
-    { ALPROTO_MODBUS, "modbus", (bool (*)(void *tx, struct JsonBuilder *jb))rs_modbus_to_json },
+    { ALPROTO_MODBUS, "modbus", (SimpleTxLogFunc)rs_modbus_to_json },
     { ALPROTO_ENIP, NULL, NULL }, // no logging
     { ALPROTO_DNP3, "dnp3", AlertJsonDnp3 },
     { ALPROTO_NFS, NULL, NULL }, // special: logs both nfs and rpc fields
     { ALPROTO_NTP, NULL, NULL }, // no logging
     { ALPROTO_FTPDATA, "ftp_data", EveFTPDataAddMetadata },
-    { ALPROTO_TFTP, "tftp", (bool (*)(void *tx, struct JsonBuilder *jb))rs_tftp_log_json_request },
+    { ALPROTO_TFTP, "tftp", (SimpleTxLogFunc)rs_tftp_log_json_request },
     { ALPROTO_IKE, NULL, NULL }, // special: uses state
-    { ALPROTO_KRB5, "krb5", (bool (*)(void *tx, struct JsonBuilder *jb))rs_krb5_log_json_response },
+    { ALPROTO_KRB5, "krb5", (SimpleTxLogFunc)rs_krb5_log_json_response },
     { ALPROTO_QUIC, "quic", rs_quic_to_json },
     { ALPROTO_DHCP, NULL, NULL }, // TODO missing
-    { ALPROTO_SNMP, "snmp", (bool (*)(void *tx, struct JsonBuilder *jb))rs_snmp_log_json_response },
-    { ALPROTO_SIP, "sip", (bool (*)(void *tx, struct JsonBuilder *jb))rs_sip_log_json },
+    { ALPROTO_SNMP, "snmp", (SimpleTxLogFunc)rs_snmp_log_json_response },
+    { ALPROTO_SIP, "sip", (SimpleTxLogFunc)rs_sip_log_json },
     { ALPROTO_RFB, "rfb", rs_rfb_logger_log },
     { ALPROTO_MQTT, "mqtt", JsonMQTTAddMetadata },
     { ALPROTO_PGSQL, NULL, NULL },  // TODO missing
     { ALPROTO_TELNET, NULL, NULL }, // no logging
     { ALPROTO_TEMPLATE, "template", rs_template_logger_log },
-    { ALPROTO_RDP, "rdp", (bool (*)(void *tx, struct JsonBuilder *jb))rs_rdp_to_json },
+    { ALPROTO_RDP, "rdp", (SimpleTxLogFunc)rs_rdp_to_json },
     { ALPROTO_HTTP2, "http", rs_http2_log_json },
     { ALPROTO_BITTORRENT_DHT, "bittorrent_dht", rs_bittorrent_dht_logger_log },
     { ALPROTO_HTTP, NULL, NULL }, // signature protocol, not for app-layer logging

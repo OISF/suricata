@@ -316,7 +316,7 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             if (tx) {
                 jb_get_mark(jb, &mark);
                 jb_open_object(jb, al->name);
-                if (al->log(tx, jb)) {
+                if (al->LogTx(tx, jb)) {
                     jb_close(jb);
                 } else {
                     jb_restore_mark(jb, &mark);
