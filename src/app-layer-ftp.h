@@ -148,7 +148,8 @@ typedef struct FtpState_ {
     TAILQ_HEAD(, FTPTransaction_) tx_list;  /**< transaction list */
     uint64_t tx_cnt;
 
-    bool current_line_truncated;
+    bool current_line_truncated_ts;
+    bool current_line_truncated_tc;
 
     FtpRequestCommand command;
     FtpRequestCommandArgOfs arg_offset;
