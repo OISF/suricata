@@ -67,6 +67,9 @@ void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDro
         case EXCEPTION_POLICY_REJECT:
             SCLogDebug("EXCEPTION_POLICY_REJECT");
             PacketDrop(p, ACTION_REJECT, drop_reason);
+            if (!EngineModeIsIPS()) {
+                break;
+            }
             /* fall through */
         case EXCEPTION_POLICY_DROP_FLOW:
             SCLogDebug("EXCEPTION_POLICY_DROP_FLOW");
