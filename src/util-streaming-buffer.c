@@ -100,6 +100,97 @@ StreamingBufferBlock *SBB_RB_FIND_INCLUSIVE(struct SBB *head, StreamingBufferBlo
     return res;
 }
 
+/** \interal
+ *  \brief does data region intersect with list region 'r'
+ *  Takes the max gap into account.
+ */
+static inline bool RegionsIntersect(const StreamingBuffer *sb, const StreamingBufferConfig *cfg,
+        const StreamingBufferRegion *r, const uint64_t offset, const uint64_t re)
+{
+    /* create the data range for the region, adding the max gap */
+    const uint64_t reg_o =
+            r->stream_offset > cfg->region_gap ? (r->stream_offset - cfg->region_gap) : 0;
+    const uint64_t reg_re = r->stream_offset + r->buf_size + cfg->region_gap;
+    SCLogDebug("r %p: %" PRIu64 "/%" PRIu64 " - adjusted %" PRIu64 "/%" PRIu64, r, r->stream_offset,
+            r->stream_offset + r->buf_size, reg_o, reg_re);
+    /* check if data range intersects with region range */
+    if (offset >= reg_o && offset <= reg_re) {
+        SCLogDebug("r %p is in-scope", r);
+        return true;
+    }
+    if (re >= reg_o && re <= reg_re) {
+        SCLogDebug("r %p is in-scope: %" PRIu64 " >= %" PRIu64 " && %" PRIu64 " <= %" PRIu64, r, re,
+                reg_o, re, reg_re);
+        return true;
+    }
+    SCLogDebug("r %p is out of scope: %" PRIu64 "/%" PRIu64, r, offset, re);
+    return false;
+}
+
+/** \internal
+ *  \brief find the first region for merging.
+ */
+static StreamingBufferRegion *FindFirstRegionForOffset(const StreamingBuffer *sb,
+        const StreamingBufferConfig *cfg, StreamingBufferRegion *r, const uint64_t offset,
+        const uint32_t len, StreamingBufferRegion **prev)
+{
+    const uint64_t data_re = offset + len;
+    SCLogDebug("looking for first region matching %" PRIu64 "/%" PRIu64, offset, data_re);
+
+    StreamingBufferRegion *p = NULL;
+    for (; r != NULL; r = r->next) {
+        if (RegionsIntersect(sb, cfg, r, offset, data_re) == true) {
+            *prev = p;
+            return r;
+        }
+        p = r;
+    }
+    *prev = NULL;
+    return NULL;
+}
+
+static StreamingBufferRegion *FindLargestRegionForOffset(const StreamingBuffer *sb,
+        const StreamingBufferConfig *cfg, StreamingBufferRegion *r, const uint64_t offset,
+        const uint32_t len)
+{
+    const uint64_t data_re = offset + len;
+    SCLogDebug("starting at %p/%" PRIu64 ", offset %" PRIu64 ", data_re %" PRIu64, r,
+            r->stream_offset, offset, data_re);
+    StreamingBufferRegion *candidate = r;
+    for (; r != NULL; r = r->next) {
+#ifdef DEBUG
+        const uint64_t reg_re = r->stream_offset + r->buf_size;
+        SCLogDebug("checking: %p/%" PRIu64 "/%" PRIu64 ", offset %" PRIu64 "/%" PRIu64, r,
+                r->stream_offset, reg_re, offset, data_re);
+#endif
+        if (!RegionsIntersect(sb, cfg, r, offset, data_re))
+            return candidate;
+
+        if (r->buf_size > candidate->buf_size) {
+            SCLogDebug("candidate %p as size %u > %u", candidate, r->buf_size, candidate->buf_size);
+            candidate = r;
+        }
+    }
+    return candidate;
+}
+
+static StreamingBufferRegion *FindRightEdge(const StreamingBuffer *sb,
+        const StreamingBufferConfig *cfg, StreamingBufferRegion *r, const uint64_t offset,
+        const uint32_t len)
+{
+    const uint64_t data_re = offset + len;
+    StreamingBufferRegion *candidate = r;
+    for (; r != NULL; r = r->next) {
+        if (!RegionsIntersect(sb, cfg, r, offset, data_re)) {
+            SCLogDebug(
+                    "r %p is out of scope: %" PRIu64 "/%u/%" PRIu64, r, offset, len, offset + len);
+            return candidate;
+        }
+        candidate = r;
+    }
+    return candidate;
+}
+
 static inline StreamingBufferRegion *InitBufferRegion(
         StreamingBuffer *sb, const StreamingBufferConfig *cfg, const uint32_t min_size)
 {
@@ -989,97 +1080,6 @@ static void ListRegions(StreamingBuffer *sb)
     }
     Validate(sb);
 #endif
-}
-
-/** \interal
- *  \brief does data region intersect with list region 'r'
- *  Takes the max gap into account.
- */
-static inline bool RegionsIntersect(const StreamingBuffer *sb, const StreamingBufferConfig *cfg,
-        const StreamingBufferRegion *r, const uint64_t offset, const uint64_t re)
-{
-    /* create the data range for the region, adding the max gap */
-    const uint64_t reg_o =
-            r->stream_offset > cfg->region_gap ? (r->stream_offset - cfg->region_gap) : 0;
-    const uint64_t reg_re = r->stream_offset + r->buf_size + cfg->region_gap;
-    SCLogDebug("r %p: %" PRIu64 "/%" PRIu64 " - adjusted %" PRIu64 "/%" PRIu64, r, r->stream_offset,
-            r->stream_offset + r->buf_size, reg_o, reg_re);
-    /* check if data range intersects with region range */
-    if (offset >= reg_o && offset <= reg_re) {
-        SCLogDebug("r %p is in-scope", r);
-        return true;
-    }
-    if (re >= reg_o && re <= reg_re) {
-        SCLogDebug("r %p is in-scope: %" PRIu64 " >= %" PRIu64 " && %" PRIu64 " <= %" PRIu64, r, re,
-                reg_o, re, reg_re);
-        return true;
-    }
-    SCLogDebug("r %p is out of scope: %" PRIu64 "/%" PRIu64, r, offset, re);
-    return false;
-}
-
-/** \internal
- *  \brief find the first region for merging.
- */
-static StreamingBufferRegion *FindFirstRegionForOffset(const StreamingBuffer *sb,
-        const StreamingBufferConfig *cfg, StreamingBufferRegion *r, const uint64_t offset,
-        const uint32_t len, StreamingBufferRegion **prev)
-{
-    const uint64_t data_re = offset + len;
-    SCLogDebug("looking for first region matching %" PRIu64 "/%" PRIu64, offset, data_re);
-
-    StreamingBufferRegion *p = NULL;
-    for (; r != NULL; r = r->next) {
-        if (RegionsIntersect(sb, cfg, r, offset, data_re) == true) {
-            *prev = p;
-            return r;
-        }
-        p = r;
-    }
-    *prev = NULL;
-    return NULL;
-}
-
-static StreamingBufferRegion *FindLargestRegionForOffset(const StreamingBuffer *sb,
-        const StreamingBufferConfig *cfg, StreamingBufferRegion *r, const uint64_t offset,
-        const uint32_t len)
-{
-    const uint64_t data_re = offset + len;
-    SCLogDebug("starting at %p/%" PRIu64 ", offset %" PRIu64 ", data_re %" PRIu64, r,
-            r->stream_offset, offset, data_re);
-    StreamingBufferRegion *candidate = r;
-    for (; r != NULL; r = r->next) {
-#ifdef DEBUG
-        const uint64_t reg_re = r->stream_offset + r->buf_size;
-        SCLogDebug("checking: %p/%" PRIu64 "/%" PRIu64 ", offset %" PRIu64 "/%" PRIu64, r,
-                r->stream_offset, reg_re, offset, data_re);
-#endif
-        if (!RegionsIntersect(sb, cfg, r, offset, data_re))
-            return candidate;
-
-        if (r->buf_size > candidate->buf_size) {
-            SCLogDebug("candidate %p as size %u > %u", candidate, r->buf_size, candidate->buf_size);
-            candidate = r;
-        }
-    }
-    return candidate;
-}
-
-static StreamingBufferRegion *FindRightEdge(const StreamingBuffer *sb,
-        const StreamingBufferConfig *cfg, StreamingBufferRegion *r, const uint64_t offset,
-        const uint32_t len)
-{
-    const uint64_t data_re = offset + len;
-    StreamingBufferRegion *candidate = r;
-    for (; r != NULL; r = r->next) {
-        if (!RegionsIntersect(sb, cfg, r, offset, data_re)) {
-            SCLogDebug(
-                    "r %p is out of scope: %" PRIu64 "/%u/%" PRIu64, r, offset, len, offset + len);
-            return candidate;
-        }
-        candidate = r;
-    }
-    return candidate;
 }
 
 /** \internal
