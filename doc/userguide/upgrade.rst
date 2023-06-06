@@ -60,6 +60,9 @@ Logging changes
 - Protocol values and their names are built into Suricata instead of using the system's ``/etc/protocols`` file. Some names and casing may have changed
   in the values ``proto`` in ``eve.json`` log entries and other logs containing protocol names and values.
   See https://redmine.openinfosecfoundation.org/issues/4267 for more information.
+- Custom logging of HTTP headers via suricata.yaml ``outputs.eve-log.types.http.custom``
+  is now done in subobjects ``response_headers`` or ``request_headers`` (as for option ``dump-all-headers``)
+  instead of at the root of the ``http`` json object (to avoid some collisions).
 
 Deprecations
 ~~~~~~~~~~~~
