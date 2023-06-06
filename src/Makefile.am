@@ -3,7 +3,7 @@ if BUILD_FUZZTARGETS
     bin_PROGRAMS += fuzz_applayerprotodetectgetproto \
     fuzz_applayerparserparse fuzz_siginit \
     fuzz_confyamlloadstring fuzz_decodepcapfile \
-    fuzz_sigpcap fuzz_mimedecparseline
+    fuzz_sigpcap fuzz_mimedecparseline fuzz_decodebase64
 if HAS_FUZZPCAP
     bin_PROGRAMS += fuzz_sigpcap_aware fuzz_predefpcap_aware
 endif
@@ -1446,6 +1446,17 @@ endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_predefpcap_aware_SOURCES = force-cxx-linking.cxx
 endif
+
+fuzz_decodebase64_SOURCES = tests/fuzz/fuzz_decodebase64.c
+fuzz_decodebase64_LDFLAGS = $(LDFLAGS_FUZZ)
+fuzz_decodebase64_LDADD = $(LDADD_FUZZ)
+if HAS_FUZZLDFLAGS
+    fuzz_decodebase64_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+    fuzz_decodebase64_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+nodist_EXTRA_fuzz_decodebase64_SOURCES = force-cxx-linking.cxx
 
 fuzz_mimedecparseline_SOURCES = tests/fuzz/fuzz_mimedecparseline.c
 fuzz_mimedecparseline_LDFLAGS = $(LDFLAGS_FUZZ)
