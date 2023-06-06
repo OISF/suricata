@@ -45,6 +45,11 @@ Security changes
 - suricata.yaml now prevents process creation by Suricata by default with `security.limit-noproc`.
   The suricata.yaml configuration file needs to be updated to enable this feature.
   For more info, see :ref:`suricata-yaml-config-hardening`.
+- Absolute filenames and filenames containing parent directory
+  traversal are no longer allowed by default for datasets when the
+  filename is specified as part of a rule. See :ref:`Datasets Security
+  <datasets_security>` and :ref:`Datasets File Locations
+  <datasets_file_locations>` for more information.
 
 Removals
 ~~~~~~~~
