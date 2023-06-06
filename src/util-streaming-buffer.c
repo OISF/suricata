@@ -845,19 +845,110 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
         if (s > 0) {
             const uint32_t new_data_size = to_shift->buf_size - s;
             const uint32_t new_mem_size = ToNextMultipleOf(new_data_size, cfg->buf_size);
-            SCLogDebug("s %u new_data_size %u", s, new_data_size);
-            memmove(to_shift->buf, to_shift->buf + s, new_data_size);
-            /* shrink memory region. If this fails we keep the old */
-            void *ptr = REALLOC(cfg, to_shift->buf, to_shift->buf_size, new_mem_size);
-            if (ptr != NULL) {
-                to_shift->buf = ptr;
-                to_shift->buf_size = new_mem_size;
+
+            /* see if after the slide we'd overlap with the next region. If so, we need
+             * to consolidate them into one. */
+            if (to_shift->next && slide_offset + new_mem_size >= to_shift->next->stream_offset) {
+                StreamingBufferRegion *start = to_shift;
+                StreamingBufferRegion *next = start->next;
+
+                // using big as main
+                if (start->buf_size < next->buf_size) {
+                    SCLogDebug("replace main with the next bigger region");
+
+                    const uint64_t next_re = next->stream_offset + next->buf_size;
+                    uint32_t next_mem_size = next_re - slide_offset;
+                    next_mem_size = ToNextMultipleOf(next_mem_size, cfg->buf_size);
+                    const uint32_t next_data_offset = next->stream_offset - slide_offset;
+                    const uint32_t prev_buf_size = next->buf_size;
+
+                    // expand "big" to include relevant part of "start"
+                    if (GrowRegionToSize(sb, cfg, next, next_mem_size) != 0)
+                        return; // TODO what to do?
+                    SCLogDebug("region now sized %u", next_mem_size);
+
+                    // slide "next":
+                    // pre-grow: [nextnextnext]
+                    // post-grow [nextnextnextXXX]
+                    // post-move [XXXnextnextnext]
+                    memmove(next->buf + next_data_offset, next->buf, prev_buf_size);
+
+                    // move portion of "start" into "next"
+                    //
+                    // start: [ooooookkkkk] (o: old, k: keep)
+                    // pre-next     [xxxxxbigbigbig]
+                    // post-next    [kkkkkbigbigbig]
+                    const uint32_t start_data_offset = slide_offset - start->stream_offset;
+                    BUG_ON(start_data_offset > start->buf_size);
+                    const uint32_t start_data_size = start->buf_size - start_data_offset;
+                    memcpy(next->buf, start->buf + start_data_offset, start_data_size);
+
+                    // free "start"s buffer, we will use the one from "next"
+                    FREE(cfg, start->buf, start->buf_size);
+
+                    // update "main" to use "next"
+                    start->stream_offset = slide_offset;
+                    start->buf = next->buf;
+                    start->buf_size = next->buf_size;
+                    start->next = next->next;
+
+                    // free "next"
+                    FREE(cfg, next, sizeof(*next));
+                    sb->regions--;
+                    BUG_ON(sb->regions == 0);
+                } else {
+                    // using "main"
+
+                    // expand to include "next"
+                    const uint64_t next_re = next->stream_offset + next->buf_size;
+                    uint32_t start_mem_size = next_re - slide_offset;
+                    start_mem_size = ToNextMultipleOf(start_mem_size, cfg->buf_size);
+
+                    if (GrowRegionToSize(sb, cfg, start, start_mem_size) != 0)
+                        return; // TODO what to do?
+                    SCLogDebug("start->buf now size %u", start_mem_size);
+
+                    // slide "start"
+                    // pre:     [xxxxxxxAAA]
+                    // post:    [AAAxxxxxxx]
+                    SCLogDebug("s %u new_data_size %u", s, new_data_size);
+                    memmove(start->buf, start->buf + s, new_data_size);
+
+                    // copy in "next"
+                    // pre:     [AAAxxxxxxx]
+                    //             [BBBBBBB]
+                    // post:    [AAABBBBBBB]
+                    SCLogDebug("copy next->buf %p/%u to start->buf offset %u", next->buf,
+                            next->buf_size, new_data_size);
+                    memcpy(start->buf + new_data_size, next->buf, next->buf_size);
+
+                    start->buf_size = start_mem_size;
+                    start->stream_offset = slide_offset;
+                    start->next = next->next;
+
+                    // free "next"
+
+                    FREE(cfg, next->buf, next->buf_size);
+                    FREE(cfg, next, sizeof(*next));
+                    sb->regions--;
+                    BUG_ON(sb->regions == 0);
+                }
+            } else {
+                SCLogDebug("s %u new_data_size %u", s, new_data_size);
+                memmove(to_shift->buf, to_shift->buf + s, new_data_size);
+                /* shrink memory region. If this fails we keep the old */
+                void *ptr = REALLOC(cfg, to_shift->buf, to_shift->buf_size, new_mem_size);
+                if (ptr != NULL) {
+                    to_shift->buf = ptr;
+                    to_shift->buf_size = new_mem_size;
+                    SCLogDebug("new buf_size %u", to_shift->buf_size);
+                }
+                if (s < to_shift->buf_offset)
+                    to_shift->buf_offset -= s;
+                else
+                    to_shift->buf_offset = 0;
+                to_shift->stream_offset = slide_offset;
             }
-            if (s < to_shift->buf_offset)
-                to_shift->buf_offset -= s;
-            else
-                to_shift->buf_offset = 0;
-            to_shift->stream_offset = slide_offset;
         }
     }
 
