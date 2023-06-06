@@ -473,7 +473,9 @@ static int FTPGetLineForDirection(
 
             if (state->input != lf_idx &&
                 *(lf_idx - 1) == 0x0D) {
-                state->current_line_len--;
+                if (!*current_line_truncated) {
+                    state->current_line_len--;
+                }
                 state->current_line_delimiter_len = 2;
             } else {
                 state->current_line_delimiter_len = 1;
