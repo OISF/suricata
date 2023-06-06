@@ -34,6 +34,11 @@ Upgrading to 6.0.13
 -------------------
 - Lua rules have been disabled. To enable them see
   :ref:`suricata-yaml-config-hardening`.
+- Absolute filenames and filenames containing parent directory
+  traversal are no longer allowed by default for datasets when the
+  filename is specified as part of a rule. See :ref:`Datasets Security
+  <datasets_security>` and :ref:`Datasets File Locations
+  <datasets_file_locations>` for more information.
 
 Upgrading from 6.0.4 to 6.0.5
 -----------------------------

@@ -214,3 +214,60 @@ field:
 Syntax::
 
     <data>,<value>
+
+.. _datasets_file_locations:
+
+File Locations
+--------------
+
+Dataset filenames configured in the ``suricata.yaml`` can exist
+anywhere on your filesytem.
+
+When a dataset filename is specified in rule, the following *rules*
+are applied:
+
+- For ``load``, the filename is opened relative to the rule file
+  containing the rule. Absolute filenames and parent directory
+  traversals are allowed.
+- For ``save`` and ``state`` the filename is relative to
+  ``$LOCALSTATEDIR/suricata/data``. On many installs this will be
+  ``/var/lib/suricata/data``, but run ``suricata --build-info`` and
+  check the value of ``--localstatedir`` to verify this location onn
+  your installation.
+
+  - Absolute filenames, or filenames containing parent directory
+    traversal (``..``) are not allowed unless the configuration
+    paramater ``datasets.allow-absolute-filenames`` is set to
+    ``true``.
+
+.. _datasets_security:
+
+Security
+--------
+
+As datasets potentially allow a rule distributor write access to your
+system with ``save`` and ``state`` dataset rules, the locations
+allowed are strict by default, however there are two dataset options
+to tune the security of rules utilizing dataset filenames::
+
+  datasets:
+    rules:
+      # Set to true to allow absolute filenames and filenames that use
+      # ".." components to reference parent directories in rules that specify
+      # their filenames.
+      allow-absolute-filenames: false
+
+      # Allow datasets in rules write access for "save" and
+      # "state". This is enabled by default, however write access is
+      # limited to the data directory.
+      allow-write: true
+
+By setting ``datasets.rules.allow-write`` to false, all ``save`` and
+``state`` rules will fail to load. This option is enabled by default
+to preserve compatiblity with previous 6.0 Suricata releases, however
+may change in a future major release.
+
+Pre-Suricata 6.0.13 behavior can be restored by setting
+``datasets.rules.allow-absolute-filenames`` to ``true``, however
+allowing so will allow any rule to overwrite any file on your system
+that Suricata has write access to.
