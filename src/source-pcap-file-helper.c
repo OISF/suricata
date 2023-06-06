@@ -47,7 +47,7 @@ void CleanupPcapFileFileVars(PcapFileFileVars *pfv)
             if (pfv->shared != NULL && pfv->shared->should_delete) {
                 SCLogDebug("Deleting pcap file %s", pfv->filename);
                 if (unlink(pfv->filename) != 0) {
-                    SCLogWarning("Failed to delete %s", pfv->filename);
+                    SCLogWarning("Failed to delete %s: %s", pfv->filename, strerror(errno));
                 }
             }
             SCFree(pfv->filename);
