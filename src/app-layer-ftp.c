@@ -353,14 +353,15 @@ static void FTPTransactionFree(FTPTransaction *tx)
     FTPFree(tx, sizeof(*tx));
 }
 
-static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
+static int FTPGetLineForDirection(
+        FtpState *state, FtpLineState *line_state, bool *current_line_truncated)
 {
     void *ptmp;
     if (line_state->current_line_lf_seen == 1) {
         /* we have seen the lf for the previous line.  Clear the parser
          * details to parse new line */
         line_state->current_line_lf_seen = 0;
-        state->current_line_truncated = false;
+        *current_line_truncated = false;
         if (line_state->current_line_db == 1) {
             line_state->current_line_db = 0;
             FTPFree(line_state->db, line_state->db_len);
@@ -387,7 +388,7 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
             int32_t input_len = state->input_len;
             if ((uint32_t)input_len > ftp_max_line_len) {
                 input_len = ftp_max_line_len;
-                state->current_line_truncated = true;
+                *current_line_truncated = true;
             }
             line_state->db = FTPMalloc(input_len);
             if (line_state->db == NULL) {
@@ -396,12 +397,12 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
             line_state->current_line_db = 1;
             memcpy(line_state->db, state->input, input_len);
             line_state->db_len = input_len;
-        } else if (!state->current_line_truncated) {
+        } else if (!*current_line_truncated) {
             int32_t input_len = state->input_len;
             if (line_state->db_len + input_len > ftp_max_line_len) {
                 input_len = ftp_max_line_len - line_state->db_len;
                 DEBUG_VALIDATE_BUG_ON(input_len < 0);
-                state->current_line_truncated = true;
+                *current_line_truncated = true;
             }
             if (input_len > 0) {
                 ptmp = FTPRealloc(
@@ -427,12 +428,12 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
         line_state->current_line_lf_seen = 1;
 
         if (line_state->current_line_db == 1) {
-            if (!state->current_line_truncated) {
+            if (!*current_line_truncated) {
                 int32_t input_len = lf_idx + 1 - state->input;
                 if (line_state->db_len + input_len > ftp_max_line_len) {
                     input_len = ftp_max_line_len - line_state->db_len;
                     DEBUG_VALIDATE_BUG_ON(input_len < 0);
-                    state->current_line_truncated = true;
+                    *current_line_truncated = true;
                 }
                 if (input_len > 0) {
                     ptmp = FTPRealloc(
@@ -465,7 +466,7 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
             state->current_line = state->input;
             if (lf_idx - state->input > ftp_max_line_len) {
                 state->current_line_len = ftp_max_line_len;
-                state->current_line_truncated = true;
+                *current_line_truncated = true;
             } else {
                 state->current_line_len = lf_idx - state->input;
             }
@@ -497,9 +498,11 @@ static int FTPGetLine(FtpState *state)
 
     /* toserver */
     if (state->direction == 0)
-        return FTPGetLineForDirection(state, &state->line_state[0]);
+        return FTPGetLineForDirection(
+                state, &state->line_state[0], &state->current_line_truncated_ts);
     else
-        return FTPGetLineForDirection(state, &state->line_state[1]);
+        return FTPGetLineForDirection(
+                state, &state->line_state[1], &state->current_line_truncated_tc);
 }
 
 /**
@@ -631,7 +634,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state,
         tx->command_descriptor = cmd_descriptor;
         tx->request_length = CopyCommandLine(&tx->request,
                 state->current_line, state->current_line_len);
-        tx->request_truncated = state->current_line_truncated;
+        tx->request_truncated = state->current_line_truncated_ts;
 
         /* change direction (default to server) so expectation will handle
          * the correct message when expectation will match.
@@ -856,7 +859,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
             FTPString *response = FTPStringAlloc();
             if (likely(response)) {
                 response->len = CopyCommandLine(&response->str, state->current_line, state->current_line_len);
-                response->truncated = state->current_line_truncated;
+                response->truncated = state->current_line_truncated_tc;
                 TAILQ_INSERT_TAIL(&tx->response_list, response, next);
             }
         }

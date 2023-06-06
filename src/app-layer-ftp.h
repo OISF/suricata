@@ -177,7 +177,8 @@ typedef struct FtpState_ {
     /** length of the line in current_line.  Doesn't include the delimiter */
     uint32_t current_line_len;
     uint8_t current_line_delimiter_len;
-    bool current_line_truncated;
+    bool current_line_truncated_ts;
+    bool current_line_truncated_tc;
 
     /* 0 for toserver, 1 for toclient */
     FtpLineState line_state[2];
