@@ -1004,6 +1004,11 @@ asn1-max-frames: 256
 #    # ".." components to reference parent directories in rules that specify
 #    # their filenames.
 #    #allow-absolute-filenames: false
+#
+#    # Allow datasets in rules write access for "save" and
+#    # "state". This is enabled by default, however write access is
+#    # limited to the data directory.
+#    #allow-write: true
 
 ##############################################################################
 ##
