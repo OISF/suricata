@@ -91,9 +91,7 @@ void HTTP2MimicHttp1Request(void *alstate_orig, void *h2s)
     size_t nbheaders = htp_table_size(h1tx->request_headers);
     for (size_t i = 0; i < nbheaders; i++) {
         htp_header_t *h = htp_table_get_index(h1tx->request_headers, i, NULL);
-        if (h != NULL) {
-            rs_http2_tx_add_header(h2s, bstr_ptr(h->name), bstr_len(h->name), bstr_ptr(h->value),
-                    bstr_len(h->value));
-        }
+        rs_http2_tx_add_header(
+                h2s, bstr_ptr(h->name), bstr_len(h->name), bstr_ptr(h->value), bstr_len(h->value));
     }
 }

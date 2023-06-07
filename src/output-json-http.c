@@ -321,10 +321,7 @@ static void EveHttpLogJSONHeaders(
     bool array_empty = true;
     jb_open_array(js, direction & LOG_HTTP_REQ_HEADERS ? "request_headers" : "response_headers");
     for (size_t i = 0; i < n; i++) {
-        htp_header_t * h = htp_table_get_index(headers, i, NULL);
-        if (h == NULL) {
-            continue;
-        }
+        htp_header_t *h = htp_table_get_index(headers, i, NULL);
         if ((http_ctx->flags & direction) == 0 && http_ctx->fields != 0) {
             bool tolog = false;
             for (HttpField f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++) {
