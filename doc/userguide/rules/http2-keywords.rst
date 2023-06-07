@@ -115,7 +115,6 @@ http.request_header
 
 Match on the name and value of a HTTP2 request header from a HEADER frame (or PUSH_PROMISE or CONTINUATION).
 Name and value get concatenated by ": ", colon and space.
-Each colon in the name or the value should be escaped as a double colon "::" for detection
 
 Examples::
 
@@ -132,7 +131,6 @@ http.response_header
 
 Match on the name and value of a HTTP2 response header from a HEADER frame (or PUSH_PROMISE or CONTINUATION).
 Name and value get concatenated by ": ", colon and space.
-Each colon in the name or the value should be escaped as a double colon "::" for detection
 
 Examples::
 
