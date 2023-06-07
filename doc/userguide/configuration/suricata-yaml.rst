@@ -2474,6 +2474,8 @@ Example:
   [10703] 26/11/2010 -- 11:41:15 - (detect.c:560) <Info> (SigLoadSignatures)
   -- Engine-Analysis for fast_pattern printed to file - /var/log/suricata/rules_fast_pattern.txt
 
+  alert tcp any any -> any any (content:"Volume Serial Number"; sid:1292;)
+
   == Sid: 1292 ==
   Fast pattern matcher: content
   Fast pattern set: no
