@@ -1210,7 +1210,11 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
     DEBUG_VALIDATE_BUG_ON(dst_size != dst->buf_size);
     if (dst_copy_offset != 0)
         memmove(dst->buf + dst_copy_offset, dst->buf, old_size);
-    dst->stream_offset = dst_offset;
+    if (dst_offset != dst->stream_offset) {
+        dst->stream_offset = dst_offset;
+        // buf_offset no longer valid, reset.
+        dst->buf_offset = 0;
+    }
 
     uint32_t new_offset = src_start->buf_offset;
     if (data_offset == src_start->stream_offset + src_start->buf_offset) {
