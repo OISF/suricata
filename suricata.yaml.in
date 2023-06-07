@@ -1191,6 +1191,10 @@ security:
         - /etc/
         - @e_sysconfdir@
 
+  lua:
+    # Allow Lua rules. Disabled by default.
+    #allow-rules: false
+
 # Some logging modules will use that name in event as identifier. The default
 # value is the hostname
 #sensor-name: suricata
