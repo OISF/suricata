@@ -713,21 +713,11 @@ pub unsafe extern "C" fn rs_http2_tx_get_header_value(
 
 fn http2_escape_header(blocks: &[parser::HTTP2FrameHeaderBlock], i: u32) -> Vec<u8> {
     //minimum size + 2 for escapes
-    let normalsize = blocks[i as usize].value.len() + 2 + blocks[i as usize].name.len() + 2;
+    let normalsize = blocks[i as usize].value.len() + 2 + blocks[i as usize].name.len();
     let mut vec = Vec::with_capacity(normalsize);
-    for j in 0..blocks[i as usize].name.len() {
-        vec.push(blocks[i as usize].name[j]);
-        if blocks[i as usize].name[j] == b':' {
-            vec.push(b':');
-        }
-    }
+    vec.extend_from_slice(&blocks[i as usize].name);
     vec.extend_from_slice(&[b':', b' ']);
-    for j in 0..blocks[i as usize].value.len() {
-        vec.push(blocks[i as usize].value[j]);
-        if blocks[i as usize].value[j] == b':' {
-            vec.push(b':');
-        }
-    }
+    vec.extend_from_slice(&blocks[i as usize].value);
     return vec;
 }
 
