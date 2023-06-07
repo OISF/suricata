@@ -1446,7 +1446,7 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cf
     seg->segment_len = data_len;
 
     SCLogDebug("rel_offset %u region->stream_offset %" PRIu64 ", buf_offset %u", rel_offset,
-            region->stream_offset, sb->region.buf_offset);
+            region->stream_offset, region->buf_offset);
 
     if (RB_EMPTY(&sb->sbb_tree)) {
         SCLogDebug("empty sbb list");
