@@ -1002,6 +1002,16 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
     DetectLuaData *lua = NULL;
     SigMatch *sm = NULL;
 
+    /* First check if Lua rules are enabled, by default Lua in rules
+     * is disabled. */
+    int enabled = 0;
+    (void)ConfGetBool("security.lua.allow-rules", &enabled);
+    if (!enabled) {
+        SCLogError(SC_ERR_NO_LUA_SUPPORT,
+                "Lua rules disabled by security configuration: security.lua.allow-rules");
+        goto error;
+    }
+
     lua = DetectLuaParse(de_ctx, str);
     if (lua == NULL)
         goto error;
@@ -1156,6 +1166,8 @@ static void DetectLuaFree(DetectEngineCtx *de_ctx, void *ptr)
 /** \test http buffer */
 static int LuaMatchTest01(void)
 {
+    ConfSetFinal("security.lua.allow-rules", "true");
+
     const char script[] =
         "function init (args)\n"
         "   local needs = {}\n"
