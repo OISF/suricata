@@ -273,7 +273,7 @@
             CFLAGS="${CFLAGS} -DOS_WIN32"
             WINDOWS_PATH="yes"
             AC_DEFINE([HAVE_NON_POSIX_MKDIR], [1], [mkdir is not POSIX compliant: single arg])
-            RUST_LDADD=" -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid -luserenv -lshell32 -ladvapi32 -lgcc_eh -lbcrypt"
+            RUST_LDADD=" -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid -luserenv -lshell32 -ladvapi32 -lgcc_eh -lbcrypt -lntdll"
             TRY_WPCAP="yes"
             ;;
         *-*-cygwin)
