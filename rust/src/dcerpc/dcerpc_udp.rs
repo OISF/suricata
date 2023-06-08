@@ -20,7 +20,7 @@ use std::mem::transmute;
 use crate::applayer::{AppLayerResult, AppLayerTxData};
 use crate::core;
 use crate::dcerpc::dcerpc::{
-    DCERPCTransaction, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
+    DCERPCTransaction, DCERPC_MAX_TX, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
 };
 use std::collections::VecDeque;
 use crate::dcerpc::parser;
@@ -55,12 +55,14 @@ pub struct DCERPCHdrUdp {
 pub struct DCERPCUDPState {
     pub tx_id: u64,
     pub transactions: VecDeque<DCERPCTransaction>,
+    tx_index_completed: usize,
 }
 
 impl DCERPCUDPState {
     pub fn new() -> DCERPCUDPState {
         return DCERPCUDPState {
             tx_id: 0,
+            tx_index_completed: 0,
             transactions: VecDeque::new(),
         };
     }
@@ -72,6 +74,18 @@ impl DCERPCUDPState {
         tx.activityuuid = hdr.activityuuid.to_vec();
         tx.seqnum = hdr.seqnum;
         self.tx_id += 1;
+        if self.transactions.len() > unsafe { DCERPC_MAX_TX } {
+            let mut index = self.tx_index_completed;
+            for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
+                index += 1;
+                if !tx_old.req_done || !tx_old.resp_done {
+                    tx_old.req_done = true;
+                    tx_old.resp_done = true;
+                    break;
+                }
+            }
+            self.tx_index_completed = index;
+        }
         tx
     }
 
@@ -92,6 +106,7 @@ impl DCERPCUDPState {
         if found {
             SCLogDebug!("freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
                             tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
+            self.tx_index_completed = 0;
             self.transactions.remove(index);
         }
     }
