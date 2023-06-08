@@ -451,9 +451,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 /* call only for the correct direction, except when it looks anything like a end of
                  * transaction or end of stream. Since OutputTxLogFiles has complicated logic around
                  * that, we just leave it to that function to sort things out for now. */
-                if (eval_files || AppLayerParserIsFileTxInDir(
-                                          txd, pkt_dir)) { // need to process each tx that might
-                                                           // be a file tx, even if there
+                if (eval_files || AppLayerParserIsFileTxInDir(txd, pkt_dir)) {
                     OutputTxLogFiles(tv, op_thread_data->file, op_thread_data->filedata, p, f, tx,
                             tx_id, txd, tx_complete, ts_ready, tc_ready, ts_eof, tc_eof, eof);
                 }
