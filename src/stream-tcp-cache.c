@@ -157,19 +157,19 @@ void StreamTcpThreadCacheCleanup(void)
     /* sessions */
     SCLogDebug("tcp_pool_cache.ssns_cache_idx %u", tcp_pool_cache.ssns_cache_idx);
     for (uint32_t i = 0; i < tcp_pool_cache.ssns_cache_idx; i++) {
-        PoolThreadReturn(segment_thread_pool, tcp_pool_cache.ssns_cache[i]);
+        PoolThreadReturn(ssn_pool, tcp_pool_cache.ssns_cache[i]);
     }
     tcp_pool_cache.ssns_cache_idx = 0;
 
     SCLogDebug("tcp_pool_cache.ssns_returns_idx %u", tcp_pool_cache.ssns_returns_idx);
     if (tcp_pool_cache.ssns_returns_idx) {
         PoolThreadId pool_id = tcp_pool_cache.ssns_returns[0]->pool_id;
-        PoolThreadLock(segment_thread_pool, pool_id);
+        PoolThreadLock(ssn_pool, pool_id);
         for (uint32_t i = 0; i < tcp_pool_cache.ssns_returns_idx; i++) {
             TcpSession *ret_ssn = tcp_pool_cache.ssns_returns[i];
-            PoolThreadReturnRaw(segment_thread_pool, pool_id, ret_ssn);
+            PoolThreadReturnRaw(ssn_pool, pool_id, ret_ssn);
         }
-        PoolThreadUnlock(segment_thread_pool, pool_id);
+        PoolThreadUnlock(ssn_pool, pool_id);
         tcp_pool_cache.ssns_returns_idx = 0;
     }
 
