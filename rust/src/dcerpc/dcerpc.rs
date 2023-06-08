@@ -109,6 +109,8 @@ pub const DCERPC_TYPE_ORPHANED: u8 = 19;
 pub const DCERPC_TYPE_RTS: u8 = 20;
 pub const DCERPC_TYPE_UNKNOWN: u8 = 99;
 
+pub(super) static mut DCERPC_MAX_TX: usize = 1024;
+
 pub fn dcerpc_type_string(t: u8) -> String {
     match t {
         DCERPC_TYPE_REQUEST => "REQUEST",
