@@ -59,6 +59,10 @@ int LLVMFuzzerInitialize(int *argc, char ***argv)
             printf("Forcing %s\n", AppProtoToString(forceLayer));
         }
     }
+    // http is the output name, but we want to fuzz HTTP1
+    if (forceLayer == ALPROTO_HTTP) {
+        forceLayer = ALPROTO_HTTP1;
+    }
     return 0;
 }
 
