@@ -270,6 +270,14 @@ jobs:
       - run: make install
       - run: suricatasc -h
       - run: suricata-update -V
+      - name: Check if Suricata-Update example configuration files are installed
+        run: |
+          test -e /usr/local/lib/suricata/python/suricata/update/configs/disable.conf
+          test -e /usr/local/lib/suricata/python/suricata/update/configs/drop.conf
+          test -e /usr/local/lib/suricata/python/suricata/update/configs/enable.conf
+          test -e /usr/local/lib/suricata/python/suricata/update/configs/modify.conf
+          test -e /usr/local/lib/suricata/python/suricata/update/configs/threshold.in
+          test -e /usr/local/lib/suricata/python/suricata/update/configs/update.yaml
 
   almalinux-9-templates:
     name: AlmaLinux 9 Test Templates
