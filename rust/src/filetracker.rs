@@ -63,6 +63,7 @@ pub struct FileTransferTracker {
 
     fill_bytes: u8,
     pub file_open: bool,
+    file_closed: bool,
     chunk_is_last: bool,
     chunk_is_ooo: bool,
     file_is_truncated: bool,
@@ -86,7 +87,7 @@ impl FileTransferTracker {
     }
 
     pub fn is_initialized(&self) -> bool {
-        return self.file_open || self.file_is_truncated;
+        return self.file_open || self.file_is_truncated || self.file_closed;
     }
 
     fn open(&mut self, config: &'static SuricataFileContext, name: &[u8]) -> i32
@@ -105,6 +106,7 @@ impl FileTransferTracker {
             self.file.file_close(config, &self.track_id, self.file_flags);
         }
         self.file_open = false;
+        self.file_closed = true;
         self.tracked = 0;
     }
 
