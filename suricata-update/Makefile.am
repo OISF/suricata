@@ -34,6 +34,14 @@ LIBS =	\
 	suricata/update/util.py \
 	suricata/update/version.py
 
+CONFIGS = \
+	suricata/update/configs/disable.conf \
+	suricata/update/configs/drop.conf \
+	suricata/update/configs/enable.conf \
+	suricata/update/configs/modify.conf \
+	suricata/update/configs/threshold.in \
+	suricata/update/configs/update.yaml
+
 BINS =	suricata-update
 
 if HAVE_PYTHON
@@ -45,6 +53,9 @@ install-exec-local:
 	install -d -m 0755 "$(DESTDIR)$(prefix)/lib/suricata/python/suricata/update/data"
 	for lib in $(LIBS); do \
 		install $(srcdir)/$$lib "$(DESTDIR)$(prefix)/lib/suricata/python/$$lib"; \
+	done
+	for config in $(CONFIGS); do \
+		install -m 0644 $(srcdir)/$$config "$(DESTDIR)$(prefix)/lib/suricata/python/$$config"; \
 	done
 	for bin in $(BINS); do \
 		cat "$(srcdir)/bin/$$bin" | \
