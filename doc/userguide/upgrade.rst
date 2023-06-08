@@ -62,7 +62,7 @@ Logging changes
   See https://redmine.openinfosecfoundation.org/issues/4267 for more information.
 - Custom logging of HTTP headers via suricata.yaml ``outputs.eve-log.types.http.custom``
   is now done in subobjects ``response_headers`` or ``request_headers`` (as for option ``dump-all-headers``)
-  instead than at the root of the ``http`` json object (avoids some collisions).
+  instead of at the root of the ``http`` json object (to avoid some collisions).
 
 Deprecations
 ~~~~~~~~~~~~
