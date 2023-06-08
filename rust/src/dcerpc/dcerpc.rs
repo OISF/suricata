@@ -111,7 +111,7 @@ pub const DCERPC_TYPE_ORPHANED: u8 = 19;
 pub const DCERPC_TYPE_RTS: u8 = 20;
 pub const DCERPC_TYPE_UNKNOWN: u8 = 99;
 
-static mut DCERPC_MAX_TX: usize = 1024;
+pub(super) static mut DCERPC_MAX_TX: usize = 1024;
 
 pub static mut ALPROTO_DCERPC: AppProto = ALPROTO_UNKNOWN;
 
