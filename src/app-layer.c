@@ -338,10 +338,9 @@ extern enum ExceptionPolicy g_applayerparser_error_policy;
  *  \retval int -1 error
  *  \retval int 0 ok
  */
-static int TCPProtoDetect(ThreadVars *tv,
-        TcpReassemblyThreadCtx *ra_ctx, AppLayerThreadCtx *app_tctx,
-        Packet *p, Flow *f, TcpSession *ssn, TcpStream **stream,
-        uint8_t *data, uint32_t data_len, uint8_t flags)
+static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
+        AppLayerThreadCtx *app_tctx, Packet *p, Flow *f, TcpSession *ssn, TcpStream **stream,
+        uint8_t *data, uint32_t data_len, uint8_t flags, enum StreamUpdateDir dir)
 {
     AppProto *alproto;
     AppProto *alproto_otherdir;
@@ -507,7 +506,7 @@ static int TCPProtoDetect(ThreadVars *tv,
         int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                 flags, data, data_len);
         PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-        p->flags |= PKT_APPLAYER_UPDATE;
+        p->app_update_direction = (uint8_t)dir;
         if (r != 1) {
             StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
         }
@@ -581,7 +580,7 @@ static int TCPProtoDetect(ThreadVars *tv,
                             f->alproto, flags,
                             data, data_len);
                     PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-                    p->flags |= PKT_APPLAYER_UPDATE;
+                    p->app_update_direction = (uint8_t)dir;
                     if (r != 1) {
                         StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
                     }
@@ -641,11 +640,9 @@ detect_error:
  *  \param stream ptr-to-ptr to stream object. Might change if flow dir is
  *                reversed.
  */
-int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-                          Packet *p, Flow *f,
-                          TcpSession *ssn, TcpStream **stream,
-                          uint8_t *data, uint32_t data_len,
-                          uint8_t flags)
+int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet *p, Flow *f,
+        TcpSession *ssn, TcpStream **stream, uint8_t *data, uint32_t data_len, uint8_t flags,
+        enum StreamUpdateDir dir)
 {
     SCEnter();
 
@@ -691,7 +688,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                 flags, data, data_len);
         PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-        p->flags |= PKT_APPLAYER_UPDATE;
+        p->app_update_direction = (uint8_t)dir;
         /* ignore parser result for gap */
         StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
         if (r < 0) {
@@ -709,8 +706,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     if (alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
         DEBUG_VALIDATE_BUG_ON(FlowChangeProto(f));
         /* run protocol detection */
-        if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream,
-                           data, data_len, flags) != 0) {
+        if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream, data, data_len, flags, dir) !=
+                0) {
             goto failure;
         }
     } else if (alproto != ALPROTO_UNKNOWN && FlowChangeProto(f)) {
@@ -722,7 +719,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         StreamTcpResetStreamFlagAppProtoDetectionCompleted(&ssn->client);
         StreamTcpResetStreamFlagAppProtoDetectionCompleted(&ssn->server);
         /* rerun protocol detection */
-        int rd = TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream, data, data_len, flags);
+        int rd =
+                TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream, data, data_len, flags, dir);
         if (f->alproto == ALPROTO_UNKNOWN) {
             DEBUG_VALIDATE_BUG_ON(alstate_orig != f->alstate);
             // not enough data, revert AppLayerProtoDetectReset to rerun detection
@@ -775,7 +773,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                                     flags, data, data_len);
             PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-            p->flags |= PKT_APPLAYER_UPDATE;
+            p->app_update_direction = (uint8_t)dir;
             if (r != 1) {
                 StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
                 if (r < 0) {
@@ -900,7 +898,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
             r = AppLayerParserParse(tv, tctx->alp_tctx, f, f->alproto,
                                     flags, p->payload, p->payload_len);
             PACKET_PROFILING_APP_END(tctx, f->alproto);
-            p->flags |= PKT_APPLAYER_UPDATE;
+            p->app_update_direction = (uint8_t)UPDATE_DIR_PACKET;
         }
         PACKET_PROFILING_APP_STORE(tctx, p);
         /* we do only inspection in one direction, so flag both
@@ -917,7 +915,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
                 flags, p->payload, p->payload_len);
         PACKET_PROFILING_APP_END(tctx, f->alproto);
         PACKET_PROFILING_APP_STORE(tctx, p);
-        p->flags |= PKT_APPLAYER_UPDATE;
+        p->app_update_direction = (uint8_t)UPDATE_DIR_PACKET;
     }
     if (r < 0) {
         ExceptionPolicyApply(p, g_applayerparser_error_policy, PKT_DROP_REASON_APPLAYER_ERROR);

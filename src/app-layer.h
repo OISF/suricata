@@ -41,11 +41,9 @@
 /**
  * \brief Handles reassembled tcp stream.
  */
-int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-                          Packet *p, Flow *f,
-                          TcpSession *ssn, TcpStream **stream,
-                          uint8_t *data, uint32_t data_len,
-                          uint8_t flags);
+int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet *p, Flow *f,
+        TcpSession *ssn, TcpStream **stream, uint8_t *data, uint32_t data_len, uint8_t flags,
+        enum StreamUpdateDir dir);
 
 /**
  * \brief Handles an udp chunk.

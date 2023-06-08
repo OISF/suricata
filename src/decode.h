@@ -459,6 +459,8 @@ typedef struct Packet_
     uint8_t flowflags;
     /* coccinelle: Packet:flowflags:FLOW_PKT_ */
 
+    uint8_t app_update_direction; // enum StreamUpdateDir
+
     /* Pkt Flags */
     uint32_t flags;
 
@@ -1055,9 +1057,6 @@ void DecodeUnregisterCounters(void);
 /** We had no alert on flow before this packet */
 #define PKT_FIRST_ALERTS BIT_U32(29)
 #define PKT_FIRST_TAG    BIT_U32(30)
-
-/** Packet updated the app-layer. */
-#define PKT_APPLAYER_UPDATE BIT_U32(31)
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) \

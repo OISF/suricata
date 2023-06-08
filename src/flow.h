@@ -112,6 +112,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** All packets in this flow should be passed */
 #define FLOW_ACTION_PASS BIT_U32(28)
 
+#define FLOW_TS_APP_UPDATED BIT_U32(29)
+#define FLOW_TC_APP_UPDATED BIT_U32(30)
+
 /* File flags */
 
 #define FLOWFILE_INIT                   0
