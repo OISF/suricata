@@ -51,6 +51,7 @@ enum
 };
 
 enum StreamUpdateDir {
+    UPDATE_DIR_NONE = 0,
     UPDATE_DIR_PACKET,
     UPDATE_DIR_OPPOSING,
     UPDATE_DIR_BOTH,

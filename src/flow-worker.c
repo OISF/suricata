@@ -512,6 +512,44 @@ static inline void FlowWorkerProcessLocalFlows(ThreadVars *tv, FlowWorkerThreadD
     FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_FLOW_EVICTED);
 }
 
+/** \internal
+ *  \brief apply Packet::app_update_direction to the flow flags
+ */
+static void PacketAppUpdate2FlowFlags(Packet *p)
+{
+    switch ((enum StreamUpdateDir)p->app_update_direction) {
+        case UPDATE_DIR_NONE: // NONE implies pseudo packet
+            break;
+        case UPDATE_DIR_PACKET:
+            if (PKT_IS_TOSERVER(p)) {
+                p->flow->flags |= FLOW_TS_APP_UPDATED;
+                SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TS_APP_UPDATED set", p->pcap_cnt);
+            } else {
+                p->flow->flags |= FLOW_TC_APP_UPDATED;
+                SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TC_APP_UPDATED set", p->pcap_cnt);
+            }
+            break;
+        case UPDATE_DIR_BOTH:
+            if (PKT_IS_TOSERVER(p)) {
+                p->flow->flags |= FLOW_TS_APP_UPDATED;
+                SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TS_APP_UPDATED set", p->pcap_cnt);
+            } else {
+                p->flow->flags |= FLOW_TC_APP_UPDATED;
+                SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TC_APP_UPDATED set", p->pcap_cnt);
+            }
+            /* fall through */
+        case UPDATE_DIR_OPPOSING:
+            if (PKT_IS_TOSERVER(p)) {
+                p->flow->flags |= FLOW_TC_APP_UPDATED;
+                SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TC_APP_UPDATED set", p->pcap_cnt);
+            } else {
+                p->flow->flags |= FLOW_TS_APP_UPDATED;
+                SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TS_APP_UPDATED set", p->pcap_cnt);
+            }
+            break;
+    }
+}
+
 static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 {
     FlowWorkerThreadData *fw = data;
@@ -567,12 +605,14 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
             }
 
             FlowWorkerStreamTCPUpdate(tv, fw, p, detect_thread, false);
+            PacketAppUpdate2FlowFlags(p);
 
             /* handle the app layer part of the UDP packet payload */
         } else if (p->proto == IPPROTO_UDP && !PacketCheckAction(p, ACTION_DROP)) {
             FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_APPLAYERUDP);
             AppLayerHandleUdp(tv, fw->stream_thread->ra_ctx->app_tctx, p, p->flow);
             FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_APPLAYERUDP);
+            PacketAppUpdate2FlowFlags(p);
         }
     }
 
@@ -609,13 +649,29 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
             FramesPrune(p->flow, p);
         }
 
-        if ((PKT_IS_PSEUDOPKT(p)) || ((p->flags & PKT_APPLAYER_UPDATE) != 0)) {
-            SCLogDebug("pseudo or app update: run cleanup");
-            /* run tx cleanup last */
-            AppLayerParserTransactionsCleanup(p->flow, STREAM_FLAGS_FOR_PACKET(p));
+        if ((PKT_IS_PSEUDOPKT(p)) ||
+                (p->flow->flags & (FLOW_TS_APP_UPDATED | FLOW_TC_APP_UPDATED))) {
+            if (PKT_IS_TOSERVER(p)) {
+                if (PKT_IS_PSEUDOPKT(p) || (p->flow->flags & (FLOW_TS_APP_UPDATED))) {
+                    AppLayerParserTransactionsCleanup(p->flow, STREAM_TOSERVER);
+                    p->flow->flags &= ~FLOW_TS_APP_UPDATED;
+                }
+            } else {
+                if (PKT_IS_PSEUDOPKT(p) || (p->flow->flags & (FLOW_TC_APP_UPDATED))) {
+                    AppLayerParserTransactionsCleanup(p->flow, STREAM_TOCLIENT);
+                    p->flow->flags &= ~FLOW_TC_APP_UPDATED;
+                }
+            }
+
         } else {
             SCLogDebug("not pseudo, no app update: skip");
         }
+
+        if (p->flow->flags & FLOW_ACTION_DROP) {
+            SCLogDebug("flow drop in place: remove app update flags");
+            p->flow->flags &= ~(FLOW_TS_APP_UPDATED | FLOW_TC_APP_UPDATED);
+        }
+
         Flow *f = p->flow;
         FlowDeReference(&p->flow);
         FLOWLOCK_UNLOCK(f);
