@@ -29,6 +29,14 @@ use std::ffi::CString;
 
 static mut ALPROTO_RFB: AppProto = ALPROTO_UNKNOWN;
 
+#[derive(FromPrimitive, Debug, AppLayerEvent)]
+pub enum RFBEvent {
+    UnimplementedSecurityType,
+    UnknownSecurityResult,
+    MalformedMessage,
+    ConfusedState,
+}
+
 #[derive(AppLayerFrameType)]
 pub enum RFBFrameType {
     Pdu,
@@ -86,6 +94,10 @@ impl RFBTransaction {
 
             tx_data: applayer::AppLayerTxData::new(),
         }
+    }
+
+    fn set_event(&mut self, event: RFBEvent) {
+        self.tx_data.set_event(event as u8);
     }
 }
 
@@ -196,7 +208,9 @@ impl RFBState {
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.ts_client_protocol_version = Some(request);
                             } else {
-                                return AppLayerResult::err();
+                                debug_validate_fail!(
+                                    "no transaction set at protocol selection stage"
+                                );
                             }
                         }
                         Err(Err::Incomplete(_)) => {
@@ -206,6 +220,7 @@ impl RFBState {
                             );
                         }
                         Err(_) => {
+                            // We even failed to parse the protocol version.
                             return AppLayerResult::err();
                         }
                     }
@@ -228,7 +243,18 @@ impl RFBState {
                             match chosen_security_type {
                                 2 => self.state = parser::RFBGlobalState::TCVncChallenge,
                                 1 => self.state = parser::RFBGlobalState::TSClientInit,
-                                _ => return AppLayerResult::err(),
+                                _ => {
+                                    if let Some(current_transaction) = self.get_current_tx() {
+                                        current_transaction
+                                            .set_event(RFBEvent::UnimplementedSecurityType);
+                                    }
+                                    // We have just have seen a security type we don't know about.
+                                    // This is not bad per se, it might just mean this is a
+                                    // proprietary one not in the spec.
+                                    // Continue the flow but stop trying to map the protocol.
+                                    self.state = parser::RFBGlobalState::Skip;
+                                    return AppLayerResult::ok();
+                                }
                             }
 
                             if let Some(current_transaction) = self.get_current_tx() {
@@ -236,7 +262,7 @@ impl RFBState {
                                 current_transaction.chosen_security_type =
                                     Some(chosen_security_type as u32);
                             } else {
-                                return AppLayerResult::err();
+                                debug_validate_fail!("no transaction set at security type stage");
                             }
                         }
                         Err(Err::Incomplete(_)) => {
@@ -246,7 +272,13 @@ impl RFBState {
                             );
                         }
                         Err(_) => {
-                            return AppLayerResult::err();
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.set_event(RFBEvent::MalformedMessage);
+                            }
+                            // We failed to parse the security type.
+                            // Continue the flow but stop trying to map the protocol.
+                            self.state = parser::RFBGlobalState::Skip;
+                            return AppLayerResult::ok();
                         }
                     }
                 }
@@ -268,7 +300,7 @@ impl RFBState {
                         if let Some(current_transaction) = self.get_current_tx() {
                             current_transaction.ts_vnc_response = Some(request);
                         } else {
-                            return AppLayerResult::err();
+                            debug_validate_fail!("no transaction set at security result stage");
                         }
                     }
                     Err(Err::Incomplete(_)) => {
@@ -278,7 +310,12 @@ impl RFBState {
                         );
                     }
                     Err(_) => {
-                        return AppLayerResult::err();
+                        if let Some(current_transaction) = self.get_current_tx() {
+                            current_transaction.set_event(RFBEvent::MalformedMessage);
+                        }
+                        // Continue the flow but stop trying to map the protocol.
+                        self.state = parser::RFBGlobalState::Skip;
+                        return AppLayerResult::ok();
                     }
                 },
                 parser::RFBGlobalState::TSClientInit => match parser::parse_client_init(current) {
@@ -299,7 +336,7 @@ impl RFBState {
                         if let Some(current_transaction) = self.get_current_tx() {
                             current_transaction.ts_client_init = Some(request);
                         } else {
-                            return AppLayerResult::err();
+                            debug_validate_fail!("no transaction set at client init stage");
                         }
                     }
                     Err(Err::Incomplete(_)) => {
@@ -309,20 +346,34 @@ impl RFBState {
                         );
                     }
                     Err(_) => {
-                        return AppLayerResult::err();
+                        if let Some(current_transaction) = self.get_current_tx() {
+                            current_transaction.set_event(RFBEvent::MalformedMessage);
+                        }
+                        // We failed to parse the client init.
+                        // Continue the flow but stop trying to map the protocol.
+                        self.state = parser::RFBGlobalState::Skip;
+                        return AppLayerResult::ok();
                     }
                 },
-                parser::RFBGlobalState::Message => {
-                    //todo implement RFB messages, for now we stop here
-                    return AppLayerResult::err();
-                }
-                parser::RFBGlobalState::TCServerProtocolVersion => {
-                    SCLogDebug!("Reversed traffic, expected response.");
-                    return AppLayerResult::err();
+                parser::RFBGlobalState::Skip => {
+                    // End of parseable handshake reached, skip rest of traffic
+                    return AppLayerResult::ok();
                 }
                 _ => {
-                    SCLogDebug!("Invalid state for request {}", self.state);
-                    current = b"";
+                    // We have gotten out of sync with the expected state flow.
+                    // This could happen since we use a global state (i.e. that
+                    // is used for both directions), but if traffic can not be
+                    // parsed as expected elsewhere, we might not have advanced
+                    // a state for one direction but received data in the
+                    // "unexpected" direction, causing the parser to end up
+                    // here. Let's stop trying to parse the traffic but still
+                    // accept it.
+                    SCLogDebug!("Invalid state for request: {}", self.state);
+                    if let Some(current_transaction) = self.get_current_tx() {
+                        current_transaction.set_event(RFBEvent::ConfusedState);
+                    }
+                    self.state = parser::RFBGlobalState::Skip;
+                    return AppLayerResult::ok();
                 }
             }
         }
@@ -368,7 +419,7 @@ impl RFBState {
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.tc_server_protocol_version = Some(request);
                             } else {
-                                return AppLayerResult::err();
+                                debug_validate_fail!("no transaction set but we just set one");
                             }
                         }
                         Err(Err::Incomplete(_)) => {
@@ -378,6 +429,7 @@ impl RFBState {
                             );
                         }
                         Err(_) => {
+                            // We even failed to parse the protocol version.
                             return AppLayerResult::err();
                         }
                     }
@@ -415,7 +467,7 @@ impl RFBState {
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.tc_supported_security_types = Some(request);
                             } else {
-                                return AppLayerResult::err();
+                                debug_validate_fail!("no transaction set at security type stage");
                             }
                         }
                         Err(Err::Incomplete(_)) => {
@@ -425,7 +477,12 @@ impl RFBState {
                             );
                         }
                         Err(_) => {
-                            return AppLayerResult::err();
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.set_event(RFBEvent::MalformedMessage);
+                            }
+                            // Continue the flow but stop trying to map the protocol.
+                            self.state = parser::RFBGlobalState::Skip;
+                            return AppLayerResult::ok();
                         }
                     }
                 }
@@ -451,8 +508,20 @@ impl RFBState {
                                 1 => self.state = parser::RFBGlobalState::TSClientInit,
                                 2 => self.state = parser::RFBGlobalState::TCVncChallenge,
                                 _ => {
-                                    // TODO Event unknown security type
-                                    return AppLayerResult::err();
+                                    if let Some(current_transaction) = self.get_current_tx() {
+                                        current_transaction
+                                            .set_event(RFBEvent::UnimplementedSecurityType);
+                                    } else {
+                                        debug_validate_fail!(
+                                            "no transaction set at security type stage"
+                                        );
+                                    }
+                                    // We have just have seen a security type we don't know about.
+                                    // This is not bad per se, it might just mean this is a
+                                    // proprietary one not in the spec.
+                                    // Continue the flow but stop trying to map the protocol.
+                                    self.state = parser::RFBGlobalState::Skip;
+                                    return AppLayerResult::ok();
                                 }
                             }
 
@@ -461,7 +530,7 @@ impl RFBState {
                                 current_transaction.chosen_security_type =
                                     Some(chosen_security_type);
                             } else {
-                                return AppLayerResult::err();
+                                debug_validate_fail!("no transaction set at security type stage");
                             }
                         }
                         Err(Err::Incomplete(_)) => {
@@ -471,7 +540,12 @@ impl RFBState {
                             );
                         }
                         Err(_) => {
-                            return AppLayerResult::err();
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.set_event(RFBEvent::MalformedMessage);
+                            }
+                            // Continue the flow but stop trying to map the protocol.
+                            self.state = parser::RFBGlobalState::Skip;
+                            return AppLayerResult::ok();
                         }
                     }
                 }
@@ -493,7 +567,7 @@ impl RFBState {
                         if let Some(current_transaction) = self.get_current_tx() {
                             current_transaction.tc_vnc_challenge = Some(request);
                         } else {
-                            return AppLayerResult::err();
+                            debug_validate_fail!("no transaction set at auth stage");
                         }
                     }
                     Err(Err::Incomplete(_)) => {
@@ -503,7 +577,12 @@ impl RFBState {
                         );
                     }
                     Err(_) => {
-                        return AppLayerResult::err();
+                        if let Some(current_transaction) = self.get_current_tx() {
+                            current_transaction.set_event(RFBEvent::MalformedMessage);
+                        }
+                        // Continue the flow but stop trying to map the protocol.
+                        self.state = parser::RFBGlobalState::Skip;
+                        return AppLayerResult::ok();
                     }
                 },
                 parser::RFBGlobalState::TCSecurityResult => {
@@ -526,12 +605,19 @@ impl RFBState {
                                 if let Some(current_transaction) = self.get_current_tx() {
                                     current_transaction.tc_security_result = Some(request);
                                 } else {
-                                    return AppLayerResult::err();
+                                    debug_validate_fail!(
+                                        "no transaction set at security result stage"
+                                    );
                                 }
                             } else if request.status == 1 {
                                 self.state = parser::RFBGlobalState::TCFailureReason;
                             } else {
-                                // TODO: Event: unknown security result value
+                                if let Some(current_transaction) = self.get_current_tx() {
+                                    current_transaction.set_event(RFBEvent::UnknownSecurityResult);
+                                }
+                                // Continue the flow but stop trying to map the protocol.
+                                self.state = parser::RFBGlobalState::Skip;
+                                return AppLayerResult::ok();
                             }
                         }
                         Err(Err::Incomplete(_)) => {
@@ -541,7 +627,12 @@ impl RFBState {
                             );
                         }
                         Err(_) => {
-                            return AppLayerResult::err();
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.set_event(RFBEvent::MalformedMessage);
+                            }
+                            // Continue the flow but stop trying to map the protocol.
+                            self.state = parser::RFBGlobalState::Skip;
+                            return AppLayerResult::ok();
                         }
                     }
                 }
@@ -551,9 +642,9 @@ impl RFBState {
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.tc_failure_reason = Some(request);
                             } else {
-                                return AppLayerResult::err();
+                                debug_validate_fail!("no transaction set at failure reason stage");
                             }
-                            return AppLayerResult::err();
+                            return AppLayerResult::ok();
                         }
                         Err(Err::Incomplete(_)) => {
                             return AppLayerResult::incomplete(
@@ -562,7 +653,12 @@ impl RFBState {
                             );
                         }
                         Err(_) => {
-                            return AppLayerResult::err();
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.set_event(RFBEvent::MalformedMessage);
+                            }
+                            // Continue the flow but stop trying to map the protocol.
+                            self.state = parser::RFBGlobalState::Skip;
+                            return AppLayerResult::ok();
                         }
                     }
                 }
@@ -580,14 +676,14 @@ impl RFBState {
 
                             current = rem;
 
-                            self.state = parser::RFBGlobalState::Message;
+                            self.state = parser::RFBGlobalState::Skip;
 
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.tc_server_init = Some(request);
                                 // connection initialization is complete and parsed
                                 current_transaction.complete = true;
                             } else {
-                                return AppLayerResult::err();
+                                debug_validate_fail!("no transaction set at server init stage");
                             }
                         }
                         Err(Err::Incomplete(_)) => {
@@ -597,17 +693,34 @@ impl RFBState {
                             );
                         }
                         Err(_) => {
-                            return AppLayerResult::err();
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.set_event(RFBEvent::MalformedMessage);
+                            }
+                            // Continue the flow but stop trying to map the protocol.
+                            self.state = parser::RFBGlobalState::Skip;
+                            return AppLayerResult::ok();
                         }
                     }
                 }
-                parser::RFBGlobalState::Message => {
+                parser::RFBGlobalState::Skip => {
                     //todo implement RFB messages, for now we stop here
-                    return AppLayerResult::err();
+                    return AppLayerResult::ok();
                 }
                 _ => {
-                    SCLogDebug!("Invalid state for response");
-                    return AppLayerResult::err();
+                    // We have gotten out of sync with the expected state flow.
+                    // This could happen since we use a global state (i.e. that
+                    // is used for both directions), but if traffic can not be
+                    // parsed as expected elsewhere, we might not have advanced
+                    // a state for one direction but received data in the
+                    // "unexpected" direction, causing the parser to end up
+                    // here. Let's stop trying to parse the traffic but still
+                    // accept it.
+                    SCLogDebug!("Invalid state for response: {}", self.state);
+                    if let Some(current_transaction) = self.get_current_tx() {
+                        current_transaction.set_event(RFBEvent::ConfusedState);
+                    }
+                    self.state = parser::RFBGlobalState::Skip;
+                    return AppLayerResult::ok();
                 }
             }
         }
@@ -713,8 +826,8 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_rfb_tx_get_alstate_progress,
-        get_eventinfo: None,
-        get_eventinfo_byid: None,
+        get_eventinfo: Some(RFBEvent::get_event_info),
+        get_eventinfo_byid: Some(RFBEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
@@ -757,7 +870,7 @@ mod test {
             0x67, 0x6c, 0x65, 0x73, 0x40, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73, 0x74,
             0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e,
         ];
-        let r = state.parse_request(
+        let r = state.parse_response(
             std::ptr::null(),
             StreamSlice::from_slice(buf, STREAM_START, 0),
         );
@@ -862,7 +975,7 @@ mod test {
             std::ptr::null(),
             StreamSlice::from_slice(&buf[36..90], STREAM_START, 0),
         );
-        ok_state = parser::RFBGlobalState::Message;
+        ok_state = parser::RFBGlobalState::Skip;
         assert_eq!(init_state.state, ok_state);
     }
 }

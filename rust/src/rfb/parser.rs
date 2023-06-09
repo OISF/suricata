@@ -17,15 +17,15 @@
 
 // Author: Frank Honza <frank.honza@dcso.de>
 
-use nom7::bytes::streaming::take;
 use nom7::bytes::streaming::tag;
+use nom7::bytes::streaming::take;
 use nom7::combinator::map_res;
 use nom7::number::streaming::*;
 use nom7::*;
 use std::fmt;
 use std::str;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum RFBGlobalState {
     TCServerProtocolVersion,
     TCSupportedSecurityTypes,
@@ -38,7 +38,7 @@ pub enum RFBGlobalState {
     TSVncResponse,
     TCSecurityResult,
     TSClientInit,
-    Message,
+    Skip,
 }
 
 impl fmt::Display for RFBGlobalState {
@@ -55,7 +55,7 @@ impl fmt::Display for RFBGlobalState {
             RFBGlobalState::TCSecurityResult => write!(f, "TCSecurityResult"),
             RFBGlobalState::TCServerSecurityType => write!(f, "TCServerSecurityType"),
             RFBGlobalState::TSClientInit => write!(f, "TSClientInit"),
-            RFBGlobalState::Message => write!(f, "Message"),
+            RFBGlobalState::Skip => write!(f, "Skip"),
         }
     }
 }
