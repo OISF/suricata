@@ -29,6 +29,13 @@ use std::ffi::CString;
 
 static mut ALPROTO_RFB: AppProto = ALPROTO_UNKNOWN;
 
+#[derive(FromPrimitive, Debug, AppLayerEvent)]
+pub enum RFBEvent {
+    UnimplementedSecurityType,
+    UnknownSecurityResult,
+    MalformedMessage,
+}
+
 #[derive(AppLayerFrameType)]
 pub enum RFBFrameType {
     Pdu,
@@ -120,6 +127,10 @@ impl RFBState {
             transactions: Vec::new(),
             state: parser::RFBGlobalState::TCServerProtocolVersion,
         }
+    }
+
+    fn set_event(tx: &mut RFBTransaction, event: RFBEvent) {
+        tx.tx_data.set_event(event as u8);
     }
 
     // Free a transaction by ID.
@@ -713,8 +724,8 @@ pub unsafe extern "C" fn rs_rfb_register_parser() {
         tx_comp_st_ts: 1,
         tx_comp_st_tc: 1,
         tx_get_progress: rs_rfb_tx_get_alstate_progress,
-        get_eventinfo: None,
-        get_eventinfo_byid: None,
+        get_eventinfo: Some(RFBEvent::get_event_info),
+        get_eventinfo_byid: Some(RFBEvent::get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: None,
