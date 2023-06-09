@@ -1,0 +1,11 @@
+# RFB app-layer event rules.
+#
+# These SIDs fall in the 2228000+ range. See:
+#    http://doc.emergingthreats.net/bin/view/Main/SidAllocation and
+#    https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
+
+alert rfb any any -> any any (msg:"SURICATA RFB Malformed or unknown message"; app-layer-event:rfb.malformed_message; classtype:protocol-command-decode; sid:2232000; rev:1;)
+alert rfb any any -> any any (msg:"SURICATA RFB Unimplemented security type"; app-layer-event:rfb.unimplemented_security_type; classtype:protocol-command-decode; sid:2232001; rev:1;)
+alert rfb any any -> any any (msg:"SURICATA RFB Unknown security result"; app-layer-event:rfb.unknown_security_result; classtype:protocol-command-decode; sid:2232002; rev:1;)
+ 
+
