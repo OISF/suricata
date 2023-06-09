@@ -38,7 +38,7 @@ pub enum RFBGlobalState {
     TSVncResponse,
     TCSecurityResult,
     TSClientInit,
-    Message,
+    Skip,
 }
 
 impl fmt::Display for RFBGlobalState {
@@ -55,7 +55,7 @@ impl fmt::Display for RFBGlobalState {
             RFBGlobalState::TCSecurityResult => write!(f, "TCSecurityResult"),
             RFBGlobalState::TCServerSecurityType => write!(f, "TCServerSecurityType"),
             RFBGlobalState::TSClientInit => write!(f, "TSClientInit"),
-            RFBGlobalState::Message => write!(f, "Message"),
+            RFBGlobalState::Skip => write!(f, "Skip"),
         }
     }
 }
