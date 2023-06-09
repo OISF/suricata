@@ -17,15 +17,15 @@
 
 // Author: Frank Honza <frank.honza@dcso.de>
 
-use nom7::bytes::streaming::take;
 use nom7::bytes::streaming::tag;
+use nom7::bytes::streaming::take;
 use nom7::combinator::map_res;
 use nom7::number::streaming::*;
 use nom7::*;
 use std::fmt;
 use std::str;
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RFBGlobalState {
     TCServerProtocolVersion,
     TCSupportedSecurityTypes,
