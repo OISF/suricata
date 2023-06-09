@@ -40,14 +40,15 @@
 #define DETECT_BYTEJUMP_DCE       BIT_U16(6) /**< "dce" enabled */
 #define DETECT_BYTEJUMP_OFFSET_BE BIT_U16(7) /**< "byte extract" enabled */
 #define DETECT_BYTEJUMP_END       BIT_U16(8) /**< "from_end" jump */
+#define DETECT_BYTEJUMP_NBYTES_VAR BIT_U16(9) /**< nbytes string*/
 
 typedef struct DetectBytejumpData_ {
     uint8_t nbytes;                   /**< Number of bytes to compare */
     uint8_t base;                     /**< String value base (oct|dec|hex) */
     uint16_t flags;                   /**< Flags (big|little|relative|string) */
-    uint32_t multiplier;              /**< Multiplier for nbytes (multiplier n)*/
     int32_t offset;                   /**< Offset in payload to extract value */
     int32_t post_offset;              /**< Offset to adjust post-jump */
+    uint16_t multiplier;              /**< Multiplier for nbytes (multiplier n)*/
 } DetectBytejumpData;
 
 /* prototypes */
@@ -77,7 +78,7 @@ void DetectBytejumpRegister (void);
  *       error as a match.
  */
 int DetectBytejumpDoMatch(DetectEngineThreadCtx *, const Signature *, const SigMatchCtx *,
-                          const uint8_t *, uint32_t, uint16_t, int32_t);
+        const uint8_t *, uint32_t, uint16_t, int32_t, int32_t);
 
 #endif /* __DETECT_BYTEJUMP_H__ */
 
