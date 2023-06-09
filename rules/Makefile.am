@@ -17,6 +17,7 @@ mqtt-events.rules \
 nfs-events.rules \
 ntp-events.rules \
 quic-events.rules \
+rfb-events.rules \
 smb-events.rules \
 smtp-events.rules \
 ssh-events.rules \
