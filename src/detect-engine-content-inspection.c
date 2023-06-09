@@ -513,9 +513,16 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
         DetectBytejumpData *bjd = (DetectBytejumpData *)smd->ctx;
         uint16_t bjflags = bjd->flags;
         int32_t offset = bjd->offset;
+        int32_t nbytes;
 
         if (bjflags & DETECT_CONTENT_OFFSET_VAR) {
             offset = det_ctx->byte_values[offset];
+        }
+
+        if (bjflags & DETECT_BYTEJUMP_NBYTES_VAR) {
+            nbytes = det_ctx->byte_values[bjd->nbytes];
+        } else {
+            nbytes = bjd->nbytes;
         }
 
         /* if we have dce enabled we will have to use the endianness
@@ -527,8 +534,8 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
                       DETECT_BYTEJUMP_LITTLE: 0);
         }
 
-        if (DetectBytejumpDoMatch(det_ctx, s, smd->ctx, buffer, buffer_len,
-                                  bjflags, offset) != 1) {
+        if (DetectBytejumpDoMatch(
+                    det_ctx, s, smd->ctx, buffer, buffer_len, bjflags, nbytes, offset) != 1) {
             goto no_match;
         }
 
