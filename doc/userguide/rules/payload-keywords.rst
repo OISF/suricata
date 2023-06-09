@@ -517,7 +517,7 @@ The ``byte_jump`` keyword allows for the ability to select a ``<num of bytes>`` 
 
 Format::
 
-  byte_jump:<num of bytes>, <offset> [, relative][, multiplier <mult_value>] \
+  byte_jump:<num of bytes> | <variable-name>, <offset> [, relative][, multiplier <mult_value>] \
         [, <endian>][, string, <num_type>][, align][, from_beginning][, from_end] \
         [, post_offset <value>][, dce][, bitmask <value>];
 
@@ -525,6 +525,7 @@ Format::
 
 +-----------------------+-----------------------------------------------------------------------+
 | <num of bytes>        | The number of bytes selected from the packet to be converted          |
+|                       | or the name of a byte_extract/byte_math variable.                     |
 +-----------------------+-----------------------------------------------------------------------+
 | <offset>		| Number of bytes into the payload					|
 +-----------------------+-----------------------------------------------------------------------+
