@@ -263,6 +263,16 @@ See :doc:`http-keywords` for all HTTP keywords.
    use ``byte_extract`` and ``byte_test`` to verify that they
    work as expected.
 
+
+``byte_jump`` Keyword
+------------------------
+
+-  Suricata allows a variable name from ``byte_extract`` or
+   ``byte_math`` to be specified for the ``nbytes`` value. The
+   value of ``nbytes`` must adhere to the same constraints
+   as if it were supplied directly in the rule.
+
+
 ``byte_math`` Keyword
 ---------------------
 
