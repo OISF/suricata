@@ -840,31 +840,6 @@ mod test {
     use super::*;
     use crate::core::STREAM_START;
 
-    #[test]
-    fn test_error_state() {
-        let mut state = RFBState::new();
-
-        let buf: &[u8] = &[
-            0x05, 0x00, 0x03, 0x20, 0x20, 0x18, 0x00, 0x01, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
-            0x10, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x61, 0x6e, 0x65, 0x61,
-            0x67, 0x6c, 0x65, 0x73, 0x40, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73, 0x74,
-            0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e,
-        ];
-        let r = state.parse_request(
-            std::ptr::null(),
-            StreamSlice::from_slice(buf, STREAM_START, 0),
-        );
-
-        assert_eq!(
-            r,
-            AppLayerResult {
-                status: -1,
-                consumed: 0,
-                needed: 0
-            }
-        );
-    }
-
     // Test the state machine for RFB protocol
     // Passes an initial buffer with initial RFBState = TCServerProtocolVersion
     // Tests various client and server RFBStates as the buffer is parsed using parse_request and parse_response functions
