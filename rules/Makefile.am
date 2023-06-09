@@ -15,6 +15,7 @@ modbus-events.rules \
 mqtt-events.rules \
 nfs-events.rules \
 ntp-events.rules \
+rfb-events.rules \
 smb-events.rules \
 smtp-events.rules \
 ssh-events.rules \
