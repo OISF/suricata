@@ -16,6 +16,7 @@
  */
 
 // Author: Frank Honza <frank.honza@dcso.de>
+//         Sascha Steinbiss <sascha.steinbiss@dcso.de>
 
 use std;
 use std::ffi::CString;
