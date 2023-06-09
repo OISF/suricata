@@ -112,12 +112,11 @@ pub struct ServerInit {
 
 named!(pub parse_protocol_version<ProtocolVersion>,
     do_parse!(
-        _rfb_string: take_str!(3)
-        >> be_u8
+        _rfb_string: tag!("RFB ")
         >> major: take_str!(3)
-        >> be_u8
+        >> _sep1: tag!(".")
         >> minor: take_str!(3)
-        >> be_u8
+        >> _sep2: tag!("\n")
         >> (
             ProtocolVersion{
                 major: major.to_string(),
