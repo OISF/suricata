@@ -263,6 +263,16 @@ See :doc:`http-keywords` for all HTTP keywords.
    use ``byte_extract`` and ``byte_test`` to verify that they
    work as expected.
 
+
+``byte_jump`` Keyword
+---------------------
+
+-  Suricata allows a variable name from ``byte_extract`` or
+   ``byte_math`` to be specified for the ``nbytes`` value. The
+   value of ``nbytes`` must adhere to the same constraints
+   as if it were supplied directly in the rule.
+
+
 ``byte_math`` Keyword
 ---------------------
 
@@ -276,7 +286,7 @@ See :doc:`http-keywords` for all HTTP keywords.
    uint32 value. Snort rejects ``rvalue`` values of ``0`` and requires
    values to be between ``[1..max-uint32 value]``.
 
-- Suricata will never match if there's a zero divisor. Division by 0 is undefined.
+-  Suricata will never match if there's a zero divisor. Division by 0 is undefined.
 
 ``byte_test`` Keyword
 ---------------------
