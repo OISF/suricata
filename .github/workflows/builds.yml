@@ -144,7 +144,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -171,13 +171,13 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
       - name: Cache RPMs
-        uses: actions/cache@v3
+        uses: actions/cache@v3.3.1
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -286,7 +286,7 @@ jobs:
     needs: [prepare-deps]
     steps:
       - name: Cache RPMs
-        uses: actions/cache@v3
+        uses: actions/cache@v3.3.1
         with:
           path: /var/cache/dnf
           # TODO: Find some variable that matches the job name.
@@ -295,7 +295,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -379,13 +379,13 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
       - name: Cache RPMs
-        uses: actions/cache@v3
+        uses: actions/cache@v3.3.1
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -509,13 +509,13 @@ jobs:
     needs: [prepare-deps, almalinux-8]
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
       - name: Cache RPMs
-        uses: actions/cache@v3
+        uses: actions/cache@v3.3.1
         with:
           path: /var/cache/yum
           key: ${{ github.job }}-yum
@@ -590,13 +590,13 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
       - name: Cache RPMs
-        uses: actions/cache@v3
+        uses: actions/cache@v3.3.1
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -684,13 +684,13 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
       - name: Cache RPMs
-        uses: actions/cache@v3
+        uses: actions/cache@v3.3.1
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -783,7 +783,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@fd5de65bc895cf536527842281bea11763fefd77
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -870,13 +870,13 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
       - name: Cache RPMs
-        uses: actions/cache@v3
+        uses: actions/cache@v3.3.1
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -974,7 +974,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@fd5de65bc895cf536527842281bea11763fefd77
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1065,13 +1065,13 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
       - name: Cache RPMs
-        uses: actions/cache@v3
+        uses: actions/cache@v3.3.1
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -1168,7 +1168,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@fd5de65bc895cf536527842281bea11763fefd77
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -1341,13 +1341,13 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
       - name: Cache RPMs
-        uses: actions/cache@v3
+        uses: actions/cache@v3.3.1
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -1410,7 +1410,7 @@ jobs:
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -1527,7 +1527,7 @@ jobs:
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -1624,7 +1624,7 @@ jobs:
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -1713,7 +1713,7 @@ jobs:
     needs: almalinux-8
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -1773,7 +1773,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -1850,7 +1850,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -1945,7 +1945,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -2007,7 +2007,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2100,7 +2100,7 @@ jobs:
 
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo/registry
           key: cargo-registry
@@ -2194,7 +2194,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -2270,7 +2270,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -2343,7 +2343,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -2397,7 +2397,7 @@ jobs:
         shell: msys2 {0}
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -2453,7 +2453,7 @@ jobs:
         shell: msys2 {0}
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -2497,7 +2497,7 @@ jobs:
         shell: msys2 {0}
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
