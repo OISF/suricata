@@ -961,8 +961,7 @@ SCRadixNode *SCRadixAddKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
  *
  * \retval node Pointer to the newly created node
  */
-SCRadixNode *SCRadixAddKeyIPV4String(
-        const char *str, SCRadixTree *tree, void *user, bool *is_duplicate)
+bool SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *user, bool *is_duplicate)
 {
     uint32_t ip;
     uint8_t netmask = 32;
@@ -982,12 +981,12 @@ SCRadixNode *SCRadixAddKeyIPV4String(
 
         /* Dotted type netmask not supported (yet) */
         if (strchr(mask_str, '.') != NULL) {
-            return NULL;
+            return false;
         }
 
         /* Get binary values for cidr mask */
         if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask_str, 0, 32) < 0) {
-            return NULL;
+            return false;
         }
 
         netmask = (uint8_t)cidr;
@@ -995,7 +994,7 @@ SCRadixNode *SCRadixAddKeyIPV4String(
 
     /* Validate the IP */
     if (inet_pton(AF_INET, ip_str, &addr) <= 0) {
-        return NULL;
+        return false;
     }
     ip = addr.s_addr;
     if (netmask != 32) {
@@ -1016,10 +1015,10 @@ SCRadixNode *SCRadixAddKeyIPV4String(
     if (node) {
         SCLogDebug("IP already added; returning existing node");
         *is_duplicate = true;
-        return node;
+        return true;
     }
 
-    return SCRadixAddKey((uint8_t *)&ip, 32, tree, user, netmask);
+    return SCRadixAddKey((uint8_t *)&ip, 32, tree, user, netmask) != NULL;
 }
 
 /**
@@ -1032,8 +1031,7 @@ SCRadixNode *SCRadixAddKeyIPV4String(
  *
  * \retval node Pointer to the newly created node
  */
-SCRadixNode *SCRadixAddKeyIPV6String(
-        const char *str, SCRadixTree *tree, void *user, bool *is_duplicate)
+bool SCRadixAddKeyIPV6String(const char *str, SCRadixTree *tree, void *user, bool *is_duplicate)
 {
     uint8_t netmask = 128;
     char ip_str[80]; /* Max length for full ipv6/mask string with NUL */
@@ -1053,12 +1051,12 @@ SCRadixNode *SCRadixAddKeyIPV6String(
 
         /* Dotted type netmask not supported (yet) */
         if (strchr(mask_str, '.') != NULL) {
-            return NULL;
+            return false;
         }
 
         /* Get binary values for cidr mask */
         if (StringParseU8RangeCheck(&cidr, 10, 0, (const char *)mask_str, 0, 128) < 0) {
-            return NULL;
+            return false;
         }
 
         netmask = (uint8_t)cidr;
@@ -1066,7 +1064,7 @@ SCRadixNode *SCRadixAddKeyIPV6String(
 
     /* Validate the IP */
     if (inet_pton(AF_INET6, ip_str, &addr) <= 0) {
-        return NULL;
+        return false;
     }
 
     if (netmask != 128) {
@@ -1092,10 +1090,10 @@ SCRadixNode *SCRadixAddKeyIPV6String(
     if (node) {
         SCLogInfo("IP already added; returning existing node");
         *is_duplicate = true;
-        return node;
+        return true;
     }
 
-    return SCRadixAddKey(addr.s6_addr, 128, tree, user, netmask);
+    return SCRadixAddKey(addr.s6_addr, 128, tree, user, netmask) != NULL;
 }
 
 static void SCRadixTransferNetmasksBWNodes(SCRadixNode *dest, SCRadixNode *src)

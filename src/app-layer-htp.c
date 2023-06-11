@@ -2600,7 +2600,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 if (strchr(pval->val, ':') != NULL) {
                     SCLogDebug("LIBHTP adding ipv6 server %s at %s: %p",
                                s->name, pval->val, cfg_prec->cfg);
-                    if (SCRadixAddKeyIPV6String(pval->val, tree, cfg_prec, &is_duplicate) == NULL) {
+                    if (!SCRadixAddKeyIPV6String(pval->val, tree, cfg_prec, &is_duplicate)) {
                         SCLogWarning("LIBHTP failed to "
                                      "add ipv6 server %s, ignoring",
                                 pval->val);
@@ -2608,7 +2608,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 } else {
                     SCLogDebug("LIBHTP adding ipv4 server %s at %s: %p",
                                s->name, pval->val, cfg_prec->cfg);
-                    if (SCRadixAddKeyIPV4String(pval->val, tree, cfg_prec, &is_duplicate) == NULL) {
+                    if (!SCRadixAddKeyIPV4String(pval->val, tree, cfg_prec, &is_duplicate)) {
                         SCLogWarning("LIBHTP failed "
                                      "to add ipv4 server %s, ignoring",
                                 pval->val);
