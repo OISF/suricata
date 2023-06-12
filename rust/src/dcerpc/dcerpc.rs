@@ -38,54 +38,12 @@ pub const DCERPC_UUID_ENTRY_FLAG_FF: u16 = 0x0001;
 pub const PFC_FIRST_FRAG: u8 = 0x01;
 // Value to indicate last fragment
 pub const PFC_LAST_FRAG: u8 = 0x02;
-// Cancel was pending at sender
-pub const PFC_PENDING_CANCEL: u8 = 0x04;
-pub const PFC_RESERVED_1: u8 = 0x08;
-// supports concurrent multiplexing of a single connection.
-pub const PFC_CONC_MPX: u8 = 0x10;
-// only meaningful on `fault' packet; if true, guaranteed
-//  call did not execute.
-pub const PFC_DID_NOT_EXECUTE: u8 = 0x20;
-// `maybe' call semantics requested
-pub const PFC_MAYBE: u8 = 0x40;
-// if true, a non-nil object UUID was specified in the handle, and
-//  is present in the optional object field. If false, the object field
-// is omitted.
-pub const PFC_OBJECT_UUID: u8 = 0x80;
 
 // Flag bits in first flag field in connectionless PDU header.
-pub const PFCL1_RESERVED_01: u8 = 0x01; // Reserved for use by implementations
 pub const PFCL1_LASTFRAG: u8 = 0x02; // If set, the PDU is the last fragment
                                      // of a multi-PDU transmission
 pub const PFCL1_FRAG: u8 = 0x04; // If set, the PDU is a fragment
                                  // of a multi-PDU transmission
-pub const PFCL1_NOFACK: u8 = 0x08; // If set, the receiver is not requested
-                                   // to send a `fack' PDU for the fragment
-pub const PFCL1_MAYBE: u8 = 0x10; // If set, the PDU is for a `maybe' request
-pub const PFCL1_IDEMPOTENT: u8 = 0x20; // If set, the PDU is for
-                                       // an idempotent request
-pub const PFCL1_BROADCAST: u8 = 0x40; // If set, the PDU is for
-                                      // a broadcast request
-pub const PFCL1_RESERVED_80: u8 = 0x80; // Reserved for use by implementations
-
-// Flag bits in second flag field in connectionless PDU header.
-pub const PFCL2_RESERVED_01: u8 = 0x01; // Reserved for use by implementations
-pub const PFCL2_CANCEL_PENDING: u8 = 0x02; // Cancel pending at the call end
-pub const PFCL2_RESERVED_04: u8 = 0x04; // Reserved for future use
-pub const PFCL2_RESERVED_08: u8 = 0x08; // Reserved for future use
-pub const PFCL2_RESERVED_10: u8 = 0x10; // Reserved for future use
-pub const PFCL2_RESERVED_20: u8 = 0x20; // Reserved for future use
-pub const PFCL2_RESERVED_40: u8 = 0x40; // Reserved for future use
-pub const PFCL2_RESERVED_80: u8 = 0x80; // Reserved for future use
-
-pub const REASON_NOT_SPECIFIED: u8 = 0;
-pub const TEMPORARY_CONGESTION: u8 = 1;
-pub const LOCAL_LIMIT_EXCEEDED: u8 = 2;
-pub const CALLED_PADDR_UNKNOWN: u8 = 3; /* not used */
-pub const PROTOCOL_VERSION_NOT_SUPPORTED: u8 = 4;
-pub const DEFAULT_CONTEXT_NOT_SUPPORTED: u8 = 5; /* not used */
-pub const USER_DATA_NOT_READABLE: u8 = 6; /* not used */
-pub const NO_PSAP_AVAILABLE: u8 = 7; /* not used */
 
 // DCERPC Header packet types
 pub const DCERPC_TYPE_REQUEST: u8 = 0;
