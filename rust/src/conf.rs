@@ -31,8 +31,6 @@ use nom7::{
 
 extern {
     fn ConfGet(key: *const c_char, res: *mut *const c_char) -> i8;
-    fn ConfGetChildValue(conf: *const c_void, key: *const c_char,
-                         vptr: *mut *const c_char) -> i8;
     fn ConfGetChildValueBool(conf: *const c_void, key: *const c_char,
                              vptr: *mut c_int) -> i8;
     fn ConfGetNode(key: *const c_char) -> *const c_void;
@@ -101,29 +99,6 @@ impl ConfNode {
 
     pub fn wrap(conf: *const c_void) -> Self {
         return Self { conf }
-    }
-
-    pub fn get_child_value(&self, key: &str) -> Option<&str> {
-        let mut vptr: *const c_char = ptr::null_mut();
-
-        unsafe {
-            let s = CString::new(key).unwrap();
-            if ConfGetChildValue(self.conf,
-                                 s.as_ptr(),
-                                 &mut vptr) != 1 {
-                return None;
-            }
-        }
-
-        if vptr.is_null() {
-            return None;
-        }
-
-        let value = str::from_utf8(unsafe{
-            CStr::from_ptr(vptr).to_bytes()
-        }).unwrap();
-
-        return Some(value);
     }
 
     pub fn get_child_bool(&self, key: &str) -> bool {

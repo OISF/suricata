@@ -373,36 +373,6 @@ impl JsonBuilder {
         }
     }
 
-    /// Add a byte array to a JSON array encoded as hex.
-    pub fn append_hex(&mut self, val: &[u8]) -> Result<&mut Self, JsonError> {
-        match self.current_state() {
-            State::ArrayFirst => {
-                self.push('"')?;
-                for i in 0..val.len() {
-                    self.push(HEX[(val[i] >> 4) as usize] as char)?;
-                    self.push(HEX[(val[i] & 0xf) as usize] as char)?;
-                }
-                self.push('"')?;
-                self.set_state(State::ArrayNth);
-                Ok(self)
-            }
-            State::ArrayNth => {
-                self.push(',')?;
-                self.push('"')?;
-                for i in 0..val.len() {
-                    self.push(HEX[(val[i] >> 4) as usize] as char)?;
-                    self.push(HEX[(val[i] & 0xf) as usize] as char)?;
-                }
-                self.push('"')?;
-                Ok(self)
-            }
-            _ => {
-                debug_validate_fail!("invalid state");
-                Err(JsonError::InvalidState)
-            }
-        }
-    }
-
     /// Add an unsigned integer to an array.
     pub fn append_uint(&mut self, val: u64) -> Result<&mut Self, JsonError> {
         match self.current_state() {
