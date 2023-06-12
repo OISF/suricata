@@ -3,6 +3,10 @@
 Lua Scripting for Detection
 ===========================
 
+.. note:: Lua is disabled by default for use in rules, it must be
+          enabled in the configuration file. See the ``security.lua``
+          section of ``suricata.yaml`` and enable ``allow-rules``.
+
 Syntax:
 
 ::
