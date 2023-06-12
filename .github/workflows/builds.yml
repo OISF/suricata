@@ -2402,7 +2402,7 @@ jobs:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
       - uses: actions/checkout@v3.5.3
-      - uses: msys2/setup-msys2@fa138fa56e2558760b9f2205135313c7345c5f3f
+      - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
@@ -2502,7 +2502,7 @@ jobs:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
       - uses: actions/checkout@v3.5.3
-      - uses: msys2/setup-msys2@fa138fa56e2558760b9f2205135313c7345c5f3f
+      - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
