@@ -30,6 +30,11 @@ by the ones Suricata supplies.
 Major updates include new features, new default settings and often also
 remove features.
 
+Upgrading to 6.0.13
+-------------------
+- Lua rules have been disabled. To enable them see
+  :ref:`suricata-yaml-config-hardening`.
+
 Upgrading from 6.0.4 to 6.0.5
 -----------------------------
 - FTP has been updated with a maximum command request and response line length of 4096 bytes. To change the default see :ref:`suricata-yaml-configure-ftp`.

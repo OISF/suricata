@@ -2480,3 +2480,21 @@ detect thread. For each output script, a single state is used. Keep in
 mind that a rule reload temporary doubles the states requirement.
 
 .. _deprecation policy: https://suricata.io/our-story/deprecation-policy/
+
+.. _suricata-yaml-config-hardening:
+
+Configuration hardening
+-----------------------
+
+Lua
+~~~
+
+Suricata 6.0.13 disables Lua rules by default. Lua rules can be
+enabled in the ``security.lua`` section of the configuration file:
+
+::
+
+   security:
+     lua:
+       # Allow Lua rules. Disabled by default.
+       #allow-rules: false
