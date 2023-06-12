@@ -17,9 +17,11 @@
 
 use crate::applayer::StreamSlice;
 use crate::core::Flow;
+#[cfg(not(test))]
 use crate::core::STREAM_TOSERVER;
 use crate::core::Direction;
 
+#[cfg(not(test))]
 #[repr(C)]
 struct CFrame {
     _private: [u8; 0],
@@ -27,6 +29,7 @@ struct CFrame {
 
 // Defined in app-layer-register.h
 extern {
+    #[cfg(not(test))]
     fn AppLayerFrameNewByRelativeOffset(
         flow: *const Flow, stream_slice: *const StreamSlice, frame_start_rel: u32, len: i64,
         dir: i32, frame_type: u8,
@@ -34,6 +37,7 @@ extern {
     fn AppLayerFrameAddEventById(flow: *const Flow, dir: i32, id: i64, event: u8);
     fn AppLayerFrameSetLengthById(flow: *const Flow, dir: i32, id: i64, len: i64);
     fn AppLayerFrameSetTxIdById(flow: *const Flow, dir: i32, id: i64, tx_id: u64);
+    #[cfg(not(test))]
     fn AppLayerFrameGetId(frame: *const CFrame) -> i64;
 }
 
@@ -49,6 +53,7 @@ impl std::fmt::Debug for Frame {
 }
 
 impl Frame {
+    #[cfg(not(test))]
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn new(
         flow: *const Flow, stream_slice: &StreamSlice, frame_start: &[u8], frame_len: i64,
@@ -56,31 +61,36 @@ impl Frame {
     ) -> Option<Self> {
         let offset = frame_start.as_ptr() as usize - stream_slice.as_slice().as_ptr() as usize;
         SCLogDebug!("offset {} stream_slice.len() {} frame_start.len() {}", offset, stream_slice.len(), frame_start.len());
-        // If running Rust unit tests this won't be compiled and None will be returned, as we don't
-        // have the Suricata C code available for linkage.
-        if cfg!(not(test)) {
-            let frame = unsafe {
-                AppLayerFrameNewByRelativeOffset(
-                    flow,
-                    stream_slice,
-                    offset as u32,
-                    frame_len,
-                    (stream_slice.flags() & STREAM_TOSERVER == 0).into(),
-                    frame_type,
-                )
-            };
-            let id = unsafe { AppLayerFrameGetId(frame) };
-            if id > 0 {
-                Some(Self {
-                    id,
-                    direction: Direction::from(stream_slice.flags()),
-                })
-            } else {
-                None
-            }
+        let frame = unsafe {
+            AppLayerFrameNewByRelativeOffset(
+                flow,
+                stream_slice,
+                offset as u32,
+                frame_len,
+                (stream_slice.flags() & STREAM_TOSERVER == 0).into(),
+                frame_type,
+            )
+        };
+        let id = unsafe { AppLayerFrameGetId(frame) };
+        if id > 0 {
+            Some(Self {
+                id,
+                direction: Direction::from(stream_slice.flags()),
+            })
         } else {
             None
         }
+    }
+
+    /// A variation of `new` for use when running Rust unit tests as
+    /// the C functions for building a frame are not available for
+    /// linkage.
+    #[cfg(test)]
+    pub fn new(
+        _flow: *const Flow, _stream_slice: &StreamSlice, _frame_start: &[u8], _frame_len: i64,
+        _frame_type: u8,
+    ) -> Option<Self> {
+        None
     }
 
     /// Conversion function to get the direction in the correct form for the
