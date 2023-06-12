@@ -806,6 +806,8 @@ static int DetectEngineInspectHttp2HeaderName(
 
 static int DetectHTTP2headerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
+    SCLogWarning(SC_WARN_DEPRECATED, "Keyword http2.header is removed in Suricata 7, and replaced "
+                                     "by http.request_header and http.response_header");
     if (DetectBufferSetActiveList(s, g_http2_header_buffer_id) < 0)
         return -1;
 
