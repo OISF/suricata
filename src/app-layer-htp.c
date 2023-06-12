@@ -166,6 +166,7 @@ SCEnumCharMap http_decoder_event_table[] = {
     { "COMPRESSION_BOMB", HTTP_DECODER_EVENT_COMPRESSION_BOMB },
 
     { "RANGE_INVALID", HTTP_DECODER_EVENT_RANGE_INVALID },
+    { "REQUEST_CHUNK_EXTENSION", HTTP_DECODER_EVENT_REQUEST_CHUNK_EXTENSION },
 
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR", HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR },
@@ -598,37 +599,47 @@ struct {
     const char *msg;
     uint8_t de;
 } htp_warnings[] = {
-    { "GZip decompressor:", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED},
-    { "Request field invalid", HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID},
-    { "Response field invalid", HTTP_DECODER_EVENT_RESPONSE_HEADER_INVALID},
-    { "Request header name is not a token", HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID},
-    { "Response header name is not a token", HTTP_DECODER_EVENT_RESPONSE_HEADER_INVALID},
-/*  { "Host information in request headers required by HTTP/1.1", HTTP_DECODER_EVENT_MISSING_HOST_HEADER}, <- tx flag HTP_HOST_MISSING
-    { "Host information ambiguous", HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS}, <- tx flag HTP_HOST_AMBIGUOUS */
-    { "Invalid request field folding", HTTP_DECODER_EVENT_INVALID_REQUEST_FIELD_FOLDING},
-    { "Invalid response field folding", HTTP_DECODER_EVENT_INVALID_RESPONSE_FIELD_FOLDING},
-    /* line is now: htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Request server port=%d number differs from the actual TCP port=%d", port, connp->conn->server_port);
-     * luckily, "Request server port=" is unique */
-/*    { "Request server port number differs from the actual TCP port", HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH}, */
-    { "Request server port=", HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH},
-    { "Request line: URI contains non-compliant delimiter", HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT},
-    { "Request line: non-compliant delimiter between Method and URI", HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT},
-    { "Request line: leading whitespace", HTTP_DECODER_EVENT_REQUEST_LINE_LEADING_WHITESPACE},
-    { "Too many response content encoding layers", HTTP_DECODER_EVENT_TOO_MANY_ENCODING_LAYERS},
-    { "C-E gzip has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
-    { "C-E deflate has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
-    { "C-E unknown setting", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
-    { "Excessive request header repetitions", HTTP_DECODER_EVENT_REQUEST_HEADER_REPETITION},
-    { "Excessive response header repetitions", HTTP_DECODER_EVENT_RESPONSE_HEADER_REPETITION},
-    { "Transfer-encoding has abnormal chunked value", HTTP_DECODER_EVENT_RESPONSE_ABNORMAL_TRANSFER_ENCODING},
-    { "Chunked transfer-encoding on HTTP/0.9 or HTTP/1.0", HTTP_DECODER_EVENT_RESPONSE_CHUNKED_OLD_PROTO},
-    { "Invalid response line: invalid protocol", HTTP_DECODER_EVENT_RESPONSE_INVALID_PROTOCOL},
-    { "Invalid response line: invalid response status", HTTP_DECODER_EVENT_RESPONSE_INVALID_STATUS},
-    { "Request line incomplete", HTTP_DECODER_EVENT_REQUEST_LINE_INCOMPLETE},
-    { "Unexpected request body", HTTP_DECODER_EVENT_REQUEST_BODY_UNEXPECTED},
-    { "LZMA decompressor: memory limit reached", HTTP_DECODER_EVENT_LZMA_MEMLIMIT_REACHED},
-    { "Ambiguous request C-L value", HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_REQUEST},
-    { "Ambiguous response C-L value", HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE},
+    { "GZip decompressor:", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED },
+    { "Request field invalid", HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID },
+    { "Response field invalid", HTTP_DECODER_EVENT_RESPONSE_HEADER_INVALID },
+    { "Request header name is not a token", HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID },
+    { "Response header name is not a token", HTTP_DECODER_EVENT_RESPONSE_HEADER_INVALID },
+    /*  { "Host information in request headers required by HTTP/1.1",
+       HTTP_DECODER_EVENT_MISSING_HOST_HEADER}, <- tx flag HTP_HOST_MISSING { "Host information
+       ambiguous", HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS}, <- tx flag HTP_HOST_AMBIGUOUS */
+    { "Invalid request field folding", HTTP_DECODER_EVENT_INVALID_REQUEST_FIELD_FOLDING },
+    { "Invalid response field folding", HTTP_DECODER_EVENT_INVALID_RESPONSE_FIELD_FOLDING },
+    /* line is now: htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Request server port=%d number
+     * differs from the actual TCP port=%d", port, connp->conn->server_port); luckily, "Request
+     * server port=" is unique */
+    /*    { "Request server port number differs from the actual TCP port",
+       HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH}, */
+    { "Request server port=", HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH },
+    { "Request line: URI contains non-compliant delimiter",
+            HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT },
+    { "Request line: non-compliant delimiter between Method and URI",
+            HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT },
+    { "Request line: leading whitespace", HTTP_DECODER_EVENT_REQUEST_LINE_LEADING_WHITESPACE },
+    { "Too many response content encoding layers", HTTP_DECODER_EVENT_TOO_MANY_ENCODING_LAYERS },
+    { "C-E gzip has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER },
+    { "C-E deflate has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER },
+    { "C-E unknown setting", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER },
+    { "Excessive request header repetitions", HTTP_DECODER_EVENT_REQUEST_HEADER_REPETITION },
+    { "Excessive response header repetitions", HTTP_DECODER_EVENT_RESPONSE_HEADER_REPETITION },
+    { "Transfer-encoding has abnormal chunked value",
+            HTTP_DECODER_EVENT_RESPONSE_ABNORMAL_TRANSFER_ENCODING },
+    { "Chunked transfer-encoding on HTTP/0.9 or HTTP/1.0",
+            HTTP_DECODER_EVENT_RESPONSE_CHUNKED_OLD_PROTO },
+    { "Invalid response line: invalid protocol", HTTP_DECODER_EVENT_RESPONSE_INVALID_PROTOCOL },
+    { "Invalid response line: invalid response status",
+            HTTP_DECODER_EVENT_RESPONSE_INVALID_STATUS },
+    { "Request line incomplete", HTTP_DECODER_EVENT_REQUEST_LINE_INCOMPLETE },
+    { "Unexpected request body", HTTP_DECODER_EVENT_REQUEST_BODY_UNEXPECTED },
+    { "LZMA decompressor: memory limit reached", HTTP_DECODER_EVENT_LZMA_MEMLIMIT_REACHED },
+    { "Ambiguous request C-L value", HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_REQUEST },
+    { "Ambiguous response C-L value",
+            HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE },
+    { "Request chunk extension", HTTP_DECODER_EVENT_REQUEST_CHUNK_EXTENSION },
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
