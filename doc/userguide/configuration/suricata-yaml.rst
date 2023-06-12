@@ -2735,3 +2735,17 @@ you probably want to set `run-as` configuration parameter so as to drop root pri
 Beyond suricata.yaml, other ways to harden Suricata are
 - compilation : enabling ASLR and other exploit mitigation techniques.
 - environment : running Suricata on a device that has no direct access to Internet.
+
+Lua
+~~~
+
+Suricata 7.0 disables Lua rules by default. Lua rules can be enabled
+in the ``security.lua`` section of the configuration file:
+
+::
+
+   security:
+     lua:
+       # Allow Lua rules. Disabled by default.
+       #allow-rules: false
+
