@@ -154,6 +154,38 @@ If pcap log capture is active in `multi` mode, a `capture_file` key will be adde
 with value being the full path of the pcap file where the corresponding packets
 have been extracted.
 
+Eventy type: Verdict
+--------------------
+
+The "verdict" event indicates the final decision by the engine for a given
+packet that triggered alerts. This is especially useful for scenarios in which
+there are several alerts with different, conflicting actions, as it will state
+what was the prevailing action and whether the packet was also dropped or any
+other outcomes (as it happens with the ``reject`` action, for instance).
+
+Examples
+~~~~~~~~
+
+::
+
+   "verdict": {
+      "action": "alert"
+      "reject-target": "both"
+      "reject": [ "tcp-reset", "icmp-prohib", "user defined" ]
+   }
+
+Fields
+~~~~~~
+
+* "action": the action associated with the alert, and performed by the engine.
+  Possible values: ``alert``, ``pass``, ``drop``.
+* "reject-target": (optional) dependent on Engine mode (IDS or IPS) and type of reject
+  (cf :ref:`actions`). Possible values: ``source``, ``destination``, ``both``.
+* "reject": (optional) ``["tcp-reset", "icmp-prohib", "user defined"]`` depending on
+  flow protocol and user settings.
+
+.. note:: ``reject`` is only logged for ``reject`` rules.
+
 Event type: Anomaly
 -------------------
 

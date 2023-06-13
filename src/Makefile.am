@@ -427,6 +427,7 @@ noinst_HEADERS = \
 	output-json-template.h \
 	output-json-tftp.h \
 	output-json-tls.h \
+	output-json-verdict.h \
 	output-eve-syslog.h \
 	output-lua.h \
 	output-packet.h \
@@ -1036,6 +1037,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-template.c \
 	output-json-tftp.c \
 	output-json-tls.c \
+	output-json-verdict.c \
 	output-eve-syslog.c \
 	output-lua.c \
 	output-packet.c \
