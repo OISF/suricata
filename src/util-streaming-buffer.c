@@ -35,12 +35,30 @@ static void ListRegions(StreamingBuffer *sb);
  *  \brief Streaming Buffer API
  */
 
+static void *ReallocFunc(void *ptr, const size_t size)
+{
+    void *ptrmem = SCRealloc(ptr, size);
+    if (unlikely(ptrmem == NULL)) {
+        sc_errno = SC_ENOMEM;
+    }
+    return ptrmem;
+}
+
+static void *CallocFunc(const size_t nm, const size_t sz)
+{
+    void *ptrmem = SCCalloc(nm, sz);
+    if (unlikely(ptrmem == NULL)) {
+        sc_errno = SC_ENOMEM;
+    }
+    return ptrmem;
+}
+
 /* memory handling wrappers. If config doesn't define it's own set of
  * functions, use the defaults */
-#define CALLOC(cfg, n, s) \
-    (cfg)->Calloc ? (cfg)->Calloc((n), (s)) : SCCalloc((n), (s))
-#define REALLOC(cfg, ptr, orig_s, s) \
-    (cfg)->Realloc ? (cfg)->Realloc((ptr), (orig_s), (s)) : SCRealloc((ptr), (s))
+// TODO the default allocators don't set `sc_errno` yet.
+#define CALLOC(cfg, n, s) (cfg)->Calloc ? (cfg)->Calloc((n), (s)) : CallocFunc((n), (s))
+#define REALLOC(cfg, ptr, orig_s, s)                                                               \
+    (cfg)->Realloc ? (cfg)->Realloc((ptr), (orig_s), (s)) : ReallocFunc((ptr), (s))
 #define FREE(cfg, ptr, s) \
     (cfg)->Free ? (cfg)->Free((ptr), (s)) : SCFree((ptr))
 
@@ -204,14 +222,12 @@ static inline StreamingBufferRegion *InitBufferRegion(
 
     StreamingBufferRegion *aux_r = CALLOC(cfg, 1, sizeof(*aux_r));
     if (aux_r == NULL) {
-        sc_errno = SC_ENOMEM;
         return NULL;
     }
 
     aux_r->buf = CALLOC(cfg, 1, MAX(cfg->buf_size, min_size));
     if (aux_r->buf == NULL) {
         FREE(cfg, aux_r, sizeof(*aux_r));
-        sc_errno = SC_ENOMEM;
         return NULL;
     }
     aux_r->buf_size = MAX(cfg->buf_size, min_size);
@@ -224,7 +240,7 @@ static inline int InitBuffer(StreamingBuffer *sb, const StreamingBufferConfig *c
 {
     sb->region.buf = CALLOC(cfg, 1, cfg->buf_size);
     if (sb->region.buf == NULL) {
-        return SC_ENOMEM;
+        return sc_errno;
     }
     sb->region.buf_size = cfg->buf_size;
     return SC_OK;
@@ -234,7 +250,6 @@ StreamingBuffer *StreamingBufferInit(const StreamingBufferConfig *cfg)
 {
     StreamingBuffer *sb = CALLOC(cfg, 1, sizeof(StreamingBuffer));
     if (sb == NULL) {
-        sc_errno = SC_ENOMEM;
         return NULL;
     }
 
@@ -315,7 +330,7 @@ static int WARN_UNUSED SBBInit(StreamingBuffer *sb, const StreamingBufferConfig 
     /* need to set up 2: existing data block and new data block */
     StreamingBufferBlock *sbb = CALLOC(cfg, 1, sizeof(*sbb));
     if (sbb == NULL) {
-        return SC_ENOMEM;
+        return sc_errno;
     }
     sbb->offset = sb->region.stream_offset;
     sbb->len = sb->region.buf_offset;
@@ -325,7 +340,7 @@ static int WARN_UNUSED SBBInit(StreamingBuffer *sb, const StreamingBufferConfig 
 
     StreamingBufferBlock *sbb2 = CALLOC(cfg, 1, sizeof(*sbb2));
     if (sbb2 == NULL) {
-        return SC_ENOMEM;
+        return sc_errno;
     }
     sbb2->offset = region->stream_offset + rel_offset;
     sbb2->len = data_len;
@@ -356,7 +371,7 @@ static int WARN_UNUSED SBBInitLeadingGap(StreamingBuffer *sb, const StreamingBuf
 
     StreamingBufferBlock *sbb = CALLOC(cfg, 1, sizeof(*sbb));
     if (sbb == NULL) {
-        return SC_ENOMEM;
+        return sc_errno;
     }
     sbb->offset = offset;
     sbb->len = data_len;
@@ -577,7 +592,7 @@ static int SBBUpdate(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
 
     StreamingBufferBlock *sbb = CALLOC(cfg, 1, sizeof(*sbb));
     if (sbb == NULL) {
-        return SC_ENOMEM;
+        return sc_errno;
     }
     sbb->offset = region->stream_offset + rel_offset;
     sbb->len = len;
@@ -706,7 +721,7 @@ static inline int WARN_UNUSED GrowRegionToSize(StreamingBuffer *sb,
 
     void *ptr = REALLOC(cfg, region->buf, region->buf_size, grow);
     if (ptr == NULL) {
-        return SC_ENOMEM;
+        return sc_errno;
     }
     /* for safe printing and general caution, lets memset the
      * new data to 0 */

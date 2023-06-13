@@ -208,11 +208,15 @@ uint64_t StreamTcpReassembleGetMemcap(void)
 */
 static void *ReassembleCalloc(size_t n, size_t size)
 {
-    if (StreamTcpReassembleCheckMemcap(n * size) == 0)
+    if (StreamTcpReassembleCheckMemcap(n * size) == 0) {
+        sc_errno = SC_ELIMIT;
         return NULL;
+    }
     void *ptr = SCCalloc(n, size);
-    if (ptr == NULL)
+    if (ptr == NULL) {
+        sc_errno = SC_ENOMEM;
         return NULL;
+    }
     StreamTcpReassembleIncrMemuse(n * size);
     return ptr;
 }
@@ -225,12 +229,14 @@ void *StreamTcpReassembleRealloc(void *optr, size_t orig_size, size_t size)
     if (size > orig_size) {
         if (StreamTcpReassembleCheckMemcap(size - orig_size) == 0) {
             SCLogDebug("memcap hit at %" PRIu64, SC_ATOMIC_GET(stream_config.reassembly_memcap));
+            sc_errno = SC_ELIMIT;
             return NULL;
         }
     }
     void *nptr = SCRealloc(optr, size);
     if (nptr == NULL) {
         SCLogDebug("realloc fail");
+        sc_errno = SC_ENOMEM;
         return NULL;
     }
     if (size > orig_size) {
