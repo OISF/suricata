@@ -426,7 +426,7 @@ static inline void ConsolidateFwd(StreamingBuffer *sb, const StreamingBufferConf
                     region->buf_size);
             if (sa->offset == region->stream_offset &&
                     sa_re > (region->stream_offset + region->buf_offset)) {
-                BUG_ON(sa_re < region->stream_offset);
+                DEBUG_VALIDATE_BUG_ON(sa_re < region->stream_offset);
                 region->buf_offset = sa_re - region->stream_offset;
                 SCLogDebug("-> (fwd) tr %p %" PRIu64 "/%u region %p so %" PRIu64
                            " bo %u sz %u BUF_OFFSET UPDATED",
@@ -456,7 +456,7 @@ static inline void ConsolidateFwd(StreamingBuffer *sb, const StreamingBufferConf
                     region->buf_size);
             if (sa->offset == region->stream_offset &&
                     sa_re > (region->stream_offset + region->buf_offset)) {
-                BUG_ON(sa_re < region->stream_offset);
+                DEBUG_VALIDATE_BUG_ON(sa_re < region->stream_offset);
                 region->buf_offset = sa_re - region->stream_offset;
                 SCLogDebug("-> (fwd) tr %p %" PRIu64 "/%u region %p so %" PRIu64
                            " bo %u sz %u BUF_OFFSET UPDATED",
@@ -523,7 +523,7 @@ static inline void ConsolidateBackward(StreamingBuffer *sb, const StreamingBuffe
 
             if (sa->offset == region->stream_offset &&
                     sa_re > (region->stream_offset + region->buf_offset)) {
-                BUG_ON(sa_re < region->stream_offset);
+                DEBUG_VALIDATE_BUG_ON(sa_re < region->stream_offset);
                 region->buf_offset = sa_re - region->stream_offset;
                 SCLogDebug("-> (bwd) tr %p %" PRIu64 "/%u region %p so %" PRIu64
                            " bo %u sz %u BUF_OFFSET UPDATED",
@@ -555,7 +555,7 @@ static inline void ConsolidateBackward(StreamingBuffer *sb, const StreamingBuffe
                     region->buf_size);
             if (sa->offset == region->stream_offset &&
                     sa_re > (region->stream_offset + region->buf_offset)) {
-                BUG_ON(sa_re < region->stream_offset);
+                DEBUG_VALIDATE_BUG_ON(sa_re < region->stream_offset);
                 region->buf_offset = sa_re - region->stream_offset;
                 SCLogDebug("-> (bwd) tr %p %" PRIu64 "/%u region %p so %" PRIu64
                            " bo %u sz %u BUF_OFFSET UPDATED",
@@ -632,7 +632,7 @@ static void SBBPrune(StreamingBuffer *sb, const StreamingBufferConfig *cfg)
                 SCLogDebug("set buf_offset?");
                 if (sbb->offset == sb->region.stream_offset) {
                     SCLogDebug("set buf_offset to first sbb len %u", sbb->len);
-                    BUG_ON(sbb->len > sb->region.buf_size);
+                    DEBUG_VALIDATE_BUG_ON(sbb->len > sb->region.buf_size);
                     sb->region.buf_offset = sbb->len;
                 }
             }
@@ -654,7 +654,7 @@ static void SBBPrune(StreamingBuffer *sb, const StreamingBufferConfig *cfg)
             sb->head = sbb;
             if (sbb->offset == sb->region.stream_offset) {
                 SCLogDebug("set buf_offset to first sbb len %u", sbb->len);
-                BUG_ON(sbb->len > sb->region.buf_size);
+                DEBUG_VALIDATE_BUG_ON(sbb->len > sb->region.buf_size);
                 sb->region.buf_offset = sbb->len;
             }
             break;
@@ -772,7 +772,7 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
         StreamingBuffer *sb, const StreamingBufferConfig *cfg, const uint64_t slide_offset)
 {
     ListRegions(sb);
-    BUG_ON(slide_offset == sb->region.stream_offset);
+    DEBUG_VALIDATE_BUG_ON(slide_offset == sb->region.stream_offset);
 
     SCLogDebug("slide_offset %" PRIu64, slide_offset);
     SCLogDebug("main: offset %" PRIu64 " buf %p size %u offset %u", sb->region.stream_offset,
@@ -803,13 +803,13 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
             if (RegionBeforeOffset(r, slide_offset)) {
                 SCLogDebug("r %p so %" PRIu64 ", re %" PRIu64 " -> before", r, r->stream_offset,
                         r->stream_offset + r->buf_offset);
-                BUG_ON(r == &sb->region);
+                DEBUG_VALIDATE_BUG_ON(r == &sb->region);
                 prev->next = next;
 
                 FREE(cfg, r->buf, r->buf_size);
                 FREE(cfg, r, sizeof(*r));
                 sb->regions--;
-                BUG_ON(sb->regions == 0);
+                DEBUG_VALIDATE_BUG_ON(sb->regions == 0);
             } else if (RegionContainsOffset(r, slide_offset)) {
                 SCLogDebug("r %p so %" PRIu64 ", re %" PRIu64 " -> within", r, r->stream_offset,
                         r->stream_offset + r->buf_offset);
@@ -821,7 +821,7 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
                 SCLogDebug("r %p so %" PRIu64 ", re %" PRIu64 " -> post", r, r->stream_offset,
                         r->stream_offset + r->buf_offset);
                 /* implied beyond slide offset */
-                BUG_ON(r->stream_offset < slide_offset);
+                DEBUG_VALIDATE_BUG_ON(r->stream_offset < slide_offset);
                 break;
             }
             r = next;
@@ -837,7 +837,7 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
         SCLogDebug("main: offset %" PRIu64 " buf %p size %u offset %u", to_shift->stream_offset,
                 to_shift->buf, to_shift->buf_size, to_shift->buf_offset);
         if (to_shift != &sb->region) {
-            BUG_ON(sb->region.buf != NULL);
+            DEBUG_VALIDATE_BUG_ON(sb->region.buf != NULL);
 
             sb->region.buf = to_shift->buf;
             sb->region.stream_offset = to_shift->stream_offset;
@@ -848,11 +848,11 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
             FREE(cfg, to_shift, sizeof(*to_shift));
             to_shift = &sb->region;
             sb->regions--;
-            BUG_ON(sb->regions == 0);
+            DEBUG_VALIDATE_BUG_ON(sb->regions == 0);
         }
 
         // Do the shift. If new region is exactly at the slide offset we can skip this.
-        BUG_ON(to_shift->stream_offset > slide_offset);
+        DEBUG_VALIDATE_BUG_ON(to_shift->stream_offset > slide_offset);
         const uint32_t s = slide_offset - to_shift->stream_offset;
         if (s > 0) {
             const uint32_t new_data_size = to_shift->buf_size - s;
@@ -915,7 +915,7 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
                     // free "next"
                     FREE(cfg, next, sizeof(*next));
                     sb->regions--;
-                    BUG_ON(sb->regions == 0);
+                    DEBUG_VALIDATE_BUG_ON(sb->regions == 0);
                     goto done;
                 } else {
                     /* using "main", expand to include "next" */
@@ -946,7 +946,7 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
                     FREE(cfg, next->buf, next->buf_size);
                     FREE(cfg, next, sizeof(*next));
                     sb->regions--;
-                    BUG_ON(sb->regions == 0);
+                    DEBUG_VALIDATE_BUG_ON(sb->regions == 0);
                     goto done;
                 }
             }
@@ -996,12 +996,12 @@ void StreamingBufferSlideToOffset(
 #ifdef DEBUG
         SBBPrintList(sb);
 #endif
-        BUG_ON(sb->region.buf != NULL && sb->region.buf_size == 0);
-        BUG_ON(sb->region.buf_offset > sb->region.buf_size);
-        BUG_ON(offset > sb->region.stream_offset);
-        BUG_ON(sb->head && sb->head->offset == sb->region.stream_offset &&
-                sb->head->len > sb->region.buf_offset);
-        BUG_ON(sb->region.stream_offset < offset);
+        DEBUG_VALIDATE_BUG_ON(sb->region.buf != NULL && sb->region.buf_size == 0);
+        DEBUG_VALIDATE_BUG_ON(sb->region.buf_offset > sb->region.buf_size);
+        DEBUG_VALIDATE_BUG_ON(offset > sb->region.stream_offset);
+        DEBUG_VALIDATE_BUG_ON(sb->head && sb->head->offset == sb->region.stream_offset &&
+                              sb->head->len > sb->region.buf_offset);
+        DEBUG_VALIDATE_BUG_ON(sb->region.stream_offset < offset);
         return;
     }
 
@@ -1043,7 +1043,7 @@ void StreamingBufferSlideToOffset(
 #ifdef DEBUG
     SBBPrintList(sb);
 #endif
-    BUG_ON(sb->region.stream_offset < offset);
+    DEBUG_VALIDATE_BUG_ON(sb->region.stream_offset < offset);
 }
 
 #define DATA_FITS(sb, len) ((sb)->region.buf_offset + (len) <= (sb)->region.buf_size)
@@ -1051,7 +1051,7 @@ void StreamingBufferSlideToOffset(
 int StreamingBufferAppend(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
         StreamingBufferSegment *seg, const uint8_t *data, uint32_t data_len)
 {
-    BUG_ON(seg == NULL);
+    DEBUG_VALIDATE_BUG_ON(seg == NULL);
 
     if (sb->region.buf == NULL) {
         if (InitBuffer(sb, cfg) == -1)
@@ -1253,7 +1253,7 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
             memcpy(dst->buf, src_start->buf, src_start->buf_offset);
         if (src_start == src_end) {
             SCLogDebug("src_start == src_end == main, we're done");
-            BUG_ON(src_start != dst);
+            DEBUG_VALIDATE_BUG_ON(src_start != dst);
             return src_start;
         }
         prev = src_start;
@@ -1276,15 +1276,15 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
         }
         const uint32_t target_offset = r->stream_offset - dst_offset;
         SCLogDebug("r %p: target_offset %u", r, target_offset);
-        BUG_ON(target_offset > dst->buf_size);
-        BUG_ON(target_offset + r->buf_size > dst->buf_size);
+        DEBUG_VALIDATE_BUG_ON(target_offset > dst->buf_size);
+        DEBUG_VALIDATE_BUG_ON(target_offset + r->buf_size > dst->buf_size);
         memcpy(dst->buf + target_offset, r->buf, r->buf_size);
 
         StreamingBufferRegion *next = r->next;
         FREE(cfg, r->buf, r->buf_size);
         FREE(cfg, r, sizeof(*r));
         sb->regions--;
-        BUG_ON(sb->regions == 0);
+        DEBUG_VALIDATE_BUG_ON(sb->regions == 0);
 
         DEBUG_VALIDATE_BUG_ON(prev == NULL && src_start != &sb->region);
         if (prev != NULL) {
@@ -1303,7 +1303,7 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
      * region we expand. In this case we'll have main and dst. We will
      * move the buffer from dst into main and free dst. */
     if (start_is_main && dst != &sb->region) {
-        BUG_ON(sb->region.next != dst);
+        DEBUG_VALIDATE_BUG_ON(sb->region.next != dst);
         SCLogDebug("start_is_main && dst != main region");
         FREE(cfg, sb->region.buf, sb->region.buf_size);
         sb->region.buf = dst->buf;
@@ -1314,7 +1314,7 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
         FREE(cfg, dst, sizeof(*dst));
         dst = &sb->region;
         sb->regions--;
-        BUG_ON(sb->regions == 0);
+        DEBUG_VALIDATE_BUG_ON(sb->regions == 0);
     } else {
         SCLogDebug("dst: %p next %p", dst, dst->next);
     }
@@ -1461,7 +1461,7 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cf
 {
     int r;
 
-    BUG_ON(seg == NULL);
+    DEBUG_VALIDATE_BUG_ON(seg == NULL);
     DEBUG_VALIDATE_BUG_ON(offset < sb->region.stream_offset);
     if (offset < sb->region.stream_offset) {
         return SC_EINVAL;
@@ -1562,11 +1562,11 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cf
         if ((r = SBBUpdate(sb, cfg, region, rel_offset, data_len)) != SC_OK)
             return r;
     }
-    BUG_ON(!region_is_main && sb->head == NULL);
+    DEBUG_VALIDATE_BUG_ON(!region_is_main && sb->head == NULL);
 
     ListRegions(sb);
     if (RB_EMPTY(&sb->sbb_tree)) {
-        BUG_ON(offset + data_len > sb->region.stream_offset + sb->region.buf_offset);
+        DEBUG_VALIDATE_BUG_ON(offset + data_len > sb->region.stream_offset + sb->region.buf_offset);
     }
 
     return SC_OK;
@@ -1621,7 +1621,7 @@ void StreamingBufferSBBGetData(const StreamingBuffer *sb,
             SCLogDebug("1");
             uint64_t offset = sbb->offset - region->stream_offset;
             *data = region->buf + offset;
-            BUG_ON(offset + sbb->len > region->buf_size);
+            DEBUG_VALIDATE_BUG_ON(offset + sbb->len > region->buf_size);
             *data_len = sbb->len;
             return;
         } else {
@@ -1665,14 +1665,14 @@ void StreamingBufferSBBGetDataAtOffset(const StreamingBuffer *sb,
                 *data_len = region->buf_size - data_offset;
             else
                 *data_len = sbblen;
-            BUG_ON(*data_len > sbblen);
+            DEBUG_VALIDATE_BUG_ON(*data_len > sbblen);
             return;
         } else {
             uint64_t data_offset = region->stream_offset - sbb->offset;
             if (data_offset < sbblen) {
                 *data = region->buf;
                 *data_len = sbblen - data_offset;
-                BUG_ON(*data_len > sbblen);
+                DEBUG_VALIDATE_BUG_ON(*data_len > sbblen);
                 return;
             }
         }
