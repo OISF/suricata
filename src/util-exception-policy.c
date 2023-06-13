@@ -198,11 +198,9 @@ static enum ExceptionPolicy ExceptionPolicyPickAuto(bool midstream_enabled, bool
 
 static enum ExceptionPolicy ExceptionPolicyMasterParse(const char *value)
 {
-    enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
-
-    policy = ExceptionPolicyConfigValueParse("exception-policy", value);
-    g_eps_have_exception_policy = true;
+    enum ExceptionPolicy policy = ExceptionPolicyConfigValueParse("exception-policy", value);
     policy = SetIPSOption("exception-policy", value, policy);
+    g_eps_have_exception_policy = true;
 
     SCLogInfo("exception-policy set to: %s", ExceptionPolicyEnumToString(policy));
 
