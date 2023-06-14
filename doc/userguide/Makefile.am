@@ -25,6 +25,7 @@ EXTRA_DIST = \
 	reputation \
 	rule-management \
 	rules \
+	security.rst \
 	setting-up-ipsinline-for-linux \
 	setting-up-ipsinline-for-linux.rst \
 	setting-up-ipsinline-for-windows.rst \
