@@ -142,17 +142,6 @@ static enum ExceptionPolicy PickPacketAction(const char *option, enum ExceptionP
     return p;
 }
 
-static enum ExceptionPolicy SetIPSOption(
-        const char *option, const char *value_str, enum ExceptionPolicy p)
-{
-    if (!EngineModeIsIPS()) {
-        SCLogWarning(SC_ERR_INVALID_VALUE, "%s: %s not a valid config in IDS mode. Ignoring it.",
-                option, value_str);
-        return EXCEPTION_POLICY_NOT_SET;
-    }
-    return p;
-}
-
 static enum ExceptionPolicy ExceptionPolicyConfigValueParse(
         const char *option, const char *value_str)
 {
@@ -199,10 +188,15 @@ static enum ExceptionPolicy ExceptionPolicyPickAuto(bool midstream_enabled, bool
 static enum ExceptionPolicy ExceptionPolicyMasterParse(const char *value)
 {
     enum ExceptionPolicy policy = ExceptionPolicyConfigValueParse("exception-policy", value);
-    policy = SetIPSOption("exception-policy", value, policy);
+    if (policy == EXCEPTION_POLICY_AUTO) {
+        policy = ExceptionPolicyPickAuto(false, true);
+    } else if (!EngineModeIsIPS() &&
+               (policy == EXCEPTION_POLICY_DROP_PACKET || policy == EXCEPTION_POLICY_DROP_FLOW)) {
+        policy = EXCEPTION_POLICY_NOT_SET;
+    }
     g_eps_have_exception_policy = true;
 
-    SCLogInfo("exception-policy set to: %s", ExceptionPolicyEnumToString(policy));
+    SCLogInfo("master exception-policy set to: %s", ExceptionPolicyEnumToString(policy));
 
     return policy;
 }
