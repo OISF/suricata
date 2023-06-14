@@ -29,6 +29,7 @@ typedef enum {
     SC_ENOMEM,
     SC_EINVAL,
     SC_ELIMIT,
+    SC_EEXIST,
 
     SC_ERR_MAX
 } SCError;
