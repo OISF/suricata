@@ -46,6 +46,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE(SC_ENOMEM);
         CASE_CODE(SC_EINVAL);
         CASE_CODE(SC_ELIMIT);
+        CASE_CODE(SC_EEXIST);
 
         CASE_CODE (SC_ERR_MAX);
     }
