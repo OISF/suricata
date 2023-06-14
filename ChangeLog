@@ -1,3 +1,146 @@
+7.0.0-rc2 -- 2023-06-14
+
+Feature #6099: dpdk: add support for bonding interface
+Feature #6085: detect: set explicit rule types
+Feature #5975: Add support for 'inner' PF_RING clustering modes
+Feature #5937: dpdk: Improve DPDK version checking
+Feature #5876: eve: add stream tcp logging
+Feature #5849: dpdk: add virtio-pmd support
+Feature #5822: yaml: set suricata version in generated config
+Feature #5803: github-ci: Add netmap as a Github Action
+Feature #5784: detect: allow cross buffer inspection on multi-buffer matches
+Feature #5746: http.connection - allow in server response
+Feature #5717: rfb: add frame support
+Security #6129: dcerpc: max-tx config parameter, also for UDP
+Security #6118: datasets: absolute path in rules can overwrite arbitrary files
+Security #5945: byte_math: Division by zero possible.
+Bug #6137: SNMP: version is logged from state, instead of from transaction
+Bug #6132: suricata-update: dump-sample-configs: configuration files not found
+Bug #6120: streaming-buffer: exceeds limit when downloading large file with file-store enabled
+Bug #6117: tcp regions streaming buffer: assert failed (!((region->stream_offset == sbb->offset && region->buf_offset > sbb->len))), function StreamingBufferSBBGetData
+Bug #6109: exception/policy: reject changes flow action in IDS mode
+Bug #6103: http2: cpu overconsumption in rust moving/memcpy in http2_parse_headers_blocks
+Bug #6093: flow: occasional sudden spike in flow.memuse
+Bug #6089: suricata --list-keywords does not work with debug validation
+Bug #6087: FTP bounce detection doesn't work for big-endian platforms
+Bug #6086: Decode-events of IPv6 packets are not triggered
+Bug #6066: Memory Corruption in util-streaming-buffer
+Bug #6064: dpdk: detect reload stuck if there are no packets
+Bug #6062: flow: memory leaks at shutdown
+Bug #6060: IP Datasets not supported from suricata.yaml
+Bug #6057: rust/jsonbuilder: better handling of memory allocation errors
+Bug #6054: ftp:  long line discard logic should be separate for server and client
+Bug #6053: smtp: long line discard logic should be separate for server and client
+Bug #6046: runmode/unix-socket: http range memory leak
+Bug #6043: detect: multi-tenancy fails to start
+Bug #6041: ASSERT: !(sb->region.buf_offset != 0)
+Bug #6038: TCP resets have incorrect len, nh in IPv6
+Bug #6025: detect: allow bsize 0 for existing empty buffers
+Bug #6021: af-packet: reload not occurring until packets are seen
+Bug #6019: smtp: fuzz debug assertion trigger
+Bug #6008: smb: wrong offset when parse SMB_COM_WRITE_ANDX record
+Bug #6006: dpdk: query eth stats only by the first worker
+Bug #5998: exception/policy: make work with simulated flow memcap
+Bug #5989: smtp: any command post a long command gets skipped
+Bug #5981: smtp: Long DATA line post boundary is capped at 4k Bytes
+Bug #5979: rust: update sawp dependencies to avoid future compile issues
+Bug #5978: stream/reassembly: memcap exception policy incorrectly applied
+Bug #5971: libhtp: differential fuzzing with rust version: only trim spaces at headers names end
+Bug #5969: detect: reload can stall if flow housekeeping takes too long
+Bug #5968: flowworker: per packet flow housekeeping can process too many flows
+Bug #5963: dpdk: handle packets splitted in multiple segments
+Bug #5960: Postpone setting of master exception policy
+Bug #5957: bpf: postpone IPS check after IPS runmode is determined from the configuration file
+Bug #5952: http: multipart data is not filled up to request.body-limit
+Bug #5940: exception/policy: flow action doesn't fall back to packet action when there's no flow
+Bug #5936: dpdk: Release mempool only after the device closes
+Bug #5931: http2: urilen not supported
+Bug #5929: fast_pattern assignment of specific content in combination with urilen results in FN
+Bug #5927: smtp: quadratic complexity for tx iterator with linked list
+Bug #5925: dpdk: VMXNET3 fails to configure
+Bug #5924: AF_XDP  compile error
+Bug #5923: dpdk: change in NUMA-determining API 
+Bug #5919: flow/manager: fix unhandled division by 0 (prealloc: 0)
+Bug #5917: http: libhtp errors on multiple 100 continue response
+Bug #5909: http2: quadratic complexity when reducing dynamic headers table size
+Bug #5907: tcp: failed assertion ASSERT: !(ssn->state != TCP_SYN_SENT)
+Bug #5905: invalid bsize and distance rule being loaded by suricata
+Bug #5900: UBSAN: undefined shift in DetectByteMathDoMatch
+Bug #5885: base64_decode not populating up to an invalid character
+Bug #5883: mime: debug assertion on fuzz input
+Bug #5881: stream: overlap with different data false positive
+Bug #5877: stream: connections time out too early
+Bug #5875: stream/ips: dropping spurious retransmissions times out connections
+Bug #5867: false-positive drop event_types possible on passed packets
+Bug #5866: detect: multi-tenancy crash
+Bug #5862: netmap: packet stalls
+Bug #5856: stream: SYN/ACK timestamp checking blocks valid traffic
+Bug #5855: af-xdp: may fail to build on Linux systems with kernel older than 5.11
+Bug #5850: frames: Assertion failed: buffer initialized
+Bug #5843: tcp/stream: session reuse on tcp flows w/o sessions
+Bug #5836: output: abort triggered on no permission test
+Bug #5835: debug: segv on enabling debugging output
+Bug #5834: tcp/regions: list corruption
+Bug #5833: tcp/regions: use after free error
+Bug #5825: stream.midstream: if enabled breaks exception policy
+Bug #5823: smtp: config and built-in defaults mismatch
+Bug #5819: SMTP does not handle LF post line limit properly
+Bug #5818: time: integer comparison with different signs
+Bug #5808: http2: leak with range files
+Bug #5802: ips: txs still logged for dropped flow
+Bug #5799: detect: sigs using DETECT_SM_LIST_PMATCH can break other signatures
+Bug #5786: smb: possible evasion with trailing nbss data
+Bug #5783: smb: wrong endian conversion when parse NTLM Negotiate Flags
+Bug #5780: HTTP/2 - FN when matching on multiple http2.header contents
+Bug #5770: smb: no consistency check between NBSS length and length field for some SMB operations
+Bug #5740: content: within and distance lengths should be bounded
+Bug #5667: Enable rule profiling via socket
+Bug #5627: windows: windivert build broken
+Bug #5621: security.limit-noproc: disabled if not provided in the configuration file
+Bug #5563: stream: issue with stream debug tracking of memuse
+Bug #5541: Unexpected behavior of `endswith` in combination with negated content matches
+Bug #5526: tcp: Assertion failed: (!((last_ack_abs < left_edge && StreamTcpInlineMode() == 0 && !f->ffr && ssn->state < TCP_CLOSED)))
+Bug #5498: flowworker: Assertion in CheckWorkQueue
+Bug #5437: 'unseen' http midstream packets with TCP FIN flag set
+Bug #5320: Key collisions in HTTP JSON eve-logs
+Bug #5270: Flow hash table collision and flow state corruption between different capture interfaces
+Bug #5261: rust: reconsider bundling Cargo.lock
+Bug #5017: counters: tcp.syn, tcp.synack, tcp.rst depend on flow
+Bug #4952: scan-build: Access to field 'de_state' results in a dereference of a null pointer
+Bug #4759: TCP DNS query not found when tls filter is active
+Bug #4578: perf shows excessive time in IPOnlyMatchPacket
+Bug #4529: Not keyword matches in Kerberos requests
+Bug #3152: scan-build warning for detect sigordering
+Bug #3151: scan-build warning for detect port handling
+Bug #3150: scan-build warnings for detect address handling
+Bug #3149: scan-build warnings in radix implementation
+Bug #3148: scan-build warnings for ac implementations
+Bug #3147: scan-build warning for mime decoder
+Optimization #6100: mqtt: quadratic complexity in get_tx_by_pkt_id
+Optimization #6036: pgsql: remove unused Kerb5 auth message
+Optimization #5959: detect using uninitialized engine mode
+Optimization #5718: time: compact alternative to struct timeval
+Optimization #5544: tls keywords: increase code coverage and update documentation (if need be)
+Optimization #4378: file.data: split mpm per app_proto
+Task #5993: rust: x509-parser 0.15
+Task #5992: rust: snmp-parser 0.9.0
+Task #5991: rust: der-parser 8.2.0
+Task #5983: libhtp 0.5.44
+Task #5965: tracking: Improving DPDK capture interface and docs 
+Task #5939: config: deprecate multiple "include" statements at the same level
+Task #5918: libhtp 0.5.43
+Task #5741: rust/src/rfb/* add more unittests
+Task #5628: github-ci: add windows + windivert build
+Task #5474: test: review how 7 works with config from 5 and 6
+Task #4067: http2: overload existing http keywords to support http/2
+Task #4051: Convert unittests to new FAIL/PASS API: detect-lua.c
+Documentation #5962: documentation: mention the use of http1 in rule protocol
+Documentation #5884: docs: update CentOS names according to their new conventions
+Documentation #5859: docs: add build instructions for DPDK capture interface
+Documentation #5858: docs: add list of supported NICs in DPDK mode
+Documentation #5857: docs: refactor DPDK documentation
+Documentation #5596: doc/optimization: move 'suricata.git/doc/userguide/convert.py' to Python3
+
 7.0.0-rc1 -- 2023-01-31
 
 Feature #5761: Unknown ethertype packets are not counted
