@@ -98,7 +98,8 @@ happen when a signature matches and contains one of those Actions:
 
 If a signature matches and contains pass, Suricata stops scanning the
 packet and skips to the end of all rules (only for the current
-packet).
+packet). If the signature matches on a TCP connection, the entire
+flow will be passed but details of the flow will still be logged.
 
 2) Drop
 
