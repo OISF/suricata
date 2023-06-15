@@ -2,7 +2,8 @@ EXTRA_DIST =	src derive \
 		.cargo/config.in \
 		cbindgen.toml \
 		dist/rust-bindings.h \
-		vendor
+		vendor \
+		dist/htp
 
 if !DEBUG
 RELEASE = --release
@@ -33,12 +34,14 @@ if HAVE_CYGPATH
 	@rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(e_rustdir)/target" \
+		CBINDGEN_HEADERS_DIR="$(e_rustdir)/gen" \
 		$(CARGO) build $(RELEASE) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 else
 	@rustup_home@ \
 		CARGO_HOME="$(CARGO_HOME)" \
 		CARGO_TARGET_DIR="$(abs_top_builddir)/rust/target" \
+		CBINDGEN_HEADERS_DIR="$(abs_top_builddir)/rust/gen" \
 		$(CARGO) build $(RELEASE) $(NIGHTLY_ARGS) \
 			--features "$(RUST_FEATURES)" $(RUST_TARGET)
 endif
@@ -61,6 +64,7 @@ uninstall-local:
 
 clean-local:
 	rm -rf target
+	rm -rf gen/htp/htp_rs.h
 if HAVE_CBINDGEN
 	rm -rf gen dist
 endif
@@ -96,6 +100,15 @@ dist/rust-bindings.h:
 		--quiet --output $(abs_top_builddir)/rust/dist/rust-bindings.h
 else
 dist/rust-bindings.h:
+endif
+
+if HAVE_CBINDGEN
+dist/htp: vendor
+	cbindgen --config $(abs_top_srcdir)/rust/vendor/htp/cbindgen.toml \
+		--quiet --output $(abs_top_builddir)/rust/dist/htp/htp_rs.h \
+		$(abs_top_srcdir)/rust/vendor/htp/
+else
+dist/htp:
 endif
 
 Cargo.toml: Cargo.toml.in

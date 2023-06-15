@@ -714,7 +714,7 @@ static int DeStateSigTest03(void)
     FAIL_IF_NULL(http_state);
     void *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -797,7 +797,7 @@ static int DeStateSigTest04(void)
     FAIL_IF_NULL(http_state);
     void *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
     AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
@@ -872,7 +872,7 @@ static int DeStateSigTest05(void)
     FAIL_IF_NULL(http_state);
     void *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
     AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
@@ -958,7 +958,7 @@ static int DeStateSigTest06(void)
     FAIL_IF_NULL(http_state);
     void *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
     AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
@@ -1046,7 +1046,7 @@ static int DeStateSigTest07(void)
     FAIL_IF_NULL(http_state);
     void *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
     AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
@@ -1145,7 +1145,7 @@ static int DeStateSigTest08(void)
     FAIL_IF_NULL(http_state);
     void *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
     AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
@@ -1172,7 +1172,7 @@ static int DeStateSigTest08(void)
     FAIL_IF_NULL(http_state);
     tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
     FAIL_IF_NULL(tx);
-    tx_ud = htp_tx_get_user_data(tx);
+    tx_ud = htp_tx_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
     files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
@@ -1273,7 +1273,7 @@ static int DeStateSigTest09(void)
     FAIL_IF_NULL(http_state);
     void *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
     AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
@@ -1300,7 +1300,7 @@ static int DeStateSigTest09(void)
     FAIL_IF_NULL(http_state);
     tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
     FAIL_IF_NULL(tx);
-    tx_ud = htp_tx_get_user_data(tx);
+    tx_ud = htp_tx_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
     files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
@@ -1399,7 +1399,7 @@ static int DeStateSigTest10(void)
     FAIL_IF_NULL(http_state);
     void *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = htp_tx_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
     AppLayerGetFileState files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
@@ -1426,7 +1426,7 @@ static int DeStateSigTest10(void)
     FAIL_IF_NULL(http_state);
     tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, f->alstate, 0);
     FAIL_IF_NULL(tx);
-    tx_ud = htp_tx_get_user_data(tx);
+    tx_ud = htp_tx_user_data(tx);
     FAIL_IF_NULL(tx_ud);
 
     files = AppLayerParserGetTxFiles(p->flow, http_state, tx, STREAM_TOSERVER);
