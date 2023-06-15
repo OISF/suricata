@@ -46,20 +46,17 @@ configuration of::
 
 the following directories will need their permissions updated:
 
-.. table::
-   :width: 100%
-
-   +------------------+-----------+
-   |Directory         |Permissions|
-   +==================+===========+
-   |/etc/suricata     |Read       |
-   +------------------+-----------+
-   |/var/log/suricata |Read, Write|
-   +------------------+-----------+
-   |/var/lib/suricata |Read,Write |
-   +------------------+-----------+
-   |/var/run/suricata |Read, Write|
-   +------------------+-----------+
++------------------+-----------+
+|Directory         |Permissions|
++==================+===========+
+|/etc/suricata     |Read       |
++------------------+-----------+
+|/var/log/suricata |Read, Write|
++------------------+-----------+
+|/var/lib/suricata |Read,Write |
++------------------+-----------+
+|/var/run/suricata |Read, Write|
++------------------+-----------+
 
 The following commands will setup the correct permissions:
 
