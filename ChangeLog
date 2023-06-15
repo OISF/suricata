@@ -1,3 +1,21 @@
+6.0.13 -- 2023-06-15
+
+Security #6119: datasets: absolute path in rules can overwrite arbitrary files (6.0.x backport)
+Bug #6138: Decode-events of IPv6 packets are not triggered (6.0.x backport)
+Bug #6136: suricata-update: dump-sample-configs: configuration files not found (6.0.x backport)
+Bug #6125: http2: cpu overconsumption in rust moving/memcpy in http2_parse_headers_blocks (6.0.x backport)
+Bug #6113: ips: txs still logged for dropped flow (6.0.x backport)
+Bug #6056: smtp: long line discard logic should be separate for server and client (6.0.x backport)
+Bug #6055: ftp:  long line discard logic should be separate for server and client (6.0.x backport)
+Bug #5990: smtp: any command post a long command gets skipped (6.0.x backport)
+Bug #5982: smtp: Long DATA line post boundary is capped at 4k Bytes (6.0.x backport)
+Bug #5809: smb: convert transaction list to vecdeque (6.0.x backport)
+Bug #5604: counters: tcp.syn, tcp.synack, tcp.rst depend on flow (6.0.x backport)
+Bug #5550: dns: allow dns messages with invalid opcodes (6.0.x backport)
+Task #5984: libhtp 0.5.44 (6.0.x backport)
+Documentation #6134: userguide: add instructions/explanation for (not) running suricata with root (6.0.x backport)
+Documentation #6121: datasets: 6.0.x work-arounds for dataset supply chain attacks
+
 6.0.12 -- 2023-05-08
 
 Bug #6040: tcp: failed assertion ASSERT: !(ssn->state != TCP_SYN_SENT) (6.0.x backport)
