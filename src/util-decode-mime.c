@@ -2208,17 +2208,6 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
     int body_found = 0;
     uint16_t tlen;
 
-    if (!g_disable_hashing) {
-        if (MimeDecGetConfig()->body_md5) {
-            if (state->body_begin == 1) {
-                if (state->md5_ctx == NULL) {
-                    state->md5_ctx = SCMd5New();
-                }
-            }
-            SCMd5Update(state->md5_ctx, buf, len + state->current_line_delimiter_len);
-        }
-    }
-
     /* pass empty lines on if we're parsing the body, otherwise we have no use
      * for them, and in fact they would disrupt the state tracking */
     if (len == 0) {
@@ -2346,6 +2335,18 @@ static int ProcessMimeEntity(const uint8_t *buf, uint32_t len,
         state->msg->anomaly_flags |= ANOM_LONG_LINE;
         SCLogDebug("Error: Max input line length exceeded %u > %u", len,
                 MAX_LINE_LEN);
+    }
+
+    if ((state->state_flag != HEADER_READY && state->state_flag != HEADER_STARTED) ||
+            (state->stack->top->data->ctnt_flags & CTNT_IS_BODYPART)) {
+        if (!g_disable_hashing) {
+            if (MimeDecGetConfig()->body_md5) {
+                if (state->body_begin == 1 && state->md5_ctx == NULL) {
+                    state->md5_ctx = SCMd5New();
+                }
+                SCMd5Update(state->md5_ctx, buf, len + state->current_line_delimiter_len);
+            }
+        }
     }
 
     /* Looking for headers */
