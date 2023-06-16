@@ -51,8 +51,6 @@ void ConfSetBPFFilter(
     }
 }
 
-#if !defined __OpenBSD__
-
 /** protect bpf filter build, as it is not thread safe */
 static SCMutex bpf_set_filter_lock = SCMUTEX_INITIALIZER;
 
@@ -97,5 +95,3 @@ int SCBPFCompile(int snaplen_arg, int linktype_arg, struct bpf_program *program,
 
     return (ret);
 }
-
-#endif /* Not __OpenBSD__ */
