@@ -559,7 +559,6 @@ static void DetectTlsIssuerDNFree(DetectEngineCtx *de_ctx, void *ptr)
  */
 static int DetectTlsFingerprintSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-
     if (DetectContentSetup(de_ctx, s, str) < 0) {
         return -1;
     }
@@ -579,8 +578,6 @@ static int DetectTlsFingerprintSetup (DetectEngineCtx *de_ctx, Signature *s, con
 static void DetectTlsFingerprintFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectTlsData *id_d = (DetectTlsData *)ptr;
-    if (id_d->fingerprint)
-        SCFree(id_d->fingerprint);
     SCFree(id_d);
 }
 
