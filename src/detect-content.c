@@ -327,10 +327,7 @@ void DetectContentPrint(DetectContentData *cd)
  */
 int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *contentstr)
 {
-    DetectContentData *cd = NULL;
-    SigMatch *sm = NULL;
-
-    cd = DetectContentParse(de_ctx->spm_global_thread_ctx, contentstr);
+    DetectContentData *cd = DetectContentParse(de_ctx->spm_global_thread_ctx, contentstr);
     if (cd == NULL)
         goto error;
     if (s->init_data->negated == true) {
@@ -356,7 +353,7 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
         }
     }
 
-    sm = SigMatchAlloc();
+    SigMatch *sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
     sm->ctx = (void *)cd;
