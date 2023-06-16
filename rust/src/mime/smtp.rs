@@ -179,18 +179,25 @@ pub const MIME_ANOM_LONG_LINE: u32 = 0x4;
 pub const MIME_ANOM_LONG_ENC_LINE: u32 = 0x8;
 pub const MIME_ANOM_LONG_HEADER_NAME: u32 = 0x10;
 pub const MIME_ANOM_LONG_HEADER_VALUE: u32 = 0x20;
-pub const MIME_ANOM_MALFORMED_MSG: u32 = 0x40;
+//unused pub const MIME_ANOM_MALFORMED_MSG: u32 = 0x40;
 pub const MIME_ANOM_LONG_BOUNDARY: u32 = 0x80;
 pub const MIME_ANOM_LONG_FILENAME: u32 = 0x100;
 
-fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) {
+fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> u32 {
     let mut sections_values = Vec::new();
+    let mut warnings = 0;
     for h in &ctx.headers[ctx.main_headers_nb..] {
         if mime::rs_equals_lowercase(&h.name, b"content-disposition") {
             if ctx.filename.is_empty() {
                 if let Some(value) =
                     mime::mime_find_header_token(&h.value, b"filename", &mut sections_values)
                 {
+                    let value = if value.len() > mime::RS_MIME_MAX_TOKEN_LEN {
+                        warnings |= MIME_ANOM_LONG_FILENAME;
+                        &value[..mime::RS_MIME_MAX_TOKEN_LEN]
+                    } else {
+                        value
+                    };
                     ctx.filename.extend_from_slice(value);
                     let mut newname = Vec::new();
                     newname.extend_from_slice(value);
@@ -213,6 +220,12 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) {
                 if let Some(value) =
                     mime::mime_find_header_token(&h.value, b"name", &mut sections_values)
                 {
+                    let value = if value.len() > mime::RS_MIME_MAX_TOKEN_LEN {
+                        warnings |= MIME_ANOM_LONG_FILENAME;
+                        &value[..mime::RS_MIME_MAX_TOKEN_LEN]
+                    } else {
+                        value
+                    };
                     ctx.filename.extend_from_slice(value);
                     let mut newname = Vec::new();
                     newname.extend_from_slice(value);
@@ -228,6 +241,9 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) {
                     ctx.boundary.push(b'-');
                     ctx.boundary.push(b'-');
                     ctx.boundary.extend_from_slice(value);
+                    if value.len() > MAX_BOUNDARY_LEN {
+                        warnings |= MIME_ANOM_LONG_BOUNDARY;
+                    }
                     sections_values.clear();
                 }
             }
@@ -250,6 +266,7 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) {
             break;
         }
     }
+    return warnings;
 }
 
 extern "C" {
@@ -462,9 +479,16 @@ fn mime_base64_decode(decoder: &mut MimeBase64Decoder, input: &[u8]) -> io::Resu
     return Ok(r);
 }
 
+const MAX_LINE_LEN: u32 = 998; // Def in RFC 2045, excluding CRLF sequence
+const MAX_ENC_LINE_LEN: usize = 76; /* Def in RFC 2045, excluding CRLF sequence */
+const MAX_HEADER_NAME: usize = 75; /* 75 + ":" = 76 */
+const MAX_HEADER_VALUE: usize = 2000; /* Default - arbitrary limit */
+const MAX_BOUNDARY_LEN: usize = 254;
+
 fn mime_smtp_parse_line(
     ctx: &mut MimeStateSMTP, i: &[u8], full: &[u8],
 ) -> (MimeSmtpParserResult, u32) {
+    let mut warnings = 0;
     match ctx.state_flag {
         MimeSmtpParserState::MimeSmtpStart => {
             if unsafe { MIME_SMTP_CONFIG_BODY_MD5 } {
@@ -473,27 +497,35 @@ fn mime_smtp_parse_line(
             }
             if i.is_empty() {
                 ctx.state_flag = MimeSmtpParserState::MimeSmtpBody;
-                mime_smtp_process_headers(ctx);
+                let w = mime_smtp_process_headers(ctx);
+                warnings |= w;
                 if ctx.main_headers_nb == 0 {
                     ctx.main_headers_nb = ctx.headers.len();
                 }
-                return (MimeSmtpParserResult::MimeSmtpFileOpen, 0);
+                return (MimeSmtpParserResult::MimeSmtpFileOpen, warnings);
             } else if let Ok((value, name)) = mime::mime_parse_header_line(i) {
                 ctx.state_flag = MimeSmtpParserState::MimeSmtpHeader;
                 let mut h = MimeHeader::default();
                 h.name.extend_from_slice(name);
                 h.value.extend_from_slice(value);
+                if h.name.len() > MAX_HEADER_NAME {
+                    warnings |= MIME_ANOM_LONG_HEADER_NAME;
+                }
+                if h.value.len() > MAX_HEADER_VALUE {
+                    warnings |= MIME_ANOM_LONG_HEADER_VALUE;
+                }
                 ctx.headers.push(h);
             } // else event ?
         }
         MimeSmtpParserState::MimeSmtpHeader => {
             if i.is_empty() {
                 ctx.state_flag = MimeSmtpParserState::MimeSmtpBody;
-                mime_smtp_process_headers(ctx);
+                let w = mime_smtp_process_headers(ctx);
+                warnings |= w;
                 if ctx.main_headers_nb == 0 {
                     ctx.main_headers_nb = ctx.headers.len();
                 }
-                return (MimeSmtpParserResult::MimeSmtpFileOpen, 0);
+                return (MimeSmtpParserResult::MimeSmtpFileOpen, warnings);
             } else if i[0] == b' ' || i[0] == b'\t' {
                 let last = ctx.headers.len() - 1;
                 ctx.headers[last].value.extend_from_slice(&i[1..]);
@@ -501,6 +533,12 @@ fn mime_smtp_parse_line(
                 let mut h = MimeHeader::default();
                 h.name.extend_from_slice(name);
                 h.value.extend_from_slice(value);
+                if h.name.len() > MAX_HEADER_NAME {
+                    warnings |= MIME_ANOM_LONG_HEADER_NAME;
+                }
+                if h.value.len() > MAX_HEADER_VALUE {
+                    warnings |= MIME_ANOM_LONG_HEADER_VALUE;
+                }
                 ctx.headers.push(h);
             }
         }
@@ -531,7 +569,6 @@ fn mime_smtp_parse_line(
                 }
                 return (MimeSmtpParserResult::MimeSmtpNeedsMore, 0);
             }
-            let mut warnings = 0;
             match ctx.encoding {
                 MimeSmtpEncoding::Plain => {
                     mime_smtp_find_url_strings(ctx, full);
@@ -542,7 +579,7 @@ fn mime_smtp_parse_line(
                 MimeSmtpEncoding::Base64 => {
                     if unsafe { MIME_SMTP_CONFIG_DECODE_BASE64 } {
                         if let Some(ref mut decoder) = &mut ctx.decoder {
-                            if i.len() as u32 > MAX_LINE_LEN {
+                            if i.len() > MAX_ENC_LINE_LEN {
                                 warnings |= MIME_ANOM_LONG_ENC_LINE;
                             }
                             if let Ok(dec) = mime_base64_decode(decoder, i) {
@@ -555,14 +592,15 @@ fn mime_smtp_parse_line(
                                         dec.len() as u32,
                                     );
                                 }
+                            } else {
+                                warnings |= MIME_ANOM_INVALID_BASE64;
                             }
-                            // else TODOrust5 set event ?
                         }
                     }
                 }
                 MimeSmtpEncoding::QuotedPrintable => {
                     if unsafe { MIME_SMTP_CONFIG_DECODE_QUOTED } {
-                        if i.len() as u32 > MAX_LINE_LEN {
+                        if i.len() > MAX_ENC_LINE_LEN {
                             warnings |= MIME_ANOM_LONG_ENC_LINE;
                         }
                         let mut c = 0;
@@ -575,12 +613,17 @@ fn mime_smtp_parse_line(
                                     break;
                                 } else if c + 2 >= i.len() {
                                     // log event ?
+                                    warnings |= MIME_ANOM_INVALID_QP;
                                     break;
                                 }
                                 if let Some(v) = hex(i[c + 1]) {
                                     if let Some(v2) = hex(i[c + 2]) {
                                         quoted_buffer.push((v << 4) | v2);
+                                    } else {
+                                        warnings |= MIME_ANOM_INVALID_QP;
                                     }
+                                } else {
+                                    warnings |= MIME_ANOM_INVALID_QP;
                                 }
                                 c += 3;
                             } else {
@@ -607,11 +650,8 @@ fn mime_smtp_parse_line(
         }
         _ => {}
     }
-    return (MimeSmtpParserResult::MimeSmtpNeedsMore, 0);
+    return (MimeSmtpParserResult::MimeSmtpNeedsMore, warnings);
 }
-
-// Def in RFC 2045, excluding CRLF sequence
-const MAX_LINE_LEN: u32 = 998;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_smtp_mime_parse_line(
