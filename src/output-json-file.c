@@ -179,7 +179,7 @@ JsonBuilder *JsonBuildFileInfoRecord(const Packet *p, const File *ff, const bool
             break;
         case ALPROTO_HTTP2:
             jb_get_mark(js, &mark);
-            jb_open_object(js, "http2");
+            jb_open_object(js, "http");
             if (EveHTTP2AddMetadata(p->flow, ff->txid, js)) {
                 jb_close(js);
             } else {
