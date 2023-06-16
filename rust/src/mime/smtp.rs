@@ -51,8 +51,9 @@ pub struct MimeHeader {
 #[derive(Copy, Clone, Debug, PartialOrd, PartialEq, Eq)]
 pub enum MimeSmtpMd5State {
     MimeSmtpMd5Disabled = 0,
-    MimeSmtpMd5Started = 1,
-    MimeSmtpMd5Completed = 2,
+    MimeSmtpMd5Inited = 1,
+    MimeSmtpMd5Started = 2,
+    MimeSmtpMd5Completed = 3,
 }
 
 #[repr(u8)]
@@ -489,11 +490,16 @@ fn mime_smtp_parse_line(
     ctx: &mut MimeStateSMTP, i: &[u8], full: &[u8],
 ) -> (MimeSmtpParserResult, u32) {
     let mut warnings = 0;
+    if ctx.md5_state == MimeSmtpMd5State::MimeSmtpMd5Started {
+        Update::update(&mut ctx.md5, full);
+    }
     match ctx.state_flag {
         MimeSmtpParserState::MimeSmtpStart => {
-            if unsafe { MIME_SMTP_CONFIG_BODY_MD5 } {
+            if unsafe { MIME_SMTP_CONFIG_BODY_MD5 }
+                && ctx.md5_state != MimeSmtpMd5State::MimeSmtpMd5Started
+            {
                 ctx.md5 = Md5::new();
-                ctx.md5_state = MimeSmtpMd5State::MimeSmtpMd5Started;
+                ctx.md5_state = MimeSmtpMd5State::MimeSmtpMd5Inited;
             }
             if i.is_empty() {
                 ctx.state_flag = MimeSmtpParserState::MimeSmtpBody;
@@ -543,7 +549,8 @@ fn mime_smtp_parse_line(
             }
         }
         MimeSmtpParserState::MimeSmtpBody => {
-            if ctx.md5_state == MimeSmtpMd5State::MimeSmtpMd5Started {
+            if ctx.md5_state == MimeSmtpMd5State::MimeSmtpMd5Inited {
+                ctx.md5_state = MimeSmtpMd5State::MimeSmtpMd5Started;
                 Update::update(&mut ctx.md5, full);
             }
             if !ctx.boundary.is_empty()
