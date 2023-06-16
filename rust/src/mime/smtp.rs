@@ -495,11 +495,11 @@ fn mime_smtp_parse_line(
     }
     match ctx.state_flag {
         MimeSmtpParserState::MimeSmtpStart => {
-            if unsafe { MIME_SMTP_CONFIG_BODY_MD5 } {
-                if ctx.md5_state != MimeSmtpMd5State::MimeSmtpMd5Started {
-                    ctx.md5 = Md5::new();
-                    ctx.md5_state = MimeSmtpMd5State::MimeSmtpMd5Inited;
-                }
+            if unsafe { MIME_SMTP_CONFIG_BODY_MD5 }
+                && ctx.md5_state != MimeSmtpMd5State::MimeSmtpMd5Started
+            {
+                ctx.md5 = Md5::new();
+                ctx.md5_state = MimeSmtpMd5State::MimeSmtpMd5Inited;
             }
             if i.is_empty() {
                 ctx.state_flag = MimeSmtpParserState::MimeSmtpBody;
