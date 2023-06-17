@@ -94,6 +94,10 @@ impl RFBTransaction {
             tx_data: applayer::AppLayerTxData::new(),
         }
     }
+
+    fn set_event(&mut self, event: RFBEvent) {
+        self.tx_data.set_event(event as u8);
+    }
 }
 
 pub struct RFBState {
@@ -127,10 +131,6 @@ impl RFBState {
             transactions: Vec::new(),
             state: parser::RFBGlobalState::TCServerProtocolVersion,
         }
-    }
-
-    fn set_event(tx: &mut RFBTransaction, event: RFBEvent) {
-        tx.tx_data.set_event(event as u8);
     }
 
     // Free a transaction by ID.
@@ -240,10 +240,8 @@ impl RFBState {
                                 1 => self.state = parser::RFBGlobalState::TSClientInit,
                                 _ => {
                                     if let Some(current_transaction) = self.get_current_tx() {
-                                        RFBState::set_event(
-                                            current_transaction,
-                                            RFBEvent::UnimplementedSecurityType,
-                                        );
+                                        current_transaction
+                                            .set_event(RFBEvent::UnimplementedSecurityType);
                                     }
                                     // We have just have seen a security type we don't know about.
                                     // This is not bad per se, it might just mean this is a
@@ -270,10 +268,7 @@ impl RFBState {
                         }
                         Err(_) => {
                             if let Some(current_transaction) = self.get_current_tx() {
-                                RFBState::set_event(
-                                    current_transaction,
-                                    RFBEvent::MalformedMessage,
-                                );
+                                current_transaction.set_event(RFBEvent::MalformedMessage);
                             }
                             // We failed to parse the security type.
                             // Continue the flow but stop trying to map the protocol.
@@ -309,7 +304,7 @@ impl RFBState {
                     }
                     Err(_) => {
                         if let Some(current_transaction) = self.get_current_tx() {
-                            RFBState::set_event(current_transaction, RFBEvent::MalformedMessage);
+                            current_transaction.set_event(RFBEvent::MalformedMessage);
                         }
                         // Continue the flow but stop trying to map the protocol.
                         self.state = parser::RFBGlobalState::Skip;
@@ -343,7 +338,7 @@ impl RFBState {
                     }
                     Err(_) => {
                         if let Some(current_transaction) = self.get_current_tx() {
-                            RFBState::set_event(current_transaction, RFBEvent::MalformedMessage);
+                            current_transaction.set_event(RFBEvent::MalformedMessage);
                         }
                         // We failed to parse the client init.
                         // Continue the flow but stop trying to map the protocol.
@@ -467,10 +462,7 @@ impl RFBState {
                         }
                         Err(_) => {
                             if let Some(current_transaction) = self.get_current_tx() {
-                                RFBState::set_event(
-                                    current_transaction,
-                                    RFBEvent::MalformedMessage,
-                                );
+                                current_transaction.set_event(RFBEvent::MalformedMessage);
                             }
                             // Continue the flow but stop trying to map the protocol.
                             self.state = parser::RFBGlobalState::Skip;
@@ -501,10 +493,8 @@ impl RFBState {
                                 2 => self.state = parser::RFBGlobalState::TCVncChallenge,
                                 _ => {
                                     if let Some(current_transaction) = self.get_current_tx() {
-                                        RFBState::set_event(
-                                            current_transaction,
-                                            RFBEvent::UnimplementedSecurityType,
-                                        );
+                                        current_transaction
+                                            .set_event(RFBEvent::UnimplementedSecurityType);
                                     }
                                     // We have just have seen a security type we don't know about.
                                     // This is not bad per se, it might just mean this is a
@@ -529,10 +519,7 @@ impl RFBState {
                         }
                         Err(_) => {
                             if let Some(current_transaction) = self.get_current_tx() {
-                                RFBState::set_event(
-                                    current_transaction,
-                                    RFBEvent::MalformedMessage,
-                                );
+                                current_transaction.set_event(RFBEvent::MalformedMessage);
                             }
                             // Continue the flow but stop trying to map the protocol.
                             self.state = parser::RFBGlobalState::Skip;
@@ -567,7 +554,7 @@ impl RFBState {
                     }
                     Err(_) => {
                         if let Some(current_transaction) = self.get_current_tx() {
-                            RFBState::set_event(current_transaction, RFBEvent::MalformedMessage);
+                            current_transaction.set_event(RFBEvent::MalformedMessage);
                         }
                         // Continue the flow but stop trying to map the protocol.
                         self.state = parser::RFBGlobalState::Skip;
@@ -598,10 +585,7 @@ impl RFBState {
                                 self.state = parser::RFBGlobalState::TCFailureReason;
                             } else {
                                 if let Some(current_transaction) = self.get_current_tx() {
-                                    RFBState::set_event(
-                                        current_transaction,
-                                        RFBEvent::UnknownSecurityResult,
-                                    );
+                                    current_transaction.set_event(RFBEvent::UnknownSecurityResult);
                                 }
                                 // Continue the flow but stop trying to map the protocol.
                                 self.state = parser::RFBGlobalState::Skip;
@@ -616,10 +600,7 @@ impl RFBState {
                         }
                         Err(_) => {
                             if let Some(current_transaction) = self.get_current_tx() {
-                                RFBState::set_event(
-                                    current_transaction,
-                                    RFBEvent::MalformedMessage,
-                                );
+                                current_transaction.set_event(RFBEvent::MalformedMessage);
                             }
                             // Continue the flow but stop trying to map the protocol.
                             self.state = parser::RFBGlobalState::Skip;
@@ -643,10 +624,7 @@ impl RFBState {
                         }
                         Err(_) => {
                             if let Some(current_transaction) = self.get_current_tx() {
-                                RFBState::set_event(
-                                    current_transaction,
-                                    RFBEvent::MalformedMessage,
-                                );
+                                current_transaction.set_event(RFBEvent::MalformedMessage);
                             }
                             // Continue the flow but stop trying to map the protocol.
                             self.state = parser::RFBGlobalState::Skip;
@@ -684,10 +662,7 @@ impl RFBState {
                         }
                         Err(_) => {
                             if let Some(current_transaction) = self.get_current_tx() {
-                                RFBState::set_event(
-                                    current_transaction,
-                                    RFBEvent::MalformedMessage,
-                                );
+                                current_transaction.set_event(RFBEvent::MalformedMessage);
                             }
                             // Continue the flow but stop trying to map the protocol.
                             self.state = parser::RFBGlobalState::Skip;
