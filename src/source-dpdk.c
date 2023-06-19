@@ -85,6 +85,7 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #else /* We have DPDK support */
 
+#include "util-affinity.h"
 #include "util-dpdk.h"
 #include "util-dpdk-i40e.h"
 #include "util-dpdk-bonding.h"
