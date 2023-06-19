@@ -48,6 +48,7 @@
 #include "util-time.h"
 #include "util-conf.h"
 #include "suricata.h"
+#include "util-affinity.h"
 
 #ifdef HAVE_DPDK
 
@@ -355,8 +356,32 @@ static void ConfigSetIface(DPDKIfaceConfig *iconf, const char *entry_str)
 static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
-    const char *active_runmode = RunmodeGetActive();
+    static int32_t remaining_auto_cpus = -1;
+    static uint32_t total_cpus = 0;
+    if (!threading_set_cpu_affinity) {
+        SCLogError("DPDK runmode requires configured thread affinity");
+        SCReturnInt(-EINVAL);
+    }
 
+    ThreadsAffinityType *wtaf = GetAffinityTypeFromName("worker-cpu-set");
+    uint32_t sched_cpus = UtilAffinityGetAffinedCPUNum(wtaf);
+    ThreadsAffinityType *mtaf = GetAffinityTypeFromName("management-cpu-set");
+    if (sched_cpus == UtilCpuGetNumProcessorsOnline()) {
+        SCLogWarning(
+                "\"all\" specified in worker CPU cores affinity, excluding management threads");
+        UtilAffinityCpusExclude(wtaf, mtaf);
+        sched_cpus = UtilAffinityGetAffinedCPUNum(wtaf);
+    }
+
+    if (sched_cpus == 0) {
+        SCLogError("No worker CPU cores with configured affinity were configured");
+        SCReturnInt(-EINVAL);
+    } else if (UtilAffinityCpusOverlap(wtaf, mtaf) != 0) {
+        SCLogWarning("Worker threads should not overlap with management threads in the CPU core "
+                     "affinity configuration");
+    }
+
+    const char *active_runmode = RunmodeGetActive();
     if (active_runmode && !strcmp("single", active_runmode)) {
         iconf->threads = 1;
         SCReturnInt(0);
@@ -368,8 +393,23 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
     }
 
     if (strcmp(entry_str, "auto") == 0) {
-        iconf->threads = (int)UtilCpuGetNumProcessorsOnline();
-        SCLogPerf("%u cores, so using %u threads", iconf->threads, iconf->threads);
+        iconf->threads = (uint16_t)sched_cpus / LiveGetDeviceCount();
+        if (iconf->threads == 0) {
+            SCLogError("Not enough worker CPU cores with affinity were configured");
+            SCReturnInt(-ERANGE);
+        }
+
+        if (remaining_auto_cpus > 0) {
+            iconf->threads++;
+            remaining_auto_cpus--;
+        } else if (remaining_auto_cpus == -1) {
+            remaining_auto_cpus = (int32_t)sched_cpus % LiveGetDeviceCount();
+            if (remaining_auto_cpus > 0) {
+                iconf->threads++;
+                remaining_auto_cpus--;
+            }
+        }
+        SCLogPerf("%s: auto-assigned %u threads", iconf->iface, iconf->threads);
         SCReturnInt(0);
     }
 
@@ -379,8 +419,14 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
         SCReturnInt(-EINVAL);
     }
 
-    if (iconf->threads < 0) {
-        SCLogError("Interface %s has a negative number of threads", iconf->iface);
+    if (iconf->threads <= 0) {
+        SCLogError("%s: positive number of threads required", iconf->iface);
+        SCReturnInt(-ERANGE);
+    }
+
+    total_cpus += iconf->threads;
+    if (total_cpus > sched_cpus) {
+        SCLogError("Interfaces requested more cores than configured in the threading section");
         SCReturnInt(-ERANGE);
     }
 
