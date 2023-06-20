@@ -126,6 +126,7 @@ jobs:
           fi
         shell: bash {0}
       - run: git clone https://github.com/OISF/libhtp -b 0.5.x
+      - run: ./qa/rustfmt.sh
       - run: ./autogen.sh
       - run: ./configure --enable-unittests
       - name: Check formatting
