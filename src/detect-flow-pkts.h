@@ -19,5 +19,6 @@
 #define __DETECT_FLOW_PKTS_H__
 
 void DetectFlowPktsToClientRegister(void);
+void DetectFlowPktsToServerRegister(void);
 
 #endif /* __DETECT_FLOW_PKTS_H__ */

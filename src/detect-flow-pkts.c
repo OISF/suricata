@@ -100,3 +100,81 @@ void DetectFlowPktsToClientRegister(void)
             PrefilterFlowPktsToClientIsPrefilterable;
     sigmatch_table[DETECT_FLOW_PKTS_TO_CLIENT].SetupPrefilter = PrefilterSetupFlowPktsToClient;
 }
+
+static int DetectFlowPktsToServerMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
+{
+    if (p->flow == NULL) {
+        return 0;
+    }
+    uint32_t nb = p->flow->todstpktcnt;
+
+    const DetectU32Data *du32 = (const DetectU32Data *)ctx;
+    return DetectU32Match(nb, du32);
+}
+
+static void DetectFlowPktsToServerFree(DetectEngineCtx *de_ctx, void *ptr)
+{
+    rs_detect_u32_free(ptr);
+}
+
+static int DetectFlowPktsToServerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+{
+    DetectU32Data *du32 = DetectU32Parse(rawstr);
+    if (du32 == NULL)
+        return -1;
+
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectFlowPktsToServerFree(de_ctx, du32);
+        return -1;
+    }
+
+    sm->type = DETECT_FLOW_PKTS_TO_SERVER;
+    sm->ctx = (SigMatchCtx *)du32;
+
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+
+    return 0;
+}
+
+static void PrefilterPacketFlowPktsToServerMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+    if (!PrefilterPacketHeaderExtraMatch(ctx, p))
+        return;
+
+    DetectU32Data du32;
+    du32.mode = ctx->v1.u8[0];
+    du32.arg1 = ctx->v1.u32[1];
+    du32.arg2 = ctx->v1.u32[2];
+    if (DetectFlowPktsToServerMatch(det_ctx, p, NULL, (const SigMatchCtx *)&du32)) {
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    }
+}
+
+static int PrefilterSetupFlowPktsToServer(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLOW_PKTS_TO_SERVER,
+            PrefilterPacketU32Set, PrefilterPacketU32Compare, PrefilterPacketFlowPktsToServerMatch);
+}
+
+static bool PrefilterFlowPktsToServerIsPrefilterable(const Signature *s)
+{
+    return PrefilterIsPrefilterableById(s, DETECT_FLOW_PKTS_TO_SERVER);
+}
+
+void DetectFlowPktsToServerRegister(void)
+{
+    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].name = "flow.pkts_toserver";
+    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].desc = "match flow number of packets to server";
+    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].url = "/rules/flow-keywords.html#flow-pkts_toserver";
+    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].Match = DetectFlowPktsToServerMatch;
+    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].Setup = DetectFlowPktsToServerSetup;
+    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].Free = DetectFlowPktsToServerFree;
+    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].SupportsPrefilter =
+            PrefilterFlowPktsToServerIsPrefilterable;
+    sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].SetupPrefilter = PrefilterSetupFlowPktsToServer;
+}
