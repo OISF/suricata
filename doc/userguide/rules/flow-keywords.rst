@@ -290,6 +290,7 @@ flow.age
 --------
 
 Flow age in seconds (integer)
+This keyword does not wait for the end of the flow, but will be checked at each packet.
 
 Syntax::
 
@@ -306,3 +307,83 @@ Signature example::
  alert tcp any any -> any any (msg:"Flow longer than one hour"; flow.age:>3600; flowbits: isnotset, onehourflow; flowbits: onehourflow, name; sid:1; rev:1;)
 
 In this example, we combine `flow.age` and `flowbits` to get an alert on the first packet after the flow's age is older than one hour.
+
+flow.pkts_toclient
+------------------
+
+Flow number of packets to client (integer)
+This keyword does not wait for the end of the flow, but will be checked at each packet.
+
+Syntax::
+
+ flow.pkts_toclient: [op]<number>
+
+The number of packets can be matched exactly, or compared using the _op_ setting::
+
+ flow.pkts_toclient:3    # exactly 3
+ flow.pkts_toclient:<3   # smaller than 3
+ flow.pkts_toclient:>=2  # greater than or equal to 2
+
+Signature example::
+
+ alert ip any any -> any any (msg:"Flow has 20 packets"; flow.pkts_toclient:20; sid:1;)
+
+flow.pkts_toserver
+------------------
+
+Flow number of packets to server (integer)
+This keyword does not wait for the end of the flow, but will be checked at each packet.
+
+Syntax::
+
+ flow.pkts_toserver: [op]<number>
+
+The number of packets can be matched exactly, or compared using the _op_ setting::
+
+ flow.pkts_toserver:3    # exactly 3
+ flow.pkts_toserver:<3   # smaller than 3
+ flow.pkts_toserver:>=2  # greater than or equal to 2
+
+Signature example::
+
+ alert ip any any -> any any (msg:"Flow has 20 packets"; flow.pkts_toserver:20; sid:1;)
+
+flow.bytes_toclient
+-------------------
+
+Flow number of bytes to client (integer)
+This keyword does not wait for the end of the flow, but will be checked at each packet.
+
+Syntax::
+
+ flow.bytes_toclient: [op]<number>
+
+The number of packets can be matched exactly, or compared using the _op_ setting::
+
+ flow.bytes_toclient:3    # exactly 3
+ flow.bytes_toclient:<3   # smaller than 3
+ flow.bytes_toclient:>=2  # greater than or equal to 2
+
+Signature example::
+
+ alert ip any any -> any any (msg:"Flow has less than 2000 bytes"; flow.bytes_toclient:<2000; sid:1;)
+
+flow.bytes_toserver
+-------------------
+
+Flow number of bytes to server (integer)
+This keyword does not wait for the end of the flow, but will be checked at each packet.
+
+Syntax::
+
+ flow.bytes_toserver: [op]<number>
+
+The number of packets can be matched exactly, or compared using the _op_ setting::
+
+ flow.bytes_toserver:3    # exactly 3
+ flow.bytes_toserver:<3   # smaller than 3
+ flow.bytes_toserver:>=2  # greater than or equal to 2
+
+Signature example::
+
+ alert ip any any -> any any (msg:"Flow has less than 2000 bytes"; flow.bytes_toserver:<2000; sid:1;)
