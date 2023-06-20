@@ -504,8 +504,7 @@ impl Frame {
             let mut d = vec![0; crypto_max_size as usize];
             for f in &frames {
                 if let Frame::CryptoFrag(c) = f {
-                    d[c.offset as usize..(c.offset + c.length) as usize]
-                        .clone_from_slice(&c.data);
+                    d[c.offset as usize..(c.offset + c.length) as usize].clone_from_slice(&c.data);
                 }
             }
             if let Ok((_, msg)) = parse_tls_message_handshake(&d) {

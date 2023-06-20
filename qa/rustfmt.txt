@@ -48,3 +48,10 @@ src/quic/parser.rs
 src/quic/cyu.rs
 src/quic/crypto.rs
 src/common.rs
+src/sip/log.rs
+src/rdp/log.rs
+src/rfb/parser.rs
+src/http2/detect.rs
+src/ffi/base64.rs
+src/krb/detect.rs
+src/quic/frames.rs
