@@ -178,3 +178,81 @@ void DetectFlowPktsToServerRegister(void)
             PrefilterFlowPktsToServerIsPrefilterable;
     sigmatch_table[DETECT_FLOW_PKTS_TO_SERVER].SetupPrefilter = PrefilterSetupFlowPktsToServer;
 }
+
+static int DetectFlowBytesToClientMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
+{
+    if (p->flow == NULL) {
+        return 0;
+    }
+    uint32_t nb = p->flow->tosrcbytecnt;
+
+    const DetectU32Data *du32 = (const DetectU32Data *)ctx;
+    return DetectU32Match(nb, du32);
+}
+
+static void DetectFlowBytesToClientFree(DetectEngineCtx *de_ctx, void *ptr)
+{
+    rs_detect_u32_free(ptr);
+}
+
+static int DetectFlowBytesToClientSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+{
+    DetectU32Data *du32 = DetectU32Parse(rawstr);
+    if (du32 == NULL)
+        return -1;
+
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectFlowBytesToClientFree(de_ctx, du32);
+        return -1;
+    }
+
+    sm->type = DETECT_FLOW_BYTES_TO_CLIENT;
+    sm->ctx = (SigMatchCtx *)du32;
+
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+
+    return 0;
+}
+
+static void PrefilterPacketFlowBytesToClientMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+    if (!PrefilterPacketHeaderExtraMatch(ctx, p))
+        return;
+
+    DetectU32Data du32;
+    du32.mode = ctx->v1.u8[0];
+    du32.arg1 = ctx->v1.u32[1];
+    du32.arg2 = ctx->v1.u32[2];
+    if (DetectFlowBytesToClientMatch(det_ctx, p, NULL, (const SigMatchCtx *)&du32)) {
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    }
+}
+
+static int PrefilterSetupFlowBytesToClient(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLOW_BYTES_TO_CLIENT,
+            PrefilterPacketU32Set, PrefilterPacketU32Compare, PrefilterPacketFlowBytesToClientMatch);
+}
+
+static bool PrefilterFlowBytesToClientIsPrefilterable(const Signature *s)
+{
+    return PrefilterIsPrefilterableById(s, DETECT_FLOW_BYTES_TO_CLIENT);
+}
+
+void DetectFlowBytesToClientRegister(void)
+{
+    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].name = "flow.bytes_toclient";
+    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].desc = "match flow number of bytes to client";
+    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].url = "/rules/flow-keywords.html#flow-bytes_toclient";
+    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].Match = DetectFlowBytesToClientMatch;
+    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].Setup = DetectFlowBytesToClientSetup;
+    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].Free = DetectFlowBytesToClientFree;
+    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].SupportsPrefilter =
+            PrefilterFlowBytesToClientIsPrefilterable;
+    sigmatch_table[DETECT_FLOW_BYTES_TO_CLIENT].SetupPrefilter = PrefilterSetupFlowBytesToClient;
+}

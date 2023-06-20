@@ -344,3 +344,22 @@ The number of packets can be matched exactly, or compared using the _op_ setting
 Signature example::
 
  alert ip any any -> any any (msg:"Flow has 20 packets"; flow.pkts_toserver:20; sid:1;)
+
+flow.bytes_toclient
+-------------------
+
+Flow number of bytes to client (integer)
+
+Syntax::
+
+ flow.bytes_toclient: [op]<number>
+
+The number of packets can be matched exactly, or compared using the _op_ setting::
+
+ flow.bytes_toclient:3    # exactly 3
+ flow.bytes_toclient:<3   # smaller than 3
+ flow.bytes_toclient:>=2  # greater or equal than 2
+
+Signature example::
+
+ alert ip any any -> any any (msg:"Flow has less than 2000 bytes"; flow.bytes_toclient:<2000; sid:1;)
