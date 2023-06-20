@@ -7,13 +7,13 @@ data. This combination deserves extra security precautions that we
 discuss below.
 
 Additionally, supply chain attacks, particularly around rule
-distribution could potentially target Suricata installations.
+distribution, could potentially target Suricata installations.
 
 Running as a User Other Than Root
 ---------------------------------
 
 .. note:: If using the Suricata RPMs, either from the OISF COPR repo,
-          or the EPEL repo the following is already configured for
+          or the EPEL repo, the following is already configured for
           you. The only thing you might want to do is add your
           management user to the ``suricata`` group.
 
@@ -21,7 +21,7 @@ Many Suricata examples and guides will show Suricata running as the
 *root* user, particularly when running on live traffic. As Suricata
 generally needs low level read (and in IPS write) access to network
 traffic, it is required that Suricata starts as root, however Suricata
-does have the ability to drop down to a non-root user after startup
+does have the ability to drop down to a non-root user after startup,
 which could limit the impact of a security vulnerability in Suricata
 itself.
 
@@ -31,7 +31,7 @@ itself.
 Create User
 ~~~~~~~~~~~
 
-Before running as a non-root user you have to choose, and possibly
+Before running as a non-root user, you need to choose and possibly
 create the user and group that will Suricata will run as. Typically
 this user would be a sytem user with the name ``suricata``. Such a
 user can be created with the following command::
@@ -124,8 +124,9 @@ Containers
 ----------
 
 Containers such as Docker and Podman are other methods to provide
-isolation between Suricata and host machine running Suricata, however
-we still recommend running as a non-root user even in containers.
+isolation between Suricata and the host machine running Suricata.
+However, we still recommend running as a non-root user, even in
+containers.
 
 Capabilities
 ~~~~~~~~~~~~
@@ -141,5 +142,5 @@ Podman
 Unfortunately Suricata will not work with *rootless* Podman, this is
 due to Suricata's requirement to start with root privileges to gain
 access to the network interfaces. However, if started with the above
-capabilities, and configured to run as a non-root user it will drop
+capabilities, and configured to run as a non-root user, it will drop
 root privileges before processing network data.
