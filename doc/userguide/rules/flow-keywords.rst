@@ -306,3 +306,22 @@ Signature example::
  alert tcp any any -> any any (msg:"Flow longer than one hour"; flow.age:>3600; flowbits: isnotset, onehourflow; flowbits: onehourflow, name; sid:1; rev:1;)
 
 In this example, we combine `flow.age` and `flowbits` to get an alert on the first packet after the flow's age is older than one hour.
+
+flow.pkts_toclient
+------------------
+
+Flow number of packets to client (integer)
+
+Syntax::
+
+ flow.pkts_toclient: [op]<number>
+
+The number of packets can be matched exactly, or compared using the _op_ setting::
+
+ flow.pkts_toclient:3    # exactly 3
+ flow.pkts_toclient:<3   # smaller than 3
+ flow.pkts_toclient:>=2  # greater or equal than 2
+
+Signature example::
+
+ alert ip any any -> any any (msg:"Flow has 20 packets"; flow.pkts_toclient:20; sid:1;)
