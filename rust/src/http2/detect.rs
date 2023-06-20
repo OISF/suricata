@@ -537,7 +537,7 @@ fn http2_tx_get_resp_line(tx: &mut HTTP2Transaction) {
         return;
     }
     let empty = Vec::new();
-    let mut resp_line : Vec<u8> = Vec::new();
+    let mut resp_line: Vec<u8> = Vec::new();
 
     let status =
         if let Ok(value) = http2_frames_get_header_firstvalue(tx, Direction::ToClient, ":status") {

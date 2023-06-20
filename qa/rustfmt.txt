@@ -48,3 +48,10 @@ rust/src/quic/parser.rs
 rust/src/quic/cyu.rs
 rust/src/quic/crypto.rs
 rust/src/common.rs
+rust/src/sip/log.rs
+rust/src/rdp/log.rs
+rust/src/rfb/parser.rs
+rust/src/http2/detect.rs
+rust/src/ffi/base64.rs
+rust/src/krb/detect.rs
+rust/src/quic/frames.rs
