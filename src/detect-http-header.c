@@ -750,6 +750,7 @@ void DetectHttpRequestHeaderRegister(void)
 
     DetectBufferTypeSetDescriptionByName("http_request_header", "HTTP header name and value");
     g_http_request_header_buffer_id = DetectBufferTypeGetByName("http_request_header");
+    DetectBufferTypeSupportsMultiInstance("http_request_header");
 }
 
 static int DetectHTTPResponseHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
@@ -784,6 +785,7 @@ void DetectHttpResponseHeaderRegister(void)
 
     DetectBufferTypeSetDescriptionByName("http_response_header", "HTTP header name and value");
     g_http_response_header_buffer_id = DetectBufferTypeGetByName("http_response_header");
+    DetectBufferTypeSupportsMultiInstance("http_response_header");
 }
 
 /************************************Unittests*********************************/
