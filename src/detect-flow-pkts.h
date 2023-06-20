@@ -21,5 +21,6 @@
 void DetectFlowPktsToClientRegister(void);
 void DetectFlowPktsToServerRegister(void);
 void DetectFlowBytesToClientRegister(void);
+void DetectFlowBytesToServerRegister(void);
 
 #endif /* __DETECT_FLOW_PKTS_H__ */

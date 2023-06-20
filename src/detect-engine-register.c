@@ -559,6 +559,7 @@ void SigTableSetup(void)
     DetectFlowPktsToClientRegister();
     DetectFlowPktsToServerRegister();
     DetectFlowBytesToClientRegister();
+    DetectFlowBytesToServerRegister();
     DetectWindowRegister();
     DetectRpcRegister();
     DetectFtpbounceRegister();
