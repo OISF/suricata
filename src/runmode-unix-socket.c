@@ -59,7 +59,7 @@ int unix_socket_mode_is_running = 0;
 typedef struct PcapFiles_ {
     char *filename;
     char *output_dir;
-    int tenant_id;
+    uint32_t tenant_id;
     time_t delay;
     time_t poll_interval;
     bool continuous;
@@ -269,7 +269,7 @@ static TmEcode UnixListAddFile(
     PcapCommand *this,
     const char *filename,
     const char *output_dir,
-    int tenant_id,
+    uint32_t tenant_id,
     bool continuous,
     bool should_delete,
     time_t delay,
@@ -327,7 +327,7 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
     PcapCommand *this = (PcapCommand *) data;
     const char *filename;
     const char *output_dir;
-    int tenant_id = 0;
+    uint32_t tenant_id = 0;
     bool should_delete = false;
     time_t delay = 30;
     time_t poll_interval = 5;
@@ -876,7 +876,7 @@ TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
         json_object_set_new(answer, "message", json_string("id is not an integer"));
         return TM_ECODE_FAILED;
     }
-    int tenant_id = json_integer_value(jarg);
+    uint32_t tenant_id = json_integer_value(jarg);
 
     /* 2 get tenant handler type */
     jarg = json_object_get(cmd, "htype");
@@ -957,7 +957,7 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
         json_object_set_new(answer, "message", json_string("id is not an integer"));
         return TM_ECODE_FAILED;
     }
-    int tenant_id = json_integer_value(jarg);
+    uint32_t tenant_id = json_integer_value(jarg);
 
     /* 2 get tenant handler type */
     jarg = json_object_get(cmd, "htype");
@@ -1042,7 +1042,7 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
         json_object_set_new(answer, "message", json_string("id is not an integer"));
         return TM_ECODE_FAILED;
     }
-    int tenant_id = json_integer_value(jarg);
+    uint32_t tenant_id = json_integer_value(jarg);
 
     /* 2 get tenant yaml */
     jarg = json_object_get(cmd, "filename");
@@ -1118,7 +1118,7 @@ TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
         json_object_set_new(answer, "message", json_string("id is not an integer"));
         return TM_ECODE_FAILED;
     }
-    int tenant_id = json_integer_value(jarg);
+    uint32_t tenant_id = json_integer_value(jarg);
 
     /* 2 get tenant yaml */
     jarg = json_object_get(cmd, "filename");
@@ -1188,7 +1188,7 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
         json_object_set_new(answer, "message", json_string("id is not an integer"));
         return TM_ECODE_FAILED;
     }
-    int tenant_id = json_integer_value(jarg);
+    uint32_t tenant_id = json_integer_value(jarg);
 
     SCLogInfo("remove-tenant: removing tenant %d", tenant_id);
 
