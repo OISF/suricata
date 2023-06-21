@@ -3795,10 +3795,6 @@ int DetectEngineMultiTenantEnabled(void)
  */
 static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *filename, int loader_id)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    char prefix[64];
-
-    snprintf(prefix, sizeof(prefix), "multi-detect.%u", tenant_id);
 
 #ifdef OS_WIN32
     struct _stat st;
@@ -3811,12 +3807,15 @@ static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *fil
         goto error;
     }
 
-    de_ctx = DetectEngineGetByTenantId(tenant_id);
+    DetectEngineCtx *de_ctx = DetectEngineGetByTenantId(tenant_id);
     if (de_ctx != NULL) {
         SCLogError("tenant %u already registered", tenant_id);
         DetectEngineDeReference(&de_ctx);
         goto error;
     }
+
+    char prefix[64];
+    snprintf(prefix, sizeof(prefix), "multi-detect.%u", tenant_id);
 
     ConfNode *node = ConfGetNode(prefix);
     if (node == NULL) {
