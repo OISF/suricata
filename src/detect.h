@@ -829,7 +829,7 @@ typedef struct DetectEngineCtx_ {
     uint8_t mpm_matcher; /**< mpm matcher this ctx uses */
     uint8_t spm_matcher; /**< spm matcher this ctx uses */
 
-    int tenant_id;
+    uint32_t tenant_id;
 
     Signature *sig_list;
     uint32_t sig_cnt;
