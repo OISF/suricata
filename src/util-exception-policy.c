@@ -172,26 +172,17 @@ static enum ExceptionPolicy ExceptionPolicyConfigValueParse(
     return policy;
 }
 
+/* 'auto' means ignore, for now */
 static enum ExceptionPolicy ExceptionPolicyPickAuto(bool midstream_enabled, bool support_flow)
 {
-    enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
-    if (!midstream_enabled && EngineModeIsIPS()) {
-        if (support_flow) {
-            policy = EXCEPTION_POLICY_DROP_FLOW;
-        } else {
-            policy = EXCEPTION_POLICY_DROP_PACKET;
-        }
-    }
-    return policy;
+    return EXCEPTION_POLICY_NOT_SET;
 }
 
 static enum ExceptionPolicy ExceptionPolicyMasterParse(const char *value)
 {
     enum ExceptionPolicy policy = ExceptionPolicyConfigValueParse("exception-policy", value);
-    if (policy == EXCEPTION_POLICY_AUTO) {
-        policy = ExceptionPolicyPickAuto(false, true);
-    } else if (!EngineModeIsIPS() &&
-               (policy == EXCEPTION_POLICY_DROP_PACKET || policy == EXCEPTION_POLICY_DROP_FLOW)) {
+    if (!EngineModeIsIPS() &&
+            (policy == EXCEPTION_POLICY_DROP_PACKET || policy == EXCEPTION_POLICY_DROP_FLOW)) {
         policy = EXCEPTION_POLICY_NOT_SET;
     }
     g_eps_have_exception_policy = true;
@@ -207,17 +198,28 @@ static enum ExceptionPolicy ExceptionPolicyGetDefault(
     enum ExceptionPolicy p = EXCEPTION_POLICY_NOT_SET;
     if (g_eps_have_exception_policy) {
         p = GetMasterExceptionPolicy(option);
+
+        if (p == EXCEPTION_POLICY_AUTO) {
+            p = ExceptionPolicyPickAuto(midstream, support_flow);
+            SCLogConfig("%s: %s (defined via 'exception-policy' master switch). "
+                        "Warning: this will change to drop-flow or drop-packet in Suricata 7.",
+                    option, ExceptionPolicyEnumToString(p));
+            return p;
+        }
+
         if (!support_flow) {
             p = PickPacketAction(option, p);
         }
         SCLogConfig("%s: %s (defined via 'exception-policy' master switch)", option,
                 ExceptionPolicyEnumToString(p));
         return p;
-    } else if (EngineModeIsIPS() && !midstream) {
-        p = EXCEPTION_POLICY_DROP_FLOW;
     }
-    SCLogConfig("%s: %s (defined via 'built-in default' for %s-mode)", option,
-            ExceptionPolicyEnumToString(p), EngineModeIsIPS() ? "IPS" : "IDS");
+
+    /* If we don't have the master switch set, default is `not_set` */
+
+    SCLogConfig("%s: %s (defined via 'built-in default' for %s-mode). "
+                "Warning: this will change to drop-flow or drop-packet in Suricata 7.",
+            option, ExceptionPolicyEnumToString(p), EngineModeIsIPS() ? "IPS" : "IDS");
 
     return p;
 }
@@ -275,7 +277,7 @@ enum ExceptionPolicy ExceptionPolicyMidstreamParse(bool midstream_enabled)
             }
         }
     } else {
-        policy = ExceptionPolicyGetDefault("midstream-policy", true, midstream_enabled);
+        policy = ExceptionPolicyGetDefault("stream.midstream-policy", true, midstream_enabled);
     }
 
     if (policy == EXCEPTION_POLICY_PASS_PACKET || policy == EXCEPTION_POLICY_DROP_PACKET) {
