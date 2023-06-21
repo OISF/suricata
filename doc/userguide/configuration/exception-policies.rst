@@ -29,15 +29,17 @@ have the need to.
 
 ::
 
-   # In IPS mode, the default is drop-packet/drop-flow. To fallback to old
-   # behavior (setting each of them individually, or ignoring all), set this
-   # to ignore.
+   # The default is ``ignore``.
+   #
    # All values available for exception policies can be used, and there is one
-   # extra option: auto - which means drop-packet/drop-flow in IPS mode and
-   # ignore in IDS mode).
+   # extra option: auto - same as ``ignore``.
    # Exception policy values are: drop-packet, drop-flow, reject, bypass,
    # pass-packet, pass-flow, ignore (disable).
    exception-policy: auto
+
+.. note::
+
+    The default/``auto`` value changes to ``drop-flow`` in Suricata 7.0, for IPS mode.
 
 This value will be overwritten by specific exception policies whose settings are
 also defined in the yaml file.
@@ -45,9 +47,11 @@ also defined in the yaml file.
 Auto
 ''''
 
-**In IPS mode**, the default behavior for all exception policies is to drop
-packets and/or flows. It is possible to disable this default, by setting the
-exception policies "master switch" yaml config option to ``ignore``.
+The default behavior is to ``ignore`` exception policies. This behavior changes
+with Suricata 7.0, where **in IPS mode**, the default for most of the exception
+policies is to fail close, that is, ``drop-flow``, or ``drop-packet`` if the
+flow action is not supported. For the midstream exception policy, the default
+will be ``ignore`` if midstream flows are accepted.
 
 **In IDS mode**, setting auto mode actually means disabling the
 ``master-swtich``, or ignoring the exception policies.
