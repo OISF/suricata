@@ -102,6 +102,8 @@ static pcre2_match_data *regex_rate_match = NULL;
 static pcre2_code *regex_suppress = NULL;
 static pcre2_match_data *regex_suppress_match = NULL;
 
+static SCMutex thresh_mutex = SCMUTEX_INITIALIZER;
+
 static void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd);
 
 void SCThresholdConfGlobalInit(void)
@@ -189,6 +191,8 @@ void SCThresholdConfGlobalFree(void)
         pcre2_match_data_free(regex_suppress_match);
         regex_suppress_match = NULL;
     }
+
+    SCMutexDestroy(&thresh_mutex);
 }
 
 /**
@@ -661,6 +665,7 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
     if (de_ctx == NULL)
         return -1;
 
+    SCMutexLock(&thresh_mutex);
     ret = pcre2_match(
             regex_base, (PCRE2_SPTR8)rawstr, strlen(rawstr), 0, 0, regex_base_match, NULL);
     if (ret < 4) {
@@ -954,10 +959,12 @@ static int ParseThresholdRule(const DetectEngineCtx *de_ctx, char *rawstr, uint3
     if (th_ip != NULL) {
         *ret_th_ip = (char *)th_ip;
     }
+    SCMutexUnlock(&thresh_mutex);
     pcre2_substring_free((PCRE2_UCHAR8 *)rule_extend);
     return 0;
 
 error:
+    SCMutexUnlock(&thresh_mutex);
     if (rule_extend != NULL) {
         pcre2_substring_free((PCRE2_UCHAR8 *)rule_extend);
     }
