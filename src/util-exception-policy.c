@@ -174,6 +174,7 @@ static enum ExceptionPolicy ExceptionPolicyConfigValueParse(
     return policy;
 }
 
+/* Select an exception policy in case the configuration value was set to 'auto' */
 static enum ExceptionPolicy ExceptionPolicyPickAuto(bool midstream_enabled, bool support_flow)
 {
     enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
@@ -190,10 +191,8 @@ static enum ExceptionPolicy ExceptionPolicyPickAuto(bool midstream_enabled, bool
 static enum ExceptionPolicy ExceptionPolicyMasterParse(const char *value)
 {
     enum ExceptionPolicy policy = ExceptionPolicyConfigValueParse("exception-policy", value);
-    if (policy == EXCEPTION_POLICY_AUTO) {
-        policy = ExceptionPolicyPickAuto(false, true);
-    } else if (!EngineModeIsIPS() &&
-               (policy == EXCEPTION_POLICY_DROP_PACKET || policy == EXCEPTION_POLICY_DROP_FLOW)) {
+    if (!EngineModeIsIPS() &&
+            (policy == EXCEPTION_POLICY_DROP_PACKET || policy == EXCEPTION_POLICY_DROP_FLOW)) {
         policy = EXCEPTION_POLICY_NOT_SET;
     }
     g_eps_have_exception_policy = true;
@@ -209,6 +208,11 @@ static enum ExceptionPolicy ExceptionPolicyGetDefault(
     enum ExceptionPolicy p = EXCEPTION_POLICY_NOT_SET;
     if (g_eps_have_exception_policy) {
         p = GetMasterExceptionPolicy(option);
+
+        if (p == EXCEPTION_POLICY_AUTO) {
+            p = ExceptionPolicyPickAuto(midstream, support_flow);
+        }
+
         if (!support_flow) {
             p = PickPacketAction(option, p);
         }
@@ -277,7 +281,7 @@ enum ExceptionPolicy ExceptionPolicyMidstreamParse(bool midstream_enabled)
             }
         }
     } else {
-        policy = ExceptionPolicyPickAuto(midstream_enabled, true);
+        policy = ExceptionPolicyGetDefault("stream.midstream-policy", true, midstream_enabled);
     }
 
     if (policy == EXCEPTION_POLICY_PASS_PACKET || policy == EXCEPTION_POLICY_DROP_PACKET) {
