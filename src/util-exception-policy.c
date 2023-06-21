@@ -174,7 +174,8 @@ static enum ExceptionPolicy ExceptionPolicyConfigValueParse(
     return policy;
 }
 
-static enum ExceptionPolicy ExceptionPolicyPickAuto(bool midstream_enabled, bool support_flow)
+/* Select an exception policy in case the configuration value was set to 'auto' */
+static enum ExceptionPolicy ExceptionPolicyParseAuto(bool midstream_enabled, bool support_flow)
 {
     enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
     if (!midstream_enabled && EngineModeIsIPS()) {
@@ -191,7 +192,7 @@ static enum ExceptionPolicy ExceptionPolicyMasterParse(const char *value)
 {
     enum ExceptionPolicy policy = ExceptionPolicyConfigValueParse("exception-policy", value);
     if (policy == EXCEPTION_POLICY_AUTO) {
-        policy = ExceptionPolicyPickAuto(false, true);
+        policy = ExceptionPolicyParseAuto(false, true);
     } else if (!EngineModeIsIPS() &&
                (policy == EXCEPTION_POLICY_DROP_PACKET || policy == EXCEPTION_POLICY_DROP_FLOW)) {
         policy = EXCEPTION_POLICY_NOT_SET;
@@ -235,7 +236,7 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, bool support_flow)
         } else {
             policy = ExceptionPolicyConfigValueParse(option, value_str);
             if (policy == EXCEPTION_POLICY_AUTO) {
-                policy = ExceptionPolicyPickAuto(false, support_flow);
+                policy = ExceptionPolicyParseAuto(false, support_flow);
             }
             if (!support_flow) {
                 policy = PickPacketAction(option, policy);
@@ -257,7 +258,7 @@ enum ExceptionPolicy ExceptionPolicyMidstreamParse(bool midstream_enabled)
     if ((ConfGet("stream.midstream-policy", &value_str)) == 1 && value_str != NULL) {
         policy = ExceptionPolicyConfigValueParse("midstream-policy", value_str);
         if (policy == EXCEPTION_POLICY_AUTO) {
-            policy = ExceptionPolicyPickAuto(midstream_enabled, true);
+            policy = ExceptionPolicyParseAuto(midstream_enabled, true);
         } else if (midstream_enabled) {
             if (policy != EXCEPTION_POLICY_NOT_SET && policy != EXCEPTION_POLICY_PASS_FLOW) {
                 FatalErrorOnInit(
