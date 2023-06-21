@@ -45,9 +45,19 @@ also defined in the yaml file.
 Auto
 ''''
 
+<<<<<<< HEAD
 **In IPS mode**, the default behavior for all exception policies is to drop
 packets and/or flows. It is possible to disable this default, by setting the
 exception policies "master switch" yaml config option to ``ignore``.
+=======
+**In IPS mode**, the default behavior for most of the exception policies is to
+fail close. This means droping the flow, or the packet, when the flow action is
+not supported. The default policy for the midstream exception will be ignore if
+midstream flows are accepted.
+
+It is possible to disable this default, by setting the exception policies'
+"master switch" yaml config option to ``ignore``.
+>>>>>>> e306bc6ec (exception: fix use of master switch with default)
 
 **In IDS mode**, setting auto mode actually means disabling the
 ``master-swtich``, or ignoring the exception policies.
