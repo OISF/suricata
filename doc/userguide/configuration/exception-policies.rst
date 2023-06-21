@@ -45,10 +45,13 @@ also defined in the yaml file.
 Auto
 ''''
 
-**In IPS mode**, the default behavior for all exception policies is to drop
-the flow, or the packet, when the flow action is not supported. It is possible
-to disable this default, by setting the exception policies' "master switch" yaml
-config option to ``ignore``.
+**In IPS mode**, the default behavior for most of the exception policies is to
+fail close. This means droping the flow, or the packet, when the flow action is
+not supported. The default policy for the midstream exception will be ignore if
+midstream flows are accepted.
+
+It is possible to disable this default, by setting the exception policies'
+"master switch" yaml config option to ``ignore``.
 
 **In IDS mode**, setting ``auto`` mode actually means disabling the
 ``master-switch``, or ignoring the exception policies.
