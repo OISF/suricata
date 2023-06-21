@@ -277,7 +277,7 @@ enum ExceptionPolicy ExceptionPolicyMidstreamParse(bool midstream_enabled)
             }
         }
     } else {
-        policy = ExceptionPolicyPickAuto(midstream_enabled, true);
+        policy = ExceptionPolicyGetDefault("stream.midstream-policy", true, midstream_enabled);
     }
 
     if (policy == EXCEPTION_POLICY_PASS_PACKET || policy == EXCEPTION_POLICY_DROP_PACKET) {
