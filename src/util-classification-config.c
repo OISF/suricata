@@ -51,6 +51,8 @@
 static pcre2_code *regex = NULL;
 static pcre2_match_data *regex_match = NULL;
 
+static SCMutex class_mutex = SCMUTEX_INITIALIZER;
+
 uint32_t SCClassConfClasstypeHashFunc(HashTable *ht, void *data, uint16_t datalen);
 char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
                                          void *data2, uint16_t datalen2);
@@ -91,6 +93,8 @@ void SCClassConfDeinit(void)
         pcre2_match_data_free(regex_match);
         regex_match = NULL;
     }
+
+    SCMutexDestroy(&class_mutex);
 }
 
 
@@ -248,6 +252,7 @@ int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t inde
 
     int ret = 0;
 
+    SCMutexLock(&class_mutex);
     ret = pcre2_match(regex, (PCRE2_SPTR8)rawstr, strlen(rawstr), 0, 0, regex_match, NULL);
     if (ret < 0) {
         SCLogError("Invalid Classtype in "
@@ -301,10 +306,12 @@ int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t inde
         SCFree(ct_new);
     }
 
+    SCMutexUnlock(&class_mutex);
     return 0;
 
  error:
-    return -1;
+     SCMutexUnlock(&class_mutex);
+     return -1;
 }
 
 /**

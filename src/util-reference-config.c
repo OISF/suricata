@@ -44,6 +44,8 @@
 static pcre2_code *regex = NULL;
 static pcre2_match_data *regex_match = NULL;
 
+static SCMutex ref_mutex = SCMUTEX_INITIALIZER;
+
 /* the hash functions */
 uint32_t SCRConfReferenceHashFunc(HashTable *ht, void *data, uint16_t datalen);
 char SCRConfReferenceHashCompareFunc(void *data1, uint16_t datalen1,
@@ -70,6 +72,8 @@ void SCReferenceConfInit(void)
     }
     regex_match = pcre2_match_data_create_from_pattern(regex, NULL);
 
+    SCMutexInit(&ref_mutex, NULL);
+
     return;
 }
 
@@ -83,6 +87,8 @@ void SCReferenceConfDeinit(void)
         pcre2_match_data_free(regex_match);
         regex_match = NULL;
     }
+
+    SCMutexDestroy(&ref_mutex);
 }
 
 
@@ -235,6 +241,7 @@ int SCRConfAddReference(DetectEngineCtx *de_ctx, const char *line)
 
     int ret = 0;
 
+    SCMutexLock(&ref_mutex);
     ret = pcre2_match(regex, (PCRE2_SPTR8)line, strlen(line), 0, 0, regex_match, NULL);
     if (ret < 0) {
         SCLogError("Invalid Reference Config in "
@@ -275,10 +282,12 @@ int SCRConfAddReference(DetectEngineCtx *de_ctx, const char *line)
         SCRConfDeAllocSCRConfReference(ref_new);
     }
 
+    SCMutexUnlock(&ref_mutex);
     return 0;
 
  error:
-    return -1;
+     SCMutexUnlock(&ref_mutex);
+     return -1;
 }
 
 /**
