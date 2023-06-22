@@ -218,8 +218,8 @@ static void DevicePreStopPMDSpecificActions(DPDKThreadVars *ptv, const char *dri
         struct rte_flow_error flush_error = { 0 };
         int32_t retval = rte_flow_flush(ptv->port_id, &flush_error);
         if (retval != 0) {
-            SCLogError("Unable to flush rte_flow rules: %s Flush error msg: %s",
-                    rte_strerror(-retval), flush_error.message);
+            SCLogError("%s: unable to flush rte_flow rules: %s Flush error msg: %s",
+                    ptv->livedev->dev, rte_strerror(-retval), flush_error.message);
         }
 #endif /* RTE_VERSION > RTE_VERSION_NUM(20, 0, 0, 0) */
     }
@@ -529,16 +529,16 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     if (queue_id == dpdk_config->threads - 1) {
         retval = rte_eth_dev_start(ptv->port_id);
         if (retval < 0) {
-            SCLogError("Error (%s) during device startup of %s", rte_strerror(-retval),
-                    dpdk_config->iface);
+            SCLogError("%s: error (%s) during device startup", dpdk_config->iface,
+                    rte_strerror(-retval));
             goto fail;
         }
 
         struct rte_eth_dev_info dev_info;
         retval = rte_eth_dev_info_get(ptv->port_id, &dev_info);
         if (retval != 0) {
-            SCLogError("Error (%s) when getting device info of %s", rte_strerror(-retval),
-                    dpdk_config->iface);
+            SCLogError("%s: error (%s) when getting device info", dpdk_config->iface,
+                    rte_strerror(-retval));
             goto fail;
         }
 
@@ -619,30 +619,19 @@ static void ReceiveDPDKThreadExitStats(ThreadVars *tv, void *data)
 
     if (ptv->queue_id == 0) {
         struct rte_eth_stats eth_stats;
-        char port_name[RTE_ETH_NAME_MAX_LEN];
-
-        retval = rte_eth_dev_get_name_by_port(ptv->port_id, port_name);
-        if (unlikely(retval != 0)) {
-            SCLogError("Failed to convert port id %d to the interface name: %s", ptv->port_id,
-                    strerror(-retval));
-            SCReturn;
-        }
-
-        PrintDPDKPortXstats(ptv->port_id, port_name);
-
+        PrintDPDKPortXstats(ptv->port_id, ptv->livedev->dev);
         retval = rte_eth_stats_get(ptv->port_id, &eth_stats);
         if (unlikely(retval != 0)) {
-            SCLogError("Failed to get stats for interface %s: %s", port_name, strerror(-retval));
+            SCLogError("%s: failed to get stats (%s)", ptv->livedev->dev, strerror(-retval));
             SCReturn;
         }
-        SCLogPerf("Total RX stats of %s: packets %" PRIu64 " bytes: %" PRIu64 " missed: %" PRIu64
+        SCLogPerf("%s: total RX stats: packets %" PRIu64 " bytes: %" PRIu64 " missed: %" PRIu64
                   " errors: %" PRIu64 " nombufs: %" PRIu64,
-                port_name, eth_stats.ipackets, eth_stats.ibytes, eth_stats.imissed,
+                ptv->livedev->dev, eth_stats.ipackets, eth_stats.ibytes, eth_stats.imissed,
                 eth_stats.ierrors, eth_stats.rx_nombuf);
         if (ptv->copy_mode == DPDK_COPY_MODE_TAP || ptv->copy_mode == DPDK_COPY_MODE_IPS)
-            SCLogPerf("Total TX stats of %s: packets %" PRIu64 " bytes: %" PRIu64
-                      " errors: %" PRIu64,
-                    port_name, eth_stats.opackets, eth_stats.obytes, eth_stats.oerrors);
+            SCLogPerf("%s: total TX stats: packets %" PRIu64 " bytes: %" PRIu64 " errors: %" PRIu64,
+                    ptv->livedev->dev, eth_stats.opackets, eth_stats.obytes, eth_stats.oerrors);
     }
 
     DPDKDumpCounters(ptv);
@@ -659,18 +648,12 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
     SCEnter();
     DPDKThreadVars *ptv = (DPDKThreadVars *)data;
 
-    int retval;
     if (ptv->queue_id == 0) {
         struct rte_eth_dev_info dev_info;
-        char iface[RTE_ETH_NAME_MAX_LEN];
-        retval = rte_eth_dev_get_name_by_port(ptv->port_id, iface);
+        int retval = rte_eth_dev_info_get(ptv->port_id, &dev_info);
         if (retval != 0) {
-            SCLogError("Error (err=%d) when getting device name (port %d)", retval, ptv->port_id);
-            SCReturnInt(TM_ECODE_FAILED);
-        }
-        retval = rte_eth_dev_info_get(ptv->port_id, &dev_info);
-        if (retval != 0) {
-            SCLogError("Error (err=%d) during getting device info (port %s)", retval, iface);
+            SCLogError("%s: error (%s) when getting device info", ptv->livedev->dev,
+                    rte_strerror(-retval));
             SCReturnInt(TM_ECODE_FAILED);
         }
 
