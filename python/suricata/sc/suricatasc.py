@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright(C) 2012-2020 Open Information Security Foundation
+# Copyright(C) 2012-2023 Open Information Security Foundation
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -234,7 +234,7 @@ class SuricataSC:
             if cmd in self.fn_commands:
                 cmd, arguments = getattr(self, "execute")(command=command)
         else:
-            raise SuricataCommandException("Unknown command {}".format(command))
+            raise SuricataCommandException("Unknown command: {}".format(command))
         return cmd, arguments
 
     def interactive(self):
@@ -263,10 +263,13 @@ class SuricataSC:
                     try:
                         self.close()
                         self.connect()
-                    except SuricataNetException as err:
-                        print("Can't reconnect to suricata socket, discarding command")
+                    except (SuricataNetException, SuricataReturnException) as err:
+                        print(err.value)
                         continue
                     cmdret = self.send_command(cmd, arguments)
+                except (SuricataCommandException, SuricataReturnException) as err:
+                    print("An exception occured: " + str(err.value))
+                    continue
                 #decode json message
                 if cmdret["return"] == "NOK":
                     print("Error:")
