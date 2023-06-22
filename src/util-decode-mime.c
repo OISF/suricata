@@ -1120,22 +1120,13 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
                     tok = GetLine(
                             remainPtr, len - (remainPtr - (uint8_t *)chunk), &remainPtr, &tokLen);
                     if (tok != remainPtr) {
-                        /* If last token found without CR/LF delimiter, then save
-                         * and reconstruct with next chunk
-                         */
-                        if (tok + tokLen - (uint8_t *)chunk == (int)len) {
-                            PrintChars(SC_LOG_DEBUG, "LAST CHUNK LINE - CUTOFF", tok, tokLen);
-                            SCLogDebug("\nCHUNK CUTOFF CHARS: %u delim %u\n", tokLen,
-                                    len - (uint32_t)(tok + tokLen - (uint8_t *)chunk));
-                        } else {
-                            /* Search line for URL */
-                            ret = FindUrlStrings(tok, tokLen, state);
-                            if (ret != MIME_DEC_OK) {
-                                SCLogDebug("Error: FindUrlStrings() function"
-                                           " failed: %d",
-                                        ret);
-                                break;
-                            }
+                        /* Search line for URL */
+                        ret = FindUrlStrings(tok, tokLen, state);
+                        if (ret != MIME_DEC_OK) {
+                            SCLogDebug("Error: FindUrlStrings() function"
+                                       " failed: %d",
+                                    ret);
+                            break;
                         }
                     }
                 } while (tok != remainPtr && remainPtr - (uint8_t *)chunk < (int)len);
@@ -1577,7 +1568,7 @@ static int ProcessBodyLine(const uint8_t *buf, uint32_t len,
         }
     } else {
         /* Process non-decoded content */
-        remaining = len + state->current_line_delimiter_len;
+        remaining = len;
         offset = 0;
         while (remaining > 0) {
             /* Plan to add CRLF to the end of each line */
@@ -1609,6 +1600,16 @@ static int ProcessBodyLine(const uint8_t *buf, uint32_t len,
             remaining -= tobuf;
             offset += tobuf;
         }
+        if (ret == MIME_DEC_OK) {
+            ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
+            if (ret != MIME_DEC_OK) {
+                SCLogDebug("Error: ProcessDecodedDataChunk() function "
+                           "failed");
+            }
+        }
+        // keep end of line for next call (and skip it on completion)
+        memcpy(state->data_chunk, buf + offset, state->current_line_delimiter_len);
+        state->data_chunk_len = state->current_line_delimiter_len;
     }
 
     return ret;
@@ -2040,6 +2041,11 @@ static int ProcessBodyComplete(MimeDecParseState *state)
         }
     }
 
+    MimeDecEntity *entity = (MimeDecEntity *)state->stack->top->data;
+    if ((entity->ctnt_flags & (CTNT_IS_BASE64 | CTNT_IS_QP)) == 0) {
+        // last eol of plaintext is the beginning of the boundary
+        state->data_chunk_len = 0;
+    }
     /* Invoke pre-processor and callback with remaining data */
     ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
     if (ret != MIME_DEC_OK) {
@@ -2660,6 +2666,9 @@ static int TestDataChunkCallback(const uint8_t *chunk, uint32_t len,
         uint8_t *tok;
         uint32_t tokLen;
 
+        if ((*line_count) == 0) {
+            (*line_count)++;
+        }
         PrintChars(SC_LOG_DEBUG, "CHUNK", chunk, len);
 
         /* Parse each line one by one */
@@ -2667,7 +2676,7 @@ static int TestDataChunkCallback(const uint8_t *chunk, uint32_t len,
         do {
             tok = GetLine(remainPtr, len - (remainPtr - (uint8_t *) chunk),
                     &remainPtr, &tokLen);
-            if (tok != NULL && tok != remainPtr) {
+            if (tok != NULL && tok != remainPtr && remainPtr[-1] == LF) {
                 (*line_count)++;
             }
 
