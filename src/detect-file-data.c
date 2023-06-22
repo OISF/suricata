@@ -238,7 +238,6 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
 
     htp_tx_t *tx = txv;
     HtpState *htp_state = f->alstate;
-    const uint8_t flags = flow_flags;
 
     HtpBody *body = GetResponseBody(tx);
     if (body == NULL) {
@@ -260,27 +259,11 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
     SCLogDebug("response.body_limit %u response_body.content_len_so_far %" PRIu64
                ", response.inspect_min_size %" PRIu32 ", EOF %s, progress > body? %s",
             htp_state->cfg->response.body_limit, body->content_len_so_far,
-            htp_state->cfg->response.inspect_min_size, flags & STREAM_EOF ? "true" : "false",
-            (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) >
+            htp_state->cfg->response.inspect_min_size, flow_flags & STREAM_EOF ? "true" : "false",
+            (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flow_flags) >
                     HTP_RESPONSE_BODY)
                     ? "true"
                     : "false");
-
-    if (!htp_state->cfg->http_body_inline) {
-        /* inspect the body if the transfer is complete or we have hit
-        * our body size limit */
-        if ((htp_state->cfg->response.body_limit == 0 ||
-                    body->content_len_so_far < htp_state->cfg->response.body_limit) &&
-                body->content_len_so_far < htp_state->cfg->response.inspect_min_size &&
-                !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) >
-                        HTP_RESPONSE_BODY) &&
-                !(flags & STREAM_EOF)) {
-            SCLogDebug("we still haven't seen the entire response body.  "
-                       "Let's defer body inspection till we see the "
-                       "entire body.");
-            return NULL;
-        }
-    }
 
     /* get the inspect buffer
      *
