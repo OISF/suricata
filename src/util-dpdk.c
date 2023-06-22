@@ -49,10 +49,10 @@ void DPDKCloseDevice(LiveDevice *ldev)
             return;
         }
 
-        SCLogInfo("%s: closing device", ldev->dev);
+        SCLogPerf("%s: closing device", ldev->dev);
         rte_eth_dev_close(port_id);
 
-        SCLogInfo("%s: releasing packet mempool", ldev->dev);
+        SCLogDebug("%s: releasing packet mempool", ldev->dev);
         rte_mempool_free(ldev->dpdk_vars.pkt_mp);
     }
 #endif
