@@ -321,7 +321,9 @@ int LiveDeviceListClean(void)
             SCLogNotice("%s: packets: %" PRIu64 ", drops: %" PRIu64
                         " (%.2f%%), invalid chksum: %" PRIu64,
                     pd->dev, SC_ATOMIC_GET(pd->pkts), SC_ATOMIC_GET(pd->drop),
-                    100 * ((double)SC_ATOMIC_GET(pd->drop)) / (double)SC_ATOMIC_GET(pd->pkts),
+                    SC_ATOMIC_GET(pd->pkts) > 0 ? 100 * ((double)SC_ATOMIC_GET(pd->drop)) /
+                                                          (double)SC_ATOMIC_GET(pd->pkts)
+                                                : 0,
                     SC_ATOMIC_GET(pd->invalid_checksums));
         }
 
