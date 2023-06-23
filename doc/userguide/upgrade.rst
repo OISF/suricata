@@ -74,8 +74,8 @@ Deprecations
 - Multiple "include" fields in the configuration file will now issue a
   warning and in Suricata 8.0 will not be supported. See
   :ref:`includes` for documentation on including multiple files.
-- For AF-Packet, the `cluster_rollover` setting is no longer supported. If this is used, a warning
-  message will be printed and `cluster_flow` will be used instead.
+- For AF-Packet, the `cluster_rollover` setting is no longer supported. Configuration settings using ``cluster_rollover``
+  will cause a warning message and act as though `cluster_flow`` was specified. Please update your configuration settings.
 
 Other changes
 ~~~~~~~~~~~~~
