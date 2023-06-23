@@ -288,3 +288,4 @@ class SuricataSC:
                     print(json.dumps(cmdret["message"], sort_keys=True, indent=4, separators=(',', ': ')))
         except KeyboardInterrupt:
             print("[!] Interrupted")
+            sys.exit(0)
