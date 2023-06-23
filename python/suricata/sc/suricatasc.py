@@ -259,6 +259,8 @@ class SuricataSC:
                     command = input(">>> ").strip()
                 if command == "quit":
                     break
+                if len(command.strip()) == 0:
+                    continue
                 try:
                     cmd, arguments = self.parse_command(command)
                 except SuricataCommandException as err:
