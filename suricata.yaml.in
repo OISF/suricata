@@ -621,6 +621,7 @@ af-packet:
     #  more info.
     # Recommended modes are cluster_flow on most boxes and cluster_cpu or cluster_qm on system
     # with capture card using RSS (requires cpu affinity tuning and system IRQ tuning)
+    # cluster_rollover has been deprecated; if used, it'll be replaced with cluster_flow.
     cluster-type: cluster_flow
     # In some fragmentation cases, the hash can not be computed. If "defrag" is set
     # to yes, the kernel will do the needed defragmentation before sending the packets.
