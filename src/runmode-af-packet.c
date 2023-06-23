@@ -367,7 +367,17 @@ static void *ParseAFPConfig(const char *iface)
         SCLogDebug("Going to use cluster-id %" PRIu16, aconf->cluster_id);
     }
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
+    int conf_val = 0;
+    bool rollover = false;
+    ConfGetChildValueBoolWithDefault(if_root, if_default, "rollover", &conf_val);
+    if (conf_val) {
+        SCLogWarning("%s: rollover deprecated; using \"cluster_flow\" instead. See "
+                     "https://redmine.openinfosecfoundation.org/issues/6128",
+                aconf->iface);
+        rollover = true;
+    }
+    if (rollover ||
+            ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
         /* default to our safest choice: flow hashing + defrag enabled */
         aconf->cluster_type = PACKET_FANOUT_HASH | PACKET_FANOUT_FLAG_DEFRAG;
         cluster_type = PACKET_FANOUT_HASH;
@@ -375,11 +385,16 @@ static void *ParseAFPConfig(const char *iface)
         SCLogConfig("%s: using round-robin cluster mode for AF_PACKET", aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_LB;
         cluster_type = PACKET_FANOUT_LB;
-    } else if (strcmp(tmpctype, "cluster_flow") == 0) {
+    } else if (strcmp(tmpctype, "cluster_flow") == 0 || strcmp(tmpctype, "cluster_rollover") == 0) {
+        if (strcmp(tmpctype, "cluster_rollover") == 0) {
+            SCLogWarning("%s: cluster_rollover deprecated; using \"cluster_flow\" instead. See "
+                         "https://redmine.openinfosecfoundation.org/issues/6128",
+                    aconf->iface);
+        }
         /* In hash mode, we also ask for defragmentation needed to
          * compute the hash */
         uint16_t defrag = 0;
-        int conf_val = 0;
+        conf_val = 0;
         SCLogConfig("%s: using flow cluster mode for AF_PACKET", aconf->iface);
         ConfGetChildValueBoolWithDefault(if_root, if_default, "defrag", &conf_val);
         if (conf_val) {
@@ -400,13 +415,6 @@ static void *ParseAFPConfig(const char *iface)
         SCLogConfig("%s: using random based cluster mode for AF_PACKET", aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_RND;
         cluster_type = PACKET_FANOUT_RND;
-    } else if (strcmp(tmpctype, "cluster_rollover") == 0) {
-        SCLogConfig("%s: using rollover based cluster mode for AF_PACKET", aconf->iface);
-        SCLogWarning("%s: rollover mode is causing severe flow "
-                     "tracking issues, use it at your own risk.",
-                iface);
-        aconf->cluster_type = PACKET_FANOUT_ROLLOVER;
-        cluster_type = PACKET_FANOUT_ROLLOVER;
 #ifdef HAVE_PACKET_EBPF
     } else if (strcmp(tmpctype, "cluster_ebpf") == 0) {
         SCLogInfo("%s: using ebpf based cluster mode for AF_PACKET", aconf->iface);
@@ -415,16 +423,6 @@ static void *ParseAFPConfig(const char *iface)
 #endif
     } else {
         SCLogWarning("invalid cluster-type %s", tmpctype);
-    }
-
-    int conf_val = 0;
-    ConfGetChildValueBoolWithDefault(if_root, if_default, "rollover", &conf_val);
-    if (conf_val) {
-        SCLogConfig("%s: Using rollover kernel functionality for AF_PACKET", aconf->iface);
-        aconf->cluster_type |= PACKET_FANOUT_FLAG_ROLLOVER;
-        SCLogWarning("%s: rollover option is causing severe flow "
-                     "tracking issues, use it at your own risk.",
-                iface);
     }
 
     ConfSetBPFFilter(if_root, if_default, iface, &aconf->bpf_filter);
