@@ -1017,20 +1017,15 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &flags);
 
-        /* Check for obsolete configuration flags to enable specific
-         * protocols. These are now just aliases for enabling
-         * app-layer logging. */
-        SetFlag(conf, "http", LOG_JSON_APP_LAYER, &flags);
-        SetFlag(conf, "tls",  LOG_JSON_APP_LAYER,  &flags);
-        SetFlag(conf, "ssh",  LOG_JSON_APP_LAYER,  &flags);
-        SetFlag(conf, "smtp", LOG_JSON_APP_LAYER, &flags);
-        SetFlag(conf, "dnp3", LOG_JSON_APP_LAYER, &flags);
-
-        /* And check for obsolete configuration flags for enabling
-         * app-layer and flow as these have been moved under the
-         * metadata key. */
-        SetFlag(conf, "app-layer", LOG_JSON_APP_LAYER, &flags);
-        SetFlag(conf, "flow", LOG_JSON_FLOW, &flags);
+        /* Check for obsolete flags and warn that they have no effect. */
+        static const char *deprecated_flags[] = { "http", "tls", "ssh", "smtp", "dnp3", "app-layer",
+            "flow", NULL };
+        for (int i = 0; deprecated_flags[i] != NULL; i++) {
+            if (ConfNodeLookupChildValue(conf, deprecated_flags[i]) != NULL) {
+                SCLogWarning("Found deprecated eve-log.alert flag \"%s\", this flag has no effect",
+                        deprecated_flags[i]);
+            }
+        }
 
         const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
 
