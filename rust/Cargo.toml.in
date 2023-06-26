@@ -13,6 +13,7 @@ members = [
     "suricatactl",
     "suricatasc",
     "sys",
+    "htp",
 ]
 
 default-members = [
@@ -83,6 +84,8 @@ suricata-derive = { path = "./derive", version = "@PACKAGE_VERSION@" }
 suricata-sys = { path = "./sys", version = "@PACKAGE_VERSION@" }
 
 suricata-lua-sys = { version = "0.1.0-alpha.6" }
+
+htp = { path = "./htp", version = "2.0.0" }
 
 [dev-dependencies]
 test-case = "~3.3.1"
