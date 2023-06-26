@@ -1634,34 +1634,34 @@ port independent.
       #
       # For best performance, select 'bypass'.
       #
-      #encrypt-handling: default
+      #encryption-handling: default
 
 
 Encrypted traffic
 ^^^^^^^^^^^^^^^^^
 
 There is no decryption of encrypted traffic, so once the handshake is complete
-continued tracking of the session is of limited use. The ``encrypt-handling``
+continued tracking of the session is of limited use. The ``encryption-handling``
 option controls the behavior after the handshake.
 
-If ``encrypt-handling`` is set to ``default`` (or if the option is not set),
+If ``encryption-handling`` is set to ``default`` (or if the option is not set),
 Suricata will continue to track the SSL/TLS session. Inspection will be limited,
 as raw ``content`` inspection will still be disabled. There is no point in doing
 pattern matching on traffic known to be encrypted. Inspection for (encrypted)
 Heartbleed and other protocol anomalies still happens.
 
-When ``encrypt-handling`` is set to ``bypass``, all processing of this session is
+When ``encryption-handling`` is set to ``bypass``, all processing of this session is
 stopped. No further parsing and inspection happens. If ``stream.bypass`` is enabled
 this will lead to the flow being bypassed, either inside Suricata or by the
 capture method if it supports it and is configured for it.
 
-Finally, if ``encrypt-handling`` is set to ``full``, Suricata will process the
+Finally, if ``encryption-handling`` is set to ``full``, Suricata will process the
 flow as normal, without inspection limitations or bypass.
 
 The option has replaced the ``no-reassemble`` option. If ``no-reassemble`` is
-present, and ``encrypt-handling`` is not, ``false`` is interpreted as
-``encrypt-handling: default`` and ``true`` is interpreted as
-``encrypt-handling: bypass``.
+present, and ``encryption-handling`` is not, ``false`` is interpreted as
+``encryption-handling: default`` and ``true`` is interpreted as
+``encryption-handling: bypass``.
 
 
 Modbus
