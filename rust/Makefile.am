@@ -1,10 +1,12 @@
-EXTRA_DIST =	src derive \
+EXTRA_DIST =	src derive htp \
 		.cargo/config.toml.in \
 		cbindgen.toml \
 		dist/rust-bindings.h \
+		dist/htp/htp_rs.h \
 		vendor \
 		Cargo.toml Cargo.lock \
-		derive/Cargo.toml
+		derive/Cargo.toml \
+		htp/Cargo.toml
 
 if !DEBUG
 RELEASE = --release
@@ -57,6 +59,7 @@ endif
 			$(RUST_SURICATA_LIBDIR)/${RUST_SURICATA_LIBNAME}; \
 	fi
 	$(MAKE) gen/rust-bindings.h
+	$(MAKE) gen/htp/htp_rs.h
 	mkdir -p $(abs_top_builddir)/rust/gen
 	cp -a $(RUST_SURICATA_LIBDIR)/build/suricata-lua-sys-*/out/lua/*.h \
 		$(abs_top_builddir)/rust/gen/
@@ -92,6 +95,15 @@ else
 gen/rust-bindings.h:
 endif
 
+if HAVE_CBINDGEN
+gen/htp/htp_rs.h: $(RUST_SURICATA_LIB)
+	cd $(abs_top_srcdir)/rust/htp && \
+		cbindgen --config $(abs_top_srcdir)/rust/htp/cbindgen.toml \
+		--quiet --verify --output $(abs_top_builddir)/rust/gen/htp/htp_rs.h || true
+else
+gen/htp/htp_rs.h:
+endif
+
 doc:
 	CARGO_HOME=$(CARGO_HOME) $(CARGO) doc --all-features --no-deps
 
@@ -101,6 +113,14 @@ dist/rust-bindings.h:
 		--quiet --output $(abs_top_builddir)/rust/dist/rust-bindings.h
 else
 dist/rust-bindings.h:
+endif
+
+if HAVE_CBINDGEN
+dist/htp/htp_rs.h:
+	cbindgen --config $(abs_top_srcdir)/rust/htp/cbindgen.toml \
+		--quiet --output $(abs_top_builddir)/dist/htp/htp_rs.h
+else
+dist/htp/htp_rs.h:
 endif
 
 Cargo.toml: Cargo.toml.in
