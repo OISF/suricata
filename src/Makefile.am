@@ -27,7 +27,6 @@ noinst_HEADERS = \
 	app-layer-htp-body.h \
 	app-layer-htp-file.h \
 	app-layer-htp.h \
-	app-layer-htp-libhtp.h \
 	app-layer-htp-mem.h \
 	app-layer-htp-range.h \
 	app-layer-htp-xff.h \
@@ -637,7 +636,6 @@ libsuricata_c_a_SOURCES = \
 	app-layer-htp-body.c \
 	app-layer-htp.c \
 	app-layer-htp-file.c \
-	app-layer-htp-libhtp.c \
 	app-layer-htp-mem.c \
 	app-layer-htp-range.c \
 	app-layer-htp-xff.c \
@@ -1287,7 +1285,7 @@ suricata_SOURCES = main.c
 
 # the library search path.
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-suricata_LDADD = libsuricata_c.a $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+suricata_LDADD = libsuricata_c.a $(RUST_SURICATA_LIB) $(RUST_LDADD)
 suricata_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
 
 if BUILD_SHARED_LIBRARY
@@ -1323,7 +1321,7 @@ uninstall-local:
 if BUILD_FUZZTARGETS
 
 LDFLAGS_FUZZ = $(all_libraries) $(SECLDFLAGS)
-LDADD_FUZZ = libsuricata_c.a $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+LDADD_FUZZ = libsuricata_c.a $(RUST_SURICATA_LIB) $(RUST_LDADD)
 
 fuzz_applayerprotodetectgetproto_SOURCES = tests/fuzz/fuzz_applayerprotodetectgetproto.c
 fuzz_applayerprotodetectgetproto_LDFLAGS = $(LDFLAGS_FUZZ)

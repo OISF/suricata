@@ -124,3 +124,6 @@ pub mod util;
 pub mod ffi;
 pub mod feature;
 pub mod sdp;
+
+//Re-export htp symbols
+pub use htp::c_api::*;

@@ -1,12 +1,12 @@
 #! /usr/bin/env bash
 #
-# This script will bundle libhtp and/or suricata-update for you.
+# This script will bundle suricata-update for you.
 #
 # To use, run from the top Suricata source directory:
 #
-#    ./scripts/bundle.sh [suricata-update|libhtp]
+#    ./scripts/bundle.sh [suricata-update]
 #
-# If no arguments are provided, both suricata-update and libhtp will
+# If no arguments are provided, suricata-update will
 # be bundled.
 #
 # Environment variables:
@@ -14,10 +14,6 @@
 #   SU_REPO:   Overrides the Suricata-Update git repo
 #   SU_BRANCH: Override the Suricata-Update branch to a branch, tag or
 #              {pull,merge}-request.
-#
-#   LIBHTP_REPO:   Overrides the libhtp git repo
-#   LIBHTP_BRANCH: Override the libhtp branch to a branch, tag or
-#                  {pull,merge}-request.
 #
 #   DESTDIR: Checkout to another directory instead of the current
 #            directory.
@@ -81,14 +77,6 @@ while IFS= read -r requirement; do
             rm -rf ${DESTDIR}/suricata-update.tmp/.git
             cp -a ${DESTDIR}/suricata-update.tmp/. ${DESTDIR}/suricata-update
             rm -rf ${DESTDIR}/suricata-update.tmp
-            ;;
-        libhtp)
-            LIBHTP_REPO=${LIBHTP_REPO:-$2}
-            LIBHTP_BRANCH=$(transform_branch ${LIBHTP_BRANCH:-$3})
-            echo "===> Bundling ${LIBHTP_REPO} (${LIBHTP_BRANCH})"
-            rm -rf ${DESTDIR}/libhtp
-            fetch "${LIBHTP_REPO}" "${DESTDIR}/libhtp" "${LIBHTP_BRANCH}"
-            rm -rf libhtp/.git
             ;;
         \#*)
             # Ignore comment.

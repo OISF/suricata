@@ -30,12 +30,12 @@
 int HTPFileOpen(
         HtpState *, HtpTxUserData *, const uint8_t *, uint16_t, const uint8_t *, uint32_t, uint8_t);
 int HTPFileOpenWithRange(HtpState *, HtpTxUserData *, const uint8_t *, uint16_t, const uint8_t *,
-        uint32_t, htp_tx_t *, bstr *rawvalue, HtpTxUserData *htud);
+        uint32_t, const htp_tx_t *, const bstr *rawvalue, HtpTxUserData *htud);
 bool HTPFileCloseHandleRange(const StreamingBufferConfig *sbcfg, FileContainer *, const uint16_t,
         HttpRangeContainerBlock *, const uint8_t *, uint32_t);
 int HTPFileStoreChunk(HtpState *, HtpTxUserData *, const uint8_t *, uint32_t, uint8_t);
 
-int HTPParseContentRange(bstr *rawvalue, HTTPContentRange *range);
+int HTPParseContentRange(const bstr *rawvalue, HTTPContentRange *range);
 int HTPFileClose(HtpState *, HtpTxUserData *tx, const uint8_t *data, uint32_t data_len,
         uint8_t flags, uint8_t direction);
 
