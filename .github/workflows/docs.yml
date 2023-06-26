@@ -8,8 +8,6 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      LIBHTP_REPO:
-      LIBHTP_BRANCH:
       SU_REPO:
       SU_BRANCH:
       SV_REPO:
@@ -97,7 +95,6 @@ jobs:
         with:
           name: prep
           path: prep
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
