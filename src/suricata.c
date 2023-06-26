@@ -731,9 +731,7 @@ static void PrintBuildInfo(void)
 #ifdef HAVE_LIBNET11
     strlcat(features, "LIBNET1.1 ", sizeof(features));
 #endif
-#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
     strlcat(features, "HAVE_HTP_URI_NORMALIZE_HOOK ", sizeof(features));
-#endif
 #ifdef PCRE2_HAVE_JIT
     strlcat(features, "PCRE_JIT ", sizeof(features));
 #endif
@@ -878,8 +876,7 @@ static void PrintBuildInfo(void)
 #endif
     printf("thread local storage method: %s\n", tls);
 
-    printf("compiled with %s, linked against %s\n",
-           HTP_VERSION_STRING_FULL, htp_get_version());
+    printf("compiled with %s\n", htp_get_version());
     printf("\n");
 #include "build-info.h"
 }
