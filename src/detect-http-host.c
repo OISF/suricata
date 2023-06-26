@@ -346,7 +346,7 @@ static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *data = NULL;
         uint32_t data_len = 0;
 
-        if (tx->parsed_uri == NULL || tx->parsed_uri->hostname == NULL) {
+        if (htp_uri_hostname(htp_tx_parsed_uri(tx)) == NULL) {
             if (htp_tx_request_headers(tx) == NULL)
                 return NULL;
 
@@ -354,11 +354,11 @@ static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
             if (h == NULL || htp_header_value(h) == NULL)
                 return NULL;
 
-            data = (const uint8_t *)htp_header_value_ptr(h);
+            data = htp_header_value_ptr(h);
             data_len = htp_header_value_len(h);
         } else {
-            data = (const uint8_t *)bstr_ptr(tx->parsed_uri->hostname);
-            data_len = bstr_len(tx->parsed_uri->hostname);
+            data = (const uint8_t *)bstr_ptr(htp_uri_hostname(htp_tx_parsed_uri(tx)));
+            data_len = bstr_len(htp_uri_hostname(htp_tx_parsed_uri(tx)));
         }
 
         InspectionBufferSetupAndApplyTransforms(
