@@ -1106,7 +1106,10 @@ static Packet *BuildTestPacket(uint8_t proto, uint16_t id, uint16_t off, int mf,
     if (unlikely(p == NULL))
         return NULL;
 
-    PacketInit(p);
+    if (unlikely(!PacketInit(p))) {
+        SCFree(p);
+        return NULL;
+    }
 
     struct timeval tval;
     gettimeofday(&tval, NULL);
@@ -1178,7 +1181,10 @@ static Packet *IPV6BuildTestPacket(uint8_t proto, uint32_t id, uint16_t off,
     if (unlikely(p == NULL))
         return NULL;
 
-    PacketInit(p);
+    if (unlikely(!PacketInit(p))) {
+        SCFree(p);
+        return NULL;
+    }
 
     struct timeval tval;
     gettimeofday(&tval, NULL);

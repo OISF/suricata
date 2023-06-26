@@ -83,8 +83,6 @@ uint16_t packet_alert_max = PACKET_ALERT_MAX;
 PacketAlert *PacketAlertCreate(void)
 {
     PacketAlert *pa_array = SCCalloc(packet_alert_max, sizeof(PacketAlert));
-    BUG_ON(pa_array == NULL);
-
     return pa_array;
 }
 
@@ -176,7 +174,10 @@ Packet *PacketGetFromAlloc(void)
     if (unlikely(p == NULL)) {
         return NULL;
     }
-    PacketInit(p);
+    if (unlikely(!PacketInit(p))) {
+        SCFree(p);
+        return NULL;
+    }
     p->ReleasePacket = PacketFree;
 
     SCLogDebug("allocated a new packet only using alloc...");

@@ -30,7 +30,7 @@ static inline uint8_t PacketTestAction(const Packet *p, const uint8_t a)
 }
 #endif
 
-void PacketInit(Packet *p);
+bool PacketInit(Packet *p);
 void PacketReleaseRefs(Packet *p);
 void PacketReinit(Packet *p);
 void PacketRecycle(Packet *p);
