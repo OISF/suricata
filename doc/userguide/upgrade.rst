@@ -66,6 +66,10 @@ Major changes
   This may lead to memcaps being hit for older setups that didn't take that into account.
   For more details, check https://redmine.openinfosecfoundation.org/issues/3910
 
+Other Changes
+~~~~~~~~~~~~~
+- libhtp has been replaced with a rust version. This means libhtp is no longer built and linked as a shared library, and the libhtp dependency is now built directly into suricata.
+
 Upgrading 6.0 to 7.0
 --------------------
 

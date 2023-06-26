@@ -25,7 +25,6 @@ noinst_HEADERS = \
 	app-layer-htp-body.h \
 	app-layer-htp-file.h \
 	app-layer-htp.h \
-	app-layer-htp-libhtp.h \
 	app-layer-htp-mem.h \
 	app-layer-htp-range.h \
 	app-layer-htp-xff.h \
@@ -628,7 +627,6 @@ libsuricata_c_a_SOURCES = \
 	app-layer-htp-body.c \
 	app-layer-htp.c \
 	app-layer-htp-file.c \
-	app-layer-htp-libhtp.c \
 	app-layer-htp-mem.c \
 	app-layer-htp-range.c \
 	app-layer-htp-xff.c \
@@ -1272,9 +1270,9 @@ suricata_SOURCES = main.c
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
 # rust library depends also on c
 if LINKER_SUPPORTS_GROUP
-LDADD_GENERIC = "-Wl,--start-group,libsuricata_c.a,$(RUST_SURICATA_LIB),--end-group" $(HTP_LDADD) $(RUST_LDADD)
+LDADD_GENERIC = "-Wl,--start-group,libsuricata_c.a,$(RUST_SURICATA_LIB),--end-group" $(RUST_LDADD)
 else
-LDADD_GENERIC = libsuricata_c.a $(RUST_SURICATA_LIB) libsuricata_c.a $(RUST_SURICATA_LIB) $(HTP_LDADD) $(RUST_LDADD)
+LDADD_GENERIC = libsuricata_c.a $(RUST_SURICATA_LIB) libsuricata_c.a $(RUST_SURICATA_LIB) $(RUST_LDADD)
 endif
 suricata_LDADD = $(LDADD_GENERIC)
 suricata_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
