@@ -140,6 +140,10 @@ Logging changes
   live transaction, to reduce the chances of logging unrelated data.** This may
   lead to what looks like a regression in behavior, but it is a considered choice.
 
+Other Changes
+~~~~~~~~~~~~~
+- libhtp has been replaced with a rust version. This means libhtp is no longer built and linked as a shared library, and the libhtp dependency is now built directly into suricata.
+
 Upgrading 6.0 to 7.0
 --------------------
 
