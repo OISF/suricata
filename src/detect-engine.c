@@ -1736,18 +1736,22 @@ void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
     }
 }
 
-static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
+static bool DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
 {
     const int size = g_buffer_type_id;
     BUG_ON(!(size > 0));
 
     de_ctx->buffer_type_hash_name = HashListTableInit(256, DetectBufferTypeHashNameFunc,
             DetectBufferTypeCompareNameFunc, DetectBufferTypeFreeFunc);
-    BUG_ON(de_ctx->buffer_type_hash_name == NULL);
+    if (de_ctx->buffer_type_hash_name == NULL) {
+        return false;
+    }
     de_ctx->buffer_type_hash_id =
             HashListTableInit(256, DetectBufferTypeHashIdFunc, DetectBufferTypeCompareIdFunc,
                     NULL); // entries owned by buffer_type_hash_name
-    BUG_ON(de_ctx->buffer_type_hash_id == NULL);
+    if (de_ctx->buffer_type_hash_id == NULL) {
+        return false;
+    }
     de_ctx->buffer_type_id = g_buffer_type_id;
 
     SCLogDebug("DETECT_SM_LIST_DYNAMIC_START %u", DETECT_SM_LIST_DYNAMIC_START);
@@ -1756,7 +1760,9 @@ static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
         DetectBufferType *map = HashListTableGetListData(b);
 
         DetectBufferType *copy = SCCalloc(1, sizeof(*copy));
-        BUG_ON(!copy);
+        if (!copy) {
+            return false;
+        }
         memcpy(copy, map, sizeof(*copy));
         int r = HashListTableAdd(de_ctx->buffer_type_hash_name, (void *)copy, 0);
         BUG_ON(r != 0);
@@ -1777,6 +1783,7 @@ static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
     DetectFrameInspectEngineCopyListToDetectCtx(de_ctx);
     DetectMpmInitializePktMpms(de_ctx);
     DetectPktInspectEngineCopyListToDetectCtx(de_ctx);
+    return true;
 }
 
 static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
@@ -2505,7 +2512,9 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
     DetectParseDupSigHashInit(de_ctx);
     DetectAddressMapInit(de_ctx);
     DetectMetadataHashInit(de_ctx);
-    DetectBufferTypeSetupDetectEngine(de_ctx);
+    if (!DetectBufferTypeSetupDetectEngine(de_ctx)) {
+        goto error;
+    }
     DetectEngineInitializeFastPatternList(de_ctx);
 
     /* init iprep... ignore errors for now */
