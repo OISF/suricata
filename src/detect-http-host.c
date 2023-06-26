@@ -55,7 +55,6 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
-#include "app-layer-htp-libhtp.h"
 #include "stream-tcp.h"
 #include "detect-http-host.h"
 
@@ -243,11 +242,11 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
 
-        if (tx->request_hostname == NULL)
+        if (htp_tx_request_hostname(tx) == NULL)
             return NULL;
 
-        const uint32_t data_len = bstr_len(tx->request_hostname);
-        const uint8_t *data = bstr_ptr(tx->request_hostname);
+        const uint32_t data_len = bstr_len(htp_tx_request_hostname(tx));
+        const uint8_t *data = bstr_ptr(htp_tx_request_hostname(tx));
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
@@ -346,20 +345,19 @@ static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *data = NULL;
         uint32_t data_len = 0;
 
-        if (tx->parsed_uri == NULL || tx->parsed_uri->hostname == NULL) {
-            if (tx->request_headers == NULL)
+        if (htp_uri_hostname(htp_tx_parsed_uri(tx)) == NULL) {
+            if (htp_tx_request_headers(tx) == NULL)
                 return NULL;
 
-            htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
-                    "Host");
-            if (h == NULL || h->value == NULL)
+            const htp_header_t *h = htp_tx_request_header(tx, "Host");
+            if (htp_header_value(h) == NULL)
                 return NULL;
 
-            data = (const uint8_t *)bstr_ptr(h->value);
-            data_len = bstr_len(h->value);
+            data = htp_header_value_ptr(h);
+            data_len = htp_header_value_len(h);
         } else {
-            data = (const uint8_t *)bstr_ptr(tx->parsed_uri->hostname);
-            data_len = bstr_len(tx->parsed_uri->hostname);
+            data = (const uint8_t *)bstr_ptr(htp_uri_hostname(htp_tx_parsed_uri(tx)));
+            data_len = bstr_len(htp_uri_hostname(htp_tx_parsed_uri(tx)));
         }
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);

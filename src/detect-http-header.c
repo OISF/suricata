@@ -54,7 +54,6 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
-#include "app-layer-htp-libhtp.h"
 #include "detect-http-header.h"
 #include "detect-http-header-common.h"
 
@@ -80,36 +79,34 @@ static uint8_t *GetBufferForTX(
         return NULL;
     }
 
-    htp_table_t *headers;
+    const htp_headers_t *headers;
     if (flags & STREAM_TOSERVER) {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
                 HTP_REQUEST_PROGRESS_HEADERS)
             return NULL;
-        headers = tx->request_headers;
+        headers = htp_tx_request_headers(tx);
     } else {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) <=
                 HTP_RESPONSE_PROGRESS_HEADERS)
             return NULL;
-        headers = tx->response_headers;
+        headers = htp_tx_response_headers(tx);
     }
     if (headers == NULL)
         return NULL;
 
     size_t i = 0;
-    size_t no_of_headers = htp_table_size(headers);
+    size_t no_of_headers = htp_headers_size(headers);
     for (; i < no_of_headers; i++) {
-        htp_header_t *h = htp_table_get_index(headers, i, NULL);
-        size_t size1 = bstr_size(h->name);
-        size_t size2 = bstr_size(h->value);
+        const htp_header_t *h = htp_headers_get_index(headers, i);
+        size_t size1 = htp_header_name_len(h);
+        size_t size2 = htp_header_value_len(h);
 
         if (flags & STREAM_TOSERVER) {
-            if (size1 == 6 &&
-                SCMemcmpLowercase("cookie", bstr_ptr(h->name), 6) == 0) {
+            if (size1 == 6 && SCMemcmpLowercase("cookie", htp_header_name_ptr(h), 6) == 0) {
                 continue;
             }
         } else {
-            if (size1 == 10 &&
-                SCMemcmpLowercase("set-cookie", bstr_ptr(h->name), 10) == 0) {
+            if (size1 == 10 && SCMemcmpLowercase("set-cookie", htp_header_name_ptr(h), 10) == 0) {
                 continue;
             }
         }
@@ -125,12 +122,12 @@ static uint8_t *GetBufferForTX(
             }
         }
 
-        memcpy(buf->buffer + buf->len, bstr_ptr(h->name), bstr_size(h->name));
-        buf->len += bstr_size(h->name);
+        memcpy(buf->buffer + buf->len, htp_header_name_ptr(h), htp_header_name_len(h));
+        buf->len += htp_header_name_len(h);
         buf->buffer[buf->len++] = ':';
         buf->buffer[buf->len++] = ' ';
-        memcpy(buf->buffer + buf->len, bstr_ptr(h->value), bstr_size(h->value));
-        buf->len += bstr_size(h->value);
+        memcpy(buf->buffer + buf->len, htp_header_value_ptr(h), htp_header_value_len(h));
+        buf->len += htp_header_value_len(h);
         buf->buffer[buf->len++] = '\r';
         buf->buffer[buf->len++] = '\n';
 #if 0 // looks like this breaks existing rules
@@ -553,13 +550,13 @@ static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx,
     }
 
     htp_tx_t *tx = (htp_tx_t *)txv;
-    htp_table_t *headers;
+    const htp_headers_t *headers;
     if (flags & STREAM_TOSERVER) {
-        headers = tx->request_headers;
+        headers = htp_tx_request_headers(tx);
     } else {
-        headers = tx->response_headers;
+        headers = htp_tx_response_headers(tx);
     }
-    size_t no_of_headers = htp_table_size(headers);
+    size_t no_of_headers = htp_headers_size(headers);
     if (local_id == 0) {
         // We initialize a big buffer on first item
         // Then, we will just use parts of it
@@ -576,9 +573,9 @@ static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx,
             hdr_td->cap = no_of_headers;
         }
         for (size_t i = 0; i < no_of_headers; i++) {
-            htp_header_t *h = htp_table_get_index(headers, i, NULL);
-            size_t size1 = bstr_size(h->name);
-            size_t size2 = bstr_size(h->value);
+            const htp_header_t *h = htp_headers_get_index(headers, i);
+            size_t size1 = htp_header_name_len(h);
+            size_t size2 = htp_header_value_len(h);
             size_t size = size1 + size2 + 2;
             if (hdr_td->items[i].len < size) {
                 // Use realloc, as this pointer is not freed until HttpMultiBufHeaderThreadDataFree
@@ -588,10 +585,10 @@ static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx,
                 }
                 hdr_td->items[i].buffer = tmp;
             }
-            memcpy(hdr_td->items[i].buffer, bstr_ptr(h->name), size1);
+            memcpy(hdr_td->items[i].buffer, htp_header_name_ptr(h), size1);
             hdr_td->items[i].buffer[size1] = ':';
             hdr_td->items[i].buffer[size1 + 1] = ' ';
-            memcpy(hdr_td->items[i].buffer + size1 + 2, bstr_ptr(h->value), size2);
+            memcpy(hdr_td->items[i].buffer + size1 + 2, htp_header_value_ptr(h), size2);
             hdr_td->items[i].len = size;
         }
         hdr_td->len = no_of_headers;

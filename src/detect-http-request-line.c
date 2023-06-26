@@ -57,7 +57,6 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
-#include "app-layer-htp-libhtp.h"
 #include "stream-tcp.h"
 #include "detect-http-request-line.h"
 
@@ -159,11 +158,11 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
-        if (unlikely(tx->request_line == NULL)) {
+        if (unlikely(htp_tx_request_line(tx) == NULL)) {
             return NULL;
         }
-        const uint32_t data_len = bstr_len(tx->request_line);
-        const uint8_t *data = bstr_ptr(tx->request_line);
+        const uint32_t data_len = bstr_len(htp_tx_request_line(tx));
+        const uint8_t *data = bstr_ptr(htp_tx_request_line(tx));
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
