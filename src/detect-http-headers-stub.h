@@ -29,8 +29,7 @@
 #include "suricata-common.h"
 #include "flow.h"
 
-#include <htp/htp.h>
-#include "app-layer-htp-libhtp.h"
+#include "htp/htp_rs.h"
 
 #include "detect.h"
 #include "detect-parse.h"
@@ -57,15 +56,15 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
         if (htp_tx_request_headers(tx) == NULL)
             return NULL;
 
-        htp_header_t *h = (htp_header_t *)htp_table_get_c(htp_tx_request_headers(tx), HEADER_NAME);
-        if (h == NULL || h->value == NULL) {
+        const htp_header_t *h = htp_tx_request_header(tx, HEADER_NAME);
+        if (h == NULL || htp_header_value(h) == NULL) {
             SCLogDebug("HTTP %s header not present in this request",
                        HEADER_NAME);
             return NULL;
         }
 
-        const uint32_t data_len = bstr_len(h->value);
-        const uint8_t *data = bstr_ptr(h->value);
+        const uint32_t data_len = htp_header_value_len(h);
+        const uint8_t *data = htp_header_value_ptr(h);
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
@@ -112,15 +111,15 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
         if (htp_tx_response_headers(tx) == NULL)
             return NULL;
 
-        htp_header_t *h = (htp_header_t *)htp_table_get_c(htp_tx_response_headers(tx), HEADER_NAME);
-        if (h == NULL || h->value == NULL) {
+        const htp_header_t *h = htp_tx_response_header(tx, HEADER_NAME);
+        if (h == NULL || htp_header_value(h) == NULL) {
             SCLogDebug("HTTP %s header not present in this request",
                        HEADER_NAME);
             return NULL;
         }
 
-        const uint32_t data_len = bstr_len(h->value);
-        const uint8_t *data = bstr_ptr(h->value);
+        const uint32_t data_len = htp_header_value_len(h);
+        const uint8_t *data = htp_header_value_ptr(h);
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
