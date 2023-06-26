@@ -97,6 +97,10 @@ Logging changes
 - RFB security result is now consistently logged as ``security_result`` when it was
   sometimes logged with a dash instead of an underscore.
 
+Other Changes
+~~~~~~~~~~~~~
+- libhtp has been replaced with a rust version. This means libhtp is no longer built and linked as a shared library, and the libhtp dependency is now built directly into suricata.
+
 Upgrading 6.0 to 7.0
 --------------------
 
