@@ -301,8 +301,7 @@ function RequireProgram {
 
 # Make sure we are running from the top-level git directory.
 # Same approach as for setup-decoder.sh. Good enough.
-# We could probably use git rev-parse --show-toplevel to do so, as long as we
-# handle the libhtp subfolder correctly.
+# We could probably use git rev-parse --show-toplevel to do so
 function SetTopLevelDir {
     if [ -e ./src/suricata.c ]; then
         # Do nothing.

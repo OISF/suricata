@@ -109,7 +109,7 @@ Compile and install Suricata
 To get Suricata source, you can use the usual ::
 
  git clone https://github.com/OISF/suricata.git
- cd suricata && git clone https://github.com/OISF/libhtp.git -b 0.5.x
+ cd suricata
 
  ./autogen.sh
 

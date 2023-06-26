@@ -47,12 +47,6 @@ if [ "$use_static" = "no" ]; then
     fi
 fi
 
-# If we're using a bundled htp, add it to the libs as well. It will
-# already be present if we're use a non-bundled libhtp.
-if [ "$enable_non_bundled_htp" = "no" ]; then
-    lib="${lib} -lhtp"
-fi
-
 output=""
 
 if [ "$show_cflags" = "yes" ]; then
