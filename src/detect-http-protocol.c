@@ -130,7 +130,6 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
 static bool DetectHttpProtocolValidateCallback(
         const Signature *s, const char **sigerror, const DetectBufferType *dbt)
 {
-#ifdef HAVE_HTP_CONFIG_SET_ALLOW_SPACE_URI
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         if (s->init_data->buffers[x].id != (uint32_t)dbt->id)
             continue;
@@ -148,7 +147,6 @@ static bool DetectHttpProtocolValidateCallback(
             }
         }
     }
-#endif
     return true;
 }
 
