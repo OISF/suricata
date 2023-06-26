@@ -50,7 +50,7 @@
 #include "util-validate.h"
 
 FileAppProto file_protos_ts_static[] = {
-    { ALPROTO_HTTP1, HTP_REQUEST_BODY },
+    { ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_BODY },
     { ALPROTO_SMTP, 0 },
     { ALPROTO_FTP, 0 },
     { ALPROTO_FTPDATA, 0 },
@@ -61,7 +61,7 @@ FileAppProto file_protos_ts_static[] = {
 };
 
 FileAppProto file_protos_tc_static[] = {
-    { ALPROTO_HTTP1, HTP_RESPONSE_BODY },
+    { ALPROTO_HTTP1, HTP_RESPONSE_PROGRESS_BODY },
     { ALPROTO_FTP, 0 },
     { ALPROTO_FTPDATA, 0 },
     { ALPROTO_SMB, 0 },

@@ -99,9 +99,10 @@ void DetectFiledataRegister(void)
         if (file_protos_tc[i].alproto == ALPROTO_HTTP1) {
             // special case for HTTP1
             DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
-                    PrefilterMpmHTTPFiledataRegister, NULL, ALPROTO_HTTP1, HTP_RESPONSE_BODY);
+                    PrefilterMpmHTTPFiledataRegister, NULL, ALPROTO_HTTP1,
+                    HTP_RESPONSE_PROGRESS_BODY);
             DetectAppLayerInspectEngineRegister2("file_data", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-                    HTP_RESPONSE_BODY, DetectEngineInspectBufferHttpBody, NULL);
+                    HTP_RESPONSE_PROGRESS_BODY, DetectEngineInspectBufferHttpBody, NULL);
             continue;
         }
         DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2, PrefilterMpmFiledataRegister,
@@ -201,7 +202,7 @@ static void PrefilterMpmFiledataFree(void *ptr)
 
 static inline HtpBody *GetResponseBody(htp_tx_t *tx)
 {
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_user_data(tx);
     if (htud == NULL) {
         SCLogDebug("no htud");
         return NULL;
@@ -262,7 +263,7 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
             htp_state->cfg->response.body_limit, body->content_len_so_far,
             htp_state->cfg->response.inspect_min_size, flags & STREAM_EOF ? "true" : "false",
             (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) >
-                    HTP_RESPONSE_BODY)
+                    HTP_RESPONSE_PROGRESS_BODY)
                     ? "true"
                     : "false");
 
@@ -273,7 +274,7 @@ static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *de
                     body->content_len_so_far < htp_state->cfg->response.body_limit) &&
                 body->content_len_so_far < htp_state->cfg->response.inspect_min_size &&
                 !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) >
-                        HTP_RESPONSE_BODY) &&
+                        HTP_RESPONSE_PROGRESS_BODY) &&
                 !(flags & STREAM_EOF)) {
             SCLogDebug("we still haven't seen the entire response body.  "
                        "Let's defer body inspection till we see the "
@@ -369,11 +370,11 @@ static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
 
     if (flags & STREAM_TOSERVER) {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, txv, flags) >
-                HTP_REQUEST_BODY)
+                HTP_REQUEST_PROGRESS_BODY)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     } else {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, txv, flags) >
-                HTP_RESPONSE_BODY)
+                HTP_RESPONSE_PROGRESS_BODY)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     }
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
