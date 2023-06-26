@@ -35,6 +35,7 @@
 #include "threadvars.h"
 #include "util-debug.h"
 
+#include "util-error.h"
 #include "util-logopenfile.h"
 #include "util-misc.h"
 #include "util-unittest.h"
@@ -871,6 +872,38 @@ static void SetFlag(const ConfNode *conf, const char *name, uint16_t flag, uint1
     }
 }
 
+/**
+ * \brief Set, but don't unset and warn about deprecated flags.
+ */
+static void SetDeprecatedFlag(
+        const ConfNode *conf, const char *name, uint16_t flag, uint16_t *out_flags)
+{
+    DEBUG_VALIDATE_BUG_ON(conf == NULL);
+    const char *setting = ConfNodeLookupChildValue(conf, name);
+    if (setting != NULL) {
+        if (ConfValIsTrue(setting)) {
+            if (flag == LOG_JSON_APP_LAYER) {
+                SCLogWarning(SC_WARN_DEPRECATED,
+                        "Found deprecated eve-log.alert app-layer flag \"%s\", enabling "
+                        "metadata.app-layer",
+                        name);
+            } else if (flag == LOG_JSON_FLOW) {
+                SCLogWarning(SC_WARN_DEPRECATED,
+                        "Found deprecated eve-log.alert \"flow\" flag, enabling metadata.flow");
+            } else {
+                SCLogWarning(SC_WARN_DEPRECATED,
+                        "Found deprecated eve-log.alert flag \"%s\", please update your "
+                        "configuration",
+                        name);
+            }
+            *out_flags |= flag;
+        } else {
+            SCLogWarning(SC_WARN_DEPRECATED,
+                    "Ignoring deprecated eve-log.alert flag \"%s\", this flag has no effect", name);
+        }
+    }
+}
+
 #define DEFAULT_LOG_FILENAME "alert.json"
 
 static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
@@ -909,17 +942,17 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         /* Check for obsolete configuration flags to enable specific
          * protocols. These are now just aliases for enabling
          * app-layer logging. */
-        SetFlag(conf, "http", LOG_JSON_APP_LAYER, &flags);
-        SetFlag(conf, "tls",  LOG_JSON_APP_LAYER,  &flags);
-        SetFlag(conf, "ssh",  LOG_JSON_APP_LAYER,  &flags);
-        SetFlag(conf, "smtp", LOG_JSON_APP_LAYER, &flags);
-        SetFlag(conf, "dnp3", LOG_JSON_APP_LAYER, &flags);
+        SetDeprecatedFlag(conf, "http", LOG_JSON_APP_LAYER, &flags);
+        SetDeprecatedFlag(conf, "tls", LOG_JSON_APP_LAYER, &flags);
+        SetDeprecatedFlag(conf, "ssh", LOG_JSON_APP_LAYER, &flags);
+        SetDeprecatedFlag(conf, "smtp", LOG_JSON_APP_LAYER, &flags);
+        SetDeprecatedFlag(conf, "dnp3", LOG_JSON_APP_LAYER, &flags);
 
         /* And check for obsolete configuration flags for enabling
          * app-layer and flow as these have been moved under the
          * metadata key. */
-        SetFlag(conf, "app-layer", LOG_JSON_APP_LAYER, &flags);
-        SetFlag(conf, "flow", LOG_JSON_FLOW, &flags);
+        SetDeprecatedFlag(conf, "app-layer", LOG_JSON_APP_LAYER, &flags);
+        SetDeprecatedFlag(conf, "flow", LOG_JSON_FLOW, &flags);
 
         const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
 
