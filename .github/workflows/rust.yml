@@ -107,3 +107,6 @@ jobs:
               echo "::error ::Cargo.lock.in needs to be updated"
               exit 1
           fi
+      # does not work in other subdirectories for now
+      - run: cargo fmt
+        working-directory: rust/htp
