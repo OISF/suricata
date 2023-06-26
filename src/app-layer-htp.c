@@ -52,7 +52,6 @@
 #include "app-layer-htp.h"
 #include "app-layer-htp-body.h"
 #include "app-layer-htp-file.h"
-#include "app-layer-htp-libhtp.h"
 #include "app-layer-htp-xff.h"
 #include "app-layer-htp-range.h"
 #include "app-layer-htp-mem.h"
@@ -133,9 +132,9 @@ SCEnumCharMap http_decoder_event_table[] = {
     { "INVALID_RESPONSE_FIELD_FOLDING", HTP_LOG_CODE_INVALID_RESPONSE_FIELD_FOLDING },
     { "REQUEST_FIELD_TOO_LONG", HTP_LOG_CODE_REQUEST_FIELD_TOO_LONG },
     { "RESPONSE_FIELD_TOO_LONG", HTP_LOG_CODE_RESPONSE_FIELD_TOO_LONG },
-    { "FILE_NAME_TOO_LONG", HTP_LOG_CODE_FILE_NAME_TOO_LONG },
     { "REQUEST_LINE_INVALID", HTP_LOG_CODE_REQUEST_LINE_INVALID },
     { "REQUEST_BODY_UNEXPECTED", HTP_LOG_CODE_REQUEST_BODY_UNEXPECTED },
+    { "RESPONSE_BODY_UNEXPECTED", HTP_LOG_CODE_RESPONSE_BODY_UNEXPECTED },
     { "REQUEST_SERVER_PORT_TCP_PORT_MISMATCH", HTP_LOG_CODE_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH },
     { "REQUEST_URI_HOST_INVALID", HTP_LOG_CODE_URI_HOST_INVALID },
     { "REQUEST_HEADER_HOST_INVALID", HTP_LOG_CODE_HEADER_HOST_INVALID },
@@ -147,6 +146,8 @@ SCEnumCharMap http_decoder_event_table[] = {
     { "METHOD_DELIM_NON_COMPLIANT", HTP_LOG_CODE_METHOD_DELIM_NON_COMPLIANT },
     { "REQUEST_LINE_LEADING_WHITESPACE", HTP_LOG_CODE_REQUEST_LINE_LEADING_WHITESPACE },
     { "TOO_MANY_ENCODING_LAYERS", HTP_LOG_CODE_TOO_MANY_ENCODING_LAYERS },
+    { "REQUEST_TOO_MANY_LZMA_LAYERS", HTP_LOG_CODE_REQUEST_TOO_MANY_LZMA_LAYERS },
+    { "RESPONSE_TOO_MANY_LZMA_LAYERS", HTP_LOG_CODE_RESPONSE_TOO_MANY_LZMA_LAYERS },
     { "ABNORMAL_CE_HEADER", HTP_LOG_CODE_ABNORMAL_CE_HEADER },
     { "RESPONSE_MULTIPART_BYTERANGES", HTP_LOG_CODE_RESPONSE_MULTIPART_BYTERANGES },
     { "RESPONSE_ABNORMAL_TRANSFER_ENCODING", HTP_LOG_CODE_RESPONSE_ABNORMAL_TRANSFER_ENCODING },
@@ -154,23 +155,63 @@ SCEnumCharMap http_decoder_event_table[] = {
     { "RESPONSE_INVALID_PROTOCOL", HTP_LOG_CODE_RESPONSE_INVALID_PROTOCOL },
     { "RESPONSE_INVALID_STATUS", HTP_LOG_CODE_RESPONSE_INVALID_STATUS },
     { "REQUEST_LINE_INCOMPLETE", HTP_LOG_CODE_REQUEST_LINE_INCOMPLETE },
+    { "PROTOCOL_CONTAINS_EXTRA_DATA", HTP_LOG_CODE_PROTOCOL_CONTAINS_EXTRA_DATA },
+    {
+            "CONTENT_LENGTH_EXTRA_DATA_START",
+            HTP_LOG_CODE_CONTENT_LENGTH_EXTRA_DATA_START,
+    },
+    {
+            "CONTENT_LENGTH_EXTRA_DATA_END",
+            HTP_LOG_CODE_CONTENT_LENGTH_EXTRA_DATA_END,
+    },
+    {
+            "CONTENT_LENGTH_EXTRA_DATA_END",
+            HTP_LOG_CODE_CONTENT_LENGTH_EXTRA_DATA_END,
+    },
+    { "SWITCHING_PROTO_WITH_CONTENT_LENGTH", HTP_LOG_CODE_SWITCHING_PROTO_WITH_CONTENT_LENGTH },
+    { "DEFORMED_EOL", HTP_LOG_CODE_DEFORMED_EOL },
+    { "PARSER_STATE_ERROR", HTP_LOG_CODE_PARSER_STATE_ERROR },
+    { "MISSING_OUTBOUND_TRANSACTION_DATA", HTP_LOG_CODE_MISSING_OUTBOUND_TRANSACTION_DATA },
+    { "MISSING_INBOUND_TRANSACTION_DATA", HTP_LOG_CODE_MISSING_INBOUND_TRANSACTION_DATA },
+    { "MISSING_INBOUND_TRANSACTION_DATA", HTP_LOG_CODE_MISSING_INBOUND_TRANSACTION_DATA },
+    { "ZERO_LENGTH_DATA_CHUNKS", HTP_LOG_CODE_ZERO_LENGTH_DATA_CHUNKS },
+    { "REQUEST_LINE_UNKNOWN_METHOD", HTP_LOG_CODE_REQUEST_LINE_UNKNOWN_METHOD },
+    { "REQUEST_LINE_UNKNOWN_METHOD", HTP_LOG_CODE_REQUEST_LINE_UNKNOWN_METHOD },
+    { "REQUEST_LINE_UNKNOWN_METHOD_NO_PROTOCOL",
+            HTP_LOG_CODE_REQUEST_LINE_UNKNOWN_METHOD_NO_PROTOCOL },
+    { "REQUEST_LINE_UNKNOWN_METHOD_INVALID_PROTOCOL",
+            HTP_LOG_CODE_REQUEST_LINE_UNKNOWN_METHOD_INVALID_PROTOCOL },
+    { "REQUEST_LINE_MISSING_PROTOCOL", HTP_LOG_CODE_REQUEST_LINE_NO_PROTOCOL },
+    { "RESPONSE_LINE_INVALID_PROTOCOL", HTP_LOG_CODE_RESPONSE_LINE_INVALID_PROTOCOL },
+    { "RESPONSE_LINE_INVALID_RESPONSE_STATUS", HTP_LOG_CODE_RESPONSE_LINE_INVALID_RESPONSE_STATUS },
+    { "RESPONSE_BODY_INTERNAL_ERROR", HTP_LOG_CODE_RESPONSE_BODY_INTERNAL_ERROR },
+    { "REQUEST_BODY_DATA_CALLBACK_ERROR", HTP_LOG_CODE_REQUEST_BODY_DATA_CALLBACK_ERROR },
+    { "RESPONSE_INVALID_EMPTY_NAME", HTP_LOG_CODE_RESPONSE_INVALID_EMPTY_NAME },
+    { "REQUEST_INVALID_EMPTY_NAME", HTP_LOG_CODE_REQUEST_INVALID_EMPTY_NAME },
+    { "RESPONSE_INVALID_LWS_AFTER_NAME", HTP_LOG_CODE_RESPONSE_INVALID_LWS_AFTER_NAME },
+    { "RESPONSE_HEADER_NAME_NOT_TOKEN", HTP_LOG_CODE_RESPONSE_HEADER_NAME_NOT_TOKEN },
+    { "REQUEST_INVALID_LWS_AFTER_NAME", HTP_LOG_CODE_REQUEST_INVALID_LWS_AFTER_NAME },
+    { "LZMA_DECOMPRESSION_DISABLED", HTP_LOG_CODE_LZMA_DECOMPRESSION_DISABLED },
+    { "CONNECTION_ALREADY_OPEN", HTP_LOG_CODE_CONNECTION_ALREADY_OPEN },
+    { "COMPRESSION_BOMB_DOUBLE_LZMA", HTP_LOG_CODE_COMPRESSION_BOMB_DOUBLE_LZMA },
+    { "INVALID_CONTENT_ENCODING", HTP_LOG_CODE_INVALID_CONTENT_ENCODING },
+    { "INVALID_GAP", HTP_LOG_CODE_INVALID_GAP },
+    { "REQUEST_CHUNK_EXTENSION", HTP_LOG_CODE_REQUEST_CHUNK_EXTENSION },
+    { "RESPONSE_CHUNK_EXTENSION", HTP_LOG_CODE_RESPONSE_CHUNK_EXTENSION },
 
     { "LZMA_MEMLIMIT_REACHED", HTP_LOG_CODE_LZMA_MEMLIMIT_REACHED },
     { "COMPRESSION_BOMB", HTP_LOG_CODE_COMPRESSION_BOMB },
 
-    { "RANGE_INVALID", HTTP_DECODER_EVENT_RANGE_INVALID },
-    { "REQUEST_CHUNK_EXTENSION", HTTP_DECODER_EVENT_REQUEST_CHUNK_EXTENSION },
-    { "REQUEST_LINE_MISSING_PROTOCOL", HTTP_DECODER_EVENT_REQUEST_LINE_MISSING_PROTOCOL },
-
-    { "REQUEST_TOO_MANY_HEADERS", HTTP_DECODER_EVENT_REQUEST_TOO_MANY_HEADERS },
-    { "RESPONSE_TOO_MANY_HEADERS", HTTP_DECODER_EVENT_RESPONSE_TOO_MANY_HEADERS },
+    { "REQUEST_TOO_MANY_HEADERS", HTP_LOG_CODE_REQUEST_TOO_MANY_HEADERS },
+    { "RESPONSE_TOO_MANY_HEADERS", HTP_LOG_CODE_RESPONSE_TOO_MANY_HEADERS },
 
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR", HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR },
     { "MULTIPART_NO_FILEDATA", HTTP_DECODER_EVENT_MULTIPART_NO_FILEDATA },
     { "MULTIPART_INVALID_HEADER", HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER },
-
     { "TOO_MANY_WARNINGS", HTTP_DECODER_EVENT_TOO_MANY_WARNINGS },
+    { "RANGE_INVALID", HTTP_DECODER_EVENT_RANGE_INVALID },
+    { "FILE_NAME_TOO_LONG", HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG },
     { "FAILED_PROTOCOL_CHANGE", HTTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE },
 
     { NULL, -1 },
@@ -319,7 +360,7 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud,
     if (tx == NULL && tx_id > 0)
         tx = HTPStateGetTx(s, tx_id - 1);
     if (tx != NULL) {
-        htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
         if (htud != NULL) {
             AppLayerDecoderEventsSetEventRaw(&htud->tx_data.events, e);
             s->events++;
@@ -359,7 +400,6 @@ static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
     if (likely(htud)) {
         HtpBodyFree(&htud->request_body);
         HtpBodyFree(&htud->response_body);
-        bstr_free(htud->request_uri_normalized);
         if (htud->request_headers_raw)
             HTPFree(htud->request_headers_raw, htud->request_headers_raw_len);
         if (htud->response_headers_raw)
@@ -397,10 +437,10 @@ void HTPStateFree(void *state)
         uint64_t total_txs = HTPStateGetTxCnt(state);
         /* free the list of body chunks */
         if (s->conn != NULL) {
-            for (tx_id = s->tx_freed; tx_id < total_txs; tx_id++) {
+            for (tx_id = 0; tx_id < total_txs; tx_id++) {
                 htp_tx_t *tx = HTPStateGetTx(s, tx_id);
                 if (tx != NULL) {
-                    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+                    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
                     HtpTxUserDataFree(s, htud);
                     htp_tx_set_user_data(tx, NULL);
                 }
@@ -425,8 +465,6 @@ void HTPStateFree(void *state)
 /**
  *  \brief HTP transaction cleanup callback
  *
- *  \warning We cannot actually free the transactions here. It seems that
- *           HTP only accepts freeing of transactions in the response callback.
  */
 static void HTPStateTransactionFree(void *state, uint64_t id)
 {
@@ -439,23 +477,11 @@ static void HTPStateTransactionFree(void *state, uint64_t id)
     htp_tx_t *tx = HTPStateGetTx(s, id);
     if (tx != NULL) {
         /* This will remove obsolete body chunks */
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
         HtpTxUserDataFree(s, htud);
         htp_tx_set_user_data(tx, NULL);
-
-        /* hack: even if libhtp considers the tx incomplete, we want to
-         * free it here. htp_tx_destroy however, will refuse to do this.
-         * As htp_tx_destroy_incomplete isn't available in the public API,
-         * we hack around it here. */
-        if (unlikely(!(htp_tx_request_progress(tx) == HTP_REQUEST_PROGRESS_COMPLETE &&
-                       htp_tx_response_progress(tx) == HTP_RESPONSE_PROGRESS_COMPLETE))) {
-            htp_tx_request_progress(tx) = HTP_REQUEST_PROGRESS_COMPLETE;
-            htp_tx_response_progress(tx) = HTP_RESPONSE_PROGRESS_COMPLETE;
-        }
-        // replaces tx in the s->conn->transactions list by NULL
-        htp_tx_destroy(tx);
+        htp_tx_destroy(s->connp, tx);
     }
-    s->tx_freed += htp_connp_tx_freed(s->connp);
 }
 
 /**
@@ -502,7 +528,7 @@ void AppLayerHtpNeedFileInspection(void)
 
 static void AppLayerHtpSetStreamDepthFlag(void *tx, const uint8_t flags)
 {
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data((htp_tx_t *)tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data((htp_tx_t *)tx);
     if (tx_ud) {
         SCLogDebug("setting HTP_STREAM_DEPTH_SET, flags %02x", flags);
         if (flags & STREAM_TOCLIENT) {
@@ -551,136 +577,6 @@ static uint32_t AppLayerHtpComputeChunkLength(uint64_t content_len_so_far, uint3
     return (chunk_len == 0 ? data_len : chunk_len);
 }
 
-/* below error messages updated up to libhtp 0.5.7 (git 379632278b38b9a792183694a4febb9e0dbd1e7a) */
-struct {
-    const char *msg;
-    uint8_t de;
-} htp_errors[] = {
-    { "GZip decompressor: inflateInit2 failed", HTP_LOG_CODE_GZIP_DECOMPRESSION_FAILED },
-    { "Request field invalid: colon missing", HTP_LOG_CODE_REQUEST_FIELD_MISSING_COLON },
-    { "Response field invalid: missing colon", HTP_LOG_CODE_RESPONSE_FIELD_MISSING_COLON },
-    { "Request chunk encoding: Invalid chunk length", HTP_LOG_CODE_INVALID_REQUEST_CHUNK_LEN },
-    { "Response chunk encoding: Invalid chunk length", HTP_LOG_CODE_INVALID_RESPONSE_CHUNK_LEN },
-    /*  { "Invalid T-E value in request",
-       HTP_LOG_CODE_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST}, <- tx flag
-       HTP_FLAGS_REQUEST_INVALID_T_E { "Invalid T-E value in response",
-       HTP_LOG_CODE_INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE}, <- nothing to replace it */
-    /*  { "Invalid C-L field in request",
-       HTP_LOG_CODE_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST}, <- tx flag
-       HTP_FLAGS_REQUEST_INVALID_C_L */
-    { "Invalid C-L field in response", HTP_LOG_CODE_INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE },
-    { "Already seen 100-Continue", HTP_LOG_CODE_CONTINUE_ALREADY_SEEN },
-    { "Unable to match response to request", HTP_LOG_CODE_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST },
-    { "Invalid server port information in request", HTP_LOG_CODE_INVALID_SERVER_PORT_IN_REQUEST },
-    /*    { "Invalid authority port", HTP_LOG_CODE_INVALID_AUTHORITY_PORT}, htp no longer
-       returns this error */
-    { "Request buffer over", HTP_LOG_CODE_REQUEST_FIELD_TOO_LONG },
-    { "Response buffer over", HTP_LOG_CODE_RESPONSE_FIELD_TOO_LONG },
-    { "C-T multipart/byteranges in responses not supported",
-            HTP_LOG_CODE_RESPONSE_MULTIPART_BYTERANGES },
-    { "Compression bomb:", HTP_LOG_CODE_COMPRESSION_BOMB },
-};
-
-struct {
-    const char *msg;
-    uint8_t de;
-} htp_warnings[] = {
-    { "GZip decompressor:", HTP_LOG_CODE_GZIP_DECOMPRESSION_FAILED },
-    { "Request field invalid", HTP_LOG_CODE_REQUEST_HEADER_INVALID },
-    { "Response field invalid", HTP_LOG_CODE_RESPONSE_HEADER_INVALID },
-    { "Request header name is not a token", HTP_LOG_CODE_REQUEST_HEADER_INVALID },
-    { "Response header name is not a token", HTP_LOG_CODE_RESPONSE_HEADER_INVALID },
-    /*  { "Host information in request headers required by HTTP/1.1",
-       HTP_LOG_CODE_MISSING_HOST_HEADER}, <- tx flag HTP_FLAGS_HOST_MISSING { "Host
-       information ambiguous", HTP_LOG_CODE_HOST_HEADER_AMBIGUOUS}, <- tx flag
-       HTP_FLAGS_HOST_AMBIGUOUS */
-    { "Invalid request field folding", HTP_LOG_CODE_INVALID_REQUEST_FIELD_FOLDING },
-    { "Invalid response field folding", HTP_LOG_CODE_INVALID_RESPONSE_FIELD_FOLDING },
-    /* line is now: htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Request server port=%d number
-     * differs from the actual TCP port=%d", port, connp->conn->server_port); luckily, "Request
-     * server port=" is unique */
-    /*    { "Request server port number differs from the actual TCP port",
-       HTP_LOG_CODE_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH}, */
-    { "Request server port=", HTP_LOG_CODE_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH },
-    { "Request line: URI contains non-compliant delimiter", HTP_LOG_CODE_URI_DELIM_NON_COMPLIANT },
-    { "Request line: non-compliant delimiter between Method and URI",
-            HTP_LOG_CODE_METHOD_DELIM_NON_COMPLIANT },
-    { "Request line: leading whitespace", HTP_LOG_CODE_REQUEST_LINE_LEADING_WHITESPACE },
-    { "Too many response content encoding layers", HTP_LOG_CODE_TOO_MANY_ENCODING_LAYERS },
-    { "C-E gzip has abnormal value", HTP_LOG_CODE_ABNORMAL_CE_HEADER },
-    { "C-E deflate has abnormal value", HTP_LOG_CODE_ABNORMAL_CE_HEADER },
-    { "C-E unknown setting", HTP_LOG_CODE_ABNORMAL_CE_HEADER },
-    { "Excessive request header repetitions", HTP_LOG_CODE_REQUEST_HEADER_REPETITION },
-    { "Excessive response header repetitions", HTP_LOG_CODE_RESPONSE_HEADER_REPETITION },
-    { "Transfer-encoding has abnormal chunked value",
-            HTP_LOG_CODE_RESPONSE_ABNORMAL_TRANSFER_ENCODING },
-    { "Chunked transfer-encoding on HTTP/0.9 or HTTP/1.0",
-            HTP_LOG_CODE_RESPONSE_CHUNKED_OLD_PROTO },
-    { "Invalid response line: invalid protocol", HTP_LOG_CODE_RESPONSE_INVALID_PROTOCOL },
-    { "Invalid response line: invalid response status", HTP_LOG_CODE_RESPONSE_INVALID_STATUS },
-    { "Request line incomplete", HTP_LOG_CODE_REQUEST_LINE_INCOMPLETE },
-    { "Unexpected request body", HTP_LOG_CODE_REQUEST_BODY_UNEXPECTED },
-    { "LZMA decompressor: memory limit reached", HTP_LOG_CODE_LZMA_MEMLIMIT_REACHED },
-    { "Ambiguous request C-L value", HTP_LOG_CODE_DUPLICATE_CONTENT_LENGTH_FIELD_IN_REQUEST },
-    { "Ambiguous response C-L value", HTP_LOG_CODE_DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE },
-    { "Request chunk extension", HTTP_DECODER_EVENT_REQUEST_CHUNK_EXTENSION },
-    { "Request line: missing protocol", HTTP_DECODER_EVENT_REQUEST_LINE_MISSING_PROTOCOL },
-    { "Too many request headers", HTTP_DECODER_EVENT_REQUEST_TOO_MANY_HEADERS },
-    { "Too many response headers", HTTP_DECODER_EVENT_RESPONSE_TOO_MANY_HEADERS },
-};
-
-#define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
-#define HTP_WARNING_MAX (sizeof(htp_warnings) / sizeof(htp_warnings[0]))
-
-/**
- *  \internal
- *
- *  \brief Get the warning id for the warning msg.
- *
- *  \param msg warning message
- *
- *  \retval id the id or 0 in case of not found
- */
-static uint8_t HTPHandleWarningGetId(const char *msg)
-{
-    SCLogDebug("received warning \"%s\"", msg);
-    size_t idx;
-    for (idx = 0; idx < HTP_WARNING_MAX; idx++) {
-        if (strncmp(htp_warnings[idx].msg, msg,
-                    strlen(htp_warnings[idx].msg)) == 0)
-        {
-            return htp_warnings[idx].de;
-        }
-    }
-
-    return 0;
-}
-
-/**
- *  \internal
- *
- *  \brief Get the error id for the error msg.
- *
- *  \param msg error message
- *
- *  \retval id the id or 0 in case of not found
- */
-static uint8_t HTPHandleErrorGetId(const char *msg)
-{
-    SCLogDebug("received error \"%s\"", msg);
-
-    size_t idx;
-    for (idx = 0; idx < HTP_ERROR_MAX; idx++) {
-        if (strncmp(htp_errors[idx].msg, msg,
-                    strlen(htp_errors[idx].msg)) == 0)
-        {
-            return htp_errors[idx].de;
-        }
-    }
-
-    return 0;
-}
-
 /**
  *  \internal
  *
@@ -691,50 +587,39 @@ static uint8_t HTPHandleErrorGetId(const char *msg)
  */
 static void HTPHandleError(HtpState *s, const uint8_t dir)
 {
-    if (s == NULL || s->conn == NULL ||
-        s->conn->messages == NULL) {
-        return;
-    }
-
-    size_t size = htp_list_size(s->conn->messages);
-    size_t msg;
-    if(size >= HTP_MAX_MESSAGES) {
-        if (s->htp_messages_offset < HTP_MAX_MESSAGES) {
-            //only once per HtpState
-            HTPSetEvent(s, NULL, dir, HTTP_DECODER_EVENT_TOO_MANY_WARNINGS);
-            s->htp_messages_offset = HTP_MAX_MESSAGES;
-            //too noisy in fuzzing
-            //DEBUG_VALIDATE_BUG_ON("Too many libhtp messages");
-        }
+    if (s == NULL || s->conn == NULL || s->htp_messages_count >= HTP_MAX_MESSAGES) {
         // ignore further messages
         return;
     }
 
-    for (msg = s->htp_messages_offset; msg < size; msg++) {
-        htp_log_t *log = htp_list_get(s->conn->messages, msg);
-        if (log == NULL)
+    htp_log_t *log = htp_conn_next_log(s->conn);
+    while (log != NULL) {
+        char *msg = htp_log_message(log);
+        if (msg == NULL) {
+            htp_log_free(log);
+            log = htp_conn_next_log(s->conn);
             continue;
-
-        HtpTxUserData *htud = NULL;
-        htp_tx_t *tx = log->tx; // will be NULL in <=0.5.9
-        if (tx != NULL)
-            htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-
-        SCLogDebug("message %s", log->msg);
-
-        uint8_t id = HTPHandleErrorGetId(log->msg);
-        if (id == 0) {
-            id = HTPHandleWarningGetId(log->msg);
-            if (id == 0)
-                id = HTP_LOG_CODE_UNKNOWN;
         }
 
-        if (id > 0) {
-            HTPSetEvent(s, htud, dir, id);
+        SCLogDebug("message %s", msg);
+
+        htp_log_code_t id = htp_log_code(log);
+        if (id != HTP_LOG_CODE_UNKNOWN && id != HTP_LOG_CODE_ERROR) {
+            HTPSetEvent(s, NULL, dir, (uint8_t)id);
         }
+        htp_free_cstring(msg);
+        htp_log_free(log);
+        s->htp_messages_count++;
+        if (s->htp_messages_count >= HTP_MAX_MESSAGES) {
+            // only once per HtpState
+            HTPSetEvent(s, NULL, dir, HTTP_DECODER_EVENT_TOO_MANY_WARNINGS);
+            // too noisy in fuzzing
+            // DEBUG_VALIDATE_BUG_ON("Too many libhtp messages");
+            break;
+        }
+        log = htp_conn_next_log(s->conn);
     }
-    s->htp_messages_offset = (uint16_t)msg;
-    SCLogDebug("s->htp_messages_offset %u", s->htp_messages_offset);
+    SCLogDebug("s->htp_messages_count %u", s->htp_messages_count);
 }
 
 static inline void HTPErrorCheckTxRequestFlags(HtpState *s, const htp_tx_t *tx)
@@ -745,7 +630,7 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, const htp_tx_t *tx)
     if (htp_tx_flags(tx) & (HTP_FLAGS_REQUEST_INVALID_T_E | HTP_FLAGS_REQUEST_INVALID_C_L |
                                    HTP_FLAGS_HOST_MISSING | HTP_FLAGS_HOST_AMBIGUOUS |
                                    HTP_FLAGS_HOSTU_INVALID | HTP_FLAGS_HOSTH_INVALID)) {
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
         if (htud == NULL)
             return;
 
@@ -765,7 +650,7 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, const htp_tx_t *tx)
             HTPSetEvent(s, htud, STREAM_TOSERVER, HTP_LOG_CODE_HEADER_HOST_INVALID);
     }
     if (htp_tx_request_auth_type(tx) == HTP_AUTH_TYPE_UNRECOGNIZED) {
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
         if (htud == NULL)
             return;
         HTPSetEvent(s, htud, STREAM_TOSERVER, HTP_LOG_CODE_AUTH_UNRECOGNIZED);
@@ -773,10 +658,10 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, const htp_tx_t *tx)
     if (htp_tx_is_protocol_0_9(tx) && htp_tx_request_method_number(tx) == HTP_METHOD_UNKNOWN &&
             (htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_INVALID ||
                     htp_tx_request_protocol_number(tx) == HTP_PROTOCOL_UNKNOWN)) {
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
         if (htud == NULL)
             return;
-        HTPSetEvent(s, htud, STREAM_TOSERVER, HTP_LOG_CODE_REQUEST_BODY_UNEXPECTED);
+        HTPSetEvent(s, htud, STREAM_TOSERVER, HTP_LOG_CODE_REQUEST_LINE_INVALID);
     }
 }
 
@@ -824,7 +709,7 @@ static int Setup(Flow *f, HtpState *hstate)
         goto error;
     }
 
-    hstate->conn = htp_connp_get_connection(hstate->connp);
+    hstate->conn = (htp_conn_t *)htp_connp_connection(hstate->connp);
 
     htp_connp_set_user_data(hstate->connp, (void *)hstate);
     hstate->cfg = htp_cfg_rec;
@@ -875,10 +760,10 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state, AppLayerPar
     const uint8_t *input = StreamSliceGetData(&stream_slice);
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
 
-    htp_time_t ts = { SCTIME_SECS(f->startts), SCTIME_USECS(f->startts) };
+    struct timeval ts = { SCTIME_SECS(f->startts), SCTIME_USECS(f->startts) };
     /* pass the new data to the htp parser */
     if (input_len > 0) {
-        const int r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
+        const int r = htp_connp_request_data(hstate->connp, &ts, input, input_len);
         switch (r) {
             case HTP_STREAM_STATE_ERROR:
                 ret = -1;
@@ -893,7 +778,7 @@ static AppLayerResult HTPHandleRequestData(Flow *f, void *htp_state, AppLayerPar
     if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) &&
         !(hstate->flags & HTP_FLAG_STATE_CLOSED_TS))
     {
-        htp_connp_req_close(hstate->connp, &ts);
+        htp_connp_request_close(hstate->connp, &ts);
         hstate->flags |= HTP_FLAG_STATE_CLOSED_TS;
         SCLogDebug("stream eof encountered, closing htp handle for ts");
     }
@@ -942,17 +827,17 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
     DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
     hstate->slice = &stream_slice;
 
-    htp_time_t ts = { SCTIME_SECS(f->startts), SCTIME_USECS(f->startts) };
-    htp_tx_t *tx = NULL;
+    struct timeval ts = { SCTIME_SECS(f->startts), SCTIME_USECS(f->startts) };
+    const htp_tx_t *tx = NULL;
     uint32_t consumed = 0;
     if (input_len > 0) {
-        const int r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
+        const int r = htp_connp_response_data(hstate->connp, &ts, input, input_len);
         switch (r) {
             case HTP_STREAM_STATE_ERROR:
                 ret = -1;
                 break;
             case HTP_STREAM_STATE_TUNNEL:
-                tx = htp_connp_get_out_tx(hstate->connp);
+                tx = htp_connp_get_response_tx(hstate->connp);
                 if (tx != NULL && htp_tx_response_status_number(tx) == 101) {
                     const htp_header_t *h = htp_tx_response_header(tx, "Upgrade");
                     if (h == NULL) {
@@ -962,7 +847,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
                     if (htp_tx_request_port_number(tx) != -1) {
                         dp = (uint16_t)htp_tx_request_port_number(tx);
                     }
-                    consumed = (uint32_t)htp_connp_res_data_consumed(hstate->connp);
+                    consumed = (uint32_t)htp_connp_response_data_consumed(hstate->connp);
                     if (bstr_cmp_c(htp_header_value(h), "h2c") == 0) {
                         if (AppLayerProtoDetectGetProtoName(ALPROTO_HTTP2) == NULL) {
                             // if HTTP2 is disabled, keep the HTP_STREAM_STATE_TUNNEL mode
@@ -1280,16 +1165,16 @@ static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud, 
         size_t filename_len = 0;
 
         /* get the name */
-        if (tx->parsed_uri != NULL && tx->parsed_uri->path != NULL) {
-            filename = (uint8_t *)bstr_ptr(tx->parsed_uri->path);
-            filename_len = bstr_len(tx->parsed_uri->path);
+        if (htp_uri_path(htp_tx_parsed_uri(tx)) != NULL) {
+            filename = (uint8_t *)bstr_ptr(htp_uri_path(htp_tx_parsed_uri(tx)));
+            filename_len = bstr_len(htp_uri_path(htp_tx_parsed_uri(tx)));
         }
 
         if (filename != NULL) {
             if (filename_len > SC_FILENAME_MAX) {
                 // explicitly truncate the file name if too long
                 filename_len = SC_FILENAME_MAX;
-                HTPSetEvent(hstate, htud, STREAM_TOSERVER, HTP_LOG_CODE_REQUEST_LINE_INVALID);
+                HTPSetEvent(hstate, htud, STREAM_TOSERVER, HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG);
             }
             result = HTPFileOpen(hstate, htud, filename, (uint16_t)filename_len, data, data_len,
                     STREAM_TOSERVER);
@@ -1346,16 +1231,15 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud, const ht
         if (h != NULL && htp_header_value_len(h) > 0) {
             /* parse content-disposition */
             (void)HTTPParseContentDispositionHeader((uint8_t *)"filename=", 9,
-                    (uint8_t *)htp_header_value_ptr(h), htp_header_value_len(h), &filename,
-                    &filename_len);
+                    htp_header_value_ptr(h), htp_header_value_len(h), &filename, &filename_len);
         }
 
         /* fall back to name from the uri */
         if (filename == NULL) {
             /* get the name */
-            if (tx->parsed_uri != NULL && tx->parsed_uri->path != NULL) {
-                filename = (uint8_t *)bstr_ptr(tx->parsed_uri->path);
-                filename_len = bstr_len(tx->parsed_uri->path);
+            if (htp_uri_path(htp_tx_parsed_uri(tx)) != NULL) {
+                filename = (uint8_t *)bstr_ptr(htp_uri_path(htp_tx_parsed_uri(tx)));
+                filename_len = bstr_len(htp_uri_path(htp_tx_parsed_uri(tx)));
             }
         }
 
@@ -1365,11 +1249,11 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud, const ht
             if (filename_len > SC_FILENAME_MAX) {
                 // explicitly truncate the file name if too long
                 filename_len = SC_FILENAME_MAX;
-                HTPSetEvent(hstate, htud, STREAM_TOSERVER, HTP_LOG_CODE_REQUEST_LINE_INVALID);
+                HTPSetEvent(hstate, htud, STREAM_TOSERVER, HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG);
             }
             if (h_content_range != NULL) {
                 result = HTPFileOpenWithRange(hstate, htud, filename, (uint16_t)filename_len, data,
-                        data_len, tx, h_content_range->value, htud);
+                        data_len, tx, htp_header_value(h_content_range), htud);
             } else {
                 result = HTPFileOpen(hstate, htud, filename, (uint16_t)filename_len, data, data_len,
                         STREAM_TOCLIENT);
@@ -1411,14 +1295,16 @@ end:
  * \param d pointer to the htp_tx_data_t structure (a chunk from htp lib)
  * \retval int HTP_STATUS_OK if all goes well
  */
-static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
+static int HTPCallbackRequestBodyData(const htp_connp_t *connp, htp_tx_data_t *d)
 {
     SCEnter();
+
+    const htp_tx_t *tx = htp_tx_data_tx(d);
 
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_REQUEST_BODY))
         SCReturnInt(HTP_STATUS_OK);
 
-    if (htp_tx_data_len(d) == 0)
+    if (htp_tx_data_is_empty(d))
         SCReturnInt(HTP_STATUS_OK);
 
 #ifdef PRINT
@@ -1427,7 +1313,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     printf("HTPBODY END: \n");
 #endif
 
-    HtpState *hstate = htp_connp_get_user_data(d->tx->connp);
+    HtpState *hstate = htp_connp_user_data(connp);
     if (hstate == NULL) {
         SCReturnInt(HTP_STATUS_ERROR);
     }
@@ -1436,7 +1322,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                "%" PRIu32 "",
             hstate, d, htp_tx_data_data(d), (uint32_t)htp_tx_data_len(d));
 
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     if (tx_ud == NULL) {
         SCReturnInt(HTP_STATUS_OK);
     }
@@ -1446,16 +1332,16 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     if (!tx_ud->response_body_init) {
         tx_ud->response_body_init = 1;
 
-        if (d->htp_tx_request_method_number(tx) == HTP_METHOD_POST) {
+        if (htp_tx_request_method_number(tx) == HTP_METHOD_POST) {
             SCLogDebug("POST");
-            int r = HtpRequestBodySetupMultipart(htp_tx_data_tx(d), tx_ud);
+            int r = HtpRequestBodySetupMultipart(tx, tx_ud);
             if (r == 1) {
                 tx_ud->request_body_type = HTP_BODY_REQUEST_MULTIPART;
             } else if (r == 0) {
                 tx_ud->request_body_type = HTP_BODY_REQUEST_POST;
                 SCLogDebug("not multipart");
             }
-        } else if (d->htp_tx_request_method_number(tx) == HTP_METHOD_PUT) {
+        } else if (htp_tx_request_method_number(tx) == HTP_METHOD_PUT) {
             tx_ud->request_body_type = HTP_BODY_REQUEST_PUT;
         }
     }
@@ -1501,7 +1387,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_POST ||
                    tx_ud->request_body_type == HTP_BODY_REQUEST_PUT) {
             HtpRequestBodyHandlePOSTorPUT(
-                    hstate, tx_ud, htp_tx_data_tx(d), (uint8_t *)htp_tx_data_data(d), len);
+                    hstate, tx_ud, htp_tx_data_tx(d), htp_tx_data_data(d), len);
         }
 
     } else {
@@ -1531,7 +1417,7 @@ end:
                     (uint64_t)htp_conn_request_data_counter(hstate->conn) -
                                     hstate->last_request_data_stamp <
                             (uint64_t)UINT_MAX) {
-                const uint32_t data_size =
+                uint32_t data_size =
                         (uint32_t)((uint64_t)htp_conn_request_data_counter(hstate->conn) -
                                    hstate->last_request_data_stamp);
                 const uint32_t depth = MIN(data_size, hstate->cfg->request.inspect_min_size);
@@ -1553,17 +1439,19 @@ end:
  * \param d pointer to the htp_tx_data_t structure (a chunk from htp lib)
  * \retval int HTP_STATUS_OK if all goes well
  */
-static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
+static int HTPCallbackResponseBodyData(const htp_connp_t *connp, htp_tx_data_t *d)
 {
     SCEnter();
+
+    const htp_tx_t *tx = htp_tx_data_tx(d);
 
     if (!(SC_ATOMIC_GET(htp_config_flags) & HTP_REQUIRE_RESPONSE_BODY))
         SCReturnInt(HTP_STATUS_OK);
 
-    if (htp_tx_data_len(d) == 0)
+    if (htp_tx_data_is_empty(d))
         SCReturnInt(HTP_STATUS_OK);
 
-    HtpState *hstate = htp_connp_get_user_data(d->tx->connp);
+    HtpState *hstate = htp_connp_user_data(connp);
     if (hstate == NULL) {
         SCReturnInt(HTP_STATUS_ERROR);
     }
@@ -1572,7 +1460,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
                "%" PRIu32 "",
             hstate, d, htp_tx_data_data(d), (uint32_t)htp_tx_data_len(d));
 
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     if (tx_ud == NULL) {
         SCReturnInt(HTP_STATUS_OK);
     }
@@ -1598,8 +1486,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 
         HtpBodyAppendChunk(&tx_ud->response_body, htp_tx_data_data(d), len);
 
-        HtpResponseBodyHandle(
-                hstate, tx_ud, htp_tx_data_tx(d), (uint8_t *)htp_tx_data_data(d), len);
+        HtpResponseBodyHandle(hstate, tx_ud, htp_tx_data_tx(d), htp_tx_data_data(d), len);
     } else {
         if (tx_ud->tcflags & HTP_FILENAME_SET) {
             SCLogDebug("closing file that was being stored");
@@ -1625,7 +1512,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
                     (uint64_t)htp_conn_response_data_counter(hstate->conn) -
                                     hstate->last_response_data_stamp <
                             (uint64_t)UINT_MAX) {
-                const uint32_t data_size =
+                uint32_t data_size =
                         (uint32_t)((uint64_t)htp_conn_response_data_counter(hstate->conn) -
                                    hstate->last_response_data_stamp);
                 const uint32_t depth = MIN(data_size, hstate->cfg->response.inspect_min_size);
@@ -1682,7 +1569,7 @@ void HTPFreeConfig(void)
     SCReturn;
 }
 
-static int HTPCallbackRequestHasTrailer(htp_tx_t *tx)
+static int HTPCallbackRequestHasTrailer(const htp_connp_t *connp, htp_tx_t *tx)
 {
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     if (htud != NULL) {
@@ -1692,7 +1579,7 @@ static int HTPCallbackRequestHasTrailer(htp_tx_t *tx)
     return HTP_STATUS_OK;
 }
 
-static int HTPCallbackResponseHasTrailer(htp_tx_t *tx)
+static int HTPCallbackResponseHasTrailer(const htp_connp_t *connp, htp_tx_t *tx)
 {
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     if (htud != NULL) {
@@ -1706,17 +1593,16 @@ static int HTPCallbackResponseHasTrailer(htp_tx_t *tx)
  * \brief called at start of request
  * Set min inspect size.
  */
-static int HTPCallbackRequestStart(htp_tx_t *tx)
+static int HTPCallbackRequestStart(const htp_connp_t *connp, htp_tx_t *tx)
 {
-    HtpState *hstate = htp_connp_get_user_data(tx->connp);
+    HtpState *hstate = htp_connp_user_data(connp);
     if (hstate == NULL) {
         SCReturnInt(HTP_STATUS_ERROR);
     }
 
-    uint64_t consumed = hstate->slice->offset + htp_connp_req_data_consumed(hstate->connp);
+    uint64_t consumed = hstate->slice->offset + htp_connp_request_data_consumed(hstate->connp);
     SCLogDebug("HTTP request start: data offset %" PRIu64 ", in_data_counter %" PRIu64, consumed,
             (uint64_t)htp_conn_request_data_counter(hstate->conn));
-
     /* app-layer-frame-documentation tag start: frame registration http request */
     Frame *frame = AppLayerFrameNewByAbsoluteOffset(
             hstate->f, hstate->slice, consumed, -1, 0, HTTP_FRAME_REQUEST);
@@ -1731,7 +1617,7 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
         StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOSERVER,
                 hstate->cfg->request.inspect_min_size);
 
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     if (tx_ud == NULL) {
         tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
         if (unlikely(tx_ud == NULL)) {
@@ -1749,14 +1635,14 @@ static int HTPCallbackRequestStart(htp_tx_t *tx)
  * \brief called at start of response
  * Set min inspect size.
  */
-static int HTPCallbackResponseStart(htp_tx_t *tx)
+static int HTPCallbackResponseStart(const htp_connp_t *connp, htp_tx_t *tx)
 {
-    HtpState *hstate = htp_connp_get_user_data(tx->connp);
+    HtpState *hstate = htp_connp_user_data(connp);
     if (hstate == NULL) {
         SCReturnInt(HTP_STATUS_ERROR);
     }
 
-    uint64_t consumed = hstate->slice->offset + htp_connp_res_data_consumed(hstate->connp);
+    uint64_t consumed = hstate->slice->offset + htp_connp_response_data_consumed(hstate->connp);
     SCLogDebug("HTTP response start: data offset %" PRIu64 ", out_data_counter %" PRIu64, consumed,
             (uint64_t)htp_conn_response_data_counter(hstate->conn));
 
@@ -1772,7 +1658,7 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
         StreamTcpReassemblySetMinInspectDepth(hstate->f->protoctx, STREAM_TOCLIENT,
                 hstate->cfg->response.inspect_min_size);
 
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     if (tx_ud == NULL) {
         tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
         if (unlikely(tx_ud == NULL)) {
@@ -1789,11 +1675,11 @@ static int HTPCallbackResponseStart(htp_tx_t *tx)
 
 /**
  *  \brief  callback for request to store the recent incoming request
-            into the recent_in_tx for the given htp state
+            into the recent_request_tx for the given htp state
  *  \param  connp   pointer to the current connection parser which has the htp
  *                  state in it as user data
  */
-static int HTPCallbackRequestComplete(htp_tx_t *tx)
+static int HTPCallbackRequestComplete(const htp_connp_t *connp, htp_tx_t *tx)
 {
     SCEnter();
 
@@ -1801,13 +1687,13 @@ static int HTPCallbackRequestComplete(htp_tx_t *tx)
         SCReturnInt(HTP_STATUS_ERROR);
     }
 
-    HtpState *hstate = htp_connp_get_user_data(tx->connp);
+    HtpState *hstate = htp_connp_user_data(connp);
     if (hstate == NULL) {
         SCReturnInt(HTP_STATUS_ERROR);
     }
 
     const uint64_t abs_right_edge =
-            hstate->slice->offset + htp_connp_req_data_consumed(hstate->connp);
+            hstate->slice->offset + htp_connp_request_data_consumed(hstate->connp);
 
     /* app-layer-frame-documentation tag start: updating frame->len */
     if (hstate->request_frame_id > 0) {
@@ -1855,15 +1741,15 @@ static int HTPCallbackRequestComplete(htp_tx_t *tx)
 
 /**
  *  \brief  callback for response to remove the recent received requests
-            from the recent_in_tx for the given htp state
+            from the recent_request_tx for the given htp state
  *  \param  connp   pointer to the current connection parser which has the htp
  *                  state in it as user data
  */
-static int HTPCallbackResponseComplete(htp_tx_t *tx)
+static int HTPCallbackResponseComplete(const htp_connp_t *connp, htp_tx_t *tx)
 {
     SCEnter();
 
-    HtpState *hstate = htp_connp_get_user_data(tx->connp);
+    HtpState *hstate = htp_connp_user_data(connp);
     if (hstate == NULL) {
         SCReturnInt(HTP_STATUS_ERROR);
     }
@@ -1872,7 +1758,7 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
     hstate->transaction_cnt++;
 
     const uint64_t abs_right_edge =
-            hstate->slice->offset + htp_connp_res_data_consumed(hstate->connp);
+            hstate->slice->offset + htp_connp_response_data_consumed(hstate->connp);
 
     if (hstate->response_frame_id > 0) {
         Frame *frame = AppLayerFrameGetById(hstate->f, 1, hstate->response_frame_id);
@@ -1888,7 +1774,7 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
         hstate->response_frame_id = 0;
     }
 
-    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     if (htud != NULL) {
         htud->tx_data.updated_tc = true;
         if (htud->tcflags & HTP_FILENAME_SET) {
@@ -1917,8 +1803,6 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
                 HTPSetEvent(
                         hstate, htud, STREAM_TOCLIENT, HTTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE);
             }
-            htp_tx_request_progress(tx) = HTP_REQUEST_PROGRESS_COMPLETE;
-            htp_tx_response_progress(tx) = HTP_RESPONSE_PROGRESS_COMPLETE;
         }
     }
 
@@ -1926,25 +1810,15 @@ static int HTPCallbackResponseComplete(htp_tx_t *tx)
     SCReturnInt(HTP_STATUS_OK);
 }
 
-static int HTPCallbackRequestLine(htp_tx_t *tx)
+static int HTPCallbackRequestLine(const htp_connp_t *connp, htp_tx_t *tx)
 {
     HtpTxUserData *tx_ud;
-    bstr *request_uri_normalized;
-    HtpState *hstate = htp_connp_get_user_data(tx->connp);
-    const HTPCfgRec *cfg = hstate->cfg;
-
-    request_uri_normalized = SCHTPGenerateNormalizedUri(tx, tx->parsed_uri, cfg->uri_include_all);
-    if (request_uri_normalized == NULL)
-        return HTP_STATUS_OK;
+    HtpState *hstate = htp_connp_user_data(connp);
 
     tx_ud = htp_tx_get_user_data(tx);
     if (unlikely(tx_ud == NULL)) {
-        bstr_free(request_uri_normalized);
         return HTP_STATUS_OK;
     }
-    if (unlikely(tx_ud->request_uri_normalized != NULL))
-        bstr_free(tx_ud->request_uri_normalized);
-    tx_ud->request_uri_normalized = request_uri_normalized;
 
     if (htp_tx_flags(tx)) {
         HTPErrorCheckTxRequestFlags(hstate, tx);
@@ -1952,51 +1826,14 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
     return HTP_STATUS_OK;
 }
 
-static int HTPCallbackDoubleDecodeUriPart(htp_tx_t *tx, bstr *part)
-{
-    if (part == NULL)
-        return HTP_STATUS_OK;
-
-    uint64_t flags = 0;
-    size_t prevlen = bstr_len(part);
-    htp_status_t res = htp_urldecode_inplace(tx->cfg, HTP_DECODER_URLENCODED, part, &flags);
-    // shorter string means that uri was encoded
-    if (res == HTP_STATUS_OK && prevlen > bstr_len(part)) {
-        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-        if (htud == NULL)
-            return HTP_STATUS_OK;
-        HtpState *s = htp_connp_get_user_data(tx->connp);
-        if (s == NULL)
-            return HTP_STATUS_OK;
-        HTPSetEvent(s, htud, STREAM_TOSERVER, HTP_LOG_CODE_DOUBLE_ENCODED_URI);
-    }
-
-    return HTP_STATUS_OK;
-}
-
-static int HTPCallbackDoubleDecodeQuery(htp_tx_t *tx)
-{
-    if (tx->parsed_uri == NULL)
-        return HTP_STATUS_OK;
-
-    return HTPCallbackDoubleDecodeUriPart(tx, tx->parsed_uri->query);
-}
-
-static int HTPCallbackDoubleDecodePath(htp_tx_t *tx)
-{
-    if (tx->parsed_uri == NULL)
-        return HTP_STATUS_OK;
-
-    return HTPCallbackDoubleDecodeUriPart(tx, tx->parsed_uri->path);
-}
-
-static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
+static int HTPCallbackRequestHeaderData(const htp_connp_t *connp, htp_tx_data_t *tx_data)
 {
     void *ptmp;
-    if (htp_tx_data_len(tx_data) == 0 || htp_tx_data_tx(tx_data) == NULL)
+    const htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    if (htp_tx_data_is_empty(tx_data) || tx == NULL)
         return HTP_STATUS_OK;
 
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(htp_tx_data_tx(tx_data));
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     if (tx_ud == NULL) {
         return HTP_STATUS_OK;
     }
@@ -2012,20 +1849,21 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
             htp_tx_data_len(tx_data));
     tx_ud->request_headers_raw_len += htp_tx_data_len(tx_data);
 
-    if (htp_tx_data_tx(tx_data) && htp_tx_data_tx(tx_data)->flags) {
-        HtpState *hstate = htp_connp_get_user_data(htp_tx_data_tx(tx_data)->connp);
-        HTPErrorCheckTxRequestFlags(hstate, htp_tx_data_tx(tx_data));
+    if (tx && htp_tx_flags(tx)) {
+        HtpState *hstate = htp_connp_user_data(connp);
+        HTPErrorCheckTxRequestFlags(hstate, tx);
     }
     return HTP_STATUS_OK;
 }
 
-static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
+static int HTPCallbackResponseHeaderData(const htp_connp_t *connp, htp_tx_data_t *tx_data)
 {
     void *ptmp;
-    if (htp_tx_data_len(tx_data) == 0 || htp_tx_data_tx(tx_data) == NULL)
+    const htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    if (htp_tx_data_is_empty(tx_data) || tx == NULL)
         return HTP_STATUS_OK;
 
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(htp_tx_data_tx(tx_data));
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     if (tx_ud == NULL) {
         return HTP_STATUS_OK;
     }
@@ -2049,7 +1887,7 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
  */
 static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
 {
-    cfg_prec->uri_include_all = false;
+    htp_config_set_normalized_uri_include_all(cfg_prec->cfg, false);
     cfg_prec->request.body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
     cfg_prec->response.body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
     cfg_prec->request.inspect_min_size = HTP_CONFIG_DEFAULT_REQUEST_INSPECT_MIN_SIZE;
@@ -2082,45 +1920,21 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     htp_config_register_response_complete(cfg_prec->cfg, HTPCallbackResponseComplete);
 
     htp_config_set_parse_request_cookies(cfg_prec->cfg, 0);
-#ifdef HAVE_HTP_CONFIG_SET_ALLOW_SPACE_URI
     htp_config_set_allow_space_uri(cfg_prec->cfg, 1);
-#endif
 
     /* don't convert + to space by default */
-    htp_config_set_plusspace_decode(cfg_prec->cfg, HTP_DECODER_URLENCODED, 0);
+    htp_config_set_plusspace_decode(cfg_prec->cfg, 0);
     // enables request decompression
     htp_config_set_request_decompression(cfg_prec->cfg, 1);
-#ifdef HAVE_HTP_CONFIG_SET_LZMA_LAYERS
-    // disable by default
     htp_config_set_lzma_layers(cfg_prec->cfg, HTP_CONFIG_DEFAULT_LZMA_LAYERS);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT
-    htp_config_set_lzma_memlimit(cfg_prec->cfg,
-            HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT
-    htp_config_set_compression_bomb_limit(cfg_prec->cfg,
-                                          HTP_CONFIG_DEFAULT_COMPRESSION_BOMB_LIMIT);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_COMPRESSION_TIME_LIMIT
+    htp_config_set_lzma_memlimit(cfg_prec->cfg, HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT);
+    htp_config_set_compression_bomb_limit(cfg_prec->cfg, HTP_CONFIG_DEFAULT_COMPRESSION_BOMB_LIMIT);
     htp_config_set_compression_time_limit(cfg_prec->cfg, HTP_CONFIG_DEFAULT_COMPRESSION_TIME_LIMIT);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_MAX_TX
 #define HTP_CONFIG_DEFAULT_MAX_TX_LIMIT 512
     htp_config_set_max_tx(cfg_prec->cfg, HTP_CONFIG_DEFAULT_MAX_TX_LIMIT);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_HEADERS_LIMIT
 #define HTP_CONFIG_DEFAULT_HEADERS_LIMIT 1024
     htp_config_set_number_headers_limit(cfg_prec->cfg, HTP_CONFIG_DEFAULT_HEADERS_LIMIT);
-#endif
-    /* libhtp <= 0.5.9 doesn't use soft limit, but it's impossible to set
-     * only the hard limit. So we set both here to the (current) htp defaults.
-     * The reason we do this is that if the user sets the hard limit in the
-     * config, we have to set the soft limit as well. If libhtp starts using
-     * the soft limit in the future, we at least make sure we control what
-     * it's value is. */
-    htp_config_set_field_limits(cfg_prec->cfg, (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT,
-            (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_HARD);
+    htp_config_set_field_limit(cfg_prec->cfg, (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT);
 }
 
 /* hack: htp random range code expects random values in range of 0-RAND_MAX,
@@ -2232,7 +2046,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
                 /* The IDS personality by default converts the path (and due to
                  * our query string callback also the query string) to lowercase.
                  * Signatures do not expect this, so override it. */
-                htp_config_set_convert_lowercase(cfg_prec->cfg, HTP_DECODER_URL_PATH, 0);
+                htp_config_set_convert_lowercase(cfg_prec->cfg, 0);
             } else {
                 SCLogWarning("LIBHTP Unknown personality "
                              "\"%s\", ignoring",
@@ -2274,16 +2088,10 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
             }
 
         } else if (strcasecmp("double-decode-query", p->name) == 0) {
-            if (ConfValIsTrue(p->val)) {
-                htp_config_register_request_line(cfg_prec->cfg,
-                                                 HTPCallbackDoubleDecodeQuery);
-            }
+            htp_config_set_double_decode_normalized_query(cfg_prec->cfg, ConfValIsTrue(p->val));
 
         } else if (strcasecmp("double-decode-path", p->name) == 0) {
-            if (ConfValIsTrue(p->val)) {
-                htp_config_register_request_line(cfg_prec->cfg,
-                                                 HTPCallbackDoubleDecodePath);
-            }
+            htp_config_set_double_decode_normalized_path(cfg_prec->cfg, ConfValIsTrue(p->val));
 
         } else if (strcasecmp("response-body-minimal-inspect-size", p->name) == 0) {
             if (ParseSizeStringU32(p->val, &cfg_prec->response.inspect_min_size) < 0) {
@@ -2309,78 +2117,49 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
                         p->val);
                 exit(EXIT_FAILURE);
             }
-#ifdef HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT
-            htp_config_set_response_decompression_layer_limit(cfg_prec->cfg, value);
-#else
-            SCLogWarning("can't set response-body-decompress-layer-limit "
-                         "to %u, libhtp version too old",
-                    value);
-#endif
+            htp_config_set_decompression_layer_limit(cfg_prec->cfg, value);
         } else if (strcasecmp("path-convert-backslash-separators", p->name) == 0) {
-            htp_config_set_backslash_convert_slashes(cfg_prec->cfg,
-                                                     HTP_DECODER_URL_PATH,
-                                                     ConfValIsTrue(p->val));
+            htp_config_set_backslash_convert_slashes(cfg_prec->cfg, ConfValIsTrue(p->val));
         } else if (strcasecmp("path-bestfit-replacement-char", p->name) == 0) {
             if (strlen(p->val) == 1) {
-                htp_config_set_bestfit_replacement_byte(cfg_prec->cfg,
-                                                        HTP_DECODER_URL_PATH,
-                                                        p->val[0]);
+                htp_config_set_bestfit_replacement_byte(cfg_prec->cfg, p->val[0]);
             } else {
                 SCLogError("Invalid entry "
                            "for libhtp param path-bestfit-replacement-char");
             }
         } else if (strcasecmp("path-convert-lowercase", p->name) == 0) {
-            htp_config_set_convert_lowercase(cfg_prec->cfg,
-                                             HTP_DECODER_URL_PATH,
-                                             ConfValIsTrue(p->val));
+            htp_config_set_convert_lowercase(cfg_prec->cfg, ConfValIsTrue(p->val));
         } else if (strcasecmp("path-nul-encoded-terminates", p->name) == 0) {
-            htp_config_set_nul_encoded_terminates(cfg_prec->cfg,
-                                                  HTP_DECODER_URL_PATH,
-                                                  ConfValIsTrue(p->val));
+            htp_config_set_nul_encoded_terminates(cfg_prec->cfg, ConfValIsTrue(p->val));
         } else if (strcasecmp("path-nul-raw-terminates", p->name) == 0) {
-            htp_config_set_nul_raw_terminates(cfg_prec->cfg,
-                                              HTP_DECODER_URL_PATH,
-                                              ConfValIsTrue(p->val));
+            htp_config_set_nul_raw_terminates(cfg_prec->cfg, ConfValIsTrue(p->val));
         } else if (strcasecmp("path-separators-compress", p->name) == 0) {
-            htp_config_set_path_separators_compress(cfg_prec->cfg,
-                                                    HTP_DECODER_URL_PATH,
-                                                    ConfValIsTrue(p->val));
+            htp_config_set_path_separators_compress(cfg_prec->cfg, ConfValIsTrue(p->val));
         } else if (strcasecmp("path-separators-decode", p->name) == 0) {
-            htp_config_set_path_separators_decode(cfg_prec->cfg,
-                                                  HTP_DECODER_URL_PATH,
-                                                  ConfValIsTrue(p->val));
+            htp_config_set_path_separators_decode(cfg_prec->cfg, ConfValIsTrue(p->val));
         } else if (strcasecmp("path-u-encoding-decode", p->name) == 0) {
-            htp_config_set_u_encoding_decode(cfg_prec->cfg,
-                                             HTP_DECODER_URL_PATH,
-                                             ConfValIsTrue(p->val));
+            htp_config_set_u_encoding_decode(cfg_prec->cfg, ConfValIsTrue(p->val));
         } else if (strcasecmp("path-url-encoding-invalid-handling", p->name) == 0) {
             enum htp_url_encoding_handling_t handling;
             if (strcasecmp(p->val, "preserve_percent") == 0) {
-                handling = HTP_URL_DECODE_PRESERVE_PERCENT;
+                handling = HTP_URL_ENCODING_HANDLING_PRESERVE_PERCENT;
             } else if (strcasecmp(p->val, "remove_percent") == 0) {
-                handling = HTP_URL_DECODE_REMOVE_PERCENT;
+                handling = HTP_URL_ENCODING_HANDLING_REMOVE_PERCENT;
             } else if (strcasecmp(p->val, "decode_invalid") == 0) {
-                handling = HTP_URL_DECODE_PROCESS_INVALID;
+                handling = HTP_URL_ENCODING_HANDLING_PROCESS_INVALID;
             } else {
                 SCLogError("Invalid entry "
                            "for libhtp param path-url-encoding-invalid-handling");
                 return;
             }
-            htp_config_set_url_encoding_invalid_handling(cfg_prec->cfg,
-                                                         HTP_DECODER_URL_PATH,
-                                                         handling);
+            htp_config_set_url_encoding_invalid_handling(cfg_prec->cfg, handling);
         } else if (strcasecmp("path-utf8-convert-bestfit", p->name) == 0) {
-            htp_config_set_utf8_convert_bestfit(cfg_prec->cfg,
-                                                HTP_DECODER_URL_PATH,
-                                                ConfValIsTrue(p->val));
+            htp_config_set_utf8_convert_bestfit(cfg_prec->cfg, ConfValIsTrue(p->val));
         } else if (strcasecmp("uri-include-all", p->name) == 0) {
-            cfg_prec->uri_include_all = (1 == ConfValIsTrue(p->val));
-            SCLogDebug("uri-include-all %s",
-                    cfg_prec->uri_include_all ? "enabled" : "disabled");
+            htp_config_set_normalized_uri_include_all(cfg_prec->cfg, ConfValIsTrue(p->val));
+            SCLogDebug("uri-include-all %s", ConfValIsTrue(p->val) ? "enabled" : "disabled");
         } else if (strcasecmp("query-plusspace-decode", p->name) == 0) {
-            htp_config_set_plusspace_decode(cfg_prec->cfg,
-                                                HTP_DECODER_URLENCODED,
-                                                ConfValIsTrue(p->val));
+            htp_config_set_plusspace_decode(cfg_prec->cfg, ConfValIsTrue(p->val));
         } else if (strcasecmp("meta-field-limit", p->name) == 0) {
             uint32_t limit = 0;
             if (ParseSizeStringU32(p->val, &limit) < 0) {
@@ -2394,10 +2173,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
                            "from conf file cannot be 0.  Killing engine");
             }
             /* set default soft-limit with our new hard limit */
-            htp_config_set_field_limits(cfg_prec->cfg,
-                    (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT,
-                    (size_t)limit);
-#ifdef HAVE_HTP_CONFIG_SET_LZMA_MEMLIMIT
+            htp_config_set_field_limit(cfg_prec->cfg, (size_t)limit);
         } else if (strcasecmp("lzma-memlimit", p->name) == 0) {
             uint32_t limit = 0;
             if (ParseSizeStringU32(p->val, &limit) < 0) {
@@ -2412,8 +2188,6 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP LZMA memory limit to %"PRIu32" bytes", limit);
             htp_config_set_lzma_memlimit(cfg_prec->cfg, (size_t)limit);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_LZMA_LAYERS
         } else if (strcasecmp("lzma-enabled", p->name) == 0) {
             if (ConfValIsTrue(p->val)) {
                 htp_config_set_lzma_layers(cfg_prec->cfg, 1);
@@ -2427,8 +2201,6 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
                 SCLogConfig("Setting HTTP LZMA decompression layers to %" PRIu32 "", (int)limit);
                 htp_config_set_lzma_layers(cfg_prec->cfg, limit);
             }
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_COMPRESSION_BOMB_LIMIT
         } else if (strcasecmp("compression-bomb-limit", p->name) == 0) {
             uint32_t limit = 0;
             if (ParseSizeStringU32(p->val, &limit) < 0) {
@@ -2443,8 +2215,6 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP compression bomb limit to %"PRIu32" bytes", limit);
             htp_config_set_compression_bomb_limit(cfg_prec->cfg, (size_t)limit);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_COMPRESSION_TIME_LIMIT
         } else if (strcasecmp("decompression-time-limit", p->name) == 0) {
             uint32_t limit = 0;
             // between 1 usec and 1 second
@@ -2454,9 +2224,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
                         p->val);
             }
             SCLogConfig("Setting HTTP decompression time limit to %" PRIu32 " usec", limit);
-            htp_config_set_compression_time_limit(cfg_prec->cfg, (size_t)limit);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_MAX_TX
+            htp_config_set_compression_time_limit(cfg_prec->cfg, limit);
         } else if (strcasecmp("max-tx", p->name) == 0) {
             uint32_t limit = 0;
             if (ParseSizeStringU32(p->val, &limit) < 0) {
@@ -2467,8 +2235,6 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP max-tx limit to %" PRIu32 " bytes", limit);
             htp_config_set_max_tx(cfg_prec->cfg, limit);
-#endif
-#ifdef HAVE_HTP_CONFIG_SET_HEADERS_LIMIT
         } else if (strcasecmp("headers-limit", p->name) == 0) {
             uint32_t limit = 0;
             if (ParseSizeStringU32(p->val, &limit) < 0) {
@@ -2478,7 +2244,6 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s, struct HT
             }
             SCLogConfig("Setting HTTP headers limit to %" PRIu32, limit);
             htp_config_set_number_headers_limit(cfg_prec->cfg, limit);
-#endif
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
             if (!g_disable_randomness) {
                 cfg_prec->randomize = ConfValIsTrue(p->val);
@@ -2668,21 +2433,21 @@ static AppLayerGetFileState HTPGetTxFiles(void *txv, uint8_t direction)
 static int HTPStateGetAlstateProgress(void *tx, uint8_t direction)
 {
     if (direction & STREAM_TOSERVER)
-        return ((htp_tx_t *)tx)->request_progress;
+        return htp_tx_request_progress((htp_tx_t *)tx);
     else
-        return ((htp_tx_t *)tx)->response_progress;
+        return htp_tx_response_progress((htp_tx_t *)tx);
 }
 
 static uint64_t HTPStateGetTxCnt(void *alstate)
 {
     HtpState *http_state = (HtpState *)alstate;
 
-    if (http_state != NULL && http_state->conn != NULL) {
-        const int64_t size = (int64_t)htp_list_size(http_state->conn->transactions);
+    if (http_state != NULL && http_state->connp != NULL) {
+        const int64_t size = htp_connp_tx_size(http_state->connp);
         if (size < 0)
             return 0ULL;
         SCLogDebug("size %"PRIu64, size);
-        return (uint64_t)size + http_state->tx_freed;
+        return (uint64_t)size;
     } else {
         return 0ULL;
     }
@@ -2692,8 +2457,8 @@ static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
 {
     HtpState *http_state = (HtpState *)alstate;
 
-    if (http_state != NULL && http_state->conn != NULL && tx_id >= http_state->tx_freed)
-        return htp_list_get(http_state->conn->transactions, tx_id - http_state->tx_freed);
+    if (http_state != NULL && http_state->connp != NULL)
+        return (void *)htp_connp_tx(http_state->connp, tx_id);
     else
         return NULL;
 }
@@ -2702,10 +2467,10 @@ void *HtpGetTxForH2(void *alstate)
 {
     // gets last transaction
     HtpState *http_state = (HtpState *)alstate;
-    if (http_state != NULL && http_state->conn != NULL) {
-        size_t txid = HTPStateGetTxCnt(http_state);
-        if (txid > http_state->tx_freed) {
-            return htp_list_get(http_state->conn->transactions, txid - http_state->tx_freed - 1);
+    if (http_state != NULL && http_state->connp != NULL) {
+        size_t txid = htp_connp_tx_size(http_state->connp);
+        if (txid > 0) {
+            return (void *)htp_connp_tx(http_state->connp, txid - 1);
         }
     }
     return NULL;
@@ -2930,7 +2695,7 @@ static int HTPParserTest01(void)
     const htp_header_t *h = htp_tx_request_header_index(tx, 0);
     FAIL_IF_NULL(h);
 
-    FAIL_IF(strcmp(bstr_util_strdup_to_c(htp_header_value(h)), "Victor/1.0"));
+    FAIL_IF(bstr_cmp_c(htp_header_value(h), "Victor/1.0"));
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_POST);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V1_0);
 
@@ -3220,7 +2985,6 @@ static int HTPParserTest04(void)
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
     const htp_header_t *h = htp_tx_request_header_index(tx, 0);
-
     FAIL_IF_NOT_NULL(h);
     FAIL_IF(htp_tx_request_method_number(tx) != HTP_METHOD_UNKNOWN);
     FAIL_IF(htp_tx_request_protocol_number(tx) != HTP_PROTOCOL_V0_9);
@@ -3437,14 +3201,11 @@ static int HTPParserTest07(void)
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
-
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref, bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -3501,11 +3262,9 @@ libhtp:\n\
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    PrintRawDataFp(stdout, bstr_ptr(tx_ud->request_uri_normalized),
-            bstr_len(tx_ud->request_uri_normalized));
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
+    PrintRawDataFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -3565,12 +3324,9 @@ libhtp:\n\
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    PrintRawDataFp(stdout, bstr_ptr(tx_ud->request_uri_normalized),
-            bstr_len(tx_ud->request_uri_normalized));
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
+    PrintRawDataFp(stdout, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -3683,17 +3439,14 @@ static int HTPParserTest11(void)
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
 
-    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-
-    FAIL_IF(bstr_len(tx_ud->request_uri_normalized) != 4);
-
-    FAIL_IF(bstr_ptr(tx_ud->request_uri_normalized)[0] != '/');
-    FAIL_IF(bstr_ptr(tx_ud->request_uri_normalized)[1] != '%');
-    FAIL_IF(bstr_ptr(tx_ud->request_uri_normalized)[2] != '0');
-    FAIL_IF(bstr_ptr(tx_ud->request_uri_normalized)[3] != '0');
+    FAIL_IF(bstr_len(request_uri_normalized) != 4);
+    FAIL_IF(bstr_ptr(request_uri_normalized)[0] != '/');
+    FAIL_IF(bstr_ptr(request_uri_normalized)[1] != '%');
+    FAIL_IF(bstr_ptr(request_uri_normalized)[2] != '0');
+    FAIL_IF(bstr_ptr(request_uri_normalized)[3] != '0');
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -3742,19 +3495,17 @@ static int HTPParserTest12(void)
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
 
-    FAIL_IF(bstr_len(tx_ud->request_uri_normalized) != 7);
-
-    FAIL_IF(bstr_ptr(tx_ud->request_uri_normalized)[0] != '/');
-    FAIL_IF(bstr_ptr(tx_ud->request_uri_normalized)[1] != '?');
-    FAIL_IF(bstr_ptr(tx_ud->request_uri_normalized)[2] != 'a');
-    FAIL_IF(bstr_ptr(tx_ud->request_uri_normalized)[3] != '=');
-    FAIL_IF(bstr_ptr(tx_ud->request_uri_normalized)[4] != '%');
-    FAIL_IF(bstr_ptr(tx_ud->request_uri_normalized)[5] != '0');
-    FAIL_IF(bstr_ptr(tx_ud->request_uri_normalized)[6] != '0');
+    FAIL_IF(bstr_len(request_uri_normalized) != 7);
+    FAIL_IF(bstr_ptr(request_uri_normalized)[0] != '/');
+    FAIL_IF(bstr_ptr(request_uri_normalized)[1] != '?');
+    FAIL_IF(bstr_ptr(request_uri_normalized)[2] != 'a');
+    FAIL_IF(bstr_ptr(request_uri_normalized)[3] != '=');
+    FAIL_IF(bstr_ptr(request_uri_normalized)[4] != '%');
+    FAIL_IF(bstr_ptr(request_uri_normalized)[5] != '0');
+    FAIL_IF(bstr_ptr(request_uri_normalized)[6] != '0');
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -4085,11 +3836,8 @@ libhtp:\n\
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF(tx->cfg != htp);
-
     tx = HTPStateGetTx(htp_state, 1);
     FAIL_IF_NULL(tx);
-    FAIL_IF(tx->cfg != htp);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
@@ -4164,36 +3912,36 @@ libhtp:\n\
     FAIL_IF_NULL(tx);
 
     HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
     FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref1, bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref2[] = "/abc/def?ghi/jkl";
     reflen = sizeof(ref2) - 1;
 
     tx = HTPStateGetTx(htp_state, 1);
     FAIL_IF_NULL(tx);
-    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref2,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref2, bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref3[] = "/abc/def?ghi%2fjkl";
     reflen = sizeof(ref3) - 1;
     tx = HTPStateGetTx(htp_state, 2);
     FAIL_IF_NULL(tx);
-    tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref3,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(tx_ud);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref3, bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
@@ -4255,11 +4003,11 @@ libhtp:\n\
     FAIL_IF_NULL(tx);
 
     HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
     FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref1, bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref2[] = "/abc/def?ghi/jkl";
     reflen = sizeof(ref2) - 1;
@@ -4267,24 +4015,24 @@ libhtp:\n\
     tx = HTPStateGetTx(htp_state, 1);
     FAIL_IF_NULL(tx);
     tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
     FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref2,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref2, bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref3[] = "/abc/def?ghi%2fjkl";
     reflen = sizeof(ref3) - 1;
     tx = HTPStateGetTx(htp_state, 2);
     FAIL_IF_NULL(tx);
     tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
     FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref3,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref3, bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
@@ -4362,37 +4110,31 @@ libhtp:\n\
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref1, bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref2[] = "/abc/def?ghi/jkl";
     reflen = sizeof(ref2) - 1;
 
     tx = HTPStateGetTx(htp_state, 1);
     FAIL_IF_NULL(tx);
-    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref2,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref2, bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref3[] = "/abc/def?ghi%2fjkl";
     reflen = sizeof(ref3) - 1;
     tx = HTPStateGetTx(htp_state, 2);
     FAIL_IF_NULL(tx);
-    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref3,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref3, bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
@@ -4468,26 +4210,22 @@ libhtp:\n\
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref1, bstr_len(request_uri_normalized)) != 0);
 
     uint8_t ref2[] = "/abc/def?ghi/jkl";
     reflen = sizeof(ref2) - 1;
 
     tx = HTPStateGetTx(htp_state, 1);
     FAIL_IF_NULL(tx);
-    tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref2,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref2, bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
@@ -4559,13 +4297,11 @@ libhtp:\n\
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref1, bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
@@ -4637,13 +4373,11 @@ libhtp:\n\
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref1, bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
@@ -4715,13 +4449,11 @@ libhtp:\n\
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref1, bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
@@ -4794,13 +4526,11 @@ libhtp:\n\
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref1, bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
@@ -4870,13 +4600,11 @@ libhtp:\n\
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref1, bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
@@ -4947,13 +4675,11 @@ libhtp:\n\
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
     FAIL_IF_NULL(tx);
-    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    FAIL_IF_NULL(tx_ud);
-    FAIL_IF_NULL(tx_ud->request_uri_normalized);
-    FAIL_IF(reflen != bstr_len(tx_ud->request_uri_normalized));
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
+    FAIL_IF_NULL(request_uri_normalized);
+    FAIL_IF(reflen != bstr_len(request_uri_normalized));
 
-    FAIL_IF(memcmp(bstr_ptr(tx_ud->request_uri_normalized), ref1,
-                    bstr_len(tx_ud->request_uri_normalized)) != 0);
+    FAIL_IF(memcmp(bstr_ptr(request_uri_normalized), ref1, bstr_len(request_uri_normalized)) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     HTPFreeConfig();
@@ -4976,8 +4702,12 @@ static int HTPBodyReassemblyTest01(void)
     Flow flow;
     memset(&flow, 0x00, sizeof(flow));
     AppLayerParserState *parser = AppLayerParserStateAlloc();
-    htp_tx_t tx;
-    memset(&tx, 0, sizeof(tx));
+    htp_cfg_t *cfg = htp_config_create();
+    BUG_ON(cfg == NULL);
+    htp_connp_t *connp = htp_connp_create(cfg);
+    BUG_ON(connp == NULL);
+    const htp_tx_t *tx = htp_connp_get_request_tx(connp);
+    BUG_ON(tx == NULL);
 
     hstate.f = &flow;
     flow.alparser = parser;
@@ -5321,7 +5051,6 @@ static int HTPParserTest16(void)
     FAIL_IF_NULL(decoder_events);
     FAIL_IF(decoder_events->events[0] != HTP_LOG_CODE_METHOD_DELIM_NON_COMPLIANT);
     FAIL_IF(decoder_events->events[1] != HTP_LOG_CODE_URI_DELIM_NON_COMPLIANT);
-
 #endif
 
     AppLayerParserThreadCtxFree(alp_tctx);
