@@ -74,11 +74,10 @@ jobs:
       - run: scan-build-18 ./configure --enable-warnings --enable-dpdk --enable-nfqueue --enable-nflog
         env:
           CC: clang-18
-      # exclude libhtp from the analysis
       # disable security.insecureAPI.DeprecatedOrUnsafeBufferHandling explicitly as
       # this will require significant effort to address.
       - run: |
-          scan-build-18 --status-bugs --exclude libhtp/ --exclude rust \
+          scan-build-18 --status-bugs --exclude rust \
                 -enable-checker valist.Uninitialized \
                 -enable-checker valist.CopyToSelf \
                 -enable-checker valist.Unterminated \
