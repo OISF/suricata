@@ -89,18 +89,14 @@ static int LuaHttpGetRequestUriNormalized(lua_State *luastate)
         lua_pushnil(luastate);
         return 1;
     }
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx->tx);
-    if (htud == NULL)
-        return LuaCallbackError(luastate, "no htud in tx");
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx);
 
-    if (htud->request_uri_normalized == NULL ||
-        bstr_ptr(htud->request_uri_normalized) == NULL ||
-        bstr_len(htud->request_uri_normalized) == 0)
+    if (request_uri_normalized == NULL || bstr_ptr(request_uri_normalized) == NULL ||
+            bstr_len(request_uri_normalized) == 0)
         return LuaCallbackError(luastate, "no normalized uri");
 
-    return LuaPushStringBuffer(luastate,
-            bstr_ptr(htud->request_uri_normalized),
-            bstr_len(htud->request_uri_normalized));
+    return LuaPushStringBuffer(
+            luastate, bstr_ptr(request_uri_normalized), bstr_len(request_uri_normalized));
 }
 
 static int LuaHttpGetRequestLine(lua_State *luastate)

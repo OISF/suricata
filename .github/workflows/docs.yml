@@ -8,8 +8,6 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      LIBHTP_REPO:
-      LIBHTP_BRANCH:
       SU_REPO:
       SU_BRANCH:
       SV_REPO:
@@ -130,7 +128,6 @@ jobs:
           cp prep/cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
