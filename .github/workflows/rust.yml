@@ -90,3 +90,6 @@ jobs:
       # especially without debug feature
       - run: cargo clippy
         working-directory: rust
+      # does not work in other subdirectories for now
+      - run: cargo fmt
+        working-directory: rust/htp
