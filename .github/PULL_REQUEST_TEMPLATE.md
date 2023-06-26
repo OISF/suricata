@@ -24,7 +24,7 @@ Describe changes:
 
 ### Provide values to any of the below to override the defaults.
 
-- To use an LibHTP, Suricata-Verify or Suricata-Update pull request,
+- To use a Suricata-Verify or Suricata-Update pull request,
   link to the pull request in the respective `_BRANCH` variable.
 - Leave unused overrides blank or remove.
 
@@ -32,5 +32,3 @@ SV_REPO=
 SV_BRANCH=
 SU_REPO=
 SU_BRANCH=
-LIBHTP_REPO=
-LIBHTP_BRANCH=
