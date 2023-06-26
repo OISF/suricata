@@ -120,3 +120,6 @@ pub mod lzma;
 pub mod util;
 pub mod ffi;
 pub mod feature;
+
+//Re-export htp symbols
+pub use htp::c_api::*;

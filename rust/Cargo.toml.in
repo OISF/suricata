@@ -42,6 +42,7 @@ aes-gcm = "~0.9.4"
 
 der-parser = { version = "~9.0.0", default_features = false }
 kerberos-parser = { version = "~0.8.0", default_features = false }
+htp = { git = "https://github.com/catenacyber/libhtp-rs.git", branch = "main", version = "2.0.0" }
 
 sawp-modbus = "~0.12.1"
 sawp = "~0.12.1"

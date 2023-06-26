@@ -86,7 +86,6 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       - name: Configure Suricata
         run: |
-          ./scripts/bundle.sh libhtp
           ./autogen.sh
           ./configure
       - name: Run Cargo Audit
@@ -169,7 +168,6 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       - name: Configure Suricata
         run: |
-          ./scripts/bundle.sh libhtp
           ./autogen.sh
           ./configure
       - name: Cargo Update and Build

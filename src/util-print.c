@@ -87,7 +87,7 @@ void PrintRawJsonFp(FILE *fp, uint8_t *buf, uint32_t buflen)
     fprintf(fp, "%s", nbuf);
 }
 
-void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
+void PrintRawUriFp(FILE *fp, const uint8_t *buf, uint32_t buflen)
 {
 #define BUFFER_LENGTH 2048
     char nbuf[BUFFER_LENGTH] = "";
@@ -111,8 +111,8 @@ void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
     fprintf(fp, "%s", nbuf);
 }
 
-void PrintRawUriBuf(char *retbuf, uint32_t *offset, uint32_t retbuflen,
-                    uint8_t *buf, uint32_t buflen)
+void PrintRawUriBuf(
+        char *retbuf, uint32_t *offset, uint32_t retbuflen, const uint8_t *buf, uint32_t buflen)
 {
     for (uint32_t u = 0; u < buflen; u++) {
         if (isprint(buf[u]) && buf[u] != '\"') {
