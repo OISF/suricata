@@ -15,6 +15,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 static uint32_t cnt = 0;
 DetectEngineCtx *de_ctx = NULL;
+SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
@@ -30,6 +31,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         SigTableSetup();
         SCReferenceConfInit();
         SCClassConfInit();
+        // allows allocation failures to be non-fatal
+        SC_ATOMIC_SET(engine_stage, SURICATA_RUNTIME);
     }
     if (cnt++ == 1024) {
         DetectEngineCtxFree(de_ctx);
@@ -38,7 +41,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
     if (de_ctx == NULL) {
         de_ctx = DetectEngineCtxInit();
-        BUG_ON(de_ctx == NULL);
+        if (de_ctx == NULL) {
+            return 0;
+        }
         de_ctx->flags |= DE_QUIET;
         de_ctx->rule_file = (char *)"fuzzer";
     }
