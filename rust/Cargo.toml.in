@@ -10,10 +10,12 @@ rust-version = "1.67.1"
 members = [
     ".",
     "derive",
+    "suricatactl",
     "suricatasc",
 ]
 default-members = [
     ".",
+    "suricatactl",
     "suricatasc",
 ]
 
