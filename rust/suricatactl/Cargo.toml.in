@@ -1,0 +1,16 @@
+[package]
+name = "suricatactl"
+version = "@PACKAGE_VERSION@"
+edition = "2021"
+license = "GPL-2.0-only"
+
+[[bin]]
+name = "suricatactl"
+
+[dependencies]
+regex = "~1.5.5"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# 4.0 is the newest version that builds with Rust 1.67.1.
+clap = { version = "=4.2.0", features = ["derive"] }
