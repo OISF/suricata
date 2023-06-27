@@ -2591,6 +2591,7 @@ AM_CONDITIONAL([BUILD_SHARED_LIBRARY], [test "x$enable_shared" = "xyes"] && [tes
 
 AC_CONFIG_FILES(Makefile src/Makefile rust/Makefile rust/Cargo.lock rust/Cargo.toml rust/derive/Cargo.toml rust/.cargo/config)
 AC_CONFIG_FILES(rust/client/Makefile rust/client/Cargo.toml)
+AC_CONFIG_FILES(rust/suricatactl/Makefile rust/suricatactl/Cargo.toml)
 AC_CONFIG_FILES(rust/suricatasc/Makefile rust/suricatasc/Cargo.toml)
 AC_CONFIG_FILES(qa/Makefile qa/coccinelle/Makefile)
 AC_CONFIG_FILES(rules/Makefile doc/Makefile doc/userguide/Makefile)

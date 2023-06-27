@@ -1,4 +1,5 @@
 SUBDIRS =	client \
+		suricatactl \
 		suricatasc
 
 EXTRA_DIST =	src derive \
@@ -7,6 +8,7 @@ EXTRA_DIST =	src derive \
 		dist/rust-bindings.h \
 		vendor \
 		client \
+		suricatactl \
 		suricatasc
 
 if !DEBUG
@@ -60,6 +62,7 @@ endif
 install-exec-local:
 	install -d -m 0755 "$(DESTDIR)$(bindir)"
 	install -m 0755 $(RUST_SURICATA_LIBDIR)/suricatasc "$(DESTDIR)$(bindir)/suricatasc"
+	install -m 0755 $(RUST_SURICATA_LIBDIR)/suricatactl "$(DESTDIR)$(bindir)/suricatactl"
 
 install-library:
 	$(MKDIR_P) "$(DESTDIR)$(libdir)"
@@ -68,6 +71,7 @@ install-library:
 uninstall-local:
 	rm -f "$(DESTDIR)$(libdir)/$(RUST_SURICATA_LIBNAME)"
 	rm -f "$(DESTDIR)$(bindir)/suricatasc"
+	rm -f "$(DESTDIR)$(bindir)/suricatactl"
 
 clean-local:
 	rm -rf target
