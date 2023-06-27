@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # Copyright(C) 2012-2023 Open Information Security Foundation
 
 # This program is free software; you can redistribute it and/or modify
