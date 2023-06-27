@@ -1,0 +1,21 @@
+[package]
+name = "suricatactl"
+version = "@PACKAGE_VERSION@"
+edition = "2021"
+license = "GPL-2.0-only"
+
+[[bin]]
+name = "suricatactl"
+path = "@e_rustdir@/suricatactl/src/main.rs"
+
+[dependencies]
+regex = "~1.5.5"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# 4.0 is the newest version that builds with Rust 1.63.0.
+clap = { version = "~4.0.0", features = ["derive"] }
+
+# This dependency is not used directly, but we have to pin this back
+# to 0.3.0 for Rust 1.63.0.
+clap_lex = "=0.3.0"

@@ -8,9 +8,14 @@ members = [
     ".",
     "derive",
     "client",
+    "suricatactl",
     "suricatasc",
 ]
-default-members = [".", "suricatasc"]
+default-members = [
+    ".",
+    "suricatactl",
+    "suricatasc",
+]
 
 [lib]
 crate-type = ["staticlib", "rlib"]
