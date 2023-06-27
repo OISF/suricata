@@ -176,6 +176,8 @@ typedef struct PcapLogData_ {
     int threads;                /**< number of threads (only set in the global) */
     char *filename_parts[MAX_TOKS];
     int filename_part_cnt;
+    int fopen_err;      /**< set to the last fopen error */
+    bool pcap_open_err; /**< true if the last pcap open errored */
 
     PcapLogCompressionData compression;
 } PcapLogData;
@@ -397,8 +399,14 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
         if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_NONE) {
             if ((pl->pcap_dumper = pcap_dump_open(pl->pcap_dead_handle,
                     pl->filename)) == NULL) {
-                SCLogInfo("Error opening dump file %s", pcap_geterr(pl->pcap_dead_handle));
+                if (!pl->pcap_open_err) {
+                    SCLogError(SC_ERR_OPENING_FILE, "Error opening dump file %s",
+                            pcap_geterr(pl->pcap_dead_handle));
+                    pl->pcap_open_err = true;
+                }
                 return TM_ECODE_FAILED;
+            } else {
+                pl->pcap_open_err = false;
             }
         }
 #ifdef HAVE_LIBLZ4
@@ -406,19 +414,28 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
             PcapLogCompressionData *comp = &pl->compression;
             comp->file = fopen(pl->filename, "w");
             if (comp->file == NULL) {
-                SCLogError(SC_ERR_OPENING_FILE,
-                        "Error opening file for compressed output: %s",
-                        strerror(errno));
+                if (errno != pl->fopen_err) {
+                    SCLogError(SC_ERR_OPENING_FILE, "Error opening file for compressed output: %s",
+                            strerror(errno));
+                    pl->fopen_err = errno;
+                }
                 return TM_ECODE_FAILED;
+            } else {
+                pl->fopen_err = 0;
             }
 
             if ((pl->pcap_dumper = pcap_dump_fopen(pl->pcap_dead_handle, comp->pcap_buf_wrapper)) ==
                     NULL) {
-                SCLogError(SC_ERR_OPENING_FILE, "Error opening dump file %s",
-                        pcap_geterr(pl->pcap_dead_handle));
+                if (!pl->pcap_open_err) {
+                    SCLogError(SC_ERR_OPENING_FILE, "Error opening dump file %s",
+                            pcap_geterr(pl->pcap_dead_handle));
+                    pl->pcap_open_err = true;
+                }
                 fclose(comp->file);
                 comp->file = NULL;
                 return TM_ECODE_FAILED;
+            } else {
+                pl->pcap_open_err = false;
             }
 
             uint64_t bytes_written = LZ4F_compressBegin(comp->lz4f_context,
