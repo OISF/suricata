@@ -42,11 +42,13 @@ example to write custom scripts:
 
 Commands in standard running mode
 ---------------------------------
-You may need to install ``suricatasc`` if you have not done so, running the following command from python/suricatasc
+Runnable script for suricatasc is available in `python/bin` directory of suricata. You can
+run it with the following commands.
 
 ::
 
-  sudo python setup.py install
+  cd python
+  sudo ./bin/suricatasc
 
 The set of existing commands is the following:
 
