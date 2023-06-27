@@ -943,6 +943,17 @@ static int DetectFlowTestParse21 (void)
     PASS;
 }
 
+/**
+ * \test DetectFlowTestParse22 is a test for setting the established,not_established flow opts both
+ */
+static int DetectFlowTestParse22(void)
+{
+    DetectFlowData *fd = NULL;
+    fd = DetectFlowParse(NULL, "established,not_established");
+    FAIL_IF_NOT_NULL(fd);
+    PASS;
+}
+
 static int DetectFlowSigTest01(void)
 {
     uint8_t *buf = (uint8_t *)"supernovaduper";
@@ -1101,6 +1112,7 @@ static void DetectFlowRegisterTests(void)
     UtRegisterTest("DetectFlowTestParse20", DetectFlowTestParse20);
     UtRegisterTest("DetectFlowTestParseNocase20", DetectFlowTestParseNocase20);
     UtRegisterTest("DetectFlowTestParse21", DetectFlowTestParse21);
+    UtRegisterTest("DetectFlowTestParse22", DetectFlowTestParse22);
     UtRegisterTest("DetectFlowTestParseNotEstablished",
         DetectFlowTestParseNotEstablished);
     UtRegisterTest("DetectFlowTestParseNoFrag", DetectFlowTestParseNoFrag);
