@@ -1857,21 +1857,21 @@ Encrypted traffic
 
 There is no decryption of encrypted traffic, so once the handshake is complete
 continued tracking of the session is of limited use. The ``encryption-handling``
-option controls the behavior after the handshake.
+option in ``app-layer.protocols.tls`` and ``app-layer.protocols.ssh`` controls
+the behavior after the handshake.
 
-If ``encryption-handling`` is set to ``default`` (or if the option is not set),
-Suricata will continue to track the SSL/TLS session. Inspection will be limited,
-as raw ``content`` inspection will still be disabled. There is no point in doing
-pattern matching on traffic known to be encrypted. Inspection for (encrypted)
-Heartbleed and other protocol anomalies still happens.
+If the ``encryption-handling`` property of the TLS/SSH configuration nodes are set to ``track-only`` (or are not set), Suricata will continue to track the respective SSL/TLS or SSH session. Inspection will be limited, as raw ``content`` inspection will still
+be disabled. There is no point in doing pattern matching on traffic known to
+be encrypted. Inspection for (encrypted) Heartbleed and other protocol
+anomalies still happens.
 
-When ``encryption-handling`` is set to ``bypass``, all processing of this session is
-stopped. No further parsing and inspection happens. If ``stream.bypass`` is enabled
-this will lead to the flow being bypassed, either inside Suricata or by the
-capture method if it supports it and is configured for it.
+When ``encryption-handling`` is set to ``bypass``, all processing of this
+session is stopped. No further parsing and inspection happens. This will also
+lead to the flow being bypassed, either inside Suricata or by the capture method
+if it supports it and is configured for it.
 
-Finally, if ``encryption-handling`` is set to ``full``, Suricata will process the
-flow as normal, without inspection limitations or bypass.
+Finally, if ``encryption-handling`` is set to ``full``, Suricata will process
+the flow as normal, without inspection limitations or bypass.
 
 The option has replaced the ``no-reassemble`` option. If ``no-reassemble`` is
 present, and ``encryption-handling`` is not, ``false`` is interpreted as
@@ -2912,7 +2912,7 @@ The Teredo decoder can be disabled. It is enabled by default.
         ports: $TEREDO_PORTS # syntax: '[3544, 1234]'
 
 Using this default configuration, Teredo detection will run on UDP port
-3544. If the `ports` parameter is missing, or set to `any`, all ports will be
+1.    If the `ports` parameter is missing, or set to `any`, all ports will be
 inspected for possible presence of Teredo.
 
 Recursion Level
