@@ -74,9 +74,10 @@ encrypted traffic
 -----------------
 
 The TLS app layer parser has the ability to stop processing encrypted traffic
-after the initial handshake. By setting the `app-layer.protocols.tls.encryption-handling`
-option to `bypass` the rest of this flow is ignored. If flow bypass is enabled,
-the bypass is done in the kernel or in hardware.
+after the initial handshake. By setting the
+`app-layer.protocols.tls.encryption-handling` option to `bypass` the rest of
+this flow is ignored. The bypass is done in the kernel or in hardware, similar
+to how flow bypass is done.
 
 .. _bypass:
 
