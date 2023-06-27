@@ -404,17 +404,20 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
 #ifdef HAVE_LIBLZ4
         else if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
             PcapLogCompressionData *comp = &pl->compression;
-            if ((pl->pcap_dumper = pcap_dump_fopen(pl->pcap_dead_handle,
-                    comp->pcap_buf_wrapper)) == NULL) {
-                SCLogError(SC_ERR_OPENING_FILE, "Error opening dump file %s",
-                        pcap_geterr(pl->pcap_dead_handle));
-                return TM_ECODE_FAILED;
-            }
             comp->file = fopen(pl->filename, "w");
             if (comp->file == NULL) {
                 SCLogError(SC_ERR_OPENING_FILE,
                         "Error opening file for compressed output: %s",
                         strerror(errno));
+                return TM_ECODE_FAILED;
+            }
+
+            if ((pl->pcap_dumper = pcap_dump_fopen(pl->pcap_dead_handle, comp->pcap_buf_wrapper)) ==
+                    NULL) {
+                SCLogError(SC_ERR_OPENING_FILE, "Error opening dump file %s",
+                        pcap_geterr(pl->pcap_dead_handle));
+                fclose(comp->file);
+                comp->file = NULL;
                 return TM_ECODE_FAILED;
             }
 
