@@ -1700,13 +1700,13 @@ as raw ``content`` inspection will still be disabled. There is no point in doing
 pattern matching on traffic known to be encrypted. Inspection for (encrypted)
 Heartbleed and other protocol anomalies still happens.
 
-When ``encryption-handling`` is set to ``bypass``, all processing of this session is
-stopped. No further parsing and inspection happens. If ``stream.bypass`` is enabled
-this will lead to the flow being bypassed, either inside Suricata or by the
-capture method if it supports it and is configured for it.
+When ``encryption-handling`` is set to ``bypass``, all processing of this
+session is stopped. No further parsing and inspection happens. This will also
+lead to the flow being bypassed, either inside Suricata or by the capture method
+if it supports it and is configured for it.
 
-Finally, if ``encryption-handling`` is set to ``full``, Suricata will process the
-flow as normal, without inspection limitations or bypass.
+Finally, if ``encryption-handling`` is set to ``full``, Suricata will process
+the flow as normal, without inspection limitations or bypass.
 
 The option has replaced the ``no-reassemble`` option. If ``no-reassemble`` is
 present, and ``encryption-handling`` is not, ``false`` is interpreted as
@@ -2033,12 +2033,12 @@ are typically provided through the command line, are contained in the node
 parameters. There are two ways to specify arguments: lengthy and short.
 Dashes are omitted when describing the arguments. This setup node can be
 used to set up the memory configuration, accessible NICs, and other EAL-related
-parameters, among other things. The node `dpdk.eal-params` also supports 
-multiple arguments of the same type. This can be useful for EAL arguments 
-such as `--vdev`, `--allow`, or `--block`. Values for these EAL arguments 
-are specified as a comma-separated list. 
-An example of such usage can be found in the example above where the `allow` 
-argument only makes `0000:3b:00.0` and `0000:3b:00.1` accessible to Suricata. 
+parameters, among other things. The node `dpdk.eal-params` also supports
+multiple arguments of the same type. This can be useful for EAL arguments
+such as `--vdev`, `--allow`, or `--block`. Values for these EAL arguments
+are specified as a comma-separated list.
+An example of such usage can be found in the example above where the `allow`
+argument only makes `0000:3b:00.0` and `0000:3b:00.1` accessible to Suricata.
 arguments with list node. such as --vdev, --allow, --block eal options.
 The definition of lcore affinity as an EAL
 parameter is a standard practice. However, lcore parameters like `-l`, `-c`,
