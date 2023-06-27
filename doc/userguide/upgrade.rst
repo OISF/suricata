@@ -95,6 +95,17 @@ Major changes
   will need to be set before external modules can be loaded. See the
   new default configuration file or :ref:`lua-output-yaml` for more
   details.
+- Encrypted traffic bypass has been decoupled from stream.bypass setting.
+  This means that encrypted traffic can be bypassed while tracking/fully
+  inspecting other traffic as well.
+- Encrypted SSH traffic bypass is now independently controlled through
+  `app-layer.protocols.ssh.encryption-handling` setting. The setting can either
+  be `bypass`, `default` or `full`. 
+  To retain the previous behavior of encrypted traffic bypass
+  combined with stream depth bypass, set
+  `app-layer.protocols.ssh.encryption-handling` to `bypass` (while also
+  setting `app-layer.protocols.tls.encryption-handling` to `bypass` and
+  `stream.bypass` to `true`).
 
 Removals
 ~~~~~~~~
