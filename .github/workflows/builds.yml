@@ -90,7 +90,13 @@ jobs:
 
       - name: Fetching suricata-verify
         run: |
-          pr=$(echo "${SV_BRANCH}" | sed -n 's/^pr\/\([[:digit:]]\+\)$/\1/p')
+          # Looking for a pull request number. in the SV_BRANCH
+          # value. This could be "pr/NNN", "pull/NNN" or a link to an
+          # OISF/suricata-verify pull request.
+          pr=$(echo "${SV_BRANCH}" | sed -n \
+              -e 's/^https:\/\/github.com\/OISF\/suricata-verify\/pull\/\([0-9]*\)$/\1/p' \
+              -e 's/^pull\/\([0-9]*\)$/\1/p' \
+              -e 's/^pr\/\([0-9]*\)$/\1/p')
           if [ "${pr}" ]; then
               SV_BRANCH="refs/pull/${pr}/head"
               echo "Using suricata-verify pull-request ${SV_BRANCH}"
