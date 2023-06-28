@@ -13,7 +13,11 @@ Describe changes:
 
 ### Provide values to any of the below to override the defaults.
 
-To use a pull request use a branch name like `pr/N` where `N` is the pull request number.
+To use a pull request use a branch name like `pr/N` where `N` is the
+pull request number.
+
+Alternatively, `SV_BRANCH` may also be a link to an
+OISF/suricata-verify pull-request.
 
 ```
 SV_REPO=
