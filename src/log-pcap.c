@@ -1187,6 +1187,10 @@ static void PcapLogDataFree(PcapLogData *pl)
     SCFree(pl->filename);
     SCFree(pl->prefix);
 
+    if (pl->pcap_dead_handle) {
+      pcap_close(pl->pcap_dead_handle);
+    }
+
 #ifdef HAVE_LIBLZ4
     if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
         SCFree(pl->compression.buffer);
