@@ -26,7 +26,7 @@ install-exec-local:
 	install -d -m 0755 "$(DESTDIR)$(prefix)/lib/suricata/python/suricatasc"
 	install -d -m 0755 "$(DESTDIR)$(prefix)/bin"
 	for src in $(LIBS); do \
-		install $(srcdir)/$$src "$(DESTDIR)$(prefix)/lib/suricata/python/$$src"; \
+		install -m 0644 $(srcdir)/$$src "$(DESTDIR)$(prefix)/lib/suricata/python/$$src"; \
 	done
 	install suricata/config/defaults.py \
 		"$(DESTDIR)$(prefix)/lib/suricata/python/suricata/config/defaults.py"
