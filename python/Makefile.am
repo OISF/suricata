@@ -20,10 +20,10 @@ EXTRA_DIST = $(LIBS) bin suricata/config/defaults.py
 if HAVE_PYTHON
 
 install-exec-local:
-	install -d -m 0755 "$(DESTDIR)$(prefix)/lib/suricata/python/suricata/config"
-	install -d -m 0755 "$(DESTDIR)$(prefix)/lib/suricata/python/suricata/ctl"
-	install -d -m 0755 "$(DESTDIR)$(prefix)/lib/suricata/python/suricata/sc"
-	install -d -m 0755 "$(DESTDIR)$(prefix)/lib/suricata/python/suricatasc"
+	install -d -m 0644 "$(DESTDIR)$(prefix)/lib/suricata/python/suricata/config"
+	install -d -m 0644 "$(DESTDIR)$(prefix)/lib/suricata/python/suricata/ctl"
+	install -d -m 0644 "$(DESTDIR)$(prefix)/lib/suricata/python/suricata/sc"
+	install -d -m 0644 "$(DESTDIR)$(prefix)/lib/suricata/python/suricatasc"
 	install -d -m 0755 "$(DESTDIR)$(prefix)/bin"
 	for src in $(LIBS); do \
 		install $(srcdir)/$$src "$(DESTDIR)$(prefix)/lib/suricata/python/$$src"; \
