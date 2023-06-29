@@ -139,8 +139,7 @@ static int DNP3ReadUint24(const uint8_t **buf, uint32_t *len, uint32_t *out)
     *out = ((uint32_t)(*buf)[0] << 16) | ((uint32_t)(*buf)[1] << 8) |
            (uint32_t)(*buf)[2];
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
-    *out = ((uint64_t)(*buf)[0]) | ((uint64_t)(*buf)[1] << 8) |
-           ((uint64_t)(*buf)[2] << 16);
+    *out = ((uint32_t)(*buf)[0]) | ((uint32_t)(*buf)[1] << 8) | ((uint32_t)(*buf)[2] << 16);
 #endif
 
     *buf += 3;
