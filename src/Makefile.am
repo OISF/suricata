@@ -155,7 +155,6 @@ noinst_HEADERS = \
 	detect-engine-uint.h \
 	detect-fast-pattern.h \
 	detect-file-data.h \
-	detect-fileext.h \
 	detect-file-hash-common.h \
 	detect-filemagic.h \
 	detect-filemd5.h \
@@ -767,7 +766,6 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-uint.c \
 	detect-fast-pattern.c \
 	detect-file-data.c \
-	detect-fileext.c \
 	detect-file-hash-common.c \
 	detect-filemagic.c \
 	detect-filemd5.c \
