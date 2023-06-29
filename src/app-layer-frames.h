@@ -60,7 +60,7 @@ typedef struct Frame {
 typedef struct Frames {
     uint16_t cnt;
     uint16_t dyn_size;     /**< size in elements of `dframes` */
-    uint32_t left_edge_rel;
+    uint64_t left_edge_rel;
     uint64_t base_id;
     Frame sframes[FRAMES_STATIC_CNT]; /**< static frames */
     Frame *dframes;                   /**< dynamically allocated space for more frames */
