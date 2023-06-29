@@ -397,7 +397,7 @@ typedef unsigned char u_char;
 
 #define BIT_U8(n)  ((uint8_t)(1 << (n)))
 #define BIT_U16(n) ((uint16_t)(1 << (n)))
-#define BIT_U32(n) (1UL  << (n))
+#define BIT_U32(n) ((uint32_t)(1UL << (n)))
 #define BIT_U64(n) (1ULL << (n))
 
 #define WARN_UNUSED __attribute__((warn_unused_result))
