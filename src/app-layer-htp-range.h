@@ -40,7 +40,7 @@ typedef struct HttpRangeContainerBuffer {
     /** offset of bytes written in buffer (relative to the start of the range) */
     uint64_t offset;
     /** number of gaped bytes */
-    uint64_t gap;
+    uint32_t gap;
 } HttpRangeContainerBuffer;
 
 int HttpRangeContainerBufferCompare(HttpRangeContainerBuffer *a, HttpRangeContainerBuffer *b);
@@ -63,7 +63,7 @@ typedef struct HttpRangeContainerFile {
     /** key length */
     uint32_t len;
     /** expire time in epoch */
-    uint32_t expire;
+    uint64_t expire;
     /** pointer to hashtable data, for locking and use count */
     THashData *hdata;
     /** total expected size of the file in ranges */

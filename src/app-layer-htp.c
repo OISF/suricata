@@ -563,12 +563,12 @@ static uint32_t AppLayerHtpComputeChunkLength(uint64_t content_len_so_far, uint3
         (content_len_so_far < (uint64_t)body_limit) &&
         (content_len_so_far + (uint64_t)data_len) > body_limit)
     {
-        chunk_len = body_limit - content_len_so_far;
+        chunk_len = (uint32_t)(body_limit - content_len_so_far);
     } else if ((flags & HTP_STREAM_DEPTH_SET) && stream_depth > 0 &&
                (content_len_so_far < (uint64_t)stream_depth) &&
                (content_len_so_far + (uint64_t)data_len) > stream_depth)
     {
-        chunk_len = stream_depth - content_len_so_far;
+        chunk_len = (uint32_t)(stream_depth - content_len_so_far);
     }
     SCLogDebug("len %u", chunk_len);
     return (chunk_len == 0 ? data_len : chunk_len);
@@ -967,7 +967,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
 
     htp_time_t ts = { SCTIME_SECS(f->startts), SCTIME_USECS(f->startts) };
     htp_tx_t *tx = NULL;
-    size_t consumed = 0;
+    uint32_t consumed = 0;
     if (input_len > 0) {
         const int r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
         switch (r) {
@@ -990,7 +990,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
                     if (tx->request_port_number != -1) {
                         dp = (uint16_t)tx->request_port_number;
                     }
-                    consumed = htp_connp_res_data_consumed(hstate->connp);
+                    consumed = (uint32_t)htp_connp_res_data_consumed(hstate->connp);
                     hstate->slice = NULL;
                     if (!AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2)) {
                         HTPSetEvent(hstate, NULL, STREAM_TOCLIENT,
@@ -1277,7 +1277,7 @@ static void HtpRequestBodyMultipartParseHeader(HtpState *hstate,
         if (next_line == NULL) {
             line_len = header_len;
         } else {
-            line_len = next_line - header;
+            line_len = (uint32_t)(next_line - header);
         }
         uint8_t *sc = (uint8_t *)memchr(line, ':', line_len);
         if (sc == NULL) {
@@ -1396,10 +1396,12 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
     /* end marker belonging to header_start */
     const uint8_t *header_end = NULL;
     if (header_start != NULL) {
-        header_end = Bs2bmSearch(header_start, chunks_buffer_len - (header_start - chunks_buffer),
+        header_end = Bs2bmSearch(header_start,
+                (uint32_t)(chunks_buffer_len - (header_start - chunks_buffer)),
                 (uint8_t *)"\r\n\r\n", 4);
-        form_end = Bs2bmSearch(header_start, chunks_buffer_len - (header_start - chunks_buffer),
-                boundary, expected_boundary_end_len);
+        form_end = Bs2bmSearch(header_start,
+                (uint32_t)(chunks_buffer_len - (header_start - chunks_buffer)), boundary,
+                expected_boundary_end_len);
     }
 
     SCLogDebug("header_start %p, header_end %p, form_end %p", header_start,
@@ -1425,7 +1427,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 } else if (header_start > filedata + 2) {
                     SCLogDebug("some data from last file before the boundary");
                     /* some data from last file before the boundary */
-                    filedata_len = header_start - filedata - 2;
+                    filedata_len = (uint32_t)(header_start - filedata - 2);
                 }
             }
             /* body parsing done, we did not get our form end. Use all data
@@ -1508,7 +1510,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
         uint8_t *filetype = NULL;
         uint16_t filetype_len = 0;
 
-        uint32_t header_len = header_end - header_start;
+        uint32_t header_len = (uint32_t)(header_end - header_start);
         SCLogDebug("header_len %u", header_len);
         uint8_t *header = (uint8_t *)header_start;
 
@@ -1550,7 +1552,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                     goto end;
                 }
 
-                filedata_len = form_end - (header_end + 4 + 2);
+                filedata_len = (uint32_t)(form_end - (header_end + 4 + 2));
                 SCLogDebug("filedata_len %"PRIuMAX, (uintmax_t)filedata_len);
 
                 /* or is it? */
@@ -1591,7 +1593,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 SCLogDebug("chunk doesn't contain form end");
 
                 filedata = header_end + 4;
-                filedata_len = chunks_buffer_len - (filedata - chunks_buffer);
+                filedata_len = (uint32_t)(chunks_buffer_len - (filedata - chunks_buffer));
                 SCLogDebug("filedata_len %u (chunks_buffer_len %u)", filedata_len, chunks_buffer_len);
 
                 if (filedata_len > chunks_buffer_len) {
@@ -1613,7 +1615,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                 if (header_next == NULL) {
                     SCLogDebug("more file data to come");
 
-                    uint32_t offset = (header_end + 4) - chunks_buffer;
+                    uint32_t offset = (uint32_t)((header_end + 4) - chunks_buffer);
                     SCLogDebug("offset %u", offset);
                     htud->request_body.body_parsed += offset;
 
@@ -1646,7 +1648,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                     SCLogDebug("htud->request_body.body_parsed %"PRIu64, htud->request_body.body_parsed);
 
                 } else if (header_next - filedata > 2) {
-                    filedata_len = header_next - filedata - 2;
+                    filedata_len = (uint32_t)(header_next - filedata - 2);
                     SCLogDebug("filedata_len %u", filedata_len);
 
                     result = HTPFileOpen(hstate, htud, filename, filename_len, filedata,
@@ -1672,7 +1674,7 @@ next:
                 header_start, header_end, form_end);
 
         /* Search next boundary entry after the start of body */
-        uint32_t cursizeread = header_end - chunks_buffer;
+        uint32_t cursizeread = (uint32_t)(header_end - chunks_buffer);
         header_start = Bs2bmSearch(header_end + 4,
                 chunks_buffer_len - (cursizeread + 4),
                 boundary, expected_boundary_len);
@@ -2885,7 +2887,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             }
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP max-tx limit to %" PRIu32 " bytes", limit);
-            htp_config_set_max_tx(cfg_prec->cfg, (size_t)limit);
+            htp_config_set_max_tx(cfg_prec->cfg, limit);
 #endif
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
             if (!g_disable_randomness) {

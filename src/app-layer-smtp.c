@@ -536,8 +536,15 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 flags |= FILE_STORE;
             }
 
-            uint32_t depth = smtp_config.content_inspect_min_size +
-                (smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp);
+            uint32_t depth = (uint32_t)(smtp_config.content_inspect_min_size +
+                                        (smtp_state->toserver_data_count -
+                                                smtp_state->toserver_last_data_stamp));
+            if (smtp_config.content_inspect_min_size +
+                            (smtp_state->toserver_data_count -
+                                    smtp_state->toserver_last_data_stamp) >
+                    UINT32_MAX) {
+                depth = UINT32_MAX;
+            }
             SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %"PRIu32, depth);
             StreamTcpReassemblySetMinInspectDepth(flow->protoctx, STREAM_TOSERVER, depth);
 
@@ -568,7 +575,12 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 } else {
                     SCLogDebug("File already closed");
                 }
-                depth = smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp;
+                depth = (uint32_t)(smtp_state->toserver_data_count -
+                                   smtp_state->toserver_last_data_stamp);
+                if (smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp >
+                        UINT32_MAX) {
+                    depth = UINT32_MAX;
+                }
 
                 AppLayerParserTriggerRawStreamReassembly(flow, STREAM_TOSERVER);
                 SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u",
@@ -589,7 +601,12 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
             } else {
                 SCLogDebug("File already closed");
             }
-            uint32_t depth = smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp;
+            uint32_t depth = (uint32_t)(smtp_state->toserver_data_count -
+                                        smtp_state->toserver_last_data_stamp);
+            if (smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp >
+                    UINT32_MAX) {
+                depth = UINT32_MAX;
+            }
             AppLayerParserTriggerRawStreamReassembly(flow, STREAM_TOSERVER);
             SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u",
                     depth);
@@ -610,8 +627,15 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
 
             if (files->tail && files->tail->content_inspected == 0 &&
                     files->tail->size >= smtp_config.content_inspect_min_size) {
-                uint32_t depth = smtp_config.content_inspect_min_size +
-                    (smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp);
+                uint32_t depth = (uint32_t)(smtp_config.content_inspect_min_size +
+                                            (smtp_state->toserver_data_count -
+                                                    smtp_state->toserver_last_data_stamp));
+                if (smtp_config.content_inspect_min_size +
+                                (smtp_state->toserver_data_count -
+                                        smtp_state->toserver_last_data_stamp) >
+                        UINT32_MAX) {
+                    depth = UINT32_MAX;
+                }
                 AppLayerParserTriggerRawStreamReassembly(flow, STREAM_TOSERVER);
                 SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u",
                         depth);
@@ -626,8 +650,15 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
             /* expand the limit as long as we get file data, as the file data is bigger on the
              * wire due to base64 */
             } else {
-                uint32_t depth = smtp_config.content_inspect_min_size +
-                    (smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp);
+                uint32_t depth = (uint32_t)(smtp_config.content_inspect_min_size +
+                                            (smtp_state->toserver_data_count -
+                                                    smtp_state->toserver_last_data_stamp));
+                if (smtp_config.content_inspect_min_size +
+                                (smtp_state->toserver_data_count -
+                                        smtp_state->toserver_last_data_stamp) >
+                        UINT32_MAX) {
+                    depth = UINT32_MAX;
+                }
                 SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %"PRIu32,
                         depth);
                 StreamTcpReassemblySetMinInspectDepth(flow->protoctx,
@@ -680,7 +711,7 @@ static AppLayerResult SMTPGetLine(
          *      lf_idx = 5010
          *      max_line_len = 4096 */
         uint32_t o_consumed = input->consumed;
-        input->consumed = lf_idx - input->buf + 1;
+        input->consumed = (uint32_t)(lf_idx - input->buf + 1);
         line->len = input->consumed - o_consumed;
         line->lf_found = true;
         DEBUG_VALIDATE_BUG_ON(line->len < 0);
@@ -1045,8 +1076,7 @@ static int SMTPParseCommandBDAT(SMTPState *state, const SMTPLine *line)
         /* decoder event */
         return -1;
     }
-    char *endptr = NULL;
-    // copy in temporary null-terminated buffer to call strtoul
+    // copy in temporary null-terminated buffer to call StringParseUint32
     char strbuf[24];
     int len = 23;
     if (line->len - i < len) {
@@ -1054,8 +1084,7 @@ static int SMTPParseCommandBDAT(SMTPState *state, const SMTPLine *line)
     }
     memcpy(strbuf, line->buf + i, len);
     strbuf[len] = '\0';
-    state->bdat_chunk_len = strtoul((const char *)strbuf, (char **)&endptr, 10);
-    if ((uint8_t *)endptr == line->buf + i) {
+    if (StringParseUint32(&state->bdat_chunk_len, 10, 0, strbuf) < 0) {
         /* decoder event */
         return -1;
     }
