@@ -229,12 +229,12 @@ struct SSLDecoderResult {
 #define SSL_DECODER_OK(c)                                                                          \
     (struct SSLDecoderResult)                                                                      \
     {                                                                                              \
-        (c), 0                                                                                     \
+        (uint32_t)(c), 0                                                                           \
     }
 #define SSL_DECODER_INCOMPLETE(c, n)                                                               \
     (struct SSLDecoderResult)                                                                      \
     {                                                                                              \
-        (c), (n)                                                                                   \
+        (uint32_t)(c), (n)                                                                         \
     }
 
 static inline int SafeMemcpy(void *dst, size_t dst_offset, size_t dst_size,
@@ -587,7 +587,7 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
 
 next:
     input += cert_len;
-    return (input - initial_input);
+    return (int)(input - initial_input);
 
 error:
     if (err_code != 0)
@@ -747,7 +747,7 @@ static inline int TLSDecodeHSHelloVersion(SSLState *ssl_state,
 
     input += SSLV3_CLIENT_HELLO_VERSION_LEN;
 
-    return (input - initial_input);
+    return (int)(input - initial_input);
 }
 
 static inline int TLSDecodeHSHelloRandom(SSLState *ssl_state,
@@ -774,7 +774,7 @@ static inline int TLSDecodeHSHelloRandom(SSLState *ssl_state,
     /* Skip random */
     input += SSLV3_CLIENT_HELLO_RANDOM_LEN;
 
-    return (input - initial_input);
+    return (int)(input - initial_input);
 }
 
 static inline int TLSDecodeHSHelloSessionID(SSLState *ssl_state,
@@ -819,7 +819,7 @@ static inline int TLSDecodeHSHelloSessionID(SSLState *ssl_state,
 
     input += session_id_length;
 
-    return (input - initial_input);
+    return (int)(input - initial_input);
 
 invalid_length:
     SCLogDebug("TLS handshake invalid length");
@@ -908,7 +908,7 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
         input += cipher_suites_length;
     }
 
-    return (input - initial_input);
+    return (int)(input - initial_input);
 
 invalid_length:
     SCLogDebug("TLS handshake invalid length");
@@ -939,7 +939,7 @@ static inline int TLSDecodeHSHelloCompressionMethods(SSLState *ssl_state,
         input += compression_methods_length;
     }
 
-    return (input - initial_input);
+    return (int)(input - initial_input);
 
 invalid_length:
     SCLogDebug("TLS handshake invalid_length");
@@ -1001,7 +1001,7 @@ static inline int TLSDecodeHSHelloExtensionSni(SSLState *ssl_state,
         SSLSetEvent(ssl_state,
                 TLS_DECODER_EVENT_MULTIPLE_SNI_EXTENSIONS);
         input += sni_len;
-        return (input - initial_input);
+        return (int)(input - initial_input);
     }
 
     const size_t sni_strlen = sni_len + 1;
@@ -1020,7 +1020,7 @@ static inline int TLSDecodeHSHelloExtensionSni(SSLState *ssl_state,
 
     input += sni_len;
 
-    return (input - initial_input);
+    return (int)(input - initial_input);
 
 invalid_length:
     SCLogDebug("TLS handshake invalid length");
@@ -1090,7 +1090,7 @@ static inline int TLSDecodeHSHelloExtensionSupportedVersions(SSLState *ssl_state
         input += 2;
     }
 
-    return (input - initial_input);
+    return (int)(input - initial_input);
 
 invalid_length:
     SCLogDebug("TLS handshake invalid length");
@@ -1147,7 +1147,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurves(SSLState *ssl_state,
         input += elliptic_curves_len;
     }
 
-    return (input - initial_input);
+    return (int)(input - initial_input);
 
 invalid_length:
     SCLogDebug("TLS handshake invalid length");
@@ -1201,7 +1201,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurvePF(SSLState *ssl_state,
         input += ec_pf_len;
     }
 
-    return (input - initial_input);
+    return (int)(input - initial_input);
 
 invalid_length:
     SCLogDebug("TLS handshake invalid length");
@@ -1249,7 +1249,7 @@ static inline int TLSDecodeHSHelloExtensionSigAlgorithms(
         input += sigalgo_len;
     }
 
-    return (input - initial_input);
+    return (int)(input - initial_input);
 
 invalid_length:
     SCLogDebug("Signature algorithm list invalid length");
@@ -1309,7 +1309,7 @@ static inline int TLSDecodeHSHelloExtensionALPN(
         input += alpn_len;
     }
 
-    return (input - initial_input);
+    return (int)(input - initial_input);
 
 invalid_length:
     SCLogDebug("ALPN list invalid length");
@@ -1524,7 +1524,7 @@ end:
         }
     }
 
-    return (input - initial_input);
+    return (int)(input - initial_input);
 
 invalid_length:
     SCLogDebug("TLS handshake invalid length");
@@ -1897,7 +1897,7 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
                     ssl_state->curr_connp->hs_buffer_message_size);
             input += input_len;
             SSLParserHSReset(ssl_state->curr_connp);
-            return (input - initial_input);
+            return (int)(input - initial_input);
 
         } else {
             /* full record, parse it now */
@@ -1915,7 +1915,7 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
         }
         SCLogDebug("input_len left %u", input_len);
     }
-    return (input - initial_input);
+    return (int)(input - initial_input);
 }
 
 /**
@@ -2120,7 +2120,7 @@ static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
 
     ssl_state->curr_connp->bytes_processed += (input - initial_input);
 
-    return (input - initial_input);
+    return (int)(input - initial_input);
 }
 
 static int SSLv2ParseRecord(uint8_t direction, SSLState *ssl_state,
@@ -2204,7 +2204,7 @@ static int SSLv2ParseRecord(uint8_t direction, SSLState *ssl_state,
 
     ssl_state->curr_connp->bytes_processed += (input - initial_input);
 
-    return (input - initial_input);
+    return (int)(input - initial_input);
 }
 
 static struct SSLDecoderResult SSLv2Decode(uint8_t direction, SSLState *ssl_state,
@@ -2751,7 +2751,7 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
                 input += r.retval;
                 SCLogDebug("returning consumed %" PRIuMAX " needed %u",
                         (uintmax_t)(input - init_input), r.needed);
-                SCReturnStruct(APP_LAYER_INCOMPLETE(input - init_input, r.needed));
+                SCReturnStruct(APP_LAYER_INCOMPLETE((uint32_t)(input - init_input), r.needed));
             }
             input_len -= r.retval;
             input += r.retval;
@@ -2776,7 +2776,7 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
                 input += r.retval;
                 SCLogDebug("returning consumed %" PRIuMAX " needed %u",
                         (uintmax_t)(input - init_input), r.needed);
-                SCReturnStruct(APP_LAYER_INCOMPLETE(input - init_input, r.needed));
+                SCReturnStruct(APP_LAYER_INCOMPLETE((uint32_t)(input - init_input), r.needed));
             }
             input_len -= r.retval;
             input += r.retval;

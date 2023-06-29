@@ -99,10 +99,6 @@ StreamingBufferConfig htp_sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 /** Limit to the number of libhtp messages that can be handled */
 #define HTP_MAX_MESSAGES 512
 
-/** a boundary should be smaller in size */
-// RFC 2046 states that max boundary size is 70
-#define HTP_BOUNDARY_MAX 200U
-
 SC_ATOMIC_DECLARE(uint32_t, htp_config_flags);
 
 #ifdef DEBUG
@@ -552,12 +548,12 @@ static uint32_t AppLayerHtpComputeChunkLength(uint64_t content_len_so_far, uint3
         (content_len_so_far < (uint64_t)body_limit) &&
         (content_len_so_far + (uint64_t)data_len) > body_limit)
     {
-        chunk_len = body_limit - content_len_so_far;
+        chunk_len = (uint32_t)(body_limit - content_len_so_far);
     } else if ((flags & HTP_STREAM_DEPTH_SET) && stream_depth > 0 &&
                (content_len_so_far < (uint64_t)stream_depth) &&
                (content_len_so_far + (uint64_t)data_len) > stream_depth)
     {
-        chunk_len = stream_depth - content_len_so_far;
+        chunk_len = (uint32_t)(stream_depth - content_len_so_far);
     }
     SCLogDebug("len %u", chunk_len);
     return (chunk_len == 0 ? data_len : chunk_len);
@@ -956,7 +952,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
 
     htp_time_t ts = { SCTIME_SECS(f->startts), SCTIME_USECS(f->startts) };
     htp_tx_t *tx = NULL;
-    size_t consumed = 0;
+    uint32_t consumed = 0;
     if (input_len > 0) {
         const int r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
         switch (r) {
@@ -975,7 +971,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
                     if (tx->request_port_number != -1) {
                         dp = (uint16_t)tx->request_port_number;
                     }
-                    consumed = htp_connp_res_data_consumed(hstate->connp);
+                    consumed = (uint32_t)htp_connp_res_data_consumed(hstate->connp);
                     if (bstr_cmp_c(h->value, "h2c") == 0) {
                         if (AppLayerProtoDetectGetProtoName(ALPROTO_HTTP2) == NULL) {
                             // if HTTP2 is disabled, keep the HTP_STREAM_TUNNEL mode
@@ -1136,7 +1132,7 @@ static int HtpRequestBodySetupMultipart(htp_tx_t *tx, HtpTxUserData *htud)
     htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
             "Content-Type");
     if (h != NULL && bstr_len(h->value) > 0) {
-        htud->mime_state = SCMimeStateInit(bstr_ptr(h->value), bstr_len(h->value));
+        htud->mime_state = SCMimeStateInit(bstr_ptr(h->value), (uint32_t)bstr_len(h->value));
         if (htud->mime_state) {
             htud->tsflags |= HTP_BOUNDARY_SET;
             SCReturnInt(1);
@@ -2464,7 +2460,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             }
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP max-tx limit to %" PRIu32 " bytes", limit);
-            htp_config_set_max_tx(cfg_prec->cfg, (size_t)limit);
+            htp_config_set_max_tx(cfg_prec->cfg, limit);
 #endif
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
             if (!g_disable_randomness) {
