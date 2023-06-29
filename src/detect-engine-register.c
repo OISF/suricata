@@ -117,7 +117,6 @@
 #include "detect-rpc.h"
 #include "detect-asn1.h"
 #include "detect-filename.h"
-#include "detect-fileext.h"
 #include "detect-filestore.h"
 #include "detect-filemagic.h"
 #include "detect-filemd5.h"
@@ -462,7 +461,6 @@ void SigTableSetup(void)
     DetectHttpCookieRegister();
 
     DetectFilenameRegister();
-    DetectFileextRegister();
     DetectFilestoreRegister();
     DetectFilemagicRegister();
     DetectFileMd5Register();
