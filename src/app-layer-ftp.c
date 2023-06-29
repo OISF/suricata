@@ -374,7 +374,7 @@ static AppLayerResult FTPGetLineForDirection(
         //      lf_idx = 5010
         //      max_line_len = 4096
         uint32_t o_consumed = input->consumed;
-        input->consumed = lf_idx - input->buf + 1;
+        input->consumed = (uint32_t)(lf_idx - input->buf + 1);
         line->len = input->consumed - o_consumed;
         input->len -= line->len;
         line->lf_found = true;

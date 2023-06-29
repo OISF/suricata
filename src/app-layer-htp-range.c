@@ -139,7 +139,7 @@ static inline bool ContainerValueRangeTimeout(HttpRangeContainerFile *cu, const 
     return false;
 }
 
-static void ContainerUrlRangeUpdate(HttpRangeContainerFile *cu, uint32_t expire)
+static void ContainerUrlRangeUpdate(HttpRangeContainerFile *cu, uint64_t expire)
 {
     cu->expire = expire;
 }
@@ -410,9 +410,9 @@ int HttpRangeAppendData(const StreamingBufferConfig *sbcfg, HttpRangeContainerBl
         if (c->files) {
             if (data == NULL) {
                 // gap overlapping already known data
-                r = FileAppendData(c->files, sbcfg, NULL, len - c->toskip);
+                r = FileAppendData(c->files, sbcfg, NULL, (uint32_t)(len - c->toskip));
             } else {
-                r = FileAppendData(c->files, sbcfg, data + c->toskip, len - c->toskip);
+                r = FileAppendData(c->files, sbcfg, data + c->toskip, (uint32_t)(len - c->toskip));
             }
         }
         c->toskip = 0;
@@ -550,7 +550,13 @@ File *HttpRangeClose(const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock
                     return f;
                 }
             }
-            if (FileAppendData(c->container->files, sbcfg, range->buffer, range->offset) != 0) {
+            if (range->offset > UINT32_MAX) {
+                c->container->lastsize = f->size;
+                HttpRangeFileClose(sbcfg, c->container, flags | FILE_TRUNCATED);
+                c->container->error = true;
+                return f;
+            } else if (FileAppendData(c->container->files, sbcfg, range->buffer,
+                               (uint32_t)range->offset) != 0) {
                 c->container->lastsize = f->size;
                 HttpRangeFileClose(sbcfg, c->container, flags | FILE_TRUNCATED);
                 c->container->error = true;
@@ -571,8 +577,13 @@ File *HttpRangeClose(const StreamingBufferConfig *sbcfg, HttpRangeContainerBlock
                 }
                 // And the range ends beyond where we ended
                 // in this case of overlap, only add the extra data
-                if (FileAppendData(c->container->files, sbcfg, range->buffer + overlap,
-                            range->offset - overlap) != 0) {
+                if (range->offset - overlap > UINT32_MAX) {
+                    c->container->lastsize = f->size;
+                    HttpRangeFileClose(sbcfg, c->container, flags | FILE_TRUNCATED);
+                    c->container->error = true;
+                    return f;
+                } else if (FileAppendData(c->container->files, sbcfg, range->buffer + overlap,
+                                   (uint32_t)(range->offset - overlap)) != 0) {
                     c->container->lastsize = f->size;
                     HttpRangeFileClose(sbcfg, c->container, flags | FILE_TRUNCATED);
                     c->container->error = true;

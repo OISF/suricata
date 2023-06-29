@@ -691,7 +691,7 @@ static uint32_t AppLayerProtoDetectProbingParserGetMask(AppProto alproto)
         FatalError("Unknown protocol detected - %u", alproto);
     }
 
-    SCReturnUInt(1UL << (uint32_t)alproto);
+    SCReturnUInt(BIT_U32(alproto));
 }
 
 static AppLayerProtoDetectProbingParserElement *AppLayerProtoDetectProbingParserElementAlloc(void)

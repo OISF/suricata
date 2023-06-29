@@ -95,7 +95,7 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
  */
 int HTPParseContentRange(bstr *rawvalue, HTTPContentRange *range)
 {
-    uint32_t len = bstr_len(rawvalue);
+    uint32_t len = (uint32_t)bstr_len(rawvalue);
     return rs_http_parse_content_range(range, bstr_ptr(rawvalue), len);
 }
 
@@ -182,13 +182,17 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     uint8_t *keyurl;
     uint32_t keylen;
     if (tx->request_hostname != NULL) {
-        keylen = bstr_len(tx->request_hostname) + filename_len;
+        uint32_t hlen = (uint32_t)bstr_len(tx->request_hostname);
+        if (bstr_len(tx->request_hostname) > UINT16_MAX) {
+            hlen = UINT16_MAX;
+        }
+        keylen = hlen + filename_len;
         keyurl = SCMalloc(keylen);
         if (keyurl == NULL) {
             SCReturnInt(-1);
         }
-        memcpy(keyurl, bstr_ptr(tx->request_hostname), bstr_len(tx->request_hostname));
-        memcpy(keyurl + bstr_len(tx->request_hostname), filename, filename_len);
+        memcpy(keyurl, bstr_ptr(tx->request_hostname), hlen);
+        memcpy(keyurl + hlen, filename, filename_len);
     } else {
         // do not reassemble file without host info
         SCReturnInt(0);
