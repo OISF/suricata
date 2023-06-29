@@ -54,6 +54,7 @@
 #include "detect-filename.h"
 #include "app-layer-parser.h"
 
+static int DetectFileextSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 static int DetectFilenameSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectFilenameSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 #ifdef UNITTESTS
@@ -85,6 +86,13 @@ void DetectFilenameRegister(void)
 #endif
     sigmatch_table[DETECT_FILENAME].flags = SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION;
     sigmatch_table[DETECT_FILENAME].alternative = DETECT_FILE_NAME;
+
+    sigmatch_table[DETECT_FILEEXT].name = "fileext";
+    sigmatch_table[DETECT_FILEEXT].desc = "match on the extension of a file name";
+    sigmatch_table[DETECT_FILEEXT].url = "/rules/file-keywords.html#fileext";
+    sigmatch_table[DETECT_FILEEXT].Setup = DetectFileextSetup;
+    sigmatch_table[DETECT_FILEEXT].flags = SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_HANDLE_NEGATION;
+    sigmatch_table[DETECT_FILEEXT].alternative = DETECT_FILE_NAME;
 
     sigmatch_table[DETECT_FILE_NAME].name = "file.name";
     sigmatch_table[DETECT_FILE_NAME].desc = "sticky buffer to match on the file name";
@@ -166,6 +174,47 @@ void DetectFilenameRegister(void)
     return;
 }
 
+static int DetectFileextSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    if (s->init_data->transforms.cnt) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "previous transforms not consumed before 'fileext'");
+        SCReturnInt(-1);
+    }
+    s->init_data->list = DETECT_SM_LIST_NOTSET;
+    s->file_flags |= (FILE_SIG_NEED_FILE | FILE_SIG_NEED_FILENAME);
+
+    size_t dotstr_len = strlen(str) + 2;
+    char *dotstr = SCCalloc(1, dotstr_len);
+    if (dotstr == NULL)
+        return -1;
+    dotstr[0] = '.';
+    strlcat(dotstr, str, dotstr_len);
+
+    if (DetectContentSetup(de_ctx, s, dotstr) < 0) {
+        SCFree(dotstr);
+        return -1;
+    }
+    SCFree(dotstr);
+
+    SigMatch *sm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    if (sm == NULL)
+        return -1;
+
+    DetectContentData *cd = (DetectContentData *)sm->ctx;
+    cd->flags |= DETECT_CONTENT_NOCASE;
+    cd->flags |= DETECT_CONTENT_ENDS_WITH;
+    /* Recreate the context with nocase chars */
+    SpmDestroyCtx(cd->spm_ctx);
+    cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1, de_ctx->spm_global_thread_ctx);
+    if (cd->spm_ctx == NULL) {
+        return -1;
+    }
+    if (DetectEngineContentModifierBufferSetup(
+                de_ctx, s, NULL, DETECT_FILE_NAME, g_file_name_buffer_id, s->alproto) < 0)
+        return -1;
+
+    return 0;
+}
 /**
  * \brief this function is used to parse filename options
  * \brief into the current signature

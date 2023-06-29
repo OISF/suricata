@@ -166,7 +166,6 @@ detect-engine-uint.c detect-engine-uint.h \
 detect-fast-pattern.c detect-fast-pattern.h \
 detect-file-data.c detect-file-data.h \
 detect-file-hash-common.c detect-file-hash-common.h \
-detect-fileext.c detect-fileext.h \
 detect-filemagic.c detect-filemagic.h \
 detect-filemd5.c detect-filemd5.h \
 detect-filesha1.c detect-filesha1.h \
