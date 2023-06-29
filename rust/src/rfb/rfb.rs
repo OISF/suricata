@@ -274,6 +274,7 @@ impl RFBState {
                         Err(_) => {
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.set_event(RFBEvent::MalformedMessage);
+                                current_transaction.complete = true;
                             }
                             // We failed to parse the security type.
                             // Continue the flow but stop trying to map the protocol.
@@ -312,6 +313,7 @@ impl RFBState {
                     Err(_) => {
                         if let Some(current_transaction) = self.get_current_tx() {
                             current_transaction.set_event(RFBEvent::MalformedMessage);
+                            current_transaction.complete = true;
                         }
                         // Continue the flow but stop trying to map the protocol.
                         self.state = parser::RFBGlobalState::Skip;
@@ -348,6 +350,7 @@ impl RFBState {
                     Err(_) => {
                         if let Some(current_transaction) = self.get_current_tx() {
                             current_transaction.set_event(RFBEvent::MalformedMessage);
+                            current_transaction.complete = true;
                         }
                         // We failed to parse the client init.
                         // Continue the flow but stop trying to map the protocol.
@@ -371,6 +374,7 @@ impl RFBState {
                     SCLogDebug!("Invalid state for request: {}", self.state);
                     if let Some(current_transaction) = self.get_current_tx() {
                         current_transaction.set_event(RFBEvent::ConfusedState);
+                        current_transaction.complete = true;
                     }
                     self.state = parser::RFBGlobalState::Skip;
                     return AppLayerResult::ok();
@@ -479,6 +483,7 @@ impl RFBState {
                         Err(_) => {
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.set_event(RFBEvent::MalformedMessage);
+                                current_transaction.complete = true;
                             }
                             // Continue the flow but stop trying to map the protocol.
                             self.state = parser::RFBGlobalState::Skip;
@@ -511,6 +516,7 @@ impl RFBState {
                                     if let Some(current_transaction) = self.get_current_tx() {
                                         current_transaction
                                             .set_event(RFBEvent::UnimplementedSecurityType);
+                                        current_transaction.complete = true;
                                     } else {
                                         debug_validate_fail!(
                                             "no transaction set at security type stage"
@@ -542,6 +548,7 @@ impl RFBState {
                         Err(_) => {
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.set_event(RFBEvent::MalformedMessage);
+                                current_transaction.complete = true;
                             }
                             // Continue the flow but stop trying to map the protocol.
                             self.state = parser::RFBGlobalState::Skip;
@@ -579,6 +586,7 @@ impl RFBState {
                     Err(_) => {
                         if let Some(current_transaction) = self.get_current_tx() {
                             current_transaction.set_event(RFBEvent::MalformedMessage);
+                            current_transaction.complete = true;
                         }
                         // Continue the flow but stop trying to map the protocol.
                         self.state = parser::RFBGlobalState::Skip;
@@ -614,6 +622,7 @@ impl RFBState {
                             } else {
                                 if let Some(current_transaction) = self.get_current_tx() {
                                     current_transaction.set_event(RFBEvent::UnknownSecurityResult);
+                                    current_transaction.complete = true;
                                 }
                                 // Continue the flow but stop trying to map the protocol.
                                 self.state = parser::RFBGlobalState::Skip;
@@ -629,6 +638,7 @@ impl RFBState {
                         Err(_) => {
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.set_event(RFBEvent::MalformedMessage);
+                                current_transaction.complete = true;
                             }
                             // Continue the flow but stop trying to map the protocol.
                             self.state = parser::RFBGlobalState::Skip;
@@ -655,6 +665,7 @@ impl RFBState {
                         Err(_) => {
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.set_event(RFBEvent::MalformedMessage);
+                                current_transaction.complete = true;
                             }
                             // Continue the flow but stop trying to map the protocol.
                             self.state = parser::RFBGlobalState::Skip;
@@ -695,6 +706,7 @@ impl RFBState {
                         Err(_) => {
                             if let Some(current_transaction) = self.get_current_tx() {
                                 current_transaction.set_event(RFBEvent::MalformedMessage);
+                                current_transaction.complete = true;
                             }
                             // Continue the flow but stop trying to map the protocol.
                             self.state = parser::RFBGlobalState::Skip;
@@ -718,6 +730,7 @@ impl RFBState {
                     SCLogDebug!("Invalid state for response: {}", self.state);
                     if let Some(current_transaction) = self.get_current_tx() {
                         current_transaction.set_event(RFBEvent::ConfusedState);
+                        current_transaction.complete = true;
                     }
                     self.state = parser::RFBGlobalState::Skip;
                     return AppLayerResult::ok();
