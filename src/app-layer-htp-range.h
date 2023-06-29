@@ -63,7 +63,7 @@ typedef struct HttpRangeContainerFile {
     /** key length */
     uint32_t len;
     /** expire time in epoch */
-    uint32_t expire;
+    SCTime_t expire;
     /** pointer to hashtable data, for locking and use count */
     THashData *hdata;
     /** total expected size of the file in ranges */
