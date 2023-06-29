@@ -368,7 +368,9 @@ static int FrameSlide(const char *ds, Frames *frames, const TcpStream *stream, c
     }
     frames->cnt = x;
     uint64_t o = STREAM_BASE_OFFSET(stream) + slide;
-    frames->left_edge_rel = le - (STREAM_BASE_OFFSET(stream) + slide);
+    DEBUG_VALIDATE_BUG_ON(o > le);
+    DEBUG_VALIDATE_BUG_ON(le - o > UINT32_MAX);
+    frames->left_edge_rel = (uint32_t)(le - o);
 
 #ifdef DEBUG
     SCLogDebug("end: left edge %" PRIu64 ", left_edge_rel %u, stream base %" PRIu64
@@ -379,7 +381,6 @@ static int FrameSlide(const char *ds, Frames *frames, const TcpStream *stream, c
     snprintf(pf, sizeof(pf), "%s:post_slide", ds);
     AppLayerFrameDumpForFrames(pf, frames);
 #endif
-    BUG_ON(o > le);
     BUG_ON(x != start - removed);
     return 0;
 }
@@ -790,7 +791,9 @@ static void FramePrune(Frames *frames, const TcpStream *stream, const bool eof)
         }
     }
     frames->cnt = x;
-    frames->left_edge_rel = le - STREAM_BASE_OFFSET(stream);
+    DEBUG_VALIDATE_BUG_ON(le < STREAM_BASE_OFFSET(stream));
+    DEBUG_VALIDATE_BUG_ON(le - STREAM_BASE_OFFSET(stream) > UINT32_MAX);
+    frames->left_edge_rel = (uint32_t)(le - STREAM_BASE_OFFSET(stream));
 #ifdef DEBUG
     SCLogDebug("end: left edge %" PRIu64 ", left_edge_rel %u, stream base %" PRIu64
                ", cnt %u, removed %u, start %u",
@@ -798,7 +801,6 @@ static void FramePrune(Frames *frames, const TcpStream *stream, const bool eof)
             STREAM_BASE_OFFSET(stream), frames->cnt, removed, start);
     AppLayerFrameDumpForFrames("post_slide", frames);
 #endif
-    BUG_ON(le < STREAM_BASE_OFFSET(stream));
     if (frames->cnt > 0) { // if we removed all this can fail
         BUG_ON(frames_le_start > le);
     }
