@@ -124,7 +124,7 @@ typedef struct SMTPState_ {
     /** current command in progress */
     uint8_t current_command;
     /** bdat chunk len */
-    uint32_t bdat_chunk_len;
+    uint64_t bdat_chunk_len;
     /** bdat chunk idx */
     uint32_t bdat_chunk_idx;
 
