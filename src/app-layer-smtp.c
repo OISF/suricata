@@ -552,7 +552,7 @@ static AppLayerResult SMTPGetLine(Flow *f, StreamSlice *slice, SMTPState *state,
          *      lf_idx = 5010
          *      max_line_len = 4096 */
         uint32_t o_consumed = input->consumed;
-        input->consumed = lf_idx - input->buf + 1;
+        input->consumed = (uint32_t)(lf_idx - input->buf + 1);
         line->len = input->consumed - o_consumed;
         line->lf_found = true;
         DEBUG_VALIDATE_BUG_ON(line->len < 0);
@@ -759,8 +759,9 @@ static int SMTPProcessCommandDATA(
                         // not an attachment
                         break;
                     }
-                    depth = smtp_config.content_inspect_min_size +
-                            (state->toserver_data_count - state->toserver_last_data_stamp);
+                    depth = (uint32_t)(smtp_config.content_inspect_min_size +
+                                       (state->toserver_data_count -
+                                               state->toserver_last_data_stamp));
                     SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %" PRIu32,
                             depth);
                     StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER, depth);
@@ -780,8 +781,9 @@ static int SMTPProcessCommandDATA(
                     // rust already run FileAppendData
                     if (tx->files_ts.tail && tx->files_ts.tail->content_inspected == 0 &&
                             tx->files_ts.tail->size >= smtp_config.content_inspect_min_size) {
-                        depth = smtp_config.content_inspect_min_size +
-                                (state->toserver_data_count - state->toserver_last_data_stamp);
+                        depth = (uint32_t)(smtp_config.content_inspect_min_size +
+                                           (state->toserver_data_count -
+                                                   state->toserver_last_data_stamp));
                         AppLayerParserTriggerRawStreamReassembly(f, STREAM_TOSERVER);
                         SCLogDebug(
                                 "StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
@@ -792,8 +794,9 @@ static int SMTPProcessCommandDATA(
                         /* expand the limit as long as we get file data, as the file data is bigger
                          * on the wire due to base64 */
                     } else {
-                        depth = smtp_config.content_inspect_min_size +
-                                (state->toserver_data_count - state->toserver_last_data_stamp);
+                        depth = (uint32_t)(smtp_config.content_inspect_min_size +
+                                           (state->toserver_data_count -
+                                                   state->toserver_last_data_stamp));
                         SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %" PRIu32,
                                 depth);
                         StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER, depth);
@@ -807,7 +810,8 @@ static int SMTPProcessCommandDATA(
                     } else {
                         SCLogDebug("File already closed");
                     }
-                    depth = state->toserver_data_count - state->toserver_last_data_stamp;
+                    depth = (uint32_t)(state->toserver_data_count -
+                                       state->toserver_last_data_stamp);
                     AppLayerParserTriggerRawStreamReassembly(f, STREAM_TOSERVER);
                     SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
                     StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER, depth);
@@ -972,8 +976,7 @@ static int SMTPParseCommandBDAT(SMTPState *state, const SMTPLine *line)
         /* decoder event */
         return -1;
     }
-    char *endptr = NULL;
-    // copy in temporary null-terminated buffer to call strtoul
+    // copy in temporary null-terminated buffer to call StringParseUint32
     char strbuf[24];
     int len = 23;
     if (line->len - i < len) {
@@ -981,8 +984,7 @@ static int SMTPParseCommandBDAT(SMTPState *state, const SMTPLine *line)
     }
     memcpy(strbuf, line->buf + i, len);
     strbuf[len] = '\0';
-    state->bdat_chunk_len = strtoul((const char *)strbuf, (char **)&endptr, 10);
-    if ((uint8_t *)endptr == line->buf + i) {
+    if (StringParseUint32(&state->bdat_chunk_len, 10, 0, strbuf) < 0) {
         /* decoder event */
         return -1;
     }
