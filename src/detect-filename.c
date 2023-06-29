@@ -54,14 +54,11 @@
 #include "detect-filename.h"
 #include "app-layer-parser.h"
 
-static int DetectFilenameMatch (DetectEngineThreadCtx *, Flow *,
-        uint8_t, File *, const Signature *, const SigMatchCtx *);
 static int DetectFilenameSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectFilenameSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 #ifdef UNITTESTS
 static void DetectFilenameRegisterTests(void);
 #endif
-static void DetectFilenameFree(DetectEngineCtx *, void *);
 static int g_file_match_list_id = 0;
 static int g_file_name_buffer_id = 0;
 
@@ -82,9 +79,7 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILENAME].name = "filename";
     sigmatch_table[DETECT_FILENAME].desc = "match on the file name";
     sigmatch_table[DETECT_FILENAME].url = "/rules/file-keywords.html#filename";
-    sigmatch_table[DETECT_FILENAME].FileMatch = DetectFilenameMatch;
     sigmatch_table[DETECT_FILENAME].Setup = DetectFilenameSetup;
-    sigmatch_table[DETECT_FILENAME].Free  = DetectFilenameFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FILENAME].RegisterTests = DetectFilenameRegisterTests;
 #endif
@@ -172,118 +167,6 @@ void DetectFilenameRegister(void)
 }
 
 /**
- * \brief match the specified filename
- *
- * \param t thread local vars
- * \param det_ctx pattern matcher thread local data
- * \param f *LOCKED* flow
- * \param flags direction flags
- * \param file file being inspected
- * \param s signature being inspected
- * \param m sigmatch that we will cast into DetectFilenameData
- *
- * \retval 0 no match
- * \retval 1 match
- */
-static int DetectFilenameMatch (DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
-{
-    SCEnter();
-    int ret = 0;
-
-    DetectFilenameData *filename = (DetectFilenameData *)m;
-
-    if (file->name == NULL)
-        SCReturnInt(0);
-
-    if (BoyerMooreNocase(filename->name, filename->len, file->name,
-                file->name_len, filename->bm_ctx) != NULL)
-    {
-#ifdef DEBUG
-        if (SCLogDebugEnabled()) {
-            char *name = SCMalloc(filename->len + 1);
-            if (name != NULL) {
-                memcpy(name, filename->name, filename->len);
-                name[filename->len] = '\0';
-                SCLogDebug("will look for filename %s", name);
-                SCFree(name);
-            }
-        }
-#endif
-
-        if (!(filename->flags & DETECT_CONTENT_NEGATED)) {
-            ret = 1;
-        }
-    }
-
-    else if (filename->flags & DETECT_CONTENT_NEGATED) {
-        SCLogDebug("negated match");
-        ret = 1;
-    }
-
-    SCReturnInt(ret);
-}
-
-/**
- * \brief Parse the filename keyword
- *
- * \param de_ctx Pointer to the detection engine context
- * \param idstr Pointer to the user provided option
- *
- * \retval filename pointer to DetectFilenameData on success
- * \retval NULL on failure
- */
-static DetectFilenameData *DetectFilenameParse(
-        DetectEngineCtx *de_ctx, const char *str, bool negate, bool *warning)
-{
-    DetectFilenameData *filename = NULL;
-
-    /* We have a correct filename option */
-    filename = SCMalloc(sizeof(DetectFilenameData));
-    if (unlikely(filename == NULL))
-        goto error;
-
-    memset(filename, 0x00, sizeof(DetectFilenameData));
-
-    if (DetectContentDataParse("filename", str, &filename->name, &filename->len, warning) == -1) {
-        goto error;
-    }
-
-    filename->bm_ctx = BoyerMooreNocaseCtxInit(filename->name, filename->len);
-    if (filename->bm_ctx == NULL) {
-        goto error;
-    }
-
-    if (negate) {
-        filename->flags |= DETECT_CONTENT_NEGATED;
-    }
-
-    SCLogDebug("flags %02X", filename->flags);
-    if (filename->flags & DETECT_CONTENT_NEGATED) {
-        SCLogDebug("negated filename");
-    }
-
-#ifdef DEBUG
-    if (SCLogDebugEnabled()) {
-        char *name = SCMalloc(filename->len + 1);
-        if (name != NULL) {
-            memcpy(name, filename->name, filename->len);
-            name[filename->len] = '\0';
-            SCLogDebug("will look for filename %s", name);
-            SCFree(name);
-        }
-    }
-#endif
-
-    return filename;
-
-error:
-    if (filename != NULL)
-        DetectFilenameFree(de_ctx, filename);
-    return NULL;
-}
-
-/**
  * \brief this function is used to parse filename options
  * \brief into the current signature
  *
@@ -296,52 +179,34 @@ error:
  */
 static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectFilenameData *filename = NULL;
-    SigMatch *sm = NULL;
-    bool warning = false;
-
-    filename = DetectFilenameParse(de_ctx, str, s->init_data->negated, &warning);
-    if (filename == NULL)
-        goto error;
-
-    /* Okay so far so good, lets get this into a SigMatch
-     * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_FILENAME;
-    sm->ctx = (void *)filename;
-
-    SigMatchAppendSMToList(s, sm, g_file_match_list_id);
-
-    s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_FILENAME);
-    return 0;
-
-error:
-    if (filename != NULL)
-        DetectFilenameFree(de_ctx, filename);
-    if (sm != NULL)
-        SCFree(sm);
-    return warning ? -4 : -1;
-}
-
-/**
- * \brief this function will free memory associated with DetectFilenameData
- *
- * \param filename pointer to DetectFilenameData
- */
-static void DetectFilenameFree(DetectEngineCtx *de_ctx, void *ptr)
-{
-    if (ptr != NULL) {
-        DetectFilenameData *filename = (DetectFilenameData *)ptr;
-        if (filename->bm_ctx != NULL) {
-            BoyerMooreCtxDeInit(filename->bm_ctx);
-        }
-        if (filename->name != NULL)
-            SCFree(filename->name);
-        SCFree(filename);
+    if (s->init_data->transforms.cnt) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "previous transforms not consumed before 'filename'");
+        SCReturnInt(-1);
     }
+    s->init_data->list = DETECT_SM_LIST_NOTSET;
+    s->file_flags |= (FILE_SIG_NEED_FILE | FILE_SIG_NEED_FILENAME);
+
+    if (DetectContentSetup(de_ctx, s, str) < 0) {
+        return -1;
+    }
+
+    SigMatch *sm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    if (sm == NULL)
+        return -1;
+
+    DetectContentData *cd = (DetectContentData *)sm->ctx;
+    cd->flags |= DETECT_CONTENT_NOCASE;
+    /* Recreate the context with nocase chars */
+    SpmDestroyCtx(cd->spm_ctx);
+    cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1, de_ctx->spm_global_thread_ctx);
+    if (cd->spm_ctx == NULL) {
+        return -1;
+    }
+    if (DetectEngineContentModifierBufferSetup(
+                de_ctx, s, NULL, DETECT_FILE_NAME, g_file_name_buffer_id, s->alproto) < 0)
+        return -1;
+
+    return 0;
 }
 
 /* file.name implementation */
@@ -518,66 +383,10 @@ static int DetectFilenameSignatureParseTest01(void)
     PASS;
 }
 /**
- * \test DetectFilenameTestParse01
- */
-static int DetectFilenameTestParse01 (void)
-{
-    DetectFilenameData *dnd = DetectFilenameParse(NULL, "secret.pdf", false, NULL);
-    if (dnd != NULL) {
-        DetectFilenameFree(NULL, dnd);
-        return 1;
-    }
-    return 0;
-}
-
-/**
- * \test DetectFilenameTestParse02
- */
-static int DetectFilenameTestParse02 (void)
-{
-    int result = 0;
-
-    DetectFilenameData *dnd = DetectFilenameParse(NULL, "backup.tar.gz", false, NULL);
-    if (dnd != NULL) {
-        if (dnd->len == 13 && memcmp(dnd->name, "backup.tar.gz", 13) == 0) {
-            result = 1;
-        }
-
-        DetectFilenameFree(NULL, dnd);
-        return result;
-    }
-    return 0;
-}
-
-/**
- * \test DetectFilenameTestParse03
- */
-static int DetectFilenameTestParse03 (void)
-{
-    int result = 0;
-
-    DetectFilenameData *dnd = DetectFilenameParse(NULL, "cmd.exe", false, NULL);
-    if (dnd != NULL) {
-        if (dnd->len == 7 && memcmp(dnd->name, "cmd.exe", 7) == 0) {
-            result = 1;
-        }
-
-        DetectFilenameFree(NULL, dnd);
-        return result;
-    }
-    return 0;
-}
-
-
-/**
  * \brief this function registers unit tests for DetectFilename
  */
 void DetectFilenameRegisterTests(void)
 {
     UtRegisterTest("DetectFilenameSignatureParseTest01", DetectFilenameSignatureParseTest01);
-
-    UtRegisterTest("DetectFilenameTestParse01", DetectFilenameTestParse01);
-    UtRegisterTest("DetectFilenameTestParse02", DetectFilenameTestParse02);
-    UtRegisterTest("DetectFilenameTestParse03", DetectFilenameTestParse03);
 }
 #endif /* UNITTESTS */
