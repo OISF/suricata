@@ -237,10 +237,6 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
                 if (fd->flags & DETECT_FLOW_FLAG_NOT_ESTABLISHED) {
                     SCLogError("DETECT_FLOW_FLAG_NOT_ESTABLISHED flag is already set");
                     goto error;
-                } else if (fd->flags & DETECT_FLOW_FLAG_NOT_ESTABLISHED) {
-                    SCLogError("cannot set DETECT_FLOW_FLAG_NOT_ESTABLISHED, "
-                               "DETECT_FLOW_FLAG_ESTABLISHED already set");
-                    goto error;
                 }
                 fd->flags |= DETECT_FLOW_FLAG_NOT_ESTABLISHED;
             } else if (strcasecmp(args[i], "stateless") == 0) {
