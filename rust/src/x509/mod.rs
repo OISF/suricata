@@ -30,12 +30,8 @@ pub enum X509DecodeError {
     InvalidCert,
     /// Some length does not match, or certificate is incomplete
     InvalidLength,
-    InvalidVersion,
-    InvalidSerial,
-    InvalidAlgorithmIdentifier,
     InvalidX509Name,
     InvalidDate,
-    InvalidExtensions,
     /// DER structure is invalid
     InvalidDER,
 }
@@ -112,8 +108,8 @@ pub unsafe extern "C" fn rs_x509_get_validity(
         return -1;
     }
     let x509 = &*ptr;
-    let n_b = x509.0.tbs_certificate.validity.not_before.to_timespec().sec;
-    let n_a = x509.0.tbs_certificate.validity.not_after.to_timespec().sec;
+    let n_b = x509.0.tbs_certificate.validity.not_before.timestamp();
+    let n_a = x509.0.tbs_certificate.validity.not_after.timestamp();
     *not_before = n_b;
     *not_after = n_a;
     0
@@ -136,12 +132,8 @@ fn x509_parse_error_to_errcode(e: &nom::Err<X509Error>) -> X509DecodeError {
     match e {
         nom::Err::Incomplete(_) => X509DecodeError::InvalidLength,
         nom::Err::Error(e) | nom::Err::Failure(e) => match e {
-            X509Error::InvalidVersion => X509DecodeError::InvalidVersion,
-            X509Error::InvalidSerial => X509DecodeError::InvalidSerial,
-            X509Error::InvalidAlgorithmIdentifier => X509DecodeError::InvalidAlgorithmIdentifier,
             X509Error::InvalidX509Name => X509DecodeError::InvalidX509Name,
             X509Error::InvalidDate => X509DecodeError::InvalidDate,
-            X509Error::InvalidExtensions => X509DecodeError::InvalidExtensions,
             X509Error::Der(_) => X509DecodeError::InvalidDER,
             _ => X509DecodeError::InvalidCert,
         },
