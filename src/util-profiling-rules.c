@@ -441,7 +441,7 @@ static void *SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx, int file_output)
         summary[i].ticks = rules_ctx->data[i].ticks_match + rules_ctx->data[i].ticks_no_match;
         summary[i].checks = rules_ctx->data[i].checks;
 
-        if (summary[i].ticks > 0) {
+        if (summary[i].checks > 0) {
             summary[i].avgticks = (long double)summary[i].ticks / (long double)summary[i].checks;
         }
 
