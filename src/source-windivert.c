@@ -233,8 +233,10 @@ static SCTime_t WinDivertTimestampToTimeStamp(WinDivertThreadVars *wd_tv, INT64 
     struct timeval tv;
 
     int64_t qpc_delta = (int64_t)timestamp_count - wd_tv->qpc_start_count;
-    int64_t unix_usec =
-            wd_tv->qpc_start_time + (qpc_delta / wd_tv->qpc_freq_usec);
+    int64_t unix_usec = wd_tv->qpc_start_time;
+    if (wd_tv->qpc_freq_usec) {
+        unix_usec += qpc_delta / wd_tv->qpc_freq_usec;
+    }
 
     tv.tv_sec = (long)(unix_usec / (1000 * 1000));
     tv.tv_usec = (long)(unix_usec - (int64_t)tv.tv_sec * (1000 * 1000));
