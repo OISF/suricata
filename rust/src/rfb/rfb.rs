@@ -228,6 +228,15 @@ impl RFBState {
                             current = rem;
 
                             let chosen_security_type = request.security_type;
+
+                            if let Some(current_transaction) = self.get_current_tx() {
+                                current_transaction.ts_security_type_selection = Some(request);
+                                current_transaction.chosen_security_type =
+                                    Some(chosen_security_type as u32);
+                            } else {
+                                debug_validate_fail!("no transaction set at security type stage");
+                            }
+
                             match chosen_security_type {
                                 2 => self.state = parser::RFBGlobalState::TCVncChallenge,
                                 1 => self.state = parser::RFBGlobalState::TSClientInit,
@@ -243,13 +252,6 @@ impl RFBState {
                                     self.state = parser::RFBGlobalState::Skip;
                                     return AppLayerResult::ok();
                                 }
-                            }
-
-                            if let Some(current_transaction) = self.get_current_tx() {
-                                current_transaction.ts_security_type_selection = Some(request);
-                                current_transaction.chosen_security_type = Some(chosen_security_type as u32);
-                            } else {
-                                debug_validate_fail!("no transaction set at security type stage");
                             }
                         }
                         Err(nom::Err::Incomplete(_)) => {
