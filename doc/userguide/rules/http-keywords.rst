@@ -152,7 +152,7 @@ with relative modifiers.
 http.method
 -----------
 
-With the ``http.method`` content modifier, it is possible to match
+With the ``http.method`` sticky buffer, it is possible to match
 specifically and only on the HTTP method buffer. The keyword can be
 used in combination with all previously mentioned content modifiers
 such as: ``depth``, ``distance``, ``offset``, ``nocase`` and ``within``.
@@ -177,7 +177,7 @@ Example of the purpose of method:
 http.uri and http.uri.raw
 -------------------------
 
-With the ``http.uri`` and the ``http.uri.raw`` content modifiers, it
+With the ``http.uri`` and the ``http.uri.raw`` sticky buffers, it
 is possible to match specifically and only on the request URI
 buffer. The keyword can be used in combination with all previously
 mentioned content modifiers like ``depth``, ``distance``, ``offset``,
@@ -209,7 +209,7 @@ uricontent
 ----------
 
 The ``uricontent`` keyword has the exact same effect as the
-``http.uri`` content modifier. ``uricontent`` is a deprecated
+``http.uri`` sticky buffer. ``uricontent`` is a deprecated
 (although still supported) way to match specifically and only on the
 request URI buffer.
 
@@ -289,11 +289,11 @@ Example::
 http.header and http.header.raw
 -------------------------------
 
-With the ``http.header`` content modifier, it is possible to match
+With the ``http.header`` sticky buffer, it is possible to match
 specifically and only on the HTTP header buffer. This contains all of
 the extracted headers in a single buffer, except for those indicated
 in the documentation that are not able to match by this buffer and
-have their own content modifier (e.g. ``http.cookie``). The modifier
+have their own sticky buffer (e.g. ``http.cookie``). The sticky buffer
 can be used in combination with all previously mentioned content
 modifiers, like ``depth``, ``distance``, ``offset``, ``nocase`` and
 ``within``.
@@ -349,7 +349,7 @@ Example ``http.cookie`` keyword in a signature:
 http.user_agent
 ---------------
 
-The ``http.user_agent`` content modifier is part of the HTTP request
+The ``http.user_agent`` sticky buffer is part of the HTTP request
 header. It makes it possible to match specifically on the value of the
 User-Agent header. It is normalized in the sense that it does not
 include the _"User-Agent: "_ header name and separator, nor does it
@@ -548,7 +548,7 @@ Example to make sure *User-Agent* is after *Host*, but not necessarily directly 
 http.request_body
 -----------------
 
-With the ``http.request_body`` content modifier, it is possible to
+With the ``http.request_body`` sticky buffer, it is possible to
 match specifically and only on the HTTP request body. The keyword can
 be used in combination with all previously mentioned content modifiers
 like ``distance``, ``offset``, ``nocase``, ``within``, etc.
@@ -573,7 +573,7 @@ setting.
 http.stat_code
 --------------
 
-With the ``http.stat_code`` content modifier, it is possible to match
+With the ``http.stat_code`` sticky buffer, it is possible to match
 specifically and only on the HTTP status code buffer. The keyword can
 be used in combination with all previously mentioned content modifiers
 like ``distance``, ``offset``, ``nocase``, ``within``, etc.
@@ -589,7 +589,7 @@ Example of the purpose of ``http.stat_code``:
 http.stat_msg
 -------------
 
-With the ``http.stat_msg`` content modifier, it is possible to match
+With the ``http.stat_msg`` sticky buffer, it is possible to match
 specifically and only on the HTTP status message buffer. The keyword
 can be used in combination with all previously mentioned content
 modifiers like ``depth``, ``distance``, ``offset``, ``nocase`` and
@@ -615,7 +615,7 @@ Example::
 http.response_body
 ------------------
 
-With the ``http.response_body`` content modifier, it is possible to
+With the ``http.response_body`` sticky buffer, it is possible to
 match specifically and only on the HTTP response body. The keyword can
 be used in combination with all previously mentioned content modifiers
 like ``distance``, ``offset``, ``nocase``, ``within``, etc.
@@ -674,7 +674,7 @@ Example::
 http.host and http.host.raw
 ---------------------------
 
-With the ``http.host`` content modifier, it is possible to
+With the ``http.host`` sticky buffer, it is possible to
 match specifically and only the normalized hostname.
 The ``http.host.raw`` inspects the raw hostname.
 
