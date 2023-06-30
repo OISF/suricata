@@ -152,12 +152,18 @@ static void DPDKFreeMbufArray(struct rte_mbuf **mbuf_array, uint16_t mbuf_cnt, u
 static uint64_t CyclesToMicroseconds(const uint64_t cycles)
 {
     const uint64_t ticks_per_us = rte_get_tsc_hz() / 1000000;
+    if (ticks_per_us == 0) {
+        return 0;
+    }
     return cycles / ticks_per_us;
 }
 
 static uint64_t CyclesToSeconds(const uint64_t cycles)
 {
     const uint64_t ticks_per_s = rte_get_tsc_hz();
+    if (ticks_per_s == 0) {
+        return 0;
+    }
     return cycles / ticks_per_s;
 }
 
