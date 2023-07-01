@@ -143,6 +143,13 @@ void DetectFilenameRegister(void)
 
 static int DetectFileextSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
+    if (s->init_data->transforms.cnt) {
+        SCLogError("previous transforms not consumed before 'fileext'");
+        SCReturnInt(-1);
+    }
+    s->init_data->list = DETECT_SM_LIST_NOTSET;
+    s->file_flags |= (FILE_SIG_NEED_FILE | FILE_SIG_NEED_FILENAME);
+
     size_t dotstr_len = strlen(str) + 2;
     char *dotstr = SCCalloc(1, dotstr_len);
     if (dotstr == NULL)
@@ -188,6 +195,13 @@ static int DetectFileextSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
  */
 static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
+    if (s->init_data->transforms.cnt) {
+        SCLogError("previous transforms not consumed before 'filename'");
+        SCReturnInt(-1);
+    }
+    s->init_data->list = DETECT_SM_LIST_NOTSET;
+    s->file_flags |= (FILE_SIG_NEED_FILE | FILE_SIG_NEED_FILENAME);
+
     if (DetectContentSetup(de_ctx, s, str) < 0) {
         return -1;
     }

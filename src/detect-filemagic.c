@@ -220,6 +220,13 @@ static void DetectFilemagicThreadFree(void *ctx)
  */
 static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
+    if (s->init_data->transforms.cnt) {
+        SCLogError("previous transforms not consumed before 'filemagic'");
+        SCReturnInt(-1);
+    }
+    s->init_data->list = DETECT_SM_LIST_NOTSET;
+    s->file_flags |= (FILE_SIG_NEED_FILE | FILE_SIG_NEED_MAGIC);
+
     if (DetectContentSetup(de_ctx, s, str) < 0) {
         return -1;
     }
