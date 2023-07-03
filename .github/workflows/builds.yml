@@ -375,10 +375,8 @@ jobs:
         run: cargo clippy --all-features
         working-directory: rust
 
-  # AlmaLinux 8 builder and distribution archive builder that some
-  # other builds will depend on.
   almalinux-8:
-    name: AlmaLinux 8 (Dist builder)
+    name: AlmaLinux 8
     runs-on: ubuntu-latest
     container: almalinux:8
     needs: [prepare-deps, prepare-cbindgen]
@@ -498,21 +496,12 @@ jobs:
       - run: make install
       - run: suricatasc -h
       - run: suricata-update -V
-      - name: Preparing distribution
-        run: |
-          mkdir dist
-          mv suricata-*.tar.gz dist
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
-        name: Uploading distribution
-        with:
-          name: dist
-          path: dist
 
   centos-7:
     name: CentOS 7
     runs-on: ubuntu-latest
     container: centos:7
-    needs: [prepare-deps, almalinux-8]
+    needs: [prepare-deps, debian-12-dist]
     steps:
       - name: Cache ~/.cargo
         uses: actions/cache@v3.3.1
@@ -2278,6 +2267,85 @@ jobs:
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
+
+  debian-12-dist:
+    name: Debian 12 Dist Builder
+    runs-on: ubuntu-latest
+    container: debian:12
+    needs: [prepare-deps]
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v3.3.1
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - run: apt update
+      - run: |
+          apt -y install \
+              autoconf \
+              automake \
+              build-essential \
+              cargo \
+              cbindgen \
+              cmake \
+              curl \
+              git \
+              jq \
+              make \
+              libpcre3 \
+              libpcre3-dbg \
+              libpcre3-dev \
+              libpcre2-dev \
+              libtool \
+              libpcap-dev \
+              libnet1-dev \
+              libyaml-0-2 \
+              libyaml-dev \
+              libcap-ng-dev \
+              libcap-ng0 \
+              libmagic-dev \
+              libjansson-dev \
+              libjansson4 \
+              libnss3-dev \
+              libnspr4-dev \
+              liblz4-dev \
+              libssl-dev \
+              liblzma-dev \
+              pkg-config \
+              python3 \
+              python3-yaml \
+              rustc \
+              sphinx-doc \
+              sphinx-common \
+              texlive-latex-base \
+              texlive-fonts-recommended \
+              texlive-fonts-extra \
+              texlive-latex-extra \
+              zlib1g \
+              zlib1g-dev
+      - uses: actions/checkout@v3.5.3
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
+      - run: ./autogen.sh
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
+      - run: make dist
+      - run: test -e doc/userguide/suricata.1
+      - run: test -e doc/userguide/userguide.pdf
+      - name: Preparing distribution
+        run: |
+          mkdir dist
+          mv suricata-*.tar.gz dist
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+        name: Uploading distribution
+        with:
+          name: dist
+          path: dist
 
   debian-11:
     name: Debian 11 (xdp)
