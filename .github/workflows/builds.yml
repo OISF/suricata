@@ -2192,6 +2192,93 @@ jobs:
       - run: make -j2
       - run: make check
 
+  debian-12:
+    name: Debian 12
+    runs-on: ubuntu-latest
+    container: debian:12
+    needs: [prepare-deps]
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v3.3.1
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - run: apt update
+      - run: |
+          apt -y install \
+              autoconf \
+              automake \
+              build-essential \
+              cargo \
+              cbindgen \
+              cmake \
+              curl \
+              dpdk-dev \
+              git \
+              jq \
+              make \
+              libpcre3 \
+              libpcre3-dbg \
+              libpcre3-dev \
+              libpcre2-dev \
+              libtool \
+              libpcap-dev \
+              libnet1-dev \
+              libyaml-0-2 \
+              libyaml-dev \
+              libcap-ng-dev \
+              libcap-ng0 \
+              libmagic-dev \
+              libmaxminddb-dev \
+              libjansson-dev \
+              libjansson4 \
+              liblua5.1-dev \
+              libnss3-dev \
+              libnspr4-dev \
+              libnuma-dev \
+              liblz4-dev \
+              libssl-dev \
+              liblzma-dev \
+              pkg-config \
+              python3 \
+              python3-yaml \
+              rustc \
+              sphinx-doc \
+              sphinx-common \
+              texlive-latex-base \
+              texlive-fonts-recommended \
+              texlive-fonts-extra \
+              texlive-latex-extra \
+              zlib1g \
+              zlib1g-dev
+      - uses: actions/checkout@v3.5.3
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
+      - run: tar xf prep/suricata-verify.tar.gz
+      - run: ./autogen.sh
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
+      - run: make -j2
+      - run: make check
+      - run: make -j2 distcheck
+        env:
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
+      - run: test -e doc/userguide/suricata.1
+      - run: test -e doc/userguide/userguide.pdf
+      - name: Building Rust documentation
+        run: make doc
+        working-directory: rust
+      - name: Running suricata-verify
+        run: python3 ./suricata-verify/run.py -q
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
+
   debian-11:
     name: Debian 11 (xdp)
     runs-on: ubuntu-latest
