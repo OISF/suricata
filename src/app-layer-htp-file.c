@@ -103,6 +103,9 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
 
         flags = FileFlowToFlags(s->f, STREAM_TOCLIENT);
 
+        /* Depend on the detection engine for file pruning. */
+        flags |= FILE_USE_DETECT;
+
         if ((s->flags & HTP_FLAG_STORE_FILES_TS) ||
                 ((s->flags & HTP_FLAG_STORE_FILES_TX_TS) && txid == s->store_tx_id)) {
             flags |= FILE_STORE;
