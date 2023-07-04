@@ -37,6 +37,7 @@
 #include "detect-engine-file.h"
 #include "detect-file-data.h"
 
+#include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 #include "app-layer-smtp.h"
@@ -154,17 +155,21 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 {
     SCEnter();
 
-    if (!DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
-            (s->alproto != ALPROTO_UNKNOWN &&
-                    !AppLayerParserSupportsFiles(IPPROTO_TCP, s->alproto))) {
-        SCLogError("rule contains conflicting keywords.");
+    if (!DetectProtoContainsProto(&s->proto, IPPROTO_TCP)) {
+        SCLogError("The 'file_data' keyword cannot be used with non-TCP protocols");
+        return -1;
+    }
+
+    if (s->alproto != ALPROTO_UNKNOWN && !AppLayerParserSupportsFiles(IPPROTO_TCP, s->alproto)) {
+        SCLogError("The 'file_data' keyword cannot be used with TCP protocol %s",
+                AppLayerGetProtoName(s->alproto));
         return -1;
     }
 
     if (s->alproto == ALPROTO_SMTP && (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) &&
         !(s->flags & SIG_FLAG_TOSERVER) && (s->flags & SIG_FLAG_TOCLIENT)) {
-        SCLogError("Can't use file_data with "
-                   "flow:to_client or flow:from_server with smtp.");
+        SCLogError("The 'file-data' keyword cannot be used with SMTP flow:to_client or "
+                   "flow:from_server.");
         return -1;
     }
 
