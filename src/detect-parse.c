@@ -1320,6 +1320,22 @@ error:
     return -1;
 }
 
+static inline bool CheckAscii(const char *str)
+{
+    for (size_t i = 0; i < strlen(str); i++) {
+        if (str[i] < 0x20) {
+            // LF CR TAB
+            if (str[i] == 0x0a || str[i] == 0x0d || str[i] == 0x09) {
+                continue;
+            }
+            return false;
+        } else if (str[i] == 0x7f) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /**
  *  \brief parse a signature
  *
@@ -1338,6 +1354,11 @@ static int SigParse(DetectEngineCtx *de_ctx, Signature *s,
 
     if (!rs_check_utf8(sigstr)) {
         SCLogError("rule is not valid UTF-8");
+        SCReturnInt(-1);
+    }
+
+    if (!CheckAscii(sigstr)) {
+        SCLogError("rule contains invalid (control) characters");
         SCReturnInt(-1);
     }
 
