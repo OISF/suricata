@@ -262,6 +262,9 @@ outputs:
         #    alerts: yes      # log alerts that caused drops
         #    flows: all       # start or all: 'start' logs only a single drop
         #                     # per flow direction. All logs each dropped pkt.
+            # Enable logging the final action taken on a packet by the engine
+            # (will show more information in case of a drop caused by 'reject')
+            # verdict: yes
         - smtp:
             #extended: yes # enable this for extended logging information
             # this includes: bcc, message-id, subject, x_mailer, user-agent
