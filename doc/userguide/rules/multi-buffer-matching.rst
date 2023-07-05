@@ -74,18 +74,18 @@ not be met.
 Multiple buffer matching is currently enabled for use with the
 following keywords:
 
-``dns.query``
-``file.data``
-``file.magic``
-``file.name``
-``http2.header``
-``http2.header_name``
-``ike.vendor``
-``krb5_cname``
-``krb5_sname``
-``mqtt.subscribe.topic``
-``mqtt.unsubscribe.topic``
-``quic.cyu.hash``
-``quic.cyu.string``
-``tls.certs``
-``tls.cert_subject``
+* ``dns.query``
+* ``file.data``
+* ``file.magic``
+* ``file.name``
+* ``http2.header``
+* ``http2.header_name``
+* ``ike.vendor``
+* ``krb5_cname``
+* ``krb5_sname``
+* ``mqtt.subscribe.topic``
+* ``mqtt.unsubscribe.topic``
+* ``quic.cyu.hash``
+* ``quic.cyu.string``
+* ``tls.certs``
+* ``tls.cert_subject``

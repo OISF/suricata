@@ -18,6 +18,8 @@ Examples::
     quic.cyu.hash; content:"7b3ceb1adc974ad360cfa634e8d0a730"; \
     sid:1;)
 
+``quic.cyu.hash`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
 quic.cyu.string
 ---------------
 
@@ -28,6 +30,8 @@ Examples::
   alert quic any any -> any any (msg:"QUIC CYU STRING"; \
     quic.cyu.string; content:"46,PAD-SNI-VER-CCS-UAID-TCID-PDMD-SMHL-ICSL-NONP-MIDS-SCLS-CSCT-COPT-IRTT-CFCW-SFCW"; \
     sid:2;)
+
+``quic.cyu.string`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
 
 quic.version
 ------------
