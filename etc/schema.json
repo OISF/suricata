@@ -94,6 +94,9 @@
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+[+\\-]\\d+$"
         },
+        "verdict": {
+            "$ref": "#/$defs/verdict_type"
+        },
         "direction": {
             "type": "string"
         },
@@ -5393,6 +5396,32 @@
             "$comment": "Definition for TLS date formats",
             "type": "string",
             "pattern": "^[1-2]\\d{3}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}$"
+        },
+        "verdict_type": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "reject": {
+                    "type": "array",
+                    "oneOf": [
+                        {
+                            "properties": {
+                                "icmp-proihib": {
+                                    "type": "string"
+                                },
+                                "tcp-reset": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "reject_target": {
+                    "type": "string"
+                }
+            }
         }
     }
 }
