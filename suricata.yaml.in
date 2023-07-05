@@ -164,6 +164,10 @@ outputs:
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
             tagged-packets: yes
+            # Enable logging the final action taken on a packet by the engine
+            # (e.g: the alert may have action 'allowed' but the verdict be
+            # 'drop' due to another alert. That's the engine's verdict)
+            # verdict: yes
         - anomaly:
             # Anomaly log records describe unexpected conditions such
             # as truncated packets, packets with invalid IP/UDP/TCP
