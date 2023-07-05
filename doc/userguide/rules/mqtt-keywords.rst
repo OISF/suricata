@@ -237,6 +237,8 @@ Examples::
 
 ``mqtt.subscribe.topic`` is a 'sticky buffer' and can be used as ``fast_pattern``.
 
+``mqtt.subscribe.topic`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
 
 mqtt.unsubscribe.topic
 ----------------------
@@ -248,6 +250,8 @@ Examples::
   mqtt.unsubscribe.topic; content:"mytopic";
 
 ``mqtt.unsubscribe.topic`` is a 'sticky buffer' and can be used as ``fast_pattern``.
+
+``mqtt.unsubscribe.topic`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
 
 
 Additional information
