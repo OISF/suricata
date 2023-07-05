@@ -45,6 +45,7 @@
 #include "output-json.h"
 #include "output-json-alert.h"
 #include "output-json-drop.h"
+#include "output-json-verdict.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -60,7 +61,8 @@
 
 #define MODULE_NAME "JsonDropLog"
 
-#define LOG_DROP_ALERTS 1
+#define LOG_DROP_ALERTS  BIT_U8(1)
+#define LOG_DROP_VERDICT BIT_U8(2)
 
 typedef struct JsonDropOutputCtx_ {
     uint8_t flags;
@@ -157,6 +159,10 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
 
     /* Close drop. */
     jb_close(js);
+
+    if (aft->drop_ctx->flags & LOG_DROP_VERDICT) {
+        GetVerdictJsonInfo(js, p);
+    }
 
     if (aft->drop_ctx->flags & LOG_DROP_ALERTS) {
         int logged = 0;
@@ -273,7 +279,7 @@ static OutputInitResult JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_
         const char *extended = ConfNodeLookupChildValue(conf, "alerts");
         if (extended != NULL) {
             if (ConfValIsTrue(extended)) {
-                drop_ctx->flags = LOG_DROP_ALERTS;
+                drop_ctx->flags |= LOG_DROP_ALERTS;
             }
         }
         extended = ConfNodeLookupChildValue(conf, "flows");
@@ -285,6 +291,12 @@ static OutputInitResult JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_
             } else {
                 SCLogWarning("valid options for "
                              "'flow' are 'start' and 'all'");
+            }
+        }
+        extended = ConfNodeLookupChildValue(conf, "verdict");
+        if (extended != NULL) {
+            if (ConfValIsTrue(extended)) {
+                drop_ctx->flags |= LOG_DROP_VERDICT;
             }
         }
     }
