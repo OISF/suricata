@@ -42,3 +42,4 @@ Suricata Rules
    datasets
    lua-detection
    differences-from-snort
+   multi-buffer-matching
