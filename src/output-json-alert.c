@@ -78,6 +78,7 @@
 #include "output-json-modbus.h"
 #include "output-json-frame.h"
 #include "output-json-quic.h"
+#include "output-json-verdict.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -101,6 +102,7 @@
 #define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(7)
 #define LOG_JSON_RULE_METADATA     BIT_U16(8)
 #define LOG_JSON_RULE              BIT_U16(9)
+#define LOG_JSON_VERDICT           BIT_U16(10)
 
 #define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
             LOG_JSON_APP_LAYER  |                                  \
@@ -828,6 +830,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             jb_set_string(jb, "capture_file", pcap_filename);
         }
 
+        if (json_output_ctx->flags & LOG_JSON_VERDICT) {
+            GetVerdictJsonInfo(jb, p);
+        }
+
         OutputJsonBuilderBuffer(jb, aft->ctx);
         jb_free(jb);
     }
@@ -1016,6 +1022,7 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &flags);
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &flags);
+        SetFlag(conf, "verdict", LOG_JSON_VERDICT, &flags);
 
         /* Check for obsolete flags and warn that they have no effect. */
         static const char *deprecated_flags[] = { "http", "tls", "ssh", "smtp", "dnp3", "app-layer",
