@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2020 Open Information Security Foundation
+/* Copyright (C) 2013-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -27,6 +27,7 @@
 #include "suricata-common.h"
 #include "debug.h"
 #include "detect.h"
+#include "decode.h"
 #include "flow.h"
 #include "conf.h"
 
@@ -94,6 +95,7 @@
 #define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(7)
 #define LOG_JSON_RULE_METADATA     BIT_U16(8)
 #define LOG_JSON_RULE              BIT_U16(9)
+#define LOG_JSON_VERDICT           BIT_U16(10)
 
 #define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
             LOG_JSON_APP_LAYER  |                                  \
@@ -572,6 +574,57 @@ static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id
     }
 }
 
+/**
+ * \brief    Build verdict object
+ *
+ * \param p  Pointer to Packet current being logged
+ *
+ */
+void EveAddVerdict(JsonBuilder *jb, const Packet *p)
+{
+    jb_open_object(jb, "verdict");
+
+    /* add verdict info */
+    if (PACKET_TEST_ACTION(p, ACTION_REJECT_ANY)) {
+        // check rule to define type of reject packet sent
+        if (EngineModeIsIPS()) {
+            JB_SET_STRING(jb, "action", "drop");
+        } else {
+            JB_SET_STRING(jb, "action", "alert");
+        }
+        if (PACKET_TEST_ACTION(p, ACTION_REJECT)) {
+            JB_SET_STRING(jb, "reject-target", "to_client");
+        } else if (PACKET_TEST_ACTION(p, ACTION_REJECT_DST)) {
+            JB_SET_STRING(jb, "reject-target", "to_server");
+        } else if (PACKET_TEST_ACTION(p, ACTION_REJECT_BOTH)) {
+            JB_SET_STRING(jb, "reject-target", "both");
+        }
+        jb_open_array(jb, "reject");
+        switch (p->proto) {
+            case IPPROTO_UDP:
+            case IPPROTO_ICMP:
+            case IPPROTO_ICMPV6:
+                jb_append_string(jb, "icmp-prohib");
+                break;
+            case IPPROTO_TCP:
+                jb_append_string(jb, "tcp-reset");
+                break;
+        }
+        jb_close(jb);
+
+    } else if (PACKET_TEST_ACTION(p, ACTION_DROP) && EngineModeIsIPS()) {
+        JB_SET_STRING(jb, "action", "drop");
+    } else if (p->alerts.alerts[p->alerts.cnt].action & ACTION_PASS) {
+        JB_SET_STRING(jb, "action", "pass");
+    } else {
+        // TODO make sure we don't have a situation where this wouldn't work
+        JB_SET_STRING(jb, "action", "alert");
+    }
+
+    /* Close verdict */
+    jb_close(jb);
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
@@ -706,6 +759,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         if (have_xff_ip && xff_cfg->flags & XFF_EXTRADATA) {
             jb_set_string(jb, "xff", xff_buffer);
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_VERDICT) {
+            EveAddVerdict(jb, p);
         }
 
         OutputJsonBuilderBuffer(jb, aft->file_ctx, &aft->json_buffer);
@@ -938,6 +995,7 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &flags);
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &flags);
+        SetFlag(conf, "verdict", LOG_JSON_VERDICT, &flags);
 
         /* Check for obsolete configuration flags to enable specific
          * protocols. These are now just aliases for enabling

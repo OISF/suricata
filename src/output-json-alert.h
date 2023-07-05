@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2014 Open Information Security Foundation
+/* Copyright (C) 2013-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,7 +29,8 @@
 
 void JsonAlertLogRegister(void);
 void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuilder *js,
-                     uint16_t flags, JsonAddrInfo *addr);
+        uint16_t flags, JsonAddrInfo *addr);
+void EveAddVerdict(JsonBuilder *jb, const Packet *p);
 
 #endif /* __OUTPUT_JSON_ALERT_H__ */
 
