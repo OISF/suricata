@@ -30,6 +30,7 @@
 void JsonAlertLogRegister(void);
 void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuilder *js,
         uint16_t flags, JsonAddrInfo *addr, char *xff_buffer);
+void GetVerdictJson(JsonBuilder *jb, const Packet *p);
 
 #endif /* __OUTPUT_JSON_ALERT_H__ */
 
