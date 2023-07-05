@@ -264,6 +264,22 @@ enabled, then the log gets more verbose.
 
 By using ``custom`` it is possible to select which TLS fields to log.
 
+Drops
+~~~~~
+
+Drops are event types logged when the engine drops a packet.
+
+Config::
+
+    - drop:
+        alerts: yes      # log alerts that caused drops
+        flows: all       # start or all: 'start' logs only a single drop
+                         # per flow direction. All logs each dropped pkt.
+        # Enable logging the final action taken on a packet by the engine
+        # (will show more information in case of a drop caused by 'reject')
+        verdict: yes
+
+
 Date modifiers in filename
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
