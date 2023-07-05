@@ -84,6 +84,8 @@ Examples::
 
     ike.vendor:4a131c81070358455c5728f20e95452f;
 
+``ike.vendor`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
 
 ike.key_exchange_payload
 ------------------------

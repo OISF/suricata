@@ -52,6 +52,8 @@ Signature example::
 
 ``krb5_cname`` can be used as ``fast_pattern``.
 
+``krb5.cname`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
 krb5_sname
 ----------
 
@@ -74,6 +76,8 @@ Signature example::
 ``krb5_sname`` is a 'sticky buffer'.
 
 ``krb5_sname`` can be used as ``fast_pattern``.
+
+``krb5.sname`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
 
 krb5_err_code
 -------------

@@ -109,6 +109,7 @@ Examples::
 
 ``http2.header_name`` can be used as ``fast_pattern``.
 
+``http2.header_name`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
 
 Additional information
 ----------------------
