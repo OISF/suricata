@@ -1292,6 +1292,9 @@
                 },
                 "reason": {
                     "type": "string"
+                },
+                "verdict": {
+                    "$ref": "#/$defs/verdict_type"
                 }
             },
             "additionalProperties": false
