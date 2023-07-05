@@ -18,6 +18,8 @@ Example::
 
   filename:"secret";
 
+``file.name`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
 fileext
 -------
 
@@ -46,6 +48,8 @@ Example::
 
 Note: as libmagic versions differ between installations, the returned
 information may also slightly change. See also #437.
+
+``file.magic`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
 
 filestore
 ---------

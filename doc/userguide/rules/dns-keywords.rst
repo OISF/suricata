@@ -67,3 +67,8 @@ DNS query on the wire (snippet)::
 ``dns.query`` buffer::
 
     mail.google.com
+
+Multiple Buffer Matching
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+``dns.query`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
