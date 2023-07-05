@@ -839,3 +839,8 @@ Notes
    pattern '<html' is absent from the first inspected chunk.
 
 -  ``file.data`` can also be used with SMTP
+
+Multiple Buffer Matching
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+``file.data`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.

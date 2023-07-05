@@ -17,6 +17,8 @@ Examples::
 
 ``tls.cert_subject`` can be used as ``fast_pattern``.
 
+``tls.cert_subject`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
 tls.subject
 ~~~~~~~~~~~
 
@@ -173,6 +175,8 @@ Example::
 ``tls.certs`` is a 'sticky buffer'.
 
 ``tls.certs`` can be used as ``fast_pattern``.
+
+``tls.certs`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
 
 tls.version
 -----------
