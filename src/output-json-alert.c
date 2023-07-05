@@ -101,6 +101,7 @@
 #define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(7)
 #define LOG_JSON_RULE_METADATA     BIT_U16(8)
 #define LOG_JSON_RULE              BIT_U16(9)
+#define LOG_JSON_VERDICT           BIT_U16(10)
 
 #define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
             LOG_JSON_APP_LAYER  |                                  \
@@ -665,6 +666,57 @@ static void AlertAddFrame(const Packet *p, JsonBuilder *jb, const int64_t frame_
     }
 }
 
+/**
+ * \brief    Build verdict object
+ *
+ * \param p  Pointer to Packet current being logged
+ *
+ */
+void EveAddVerdict(JsonBuilder *jb, const Packet *p)
+{
+    jb_open_object(jb, "verdict");
+
+    /* add verdict info */
+    if (PacketCheckAction(p, ACTION_REJECT_ANY)) {
+        // check rule to define type of reject packet sent
+        if (EngineModeIsIPS()) {
+            JB_SET_STRING(jb, "action", "drop");
+        } else {
+            JB_SET_STRING(jb, "action", "alert");
+        }
+        if (PacketCheckAction(p, ACTION_REJECT)) {
+            JB_SET_STRING(jb, "reject-target", "to_client");
+        } else if (PacketCheckAction(p, ACTION_REJECT_DST)) {
+            JB_SET_STRING(jb, "reject-target", "to_server");
+        } else if (PacketCheckAction(p, ACTION_REJECT_BOTH)) {
+            JB_SET_STRING(jb, "reject-target", "both");
+        }
+        jb_open_array(jb, "reject");
+        switch (p->proto) {
+            case IPPROTO_UDP:
+            case IPPROTO_ICMP:
+            case IPPROTO_ICMPV6:
+                jb_append_string(jb, "icmp-prohib");
+                break;
+            case IPPROTO_TCP:
+                jb_append_string(jb, "tcp-reset");
+                break;
+        }
+        jb_close(jb);
+
+    } else if (PacketCheckAction(p, ACTION_DROP) && EngineModeIsIPS()) {
+        JB_SET_STRING(jb, "action", "drop");
+    } else if (p->alerts.alerts[p->alerts.cnt].action & ACTION_PASS) {
+        JB_SET_STRING(jb, "action", "pass");
+    } else {
+        // TODO make sure we don't have a situation where this wouldn't work
+        JB_SET_STRING(jb, "action", "alert");
+    }
+
+    /* Close verdict */
+    jb_close(jb);
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
@@ -826,6 +878,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         char *pcap_filename = PcapLogGetFilename();
         if (pcap_filename != NULL) {
             jb_set_string(jb, "capture_file", pcap_filename);
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_VERDICT) {
+            EveAddVerdict(jb, p);
         }
 
         OutputJsonBuilderBuffer(jb, aft->ctx);
@@ -1016,6 +1072,7 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &flags);
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &flags);
+        SetFlag(conf, "verdict", LOG_JSON_VERDICT, &flags);
 
         /* Check for obsolete flags and warn that they have no effect. */
         static const char *deprecated_flags[] = { "http", "tls", "ssh", "smtp", "dnp3", "app-layer",
