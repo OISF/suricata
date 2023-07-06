@@ -65,9 +65,53 @@ Logging changes
 - Protocol values and their names are built into Suricata instead of using the system's ``/etc/protocols`` file. Some names and casing may have changed
   in the values ``proto`` in ``eve.json`` log entries and other logs containing protocol names and values.
   See https://redmine.openinfosecfoundation.org/issues/4267 for more information.
-- Custom logging of HTTP headers via suricata.yaml ``outputs.eve-log.types.http.custom``
-  is now done in subobjects ``response_headers`` or ``request_headers`` (as for option ``dump-all-headers``)
-  instead of at the root of the ``http`` json object (to avoid some collisions).
+- Logging of additional HTTP headers configured through the EVE
+  ``http.custom`` option will now be logged in the ``request_headers``
+  and/or ``response_headers`` respectively instead of merged into the
+  existing ``http`` object. In Suricata 6.0, a configuration like::
+
+    http:
+      custom: [Server]
+
+  would result in a log entry like::
+
+    "http": {
+      "hostname": "suricata.io",
+      "http_method": "GET",
+      "protocol": "HTTP/1/1",
+      "server": "nginx",
+      ...
+    }
+
+  This merging of custom headers in the ``http`` object could result
+  in custom headers overwriting standard fields in the ``http``
+  object, or a response header overwriting request header.
+
+  To prevent the possibility of fields being overwritten, **all**
+  custom headers are now logged into the ``request_headers`` and
+  ``response_headers`` arrays to avoid any chance of collision, plus
+  allowing headers that may be present multiple times to have each
+  occurrence logged. These arrays are not new in Suricata 7.0, but
+  have only previously been used for the ``dump-all-headers`` option.
+
+  As of Suricata 7.0, the above configuration example will now be
+  logged like::
+
+    "http": {
+      "hostname": "suricata.io",
+      "http_method": "GET",
+      "protocol": "HTTP/1/1",
+      "response_headers": [
+        { "name": "Server", "value": "nginx" }
+      ]
+    }
+
+  Effectively making the ``custom`` option a subset of the
+  ``dump-all-headers`` option.
+
+  If you use the ``custom`` option this may be a breaking
+  change. However if you do not use it, there is no change in the
+  output.
 
 Deprecations
 ~~~~~~~~~~~~
