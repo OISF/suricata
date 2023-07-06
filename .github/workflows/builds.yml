@@ -26,10 +26,10 @@ env:
   # A recent version of stable Rust that is known to pass build, test and other
   # verification steps in this workflow. This was added because using "stable"
   # could cause some steps to fail.
-  RUST_VERSION_KNOWN: "1.62.0"
+  RUST_VERSION_KNOWN: "1.70.0"
 
   # The minimum version of Rust supported.
-  RUST_VERSION_MIN: "1.58.1"
+  RUST_VERSION_MIN: "1.63.0"
 
 jobs:
 
@@ -1896,7 +1896,7 @@ jobs:
     name: Ubuntu 20.04 (unsupported rust)
     runs-on: ubuntu-latest
     container: ubuntu:20.04
-    needs: almalinux-8
+    needs: debian-12-dist
     steps:
       - name: Cache ~/.cargo
         uses: actions/cache@v3.3.1
@@ -1935,7 +1935,7 @@ jobs:
                 zlib1g \
                 zlib1g-dev \
                 dpdk-dev
-      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.33.0 -y
+      - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.62.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
@@ -2537,6 +2537,93 @@ jobs:
         with:
           name: dist
           path: dist
+
+  debian-12-msrv:
+    name: Debian 12 MSRV
+    runs-on: ubuntu-latest
+    container: debian:12
+    needs: [prepare-deps, prepare-cbindgen]
+    steps:
+      # Cache Rust stuff.
+      - name: Cache cargo registry
+        uses: actions/cache@v3.3.1
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - run: apt update
+      - run: |
+          apt -y install \
+              autoconf \
+              automake \
+              build-essential \
+              cmake \
+              curl \
+              dpdk-dev \
+              git \
+              jq \
+              make \
+              libpcre3 \
+              libpcre3-dbg \
+              libpcre3-dev \
+              libpcre2-dev \
+              libtool \
+              libpcap-dev \
+              libnet1-dev \
+              libyaml-0-2 \
+              libyaml-dev \
+              libcap-ng-dev \
+              libcap-ng0 \
+              libmagic-dev \
+              libmaxminddb-dev \
+              libjansson-dev \
+              libjansson4 \
+              liblua5.1-dev \
+              libnss3-dev \
+              libnspr4-dev \
+              libnuma-dev \
+              liblz4-dev \
+              libssl-dev \
+              liblzma-dev \
+              pkg-config \
+              python3 \
+              python3-yaml \
+              sphinx-doc \
+              sphinx-common \
+              texlive-latex-base \
+              texlive-fonts-recommended \
+              texlive-fonts-extra \
+              texlive-latex-extra \
+              zlib1g \
+              zlib1g-dev
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION_MIN} -y
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - uses: actions/checkout@v3.5.3
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        with:
+          name: prep
+          path: prep
+      - name: Setup cbindgen
+        run: |
+          mkdir -p $HOME/.cargo/bin
+          cp prep/cbindgen $HOME/.cargo/bin
+          chmod 755 $HOME/.cargo/bin/cbindgen
+      - run: tar xf prep/libhtp.tar.gz
+      - run: tar xf prep/suricata-update.tar.gz
+      - run: tar xf prep/suricata-verify.tar.gz
+      - run: ./autogen.sh
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk
+      - run: make -j2
+      - run: make check
+      - name: Building Rust documentation
+        run: make doc
+        working-directory: rust
+      - name: Running suricata-verify
+        run: python3 ./suricata-verify/run.py -q
+      - run: make install
+      - run: suricata-update -V
+      - run: suricatasc -h
 
   debian-11:
     name: Debian 11 (xdp)
