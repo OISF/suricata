@@ -1408,6 +1408,7 @@ jobs:
           hiredis \
           jansson \
           jq \
+          libiconv \
           libmagic \
           libnet \
           libtool \
@@ -1433,7 +1434,7 @@ jobs:
       - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
+      - run: CFLAGS="${DEFAULT_CFLAGS}" CPPFLAGS="-I/usr/local/opt/libiconv/include" CXXFLAGS="-I/usr/local/opt/libiconv/include" LDFLAGS="-L/usr/local/opt/libiconv/lib" ./configure --enable-unittests
       - run: make -j2
       # somehow it gets included by some C++ stdlib header (case unsensitive)
       - run: rm libhtp/VERSION && make check
