@@ -479,14 +479,18 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
 
     } else if (smd->type == DETECT_BYTETEST) {
         DetectBytetestData *btd = (DetectBytetestData *)smd->ctx;
-        uint8_t btflags = btd->flags;
+        uint16_t btflags = btd->flags;
         int32_t offset = btd->offset;
         uint64_t value = btd->value;
+        int32_t nbytes = btd->nbytes;
         if (btflags & DETECT_BYTETEST_OFFSET_VAR) {
             offset = det_ctx->byte_values[offset];
         }
         if (btflags & DETECT_BYTETEST_VALUE_VAR) {
             value = det_ctx->byte_values[value];
+        }
+        if (btflags & DETECT_BYTETEST_NBYTES_VAR) {
+            nbytes = det_ctx->byte_values[nbytes];
         }
 
         /* if we have dce enabled we will have to use the endianness
@@ -498,8 +502,8 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
                       DETECT_BYTETEST_LITTLE: 0);
         }
 
-        if (DetectBytetestDoMatch(det_ctx, s, smd->ctx, buffer, buffer_len, btflags,
-                                  offset, value) != 1) {
+        if (DetectBytetestDoMatch(det_ctx, s, smd->ctx, buffer, buffer_len, btflags, offset, nbytes,
+                    value) != 1) {
             goto no_match;
         }
 
