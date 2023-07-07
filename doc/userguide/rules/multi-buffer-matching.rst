@@ -78,7 +78,8 @@ following keywords:
 * ``file.data``
 * ``file.magic``
 * ``file.name``
-* ``http2.header``
+* ``http.request_header``
+* ``http.response_header``
 * ``http2.header_name``
 * ``ike.vendor``
 * ``krb5_cname``
