@@ -90,6 +90,52 @@ void DetectBytetestRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
+/* 23 - This is the largest string (octal, with a zero prefix) that
+ *      will not overflow uint64_t.  The only way this length
+ *      could be over 23 and still not overflow is if it were zero
+ *      prefixed and we only support 1 byte of zero prefix for octal.
+ *
+ * "01777777777777777777777" = 0xffffffffffffffff
+ *
+ * 8 - Without string, the maximum byte extract count is 8.
+ */
+static inline bool DetectBytetestValidateNbytesOnly(const DetectBytetestData *data, int32_t nbytes)
+{
+    return ((data->flags & DETECT_BYTETEST_STRING) && nbytes <= 23) || (nbytes <= 8);
+}
+
+static bool DetectBytetestValidateNbytes(
+        const DetectBytetestData *data, int32_t nbytes, const char *optstr)
+{
+    if (!DetectBytetestValidateNbytesOnly(data, nbytes)) {
+        if (data->flags & DETECT_BYTETEST_STRING) {
+            /* 23 - This is the largest string (octal, with a zero prefix) that
+             *      will not overflow uint64_t.  The only way this length
+             *      could be over 23 and still not overflow is if it were zero
+             *      prefixed and we only support 1 byte of zero prefix for octal.
+             *
+             * "01777777777777777777777" = 0xffffffffffffffff
+             */
+            if (nbytes > 23) {
+                SCLogError("Cannot test more than 23 bytes "
+                           "with \"string\"");
+            }
+        } else {
+            if (nbytes > 8) {
+                SCLogError("Cannot test more than 8 bytes "
+                           "without \"string\"");
+            }
+
+            if (data->base != DETECT_BYTETEST_BASE_UNSET) {
+                SCLogError("Cannot use a base without \"string\": %s", optstr);
+            }
+        }
+        return false;
+    }
+
+    return true;
+}
+
 /** \brief Bytetest detection code
  *
  *  Byte test works on the packet payload.
@@ -102,24 +148,30 @@ void DetectBytetestRegister (void)
  *  \retval 1 match
  *  \retval 0 no match
  */
-int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
-                          const Signature *s, const SigMatchCtx *ctx,
-                          const uint8_t *payload, uint32_t payload_len,
-                          uint8_t flags, int32_t offset, uint64_t value)
+int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
+        const SigMatchCtx *ctx, const uint8_t *payload, uint32_t payload_len, uint8_t flags,
+        int32_t offset, int32_t nbytes, uint64_t value)
 {
     SCEnter();
 
+    if (payload_len == 0) {
+        SCReturnInt(0);
+    }
+
     const DetectBytetestData *data = (const DetectBytetestData *)ctx;
+    if (data->flags & DETECT_BYTETEST_NBYTES_VAR) {
+        if (!DetectBytetestValidateNbytesOnly(data, nbytes)) {
+            SCLogDebug("Invalid byte_test nbytes seen in byte_test - %d", nbytes);
+            SCReturnInt(0);
+        }
+    }
+
     const uint8_t *ptr = NULL;
     int32_t len = 0;
     uint64_t val = 0;
     int extbytes;
     int neg;
     int match;
-
-    if (payload_len == 0) {
-        SCReturnInt(0);
-    }
 
     /* Calculate the ptr value for the bytetest and length remaining in
      * the packet from that point.
@@ -149,9 +201,9 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
     /* Validate that the to-be-extracted is within the packet
      * \todo Should this validate it is in the *payload*?
      */
-    if (ptr < payload || data->nbytes > len) {
-        SCLogDebug("Data not within payload pkt=%p, ptr=%p, len=%"PRIu32", nbytes=%d",
-                    payload, ptr, len, data->nbytes);
+    if (ptr < payload || nbytes > len) {
+        SCLogDebug("Data not within payload pkt=%p, ptr=%p, len=%" PRIu32 ", nbytes=%d", payload,
+                ptr, len, nbytes);
         SCReturnInt(0);
     }
 
@@ -159,8 +211,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
 
     /* Extract the byte data */
     if (flags & DETECT_BYTETEST_STRING) {
-        extbytes = ByteExtractStringUint64(&val, data->base,
-                                           data->nbytes, (const char *)ptr);
+        extbytes = ByteExtractStringUint64(&val, data->base, nbytes, (const char *)ptr);
         if (extbytes <= 0) {
             /* ByteExtractStringUint64() returns 0 if there is no numeric value in data string */
             if (val == 0) {
@@ -168,7 +219,8 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
                 SCReturnInt(0);
             } else {
                 SCLogDebug("error extracting %d "
-                        "bytes of string data: %d", data->nbytes, extbytes);
+                           "bytes of string data: %d",
+                        nbytes, extbytes);
                 SCReturnInt(-1);
             }
         }
@@ -179,10 +231,11 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
     else {
         int endianness = (flags & DETECT_BYTETEST_LITTLE) ?
                           BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
-        extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
-        if (extbytes != data->nbytes) {
+        extbytes = ByteExtractUint64(&val, endianness, nbytes, ptr);
+        if (extbytes != nbytes) {
             SCLogDebug("error extracting %d bytes "
-                   "of numeric data: %d", data->nbytes, extbytes);
+                       "of numeric data: %d",
+                    nbytes, extbytes);
             SCReturnInt(-1);
         }
 
@@ -258,10 +311,11 @@ static int DetectBytetestMatch(DetectEngineThreadCtx *det_ctx,
                         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     return DetectBytetestDoMatch(det_ctx, s, ctx, p->payload, p->payload_len,
-                                 ((DetectBytetestData *)ctx)->flags, 0, 0);
+            ((DetectBytetestData *)ctx)->flags, 0, 0, 0);
 }
 
-static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value, char **offset)
+static DetectBytetestData *DetectBytetestParse(
+        const char *optstr, char **value, char **offset, char **nbytes_str)
 {
     DetectBytetestData *data = NULL;
     char *args[9] = {
@@ -324,9 +378,22 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
      */
 
     /* Number of bytes */
-    if (StringParseUint32(&nbytes, 10, 0, args[0]) <= 0) {
-        SCLogError("Malformed number of bytes: %s", str_ptr);
-        goto error;
+    if (args[0][0] != '-' && isalpha((unsigned char)args[0][0])) {
+        if (nbytes_str == NULL) {
+            SCLogError("byte_test supplied with "
+                       "var name for nbytes.  \"value\" argument supplied to "
+                       "this function has to be non-NULL");
+            goto error;
+        }
+        *nbytes_str = SCStrdup(args[0]);
+        if (*nbytes_str == NULL)
+            goto error;
+        data->flags |= DETECT_BYTETEST_NBYTES_VAR;
+    } else {
+        if (StringParseUint32(&nbytes, 10, 0, args[0]) <= 0) {
+            SCLogError("Malformed number of bytes: %s", str_ptr);
+            goto error;
+        }
     }
 
     /* The operator is the next arg; it may contain a negation ! as the first char */
@@ -455,31 +522,14 @@ static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value,
         }
     }
 
-    if (data->flags & DETECT_BYTETEST_STRING) {
-        /* 23 - This is the largest string (octal, with a zero prefix) that
-         *      will not overflow uint64_t.  The only way this length
-         *      could be over 23 and still not overflow is if it were zero
-         *      prefixed and we only support 1 byte of zero prefix for octal.
-         *
-         * "01777777777777777777777" = 0xffffffffffffffff
-         */
-        if (nbytes > 23) {
-            SCLogError("Cannot test more than 23 bytes with \"string\": %s", optstr);
+    if (!(data->flags & DETECT_BYTETEST_NBYTES_VAR)) {
+        if (!DetectBytetestValidateNbytes(data, nbytes, optstr)) {
             goto error;
         }
-    } else {
-        if (nbytes > 8) {
-            SCLogError("Cannot test more than 8 bytes without \"string\": %s", optstr);
-            goto error;
-        }
-        if (data->base != DETECT_BYTETEST_BASE_UNSET) {
-            SCLogError("Cannot use a base without \"string\": %s", optstr);
-            goto error;
-        }
-    }
 
-    /* This is max 23 so it will fit in a byte (see above) */
-    data->nbytes = (uint8_t)nbytes;
+        /* This is max 23 so it will fit in a byte (see above) */
+        data->nbytes = (uint8_t)nbytes;
+    }
 
     if (bitmask_index != -1 && data->flags & DETECT_BYTETEST_BITMASK) {
         if (ByteExtractStringUint32(&data->bitmask, 0, 0, args[bitmask_index]+strlen("bitmask")) <= 0) {
@@ -526,9 +576,10 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     SigMatch *prev_pm = NULL;
     char *value = NULL;
     char *offset = NULL;
+    char *nbytes = NULL;
     int ret = -1;
 
-    DetectBytetestData *data = DetectBytetestParse(optstr, &value, &offset);
+    DetectBytetestData *data = DetectBytetestParse(optstr, &value, &offset, &nbytes);
     if (data == NULL)
         goto error;
 
@@ -621,6 +672,20 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         offset = NULL;
     }
 
+    if (nbytes != NULL) {
+        DetectByteIndexType index;
+        if (!DetectByteRetrieveSMVar(nbytes, s, &index)) {
+            SCLogError("Unknown byte_extract var "
+                       "seen in byte_test - %s",
+                    nbytes);
+            goto error;
+        }
+        data->nbytes = index;
+        data->flags |= DETECT_BYTETEST_NBYTES_VAR;
+        SCFree(nbytes);
+        nbytes = NULL;
+    }
+
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
@@ -649,6 +714,8 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         SCFree(offset);
     if (value)
         SCFree(value);
+    if (nbytes)
+        SCFree(nbytes);
     DetectBytetestFree(de_ctx, data);
     return ret;
 }
@@ -684,7 +751,7 @@ static int DetectBytetestTestParse01(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4, =, 1 , 0", NULL, NULL);
+    data = DetectBytetestParse("4, =, 1 , 0", NULL, NULL, NULL);
     if (data != NULL) {
         DetectBytetestFree(NULL, data);
         result = 1;
@@ -700,7 +767,7 @@ static int DetectBytetestTestParse02(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4, !=, 1, 0", NULL, NULL);
+    data = DetectBytetestParse("4, !=, 1, 0", NULL, NULL, NULL);
     if (data != NULL) {
         if (   (data->op == DETECT_BYTETEST_OP_EQ)
             && (data->nbytes == 4)
@@ -724,7 +791,7 @@ static int DetectBytetestTestParse03(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4, !=, 1, 0, relative", NULL, NULL);
+    data = DetectBytetestParse("4, !=, 1, 0, relative", NULL, NULL, NULL);
     if (data != NULL) {
         if (   (data->op == DETECT_BYTETEST_OP_EQ)
             && (data->nbytes == 4)
@@ -749,7 +816,7 @@ static int DetectBytetestTestParse04(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4, !=, 1, 0, string, oct", NULL, NULL);
+    data = DetectBytetestParse("4, !=, 1, 0, string, oct", NULL, NULL, NULL);
     if (data != NULL) {
         if (   (data->op == DETECT_BYTETEST_OP_EQ)
             && (data->nbytes == 4)
@@ -774,7 +841,7 @@ static int DetectBytetestTestParse05(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4, =, 1, 0, string, dec", NULL, NULL);
+    data = DetectBytetestParse("4, =, 1, 0, string, dec", NULL, NULL, NULL);
     if (data != NULL) {
         if (   (data->op == DETECT_BYTETEST_OP_EQ)
             && (data->nbytes == 4)
@@ -798,7 +865,7 @@ static int DetectBytetestTestParse06(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4, >, 1, 0, string, hex", NULL, NULL);
+    data = DetectBytetestParse("4, >, 1, 0, string, hex", NULL, NULL, NULL);
     if (data != NULL) {
         if (   (data->op == DETECT_BYTETEST_OP_GT)
             && (data->nbytes == 4)
@@ -822,7 +889,7 @@ static int DetectBytetestTestParse07(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4, <, 5, 0, big", NULL, NULL);
+    data = DetectBytetestParse("4, <, 5, 0, big", NULL, NULL, NULL);
     if (data != NULL) {
         if (   (data->op == DETECT_BYTETEST_OP_LT)
             && (data->nbytes == 4)
@@ -846,7 +913,7 @@ static int DetectBytetestTestParse08(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4, <, 5, 0, little", NULL, NULL);
+    data = DetectBytetestParse("4, <, 5, 0, little", NULL, NULL, NULL);
     if (data != NULL) {
         if (   (data->op == DETECT_BYTETEST_OP_LT)
             && (data->nbytes == 4)
@@ -870,7 +937,7 @@ static int DetectBytetestTestParse09(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4, !, 5, 0", NULL, NULL);
+    data = DetectBytetestParse("4, !, 5, 0", NULL, NULL, NULL);
     if (data != NULL) {
         if (   (data->op == DETECT_BYTETEST_OP_EQ)
             && (data->nbytes == 4)
@@ -894,7 +961,7 @@ static int DetectBytetestTestParse10(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("	4 , ! &, 5	, 0 , little ", NULL, NULL);
+    data = DetectBytetestParse("	4 , ! &, 5	, 0 , little ", NULL, NULL, NULL);
     if (data != NULL) {
         if (   (data->op == DETECT_BYTETEST_OP_AND)
             && (data->nbytes == 4)
@@ -919,7 +986,7 @@ static int DetectBytetestTestParse11(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4,!^,5,0,little,string,relative,hex", NULL, NULL);
+    data = DetectBytetestParse("4,!^,5,0,little,string,relative,hex", NULL, NULL, NULL);
     if (data != NULL) {
         if (   (data->op == DETECT_BYTETEST_OP_OR)
             && (data->nbytes == 4)
@@ -946,7 +1013,7 @@ static int DetectBytetestTestParse12(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4, =, 1, 0, hex", NULL, NULL);
+    data = DetectBytetestParse("4, =, 1, 0, hex", NULL, NULL, NULL);
     if (data == NULL) {
         result = 1;
     }
@@ -961,7 +1028,7 @@ static int DetectBytetestTestParse13(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("9, =, 1, 0", NULL, NULL);
+    data = DetectBytetestParse("9, =, 1, 0", NULL, NULL, NULL);
     if (data == NULL) {
         result = 1;
     }
@@ -976,7 +1043,7 @@ static int DetectBytetestTestParse14(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("23,=,0xffffffffffffffffULL,0,string,oct", NULL, NULL);
+    data = DetectBytetestParse("23,=,0xffffffffffffffffULL,0,string,oct", NULL, NULL, NULL);
     if (data != NULL) {
         if (   (data->op == DETECT_BYTETEST_OP_EQ)
             && (data->nbytes == 23)
@@ -1000,7 +1067,7 @@ static int DetectBytetestTestParse15(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("24, =, 0xffffffffffffffffULL, 0, string", NULL, NULL);
+    data = DetectBytetestParse("24, =, 0xffffffffffffffffULL, 0, string", NULL, NULL, NULL);
     if (data == NULL) {
         result = 1;
     }
@@ -1015,7 +1082,7 @@ static int DetectBytetestTestParse16(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4,=,0,0xffffffffffffffffULL", NULL, NULL);
+    data = DetectBytetestParse("4,=,0,0xffffffffffffffffULL", NULL, NULL, NULL);
     if (data == NULL) {
         result = 1;
     }
@@ -1030,7 +1097,7 @@ static int DetectBytetestTestParse17(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4, <, 5, 0, dce", NULL, NULL);
+    data = DetectBytetestParse("4, <, 5, 0, dce", NULL, NULL, NULL);
     if (data != NULL) {
         if ( (data->op == DETECT_BYTETEST_OP_LT) &&
              (data->nbytes == 4) &&
@@ -1052,7 +1119,7 @@ static int DetectBytetestTestParse18(void)
 {
     int result = 0;
     DetectBytetestData *data = NULL;
-    data = DetectBytetestParse("4, <, 5, 0", NULL, NULL);
+    data = DetectBytetestParse("4, <, 5, 0", NULL, NULL, NULL);
     if (data != NULL) {
         if ( (data->op == DETECT_BYTETEST_OP_LT) &&
              (data->nbytes == 4) &&
@@ -1372,7 +1439,7 @@ static int DetectBytetestTestParse22(void)
 static int DetectBytetestTestParse23(void)
 {
     DetectBytetestData *data;
-    data = DetectBytetestParse("4, <, 5, 0, bitmask 0xf8", NULL, NULL);
+    data = DetectBytetestParse("4, <, 5, 0, bitmask 0xf8", NULL, NULL, NULL);
 
     FAIL_IF_NULL(data);
     FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_LT);
@@ -1394,7 +1461,8 @@ static int DetectBytetestTestParse23(void)
 static int DetectBytetestTestParse24(void)
 {
     DetectBytetestData *data;
-    data = DetectBytetestParse("4, !<, 5, 0, relative,string,hex, big, bitmask 0xf8", NULL, NULL);
+    data = DetectBytetestParse(
+            "4, !<, 5, 0, relative,string,hex, big, bitmask 0xf8", NULL, NULL, NULL);
     FAIL_IF_NULL(data);
     FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_LT);
     FAIL_IF_NOT(data->nbytes == 4);
