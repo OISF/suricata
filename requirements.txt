@@ -4,4 +4,4 @@
 #
 #   name {repo} {branch|tag}
 libhtp https://github.com/OISF/libhtp 0.5.44
-suricata-update https://github.com/OISF/suricata-update 1.2.7
+suricata-update https://github.com/OISF/suricata-update 1.2.8
