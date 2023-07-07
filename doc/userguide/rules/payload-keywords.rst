@@ -368,13 +368,14 @@ and the final result will be right shifted one bit for each trailing ``0`` in
 the ``<bitmask value>``.
 
 Format::
-  
-  byte_test:<num of bytes>, [!]<operator>, <test value>, <offset> [,relative] \
-  [,<endian>][, string, <num type>][, dce][, bitmask <bitmask value>]; 
+
+  byte_test:<num of bytes> | <ariable_name>, [!]<operator>, <test value>, <offset> [,relative] \
+  [,<endian>][, string, <num type>][, dce][, bitmask <bitmask value>];
 
 
 +----------------+------------------------------------------------------------------------------+
 | <num of bytes> | The number of bytes selected from the packet to be converted			|
+|                | or the name of a byte_extract/byte_math variable.            		|
 +----------------+------------------------------------------------------------------------------+
 | <operator>	 | 										|
 |		 | - [!] Negation can prefix other operators					|
