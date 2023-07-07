@@ -1040,9 +1040,9 @@ static uint32_t CountersIdHashFunc(HashTable *ht, void *data, uint16_t datalen)
 {
     CountersIdType *t = (CountersIdType *)data;
     uint32_t hash = 0;
-    int len = strlen(t->string);
+    size_t len = strlen(t->string);
 
-    for (int i = 0; i < len; i++)
+    for (size_t i = 0; i < len; i++)
         hash += u8_tolower((unsigned char)t->string[i]);
 
     hash = hash % ht->array_size;
@@ -1054,8 +1054,8 @@ static char CountersIdHashCompareFunc(void *data1, uint16_t datalen1,
 {
     CountersIdType *t1 = (CountersIdType *)data1;
     CountersIdType *t2 = (CountersIdType *)data2;
-    int len1 = 0;
-    int len2 = 0;
+    size_t len1 = 0;
+    size_t len2 = 0;
 
     if (t1 == NULL || t2 == NULL)
         return 0;
