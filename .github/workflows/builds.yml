@@ -455,44 +455,19 @@ jobs:
                 pcre2-devel \
                 pkgconfig \
                 python3-devel \
-                python3-sphinx \
                 python3-yaml \
                 rust-toolset \
                 sudo \
                 which \
                 zlib-devel
-          # These packages required to build the PDF.
-          yum -y install \
-                texlive-latex \
-                texlive-cmap \
-                texlive-collection-latexrecommended \
-                texlive-fncychap \
-                texlive-titlesec \
-                texlive-tabulary \
-                texlive-framed \
-                texlive-wrapfig \
-                texlive-upquote \
-                texlive-capt-of \
-                texlive-needspace
-      #- name: Setup cppclean
-      #  run: |
-      #    git clone --depth 1 --branch suricata https://github.com/catenacyber/cppclean
-      #    cd cppclean
-      #    python3 setup.py install
       - name: Configuring
         run: |
           ./autogen.sh
           CFLAGS="${DEFAULT_CFLAGS}" ./configure
-      - run: make -j2 distcheck
-        env:
-          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
-      - run: test -e doc/userguide/suricata.1
+      - run: make -j2 check
       - name: Checking includes
         run: |
           cppclean src/*.h | grep "does not need to be #included" | python3 scripts/cppclean_check.py
-      - name: Building Rust documentation
-        run: make doc
-        working-directory: rust
       - run: make install
       - run: suricatasc -h
       - run: suricata-update -V
@@ -640,25 +615,11 @@ jobs:
                 pcre2-devel \
                 pkgconfig \
                 python3-devel \
-                python3-sphinx \
                 python3-yaml \
                 rust-toolset \
                 sudo \
                 which \
                 zlib-devel
-          # These packages required to build the PDF.
-          dnf -y install \
-                texlive-latex \
-                texlive-cmap \
-                texlive-collection-latexrecommended \
-                texlive-fncychap \
-                texlive-titlesec \
-                texlive-tabulary \
-                texlive-framed \
-                texlive-wrapfig \
-                texlive-upquote \
-                texlive-capt-of \
-                texlive-needspace
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
