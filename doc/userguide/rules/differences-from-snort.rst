@@ -278,6 +278,13 @@ See :doc:`http-keywords` for all HTTP keywords.
 
 - Suricata will never match if there's a zero divisor. Division by 0 is undefined.
 
+``byte_test`` Keyword
+---------------------
+
+- Suricata allows a variable name from ``byte_extract`` or ``byte_math``
+  to be specified for the ``nbytes`` value. The value of ``nbytes`` must adhere
+  to the same constraints as though a value was directly supplied by the rule.
+
 
 ``isdataat`` Keyword
 --------------------
