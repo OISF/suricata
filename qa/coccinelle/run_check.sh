@@ -38,13 +38,10 @@ fi
 
 for SMPL in ${PREFIX}qa/coccinelle/*.cocci ${BUILT_COCCI_FILES}; do
 	echo "Testing cocci file: $SMPL"
-	if command -v parallel >/dev/null; then
-		echo -n $LIST | parallel -d ' ' -j $CONCURRENCY_LEVEL spatch --very-quiet -sp_file $SMPL --undefined UNITTESTS $PREFIX{} || if [ -z "$NOT_TERMINAL" ]; then exit 1; fi
-	else
-		for FILE in $LIST ; do
-			spatch --very-quiet -sp_file $SMPL --undefined UNITTESTS  $PREFIX$FILE || if [ -z "$NOT_TERMINAL" ]; then exit 1; fi
-		done
-	fi
+	for FILE in $LIST ; do
+		echo "Testing spatch on $FILE"
+		spatch --very-quiet -sp_file $SMPL --undefined UNITTESTS  $PREFIX$FILE || if [ -z "$NOT_TERMINAL" ]; then exit 1; fi
+	done
 done
 
 exit 0

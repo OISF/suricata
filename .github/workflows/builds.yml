@@ -2091,7 +2091,6 @@ jobs:
                 texlive-latex-extra
       - name: Install Coccinelle
         run: |
-          add-apt-repository -y ppa:npalix/coccinelle
           apt -y install coccinelle
       - uses: actions/checkout@v3.5.3
       - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
@@ -2111,7 +2110,7 @@ jobs:
       - run: make tags
       - name: Running unit tests and cocci checks
         # Set the concurrency level for cocci.
-        run: CONCURRENCY_LEVEL=2 make check
+        run: make check
       - run: make dist
       - name: Checking that documentation was built
         run: |
