@@ -459,13 +459,14 @@ other rule options later in the rule.
 
 Format::
 
-  byte_math:bytes <num of bytes>, offset <offset>, oper <operator>, rvalue <rvalue>, \
+  byte_math:bytes <num of bytes> | <variable-name> , offset <offset>, oper <operator>, rvalue <rvalue>, \
         result <result_var> [, relative] [, endian <endian>] [, string <number-type>] \
         [, dce] [, bitmask <value>];
 
 
 +-----------------------+-----------------------------------------------------------------------+
 | <num of bytes>        | The number of bytes selected from the packet                          |
+|                       | or the name of a byte_extract variable.                               |
 +-----------------------+-----------------------------------------------------------------------+
 | <offset>              | Number of bytes into the payload                                      |
 +-----------------------+-----------------------------------------------------------------------+

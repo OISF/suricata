@@ -295,6 +295,10 @@ See :doc:`http-keywords` for all HTTP keywords.
   to be specified for the ``nbytes`` value. The value of ``nbytes`` must adhere
   to the same constraints as though a value was directly supplied by the rule.
 
+-  Suricata allows a variable name from ``byte_extract`` to be specified for
+   the ``nbytes`` value. The value of ``nbytes`` must adhere to the same constraints
+   as if it were supplied directly in the rule.
+
 
 ``isdataat`` Keyword
 --------------------
