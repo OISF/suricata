@@ -76,19 +76,29 @@ void DetectBytemathRegister(void)
 #endif
 }
 
+static inline bool DetectByteMathValidateNbytesOnly(const DetectByteMathData *data, int32_t nbytes)
+{
+    return nbytes >= 1 &&
+           (((data->flags & DETECT_BYTEMATH_FLAG_STRING) && nbytes <= 10) || (nbytes <= 4));
+}
+
 int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *smd,
-                          const Signature *s, const uint8_t *payload,
-                          uint16_t payload_len, uint64_t rvalue, uint64_t *value, uint8_t endian)
+        const Signature *s, const uint8_t *payload, uint16_t payload_len, uint8_t nbytes,
+        uint64_t rvalue, uint64_t *value, uint8_t endian)
 {
     const DetectByteMathData *data = (DetectByteMathData *)smd->ctx;
+    if (payload_len == 0) {
+        return 0;
+    }
+
+    if (!DetectByteMathValidateNbytesOnly(data, nbytes)) {
+        return 0;
+    }
+
     const uint8_t *ptr;
     int32_t len;
     uint64_t val;
     int extbytes;
-
-    if (payload_len == 0) {
-        return 0;
-    }
 
     /* Calculate the ptr value for the byte-math op and length remaining in
      * the packet from that point.
@@ -116,33 +126,30 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *sm
     }
 
     /* Validate that the to-be-extracted is within the packet */
-    if (ptr < payload || data->nbytes > len) {
-        SCLogDebug("Data not within payload pkt=%p, ptr=%p, len=%"PRIu32", nbytes=%d",
-                    payload, ptr, len, data->nbytes);
+    if (ptr < payload || nbytes > len) {
+        SCLogDebug("Data not within payload pkt=%p, ptr=%p, len=%" PRIu32 ", nbytes=%d", payload,
+                ptr, len, nbytes);
         return 0;
     }
 
     /* Extract the byte data */
     if (data->flags & DETECT_BYTEMATH_FLAG_STRING) {
-        extbytes = ByteExtractStringUint64(&val, data->base,
-                                           data->nbytes, (const char *)ptr);
+        extbytes = ByteExtractStringUint64(&val, data->base, nbytes, (const char *)ptr);
         if (extbytes <= 0) {
             if (val == 0) {
                 SCLogDebug("No Numeric value");
                 return 0;
             } else {
-                SCLogDebug("error extracting %d bytes of string data: %d",
-                           data->nbytes, extbytes);
+                SCLogDebug("error extracting %d bytes of string data: %d", nbytes, extbytes);
                 return -1;
             }
         }
     } else {
         ByteMathEndian bme = endian;
         int endianness = (bme == BigEndian) ? BYTE_BIG_ENDIAN : BYTE_LITTLE_ENDIAN;
-        extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
-        if (extbytes != data->nbytes) {
-            SCLogDebug("error extracting %d bytes of numeric data: %d",
-                       data->nbytes, extbytes);
+        extbytes = ByteExtractUint64(&val, endianness, nbytes, ptr);
+        if (extbytes != nbytes) {
+            SCLogDebug("error extracting %d bytes of numeric data: %d", nbytes, extbytes);
             return 0;
         }
     }
@@ -206,12 +213,26 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *sm
  * \retval bmd On success an instance containing the parsed data.
  *            On failure, NULL.
  */
-static DetectByteMathData *DetectByteMathParse(DetectEngineCtx *de_ctx, const char *arg, char **rvalue)
+static DetectByteMathData *DetectByteMathParse(
+        DetectEngineCtx *de_ctx, const char *arg, char **nbytes, char **rvalue)
 {
     DetectByteMathData *bmd;
     if ((bmd = ScByteMathParse(arg)) == NULL) {
         SCLogError("invalid bytemath values");
         return NULL;
+    }
+
+    if (bmd->nbytes_str) {
+        if (nbytes == NULL) {
+            SCLogError("byte_math supplied with "
+                       "var name for nbytes. \"nbytes\" argument supplied to "
+                       "this function must be non-NULL");
+            goto error;
+        }
+        *nbytes = SCStrdup(bmd->nbytes_str);
+        if (*nbytes == NULL) {
+            goto error;
+        }
     }
 
     if (bmd->rvalue_str) {
@@ -262,9 +283,10 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     SigMatch *prev_pm = NULL;
     DetectByteMathData *data;
     char *rvalue = NULL;
+    char *nbytes = NULL;
     int ret = -1;
 
-    data = DetectByteMathParse(de_ctx, arg, &rvalue);
+    data = DetectByteMathParse(de_ctx, arg, &nbytes, &rvalue);
     if (data == NULL)
         goto error;
 
@@ -336,6 +358,18 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         }
     }
 
+    if (nbytes != NULL) {
+        DetectByteIndexType index;
+        if (!DetectByteRetrieveSMVar(nbytes, s, &index)) {
+            SCLogError("unknown byte_ keyword var seen in byte_math - %s", nbytes);
+            goto error;
+        }
+        data->nbytes = index;
+        data->flags |= DETECT_BYTEMATH_FLAG_NBYTES_VAR;
+        SCFree(nbytes);
+        nbytes = NULL;
+    }
+
     if (rvalue != NULL) {
         DetectByteIndexType index;
         if (!DetectByteRetrieveSMVar(rvalue, s, &index)) {
@@ -386,6 +420,8 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
  error:
     if (rvalue)
         SCFree(rvalue);
+    if (nbytes)
+        SCFree(nbytes);
     DetectByteMathFree(de_ctx, data);
     return ret;
 }
@@ -448,8 +484,10 @@ SigMatch *DetectByteMathRetrieveSMVar(const char *arg, const Signature *s)
 static int DetectByteMathParseTest01(void)
 {
 
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 4, offset 2, oper +,"
-                                                  "rvalue 10, result bar", NULL);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 4, offset 2, oper +,"
+            "rvalue 10, result bar",
+            NULL, NULL);
     FAIL_IF(bmd == NULL);
 
     FAIL_IF_NOT(bmd->nbytes == 4);
@@ -468,8 +506,10 @@ static int DetectByteMathParseTest01(void)
 static int DetectByteMathParseTest02(void)
 {
     /* bytes value invalid */
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 257, offset 2, oper +, "
-                                                  "rvalue 39, result bar", NULL);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 257, offset 2, oper +, "
+            "rvalue 39, result bar",
+            NULL, NULL);
 
     FAIL_IF_NOT(bmd == NULL);
 
@@ -479,8 +519,10 @@ static int DetectByteMathParseTest02(void)
 static int DetectByteMathParseTest03(void)
 {
     /* bytes value invalid */
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 11, offset 2, oper +, "
-                                                  "rvalue 39, result bar", NULL);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 11, offset 2, oper +, "
+            "rvalue 39, result bar",
+            NULL, NULL);
     FAIL_IF_NOT(bmd == NULL);
 
     PASS;
@@ -489,8 +531,10 @@ static int DetectByteMathParseTest03(void)
 static int DetectByteMathParseTest04(void)
 {
     /* offset value invalid */
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 4, offset 70000, oper +,"
-                                                  " rvalue 39, result bar", NULL);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 4, offset 70000, oper +,"
+            " rvalue 39, result bar",
+            NULL, NULL);
 
     FAIL_IF_NOT(bmd == NULL);
 
@@ -500,8 +544,10 @@ static int DetectByteMathParseTest04(void)
 static int DetectByteMathParseTest05(void)
 {
     /* oper value invalid */
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 11, offset 16, oper &,"
-                                                  "rvalue 39, result bar", NULL);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 11, offset 16, oper &,"
+            "rvalue 39, result bar",
+            NULL, NULL);
     FAIL_IF_NOT(bmd == NULL);
 
     PASS;
@@ -512,9 +558,10 @@ static int DetectByteMathParseTest06(void)
     uint8_t flags = DETECT_BYTEMATH_FLAG_RELATIVE;
     char *rvalue = NULL;
 
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 4, offset 0, oper +,"
-                                                  "rvalue 248, result var, relative",
-                                                  &rvalue);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 4, offset 0, oper +,"
+            "rvalue 248, result var, relative",
+            NULL, &rvalue);
 
     FAIL_IF(bmd == NULL);
     FAIL_IF_NOT(bmd->nbytes == 4);
@@ -535,9 +582,10 @@ static int DetectByteMathParseTest07(void)
 {
     char *rvalue = NULL;
 
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 4, offset 2, oper +,"
-                                                  "rvalue foo, result bar",
-                                                  &rvalue);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 4, offset 2, oper +,"
+            "rvalue foo, result bar",
+            NULL, &rvalue);
     FAIL_IF_NOT(rvalue);
     FAIL_IF_NOT(bmd->nbytes == 4);
     FAIL_IF_NOT(bmd->offset == 2);
@@ -557,8 +605,10 @@ static int DetectByteMathParseTest07(void)
 static int DetectByteMathParseTest08(void)
 {
     /* ensure Parse checks the pointer value when rvalue is a var */
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 4, offset 2, oper +,"
-                                                  "rvalue foo, result bar", NULL);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 4, offset 2, oper +,"
+            "rvalue foo, result bar",
+            NULL, NULL);
     FAIL_IF_NOT(bmd == NULL);
 
     PASS;
@@ -568,9 +618,10 @@ static int DetectByteMathParseTest09(void)
 {
     uint8_t flags = DETECT_BYTEMATH_FLAG_RELATIVE;
 
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 4, offset 2, oper +,"
-                                                  "rvalue 39, result bar, relative",
-                                                  NULL);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 4, offset 2, oper +,"
+            "rvalue 39, result bar, relative",
+            NULL, NULL);
     FAIL_IF(bmd == NULL);
 
     FAIL_IF_NOT(bmd->nbytes == 4);
@@ -591,9 +642,11 @@ static int DetectByteMathParseTest10(void)
 {
     uint8_t flags = DETECT_BYTEMATH_FLAG_ENDIAN;
 
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 4, offset 2, oper +,"
-                                                  "rvalue 39, result bar, endian"
-                                                  " big", NULL);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 4, offset 2, oper +,"
+            "rvalue 39, result bar, endian"
+            " big",
+            NULL, NULL);
 
     FAIL_IF(bmd == NULL);
     FAIL_IF_NOT(bmd->nbytes == 4);
@@ -614,9 +667,10 @@ static int DetectByteMathParseTest11(void)
 {
     uint8_t flags = DETECT_BYTEMATH_FLAG_ENDIAN;
 
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 4, offset 2, oper +, "
-                                                  "rvalue 39, result bar, dce",
-                                                  NULL);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 4, offset 2, oper +, "
+            "rvalue 39, result bar, dce",
+            NULL, NULL);
 
     FAIL_IF(bmd == NULL);
     FAIL_IF_NOT(bmd->nbytes == 4);
@@ -637,9 +691,11 @@ static int DetectByteMathParseTest12(void)
 {
     uint8_t flags = DETECT_BYTEMATH_FLAG_RELATIVE | DETECT_BYTEMATH_FLAG_STRING;
 
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 4, offset 2, oper +,"
-                                                  "rvalue 39, result bar, "
-                                                  "relative, string dec", NULL);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 4, offset 2, oper +,"
+            "rvalue 39, result bar, "
+            "relative, string dec",
+            NULL, NULL);
 
     FAIL_IF(bmd == NULL);
     FAIL_IF_NOT(bmd->nbytes == 4);
@@ -662,10 +718,12 @@ static int DetectByteMathParseTest13(void)
                     DETECT_BYTEMATH_FLAG_RELATIVE |
                     DETECT_BYTEMATH_FLAG_BITMASK;
 
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 4, offset 2, oper +, "
-                                                  "rvalue 39, result bar, "
-                                                  "relative,  string dec, bitmask "
-                                                  "0x8f40", NULL);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 4, offset 2, oper +, "
+            "rvalue 39, result bar, "
+            "relative,  string dec, bitmask "
+            "0x8f40",
+            NULL, NULL);
 
     FAIL_IF(bmd == NULL);
     FAIL_IF_NOT(bmd->nbytes == 4);
@@ -688,8 +746,10 @@ static int DetectByteMathParseTest13(void)
 static int DetectByteMathParseTest14(void)
 {
     /* incomplete */
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 4, offset 2, oper +,"
-                                                  "rvalue foo", NULL);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 4, offset 2, oper +,"
+            "rvalue foo",
+            NULL, NULL);
 
     FAIL_IF_NOT(bmd == NULL);
 
@@ -700,8 +760,10 @@ static int DetectByteMathParseTest15(void)
 {
 
     /* incomplete */
-    DetectByteMathData *bmd = DetectByteMathParse(NULL, "bytes 4, offset 2, oper +, "
-                                                  "result bar", NULL);
+    DetectByteMathData *bmd = DetectByteMathParse(NULL,
+            "bytes 4, offset 2, oper +, "
+            "result bar",
+            NULL, NULL);
 
     FAIL_IF_NOT(bmd == NULL);
 
@@ -718,7 +780,7 @@ static int DetectByteMathParseTest16(void)
             "rvalue 39, result bar, "
             "relative,  string dec, bitmask "
             "0x8f40",
-            NULL);
+            NULL, NULL);
 
     FAIL_IF(bmd == NULL);
     FAIL_IF_NOT(bmd->nbytes == 4);
