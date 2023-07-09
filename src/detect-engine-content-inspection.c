@@ -577,8 +577,15 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
             rvalue = bmd->rvalue;
         }
 
+        uint8_t nbytes;
+        if (bmd->flags & DETECT_BYTEMATH_FLAG_NBYTES_VAR) {
+            nbytes = det_ctx->byte_values[bmd->nbytes];
+        } else {
+            nbytes = bmd->nbytes;
+        }
+
         DEBUG_VALIDATE_BUG_ON(buffer_len > UINT16_MAX);
-        if (DetectByteMathDoMatch(det_ctx, smd, s, buffer, (uint16_t)buffer_len, rvalue,
+        if (DetectByteMathDoMatch(det_ctx, smd, s, buffer, (uint16_t)buffer_len, nbytes, rvalue,
                     &det_ctx->byte_values[bmd->local_id], endian) != 1) {
             goto no_match;
         }
