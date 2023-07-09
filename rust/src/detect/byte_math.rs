@@ -33,6 +33,7 @@ pub const DETECT_BYTEMATH_FLAG_STRING: u8 = 0x02;
 pub const DETECT_BYTEMATH_FLAG_BITMASK: u8 = 0x04;
 pub const DETECT_BYTEMATH_FLAG_ENDIAN: u8 = 0x08;
 pub const DETECT_BYTEMATH_FLAG_RVALUE_VAR: u8 = 0x10;
+pub const DETECT_BYTEMATH_FLAG_NBYTES_VAR: u8 = 0x20;
 
 // Ensure required values are provided
 const DETECT_BYTEMATH_FLAG_NBYTES: u8 = 0x1;
@@ -98,6 +99,7 @@ enum ResultValue {
 pub struct DetectByteMathData {
     rvalue_str: *const c_char,
     result: *const c_char,
+    nbytes_str: *const c_char,
     rvalue: u32,
     offset: i32,
     bitmask_val: u32,
@@ -120,6 +122,9 @@ impl Drop for DetectByteMathData {
             if !self.rvalue_str.is_null() {
                 let _ = CString::from_raw(self.rvalue_str as *mut c_char);
             }
+            if !self.nbytes_str.is_null() {
+                let _ = CString::from_raw(self.nbytes_str as *mut c_char);
+            }
         }
     }
 }
@@ -133,6 +138,7 @@ impl Default for DetectByteMathData {
             offset: 0,
             oper: ByteMathOperator::OperatorNone,
             rvalue_str: std::ptr::null_mut(),
+            nbytes_str: std::ptr::null_mut(),
             rvalue: 0,
             result: std::ptr::null_mut(),
             endian: DETECT_BYTEMATH_ENDIAN_DEFAULT,
@@ -190,12 +196,12 @@ fn get_endian_value(value: &str) -> Result<ByteMathEndian, ()> {
 
 // Parsed as a u64 for validation with u32 {min,max} so values greater than uint32
 // are not treated as a string value.
-fn parse_rvalue(input: &str) -> IResult<&str, ResultValue, RuleParseError<&str>> {
-    let (input, rvalue) = parse_token(input)?;
-    if let Ok(val) = rvalue.parse::<u64>() {
+fn parse_var(input: &str) -> IResult<&str, ResultValue, RuleParseError<&str>> {
+    let (input, value) = parse_token(input)?;
+    if let Ok(val) = value.parse::<u64>() {
         Ok((input, ResultValue::Numeric(val)))
     } else {
-        Ok((input, ResultValue::String(rvalue.to_string())))
+        Ok((input, ResultValue::String(value.to_string())))
     }
 }
 
@@ -259,7 +265,7 @@ fn parse_bytemath(input: &str) -> IResult<&str, DetectByteMathData, RuleParseErr
                 if 0 != (required_flags & DETECT_BYTEMATH_FLAG_RVALUE) {
                     return Err(make_error("rvalue already set".to_string()));
                 }
-                let (_, res) = parse_rvalue(val)?;
+                let (_, res) = parse_var(val)?;
                 match res {
                     ResultValue::Numeric(val) => {
                         if val >= u32::MIN.into() && val <= u32::MAX.into() {
@@ -358,14 +364,29 @@ fn parse_bytemath(input: &str) -> IResult<&str, DetectByteMathData, RuleParseErr
                 if 0 != (required_flags & DETECT_BYTEMATH_FLAG_NBYTES) {
                     return Err(make_error("nbytes already set".to_string()));
                 }
-                byte_math.nbytes = val
-                    .parse()
-                    .map_err(|_| make_error(format!("invalid bytes value: {}", val)))?;
-                if byte_math.nbytes < 1 || byte_math.nbytes > 10 {
-                    return Err(make_error(format!(
-                        "invalid bytes value: must be between 1 and 10: {}",
-                        byte_math.nbytes
-                    )));
+                let (_, res) = parse_var(val)?;
+                match res {
+                    ResultValue::Numeric(val) => {
+                        if (1..=10).contains(&val) {
+                            byte_math.nbytes = val as u8
+                        } else {
+                            return Err(make_error(format!(
+                                "invalid nbytes value: must be between 1 and 10: {}",
+                                val
+                            )));
+                        }
+                    }
+                    ResultValue::String(val) => match CString::new(val) {
+                        Ok(newval) => {
+                            byte_math.nbytes_str = newval.into_raw();
+                            byte_math.flags |= DETECT_BYTEMATH_FLAG_NBYTES_VAR;
+                        }
+                        _ => {
+                            return Err(make_error(
+                                "parse string not safely convertible to C".to_string(),
+                            ))
+                        }
+                    },
                 }
                 required_flags |= DETECT_BYTEMATH_FLAG_NBYTES;
             }
@@ -439,6 +460,14 @@ mod tests {
                 return false;
             }
 
+            if !self.nbytes_str.is_null() && !other.nbytes_str.is_null() {
+                let s_val = unsafe { CStr::from_ptr(self.nbytes_str) };
+                let o_val = unsafe { CStr::from_ptr(other.nbytes_str) };
+                res = s_val == o_val;
+            } else if !self.nbytes_str.is_null() || !other.nbytes_str.is_null() {
+                return false;
+            }
+
             if !self.result.is_null() && !self.result.is_null() {
                 let s_val = unsafe { CStr::from_ptr(self.result) };
                 let o_val = unsafe { CStr::from_ptr(other.result) };
@@ -462,7 +491,7 @@ mod tests {
     }
 
     fn valid_test(
-        args: &str, nbytes: u8, offset: i32, oper: ByteMathOperator, rvalue_str: &str, rvalue: u32,
+        args: &str, nbytes: u8, offset: i32, oper: ByteMathOperator, rvalue_str: &str, nbytes_str: &str, rvalue: u32,
         result: &str, base: ByteMathBase, endian: ByteMathEndian, bitmask_val: u32, flags: u8,
     ) {
         let bmd = DetectByteMathData {
@@ -471,6 +500,11 @@ mod tests {
             oper,
             rvalue_str: if !rvalue_str.is_empty() {
                 CString::new(rvalue_str).unwrap().into_raw()
+            } else {
+                std::ptr::null_mut()
+            },
+            nbytes_str: if !nbytes_str.is_empty() {
+                CString::new(nbytes_str).unwrap().into_raw()
             } else {
                 std::ptr::null_mut()
             },
@@ -501,6 +535,7 @@ mod tests {
             3933,
             ByteMathOperator::Addition,
             "myrvalue",
+            "",
             0,
             "myresult",
             ByteMathBase::BaseDec,
@@ -517,6 +552,7 @@ mod tests {
             3933,
             ByteMathOperator::Addition,
             "",
+            "",
             99,
             "other",
             ByteMathBase::BaseDec,
@@ -531,6 +567,7 @@ mod tests {
             -3933,
             ByteMathOperator::Addition,
             "rvalue",
+            "",
             0,
             "foo",
             BASE_DEFAULT,
@@ -539,12 +576,28 @@ mod tests {
             DETECT_BYTEMATH_FLAG_RVALUE_VAR,
         );
 
+        valid_test(
+            "bytes nbytes_var, offset -3933, oper +, rvalue myrvalue, result foo",
+            0,
+            -3933,
+            ByteMathOperator::Addition,
+            "rvalue",
+            "nbytes_var",
+            0,
+            "foo",
+            BASE_DEFAULT,
+            ByteMathEndian::BigEndian,
+            0,
+            DETECT_BYTEMATH_FLAG_RVALUE_VAR | DETECT_BYTEMATH_FLAG_NBYTES_VAR,
+        );
+
         // Out of order
         valid_test(
             "string dec, endian big, result other, rvalue 99, oper +, offset 3933, bytes 4",
             4,
             3933,
             ByteMathOperator::Addition,
+            "",
             "",
             99,
             "other",
