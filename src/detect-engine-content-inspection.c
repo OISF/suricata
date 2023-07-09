@@ -572,7 +572,7 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
         }
         uint64_t rvalue;
         if (bmd->flags & DETECT_BYTEMATH_FLAG_RVALUE_VAR) {
-            rvalue = det_ctx->byte_values[bmd->local_id];
+            rvalue = det_ctx->byte_values[bmd->rvalue];
         } else {
             rvalue = bmd->rvalue;
         }
