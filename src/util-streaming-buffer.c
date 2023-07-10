@@ -1770,6 +1770,8 @@ int StreamingBufferGetDataAtOffset (const StreamingBuffer *sb,
         uint64_t offset)
 {
     const StreamingBufferRegion *region = GetRegionForOffset(sb, offset);
+    SCLogDebug("offset %ld, region available: [%ld - %ld]", offset, region->stream_offset,
+            region->stream_offset + region->buf_offset);
     if (region != NULL && region->buf != NULL && offset >= region->stream_offset &&
             offset < (region->stream_offset + region->buf_offset)) {
         uint32_t skip = offset - region->stream_offset;
