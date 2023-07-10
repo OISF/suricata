@@ -28,12 +28,4 @@ uint8_t DetectFileInspectGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx 
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *_alstate, void *tx, uint64_t tx_id);
 
-typedef struct FileAppProto {
-    AppProto alproto;
-    int progress;
-} FileAppProto;
-
-extern FileAppProto *file_protos_ts;
-extern FileAppProto *file_protos_tc;
-
 #endif /* __DETECT_ENGINE_FILE_H__ */
