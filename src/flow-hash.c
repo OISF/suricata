@@ -944,74 +944,51 @@ flow_removed:
     return NULL;
 }
 
-static inline int FlowCompareKey(Flow *f, FlowKey *key)
+/** \internal
+ *  \retval true if flow matches key
+ *  \retval false if flow does not match key, or unsupported protocol
+ *  \note only supports TCP & UDP
+ */
+static inline bool FlowCompareKey(Flow *f, FlowKey *key)
 {
     if ((f->proto != IPPROTO_TCP) && (f->proto != IPPROTO_UDP))
-        return 0;
+        return false;
     return CmpFlowKey(f, key);
 }
 
 /** \brief Look for existing Flow using a flow id value
  *
  * Hash retrieval function for flows. Looks up the hash bucket containing the
- * flow pointer. Then compares the packet with the found flow to see if it is
- * the flow we need. If it isn't, walk the list until the right flow is found.
- *
+ * flow pointer. Then compares the flow_id with the found flow's flow_id to see
+ * if it is the flow we need.
  *
  *  \param flow_id Flow ID of the flow to look for
  *  \retval f *LOCKED* flow or NULL
  */
-
 Flow *FlowGetExistingFlowFromFlowId(int64_t flow_id)
 {
     uint32_t hash = flow_id & 0x0000FFFF;
-    /* get our hash bucket and lock it */
     FlowBucket *fb = &flow_hash[hash % flow_config.hash_size];
     FBLOCK_LOCK(fb);
-
     SCLogDebug("fb %p fb->head %p", fb, fb->head);
 
-    /* return if the bucket don't have a flow */
-    if (fb->head == NULL) {
-        FBLOCK_UNLOCK(fb);
-        return NULL;
-    }
-
-    /* ok, we have a flow in the bucket. Let's find out if it is our flow */
-    Flow *f = fb->head;
-
-    /* see if this is the flow we are looking for */
-    if (FlowGetId(f) != flow_id) {
-        while (f) {
-            f = f->next;
-
-            if (f == NULL) {
-                FBLOCK_UNLOCK(fb);
-                return NULL;
-            }
-            if (FlowGetId(f) != flow_id) {
-                /* found our flow, lock & return */
-                FLOWLOCK_WRLOCK(f);
-
-                FBLOCK_UNLOCK(fb);
-                return f;
-            }
+    for (Flow *f = fb->head; f != NULL; f = f->next) {
+        if (FlowGetId(f) == flow_id) {
+            /* found our flow, lock & return */
+            FLOWLOCK_WRLOCK(f);
+            FBLOCK_UNLOCK(fb);
+            return f;
         }
     }
-
-    /* lock & return */
-    FLOWLOCK_WRLOCK(f);
-
     FBLOCK_UNLOCK(fb);
-    return f;
+    return NULL;
 }
 
 /** \brief Look for existing Flow using a FlowKey
  *
  * Hash retrieval function for flows. Looks up the hash bucket containing the
- * flow pointer. Then compares the packet with the found flow to see if it is
+ * flow pointer. Then compares the key with the found flow to see if it is
  * the flow we need. If it isn't, walk the list until the right flow is found.
- *
  *
  *  \param key Pointer to FlowKey build using flow to look for
  *  \param hash Value of the flow hash
@@ -1022,43 +999,20 @@ static Flow *FlowGetExistingFlowFromHash(FlowKey *key, const uint32_t hash)
     /* get our hash bucket and lock it */
     FlowBucket *fb = &flow_hash[hash % flow_config.hash_size];
     FBLOCK_LOCK(fb);
-
     SCLogDebug("fb %p fb->head %p", fb, fb->head);
 
-    /* return if the bucket don't have a flow */
-    if (fb->head == NULL) {
-        FBLOCK_UNLOCK(fb);
-        return NULL;
-    }
-
-    /* ok, we have a flow in the bucket. Let's find out if it is our flow */
-    Flow *f = fb->head;
-
-    /* see if this is the flow we are looking for */
-    if (FlowCompareKey(f, key) == 0) {
-        while (f) {
-            f = f->next;
-
-            if (f == NULL) {
-                FBLOCK_UNLOCK(fb);
-                return NULL;
-            }
-
-            if (FlowCompareKey(f, key) != 0) {
-                /* found our flow, lock & return */
-                FLOWLOCK_WRLOCK(f);
-
-                FBLOCK_UNLOCK(fb);
-                return f;
-            }
+    for (Flow *f = fb->head; f != NULL; f = f->next) {
+        /* see if this is the flow we are looking for */
+        if (FlowCompareKey(f, key)) {
+            /* found our flow, lock & return */
+            FLOWLOCK_WRLOCK(f);
+            FBLOCK_UNLOCK(fb);
+            return f;
         }
     }
 
-    /* lock & return */
-    FLOWLOCK_WRLOCK(f);
-
     FBLOCK_UNLOCK(fb);
-    return f;
+    return NULL;
 }
 
 /** \brief Get or create a Flow using a FlowKey
