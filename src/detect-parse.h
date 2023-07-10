@@ -25,6 +25,24 @@
 #define __DETECT_PARSE_H__
 
 #include "detect.h"
+#include "detect-engine-mpm.h"
+
+/* File handler registration */
+#define MAX_DETECT_ALPROTO_CNT 10
+typedef struct DetectFileHandlerTableElmt_ {
+    const char *name;
+    int priority;
+    PrefilterRegisterFunc PrefilterFn;
+    InspectEngineFuncPtr2 Callback;
+    InspectionBufferGetDataPtr GetData;
+    int al_protocols[MAX_DETECT_ALPROTO_CNT];
+    int tx_progress;
+    int progress;
+} DetectFileHandlerTableElmt;
+void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *entry);
+
+/* File registration table */
+extern DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE];
 
 /** Flags to indicate if the Signature parsing must be done
 *   switching the source and dest (for ip addresses and ports)
@@ -104,4 +122,3 @@ int SC_Pcre2SubstringGet(pcre2_match_data *match_data, uint32_t number, PCRE2_UC
         PCRE2_SIZE *bufflen);
 
 #endif /* __DETECT_PARSE_H__ */
-
