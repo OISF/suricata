@@ -404,14 +404,19 @@ static int FilePruneFile(File *file, const StreamingBufferConfig *cfg)
                     window, file_size, data_size);
 
             if (data_size > (window * 3)) {
-                left_edge = file_size - window;
-                SCLogDebug("file->content_inspected now %"PRIu64, left_edge);
-                file->content_inspected = left_edge;
+                file->content_inspected = MAX(file->content_inspected, file->size - window);
+                SCLogDebug("file->content_inspected now %" PRIu64, file->content_inspected);
             }
+
+            if (left_edge > window)
+                left_edge -= window;
+            else
+                left_edge = 0;
         }
     }
 
     if (left_edge) {
+        SCLogDebug("sliding to %" PRIu64, left_edge);
         StreamingBufferSlideToOffset(file->sb, cfg, left_edge);
     }
 
