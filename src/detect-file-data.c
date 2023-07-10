@@ -61,19 +61,9 @@ static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
                                         Signature *s);
 static int g_file_data_buffer_id = 0;
 
-static inline HtpBody *GetResponseBody(htp_tx_t *tx);
-
-/* HTTP */
-static int PrefilterMpmHTTPFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id);
-
 /* file API */
 int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectBufferMpmRegistry *mpm_reg, int list_id);
-
-static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 /**
  * \brief Registration function for keyword: file_data
@@ -90,28 +80,12 @@ void DetectFiledataRegister(void)
 #endif
     sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_NOOPT;
 
-    for (int i = 0; file_protos_ts[i].alproto != ALPROTO_UNKNOWN; i++) {
-        DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2, PrefilterMpmFiledataRegister,
-                NULL, file_protos_ts[i].alproto, file_protos_ts[i].progress);
-        DetectAppLayerInspectEngineRegister2("file_data", file_protos_ts[i].alproto,
-                SIG_FLAG_TOSERVER, file_protos_ts[i].progress, DetectEngineInspectFiledata, NULL);
-    }
-    for (int i = 0; file_protos_tc[i].alproto != ALPROTO_UNKNOWN; i++) {
-        if (file_protos_tc[i].alproto == ALPROTO_HTTP1) {
-            // special case for HTTP1
-            DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
-                    PrefilterMpmHTTPFiledataRegister, NULL, ALPROTO_HTTP1, HTP_RESPONSE_BODY);
-            DetectAppLayerInspectEngineRegister2("file_data", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-                    HTP_RESPONSE_BODY, DetectEngineInspectBufferHttpBody, NULL);
-            continue;
-        }
-        DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2, PrefilterMpmFiledataRegister,
-                NULL, file_protos_tc[i].alproto, file_protos_tc[i].progress);
-        DetectAppLayerInspectEngineRegister2("file_data", file_protos_tc[i].alproto,
-                SIG_FLAG_TOCLIENT, file_protos_tc[i].progress, DetectEngineInspectFiledata, NULL);
-    }
-    DetectBufferTypeRegisterSetupCallback("file_data",
-            DetectFiledataSetupCallback);
+    filehandler_table[DETECT_FILE_DATA].name = "file_data";
+    filehandler_table[DETECT_FILE_DATA].priority = 2;
+    filehandler_table[DETECT_FILE_DATA].PrefilterFn = PrefilterMpmFiledataRegister;
+    filehandler_table[DETECT_FILE_DATA].Callback = DetectEngineInspectFiledata;
+
+    DetectBufferTypeRegisterSetupCallback("file_data", DetectFiledataSetupCallback);
 
     DetectBufferTypeSetDescriptionByName("file_data", "data from tracked files");
     DetectBufferTypeSupportsMultiInstance("file_data");
@@ -202,235 +176,6 @@ static void PrefilterMpmFiledataFree(void *ptr)
     SCFree(ptr);
 }
 
-/* HTTP based detection */
-
-static inline HtpBody *GetResponseBody(htp_tx_t *tx)
-{
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (htud == NULL) {
-        SCLogDebug("no htud");
-        return NULL;
-    }
-
-    return &htud->response_body;
-}
-
-static inline InspectionBuffer *HttpServerBodyXformsGetDataCallback(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, const int list_id, InspectionBuffer *base_buffer)
-{
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
-    if (buffer->inspect != NULL)
-        return buffer;
-
-    InspectionBufferSetup(det_ctx, list_id, buffer, base_buffer->inspect, base_buffer->inspect_len);
-    buffer->inspect_offset = base_buffer->inspect_offset;
-    InspectionBufferApplyTransforms(buffer, transforms);
-    SCLogDebug("xformed buffer %p size %u", buffer, buffer->inspect_len);
-    SCReturnPtr(buffer, "InspectionBuffer");
-}
-
-static InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
-        const int list_id, const int base_id)
-{
-    SCEnter();
-
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, base_id);
-    if (base_id != list_id && buffer->inspect != NULL)
-        return HttpServerBodyXformsGetDataCallback(det_ctx, transforms, list_id, buffer);
-    else if (buffer->inspect != NULL)
-        return buffer;
-
-    htp_tx_t *tx = txv;
-    HtpState *htp_state = f->alstate;
-    const uint8_t flags = flow_flags;
-
-    HtpBody *body = GetResponseBody(tx);
-    if (body == NULL) {
-        return NULL;
-    }
-
-    /* no new data */
-    if (body->body_inspected == body->content_len_so_far) {
-        SCLogDebug("no new data");
-        return NULL;
-    }
-
-    HtpBodyChunk *cur = body->first;
-    if (cur == NULL) {
-        SCLogDebug("No http chunks to inspect for this transaction");
-        return NULL;
-    }
-
-    SCLogDebug("response.body_limit %u response_body.content_len_so_far %" PRIu64
-               ", response.inspect_min_size %" PRIu32 ", EOF %s, progress > body? %s",
-            htp_state->cfg->response.body_limit, body->content_len_so_far,
-            htp_state->cfg->response.inspect_min_size, flags & STREAM_EOF ? "true" : "false",
-            (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) >
-                    HTP_RESPONSE_BODY)
-                    ? "true"
-                    : "false");
-
-    if (!htp_state->cfg->http_body_inline) {
-        /* inspect the body if the transfer is complete or we have hit
-        * our body size limit */
-        if ((htp_state->cfg->response.body_limit == 0 ||
-                    body->content_len_so_far < htp_state->cfg->response.body_limit) &&
-                body->content_len_so_far < htp_state->cfg->response.inspect_min_size &&
-                !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx, flags) >
-                        HTP_RESPONSE_BODY) &&
-                !(flags & STREAM_EOF)) {
-            SCLogDebug("we still haven't seen the entire response body.  "
-                       "Let's defer body inspection till we see the "
-                       "entire body.");
-            return NULL;
-        }
-    }
-
-    /* get the inspect buffer
-     *
-     * make sure that we have at least the configured inspect_win size.
-     * If we have more, take at least 1/4 of the inspect win size before
-     * the new data.
-     */
-    uint64_t offset = 0;
-    if (body->body_inspected > htp_state->cfg->response.inspect_min_size) {
-        BUG_ON(body->content_len_so_far < body->body_inspected);
-        uint64_t inspect_win = body->content_len_so_far - body->body_inspected;
-        SCLogDebug("inspect_win %"PRIu64, inspect_win);
-        if (inspect_win < htp_state->cfg->response.inspect_window) {
-            uint64_t inspect_short = htp_state->cfg->response.inspect_window - inspect_win;
-            if (body->body_inspected < inspect_short)
-                offset = 0;
-            else
-                offset = body->body_inspected - inspect_short;
-        } else {
-            offset = body->body_inspected - (htp_state->cfg->response.inspect_window / 4);
-        }
-    }
-
-    const uint8_t *data;
-    uint32_t data_len;
-
-    StreamingBufferGetDataAtOffset(body->sb,
-            &data, &data_len, offset);
-    InspectionBufferSetup(det_ctx, base_id, buffer, data, data_len);
-    buffer->inspect_offset = offset;
-    body->body_inspected = body->content_len_so_far;
-    SCLogDebug("body->body_inspected now: %" PRIu64, body->body_inspected);
-
-    /* built-in 'transformation' */
-    if (htp_state->cfg->swf_decompression_enabled) {
-        int swf_file_type = FileIsSwfFile(data, data_len);
-        if (swf_file_type == FILE_SWF_ZLIB_COMPRESSION ||
-            swf_file_type == FILE_SWF_LZMA_COMPRESSION)
-        {
-            (void)FileSwfDecompression(data, data_len,
-                                       det_ctx,
-                                       buffer,
-                                       htp_state->cfg->swf_compression_type,
-                                       htp_state->cfg->swf_decompress_depth,
-                                       htp_state->cfg->swf_compress_depth);
-        }
-    }
-
-    if (base_id != list_id) {
-        buffer = HttpServerBodyXformsGetDataCallback(det_ctx, transforms, list_id, buffer);
-    }
-    SCReturnPtr(buffer, "InspectionBuffer");
-}
-
-static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    bool eof =
-            (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
-    const InspectionBuffer *buffer = HttpServerBodyGetDataCallback(
-            det_ctx, engine->v2.transforms, f, flags, txv, engine->sm_list, engine->sm_list_base);
-    if (buffer == NULL || buffer->inspect == NULL) {
-        return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH : DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-    }
-
-    const uint32_t data_len = buffer->inspect_len;
-    const uint8_t *data = buffer->inspect;
-    const uint64_t offset = buffer->inspect_offset;
-
-    uint8_t ci_flags = eof ? DETECT_CI_FLAGS_END : 0;
-    ci_flags |= (offset == 0 ? DETECT_CI_FLAGS_START : 0);
-    ci_flags |= buffer->flags;
-
-    det_ctx->discontinue_matching = 0;
-    det_ctx->buffer_offset = 0;
-    det_ctx->inspection_recursion_counter = 0;
-
-    /* Inspect all the uricontents fetched on each
-     * transaction at the app layer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f, (uint8_t *)data,
-            data_len, offset, ci_flags, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-    if (r == 1) {
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-    }
-
-    if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, txv, flags) >
-                HTP_REQUEST_BODY)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, txv, flags) >
-                HTP_RESPONSE_BODY)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    }
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-}
-
-/** \brief Filedata Filedata Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param pectx inspection context
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param idx transaction id
- *  \param flags STREAM_* flags including direction
- */
-static void PrefilterTxHTTPFiledata(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
-        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
-{
-    SCEnter();
-
-    const PrefilterMpmFiledata *ctx = (const PrefilterMpmFiledata *)pectx;
-    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
-    const int list_id = ctx->list_id;
-
-    InspectionBuffer *buffer = HttpServerBodyGetDataCallback(
-            det_ctx, ctx->transforms, f, flags, txv, list_id, ctx->base_list_id);
-    if (buffer == NULL)
-        return;
-
-    if (buffer->inspect_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(
-                mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq, buffer->inspect, buffer->inspect_len);
-        PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
-    }
-}
-
-static int PrefilterMpmHTTPFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
-{
-    PrefilterMpmFiledata *pectx = SCCalloc(1, sizeof(*pectx));
-    if (pectx == NULL)
-        return -1;
-    pectx->list_id = list_id;
-    pectx->base_list_id = mpm_reg->sm_list_base;
-    SCLogDebug("list_id %d base_list_id %d", list_id, pectx->base_list_id);
-    pectx->mpm_ctx = mpm_ctx;
-    pectx->transforms = &mpm_reg->transforms;
-
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHTTPFiledata, mpm_reg->app_v2.alproto,
-            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmFiledataFree, mpm_reg->pname);
-}
-
 /* file API based inspection */
 
 static inline InspectionBuffer *FiledataWithXformsGetDataCallback(DetectEngineThreadCtx *det_ctx,
@@ -455,7 +200,7 @@ static inline InspectionBuffer *FiledataWithXformsGetDataCallback(DetectEngineTh
 
 static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, uint8_t flow_flags, File *cur_file,
-        const int list_id, const int base_id, int local_file_id)
+        const int list_id, const int base_id, int local_file_id, void *txv)
 {
     SCEnter();
     SCLogDebug("starting: list_id %d base_id %d", list_id, base_id);
@@ -477,9 +222,8 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     const uint64_t file_size = FileDataSize(cur_file);
     const DetectEngineCtx *de_ctx = det_ctx->de_ctx;
     const uint32_t content_limit = de_ctx->filedata_config[f->alproto].content_limit;
-    const uint32_t content_inspect_min_size = de_ctx->filedata_config[f->alproto].content_inspect_min_size;
-    // TODO this is unused, is that right?
-    //const uint32_t content_inspect_window = de_ctx->filedata_config[f->alproto].content_inspect_window;
+    const uint32_t content_inspect_min_size =
+            de_ctx->filedata_config[f->alproto].content_inspect_min_size;
 
     SCLogDebug("[list %d] content_limit %u, content_inspect_min_size %u", list_id, content_limit,
             content_inspect_min_size);
@@ -490,40 +234,142 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     /* no new data */
     if (cur_file->content_inspected == file_size) {
         SCLogDebug("no new data");
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
+        goto empty_return;
     }
 
     if (file_size == 0) {
         SCLogDebug("no data to inspect for this transaction");
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
+        goto empty_return;
     }
 
-    if ((content_limit == 0 || file_size < content_limit) &&
-        file_size < content_inspect_min_size &&
-        !(flow_flags & STREAM_EOF) && !(cur_file->state > FILE_STATE_OPENED)) {
-        SCLogDebug("we still haven't seen the entire content. "
-                   "Let's defer content inspection till we see the "
-                   "entire content.");
-        InspectionBufferSetupMultiEmpty(buffer);
-        return NULL;
+    SCLogDebug("offset %" PRIu64, StreamingBufferGetOffset(cur_file->sb));
+    SCLogDebug("size %" PRIu64, cur_file->size);
+    SCLogDebug("content_inspected %" PRIu64, cur_file->content_inspected);
+    SCLogDebug("inspect_window %" PRIu32, cur_file->inspect_window);
+    SCLogDebug("inspect_min_size %" PRIu32, cur_file->inspect_min_size);
+
+    bool ips = false;
+    uint64_t offset = 0;
+    if (f->alproto == ALPROTO_HTTP1) {
+
+        htp_tx_t *tx = txv;
+        HtpState *htp_state = f->alstate;
+        ips = htp_state->cfg->http_body_inline;
+
+        const bool body_done = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP1, tx,
+                                       flow_flags) > HTP_RESPONSE_BODY;
+
+        SCLogDebug("response.body_limit %u file_size %" PRIu64
+                   ", cur_file->inspect_min_size %" PRIu32 ", EOF %s, progress > body? %s",
+                htp_state->cfg->response.body_limit, file_size, cur_file->inspect_min_size,
+                flow_flags & STREAM_EOF ? "true" : "false", BOOL2STR(body_done));
+
+        if (!htp_state->cfg->http_body_inline) {
+            /* inspect the body if the transfer is complete or we have hit
+             * our body size limit */
+            if ((htp_state->cfg->response.body_limit == 0 ||
+                        file_size < htp_state->cfg->response.body_limit) &&
+                    file_size < cur_file->inspect_min_size && !body_done &&
+                    !(flow_flags & STREAM_EOF)) {
+                SCLogDebug("we still haven't seen the entire response body.  "
+                           "Let's defer body inspection till we see the "
+                           "entire body.");
+                goto empty_return;
+            }
+            SCLogDebug("inline and we're continuing");
+        }
+
+        bool force = (flow_flags & STREAM_EOF) || (cur_file->state > FILE_STATE_OPENED) ||
+                     body_done || htp_state->cfg->http_body_inline;
+        /* get the inspect buffer
+         *
+         * make sure that we have at least the configured inspect_win size.
+         * If we have more, take at least 1/4 of the inspect win size before
+         * the new data.
+         */
+        if (cur_file->content_inspected == 0) {
+            if (!force && file_size < cur_file->inspect_min_size) {
+                SCLogDebug("skip as file_size %" PRIu64 " < inspect_min_size %u", file_size,
+                        cur_file->inspect_min_size);
+                goto empty_return;
+            }
+        } else {
+            uint64_t new_data = file_size - cur_file->content_inspected;
+            BUG_ON(new_data == 0);
+            if (new_data < cur_file->inspect_window) {
+                uint64_t inspect_short = cur_file->inspect_window - new_data;
+                if (cur_file->content_inspected < inspect_short) {
+                    offset = 0;
+                    SCLogDebug("offset %" PRIu64, offset);
+                } else {
+                    offset = cur_file->content_inspected - inspect_short;
+                    SCLogDebug("offset %" PRIu64, offset);
+                }
+            } else {
+                BUG_ON(cur_file->content_inspected == 0);
+                uint32_t margin = cur_file->inspect_window / 4;
+                if ((uint64_t)margin <= cur_file->content_inspected) {
+                    offset = cur_file->content_inspected - (cur_file->inspect_window / 4);
+                } else {
+                    offset = 0;
+                }
+                SCLogDebug("offset %" PRIu64 " (data from offset %" PRIu64 ")", offset,
+                        file_size - offset);
+            }
+        }
+
+    } else {
+        if ((content_limit == 0 || file_size < content_limit) &&
+                file_size < content_inspect_min_size && !(flow_flags & STREAM_EOF) &&
+                !(cur_file->state > FILE_STATE_OPENED)) {
+            SCLogDebug("we still haven't seen the entire content. "
+                       "Let's defer content inspection till we see the "
+                       "entire content. We've seen %ld and need at least %d",
+                    file_size, content_inspect_min_size);
+            goto empty_return;
+        }
+        offset = cur_file->content_inspected;
     }
 
     const uint8_t *data;
     uint32_t data_len;
 
-    StreamingBufferGetDataAtOffset(cur_file->sb,
-            &data, &data_len,
-            cur_file->content_inspected);
+    SCLogDebug("Fetching data at offset: %ld", offset);
+    StreamingBufferGetDataAtOffset(cur_file->sb, &data, &data_len, offset);
+    SCLogDebug("data_len %u", data_len);
+    /* update inspected tracker */
+    buffer->inspect_offset = offset;
+
+    if (ips && file_size < cur_file->inspect_min_size) {
+        // don't update content_inspected yet
+    } else {
+        SCLogDebug("content inspected: %" PRIu64, cur_file->content_inspected);
+        cur_file->content_inspected = MAX(cur_file->content_inspected, offset + data_len);
+        SCLogDebug("content inspected: %" PRIu64, cur_file->content_inspected);
+    }
+
     InspectionBufferSetupMulti(buffer, NULL, data, data_len);
     SCLogDebug("[list %d] [before] buffer offset %" PRIu64 "; buffer len %" PRIu32
                "; data_len %" PRIu32 "; file_size %" PRIu64,
             list_id, buffer->inspect_offset, buffer->inspect_len, data_len, file_size);
-    buffer->inspect_offset = cur_file->content_inspected;
 
-    /* update inspected tracker */
-    cur_file->content_inspected = buffer->inspect_len + buffer->inspect_offset;
+    if (f->alproto == ALPROTO_HTTP1 && flow_flags & STREAM_TOCLIENT) {
+        HtpState *htp_state = f->alstate;
+        /* built-in 'transformation' */
+        if (htp_state->cfg->swf_decompression_enabled) {
+            int swf_file_type = FileIsSwfFile(data, data_len);
+            if (swf_file_type == FILE_SWF_ZLIB_COMPRESSION ||
+                    swf_file_type == FILE_SWF_LZMA_COMPRESSION) {
+                SCLogDebug("decompressing ...");
+                (void)FileSwfDecompression(data, data_len, det_ctx, buffer,
+                        htp_state->cfg->swf_compression_type, htp_state->cfg->swf_decompress_depth,
+                        htp_state->cfg->swf_compress_depth);
+                SCLogDebug("uncompressed buffer %p size %u; buf: \"%s\"", buffer,
+                        buffer->inspect_len, (char *)buffer->inspect);
+            }
+        }
+    }
+
     SCLogDebug("content inspected: %" PRIu64, cur_file->content_inspected);
 
     /* get buffer for the list id if it is different from the base id */
@@ -532,19 +378,20 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
         InspectionBuffer *tbuffer = FiledataWithXformsGetDataCallback(
                 det_ctx, transforms, list_id, local_file_id, buffer);
         SCReturnPtr(tbuffer, "InspectionBuffer");
-    } else {
-        SCLogDebug("regular buffer %p size %u", buffer, buffer->inspect_len);
-        SCReturnPtr(buffer, "InspectionBuffer");
     }
+    SCLogDebug("regular buffer %p size %ld; buf: \"%.*s\"", buffer, cur_file->content_inspected,
+            buffer->inspect_len, (char *)buffer->inspect);
+    SCReturnPtr(buffer, "InspectionBuffer");
+
+empty_return:
+    InspectionBufferSetupMultiEmpty(buffer);
+    return NULL;
 }
 
 uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
         void *alstate, void *txv, uint64_t tx_id)
 {
-    int r = 0;
-    int match = 0;
-
     const DetectEngineTransforms *transforms = NULL;
     if (!engine->mpm) {
         transforms = engine->v2.transforms;
@@ -556,11 +403,12 @@ uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadC
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
     }
 
+    bool match = false;
     int local_file_id = 0;
     File *file = ffc->head;
     for (; file != NULL; file = file->next) {
         InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx, transforms, f, flags, file,
-                engine->sm_list, engine->sm_list_base, local_file_id);
+                engine->sm_list, engine->sm_list_base, local_file_id, txv);
         if (buffer == NULL)
             continue;
 
@@ -578,14 +426,13 @@ uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadC
                                               buffer->inspect_len,
                                               buffer->inspect_offset, ciflags,
                                               DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-        if (match == 1) {
-            r = 1;
+        if (match) {
             break;
         }
         local_file_id++;
     }
 
-    if (r == 1)
+    if (match)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     else
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
@@ -619,15 +466,22 @@ static void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx, const void *pect
         int local_file_id = 0;
         for (File *file = ffc->head; file != NULL; file = file->next) {
             InspectionBuffer *buffer = FiledataGetDataCallback(det_ctx, ctx->transforms, f, flags,
-                    file, list_id, ctx->base_list_id, local_file_id);
+                    file, list_id, ctx->base_list_id, local_file_id, txv);
             if (buffer == NULL)
                 continue;
+            SCLogDebug("[%" PRIu64 "] buffer size %u", p->pcap_cnt, buffer->inspect_len);
 
             if (buffer->inspect_len >= mpm_ctx->minlen) {
+                uint32_t prev_rule_id_array_cnt = det_ctx->pmq.rule_id_array_cnt;
                 (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
                         &det_ctx->mtcu, &det_ctx->pmq,
                         buffer->inspect, buffer->inspect_len);
                 PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
+
+                if (det_ctx->pmq.rule_id_array_cnt > prev_rule_id_array_cnt) {
+                    SCLogDebug(
+                            "%u matches", det_ctx->pmq.rule_id_array_cnt - prev_rule_id_array_cnt);
+                }
             }
             local_file_id++;
         }

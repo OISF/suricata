@@ -28,8 +28,6 @@
 #include "decode.h"
 
 #include "detect.h"
-#include "detect-parse.h"
-#include "detect-content.h"
 
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
@@ -37,6 +35,10 @@
 #include "detect-engine-file.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
+
+#include "detect-parse.h"
+#include "detect-content.h"
+#include "detect-file-data.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -99,45 +101,23 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILE_NAME].Setup = DetectFilenameSetupSticky;
     sigmatch_table[DETECT_FILE_NAME].flags = SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    // this is required by filestore, and filesize
-    for (int i = 0; file_protos_ts[i].alproto != ALPROTO_UNKNOWN; i++) {
-        DetectAppLayerInspectEngineRegister2("files", file_protos_ts[i].alproto, SIG_FLAG_TOSERVER,
-                file_protos_ts[i].progress, DetectFileInspectGeneric, NULL);
-    }
-    for (int i = 0; file_protos_tc[i].alproto != ALPROTO_UNKNOWN; i++) {
-        DetectAppLayerInspectEngineRegister2("files", file_protos_tc[i].alproto, SIG_FLAG_TOCLIENT,
-                file_protos_tc[i].progress, DetectFileInspectGeneric, NULL);
-    }
-    g_file_match_list_id = DetectBufferTypeGetByName("files");
+    DetectBufferTypeSetDescriptionByName("file.name", "http user agent");
 
-    for (int i = 0; file_protos_ts[i].alproto != ALPROTO_UNKNOWN; i++) {
-        if (file_protos_ts[i].alproto == ALPROTO_HTTP2) {
-            // no filename on HTTP2 files
-            continue;
-        }
-        DetectAppLayerInspectEngineRegister2("file.name", file_protos_ts[i].alproto,
-                SIG_FLAG_TOSERVER, file_protos_ts[i].progress, DetectEngineInspectFilename, NULL);
+    g_file_match_list_id = DetectBufferTypeRegister("files");
+    g_file_name_buffer_id = DetectBufferTypeRegister("file.name");
 
-        DetectAppLayerMpmRegister2("file.name", SIG_FLAG_TOSERVER, 2, PrefilterMpmFilenameRegister,
-                NULL, file_protos_ts[i].alproto, file_protos_ts[i].progress);
-    }
-    for (int i = 0; file_protos_tc[i].alproto != ALPROTO_UNKNOWN; i++) {
-        if (file_protos_tc[i].alproto == ALPROTO_HTTP2) {
-            // no filename on HTTP2 files
-            continue;
-        }
-        DetectAppLayerInspectEngineRegister2("file.name", file_protos_tc[i].alproto,
-                SIG_FLAG_TOCLIENT, file_protos_tc[i].progress, DetectEngineInspectFilename, NULL);
+    SCLogDebug("registering filename rule option");
+    filehandler_table[DETECT_FILENAME].name = "files";
+    filehandler_table[DETECT_FILENAME].priority = 0;
+    filehandler_table[DETECT_FILENAME].PrefilterFn = NULL;
+    filehandler_table[DETECT_FILENAME].Callback = DetectFileInspectGeneric;
 
-        DetectAppLayerMpmRegister2("file.name", SIG_FLAG_TOCLIENT, 2, PrefilterMpmFilenameRegister,
-                NULL, file_protos_tc[i].alproto, file_protos_tc[i].progress);
-    }
+    filehandler_table[DETECT_FILE_NAME].name = "file.name";
+    filehandler_table[DETECT_FILE_NAME].priority = 2;
+    filehandler_table[DETECT_FILE_NAME].PrefilterFn = PrefilterMpmFilenameRegister;
+    filehandler_table[DETECT_FILE_NAME].Callback = DetectEngineInspectFilename;
 
-    DetectBufferTypeSetDescriptionByName("file.name", "file name");
     DetectBufferTypeSupportsMultiInstance("file.name");
-
-    g_file_name_buffer_id = DetectBufferTypeGetByName("file.name");
-	SCLogDebug("registering filename rule option");
     return;
 }
 
