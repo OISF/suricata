@@ -447,6 +447,14 @@ int SigTableList(const char *keyword)
     return TM_ECODE_DONE;
 }
 
+static void DetectFileHandlerRegister(void)
+{
+    for (int i = 0; i < DETECT_TBLSIZE; i++) {
+        if (filehandler_table[i].name)
+            DetectFileRegisterFileProtocols(&filehandler_table[i]);
+    }
+}
+
 void SigTableSetup(void)
 {
     memset(sigmatch_table, 0, sizeof(sigmatch_table));
@@ -688,6 +696,8 @@ void SigTableSetup(void)
     DetectTransformPcrexformRegister();
     DetectTransformUrlDecodeRegister();
     DetectTransformXorRegister();
+
+    DetectFileHandlerRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
