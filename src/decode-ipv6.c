@@ -636,6 +636,7 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
             DecodeIP6inIP6(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p));
             return TM_ECODE_OK;
         case IPPROTO_GRE:
+            IPV6_SET_L4PROTO(p, IPPROTO_GRE);
             DecodeGRE(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p));
             break;
         case IPPROTO_FRAGMENT:
