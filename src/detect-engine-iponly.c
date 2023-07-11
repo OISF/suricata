@@ -496,6 +496,7 @@ static void IPOnlyCIDRListSetSigNum(IPOnlyCIDRItem *tmphead, SigIntId i)
  */
 static void IPOnlyCIDRListPrint(IPOnlyCIDRItem *tmphead)
 {
+#ifdef DEBUG
     uint32_t i = 0;
 
     while (tmphead != NULL) {
@@ -507,6 +508,7 @@ static void IPOnlyCIDRListPrint(IPOnlyCIDRItem *tmphead)
                    tmphead->signum);
         tmphead = tmphead->next;
     }
+#endif
 }
 #endif
 
