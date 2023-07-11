@@ -24,8 +24,6 @@ use crate::core::*;
 extern {
     pub fn FileFlowFlagsToFlags(flow_file_flags: u16, flags: u8) -> u16;
 }
-pub const FILE_USE_DETECT:    u16 = BIT_U16!(13);
-
 
 #[repr(C)]
 #[derive(Debug)]

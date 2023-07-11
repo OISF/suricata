@@ -386,9 +386,9 @@ static int FilePruneFile(File *file, const StreamingBufferConfig *cfg)
     if (file->flags & FILE_STORE) {
         left_edge = MIN(left_edge,file->content_stored);
     }
-    if (file->flags & FILE_USE_DETECT) {
-        left_edge = MIN(left_edge, file->content_inspected);
 
+    if (!g_detect_disabled) {
+        left_edge = MIN(left_edge, file->content_inspected);
         /* if file has inspect window and min size set, we
          * do some house keeping here */
         if (file->inspect_window != 0 && file->inspect_min_size != 0) {
@@ -441,13 +441,11 @@ void FilePrintFlags(const File *file)
                "FILE_STORE %s "
                "FILE_STORED %s "
                "FILE_NOTRACK %s "
-               "FILE_USE_DETECT %s "
                "FILE_HAS_GAPS %s",
             file, file->flags, P(file, FILE_TRUNCATED), P(file, FILE_NOMAGIC), P(file, FILE_NOMD5),
             P(file, FILE_MD5), P(file, FILE_NOSHA1), P(file, FILE_SHA1), P(file, FILE_NOSHA256),
             P(file, FILE_SHA256), P(file, FILE_LOGGED), P(file, FILE_NOSTORE), P(file, FILE_STORE),
-            P(file, FILE_STORED), P(file, FILE_NOTRACK), P(file, FILE_USE_DETECT),
-            P(file, FILE_HAS_GAPS));
+            P(file, FILE_STORED), P(file, FILE_NOTRACK), P(file, FILE_HAS_GAPS));
 }
 #undef P
 #endif
@@ -727,8 +725,7 @@ static int FileAppendDataDo(
         SCReturnInt(-1);
     }
 
-    if ((ff->flags & FILE_USE_DETECT) == 0 &&
-            FileStoreNoStoreCheck(ff) == 1) {
+    if (g_detect_disabled && FileStoreNoStoreCheck(ff) == 1) {
         int hash_done = 0;
         /* no storage but forced hashing */
         if (ff->md5_ctx) {
@@ -940,10 +937,6 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
     if (flags & FILE_NOSHA256) {
         SCLogDebug("not doing sha256 for this file");
         ff->flags |= FILE_NOSHA256;
-    }
-    if (!g_detect_disabled && flags & FILE_USE_DETECT) {
-        SCLogDebug("considering content_inspect tracker when pruning");
-        ff->flags |= FILE_USE_DETECT;
     }
 
     if (!(ff->flags & FILE_NOMD5) || g_file_force_md5) {

@@ -46,7 +46,7 @@ impl SMBTransactionFile {
 
     pub fn update_file_flags(&mut self, flow_file_flags: u16) {
         let dir_flag = if self.direction == Direction::ToServer { STREAM_TOSERVER } else { STREAM_TOCLIENT };
-        self.file_tracker.file_flags = unsafe { FileFlowFlagsToFlags(flow_file_flags, dir_flag) | FILE_USE_DETECT };
+        self.file_tracker.file_flags = unsafe { FileFlowFlagsToFlags(flow_file_flags, dir_flag) };
     }
 }
 

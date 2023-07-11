@@ -211,8 +211,8 @@ impl HTTP2Transaction {
     }
 
     pub fn update_file_flags(&mut self, flow_file_flags: u16) {
-        self.ft_ts.file_flags = unsafe { FileFlowFlagsToFlags(flow_file_flags, STREAM_TOSERVER) | FILE_USE_DETECT };
-        self.ft_tc.file_flags = unsafe { FileFlowFlagsToFlags(flow_file_flags, STREAM_TOCLIENT) | FILE_USE_DETECT };
+        self.ft_ts.file_flags = unsafe { FileFlowFlagsToFlags(flow_file_flags, STREAM_TOSERVER) };
+        self.ft_tc.file_flags = unsafe { FileFlowFlagsToFlags(flow_file_flags, STREAM_TOCLIENT) };
     }
 
     fn decompress<'a>(

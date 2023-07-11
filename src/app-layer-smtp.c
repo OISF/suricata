@@ -496,8 +496,6 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
     DEBUG_VALIDATE_BUG_ON(tx == NULL);
 
     uint16_t flags = FileFlowToFlags(flow, STREAM_TOSERVER);
-    /* we depend on detection engine for file pruning */
-    flags |= FILE_USE_DETECT;
 
     /* Find file */
     if (entity->ctnt_flags & CTNT_IS_ATTACHMENT) {
@@ -1214,7 +1212,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
                 }
                 if (FileOpenFileWithId(&tx->files_ts, &smtp_config.sbcfg, state->file_track_id++,
                             (uint8_t *)rawmsgname, strlen(rawmsgname), NULL, 0,
-                            FILE_NOMD5 | FILE_NOMAGIC | FILE_USE_DETECT) == 0) {
+                            FILE_NOMD5 | FILE_NOMAGIC) == 0) {
                     SMTPNewFile(tx, tx->files_ts.tail);
                 }
             } else if (smtp_config.decode_mime) {
