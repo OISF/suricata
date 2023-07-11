@@ -67,8 +67,6 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
         flags = FileFlowFlagsToFlags(tx->tx_data.file_flags, STREAM_TOSERVER);
     }
 
-    flags |= FILE_USE_DETECT;
-
     if (FileOpenFileWithId(files, &htp_sbcfg, s->file_track_id++, filename, filename_len, data,
                 data_len, flags) != 0) {
         retval = -1;
@@ -165,8 +163,6 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     }
     flags = FileFlowToFlags(s->f, STREAM_TOCLIENT);
     FileContainer *files = &txud->files_tc;
-
-    flags |= FILE_USE_DETECT;
 
     // we open a file for this specific range
     if (FileOpenFileWithId(files, &htp_sbcfg, s->file_track_id++, filename, filename_len, data,
