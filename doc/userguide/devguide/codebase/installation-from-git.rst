@@ -1,3 +1,5 @@
+.. _Installation from GIT:
+
 Installation from GIT
 =====================
 
