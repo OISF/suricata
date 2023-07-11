@@ -64,6 +64,22 @@ static inline int GetBase64Value(uint8_t c)
 }
 
 /**
+ * \brief Checks if the given char in a byte array is Base64 alphabet
+ *
+ * \param src Pointer to the byte array
+ * \param idx Index where to look at
+ *
+ * \return True if the char was Base64 alphabet, False otherwise
+ */
+bool IsBase64Alphabet(const uint8_t *src, const uint32_t idx)
+{
+    if (GetBase64Value(src[idx]) < 0) {
+        return false;
+    }
+    return true;
+}
+
+/**
  * \brief Decodes a 4-byte base64-encoded block into a 3-byte ascii-encoded block
  *
  * \param ascii the 3-byte ascii output block

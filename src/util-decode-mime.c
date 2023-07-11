@@ -1184,7 +1184,7 @@ static uint32_t ProcessBase64Remainder(
 
     /* Strip spaces in remainder */
     for (uint8_t i = 0; i < state->bvr_len; i++) {
-        if (state->bvremain[i] != ' ') {
+        if (IsBase64Alphabet(state->bvremain, i)) {
             block[cnt++] = state->bvremain[i];
         }
     }
@@ -1192,7 +1192,7 @@ static uint32_t ProcessBase64Remainder(
     /* if we don't have 4 bytes see if we can fill it from `buf` */
     if (buf && len > 0 && cnt != B64_BLOCK) {
         for (uint32_t i = 0; i < len && cnt < B64_BLOCK; i++) {
-            if (buf[i] != ' ') {
+            if (IsBase64Alphabet(buf, i)) {
                 block[cnt++] = buf[i];
             }
             buf_consumed++;
@@ -1265,6 +1265,28 @@ static uint32_t ProcessBase64Remainder(
     return buf_consumed;
 }
 
+/**
+ * \brief Skip any characters outside of the base64 alphabet as RFC 2045
+ * is followed for MIME parsing. Also, update bvr_len accordingly as if the
+ * DecodeBase64 returned more than 4 Bytes in there, it is likely because
+ * of the presence of invalid characters in the encoded string.
+ *
+ * \param buf The current line
+ * \param len The length of the line
+ * \param offset The offset where to start reading the data from
+ * \param state The current parser state
+ * */
+static inline void B64SkipUnneededCharsLastBlk(
+        const uint8_t *buf, const uint32_t buf_len, const uint32_t offset, MimeDecParseState *state)
+{
+    for (uint32_t i = offset; i < buf_len; i++) {
+        if (IsBase64Alphabet(buf, i)) {
+            state->bvremain[state->bvr_len++] = buf[i];
+        }
+    }
+    DEBUG_VALIDATE_BUG_ON(state->bvr_len > B64_BLOCK);
+}
+
 static inline MimeDecRetCode ProcessBase64BodyLineCopyRemainder(
         const uint8_t *buf, const uint32_t buf_len, const uint32_t offset, MimeDecParseState *state)
 {
@@ -1272,14 +1294,10 @@ static inline MimeDecRetCode ProcessBase64BodyLineCopyRemainder(
     if (offset > buf_len)
         return MIME_DEC_ERR_DATA;
 
-    for (uint32_t i = offset; i < buf_len; i++) {
-        if (buf[i] != ' ') {
-            DEBUG_VALIDATE_BUG_ON(state->bvr_len > B64_BLOCK);
-            if (state->bvr_len > B64_BLOCK)
-                return MIME_DEC_ERR_DATA;
-            state->bvremain[state->bvr_len++] = buf[i];
-        }
-    }
+    B64SkipUnneededCharsLastBlk(buf, buf_len, offset, state);
+    if (state->bvr_len > B64_BLOCK)
+        return MIME_DEC_ERR_DATA;
+
     return MIME_DEC_OK;
 }
 
@@ -1465,7 +1483,7 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
             }
         } else if (remaining > 1) {
             /* If last character handle as soft line break by ignoring,
-                       otherwise process as escaped '=' character */
+               otherwise process as escaped '=' character */
 
             /* Not enough characters */
             if (remaining < 3) {
