@@ -416,6 +416,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
             /* pass "alert" found, we're done */
             if (pa->action & ACTION_PASS) {
+                p->action |= ACTION_PASS;
                 break;
             }
             p->alerts.cnt++;
