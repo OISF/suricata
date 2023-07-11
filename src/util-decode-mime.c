@@ -1274,8 +1274,8 @@ static inline MimeDecRetCode ProcessBase64BodyLineCopyRemainder(
 
     for (uint32_t i = offset; i < buf_len; i++) {
         if (buf[i] != ' ') {
-            DEBUG_VALIDATE_BUG_ON(state->bvr_len >= B64_BLOCK);
-            if (state->bvr_len >= B64_BLOCK)
+            DEBUG_VALIDATE_BUG_ON(state->bvr_len > B64_BLOCK);
+            if (state->bvr_len > B64_BLOCK)
                 return MIME_DEC_ERR_DATA;
             state->bvremain[state->bvr_len++] = buf[i];
         }
