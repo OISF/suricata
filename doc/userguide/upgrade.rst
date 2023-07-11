@@ -27,8 +27,12 @@ installation will not overwrite these if they exist, they must be manually
 updated. If there are no local modifications they can simply be overwritten
 by the ones Suricata supplies.
 
-Major updates include new features, new default settings and often also
-remove features.
+Major updates include new features, new default settings and often also remove
+features. This upgrade guide covers the changes that might have an impact of
+migrating from an older version and keeping the config. We encourage you to
+also check all the new features that have been added but are not covered by
+this guide. Those features are either not enabled by default or require
+dedicated new configuration.
 
 Upgrading 6.0 to 7.0
 --------------------
@@ -39,6 +43,8 @@ Major changes
 - IPS users: by default various new "exception policies" are set to DROP
   traffic. Please see :ref:`Exception Policies <exception policies>` for details
   on the settings and their scope.
+- New protocols enabled by default: bittorrent-dht, quic, http2
+- The telnet protocol is also enabled by default, but only for the ``app-layer``.
 
 Security changes
 ~~~~~~~~~~~~~~~~
@@ -50,6 +56,7 @@ Security changes
   filename is specified as part of a rule. See :ref:`Datasets Security
   <datasets_security>` and :ref:`Datasets File Locations
   <datasets_file_locations>` for more information.
+- Lua rules are now disabled by default (change also introduced in 6.0.13), see :ref:`lua-detection`.
 
 Removals
 ~~~~~~~~
@@ -58,7 +65,7 @@ Removals
 
 Logging changes
 ~~~~~~~~~~~~~~~
-- IKEv2 Eve logging changed, the event_type has become ``ike``. The fields ``errors`` and ``notify`` have moved to
+- IKEv2 Eve logging changed, the event_type has become ``ike`` which covers both protocol versions. The fields ``errors`` and ``notify`` have moved to
   ``ike.ikev2.errors`` and ``ike.ikev2.notify``.
 - FTP DATA metadata for alerts are now logged in ``ftp_data`` instead of root.
 - Alert ``xff`` field is now logged as ``alert.xff`` for alerts instead of at the root.
@@ -85,6 +92,7 @@ Other changes
 - FTP has been updated with a maximum command request and response line length of 4096 bytes. To change the default see :ref:`suricata-yaml-configure-ftp`.
 - SWF decompression in http has been disabled by default. To change the default see :ref:`suricata-yaml-configure-libhtp`. Users with configurations from previous releases may want to modify their config to match the new default.
   See https://redmine.openinfosecfoundation.org/issues/5632 for more information.
+- The new option `livedev` is enabled by default with `use-for-tracking` being set to `true`. This should be disabled if multiple live devices are used to capture traffic from the same network.
 
 Upgrading 5.0 to 6.0
 --------------------
