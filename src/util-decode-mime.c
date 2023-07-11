@@ -1184,7 +1184,7 @@ static uint32_t ProcessBase64Remainder(
 
     /* Strip spaces in remainder */
     for (uint8_t i = 0; i < state->bvr_len; i++) {
-        if (state->bvremain[i] != ' ') {
+        if (IsBase64Alphabet(state->bvremain[i])) {
             block[cnt++] = state->bvremain[i];
         }
     }
@@ -1192,7 +1192,7 @@ static uint32_t ProcessBase64Remainder(
     /* if we don't have 4 bytes see if we can fill it from `buf` */
     if (buf && len > 0 && cnt != B64_BLOCK) {
         for (uint32_t i = 0; i < len && cnt < B64_BLOCK; i++) {
-            if (buf[i] != ' ') {
+            if (IsBase64Alphabet(buf[i])) {
                 block[cnt++] = buf[i];
             }
             buf_consumed++;
@@ -1273,7 +1273,8 @@ static inline MimeDecRetCode ProcessBase64BodyLineCopyRemainder(
         return MIME_DEC_ERR_DATA;
 
     for (uint32_t i = offset; i < buf_len; i++) {
-        if (buf[i] != ' ') {
+        // Skip any characters outside of the base64 alphabet as per RFC 2045
+        if (IsBase64Alphabet(buf[i])) {
             DEBUG_VALIDATE_BUG_ON(state->bvr_len >= B64_BLOCK);
             if (state->bvr_len >= B64_BLOCK)
                 return MIME_DEC_ERR_DATA;
