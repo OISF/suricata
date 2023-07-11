@@ -2905,6 +2905,8 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 if (strcasecmp("enabled", pval->name) == 0) {
                     if (ConfValIsTrue(pval->val)) {
                         cfg_prec->swf_decompression_enabled = 1;
+                        SCLogWarning("Flash decompression is deprecated and will be removed in "
+                                     "Suricata 8; see ticket #6179");
                     } else if (ConfValIsFalse(pval->val)) {
                         cfg_prec->swf_decompression_enabled = 0;
                     } else {
