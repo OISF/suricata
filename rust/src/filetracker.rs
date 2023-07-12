@@ -152,7 +152,7 @@ impl FileTransferTracker {
         self.fill_bytes = fill_bytes;
         self.chunk_is_last = is_last;
 
-        if self.file_is_truncated {
+        if self.file_is_truncated || self.file_closed {
             return 0;
         }
         if !self.file_open {
