@@ -184,8 +184,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
         uint32_t numDecoded_blk = ASCII_BLOCK - (padding < B64_BLOCK ? padding : ASCII_BLOCK);
         if (dest_size < *decoded_bytes + numDecoded_blk) {
             SCLogDebug("Destination buffer full");
-            ecode = BASE64_ECODE_BUF;
-            return ecode;
+            return BASE64_ECODE_BUF;
         }
         *decoded_bytes += numDecoded_blk;
         DecodeBase64Block(dptr, b64, numDecoded_blk);
