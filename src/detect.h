@@ -807,6 +807,9 @@ typedef struct DetectEngineCtx_ {
     uint16_t mpm_matcher; /**< mpm matcher this ctx uses */
     uint16_t spm_matcher; /**< spm matcher this ctx uses */
 
+    /* registration id for per thread ctx for the filemagic/file.magic keywords */
+    int filemagic_thread_ctx_id;
+
     /* spm thread context prototype, built as spm matchers are constructed and
      * later used to construct thread context for each thread. */
     SpmGlobalThreadCtx *spm_global_thread_ctx;
