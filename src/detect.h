@@ -872,7 +872,7 @@ typedef struct DetectEngineCtx_ {
 
     uint8_t flags;        /**< only DE_QUIET */
     uint8_t mpm_matcher;  /**< mpm matcher this ctx uses */
-    uint16_t spm_matcher; /**< spm matcher this ctx uses */
+    uint8_t spm_matcher;  /**< spm matcher this ctx uses */
 
     /* maximum recursion depth for content inspection */
     int inspection_recursion_limit;
