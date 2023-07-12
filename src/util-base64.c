@@ -192,8 +192,15 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
     } else if (valid && bbidx > 0 && (mode != BASE64_MODE_RFC2045)) {
         /* Finish remaining b64 bytes by padding */
         /* Decode remaining */
-        *decoded_bytes += ASCII_BLOCK - (B64_BLOCK - bbidx);
-        DecodeBase64Block(dptr, b64, ASCII_BLOCK - (B64_BLOCK - bbidx));
+        padding += B64_BLOCK - bbidx;
+        uint32_t numDecoded_blk = ASCII_BLOCK - (padding < B64_BLOCK ? padding : ASCII_BLOCK);
+        if (dest_size < *decoded_bytes + numDecoded_blk) {
+            SCLogDebug("Destination buffer full");
+            return BASE64_ECODE_BUF;
+        }
+        *decoded_bytes += numDecoded_blk;
+        DecodeBase64Block(dptr, b64, numDecoded_blk);
+        *consumed_bytes += bbidx;
     }
 
     if (*decoded_bytes == 0) {
