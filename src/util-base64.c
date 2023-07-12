@@ -180,7 +180,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
 
     if (bbidx > 0 && bbidx < 4 && ((!valid && mode == BASE64_MODE_RFC4648))) {
         /* Decoded bytes for 1 or 2 base64 encoded bytes is 1 */
-        padding = bbidx > 1 ? B64_BLOCK - bbidx : 2;
+        padding += bbidx > 1 ? B64_BLOCK - bbidx : 2;
         uint32_t numDecoded_blk = ASCII_BLOCK - (padding < B64_BLOCK ? padding : ASCII_BLOCK);
         if (dest_size < *decoded_bytes + numDecoded_blk) {
             SCLogDebug("Destination buffer full");
@@ -385,6 +385,9 @@ static int B64TestVectorsRFC4648(void)
     const char *src10 = "Y21Wd2IzSjBaVzFoYVd4bWNtRjFaRUJoZEc4dVoyOTJMbUYxOmpqcHh4b3Rhb2w%3D";
     const char *fin_str10 = "cmVwb3J0ZW1haWxmcmF1ZEBhdG8uZ292LmF1:jjpxxotaol";
 
+    const char *src11 = "NA=";
+    const char *fin_str11 = "4";
+
     TEST_RFC4648(src1, fin_str1, strlen(fin_str1), strlen(src1), BASE64_ECODE_OK);
     TEST_RFC4648(src2, fin_str2, strlen(fin_str2), strlen(src2), BASE64_ECODE_OK);
     TEST_RFC4648(src3, fin_str3, strlen(fin_str3), strlen(src3), BASE64_ECODE_OK);
@@ -396,6 +399,7 @@ static int B64TestVectorsRFC4648(void)
     TEST_RFC4648(src9, fin_str9, 1 /* f */, 2 /* Zm */, BASE64_ECODE_ERR);
     TEST_RFC4648(src10, fin_str10, strlen(fin_str10), strlen(src10) - 3,
             BASE64_ECODE_ERR);
+    TEST_RFC4648(src11, fin_str11, strlen(fin_str11), strlen(src11), BASE64_ECODE_OK);
     PASS;
 }
 
