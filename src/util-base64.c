@@ -83,14 +83,21 @@ bool IsBase64Alphabet(uint8_t encoded_byte)
  *
  * \param ascii the 3-byte ascii output block
  * \param b64 the 4-byte base64 input block
+ * \param nb number of decoded bytes
  *
  * \return none
  */
-static inline void DecodeBase64Block(uint8_t ascii[ASCII_BLOCK], uint8_t b64[B64_BLOCK])
+static inline void DecodeBase64Block(uint8_t ascii[ASCII_BLOCK], uint8_t b64[B64_BLOCK], size_t nb)
 {
-    ascii[0] = (uint8_t) (b64[0] << 2) | (b64[1] >> 4);
-    ascii[1] = (uint8_t) (b64[1] << 4) | (b64[2] >> 2);
-    ascii[2] = (uint8_t) (b64[2] << 6) | (b64[3]);
+    if (nb > 0) {
+        ascii[0] = (uint8_t) (b64[0] << 2) | (b64[1] >> 4);
+        if (nb > 1) {
+            ascii[1] = (uint8_t) (b64[1] << 4) | (b64[2] >> 2);
+            if (nb > 2) {
+                ascii[2] = (uint8_t) (b64[2] << 6) | (b64[3]);
+            }
+        }
+    }
 }
 
 /**
@@ -158,7 +165,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
             }
 
             /* Decode base-64 block into ascii block and move pointer */
-            DecodeBase64Block(dptr, b64);
+            DecodeBase64Block(dptr, b64, numDecoded_blk);
             dptr += numDecoded_blk;
             *decoded_bytes += numDecoded_blk;
             /* Reset base-64 block and index */
@@ -180,13 +187,8 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
             ecode = BASE64_ECODE_BUF;
             return ecode;
         }
-        /* if the destination size is not at least 3 Bytes long, it'll give a dynamic
-         * buffer overflow while decoding, so, return and let the caller take care of the
-         * remaining bytes to be decoded which should always be < 4 at this stage */
-        if (dest_size - *decoded_bytes < 3)
-            return BASE64_ECODE_BUF;
         *decoded_bytes += numDecoded_blk;
-        DecodeBase64Block(dptr, b64);
+        DecodeBase64Block(dptr, b64, numDecoded_blk);
         *consumed_bytes += bbidx;
     }
 
@@ -194,11 +196,12 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
     if (valid && bbidx > 0 && (mode != BASE64_MODE_RFC2045)) {
         /* Decode remaining */
         *decoded_bytes += ASCII_BLOCK - (B64_BLOCK - bbidx);
-        DecodeBase64Block(dptr, b64);
+        DecodeBase64Block(dptr, b64, ASCII_BLOCK - (B64_BLOCK - bbidx));
     }
 
     if (*decoded_bytes == 0) {
         SCLogDebug("base64 decoding failed");
+
     }
 
     *consumed_bytes += leading_sp;
