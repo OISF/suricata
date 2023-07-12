@@ -183,7 +183,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
         }
     }
 
-    if (bbidx > 0 && ((!valid && mode == BASE64_MODE_RFC4648))) {
+    if (bbidx > 0 && !valid && mode == BASE64_MODE_RFC4648) {
         /* Decoded bytes for 1 or 2 base64 encoded bytes is 1 */
         padding += bbidx > 1 ? B64_BLOCK - bbidx : 2;
         uint32_t numDecoded_blk = ASCII_BLOCK - (padding < B64_BLOCK ? padding : ASCII_BLOCK);
@@ -195,7 +195,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
         *decoded_bytes += numDecoded_blk;
         DecodeBase64Block(dptr, b64, numDecoded_blk);
         *consumed_bytes += bbidx;
-    } else if (valid && bbidx > 0 && (mode != BASE64_MODE_RFC2045)) {
+    } else if (bbidx > 0 && valid && mode != BASE64_MODE_RFC2045) {
         /* Finish remaining b64 bytes by padding */
         /* Decode remaining */
         padding += B64_BLOCK - bbidx;
@@ -208,14 +208,15 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
         *decoded_bytes += numDecoded_blk;
         DecodeBase64Block(dptr, b64, numDecoded_blk);
         *consumed_bytes += bbidx;
+    } else {
+        // only set for BASE64_MODE_RFC2045
+        *consumed_bytes += leading_sp;
     }
 
     if (*decoded_bytes == 0) {
         SCLogDebug("base64 decoding failed");
-
     }
 
-    *consumed_bytes += leading_sp;
     return ecode;
 }
 
