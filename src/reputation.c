@@ -641,7 +641,7 @@ int SRepInit(DetectEngineCtx *de_ctx)
 
                 int r = SRepLoadFile(cidr_ctx, sfile);
                 if (r < 0){
-                    if (de_ctx->failure_fatal == 1) {
+                    if (de_ctx->failure_fatal) {
                         exit(EXIT_FAILURE);
                     }
                 }
