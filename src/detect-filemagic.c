@@ -92,8 +92,6 @@ static int DetectEngineInspectFilemagic(
         const Signature *s,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
-static int g_magic_thread_ctx_id = -1;
-
 /**
  * \brief Registration function for keyword: filemagic
  */
@@ -251,10 +249,10 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
                 de_ctx, s, NULL, DETECT_FILE_MAGIC, g_file_magic_buffer_id, s->alproto) < 0)
         return -1;
 
-    if (g_magic_thread_ctx_id == -1) {
-        g_magic_thread_ctx_id = DetectRegisterThreadCtxFuncs(
+    if (de_ctx->filemagic_thread_ctx_id == -1) {
+        de_ctx->filemagic_thread_ctx_id = DetectRegisterThreadCtxFuncs(
                 de_ctx, "filemagic", DetectFilemagicThreadInit, NULL, DetectFilemagicThreadFree, 1);
-        if (g_magic_thread_ctx_id == -1)
+        if (de_ctx->filemagic_thread_ctx_id == -1)
             return -1;
     }
     return 0;
@@ -276,11 +274,10 @@ static int DetectFilemagicSetupSticky(DetectEngineCtx *de_ctx, Signature *s, con
     if (DetectBufferSetActiveList(s, g_file_magic_buffer_id) < 0)
         return -1;
 
-    if (g_magic_thread_ctx_id == -1) {
-        g_magic_thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "filemagic",
-                DetectFilemagicThreadInit, NULL,
-                DetectFilemagicThreadFree, 1);
-        if (g_magic_thread_ctx_id == -1)
+    if (de_ctx->filemagic_thread_ctx_id == -1) {
+        de_ctx->filemagic_thread_ctx_id = DetectRegisterThreadCtxFuncs(
+                de_ctx, "filemagic", DetectFilemagicThreadInit, NULL, DetectFilemagicThreadFree, 1);
+        if (de_ctx->filemagic_thread_ctx_id == -1)
             return -1;
     }
     return 0;
@@ -301,7 +298,8 @@ static InspectionBuffer *FilemagicGetDataCallback(DetectEngineThreadCtx *det_ctx
 
     if (cur_file->magic == NULL) {
         DetectFilemagicThreadData *tfilemagic =
-            (DetectFilemagicThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, g_magic_thread_ctx_id);
+                (DetectFilemagicThreadData *)DetectThreadCtxGetKeywordThreadCtx(
+                        det_ctx, det_ctx->de_ctx->filemagic_thread_ctx_id);
         if (tfilemagic == NULL) {
             return NULL;
         }
