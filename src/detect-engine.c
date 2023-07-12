@@ -2479,9 +2479,11 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
         strlcpy(de_ctx->config_prefix, prefix, sizeof(de_ctx->config_prefix));
     }
 
-    if (ConfGetBool("engine.init-failure-fatal", (int *)&(de_ctx->failure_fatal)) != 1) {
+    int failure_fatal = 0;
+    if (ConfGetBool("engine.init-failure-fatal", (int *)&failure_fatal) != 1) {
         SCLogDebug("ConfGetBool could not load the value.");
     }
+    de_ctx->failure_fatal = (failure_fatal == 1);
 
     de_ctx->mpm_matcher = PatternMatchDefaultMatcher();
     de_ctx->spm_matcher = SinglePatternMatchDefaultMatcher();
