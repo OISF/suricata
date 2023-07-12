@@ -25,12 +25,10 @@
 #include "util-base64.h"
 #include "util-debug.h"
 #include "util-unittest.h"
-/* Constants */
-#define BASE64_TABLE_MAX  122
 
 /* Base64 character to index conversion table */
 /* Characters are mapped as "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" */
-static const int b64table[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+static const int b64table[256] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -42,7 +40,21 @@ static const int b64table[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         25, -1, -1, -1, -1, -1, -1, 26, 27, 28,
         29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
         39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
-        49, 50, 51 };
+        49, 50, 51, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1
+};
 
 /**
  * \brief Gets a base64-decoded value from an encoded character
@@ -53,14 +65,7 @@ static const int b64table[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
  */
 static inline int GetBase64Value(uint8_t c)
 {
-    int val = -1;
-
-    /* Pull from conversion table */
-    if (c <= BASE64_TABLE_MAX) {
-        val = b64table[(int) c];
-    }
-
-    return val;
+    return b64table[c];
 }
 
 /**
