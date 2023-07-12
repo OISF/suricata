@@ -825,6 +825,9 @@ enum DetectEngineType
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
     bool failure_fatal;
+    uint8_t flags;       /**< only DE_QUIET */
+    uint8_t mpm_matcher; /**< mpm matcher this ctx uses */
+    uint8_t spm_matcher; /**< spm matcher this ctx uses */
 
     int tenant_id;
 
@@ -869,10 +872,6 @@ typedef struct DetectEngineCtx_ {
 
     DetectEngineIPOnlyCtx io_ctx;
     ThresholdCtx ths_ctx;
-
-    uint8_t flags;        /**< only DE_QUIET */
-    uint8_t mpm_matcher;  /**< mpm matcher this ctx uses */
-    uint8_t spm_matcher;  /**< spm matcher this ctx uses */
 
     /* maximum recursion depth for content inspection */
     int inspection_recursion_limit;
