@@ -1184,9 +1184,8 @@ static uint32_t ProcessBase64Remainder(
 
     /* Strip spaces in remainder */
     for (uint8_t i = 0; i < state->bvr_len; i++) {
-        if (IsBase64Alphabet(state->bvremain[i])) {
-            block[cnt++] = state->bvremain[i];
-        }
+        DEBUG_VALIDATE_BUG_ON(!IsBase64Alphabet(state->bvremain[i]));
+        block[cnt++] = state->bvremain[i];
     }
 
     /* if we don't have 4 bytes see if we can fill it from `buf` */
