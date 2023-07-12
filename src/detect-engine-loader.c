@@ -339,7 +339,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
         ret = ProcessSigFiles(de_ctx, sig_file, sig_stat, &good_sigs, &bad_sigs);
 
         if (ret != 0) {
-            if (de_ctx->failure_fatal == 1) {
+            if (de_ctx->failure_fatal) {
                 exit(EXIT_FAILURE);
             }
         }

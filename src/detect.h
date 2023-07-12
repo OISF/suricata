@@ -824,7 +824,7 @@ enum DetectEngineType
 
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
-    int failure_fatal;
+    bool failure_fatal;
 
     int tenant_id;
 
