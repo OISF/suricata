@@ -723,7 +723,7 @@ impl DCERPCState {
             Ok((leftover_bytes, mut back)) => {
                 if let Some(ref mut bind) = self.bind {
                     for (uuid_internal_id, r) in back.ctxitems.iter().enumerate() {
-                        for mut uuid in bind.uuid_list.iter_mut() {
+                        for uuid in bind.uuid_list.iter_mut() {
                             if uuid.internal_id == uuid_internal_id as u16 {
                                 uuid.result = r.ack_result;
                                 if uuid.result != 0 {

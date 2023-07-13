@@ -96,7 +96,7 @@ impl Default for Ikev2Container {
 }
 
 pub fn handle_ikev2(
-    mut state: &mut IKEState, current: &[u8], isakmp_header: IsakmpHeader, direction: Direction,
+    state: &mut IKEState, current: &[u8], isakmp_header: IsakmpHeader, direction: Direction,
 ) -> AppLayerResult {
     let hdr = IkeV2Header {
         init_spi: isakmp_header.init_spi,

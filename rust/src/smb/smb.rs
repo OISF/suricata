@@ -1951,7 +1951,7 @@ pub unsafe extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
                                        )
                                        -> AppLayerResult
 {
-    let mut state = cast_pointer!(state, SMBState);
+    let state = cast_pointer!(state, SMBState);
     let flow = cast_pointer!(flow, Flow);
 
     if stream_slice.is_gap() {
@@ -1988,7 +1988,7 @@ pub unsafe extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
                                         )
                                         -> AppLayerResult
 {
-    let mut state = cast_pointer!(state, SMBState);
+    let state = cast_pointer!(state, SMBState);
     let flow = cast_pointer!(flow, Flow);
 
     if stream_slice.is_gap() {

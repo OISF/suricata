@@ -116,10 +116,7 @@ pub enum DetectKrb5TicketEncryptionData {
 pub fn detect_parse_encryption_weak(i: &str) -> IResult<&str, DetectKrb5TicketEncryptionData> {
     let (i, neg) = opt(char('!'))(i)?;
     let (i, _) = tag("weak")(i)?;
-    let value = match neg {
-        Some(_) => false,
-        _ => true,
-    };
+    let value = neg.is_none();
     return Ok((i, DetectKrb5TicketEncryptionData::WEAK(value)));
 }
 
