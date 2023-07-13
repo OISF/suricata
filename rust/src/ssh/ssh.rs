@@ -110,7 +110,7 @@ impl SSHState {
     fn parse_record(
         &mut self, mut input: &[u8], resp: bool, pstate: *mut std::os::raw::c_void,
     ) -> AppLayerResult {
-        let (mut hdr, ohdr) = if !resp {
+        let (hdr, ohdr) = if !resp {
             (&mut self.transaction.cli_hdr, &self.transaction.srv_hdr)
         } else {
             (&mut self.transaction.srv_hdr, &self.transaction.cli_hdr)
@@ -240,7 +240,7 @@ impl SSHState {
     fn parse_banner(
         &mut self, input: &[u8], resp: bool, pstate: *mut std::os::raw::c_void,
     ) -> AppLayerResult {
-        let mut hdr = if !resp {
+        let hdr = if !resp {
             &mut self.transaction.cli_hdr
         } else {
             &mut self.transaction.srv_hdr

@@ -969,7 +969,7 @@ impl HTTP2State {
                                 //borrow checker forbids to reuse directly tx
                                 let index = self.find_tx_index(sid);
                                 if index > 0 {
-                                    let mut tx_same = &mut self.transactions[index - 1];
+                                    let tx_same = &mut self.transactions[index - 1];
                                     if dir == Direction::ToServer {
                                         tx_same.ft_tc.tx_id = tx_same.tx_id - 1;
                                     } else {
