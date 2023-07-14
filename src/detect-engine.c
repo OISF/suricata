@@ -708,7 +708,7 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
         } else {
             new_engine->id = DE_STATE_FLAG_BASE; /* id is used as flag in stateful detect */
             SCLogDebug("sid %u: engine %p/%u %s", s->id, new_engine, new_engine->id,
-                    DetectEngineBufferTypeGetNameById(de_ctx, t->sm_list));
+                    DetectEngineBufferTypeGetNameById(de_ctx, new_engine->sm_list));
         }
 
         /* prepend engine if forced or if our engine has a lower progress. */
@@ -721,7 +721,7 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
         } else {
             new_engine->id = ++(*last_id);
             SCLogDebug("sid %u: engine %p/%u %s", s->id, new_engine, new_engine->id,
-                    DetectEngineBufferTypeGetNameById(de_ctx, t->sm_list));
+                    DetectEngineBufferTypeGetNameById(de_ctx, new_engine->sm_list));
         }
 
     } else {
@@ -741,7 +741,7 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
         } else {
             new_engine->id = ++(*last_id);
             SCLogDebug("sid %u: engine %p/%u %s", s->id, new_engine, new_engine->id,
-                    DetectEngineBufferTypeGetNameById(de_ctx, t->sm_list));
+                    DetectEngineBufferTypeGetNameById(de_ctx, new_engine->sm_list));
         }
     }
 
