@@ -1570,18 +1570,8 @@ static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
     for (sig = 0; sig < (ms->sid_array_size * 8); sig++) {
         if (ms->sid_array[sig / 8] & (1 << (sig % 8))) {
             s = de_ctx->sig_array[sig];
+            DEBUG_VALIDATE_BUG_ON(s == NULL);
             if (s == NULL)
-                continue;
-            if ((s->flags & ms->direction) == 0) {
-                SCLogDebug("s->flags %x ms->direction %x", s->flags, ms->direction);
-                continue;
-            }
-            if (s->init_data->mpm_sm == NULL)
-                continue;
-            int list = s->init_data->mpm_sm_list;
-            if (list < 0)
-                continue;
-            if (list != ms->sm_list)
                 continue;
 
             SCLogDebug("%p: direction %d adding %u", ms, ms->direction, s->id);
