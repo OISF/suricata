@@ -150,10 +150,11 @@ static DetectTlsVersionData *DetectTlsVersionParse (DetectEngineCtx *de_ctx, con
 {
     uint16_t temp;
     DetectTlsVersionData *tls = NULL;
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2len;
 
-    ret = DetectParsePcreExec(&parse_regex, str, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, str, 0, 0);
     if (ret < 1 || ret > 3) {
         SCLogError("invalid tls.version option");
         goto error;
@@ -163,8 +164,7 @@ static DetectTlsVersionData *DetectTlsVersionParse (DetectEngineCtx *de_ctx, con
         char ver_ptr[64];
         char *tmp_str;
         pcre2len = sizeof(ver_ptr);
-        res = pcre2_substring_copy_bynumber(
-                parse_regex.match, 1, (PCRE2_UCHAR8 *)ver_ptr, &pcre2len);
+        res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)ver_ptr, &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed");
             goto error;
@@ -205,9 +205,13 @@ static DetectTlsVersionData *DetectTlsVersionParse (DetectEngineCtx *de_ctx, con
         SCLogDebug("will look for tls %"PRIu16"", tls->ver);
     }
 
+    pcre2_match_data_free(match);
     return tls;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (tls != NULL)
         DetectTlsVersionFree(de_ctx, tls);
     return NULL;

@@ -116,22 +116,22 @@ static int DetectMQTTConnectFlagsMatch(DetectEngineThreadCtx *det_ctx,
  */
 static DetectMQTTConnectFlagsData *DetectMQTTConnectFlagsParse(const char *rawstr)
 {
-    DetectMQTTConnectFlagsData *de = NULL;
-    int ret = 0;
+    char copy[strlen(rawstr) + 1];
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
-    if (ret < 1) {
-        SCLogError("invalid flag definition: %s", rawstr);
-        return NULL;
-    }
-
-    de = SCCalloc(1, sizeof(DetectMQTTConnectFlagsData));
+    DetectMQTTConnectFlagsData *de = SCCalloc(1, sizeof(DetectMQTTConnectFlagsData));
     if (unlikely(de == NULL))
         return NULL;
+
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
+    if (ret < 1) {
+        SCLogError("invalid flag definition: %s", rawstr);
+        goto error;
+    }
+
     de->username = de->password = de->will = MQTT_DONT_CARE;
     de->will_retain = de->clean_session = MQTT_DONT_CARE;
 
-    char copy[strlen(rawstr)+1];
     strlcpy(copy, rawstr, sizeof(copy));
     char *xsaveptr = NULL;
     char *flagv = strtok_r(copy, ",", &xsaveptr);
@@ -188,11 +188,15 @@ static DetectMQTTConnectFlagsData *DetectMQTTConnectFlagsParse(const char *rawst
         flagv = strtok_r(NULL, ",", &xsaveptr);
     }
 
+    pcre2_match_data_free(match);
     return de;
 
 error:
-    /* de can't be NULL here */
-    SCFree(de);
+    if (match) {
+        pcre2_match_data_free(match);
+    }
+    if (de)
+        SCFree(de);
     return NULL;
 }
 

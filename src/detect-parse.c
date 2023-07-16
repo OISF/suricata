@@ -2620,11 +2620,14 @@ error:
 
 static DetectParseRegex *g_detect_parse_regex_list = NULL;
 
-int DetectParsePcreExec(
-        DetectParseRegex *parse_regex, const char *str, int start_offset, int options)
+int DetectParsePcreExec(DetectParseRegex *parse_regex, pcre2_match_data **match, const char *str,
+        int start_offset, int options)
 {
-    return pcre2_match(parse_regex->regex, (PCRE2_SPTR8)str, strlen(str), options, start_offset,
-            parse_regex->match, NULL);
+    *match = pcre2_match_data_create_from_pattern(parse_regex->regex, NULL);
+    if (*match)
+        return pcre2_match(parse_regex->regex, (PCRE2_SPTR8)str, strlen(str), options, start_offset,
+                *match, NULL);
+    return -1;
 }
 
 void DetectParseFreeRegex(DetectParseRegex *r)

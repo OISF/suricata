@@ -171,7 +171,7 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     DetectConfigData *fd = NULL;
     SigMatch *sm = NULL;
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2len;
 #if 0
     /* filestore and bypass keywords can't work together */
@@ -181,6 +181,7 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
         return -1;
     }
 #endif
+    pcre2_match_data *match = NULL;
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
@@ -198,13 +199,13 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     char scopeval[32];
     SCLogDebug("str %s", str);
 
-    ret = DetectParsePcreExec(&parse_regex, str, 0, 0);
+    int ret = DetectParsePcreExec(&parse_regex, &match, str, 0, 0);
     if (ret != 7) {
         SCLogError("config is rather picky at this time");
         goto error;
     }
     pcre2len = sizeof(subsys);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)subsys, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)subsys, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -217,7 +218,7 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     SCLogDebug("subsys %s", subsys);
 
     pcre2len = sizeof(state);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)state, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)state, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -230,7 +231,7 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     SCLogDebug("state %s", state);
 
     pcre2len = sizeof(type);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 3, (PCRE2_UCHAR8 *)type, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 3, (PCRE2_UCHAR8 *)type, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -243,7 +244,7 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     SCLogDebug("type %s", type);
 
     pcre2len = sizeof(typeval);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 4, (PCRE2_UCHAR8 *)typeval, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 4, (PCRE2_UCHAR8 *)typeval, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -256,7 +257,7 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     SCLogDebug("typeval %s", typeval);
 
     pcre2len = sizeof(scope);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 5, (PCRE2_UCHAR8 *)scope, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 5, (PCRE2_UCHAR8 *)scope, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -269,7 +270,7 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     SCLogDebug("scope %s", scope);
 
     pcre2len = sizeof(scopeval);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 6, (PCRE2_UCHAR8 *)scopeval, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 6, (PCRE2_UCHAR8 *)scopeval, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -299,9 +300,13 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     sm->ctx = (SigMatchCtx*)fd;
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
 
+    pcre2_match_data_free(match);
     return 0;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (sm != NULL)
         SCFree(sm);
     return -1;

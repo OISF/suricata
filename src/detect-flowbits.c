@@ -222,28 +222,29 @@ int DetectFlowbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *name,
     int name_len)
 {
-    int count, rc;
+    int rc;
     size_t pcre2len;
+    pcre2_match_data *match = NULL;
 
-    count = DetectParsePcreExec(&parse_regex, str, 0, 0);
+    int count = DetectParsePcreExec(&parse_regex, &match, str, 0, 0);
     if (count != 2 && count != 3) {
         SCLogError("\"%s\" is not a valid setting for flowbits.", str);
-        return 0;
+        goto error;
     }
 
     pcre2len = cmd_len;
-    rc = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)cmd, &pcre2len);
+    rc = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)cmd, &pcre2len);
     if (rc < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
-        return 0;
+        goto error;
     }
 
     if (count == 3) {
         pcre2len = name_len;
-        rc = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)name, &pcre2len);
+        rc = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)name, &pcre2len);
         if (rc < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed");
-            return 0;
+            goto error;
         }
 
         /* Trim trailing whitespace. */
@@ -256,13 +257,20 @@ static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *nam
             for (size_t i = 0; i < strlen(name); i++) {
                 if (isblank(name[i])) {
                     SCLogError("spaces not allowed in flowbit names");
-                    return 0;
+                    goto error;
                 }
             }
         }
     }
 
+    pcre2_match_data_free(match);
     return 1;
+
+error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
+    return 0;
 }
 
 int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)

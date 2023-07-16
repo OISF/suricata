@@ -73,27 +73,35 @@ static int DetectClasstypeParseRawString(const char *rawstr, char *out, size_t o
 
     const size_t esize = CLASSTYPE_NAME_MAX_LEN + 8;
     char e[esize];
+    pcre2_match_data *match = NULL;
 
-    int ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret < 0) {
         SCLogError("Invalid Classtype in Signature");
-        return -1;
+        goto error;
     }
 
     pcre2len = esize;
-    ret = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)e, &pcre2len);
+    ret = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)e, &pcre2len);
     if (ret < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
-        return -1;
+        goto error;
     }
 
     if (strlen(e) >= CLASSTYPE_NAME_MAX_LEN) {
         SCLogError("classtype '%s' is too big: max %d", rawstr, CLASSTYPE_NAME_MAX_LEN - 1);
-        return -1;
+        goto error;
     }
     (void)strlcpy(out, e, outsize);
 
+    pcre2_match_data_free(match);
     return 0;
+
+error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
+    return -1;
 }
 
 /**

@@ -194,41 +194,44 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
     DetectXbitsData *cd = NULL;
     uint8_t fb_cmd = 0;
     uint8_t hb_dir = 0;
-    int ret = 0, res = 0;
     size_t pcre2len;
     char fb_cmd_str[16] = "", fb_name[256] = "";
     char hb_dir_str[16] = "";
     enum VarTypes var_type = VAR_TYPE_NOT_SET;
     uint32_t expire = DETECT_XBITS_EXPIRE_DEFAULT;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret != 2 && ret != 3 && ret != 4 && ret != 5) {
         SCLogError("\"%s\" is not a valid setting for xbits.", rawstr);
+        if (match) {
+            pcre2_match_data_free(match);
+        }
         return -1;
     }
     SCLogDebug("ret %d, %s", ret, rawstr);
     pcre2len = sizeof(fb_cmd_str);
-    res = pcre2_substring_copy_bynumber(
-            parse_regex.match, 1, (PCRE2_UCHAR8 *)fb_cmd_str, &pcre2len);
+    int res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)fb_cmd_str, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
+        pcre2_match_data_free(match);
         return -1;
     }
 
     if (ret >= 3) {
         pcre2len = sizeof(fb_name);
-        res = pcre2_substring_copy_bynumber(
-                parse_regex.match, 2, (PCRE2_UCHAR8 *)fb_name, &pcre2len);
+        res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)fb_name, &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed");
+            pcre2_match_data_free(match);
             return -1;
         }
         if (ret >= 4) {
             pcre2len = sizeof(hb_dir_str);
-            res = pcre2_substring_copy_bynumber(
-                    parse_regex.match, 3, (PCRE2_UCHAR8 *)hb_dir_str, &pcre2len);
+            res = pcre2_substring_copy_bynumber(match, 3, (PCRE2_UCHAR8 *)hb_dir_str, &pcre2len);
             if (res < 0) {
                 SCLogError("pcre2_substring_copy_bynumber failed");
+                pcre2_match_data_free(match);
                 return -1;
             }
             SCLogDebug("hb_dir_str %s", hb_dir_str);
@@ -244,6 +247,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
                     var_type = VAR_TYPE_IPPAIR_BIT;
                 } else {
                     // TODO
+                    pcre2_match_data_free(match);
                     return -1;
                 }
             }
@@ -252,9 +256,10 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
                 char expire_str[16] = "";
                 pcre2len = sizeof(expire_str);
                 res = pcre2_substring_copy_bynumber(
-                        parse_regex.match, 4, (PCRE2_UCHAR8 *)expire_str, &pcre2len);
+                        match, 4, (PCRE2_UCHAR8 *)expire_str, &pcre2len);
                 if (res < 0) {
                     SCLogError("pcre2_substring_copy_bynumber failed");
+                    pcre2_match_data_free(match);
                     return -1;
                 }
                 SCLogDebug("expire_str %s", expire_str);
@@ -262,10 +267,12 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
                     SCLogError("Invalid value for "
                                "expire: \"%s\"",
                             expire_str);
+                    pcre2_match_data_free(match);
                     return -1;
                 }
                 if (expire == 0) {
                     SCLogError("expire must be bigger than 0");
+                    pcre2_match_data_free(match);
                     return -1;
                 }
                 SCLogDebug("expire %d", expire);
@@ -273,6 +280,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
         }
     }
 
+    pcre2_match_data_free(match);
     if (strcmp(fb_cmd_str,"noalert") == 0) {
         fb_cmd = DETECT_XBITS_CMD_NOALERT;
     } else if (strcmp(fb_cmd_str,"isset") == 0) {

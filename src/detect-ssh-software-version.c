@@ -156,10 +156,11 @@ static int DetectSshSoftwareVersionMatch (DetectEngineThreadCtx *det_ctx,
 static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (DetectEngineCtx *de_ctx, const char *str)
 {
     DetectSshSoftwareVersionData *ssh = NULL;
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2_len;
 
-    ret = DetectParsePcreExec(&parse_regex, str, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, str, 0, 0);
 
     if (ret < 1 || ret > 3) {
         SCLogError("invalid ssh.softwareversion option");
@@ -168,8 +169,7 @@ static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (DetectEngine
 
     if (ret > 1) {
         const char *str_ptr = NULL;
-        res = pcre2_substring_get_bynumber(
-                parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = pcre2_substring_get_bynumber(match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
             SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
@@ -177,11 +177,13 @@ static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (DetectEngine
 
         /* We have a correct id option */
         ssh = SCMalloc(sizeof(DetectSshSoftwareVersionData));
-        if (unlikely(ssh == NULL))
+        if (unlikely(ssh == NULL)) {
+            pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
             goto error;
-
+        }
         ssh->software_ver = (uint8_t *)SCStrdup((char *)str_ptr);
         if (ssh->software_ver == NULL) {
+            pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
             goto error;
         }
         pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
@@ -191,9 +193,13 @@ static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (DetectEngine
         SCLogDebug("will look for ssh %s", ssh->software_ver);
     }
 
+    pcre2_match_data_free(match);
     return ssh;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (ssh != NULL)
         DetectSshSoftwareVersionFree(de_ctx, ssh);
     return NULL;
