@@ -114,7 +114,6 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
 static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
     uint32_t *offset, uint8_t *relative)
 {
-    int pcre_rc;
     const char *bytes_str = NULL;
     const char *offset_str = NULL;
     const char *relative_str = NULL;
@@ -125,14 +124,17 @@ static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
     *relative = 0;
     size_t pcre2_len;
 
-    pcre_rc = DetectParsePcreExec(&decode_pcre, str, 0, 0);
+    pcre2_match_data *match = pcre2_match_data_create_from_pattern(decode_pcre.regex, NULL);
+    if (match == NULL)
+        goto error;
+
+    int pcre_rc = pcre2_match(decode_pcre.regex, (PCRE2_SPTR8)str, strlen(str), 0, 0, match, NULL);
     if (pcre_rc < 3) {
         goto error;
     }
 
     if (pcre_rc >= 3) {
-        if (pcre2_substring_get_bynumber(
-                    decode_pcre.match, 2, (PCRE2_UCHAR8 **)&bytes_str, &pcre2_len) == 0) {
+        if (pcre2_substring_get_bynumber(match, 2, (PCRE2_UCHAR8 **)&bytes_str, &pcre2_len) == 0) {
             if (StringParseUint32(bytes, 10, 0, bytes_str) <= 0) {
                 SCLogError("Bad value for bytes: \"%s\"", bytes_str);
                 goto error;
@@ -141,8 +143,7 @@ static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
      }
 
     if (pcre_rc >= 5) {
-        if (pcre2_substring_get_bynumber(
-                    decode_pcre.match, 4, (PCRE2_UCHAR8 **)&offset_str, &pcre2_len) == 0) {
+        if (pcre2_substring_get_bynumber(match, 4, (PCRE2_UCHAR8 **)&offset_str, &pcre2_len) == 0) {
             if (StringParseUint32(offset, 10, 0, offset_str) <= 0) {
                 SCLogError("Bad value for offset: \"%s\"", offset_str);
                 goto error;
@@ -151,8 +152,8 @@ static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
     }
 
     if (pcre_rc >= 6) {
-        if (pcre2_substring_get_bynumber(
-                    decode_pcre.match, 5, (PCRE2_UCHAR8 **)&relative_str, &pcre2_len) == 0) {
+        if (pcre2_substring_get_bynumber(match, 5, (PCRE2_UCHAR8 **)&relative_str, &pcre2_len) ==
+                0) {
             if (strcmp(relative_str, "relative") == 0) {
                 *relative = 1;
             }
@@ -163,6 +164,8 @@ static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
         }
     }
 
+    pcre2_match_data_free(match);
+    match = NULL;
     retval = 1;
 error:
     if (bytes_str != NULL) {
@@ -173,6 +176,9 @@ error:
     }
     if (relative_str != NULL) {
         pcre2_substring_free((PCRE2_UCHAR8 *)relative_str);
+    }
+    if (match != NULL) {
+        pcre2_match_data_free(match);
     }
     return retval;
 }
