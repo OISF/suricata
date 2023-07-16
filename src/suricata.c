@@ -385,7 +385,6 @@ static void GlobalsDestroy(SCInstance *suri)
     TimeDeinit();
     if (!suri->disabled_detect) {
         SCReferenceConfDeinit();
-        SCClassConfDeinit();
     }
     TmqhCleanup();
     TmModuleRunDeInit();
@@ -2550,7 +2549,6 @@ void PostConfLoadedDetectSetup(SCInstance *suri)
 {
     DetectEngineCtx *de_ctx = NULL;
     if (!suri->disabled_detect) {
-        SCClassConfInit();
         SCReferenceConfInit();
         SetupDelayedDetect(suri);
         int mt_enabled = 0;

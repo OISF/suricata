@@ -48,9 +48,6 @@
 #define SC_CLASS_CONF_DEF_CONF_FILEPATH CONFIG_DIR "/classification.config"
 #endif
 
-static pcre2_code *regex = NULL;
-static pcre2_match_data *regex_match = NULL;
-
 uint32_t SCClassConfClasstypeHashFunc(HashTable *ht, void *data, uint16_t datalen);
 char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
                                          void *data2, uint16_t datalen2);
@@ -61,15 +58,15 @@ static SCClassConfClasstype *SCClassConfAllocClasstype(uint16_t classtype_id,
         const char *classtype, const char *classtype_desc, int priority);
 static void SCClassConfDeAllocClasstype(SCClassConfClasstype *ct);
 
-void SCClassConfInit(void)
+void SCClassConfInit(DetectEngineCtx *de_ctx)
 {
     int en;
     PCRE2_SIZE eo;
     int opts = 0;
 
-    regex = pcre2_compile(
+    de_ctx->class_conf_regex = pcre2_compile(
             (PCRE2_SPTR8)DETECT_CLASSCONFIG_REGEX, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
-    if (regex == NULL) {
+    if (de_ctx->class_conf_regex == NULL) {
         PCRE2_UCHAR errbuffer[256];
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
         SCLogWarning("pcre2 compile of \"%s\" failed at "
@@ -77,19 +74,20 @@ void SCClassConfInit(void)
                 DETECT_CLASSCONFIG_REGEX, (int)eo, errbuffer);
         return;
     }
-    regex_match = pcre2_match_data_create_from_pattern(regex, NULL);
+    de_ctx->class_conf_regex_match =
+            pcre2_match_data_create_from_pattern(de_ctx->class_conf_regex, NULL);
     return;
 }
 
-void SCClassConfDeinit(void)
+void SCClassConfDeinit(DetectEngineCtx *de_ctx)
 {
-    if (regex != NULL) {
-        pcre2_code_free(regex);
-        regex = NULL;
+    if (de_ctx->class_conf_regex != NULL) {
+        pcre2_code_free(de_ctx->class_conf_regex);
+        de_ctx->class_conf_regex = NULL;
     }
-    if (regex_match != NULL) {
-        pcre2_match_data_free(regex_match);
-        regex_match = NULL;
+    if (de_ctx->class_conf_regex_match != NULL) {
+        pcre2_match_data_free(de_ctx->class_conf_regex_match);
+        de_ctx->class_conf_regex_match = NULL;
     }
 }
 
@@ -248,7 +246,8 @@ int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t inde
 
     int ret = 0;
 
-    ret = pcre2_match(regex, (PCRE2_SPTR8)rawstr, strlen(rawstr), 0, 0, regex_match, NULL);
+    ret = pcre2_match(de_ctx->class_conf_regex, (PCRE2_SPTR8)rawstr, strlen(rawstr), 0, 0,
+            de_ctx->class_conf_regex_match, NULL);
     if (ret < 0) {
         SCLogError("Invalid Classtype in "
                    "classification.config file %s: \"%s\"",
@@ -258,7 +257,8 @@ int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t inde
 
     size_t copylen = sizeof(ct_name);
     /* retrieve the classtype name */
-    ret = pcre2_substring_copy_bynumber(regex_match, 1, (PCRE2_UCHAR8 *)ct_name, &copylen);
+    ret = pcre2_substring_copy_bynumber(
+            de_ctx->class_conf_regex_match, 1, (PCRE2_UCHAR8 *)ct_name, &copylen);
     if (ret < 0) {
         SCLogInfo("pcre2_substring_copy_bynumber() failed");
         goto error;
@@ -266,7 +266,8 @@ int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t inde
 
     /* retrieve the classtype description */
     copylen = sizeof(ct_desc);
-    ret = pcre2_substring_copy_bynumber(regex_match, 2, (PCRE2_UCHAR8 *)ct_desc, &copylen);
+    ret = pcre2_substring_copy_bynumber(
+            de_ctx->class_conf_regex_match, 2, (PCRE2_UCHAR8 *)ct_desc, &copylen);
     if (ret < 0) {
         SCLogInfo("pcre2_substring_copy_bynumber() failed");
         goto error;
@@ -274,7 +275,8 @@ int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t inde
 
     /* retrieve the classtype priority */
     copylen = sizeof(ct_priority_str);
-    ret = pcre2_substring_copy_bynumber(regex_match, 3, (PCRE2_UCHAR8 *)ct_priority_str, &copylen);
+    ret = pcre2_substring_copy_bynumber(
+            de_ctx->class_conf_regex_match, 3, (PCRE2_UCHAR8 *)ct_priority_str, &copylen);
     if (ret < 0) {
         SCLogInfo("pcre2_substring_copy_bynumber() failed");
         goto error;

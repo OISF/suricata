@@ -254,7 +254,6 @@ void RunUnittests(int list_unittests, const char *regex_arg)
 
     TagInitCtx();
     SCReferenceConfInit();
-    SCClassConfInit();
 
     UtInitialize();
 
