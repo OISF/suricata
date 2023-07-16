@@ -2523,6 +2523,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
     if (ActionInitConfig() < 0) {
         goto error;
     }
+    SCReferenceConfInit(de_ctx);
     if (SCRConfLoadReferenceConfigFile(de_ctx, NULL) < 0) {
         if (RunmodeGetCurrent() == RUNMODE_CONF_TEST)
             goto error;
@@ -2660,6 +2661,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     /* freed our var name hash */
     VarNameStoreFree(de_ctx->version);
     SCClassConfDeinit(de_ctx);
+    SCReferenceConfDeinit(de_ctx);
 
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();

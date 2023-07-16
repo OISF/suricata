@@ -383,9 +383,6 @@ static void GlobalsDestroy(SCInstance *suri)
     FeatureTrackingRelease();
     SCProtoNameRelease();
     TimeDeinit();
-    if (!suri->disabled_detect) {
-        SCReferenceConfDeinit();
-    }
     TmqhCleanup();
     TmModuleRunDeInit();
     ParseSizeDeinit();
@@ -2549,7 +2546,6 @@ void PostConfLoadedDetectSetup(SCInstance *suri)
 {
     DetectEngineCtx *de_ctx = NULL;
     if (!suri->disabled_detect) {
-        SCReferenceConfInit();
         SetupDelayedDetect(suri);
         int mt_enabled = 0;
         (void)ConfGetBool("multi-detect.enabled", &mt_enabled);

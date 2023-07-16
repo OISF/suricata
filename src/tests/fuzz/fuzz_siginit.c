@@ -28,7 +28,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         SpmTableSetup();
         EngineModeSetIDS();
         SigTableSetup();
-        SCReferenceConfInit();
     }
     if (cnt++ == 1024) {
         DetectEngineCtxFree(de_ctx);
