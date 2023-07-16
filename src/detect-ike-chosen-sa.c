@@ -130,12 +130,13 @@ static DetectIkeChosenSaData *DetectIkeChosenSaParse(const char *rawstr)
      * ike.chosen_sa_attribute:"hash_algorithm=8"
      */
     DetectIkeChosenSaData *dd = NULL;
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2len;
     char attribute[100];
     char value[100];
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret < 3 || ret > 5) {
         SCLogError(
                 "pcre match for ike.chosen_sa_attribute failed, should be: <sa_attribute>=<type>, "
@@ -145,14 +146,14 @@ static DetectIkeChosenSaData *DetectIkeChosenSaParse(const char *rawstr)
     }
 
     pcre2len = sizeof(attribute);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)attribute, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)attribute, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
     pcre2len = sizeof(value);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)value, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)value, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -172,9 +173,13 @@ static DetectIkeChosenSaData *DetectIkeChosenSaParse(const char *rawstr)
         goto error;
     }
 
+    pcre2_match_data_free(match);
     return dd;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (dd) {
         if (dd->sa_type != NULL)
             SCFree(dd->sa_type);

@@ -61,28 +61,30 @@ void DetectPriorityRegister (void)
 static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     char copy_str[128] = "";
-
-    int ret = 0;
     size_t pcre2len;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret < 0) {
         SCLogError("Invalid Priority in Signature "
                    "- %s",
                 rawstr);
+        if (match)
+            pcre2_match_data_free(match);
         return -1;
     }
 
     pcre2len = sizeof(copy_str);
-    ret = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
+    ret = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
     if (ret < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
+        pcre2_match_data_free(match);
         return -1;
     }
 
-    long prio = 0;
+    pcre2_match_data_free(match);
     char *endptr = NULL;
-    prio = strtol(copy_str, &endptr, 10);
+    long prio = strtol(copy_str, &endptr, 10);
     if (endptr == NULL || *endptr != '\0') {
         SCLogError("Saw an invalid character as arg "
                    "to priority keyword");

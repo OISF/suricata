@@ -85,13 +85,14 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
 {
     DetectIPProtoData *data = NULL;
     char *args[2] = { NULL, NULL };
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2_len;
     int i;
     const char *str_ptr;
 
     /* Execute the regex and populate args with captures. */
-    ret = DetectParsePcreExec(&parse_regex, optstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, optstr, 0, 0);
     if (ret != 3) {
         SCLogError("pcre_exec parse error, ret"
                    "%" PRId32 ", string %s",
@@ -100,8 +101,7 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     }
 
     for (i = 0; i < (ret - 1); i++) {
-        res = pcre2_substring_get_bynumber(
-                parse_regex.match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = pcre2_substring_get_bynumber(match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
             SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
@@ -142,9 +142,13 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
 
+    pcre2_match_data_free(match);
     return data;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     for (i = 0; i < (ret - 1) && i < 2; i++){
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);

@@ -158,9 +158,10 @@ static DetectRfbSecresultData *DetectRfbSecresultParse (const char *rawstr)
 {
     int i;
     DetectRfbSecresultData *de = NULL;
-    int ret = 0, found = 0;
+    int found = 0;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret < 1) {
         SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
@@ -184,9 +185,13 @@ static DetectRfbSecresultData *DetectRfbSecresultParse (const char *rawstr)
 
     de->result = results[i].code;
 
+    pcre2_match_data_free(match);
     return de;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (de) SCFree(de);
     return NULL;
 }

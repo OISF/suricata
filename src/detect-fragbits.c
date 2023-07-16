@@ -169,21 +169,22 @@ static int DetectFragBitsMatch (DetectEngineThreadCtx *det_ctx,
 static DetectFragBitsData *DetectFragBitsParse (const char *rawstr)
 {
     DetectFragBitsData *de = NULL;
-    int ret = 0, found = 0, res = 0;
+    int found = 0, res = 0;
     size_t pcre2_len;
     const char *str_ptr = NULL;
     char *args[2] = { NULL, NULL};
     char *ptr;
     int i;
+    pcre2_match_data *match = NULL;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret < 1) {
         SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
 
     for (i = 0; i < (ret - 1); i++) {
-        res = SC_Pcre2SubstringGet(parse_regex.match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = SC_Pcre2SubstringGet(match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
             SCLogError("pcre2_substring_get_bynumber failed %d", res);
             goto error;
@@ -255,9 +256,13 @@ static DetectFragBitsData *DetectFragBitsParse (const char *rawstr)
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
+    pcre2_match_data_free(match);
     return de;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     for (i = 0; i < 2; i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);

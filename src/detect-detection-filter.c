@@ -100,7 +100,7 @@ static int DetectDetectionFilterMatch(
 static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
 {
     DetectThresholdData *df = NULL;
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2_len;
     const char *str_ptr = NULL;
     char *args[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
@@ -110,6 +110,7 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
     size_t pos = 0;
     int i = 0;
     char *saveptr = NULL;
+    pcre2_match_data *match = NULL;
 
     copy_str = SCStrdup(rawstr);
     if (unlikely(copy_str == NULL)) {
@@ -132,7 +133,7 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
     if (count_found != 1 || seconds_found != 1 || track_found != 1)
         goto error;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret < 5) {
         SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
@@ -147,8 +148,7 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
     df->type = TYPE_DETECTION;
 
     for (i = 0; i < (ret - 1); i++) {
-        res = pcre2_substring_get_bynumber(
-                parse_regex.match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = pcre2_substring_get_bynumber(match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
             SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
@@ -187,6 +187,8 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR *)args[i]);
     }
+
+    pcre2_match_data_free(match);
     return df;
 
 error:
@@ -196,6 +198,9 @@ error:
     }
     if (df != NULL)
         SCFree(df);
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     return NULL;
 }
 

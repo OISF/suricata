@@ -116,28 +116,32 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     DetectFlowvarData *fd = NULL;
     SigMatch *sm = NULL;
     char varname[64], varcontent[64];
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2len;
     uint8_t *content = NULL;
     uint16_t contentlen = 0;
     uint32_t contentflags = s->init_data->negated ? DETECT_CONTENT_NEGATED : 0;
+    pcre2_match_data *match = NULL;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret != 3) {
         SCLogError("\"%s\" is not a valid setting for flowvar.", rawstr);
+        if (match) {
+            pcre2_match_data_free(match);
+        }
         return -1;
     }
 
     pcre2len = sizeof(varname);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)varname, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)varname, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         return -1;
     }
 
     pcre2len = sizeof(varcontent);
-    res = pcre2_substring_copy_bynumber(
-            parse_regex.match, 2, (PCRE2_UCHAR8 *)varcontent, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)varcontent, &pcre2len);
+    pcre2_match_data_free(match);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         return -1;

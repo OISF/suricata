@@ -111,18 +111,22 @@ static int DetectMQTTFlagsMatch(DetectEngineThreadCtx *det_ctx,
  */
 static DetectMQTTFlagsData *DetectMQTTFlagsParse(const char *rawstr)
 {
-    DetectMQTTFlagsData *de = NULL;
-    int ret = 0;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    DetectMQTTFlagsData *de = SCCalloc(1, sizeof(DetectMQTTFlagsData));
+    if (unlikely(de == NULL))
+        return NULL;
+
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret < 1) {
         SCLogError("invalid flag definition: %s", rawstr);
+        if (match) {
+            pcre2_match_data_free(match);
+        }
+        SCFree(de);
         return NULL;
     }
 
-    de = SCCalloc(1, sizeof(DetectMQTTFlagsData));
-    if (unlikely(de == NULL))
-        return NULL;
     de->retain = de->dup = MQTT_DONT_CARE;
 
     char copy[strlen(rawstr)+1];
@@ -168,11 +172,15 @@ static DetectMQTTFlagsData *DetectMQTTFlagsParse(const char *rawstr)
         flagv = strtok_r(NULL, ",", &xsaveptr);
     }
 
+    pcre2_match_data_free(match);
     return de;
 
 error:
-    /* de can't be NULL here */
-    SCFree(de);
+    if (match) {
+        pcre2_match_data_free(match);
+    }
+    if (de)
+        SCFree(de);
     return NULL;
 }
 

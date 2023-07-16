@@ -121,6 +121,7 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
     int second_pos = 0, count_pos = 0;
     size_t pos = 0;
     int i = 0;
+    pcre2_match_data *match = NULL;
 
     copy_str = SCStrdup(rawstr);
     if (unlikely(copy_str == NULL)) {
@@ -147,7 +148,7 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
     if(count_found != 1 || second_found != 1 || type_found != 1 || track_found != 1)
         goto error;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret < 5) {
         SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
@@ -161,8 +162,7 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
 
     for (i = 0; i < (ret - 1); i++) {
 
-        res = pcre2_substring_get_bynumber(
-                parse_regex.match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = pcre2_substring_get_bynumber(match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
 
         if (res < 0) {
             SCLogError("pcre2_substring_get_bynumber failed");
@@ -209,9 +209,13 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
+    pcre2_match_data_free(match);
     return de;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     for (i = 0; i < (ret - 1); i++){
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);

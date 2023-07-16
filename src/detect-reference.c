@@ -95,33 +95,38 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
 {
     SCEnter();
 
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2len;
     char key[REFERENCE_SYSTEM_NAME_MAX] = "";
     char content[REFERENCE_CONTENT_NAME_MAX] = "";
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret < 2) {
         SCLogError("Unable to parse \"reference\" "
                    "keyword argument - \"%s\".   Invalid argument.",
                 rawstr);
+        if (match) {
+            pcre2_match_data_free(match);
+        }
         return NULL;
     }
 
     DetectReference *ref = SCCalloc(1, sizeof(DetectReference));
     if (unlikely(ref == NULL)) {
+        pcre2_match_data_free(match);
         return NULL;
     }
 
     pcre2len = sizeof(key);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)key, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)key, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
 
     pcre2len = sizeof(content);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)content, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)content, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -158,10 +163,14 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
         goto error;
     }
 
+    pcre2_match_data_free(match);
     /* free the substrings */
     SCReturnPtr(ref, "Reference");
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     DetectReferenceFree(ref);
     SCReturnPtr(NULL, "Reference");
 }

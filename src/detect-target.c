@@ -81,41 +81,48 @@ void DetectTargetRegister(void) {
  */
 static int DetectTargetParse(Signature *s, const char *targetstr)
 {
-    int ret = 0, res = 0;
     size_t pcre2len;
     char value[10];
 
-    ret = DetectParsePcreExec(&parse_regex, targetstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, targetstr, 0, 0);
     if (ret < 1) {
         SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, targetstr);
-        return -1;
+        goto error;
     }
 
     pcre2len = sizeof(value);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)value, &pcre2len);
+    int res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)value, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
-        return -1;
+        goto error;
     }
 
     /* now check key value */
     if (!strcmp(value, "src_ip")) {
         if (s->flags & SIG_FLAG_DEST_IS_TARGET) {
             SCLogError("Conflicting values of target keyword");
-            return -1;
+            goto error;
         }
         s->flags |= SIG_FLAG_SRC_IS_TARGET;
     } else if (!strcmp(value, "dest_ip")) {
         if (s->flags & SIG_FLAG_SRC_IS_TARGET) {
             SCLogError("Conflicting values of target keyword");
-            return -1;
+            goto error;
         }
         s->flags |= SIG_FLAG_DEST_IS_TARGET;
     } else {
         SCLogError("only 'src_ip' and 'dest_ip' are supported as target value");
-        return -1;
+        goto error;
     }
+    pcre2_match_data_free(match);
     return 0;
+
+error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
+    return -1;
 }
 
 /**

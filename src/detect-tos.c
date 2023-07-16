@@ -111,10 +111,10 @@ static int DetectTosMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 static DetectTosData *DetectTosParse(const char *arg, bool negate)
 {
     DetectTosData *tosd = NULL;
-    int ret = 0, res = 0;
     size_t pcre2len;
 
-    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, arg, 0, 0);
     if (ret != 2) {
         SCLogError("invalid tos option - %s. "
                    "The tos option value must be in the range "
@@ -126,8 +126,7 @@ static DetectTosData *DetectTosParse(const char *arg, bool negate)
     /* For TOS value */
     char tosbytes_str[64] = "";
     pcre2len = sizeof(tosbytes_str);
-    res = pcre2_substring_copy_bynumber(
-            parse_regex.match, 1, (PCRE2_UCHAR8 *)tosbytes_str, &pcre2len);
+    int res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)tosbytes_str, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -159,9 +158,13 @@ static DetectTosData *DetectTosParse(const char *arg, bool negate)
     tosd->tos = (uint8_t)tos;
     tosd->negated = negate;
 
+    pcre2_match_data_free(match);
     return tosd;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     return NULL;
 }
 

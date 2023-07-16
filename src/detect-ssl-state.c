@@ -140,7 +140,6 @@ static int DetectSslStateMatch(DetectEngineThreadCtx *det_ctx,
  */
 static DetectSslStateData *DetectSslStateParse(const char *arg)
 {
-    int ret = 0, res = 0;
     size_t pcre2len;
     char str1[64];
     char str2[64];
@@ -148,7 +147,8 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
     uint32_t flags = 0, mask = 0;
     DetectSslStateData *ssd = NULL;
 
-    ret = DetectParsePcreExec(&parse_regex1, arg, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex1, &match, arg, 0, 0);
     if (ret < 1) {
         SCLogError("Invalid arg \"%s\" supplied to "
                    "ssl_state keyword.",
@@ -157,7 +157,7 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
     }
 
     pcre2len = sizeof(str1);
-    res = pcre2_substring_copy_bynumber(parse_regex1.match, 1, (PCRE2_UCHAR8 *)str1, &pcre2len);
+    int res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)str1, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -165,7 +165,7 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
     negate = !strcmp("!", str1);
 
     pcre2len = sizeof(str1);
-    res = pcre2_substring_copy_bynumber(parse_regex1.match, 2, (PCRE2_UCHAR8 *)str1, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)str1, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -199,22 +199,26 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
     }
 
     pcre2len = sizeof(str1);
-    res = pcre2_substring_copy_bynumber(parse_regex1.match, 3, (PCRE2_UCHAR8 *)str1, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 3, (PCRE2_UCHAR8 *)str1, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
     }
     while (res >= 0 && strlen(str1) > 0) {
-        ret = DetectParsePcreExec(&parse_regex2, str1, 0, 0);
+        pcre2_match_data *match2 = NULL;
+        ret = DetectParsePcreExec(&parse_regex2, &match2, str1, 0, 0);
         if (ret < 1) {
             SCLogError("Invalid arg \"%s\" supplied to "
                        "ssl_state keyword.",
                     arg);
+            if (match2) {
+                pcre2_match_data_free(match2);
+            }
             goto error;
         }
 
         pcre2len = sizeof(str2);
-        res = pcre2_substring_copy_bynumber(parse_regex2.match, 1, (PCRE2_UCHAR8 *)str2, &pcre2len);
+        res = pcre2_substring_copy_bynumber(match2, 1, (PCRE2_UCHAR8 *)str2, &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed");
             goto error;
@@ -222,9 +226,10 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
         negate = !strcmp("!", str2);
 
         pcre2len = sizeof(str2);
-        res = pcre2_substring_copy_bynumber(parse_regex2.match, 2, (PCRE2_UCHAR8 *)str2, &pcre2len);
+        res = pcre2_substring_copy_bynumber(match2, 2, (PCRE2_UCHAR8 *)str2, &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed");
+            pcre2_match_data_free(match2);
             goto error;
         }
         if (strcmp("client_hello", str2) == 0) {
@@ -251,17 +256,20 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
             SCLogError("Found invalid option \"%s\" "
                        "in ssl_state keyword.",
                     str2);
+            pcre2_match_data_free(match2);
             goto error;
         }
 
         pcre2len = sizeof(str2);
-        res = pcre2_substring_copy_bynumber(parse_regex2.match, 3, (PCRE2_UCHAR8 *)str2, &pcre2len);
+        res = pcre2_substring_copy_bynumber(match2, 3, (PCRE2_UCHAR8 *)str2, &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed");
+            pcre2_match_data_free(match2);
             goto error;
         }
 
         memcpy(str1, str2, sizeof(str1));
+        pcre2_match_data_free(match2);
     }
 
     if ( (ssd = SCMalloc(sizeof(DetectSslStateData))) == NULL) {
@@ -270,9 +278,13 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
     ssd->flags = flags;
     ssd->mask = mask;
 
+    pcre2_match_data_free(match);
     return ssd;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     return NULL;
 }
 

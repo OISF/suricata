@@ -77,7 +77,7 @@ void DetectMarkRegister (void)
  */
 static void * DetectMarkParse (const char *rawstr)
 {
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2_len;
     const char *str_ptr = NULL;
     char *ptr = NULL;
@@ -86,45 +86,46 @@ static void * DetectMarkParse (const char *rawstr)
     uint32_t mask;
     DetectMarkData *data;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret < 1) {
         SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         return NULL;
     }
 
-    res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+    res = pcre2_substring_get_bynumber(match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
         SCLogError("pcre2_substring_get_bynumber failed");
-        return NULL;
+        goto error;
     }
 
     ptr = (char *)str_ptr;
 
     if (ptr == NULL)
-        return NULL;
+        goto error;
 
     errno = 0;
     mark = strtoul(ptr, &endptr, 0);
     if (errno == ERANGE) {
         SCLogError("Numeric value out of range");
         pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
-        return NULL;
+        goto error;
     }     /* If there is no numeric value in the given string then strtoull(), makes
              endptr equals to ptr and return 0 as result */
     else if (endptr == ptr && mark == 0) {
         SCLogError("No numeric value");
         pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
-        return NULL;
+        goto error;
     } else if (endptr == ptr) {
         SCLogError("Invalid numeric value");
         pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
-        return NULL;
+        goto error;
     }
 
-    res = pcre2_substring_get_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+    res = pcre2_substring_get_bynumber(match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
         SCLogError("pcre2_substring_get_bynumber failed");
-        return NULL;
+        goto error;
     }
 
     pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
@@ -133,10 +134,11 @@ static void * DetectMarkParse (const char *rawstr)
     if (ptr == NULL) {
         data = SCMalloc(sizeof(DetectMarkData));
         if (unlikely(data == NULL)) {
-            return NULL;
+            goto error;
         }
         data->mark = mark;
         data->mask = 0xffff;
+        pcre2_match_data_free(match);
         return data;
     }
 
@@ -145,18 +147,18 @@ static void * DetectMarkParse (const char *rawstr)
     if (errno == ERANGE) {
         SCLogError("Numeric value out of range");
         pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
-        return NULL;
+        goto error;
     }     /* If there is no numeric value in the given string then strtoull(), makes
              endptr equals to ptr and return 0 as result */
     else if (endptr == ptr && mask == 0) {
         SCLogError("No numeric value");
         pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
-        return NULL;
+        goto error;
     }
     else if (endptr == ptr) {
         SCLogError("Invalid numeric value");
         pcre2_substring_free((PCRE2_UCHAR8 *)ptr);
-        return NULL;
+        goto error;
     }
 
     SCLogDebug("Rule will set mark 0x%x with mask 0x%x", mark, mask);
@@ -164,11 +166,18 @@ static void * DetectMarkParse (const char *rawstr)
 
     data = SCMalloc(sizeof(DetectMarkData));
     if (unlikely(data == NULL)) {
-        return NULL;
+        goto error;
     }
     data->mark = mark;
     data->mask = mask;
+    pcre2_match_data_free(match);
     return data;
+
+error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
+    return NULL;
 }
 
 #endif /* NFQ */

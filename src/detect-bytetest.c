@@ -330,14 +330,15 @@ static DetectBytetestData *DetectBytetestParse(
     };
     char *test_value =  NULL;
     char *data_offset = NULL;
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2_len;
     int i;
     uint32_t nbytes;
     const char *str_ptr = NULL;
+    pcre2_match_data *match = NULL;
 
     /* Execute the regex and populate args with captures. */
-    ret = DetectParsePcreExec(&parse_regex, optstr, 0, 0);
+    int ret = DetectParsePcreExec(&parse_regex, &match, optstr, 0, 0);
     if (ret < 4 || ret > 9) {
         SCLogError("parse error, ret %" PRId32 ", string %s", ret, optstr);
         goto error;
@@ -345,8 +346,7 @@ static DetectBytetestData *DetectBytetestParse(
 
     /* Subtract two since two values  are conjoined */
     for (i = 0; i < (ret - 1); i++) {
-        res = pcre2_substring_get_bynumber(
-                parse_regex.match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = pcre2_substring_get_bynumber(match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
             SCLogError("pcre2_substring_get_bynumber failed "
                        "for arg %d",
@@ -562,6 +562,7 @@ static DetectBytetestData *DetectBytetestParse(
     if (data_offset) SCFree(data_offset);
     if (test_value)
         pcre2_substring_free((PCRE2_UCHAR8 *)test_value);
+    pcre2_match_data_free(match);
     return data;
 
 error:
@@ -573,6 +574,9 @@ error:
     if (test_value)
         pcre2_substring_free((PCRE2_UCHAR8 *)test_value);
     if (data) SCFree(data);
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     return NULL;
 }
 

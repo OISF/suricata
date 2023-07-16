@@ -173,11 +173,12 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
 {
     DetectFlowData *fd = NULL;
     char *args[3] = {NULL,NULL,NULL};
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2len;
     char str1[16] = "", str2[16] = "", str3[16] = "";
+    pcre2_match_data *match = NULL;
 
-    ret = DetectParsePcreExec(&parse_regex, flowstr, 0, 0);
+    int ret = DetectParsePcreExec(&parse_regex, &match, flowstr, 0, 0);
     if (ret < 1 || ret > 4) {
         SCLogError("parse error, ret %" PRId32 ", string %s", ret, flowstr);
         goto error;
@@ -185,7 +186,7 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
 
     if (ret > 1) {
         pcre2len = sizeof(str1);
-        res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)str1, &pcre2len);
+        res = SC_Pcre2SubstringCopy(match, 1, (PCRE2_UCHAR8 *)str1, &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed");
             goto error;
@@ -194,8 +195,7 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
 
         if (ret > 2) {
             pcre2len = sizeof(str2);
-            res = pcre2_substring_copy_bynumber(
-                    parse_regex.match, 2, (PCRE2_UCHAR8 *)str2, &pcre2len);
+            res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)str2, &pcre2len);
             if (res < 0) {
                 SCLogError("pcre2_substring_copy_bynumber failed");
                 goto error;
@@ -204,8 +204,7 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
         }
         if (ret > 3) {
             pcre2len = sizeof(str3);
-            res = pcre2_substring_copy_bynumber(
-                    parse_regex.match, 3, (PCRE2_UCHAR8 *)str3, &pcre2len);
+            res = pcre2_substring_copy_bynumber(match, 3, (PCRE2_UCHAR8 *)str3, &pcre2len);
             if (res < 0) {
                 SCLogError("pcre2_substring_copy_bynumber failed");
                 goto error;
@@ -318,9 +317,13 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
             //printf("args[%" PRId32 "]: %s match_cnt: %" PRId32 " flags: 0x%02X\n", i, args[i], fd->match_cnt, fd->flags);
         }
     }
+    pcre2_match_data_free(match);
     return fd;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (fd != NULL)
         DetectFlowFree(de_ctx, fd);
     return NULL;
