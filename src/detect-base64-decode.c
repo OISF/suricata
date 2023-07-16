@@ -123,12 +123,9 @@ static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
     *offset = 0;
     *relative = 0;
     size_t pcre2_len;
+    pcre2_match_data *match = NULL;
 
-    pcre2_match_data *match = pcre2_match_data_create_from_pattern(decode_pcre.regex, NULL);
-    if (match == NULL)
-        goto error;
-
-    int pcre_rc = pcre2_match(decode_pcre.regex, (PCRE2_SPTR8)str, strlen(str), 0, 0, match, NULL);
+    int pcre_rc = DetectParsePcreExec(&decode_pcre, &match, str, 0, 0);
     if (pcre_rc < 3) {
         goto error;
     }
@@ -164,10 +161,13 @@ static int DetectBase64DecodeParse(const char *str, uint32_t *bytes,
         }
     }
 
+    retval = 1;
+
     pcre2_match_data_free(match);
     match = NULL;
-    retval = 1;
+
 error:
+
     if (bytes_str != NULL) {
         pcre2_substring_free((PCRE2_UCHAR8 *)bytes_str);
     }
@@ -177,7 +177,7 @@ error:
     if (relative_str != NULL) {
         pcre2_substring_free((PCRE2_UCHAR8 *)relative_str);
     }
-    if (match != NULL) {
+    if (match) {
         pcre2_match_data_free(match);
     }
     return retval;

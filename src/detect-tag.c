@@ -156,17 +156,17 @@ static int DetectTagMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 static DetectTagData *DetectTagParse(const char *tagstr)
 {
     DetectTagData td;
-    int ret = 0, res = 0;
     size_t pcre2_len;
     const char *str_ptr = NULL;
 
-    ret = DetectParsePcreExec(&parse_regex, tagstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, tagstr, 0, 0);
     if (ret < 1) {
         SCLogError("parse error, ret %" PRId32 ", string %s", ret, tagstr);
         goto error;
     }
 
-    res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+    int res = pcre2_substring_get_bynumber(match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0 || str_ptr == NULL) {
         SCLogError("pcre2_substring_get_bynumber failed");
         goto error;
@@ -190,8 +190,7 @@ static DetectTagData *DetectTagParse(const char *tagstr)
     td.direction = DETECT_TAG_DIR_DST;
 
     if (ret > 4) {
-        res = pcre2_substring_get_bynumber(
-                parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = pcre2_substring_get_bynumber(match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0 || str_ptr == NULL) {
             SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
@@ -209,8 +208,7 @@ static DetectTagData *DetectTagParse(const char *tagstr)
         pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
         str_ptr = NULL;
 
-        res = pcre2_substring_get_bynumber(
-                parse_regex.match, 4, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = pcre2_substring_get_bynumber(match, 4, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0 || str_ptr == NULL) {
             SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
@@ -239,8 +237,7 @@ static DetectTagData *DetectTagParse(const char *tagstr)
 
         /* if specified, overwrite it */
         if (ret == 7) {
-            res = pcre2_substring_get_bynumber(
-                    parse_regex.match, 6, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+            res = pcre2_substring_get_bynumber(match, 6, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0 || str_ptr == NULL) {
                 SCLogError("pcre2_substring_get_bynumber failed");
                 goto error;
@@ -278,9 +275,13 @@ static DetectTagData *DetectTagParse(const char *tagstr)
     }
 
     memcpy(real_td, &td, sizeof(DetectTagData));
+    pcre2_match_data_free(match);
     return real_td;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (str_ptr != NULL)
         pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
     return NULL;

@@ -123,25 +123,26 @@ static DetectIdData *DetectIdParse (const char *idstr)
 {
     uint16_t temp;
     DetectIdData *id_d = NULL;
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2len;
+    pcre2_match_data *match = NULL;
 
-    ret = DetectParsePcreExec(&parse_regex, idstr, 0, 0);
+    int ret = DetectParsePcreExec(&parse_regex, &match, idstr, 0, 0);
 
     if (ret < 1 || ret > 3) {
         SCLogError("invalid id option '%s'. The id option "
                    "value must be in the range %u - %u",
                 idstr, DETECT_IPID_MIN, DETECT_IPID_MAX);
-        return NULL;
+        goto error;
     }
 
     char copy_str[128] = "";
     char *tmp_str;
     pcre2len = sizeof(copy_str);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
-        return NULL;
+        goto error;
     }
     tmp_str = copy_str;
 
@@ -155,18 +156,25 @@ static DetectIdData *DetectIdParse (const char *idstr)
     /* ok, fill the id data */
     if (StringParseUint16(&temp, 10, 0, (const char *)tmp_str) < 0) {
         SCLogError("invalid id option '%s'", tmp_str);
-        return NULL;
+        goto error;
     }
 
     /* We have a correct id option */
     id_d = SCMalloc(sizeof(DetectIdData));
     if (unlikely(id_d == NULL))
-        return NULL;
+        goto error;
 
     id_d->id = temp;
 
     SCLogDebug("detect-id: will look for ip_id: %u\n", id_d->id);
+    pcre2_match_data_free(match);
     return id_d;
+
+error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
+    return NULL;
 }
 
 /**

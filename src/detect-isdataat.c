@@ -98,11 +98,12 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
 {
     DetectIsdataatData *idad = NULL;
     char *args[3] = {NULL,NULL,NULL};
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2_len;
     int i=0;
 
-    ret = DetectParsePcreExec(&parse_regex, isdataatstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, isdataatstr, 0, 0);
     if (ret < 1 || ret > 4) {
         SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, isdataatstr);
         goto error;
@@ -110,8 +111,7 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
 
     if (ret > 1) {
         const char *str_ptr;
-        res = pcre2_substring_get_bynumber(
-                parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = pcre2_substring_get_bynumber(match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
             SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
@@ -120,8 +120,7 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
 
 
         if (ret > 2) {
-            res = pcre2_substring_get_bynumber(
-                    parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+            res = pcre2_substring_get_bynumber(match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0) {
                 SCLogError("pcre2_substring_get_bynumber failed");
                 goto error;
@@ -129,8 +128,7 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
             args[1] = (char *)str_ptr;
         }
         if (ret > 3) {
-            res = pcre2_substring_get_bynumber(
-                    parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+            res = pcre2_substring_get_bynumber(match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
             if (res < 0) {
                 SCLogError("pcre2_substring_get_bynumber failed");
                 goto error;
@@ -181,11 +179,15 @@ static DetectIsdataatData *DetectIsdataatParse (DetectEngineCtx *de_ctx, const c
                 pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
         }
 
+        pcre2_match_data_free(match);
         return idad;
 
     }
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     for (i = 0; i < (ret -1) && i < 3; i++){
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);

@@ -110,10 +110,11 @@ static int DetectWindowMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
 static DetectWindowData *DetectWindowParse(DetectEngineCtx *de_ctx, const char *windowstr)
 {
     DetectWindowData *wd = NULL;
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2len;
 
-    ret = DetectParsePcreExec(&parse_regex, windowstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, windowstr, 0, 0);
     if (ret < 1 || ret > 3) {
         SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, windowstr);
         goto error;
@@ -126,7 +127,7 @@ static DetectWindowData *DetectWindowParse(DetectEngineCtx *de_ctx, const char *
     if (ret > 1) {
         char copy_str[128] = "";
         pcre2len = sizeof(copy_str);
-        res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
+        res = SC_Pcre2SubstringCopy(match, 1, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed");
             goto error;
@@ -140,8 +141,7 @@ static DetectWindowData *DetectWindowParse(DetectEngineCtx *de_ctx, const char *
 
         if (ret > 2) {
             pcre2len = sizeof(copy_str);
-            res = pcre2_substring_copy_bynumber(
-                    parse_regex.match, 2, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
+            res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)copy_str, &pcre2len);
             if (res < 0) {
                 SCLogError("pcre2_substring_copy_bynumber failed");
                 goto error;
@@ -155,9 +155,13 @@ static DetectWindowData *DetectWindowParse(DetectEngineCtx *de_ctx, const char *
         }
     }
 
+    pcre2_match_data_free(match);
     return wd;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (wd != NULL)
         DetectWindowFree(de_ctx, wd);
     return NULL;

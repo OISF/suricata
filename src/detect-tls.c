@@ -217,14 +217,14 @@ static int DetectTlsSubjectMatch (DetectEngineThreadCtx *det_ctx,
 static DetectTlsData *DetectTlsSubjectParse (DetectEngineCtx *de_ctx, const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
-    int ret = 0, res = 0;
     size_t pcre2_len;
     const char *str_ptr;
     char *orig = NULL;
     char *tmp_str;
     uint32_t flag = 0;
 
-    ret = DetectParsePcreExec(&subject_parse_regex, str, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&subject_parse_regex, &match, str, 0, 0);
     if (ret != 2) {
         SCLogError("invalid tls.subject option");
         goto error;
@@ -233,8 +233,7 @@ static DetectTlsData *DetectTlsSubjectParse (DetectEngineCtx *de_ctx, const char
     if (negate)
         flag = DETECT_CONTENT_NEGATED;
 
-    res = pcre2_substring_get_bynumber(
-            subject_parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+    int res = pcre2_substring_get_bynumber(match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
         SCLogError("pcre2_substring_get_bynumber failed");
         goto error;
@@ -266,6 +265,7 @@ static DetectTlsData *DetectTlsSubjectParse (DetectEngineCtx *de_ctx, const char
         goto error;
     }
 
+    pcre2_match_data_free(match);
     SCFree(orig);
 
     SCLogDebug("will look for TLS subject %s", tls->subject);
@@ -273,6 +273,9 @@ static DetectTlsData *DetectTlsSubjectParse (DetectEngineCtx *de_ctx, const char
     return tls;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (orig != NULL)
         SCFree(orig);
     if (tls != NULL)
@@ -409,14 +412,14 @@ static int DetectTlsIssuerDNMatch (DetectEngineThreadCtx *det_ctx,
 static DetectTlsData *DetectTlsIssuerDNParse(DetectEngineCtx *de_ctx, const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
-    int ret = 0, res = 0;
     size_t pcre2_len;
     const char *str_ptr;
     char *orig = NULL;
     char *tmp_str;
     uint32_t flag = 0;
 
-    ret = DetectParsePcreExec(&issuerdn_parse_regex, str, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&issuerdn_parse_regex, &match, str, 0, 0);
     if (ret != 2) {
         SCLogError("invalid tls.issuerdn option");
         goto error;
@@ -425,8 +428,7 @@ static DetectTlsData *DetectTlsIssuerDNParse(DetectEngineCtx *de_ctx, const char
     if (negate)
         flag = DETECT_CONTENT_NEGATED;
 
-    res = pcre2_substring_get_bynumber(
-            issuerdn_parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+    int res = pcre2_substring_get_bynumber(match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
         SCLogError("pcre2_substring_get_bynumber failed");
         goto error;
@@ -461,11 +463,15 @@ static DetectTlsData *DetectTlsIssuerDNParse(DetectEngineCtx *de_ctx, const char
 
     SCFree(orig);
 
+    pcre2_match_data_free(match);
     SCLogDebug("Will look for TLS issuerdn %s", tls->issuerdn);
 
     return tls;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (orig != NULL)
         SCFree(orig);
     if (tls != NULL)

@@ -173,51 +173,52 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
 {
     SCEnter();
 
-    int ret = 0, found = 0, ignore = 0, res = 0;
-    size_t pcre2len;
+    int found = 0, ignore = 0;
     char *ptr;
+    DetectFlagsData *de = NULL;
 
     char arg1[16] = "";
     char arg2[16] = "";
     char arg3[16] = "";
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     SCLogDebug("input '%s', pcre said %d", rawstr, ret);
     if (ret < 3) {
         SCLogError("pcre match failed");
-        SCReturnPtr(NULL, "DetectFlagsData");
+        goto error;
     }
 
-    pcre2len = sizeof(arg1);
-    res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
+    size_t pcre2len = sizeof(arg1);
+    int res = SC_Pcre2SubstringCopy(match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
-        SCReturnPtr(NULL, "DetectFlagsData");
+        goto error;
     }
     if (ret >= 2) {
         pcre2len = sizeof(arg2);
-        res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)arg2, &pcre2len);
+        res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)arg2, &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed");
-            SCReturnPtr(NULL, "DetectFlagsData");
+            goto error;
         }
     }
     if (ret >= 3) {
         pcre2len = sizeof(arg3);
-        res = SC_Pcre2SubstringCopy(parse_regex.match, 3, (PCRE2_UCHAR8 *)arg3, &pcre2len);
+        res = SC_Pcre2SubstringCopy(match, 3, (PCRE2_UCHAR8 *)arg3, &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed");
-            SCReturnPtr(NULL, "DetectFlagsData");
+            goto error;
         }
     }
     SCLogDebug("args '%s', '%s', '%s'", arg1, arg2, arg3);
 
     if (strlen(arg2) == 0) {
         SCLogDebug("empty argument");
-        SCReturnPtr(NULL, "DetectFlagsData");
+        goto error;
     }
 
-    DetectFlagsData *de = SCMalloc(sizeof(DetectFlagsData));
+    de = SCMalloc(sizeof(DetectFlagsData));
     if (unlikely(de == NULL))
         goto error;
     memset(de, 0, sizeof(DetectFlagsData));
@@ -450,12 +451,16 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
         }
     }
 
+    pcre2_match_data_free(match);
     SCLogDebug("found %"PRId32" ignore %"PRId32"", found, ignore);
     SCReturnPtr(de, "DetectFlagsData");
 
 error:
     if (de) {
         SCFree(de);
+    }
+    if (match) {
+        pcre2_match_data_free(match);
     }
     SCReturnPtr(NULL, "DetectFlagsData");
 }

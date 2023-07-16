@@ -214,11 +214,12 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
 static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_ctx, const char *arg)
 {
     DetectByteExtractData *bed = NULL;
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2len;
     int i = 0;
+    pcre2_match_data *match = NULL;
 
-    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0);
+    int ret = DetectParsePcreExec(&parse_regex, &match, arg, 0, 0);
     if (ret < 3 || ret > 19) {
         SCLogError("parse error, ret %" PRId32 ", string \"%s\"", ret, arg);
         SCLogError("Invalid arg to byte_extract : %s "
@@ -235,8 +236,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
     /* no of bytes to extract */
     char nbytes_str[64] = "";
     pcre2len = sizeof(nbytes_str);
-    res = pcre2_substring_copy_bynumber(
-            parse_regex.match, 1, (PCRE2_UCHAR8 *)nbytes_str, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)nbytes_str, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed "
                    "for arg 1 for byte_extract");
@@ -253,8 +253,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
     /* offset */
     char offset_str[64] = "";
     pcre2len = sizeof(offset_str);
-    res = pcre2_substring_copy_bynumber(
-            parse_regex.match, 2, (PCRE2_UCHAR8 *)offset_str, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)offset_str, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed "
                    "for arg 2 for byte_extract");
@@ -270,8 +269,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
     /* var name */
     char varname_str[256] = "";
     pcre2len = sizeof(varname_str);
-    res = pcre2_substring_copy_bynumber(
-            parse_regex.match, 3, (PCRE2_UCHAR8 *)varname_str, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 3, (PCRE2_UCHAR8 *)varname_str, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed "
                    "for arg 3 for byte_extract");
@@ -285,7 +283,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
     for (i = 4; i < ret; i++) {
         char opt_str[64] = "";
         pcre2len = sizeof(opt_str);
-        res = SC_Pcre2SubstringCopy(parse_regex.match, i, (PCRE2_UCHAR8 *)opt_str, &pcre2len);
+        res = SC_Pcre2SubstringCopy(match, i, (PCRE2_UCHAR8 *)opt_str, &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed "
                        "for arg %d for byte_extract with %d",
@@ -312,7 +310,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
             char multiplier_str[16] = "";
             pcre2len = sizeof(multiplier_str);
             res = pcre2_substring_copy_bynumber(
-                    parse_regex.match, i, (PCRE2_UCHAR8 *)multiplier_str, &pcre2len);
+                    match, i, (PCRE2_UCHAR8 *)multiplier_str, &pcre2len);
             if (res < 0) {
                 SCLogError("pcre2_substring_copy_bynumber failed "
                            "for arg %d for byte_extract",
@@ -416,8 +414,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
 
             char align_str[16] = "";
             pcre2len = sizeof(align_str);
-            res = pcre2_substring_copy_bynumber(
-                    parse_regex.match, i, (PCRE2_UCHAR8 *)align_str, &pcre2len);
+            res = pcre2_substring_copy_bynumber(match, i, (PCRE2_UCHAR8 *)align_str, &pcre2len);
             if (res < 0) {
                 SCLogError("pcre2_substring_copy_bynumber failed "
                            "for arg %d in byte_extract",
@@ -507,10 +504,15 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
             bed->endian = DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT;
     }
 
+    pcre2_match_data_free(match);
+
     return bed;
  error:
     if (bed != NULL)
         DetectByteExtractFree(de_ctx, bed);
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     return NULL;
 }
 
