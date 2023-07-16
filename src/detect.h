@@ -853,8 +853,6 @@ typedef struct DetectEngineCtx_ {
     /* used by the signature ordering module */
     struct SCSigOrderFunc_ *sc_sig_order_funcs;
 
-    /* hash table used for holding the classification config info */
-    HashTable *class_conf_ht;
     /* hash table used for holding the reference config info */
     HashTable *reference_conf_ht;
 
@@ -1011,6 +1009,13 @@ typedef struct DetectEngineCtx_ {
      *  run. */
     bool sm_types_prefilter[DETECT_TBLSIZE];
     bool sm_types_silent_error[DETECT_TBLSIZE];
+
+    /* classification config parsing */
+
+    /* hash table used for holding the classification config info */
+    HashTable *class_conf_ht;
+    pcre2_code *class_conf_regex;
+    pcre2_match_data *class_conf_regex_match;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */

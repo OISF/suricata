@@ -2514,6 +2514,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
     /* init iprep... ignore errors for now */
     (void)SRepInit(de_ctx);
 
+    SCClassConfInit(de_ctx);
     if (!SCClassConfLoadClassificationConfigFile(de_ctx, NULL)) {
         if (RunmodeGetCurrent() == RUNMODE_CONF_TEST)
             goto error;
@@ -2658,6 +2659,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     DetectBufferTypeFreeDetectEngine(de_ctx);
     /* freed our var name hash */
     VarNameStoreFree(de_ctx->version);
+    SCClassConfDeinit(de_ctx);
 
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
