@@ -230,27 +230,28 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
     char *varname = NULL;
     char *varval = NULL;
     char *modstr = NULL;
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2_len;
     uint8_t modifier = FLOWINT_MODIFIER_UNKNOWN;
     unsigned long long value_long = 0;
     const char *str_ptr;
+    pcre2_match_data *match = NULL;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret < 3 || ret > 4) {
         SCLogError("\"%s\" is not a valid setting for flowint(ret = %d).", rawstr, ret);
-        return NULL;
+        goto error;
     }
 
     /* Get our flowint varname */
-    res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+    res = pcre2_substring_get_bynumber(match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0 || str_ptr == NULL) {
         SCLogError("pcre2_substring_get_bynumber failed");
         goto error;
     }
     varname = (char *)str_ptr;
 
-    res = pcre2_substring_get_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+    res = pcre2_substring_get_bynumber(match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0 || str_ptr == NULL) {
         SCLogError("pcre2_substring_get_bynumber failed");
         goto error;
@@ -296,8 +297,7 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
         if (ret < 4)
             goto error;
 
-        res = pcre2_substring_get_bynumber(
-                parse_regex.match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = pcre2_substring_get_bynumber(match, 3, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         varval = (char *)str_ptr;
         if (res < 0 || varval == NULL || strcmp(varval, "") == 0) {
             SCLogError("pcre2_substring_get_bynumber failed");
@@ -339,8 +339,12 @@ static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char
     pcre2_substring_free((PCRE2_UCHAR *)modstr);
     if (varval)
         pcre2_substring_free((PCRE2_UCHAR *)varval);
+    pcre2_match_data_free(match);
     return sfd;
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (varname)
         pcre2_substring_free((PCRE2_UCHAR *)varname);
     if (varval)

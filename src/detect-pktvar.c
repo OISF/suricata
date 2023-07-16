@@ -89,30 +89,31 @@ static void DetectPktvarFree(DetectEngineCtx *de_ctx, void *ptr)
 static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     char *varname = NULL, *varcontent = NULL;
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2_len;
     uint8_t *content = NULL;
     uint16_t len = 0;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret != 3) {
         SCLogError("\"%s\" is not a valid setting for pktvar.", rawstr);
-        return -1;
+        goto error;
     }
 
     const char *str_ptr;
-    res = pcre2_substring_get_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+    res = pcre2_substring_get_bynumber(match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
         SCLogError("pcre2_substring_get_bynumber failed");
-        return -1;
+        goto error;
     }
     varname = (char *)str_ptr;
 
-    res = pcre2_substring_get_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+    res = pcre2_substring_get_bynumber(match, 2, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
     if (res < 0) {
         pcre2_substring_free((PCRE2_UCHAR8 *)varname);
         SCLogError("pcre2_substring_get_bynumber failed");
-        return -1;
+        goto error;
     }
     varcontent = (char *)str_ptr;
 
@@ -132,7 +133,7 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     if (ret == -1 || content == NULL) {
         pcre2_substring_free((PCRE2_UCHAR8 *)varname);
         pcre2_substring_free((PCRE2_UCHAR8 *)varcontent);
-        return -1;
+        goto error;
     }
     pcre2_substring_free((PCRE2_UCHAR8 *)varcontent);
 
@@ -140,7 +141,7 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     if (unlikely(cd == NULL)) {
         pcre2_substring_free((PCRE2_UCHAR8 *)varname);
         SCFree(content);
-        return -1;
+        goto error;
     }
 
     cd->content = content;
@@ -153,11 +154,18 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     SigMatch *sm = SigMatchAlloc();
     if (unlikely(sm == NULL)) {
         DetectPktvarFree(de_ctx, cd);
-        return -1;
+        goto error;
     }
     sm->type = DETECT_PKTVAR;
     sm->ctx = (SigMatchCtx *)cd;
 
+    pcre2_match_data_free(match);
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     return 0;
+
+error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
+    return -1;
 }

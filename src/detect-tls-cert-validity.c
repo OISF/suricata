@@ -290,21 +290,20 @@ static time_t DateStringToEpoch (char *string)
 static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
 {
     DetectTlsValidityData *dd = NULL;
-    int ret = 0, res = 0;
-    size_t pcre2len;
     char mode[2] = "";
     char value1[20] = "";
     char value2[20] = "";
     char range[3] = "";
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret < 3 || ret > 5) {
         SCLogError("Parse error %s", rawstr);
         goto error;
     }
 
-    pcre2len = sizeof(mode);
-    res = SC_Pcre2SubstringCopy(parse_regex.match, 1, (PCRE2_UCHAR8 *)mode, &pcre2len);
+    size_t pcre2len = sizeof(mode);
+    int res = SC_Pcre2SubstringCopy(match, 1, (PCRE2_UCHAR8 *)mode, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -312,7 +311,7 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
     SCLogDebug("mode \"%s\"", mode);
 
     pcre2len = sizeof(value1);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)value1, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)value1, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -321,7 +320,7 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
 
     if (ret > 3) {
         pcre2len = sizeof(range);
-        res = pcre2_substring_copy_bynumber(parse_regex.match, 3, (PCRE2_UCHAR8 *)range, &pcre2len);
+        res = pcre2_substring_copy_bynumber(match, 3, (PCRE2_UCHAR8 *)range, &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed");
             goto error;
@@ -330,8 +329,7 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
 
         if (ret > 4) {
             pcre2len = sizeof(value2);
-            res = pcre2_substring_copy_bynumber(
-                    parse_regex.match, 4, (PCRE2_UCHAR8 *)value2, &pcre2len);
+            res = pcre2_substring_copy_bynumber(match, 4, (PCRE2_UCHAR8 *)value2, &pcre2len);
             if (res < 0) {
                 SCLogError("pcre2_substring_copy_bynumber failed");
                 goto error;
@@ -390,9 +388,13 @@ static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
             goto error;
         }
     }
+    pcre2_match_data_free(match);
     return dd;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (dd)
         SCFree(dd);
     return NULL;

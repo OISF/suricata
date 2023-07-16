@@ -351,8 +351,9 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     DetectFilestoreData *fd = NULL;
     SigMatch *sm = NULL;
     char *args[3] = {NULL,NULL,NULL};
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2len;
+    pcre2_match_data *match = NULL;
 
     /* filestore and bypass keywords can't work together */
     if (s->flags & SIG_FLAG_BYPASS) {
@@ -372,7 +373,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         char str_2[32];
         SCLogDebug("str %s", str);
 
-        ret = DetectParsePcreExec(&parse_regex, str, 0, 0);
+        int ret = DetectParsePcreExec(&parse_regex, &match, str, 0, 0);
         if (ret < 1 || ret > 4) {
             SCLogError("parse error, ret %" PRId32 ", string %s", ret, str);
             goto error;
@@ -380,8 +381,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
 
         if (ret > 1) {
             pcre2len = sizeof(str_0);
-            res = pcre2_substring_copy_bynumber(
-                    parse_regex.match, 1, (PCRE2_UCHAR8 *)str_0, &pcre2len);
+            res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)str_0, &pcre2len);
             if (res < 0) {
                 SCLogError("pcre2_substring_copy_bynumber failed");
                 goto error;
@@ -390,8 +390,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
 
             if (ret > 2) {
                 pcre2len = sizeof(str_1);
-                res = pcre2_substring_copy_bynumber(
-                        parse_regex.match, 2, (PCRE2_UCHAR8 *)str_1, &pcre2len);
+                res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)str_1, &pcre2len);
                 if (res < 0) {
                     SCLogError("pcre2_substring_copy_bynumber failed");
                     goto error;
@@ -400,8 +399,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
             }
             if (ret > 3) {
                 pcre2len = sizeof(str_2);
-                res = pcre2_substring_copy_bynumber(
-                        parse_regex.match, 3, (PCRE2_UCHAR8 *)str_2, &pcre2len);
+                res = pcre2_substring_copy_bynumber(match, 3, (PCRE2_UCHAR8 *)str_2, &pcre2len);
                 if (res < 0) {
                     SCLogError("pcre2_substring_copy_bynumber failed");
                     goto error;
@@ -477,11 +475,17 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     sm->ctx = NULL;
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
 
-
     s->flags |= SIG_FLAG_FILESTORE;
+
+    if (match)
+        pcre2_match_data_free(match);
+
     return 0;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (sm != NULL)
         SCFree(sm);
     return -1;

@@ -129,43 +129,50 @@ static DetectTemplateData *DetectTemplateParse (const char *templatestr)
 {
     char arg1[4] = "";
     char arg2[4] = "";
-    size_t pcre2len;
 
-    int ret = DetectParsePcreExec(&parse_regex, templatestr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, templatestr, 0, 0);
     if (ret != 3) {
         SCLogError("parse error, ret %" PRId32 "", ret);
-        return NULL;
+        goto error;
     }
 
-    pcre2len = sizeof(arg1);
-    ret = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
+    size_t pcre2len = sizeof(arg1);
+    ret = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
     if (ret < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
-        return NULL;
+        goto error;
     }
     SCLogDebug("Arg1 \"%s\"", arg1);
 
     pcre2len = sizeof(arg2);
-    ret = pcre2_substring_copy_bynumber(parse_regex.match, 2, (PCRE2_UCHAR8 *)arg2, &pcre2len);
+    ret = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)arg2, &pcre2len);
     if (ret < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
-        return NULL;
+        goto error;
     }
     SCLogDebug("Arg2 \"%s\"", arg2);
 
     DetectTemplateData *templated = SCMalloc(sizeof (DetectTemplateData));
     if (unlikely(templated == NULL))
-        return NULL;
+        goto error;
 
     if (ByteExtractStringUint8(&templated->arg1, 10, 0, (const char *)arg1) < 0) {
         SCFree(templated);
-        return NULL;
+        goto error;
     }
     if (ByteExtractStringUint8(&templated->arg2, 10, 0, (const char *)arg2) < 0) {
         SCFree(templated);
-        return NULL;
+        goto error;
     }
+    pcre2_match_data_free(match);
     return templated;
+
+error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
+    return NULL;
 }
 
 /**

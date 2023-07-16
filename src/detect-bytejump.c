@@ -372,18 +372,19 @@ static DetectBytejumpData *DetectBytejumpParse(
 {
     DetectBytejumpData *data = NULL;
     char args[10][64];
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2len;
     int numargs = 0;
     int i = 0;
     uint32_t nbytes = 0;
     char *str_ptr;
     char *end_ptr;
+    pcre2_match_data *match = NULL;
 
     memset(args, 0x00, sizeof(args));
 
     /* Execute the regex and populate args with captures. */
-    ret = DetectParsePcreExec(&parse_regex, optstr, 0, 0);
+    int ret = DetectParsePcreExec(&parse_regex, &match, optstr, 0, 0);
     if (ret < 2 || ret > 10) {
         SCLogError("parse error, ret %" PRId32 ", string \"%s\"", ret, optstr);
         goto error;
@@ -395,7 +396,7 @@ static DetectBytejumpData *DetectBytejumpParse(
      */
     char str[512] = "";
     pcre2len = sizeof(str);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)str, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)str, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed "
                    "for arg 1");
@@ -425,8 +426,7 @@ static DetectBytejumpData *DetectBytejumpParse(
     /* The remaining args are directly from PCRE substrings */
     for (i = 1; i < (ret - 1); i++) {
         pcre2len = sizeof(args[0]);
-        res = pcre2_substring_copy_bynumber(
-                parse_regex.match, i + 1, (PCRE2_UCHAR8 *)args[i + 1], &pcre2len);
+        res = pcre2_substring_copy_bynumber(match, i + 1, (PCRE2_UCHAR8 *)args[i + 1], &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed for arg %d", i + 1);
             goto error;
@@ -554,6 +554,7 @@ static DetectBytejumpData *DetectBytejumpParse(
         }
     }
 
+    pcre2_match_data_free(match);
     return data;
 
 error:
@@ -567,6 +568,9 @@ error:
     }
     if (data != NULL)
         DetectBytejumpFree(de_ctx, data);
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     return NULL;
 }
 

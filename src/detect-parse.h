@@ -114,8 +114,8 @@ void DetectParseFreeRegexes(void);
 void DetectParseFreeRegex(DetectParseRegex *r);
 
 /* parse regex exec */
-int DetectParsePcreExec(
-        DetectParseRegex *parse_regex, const char *str, int start_offset, int options);
+int DetectParsePcreExec(DetectParseRegex *parse_regex, pcre2_match_data **match, const char *str,
+        int start_offset, int options);
 int SC_Pcre2SubstringCopy(
         pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR *buffer, PCRE2_SIZE *bufflen);
 int SC_Pcre2SubstringGet(pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR **bufferptr,

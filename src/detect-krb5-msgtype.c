@@ -123,17 +123,18 @@ static DetectKrb5MsgTypeData *DetectKrb5MsgTypeParse (const char *krb5str)
 {
     DetectKrb5MsgTypeData *krb5d = NULL;
     char arg1[4] = "";
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2len;
 
-    ret = DetectParsePcreExec(&parse_regex, krb5str, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, krb5str, 0, 0);
     if (ret != 2) {
         SCLogError("parse error, ret %" PRId32 "", ret);
         goto error;
     }
 
     pcre2len = sizeof(arg1);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -146,9 +147,13 @@ static DetectKrb5MsgTypeData *DetectKrb5MsgTypeParse (const char *krb5str)
                          (const char *)arg1) < 0) {
         goto error;
     }
+    pcre2_match_data_free(match);
     return krb5d;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (krb5d)
         SCFree(krb5d);
     return NULL;

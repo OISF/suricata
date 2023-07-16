@@ -131,15 +131,16 @@ static DetectFtpdataData *DetectFtpdataParse(const char *ftpcommandstr)
     DetectFtpdataData *ftpcommandd = NULL;
     char arg1[5] = "";
     size_t pcre2len;
+    pcre2_match_data *match = NULL;
 
-    int ret = DetectParsePcreExec(&parse_regex, ftpcommandstr, 0, 0);
+    int ret = DetectParsePcreExec(&parse_regex, &match, ftpcommandstr, 0, 0);
     if (ret != 2) {
         SCLogError("parse error, ret %" PRId32 "", ret);
         goto error;
     }
 
     pcre2len = sizeof(arg1);
-    int res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
+    int res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)arg1, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -158,9 +159,13 @@ static DetectFtpdataData *DetectFtpdataParse(const char *ftpcommandstr)
         goto error;
     }
 
+    pcre2_match_data_free(match);
     return ftpcommandd;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (ftpcommandd)
         SCFree(ftpcommandd);
     return NULL;

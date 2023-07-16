@@ -122,19 +122,20 @@ static int DetectSNMPPduTypeMatch (DetectEngineThreadCtx *det_ctx,
 static DetectSNMPPduTypeData *DetectSNMPPduTypeParse (const char *rawstr)
 {
     DetectSNMPPduTypeData *dd = NULL;
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2len;
     char value1[20] = "";
     char *endptr = NULL;
 
-    ret = DetectParsePcreExec(&parse_regex, rawstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
     if (ret != 2) {
         SCLogError("Parse error %s", rawstr);
         goto error;
     }
 
     pcre2len = sizeof(value1);
-    res = pcre2_substring_copy_bynumber(parse_regex.match, 1, (PCRE2_UCHAR8 *)value1, &pcre2len);
+    res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)value1, &pcre2len);
     if (res < 0) {
         SCLogError("pcre2_substring_copy_bynumber failed");
         goto error;
@@ -152,9 +153,13 @@ static DetectSNMPPduTypeData *DetectSNMPPduTypeParse (const char *rawstr)
         goto error;
     }
 
+    pcre2_match_data_free(match);
     return dd;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     if (dd)
         SCFree(dd);
     return NULL;

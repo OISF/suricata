@@ -213,10 +213,11 @@ void DetectFastPatternRegister(void)
  */
 static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2len;
     char arg_substr[128] = "";
     DetectContentData *cd = NULL;
+    pcre2_match_data *match = NULL;
 
     SigMatch *pm1 = DetectGetLastSMFromMpmLists(de_ctx, s);
     SigMatch *pm2 = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
@@ -278,7 +279,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     }
 
     /* Execute the regex and populate args with captures. */
-    ret = DetectParsePcreExec(&parse_regex, arg, 0, 0);
+    int ret = DetectParsePcreExec(&parse_regex, &match, arg, 0, 0);
     /* fast pattern only */
     if (ret == 2) {
         if ((cd->flags & DETECT_CONTENT_NEGATED) ||
@@ -298,8 +299,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
         /* fast pattern chop */
     } else if (ret == 4) {
         pcre2len = sizeof(arg_substr);
-        res = pcre2_substring_copy_bynumber(
-                parse_regex.match, 2, (PCRE2_UCHAR8 *)arg_substr, &pcre2len);
+        res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)arg_substr, &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed "
                        "for fast_pattern offset");
@@ -315,8 +315,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
         }
 
         pcre2len = sizeof(arg_substr);
-        res = pcre2_substring_copy_bynumber(
-                parse_regex.match, 3, (PCRE2_UCHAR8 *)arg_substr, &pcre2len);
+        res = pcre2_substring_copy_bynumber(match, 3, (PCRE2_UCHAR8 *)arg_substr, &pcre2len);
         if (res < 0) {
             SCLogError("pcre2_substring_copy_bynumber failed "
                        "for fast_pattern offset");
@@ -356,9 +355,13 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
     cd->flags |= DETECT_CONTENT_FAST_PATTERN;
 
+    pcre2_match_data_free(match);
     return 0;
 
  error:
+     if (match) {
+         pcre2_match_data_free(match);
+     }
     return -1;
 }
 

@@ -162,19 +162,20 @@ static DetectIcmpSeqData *DetectIcmpSeqParse (DetectEngineCtx *de_ctx, const cha
 {
     DetectIcmpSeqData *iseq = NULL;
     char *substr[3] = {NULL, NULL, NULL};
-    int ret = 0, res = 0;
+    int res = 0;
     size_t pcre2_len;
     int i;
     const char *str_ptr;
 
-    ret = DetectParsePcreExec(&parse_regex, icmpseqstr, 0, 0);
+    pcre2_match_data *match = NULL;
+    int ret = DetectParsePcreExec(&parse_regex, &match, icmpseqstr, 0, 0);
     if (ret < 1 || ret > 4) {
         SCLogError("Parse error %s", icmpseqstr);
         goto error;
     }
 
     for (i = 1; i < ret; i++) {
-        res = SC_Pcre2SubstringGet(parse_regex.match, i, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+        res = SC_Pcre2SubstringGet(match, i, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
             SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
@@ -214,9 +215,13 @@ static DetectIcmpSeqData *DetectIcmpSeqParse (DetectEngineCtx *de_ctx, const cha
             pcre2_substring_free((PCRE2_UCHAR8 *)substr[i]);
     }
 
+    pcre2_match_data_free(match);
     return iseq;
 
 error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     for (i = 0; i < 3; i++) {
         if (substr[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)substr[i]);
