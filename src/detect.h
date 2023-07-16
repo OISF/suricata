@@ -853,9 +853,6 @@ typedef struct DetectEngineCtx_ {
     /* used by the signature ordering module */
     struct SCSigOrderFunc_ *sc_sig_order_funcs;
 
-    /* hash table used for holding the reference config info */
-    HashTable *reference_conf_ht;
-
     /* main sigs */
     DetectEngineLookupFlow flow_gh[FLOW_STATES];
 
@@ -1016,6 +1013,14 @@ typedef struct DetectEngineCtx_ {
     HashTable *class_conf_ht;
     pcre2_code *class_conf_regex;
     pcre2_match_data *class_conf_regex_match;
+
+    /* reference config parsing */
+
+    /* hash table used for holding the reference config info */
+    HashTable *reference_conf_ht;
+    pcre2_code *reference_conf_regex;
+    pcre2_match_data *reference_conf_regex_match;
+
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */

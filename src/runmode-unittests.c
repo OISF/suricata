@@ -253,7 +253,6 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     TmqhSetup();
 
     TagInitCtx();
-    SCReferenceConfInit();
 
     UtInitialize();
 

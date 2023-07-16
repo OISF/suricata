@@ -41,9 +41,6 @@
 /* Default path for the reference.conf file */
 #define SC_RCONF_DEFAULT_FILE_PATH CONFIG_DIR "/reference.config"
 
-static pcre2_code *regex = NULL;
-static pcre2_match_data *regex_match = NULL;
-
 /* the hash functions */
 uint32_t SCRConfReferenceHashFunc(HashTable *ht, void *data, uint16_t datalen);
 char SCRConfReferenceHashCompareFunc(void *data1, uint16_t datalen1,
@@ -53,14 +50,15 @@ void SCRConfReferenceHashFree(void *ch);
 /* used to get the reference.config file path */
 static const char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx);
 
-void SCReferenceConfInit(void)
+void SCReferenceConfInit(DetectEngineCtx *de_ctx)
 {
     int en;
     PCRE2_SIZE eo;
     int opts = 0;
 
-    regex = pcre2_compile((PCRE2_SPTR8)SC_RCONF_REGEX, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
-    if (regex == NULL) {
+    de_ctx->reference_conf_regex =
+            pcre2_compile((PCRE2_SPTR8)SC_RCONF_REGEX, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
+    if (de_ctx->reference_conf_regex == NULL) {
         PCRE2_UCHAR errbuffer[256];
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
         SCLogWarning("pcre2 compile of \"%s\" failed at "
@@ -68,20 +66,20 @@ void SCReferenceConfInit(void)
                 SC_RCONF_REGEX, (int)eo, errbuffer);
         return;
     }
-    regex_match = pcre2_match_data_create_from_pattern(regex, NULL);
-
+    de_ctx->reference_conf_regex_match =
+            pcre2_match_data_create_from_pattern(de_ctx->reference_conf_regex, NULL);
     return;
 }
 
-void SCReferenceConfDeinit(void)
+void SCReferenceConfDeinit(DetectEngineCtx *de_ctx)
 {
-    if (regex != NULL) {
-        pcre2_code_free(regex);
-        regex = NULL;
+    if (de_ctx->reference_conf_regex != NULL) {
+        pcre2_code_free(de_ctx->reference_conf_regex);
+        de_ctx->reference_conf_regex = NULL;
     }
-    if (regex_match != NULL) {
-        pcre2_match_data_free(regex_match);
-        regex_match = NULL;
+    if (de_ctx->reference_conf_regex_match != NULL) {
+        pcre2_match_data_free(de_ctx->reference_conf_regex_match);
+        de_ctx->reference_conf_regex_match = NULL;
     }
 }
 
@@ -235,7 +233,8 @@ int SCRConfAddReference(DetectEngineCtx *de_ctx, const char *line)
 
     int ret = 0;
 
-    ret = pcre2_match(regex, (PCRE2_SPTR8)line, strlen(line), 0, 0, regex_match, NULL);
+    ret = pcre2_match(de_ctx->reference_conf_regex, (PCRE2_SPTR8)line, strlen(line), 0, 0,
+            de_ctx->reference_conf_regex_match, NULL);
     if (ret < 0) {
         SCLogError("Invalid Reference Config in "
                    "reference.config file");
@@ -244,7 +243,8 @@ int SCRConfAddReference(DetectEngineCtx *de_ctx, const char *line)
 
     /* retrieve the reference system */
     size_t copylen = sizeof(system);
-    ret = pcre2_substring_copy_bynumber(regex_match, 1, (PCRE2_UCHAR8 *)system, &copylen);
+    ret = pcre2_substring_copy_bynumber(
+            de_ctx->reference_conf_regex_match, 1, (PCRE2_UCHAR8 *)system, &copylen);
     if (ret < 0) {
         SCLogError("pcre2_substring_copy_bynumber() failed");
         goto error;
@@ -252,7 +252,8 @@ int SCRConfAddReference(DetectEngineCtx *de_ctx, const char *line)
 
     /* retrieve the reference url */
     copylen = sizeof(url);
-    ret = pcre2_substring_copy_bynumber(regex_match, 2, (PCRE2_UCHAR8 *)url, &copylen);
+    ret = pcre2_substring_copy_bynumber(
+            de_ctx->reference_conf_regex_match, 2, (PCRE2_UCHAR8 *)url, &copylen);
     if (ret < 0) {
         SCLogError("pcre2_substring_copy_bynumber() failed");
         goto error;
