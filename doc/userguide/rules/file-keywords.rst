@@ -5,20 +5,30 @@ Suricata comes with several rule keywords to match on various file
 properties. They depend on properly configured
 :doc:`../file-extraction/file-extraction`.
 
-filename
---------
+file.name
+---------
 
-Matches on the file name.
-
-Syntax::
-
-  filename:<string>;
+``file.name`` is a sticky buffer that is used to look at filenames
+that are seen in flows that Suricata evaluates. The various payload
+keywords can be used (e.g. ``startswith``, ``nocase`` and ``bsize``)
+with ``file.name``.
 
 Example::
 
-  filename:"secret";
+  file.name; content:"examplefilename";
 
 ``file.name`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+**Note** ``filename`` can still be used. A notable difference between
+``file.name`` and ``filename`` is that ``filename`` assumes ``nocase``
+by default. In the example below the two signatures are considered
+the same.
+
+Example::
+
+  filename:"examplefilename";
+
+  file.name; content:"examplefilename"; nocase;
 
 fileext
 -------
