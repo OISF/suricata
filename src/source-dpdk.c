@@ -553,11 +553,10 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
         DevicePostStartPMDSpecificActions(ptv, dev_info.driver_name);
 
         uint16_t inconsistent_numa_cnt = SC_ATOMIC_GET(dpdk_config->inconsitent_numa_cnt);
-        if (inconsistent_numa_cnt > 0) {
+        if (inconsistent_numa_cnt > 0 && ptv->port_socket_id != SOCKET_ID_ANY) {
             SCLogWarning("%s: NIC is on NUMA %d, %u threads on different NUMA node(s)",
-                    dpdk_config->iface, rte_eth_dev_socket_id(ptv->port_id), inconsistent_numa_cnt);
-        }
-        if (ptv->port_socket_id == SOCKET_ID_ANY) {
+                    dpdk_config->iface, ptv->port_socket_id, inconsistent_numa_cnt);
+        } else if (ptv->port_socket_id == SOCKET_ID_ANY) {
             SCLogNotice(
                     "%s: unable to determine NIC's NUMA node, degraded performance can be expected",
                     dpdk_config->iface);
