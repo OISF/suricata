@@ -6,7 +6,7 @@ properties. They depend on properly configured
 :doc:`../file-extraction/file-extraction`.
 
 file.name
---------
+---------
 
 Matches on the file name.
 
@@ -20,9 +20,9 @@ Example::
 
 ``file.name`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
 
-**Note** The ``filename`` keyword is still supported but the ``file.name``
-convention is preferred due to better performance in signature
-evaluation.
+**Note** The ``filename`` keyword is still supported but the
+``file.name`` convention is preferred due to better performance
+in signature evaluation.
 
 fileext
 -------
@@ -37,23 +37,32 @@ Example::
 
   fileext:"jpg";
 
-filemagic
----------
+file.magic
+----------
 
 Matches on the information libmagic returns about a file.
 
 Syntax::
 
-  filemagic:<string>;
+  file.magic:<string>;
 
 Example::
 
-  filemagic:"executable for MS Windows";
+  file.magic:"executable for MS Windows";
 
-Note: as libmagic versions differ between installations, the returned
-information may also slightly change. See also #437.
+**Note**: Suricata currently uses its underlying operating systems
+version/implementation of libmagic. Different versions and
+implementations of libmagic do not return the same information.
+Additionally there are varying Suricata performance impacts
+based on the version and implementation of libmagic.
+Additional information about Suricata and libmagic can be found
+here: https://redmine.openinfosecfoundation.org/issues/437
 
 ``file.magic`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+**Note** The ``filemagic`` keyword is still supported but the
+``file.magic`` convention is preferred due to better performance
+in signature evaluation.
 
 filestore
 ---------
