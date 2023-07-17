@@ -1073,7 +1073,7 @@ static void DeviceSetMTU(struct rte_eth_conf *port_conf, uint16_t mtu)
 /**
  * \param port_id - queried port
  * \param socket_id - socket ID of the queried port
- * \return positive number on success, negative on failure (errno)
+ * \return non-negative number on success, negative on failure (errno)
  */
 static int32_t DeviceSetSocketID(uint16_t port_id, int32_t *socket_id)
 {
@@ -1083,6 +1083,9 @@ static int32_t DeviceSetSocketID(uint16_t port_id, int32_t *socket_id)
 
 #if RTE_VERSION >= RTE_VERSION_NUM(22, 11, 0, 0) // DPDK API changed since 22.11
     retval = -rte_errno;
+#else
+    if (retval == SOCKET_ID_ANY)
+        retval = 0; // DPDK couldn't determine socket ID of a port
 #endif
 
     return retval;
