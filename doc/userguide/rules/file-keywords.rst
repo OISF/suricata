@@ -5,20 +5,24 @@ Suricata comes with several rule keywords to match on various file
 properties. They depend on properly configured
 :doc:`../file-extraction/file-extraction`.
 
-filename
+file.name
 --------
 
 Matches on the file name.
 
 Syntax::
 
-  filename:<string>;
+  file.name:<string>;
 
 Example::
 
-  filename:"secret";
+  file.name:"secret";
 
 ``file.name`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+**Note** The ``filename`` keyword is still supported but the ``file.name``
+convention is preferred due to better performance in signature
+evaluation.
 
 fileext
 -------
