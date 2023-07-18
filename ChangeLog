@@ -1,3 +1,50 @@
+7.0.0 -- 2023-07-18
+
+Bug #6212: file.magic: rule reload can lead to crashes
+Bug #6211: file: assert failed (!((txd->files_logged > txd->files_opened))), function CloseFile, file output-file.c, line 96.
+Bug #6207: util/mime: fuzz failure on base64 remainder parser
+Bug #6205: flow/hash: flow by flow_id getter never reaches right flow_id
+Bug #6185: smtp: use every byte to compute email.body_md5
+Bug #6169: exceptions: master switch not applied to midstream
+Bug #6165: http2: fileinfo events log http2 object instead of http object as alerts and http2 do
+Bug #6163: http: request_heaser keyword does not support multibuffer
+Bug #6149: exceptions: 'auto' policy not considered valid value in IDS mode
+Bug #6135: base64: complete support for RFC2045
+Bug #6130: http2: quadratic complexity in http2_range_key_get
+Bug #6116: dpdk: demote log level of some DPDK messages
+Bug #6115: dpdk: NUMA warning signals to non-existent negative id NUMA
+Bug #6105: byte_jump does not allow variable name to be used consistently
+Bug #6081: pcap: device reopen broken
+Bug #6023: smtp: Attachment not being md5 matched
+Bug #5964: dpdk: Evaluate input of EAL arguments
+Bug #5916: NFQ calls TmqhOutputPacketpool before release packet function is set
+Bug #5912: rfb: parser returns error on unimplemented record types
+Bug #5868: filestore: not saving files when filestore enabled by rule matching on file_data (instead saves 0 bytes)
+Bug #5832: source-xdp: build errors/warnings with libbpf 0.8+
+Bug #5757: http: response content encoding value "none" considered invalid
+Bug #5464: eve: if alert and drop rules match for a packet, "alert.action" is ambigious
+Bug #5022: log-pcap: fix segfault on lz4 compressed pcaps
+Bug #4797: pcre2 crash in multi-tenant
+Bug #4750: pcap: memory leaks
+Bug #2917: Unable to find the sm in any of the sm lists
+Optimization #6194: detect: modernize filename fileext filemagic
+Optimization #6151: suricatasc: Gracefully handle unsupported commands
+Optimization #4145: file keywords: unify keyword registration
+Optimization #4141: file.data: inspect File objects for HTTP
+Feature #6162: libhtp: recognize Bearer authentication
+Feature #6145: byte_math: allow variable name for nbytes
+Feature #6144: byte_test: allow variable name for nbytes
+Feature #6106: dpdk: fail startup on uninitialized thread affinity setting
+Feature #4201: http2: full protocol support
+Task #6183: flash decompression: add deprecation warning
+Task #6159: libhtp: event on chunk extension
+Task #6157: libhtp 0.5.45
+Task #6128: af-packet: remove rollover options
+Task #4163: rust: set new minimum Rust version for 7
+Documentation #6032: detect: document new multi-instance logic
+Documentation #5987: doc: update build instructions
+Documentation #5930: doc: multi-tenant states that only vlan can be used live, should also include interface
+
 7.0.0-rc2 -- 2023-06-14
 
 Feature #6099: dpdk: add support for bonding interface
