@@ -31,17 +31,41 @@ Example::
   file.name; content:"examplefilename"; nocase;
 
 fileext
--------
+--------
 
-Matches on the extension of a file name.
-
-Syntax::
-
-  fileext:<string>;
+``fileext`` is used to look at individual file extensions that are
+seen in flows that Suricata evaluates.
 
 Example::
 
-  fileext:"jpg";
+  fileext:"pdf";
+
+**Note:** ``fileext`` does not allow partial matches. For example, if
+a PDF file (.pdf) is seen by a Suricata signature with
+fileext:"pd"; the signature will not produce an alert.
+
+**Note:** ``fileext`` assumes ``nocase`` by default. This means
+that a file with the extension .PDF will be seen the same as if
+the file had an extension of .pdf.
+
+**Note:** ``fileext`` and ``file.name`` can both be used to match on
+file extensions. In the example below the two signatures are
+considered the same.
+
+Example::
+
+  fileext:"pdf";
+
+  file.name; content:".pdf"; nocase; endswith;
+
+**Note**: While``fileeext`` and ``file.name`` can both be used
+to match on file extensions, ``file.name`` allows for partial
+matching on file extensions. The following would match on a file
+with the extension of .pd as well as .pdf.
+
+Example::
+
+  file.name; content:".pd";
 
 filemagic
 ---------
