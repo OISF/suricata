@@ -1,4 +1,6 @@
+if BUILD_DOCS
 SUBDIRS = userguide
+endif
 
 EXTRA_DIST = \
 AUTHORS \

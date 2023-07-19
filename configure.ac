@@ -550,6 +550,11 @@
         AC_DEFINE([HAVE_DETECT_DISABLED], [1], [Detection is disabled])
     ])
 
+    # disable building of docs
+    AC_ARG_ENABLE(docs,
+                  AS_HELP_STRING([--disable-docs], [Disable building docs during make]),[enable_docs=no],[enable_docs=yes])
+    AM_CONDITIONAL([BUILD_DOCS], [test "x$enable_docs" != "xno"])
+
 # libraries
 
   # zlib
