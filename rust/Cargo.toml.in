@@ -48,5 +48,8 @@ data-encoding = "=2.3.3"
 x509-parser = "0.8.2"
 libc = "0.2.67"
 
+# required to keep MSRV supported
+proc-macro2 = "=1.0.65"
+
 [dev-dependencies]
 test-case = "~1.0.1"
