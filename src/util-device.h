@@ -18,12 +18,9 @@
 #ifndef SURICATA_UTIL_DEVICE_H
 #define SURICATA_UTIL_DEVICE_H
 
-#ifdef HAVE_DPDK
-#include <rte_mempool.h>
-#endif /* HAVE_DPDK */
-
 #include "queue.h"
 #include "util-storage.h"
+#include "util-dpdk-common.h"
 
 #define OFFLOAD_FLAG_SG     (1<<0)
 #define OFFLOAD_FLAG_TSO    (1<<1)
@@ -39,12 +36,6 @@ void LiveSetOffloadWarn(void);
 int LiveGetOffload(void);
 
 #define MAX_DEVNAME 10
-
-#ifdef HAVE_DPDK
-typedef struct {
-    struct rte_mempool *pkt_mp;
-} DPDKDeviceResources;
-#endif /* HAVE_DPDK */
 
 /** storage for live device names */
 typedef struct LiveDevice_ {
@@ -65,7 +56,7 @@ typedef struct LiveDevice_ {
     uint32_t offload_orig;  /**< original offload settings to restore @exit */
 #ifdef HAVE_DPDK
     // DPDK resources that needs to be cleaned after workers are stopped and devices closed
-    DPDKDeviceResources dpdk_vars;
+    DPDKDeviceResources *dpdk_vars;
 #endif
     /** storage handle as a flex array member */
     Storage storage[];
