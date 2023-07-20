@@ -42,6 +42,7 @@
 #include "util-device.h"
 #include "util-dpdk.h"
 #include "util-dpdk-bonding.h"
+#include "util-dpdk-common.h"
 #include "util-dpdk-i40e.h"
 #include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
@@ -333,10 +334,7 @@ static void DPDKDerefConfig(void *conf)
     DPDKIfaceConfig *iconf = (DPDKIfaceConfig *)conf;
 
     if (SC_ATOMIC_SUB(iconf->ref, 1) == 1) {
-        if (iconf->pkt_mempool != NULL) {
-            rte_mempool_free(iconf->pkt_mempool);
-        }
-
+        DPDKDeviceResourcesDeinit(iconf->pkt_mempools);
         SCFree(iconf);
     }
     SCReturn;
@@ -350,7 +348,6 @@ static void ConfigInit(DPDKIfaceConfig **iconf)
     if (ptr == NULL)
         FatalError("Could not allocate memory for DPDKIfaceConfig");
 
-    ptr->pkt_mempool = NULL;
     ptr->out_port_id = -1; // make sure no port is set
     SC_ATOMIC_INIT(ptr->ref);
     (void)SC_ATOMIC_ADD(ptr->ref, 1);
@@ -501,6 +498,12 @@ static int ConfigSetTxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_
     SCReturnInt(0);
 }
 
+static uint32_t MempoolSizeCalculate(
+        uint32_t rx_queues, uint32_t rx_desc, uint32_t tx_queues, uint32_t tx_desc)
+{
+    return rx_queues * rx_desc + tx_queues * tx_desc;
+}
+
 static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
@@ -525,8 +528,8 @@ static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, const char *entry_str)
             SCReturnInt(-EINVAL);
         }
 
-        iconf->mempool_size =
-                iconf->nb_rx_queues * iconf->nb_rx_desc + iconf->nb_tx_queues * iconf->nb_tx_desc;
+        iconf->mempool_size = MempoolSizeCalculate(
+                iconf->nb_rx_queues, iconf->nb_rx_desc, iconf->nb_tx_queues, iconf->nb_tx_desc);
         SCReturnInt(0);
     }
 
@@ -534,6 +537,18 @@ static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, const char *entry_str)
         SCLogError("%s: mempool size entry contain non-numerical characters - \"%s\"", iconf->iface,
                 entry_str);
         SCReturnInt(-EINVAL);
+    }
+
+    if (MempoolSizeCalculate(
+                iconf->nb_rx_queues, iconf->nb_rx_desc, iconf->nb_tx_queues, iconf->nb_tx_desc) >
+            iconf->mempool_size + 1) { // +1 to mask mempool size advice given in Suricata 7.0.x -
+                                       // mp_size should be n = (2^q - 1)
+        SCLogError("%s: mempool size is likely too small for the number of descriptors and queues, "
+                   "set to \"auto\" or adjust to the value of \"%" PRIu32 "\"",
+                iconf->iface,
+                MempoolSizeCalculate(iconf->nb_rx_queues, iconf->nb_rx_desc, iconf->nb_tx_queues,
+                        iconf->nb_tx_desc));
+        SCReturnInt(-ERANGE);
     }
 
     if (iconf->mempool_size == 0) {
@@ -544,22 +559,27 @@ static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, const char *entry_str)
     SCReturnInt(0);
 }
 
+static uint32_t MempoolCacheSizeCalculate(uint32_t mp_sz)
+{
+    // It is advised to have mempool cache size lower or equal to:
+    //   RTE_MEMPOOL_CACHE_MAX_SIZE (by default 512) and "mempool-size / 1.5"
+    // and at the same time "mempool-size modulo cache_size == 0".
+    uint32_t max_cache_size = MIN(RTE_MEMPOOL_CACHE_MAX_SIZE, mp_sz / 1.5);
+    return GreatestDivisorUpTo(mp_sz, max_cache_size);
+}
+
 static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
     if (entry_str == NULL || entry_str[0] == '\0' || strcmp(entry_str, "auto") == 0) {
         // calculate the mempool size based on the mempool size (it needs to be already filled in)
-        // It is advised to have mempool cache size lower or equal to:
-        //   RTE_MEMPOOL_CACHE_MAX_SIZE (by default 512) and "mempool-size / 1.5"
-        // and at the same time "mempool-size modulo cache_size == 0".
         if (iconf->mempool_size == 0) {
             SCLogError("%s: cannot calculate mempool cache size of a mempool with size %d",
                     iconf->iface, iconf->mempool_size);
             SCReturnInt(-EINVAL);
         }
 
-        uint32_t max_cache_size = MIN(RTE_MEMPOOL_CACHE_MAX_SIZE, iconf->mempool_size / 1.5);
-        iconf->mempool_cache_size = GreatestDivisorUpTo(iconf->mempool_size, max_cache_size);
+        iconf->mempool_cache_size = MempoolCacheSizeCalculate(iconf->mempool_size);
         SCReturnInt(0);
     }
 
@@ -1356,26 +1376,33 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
 {
     SCEnter();
     int retval;
-    uint16_t mtu_size;
-    uint16_t mbuf_size;
     struct rte_eth_rxconf rxq_conf;
     struct rte_eth_txconf txq_conf;
 
-    char mempool_name[64];
-    snprintf(mempool_name, 64, "mempool_%.20s", iconf->iface);
-    // +4 for VLAN header
-    mtu_size = iconf->mtu + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + 4;
-    mbuf_size = ROUNDUP(mtu_size, 1024) + RTE_PKTMBUF_HEADROOM;
-    SCLogConfig("%s: creating packet mbuf pool %s of size %d, cache size %d, mbuf size %d",
-            iconf->iface, mempool_name, iconf->mempool_size, iconf->mempool_cache_size, mbuf_size);
+    retval = DPDKDeviceResourcesInit(&(iconf->pkt_mempools), iconf->nb_rx_queues);
+    if (retval < 0) {
+        goto cleanup;
+    }
 
-    iconf->pkt_mempool = rte_pktmbuf_pool_create(mempool_name, iconf->mempool_size,
-            iconf->mempool_cache_size, 0, mbuf_size, (int)iconf->socket_id);
-    if (iconf->pkt_mempool == NULL) {
-        retval = -rte_errno;
-        SCLogError("%s: rte_pktmbuf_pool_create failed with code %d (mempool: %s): %s",
-                iconf->iface, rte_errno, mempool_name, rte_strerror(rte_errno));
-        SCReturnInt(retval);
+    // +4 for VLAN header
+    uint16_t mtu_size = iconf->mtu + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + 4;
+    uint16_t mbuf_size = ROUNDUP(mtu_size, 1024) + RTE_PKTMBUF_HEADROOM;
+    // ceil the div so e.g. mp_size of 262144 and 262143 both lead to 65535 on 4 rx queues
+    uint32_t q_mp_sz = (iconf->mempool_size + iconf->nb_rx_queues - 1) / iconf->nb_rx_queues - 1;
+    uint32_t q_mp_cache_sz = MempoolCacheSizeCalculate(q_mp_sz);
+    SCLogInfo("%s: creating %u packet mempools of size %u, cache size %u, mbuf size %u",
+            iconf->iface, iconf->nb_rx_queues, q_mp_sz, q_mp_cache_sz, mbuf_size);
+    for (int i = 0; i < iconf->nb_rx_queues; i++) {
+        char mempool_name[64];
+        snprintf(mempool_name, sizeof(mempool_name), "mp_%d_%.20s", i, iconf->iface);
+        iconf->pkt_mempools->pkt_mp[i] = rte_pktmbuf_pool_create(
+                mempool_name, q_mp_sz, q_mp_cache_sz, 0, mbuf_size, (int)iconf->socket_id);
+        if (iconf->pkt_mempools->pkt_mp[i] == NULL) {
+            retval = -rte_errno;
+            SCLogError("%s: rte_pktmbuf_pool_create failed with code %d (mempool: %s) - %s",
+                    iconf->iface, rte_errno, mempool_name, rte_strerror(rte_errno));
+            goto cleanup;
+        }
     }
 
     for (uint16_t queue_id = 0; queue_id < iconf->nb_rx_queues; queue_id++) {
@@ -1394,12 +1421,11 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
                 rxq_conf.rx_free_thresh, rxq_conf.rx_drop_en);
 
         retval = rte_eth_rx_queue_setup(iconf->port_id, queue_id, iconf->nb_rx_desc,
-                iconf->socket_id, &rxq_conf, iconf->pkt_mempool);
+                iconf->socket_id, &rxq_conf, iconf->pkt_mempools->pkt_mp[queue_id]);
         if (retval < 0) {
-            rte_mempool_free(iconf->pkt_mempool);
             SCLogError("%s: failed to setup RX queue %u: %s", iconf->iface, queue_id,
                     rte_strerror(-retval));
-            SCReturnInt(retval);
+            goto cleanup;
         }
     }
 
@@ -1416,14 +1442,17 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
         retval = rte_eth_tx_queue_setup(
                 iconf->port_id, queue_id, iconf->nb_tx_desc, iconf->socket_id, &txq_conf);
         if (retval < 0) {
-            rte_mempool_free(iconf->pkt_mempool);
             SCLogError("%s: failed to setup TX queue %u: %s", iconf->iface, queue_id,
                     rte_strerror(-retval));
-            SCReturnInt(retval);
+            goto cleanup;
         }
     }
 
     SCReturnInt(0);
+
+cleanup:
+    DPDKDeviceResourcesDeinit(iconf->pkt_mempools);
+    SCReturnInt(retval);
 }
 
 static int DeviceValidateOutIfaceConfig(DPDKIfaceConfig *iconf)
@@ -1739,8 +1768,10 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
     if (ldev_instance == NULL) {
         FatalError("Device %s is not registered as a live device", iface);
     }
-    ldev_instance->dpdk_vars.pkt_mp = iconf->pkt_mempool;
-    iconf->pkt_mempool = NULL;
+    for (int32_t i = 0; i < iconf->threads; i++) {
+        ldev_instance->dpdk_vars = iconf->pkt_mempools;
+        iconf->pkt_mempools = NULL;
+    }
     return iconf;
 }
 

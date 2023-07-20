@@ -2289,17 +2289,22 @@ allocated on each of the NUMA nodes used by the Suricata deployment.
 
 
 DPDK memory pools hold packets received from NICs. These memory pools are
-allocated in hugepages. One memory pool is allocated per interface. The size
-of each memory pool can be individual and is set with the `mempool-size`.
-Memory (in bytes) for one memory pool is calculated as: `mempool-size` * `mtu`.
+allocated in hugepages. Each Suricata worker has independently allocated
+memory pools per interface. The total size of all mempools of the interface is
+set with the ``mempool-size``. The recommend size of the memory pool can be
+auto-calculated by setting ``mempool-size: auto``. If ``mempool-size`` is set
+manually (to e.g. ``mempool-size: 65536``), the value is divided by the number of
+worker  cores of the interface (on 4 worker threads, each worker is assigned
+with a mempool containing 16383 packet objects).
+Memory (in bytes) for interface's memory pools is calculated as:
+``mempool-size`` * ``mtu``.
 The sum of memory pool requirements divided by the size of one hugepage results
 in the number of required hugepages. It causes no problem to allocate more
 memory than required, but it is vital for Suricata to not run out of hugepages.
 
 The mempool cache is local to the individual CPU cores and holds packets that
-were recently processed. As the mempool is shared among all cores, the cache
-tries to minimize the required inter-process synchronization. The recommended
-size of the cache is covered in the YAML file.
+were recently processed. The recommended size of the cache can be
+auto-calculated by setting ``mempool-cache-size: auto``.
 
 To be able to run DPDK on Intel cards, it is required to change the default
 Intel driver to either `vfio-pci` or `igb_uio` driver. The process is
