@@ -131,6 +131,9 @@ Major changes
 - DPDK interface settings can now be configured automatically by setting 
   ``auto`` to ``mempool-size``, ``mempool-cache-size``, ``rx-descriptors``,
   ``tx-descriptors``. See :ref:`dpdk-automatic-interface-configuration`.
+- DPDK interface mempools are now allocated per thread instead of per port. This
+  change improves performance and should not be visible from the user
+  configuration perspective.
 
 Removals
 ~~~~~~~~
