@@ -1197,8 +1197,9 @@ static uint32_t ProcessBase64Remainder(
             }
             buf_consumed++;
         }
-        if (cnt != 0) {
-            memcpy(state->bvremain, block, cnt);
+        DEBUG_VALIDATE_BUG_ON(cnt > B64_BLOCK);
+        for (uint32_t i = 0; i < cnt; i++) {
+            state->bvremain[i] = block[i];
         }
         state->bvr_len = cnt;
     } else if (!force && cnt != B64_BLOCK) {
