@@ -3547,7 +3547,7 @@ static uint32_t DetectKeywordCtxHashFunc(HashListTable *ht, void *data, uint16_t
 {
     DetectEngineThreadKeywordCtxItem *ctx = data;
     const char *name = ctx->name;
-    uint64_t hash = StringHashDjb2((const uint8_t *)name, strlen(name)) + (uint64_t)ctx->data;
+    uint64_t hash = StringHashDjb2((const uint8_t *)name, strlen(name)) + (ptrdiff_t)ctx->data;
     hash %= ht->array_size;
     return hash;
 }
