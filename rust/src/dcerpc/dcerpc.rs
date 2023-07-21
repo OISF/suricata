@@ -605,7 +605,7 @@ impl DCERPCState {
                         header.rpc_vers,
                         header.rpc_vers_minor
                     );
-                    return -1;
+                    return -3;
                 }
                 self.header = Some(header);
                 (input.len() - leftover_bytes.len()) as i32
@@ -949,8 +949,7 @@ impl DCERPCState {
             parsed = self.process_header(cur_i);
             if parsed == -1 {
                 return AppLayerResult::incomplete(0, DCERPC_HDR_LEN as u32);
-            }
-            if parsed == -2 {
+            } else if parsed < 0 {
                 return AppLayerResult::err();
             }
             self.bytes_consumed += parsed;
