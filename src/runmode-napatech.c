@@ -200,7 +200,12 @@ static void *NapatechConfigParser(const char *device)
     if (ConfGetInt("napatech.hba", &conf->hba) == 0) {
         conf->hba = -1;
     } else {
-        SCLogWarning("Napatech Host Buffer Allocation (hba) will be deprecated in Suricata v7.0.");
+        static bool warn_once = false;
+        if (!warn_once) {
+            SCLogWarning(
+                    "Napatech Host Buffer Allowance (hba) will be deprecated in Suricata v8.0.");
+            warn_once = true;
+        }
     }
     return (void *) conf;
 }
