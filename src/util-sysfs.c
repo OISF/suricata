@@ -47,7 +47,7 @@ TmEcode SysFsWriteValue(const char *path, int64_t value)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    snprintf(sentence, sizeof(sentence), "%ld", value);
+    snprintf(sentence, sizeof(sentence), "%"PRIu64, value);
     ssize_t len = strlen(sentence);
 
     if (write(fd, sentence, len) != len) {
