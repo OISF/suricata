@@ -309,8 +309,6 @@ pub struct DCERPCState {
     pub bindack: Option<DCERPCBindAck>,
     pub transactions: VecDeque<DCERPCTransaction>,
     tx_index_completed: usize,
-    pub buffer_ts: Vec<u8>,
-    pub buffer_tc: Vec<u8>,
     pub pad: u8,
     pub padleft: u16,
     pub bytes_consumed: i32,
@@ -447,27 +445,13 @@ impl DCERPCState {
     pub fn clean_buffer(&mut self, direction: Direction) {
         match direction {
             Direction::ToServer => {
-                self.buffer_ts.clear();
                 self.ts_gap = false;
             }
             Direction::ToClient => {
-                self.buffer_tc.clear();
                 self.tc_gap = false;
             }
         }
         self.bytes_consumed = 0;
-    }
-
-    pub fn extend_buffer(&mut self, buffer: &[u8], direction: Direction) {
-        match direction {
-            Direction::ToServer => {
-                self.buffer_ts.extend_from_slice(buffer);
-            }
-            Direction::ToClient => {
-                self.buffer_tc.extend_from_slice(buffer);
-            }
-        }
-        self.data_needed_for_dir = direction;
     }
 
     pub fn reset_direction(&mut self, direction: Direction) {
@@ -903,11 +887,10 @@ impl DCERPCState {
     }
 
     pub fn handle_input_data(&mut self, input: &[u8], direction: Direction) -> AppLayerResult {
-        let mut parsed;
+        let mut parsed = 0;
         let retval;
         let mut cur_i = input;
-        let input_len = cur_i.len();
-        let mut v: Vec<u8>;
+        let mut input_len = cur_i.len();
         // Set any query's completion status to false in the beginning
         self.query_completed = false;
 
@@ -948,28 +931,12 @@ impl DCERPCState {
             self.data_needed_for_dir = direction;
         }
 
-        let buffer = match direction {
-            Direction::ToServer => {
-                if self.buffer_ts.len() + input_len > 1024 * 1024 {
-                    SCLogDebug!("DCERPC TOSERVER stream: Buffer Overflow");
-                    return AppLayerResult::err();
-                }
-                v = self.buffer_ts.split_off(0);
-                v.extend_from_slice(cur_i);
-                v.as_slice()
-            }
-            Direction::ToClient => {
-                if self.buffer_tc.len() + input_len > 1024 * 1024 {
-                    SCLogDebug!("DCERPC TOCLIENT stream: Buffer Overflow");
-                    return AppLayerResult::err();
-                }
-                v = self.buffer_tc.split_off(0);
-                v.extend_from_slice(cur_i);
-                v.as_slice()
-            }
-        };
+        if cur_i.len() > 1024 * 1024 {
+            SCLogDebug!("DCERPC stream: Buffer Overflow");
+            return AppLayerResult::err();
+        }
 
-        if self.data_needed_for_dir != direction && !buffer.is_empty() {
+        if self.data_needed_for_dir != direction && !cur_i.is_empty() {
             return AppLayerResult::err();
         }
 
@@ -979,40 +946,38 @@ impl DCERPCState {
         // Check if header data was complete. In case of EoF or incomplete data, wait for more
         // data else return error
         if self.bytes_consumed < DCERPC_HDR_LEN.into() && input_len > 0 {
-            parsed = self.process_header(buffer);
+            parsed = self.process_header(cur_i);
             if parsed == -1 {
-                self.extend_buffer(buffer, direction);
-                return AppLayerResult::ok();
+                return AppLayerResult::incomplete(0, DCERPC_HDR_LEN as u32);
             }
             if parsed == -2 {
                 return AppLayerResult::err();
             }
             self.bytes_consumed += parsed;
+            input_len -= parsed as usize;
         }
 
         let fraglen = self.get_hdr_fraglen().unwrap_or(0);
 
-        if (buffer.len()) < fraglen as usize {
+        if (input_len + self.bytes_consumed as usize) < fraglen as usize {
             SCLogDebug!("Possibly fragmented data, waiting for more..");
-            self.extend_buffer(buffer, direction);
-            return AppLayerResult::ok();
+            return AppLayerResult::incomplete(self.bytes_consumed as u32, (fraglen - self.bytes_consumed as u16) as u32);
         } else {
             self.query_completed = true;
         }
-        parsed = self.bytes_consumed;
 
         let current_call_id = self.get_hdr_call_id().unwrap_or(0);
 
         match self.get_hdr_type() {
             Some(x) => match x {
                 DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
-                    retval = self.process_bind_pdu(&buffer[parsed as usize..]);
+                    retval = self.process_bind_pdu(&cur_i[parsed as usize..]);
                     if retval == -1 {
                         return AppLayerResult::err();
                     }
                 }
                 DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
-                    retval = self.process_bindack_pdu(&buffer[parsed as usize..]);
+                    retval = self.process_bindack_pdu(&cur_i[parsed as usize..]);
                     if retval == -1 {
                         return AppLayerResult::err();
                     }
@@ -1032,7 +997,7 @@ impl DCERPCState {
                     }
                 }
                 DCERPC_TYPE_REQUEST => {
-                    retval = self.process_request_pdu(&buffer[parsed as usize..]);
+                    retval = self.process_request_pdu(&cur_i[parsed as usize..]);
                     if retval < 0 {
                         return AppLayerResult::err();
                     }
@@ -1052,7 +1017,7 @@ impl DCERPCState {
                         }
                     };
                     retval = self.handle_common_stub(
-                        &buffer[parsed as usize..],
+                        &cur_i[parsed as usize..],
                         0,
                         Direction::ToClient,
                     );
@@ -1087,7 +1052,7 @@ fn evaluate_stub_params(
     input: &[u8], input_len: usize, hdrflags: u8, lenleft: u16,
     stub_data_buffer: &mut Vec<u8>,stub_data_buffer_reset: &mut bool,
 ) -> u16 {
-    
+
     let fragtype = hdrflags & (PFC_FIRST_FRAG | PFC_LAST_FRAG);
     // min of usize and u16 is a valid u16
     let stub_len: u16 = cmp::min(lenleft as usize, input_len) as u16;
