@@ -1186,9 +1186,6 @@ TmEcode NFQSetVerdict(Packet *p)
  */
 TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data)
 {
-    /* update counters */
-    CaptureStatsUpdate(tv, p);
-
     /* if this is a tunnel packet we check if we are ready to verdict
      * already. */
     if (IS_TUNNEL_PKT(p)) {
