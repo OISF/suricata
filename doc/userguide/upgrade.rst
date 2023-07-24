@@ -42,8 +42,10 @@ Major changes
 - Upgrade of PCRE1 to PCRE2. See :ref:`pcre-update-v1-to-v2` for more details.
 - IPS users: by default various new "exception policies" are set to DROP
   traffic. Please see :ref:`Exception Policies <exception policies>` for details
-  on the settings and their scope.
-- New protocols enabled by default: bittorrent-dht, quic, http2
+  on the settings and their scope. For trouble shooting, please check `My traffic gets
+  blocked after upgrading to Suricata 7
+  <https://forum.suricata.io/t/my-traffic-gets-blocked-after-upgrading-to-suricata-7>`_.
+- New protocols enabled by default: bittorrent-dht, quic, http2.
 - The telnet protocol is also enabled by default, but only for the ``app-layer``.
 
 Security changes
