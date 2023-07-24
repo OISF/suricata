@@ -775,10 +775,7 @@ TmEcode ReceiveNFQThreadDeinit(ThreadVars *t, void *data)
 
 TmEcode VerdictNFQThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
-    NFQThreadVars *ntv = (NFQThreadVars *) initdata;
-
-    CaptureStatsSetup(tv);
-
+    NFQThreadVars *ntv = (NFQThreadVars *)initdata;
     *data = (void *)ntv;
     return TM_ECODE_OK;
 }
