@@ -95,7 +95,6 @@ typedef struct WinDivertThreadVars_ {
     WinDivertHandle filter_handle;
 
     int thread_num;
-    CaptureStats stats;
     int64_t qpc_start_time;
     int64_t qpc_start_count;
     int64_t qpc_freq_usec;
@@ -750,7 +749,7 @@ static TmEcode WinDivertVerdictHelper(ThreadVars *tv, Packet *p)
     WinDivertThreadVars *wd_tv = WinDivertGetThread(p->windivert_v.thread_num);
 
     /* update counters */
-    CaptureStatsUpdate(tv, &wd_tv->stats, p);
+    CaptureStatsUpdate(tv, p);
 
 #ifdef COUNTERS
     WinDivertQueueVars *wd_qv = WinDivertGetQueue(wd_tv->thread_num);
@@ -823,7 +822,7 @@ TmEcode VerdictWinDivertThreadInit(ThreadVars *tv, const void *initdata,
 
     WinDivertThreadVars *wd_tv = (WinDivertThreadVars *)initdata;
 
-    CaptureStatsSetup(tv, &wd_tv->stats);
+    CaptureStatsSetup(tv);
 
     *data = wd_tv;
 
