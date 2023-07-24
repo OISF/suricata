@@ -429,6 +429,9 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         SCSpinUnlock(lock);
 
         SCLogDebug("tunnel stuff done, move on (proot %d)", proot);
+
+    } else {
+        CaptureStatsUpdate(t, p);
     }
 
     SCLogDebug("[packet %p][%s] %s", p,
@@ -440,6 +443,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     if (proot == true) {
         SCLogDebug("getting rid of root pkt... alloc'd %s", BOOL2STR(p->root->pool == NULL));
 
+        CaptureStatsUpdate(t, p->root);
         PacketReleaseRefs(p->root);
         p->root->ReleasePacket(p->root);
         p->root = NULL;

@@ -748,9 +748,6 @@ static TmEcode WinDivertVerdictHelper(ThreadVars *tv, Packet *p)
     SCEnter();
     WinDivertThreadVars *wd_tv = WinDivertGetThread(p->windivert_v.thread_num);
 
-    /* update counters */
-    CaptureStatsUpdate(tv, p);
-
 #ifdef COUNTERS
     WinDivertQueueVars *wd_qv = WinDivertGetQueue(wd_tv->thread_num);
 #endif /* COUNTERS */
