@@ -4013,6 +4013,24 @@
                     },
                     "additionalProperties": false
                 },
+                "ips": {
+                    "type": "object",
+                    "properties": {
+                        "accepted": {
+                            "type": "integer"
+                        },
+                        "blocked": {
+                            "type": "integer"
+                        },
+                        "rejected": {
+                            "type": "integer"
+                        },
+                        "replaced": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "decoder": {
                     "type": "object",
                     "properties": {
