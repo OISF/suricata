@@ -120,8 +120,6 @@ typedef struct NFQThreadVars_
 
     char *data; /** Per function and thread data */
     int datalen; /** Length of per function and thread data */
-
-    CaptureStats stats;
 } NFQThreadVars;
 /* shared vars for all for nfq queues and threads */
 static NFQGlobalVars nfq_g;
@@ -779,7 +777,7 @@ TmEcode VerdictNFQThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     NFQThreadVars *ntv = (NFQThreadVars *) initdata;
 
-    CaptureStatsSetup(tv, &ntv->stats);
+    CaptureStatsSetup(tv);
 
     *data = (void *)ntv;
     return TM_ECODE_OK;
@@ -1191,9 +1189,8 @@ TmEcode NFQSetVerdict(Packet *p)
  */
 TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data)
 {
-    NFQThreadVars *ntv = (NFQThreadVars *)data;
     /* update counters */
-    CaptureStatsUpdate(tv, &ntv->stats, p);
+    CaptureStatsUpdate(tv, p);
 
     /* if this is a tunnel packet we check if we are ready to verdict
      * already. */
