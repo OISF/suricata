@@ -822,9 +822,19 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
     return NULL;
 }
 
+typedef struct CaptureStats_ {
+    uint16_t counter_ips_accepted;
+    uint16_t counter_ips_blocked;
+    uint16_t counter_ips_rejected;
+    uint16_t counter_ips_replaced;
+} CaptureStats;
+
+thread_local CaptureStats t_capture_stats;
+
 /* TODO drop reason stats! */
-void CaptureStatsUpdate(ThreadVars *tv, CaptureStats *s, const Packet *p)
+void CaptureStatsUpdate(ThreadVars *tv, const Packet *p)
 {
+    CaptureStats *s = &t_capture_stats;
     if (unlikely(PacketCheckAction(p, ACTION_REJECT_ANY))) {
         StatsIncr(tv, s->counter_ips_rejected);
     } else if (unlikely(PacketCheckAction(p, ACTION_DROP))) {
@@ -836,8 +846,9 @@ void CaptureStatsUpdate(ThreadVars *tv, CaptureStats *s, const Packet *p)
     }
 }
 
-void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s)
+void CaptureStatsSetup(ThreadVars *tv)
 {
+    CaptureStats *s = &t_capture_stats;
     s->counter_ips_accepted = StatsRegisterCounter("ips.accepted", tv);
     s->counter_ips_blocked = StatsRegisterCounter("ips.blocked", tv);
     s->counter_ips_rejected = StatsRegisterCounter("ips.rejected", tv);
