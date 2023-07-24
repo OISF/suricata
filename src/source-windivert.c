@@ -821,9 +821,6 @@ TmEcode VerdictWinDivertThreadInit(ThreadVars *tv, const void *initdata,
     SCEnter();
 
     WinDivertThreadVars *wd_tv = (WinDivertThreadVars *)initdata;
-
-    CaptureStatsSetup(tv);
-
     *data = wd_tv;
 
     SCReturnInt(TM_ECODE_OK);

@@ -242,7 +242,7 @@ static void *TmThreadsSlotPktAcqLoop(void *td)
 
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);
-
+    CaptureStatsSetup(tv);
     PacketPoolInit();
 
     /* check if we are setup properly */
@@ -372,6 +372,7 @@ static void *TmThreadsSlotVar(void *td)
     char run = 1;
     TmEcode r = TM_ECODE_OK;
 
+    CaptureStatsSetup(tv);
     PacketPoolInit();//Empty();
 
     SCSetThreadName(tv->name);
