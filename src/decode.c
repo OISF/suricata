@@ -834,6 +834,9 @@ thread_local CaptureStats t_capture_stats;
 /* TODO drop reason stats! */
 void CaptureStatsUpdate(ThreadVars *tv, const Packet *p)
 {
+    if (!EngineModeIsIPS() || PKT_IS_PSEUDOPKT(p))
+        return;
+
     CaptureStats *s = &t_capture_stats;
     if (unlikely(PacketCheckAction(p, ACTION_REJECT_ANY))) {
         StatsIncr(tv, s->counter_ips_rejected);
@@ -848,11 +851,13 @@ void CaptureStatsUpdate(ThreadVars *tv, const Packet *p)
 
 void CaptureStatsSetup(ThreadVars *tv)
 {
-    CaptureStats *s = &t_capture_stats;
-    s->counter_ips_accepted = StatsRegisterCounter("ips.accepted", tv);
-    s->counter_ips_blocked = StatsRegisterCounter("ips.blocked", tv);
-    s->counter_ips_rejected = StatsRegisterCounter("ips.rejected", tv);
-    s->counter_ips_replaced = StatsRegisterCounter("ips.replaced", tv);
+    if (EngineModeIsIPS()) {
+        CaptureStats *s = &t_capture_stats;
+        s->counter_ips_accepted = StatsRegisterCounter("ips.accepted", tv);
+        s->counter_ips_blocked = StatsRegisterCounter("ips.blocked", tv);
+        s->counter_ips_rejected = StatsRegisterCounter("ips.rejected", tv);
+        s->counter_ips_replaced = StatsRegisterCounter("ips.replaced", tv);
+    }
 }
 
 void DecodeGlobalConfig(void)
