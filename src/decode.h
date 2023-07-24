@@ -749,17 +749,8 @@ typedef struct DecodeThreadVars_
 
 } DecodeThreadVars;
 
-typedef struct CaptureStats_ {
-
-    uint16_t counter_ips_accepted;
-    uint16_t counter_ips_blocked;
-    uint16_t counter_ips_rejected;
-    uint16_t counter_ips_replaced;
-
-} CaptureStats;
-
-void CaptureStatsUpdate(ThreadVars *tv, CaptureStats *s, const Packet *p);
-void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
+void CaptureStatsUpdate(ThreadVars *tv, const Packet *p);
+void CaptureStatsSetup(ThreadVars *tv);
 
 #define PACKET_CLEAR_L4VARS(p) do {                         \
         memset(&(p)->l4vars, 0x00, sizeof((p)->l4vars));    \
