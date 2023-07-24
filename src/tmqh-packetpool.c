@@ -370,6 +370,8 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 
         if (IS_TUNNEL_ROOT_PKT(p)) {
             SCLogDebug("IS_TUNNEL_ROOT_PKT == TRUE");
+            CaptureStatsUpdate(t, p);
+
             const uint16_t outstanding = TUNNEL_PKT_TPR(p) - TUNNEL_PKT_RTV(p);
             SCLogDebug("root pkt: outstanding %u", outstanding);
             if (outstanding == 0) {
@@ -429,6 +431,9 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         SCSpinUnlock(lock);
 
         SCLogDebug("tunnel stuff done, move on (proot %d)", proot);
+
+    } else {
+        CaptureStatsUpdate(t, p);
     }
 
     SCLogDebug("[packet %p][%s] %s", p,
