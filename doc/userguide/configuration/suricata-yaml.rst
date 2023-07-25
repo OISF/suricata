@@ -861,6 +861,9 @@ thread. This priority can be low, medium, high or you can set the priority to
 'default' will count. By default Suricata creates one 'detect' (worker) thread
 per available CPU/CPU core.
 
+.. note:: The 'prio' settings could overwrite each other, make sure to not
+   include the same CPU core in different 'prio' settings.
+
 ::
 
     cpu-affinity:
