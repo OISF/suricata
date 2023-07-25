@@ -403,6 +403,7 @@ enum PacketDropReason {
     PKT_DROP_REASON_STREAM_MIDSTREAM,
     PKT_DROP_REASON_NFQ_ERROR,    /**< no nfq verdict, must be error */
     PKT_DROP_REASON_INNER_PACKET, /**< drop issued by inner (tunnel) packet */
+    PKT_DROP_REASON_MAX,
 };
 
 /* forward declaration since Packet struct definition requires this */

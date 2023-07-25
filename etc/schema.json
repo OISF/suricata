@@ -4027,6 +4027,54 @@
                         },
                         "replaced": {
                             "type": "integer"
+                        },
+                        "drop_reason": {
+                            "type": "object",
+                            "properties": {
+                                "decode_error": {
+                                    "type": "integer"
+                                },
+                                "defrag_error": {
+                                    "type": "integer"
+                                },
+                                "defrag_memcap": {
+                                    "type": "integer"
+                                },
+                                "flow_memcap": {
+                                    "type": "integer"
+                                },
+                                "flow_drop": {
+                                    "type": "integer"
+                                },
+                                "applayer_error": {
+                                    "type": "integer"
+                                },
+                                "applayer_memcap": {
+                                    "type": "integer"
+                                },
+                                "rules": {
+                                    "type": "integer"
+                                },
+                                "threshold_detection_filter": {
+                                    "type": "integer"
+                                },
+                                "stream_error": {
+                                    "type": "integer"
+                                },
+                                "stream_memcap": {
+                                    "type": "integer"
+                                },
+                                "stream_midstream": {
+                                    "type": "integer"
+                                },
+                                "nfq_error": {
+                                    "type": "integer"
+                                },
+                                "tunnel_packet_drop": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
                         }
                     },
                     "additionalProperties": false
