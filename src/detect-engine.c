@@ -1905,11 +1905,9 @@ int DetectEngineBufferTypeGetByIdTransforms(
 }
 
 /* returns false if no match, true if match */
-static int DetectEngineInspectRulePacketMatches(
-    DetectEngineThreadCtx *det_ctx,
-    const DetectEnginePktInspectionEngine *engine,
-    const Signature *s,
-    Packet *p, uint8_t *_alert_flags)
+static inline int DetectEngineInspectRulePacketMatches(DetectEngineThreadCtx *det_ctx,
+        const DetectEnginePktInspectionEngine *engine, const Signature *s, Packet *p,
+        uint8_t *_alert_flags)
 {
     SCEnter();
 
@@ -1935,10 +1933,9 @@ static int DetectEngineInspectRulePacketMatches(
     return DETECT_ENGINE_INSPECT_SIG_MATCH;
 }
 
-static int DetectEngineInspectRulePayloadMatches(
-     DetectEngineThreadCtx *det_ctx,
-     const DetectEnginePktInspectionEngine *engine,
-     const Signature *s, Packet *p, uint8_t *alert_flags)
+static inline int DetectEngineInspectRulePayloadMatches(DetectEngineThreadCtx *det_ctx,
+        const DetectEnginePktInspectionEngine *engine, const Signature *s, Packet *p,
+        uint8_t *alert_flags)
 {
     SCEnter();
 
@@ -1981,12 +1978,22 @@ static int DetectEngineInspectRulePayloadMatches(
     return DETECT_ENGINE_INSPECT_SIG_MATCH;
 }
 
-bool DetectEnginePktInspectionRun(ThreadVars *tv,
-        DetectEngineThreadCtx *det_ctx, const Signature *s,
-        Flow *f, Packet *p,
-        uint8_t *alert_flags)
+inline bool DetectEnginePktInspectionRun(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, Flow *f, Packet *p, uint8_t *alert_flags)
 {
     SCEnter();
+
+    if (s->sm_arrays[DETECT_SM_LIST_PMATCH]) {
+        if (DetectEngineInspectRulePayloadMatches(det_ctx, NULL, s, p, alert_flags) == false) {
+            return false;
+        }
+    }
+
+    if (s->sm_arrays[DETECT_SM_LIST_MATCH]) {
+        if (DetectEngineInspectRulePacketMatches(det_ctx, NULL, s, p, alert_flags) == false) {
+            return false;
+        }
+    }
 
     for (DetectEnginePktInspectionEngine *e = s->pkt_inspect; e != NULL; e = e->next) {
         if (e->v1.Callback(det_ctx, e, s, p, alert_flags) != DETECT_ENGINE_INSPECT_SIG_MATCH) {
@@ -2026,26 +2033,6 @@ static int DetectEnginePktInspectionAppend(Signature *s, InspectionBufferPktInsp
         }
         a->next = e;
     }
-    return 0;
-}
-
-int DetectEnginePktInspectionSetup(Signature *s)
-{
-    /* only handle PMATCH here if we're not an app inspect rule */
-    if (s->sm_arrays[DETECT_SM_LIST_PMATCH] && (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) == 0) {
-        if (DetectEnginePktInspectionAppend(
-                    s, DetectEngineInspectRulePayloadMatches, NULL, DETECT_SM_LIST_PMATCH) < 0)
-            return -1;
-        SCLogDebug("sid %u: DetectEngineInspectRulePayloadMatches appended", s->id);
-    }
-
-    if (s->sm_arrays[DETECT_SM_LIST_MATCH]) {
-        if (DetectEnginePktInspectionAppend(
-                    s, DetectEngineInspectRulePacketMatches, NULL, DETECT_SM_LIST_MATCH) < 0)
-            return -1;
-        SCLogDebug("sid %u: DetectEngineInspectRulePacketMatches appended", s->id);
-    }
-
     return 0;
 }
 
