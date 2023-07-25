@@ -357,7 +357,6 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
     static int32_t remaining_auto_cpus = -1;
-    static uint32_t total_cpus = 0;
     if (!threading_set_cpu_affinity) {
         SCLogError("DPDK runmode requires configured thread affinity");
         SCReturnInt(-EINVAL);
@@ -429,12 +428,6 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
 
     if (iconf->threads <= 0) {
         SCLogError("%s: positive number of threads required", iconf->iface);
-        SCReturnInt(-ERANGE);
-    }
-
-    total_cpus += iconf->threads;
-    if (total_cpus > sched_cpus) {
-        SCLogError("Interfaces requested more cores than configured in the threading section");
         SCReturnInt(-ERANGE);
     }
 
@@ -801,6 +794,25 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     SCReturnInt(0);
 }
 
+static int32_t ConfigValidateThreads(uint16_t iface_threads)
+{
+    static uint32_t total_cpus = 0;
+    total_cpus += iface_threads;
+    ThreadsAffinityType *wtaf = GetAffinityTypeFromName("worker-cpu-set");
+    if (wtaf == NULL) {
+        SCLogError("Specify worker-cpu-set list in the threading section");
+        return -1;
+    }
+    if (total_cpus > UtilAffinityGetAffinedCPUNum(wtaf)) {
+        SCLogError("Interfaces requested more cores than configured in the threading section "
+                   "(requested %d configured %d",
+                total_cpus, UtilAffinityGetAffinedCPUNum(wtaf));
+        return -1;
+    }
+
+    return 0;
+}
+
 static DPDKIfaceConfig *ConfigParse(const char *iface)
 {
     SCEnter();
@@ -811,7 +823,7 @@ static DPDKIfaceConfig *ConfigParse(const char *iface)
 
     ConfigInit(&iconf);
     retval = ConfigLoad(iconf, iface);
-    if (retval < 0) {
+    if (retval < 0 || ConfigValidateThreads(iconf->threads) != 0) {
         iconf->DerefFunc(iconf);
         SCReturnPtr(NULL, "void *");
     }
