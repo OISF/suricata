@@ -95,6 +95,8 @@ memcap <size>
 hashsize <size>
   allowed size of the hash for the respective dataset
 
+.. note:: 'type' is mandatory and needs to be set.
+
 .. note:: 'load' and 'state' or 'save' and 'state' cannot be mixed.
 
 Example rules could look like:
