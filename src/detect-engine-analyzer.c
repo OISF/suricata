@@ -1014,25 +1014,28 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     }
     jb_close(ctx.js);
 
-    const DetectEnginePktInspectionEngine *pkt_mpm = NULL;
+    SigMatchData *pkt_mpm_smd = NULL;
     const DetectEngineAppInspectionEngine *app_mpm = NULL;
 
     jb_open_array(ctx.js, "pkt_engines");
+    if (s->sm_arrays[DETECT_SM_LIST_PMATCH]) {
+        pkt_mpm_smd = s->sm_arrays[DETECT_SM_LIST_PMATCH];
+        jb_start_object(ctx.js);
+        jb_set_string(ctx.js, "name", "payload");
+        jb_set_bool(ctx.js, "is_mpm", s->init_data->mpm_sm_list == DETECT_SM_LIST_PMATCH);
+        jb_close(ctx.js);
+    }
+    if (s->sm_arrays[DETECT_SM_LIST_MATCH]) {
+        jb_start_object(ctx.js);
+        jb_set_string(ctx.js, "name", "packet");
+        jb_set_bool(ctx.js, "is_mpm", s->init_data->mpm_sm_list == DETECT_SM_LIST_MATCH);
+        jb_close(ctx.js);
+    }
     const DetectEnginePktInspectionEngine *pkt = s->pkt_inspect;
     for ( ; pkt != NULL; pkt = pkt->next) {
         const char *name = DetectEngineBufferTypeGetNameById(de_ctx, pkt->sm_list);
         if (name == NULL) {
-            switch (pkt->sm_list) {
-                case DETECT_SM_LIST_PMATCH:
-                    name = "payload";
-                    break;
-                case DETECT_SM_LIST_MATCH:
-                    name = "packet";
-                    break;
-                default:
-                    name = "unknown";
-                    break;
-            }
+            name = "unknown";
         }
         jb_start_object(ctx.js);
         jb_set_string(ctx.js, "name", name);
@@ -1050,7 +1053,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         DumpMatches(&ctx, ctx.js, pkt->smd);
         jb_close(ctx.js);
         if (pkt->mpm) {
-            pkt_mpm = pkt;
+            pkt_mpm_smd = pkt->smd;
         }
     }
     jb_close(ctx.js);
@@ -1146,10 +1149,10 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     }
     jb_close(ctx.js);
 
-    if (pkt_mpm || app_mpm) {
+    if (pkt_mpm_smd || app_mpm) {
         jb_open_object(ctx.js, "mpm");
 
-        int mpm_list = pkt_mpm ? DETECT_SM_LIST_PMATCH : app_mpm->sm_list;
+        int mpm_list = pkt_mpm_smd ? DETECT_SM_LIST_PMATCH : app_mpm->sm_list;
         const char *name;
         if (mpm_list < DETECT_SM_LIST_DYNAMIC_START)
             name = DetectListToHumanString(mpm_list);
@@ -1157,7 +1160,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             name = DetectEngineBufferTypeGetNameById(de_ctx, mpm_list);
         jb_set_string(ctx.js, "buffer", name);
 
-        SigMatchData *smd = pkt_mpm ? pkt_mpm->smd : app_mpm->smd;
+        SigMatchData *smd = pkt_mpm_smd ? pkt_mpm_smd : app_mpm->smd;
         if (smd == NULL && mpm_list == DETECT_SM_LIST_PMATCH) {
             smd = s->sm_arrays[mpm_list];
         }

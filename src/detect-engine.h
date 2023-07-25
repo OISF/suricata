@@ -182,7 +182,6 @@ bool DetectEnginePktInspectionRun(ThreadVars *tv,
         DetectEngineThreadCtx *det_ctx, const Signature *s,
         Flow *f, Packet *p,
         uint8_t *alert_flags);
-int DetectEnginePktInspectionSetup(Signature *s);
 
 void DetectEngineSetParseMetadata(void);
 void DetectEngineUnsetParseMetadata(void);
