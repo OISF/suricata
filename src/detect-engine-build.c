@@ -1918,8 +1918,6 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
             SigMatch *sm = s->init_data->smlists[type];
             s->sm_arrays[type] = SigMatchList2DataArray(sm);
         }
-        /* set up the pkt inspection engines */
-        DetectEnginePktInspectionSetup(s);
 
         if (rule_engine_analysis_set) {
             EngineAnalysisAddAllRulePatterns(de_ctx, s);
