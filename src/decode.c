@@ -817,6 +817,45 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
         case PKT_DROP_REASON_INNER_PACKET:
             return "tunnel packet drop";
         case PKT_DROP_REASON_NOT_SET:
+        case PKT_DROP_REASON_MAX:
+            return NULL;
+    }
+    return NULL;
+}
+
+static const char *PacketDropReasonToJsonString(enum PacketDropReason r)
+{
+    switch (r) {
+        case PKT_DROP_REASON_DECODE_ERROR:
+            return "ips.drop_reason.decode_error";
+        case PKT_DROP_REASON_DEFRAG_ERROR:
+            return "ips.drop_reason.defrag_error";
+        case PKT_DROP_REASON_DEFRAG_MEMCAP:
+            return "ips.drop_reason.defrag_memcap";
+        case PKT_DROP_REASON_FLOW_MEMCAP:
+            return "ips.drop_reason.flow_memcap";
+        case PKT_DROP_REASON_FLOW_DROP:
+            return "ips.drop_reason.flow_drop";
+        case PKT_DROP_REASON_STREAM_ERROR:
+            return "ips.drop_reason.stream_error";
+        case PKT_DROP_REASON_STREAM_MEMCAP:
+            return "ips.drop_reason.stream_memcap";
+        case PKT_DROP_REASON_STREAM_MIDSTREAM:
+            return "ips.drop_reason.stream_midstream";
+        case PKT_DROP_REASON_APPLAYER_ERROR:
+            return "ips.drop_reason.applayer_error";
+        case PKT_DROP_REASON_APPLAYER_MEMCAP:
+            return "ips.drop_reason.applayer_memcap";
+        case PKT_DROP_REASON_RULES:
+            return "ips.drop_reason.rules";
+        case PKT_DROP_REASON_RULES_THRESHOLD:
+            return "ips.drop_reason.threshold_detection_filter";
+        case PKT_DROP_REASON_NFQ_ERROR:
+            return "ips.drop_reason.nfq_error";
+        case PKT_DROP_REASON_INNER_PACKET:
+            return "ips.drop_reason.tunnel_packet_drop";
+        case PKT_DROP_REASON_NOT_SET:
+        case PKT_DROP_REASON_MAX:
             return NULL;
     }
     return NULL;
@@ -827,11 +866,12 @@ typedef struct CaptureStats_ {
     uint16_t counter_ips_blocked;
     uint16_t counter_ips_rejected;
     uint16_t counter_ips_replaced;
+
+    uint16_t counter_drop_reason[PKT_DROP_REASON_MAX];
 } CaptureStats;
 
 thread_local CaptureStats t_capture_stats;
 
-/* TODO drop reason stats! */
 void CaptureStatsUpdate(ThreadVars *tv, const Packet *p)
 {
     if (!EngineModeIsIPS() || PKT_IS_PSEUDOPKT(p))
@@ -847,6 +887,9 @@ void CaptureStatsUpdate(ThreadVars *tv, const Packet *p)
     } else {
         StatsIncr(tv, s->counter_ips_accepted);
     }
+    if (p->drop_reason != PKT_DROP_REASON_NOT_SET) {
+        StatsIncr(tv, s->counter_drop_reason[p->drop_reason]);
+    }
 }
 
 void CaptureStatsSetup(ThreadVars *tv)
@@ -857,6 +900,11 @@ void CaptureStatsSetup(ThreadVars *tv)
         s->counter_ips_blocked = StatsRegisterCounter("ips.blocked", tv);
         s->counter_ips_rejected = StatsRegisterCounter("ips.rejected", tv);
         s->counter_ips_replaced = StatsRegisterCounter("ips.replaced", tv);
+        for (int i = PKT_DROP_REASON_NOT_SET; i < PKT_DROP_REASON_MAX; i++) {
+            const char *name = PacketDropReasonToJsonString(i);
+            if (name != NULL)
+                s->counter_drop_reason[i] = StatsRegisterCounter(name, tv);
+        }
     }
 }
 
