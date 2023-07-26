@@ -227,20 +227,24 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
         for (u = 0; u < st->nstats; u++) {
             if (st->stats[u].name == NULL)
                 continue;
-            const char *name = st->stats[u].name;
-            const char *shortname = name;
-            if (strrchr(name, '.') != NULL) {
-                shortname = &name[strrchr(name, '.') - name + 1];
+            json_t *js_type = NULL;
+            const char *stat_name = st->stats[u].short_name;
+            /*
+             * When there's no short-name, the stat is added to
+             * the "global" stats namespace, just like "uptime"
+             */
+            if (st->stats[u].short_name == NULL) {
+                stat_name = st->stats[u].name;
+                js_type = js_stats;
+            } else {
+                js_type = OutputStats2Json(js_stats, st->stats[u].name);
             }
-            json_t *js_type = OutputStats2Json(js_stats, name);
             if (js_type != NULL) {
-                json_object_set_new(js_type, shortname,
-                    json_integer(st->stats[u].value));
+                json_object_set_new(js_type, stat_name, json_integer(st->stats[u].value));
 
                 if (flags & JSON_STATS_DELTAS) {
-                    char deltaname[strlen(shortname) + strlen(delta_suffix) + 1];
-                    snprintf(deltaname, sizeof(deltaname), "%s%s", shortname,
-                        delta_suffix);
+                    char deltaname[strlen(stat_name) + strlen(delta_suffix) + 1];
+                    snprintf(deltaname, sizeof(deltaname), "%s%s", stat_name, delta_suffix);
                     json_object_set_new(js_type, deltaname,
                         json_integer(st->stats[u].value - st->stats[u].pvalue));
                 }
@@ -265,18 +269,24 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
                 if (st->tstats[u].name == NULL)
                     continue;
 
-                char str[256];
-                snprintf(str, sizeof(str), "%s.%s", st->tstats[u].tm_name, st->tstats[u].name);
-                char *shortname = &str[strrchr(str, '.') - str + 1];
-                json_t *js_type = OutputStats2Json(threads, str);
+                json_t *js_type = NULL;
+                const char *stat_name = st->tstats[u].short_name;
+                if (st->tstats[u].short_name == NULL) {
+                    stat_name = st->tstats[u].name;
+                    js_type = threads;
+                } else {
+                    char str[256];
+                    snprintf(str, sizeof(str), "%s.%s", st->tstats[u].tm_name, st->tstats[u].name);
+                    js_type = OutputStats2Json(threads, str);
+                }
 
                 if (js_type != NULL) {
-                    json_object_set_new(js_type, shortname, json_integer(st->tstats[u].value));
+                    json_object_set_new(js_type, stat_name, json_integer(st->tstats[u].value));
 
                     if (flags & JSON_STATS_DELTAS) {
-                        char deltaname[strlen(shortname) + strlen(delta_suffix) + 1];
-                        snprintf(deltaname, sizeof(deltaname), "%s%s",
-                            shortname, delta_suffix);
+                        char deltaname[strlen(st->tstats[u].short_name) + strlen(delta_suffix) + 1];
+                        snprintf(deltaname, sizeof(deltaname), "%s%s", st->tstats[u].short_name,
+                                delta_suffix);
                         json_object_set_new(js_type, deltaname,
                             json_integer(st->tstats[u].value - st->tstats[u].pvalue));
                     }
