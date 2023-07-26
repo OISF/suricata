@@ -324,7 +324,7 @@ static void StatsInitCtxPostOutput(void)
 }
 
 /**
- * \brief Releases the resources alloted to the output context of the
+ * \brief Releases the resources allotted to the output context of the
  *        Stats API
  */
 static void StatsReleaseCtx(void)
@@ -1263,7 +1263,7 @@ uint64_t StatsGetLocalCounterValue(ThreadVars *tv, uint16_t id)
 }
 
 /**
- * \brief Releases the resources alloted by the Stats API
+ * \brief Releases the resources allotted by the Stats API
  */
 void StatsReleaseResources(void)
 {
