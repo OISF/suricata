@@ -1278,7 +1278,7 @@ pub unsafe extern "C" fn rs_dcerpc_get_stub_data(
 fn probe(input: &[u8]) -> (bool, bool) {
     match parser::parse_dcerpc_header(input) {
         Ok((_, hdr)) => {
-            let is_request = hdr.hdrtype == 0x00;
+            let is_request = hdr.hdrtype == 0x00 || hdr.hdrtype == 0x0e;
             let is_dcerpc = hdr.rpc_vers == 0x05 &&
                 hdr.rpc_vers_minor == 0x00 &&
                 hdr.packed_drep[0] & 0xee == 0 &&
