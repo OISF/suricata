@@ -604,9 +604,8 @@ static uint16_t StatsRegisterQualifiedCounter(const char *name, const char *tm_n
         return(temp->id);
 
     /* if we reach this point we don't have a counter registered by this name */
-    if ( (pc = SCMalloc(sizeof(StatsCounter))) == NULL)
+    if ((pc = SCCalloc(1, sizeof(StatsCounter))) == NULL)
         return 0;
-    memset(pc, 0, sizeof(StatsCounter));
 
     /* assign a unique id to this StatsCounter.  The id is local to this
      * thread context.  Please note that the id start from 1, and not 0 */
@@ -878,10 +877,9 @@ static void StatsLogSummary(void)
 void StatsInit(void)
 {
     BUG_ON(stats_ctx != NULL);
-    if ( (stats_ctx = SCMalloc(sizeof(StatsGlobalContext))) == NULL) {
+    if ((stats_ctx = SCCalloc(1, sizeof(StatsGlobalContext))) == NULL) {
         FatalError("Fatal error encountered in StatsInitCtx. Exiting...");
     }
-    memset(stats_ctx, 0, sizeof(StatsGlobalContext));
 
     StatsPublicThreadContextInit(&stats_ctx->global_counter_ctx);
 }
@@ -1118,11 +1116,10 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
 
 
     StatsThreadStore *temp = NULL;
-    if ( (temp = SCMalloc(sizeof(StatsThreadStore))) == NULL) {
+    if ((temp = SCCalloc(1, sizeof(StatsThreadStore))) == NULL) {
         SCMutexUnlock(&stats_ctx->sts_lock);
         return 0;
     }
-    memset(temp, 0, sizeof(StatsThreadStore));
 
     temp->ctx = pctx;
     temp->name = thread_name;
@@ -1167,10 +1164,9 @@ static int StatsGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
         return -1;
     }
 
-    if ( (pca->head = SCMalloc(sizeof(StatsLocalCounter) * (e_id - s_id  + 2))) == NULL) {
+    if ((pca->head = SCCalloc(1, sizeof(StatsLocalCounter) * (e_id - s_id + 2))) == NULL) {
         return -1;
     }
-    memset(pca->head, 0, sizeof(StatsLocalCounter) * (e_id - s_id  + 2));
 
     pc = pctx->head;
     while (pc->id != s_id)
