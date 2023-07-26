@@ -752,7 +752,7 @@ static void GetWorkUnitSizing(const uint32_t rows, const uint32_t mp, const bool
 
 /** \brief Thread that manages the flow table and times out flows.
  *
- *  \param td ThreadVars casted to void ptr
+ *  \param td ThreadVars cast to void ptr
  *
  *  Keeps an eye on the spare list, alloc flows if needed...
  */
@@ -1043,7 +1043,7 @@ extern uint32_t flow_spare_pool_block_size;
 
 /** \brief Thread that manages timed out flows.
  *
- *  \param td ThreadVars casted to void ptr
+ *  \param td ThreadVars cast to void ptr
  */
 static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
 {
