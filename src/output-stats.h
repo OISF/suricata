@@ -30,6 +30,7 @@
 
 typedef struct StatsRecord_ {
     const char *name;
+    const char *short_name;
     const char *tm_name;
     int64_t value;  /**< total value */
     int64_t pvalue; /**< prev value (may be higher for memuse counters) */
