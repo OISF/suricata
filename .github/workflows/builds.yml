@@ -504,7 +504,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       # Now install and make sure headers and libraries aren't
       # installed until requested.
       - run: make install
@@ -581,7 +581,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
@@ -671,7 +671,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
@@ -751,7 +751,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
@@ -1531,7 +1531,7 @@ jobs:
         run: |
           ./src/suricata --build-info
           ./src/suricata -u -l /tmp/
-          python3 ./suricata-verify/run.py -q
+          python3 ./suricata-verify/run.py -q --debug-failed
 
   windows-msys2-mingw64-windivert:
     name: Windows MSYS2 MINGW64 (WinDivert)
