@@ -3668,6 +3668,12 @@
                 "uptime": {
                     "type": "integer"
                 },
+                "memcap_pressure": {
+                    "type": "integer"
+                },
+                "memcap_pressure_max": {
+                    "type": "integer"
+                },
                 "app_layer": {
                     "type": "object",
                     "properties": {
