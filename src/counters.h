@@ -52,6 +52,7 @@ typedef struct StatsCounter_ {
 
     /* name of the counter */
     const char *name;
+    const char *short_name;
 
     /* the next perfcounter for this tv's tm instance */
     struct StatsCounter_ *next;

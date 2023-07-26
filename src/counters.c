@@ -611,6 +611,12 @@ static uint16_t StatsRegisterQualifiedCounter(const char *name, const char *tm_n
      * thread context.  Please note that the id start from 1, and not 0 */
     pc->id = ++(pctx->curr_id);
     pc->name = name;
+
+    /* Precalculate the short name */
+    if (strrchr(name, '.') != NULL) {
+        pc->short_name = &name[strrchr(name, '.') - name + 1];
+    }
+
     pc->type = type_q;
     pc->Func = Func;
 
@@ -729,6 +735,7 @@ static int StatsOutput(ThreadVars *tv)
             }
             thread_table[pc->gid].updates = pc->updates;
             table[pc->gid].name = pc->name;
+            table[pc->gid].short_name = pc->short_name;
 
             pc = pc->next;
         }
@@ -773,6 +780,7 @@ static int StatsOutput(ThreadVars *tv)
             r->pvalue = r->value;
             r->value = 0;
             r->name = table[c].name;
+            r->short_name = table[c].short_name;
             r->tm_name = sts->name;
 
             switch (e->type) {
