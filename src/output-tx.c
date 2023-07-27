@@ -299,8 +299,7 @@ static void OutputTxLogCallLoggers(ThreadVars *tv, OutputTxLoggerThreadData *op_
                 SCLogDebug("EOF, so log now");
             } else {
                 if (logger->LogCondition) {
-                    int r = logger->LogCondition(tv, p, alstate, tx, tx_id);
-                    if (r == FALSE) {
+                    if (!logger->LogCondition(tv, p, alstate, tx, tx_id)) {
                         SCLogDebug("conditions not met, not logging");
                         goto next_logger;
                     }
