@@ -62,7 +62,7 @@ uint16_t g_reject_dev_mtu = 0;
 
 /** set to true in main if we're setting caps. We need it here if we're using
   * reject rules as libnet 1.1 is not compatible with caps. */
-extern int sc_set_caps;
+extern bool sc_set_caps;
 
 #include <libnet.h>
 

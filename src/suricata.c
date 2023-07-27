@@ -189,7 +189,7 @@ uint16_t max_pending_packets;
 int g_detect_disabled = 0;
 
 /** set caps or not */
-int sc_set_caps = FALSE;
+bool sc_set_caps = false;
 
 bool g_system = false;
 
@@ -1075,7 +1075,7 @@ static void SCInstanceInit(SCInstance *suri, const char *progname)
 
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
     suri->sig_file = NULL;
-    suri->sig_file_exclusive = FALSE;
+    suri->sig_file_exclusive = false;
     suri->pid_filename = NULL;
     suri->regex_arg = NULL;
 
@@ -1084,8 +1084,8 @@ static void SCInstanceInit(SCInstance *suri, const char *progname)
 #ifndef OS_WIN32
     suri->user_name = NULL;
     suri->group_name = NULL;
-    suri->do_setuid = FALSE;
-    suri->do_setgid = FALSE;
+    suri->do_setuid = false;
+    suri->do_setgid = false;
 #endif /* OS_WIN32 */
     suri->userid = 0;
     suri->groupid = 0;
@@ -1605,7 +1605,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 return TM_ECODE_FAILED;
 #else
                 suri->user_name = optarg;
-                suri->do_setuid = TRUE;
+                suri->do_setuid = true;
 #endif /* HAVE_LIBCAP_NG */
             } else if (strcmp((long_opts[option_index]).name, "group") == 0) {
 #ifndef HAVE_LIBCAP_NG
@@ -1614,7 +1614,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 return TM_ECODE_FAILED;
 #else
                 suri->group_name = optarg;
-                suri->do_setgid = TRUE;
+                suri->do_setgid = true;
 #endif /* HAVE_LIBCAP_NG */
             } else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 suri->run_mode = RUNMODE_ERF_FILE;
@@ -1972,7 +1972,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 return TM_ECODE_FAILED;
             }
             suri->sig_file = optarg;
-            suri->sig_file_exclusive = TRUE;
+            suri->sig_file_exclusive = true;
             break;
         case 'u':
 #ifdef UNITTESTS
@@ -2142,25 +2142,25 @@ static int InitRunAs(SCInstance *suri)
 #ifndef OS_WIN32
     /* Try to get user/group to run suricata as if
        command line as not decide of that */
-    if (suri->do_setuid == FALSE && suri->do_setgid == FALSE) {
+    if (!suri->do_setuid && !suri->do_setgid) {
         const char *id;
         if (ConfGet("run-as.user", &id) == 1) {
-            suri->do_setuid = TRUE;
+            suri->do_setuid = true;
             suri->user_name = id;
         }
         if (ConfGet("run-as.group", &id) == 1) {
-            suri->do_setgid = TRUE;
+            suri->do_setgid = true;
             suri->group_name = id;
         }
     }
     /* Get the suricata user ID to given user ID */
-    if (suri->do_setuid == TRUE) {
+    if (suri->do_setuid) {
         SCGetUserID(suri->user_name, suri->group_name, &suri->userid, &suri->groupid);
-        sc_set_caps = TRUE;
-    /* Get the suricata group ID to given group ID */
-    } else if (suri->do_setgid == TRUE) {
+        sc_set_caps = true;
+        /* Get the suricata group ID to given group ID */
+    } else if (suri->do_setgid) {
         SCGetGroupID(suri->group_name, &suri->groupid);
-        sc_set_caps = TRUE;
+        sc_set_caps = true;
     }
 #endif
     return TM_ECODE_OK;
