@@ -3858,7 +3858,7 @@ static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *fil
         goto error;
     }
 
-    if (SigLoadSignatures(de_ctx, NULL, 0) < 0) {
+    if (SigLoadSignatures(de_ctx, NULL, false) < 0) {
         SCLogError("Loading signatures failed.");
         goto error;
     }
@@ -3918,7 +3918,7 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
         goto error;
     }
 
-    if (SigLoadSignatures(new_de_ctx, NULL, 0) < 0) {
+    if (SigLoadSignatures(new_de_ctx, NULL, false) < 0) {
         SCLogError("Loading signatures failed.");
         goto error;
     }
