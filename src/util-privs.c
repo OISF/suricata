@@ -44,7 +44,7 @@
 #include "runmodes.h"
 
 /** flag indicating if we'll be using caps */
-extern int sc_set_caps;
+extern bool sc_set_caps;
 
 /** our current runmode */
 extern int run_mode;
@@ -54,7 +54,7 @@ extern int run_mode;
  */
 void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
 {
-    if (sc_set_caps == FALSE)
+    if (!sc_set_caps)
         return;
 
     capng_clear(CAPNG_SELECT_BOTH);

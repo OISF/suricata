@@ -244,7 +244,7 @@ void LandlockSandboxing(SCInstance *suri)
             LandlockSandboxingWritePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
         }
     }
-    if (suri->sig_file_exclusive == FALSE) {
+    if (!suri->sig_file_exclusive) {
         const char *rule_path;
         if (ConfGet("default-rule-path", &rule_path) == 1 && rule_path) {
             LandlockSandboxingReadPath(ruleset, rule_path);

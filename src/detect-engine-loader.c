@@ -270,7 +270,7 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
  *  \param sig_file_exclusive File passed in 'sig_file' should be loaded exclusively.
  *  \retval -1 on error
  */
-int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_exclusive)
+int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exclusive)
 {
     SCEnter();
 
@@ -293,7 +293,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     }
 
     /* ok, let's load signature files from the general config */
-    if (!(sig_file != NULL && sig_file_exclusive == TRUE)) {
+    if (!(sig_file != NULL && sig_file_exclusive)) {
         rule_files = ConfGetNode(varname);
         if (rule_files != NULL) {
             if (!ConfNodeIsSequence(rule_files)) {
