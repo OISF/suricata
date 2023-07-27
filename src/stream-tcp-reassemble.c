@@ -421,7 +421,7 @@ uint64_t StreamTcpGetAcked(const TcpStream *stream)
 uint64_t StreamDataRightEdge(const TcpStream *stream, const bool eof)
 {
     uint64_t right_edge = STREAM_BASE_OFFSET(stream) + stream->segs_right_edge - stream->base_seq;
-    if (!eof && StreamTcpInlineMode() == FALSE) {
+    if (!eof && !StreamTcpInlineMode()) {
         right_edge = MIN(GetAbsLastAck(stream), right_edge);
     }
     return right_edge;
@@ -430,7 +430,7 @@ uint64_t StreamDataRightEdge(const TcpStream *stream, const bool eof)
 uint64_t StreamTcpGetUsable(const TcpStream *stream, const bool eof)
 {
     uint64_t right_edge = StreamingBufferGetConsecutiveDataRightEdge(&stream->sb);
-    if (!eof && StreamTcpInlineMode() == FALSE) {
+    if (!eof && !StreamTcpInlineMode()) {
         right_edge = MIN(GetAbsLastAck(stream), right_edge);
     }
     return right_edge;
@@ -496,7 +496,7 @@ static int StreamTcpReassemblyConfig(bool quiet)
     if (overlap_diff_data) {
         StreamTcpReassembleConfigEnableOverlapCheck();
     }
-    if (StreamTcpInlineMode() == TRUE) {
+    if (StreamTcpInlineMode()) {
         StreamTcpReassembleConfigEnableOverlapCheck();
     }
 
@@ -1189,7 +1189,7 @@ static inline uint32_t AdjustToAcked(const Packet *p,
     uint32_t adjusted = data_len;
 
     /* get window of data that is acked */
-    if (StreamTcpInlineMode() == FALSE) {
+    if (!StreamTcpInlineMode()) {
         SCLogDebug("ssn->state %s", StreamTcpStateAsString(ssn->state));
         if (data_len == 0 || ((ssn->state < TCP_CLOSED ||
                                       (ssn->state == TCP_CLOSED &&
@@ -1481,7 +1481,7 @@ bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p)
                          STREAMTCP_STREAM_FLAG_DISABLE_RAW))
         return false;
 
-    if (StreamTcpInlineMode() == FALSE) {
+    if (!StreamTcpInlineMode()) {
         const uint64_t segs_re_abs =
                 STREAM_BASE_OFFSET(stream) + stream->segs_right_edge - stream->base_seq;
         if (STREAM_RAW_PROGRESS(stream) == segs_re_abs) {
@@ -1860,7 +1860,7 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
                         uint64_t *progress_out, bool respect_inspect_depth)
 {
     /* handle inline separately as the logic is very different */
-    if (StreamTcpInlineMode() == TRUE) {
+    if (StreamTcpInlineMode()) {
         return StreamReassembleRawInline(ssn, p, Callback, cb_data, progress_out);
     }
 
