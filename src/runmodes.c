@@ -72,7 +72,7 @@
 #include "suricata-plugin.h"
 
 int debuglog_enabled = 0;
-int threading_set_cpu_affinity = FALSE;
+bool threading_set_cpu_affinity = false;
 uint64_t threading_set_stack_size = 0;
 
 /* Runmode Global Thread Names */
@@ -982,12 +982,15 @@ float threading_detect_ratio = 1;
  */
 void RunModeInitializeThreadSettings(void)
 {
-    threading_set_cpu_affinity = FALSE;
-    if ((ConfGetBool("threading.set-cpu-affinity", &threading_set_cpu_affinity)) == 0) {
-        threading_set_cpu_affinity = FALSE;
+    int affinity = 0;
+    if ((ConfGetBool("threading.set-cpu-affinity", &affinity)) == 0) {
+        threading_set_cpu_affinity = false;
+    } else {
+        threading_set_cpu_affinity = affinity == 1;
     }
+
     /* try to get custom cpu mask value if needed */
-    if (threading_set_cpu_affinity == TRUE) {
+    if (threading_set_cpu_affinity) {
         AffinitySetupLoadFromConfig();
     }
     if ((ConfGetFloat("threading.detect-thread-ratio", &threading_detect_ratio)) != 1) {
