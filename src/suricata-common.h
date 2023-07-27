@@ -30,9 +30,6 @@
 #define DBG_PERF
 #endif
 
-#define TRUE   1
-#define FALSE  0
-
 #define _GNU_SOURCE
 #define __USE_GNU
 
