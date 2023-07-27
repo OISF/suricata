@@ -128,7 +128,7 @@ void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *reg)
 /* Table with all SigMatch registrations */
 SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 
-extern int sc_set_caps;
+extern bool sc_set_caps;
 
 static void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
         SigMatch **src_sm_list, SigMatch **src_sm_list_tail,
@@ -1143,7 +1143,7 @@ static int SigParseActionRejectValidate(const char *action)
 {
 #ifdef HAVE_LIBNET11
 #if defined HAVE_LIBCAP_NG && !defined HAVE_LIBNET_CAPABILITIES
-    if (sc_set_caps == TRUE) {
+    if (sc_set_caps) {
         SCLogError("Libnet 1.1 is "
                    "incompatible with POSIX based capabilities with privs dropping. "
                    "For rejects to work, run as root/super user.");

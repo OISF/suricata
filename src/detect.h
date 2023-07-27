@@ -1552,7 +1552,7 @@ void SigRegisterTests(void);
 
 void DisableDetectFlowFileFlags(Flow *f);
 char *DetectLoadCompleteSigPath(const DetectEngineCtx *, const char *sig_file);
-int SigLoadSignatures (DetectEngineCtx *, char *, int);
+int SigLoadSignatures(DetectEngineCtx *, char *, bool);
 void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                        DetectEngineThreadCtx *det_ctx, Packet *p);
 
