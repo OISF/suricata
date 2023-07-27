@@ -141,7 +141,6 @@ typedef struct PcapLogCompressionData_ {
 typedef struct PcapLogData_ {
     int use_stream_depth;       /**< use stream depth i.e. ignore packets that reach limit */
     int honor_pass_rules;       /**< don't log if pass rules have matched */
-    int is_private;             /**< TRUE if ctx is thread local */
     SCMutex plog_lock;
     uint64_t pkt_cnt;		    /**< total number of packets */
     struct pcap_pkthdr *h;      /**< pcap header struct */
@@ -155,6 +154,7 @@ typedef struct PcapLogData_ {
     uint64_t profile_data_size; /**< track in bytes how many bytes we wrote */
     uint32_t file_cnt;          /**< count of pcap files we currently have */
     uint32_t max_files;         /**< maximum files to use in ring buffer mode */
+    bool is_private;            /**< true if ctx is thread local */
     LogModeConditionalType
             conditional; /**< log all packets or just packets and flows with alerts */
 
@@ -763,7 +763,7 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
     copy->suffix = pl->suffix;
 
     /* settings TODO move to global cfg struct */
-    copy->is_private = TRUE;
+    copy->is_private = true;
     copy->mode = pl->mode;
     copy->max_files = pl->max_files;
     copy->use_ringbuffer = pl->use_ringbuffer;
