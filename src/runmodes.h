@@ -100,7 +100,7 @@ bool IsRunModeSystem(enum RunModes run_mode_to_check);
 void RunModeEnablesBypassManager(void);
 int RunModeNeedsBypassManager(void);
 
-extern int threading_set_cpu_affinity;
+extern bool threading_set_cpu_affinity;
 extern float threading_detect_ratio;
 extern uint64_t threading_set_stack_size;
 
