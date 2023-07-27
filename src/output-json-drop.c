@@ -340,49 +340,48 @@ static int JsonDropLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     return 0;
 }
 
-
 /**
  * \brief Check if we need to drop-log this packet
  *
  * \param tv    Pointer the current thread variables
  * \param p     Pointer the packet which is tested
  *
- * \retval bool TRUE or FALSE
+ * \retval bool true or false
  */
-static int JsonDropLogCondition(ThreadVars *tv, void *data, const Packet *p)
+static bool JsonDropLogCondition(ThreadVars *tv, void *data, const Packet *p)
 {
     if (!EngineModeIsIPS()) {
         SCLogDebug("engine is not running in inline mode, so returning");
-        return FALSE;
+        return false;
     }
     if (PKT_IS_PSEUDOPKT(p)) {
         SCLogDebug("drop log doesn't log pseudo packets");
-        return FALSE;
+        return false;
     }
 
     if (!(PacketCheckAction(p, ACTION_DROP))) {
-        return FALSE;
+        return false;
     }
 
     if (g_droplog_flows_start && p->flow != NULL) {
-        int ret = FALSE;
+        bool ret = false;
 
         /* for a flow that will be dropped fully, log just once per direction */
         if (p->flow->flags & FLOW_ACTION_DROP) {
             if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED))
-                ret = TRUE;
+                ret = true;
             else if (PKT_IS_TOCLIENT(p) && !(p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED))
-                ret = TRUE;
+                ret = true;
         }
 
         /* if drop is caused by signature, log anyway */
         if (p->alerts.drop.action != 0)
-            ret = TRUE;
+            ret = true;
 
         return ret;
     }
 
-    return TRUE;
+    return true;
 }
 
 void JsonDropLogRegister (void)

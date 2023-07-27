@@ -367,9 +367,9 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *da
     return TM_ECODE_OK;
 }
 
-static int AlertSyslogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
+static bool AlertSyslogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 {
-    return (p->alerts.cnt > 0 ? TRUE : FALSE);
+    return (p->alerts.cnt > 0);
 }
 
 static int AlertSyslogLogger(ThreadVars *tv, void *thread_data, const Packet *p)
