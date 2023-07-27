@@ -157,8 +157,6 @@ typedef struct HTPCfgRec_ {
     htp_cfg_t           *cfg;
     struct HTPCfgRec_   *next;
 
-    int                 uri_include_all; /**< use all info in uri (bool) */
-
     /** max size of the client body we inspect */
     int                 randomize;
     int                 randomize_range;
@@ -171,6 +169,8 @@ typedef struct HTPCfgRec_ {
 
     HTPCfgDir request;
     HTPCfgDir response;
+
+    bool uri_include_all; /**< use all info in uri (bool) */
 } HTPCfgRec;
 
 /** Struct used to hold chunks of a body on a request */
