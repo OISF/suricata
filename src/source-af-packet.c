@@ -661,6 +661,10 @@ static void AFPWritePacket(Packet *p, int version)
     }
 
     /* Index of the network device */
+    if (p->afp_v.peer == NULL) {
+        SCLogError("Peer network device invalid");
+        return;
+    }
     socket_address.sll_ifindex = SC_ATOMIC_GET(p->afp_v.peer->if_idx);
     /* Address length*/
     socket_address.sll_halen = ETH_ALEN;
