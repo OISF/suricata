@@ -453,7 +453,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             el->pectx = NULL; // e now owns the ctx
             e->gid = el->gid;
             if (el->next == NULL) {
-                e->is_last = TRUE;
+                e->is_last = true;
             }
             e++;
         }
@@ -477,7 +477,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             el->pectx = NULL; // e now owns the ctx
             e->gid = el->gid;
             if (el->next == NULL) {
-                e->is_last = TRUE;
+                e->is_last = true;
             }
             e++;
         }
@@ -579,7 +579,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             el->pectx = NULL; // e now owns the ctx
             e->gid = el->gid;
             if (el->next == NULL) {
-                e->is_last = TRUE;
+                e->is_last = true;
             }
             e++;
         }
