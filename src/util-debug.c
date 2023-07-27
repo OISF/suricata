@@ -341,7 +341,7 @@ static const char *SCTransformModule(const char *module_name, int *dn_len)
  *
  * \retval 0 on success; else a negative value on error
  */
-static SCError SCLogMessageGetBuffer(SCTime_t tval, int color, SCLogOPType type, char *buffer,
+static SCError SCLogMessageGetBuffer(SCTime_t tval, bool color, SCLogOPType type, char *buffer,
         size_t buffer_size, const char *log_format, const SCLogLevel log_level, const char *file,
         const unsigned int line, const char *function, const char *module, const char *message)
 {
@@ -952,7 +952,7 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
 
 #ifndef OS_WIN32
     if (isatty(fileno(stdout)) && isatty(fileno(stderr))) {
-        iface_ctx->use_color = TRUE;
+        iface_ctx->use_color = true;
     }
 #endif
 
