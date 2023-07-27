@@ -2095,7 +2095,6 @@ jobs:
               libjansson-dev \
               libjansson4 \
               liblua5.1-dev \
-              libnss3-dev \
               libnspr4-dev \
               libnuma-dev \
               liblz4-dev \
@@ -2179,7 +2178,6 @@ jobs:
               libmagic-dev \
               libjansson-dev \
               libjansson4 \
-              libnss3-dev \
               libnspr4-dev \
               liblz4-dev \
               libssl-dev \
@@ -2259,7 +2257,6 @@ jobs:
               libjansson-dev \
               libjansson4 \
               liblua5.1-dev \
-              libnss3-dev \
               libnspr4-dev \
               libnuma-dev \
               liblz4-dev \
