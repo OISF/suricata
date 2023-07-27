@@ -162,7 +162,7 @@ static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
  *
  *  A single call to this function will run one script for a single
  *  packet. If it is called, it means that the registered condition
- *  function has returned TRUE.
+ *  function has returned true.
  *
  *  The script is called once for each alert stored in the packet.
  *
@@ -215,11 +215,9 @@ not_supported:
     SCReturnInt(0);
 }
 
-static int LuaPacketConditionAlerts(ThreadVars *tv, void *data, const Packet *p)
+static bool LuaPacketConditionAlerts(ThreadVars *tv, void *data, const Packet *p)
 {
-    if (p->alerts.cnt > 0)
-        return TRUE;
-    return FALSE;
+    return (p->alerts.cnt > 0);
 }
 
 /** \internal
@@ -227,7 +225,7 @@ static int LuaPacketConditionAlerts(ThreadVars *tv, void *data, const Packet *p)
  *
  *  A single call to this function will run one script for a single
  *  packet. If it is called, it means that the registered condition
- *  function has returned TRUE.
+ *  function has returned true.
  *
  *  The script is called once for each packet.
  *
@@ -265,9 +263,9 @@ not_supported:
     SCReturnInt(0);
 }
 
-static int LuaPacketCondition(ThreadVars *tv, void *data, const Packet *p)
+static bool LuaPacketCondition(ThreadVars *tv, void *data, const Packet *p)
 {
-    return TRUE;
+    return true;
 }
 
 /** \internal
