@@ -126,7 +126,7 @@ typedef struct SCInstance_ {
 
     char pcap_dev[128];
     char *sig_file;
-    int sig_file_exclusive;
+    bool sig_file_exclusive;
     char *pid_filename;
     char *regex_arg;
 
@@ -135,8 +135,8 @@ typedef struct SCInstance_ {
 #ifndef OS_WIN32
     const char *user_name;
     const char *group_name;
-    uint8_t do_setuid;
-    uint8_t do_setgid;
+    bool do_setuid;
+    bool do_setgid;
 #endif /* OS_WIN32 */
     uint32_t userid;
     uint32_t groupid;
