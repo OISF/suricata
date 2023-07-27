@@ -115,7 +115,7 @@ typedef struct SCLogOPBuffer_ {
 typedef struct SCLogOPIfaceCtx_ {
     SCLogOPIface iface;
 
-    int16_t use_color;
+    bool use_color;
     SCLogOPType type;
 
     /* the output file to be used if the interface is SC_LOG_IFACE_FILE */
