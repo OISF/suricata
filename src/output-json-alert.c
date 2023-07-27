@@ -947,12 +947,9 @@ static int JsonAlertLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     return 0;
 }
 
-static int JsonAlertLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
+static bool JsonAlertLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 {
-    if (p->alerts.cnt || (p->flags & PKT_HAS_TAG)) {
-        return TRUE;
-    }
-    return FALSE;
+    return (p->alerts.cnt || (p->flags & PKT_HAS_TAG));
 }
 
 static TmEcode JsonAlertLogThreadInit(ThreadVars *t, const void *initdata, void **data)

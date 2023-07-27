@@ -282,7 +282,7 @@ static void LogStream(const TcpStream *stream, JsonBuilder *js)
  * \param data  Pointer to the EveStreamLogThread struct
  * \param p     Pointer the packet which is being logged
  *
- * \retval 0 on succes
+ * \retval 0 on success
  */
 static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
@@ -422,9 +422,9 @@ static int EveStreamLogger(ThreadVars *tv, void *thread_data, const Packet *p)
  * \param tv    Pointer the current thread variables
  * \param p     Pointer the packet which is tested
  *
- * \retval bool TRUE or FALSE
+ * \retval bool true or false
  */
-static int EveStreamLogCondition(ThreadVars *tv, void *data, const Packet *p)
+static bool EveStreamLogCondition(ThreadVars *tv, void *data, const Packet *p)
 {
     EveStreamLogThread *td = data;
     EveStreamOutputCtx *ctx = td->stream_ctx;
