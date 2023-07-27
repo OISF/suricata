@@ -6836,9 +6836,9 @@ int StreamTcpBypassEnabled(void)
  *  \retval 0 no
  *  \retval 1 yes
  */
-int StreamTcpInlineMode(void)
+bool StreamTcpInlineMode(void)
 {
-    return (stream_config.flags & STREAMTCP_INIT_FLAG_INLINE) ? 1 : 0;
+    return (stream_config.flags & STREAMTCP_INIT_FLAG_INLINE);
 }
 
 
