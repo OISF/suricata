@@ -57,7 +57,7 @@
  * \param uri_include_all boolean to indicate if scheme, username/password,
                           hostname and port should be part of the buffer
  */
-bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, int uri_include_all)
+bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all)
 {
     if (uri == NULL)
         return NULL;

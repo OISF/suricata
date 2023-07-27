@@ -2463,7 +2463,7 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
  */
 static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
 {
-    cfg_prec->uri_include_all = FALSE;
+    cfg_prec->uri_include_all = false;
     cfg_prec->request.body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
     cfg_prec->response.body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
     cfg_prec->request.inspect_min_size = HTP_CONFIG_DEFAULT_REQUEST_INSPECT_MIN_SIZE;
@@ -2785,7 +2785,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                                                 HTP_DECODER_URL_PATH,
                                                 ConfValIsTrue(p->val));
         } else if (strcasecmp("uri-include-all", p->name) == 0) {
-            cfg_prec->uri_include_all = ConfValIsTrue(p->val);
+            cfg_prec->uri_include_all = (1 == ConfValIsTrue(p->val));
             SCLogDebug("uri-include-all %s",
                     cfg_prec->uri_include_all ? "enabled" : "disabled");
         } else if (strcasecmp("query-plusspace-decode", p->name) == 0) {
