@@ -1843,12 +1843,12 @@ DetectAddress *DetectAddressLookupInHead(const DetectAddressHead *gh, Address *a
 
 #ifdef UNITTESTS
 
-static int UTHValidateDetectAddress(DetectAddress *ad, const char *one, const char *two)
+static bool UTHValidateDetectAddress(DetectAddress *ad, const char *one, const char *two)
 {
     char str1[46] = "", str2[46] = "";
 
     if (ad == NULL)
-        return FALSE;
+        return false;
 
     switch(ad->ip.family) {
         case AF_INET:
@@ -1859,15 +1859,15 @@ static int UTHValidateDetectAddress(DetectAddress *ad, const char *one, const ch
 
             if (strcmp(str1, one) != 0) {
                 SCLogInfo("%s != %s", str1, one);
-                return FALSE;
+                return false;
             }
 
             if (strcmp(str2, two) != 0) {
                 SCLogInfo("%s != %s", str2, two);
-                return FALSE;
+                return false;
             }
 
-            return TRUE;
+            return true;
             break;
 
         case AF_INET6:
@@ -1878,19 +1878,19 @@ static int UTHValidateDetectAddress(DetectAddress *ad, const char *one, const ch
 
             if (strcmp(str1, one) != 0) {
                 SCLogInfo("%s != %s", str1, one);
-                return FALSE;
+                return false;
             }
 
             if (strcmp(str2, two) != 0) {
                 SCLogInfo("%s != %s", str2, two);
-                return FALSE;
+                return false;
             }
 
-            return TRUE;
+            return true;
             break;
     }
 
-    return FALSE;
+    return false;
 }
 
 typedef struct UTHValidateDetectAddressHeadRange_ {
@@ -1904,7 +1904,7 @@ static int UTHValidateDetectAddressHead(DetectAddressHead *gh, int nranges, UTHV
     int have = 0;
 
     if (gh == NULL)
-        return FALSE;
+        return false;
 
     DetectAddress *ad = NULL;
     ad = gh->ipv4_head;
@@ -1913,17 +1913,17 @@ static int UTHValidateDetectAddressHead(DetectAddressHead *gh, int nranges, UTHV
     while (have < expect) {
         if (ad == NULL) {
             printf("bad head: have %d ranges, expected %d: ", have, expect);
-            return FALSE;
+            return false;
         }
 
-        if (UTHValidateDetectAddress(ad, expectations[have].one, expectations[have].two) == FALSE)
-            return FALSE;
+        if (!UTHValidateDetectAddress(ad, expectations[have].one, expectations[have].two))
+            return false;
 
         ad = ad->next;
         have++;
     }
 
-    return TRUE;
+    return true;
 }
 
 static int AddressTestParse01(void)
@@ -4131,7 +4131,7 @@ static int AddressTestAddressGroupSetup38(void)
     if (gh != NULL) {
         int r = DetectAddressParse(NULL, gh, "![192.168.0.0/16,!192.168.14.0/24]");
         if (r == 1) {
-            if (UTHValidateDetectAddressHead(gh, 3, expectations) == TRUE)
+            if (UTHValidateDetectAddressHead(gh, 3, expectations))
                 result = 1;
         }
 
@@ -4152,7 +4152,7 @@ static int AddressTestAddressGroupSetup39(void)
     if (gh != NULL) {
         int r = DetectAddressParse(NULL, gh, "[![192.168.0.0/16,!192.168.14.0/24]]");
         if (r == 1) {
-            if (UTHValidateDetectAddressHead(gh, 3, expectations) == TRUE)
+            if (UTHValidateDetectAddressHead(gh, 3, expectations))
                 result = 1;
         }
 
@@ -4172,7 +4172,7 @@ static int AddressTestAddressGroupSetup40(void)
     if (gh != NULL) {
         int r = DetectAddressParse(NULL, gh, "[![192.168.0.0/16,[!192.168.14.0/24]]]");
         if (r == 1) {
-            if (UTHValidateDetectAddressHead(gh, 3, expectations) == TRUE)
+            if (UTHValidateDetectAddressHead(gh, 3, expectations))
                 result = 1;
         }
 
@@ -4192,7 +4192,7 @@ static int AddressTestAddressGroupSetup41(void)
     if (gh != NULL) {
         int r = DetectAddressParse(NULL, gh, "[![192.168.0.0/16,![192.168.14.0/24]]]");
         if (r == 1) {
-            if (UTHValidateDetectAddressHead(gh, 3, expectations) == TRUE)
+            if (UTHValidateDetectAddressHead(gh, 3, expectations))
                 result = 1;
         }
 
@@ -4210,7 +4210,7 @@ static int AddressTestAddressGroupSetup42(void)
     if (gh != NULL) {
         int r = DetectAddressParse(NULL, gh, "[2001::/3]");
         if (r == 0) {
-            if (UTHValidateDetectAddressHead(gh, 1, expectations) == TRUE)
+            if (UTHValidateDetectAddressHead(gh, 1, expectations))
                 result = 1;
         }
 
@@ -4229,7 +4229,7 @@ static int AddressTestAddressGroupSetup43(void)
     if (gh != NULL) {
         int r = DetectAddressParse(NULL, gh, "[2001::/3,!3000::/5]");
         if (r == 1) {
-            if (UTHValidateDetectAddressHead(gh, 2, expectations) == TRUE)
+            if (UTHValidateDetectAddressHead(gh, 2, expectations))
                 result = 1;
         }
 
@@ -4247,7 +4247,7 @@ static int AddressTestAddressGroupSetup44(void)
     if (gh != NULL) {
         int r = DetectAddressParse(NULL, gh, "3ffe:ffff:7654:feda:1245:ba98:3210:4562/96");
         if (r == 0) {
-            if (UTHValidateDetectAddressHead(gh, 1, expectations) == TRUE)
+            if (UTHValidateDetectAddressHead(gh, 1, expectations))
                 result = 1;
         }
 
@@ -4283,7 +4283,7 @@ static int AddressTestAddressGroupSetup46(void)
     if (gh != NULL) {
         int r = DetectAddressParse(NULL, gh, "[![192.168.0.0/16,![192.168.1.0/24,192.168.3.0/24]]]");
         if (r == 1) {
-            if (UTHValidateDetectAddressHead(gh, 4, expectations) == TRUE)
+            if (UTHValidateDetectAddressHead(gh, 4, expectations))
                 result = 1;
         }
 
@@ -4306,7 +4306,7 @@ static int AddressTestAddressGroupSetup47(void)
     if (gh != NULL) {
         int r = DetectAddressParse(NULL, gh, "[![192.168.0.0/16,![192.168.1.0/24,192.168.3.0/24],!192.168.5.0/24]]");
         if (r == 1) {
-            if (UTHValidateDetectAddressHead(gh, 5, expectations) == TRUE)
+            if (UTHValidateDetectAddressHead(gh, 5, expectations))
                 result = 1;
         }
 
@@ -4328,7 +4328,7 @@ static int AddressTestAddressGroupSetup48(void)
     if (gh != NULL) {
         int r = DetectAddressParse(NULL, gh, "[192.168.0.0/16,![192.168.1.0/24,192.168.3.0/24],!192.168.5.0/24]");
         if (r == 1) {
-            if (UTHValidateDetectAddressHead(gh, 4, expectations) == TRUE)
+            if (UTHValidateDetectAddressHead(gh, 4, expectations))
                 result = 1;
         }
 
