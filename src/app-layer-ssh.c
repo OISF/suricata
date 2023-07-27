@@ -71,7 +71,7 @@ static int SSHRegisterPatternsForProtocolDetection(void)
     return 0;
 }
 
-int SSHTxLogCondition(ThreadVars * tv, const Packet * p, void *state, void *tx, uint64_t tx_id)
+bool SSHTxLogCondition(ThreadVars *tv, const Packet *p, void *state, void *tx, uint64_t tx_id)
 {
     return rs_ssh_tx_get_log_condition(tx);
 }

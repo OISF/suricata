@@ -468,9 +468,9 @@ error:
     return result;
 }
 
-static int AlertDebugLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
+static bool AlertDebugLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 {
-    return (p->alerts.cnt ? TRUE : FALSE);
+    return (p->alerts.cnt > 0);
 }
 
 static int AlertDebugLogLogger(ThreadVars *tv, void *thread_data, const Packet *p)

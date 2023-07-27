@@ -206,7 +206,7 @@ static TmEcode PcapLogDataDeinit(ThreadVars *, void *);
 static void PcapLogFileDeInitCtx(OutputCtx *);
 static OutputInitResult PcapLogInitCtx(ConfNode *);
 static void PcapLogProfilingDump(PcapLogData *);
-static int PcapLogCondition(ThreadVars *, void *, const Packet *);
+static bool PcapLogCondition(ThreadVars *, void *, const Packet *);
 
 void PcapLogRegister(void)
 {
@@ -226,7 +226,7 @@ void PcapLogRegister(void)
     (prof).total += (UtilCpuGetTicks() - pcaplog_profile_ticks); \
     (prof).cnt++
 
-static int PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
+static bool PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     PcapLogThreadData *ptd = (PcapLogThreadData *)thread_data;
 
@@ -235,29 +235,21 @@ static int PcapLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
         case LOGMODE_COND_ALL:
             break;
         case LOGMODE_COND_ALERTS:
-            if (p->alerts.cnt || (p->flow && FlowHasAlerts(p->flow))) {
-                return TRUE;
-            } else {
-                return FALSE;
-            }
+            return (p->alerts.cnt || (p->flow && FlowHasAlerts(p->flow)));
             break;
         case LOGMODE_COND_TAG:
-            if (p->flags & (PKT_HAS_TAG | PKT_FIRST_TAG)) {
-                return TRUE;
-            } else {
-                return FALSE;
-            }
+            return (p->flags & (PKT_HAS_TAG | PKT_FIRST_TAG));
             break;
     }
 
     if (p->flags & PKT_PSEUDO_STREAM_END) {
-        return FALSE;
+        return false;
     }
 
     if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
-        return FALSE;
+        return false;
     }
-    return TRUE;
+    return true;
 }
 
 /**

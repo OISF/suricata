@@ -376,15 +376,15 @@ static int JsonFrameLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     return FrameJson(tv, aft, p);
 }
 
-static int JsonFrameLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
+static bool JsonFrameLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     if (p->flow == NULL || p->flow->alproto == ALPROTO_UNKNOWN)
-        return FALSE;
+        return false;
 
     if ((p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) && p->flow->alparser != NULL) {
         FramesContainer *frames_container = AppLayerFramesGetContainer(p->flow);
         if (frames_container == NULL)
-            return FALSE;
+            return false;
 
         Frames *frames;
         if (PKT_IS_TOSERVER(p)) {
@@ -394,7 +394,7 @@ static int JsonFrameLogCondition(ThreadVars *tv, void *thread_data, const Packet
         }
         return (frames->cnt != 0);
     }
-    return FALSE;
+    return false;
 }
 
 static TmEcode JsonFrameLogThreadInit(ThreadVars *t, const void *initdata, void **data)
