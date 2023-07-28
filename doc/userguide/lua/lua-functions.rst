@@ -960,7 +960,13 @@ SCStreamingBuffer
 ::
 
   function log(args)
-      data = SCStreamingBuffer()
+      -- sb_ts and sb_tc are bools indicating the direction of the data
+      data, sb_open, sb_close, sb_ts, sb_tc = SCStreamingBuffer()
+      if sb_ts then
+        print("->")
+      else
+        print("<-")
+      end
       hex_dump(data)
   end
 
