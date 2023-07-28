@@ -1849,3 +1849,290 @@ Example of HTTP2 logging, of a request and response:
       ]
     }
   }
+
+
+Event type: IKE
+---------------
+
+The parser implementations for IKEv1 and IKEv2 have a slightly different feature
+set. They can be distinguished using the "version_major" field (which equals
+either 1 or 2).
+The unique properties are contained within a separate "ikev1" and "ikev2" sub-object.
+
+Fields
+~~~~~~
+
+* "init_spi", "resp_spi": The Security Parameter Index (SPI) of the initiator and responder.
+* "version_major": Major version of the ISAKMP header.
+* "version_minor": Minor version of the ISAKMP header.
+* "payload": List of payload types in the current packet.
+* "exchange_type": Type of the exchange, as numeric values.
+* "exchange_type_verbose": Type of the exchange, in human-readable form. Needs ``extended: yes`` set in the ``ike`` EVE output option.
+* "alg_enc", "alg_hash", "alg_auth", "alg_dh", "alg_esn": Properties of the chosen security association by the server.
+* "ikev1.encrypted_payloads": Set to ``true`` if the payloads in the packet are encrypted.
+* "ikev1.doi": Value of the domain of interpretation (DOI).
+* "ikev1.server.key_exchange_payload", "ikev1.client.key_exchange_payload": Public key exchange payloads of the server and client.
+* "ikev1.server.key_exchange_payload_length", "ikev1.client.key_exchange_payload_length": Length of the public key exchange payload.
+* "ikev1.server.nonce_payload", "ikev1.client.nonce_payload": Nonce payload of the server and client.
+* "ikev1.server.nonce_payload_length", "ikev1.client.nonce_payload_length": Length of the nonce payload.
+* "ikev1.client.client_proposals": List of the security associations proposed to the server.
+* "ikev1.vendor_ids": List of the vendor IDs observed in the communication.
+* "server_proposals": List of server proposals with parameters, if there are more than one. This is a non-standard case; this field is only present if such a situation was observed in the inspected traffic.
+
+
+
+Examples
+~~~~~~~~
+
+Example of IKE logging:
+
+::
+
+  "ike": {
+    "version_major": 1,
+    "version_minor": 0,
+    "init_spi": "8511617bfea2f172",
+    "resp_spi": "c0fc6bae013de0f5",
+    "message_id": 0,
+    "exchange_type": 2,
+    "exchange_type_verbose": "Identity Protection",
+    "sa_life_type": "LifeTypeSeconds",
+    "sa_life_type_raw": 1,
+    "sa_life_duration": "Unknown",
+    "sa_life_duration_raw": 900,
+    "alg_enc": "EncAesCbc",
+    "alg_enc_raw": 7,
+    "alg_hash": "HashSha2_256",
+    "alg_hash_raw": 4,
+    "alg_auth": "AuthPreSharedKey",
+    "alg_auth_raw": 1,
+    "alg_dh": "GroupModp2048Bit",
+    "alg_dh_raw": 14,
+    "sa_key_length": "Unknown",
+    "sa_key_length_raw": 256,
+    "alg_esn": "NoESN",
+    "payload": [
+      "VendorID",
+      "Transform",
+      "Proposal",
+      "SecurityAssociation"
+    ],
+    "ikev1": {
+      "doi": 1,
+      "encrypted_payloads": false,
+      "client": {
+        "key_exchange_payload": "0bf7907681a656aabed38fb1ba8918b10d707a8e635a...",
+        "key_exchange_payload_length": 256,
+        "nonce_payload": "1427d158fc1ed6bbbc1bd81e6b74960809c87d18af5f0abef14d5274ac232904",
+        "nonce_payload_length": 32,
+        "proposals": [
+          {
+            "sa_life_type": "LifeTypeSeconds",
+            "sa_life_type_raw": 1,
+            "sa_life_duration": "Unknown",
+            "sa_life_duration_raw": 900,
+            "alg_enc": "EncAesCbc",
+            "alg_enc_raw": 7,
+            "alg_hash": "HashSha2_256",
+            "alg_hash_raw": 4,
+            "alg_auth": "AuthPreSharedKey",
+            "alg_auth_raw": 1,
+            "alg_dh": "GroupModp2048Bit",
+            "alg_dh_raw": 14,
+            "sa_key_length": "Unknown",
+            "sa_key_length_raw": 256
+          }
+        ]
+      },
+      "server": {
+        "key_exchange_payload": "1e43be52b088ec840ff81865074b6d459b5ca7813b46...",
+        "key_exchange_payload_length": 256,
+        "nonce_payload": "04d78293ead007bc1a0f0c6c821a3515286a935af12ca50e08905b15d6c8fcd4",
+        "nonce_payload_length": 32
+      },
+      "vendor_ids": [
+        "4048b7d56ebce88525e7de7f00d6c2d3",
+        "4a131c81070358455c5728f20e95452f",
+        "afcad71368a1f1c96b8696fc77570100",
+        "7d9419a65310ca6f2c179d9215529d56",
+        "cd60464335df21f87cfdb2fc68b6a448",
+        "90cb80913ebb696e086381b5ec427b1f"
+      ]
+    },
+  }
+
+Event type: Modbus
+------------------
+
+Common fields
+~~~~~~~~~~~~~
+
+* "id": The unique transaction number given by Suricata
+
+Request/Response fields
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* "transaction_id": The transaction id found in the packet
+* "protocol_id": The modbus version
+* "unit_id": ID of the remote server to interact with
+* "function_raw": Raw value of the function code byte
+* "function_code": Associated name of the raw function value
+* "access_type": Type of access requested by the function
+* "category": The function code's category
+* "error_flags": Errors found in the data while parsing
+
+Exception fields
+~~~~~~~~~~~~~~~~
+
+* "raw": Raw value of the exception code byte
+* "code": Associated name of the raw exception value
+
+Diagnostic fields
+~~~~~~~~~~~~~~~~~
+
+* "raw": Raw value of the subfunction code bytes
+* "code": Associated name of the raw subfunction value
+* "data": Bytes following the subfunction code
+
+MEI fields
+~~~~~~~~~~
+
+* "raw": Raw value of the mei function code bytes
+* "code": Associated name of the raw mei function value
+* "data": Bytes following the mei function code
+
+Read Request fields
+~~~~~~~~~~~~~~~~~~~
+
+* "address": Starting address to read from
+* "quantity": Amount to read
+
+Read Response fields
+~~~~~~~~~~~~~~~~~~~~
+
+* "data": Data that was read
+
+Multiple Write Request fields
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* "address": Starting address to write to
+* "quantity": Amount to write
+* "data": Data to write
+
+Mask Write fields
+~~~~~~~~~~~~~~~~~
+
+* "address": Starting address of content modification
+* "and_mask": And mask to modify content with
+* "or_mask": Or mask to modify content with
+
+Other Write fields
+~~~~~~~~~~~~~~~~~~
+
+* "address": Starting address to write to
+* "data": Data to write
+
+Generic Data fields
+~~~~~~~~~~~~~~~~~~~
+
+* "data": Data following the function code
+
+Example
+~~~~~~~
+
+Example of Modbus logging of a request and response:
+
+::
+
+  "modbus": {
+    "id": 1,
+    "request": {
+      "transaction_id": 0,
+      "protocol_id": 0,
+      "unit_id": 0,
+      "function_raw": 1,
+      "function_code": "RdCoils",
+      "access_type": "READ | COILS",
+      "category": "PUBLIC_ASSIGNED",
+      "error_flags": "NONE",
+    },
+    "response": {
+      "transaction_id": 0,
+      "protocol_id": 0,
+      "unit_id": 0,
+      "function_raw": 1,
+      "function_code": "RdCoils",
+      "access_type": "READ | COILS",
+      "category": "PUBLIC_ASSIGNED",
+      "error_flags": "DATA_VALUE",
+    },
+  }
+
+Event type: DHCP
+-----------------
+
+The default DHCP logging level only logs enough information to map a
+MAC address to an IP address. Enable extended mode to log all DHCP
+message types in full detail.
+
+Fields
+~~~~~~
+
+* "type": message type (e.g. request, reply)
+* "id": DHCP transaction id
+* "client_mac": client MAC address
+* "assigned_ip": IP address given by DHCP server
+* "client_ip": client IP address
+* "dhcp_type": DHCP message type
+* "client_id": DHCP client identifier
+* "hostname": DHCP client host name
+* "params": DHCP parameter request list
+* "requested_ip": DHCP client requesting specific IP address
+* "relay_ip": BOOTP relay agent IP address
+* "next_server_ip": BOOTP next IP address to use for booting process
+* "subnet_mask": subnet mask to use with client IP address
+* "routers": IP address(es) to be used as default gateways on DHCP client
+* "lease_time": Duration of IP address assignment to client
+* "renewal_time": Time in seconds since client began IP address request or renewal process
+* "rebinding_time": Time in seconds before the client begins to renew its IP address lease
+* "dns_servers": IP address(es) of servers the client will use for DNS queries
+
+Examples
+~~~~~~~~
+
+Example of DHCP log entry (default logging level):
+
+::
+
+  "dhcp": {
+    "type":"reply",
+    "id":755466399,
+    "client_mac":"54:ee:75:51:e0:66",
+    "assigned_ip":"100.78.202.125",
+    "dhcp_type":"ack",
+    "renewal_time":21600,
+    "client_id":"54:ee:75:51:e0:66"
+  }
+
+Example of DHCP log entry (extended logging enabled):
+
+::
+
+  "dhcp": {
+    "type":"reply",
+    "id":2787908432,
+    "client_mac":"54:ee:75:51:e0:66",
+    "assigned_ip":"192.168.1.120",
+    "client_ip":"0.0.0.0",
+    "relay_ip":"192.168.1.1",
+    "next_server_ip":"0.0.0.0",
+    "dhcp_type":"offer",
+    "subnet_mask":"255.255.255.0",
+    "routers":["192.168.1.100"],
+    "hostname":"test",
+    "lease_time":86400,
+    "renewal_time":21600,
+    "rebinding_time":43200,
+    "client_id":"54:ee:75:51:e0:66",
+    "dns_servers":["192.168.1.50","192.168.1.49"]
+  }
