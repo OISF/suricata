@@ -233,13 +233,12 @@ ReceiveErfFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
         exit(EXIT_FAILURE);
     }
 
-    ErfFileThreadVars *etv = SCMalloc(sizeof(ErfFileThreadVars));
+    ErfFileThreadVars *etv = SCCalloc(1, sizeof(ErfFileThreadVars));
     if (unlikely(etv == NULL)) {
         SCLogError("Failed to allocate memory for ERF file thread vars.");
         fclose(erf);
         SCReturnInt(TM_ECODE_FAILED);
     }
-    memset(etv, 0, sizeof(*etv));
     etv->erf = erf;
     etv->tv = tv;
     *data = (void *)etv;

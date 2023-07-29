@@ -263,10 +263,9 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
 static TmEcode OutputFilestoreLogThreadInit(ThreadVars *t, const void *initdata,
         void **data)
 {
-    OutputFilestoreLogThread *aft = SCMalloc(sizeof(OutputFilestoreLogThread));
+    OutputFilestoreLogThread *aft = SCCalloc(1, sizeof(OutputFilestoreLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(OutputFilestoreLogThread));
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for LogFileStore. \"initdata\" argument NULL");

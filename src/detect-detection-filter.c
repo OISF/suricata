@@ -139,11 +139,9 @@ static DetectThresholdData *DetectDetectionFilterParse(const char *rawstr)
         goto error;
     }
 
-    df = SCMalloc(sizeof(DetectThresholdData));
+    df = SCCalloc(1, sizeof(DetectThresholdData));
     if (unlikely(df == NULL))
         goto error;
-
-    memset(df, 0, sizeof(DetectThresholdData));
 
     df->type = TYPE_DETECTION;
 

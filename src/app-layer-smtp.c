@@ -1521,10 +1521,9 @@ static AppLayerResult SMTPParseServerRecord(Flow *f, void *alstate, AppLayerPars
  */
 void *SMTPStateAlloc(void *orig_state, AppProto proto_orig)
 {
-    SMTPState *smtp_state = SCMalloc(sizeof(SMTPState));
+    SMTPState *smtp_state = SCCalloc(1, sizeof(SMTPState));
     if (unlikely(smtp_state == NULL))
         return NULL;
-    memset(smtp_state, 0, sizeof(SMTPState));
 
     smtp_state->cmds = SCMalloc(sizeof(uint8_t) *
                                 SMTP_COMMAND_BUFFER_STEPS);
@@ -1541,10 +1540,9 @@ void *SMTPStateAlloc(void *orig_state, AppProto proto_orig)
 
 static SMTPString *SMTPStringAlloc(void)
 {
-    SMTPString *smtp_string = SCMalloc(sizeof(SMTPString));
+    SMTPString *smtp_string = SCCalloc(1, sizeof(SMTPString));
     if (unlikely(smtp_string == NULL))
         return NULL;
-    memset(smtp_string, 0, sizeof(SMTPString));
 
     return smtp_string;
 }
@@ -1656,11 +1654,10 @@ static void SMTPStateFree(void *p)
 
 static void SMTPSetMpmState(void)
 {
-    smtp_mpm_ctx = SCMalloc(sizeof(MpmCtx));
+    smtp_mpm_ctx = SCCalloc(1, sizeof(MpmCtx));
     if (unlikely(smtp_mpm_ctx == NULL)) {
         exit(EXIT_FAILURE);
     }
-    memset(smtp_mpm_ctx, 0, sizeof(MpmCtx));
     MpmInitCtx(smtp_mpm_ctx, SMTP_MPM);
 
     uint32_t i = 0;

@@ -305,11 +305,9 @@ static DetectGeoipData *DetectGeoipDataParse (DetectEngineCtx *de_ctx, const cha
         goto error;
 
     /* We have a correct geoip options string */
-    geoipdata = SCMalloc(sizeof(DetectGeoipData));
+    geoipdata = SCCalloc(1, sizeof(DetectGeoipData));
     if (unlikely(geoipdata == NULL))
         goto error;
-
-    memset(geoipdata, 0x00, sizeof(DetectGeoipData));
 
     /* Parse the geoip option string */
     while (pos <= slen)

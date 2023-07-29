@@ -40,19 +40,17 @@ BloomFilter *BloomFilterInit(uint32_t size, uint8_t iter,
     }
 
     /* setup the filter */
-    bf = SCMalloc(sizeof(BloomFilter));
+    bf = SCCalloc(1, sizeof(BloomFilter));
     if (unlikely(bf == NULL))
         goto error;
-    memset(bf,0,sizeof(BloomFilter));
     bf->bitarray_size = size;
     bf->hash_iterations = iter;
     bf->Hash = Hash;
 
     /* setup the bitarray */
-    bf->bitarray = SCMalloc((bf->bitarray_size/8)+1);
+    bf->bitarray = SCCalloc(1, (bf->bitarray_size / 8) + 1);
     if (bf->bitarray == NULL)
         goto error;
-    memset(bf->bitarray,0,(bf->bitarray_size/8)+1);
 
     return bf;
 

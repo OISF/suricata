@@ -275,10 +275,9 @@ static int LogTlsStoreLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
 static TmEcode LogTlsStoreLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    LogTlsStoreLogThread *aft = SCMalloc(sizeof(LogTlsStoreLogThread));
+    LogTlsStoreLogThread *aft = SCCalloc(1, sizeof(LogTlsStoreLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(LogTlsStoreLogThread));
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for LogTLSStore. \"initdata\" argument NULL");

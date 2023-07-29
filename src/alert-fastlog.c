@@ -188,10 +188,9 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
 
 TmEcode AlertFastLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    AlertFastLogThread *aft = SCMalloc(sizeof(AlertFastLogThread));
+    AlertFastLogThread *aft = SCCalloc(1, sizeof(AlertFastLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(AlertFastLogThread));
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for AlertFastLog.  \"initdata\" argument NULL");

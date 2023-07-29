@@ -391,21 +391,19 @@ typedef struct SpmBmCtx_ {
 static SpmCtx *BMInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
                          SpmGlobalThreadCtx *global_thread_ctx)
 {
-    SpmCtx *ctx = SCMalloc(sizeof(SpmCtx));
+    SpmCtx *ctx = SCCalloc(1, sizeof(SpmCtx));
     if (ctx == NULL) {
         SCLogDebug("Unable to alloc SpmCtx.");
         return NULL;
     }
-    memset(ctx, 0, sizeof(*ctx));
     ctx->matcher = SPM_BM;
 
-    SpmBmCtx *sctx = SCMalloc(sizeof(SpmBmCtx));
+    SpmBmCtx *sctx = SCCalloc(1, sizeof(SpmBmCtx));
     if (sctx == NULL) {
         SCLogDebug("Unable to alloc SpmBmCtx.");
         SCFree(ctx);
         return NULL;
     }
-    memset(sctx, 0, sizeof(*sctx));
 
     sctx->needle = SCMalloc(needle_len);
     if (sctx->needle == NULL) {
@@ -463,12 +461,11 @@ static uint8_t *BMScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
 
 static SpmGlobalThreadCtx *BMInitGlobalThreadCtx(void)
 {
-    SpmGlobalThreadCtx *global_thread_ctx = SCMalloc(sizeof(SpmGlobalThreadCtx));
+    SpmGlobalThreadCtx *global_thread_ctx = SCCalloc(1, sizeof(SpmGlobalThreadCtx));
     if (global_thread_ctx == NULL) {
         SCLogDebug("Unable to alloc SpmThreadCtx.");
         return NULL;
     }
-    memset(global_thread_ctx, 0, sizeof(*global_thread_ctx));
     global_thread_ctx->matcher = SPM_BM;
     return global_thread_ctx;
 }
@@ -490,12 +487,11 @@ static void BMDestroyThreadCtx(SpmThreadCtx *thread_ctx)
 }
 
 static SpmThreadCtx *BMMakeThreadCtx(const SpmGlobalThreadCtx *global_thread_ctx) {
-    SpmThreadCtx *thread_ctx = SCMalloc(sizeof(SpmThreadCtx));
+    SpmThreadCtx *thread_ctx = SCCalloc(1, sizeof(SpmThreadCtx));
     if (thread_ctx == NULL) {
         SCLogDebug("Unable to alloc SpmThreadCtx.");
         return NULL;
     }
-    memset(thread_ctx, 0, sizeof(*thread_ctx));
     thread_ctx->matcher = SPM_BM;
     return thread_ctx;
 }

@@ -115,11 +115,9 @@ Host *HostAlloc(void)
     }
     (void) SC_ATOMIC_ADD(host_memuse, g_host_size);
 
-    Host *h = SCMalloc(g_host_size);
+    Host *h = SCCalloc(1, g_host_size);
     if (unlikely(h == NULL))
         goto error;
-
-    memset(h, 0x00, g_host_size);
 
     SCMutexInit(&h->m, NULL);
     SC_ATOMIC_INIT(h->use_cnt);

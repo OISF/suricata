@@ -42,12 +42,11 @@ MemBuffer *MemBufferCreateNew(uint32_t size)
 
     uint32_t total_size = size + sizeof(MemBuffer);
 
-    MemBuffer *buffer = SCMalloc(total_size);
+    MemBuffer *buffer = SCCalloc(1, total_size);
     if (unlikely(buffer == NULL)) {
         sc_errno = SC_ENOMEM;
         return NULL;
     }
-    memset(buffer, 0, total_size);
 
     buffer->size = size;
     buffer->buffer = (uint8_t *)buffer + sizeof(MemBuffer);
