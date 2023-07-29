@@ -271,12 +271,11 @@ static TmEcode UnixListAddFile(PcapCommand *this, const char *filename, const ch
     PcapFiles *cfile = NULL;
     if (filename == NULL || this == NULL)
         return TM_ECODE_FAILED;
-    cfile = SCMalloc(sizeof(PcapFiles));
+    cfile = SCCalloc(1, sizeof(PcapFiles));
     if (unlikely(cfile == NULL)) {
         SCLogError("Unable to allocate new file");
         return TM_ECODE_FAILED;
     }
-    memset(cfile, 0, sizeof(PcapFiles));
 
     cfile->filename = SCStrdup(filename);
     if (unlikely(cfile->filename == NULL)) {

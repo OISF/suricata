@@ -608,10 +608,9 @@ static OutputInitResult OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ct
     if (conf == NULL)
         return result;
 
-    LogLuaCtx *lua_ctx = SCMalloc(sizeof(LogLuaCtx));
+    LogLuaCtx *lua_ctx = SCCalloc(1, sizeof(LogLuaCtx));
     if (unlikely(lua_ctx == NULL))
         return result;
-    memset(lua_ctx, 0x00, sizeof(*lua_ctx));
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -844,10 +843,9 @@ static void OutputLuaLogDoDeinit(LogLuaCtx *lua_ctx)
  */
 static TmEcode LuaLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    LogLuaThreadCtx *td = SCMalloc(sizeof(*td));
+    LogLuaThreadCtx *td = SCCalloc(1, sizeof(*td));
     if (unlikely(td == NULL))
         return TM_ECODE_FAILED;
-    memset(td, 0, sizeof(*td));
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for LuaLog. \"initdata\" argument NULL");

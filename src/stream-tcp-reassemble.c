@@ -561,11 +561,9 @@ void StreamTcpReassembleFree(bool quiet)
 TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv)
 {
     SCEnter();
-    TcpReassemblyThreadCtx *ra_ctx = SCMalloc(sizeof(TcpReassemblyThreadCtx));
+    TcpReassemblyThreadCtx *ra_ctx = SCCalloc(1, sizeof(TcpReassemblyThreadCtx));
     if (unlikely(ra_ctx == NULL))
         return NULL;
-
-    memset(ra_ctx, 0x00, sizeof(TcpReassemblyThreadCtx));
 
     ra_ctx->app_tctx = AppLayerGetCtxThread(tv);
 

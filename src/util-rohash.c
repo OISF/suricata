@@ -74,12 +74,11 @@ ROHashTable *ROHashInit(uint8_t hash_bits, uint16_t item_size)
 
     uint32_t size = hashsize(hash_bits) * sizeof(ROHashTableOffsets);
 
-    ROHashTable *table = SCMalloc(sizeof(ROHashTable) + size);
+    ROHashTable *table = SCCalloc(1, sizeof(ROHashTable) + size);
     if (unlikely(table == NULL)) {
         SCLogError("failed to alloc memory");
         return NULL;
     }
-    memset(table, 0, sizeof(ROHashTable) + size);
 
     table->items = 0;
     table->item_size = item_size;
@@ -161,9 +160,8 @@ int ROHashInitQueueValue(ROHashTable *table, void *value, uint16_t size)
         return 0;
     }
 
-    ROHashTableItem *item = SCMalloc(sizeof(ROHashTableItem) + table->item_size);
+    ROHashTableItem *item = SCCalloc(1, sizeof(ROHashTableItem) + table->item_size);
     if (item != NULL) {
-        memset(item, 0x00, sizeof(ROHashTableItem));
         memcpy((void *)item + sizeof(ROHashTableItem), value, table->item_size);
         TAILQ_INSERT_TAIL(&table->head, item, next);
         return 1;
@@ -208,12 +206,11 @@ int ROHashInitFinalize(ROHashTable *table)
 
     /* get the data block */
     uint32_t newsize = table->items * table->item_size;
-    table->data = SCMalloc(newsize);
+    table->data = SCCalloc(1, newsize);
     if (table->data == NULL) {
         SCLogError("failed to alloc memory");
         return 0;
     }
-    memset(table->data, 0x00, newsize);
 
     /* calc offsets into the block per hash value */
     uint32_t total = 0;

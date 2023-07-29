@@ -596,12 +596,11 @@ static void *DetectLuaThreadInit(void *data)
     DetectLuaData *lua = (DetectLuaData *)data;
     BUG_ON(lua == NULL);
 
-    DetectLuaThreadData *t = SCMalloc(sizeof(DetectLuaThreadData));
+    DetectLuaThreadData *t = SCCalloc(1, sizeof(DetectLuaThreadData));
     if (unlikely(t == NULL)) {
         SCLogError("couldn't alloc ctx memory");
         return NULL;
     }
-    memset(t, 0x00, sizeof(DetectLuaThreadData));
 
     t->alproto = lua->alproto;
     t->flags = lua->flags;
@@ -681,11 +680,9 @@ static DetectLuaData *DetectLuaParse (DetectEngineCtx *de_ctx, const char *str)
     DetectLuaData *lua = NULL;
 
     /* We have a correct lua option */
-    lua = SCMalloc(sizeof(DetectLuaData));
+    lua = SCCalloc(1, sizeof(DetectLuaData));
     if (unlikely(lua == NULL))
         goto error;
-
-    memset(lua, 0x00, sizeof(DetectLuaData));
 
     if (strlen(str) && str[0] == '!') {
         lua->negated = 1;

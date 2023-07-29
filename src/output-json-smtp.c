@@ -122,7 +122,7 @@ static OutputInitResult OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_c
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
-    OutputJsonEmailCtx *email_ctx = SCMalloc(sizeof(OutputJsonEmailCtx));
+    OutputJsonEmailCtx *email_ctx = SCCalloc(1, sizeof(OutputJsonEmailCtx));
     if (unlikely(email_ctx == NULL))
         return result;
 

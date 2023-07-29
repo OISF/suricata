@@ -77,10 +77,9 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
                 "%s logger not enabled: protocol %s is disabled", name, AppProtoToString(alproto));
         return -1;
     }
-    OutputTxLogger *op = SCMalloc(sizeof(*op));
+    OutputTxLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
         return -1;
-    memset(op, 0x00, sizeof(*op));
 
     op->alproto = alproto;
     op->LogFunc = LogFunc;
@@ -541,10 +540,9 @@ end:
  *  loggers */
 static TmEcode OutputTxLogThreadInit(ThreadVars *tv, const void *_initdata, void **data)
 {
-    OutputTxLoggerThreadData *td = SCMalloc(sizeof(*td));
+    OutputTxLoggerThreadData *td = SCCalloc(1, sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;
-    memset(td, 0x00, sizeof(*td));
 
     *data = (void *)td;
     SCLogDebug("OutputTxLogThreadInit happy (*data %p)", *data);
@@ -555,9 +553,8 @@ static TmEcode OutputTxLogThreadInit(ThreadVars *tv, const void *_initdata, void
             if (logger->ThreadInit) {
                 void *retptr = NULL;
                 if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
-                    OutputLoggerThreadStore *ts = SCMalloc(sizeof(*ts));
-    /* todo */      BUG_ON(ts == NULL);
-                    memset(ts, 0x00, sizeof(*ts));
+                    OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
+                    /* todo */ BUG_ON(ts == NULL);
 
                     /* store thread handle */
                     ts->thread_data = retptr;

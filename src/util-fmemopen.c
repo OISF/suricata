@@ -183,11 +183,10 @@ static int CloseFn(void *handler)
  */
 FILE *SCFmemopen(void *buf, size_t size, const char *mode)
 {
-    SCFmem *mem = (SCFmem *) SCMalloc(sizeof(SCFmem));
+    SCFmem *mem = (SCFmem *)SCCalloc(1, sizeof(SCFmem));
     if (mem == NULL)
         return NULL;
 
-    memset(mem, 0, sizeof(SCFmem));
     mem->size = size, mem->buffer = buf;
 
     return funopen(mem, ReadFn, WriteFn, SeekFn, CloseFn);

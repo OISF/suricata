@@ -47,13 +47,11 @@
  */
 static SCRadixUserData *SCRadixAllocSCRadixUserData(uint8_t netmask, void *user)
 {
-    SCRadixUserData *user_data = SCMalloc(sizeof(SCRadixUserData));
+    SCRadixUserData *user_data = SCCalloc(1, sizeof(SCRadixUserData));
     if (unlikely(user_data == NULL)) {
         SCLogError("Error allocating memory");
         return NULL;
     }
-
-    memset(user_data, 0, sizeof(SCRadixUserData));
 
     user_data->netmask = netmask;
     user_data->user = user;
@@ -143,15 +141,11 @@ static SCRadixPrefix *SCRadixCreatePrefix(uint8_t *key_stream,
         return NULL;
     }
 
-    if ( (prefix = SCMalloc(sizeof(SCRadixPrefix))) == NULL)
+    if ((prefix = SCCalloc(1, sizeof(SCRadixPrefix))) == NULL)
         goto error;
 
-    memset(prefix, 0, sizeof(SCRadixPrefix));
-
-    if ( (prefix->stream = SCMalloc(key_bitlen / 8)) == NULL)
+    if ((prefix->stream = SCCalloc(1, key_bitlen / 8)) == NULL)
         goto error;
-
-    memset(prefix->stream, 0, key_bitlen / 8);
 
     memcpy(prefix->stream, key_stream, key_bitlen / 8);
     prefix->bitlen = key_bitlen;
@@ -384,11 +378,10 @@ static inline SCRadixNode *SCRadixCreateNode(void)
 {
     SCRadixNode *node = NULL;
 
-    if ( (node = SCMalloc(sizeof(SCRadixNode))) == NULL) {
+    if ((node = SCCalloc(1, sizeof(SCRadixNode))) == NULL) {
         SCLogError("Fatal error encountered in SCRadixCreateNode. Mem not allocated...");
         return NULL;
     }
-    memset(node, 0, sizeof(SCRadixNode));
 
     return node;
 }
@@ -427,10 +420,9 @@ SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*), void (*PrintData)(void*
 {
     SCRadixTree *tree = NULL;
 
-    if ( (tree = SCMalloc(sizeof(SCRadixTree))) == NULL) {
+    if ((tree = SCCalloc(1, sizeof(SCRadixTree))) == NULL) {
         FatalError("Fatal error encountered in SCRadixCreateRadixTree. Exiting...");
     }
-    memset(tree, 0, sizeof(SCRadixTree));
 
     tree->Free = Free;
     tree->PrintData = PrintData;

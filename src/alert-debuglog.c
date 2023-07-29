@@ -374,10 +374,9 @@ static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, const Packet *p, void *
 
 static TmEcode AlertDebugLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    AlertDebugLogThread *aft = SCMalloc(sizeof(AlertDebugLogThread));
+    AlertDebugLogThread *aft = SCCalloc(1, sizeof(AlertDebugLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(AlertDebugLogThread));
 
     if(initdata == NULL)
     {
@@ -447,11 +446,10 @@ static OutputInitResult AlertDebugLogInitCtx(ConfNode *conf)
         goto error;
     }
 
-    OutputCtx *output_ctx = SCMalloc(sizeof(OutputCtx));
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
         goto error;
 
-    memset(output_ctx, 0x00, sizeof(OutputCtx));
     output_ctx->data = file_ctx;
     output_ctx->DeInit = AlertDebugLogDeInitCtx;
 

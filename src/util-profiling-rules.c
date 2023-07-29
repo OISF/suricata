@@ -562,10 +562,8 @@ SCProfilingRuleUpdateCounter(DetectEngineThreadCtx *det_ctx, uint16_t id, uint64
 
 static SCProfileDetectCtx *SCProfilingRuleInitCtx(void)
 {
-    SCProfileDetectCtx *ctx = SCMalloc(sizeof(SCProfileDetectCtx));
+    SCProfileDetectCtx *ctx = SCCalloc(1, sizeof(SCProfileDetectCtx));
     if (ctx != NULL) {
-        memset(ctx, 0x00, sizeof(SCProfileDetectCtx));
-
         if (pthread_mutex_init(&ctx->data_m, NULL) != 0) {
             FatalError("Failed to initialize hash table mutex.");
         }
@@ -590,10 +588,8 @@ void SCProfilingRuleThreadSetup(SCProfileDetectCtx *ctx, DetectEngineThreadCtx *
     if (ctx == NULL|| ctx->size == 0)
         return;
 
-    SCProfileData *a = SCMalloc(sizeof(SCProfileData) * ctx->size);
+    SCProfileData *a = SCCalloc(1, sizeof(SCProfileData) * ctx->size);
     if (a != NULL) {
-        memset(a, 0x00, sizeof(SCProfileData) * ctx->size);
-
         det_ctx->rule_perf_data = a;
         det_ctx->rule_perf_data_size = ctx->size;
     }
@@ -669,9 +665,8 @@ SCProfilingRuleInitCounters(DetectEngineCtx *de_ctx)
     }
 
     if (count > 0) {
-        de_ctx->profile_ctx->data = SCMalloc(sizeof(SCProfileData) * de_ctx->profile_ctx->size);
+        de_ctx->profile_ctx->data = SCCalloc(1, sizeof(SCProfileData) * de_ctx->profile_ctx->size);
         BUG_ON(de_ctx->profile_ctx->data == NULL);
-        memset(de_ctx->profile_ctx->data, 0x00, sizeof(SCProfileData) * de_ctx->profile_ctx->size);
 
         sig = de_ctx->sig_list;
         while (sig != NULL) {

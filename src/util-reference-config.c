@@ -360,10 +360,9 @@ SCRConfReference *SCRConfAllocSCRConfReference(const char *system,
         return NULL;
     }
 
-    if ((ref = SCMalloc(sizeof(SCRConfReference))) == NULL) {
+    if ((ref = SCCalloc(1, sizeof(SCRConfReference))) == NULL) {
         return NULL;
     }
-    memset(ref, 0, sizeof(SCRConfReference));
 
     if ((ref->system = SCRConfStringToLowercase(system)) == NULL) {
         SCFree(ref);

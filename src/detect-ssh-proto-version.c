@@ -179,12 +179,11 @@ static DetectSshVersionData *DetectSshVersionParse (DetectEngineCtx *de_ctx, con
         }
 
         /* We have a correct id option */
-        ssh = SCMalloc(sizeof(DetectSshVersionData));
+        ssh = SCCalloc(1, sizeof(DetectSshVersionData));
         if (unlikely(ssh == NULL)) {
             pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
             goto error;
         }
-        memset(ssh, 0x00, sizeof(DetectSshVersionData));
 
         /* If we expect a protocol version 2 or 1.99 (considered 2, we
          * will compare it with both strings) */

@@ -114,11 +114,9 @@ IPPair *IPPairAlloc(void)
 
     (void) SC_ATOMIC_ADD(ippair_memuse, g_ippair_size);
 
-    IPPair *h = SCMalloc(g_ippair_size);
+    IPPair *h = SCCalloc(1, g_ippair_size);
     if (unlikely(h == NULL))
         goto error;
-
-    memset(h, 0x00, g_ippair_size);
 
     SCMutexInit(&h->m, NULL);
     SC_ATOMIC_INIT(h->use_cnt);

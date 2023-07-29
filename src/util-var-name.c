@@ -176,11 +176,9 @@ static uint32_t VariableNameGetIdx(VarNameStore *v, const char *name, enum VarTy
 {
     uint32_t idx = 0;
 
-    VariableName *fn = SCMalloc(sizeof(VariableName));
+    VariableName *fn = SCCalloc(1, sizeof(VariableName));
     if (unlikely(fn == NULL))
         goto error;
-
-    memset(fn, 0, sizeof(VariableName));
 
     fn->type = type;
     fn->name = SCStrdup(name);
@@ -215,12 +213,11 @@ error:
  */
 static char *VariableIdxGetName(VarNameStore *v, uint32_t idx, enum VarTypes type)
 {
-    VariableName *fn = SCMalloc(sizeof(VariableName));
+    VariableName *fn = SCCalloc(1, sizeof(VariableName));
     if (unlikely(fn == NULL))
         goto error;
 
     char *name = NULL;
-    memset(fn, 0, sizeof(VariableName));
 
     fn->type = type;
     fn->idx = idx;
