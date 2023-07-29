@@ -219,12 +219,11 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    NFLOGThreadVars *ntv = SCMalloc(sizeof(NFLOGThreadVars));
+    NFLOGThreadVars *ntv = SCCalloc(1, sizeof(NFLOGThreadVars));
     if (unlikely(ntv == NULL)) {
         nflconfig->DerefFunc(nflconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
-    memset(ntv, 0, sizeof(NFLOGThreadVars));
 
     ntv->tv = tv;
     ntv->group = nflconfig->group;

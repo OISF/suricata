@@ -1357,11 +1357,10 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     int en;
     PCRE2_SIZE eo = 0;
 
-    PcapLogData *pl = SCMalloc(sizeof(PcapLogData));
+    PcapLogData *pl = SCCalloc(1, sizeof(PcapLogData));
     if (unlikely(pl == NULL)) {
         FatalError("Failed to allocate Memory for PcapLogData");
     }
-    memset(pl, 0, sizeof(PcapLogData));
 
     pl->h = SCMalloc(sizeof(*pl->h));
     if (pl->h == NULL) {
@@ -1745,11 +1744,10 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
     SCTime_t ts = TimeGet();
 
     /* Place to store the name of our PCAP file */
-    PcapFileName *pf = SCMalloc(sizeof(PcapFileName));
+    PcapFileName *pf = SCCalloc(1, sizeof(PcapFileName));
     if (unlikely(pf == NULL)) {
         return -1;
     }
-    memset(pf, 0, sizeof(PcapFileName));
 
     if (pl->mode == LOGMODE_SGUIL) {
         struct tm local_tm;

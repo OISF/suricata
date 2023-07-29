@@ -108,15 +108,14 @@ static int HSBuildDatabase(const uint8_t *needle, uint16_t needle_len,
 static SpmCtx *HSInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
                          SpmGlobalThreadCtx *global_thread_ctx)
 {
-    SpmCtx *ctx = SCMalloc(sizeof(SpmCtx));
+    SpmCtx *ctx = SCCalloc(1, sizeof(SpmCtx));
     if (ctx == NULL) {
         SCLogDebug("Unable to alloc SpmCtx.");
         return NULL;
     }
-    memset(ctx, 0, sizeof(SpmCtx));
     ctx->matcher = SPM_HS;
 
-    SpmHsCtx *sctx = SCMalloc(sizeof(SpmHsCtx));
+    SpmHsCtx *sctx = SCCalloc(1, sizeof(SpmHsCtx));
     if (sctx == NULL) {
         SCLogDebug("Unable to alloc SpmHsCtx.");
         SCFree(ctx);
@@ -124,7 +123,6 @@ static SpmCtx *HSInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
     }
     ctx->ctx = sctx;
 
-    memset(sctx, 0, sizeof(SpmHsCtx));
     if (HSBuildDatabase(needle, needle_len, nocase, sctx,
                         global_thread_ctx) != 0) {
         SCLogDebug("HSBuildDatabase failed.");
@@ -168,12 +166,11 @@ static uint8_t *HSScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
 
 static SpmGlobalThreadCtx *HSInitGlobalThreadCtx(void)
 {
-    SpmGlobalThreadCtx *global_thread_ctx = SCMalloc(sizeof(SpmGlobalThreadCtx));
+    SpmGlobalThreadCtx *global_thread_ctx = SCCalloc(1, sizeof(SpmGlobalThreadCtx));
     if (global_thread_ctx == NULL) {
         SCLogDebug("Unable to alloc SpmGlobalThreadCtx.");
         return NULL;
     }
-    memset(global_thread_ctx, 0, sizeof(*global_thread_ctx));
     global_thread_ctx->matcher = SPM_HS;
 
     /* We store scratch in the HS-specific ctx. This will be initialized as
@@ -203,12 +200,11 @@ static void HSDestroyThreadCtx(SpmThreadCtx *thread_ctx)
 
 static SpmThreadCtx *HSMakeThreadCtx(const SpmGlobalThreadCtx *global_thread_ctx)
 {
-    SpmThreadCtx *thread_ctx = SCMalloc(sizeof(SpmThreadCtx));
+    SpmThreadCtx *thread_ctx = SCCalloc(1, sizeof(SpmThreadCtx));
     if (thread_ctx == NULL) {
         SCLogDebug("Unable to alloc SpmThreadCtx.");
         return NULL;
     }
-    memset(thread_ctx, 0, sizeof(*thread_ctx));
     thread_ctx->matcher = SPM_HS;
 
     if (global_thread_ctx->ctx != NULL) {

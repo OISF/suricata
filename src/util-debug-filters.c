@@ -579,11 +579,10 @@ int SCLogCheckFDFilterEntry(const char *function)
         return 1;
     }
 
-    if ( (thread_list_temp = SCMalloc(sizeof(SCLogFDFilterThreadList))) == NULL) {
+    if ((thread_list_temp = SCCalloc(1, sizeof(SCLogFDFilterThreadList))) == NULL) {
         SCMutexUnlock(&sc_log_fd_filters_tl_m);
         return 0;
     }
-    memset(thread_list_temp, 0, sizeof(SCLogFDFilterThreadList));
 
     thread_list_temp->t = self;
     thread_list_temp->entered++;
@@ -694,11 +693,10 @@ int SCLogAddFDFilter(const char *function)
         curr = curr->next;
     }
 
-    if ( (temp = SCMalloc(sizeof(SCLogFDFilter))) == NULL) {
-        printf("Error Allocating memory (SCMalloc)\n");
+    if ((temp = SCCalloc(1, sizeof(SCLogFDFilter))) == NULL) {
+        printf("Error Allocating memory (SCCalloc)\n");
         exit(EXIT_FAILURE);
     }
-    memset(temp, 0, sizeof(SCLogFDFilter));
 
     if ( (temp->func = SCStrdup(function)) == NULL) {
         printf("Error Allocating memory (SCStrdup)\n");
@@ -864,30 +862,27 @@ void SCLogAddToFGFFileList(SCLogFGFilterFile *fgf_file,
     SCLogFGFilterFunc *fgf_func_temp = NULL;
     SCLogFGFilterLine *fgf_line_temp = NULL;
 
-    if ( (fgf_file_temp = SCMalloc(sizeof(SCLogFGFilterFile))) == NULL) {
+    if ((fgf_file_temp = SCCalloc(1, sizeof(SCLogFGFilterFile))) == NULL) {
         FatalError("Fatal error encountered in SCLogAddToFGFFileList. Exiting...");
     }
-    memset(fgf_file_temp, 0, sizeof(SCLogFGFilterFile));
 
     if ( file != NULL && (fgf_file_temp->file = SCStrdup(file)) == NULL) {
         printf("Error Allocating memory\n");
         exit(EXIT_FAILURE);
     }
 
-    if ( (fgf_func_temp = SCMalloc(sizeof(SCLogFGFilterFunc))) == NULL) {
+    if ((fgf_func_temp = SCCalloc(1, sizeof(SCLogFGFilterFunc))) == NULL) {
         FatalError("Fatal error encountered in SCLogAddToFGFFileList. Exiting...");
     }
-    memset(fgf_func_temp, 0, sizeof(SCLogFGFilterFunc));
 
     if ( function != NULL && (fgf_func_temp->func = SCStrdup(function)) == NULL) {
         printf("Error Allocating memory\n");
         exit(EXIT_FAILURE);
     }
 
-    if ( (fgf_line_temp = SCMalloc(sizeof(SCLogFGFilterLine))) == NULL) {
+    if ((fgf_line_temp = SCCalloc(1, sizeof(SCLogFGFilterLine))) == NULL) {
         FatalError("Fatal error encountered in SCLogAddToFGFFileList. Exiting...");
     }
-    memset(fgf_line_temp, 0, sizeof(SCLogFGFilterLine));
 
     fgf_line_temp->line = line;
 
@@ -925,20 +920,18 @@ void SCLogAddToFGFFuncList(SCLogFGFilterFile *fgf_file,
     SCLogFGFilterFunc *fgf_func_temp = NULL;
     SCLogFGFilterLine *fgf_line_temp = NULL;
 
-    if ( (fgf_func_temp = SCMalloc(sizeof(SCLogFGFilterFunc))) == NULL) {
+    if ((fgf_func_temp = SCCalloc(1, sizeof(SCLogFGFilterFunc))) == NULL) {
         FatalError("Fatal error encountered in SCLogAddToFGFFuncList. Exiting...");
     }
-    memset(fgf_func_temp, 0, sizeof(SCLogFGFilterFunc));
 
     if ( function != NULL && (fgf_func_temp->func = SCStrdup(function)) == NULL) {
         printf("Error Allocating memory\n");
         exit(EXIT_FAILURE);
     }
 
-    if ( (fgf_line_temp = SCMalloc(sizeof(SCLogFGFilterLine))) == NULL) {
+    if ((fgf_line_temp = SCCalloc(1, sizeof(SCLogFGFilterLine))) == NULL) {
         FatalError("Fatal error encountered in SCLogAddToFGFFuncList. Exiting...");
     }
-    memset(fgf_line_temp, 0, sizeof(SCLogFGFilterLine));
 
     fgf_line_temp->line = line;
 
@@ -972,10 +965,9 @@ void SCLogAddToFGFLineList(SCLogFGFilterFunc *fgf_func,
 {
     SCLogFGFilterLine *fgf_line_temp = NULL;
 
-    if ( (fgf_line_temp = SCMalloc(sizeof(SCLogFGFilterLine))) == NULL) {
+    if ((fgf_line_temp = SCCalloc(1, sizeof(SCLogFGFilterLine))) == NULL) {
         FatalError("Fatal error encountered in SCLogAddToFGFLineList. Exiting...");
     }
-    memset(fgf_line_temp, 0, sizeof(SCLogFGFilterLine));
 
     fgf_line_temp->line = line;
 

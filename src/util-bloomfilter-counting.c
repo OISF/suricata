@@ -48,20 +48,18 @@ BloomFilterCounting *BloomFilterCountingInit(uint32_t size, uint8_t type, uint8_
     }
 
     /* setup the filter */
-    bf = SCMalloc(sizeof(BloomFilterCounting));
+    bf = SCCalloc(1, sizeof(BloomFilterCounting));
     if (unlikely(bf == NULL))
         goto error;
-    memset(bf,0,sizeof(BloomFilterCounting));
     bf->type = type; /* size of the type: 1, 2, 4 */
     bf->array_size = size;
     bf->hash_iterations = iter;
     bf->Hash = Hash;
 
     /* setup the bitarray */
-    bf->array = SCMalloc(bf->array_size * bf->type);
+    bf->array = SCCalloc(1, bf->array_size * bf->type);
     if (bf->array == NULL)
         goto error;
-    memset(bf->array,0,bf->array_size * bf->type);
 
     return bf;
 

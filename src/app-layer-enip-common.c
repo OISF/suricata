@@ -140,8 +140,6 @@ static CIPServiceEntry *CIPServiceAlloc(ENIPTransaction *tx)
     if (unlikely(svc == NULL))
         return NULL;
 
-    memset(svc, 0x00, sizeof(CIPServiceEntry));
-
     TAILQ_INIT(&svc->segment_list);
     TAILQ_INIT(&svc->attrib_list);
 

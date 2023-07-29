@@ -118,11 +118,9 @@ int StorageRegister(const StorageEnum type, const char *name, const unsigned int
         list = list->next;
     }
 
-    StorageList *entry = SCMalloc(sizeof(StorageList));
+    StorageList *entry = SCCalloc(1, sizeof(StorageList));
     if (unlikely(entry == NULL))
         return -1;
-
-    memset(entry, 0x00, sizeof(StorageList));
 
     entry->map.type = type;
     entry->map.name = name;
@@ -151,18 +149,16 @@ int StorageFinalize(void)
     if (count == 0)
         return 0;
 
-    storage_map = SCMalloc(sizeof(StorageMapping *) * STORAGE_MAX);
+    storage_map = SCCalloc(1, sizeof(StorageMapping *) * STORAGE_MAX);
     if (unlikely(storage_map == NULL)) {
         return -1;
     }
-    memset(storage_map, 0x00, sizeof(StorageMapping *) * STORAGE_MAX);
 
     for (i = 0; i < STORAGE_MAX; i++) {
         if (storage_max_id[i] > 0) {
-            storage_map[i] = SCMalloc(sizeof(StorageMapping) * storage_max_id[i]);
+            storage_map[i] = SCCalloc(1, sizeof(StorageMapping) * storage_max_id[i]);
             if (storage_map[i] == NULL)
                 return -1;
-            memset(storage_map[i], 0x00, sizeof(StorageMapping) * storage_max_id[i]);
         }
     }
 
@@ -266,10 +262,9 @@ void *StorageAllocById(Storage **storage, StorageEnum type, int id)
     Storage *store = *storage;
     if (store == NULL) {
         // coverity[suspicious_sizeof : FALSE]
-        store = SCMalloc(sizeof(void *) * storage_max_id[type]);
+        store = SCCalloc(1, sizeof(void *) * storage_max_id[type]);
         if (unlikely(store == NULL))
-        return NULL;
-        memset(store, 0x00, sizeof(void *) * storage_max_id[type]);
+            return NULL;
     }
     SCLogDebug("store %p", store);
 

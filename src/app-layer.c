@@ -992,10 +992,9 @@ AppLayerThreadCtx *AppLayerGetCtxThread(ThreadVars *tv)
 {
     SCEnter();
 
-    AppLayerThreadCtx *app_tctx = SCMalloc(sizeof(*app_tctx));
+    AppLayerThreadCtx *app_tctx = SCCalloc(1, sizeof(*app_tctx));
     if (app_tctx == NULL)
         goto error;
-    memset(app_tctx, 0, sizeof(*app_tctx));
 
     if ((app_tctx->alpd_tctx = AppLayerProtoDetectGetCtxThread()) == NULL)
         goto error;

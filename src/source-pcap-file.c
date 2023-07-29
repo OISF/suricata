@@ -205,11 +205,10 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         SCReturnInt(TM_ECODE_OK);
     }
 
-    PcapFileThreadVars *ptv = SCMalloc(sizeof(PcapFileThreadVars));
+    PcapFileThreadVars *ptv = SCCalloc(1, sizeof(PcapFileThreadVars));
     if (unlikely(ptv == NULL)) {
         SCReturnInt(TM_ECODE_OK);
     }
-    memset(ptv, 0, sizeof(PcapFileThreadVars));
     memset(&ptv->shared.last_processed, 0, sizeof(struct timespec));
 
     intmax_t tenant = 0;
@@ -250,13 +249,12 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
 
     if(directory == NULL) {
         SCLogDebug("argument %s was a file", (char *)initdata);
-        PcapFileFileVars *pv = SCMalloc(sizeof(PcapFileFileVars));
+        PcapFileFileVars *pv = SCCalloc(1, sizeof(PcapFileFileVars));
         if (unlikely(pv == NULL)) {
             SCLogError("Failed to allocate file vars");
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
         }
-        memset(pv, 0, sizeof(PcapFileFileVars));
 
         pv->filename = SCStrdup((char *)initdata);
         if (unlikely(pv->filename == NULL)) {
@@ -279,14 +277,13 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         }
     } else {
         SCLogInfo("Argument %s was a directory", (char *)initdata);
-        PcapFileDirectoryVars *pv = SCMalloc(sizeof(PcapFileDirectoryVars));
+        PcapFileDirectoryVars *pv = SCCalloc(1, sizeof(PcapFileDirectoryVars));
         if (unlikely(pv == NULL)) {
             SCLogError("Failed to allocate directory vars");
             closedir(directory);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
         }
-        memset(pv, 0, sizeof(PcapFileDirectoryVars));
 
         pv->filename = SCStrdup((char*)initdata);
         if (unlikely(pv->filename == NULL)) {

@@ -392,9 +392,8 @@ static SCClassConfClasstype *SCClassConfAllocClasstype(uint16_t classtype_id,
     if (classtype == NULL)
         return NULL;
 
-    if ( (ct = SCMalloc(sizeof(SCClassConfClasstype))) == NULL)
+    if ((ct = SCCalloc(1, sizeof(SCClassConfClasstype))) == NULL)
         return NULL;
-    memset(ct, 0, sizeof(SCClassConfClasstype));
 
     if ((ct->classtype = SCClassConfStringToLowercase(classtype)) == NULL) {
         SCClassConfDeAllocClasstype(ct);

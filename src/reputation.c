@@ -80,10 +80,9 @@ static void SRepCIDRFreeUserData(void *data)
 static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, uint8_t value)
 {
     SReputation *user_data = NULL;
-    if ((user_data = SCMalloc(sizeof(SReputation))) == NULL) {
+    if ((user_data = SCCalloc(1, sizeof(SReputation))) == NULL) {
         FatalError("Error allocating memory. Exiting");
     }
-    memset(user_data, 0x00, sizeof(SReputation));
 
     user_data->version = SRepGetVersion();
     user_data->rep[cat] = value;
@@ -486,10 +485,8 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
                 //SCLogInfo("host %p", h);
 
                 if (h->iprep == NULL) {
-                    h->iprep = SCMalloc(sizeof(SReputation));
+                    h->iprep = SCCalloc(1, sizeof(SReputation));
                     if (h->iprep != NULL) {
-                        memset(h->iprep, 0x00, sizeof(SReputation));
-
                         HostIncrUsecnt(h);
                     }
                 }
@@ -588,10 +585,9 @@ int SRepInit(DetectEngineCtx *de_ctx)
     int init = 0;
     int i = 0;
 
-    de_ctx->srepCIDR_ctx = (SRepCIDRTree *)SCMalloc(sizeof(SRepCIDRTree));
+    de_ctx->srepCIDR_ctx = (SRepCIDRTree *)SCCalloc(1, sizeof(SRepCIDRTree));
     if (de_ctx->srepCIDR_ctx == NULL)
         exit(EXIT_FAILURE);
-    memset(de_ctx->srepCIDR_ctx, 0, sizeof(SRepCIDRTree));
     SRepCIDRTree *cidr_ctx = de_ctx->srepCIDR_ctx;
 
     for (i = 0; i < SREP_MAX_CATS; i++) {
