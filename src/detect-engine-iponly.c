@@ -74,10 +74,9 @@ static IPOnlyCIDRItem *IPOnlyCIDRItemNew(void)
     SCEnter();
     IPOnlyCIDRItem *item = NULL;
 
-    item = SCMalloc(sizeof(IPOnlyCIDRItem));
+    item = SCCalloc(1, sizeof(IPOnlyCIDRItem));
     if (unlikely(item == NULL))
         SCReturnPtr(NULL, "IPOnlyCIDRItem");
-    memset(item, 0, sizeof(IPOnlyCIDRItem));
 
     SCReturnPtr(item, "IPOnlyCIDRItem");
 }
@@ -550,19 +549,17 @@ static void SigNumArrayPrint(void *tmp)
 static SigNumArray *SigNumArrayNew(DetectEngineCtx *de_ctx,
                             DetectEngineIPOnlyCtx *io_ctx)
 {
-    SigNumArray *new = SCMalloc(sizeof(SigNumArray));
+    SigNumArray *new = SCCalloc(1, sizeof(SigNumArray));
 
     if (unlikely(new == NULL)) {
         FatalError("Fatal error encountered in SigNumArrayNew. Exiting...");
     }
-    memset(new, 0, sizeof(SigNumArray));
 
-    new->array = SCMalloc(io_ctx->max_idx / 8 + 1);
+    new->array = SCCalloc(1, io_ctx->max_idx / 8 + 1);
     if (new->array == NULL) {
        exit(EXIT_FAILURE);
     }
 
-    memset(new->array, 0, io_ctx->max_idx / 8 + 1);
     new->size = io_ctx->max_idx / 8 + 1;
 
     SCLogDebug("max idx= %u", io_ctx->max_idx);
@@ -580,13 +577,12 @@ static SigNumArray *SigNumArrayNew(DetectEngineCtx *de_ctx,
  */
 static SigNumArray *SigNumArrayCopy(SigNumArray *orig)
 {
-    SigNumArray *new = SCMalloc(sizeof(SigNumArray));
+    SigNumArray *new = SCCalloc(1, sizeof(SigNumArray));
 
     if (unlikely(new == NULL)) {
         FatalError("Fatal error encountered in SigNumArrayCopy. Exiting...");
     }
 
-    memset(new, 0, sizeof(SigNumArray));
     new->size = orig->size;
 
     new->array = SCMalloc(orig->size);

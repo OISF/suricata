@@ -91,11 +91,10 @@ int AppLayerGetPktEventInfo(const char *event_name, int *event_id)
 void AppLayerDecoderEventsSetEventRaw(AppLayerDecoderEvents **sevents, uint8_t event)
 {
     if (*sevents == NULL) {
-        AppLayerDecoderEvents *new_devents = SCMalloc(sizeof(AppLayerDecoderEvents));
+        AppLayerDecoderEvents *new_devents = SCCalloc(1, sizeof(AppLayerDecoderEvents));
         if (new_devents == NULL)
             return;
 
-        memset(new_devents, 0, sizeof(AppLayerDecoderEvents));
         *sevents = new_devents;
 
     }

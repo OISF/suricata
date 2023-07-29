@@ -144,11 +144,9 @@ static int ENIPStateGetEventInfoById(int event_id, const char **event_name,
 static void *ENIPStateAlloc(void *orig_state, AppProto proto_orig)
 {
     SCLogDebug("ENIPStateAlloc");
-    void *s = SCMalloc(sizeof(ENIPState));
+    void *s = SCCalloc(1, sizeof(ENIPState));
     if (unlikely(s == NULL))
         return NULL;
-
-    memset(s, 0, sizeof(ENIPState));
 
     ENIPState *enip_state = (ENIPState *) s;
 
@@ -242,7 +240,6 @@ static ENIPTransaction *ENIPTransactionAlloc(ENIPState *state)
     state->curr = tx;
     state->transaction_max++;
 
-    memset(tx, 0x00, sizeof(ENIPTransaction));
     TAILQ_INIT(&tx->service_list);
 
     tx->enip  = state;

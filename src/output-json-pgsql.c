@@ -114,7 +114,7 @@ static OutputInitResult OutputPgsqlLogInitSub(ConfNode *conf, OutputCtx *parent_
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
-    OutputPgsqlCtx *pgsql_ctx = SCMalloc(sizeof(OutputPgsqlCtx));
+    OutputPgsqlCtx *pgsql_ctx = SCCalloc(1, sizeof(OutputPgsqlCtx));
     if (unlikely(pgsql_ctx == NULL))
         return result;
 

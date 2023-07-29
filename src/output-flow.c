@@ -55,10 +55,9 @@ int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc,
     ThreadDeinitFunc ThreadDeinit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
-    OutputFlowLogger *op = SCMalloc(sizeof(*op));
+    OutputFlowLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
         return -1;
-    memset(op, 0x00, sizeof(*op));
 
     op->LogFunc = LogFunc;
     op->output_ctx = output_ctx;
@@ -123,10 +122,9 @@ TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f)
  *  loggers */
 TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
-    OutputFlowLoggerThreadData *td = SCMalloc(sizeof(*td));
+    OutputFlowLoggerThreadData *td = SCCalloc(1, sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;
-    memset(td, 0x00, sizeof(*td));
 
     *data = (void *)td;
 
@@ -137,9 +135,8 @@ TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data)
         if (logger->ThreadInit) {
             void *retptr = NULL;
             if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
-                OutputLoggerThreadStore *ts = SCMalloc(sizeof(*ts));
-/* todo */      BUG_ON(ts == NULL);
-                memset(ts, 0x00, sizeof(*ts));
+                OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
+                /* todo */ BUG_ON(ts == NULL);
 
                 /* store thread handle */
                 ts->thread_data = retptr;

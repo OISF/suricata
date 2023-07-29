@@ -1383,10 +1383,9 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
     de_ctx->sig_array_len = DetectEngineGetMaxSigId(de_ctx);
     de_ctx->sig_array_size = (de_ctx->sig_array_len * sizeof(Signature *));
-    de_ctx->sig_array = (Signature **)SCMalloc(de_ctx->sig_array_size);
+    de_ctx->sig_array = (Signature **)SCCalloc(1, de_ctx->sig_array_size);
     if (de_ctx->sig_array == NULL)
         goto error;
-    memset(de_ctx->sig_array,0,de_ctx->sig_array_size);
 
     SCLogDebug("signature lookup array: %" PRIu32 " sigs, %" PRIu32 " bytes",
                de_ctx->sig_array_len, de_ctx->sig_array_size);

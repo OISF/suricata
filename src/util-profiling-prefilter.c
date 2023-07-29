@@ -210,10 +210,8 @@ void SCProfilingPrefilterUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, u
 
 static SCProfilePrefilterDetectCtx *SCProfilingPrefilterInitCtx(void)
 {
-    SCProfilePrefilterDetectCtx *ctx = SCMalloc(sizeof(SCProfilePrefilterDetectCtx));
+    SCProfilePrefilterDetectCtx *ctx = SCCalloc(1, sizeof(SCProfilePrefilterDetectCtx));
     if (ctx != NULL) {
-        memset(ctx, 0x00, sizeof(SCProfilePrefilterDetectCtx));
-
         if (pthread_mutex_init(&ctx->data_m, NULL) != 0) {
             FatalError("Failed to initialize hash table mutex.");
         }
@@ -248,9 +246,8 @@ void SCProfilingPrefilterThreadSetup(SCProfilePrefilterDetectCtx *ctx, DetectEng
 
     const uint32_t size = det_ctx->de_ctx->prefilter_id;
 
-    SCProfilePrefilterData *a = SCMalloc(sizeof(SCProfilePrefilterData) * size);
+    SCProfilePrefilterData *a = SCCalloc(1, sizeof(SCProfilePrefilterData) * size);
     if (a != NULL) {
-        memset(a, 0x00, sizeof(SCProfilePrefilterData) * size);
         det_ctx->prefilter_perf_data = a;
     }
 }
@@ -310,9 +307,8 @@ SCProfilingPrefilterInitCounters(DetectEngineCtx *de_ctx)
     BUG_ON(de_ctx->profile_prefilter_ctx == NULL);
     de_ctx->profile_prefilter_ctx->size = size;
 
-    de_ctx->profile_prefilter_ctx->data = SCMalloc(sizeof(SCProfilePrefilterData) * size);
+    de_ctx->profile_prefilter_ctx->data = SCCalloc(1, sizeof(SCProfilePrefilterData) * size);
     BUG_ON(de_ctx->profile_prefilter_ctx->data == NULL);
-    memset(de_ctx->profile_prefilter_ctx->data, 0x00, sizeof(SCProfilePrefilterData) * size);
 
     HashListTableBucket *hb = HashListTableGetListHead(de_ctx->prefilter_hash_table);
     for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {

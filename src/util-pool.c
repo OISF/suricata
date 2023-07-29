@@ -107,13 +107,11 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,
     }
 
     /* setup the filter */
-    p = SCMalloc(sizeof(Pool));
+    p = SCCalloc(1, sizeof(Pool));
     if (unlikely(p == NULL)) {
         sc_errno = SC_ENOMEM;
         goto error;
     }
-
-    memset(p,0,sizeof(Pool));
 
     p->max_buckets = size;
     p->preallocated = prealloc_size;
@@ -158,12 +156,11 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,
     /* prealloc the buckets and requeue them to the alloc list */
     for (u32 = 0; u32 < prealloc_size; u32++) {
         if (size == 0) { /* unlimited */
-            PoolBucket *pb = SCMalloc(sizeof(PoolBucket));
+            PoolBucket *pb = SCCalloc(1, sizeof(PoolBucket));
             if (unlikely(pb == NULL)) {
                 sc_errno = SC_ENOMEM;
                 goto error;
             }
-            memset(pb, 0, sizeof(PoolBucket));
 
             if (p->Alloc) {
                 pb->data = p->Alloc();

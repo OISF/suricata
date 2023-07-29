@@ -471,10 +471,9 @@ static int SetBpfString(int argc, char *argv[])
     if (bpf_len == 0)
         return TM_ECODE_OK;
 
-    bpf_filter = SCMalloc(bpf_len);
+    bpf_filter = SCCalloc(1, bpf_len);
     if (unlikely(bpf_filter == NULL))
         return TM_ECODE_FAILED;
-    memset(bpf_filter, 0x00, bpf_len);
 
     tmpindex = optind;
     while(argv[tmpindex] != NULL) {
@@ -519,12 +518,11 @@ static void SetBpfStringFromFile(char *filename)
     }
     bpf_len = st.st_size + 1;
 
-    bpf_filter = SCMalloc(bpf_len);
+    bpf_filter = SCCalloc(1, bpf_len);
     if (unlikely(bpf_filter == NULL)) {
         SCLogError("Failed to allocate buffer for bpf filter in file %s", filename);
         exit(EXIT_FAILURE);
     }
-    memset(bpf_filter, 0x00, bpf_len);
 
     nm = fread(bpf_filter, 1, bpf_len - 1, fp);
     if ((ferror(fp) != 0) || (nm != (bpf_len - 1))) {

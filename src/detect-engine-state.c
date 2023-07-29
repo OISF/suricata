@@ -84,10 +84,9 @@ static inline int StateIsValid(uint16_t alproto, void *alstate)
 
 static DeStateStore *DeStateStoreAlloc(void)
 {
-    DeStateStore *d = SCMalloc(sizeof(DeStateStore));
+    DeStateStore *d = SCCalloc(1, sizeof(DeStateStore));
     if (unlikely(d == NULL))
         return NULL;
-    memset(d, 0, sizeof(DeStateStore));
 
     return d;
 }
@@ -163,10 +162,9 @@ static void DeStateSignatureAppend(DetectEngineState *state,
 
 DetectEngineState *DetectEngineStateAlloc(void)
 {
-    DetectEngineState *d = SCMalloc(sizeof(DetectEngineState));
+    DetectEngineState *d = SCCalloc(1, sizeof(DetectEngineState));
     if (unlikely(d == NULL))
         return NULL;
-    memset(d, 0, sizeof(DetectEngineState));
 
     return d;
 }

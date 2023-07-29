@@ -3011,10 +3011,9 @@ void HTPConfigure(void)
         SCLogDebug("LIBHTP server %s", s->name);
 
         HTPCfgRec *nextrec = cfglist.next;
-        HTPCfgRec *htprec = SCMalloc(sizeof(HTPCfgRec));
+        HTPCfgRec *htprec = SCCalloc(1, sizeof(HTPCfgRec));
         if (NULL == htprec)
             exit(EXIT_FAILURE);
-        memset(htprec, 0x00, sizeof(*htprec));
 
         cfglist.next = htprec;
 

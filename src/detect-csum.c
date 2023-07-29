@@ -284,9 +284,8 @@ static int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     sm->type = DETECT_IPV4_CSUM;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
+    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
         goto error;
-    memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -381,9 +380,8 @@ static int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 
     sm->type = DETECT_TCPV4_CSUM;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
+    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
         goto error;
-    memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -478,9 +476,8 @@ static int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 
     sm->type = DETECT_TCPV6_CSUM;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
+    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
         goto error;
-    memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -575,9 +572,8 @@ static int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 
     sm->type = DETECT_UDPV4_CSUM;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
+    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
         goto error;
-    memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -672,9 +668,8 @@ static int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 
     sm->type = DETECT_UDPV6_CSUM;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
+    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
         goto error;
-    memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -767,9 +762,8 @@ static int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
 
     sm->type = DETECT_ICMPV4_CSUM;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
+    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
         goto error;
-    memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -865,9 +859,8 @@ static int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
 
     sm->type = DETECT_ICMPV6_CSUM;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
+    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
         goto error;
-    memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;

@@ -428,11 +428,10 @@ static inline void SCACBSCreateFailureTable(MpmCtx *mpm_ctx)
 
     /* allot space for the failure table.  A failure entry in the table for
      * every state(SCACBSCtx->state_count) */
-    ctx->failure_table = SCMalloc(ctx->state_count * sizeof(int32_t));
+    ctx->failure_table = SCCalloc(1, ctx->state_count * sizeof(int32_t));
     if (ctx->failure_table == NULL) {
         FatalError("Error allocating memory");
     }
-    memset(ctx->failure_table, 0, ctx->state_count * sizeof(int32_t));
 
     /* add the failure transitions for the 0th state, and add every non-fail
      * transition from the 0th state to the queue for further processing
@@ -680,23 +679,20 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
          * but by avoiding it, we save a lot of time on handling alignment */
         size += (ctx->state_count * sizeof(SC_AC_BS_STATE_TYPE_U16) +
                  256 * sizeof(SC_AC_BS_STATE_TYPE_U16) * 1);
-        ctx->state_table_mod = SCMalloc(size);
+        ctx->state_table_mod = SCCalloc(1, size);
         if (ctx->state_table_mod == NULL) {
             FatalError("Error allocating memory");
         }
-        memset(ctx->state_table_mod, 0, size);
 
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += size;
 
         /* buffer to hold pointers in the buffer, so that a state can use it
          * directly to access its state data */
-        ctx->state_table_mod_pointers = SCMalloc(ctx->state_count * sizeof(uint8_t *));
+        ctx->state_table_mod_pointers = SCCalloc(1, ctx->state_count * sizeof(uint8_t *));
         if (ctx->state_table_mod_pointers == NULL) {
             FatalError("Error allocating memory");
         }
-        memset(ctx->state_table_mod_pointers, 0,
-               ctx->state_count * sizeof(uint8_t *));
 
         SC_AC_BS_STATE_TYPE_U16 temp_states[256];
         uint16_t *curr_loc = (uint16_t *)ctx->state_table_mod;
@@ -752,23 +748,20 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
          * but by avoiding it, we save a lot of time on handling alignment */
         size += (ctx->state_count * sizeof(SC_AC_BS_STATE_TYPE_U32) +
                  256 * sizeof(SC_AC_BS_STATE_TYPE_U32) * 1);
-        ctx->state_table_mod = SCMalloc(size);
+        ctx->state_table_mod = SCCalloc(1, size);
         if (ctx->state_table_mod == NULL) {
             FatalError("Error allocating memory");
         }
-        memset(ctx->state_table_mod, 0, size);
 
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += size;
 
         /* buffer to hold pointers in the buffer, so that a state can use it
          * directly to access its state data */
-        ctx->state_table_mod_pointers = SCMalloc(ctx->state_count * sizeof(uint8_t *));
+        ctx->state_table_mod_pointers = SCCalloc(1, ctx->state_count * sizeof(uint8_t *));
         if (ctx->state_table_mod_pointers == NULL) {
             FatalError("Error allocating memory");
         }
-        memset(ctx->state_table_mod_pointers, 0,
-               ctx->state_count * sizeof(uint8_t *));
 
         SC_AC_BS_STATE_TYPE_U32 temp_states[256];
         uint32_t *curr_loc = (uint32_t *)ctx->state_table_mod;
@@ -876,11 +869,9 @@ int SCACBSPreparePatterns(MpmCtx *mpm_ctx)
     }
 
     /* alloc the pattern array */
-    ctx->parray = (MpmPattern **)SCMalloc(mpm_ctx->pattern_cnt *
-                                           sizeof(MpmPattern *));
+    ctx->parray = (MpmPattern **)SCCalloc(1, mpm_ctx->pattern_cnt * sizeof(MpmPattern *));
     if (ctx->parray == NULL)
         goto error;
-    memset(ctx->parray, 0, mpm_ctx->pattern_cnt * sizeof(MpmPattern *));
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += (mpm_ctx->pattern_cnt * sizeof(MpmPattern *));
 
@@ -904,11 +895,10 @@ int SCACBSPreparePatterns(MpmCtx *mpm_ctx)
     ctx->single_state_size = sizeof(int32_t) * 256;
 
     /* handle no case patterns */
-    ctx->pid_pat_list = SCMalloc((mpm_ctx->max_pat_id + 1)* sizeof(SCACBSPatternList));
+    ctx->pid_pat_list = SCCalloc(1, (mpm_ctx->max_pat_id + 1) * sizeof(SCACBSPatternList));
     if (ctx->pid_pat_list == NULL) {
         FatalError("Error allocating memory");
     }
-    memset(ctx->pid_pat_list, 0, (mpm_ctx->max_pat_id + 1) * sizeof(SCACBSPatternList));
 
     for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
         if (!(ctx->parray[i]->flags & MPM_PATTERN_FLAG_NOCASE)) {
@@ -959,11 +949,10 @@ void SCACBSInitThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
 {
     memset(mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
 
-    mpm_thread_ctx->ctx = SCMalloc(sizeof(SCACBSThreadCtx));
+    mpm_thread_ctx->ctx = SCCalloc(1, sizeof(SCACBSThreadCtx));
     if (mpm_thread_ctx->ctx == NULL) {
         exit(EXIT_FAILURE);
     }
-    memset(mpm_thread_ctx->ctx, 0, sizeof(SCACBSThreadCtx));
     mpm_thread_ctx->memory_cnt++;
     mpm_thread_ctx->memory_size += sizeof(SCACBSThreadCtx);
 
@@ -980,21 +969,19 @@ void SCACBSInitCtx(MpmCtx *mpm_ctx)
     if (mpm_ctx->ctx != NULL)
         return;
 
-    mpm_ctx->ctx = SCMalloc(sizeof(SCACBSCtx));
+    mpm_ctx->ctx = SCCalloc(1, sizeof(SCACBSCtx));
     if (mpm_ctx->ctx == NULL) {
         exit(EXIT_FAILURE);
     }
-    memset(mpm_ctx->ctx, 0, sizeof(SCACBSCtx));
 
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += sizeof(SCACBSCtx);
 
     /* initialize the hash we use to speed up pattern insertions */
-    mpm_ctx->init_hash = SCMalloc(sizeof(MpmPattern *) * MPM_INIT_HASH_SIZE);
+    mpm_ctx->init_hash = SCCalloc(1, sizeof(MpmPattern *) * MPM_INIT_HASH_SIZE);
     if (mpm_ctx->init_hash == NULL) {
         exit(EXIT_FAILURE);
     }
-    memset(mpm_ctx->init_hash, 0, sizeof(MpmPattern *) * MPM_INIT_HASH_SIZE);
 
     /* get conf values for AC from our yaml file.  We have no conf values for
      * now.  We will certainly need this, as we develop the algo */
