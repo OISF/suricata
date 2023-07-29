@@ -57,10 +57,9 @@ int OutputRegisterFiledataLogger(LoggerId id, const char *name,
     ThreadDeinitFunc ThreadDeinit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
-    OutputFiledataLogger *op = SCMalloc(sizeof(*op));
+    OutputFiledataLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
         return -1;
-    memset(op, 0x00, sizeof(*op));
 
     op->LogFunc = LogFunc;
     op->output_ctx = output_ctx;
@@ -204,10 +203,9 @@ void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Pa
  *  loggers */
 TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, OutputFiledataLoggerThreadData **data)
 {
-    OutputFiledataLoggerThreadData *td = SCMalloc(sizeof(*td));
+    OutputFiledataLoggerThreadData *td = SCCalloc(1, sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;
-    memset(td, 0x00, sizeof(*td));
     *data = td;
 
 #ifdef HAVE_MAGIC
@@ -225,9 +223,8 @@ TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, OutputFiledataLoggerThreadDa
         if (logger->ThreadInit) {
             void *retptr = NULL;
             if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
-                OutputLoggerThreadStore *ts = SCMalloc(sizeof(*ts));
+                OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
                 /* todo */ BUG_ON(ts == NULL);
-                memset(ts, 0x00, sizeof(*ts));
 
                 /* store thread handle */
                 ts->thread_data = retptr;

@@ -414,12 +414,11 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
             } else {
                 SCLogDebug("Processing file %s", current_file->filename);
 
-                PcapFileFileVars *pftv = SCMalloc(sizeof(PcapFileFileVars));
+                PcapFileFileVars *pftv = SCCalloc(1, sizeof(PcapFileFileVars));
                 if (unlikely(pftv == NULL)) {
                     SCLogError("Failed to allocate PcapFileFileVars");
                     SCReturnInt(TM_ECODE_FAILED);
                 }
-                memset(pftv, 0, sizeof(PcapFileFileVars));
 
                 pftv->filename = SCStrdup(current_file->filename);
                 if (unlikely(pftv->filename == NULL)) {

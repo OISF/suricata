@@ -95,10 +95,9 @@ static void Add(SCFPSupportSMList **list, const int list_id, const int priority)
     }
 
     if (*list == NULL) {
-        SCFPSupportSMList *new = SCMalloc(sizeof(SCFPSupportSMList));
+        SCFPSupportSMList *new = SCCalloc(1, sizeof(SCFPSupportSMList));
         if (unlikely(new == NULL))
             exit(EXIT_FAILURE);
-        memset(new, 0, sizeof(SCFPSupportSMList));
         new->list_id = list_id;
         new->priority = priority;
 
@@ -106,10 +105,9 @@ static void Add(SCFPSupportSMList **list, const int list_id, const int priority)
         return;
     }
 
-    SCFPSupportSMList *new = SCMalloc(sizeof(SCFPSupportSMList));
+    SCFPSupportSMList *new = SCCalloc(1, sizeof(SCFPSupportSMList));
     if (unlikely(new == NULL))
         exit(EXIT_FAILURE);
-    memset(new, 0, sizeof(SCFPSupportSMList));
     new->list_id = list_id;
     new->priority = priority;
     if (ip == NULL) {

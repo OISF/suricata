@@ -50,12 +50,11 @@ HashListTable *HashListTableInit(uint32_t size,
     }
 
     /* setup the filter */
-    ht = SCMalloc(sizeof(HashListTable));
+    ht = SCCalloc(1, sizeof(HashListTable));
     if (unlikely(ht == NULL)) {
         sc_errno = SC_ENOMEM;
         goto error;
     }
-    memset(ht,0,sizeof(HashListTable));
     ht->array_size = size;
     ht->Hash = Hash;
     ht->Free = Free;
@@ -66,12 +65,11 @@ HashListTable *HashListTableInit(uint32_t size,
         ht->Compare = HashListTableDefaultCompare;
 
     /* setup the bitarray */
-    ht->array = SCMalloc(ht->array_size * sizeof(HashListTableBucket *));
+    ht->array = SCCalloc(1, ht->array_size * sizeof(HashListTableBucket *));
     if (ht->array == NULL) {
         sc_errno = SC_ENOMEM;
         goto error;
     }
-    memset(ht->array,0,ht->array_size * sizeof(HashListTableBucket *));
 
     ht->listhead = NULL;
     ht->listtail = NULL;
@@ -130,10 +128,9 @@ int HashListTableAdd(HashListTable *ht, void *data, uint16_t datalen)
 
     SCLogDebug("ht %p hash %"PRIu32"", ht, hash);
 
-    HashListTableBucket *hb = SCMalloc(sizeof(HashListTableBucket));
+    HashListTableBucket *hb = SCCalloc(1, sizeof(HashListTableBucket));
     if (unlikely(hb == NULL))
         goto error;
-    memset(hb, 0, sizeof(HashListTableBucket));
     hb->data = data;
     hb->size = datalen;
     hb->bucknext = NULL;

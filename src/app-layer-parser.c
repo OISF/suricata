@@ -238,10 +238,9 @@ AppLayerParserState *AppLayerParserStateAlloc(void)
 {
     SCEnter();
 
-    AppLayerParserState *pstate = (AppLayerParserState *)SCMalloc(sizeof(*pstate));
+    AppLayerParserState *pstate = (AppLayerParserState *)SCCalloc(1, sizeof(*pstate));
     if (pstate == NULL)
         goto end;
-    memset(pstate, 0, sizeof(*pstate));
 
  end:
     SCReturnPtr(pstate, "AppLayerParserState");

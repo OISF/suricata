@@ -334,11 +334,10 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
 
 SigMatch *SigMatchAlloc(void)
 {
-    SigMatch *sm = SCMalloc(sizeof(SigMatch));
+    SigMatch *sm = SCCalloc(1, sizeof(SigMatch));
     if (unlikely(sm == NULL))
         return NULL;
 
-    memset(sm, 0, sizeof(SigMatch));
     sm->prev = NULL;
     sm->next = NULL;
     return sm;
@@ -1514,10 +1513,9 @@ int SignatureInitDataBufferCheckExpand(Signature *s)
 
 Signature *SigAlloc (void)
 {
-    Signature *sig = SCMalloc(sizeof(Signature));
+    Signature *sig = SCCalloc(1, sizeof(Signature));
     if (unlikely(sig == NULL))
         return NULL;
-    memset(sig, 0, sizeof(Signature));
 
     sig->init_data = SCCalloc(1, sizeof(SignatureInitData));
     if (sig->init_data == NULL) {
@@ -2463,11 +2461,10 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
     SigDuplWrapper *sw = NULL;
 
     /* used for making a duplicate_sig_hash_table entry */
-    sw = SCMalloc(sizeof(SigDuplWrapper));
+    sw = SCCalloc(1, sizeof(SigDuplWrapper));
     if (unlikely(sw == NULL)) {
         exit(EXIT_FAILURE);
     }
-    memset(sw, 0, sizeof(SigDuplWrapper));
     sw->s = sig;
 
     /* check if we have a duplicate entry for this signature */

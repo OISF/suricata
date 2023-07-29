@@ -493,12 +493,11 @@ static void FilePrune(FileContainer *ffc, const StreamingBufferConfig *cfg)
  */
 FileContainer *FileContainerAlloc(void)
 {
-    FileContainer *new = SCMalloc(sizeof(FileContainer));
+    FileContainer *new = SCCalloc(1, sizeof(FileContainer));
     if (unlikely(new == NULL)) {
         SCLogError("Error allocating mem");
         return NULL;
     }
-    memset(new, 0, sizeof(FileContainer));
     new->head = new->tail = NULL;
     return new;
 }
@@ -554,12 +553,11 @@ void FileContainerFree(FileContainer *ffc, const StreamingBufferConfig *cfg)
  */
 static File *FileAlloc(const uint8_t *name, uint16_t name_len)
 {
-    File *new = SCMalloc(sizeof(File));
+    File *new = SCCalloc(1, sizeof(File));
     if (unlikely(new == NULL)) {
         SCLogError("Error allocating mem");
         return NULL;
     }
-    memset(new, 0, sizeof(File));
 
     new->name = SCMalloc(name_len);
     if (new->name == NULL) {

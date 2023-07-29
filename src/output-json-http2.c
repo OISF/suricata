@@ -138,7 +138,7 @@ static OutputInitResult OutputHttp2LogInitSub(ConfNode *conf, OutputCtx *parent_
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
-    OutputHttp2Ctx *http2_ctx = SCMalloc(sizeof(OutputHttp2Ctx));
+    OutputHttp2Ctx *http2_ctx = SCCalloc(1, sizeof(OutputHttp2Ctx));
     if (unlikely(http2_ctx == NULL))
         return result;
 

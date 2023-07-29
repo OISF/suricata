@@ -277,9 +277,8 @@ static int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     //printf("DetectCsumSetup: \'%s\'\n", csum_str);
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
+    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
         goto error;
-    memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -368,9 +367,8 @@ static int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 
     //printf("DetectCsumSetup: \'%s\'\n", csum_str);
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
+    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
         goto error;
-    memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -459,9 +457,8 @@ static int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 
     //printf("DetectCsumSetup: \'%s\'\n", csum_str);
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
+    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
         goto error;
-    memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -550,9 +547,8 @@ static int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 
     //printf("DetectCsumSetup: \'%s\'\n", csum_str);
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
+    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
         goto error;
-    memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -641,9 +637,8 @@ static int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 
     //printf("DetectCsumSetup: \'%s\'\n", csum_str);
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
+    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
         goto error;
-    memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -730,9 +725,8 @@ static int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
 
     //printf("DetectCsumSetup: \'%s\'\n", csum_str);
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
+    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
         goto error;
-    memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
@@ -822,9 +816,8 @@ static int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
 {
     DetectCsumData *cd = NULL;
 
-    if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
+    if ((cd = SCCalloc(1, sizeof(DetectCsumData))) == NULL)
         goto error;
-    memset(cd, 0, sizeof(DetectCsumData));
 
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
