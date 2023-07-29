@@ -228,10 +228,9 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
         goto error;
     }
 
-    bed = SCMalloc(sizeof(DetectByteExtractData));
+    bed = SCCalloc(1, sizeof(DetectByteExtractData));
     if (unlikely(bed == NULL))
         goto error;
-    memset(bed, 0, sizeof(DetectByteExtractData));
 
     /* no of bytes to extract */
     char nbytes_str[64] = "";

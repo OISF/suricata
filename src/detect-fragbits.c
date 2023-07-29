@@ -198,11 +198,9 @@ static DetectFragBitsData *DetectFragBitsParse (const char *rawstr)
         goto error;
     }
 
-    de = SCMalloc(sizeof(DetectFragBitsData));
+    de = SCCalloc(1, sizeof(DetectFragBitsData));
     if (unlikely(de == NULL))
         goto error;
-
-    memset(de,0,sizeof(DetectFragBitsData));
 
     /** First parse args[0] */
 

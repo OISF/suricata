@@ -133,11 +133,10 @@ int32_t MpmFactoryIsMpmCtxAvailable(const DetectEngineCtx *de_ctx, const MpmCtx 
 MpmCtx *MpmFactoryGetMpmCtxForProfile(const DetectEngineCtx *de_ctx, int32_t id, int direction)
 {
     if (id == MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
-        MpmCtx *mpm_ctx = SCMalloc(sizeof(MpmCtx));
+        MpmCtx *mpm_ctx = SCCalloc(1, sizeof(MpmCtx));
         if (unlikely(mpm_ctx == NULL)) {
             FatalError("Error allocating memory");
         }
-        memset(mpm_ctx, 0, sizeof(MpmCtx));
         return mpm_ctx;
     } else if (id < -1) {
         SCLogError("Invalid argument - %d\n", id);
@@ -339,11 +338,10 @@ static inline MpmPattern *MpmInitHashLookup(MpmCtx *ctx,
  */
 static inline MpmPattern *MpmAllocPattern(MpmCtx *mpm_ctx)
 {
-    MpmPattern *p = SCMalloc(sizeof(MpmPattern));
+    MpmPattern *p = SCCalloc(1, sizeof(MpmPattern));
     if (unlikely(p == NULL)) {
         exit(EXIT_FAILURE);
     }
-    memset(p, 0, sizeof(MpmPattern));
 
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += sizeof(MpmPattern);

@@ -201,11 +201,9 @@ static DetectFileHashData *DetectFileHashParse (const DetectEngineCtx *de_ctx,
     char *rule_filename = NULL;
 
     /* We have a correct hash algorithm option */
-    filehash = SCMalloc(sizeof(DetectFileHashData));
+    filehash = SCCalloc(1, sizeof(DetectFileHashData));
     if (unlikely(filehash == NULL))
         goto error;
-
-    memset(filehash, 0x00, sizeof(DetectFileHashData));
 
     if (strlen(str) && str[0] == '!') {
         filehash->negated = 1;

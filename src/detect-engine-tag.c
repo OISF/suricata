@@ -91,11 +91,10 @@ int TagHostHasTag(Host *host)
 
 static DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd)
 {
-    DetectTagDataEntry *tde = SCMalloc(sizeof(DetectTagDataEntry));
+    DetectTagDataEntry *tde = SCCalloc(1, sizeof(DetectTagDataEntry));
     if (unlikely(tde == NULL)) {
         return NULL;
     }
-    memset(tde, 0, sizeof(DetectTagDataEntry));
 
     tde->sid = dtd->sid;
     tde->gid = dtd->gid;

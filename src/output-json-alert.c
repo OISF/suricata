@@ -941,11 +941,10 @@ static OutputInitResult JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent
     if (unlikely(output_ctx == NULL))
         return result;
 
-    json_output_ctx = SCMalloc(sizeof(AlertJsonOutputCtx));
+    json_output_ctx = SCCalloc(1, sizeof(AlertJsonOutputCtx));
     if (unlikely(json_output_ctx == NULL)) {
         goto error;
     }
-    memset(json_output_ctx, 0, sizeof(AlertJsonOutputCtx));
 
     json_output_ctx->file_ctx = ajt->file_ctx;
     json_output_ctx->eve_ctx = ajt;

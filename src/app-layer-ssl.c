@@ -2646,10 +2646,9 @@ static AppLayerResult SSLParseServerRecord(Flow *f, void *alstate, AppLayerParse
  */
 static void *SSLStateAlloc(void *orig_state, AppProto proto_orig)
 {
-    SSLState *ssl_state = SCMalloc(sizeof(SSLState));
+    SSLState *ssl_state = SCCalloc(1, sizeof(SSLState));
     if (unlikely(ssl_state == NULL))
         return NULL;
-    memset(ssl_state, 0, sizeof(SSLState));
     ssl_state->client_connp.cert_log_flag = 0;
     ssl_state->server_connp.cert_log_flag = 0;
     memset(ssl_state->client_connp.random, 0, TLS_RANDOM_LEN);

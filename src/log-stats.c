@@ -165,10 +165,9 @@ static int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *s
 
 TmEcode LogStatsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    LogStatsLogThread *aft = SCMalloc(sizeof(LogStatsLogThread));
+    LogStatsLogThread *aft = SCCalloc(1, sizeof(LogStatsLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(LogStatsLogThread));
 
     if(initdata == NULL)
     {
@@ -223,12 +222,11 @@ static OutputInitResult LogStatsLogInitCtx(ConfNode *conf)
         return result;
     }
 
-    LogStatsFileCtx *statslog_ctx = SCMalloc(sizeof(LogStatsFileCtx));
+    LogStatsFileCtx *statslog_ctx = SCCalloc(1, sizeof(LogStatsFileCtx));
     if (unlikely(statslog_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         return result;
     }
-    memset(statslog_ctx, 0x00, sizeof(LogStatsFileCtx));
 
     statslog_ctx->flags = LOG_STATS_TOTALS;
 
