@@ -67,10 +67,9 @@ int OutputRegisterStreamingLogger(LoggerId id, const char *name,
     ThreadDeinitFunc ThreadDeinit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
-    OutputStreamingLogger *op = SCMalloc(sizeof(*op));
+    OutputStreamingLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
         return -1;
-    memset(op, 0x00, sizeof(*op));
 
     op->LogFunc = LogFunc;
     op->output_ctx = output_ctx;
@@ -365,10 +364,9 @@ static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data)
  *  This will run the thread init functions for the individual registered
  *  loggers */
 static TmEcode OutputStreamingLogThreadInit(ThreadVars *tv, const void *initdata, void **data) {
-    OutputStreamingLoggerThreadData *td = SCMalloc(sizeof(*td));
+    OutputStreamingLoggerThreadData *td = SCCalloc(1, sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;
-    memset(td, 0x00, sizeof(*td));
 
     *data = (void *)td;
 
@@ -379,9 +377,8 @@ static TmEcode OutputStreamingLogThreadInit(ThreadVars *tv, const void *initdata
         if (logger->ThreadInit) {
             void *retptr = NULL;
             if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
-                OutputLoggerThreadStore *ts = SCMalloc(sizeof(*ts));
-/* todo */      BUG_ON(ts == NULL);
-                memset(ts, 0x00, sizeof(*ts));
+                OutputLoggerThreadStore *ts = SCCalloc(1, sizeof(*ts));
+                /* todo */ BUG_ON(ts == NULL);
 
                 /* store thread handle */
                 ts->thread_data = retptr;

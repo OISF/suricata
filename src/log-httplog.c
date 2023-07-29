@@ -503,10 +503,9 @@ int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, v
 
 TmEcode LogHttpLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    LogHttpLogThread *aft = SCMalloc(sizeof(LogHttpLogThread));
+    LogHttpLogThread *aft = SCCalloc(1, sizeof(LogHttpLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(LogHttpLogThread));
 
     if(initdata == NULL)
     {
@@ -561,12 +560,11 @@ OutputInitResult LogHttpLogInitCtx(ConfNode *conf)
         return result;
     }
 
-    LogHttpFileCtx *httplog_ctx = SCMalloc(sizeof(LogHttpFileCtx));
+    LogHttpFileCtx *httplog_ctx = SCCalloc(1, sizeof(LogHttpFileCtx));
     if (unlikely(httplog_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         return result;
     }
-    memset(httplog_ctx, 0x00, sizeof(LogHttpFileCtx));
 
     httplog_ctx->file_ctx = file_ctx;
 

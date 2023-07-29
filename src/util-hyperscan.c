@@ -43,11 +43,10 @@ char *HSRenderPattern(const uint8_t *pat, uint16_t pat_len)
         return NULL;
     }
     const size_t hex_len = (pat_len * 4) + 1;
-    char *str = SCMalloc(hex_len);
+    char *str = SCCalloc(1, hex_len);
     if (str == NULL) {
         return NULL;
     }
-    memset(str, 0, hex_len);
     char *sp = str;
     for (uint16_t i = 0; i < pat_len; i++) {
         snprintf(sp, 5, "\\x%02x", pat[i]);

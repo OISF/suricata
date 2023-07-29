@@ -165,10 +165,9 @@ int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f,
 
 TmEcode LogTcpDataLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    LogTcpDataLogThread *aft = SCMalloc(sizeof(LogTcpDataLogThread));
+    LogTcpDataLogThread *aft = SCCalloc(1, sizeof(LogTcpDataLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(LogTcpDataLogThread));
 
     if(initdata == NULL)
     {
@@ -222,12 +221,11 @@ OutputInitResult LogTcpDataLogInitCtx(ConfNode *conf)
         return result;
     }
 
-    LogTcpDataFileCtx *tcpdatalog_ctx = SCMalloc(sizeof(LogTcpDataFileCtx));
+    LogTcpDataFileCtx *tcpdatalog_ctx = SCCalloc(1, sizeof(LogTcpDataFileCtx));
     if (unlikely(tcpdatalog_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         return result;
     }
-    memset(tcpdatalog_ctx, 0x00, sizeof(LogTcpDataFileCtx));
 
     tcpdatalog_ctx->file_ctx = file_ctx;
 

@@ -248,11 +248,11 @@ void DetectAppLayerInspectEngineRegister2(const char *name,
         direction = 1;
     }
 
-    DetectEngineAppInspectionEngine *new_engine = SCMalloc(sizeof(DetectEngineAppInspectionEngine));
+    DetectEngineAppInspectionEngine *new_engine =
+            SCCalloc(1, sizeof(DetectEngineAppInspectionEngine));
     if (unlikely(new_engine == NULL)) {
         exit(EXIT_FAILURE);
     }
-    memset(new_engine, 0, sizeof(*new_engine));
     new_engine->alproto = alproto;
     new_engine->dir = direction;
     new_engine->sm_list = (uint16_t)sm_list;
@@ -2469,11 +2469,10 @@ retry:
 static DetectEngineCtx *DetectEngineCtxInitReal(
         enum DetectEngineType type, const char *prefix, uint32_t tenant_id)
 {
-    DetectEngineCtx *de_ctx = SCMalloc(sizeof(DetectEngineCtx));
+    DetectEngineCtx *de_ctx = SCCalloc(1, sizeof(DetectEngineCtx));
     if (unlikely(de_ctx == NULL))
         goto error;
 
-    memset(de_ctx,0,sizeof(DetectEngineCtx));
     memset(&de_ctx->sig_stat, 0, sizeof(SigFileLoaderStat));
     TAILQ_INIT(&de_ctx->sig_stat.failed_sigs);
     de_ctx->sigerror = NULL;
@@ -3047,13 +3046,11 @@ static int DetectEngineThreadCtxInitKeywords(DetectEngineCtx *de_ctx, DetectEngi
 {
     if (de_ctx->keyword_id > 0) {
         // coverity[suspicious_sizeof : FALSE]
-        det_ctx->keyword_ctxs_array = SCMalloc(de_ctx->keyword_id * sizeof(void *));
+        det_ctx->keyword_ctxs_array = SCCalloc(1, de_ctx->keyword_id * sizeof(void *));
         if (det_ctx->keyword_ctxs_array == NULL) {
             SCLogError("setting up thread local detect ctx");
             return TM_ECODE_FAILED;
         }
-
-        memset(det_ctx->keyword_ctxs_array, 0x00, de_ctx->keyword_id * sizeof(void *));
 
         det_ctx->keyword_ctxs_size = de_ctx->keyword_id;
 
@@ -3229,12 +3226,10 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     /* DeState */
     if (de_ctx->sig_array_len > 0) {
         det_ctx->match_array_len = de_ctx->sig_array_len;
-        det_ctx->match_array = SCMalloc(det_ctx->match_array_len * sizeof(Signature *));
+        det_ctx->match_array = SCCalloc(1, det_ctx->match_array_len * sizeof(Signature *));
         if (det_ctx->match_array == NULL) {
             return TM_ECODE_FAILED;
         }
-        memset(det_ctx->match_array, 0,
-               det_ctx->match_array_len * sizeof(Signature *));
 
         RuleMatchCandidateTxArrayInit(det_ctx, de_ctx->sig_array_len);
     }
@@ -3316,10 +3311,9 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
  */
 TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 {
-    DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
+    DetectEngineThreadCtx *det_ctx = SCCalloc(1, sizeof(DetectEngineThreadCtx));
     if (unlikely(det_ctx == NULL))
         return TM_ECODE_FAILED;
-    memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
 
     det_ctx->tv = tv;
     det_ctx->de_ctx = DetectEngineGetCurrent();
@@ -3382,10 +3376,9 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
         ThreadVars *tv, DetectEngineCtx *new_de_ctx, int mt)
 {
-    DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
+    DetectEngineThreadCtx *det_ctx = SCCalloc(1, sizeof(DetectEngineThreadCtx));
     if (unlikely(det_ctx == NULL))
         return NULL;
-    memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
 
     det_ctx->tenant_id = new_de_ctx->tenant_id;
     det_ctx->tv = tv;

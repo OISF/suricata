@@ -1216,11 +1216,10 @@ static AppLayerGetFileState FTPDataStateGetTxFiles(void *_state, void *tx, uint8
 
 static void FTPSetMpmState(void)
 {
-    ftp_mpm_ctx = SCMalloc(sizeof(MpmCtx));
+    ftp_mpm_ctx = SCCalloc(1, sizeof(MpmCtx));
     if (unlikely(ftp_mpm_ctx == NULL)) {
         exit(EXIT_FAILURE);
     }
-    memset(ftp_mpm_ctx, 0, sizeof(MpmCtx));
     MpmInitCtx(ftp_mpm_ctx, FTP_MPM);
 
     uint32_t i = 0;

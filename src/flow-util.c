@@ -62,12 +62,11 @@ Flow *FlowAlloc(void)
 
     (void) SC_ATOMIC_ADD(flow_memuse, size);
 
-    f = SCMalloc(size);
+    f = SCCalloc(1, size);
     if (unlikely(f == NULL)) {
         (void)SC_ATOMIC_SUB(flow_memuse, size);
         return NULL;
     }
-    memset(f, 0, size);
 
     /* coverity[missing_lock] */
     FLOW_INITIALIZE(f);

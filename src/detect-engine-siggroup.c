@@ -86,18 +86,14 @@ void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid)
 
 static SigGroupHeadInitData *SigGroupHeadInitDataAlloc(uint32_t size)
 {
-    SigGroupHeadInitData *sghid = SCMalloc(sizeof(SigGroupHeadInitData));
+    SigGroupHeadInitData *sghid = SCCalloc(1, sizeof(SigGroupHeadInitData));
     if (unlikely(sghid == NULL))
         return NULL;
 
-    memset(sghid, 0x00, sizeof(SigGroupHeadInitData));
-
     /* initialize the signature bitarray */
     sghid->sig_size = size;
-    if ( (sghid->sig_array = SCMalloc(sghid->sig_size)) == NULL)
+    if ((sghid->sig_array = SCCalloc(1, sghid->sig_size)) == NULL)
         goto error;
-
-    memset(sghid->sig_array, 0, sghid->sig_size);
 
     return sghid;
 error:
@@ -139,10 +135,9 @@ void SigGroupHeadStore(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
  */
 static SigGroupHead *SigGroupHeadAlloc(const DetectEngineCtx *de_ctx, uint32_t size)
 {
-    SigGroupHead *sgh = SCMalloc(sizeof(SigGroupHead));
+    SigGroupHead *sgh = SCCalloc(1, sizeof(SigGroupHead));
     if (unlikely(sgh == NULL))
         return NULL;
-    memset(sgh, 0, sizeof(SigGroupHead));
 
     sgh->init = SigGroupHeadInitDataAlloc(size);
     if (sgh->init == NULL)
@@ -498,11 +493,9 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 
     BUG_ON(sgh->init->match_array != NULL);
 
-    sgh->init->match_array = SCMalloc(sgh->init->sig_cnt * sizeof(Signature *));
+    sgh->init->match_array = SCCalloc(1, sgh->init->sig_cnt * sizeof(Signature *));
     if (sgh->init->match_array == NULL)
         return -1;
-
-    memset(sgh->init->match_array, 0, sgh->init->sig_cnt * sizeof(Signature *));
 
     for (sig = 0; sig < max_idx + 1; sig++) {
         if (!(sgh->init->sig_array[(sig / 8)] & (1 << (sig % 8))) )
@@ -679,15 +672,13 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
     }
 
     if (non_pf > 0) {
-        sgh->non_pf_other_store_array = SCMalloc(non_pf * sizeof(SignatureNonPrefilterStore));
+        sgh->non_pf_other_store_array = SCCalloc(1, non_pf * sizeof(SignatureNonPrefilterStore));
         BUG_ON(sgh->non_pf_other_store_array == NULL);
-        memset(sgh->non_pf_other_store_array, 0, non_pf * sizeof(SignatureNonPrefilterStore));
     }
 
     if (non_pf_syn > 0) {
-        sgh->non_pf_syn_store_array = SCMalloc(non_pf_syn * sizeof(SignatureNonPrefilterStore));
+        sgh->non_pf_syn_store_array = SCCalloc(1, non_pf_syn * sizeof(SignatureNonPrefilterStore));
         BUG_ON(sgh->non_pf_syn_store_array == NULL);
-        memset(sgh->non_pf_syn_store_array, 0, non_pf_syn * sizeof(SignatureNonPrefilterStore));
     }
 
     for (sig = 0; sig < sgh->init->sig_cnt; sig++) {

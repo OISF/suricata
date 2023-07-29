@@ -650,10 +650,8 @@ TmEcode VerdictIPFWThreadInit(ThreadVars *tv, const void *initdata, void **data)
     SCEnter();
 
     /* Setup Thread vars */
-    if ( (ptv = SCMalloc(sizeof(IPFWThreadVars))) == NULL)
+    if ((ptv = SCCalloc(1, sizeof(IPFWThreadVars))) == NULL)
         SCReturnInt(TM_ECODE_FAILED);
-    memset(ptv, 0, sizeof(IPFWThreadVars));
-
 
     *data = (void *)ptv;
 

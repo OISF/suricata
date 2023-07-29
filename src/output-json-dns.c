@@ -551,11 +551,10 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
 
     OutputJsonCtx *ojc = parent_ctx->data;
 
-    LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
+    LogDnsFileCtx *dnslog_ctx = SCCalloc(1, sizeof(LogDnsFileCtx));
     if (unlikely(dnslog_ctx == NULL)) {
         return result;
     }
-    memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
 
     dnslog_ctx->eve_ctx = ojc;
 

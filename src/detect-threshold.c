@@ -154,11 +154,9 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
         goto error;
     }
 
-    de = SCMalloc(sizeof(DetectThresholdData));
+    de = SCCalloc(1, sizeof(DetectThresholdData));
     if (unlikely(de == NULL))
         goto error;
-
-    memset(de,0,sizeof(DetectThresholdData));
 
     for (i = 0; i < (ret - 1); i++) {
 
