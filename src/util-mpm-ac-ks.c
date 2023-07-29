@@ -511,11 +511,10 @@ static void SCACTileCreateFailureTable(MpmCtx *mpm_ctx)
 
     /* Allocate space for the failure table.  A failure entry in the table for
      * every state(SCACTileCtx->state_count) */
-    ctx->failure_table = SCMalloc(ctx->state_count * sizeof(int32_t));
+    ctx->failure_table = SCCalloc(1, ctx->state_count * sizeof(int32_t));
     if (ctx->failure_table == NULL) {
         FatalError("Error allocating memory");
     }
-    memset(ctx->failure_table, 0, ctx->state_count * sizeof(int32_t));
 
     /* Add the failure transitions for the 0th state, and add every non-fail
      * transition from the 0th state to the queue for further processing
@@ -712,11 +711,10 @@ static void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
 
     /* Allocate next-state table. */
     int size = ctx->state_count * ctx->bytes_per_state * ctx->alphabet_storage;
-    void *state_table = SCMalloc(size);
+    void *state_table = SCCalloc(1, size);
     if (unlikely(state_table == NULL)) {
         FatalError("Error allocating memory");
     }
-    memset(state_table, 0, size);
     ctx->state_table = state_table;
 
     mpm_ctx->memory_cnt++;
@@ -879,11 +877,9 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
     }
 
     /* alloc the pattern array */
-    ctx->parray = (MpmPattern **)SCMalloc(mpm_ctx->pattern_cnt *
-                                               sizeof(MpmPattern *));
+    ctx->parray = (MpmPattern **)SCCalloc(1, mpm_ctx->pattern_cnt * sizeof(MpmPattern *));
     if (ctx->parray == NULL)
         goto error;
-    memset(ctx->parray, 0, mpm_ctx->pattern_cnt * sizeof(MpmPattern *));
 
     /* populate it with the patterns in the hash */
     uint32_t i = 0, p = 0;
@@ -971,11 +967,10 @@ void SCACTileInitThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
 {
     memset(mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
 
-    mpm_thread_ctx->ctx = SCMalloc(sizeof(SCACTileThreadCtx));
+    mpm_thread_ctx->ctx = SCCalloc(1, sizeof(SCACTileThreadCtx));
     if (mpm_thread_ctx->ctx == NULL) {
         exit(EXIT_FAILURE);
     }
-    memset(mpm_thread_ctx->ctx, 0, sizeof(SCACTileThreadCtx));
     mpm_thread_ctx->memory_cnt++;
     mpm_thread_ctx->memory_size += sizeof(SCACTileThreadCtx);
 }
@@ -991,11 +986,10 @@ void SCACTileInitCtx(MpmCtx *mpm_ctx)
         return;
 
     /* Search Context */
-    mpm_ctx->ctx = SCMalloc(sizeof(SCACTileSearchCtx));
+    mpm_ctx->ctx = SCCalloc(1, sizeof(SCACTileSearchCtx));
     if (mpm_ctx->ctx == NULL) {
         exit(EXIT_FAILURE);
     }
-    memset(mpm_ctx->ctx, 0, sizeof(SCACTileSearchCtx));
 
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += sizeof(SCACTileSearchCtx);
@@ -1003,21 +997,19 @@ void SCACTileInitCtx(MpmCtx *mpm_ctx)
     SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
 
     /* MPM Creation context */
-    search_ctx->init_ctx = SCMalloc(sizeof(SCACTileCtx));
+    search_ctx->init_ctx = SCCalloc(1, sizeof(SCACTileCtx));
     if (search_ctx->init_ctx == NULL) {
         exit(EXIT_FAILURE);
     }
-    memset(search_ctx->init_ctx, 0, sizeof(SCACTileCtx));
 
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += sizeof(SCACTileCtx);
 
     /* initialize the hash we use to speed up pattern insertions */
-    mpm_ctx->init_hash = SCMalloc(sizeof(MpmPattern *) * MPM_INIT_HASH_SIZE);
+    mpm_ctx->init_hash = SCCalloc(1, sizeof(MpmPattern *) * MPM_INIT_HASH_SIZE);
     if (mpm_ctx->init_hash == NULL) {
         exit(EXIT_FAILURE);
     }
-    memset(mpm_ctx->init_hash, 0, sizeof(MpmPattern *) * MPM_INIT_HASH_SIZE);
 
     /* get conf values for AC from our yaml file.  We have no conf values for
      * now.  We will certainly need this, as we develop the algo */

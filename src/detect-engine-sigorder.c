@@ -98,10 +98,9 @@ static void SCSigRegisterSignatureOrderingFunc(DetectEngineCtx *de_ctx,
         curr = curr->next;
     }
 
-    if ( (temp = SCMalloc(sizeof(SCSigOrderFunc))) == NULL) {
+    if ((temp = SCCalloc(1, sizeof(SCSigOrderFunc))) == NULL) {
         FatalError("Fatal error encountered in SCSigRegisterSignatureOrderingFunc. Exiting...");
     }
-    memset(temp, 0, sizeof(SCSigOrderFunc));
 
     temp->SWCompare = SWCompare;
 
@@ -708,9 +707,8 @@ static inline SCSigSignatureWrapper *SCSigAllocSignatureWrapper(Signature *sig)
 {
     SCSigSignatureWrapper *sw = NULL;
 
-    if ( (sw = SCMalloc(sizeof(SCSigSignatureWrapper))) == NULL)
+    if ((sw = SCCalloc(1, sizeof(SCSigSignatureWrapper))) == NULL)
         return NULL;
-    memset(sw, 0, sizeof(SCSigSignatureWrapper));
 
     sw->sig = sig;
 

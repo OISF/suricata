@@ -218,10 +218,9 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
         goto error;
     }
 
-    de = SCMalloc(sizeof(DetectFlagsData));
+    de = SCCalloc(1, sizeof(DetectFlagsData));
     if (unlikely(de == NULL))
         goto error;
-    memset(de, 0, sizeof(DetectFlagsData));
     de->ignored_flags = 0xff;
 
     /** First parse args1 */

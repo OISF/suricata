@@ -164,10 +164,9 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     if (res == -1)
         goto error;
 
-    fd = SCMalloc(sizeof(DetectFlowvarData));
+    fd = SCCalloc(1, sizeof(DetectFlowvarData));
     if (unlikely(fd == NULL))
         goto error;
-    memset(fd, 0x00, sizeof(*fd));
 
     fd->content = SCMalloc(contentlen);
     if (unlikely(fd->content == NULL))
@@ -268,10 +267,9 @@ int DetectFlowvarPostMatchSetup(DetectEngineCtx *de_ctx, Signature *s, uint32_t 
     SigMatch *sm = NULL;
     DetectFlowvarData *fv = NULL;
 
-    fv = SCMalloc(sizeof(DetectFlowvarData));
+    fv = SCCalloc(1, sizeof(DetectFlowvarData));
     if (unlikely(fv == NULL))
         goto error;
-    memset(fv, 0x00, sizeof(*fv));
 
     /* we only need the idx */
     fv->idx = idx;

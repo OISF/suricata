@@ -141,11 +141,9 @@ int TLSGetIPInformations(const Packet *p, char* srcip, size_t srcip_len,
 static TmEcode LogTlsLogThreadInit(ThreadVars *t, const void *initdata,
                                    void **data)
 {
-    LogTlsLogThread *aft = SCMalloc(sizeof(LogTlsLogThread));
+    LogTlsLogThread *aft = SCCalloc(1, sizeof(LogTlsLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-
-    memset(aft, 0, sizeof(LogTlsLogThread));
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for TLSLog. \"initdata\" argument NULL");

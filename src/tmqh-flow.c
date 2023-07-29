@@ -133,11 +133,10 @@ static int StoreQueueId(TmqhFlowCtx *ctx, char *name)
 
     if (ctx->queues == NULL) {
         ctx->size = 1;
-        ctx->queues = SCMalloc(ctx->size * sizeof(TmqhFlowMode));
+        ctx->queues = SCCalloc(1, ctx->size * sizeof(TmqhFlowMode));
         if (ctx->queues == NULL) {
             return -1;
         }
-        memset(ctx->queues, 0, ctx->size * sizeof(TmqhFlowMode));
     } else {
         ctx->size++;
         ptmp = SCRealloc(ctx->queues, ctx->size * sizeof(TmqhFlowMode));
@@ -172,10 +171,9 @@ void *TmqhOutputFlowSetupCtx(const char *queue_str)
 
     SCLogDebug("queue_str %s", queue_str);
 
-    TmqhFlowCtx *ctx = SCMalloc(sizeof(TmqhFlowCtx));
+    TmqhFlowCtx *ctx = SCCalloc(1, sizeof(TmqhFlowCtx));
     if (unlikely(ctx == NULL))
         return NULL;
-    memset(ctx,0x00,sizeof(TmqhFlowCtx));
 
     char *str = SCStrdup(queue_str);
     if (unlikely(str == NULL)) {

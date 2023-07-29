@@ -639,10 +639,9 @@ error:
  */
 void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, const void *data)
 {
-    TmSlot *slot = SCMalloc(sizeof(TmSlot));
+    TmSlot *slot = SCCalloc(1, sizeof(TmSlot));
     if (unlikely(slot == NULL))
         return;
-    memset(slot, 0, sizeof(TmSlot));
     SC_ATOMIC_INITPTR(slot->slot_data);
     slot->SlotThreadInit = tm->ThreadInit;
     slot->slot_initdata = data;
@@ -913,10 +912,9 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
     SCLogDebug("creating thread \"%s\"...", name);
 
     /* XXX create separate function for this: allocate a thread container */
-    tv = SCMalloc(sizeof(ThreadVars));
+    tv = SCCalloc(1, sizeof(ThreadVars));
     if (unlikely(tv == NULL))
         goto error;
-    memset(tv, 0, sizeof(ThreadVars));
 
     SC_ATOMIC_INIT(tv->flags);
     SCMutexInit(&tv->perf_public_ctx.m, NULL);

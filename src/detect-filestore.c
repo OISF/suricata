@@ -408,10 +408,9 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
             }
         }
 
-        fd = SCMalloc(sizeof(DetectFilestoreData));
+        fd = SCCalloc(1, sizeof(DetectFilestoreData));
         if (unlikely(fd == NULL))
             goto error;
-        memset(fd, 0x00, sizeof(DetectFilestoreData));
 
         if (args[0] != NULL) {
             SCLogDebug("first arg %s", args[0]);

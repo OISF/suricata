@@ -602,12 +602,11 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    AFXDPThreadVars *ptv = SCMalloc(sizeof(AFXDPThreadVars));
+    AFXDPThreadVars *ptv = SCCalloc(1, sizeof(AFXDPThreadVars));
     if (unlikely(ptv == NULL)) {
         afxdpconfig->DerefFunc(afxdpconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
-    memset(ptv, 0, sizeof(AFXDPThreadVars));
 
     ptv->tv = tv;
 

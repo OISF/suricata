@@ -186,12 +186,10 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    ErfDagThreadVars *ewtn = SCMalloc(sizeof(ErfDagThreadVars));
+    ErfDagThreadVars *ewtn = SCMClloc(1, sizeof(ErfDagThreadVars));
     if (unlikely(ewtn == NULL)) {
         FatalError("Failed to allocate memory for ERF DAG thread vars.");
     }
-
-    memset(ewtn, 0, sizeof(*ewtn));
 
     /* dag_parse_name will return a DAG device name and stream number
      * to open for this thread.

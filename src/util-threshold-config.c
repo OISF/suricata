@@ -399,10 +399,9 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 continue;
             }
 
-            de = SCMalloc(sizeof(DetectThresholdData));
+            de = SCCalloc(1, sizeof(DetectThresholdData));
             if (unlikely(de == NULL))
                 goto error;
-            memset(de,0,sizeof(DetectThresholdData));
 
             de->type = parsed_type;
             de->track = parsed_track;
@@ -440,10 +439,9 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                     continue;
                 }
 
-                de = SCMalloc(sizeof(DetectThresholdData));
+                de = SCCalloc(1, sizeof(DetectThresholdData));
                 if (unlikely(de == NULL))
                     goto error;
-                memset(de,0,sizeof(DetectThresholdData));
 
                 de->type = parsed_type;
                 de->track = parsed_track;
@@ -514,10 +512,9 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 }
             }
 
-            de = SCMalloc(sizeof(DetectThresholdData));
+            de = SCCalloc(1, sizeof(DetectThresholdData));
             if (unlikely(de == NULL))
                 goto error;
-            memset(de,0,sizeof(DetectThresholdData));
 
             de->type = parsed_type;
             de->track = parsed_track;

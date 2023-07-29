@@ -689,9 +689,8 @@ DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *tv)
 {
     DecodeThreadVars *dtv = NULL;
 
-    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
+    if ((dtv = SCCalloc(1, sizeof(DecodeThreadVars))) == NULL)
         return NULL;
-    memset(dtv, 0, sizeof(DecodeThreadVars));
 
     dtv->app_tctx = AppLayerGetCtxThread(tv);
 
