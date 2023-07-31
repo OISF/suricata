@@ -73,6 +73,13 @@ typedef struct {
     {                                                                                              \
         .secs = (tv)->tv_sec, .usecs = (tv)->tv_usec                                               \
     }
+/** \brief variant to deal with potentially bad timestamps, like from pcap files */
+#define SCTIME_FROM_TIMEVAL_UNTRUSTED(tv)                                                          \
+    (SCTime_t)                                                                                     \
+    {                                                                                              \
+        .secs = ((tv)->tv_sec > 0) ? (tv)->tv_sec : 0,                                             \
+        .usecs = ((tv)->tv_usec > 0) ? (tv)->tv_usec : 0                                           \
+    }
 #define SCTIME_FROM_TIMESPEC(ts)                                                                   \
     (SCTime_t)                                                                                     \
     {                                                                                              \
