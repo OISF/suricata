@@ -77,7 +77,7 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     PACKET_PROFILING_TMM_START(p, TMM_RECEIVEPCAPFILE);
 
     PKT_SET_SRC(p, PKT_SRC_WIRE);
-    p->ts = SCTIME_FROM_TIMEVAL(&h->ts);
+    p->ts = SCTIME_FROM_TIMEVAL_UNTRUSTED(&h->ts);
     SCLogDebug("p->ts.tv_sec %" PRIuMAX "", (uintmax_t)SCTIME_SECS(p->ts));
     p->datalink = ptv->datalink;
     p->pcap_cnt = ++pcap_g.cnt;
