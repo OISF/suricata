@@ -1024,6 +1024,10 @@ static TmEcode ParseInterfacesList(const int runmode, char *pcap_dev)
                 SCLogError("No interface found in config for af-packet");
                 SCReturnInt(TM_ECODE_FAILED);
             }
+            int retval = CheckAFPacketIPSDevs();
+            if (retval == -1) {
+                FatalError("af-packet IPS setting is incorrect");
+            }
         }
 #endif
 #ifdef HAVE_AF_XDP
