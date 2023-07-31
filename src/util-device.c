@@ -271,6 +271,36 @@ const char *LiveGetShortName(const char *dev)
     return live_dev->dev_short;
 }
 
+int CheckAFPacketIPSDevs(void)
+{
+    ConfNode *base = ConfGetNode("af-packet");
+    ConfNode *child;
+
+    if (base == NULL)
+        return 0;
+
+    TAILQ_FOREACH (child, &base->head, next) {
+        ConfNode *subchild;
+        const char *iface = NULL, *copyiface = NULL;
+        TAILQ_FOREACH (subchild, &child->head, next) {
+            if (!strcmp(subchild->name, "interface"))
+                iface = subchild->val;
+            if (!strcmp(subchild->name, "copy-iface"))
+                copyiface = subchild->val;
+            if (iface && copyiface && !strcmp(iface, copyiface)) {
+                SCLogError("af-packet interface and copy-iface cannot be the same");
+                return -1;
+            }
+            if (iface && copyiface) {
+                iface = NULL;
+                copyiface = NULL;
+            }
+        }
+    }
+
+    return 1;
+}
+
 int LiveBuildDeviceList(const char *runmode)
 {
     return LiveBuildDeviceListCustom(runmode, "interface");
