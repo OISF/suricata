@@ -7,10 +7,9 @@ the basics. For more details, read through the more specific chapters.
 Installation
 ------------
 
-It's assumed that you run a recent Ubuntu release as the official PPA can be
-used for the installation.
-
-Installation steps::
+It's assumed that you run a recent Ubuntu release as the official PPA can then
+be used for the installation. To install the latest stable Suricata version, follow
+the steps::
 
     sudo add-apt-repository ppa:oisf/suricata-stable
     sudo apt update
@@ -18,13 +17,14 @@ Installation steps::
 
 The dedicated PPA repository is added, and after updating the index, Suricata can
 be installed. We recommend installing the ``jq`` tool at this time as it will help
-with displaying information from Suricata's EVE JSON output (described later in this guide).
+with displaying information from Suricata's EVE JSON output (described later in
+this guide).
 
 For the installation on other systems or to use specific compile options see
 :ref:`installation`.
 
 After installing Suricata, you can check what version of Suricata you have
-running and with what options as well as the service state::
+running and with what options, as well as the service state::
 
     sudo suricata --build-info
     sudo systemctl status suricata
