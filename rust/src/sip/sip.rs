@@ -86,9 +86,9 @@ impl SIPState {
         self.transactions.clear();
     }
 
-    fn new_tx(&mut self, _direction: crate::core::Direction) -> SIPTransaction {
+    fn new_tx(&mut self, direction: crate::core::Direction) -> SIPTransaction {
         self.tx_id += 1;
-        SIPTransaction::new(self.tx_id)
+        SIPTransaction::new(self.tx_id, direction)
     }
 
     fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&SIPTransaction> {
@@ -277,14 +277,14 @@ impl SIPState {
 }
 
 impl SIPTransaction {
-    pub fn new(id: u64) -> SIPTransaction {
+    pub fn new(id: u64, direction: crate::core::Direction) -> SIPTransaction {
         SIPTransaction {
             id,
             request: None,
             response: None,
             request_line: None,
             response_line: None,
-            tx_data: applayer::AppLayerTxData::new(),
+            tx_data: applayer::AppLayerTxData::for_direction(direction),
         }
     }
 }
