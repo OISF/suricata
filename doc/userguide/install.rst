@@ -170,17 +170,84 @@ Follow these steps from your Suricata directory::
 Binary packages
 ---------------
 
-Ubuntu
-^^^^^^
+Ubuntu from Personal Package Archives (PPA)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For Ubuntu, the OISF maintains a PPA ``suricata-stable`` that always contains the latest stable release.
+For Ubuntu, OISF maintains a PPA ``suricata-stable`` that always contains the
+latest stable release.
 
-To use it::
+Setup to install the latest stable Suricata::
 
     sudo apt-get install software-properties-common
     sudo add-apt-repository ppa:oisf/suricata-stable
     sudo apt-get update
+
+Then, you can install the latest stable with::
+
     sudo apt-get install suricata
+
+If you want Suricata with built-in (enabled) debugging::
+
+    sudo apt-get install suricata-dbg
+
+After installing you can proceed to the :ref:`Basic setup`.
+
+`OISF launchpad: suricata-stable <https://launchpad.net/~oisf/+archive/suricata-stable>`_.
+
+Upgrading
+"""""""""
+
+To upgrade::
+
+    sudo apt-get update
+    sudo apt-get upgrade suricata
+
+Remove
+""""""
+
+To remove Suricata from your system::
+
+    sudo apt-get remove suricata
+
+Getting Beta or RC Releases
+"""""""""""""""""""""""""""
+
+If you would like to help test the beta or RC packages, the same procedures
+apply, just using another PPA: ``suricata-beta``::
+
+    sudo add-apt-repository ppa:oisd/suricata-beta
+    sudo apt-get update
+    sudo apt-get upgrade
+
+You can use both the suricata-stable and suricata-beta repositories together.
+Suricata will then always be the latest release, stable or beta.
+
+`OISF launchpad: suricata-beta <https://launchpad.net/~oisf/+archive/suricata-beta>`_.
+
+Daily Releases
+""""""""""""""
+
+If you would like to help test the daily build packages from our latest git(dev)
+repository, the same procedures as above apply, just using another PPA,
+``suricata-daily``::
+
+    sudo add-apt-repository ppa:oisf/suricata-daily-allarch
+    sudo apt-get update
+    sudo apt-get upgrade
+
+.. note::
+
+    Please have in mind that this is packaged from our latest development git master
+    and is therefore potentially unstable.
+
+    We do our best to make others aware of continuing development and items
+    within the engine that are not yet complete or optimal. With this in mind,
+    please refer to `Suricata's issue tracker on Redmine 
+    <http://redmine.openinfosecfoundation.org/projects/suricata/issues>`_ 
+    for an up-to-date list of what we are working on, planned roadmap, 
+    and to report issues.
+
+`OISF launchpad: suricata-daily <https://launchpad.net/~oisf/+archive/suricata-daily>`_.
 
 Debian
 ^^^^^^
