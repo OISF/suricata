@@ -292,6 +292,11 @@ static void *ParseAFPConfig(const char *iface)
         }
     }
 
+    if (strcmp(iface, out_iface) == 0) {
+        FatalError("Invalid config: interface (%s) and copy-iface (%s) can't be the same", iface,
+                out_iface);
+    }
+
     if (ConfGetChildValueBoolWithDefault(if_root, if_default, "use-mmap", (int *)&boolval) == 1) {
         if (!boolval) {
             SCLogWarning(
