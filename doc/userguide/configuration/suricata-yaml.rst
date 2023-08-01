@@ -2442,6 +2442,7 @@ address, you should enter 'any'.
     SHELLCODE_PORTS: "!80"
     ORACLE_PORTS: 1521
     SSH_PORTS: 22
+    SIP_PORTS: "[5060, 5061]"
 
 .. _host-os-policy:
 
