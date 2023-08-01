@@ -3772,7 +3772,10 @@
                                 "rfb": {
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
-                                "sip": {
+                                "sip_udp": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "sip_tcp": {
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "smb": {
@@ -3889,7 +3892,10 @@
                                 "rfb": {
                                     "type": "integer"
                                 },
-                                "sip": {
+                                "sip_udp": {
+                                    "type": "integer"
+                                },
+                                "sip_tcp": {
                                     "type": "integer"
                                 },
                                 "smb": {
@@ -4000,7 +4006,10 @@
                                 "rfb": {
                                     "type": "integer"
                                 },
-                                "sip": {
+                                "sip_udp": {
+                                    "type": "integer"
+                                },
+                                "sip_tcp": {
                                     "type": "integer"
                                 },
                                 "smb": {
