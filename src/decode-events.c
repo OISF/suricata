@@ -784,6 +784,10 @@ const struct DecodeEvents_ DEvents[] = {
             STREAM_RST_INVALID_ACK,
     },
     {
+            "stream.rst_with_data",
+            STREAM_RST_WITH_DATA,
+    },
+    {
             "stream.pkt_retransmission",
             STREAM_PKT_RETRANSMISSION,
     },

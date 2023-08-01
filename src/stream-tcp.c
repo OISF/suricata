@@ -5603,6 +5603,21 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
         }
     }
 
+    /* RST with data, it's complicated:
+
+         4.2.2.12  RST Segment: RFC-793 Section 3.4
+
+            A TCP SHOULD allow a received RST segment to include data.
+
+            DISCUSSION
+                 It has been suggested that a RST segment could contain
+                 ASCII text that encoded and explained the cause of the
+                 RST.  No standard has yet been established for such
+                 data.
+    */
+    if (p->payload_len)
+        StreamTcpSetEvent(p, STREAM_RST_WITH_DATA);
+
     /* Set up the os_policy to be used in validating the RST packets based on
        target system */
     if (PKT_IS_TOSERVER(p)) {
