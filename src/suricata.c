@@ -2818,6 +2818,15 @@ static void SuricataMainLoop(SCInstance *suri)
 {
     while(1) {
         if (sigterm_count || sigint_count) {
+            /*
+             * If AF_XDP is enabled, the program must be detached before the AF_XDP sockets
+             * are closed to mitigate a bug that causes an IO_PAGEFAULT in linux kernel
+             * version 5.19, unknown as of now what other versions this affects.
+             */
+#ifdef HAVE_AF_XDP
+            if (suricata.run_mode == RUNMODE_AFXDP_DEV)
+                RunModeAFXDPRemoveProg();
+#endif
             suricata_ctl_flags |= SURICATA_STOP;
         }
 

@@ -62,6 +62,8 @@
 #include <linux/if_xdp.h>
 #include <linux/if_link.h>
 #include <xdp/xsk.h>
+#include <xdp/libxdp.h>
+#include <net/if.h>
 #endif
 
 const char *RunModeAFXDPGetDefaultMode(void)
@@ -144,6 +146,43 @@ static TmEcode ConfigSetThreads(AFXDPIfaceConfig *aconf, const char *entry_str)
     }
 
     SCReturnInt(TM_ECODE_OK);
+}
+
+/**
+ * \brief function to unload an AF_XDP program
+ *
+ */
+void RunModeAFXDPRemoveProg(void)
+{
+    const char *live_dev = NULL;
+    if (live_dev == NULL)
+        live_dev = LiveGetDeviceName(0);
+    unsigned int ifindex = if_nametoindex(live_dev);
+
+    struct xdp_multiprog *progs = xdp_multiprog__get_from_ifindex(ifindex);
+    if (progs == NULL) {
+        return;
+    }
+    enum xdp_attach_mode mode = xdp_multiprog__attach_mode(progs);
+
+    struct xdp_program *prog = NULL;
+
+    // loop through the multiprogram struct, removing all the programs
+    for (prog = xdp_multiprog__next_prog(NULL, progs); prog;
+            prog = xdp_multiprog__next_prog(prog, progs)) {
+        int ret = xdp_program__detach(prog, ifindex, mode, 0);
+        if (ret) {
+            SCLogDebug("Error: cannot detatch XDP program: %s\n", strerror(errno));
+        }
+    }
+
+    prog = xdp_multiprog__main_prog(progs);
+    if (xdp_program__is_attached(prog, ifindex) != XDP_MODE_UNSPEC) {
+        int ret = xdp_program__detach(prog, ifindex, mode, 0);
+        if (ret) {
+            SCLogDebug("Error: cannot detatch XDP program: %s\n", strerror(errno));
+        }
+    }
 }
 
 /**
@@ -385,6 +424,7 @@ int RunModeIdsAFXDPWorkers(void)
 #endif /* HAVE_AF_XDP */
     SCReturnInt(0);
 }
+
 /**
  * @}
  */
