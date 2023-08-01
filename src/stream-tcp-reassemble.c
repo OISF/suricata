@@ -2009,7 +2009,8 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         }
     }
     /* if this segment contains data, insert it */
-    if (p->payload_len > 0 && !(stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
+    if (p->payload_len > 0 && !(stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
+            (p->tcph->th_flags & TH_RST) == 0) {
         SCLogDebug("calling StreamTcpReassembleHandleSegmentHandleData");
 
         if (StreamTcpReassembleHandleSegmentHandleData(tv, ra_ctx, ssn, stream, p) != 0) {
@@ -2024,10 +2025,9 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         p->flags |= PKT_STREAM_ADD;
     } else {
         SCLogDebug("ssn %p / stream %p: not calling StreamTcpReassembleHandleSegmentHandleData:"
-                " p->payload_len %u, STREAMTCP_STREAM_FLAG_NOREASSEMBLY %s",
+                   " p->payload_len %u, STREAMTCP_STREAM_FLAG_NOREASSEMBLY %s",
                 ssn, stream, p->payload_len,
                 (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ? "true" : "false");
-
     }
 
     /* if the STREAMTCP_STREAM_FLAG_DEPTH_REACHED is set, but not the
