@@ -3838,8 +3838,12 @@
                                     "description": "Errors encountered parsing RFB protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
-                                "sip": {
-                                    "description": "Errors encountered parsing SIP",
+                                "sip_udp": {
+                                    "description": "Errors encountered parsing SIP/UDP protocol",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "sip_tcp": {
+                                    "description": "Errors encountered parsing SIP/TCP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "smb": {
@@ -3992,8 +3996,12 @@
                                     "description": "Number of flows for RFB protocol",
                                     "type": "integer"
                                 },
-                                "sip": {
-                                    "description": "Number of flows for SIP",
+                                "sip_udp": {
+                                    "description": "Number of flows for SIP/UDP protocol",
+                                    "type": "integer"
+                                },
+                                "sip_tcp": {
+                                    "description": "Number of flows for SIP/TCP protocol",
                                     "type": "integer"
                                 },
                                 "smb": {
@@ -4111,7 +4119,10 @@
                                 "rfb": {
                                     "type": "integer"
                                 },
-                                "sip": {
+                                "sip_udp": {
+                                    "type": "integer"
+                                },
+                                "sip_tcp": {
                                     "type": "integer"
                                 },
                                 "smb": {
