@@ -61,8 +61,10 @@
 #include "util-validate.h"
 
 #ifdef HAVE_AF_XDP
-#include <xdp/xsk.h>
 #include <net/if.h>
+#include <bpf/libbpf.h>
+#include <xdp/xsk.h>
+#include <xdp/libxdp.h>
 #endif
 
 #if HAVE_LINUX_IF_ETHER_H
@@ -113,7 +115,9 @@ TmEcode NoAFXDPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #else /* We have AF_XDP support */
 
 #define POLL_TIMEOUT      100
-#define NUM_FRAMES        XSK_RING_PROD__DEFAULT_NUM_DESCS
+#define NUM_FRAMES_PROD   XSK_RING_PROD__DEFAULT_NUM_DESCS
+#define NUM_FRAMES_CONS   XSK_RING_CONS__DEFAULT_NUM_DESCS
+#define NUM_FRAMES        NUM_FRAMES_PROD
 #define FRAME_SIZE        XSK_UMEM__DEFAULT_FRAME_SIZE
 #define MEM_BYTES         (NUM_FRAMES * FRAME_SIZE * 2)
 #define RECONNECT_TIMEOUT 500000
@@ -499,7 +503,7 @@ static TmEcode AFXDPSocketCreation(AFXDPThreadVars *ptv)
         SCReturnInt(TM_ECODE_FAILED);
     }
 #else
-    if (bpf_get_link_xdp_id(ptv->ifindex, &ptv->prog_id, ptv->xsk.cfg.xdp_flags)) {
+    if (bpf_xdp_query_id(ptv->ifindex, ptv->xsk.cfg.xdp_flags, &ptv->prog_id)) {
         SCLogError("Failed to attach eBPF program to interface: %s", ptv->livedev->dev);
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -582,6 +586,75 @@ static inline ssize_t WakeupSocket(void *data)
     return res;
 }
 
+/*
+ * ADDED function to add a socket to the XDP map
+ */
+static void AddAFXDPSocket(AFXDPThreadVars *ptv)
+{
+    char target_map[9] = "xsks_map\0";
+
+    struct xdp_multiprog *progs = xdp_multiprog__get_from_ifindex(ptv->ifindex);
+    if (progs == NULL) {
+        printf("cannot get multiprog");
+    }
+
+    struct xdp_program *prog = xdp_multiprog__main_prog(progs);
+
+    __u32 i, *map_ids, num_maps, prog_len = sizeof(struct bpf_prog_info);
+    __u32 map_len = sizeof(struct bpf_map_info);
+    struct bpf_prog_info prog_info = {};
+    int fd, err, xsks_map_fd = -ENOENT;
+    struct bpf_map_info map_info;
+    int prog_fd = xdp_program__fd(prog);
+
+    err = bpf_obj_get_info_by_fd(prog_fd, &prog_info, &prog_len);
+    if (err)
+        return;
+
+    num_maps = prog_info.nr_map_ids;
+
+    map_ids = calloc(prog_info.nr_map_ids, sizeof(*map_ids));
+    if (!map_ids)
+        return;
+
+    memset(&prog_info, 0, prog_len);
+    prog_info.nr_map_ids = num_maps;
+    prog_info.map_ids = (__u64)(unsigned long)map_ids;
+
+    err = bpf_obj_get_info_by_fd(prog_fd, &prog_info, &prog_len);
+    if (err) {
+        free(map_ids);
+    }
+
+    for (i = 0; i < prog_info.nr_map_ids; i++) {
+        fd = bpf_map_get_fd_by_id(map_ids[i]);
+        if (fd < 0)
+            continue;
+
+        memset(&map_info, 0, map_len);
+        err = bpf_obj_get_info_by_fd(fd, &map_info, &map_len);
+        if (err) {
+            close(fd);
+            continue;
+        }
+
+        if (!strncmp(map_info.name, target_map, sizeof(map_info.name))) {
+            xsks_map_fd = fd;
+            break;
+        }
+
+        close(fd);
+    }
+
+    free(map_ids);
+
+    fd = xsk_socket__fd(ptv->xsk.xsk);
+    int ret = bpf_map_update_elem(xsks_map_fd, &(ptv->xsk.queue.queue_num), &fd, BPF_ANY);
+    if (ret) {
+        printf("error");
+    }
+}
+
 /**
  * \brief Init function for ReceiveAFXDP.
  *
@@ -636,14 +709,17 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
     ptv->threads = afxdpconfig->threads;
 
     /* Socket configuration */
-    ptv->xsk.cfg.rx_size = XSK_RING_CONS__DEFAULT_NUM_DESCS;
-    ptv->xsk.cfg.tx_size = XSK_RING_PROD__DEFAULT_NUM_DESCS;
+    if (afxdpconfig->inhibit_prog_load)
+        ptv->xsk.cfg.libxdp_flags = XSK_LIBXDP_FLAGS__INHIBIT_PROG_LOAD;
+
+    ptv->xsk.cfg.rx_size = NUM_FRAMES_CONS;
+    ptv->xsk.cfg.tx_size = NUM_FRAMES_PROD;
     ptv->xsk.cfg.xdp_flags = afxdpconfig->mode;
     ptv->xsk.cfg.bind_flags = afxdpconfig->bind_flags;
 
     /* UMEM configuration */
-    ptv->umem.cfg.fill_size = XSK_RING_PROD__DEFAULT_NUM_DESCS * 2;
-    ptv->umem.cfg.comp_size = XSK_RING_CONS__DEFAULT_NUM_DESCS;
+    ptv->umem.cfg.fill_size = NUM_FRAMES_PROD * 2;
+    ptv->umem.cfg.comp_size = NUM_FRAMES_CONS;
     ptv->umem.cfg.frame_size = XSK_UMEM__DEFAULT_FRAME_SIZE;
     ptv->umem.cfg.frame_headroom = XSK_UMEM__DEFAULT_FRAME_HEADROOM;
     ptv->umem.cfg.flags = afxdpconfig->mem_alignment;
@@ -681,6 +757,8 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
         ReceiveAFXDPThreadDeinit(tv, ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
+
+    AddAFXDPSocket(ptv);
 
     *data = (void *)ptv;
     afxdpconfig->DerefFunc(afxdpconfig);

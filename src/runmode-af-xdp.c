@@ -62,6 +62,8 @@
 #include <linux/if_xdp.h>
 #include <linux/if_link.h>
 #include <xdp/xsk.h>
+#include <xdp/libxdp.h>
+#include <net/if.h>
 #endif
 
 const char *RunModeAFXDPGetDefaultMode(void)
@@ -144,6 +146,58 @@ static TmEcode ConfigSetThreads(AFXDPIfaceConfig *aconf, const char *entry_str)
     }
 
     SCReturnInt(TM_ECODE_OK);
+}
+
+/**
+ * \brief static function to load an AF_XDP program pointed to by the program path
+ *
+ * \param live_dev the interface to add the program to
+ * \param program_path the path to the AF_XDP program to be loaded onto live_dev
+ *
+ */
+static void RunModeLoadAFXDPProg(const char *live_dev, const char *program_path)
+{
+    // we need to register a program
+    struct xdp_program *prog = xdp_program__open_file(program_path, NULL, NULL);
+    int ret = libxdp_get_error(prog);
+    if (ret) {
+        char errmsg[1024];
+        libxdp_strerror(ret, errmsg, sizeof(errmsg));
+        fprintf(stderr, "ERROR: program loading failed: %s\n", errmsg);
+    }
+
+    // attach program in the specified mode
+    unsigned int ifindex = if_nametoindex(live_dev);
+    ret = xdp_program__attach(prog, ifindex, XDP_MODE_NATIVE, 0);
+    if (ret) {
+        printf("ERROR: can't attach\n");
+    }
+
+    free(prog);
+}
+
+/**
+ * \brief function to unload an AF_XDP program
+ *
+ */
+void RunModeAFXDPRemoveProg(void)
+{
+    const char *live_dev = NULL;
+    if (live_dev == NULL)
+        live_dev = LiveGetDeviceName(0);
+    unsigned int ifindex = if_nametoindex(live_dev);
+
+    struct xdp_multiprog *progs = xdp_multiprog__get_from_ifindex(ifindex);
+    if (progs == NULL) {
+        printf("cannot get multiprog");
+    }
+
+    struct xdp_program *prog = xdp_multiprog__main_prog(progs);
+
+    int ret = xdp_program__detach(prog, ifindex, XDP_MODE_NATIVE, 0);
+    if (ret) {
+        printf("ERROR: can't detatch\n");
+    }
 }
 
 /**
@@ -242,6 +296,11 @@ static void *ParseAFXDPConfig(const char *iface)
         }
     }
 
+    // if an xdp-program is loaded, set inhibit program load
+    if (ConfGetChildValueWithDefault(if_root, if_default, "xdp-program", &confstr) == 1) {
+        aconf->inhibit_prog_load = true;
+    }
+
     /* copy and zerocopy binding options */
     if (ConfGetChildValueWithDefault(if_root, if_default, "force-bind-mode", &confstr) == 1) {
         if (strncasecmp(confstr, "zero", 4) == 0) {
@@ -335,6 +394,37 @@ int RunModeIdsAFXDPSingle(void)
 
     (void)ConfGet("af-xdp.live-interface", &live_dev);
 
+    const char *live_dev_backup = NULL;
+    if (live_dev == NULL) {
+        live_dev_backup = LiveGetDeviceName(0);
+        live_dev = live_dev_backup;
+    }
+
+    // get af_xdp_node from config
+    ConfNode *af_xdp_node = NULL;
+    af_xdp_node = ConfGetNode("af-xdp");
+    if (af_xdp_node == NULL)
+        SCLogInfo("unable to find af-xdp config using default values");
+
+    // from the af_xdp node get the config root for an interface and default
+    ConfNode *if_root = NULL;
+    ConfNode *if_default = NULL;
+    if_root = ConfFindDeviceConfig(af_xdp_node, live_dev);
+    if_default = ConfFindDeviceConfig(af_xdp_node, "default");
+    if (if_root == NULL && if_default == NULL) {
+        SCLogInfo("unable to find af-xdp config for "
+                  "interface \"%s\" or \"default\", using default values",
+                live_dev);
+    }
+
+    // get the path to the xdp-program
+    const char *program_path = NULL;
+    const char *confstr = NULL;
+    if (ConfGetChildValueWithDefault(if_root, if_default, "xdp-program", &confstr) == 1) {
+        program_path = confstr;
+        RunModeLoadAFXDPProg(live_dev, program_path);
+    }
+
     if (AFXDPQueueProtectionInit() != TM_ECODE_OK) {
         FatalError("Unable to init AF_XDP queue protection.");
     }
@@ -368,7 +458,38 @@ int RunModeIdsAFXDPWorkers(void)
     RunModeInitialize();
     TimeModeSetLive();
 
-    (void)ConfGet("af-xdp.live-interface", &live_dev);
+    ret = ConfGet("af-xdp.live-interface", &live_dev);
+
+    const char *live_dev_backup = NULL;
+    if (live_dev == NULL) {
+        live_dev_backup = LiveGetDeviceName(0);
+        live_dev = live_dev_backup;
+    }
+
+    // get af_xdp_node from config
+    ConfNode *af_xdp_node = NULL;
+    af_xdp_node = ConfGetNode("af-xdp");
+    if (af_xdp_node == NULL)
+        SCLogInfo("unable to find af-xdp config using default values");
+
+    // from the af_xdp node get the config root for an interface and default
+    ConfNode *if_root = NULL;
+    ConfNode *if_default = NULL;
+    if_root = ConfFindDeviceConfig(af_xdp_node, live_dev);
+    if_default = ConfFindDeviceConfig(af_xdp_node, "default");
+    if (if_root == NULL && if_default == NULL) {
+        SCLogInfo("unable to find af-xdp config for "
+                  "interface \"%s\" or \"default\", using default values",
+                live_dev);
+    }
+
+    // get the path to the xdp-program
+    const char *program_path = NULL;
+    const char *confstr = NULL;
+    if (ConfGetChildValueWithDefault(if_root, if_default, "xdp-program", &confstr) == 1) {
+        program_path = confstr;
+        RunModeLoadAFXDPProg(live_dev, program_path);
+    }
 
     if (AFXDPQueueProtectionInit() != TM_ECODE_OK) {
         FatalError("Unable to init AF_XDP queue protection.");
@@ -385,6 +506,7 @@ int RunModeIdsAFXDPWorkers(void)
 #endif /* HAVE_AF_XDP */
     SCReturnInt(0);
 }
+
 /**
  * @}
  */
