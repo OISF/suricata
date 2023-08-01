@@ -59,7 +59,7 @@ Common configure options
 
 .. option:: --enable-dpdk
 
-    Enables `DPDK <https://www.dpdk.org/>` packet capture method.
+    Enables `DPDK <https://www.dpdk.org/>`_ packet capture method.
 
 Dependencies
 ^^^^^^^^^^^^
