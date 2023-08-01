@@ -1671,7 +1671,8 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
 
     int rc = pthread_create(&tv->t, &attr, tv->tm_func, (void *)tv);
     if (rc) {
-        FatalError("Unable to create thread with pthread_create() is %" PRId32, rc);
+        FatalError("Unable to create thread with pthread_create(): retval %d: %s", rc,
+                strerror(errno));
     }
 
 #if DEBUG && HAVE_PTHREAD_GETATTR_NP
