@@ -62,6 +62,8 @@
 #include <linux/if_xdp.h>
 #include <linux/if_link.h>
 #include <xdp/xsk.h>
+#include <xdp/libxdp.h>
+#include <net/if.h>
 #endif
 
 const char *RunModeAFXDPGetDefaultMode(void)
@@ -385,6 +387,7 @@ int RunModeIdsAFXDPWorkers(void)
 #endif /* HAVE_AF_XDP */
     SCReturnInt(0);
 }
+
 /**
  * @}
  */

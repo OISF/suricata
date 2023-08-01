@@ -59,10 +59,13 @@
 #include "runmodes.h"
 #include "flow-storage.h"
 #include "util-validate.h"
+#include "runmode-af-xdp.h"
 
 #ifdef HAVE_AF_XDP
-#include <xdp/xsk.h>
 #include <net/if.h>
+#include <bpf/libbpf.h>
+#include <xdp/xsk.h>
+#include <xdp/libxdp.h>
 #endif
 
 #if HAVE_LINUX_IF_ETHER_H
@@ -113,7 +116,9 @@ TmEcode NoAFXDPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #else /* We have AF_XDP support */
 
 #define POLL_TIMEOUT      100
-#define NUM_FRAMES        XSK_RING_PROD__DEFAULT_NUM_DESCS
+#define NUM_FRAMES_PROD   XSK_RING_PROD__DEFAULT_NUM_DESCS
+#define NUM_FRAMES_CONS   XSK_RING_CONS__DEFAULT_NUM_DESCS
+#define NUM_FRAMES        NUM_FRAMES_PROD
 #define FRAME_SIZE        XSK_UMEM__DEFAULT_FRAME_SIZE
 #define MEM_BYTES         (NUM_FRAMES * FRAME_SIZE * 2)
 #define RECONNECT_TIMEOUT 500000
@@ -636,14 +641,14 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
     ptv->threads = afxdpconfig->threads;
 
     /* Socket configuration */
-    ptv->xsk.cfg.rx_size = XSK_RING_CONS__DEFAULT_NUM_DESCS;
-    ptv->xsk.cfg.tx_size = XSK_RING_PROD__DEFAULT_NUM_DESCS;
+    ptv->xsk.cfg.rx_size = NUM_FRAMES_CONS;
+    ptv->xsk.cfg.tx_size = NUM_FRAMES_PROD;
     ptv->xsk.cfg.xdp_flags = afxdpconfig->mode;
     ptv->xsk.cfg.bind_flags = afxdpconfig->bind_flags;
 
     /* UMEM configuration */
-    ptv->umem.cfg.fill_size = XSK_RING_PROD__DEFAULT_NUM_DESCS * 2;
-    ptv->umem.cfg.comp_size = XSK_RING_CONS__DEFAULT_NUM_DESCS;
+    ptv->umem.cfg.fill_size = NUM_FRAMES_PROD * 2;
+    ptv->umem.cfg.comp_size = NUM_FRAMES_CONS;
     ptv->umem.cfg.frame_size = XSK_UMEM__DEFAULT_FRAME_SIZE;
     ptv->umem.cfg.frame_headroom = XSK_UMEM__DEFAULT_FRAME_HEADROOM;
     ptv->umem.cfg.flags = afxdpconfig->mem_alignment;
@@ -825,13 +830,60 @@ static TmEcode ReceiveAFXDPLoop(ThreadVars *tv, void *data, void *slot)
 }
 
 /**
+ * \brief function to unload an AF_XDP program
+ *
+ */
+static void RunModeAFXDPRemoveProg(void)
+{
+    const char *live_dev = NULL;
+    live_dev = LiveGetDeviceName(0);
+    unsigned int ifindex = if_nametoindex(live_dev);
+
+    struct xdp_multiprog *progs = xdp_multiprog__get_from_ifindex(ifindex);
+    if (progs == NULL) {
+        return;
+    }
+    enum xdp_attach_mode mode = xdp_multiprog__attach_mode(progs);
+
+    struct xdp_program *prog = NULL;
+
+    // loop through the multiprogram struct, removing all the programs
+    for (prog = xdp_multiprog__next_prog(NULL, progs); prog;
+            prog = xdp_multiprog__next_prog(prog, progs)) {
+        int ret = xdp_program__detach(prog, ifindex, mode, 0);
+        if (ret) {
+            SCLogDebug("Error: cannot detatch XDP program: %s\n", strerror(errno));
+        }
+    }
+
+    prog = xdp_multiprog__main_prog(progs);
+    if (xdp_program__is_attached(prog, ifindex) != XDP_MODE_UNSPEC) {
+        int ret = xdp_program__detach(prog, ifindex, mode, 0);
+        if (ret) {
+            SCLogDebug("Error: cannot detatch XDP program: %s\n", strerror(errno));
+        }
+    }
+}
+
+/**
  * \brief DeInit function closes af-xdp socket at exit.
  * \param tv pointer to ThreadVars
  * \param data pointer that gets cast into AFXDPPThreadVars for ptv
  */
+static SCMutex sync_deinit = SCMUTEX_INITIALIZER;
+
 static TmEcode ReceiveAFXDPThreadDeinit(ThreadVars *tv, void *data)
 {
     AFXDPThreadVars *ptv = (AFXDPThreadVars *)data;
+
+    /*
+     * If AF_XDP is enabled, the program must be detached before the AF_XDP sockets
+     * are closed to mitigate a bug that causes an IO_PAGEFAULT in linux kernel
+     * version 5.19, unknown as of now what other versions this affects.
+     */
+    SCMutexLock(&sync_deinit);
+    RunModeAFXDPRemoveProg();
+    SCMutexUnlock(&sync_deinit);
 
     if (ptv->xsk.xsk) {
         xsk_socket__delete(ptv->xsk.xsk);
