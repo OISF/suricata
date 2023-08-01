@@ -101,7 +101,7 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILE_NAME].Setup = DetectFilenameSetupSticky;
     sigmatch_table[DETECT_FILE_NAME].flags = SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectBufferTypeSetDescriptionByName("file.name", "http user agent");
+    DetectBufferTypeSetDescriptionByName("file.name", "file name");
 
     g_file_match_list_id = DetectBufferTypeRegister("files");
     g_file_name_buffer_id = DetectBufferTypeRegister("file.name");
