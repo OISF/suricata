@@ -31,21 +31,33 @@ Example::
 
   fileext:"jpg";
 
-filemagic
----------
+file.magic
+----------
 
 Matches on the information libmagic returns about a file.
 
-Syntax::
+Example::
 
-  filemagic:<string>;
+  file.magic; content:"executable for MS Windows";
+
+**Note** ``filemagic`` can still be used. The only difference between
+``file.magic`` and ``file.magic`` is that ``filemagic`` assumes ``nocase``
+by default. In the example below the two signatures are considered
+the same.
 
 Example::
 
   filemagic:"executable for MS Windows";
 
-Note: as libmagic versions differ between installations, the returned
-information may also slightly change. See also #437.
+  file.magic; content:"executable for MS Windows"; nocase;
+
+Note: Suricata currently uses its underlying operating systems
+version/implementation of libmagic. Different versions and
+implementations of libmagic do not return the same information.
+Additionally there are varying Suricata performance impacts
+based on the version and implementation of libmagic.
+Additional information about Suricata and libmagic can be found
+here: https://redmine.openinfosecfoundation.org/issues/437
 
 filestore
 ---------
