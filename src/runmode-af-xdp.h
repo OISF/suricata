@@ -28,5 +28,6 @@ int RunModeIdsAFXDPSingle(void);
 int RunModeIdsAFXDPWorkers(void);
 void RunModeIdsAFXDPRegister(void);
 const char *RunModeAFXDPGetDefaultMode(void);
+void RunModeAFXDPRemoveProg(void);
 
 #endif /* __RUNMODE_AFXDP_H__ */
