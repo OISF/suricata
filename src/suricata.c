@@ -2818,6 +2818,10 @@ static void SuricataMainLoop(SCInstance *suri)
 {
     while(1) {
         if (sigterm_count || sigint_count) {
+#ifdef HAVE_AF_XDP
+            if (suricata.run_mode == RUNMODE_AFXDP_DEV)
+                RunModeAFXDPRemoveProg();
+#endif
             suricata_ctl_flags |= SURICATA_STOP;
         }
 
