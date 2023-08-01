@@ -27,6 +27,16 @@ Information that needs to be part of a commit (if applicable):
 #. Coverity Scan issues addressed.
 #. Static analyzer error it fixes (cppcheck/scan-build/etc)
 
+When in doubt, check our git history for other messages or changes done to the
+same module your're working on. This is a good example of a `commit message
+<https://github.com/OISF/suricata/commit/33fca4d4db112b75ffa22eb2e6f14f038cbcc1f9>`_::
+
+    pcap/file: normalize file timestamps
+
+    Normalize the timestamps that are too far in the past to epoch.
+
+    Bug: #6240.
+
 .. _pull-requests-criteria:
 
 Pull Requests
