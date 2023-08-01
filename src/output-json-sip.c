@@ -77,6 +77,7 @@ static OutputInitResult OutputSIPLogInitSub(ConfNode *conf,
     OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SIP);
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SIP);
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
