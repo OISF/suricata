@@ -25,7 +25,8 @@
 #include <linux/ipv6.h>
 #include <linux/filter.h>
 
-#include "bpf_helpers.h"
+#include <bpf/bpf_helpers.h>
+#include "llvm_bpfload.h"
 
 /* vlan tracking: set it to 0 if you don't use VLAN for flow tracking */
 #define VLAN_TRACKING    1
@@ -61,19 +62,19 @@ struct pair {
     __u64 bytes;
 };
 
-struct bpf_map_def SEC("maps") flow_table_v4 = {
-    .type = BPF_MAP_TYPE_PERCPU_HASH,
-    .key_size = sizeof(struct flowv4_keys),
-    .value_size = sizeof(struct pair),
-    .max_entries = 32768,
-};
+struct {
+    __uint(type, BPF_MAP_TYPE_PERCPU_HASH);
+    __type(key, struct flowv4_keys);
+    __type(value, struct pair);
+    __uint(max_entries, 32768);
+} flow_table_v4 SEC(".maps");
 
-struct bpf_map_def SEC("maps") flow_table_v6 = {
-    .type = BPF_MAP_TYPE_PERCPU_HASH,
-    .key_size = sizeof(struct flowv6_keys),
-    .value_size = sizeof(struct pair),
-    .max_entries = 32768,
-};
+struct {
+    __uint(type, BPF_MAP_TYPE_PERCPU_HASH);
+    __type(key, struct flowv6_keys);
+    __type(value, struct pair);
+    __uint(max_entries, 32768);
+} flow_table_v6 SEC(".maps");
 
 struct vlan_hdr {
     __u16	h_vlan_TCI;
