@@ -482,6 +482,23 @@
                     AC_SUBST(LLC)
                   ],
                   [AC_MSG_ERROR([clang needed to build ebpf files])])
+            AC_MSG_CHECKING([libbpf has bpf/bpf_helpers.h])
+            AC_COMPILE_IFELSE(
+                [AC_LANG_PROGRAM(
+                    [
+                        #include <stddef.h>
+                        #include <linux/bpf.h>
+                        #include <bpf/bpf_helpers.h>
+                    ],
+                    [
+                    ])],
+                [HAVE_BPF="yes"],
+                [HAVE_BPF="no"])
+            if test "$HAVE_BPF" = "no"; then
+                AC_MSG_ERROR([libbpf include bpf/bpf_helpers.h not found])
+            else
+                AC_MSG_RESULT([ok])
+            fi
           ])
 
   # enable debug output

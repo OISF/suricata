@@ -31,7 +31,8 @@
 #include <linux/ipv6.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
-#include "bpf_helpers.h"
+
+#include <bpf/bpf_helpers.h>
 
 #include "hash_func01.h"
 
@@ -49,26 +50,26 @@ struct vlan_hdr {
 };
 
 /* Special map type that can XDP_REDIRECT frames to another CPU */
-struct bpf_map_def SEC("maps") cpu_map = {
-    .type		= BPF_MAP_TYPE_CPUMAP,
-    .key_size	= sizeof(__u32),
-    .value_size	= sizeof(__u32),
-    .max_entries	= CPUMAP_MAX_CPUS,
-};
+struct {
+    __uint(type, BPF_MAP_TYPE_CPUMAP);
+    __type(key, __u32);
+    __type(value, __u32);
+    __uint(max_entries, CPUMAP_MAX_CPUS);
+} cpu_map SEC(".maps");
 
-struct bpf_map_def SEC("maps") cpus_available = {
-    .type		= BPF_MAP_TYPE_ARRAY,
-    .key_size	= sizeof(__u32),
-    .value_size	= sizeof(__u32),
-    .max_entries	= CPUMAP_MAX_CPUS,
-};
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, __u32);
+    __type(value, __u32);
+    __uint(max_entries, CPUMAP_MAX_CPUS);
+} cpus_available SEC(".maps");
 
-struct bpf_map_def SEC("maps") cpus_count = {
-    .type		= BPF_MAP_TYPE_ARRAY,
-    .key_size	= sizeof(__u32),
-    .value_size	= sizeof(__u32),
-    .max_entries	= 1,
-};
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, __u32);
+    __type(value, __u32);
+    __uint(max_entries, 1);
+} cpus_count SEC(".maps");
 
 static int __always_inline hash_ipv4(void *data, void *data_end)
 {
