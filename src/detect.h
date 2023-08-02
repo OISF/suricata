@@ -1021,6 +1021,9 @@ typedef struct DetectEngineCtx_ {
     pcre2_code *reference_conf_regex;
     pcre2_match_data *reference_conf_regex_match;
 
+    /* --engine-analysis */
+    struct EngineAnalysisCtx_ *ea;
+
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */

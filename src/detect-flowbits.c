@@ -413,7 +413,7 @@ struct FBAnalyze {
     uint32_t toggle_sids_size;
 };
 
-extern int rule_engine_analysis_set;
+extern bool rule_engine_analysis_set;
 static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         struct FBAnalyze *array, uint32_t elements);
 

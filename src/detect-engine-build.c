@@ -1896,7 +1896,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
     SCReturnInt(0);
 }
 
-extern int rule_engine_analysis_set;
+extern bool rule_engine_analysis_set;
 /** \internal
  *  \brief perform final per signature setup tasks
  *
