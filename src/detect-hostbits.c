@@ -395,7 +395,7 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     if (unlikely(cd == NULL))
         goto error;
 
-    cd->idx = VarNameStoreSetupAdd(fb_name, VAR_TYPE_HOST_BIT);
+    cd->idx = VarNameStoreRegister(fb_name, VAR_TYPE_HOST_BIT);
     cd->cmd = fb_cmd;
     cd->tracker = hb_dir;
     cd->type = VAR_TYPE_HOST_BIT;
@@ -451,6 +451,7 @@ void DetectHostbitFree (DetectEngineCtx *de_ctx, void *ptr)
 
     if (fd == NULL)
         return;
+    VarNameStoreUnregister(fd->idx, VAR_TYPE_HOST_BIT);
 
     SCFree(fd);
 }
@@ -688,8 +689,8 @@ static int HostBitsTestSig03(void)
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isset option\"; hostbits:isset,fbt; content:\"GET \"; sid:1;)");
     FAIL_IF_NULL(s);
 
-    idx = VarNameStoreSetupAdd("fbt", VAR_TYPE_HOST_BIT);
-    FAIL_IF(idx != 1);
+    idx = VarNameStoreRegister("fbt", VAR_TYPE_HOST_BIT);
+    FAIL_IF(idx == 0);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
