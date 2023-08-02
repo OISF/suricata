@@ -2530,7 +2530,6 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
     }
 
     de_ctx->version = DetectEngineGetVersion();
-    VarNameStoreSetupStaging(de_ctx->version);
     SCLogDebug("dectx with version %u", de_ctx->version);
     return de_ctx;
 error:
@@ -2658,8 +2657,6 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     DetectPortCleanupList(de_ctx, de_ctx->udp_whitelist);
 
     DetectBufferTypeFreeDetectEngine(de_ctx);
-    /* freed our var name hash */
-    VarNameStoreFree(de_ctx->version);
     SCClassConfDeinit(de_ctx);
     SCReferenceConfDeinit(de_ctx);
 
@@ -4277,7 +4274,7 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
             goto error;
         }
 
-        VarNameStoreActivateStaging();
+        VarNameStoreActivate();
 
     } else {
         SCLogDebug("multi-detect not enabled (multi tenancy)");

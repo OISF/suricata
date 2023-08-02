@@ -320,7 +320,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
     if (unlikely(cd == NULL))
         return -1;
 
-    cd->idx = VarNameStoreSetupAdd(fb_name, var_type);
+    cd->idx = VarNameStoreRegister(fb_name, var_type);
     cd->cmd = fb_cmd;
     cd->tracker = hb_dir;
     cd->type = var_type;
@@ -387,6 +387,7 @@ static void DetectXbitFree (DetectEngineCtx *de_ctx, void *ptr)
 
     if (fd == NULL)
         return;
+    VarNameStoreUnregister(fd->idx, fd->type);
 
     SCFree(fd);
 }
