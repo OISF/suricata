@@ -291,6 +291,10 @@ static void *ParseAFPConfig(const char *iface)
             if (strlen(out_iface) > 0) {
                 aconf->out_iface = out_iface;
             }
+            if (strcmp(iface, out_iface) == 0) {
+                FatalError("Invalid config: interface (%s) and copy-iface (%s) can't be the same",
+                        iface, out_iface);
+            }
         } else {
             SCLogWarning("copy-iface corresponding to %s interface is %s", iface, out_iface);
         }
