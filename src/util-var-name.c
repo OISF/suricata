@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,365 +25,351 @@
 
 #include "suricata-common.h"
 #include "detect.h"
+#include "util-hash-string.h"
 #include "util-hashlist.h"
 #include "util-var-name.h"
+#include "util-validate.h"
 
-/* the way this can be used w/o locking lookups:
- * - Lookups use only g_varnamestore_current which is read only
- * - Detection setups a new ctx in staging, which will include the 'current'
- *   entries keeping ID's stable
- * - Detection hot swaps staging into current after a new detect engine was
- *   created. Current remains available through 'old'.
- * - When detect reload is complete (threads are all moved over), 'old' can
- *   be freed.
+/* Overall Design:
+ *
+ * Base Store: "base"
+ *
+ * Used during keyword registration. Operates under lock. Base is shared
+ * between all detect engines, detect engine versions and tenants.
+ * Each variable name is ref counted.
+ *
+ * During the freeing of a detect engine / tenant, unregistration decreases
+ * the ref cnt.
+ *
+ * Base has both a string to id and a id to string hash table. String to
+ * id is used during parsing/registration. id to string during unregistration.
+ *
+ *
+ * Active Store Pointer (atomic)
+ *
+ * The "active" store atomic pointer points to the active store. The call
+ * to `VarNameStoreActivate` will build a new lookup store and hot swap
+ * the pointer.
+ *
+ * Ensuring memory safety. During the hot swap, the pointer is replaced, so
+ * any new call to the lookup functions will automatically use the new store.
+ * This leaves the case of any lookup happening concurrently with the pointer
+ * swap. For this case we add the old store to a free list. It gets a timestamp
+ * before which it cannot be freed.
+ *
+ *
+ * Free List
+ *
+ * The free list contains old stores that are waiting to get removed. They
+ * contain a timestamp that is checked before they are freed.
+ *
  */
-
 typedef struct VarNameStore_ {
     HashListTable *names;
     HashListTable *ids;
     uint32_t max_id;
-    uint32_t de_ctx_version;    /**< de_ctx version 'owning' this */
+    struct timeval free_after;
+    TAILQ_ENTRY(VarNameStore_) next;
 } VarNameStore;
-
-static int initialized = 0;
-/* currently VarNameStore that is READ ONLY. This way lookups can
- * be done w/o locking or synchronization */
-SC_ATOMIC_DECLARE(VarNameStore *, g_varnamestore_current);
-
-/* old VarNameStore on the way out */
-static VarNameStore *g_varnamestore_old = NULL;
-
-/* new VarNameStore that is being prepared. Multiple DetectLoader threads
- * may be updating it so a lock is used for synchronization. */
-static VarNameStore *g_varnamestore_staging = NULL;
-static SCMutex g_varnamestore_staging_m = SCMUTEX_INITIALIZER;
+typedef VarNameStore *VarNameStorePtr;
 
 /** \brief Name2idx mapping structure for flowbits, flowvars and pktvars. */
 typedef struct VariableName_ {
     char *name;
     enum VarTypes type; /* flowbit, pktvar, etc */
-    uint32_t idx;
+    uint32_t id;
+    uint32_t ref_cnt;
 } VariableName;
 
 #define VARNAME_HASHSIZE 0x1000
 #define VARID_HASHSIZE 0x1000
 
+static SCMutex base_lock = SCMUTEX_INITIALIZER;
+static VarNameStore base = { .names = NULL, .ids = NULL, .max_id = 0 };
+static TAILQ_HEAD(, VarNameStore_) free_list = TAILQ_HEAD_INITIALIZER(free_list);
+static SC_ATOMIC_DECLARE(VarNameStorePtr, active);
+
+static uint32_t VariableNameHash(HashListTable *ht, void *buf, uint16_t buflen);
+static char VariableNameCompare(void *buf1, uint16_t len1, void *buf2, uint16_t len2);
+static uint32_t VariableIdHash(HashListTable *ht, void *ptr, uint16_t _unused);
+static char VariableIdCompare(void *ptr1, uint16_t _unused1, void *ptr2, uint16_t _unused2);
+static void VariableNameFree(void *data);
+
+void VarNameStoreInit(void)
+{
+    SCMutexLock(&base_lock);
+    base.names = HashListTableInit(
+            VARNAME_HASHSIZE, VariableNameHash, VariableNameCompare, VariableNameFree);
+    if (base.names == NULL) {
+        FatalError("failed to initialize variable name hash (names)");
+    }
+
+    /* base.names owns the allocation, so use a NULL Free pointer here */
+    base.ids = HashListTableInit(VARID_HASHSIZE, VariableIdHash, VariableIdCompare, NULL);
+    if (base.ids == NULL) {
+        FatalError("failed to initialize variable name hash (names)");
+    }
+    SC_ATOMIC_INITPTR(active);
+    SCMutexUnlock(&base_lock);
+}
+
+void VarNameStoreDestroy(void)
+{
+    SCMutexLock(&base_lock);
+    VarNameStore *s = SC_ATOMIC_GET(active);
+    if (s) {
+        HashListTableFree(s->names);
+        HashListTableFree(s->ids);
+        SCFree(s);
+        s = NULL;
+    }
+    SC_ATOMIC_SET(active, NULL);
+
+    while ((s = TAILQ_FIRST(&free_list))) {
+        TAILQ_REMOVE(&free_list, s, next);
+        HashListTableFree(s->names);
+        HashListTableFree(s->ids);
+        SCFree(s);
+    }
+
+    for (HashListTableBucket *b = HashListTableGetListHead(base.names); b != NULL;
+            b = HashListTableGetListNext(b)) {
+        VariableName *vn = HashListTableGetListData(b);
+        DEBUG_VALIDATE_BUG_ON(vn->ref_cnt > 0);
+        if (vn->ref_cnt > 0) {
+            SCLogWarning("%s (type %u, id %u) still has ref_cnt %u", vn->name, vn->type, vn->id,
+                    vn->ref_cnt);
+        }
+    }
+    HashListTableFree(base.ids);
+    base.ids = NULL;
+    HashListTableFree(base.names);
+    base.names = NULL;
+    base.max_id = 0;
+    SCMutexUnlock(&base_lock);
+}
+
+/**
+ *  \retval id or 0 on error
+ */
+uint32_t VarNameStoreRegister(const char *name, const enum VarTypes type)
+{
+    SCMutexLock(&base_lock);
+    uint32_t id = 0;
+
+    SCLogDebug("registering: name %s type %u", name, type);
+    VariableName lookup = { .type = type, .name = (char *)name };
+    VariableName *found = (VariableName *)HashListTableLookup(base.names, (void *)&lookup, 0);
+    if (found == NULL) {
+        VariableName *vn = SCCalloc(1, sizeof(VariableName));
+        if (likely(vn != NULL)) {
+            vn->type = type;
+            vn->name = SCStrdup(name);
+            if (vn->name != NULL) {
+                vn->ref_cnt = 1;
+                id = vn->id = ++base.max_id;
+                HashListTableAdd(base.names, (void *)vn, 0);
+                HashListTableAdd(base.ids, (void *)vn, 0);
+                SCLogDebug(
+                        "new registration %s id %u type %u -> %u", vn->name, vn->id, vn->type, id);
+            } else {
+                SCFree(vn);
+            }
+        }
+    } else {
+        id = found->id;
+        found->ref_cnt++;
+        SCLogDebug("existing registration %s ref_cnt %u -> %u", name, found->ref_cnt, id);
+    }
+    SCMutexUnlock(&base_lock);
+    return id;
+}
+
+const char *VarNameStoreSetupLookup(const uint32_t id, const enum VarTypes type)
+{
+    const char *name = NULL;
+    SCMutexLock(&base_lock);
+    VariableName lookup = { .type = type, .id = id };
+    VariableName *found = (VariableName *)HashListTableLookup(base.ids, (void *)&lookup, 0);
+    if (found) {
+        name = found->name;
+    }
+    SCMutexUnlock(&base_lock);
+    return name;
+}
+
+void VarNameStoreUnregister(const uint32_t id, const enum VarTypes type)
+{
+    SCMutexLock(&base_lock);
+    VariableName lookup = { .type = type, .id = id };
+    VariableName *found = (VariableName *)HashListTableLookup(base.ids, (void *)&lookup, 0);
+    if (found) {
+        SCLogDebug("found %s ref_cnt %u", found->name, found->ref_cnt);
+        DEBUG_VALIDATE_BUG_ON(found->ref_cnt == 0);
+        found->ref_cnt--;
+    }
+    SCMutexUnlock(&base_lock);
+}
+
+int VarNameStoreActivate(void)
+{
+    int result = 0;
+    SCMutexLock(&base_lock);
+    SCLogDebug("activating new lookup store");
+
+    VarNameStore *new_active = NULL;
+
+    // create lookup hash for id to string, strings should point to base
+    for (HashListTableBucket *b = HashListTableGetListHead(base.names); b != NULL;
+            b = HashListTableGetListNext(b)) {
+        VariableName *vn = HashListTableGetListData(b);
+        BUG_ON(vn == NULL);
+        SCLogDebug("base: %s/%u/%u", vn->name, vn->id, vn->ref_cnt);
+        if (vn->ref_cnt == 0)
+            continue;
+
+        if (new_active == NULL) {
+            new_active = SCCalloc(1, sizeof(*new_active));
+            if (new_active == NULL) {
+                result = -1;
+                goto out;
+            }
+
+            new_active->names = HashListTableInit(
+                    VARNAME_HASHSIZE, VariableNameHash, VariableNameCompare, NULL);
+            if (new_active->names == NULL) {
+                SCFree(new_active);
+                result = -1;
+                goto out;
+            }
+            new_active->ids =
+                    HashListTableInit(VARID_HASHSIZE, VariableIdHash, VariableIdCompare, NULL);
+            if (new_active->ids == NULL) {
+                HashListTableFree(new_active->names);
+                SCFree(new_active);
+                result = -1;
+                goto out;
+            }
+        }
+
+        /* memory is still owned by "base" */
+        HashListTableAdd(new_active->names, (void *)vn, 0);
+        HashListTableAdd(new_active->ids, (void *)vn, 0);
+    }
+
+    if (new_active) {
+        VarNameStore *old_active = SC_ATOMIC_GET(active);
+        if (old_active) {
+            struct timeval ts, add;
+            memset(&ts, 0, sizeof(ts));
+            memset(&add, 0, sizeof(add));
+            gettimeofday(&ts, NULL);
+            add.tv_sec = 60;
+            timeradd(&ts, &add, &ts);
+            old_active->free_after = ts;
+
+            TAILQ_INSERT_TAIL(&free_list, old_active, next);
+            SCLogDebug("old active is stored in free list");
+        }
+
+        SC_ATOMIC_SET(active, new_active);
+        SCLogDebug("new store active");
+
+        struct timeval now;
+        memset(&now, 0, sizeof(now));
+        gettimeofday(&now, NULL);
+
+        VarNameStore *s = NULL;
+        while ((s = TAILQ_FIRST(&free_list))) {
+            char timebuf[64];
+            CreateIsoTimeString(SCTIME_FROM_TIMEVAL(&s->free_after), timebuf, sizeof(timebuf));
+
+            if (!timercmp(&now, &s->free_after, >)) {
+                SCLogDebug("not yet freeing store %p before %s", s, timebuf);
+                break;
+            }
+            SCLogDebug("freeing store %p with time %s", s, timebuf);
+            TAILQ_REMOVE(&free_list, s, next);
+            HashListTableFree(s->names);
+            HashListTableFree(s->ids);
+            SCFree(s);
+        }
+    }
+out:
+    SCLogDebug("activating new lookup store: complete %d", result);
+    SCMutexUnlock(&base_lock);
+    return result;
+}
+
+/** \brief find name for id+type at packet time. */
+const char *VarNameStoreLookupById(const uint32_t id, const enum VarTypes type)
+{
+    const char *name = NULL;
+
+    const VarNameStore *current = SC_ATOMIC_GET(active);
+    if (current) {
+        VariableName lookup = { .type = type, .id = id };
+        const VariableName *found = HashListTableLookup(current->ids, (void *)&lookup, 0);
+        if (found) {
+            return found->name;
+        }
+    }
+
+    return name;
+}
+
+/** \brief find name for id+type at packet time. */
+uint32_t VarNameStoreLookupByName(const char *name, const enum VarTypes type)
+{
+    const VarNameStore *current = SC_ATOMIC_GET(active);
+    if (current) {
+        VariableName lookup = { .name = (char *)name, .type = type };
+        const VariableName *found = HashListTableLookup(current->names, (void *)&lookup, 0);
+        if (found) {
+            return found->id;
+        }
+    }
+
+    return 0;
+}
+
 static uint32_t VariableNameHash(HashListTable *ht, void *buf, uint16_t buflen)
 {
-     VariableName *fn = (VariableName *)buf;
-     uint32_t hash = strlen(fn->name) + fn->type;
-     uint16_t u;
-
-     for (u = 0; u < buflen; u++) {
-         hash += fn->name[u];
-     }
-
-     return (hash % VARNAME_HASHSIZE);
+    VariableName *vn = (VariableName *)buf;
+    uint32_t hash = StringHashDjb2((const uint8_t *)vn->name, strlen(vn->name)) + vn->type;
+    return (hash % VARNAME_HASHSIZE);
 }
 
 static char VariableNameCompare(void *buf1, uint16_t len1, void *buf2, uint16_t len2)
 {
-    VariableName *fn1 = (VariableName *)buf1;
-    VariableName *fn2 = (VariableName *)buf2;
-
-    if (fn1->type != fn2->type)
-        return 0;
-
-    if (strcmp(fn1->name,fn2->name) == 0)
-        return 1;
-
-    return 0;
+    VariableName *vn1 = (VariableName *)buf1;
+    VariableName *vn2 = (VariableName *)buf2;
+    return (vn1->type == vn2->type && strcmp(vn1->name, vn2->name) == 0);
 }
 
-static uint32_t VariableIdxHash(HashListTable *ht, void *buf, uint16_t buflen)
+static uint32_t VariableIdHash(HashListTable *ht, void *ptr, uint16_t _unused)
 {
-    VariableName *fn = (VariableName *)buf;
-    uint32_t hash = fn->idx + fn->type;
+    VariableName *vn = (VariableName *)ptr;
+    uint32_t hash = vn->id << vn->type;
     return (hash % VARID_HASHSIZE);
 }
 
-static char VariableIdxCompare(void *buf1, uint16_t len1, void *buf2, uint16_t len2)
+static char VariableIdCompare(void *ptr1, uint16_t _unused1, void *ptr2, uint16_t _unused2)
 {
-    VariableName *fn1 = (VariableName *)buf1;
-    VariableName *fn2 = (VariableName *)buf2;
+    VariableName *vn1 = (VariableName *)ptr1;
+    VariableName *vn2 = (VariableName *)ptr2;
 
-    if (fn1->type != fn2->type)
-        return 0;
-
-    if (fn1->idx == fn2->idx)
-        return 1;
-
-    return 0;
+    return (vn1->id == vn2->id && vn1->type == vn2->type);
 }
 
 static void VariableNameFree(void *data)
 {
-    VariableName *fn = (VariableName *)data;
-
-    if (fn == NULL)
+    VariableName *vn = (VariableName *)data;
+    if (vn == NULL)
         return;
-
-    if (fn->name != NULL) {
-        SCFree(fn->name);
-        fn->name = NULL;
+    if (vn->name != NULL) {
+        SCFree(vn->name);
+        vn->name = NULL;
     }
-
-    SCFree(fn);
-}
-
-/** \brief Initialize the Name idx hash.
- */
-static VarNameStore *VarNameStoreInit(void)
-{
-    VarNameStore *v = SCCalloc(1, sizeof(*v));
-    if (v == NULL)
-        return NULL;
-
-    v->names = HashListTableInit(VARNAME_HASHSIZE, VariableNameHash, VariableNameCompare, VariableNameFree);
-    if (v->names == NULL) {
-        SCFree(v);
-        return NULL;
-    }
-
-    v->ids = HashListTableInit(VARID_HASHSIZE, VariableIdxHash, VariableIdxCompare, NULL);
-    if (v->ids == NULL) {
-        HashListTableFree(v->names);
-        SCFree(v);
-        return NULL;
-    }
-
-    v->max_id = 0;
-    return v;
-}
-
-static void VarNameStoreDoFree(VarNameStore *v)
-{
-    if (v) {
-        HashListTableFree(v->names);
-        HashListTableFree(v->ids);
-        SCFree(v);
-    }
-}
-
-
-/** \brief Get a name idx for a name. If the name is already used reuse the idx.
- *  \param name nul terminated string with the name
- *  \param type variable type
- *  \retval 0 in case of error
- *  \retval idx the idx or 0
- */
-static uint32_t VariableNameGetIdx(VarNameStore *v, const char *name, enum VarTypes type)
-{
-    uint32_t idx = 0;
-
-    VariableName *fn = SCMalloc(sizeof(VariableName));
-    if (unlikely(fn == NULL))
-        goto error;
-
-    memset(fn, 0, sizeof(VariableName));
-
-    fn->type = type;
-    fn->name = SCStrdup(name);
-    if (fn->name == NULL)
-        goto error;
-
-    VariableName *lookup_fn = (VariableName *)HashListTableLookup(v->names, (void *)fn, 0);
-    if (lookup_fn == NULL) {
-        v->max_id++;
-
-        idx = fn->idx = v->max_id;
-        HashListTableAdd(v->names, (void *)fn, 0);
-        HashListTableAdd(v->ids, (void *)fn, 0);
-        SCLogDebug("new registration %s id %u type %u", fn->name, fn->idx, fn->type);
-    } else {
-        idx = lookup_fn->idx;
-        VariableNameFree(fn);
-    }
-
-    return idx;
-error:
-    VariableNameFree(fn);
-    return 0;
-}
-
-/** \brief Get a name from the idx.
- *  \param idx index of the variable whose name is to be fetched
- *  \param type variable type
- *  \retval NULL in case of error
- *  \retval name of the variable if successful.
- *  \todo no alloc on lookup
- */
-static char *VariableIdxGetName(VarNameStore *v, uint32_t idx, enum VarTypes type)
-{
-    VariableName *fn = SCMalloc(sizeof(VariableName));
-    if (unlikely(fn == NULL))
-        goto error;
-
-    char *name = NULL;
-    memset(fn, 0, sizeof(VariableName));
-
-    fn->type = type;
-    fn->idx = idx;
-
-    VariableName *lookup_fn = (VariableName *)HashListTableLookup(v->ids, (void *)fn, 0);
-    if (lookup_fn != NULL) {
-        name = SCStrdup(lookup_fn->name);
-        if (unlikely(name == NULL))
-            goto error;
-
-        VariableNameFree(fn);
-    } else {
-        goto error;
-    }
-
-    return name;
-error:
-    VariableNameFree(fn);
-    return NULL;
-}
-
-/** \brief setup staging store. Include current store if there is one.
- */
-int VarNameStoreSetupStaging(uint32_t de_ctx_version)
-{
-    SCMutexLock(&g_varnamestore_staging_m);
-
-    if (!initialized) {
-        SC_ATOMIC_INITPTR(g_varnamestore_current);
-        initialized = 1;
-    }
-
-    if (g_varnamestore_staging != NULL &&
-        g_varnamestore_staging->de_ctx_version == de_ctx_version) {
-        SCMutexUnlock(&g_varnamestore_staging_m);
-        return 0;
-    }
-
-    VarNameStore *nv = VarNameStoreInit();
-    if (nv == NULL) {
-        SCMutexUnlock(&g_varnamestore_staging_m);
-        return -1;
-    }
-    g_varnamestore_staging = nv;
-    nv->de_ctx_version = de_ctx_version;
-
-    VarNameStore *current = SC_ATOMIC_GET(g_varnamestore_current);
-    if (current) {
-        /* add all entries from the current hash into this new one. */
-        HashListTableBucket *b = HashListTableGetListHead(current->names);
-        while (b) {
-            VariableName *var = HashListTableGetListData(b);
-
-            VariableName *newvar = SCCalloc(1, sizeof(*newvar));
-            BUG_ON(newvar == NULL);
-            memcpy(newvar, var, sizeof(*newvar));
-            newvar->name = SCStrdup(var->name);
-            BUG_ON(newvar->name == NULL);
-
-            HashListTableAdd(nv->names, (void *)newvar, 0);
-            HashListTableAdd(nv->ids, (void *)newvar, 0);
-            nv->max_id = MAX(nv->max_id, newvar->idx);
-            SCLogDebug("xfer %s id %u type %u", newvar->name, newvar->idx, newvar->type);
-
-            b = HashListTableGetListNext(b);
-        }
-    }
-
-    SCLogDebug("set up staging with detect engine ver %u", nv->de_ctx_version);
-    SCMutexUnlock(&g_varnamestore_staging_m);
-    return 0;
-}
-
-const char *VarNameStoreLookupById(const uint32_t id, const enum VarTypes type)
-{
-    VarNameStore *current = SC_ATOMIC_GET(g_varnamestore_current);
-    BUG_ON(current == NULL);
-    VariableName lookup = { NULL, type, id };
-    VariableName *found = (VariableName *)HashListTableLookup(current->ids, (void *)&lookup, 0);
-    if (found == NULL) {
-        return NULL;
-    }
-    return found->name;
-}
-
-uint32_t VarNameStoreLookupByName(const char *name, const enum VarTypes type)
-{
-    VarNameStore *current = SC_ATOMIC_GET(g_varnamestore_current);
-    BUG_ON(current == NULL);
-    VariableName lookup = { (char *)name, type, 0 };
-    VariableName *found = (VariableName *)HashListTableLookup(current->names, (void *)&lookup, 0);
-    if (found == NULL) {
-        return 0;
-    }
-    SCLogDebug("found %u for %s type %u", found->idx, name, type);
-    return found->idx;
-}
-
-/** \brief add to staging or return existing id if already in there */
-uint32_t VarNameStoreSetupAdd(const char *name, const enum VarTypes type)
-{
-    uint32_t id;
-    SCMutexLock(&g_varnamestore_staging_m);
-    id = VariableNameGetIdx(g_varnamestore_staging, name, type);
-    SCMutexUnlock(&g_varnamestore_staging_m);
-    return id;
-}
-
-char *VarNameStoreSetupLookup(uint32_t idx, const enum VarTypes type)
-{
-    SCMutexLock(&g_varnamestore_staging_m);
-    char *name = VariableIdxGetName(g_varnamestore_staging, idx, type);
-    SCMutexUnlock(&g_varnamestore_staging_m);
-    return name;
-}
-
-void VarNameStoreActivateStaging(void)
-{
-    SCMutexLock(&g_varnamestore_staging_m);
-    if (g_varnamestore_old) {
-        VarNameStoreDoFree(g_varnamestore_old);
-        g_varnamestore_old = NULL;
-    }
-    g_varnamestore_old = SC_ATOMIC_GET(g_varnamestore_current);
-    SC_ATOMIC_SET(g_varnamestore_current, g_varnamestore_staging);
-    g_varnamestore_staging = NULL;
-    SCMutexUnlock(&g_varnamestore_staging_m);
-}
-
-void VarNameStoreFreeOld(void)
-{
-    SCMutexLock(&g_varnamestore_staging_m);
-    SCLogDebug("freeing g_varnamestore_old %p", g_varnamestore_old);
-    if (g_varnamestore_old) {
-        VarNameStoreDoFree(g_varnamestore_old);
-        g_varnamestore_old = NULL;
-    }
-    SCMutexUnlock(&g_varnamestore_staging_m);
-}
-
-void VarNameStoreFree(uint32_t de_ctx_version)
-{
-    SCLogDebug("freeing detect engine version %u", de_ctx_version);
-    SCMutexLock(&g_varnamestore_staging_m);
-    if (g_varnamestore_old && g_varnamestore_old->de_ctx_version == de_ctx_version) {
-        VarNameStoreDoFree(g_varnamestore_old);
-        g_varnamestore_old = NULL;
-        SCLogDebug("freeing detect engine version %u: old done", de_ctx_version);
-    }
-
-    /* if at this point we have a staging area which matches our version
-     * we didn't complete the setup and are cleaning up the mess. */
-    if (g_varnamestore_staging && g_varnamestore_staging->de_ctx_version == de_ctx_version) {
-        VarNameStoreDoFree(g_varnamestore_staging);
-        g_varnamestore_staging = NULL;
-        SCLogDebug("freeing detect engine version %u: staging done", de_ctx_version);
-    }
-
-    VarNameStore *current = SC_ATOMIC_GET(g_varnamestore_current);
-    if (current && current->de_ctx_version == de_ctx_version) {
-        VarNameStoreDoFree(current);
-        SC_ATOMIC_SET(g_varnamestore_current, NULL);
-        SCLogDebug("freeing detect engine version %u: current done", de_ctx_version);
-    }
-    SCMutexUnlock(&g_varnamestore_staging_m);
+    SCFree(vn);
 }

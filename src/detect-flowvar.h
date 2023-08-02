@@ -29,6 +29,8 @@ typedef struct DetectFlowvarData_ {
     uint32_t idx;
     uint8_t *content;
     uint16_t content_len;
+    /** set to true if used in a post-match */
+    bool post_match;
     uint32_t flags;
 } DetectFlowvarData;
 
