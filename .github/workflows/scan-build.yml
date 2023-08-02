@@ -1,8 +1,12 @@
 name: Scan-build
 
 on:
-  - push
-  - pull_request
+  push:
+    paths-ignore:
+      - "doc/**"
+  pull_request:
+    paths-ignore:
+      - "doc/**"
 
 jobs:
   scan-build:

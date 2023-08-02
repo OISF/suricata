@@ -1,8 +1,12 @@
 name: Check Rust
 
 on:
-  - push
-  - pull_request
+  push:
+    paths-ignore:
+      - "doc/**"
+  pull_request:
+    paths-ignore:
+      - "doc/**"
 
 permissions:
   contents: read #  to fetch code (actions/checkout)
