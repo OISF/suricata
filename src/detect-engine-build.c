@@ -1967,7 +1967,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
     ThresholdHashAllocate(de_ctx);
 
     if (!DetectEngineMultiTenantEnabled()) {
-        VarNameStoreActivateStaging();
+        VarNameStoreActivate();
     }
     return 0;
 }
