@@ -18,7 +18,7 @@
 #include <stddef.h>
 #include <linux/bpf.h>
 
-#include "bpf_helpers.h"
+#include <bpf/bpf_helpers.h>
 
 #define LINUX_VERSION_CODE 263682
 

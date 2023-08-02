@@ -25,18 +25,19 @@
 #include <linux/ipv6.h>
 #include <linux/filter.h>
 
-#include "bpf_helpers.h"
+#include <bpf/bpf_helpers.h>
+#include "llvm_bpfload.h"
 
 #define DEBUG 0
 
 #define LINUX_VERSION_CODE 263682
 
-struct bpf_map_def SEC("maps") ipv4_drop = {
-    .type = BPF_MAP_TYPE_PERCPU_HASH,
-    .key_size = sizeof(__u32),
-    .value_size = sizeof(__u32),
-    .max_entries = 32768,
-};
+struct {
+    __uint(type, BPF_MAP_TYPE_PERCPU_HASH);
+    __type(key, __u32);
+    __type(value, __u32);
+    __uint(max_entries, 32768);
+} ipv4_drop SEC(".maps");
 
 struct vlan_hdr {
     __u16   h_vlan_TCI;
