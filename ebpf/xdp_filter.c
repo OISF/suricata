@@ -27,7 +27,8 @@
 #include <linux/ipv6.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
-#include "bpf_helpers.h"
+
+#include <bpf/bpf_helpers.h>
 
 #include "hash_func01.h"
 
@@ -94,97 +95,96 @@ struct pair {
     __u64 bytes;
 };
 
-struct bpf_map_def SEC("maps") flow_table_v4 = {
+struct {
 #if USE_PERCPU_HASH
-    .type = BPF_MAP_TYPE_PERCPU_HASH,
+    __uint(type, BPF_MAP_TYPE_PERCPU_HASH);
 #else
-    .type = BPF_MAP_TYPE_HASH,
+    __uint(type, BPF_MAP_TYPE_HASH);
 #endif
-    .key_size = sizeof(struct flowv4_keys),
-    .value_size = sizeof(struct pair),
-    .max_entries = 32768,
-};
+    __type(key, struct flowv4_keys);
+    __type(value, struct pair);
+    __uint(max_entries, 32768);
+} flow_table_v4 SEC(".maps");
 
-struct bpf_map_def SEC("maps") flow_table_v6 = {
+struct {
 #if USE_PERCPU_HASH
-    .type = BPF_MAP_TYPE_PERCPU_HASH,
+    __uint(type, BPF_MAP_TYPE_PERCPU_HASH);
 #else
-    .type = BPF_MAP_TYPE_HASH,
+    __uint(type, BPF_MAP_TYPE_HASH);
 #endif
-    .key_size = sizeof(struct flowv6_keys),
-    .value_size = sizeof(struct pair),
-    .max_entries = 32768,
-};
-
+    __type(key, struct flowv6_keys);
+    __type(value, struct pair);
+    __uint(max_entries, 32768);
+} flow_table_v6 SEC(".maps");
 
 #if ENCRYPTED_TLS_BYPASS
-struct bpf_map_def SEC("maps") tls_bypass_count = {
+struct {
 #if USE_PERCPU_HASH
-    .type		= BPF_MAP_TYPE_PERCPU_ARRAY,
+    __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 #else
-    .type		= BPF_MAP_TYPE_ARRAY,
+    __uint(type, BPF_MAP_TYPE_ARRAY);
 #endif
-    .key_size	= sizeof(__u32),
-    .value_size	= sizeof(__u64),
-    .max_entries	= 1,
-};
+    __type(key, __u32);
+    __type(value, __u64);
+    __uint(max_entries, 1);
+} tls_bypass_count SEC(".maps");
 #endif
 
 #if BUILD_CPUMAP
 /* Special map type that can XDP_REDIRECT frames to another CPU */
-struct bpf_map_def SEC("maps") cpu_map = {
-    .type		= BPF_MAP_TYPE_CPUMAP,
-    .key_size	= sizeof(__u32),
-    .value_size	= sizeof(__u32),
-    .max_entries	= CPUMAP_MAX_CPUS,
-};
+struct {
+    __uint(type, BPF_MAP_TYPE_CPUMAP);
+    __type(key, __u32);
+    __type(value, __u32);
+    __uint(max_entries, CPUMAP_MAX_CPUS);
+} cpu_map SEC(".maps");
 
-struct bpf_map_def SEC("maps") cpus_available = {
-    .type		= BPF_MAP_TYPE_ARRAY,
-    .key_size	= sizeof(__u32),
-    .value_size	= sizeof(__u32),
-    .max_entries	= CPUMAP_MAX_CPUS,
-};
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, __u32);
+    __type(value, __u32);
+    __uint(max_entries, CPUMAP_MAX_CPUS);
+} cpus_available SEC(".maps");
 
-struct bpf_map_def SEC("maps") cpus_count = {
-    .type		= BPF_MAP_TYPE_ARRAY,
-    .key_size	= sizeof(__u32),
-    .value_size	= sizeof(__u32),
-    .max_entries	= 1,
-};
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, __u32);
+    __type(value, __u32);
+    __uint(max_entries, 1);
+} cpus_count SEC(".maps");
 #endif
 
 #if GOT_TX_PEER
 /* Map has only one element as we don't handle any sort of
  * routing for now. Key value set by user space is 0 and
  * value is the peer interface. */
-struct bpf_map_def SEC("maps") tx_peer = {
-    .type = BPF_MAP_TYPE_DEVMAP,
-    .key_size = sizeof(int),
-    .value_size = sizeof(int),
-    .max_entries = 1,
-};
+struct {
+    __uint(type, BPF_MAP_TYPE_DEVMAP);
+    __type(key, int);
+    __type(value, int);
+    __uint(max_entries, 1);
+} tx_peer SEC(".maps");
 
 /* single entry to indicate if we have peer, key value
  * set in user space is 0. It is only used to see if
  * a interface has a peer we need to send the information to */
-struct bpf_map_def SEC("maps") tx_peer_int = {
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(int),
-    .value_size = sizeof(int),
-    .max_entries = 1,
-};
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, int);
+    __type(value, int);
+    __uint(max_entries, 1);
+} tx_peer_int SEC(".maps");
 #endif
 
 #define USE_GLOBAL_BYPASS   0
 #if USE_GLOBAL_BYPASS
 /* single entry to indicate if global bypass switch is on */
-struct bpf_map_def SEC("maps") global_bypass = {
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(char),
-    .value_size = sizeof(char),
-    .max_entries = 1,
-};
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, char);
+    __type(value, char);
+    __uint(max_entries, 1);
+} global_bypass SEC(".maps");
 #endif
 
 
