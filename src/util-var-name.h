@@ -24,14 +24,16 @@
 #ifndef __UTIL_VAR_NAME_H__
 #define __UTIL_VAR_NAME_H__
 
-int VarNameStoreSetupStaging(uint32_t de_ctx_version);
+void VarNameStoreInit(void);
+void VarNameStoreDestroy(void);
+
+uint32_t VarNameStoreRegister(const char *name, const enum VarTypes type);
+const char *VarNameStoreSetupLookup(const uint32_t id, const enum VarTypes type);
+void VarNameStoreUnregister(const uint32_t id, const enum VarTypes type);
+int VarNameStoreActivate(void);
+
 const char *VarNameStoreLookupById(const uint32_t id, const enum VarTypes type);
-uint32_t VarNameStoreLookupByName(const char *name, const enum VarTypes type);
-uint32_t VarNameStoreSetupAdd(const char *name, const enum VarTypes type);
-char *VarNameStoreSetupLookup(uint32_t idx, const enum VarTypes type);
-void VarNameStoreActivateStaging(void);
-void VarNameStoreFreeOld(void);
-void VarNameStoreFree(uint32_t de_ctx_version);
+uint32_t VarNameStoreLookupByName(const char *, const enum VarTypes type);
 
 #endif
 

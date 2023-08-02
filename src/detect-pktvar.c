@@ -80,6 +80,7 @@ static void DetectPktvarFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectPktvarData *data = ptr;
     if (data != NULL) {
+        VarNameStoreUnregister(data->id, VAR_TYPE_PKT_VAR);
         SCFree(data->content);
         SCFree(data);
     }
@@ -144,7 +145,7 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     cd->content = content;
     cd->content_len = len;
-    cd->id = VarNameStoreSetupAdd(varname, VAR_TYPE_PKT_VAR);
+    cd->id = VarNameStoreRegister(varname, VAR_TYPE_PKT_VAR);
     pcre_free(varname);
 
     /* Okay so far so good, lets get this into a SigMatch

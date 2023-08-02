@@ -28,8 +28,10 @@ typedef struct DetectFlowvarData_ {
     char *name;
     uint32_t idx;
     uint8_t *content;
-    uint8_t content_len;
-    uint8_t flags;
+    uint16_t content_len;
+    /** set to true if used in a post-match */
+    bool post_match;
+    uint32_t flags;
 } DetectFlowvarData;
 
 /* prototypes */
