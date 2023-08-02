@@ -289,6 +289,10 @@ static void *ParseAFPConfig(const char *iface)
     if (ConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1) {
         if (strlen(out_iface) > 0) {
             aconf->out_iface = out_iface;
+            if (strcmp(iface, out_iface) == 0) {
+                FatalError("Invalid config: interface (%s) and copy-iface (%s) can't be the same",
+                        iface, out_iface);
+            }
         }
     }
 
