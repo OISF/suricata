@@ -749,12 +749,14 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
                 return -1;
 
             } else if (strncmp(name_array[name_idx], "flow:", 5) == 0) {
-                pd->capids[pd->idx] = VarNameStoreSetupAdd(name_array[name_idx]+5, VAR_TYPE_FLOW_VAR);
+                pd->capids[pd->idx] =
+                        VarNameStoreRegister(name_array[name_idx] + 5, VAR_TYPE_FLOW_VAR);
                 pd->captypes[pd->idx] = VAR_TYPE_FLOW_VAR;
                 pd->idx++;
 
             } else if (strncmp(name_array[name_idx], "pkt:", 4) == 0) {
-                pd->capids[pd->idx] = VarNameStoreSetupAdd(name_array[name_idx]+4, VAR_TYPE_PKT_VAR);
+                pd->capids[pd->idx] =
+                        VarNameStoreRegister(name_array[name_idx] + 4, VAR_TYPE_PKT_VAR);
                 pd->captypes[pd->idx] = VAR_TYPE_PKT_VAR;
                 SCLogDebug("id %u type %u", pd->capids[pd->idx], pd->captypes[pd->idx]);
                 pd->idx++;
@@ -813,12 +815,12 @@ static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx,
         }
 
         if (strcmp(type_str, "pkt") == 0) {
-            pd->capids[pd->idx] = VarNameStoreSetupAdd((char *)capture_str, VAR_TYPE_PKT_VAR);
+            pd->capids[pd->idx] = VarNameStoreRegister((char *)capture_str, VAR_TYPE_PKT_VAR);
             pd->captypes[pd->idx] = VAR_TYPE_PKT_VAR;
             SCLogDebug("id %u type %u", pd->capids[pd->idx], pd->captypes[pd->idx]);
             pd->idx++;
         } else if (strcmp(type_str, "flow") == 0) {
-            pd->capids[pd->idx] = VarNameStoreSetupAdd((char *)capture_str, VAR_TYPE_FLOW_VAR);
+            pd->capids[pd->idx] = VarNameStoreRegister((char *)capture_str, VAR_TYPE_FLOW_VAR);
             pd->captypes[pd->idx] = VAR_TYPE_FLOW_VAR;
             pd->idx++;
         }
@@ -971,6 +973,11 @@ static void DetectPcreFree(DetectEngineCtx *de_ctx, void *ptr)
 
     DetectPcreData *pd = (DetectPcreData *)ptr;
     DetectParseFreeRegex(&pd->parse_regex);
+    DetectUnregisterThreadCtxFuncs(de_ctx, NULL, pd, "pcre");
+
+    for (uint8_t i = 0; i < pd->idx; i++) {
+        VarNameStoreUnregister(pd->capids[i], pd->captypes[i]);
+    }
     SCFree(pd);
 
     return;
@@ -1059,7 +1066,7 @@ static int DetectPcreParseTest04 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_UNKNOWN);
 
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1081,7 +1088,7 @@ static int DetectPcreParseTest05 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_UNKNOWN);
 
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1103,7 +1110,7 @@ static int DetectPcreParseTest06 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_UNKNOWN);
 
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1125,7 +1132,7 @@ static int DetectPcreParseTest07 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_HTTP);
 
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1147,7 +1154,7 @@ static int DetectPcreParseTest08 (void)
     FAIL_IF_NULL(pd);
     FAIL_IF_NOT(alproto == ALPROTO_UNKNOWN);
 
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -1168,7 +1175,7 @@ static int DetectPcreParseTest09 (void)
     pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0, false, &alproto);
     FAIL_IF_NULL(pd);
 
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -3515,7 +3522,7 @@ static int DetectPcreParseHttpHost(void)
 
     DetectPcreData *pd = DetectPcreParse(de_ctx, "/domain\\.com/W", &list, NULL, 0, false, &alproto);
     FAIL_IF(pd == NULL);
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
 
     list = DETECT_SM_LIST_NOTSET;
     pd = DetectPcreParse(de_ctx, "/dOmain\\.com/W", &list, NULL, 0, false, &alproto);
@@ -3525,7 +3532,7 @@ static int DetectPcreParseHttpHost(void)
     list = DETECT_SM_LIST_NOTSET;
     pd = DetectPcreParse(de_ctx, "/domain\\D+\\.com/W", &list, NULL, 0, false, &alproto);
     FAIL_IF(pd == NULL);
-    DetectPcreFree(NULL, pd);
+    DetectPcreFree(de_ctx, pd);
 
     /* This should not parse as the first \ escapes the second \, then
      * we have a D. */
@@ -3562,10 +3569,11 @@ static int DetectPcreParseCaptureTest(void)
 
     SigGroupBuild(de_ctx);
 
-    uint32_t capid = VarNameStoreLookupByName("somecapture", VAR_TYPE_FLOW_VAR);
-    FAIL_IF (capid != 1);
-    capid = VarNameStoreLookupByName("anothercap", VAR_TYPE_PKT_VAR);
-    FAIL_IF (capid != 2);
+    uint32_t capid1 = VarNameStoreLookupByName("somecapture", VAR_TYPE_FLOW_VAR);
+    FAIL_IF(capid1 == 0);
+    uint32_t capid2 = VarNameStoreLookupByName("anothercap", VAR_TYPE_PKT_VAR);
+    FAIL_IF(capid2 == 0);
+    FAIL_IF(capid1 == capid2);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
