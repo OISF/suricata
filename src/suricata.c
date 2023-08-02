@@ -189,9 +189,11 @@
 #include "util-privs.h"
 #include "util-profiling.h"
 #include "util-proto-name.h"
-#include "util-mpm-hs.h"
-#include "util-storage.h"
-#include "host-storage.h"
+#include "util-running-modes.h"
+#include "util-signal.h"
+#include "util-time.h"
+#include "util-validate.h"
+#include "util-var-name.h"
 
 #include "util-lua.h"
 
@@ -461,6 +463,8 @@ static void GlobalsDestroy(SCInstance *suri)
     SCPidfileRemove(suri->pid_filename);
     SCFree(suri->pid_filename);
     suri->pid_filename = NULL;
+
+    VarNameStoreDestroy();
 }
 
 /** \brief make sure threads can stop the engine by calling this
@@ -2833,6 +2837,7 @@ int InitGlobal(void) {
     /* Initialize the configuration module. */
     ConfInit();
 
+    VarNameStoreInit();
     return 0;
 }
 

@@ -810,7 +810,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
                         goto error;
                     }
 
-                    uint32_t idx = VarNameStoreSetupAdd((char *)value, VAR_TYPE_FLOW_VAR);
+                    uint32_t idx = VarNameStoreRegister(value, VAR_TYPE_FLOW_VAR);
                     ld->flowvar[ld->flowvars++] = idx;
                     SCLogDebug("script uses flowvar %u with script id %u", idx, ld->flowvars - 1);
                 }
@@ -832,7 +832,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
                         goto error;
                     }
 
-                    uint32_t idx = VarNameStoreSetupAdd((char *)value, VAR_TYPE_FLOW_INT);
+                    uint32_t idx = VarNameStoreRegister(value, VAR_TYPE_FLOW_INT);
                     ld->flowint[ld->flowints++] = idx;
                     SCLogDebug("script uses flowint %u with script id %u", idx, ld->flowints - 1);
                 }
@@ -1156,7 +1156,14 @@ static void DetectLuaFree(DetectEngineCtx *de_ctx, void *ptr)
         if (lua->filename)
             SCFree(lua->filename);
 
-        DetectUnregisterThreadCtxFuncs(de_ctx, NULL, lua, "lua");
+        for (uint16_t i = 0; i < lua->flowints; i++) {
+            VarNameStoreUnregister(lua->flowint[i], VAR_TYPE_FLOW_INT);
+        }
+        for (uint16_t i = 0; i < lua->flowvars; i++) {
+            VarNameStoreUnregister(lua->flowvar[i], VAR_TYPE_FLOW_VAR);
+        }
+
+        DetectUnregisterThreadCtxFuncs(de_ctx, lua, "lua");
 
         SCFree(lua);
     }
@@ -1299,11 +1306,11 @@ static int LuaMatchTest01(void)
         goto end;
     }
 
-    FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_VAR);
+    FAIL_IF(id == 0);
+
+    FlowVar *fv = FlowVarGet(&f, id);
+    FAIL_IF_NULL(fv);
 
     if (fv->data.fv_str.value_len != 1) {
         printf("%u != %u: ", fv->data.fv_str.value_len, 1);
@@ -1460,11 +1467,11 @@ static int LuaMatchTest01a(void)
         goto end;
     }
 
-    FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_VAR);
+    FAIL_IF(id == 0);
+
+    FlowVar *fv = FlowVarGet(&f, id);
+    FAIL_IF_NULL(fv);
 
     if (fv->data.fv_str.value_len != 1) {
         printf("%u != %u: ", fv->data.fv_str.value_len, 1);
@@ -1595,11 +1602,11 @@ static int LuaMatchTest02(void)
         goto end;
     }
 
-    FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_VAR);
+    FAIL_IF(id == 0);
+
+    FlowVar *fv = FlowVarGet(&f, id);
+    FAIL_IF_NULL(fv);
 
     if (fv->data.fv_str.value_len != 1) {
         printf("%u != %u: ", fv->data.fv_str.value_len, 1);
@@ -1728,11 +1735,11 @@ static int LuaMatchTest02a(void)
         goto end;
     }
 
-    FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_VAR);
+    FAIL_IF(id == 0);
+
+    FlowVar *fv = FlowVarGet(&f, id);
+    FAIL_IF_NULL(fv);
 
     if (fv->data.fv_str.value_len != 1) {
         printf("%u != %u: ", fv->data.fv_str.value_len, 1);
@@ -1861,11 +1868,11 @@ static int LuaMatchTest03(void)
         goto end;
     }
 
-    FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_VAR);
+    FAIL_IF(id == 0);
+
+    FlowVar *fv = FlowVarGet(&f, id);
+    FAIL_IF_NULL(fv);
 
     if (fv->data.fv_str.value_len != 1) {
         printf("%u != %u: ", fv->data.fv_str.value_len, 1);
@@ -1994,11 +2001,11 @@ static int LuaMatchTest03a(void)
         goto end;
     }
 
-    FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_VAR);
+    FAIL_IF(id == 0);
+
+    FlowVar *fv = FlowVarGet(&f, id);
+    FAIL_IF_NULL(fv);
 
     if (fv->data.fv_str.value_len != 1) {
         printf("%u != %u: ", fv->data.fv_str.value_len, 1);
@@ -2152,11 +2159,11 @@ static int LuaMatchTest04(void)
         goto end;
     }
 
-    FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_INT);
+    FAIL_IF(id == 0);
+
+    FlowVar *fv = FlowVarGet(&f, id);
+    FAIL_IF_NULL(fv);
 
     if (fv->data.fv_int.value != 2) {
         printf("%u != %u: ", fv->data.fv_int.value, 2);
@@ -2307,11 +2314,11 @@ static int LuaMatchTest04a(void)
         goto end;
     }
 
-    FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_INT);
+    FAIL_IF(id == 0);
+
+    FlowVar *fv = FlowVarGet(&f, id);
+    FAIL_IF_NULL(fv);
 
     if (fv->data.fv_int.value != 2) {
         printf("%u != %u: ", fv->data.fv_int.value, 2);
@@ -2455,11 +2462,11 @@ static int LuaMatchTest05(void)
         goto end;
     }
 
-    FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_INT);
+    FAIL_IF(id == 0);
+
+    FlowVar *fv = FlowVarGet(&f, id);
+    FAIL_IF_NULL(fv);
 
     if (fv->data.fv_int.value != 2) {
         printf("%u != %u: ", fv->data.fv_int.value, 2);
@@ -2604,11 +2611,11 @@ static int LuaMatchTest05a(void)
         goto end;
     }
 
-    FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_INT);
+    FAIL_IF(id == 0);
+
+    FlowVar *fv = FlowVarGet(&f, id);
+    FAIL_IF_NULL(fv);
 
     if (fv->data.fv_int.value != 2) {
         printf("%u != %u: ", fv->data.fv_int.value, 2);
@@ -2758,11 +2765,11 @@ static int LuaMatchTest06(void)
         goto end;
     }
 
-    FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_INT);
+    FAIL_IF(id == 0);
+
+    FlowVar *fv = FlowVarGet(&f, id);
+    FAIL_IF_NULL(fv);
 
     if (fv->data.fv_int.value != 0) {
         printf("%u != %u: ", fv->data.fv_int.value, 0);
@@ -2912,11 +2919,11 @@ static int LuaMatchTest06a(void)
         goto end;
     }
 
-    FlowVar *fv = FlowVarGet(&f, 1);
-    if (fv == NULL) {
-        printf("no flowvar: ");
-        goto end;
-    }
+    uint32_t id = VarNameStoreLookupByName("cnt", VAR_TYPE_FLOW_INT);
+    FAIL_IF(id == 0);
+
+    FlowVar *fv = FlowVarGet(&f, id);
+    FAIL_IF_NULL(fv);
 
     if (fv->data.fv_int.value != 0) {
         printf("%u != %u: ", fv->data.fv_int.value, 0);

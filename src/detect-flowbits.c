@@ -109,7 +109,8 @@ static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, cha
     if (unlikely(cd->or_list == NULL))
         return -1;
     for (uint8_t j = 0; j < cd->or_list_size ; j++) {
-        cd->or_list[j] = VarNameStoreSetupAdd(strarr[j], VAR_TYPE_FLOW_BIT);
+        SCLogNotice("registering %s [%d of %d]", strarr[j], j, cd->or_list_size);
+        cd->or_list[j] = VarNameStoreRegister(strarr[j], VAR_TYPE_FLOW_BIT);
         de_ctx->max_fb_id = MAX(cd->or_list[j], de_ctx->max_fb_id);
     }
 
@@ -310,7 +311,8 @@ static int DetectFlowbitParse(
         }
         cd->cmd = cmd;
     } else {
-        cd->idx = VarNameStoreSetupAdd(name, VAR_TYPE_FLOW_BIT);
+        cd->idx = VarNameStoreRegister(name, VAR_TYPE_FLOW_BIT);
+        SCLogNotice("registering %s", name);
         de_ctx->max_fb_id = MAX(cd->idx, de_ctx->max_fb_id);
         cd->cmd = cmd;
         cd->or_list_size = 0;
@@ -386,8 +388,13 @@ void DetectFlowbitFree (DetectEngineCtx *de_ctx, void *ptr)
     DetectFlowbitsData *fd = (DetectFlowbitsData *)ptr;
     if (fd == NULL)
         return;
-    if (fd->or_list != NULL)
+    VarNameStoreUnregister(fd->idx, VAR_TYPE_FLOW_BIT);
+    if (fd->or_list != NULL) {
+        for (uint8_t i = 0; i < fd->or_list_size; i++) {
+            VarNameStoreUnregister(fd->or_list[i], VAR_TYPE_FLOW_BIT);
+        }
         SCFree(fd->or_list);
+    }
     SCFree(fd);
 }
 
@@ -590,7 +597,7 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
 
     /* walk array to see if all bits make sense */
     for (uint32_t i = 0; i < array_size; i++) {
-        char *varname = VarNameStoreSetupLookup(i, VAR_TYPE_FLOW_BIT);
+        const char *varname = VarNameStoreSetupLookup(i, VAR_TYPE_FLOW_BIT);
         if (varname == NULL)
             continue;
 
@@ -643,7 +650,6 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                         "stateful rules that set flowbit %s", s->id, varname);
             }
         }
-        SCFree(varname);
     }
 
     if (rule_engine_analysis_set) {
@@ -673,7 +679,7 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
 
     jb_open_array(js, "flowbits");
     for (uint32_t x = 0; x < elements; x++) {
-        char *varname = VarNameStoreSetupLookup(x, VAR_TYPE_FLOW_BIT);
+        const char *varname = VarNameStoreSetupLookup(x, VAR_TYPE_FLOW_BIT);
         if (varname == NULL)
             continue;
 
@@ -733,7 +739,6 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
             }
             jb_close(js);
         }
-        SCFree(varname);
         jb_close(js);
     }
     jb_close(js); // array
@@ -911,8 +916,8 @@ static int FlowBitsTestSig04(void)
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isset option\"; flowbits:isset,fbt; content:\"GET \"; sid:1;)");
     FAIL_IF_NULL(s);
 
-    idx = VarNameStoreSetupAdd("fbt", VAR_TYPE_FLOW_BIT);
-    FAIL_IF(idx != 1);
+    idx = VarNameStoreRegister("fbt", VAR_TYPE_FLOW_BIT);
+    FAIL_IF(idx == 0);
 
     SigGroupBuild(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -994,7 +999,7 @@ static int FlowBitsTestSig06(void)
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,myflow; sid:10;)");
     FAIL_IF_NULL(s);
 
-    idx = VarNameStoreSetupAdd("myflow", VAR_TYPE_FLOW_BIT);
+    idx = VarNameStoreRegister("myflow", VAR_TYPE_FLOW_BIT);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
@@ -1068,7 +1073,7 @@ static int FlowBitsTestSig07(void)
     s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit unset\"; flowbits:unset,myflow2; sid:11;)");
     FAIL_IF_NULL(s);
 
-    idx = VarNameStoreSetupAdd("myflow", VAR_TYPE_FLOW_BIT);
+    idx = VarNameStoreRegister("myflow", VAR_TYPE_FLOW_BIT);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
@@ -1144,7 +1149,7 @@ static int FlowBitsTestSig08(void)
     s = s->next  = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit unset\"; flowbits:toggle,myflow2; sid:11;)");
     FAIL_IF_NULL(s);
 
-    idx = VarNameStoreSetupAdd("myflow", VAR_TYPE_FLOW_BIT);
+    idx = VarNameStoreRegister("myflow", VAR_TYPE_FLOW_BIT);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
