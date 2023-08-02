@@ -142,6 +142,7 @@
 #include "util-signal.h"
 #include "util-time.h"
 #include "util-validate.h"
+#include "util-var-name.h"
 
 #ifdef WINDIVERT
 #include "decode-sll.h"
@@ -414,6 +415,8 @@ static void GlobalsDestroy(SCInstance *suri)
     SCPidfileRemove(suri->pid_filename);
     SCFree(suri->pid_filename);
     suri->pid_filename = NULL;
+
+    VarNameStoreDestroy();
 }
 
 /**
@@ -2885,6 +2888,7 @@ int InitGlobal(void)
     /* Initialize the configuration module. */
     ConfInit();
 
+    VarNameStoreInit();
     return 0;
 }
 

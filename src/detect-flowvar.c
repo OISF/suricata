@@ -78,6 +78,7 @@ static void DetectFlowvarDataFree(DetectEngineCtx *de_ctx, void *ptr)
         SCReturn;
 
     DetectFlowvarData *fd = (DetectFlowvarData *)ptr;
+    VarNameStoreUnregister(fd->idx, VAR_TYPE_FLOW_VAR);
 
     if (fd->name)
         SCFree(fd->name);
@@ -177,7 +178,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     fd->name = SCStrdup(varname);
     if (unlikely(fd->name == NULL))
         goto error;
-    fd->idx = VarNameStoreSetupAdd(varname, VAR_TYPE_FLOW_VAR);
+    fd->idx = VarNameStoreRegister(varname, VAR_TYPE_FLOW_VAR);
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
