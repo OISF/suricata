@@ -1,6 +1,8 @@
 Suricata User Guide
 ===================
 
+This is the documentation for Suricata |version|.
+
 .. toctree::
    :numbered:
    :maxdepth: 2
