@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1020,6 +1020,9 @@ typedef struct DetectEngineCtx_ {
     HashTable *reference_conf_ht;
     pcre2_code *reference_conf_regex;
     pcre2_match_data *reference_conf_regex_match;
+
+    /* --engine-analysis */
+    struct EngineAnalysisCtx_ *ea;
 
 } DetectEngineCtx;
 
