@@ -1454,8 +1454,16 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
             if (strchr(port->val, '-')) {
                 stream_spec = CONFIG_SPECIFIER_RANGE;
 
-                ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val);
-                ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0, strchr(port->val, '-')+1);
+                if (ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val) == -1) {
+                    FatalError("Invalid value '%s' in napatech.ports specification in conf file.",
+                            port->val);
+                }
+
+                if (ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0,
+                            strchr(port->val, '-') + 1) == -1) {
+                    FatalError("Invalid value '%s' in napatech.ports specification in conf file.",
+                            port->val);
+                }
 
                 if (ports_spec.first[iteration] == ports_spec.second[iteration]) {
                     if (is_inline) {
@@ -1533,8 +1541,17 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
                 }
                 stream_spec = CONFIG_SPECIFIER_RANGE;
 
-                ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val);
-                ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0, strchr(port->val, '-') + 1);
+                if (ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val) == -1) {
+                    FatalError("Invalid value '%s' in napatech.ports specification in conf file.",
+                            port->val);
+                }
+
+                if (ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0,
+                            strchr(port->val, '-') + 1) == -1) {
+                    FatalError("Invalid value '%s' in napatech.ports specification in conf file.",
+                            port->val);
+                }
+
                 snprintf(ports_spec.str, sizeof (ports_spec.str), "(%d..%d)", ports_spec.first[iteration], ports_spec.second[iteration]);
             } else {
                 /* check that the sting in the config file is correctly specified */
@@ -1544,7 +1561,10 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
                 }
                 stream_spec = CONFIG_SPECIFIER_INDIVIDUAL;
 
-                ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val);
+                if (ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val) == -1) {
+                    FatalError("Invalid value '%s' in napatech.ports specification in conf file.",
+                            port->val);
+                }
 
                 /* Determine the ports to use on the NTPL assign statement*/
                 if (iteration == 0) {
