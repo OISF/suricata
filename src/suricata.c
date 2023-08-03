@@ -408,7 +408,6 @@ static void GlobalsDestroy(SCInstance *suri)
 #ifdef HAVE_LUAJIT
     LuajitFreeStatesPool();
 #endif
-    SCLogDeInitLogModule();
     DetectParseFreeRegexes();
     SCThresholdConfGlobalFree();
 
@@ -417,6 +416,7 @@ static void GlobalsDestroy(SCInstance *suri)
     suri->pid_filename = NULL;
 
     VarNameStoreDestroy();
+    SCLogDeInitLogModule();
 }
 
 /**
