@@ -354,6 +354,8 @@ int ConfGetChildValue(const ConfNode *base, const char *name, const char **vptr)
         return 0;
     }
     else {
+        if (node->val == NULL)
+            return 0;
         *vptr = node->val;
         return 1;
     }
