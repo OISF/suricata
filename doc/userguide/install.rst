@@ -218,7 +218,7 @@ debug package::
 If you would like to help test the Release Candidate (RC) packages, the same procedures
 apply, just using another PPA: ``suricata-beta``::
 
-    sudo add-apt-repository ppa:oisd/suricata-beta
+    sudo add-apt-repository ppa:oisf/suricata-beta
     sudo apt-get update
     sudo apt-get upgrade
 
