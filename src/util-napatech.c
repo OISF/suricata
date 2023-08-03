@@ -643,7 +643,7 @@ static void *NapatechStatsLoop(void *arg)
                      "active streams.");
     }
 
-    TmThreadsSetFlag(tv, THV_INIT_DONE);
+    TmThreadsSetFlag(tv, THV_INIT_DONE | THV_RUNNING);
     while (1) {
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
             SCLogDebug("NapatechStatsLoop THV_KILL detected");
@@ -1027,7 +1027,7 @@ static void *NapatechBufMonitorLoop(void *arg)
         exit(EXIT_FAILURE);
     }
 
-    TmThreadsSetFlag(tv, THV_INIT_DONE);
+    TmThreadsSetFlag(tv, THV_INIT_DONE | THV_RUNNING);
     while (1) {
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
             SCLogDebug("NapatechBufMonitorLoop THV_KILL detected");
@@ -1216,7 +1216,6 @@ void NapatechStartStats(void)
     if (TmThreadSpawn(buf_monitor_tv) != 0) {
         FatalError("Failed to spawn thread for NapatechBufMonitor - Killing engine.");
     }
-
 
     return;
 }
