@@ -26,6 +26,7 @@
  *
  */
 #include "suricata-common.h"
+#include "action-globals.h"
 #include "decode.h"
 #include "packet.h"
 #include "suricata.h"
@@ -39,6 +40,7 @@
 #include "tmqh-packetpool.h"
 #include "util-napatech.h"
 #include "source-napatech.h"
+#include "runmode-napatech.h"
 
 #ifndef HAVE_NAPATECH
 
