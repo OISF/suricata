@@ -740,23 +740,23 @@ static void RecommendNUMAConfig(SCLogLevel log_level)
     }
 
     if (set_cpu_affinity) {
-        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
+        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module,
                 "Minimum host buffers that should be defined in ntservice.ini:");
 
-        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, "   NUMA Node 0: %d",
+        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module, "   NUMA Node 0: %d",
                 (SC_ATOMIC_GET(numa0_count)));
 
         if (numa_max_node() >= 1)
-            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
-                    "   NUMA Node 1: %d ", (SC_ATOMIC_GET(numa1_count)));
+            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module, "   NUMA Node 1: %d ",
+                    (SC_ATOMIC_GET(numa1_count)));
 
         if (numa_max_node() >= 2)
-            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
-                    "   NUMA Node 2: %d ", (SC_ATOMIC_GET(numa2_count)));
+            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module, "   NUMA Node 2: %d ",
+                    (SC_ATOMIC_GET(numa2_count)));
 
         if (numa_max_node() >= 3)
-            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
-                    "   NUMA Node 3: %d ", (SC_ATOMIC_GET(numa3_count)));
+            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module, "   NUMA Node 3: %d ",
+                    (SC_ATOMIC_GET(numa3_count)));
 
         snprintf(string0, 16, "[%d, 16, 0]", SC_ATOMIC_GET(numa0_count));
         snprintf(string1, 16, (numa_max_node() >= 1 ? ",[%d, 16, 1]" : ""),
@@ -766,9 +766,8 @@ static void RecommendNUMAConfig(SCLogLevel log_level)
         snprintf(string3, 16, (numa_max_node() >= 3 ? ",[%d, 16, 3]" : ""),
                 SC_ATOMIC_GET(numa3_count));
 
-        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__,
-                "E.g.: HostBuffersRx=%s%s%s%s", string0, string1, string2,
-                string3);
+        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module,
+                "E.g.: HostBuffersRx=%s%s%s%s", string0, string1, string2, string3);
     } else if (log_level == SC_LOG_ERROR) {
         SCLogError("Or, try running /opt/napatech3/bin/ntpl -e \"delete=all\" to clean-up stream "
                    "NUMA config.");
