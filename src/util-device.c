@@ -316,6 +316,10 @@ int LiveDeviceListClean(void)
     SCEnter();
     LiveDevice *pd, *tpd;
 
+    /* dpdk: need to close all devices before freeing them. */
+    TAILQ_FOREACH (pd, &live_devices, next) {
+        DPDKCloseDevice(pd);
+    }
     TAILQ_FOREACH_SAFE(pd, &live_devices, next, tpd) {
         if (live_devices_stats) {
             SCLogNotice("%s: packets: %" PRIu64 ", drops: %" PRIu64
@@ -328,7 +332,7 @@ int LiveDeviceListClean(void)
         }
 
         RestoreIfaceOffloading(pd);
-        DPDKCloseDevice(pd);
+        DPDKFreeDevice(pd);
 
         if (pd->dev)
             SCFree(pd->dev);
