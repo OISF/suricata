@@ -40,10 +40,9 @@ void DPDKCloseDevice(LiveDevice *ldev)
 {
     (void)ldev; // avoid warnings of unused variable
 #ifdef HAVE_DPDK
-    uint16_t port_id;
-    int retval;
     if (run_mode == RUNMODE_DPDK) {
-        retval = rte_eth_dev_get_port_by_name(ldev->dev, &port_id);
+        uint16_t port_id;
+        int retval = rte_eth_dev_get_port_by_name(ldev->dev, &port_id);
         if (retval < 0) {
             SCLogError("%s: failed get port id, error: %s", ldev->dev, rte_strerror(-retval));
             return;
@@ -51,7 +50,15 @@ void DPDKCloseDevice(LiveDevice *ldev)
 
         SCLogPerf("%s: closing device", ldev->dev);
         rte_eth_dev_close(port_id);
+    }
+#endif
+}
 
+void DPDKFreeDevice(LiveDevice *ldev)
+{
+    (void)ldev; // avoid warnings of unused variable
+#ifdef HAVE_DPDK
+    if (run_mode == RUNMODE_DPDK) {
         SCLogDebug("%s: releasing packet mempool", ldev->dev);
         rte_mempool_free(ldev->dpdk_vars.pkt_mp);
     }
