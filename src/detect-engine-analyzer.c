@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -46,18 +46,6 @@
 #include "util-conf.h"
 
 static int rule_warnings_only = 0;
-static FILE *rule_engine_analysis_FD = NULL;
-static FILE *fp_engine_analysis_FD = NULL;
-static pcre2_code *percent_re = NULL;
-static pcre2_match_data *percent_re_match = NULL;
-static char log_path[PATH_MAX];
-
-typedef struct FpPatternStats_ {
-    uint16_t min;
-    uint16_t max;
-    uint32_t cnt;
-    uint64_t tot;
-} FpPatternStats;
 
 /* Details for each buffer being tracked */
 typedef struct DetectEngineAnalyzerItems {
@@ -69,78 +57,92 @@ typedef struct DetectEngineAnalyzerItems {
     const char  *display_name;
 } DetectEngineAnalyzerItems;
 
+typedef struct FpPatternStats_ {
+    uint16_t min;
+    uint16_t max;
+    uint32_t cnt;
+    uint64_t tot;
+} FpPatternStats;
+
 /* Track which items require the item_seen value to be exposed */
 struct ExposedItemSeen {
     const char  *bufname;
     bool        *item_seen_ptr;
 };
 
-DetectEngineAnalyzerItems analyzer_items[] = {
+typedef struct EngineAnalysisCtx_ {
+
+    FILE *rule_engine_analysis_fp;
+    FILE *fp_engine_analysis_fp;
+
+    DetectEngineAnalyzerItems *analyzer_items;
+    char *file_prefix;
+    pcre2_code *percent_re;
+
+    /*
+     * This array contains the map between the `analyzer_items` array listed above and
+     * the item ids returned by DetectBufferTypeGetByName. Iterating signature's sigmatch
+     * array provides list_ids. The map converts those ids into elements of the
+     * analyzer items array.
+     *
+     * Ultimately, the g_buffer_type_hash is searched for each buffer name. The size of that
+     * hashlist is 256, so that's the value we use here.
+     */
+    int16_t analyzer_item_map[256];
+    FpPatternStats fp_pattern_stats[DETECT_SM_LIST_MAX];
+    /*
+     * Certain values must be directly accessible. This array contains items that are directly
+     * accessed when checking if they've been seen or not.
+     */
+    struct ExposedItemSeen exposed_item_seen_list[2];
+
+    bool analyzer_initialized;
+} EngineAnalysisCtx;
+
+const DetectEngineAnalyzerItems analyzer_items[] = {
     /* request keywords */
-    { 0, false, false, true,  "http_uri",           "http uri" },
-    { 0, false, false, false, "http_raw_uri",       "http raw uri" },
-    { 0, false, true,  false, "http_method",        "http method" },
-    { 0, false, false, false, "http_request_line",  "http request line" },
-    { 0, false, false, false, "http_client_body",   "http client body" },
-    { 0, false, false, true,  "http_header",        "http header" },
-    { 0, false, false, false, "http_raw_header",    "http raw header" },
-    { 0, false, false, true,  "http_cookie",        "http cookie" },
-    { 0, false, false, false, "http_user_agent",    "http user agent" },
-    { 0, false, false, false, "http_host",          "http host" },
-    { 0, false, false, false, "http_raw_host",      "http raw host" },
-    { 0, false, false, false, "http_accept_enc",    "http accept enc" },
-    { 0, false, false, false, "http_referer",       "http referer" },
-    { 0, false, false, false, "http_content_type",  "http content type" },
-    { 0, false, false, false, "http_header_names",  "http header names" },
+    { 0, false, false, true, "http_uri", "http uri" },
+    { 0, false, false, false, "http_raw_uri", "http raw uri" },
+    { 0, false, true, false, "http_method", "http method" },
+    { 0, false, false, false, "http_request_line", "http request line" },
+    { 0, false, false, false, "http_client_body", "http client body" },
+    { 0, false, false, true, "http_header", "http header" },
+    { 0, false, false, false, "http_raw_header", "http raw header" },
+    { 0, false, false, true, "http_cookie", "http cookie" },
+    { 0, false, false, false, "http_user_agent", "http user agent" },
+    { 0, false, false, false, "http_host", "http host" },
+    { 0, false, false, false, "http_raw_host", "http raw host" },
+    { 0, false, false, false, "http_accept_enc", "http accept enc" },
+    { 0, false, false, false, "http_referer", "http referer" },
+    { 0, false, false, false, "http_content_type", "http content type" },
+    { 0, false, false, false, "http_header_names", "http header names" },
 
     /* response keywords not listed above */
-    { 0, false, false, false, "http_stat_msg",      "http stat msg" },
-    { 0, false, false, false, "http_stat_code",     "http stat code" },
-    { 0, false, true,  false, "file_data",          "http server body"},
+    { 0, false, false, false, "http_stat_msg", "http stat msg" },
+    { 0, false, false, false, "http_stat_code", "http stat code" },
+    { 0, false, true, false, "file_data", "http server body" },
 
     /* missing request keywords */
-    { 0, false, false, false, "http_request_line",  "http request line" },
-    { 0, false, false, false, "http_accept",        "http accept" },
-    { 0, false, false, false, "http_accept_lang",   "http accept lang" },
-    { 0, false, false, false, "http_connection",    "http connection" },
-    { 0, false, false, false, "http_content_len",   "http content len" },
-    { 0, false, false, false, "http_protocol",      "http protocol" },
-    { 0, false, false, false, "http_start",         "http start" },
+    { 0, false, false, false, "http_request_line", "http request line" },
+    { 0, false, false, false, "http_accept", "http accept" },
+    { 0, false, false, false, "http_accept_lang", "http accept lang" },
+    { 0, false, false, false, "http_connection", "http connection" },
+    { 0, false, false, false, "http_content_len", "http content len" },
+    { 0, false, false, false, "http_protocol", "http protocol" },
+    { 0, false, false, false, "http_start", "http start" },
 
     /* missing response keywords; some of the missing are listed above*/
     { 0, false, false, false, "http_response_line", "http response line" },
-    { 0, false, false, false, "http.server",        "http server" },
-    { 0, false, false, false, "http.location",      "http location" },
+    { 0, false, false, false, "http.server", "http server" },
+    { 0, false, false, false, "http.location", "http location" },
 };
 
-/*
- * This array contains the map between the `analyzer_items` array listed above and
- * the item ids returned by DetectBufferTypeGetByName. Iterating signature's sigmatch
- * array provides list_ids. The map converts those ids into elements of the
- * analyzer items array.
- *
- * Ultimately, the g_buffer_type_hash is searched for each buffer name. The size of that
- * hashlist is 256, so that's the value we use here.
- */
-int16_t analyzer_item_map[256];
-
-/*
- * Certain values must be directly accessible. This array contains items that are directly
- * accessed when checking if they've been seen or not.
- */
-struct ExposedItemSeen exposed_item_seen_list[] = {
-    { .bufname = "http_method"},
-    { .bufname = "file_data"}
-};
-
-static FpPatternStats fp_pattern_stats[DETECT_SM_LIST_MAX];
-
-static void FpPatternStatsAdd(int list, uint16_t patlen)
+static void FpPatternStatsAdd(FpPatternStats *fp, int list, uint16_t patlen)
 {
     if (list < 0 || list >= DETECT_SM_LIST_MAX)
         return;
 
-    FpPatternStats *f = &fp_pattern_stats[list];
+    FpPatternStats *f = &fp[list];
 
     if (f->min == 0)
         f->min = patlen;
@@ -175,72 +177,71 @@ void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, char *l
         }
     }
 
-    fprintf(fp_engine_analysis_FD, "== Sid: %u ==\n", s->id);
-    fprintf(fp_engine_analysis_FD, "%s\n", line);
+    FILE *fp = de_ctx->ea->rule_engine_analysis_fp;
+    fprintf(fp, "== Sid: %u ==\n", s->id);
+    fprintf(fp, "%s\n", line);
 
-    fprintf(fp_engine_analysis_FD, "    Fast Pattern analysis:\n");
+    fprintf(fp, "    Fast Pattern analysis:\n");
     if (s->init_data->prefilter_sm != NULL) {
-        fprintf(fp_engine_analysis_FD, "        Prefilter on: %s\n",
+        fprintf(fp, "        Prefilter on: %s\n",
                 sigmatch_table[s->init_data->prefilter_sm->type].name);
-        fprintf(fp_engine_analysis_FD, "\n");
+        fprintf(fp, "\n");
         return;
     }
 
     if (fp_cd == NULL) {
-        fprintf(fp_engine_analysis_FD, "        No content present\n");
-        fprintf(fp_engine_analysis_FD, "\n");
+        fprintf(fp, "        No content present\n");
+        fprintf(fp, "\n");
         return;
     }
 
-    fprintf(fp_engine_analysis_FD, "        Fast pattern matcher: ");
+    fprintf(fp, "        Fast pattern matcher: ");
     int list_type = mpm_sm_list;
     if (list_type == DETECT_SM_LIST_PMATCH)
-        fprintf(fp_engine_analysis_FD, "content\n");
+        fprintf(fp, "content\n");
     else {
         const char *desc = DetectEngineBufferTypeGetDescriptionById(de_ctx, list_type);
         const char *name = DetectEngineBufferTypeGetNameById(de_ctx, list_type);
         if (desc && name) {
-            fprintf(fp_engine_analysis_FD, "%s (%s)\n", desc, name);
+            fprintf(fp, "%s (%s)\n", desc, name);
         }
     }
 
     int flags_set = 0;
-    fprintf(fp_engine_analysis_FD, "        Flags:");
+    fprintf(fp, "        Flags:");
     if (fp_cd->flags & DETECT_CONTENT_OFFSET) {
-        fprintf(fp_engine_analysis_FD, " Offset");
+        fprintf(fp, " Offset");
         flags_set = 1;
     } if (fp_cd->flags & DETECT_CONTENT_DEPTH) {
-        fprintf(fp_engine_analysis_FD, " Depth");
+        fprintf(fp, " Depth");
         flags_set = 1;
     }
     if (fp_cd->flags & DETECT_CONTENT_WITHIN) {
-        fprintf(fp_engine_analysis_FD, " Within");
+        fprintf(fp, " Within");
         flags_set = 1;
     }
     if (fp_cd->flags & DETECT_CONTENT_DISTANCE) {
-        fprintf(fp_engine_analysis_FD, " Distance");
+        fprintf(fp, " Distance");
         flags_set = 1;
     }
     if (fp_cd->flags & DETECT_CONTENT_NOCASE) {
-        fprintf(fp_engine_analysis_FD, " Nocase");
+        fprintf(fp, " Nocase");
         flags_set = 1;
     }
     if (fp_cd->flags & DETECT_CONTENT_NEGATED) {
-        fprintf(fp_engine_analysis_FD, " Negated");
+        fprintf(fp, " Negated");
         flags_set = 1;
     }
     if (flags_set == 0)
-        fprintf(fp_engine_analysis_FD, " None");
-    fprintf(fp_engine_analysis_FD, "\n");
+        fprintf(fp, " None");
+    fprintf(fp, "\n");
 
-    fprintf(fp_engine_analysis_FD, "        Fast pattern set: %s\n", fast_pattern_set ? "yes" : "no");
-    fprintf(fp_engine_analysis_FD, "        Fast pattern only set: %s\n",
-            fast_pattern_only_set ? "yes" : "no");
-    fprintf(fp_engine_analysis_FD, "        Fast pattern chop set: %s\n",
-            fast_pattern_chop_set ? "yes" : "no");
+    fprintf(fp, "        Fast pattern set: %s\n", fast_pattern_set ? "yes" : "no");
+    fprintf(fp, "        Fast pattern only set: %s\n", fast_pattern_only_set ? "yes" : "no");
+    fprintf(fp, "        Fast pattern chop set: %s\n", fast_pattern_chop_set ? "yes" : "no");
     if (fast_pattern_chop_set) {
-        fprintf(fp_engine_analysis_FD, "        Fast pattern offset, length: %u, %u\n",
-                fp_cd->fp_chop_offset, fp_cd->fp_chop_len);
+        fprintf(fp, "        Fast pattern offset, length: %u, %u\n", fp_cd->fp_chop_offset,
+                fp_cd->fp_chop_len);
     }
 
     uint16_t patlen = fp_cd->content_len;
@@ -250,9 +251,9 @@ void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, char *l
     }
     memcpy(pat, fp_cd->content, fp_cd->content_len);
     pat[fp_cd->content_len] = '\0';
-    fprintf(fp_engine_analysis_FD, "        Original content: ");
-    PrintRawUriFp(fp_engine_analysis_FD, pat, patlen);
-    fprintf(fp_engine_analysis_FD, "\n");
+    fprintf(fp, "        Original content: ");
+    PrintRawUriFp(fp, pat, patlen);
+    fprintf(fp, "\n");
 
     if (fast_pattern_chop_set) {
         SCFree(pat);
@@ -263,21 +264,21 @@ void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, char *l
         }
         memcpy(pat, fp_cd->content + fp_cd->fp_chop_offset, fp_cd->fp_chop_len);
         pat[fp_cd->fp_chop_len] = '\0';
-        fprintf(fp_engine_analysis_FD, "        Final content: ");
-        PrintRawUriFp(fp_engine_analysis_FD, pat, patlen);
-        fprintf(fp_engine_analysis_FD, "\n");
+        fprintf(fp, "        Final content: ");
+        PrintRawUriFp(fp, pat, patlen);
+        fprintf(fp, "\n");
 
-        FpPatternStatsAdd(list_type, patlen);
+        FpPatternStatsAdd(&de_ctx->ea->fp_pattern_stats[0], list_type, patlen);
     } else {
-        fprintf(fp_engine_analysis_FD, "        Final content: ");
-        PrintRawUriFp(fp_engine_analysis_FD, pat, patlen);
-        fprintf(fp_engine_analysis_FD, "\n");
+        fprintf(fp, "        Final content: ");
+        PrintRawUriFp(fp, pat, patlen);
+        fprintf(fp, "\n");
 
-        FpPatternStatsAdd(list_type, patlen);
+        FpPatternStatsAdd(&de_ctx->ea->fp_pattern_stats[0], list_type, patlen);
     }
     SCFree(pat);
 
-    fprintf(fp_engine_analysis_FD, "\n");
+    fprintf(fp, "\n");
     return;
 }
 
@@ -287,56 +288,87 @@ void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, char *l
  * \retval 1 If rule analyzer successfully enabled.
  * \retval 0 If not enabled.
  */
-int SetupFPAnalyzer(void)
+static int SetupFPAnalyzer(DetectEngineCtx *de_ctx)
 {
     int fp_engine_analysis_set = 0;
 
     if ((ConfGetBool("engine-analysis.rules-fast-pattern",
                      &fp_engine_analysis_set)) == 0) {
-        return 0;
+        return false;
     }
 
     if (fp_engine_analysis_set == 0)
-        return 0;
+        return false;
 
-    const char *log_dir;
-    log_dir = ConfigGetLogDirectory();
-    snprintf(log_path, sizeof(log_path), "%s/%s", log_dir,
-             "rules_fast_pattern.txt");
-
-    fp_engine_analysis_FD = fopen(log_path, "w");
-    if (fp_engine_analysis_FD == NULL) {
-        SCLogError("failed to open %s: %s", log_path, strerror(errno));
-        return 0;
+    const char *log_dir = ConfigGetLogDirectory();
+    char *log_path = SCMalloc(PATH_MAX);
+    if (log_path == NULL) {
+        FatalError("Unable to allocate scratch memory for rule filename");
     }
+    snprintf(log_path, PATH_MAX, "%s/%s%s", log_dir,
+            de_ctx->ea->file_prefix ? de_ctx->ea->file_prefix : "", "rules_fast_pattern.txt");
+
+    FILE *fp = fopen(log_path, "w");
+    if (fp == NULL) {
+        SCLogError("failed to open %s: %s", log_path, strerror(errno));
+        SCFree(log_path);
+        return false;
+    }
+
+    de_ctx->ea->fp_engine_analysis_fp = fp;
 
     SCLogInfo("Engine-Analysis for fast_pattern printed to file - %s",
               log_path);
+    SCFree(log_path);
 
     struct timeval tval;
-    struct tm *tms;
     gettimeofday(&tval, NULL);
     struct tm local_tm;
-    tms = SCLocalTime(tval.tv_sec, &local_tm);
-    fprintf(fp_engine_analysis_FD, "----------------------------------------------"
-            "---------------------\n");
-    fprintf(fp_engine_analysis_FD, "Date: %" PRId32 "/%" PRId32 "/%04d -- "
+    struct tm *tms = SCLocalTime(tval.tv_sec, &local_tm);
+    fprintf(fp, "----------------------------------------------"
+                "---------------------\n");
+    fprintf(fp,
+            "Date: %" PRId32 "/%" PRId32 "/%04d -- "
             "%02d:%02d:%02d\n",
-            tms->tm_mday, tms->tm_mon + 1, tms->tm_year + 1900, tms->tm_hour,
-            tms->tm_min, tms->tm_sec);
-    fprintf(fp_engine_analysis_FD, "----------------------------------------------"
-            "---------------------\n");
+            tms->tm_mday, tms->tm_mon + 1, tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
+            tms->tm_sec);
+    fprintf(fp, "----------------------------------------------"
+                "---------------------\n");
 
-    memset(&fp_pattern_stats, 0, sizeof(fp_pattern_stats));
-    return 1;
+    memset(&de_ctx->ea->fp_pattern_stats[0], 0, sizeof(de_ctx->ea->fp_pattern_stats));
+    return true;
 }
 
+/**
+ * \brief Compiles regex for rule analysis
+ * \retval 1 if successful
+ * \retval 0 if on error
+ */
+static bool PerCentEncodingSetup(EngineAnalysisCtx *ea_ctx)
+{
+#define DETECT_PERCENT_ENCODING_REGEX "%[0-9|a-f|A-F]{2}"
+    int en;
+    PCRE2_SIZE eo = 0;
+    int opts = 0; // PCRE2_NEWLINE_ANY??
+
+    ea_ctx->percent_re = pcre2_compile((PCRE2_SPTR8)DETECT_PERCENT_ENCODING_REGEX,
+            PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
+    if (ea_ctx->percent_re == NULL) {
+        PCRE2_UCHAR errbuffer[256];
+        pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
+        SCLogError("Compile of \"%s\" failed at offset %d: %s", DETECT_PERCENT_ENCODING_REGEX,
+                (int)eo, errbuffer);
+        return false;
+    }
+
+    return true;
+}
 /**
  * \brief Sets up the rule analyzer according to the config
  * \retval 1 if rule analyzer successfully enabled
  * \retval 0 if not enabled
  */
-int SetupRuleAnalyzer(void)
+static int SetupRuleAnalyzer(DetectEngineCtx *de_ctx)
 {
     ConfNode *conf = ConfGetNode("engine-analysis");
     int enabled = 0;
@@ -351,9 +383,11 @@ int SetupRuleAnalyzer(void)
         if (enabled) {
             const char *log_dir;
             log_dir = ConfigGetLogDirectory();
-            snprintf(log_path, sizeof(log_path), "%s/%s", log_dir, "rules_analysis.txt");
-            rule_engine_analysis_FD = fopen(log_path, "w");
-            if (rule_engine_analysis_FD == NULL) {
+            char log_path[PATH_MAX];
+            snprintf(log_path, sizeof(log_path), "%s/%s%s", log_dir,
+                    de_ctx->ea->file_prefix ? de_ctx->ea->file_prefix : "", "rules_analysis.txt");
+            de_ctx->ea->rule_engine_analysis_fp = fopen(log_path, "w");
+            if (de_ctx->ea->rule_engine_analysis_fp == NULL) {
                 SCLogError("failed to open %s: %s", log_path, strerror(errno));
                 return 0;
             }
@@ -362,22 +396,26 @@ int SetupRuleAnalyzer(void)
                       log_path);
 
             struct timeval tval;
-            struct tm *tms;
             gettimeofday(&tval, NULL);
             struct tm local_tm;
-            tms = SCLocalTime(tval.tv_sec, &local_tm);
-            fprintf(rule_engine_analysis_FD, "----------------------------------------------"
+            struct tm *tms = SCLocalTime(tval.tv_sec, &local_tm);
+            fprintf(de_ctx->ea->rule_engine_analysis_fp,
+                    "----------------------------------------------"
                     "---------------------\n");
-            fprintf(rule_engine_analysis_FD, "Date: %" PRId32 "/%" PRId32 "/%04d -- "
+            fprintf(de_ctx->ea->rule_engine_analysis_fp,
+                    "Date: %" PRId32 "/%" PRId32 "/%04d -- "
                     "%02d:%02d:%02d\n",
-                    tms->tm_mday, tms->tm_mon + 1, tms->tm_year + 1900, tms->tm_hour,
-                    tms->tm_min, tms->tm_sec);
-            fprintf(rule_engine_analysis_FD, "----------------------------------------------"
+                    tms->tm_mday, tms->tm_mon + 1, tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
+                    tms->tm_sec);
+            fprintf(de_ctx->ea->rule_engine_analysis_fp,
+                    "----------------------------------------------"
                     "---------------------\n");
 
             /*compile regex's for rule analysis*/
-            if (PerCentEncodingSetup()== 0) {
-                fprintf(rule_engine_analysis_FD, "Error compiling regex; can't check for percent encoding in normalized http content.\n");
+            if (!PerCentEncodingSetup(de_ctx->ea)) {
+                fprintf(de_ctx->ea->rule_engine_analysis_fp,
+                        "Error compiling regex; can't check for percent encoding in normalized "
+                        "http content.\n");
             }
         }
     }
@@ -392,67 +430,89 @@ int SetupRuleAnalyzer(void)
     return 1;
 }
 
-void CleanupFPAnalyzer(void)
+static void CleanupFPAnalyzer(DetectEngineCtx *de_ctx)
 {
-    fprintf(fp_engine_analysis_FD, "============\n"
-        "Summary:\n============\n");
-    int i;
-    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
-        FpPatternStats *f = &fp_pattern_stats[i];
+    FILE *fp = de_ctx->ea->rule_engine_analysis_fp;
+    fprintf(fp, "============\n"
+                "Summary:\n============\n");
+
+    for (int i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        FpPatternStats *f = &de_ctx->ea->fp_pattern_stats[i];
         if (f->cnt == 0)
             continue;
 
-        fprintf(fp_engine_analysis_FD,
-            "%s, smallest pattern %u byte(s), longest pattern %u byte(s), number of patterns %u, avg pattern len %.2f byte(s)\n",
-            DetectSigmatchListEnumToString(i), f->min, f->max, f->cnt, (float)((double)f->tot/(float)f->cnt));
+        fprintf(fp,
+                "%s, smallest pattern %u byte(s), longest pattern %u byte(s), number of patterns "
+                "%u, avg pattern len %.2f byte(s)\n",
+                DetectSigmatchListEnumToString(i), f->min, f->max, f->cnt,
+                (float)((double)f->tot / (float)f->cnt));
     }
 
-    if (fp_engine_analysis_FD != NULL) {
-        fclose(fp_engine_analysis_FD);
-        fp_engine_analysis_FD = NULL;
-    }
+    fclose(de_ctx->ea->rule_engine_analysis_fp);
+    de_ctx->ea->rule_engine_analysis_fp = NULL;
 
     return;
 }
 
-
-void CleanupRuleAnalyzer(void)
+static void CleanupRuleAnalyzer(DetectEngineCtx *de_ctx)
 {
-    if (rule_engine_analysis_FD != NULL) {
-         SCLogInfo("Engine-Analysis for rules printed to file - %s", log_path);
-        fclose(rule_engine_analysis_FD);
-        rule_engine_analysis_FD = NULL;
+    if (de_ctx->ea->fp_engine_analysis_fp != NULL) {
+        fclose(de_ctx->ea->fp_engine_analysis_fp);
+        de_ctx->ea->fp_engine_analysis_fp = NULL;
     }
-    if (percent_re != NULL) {
-        pcre2_code_free(percent_re);
+    if (de_ctx->ea->percent_re != NULL) {
+        pcre2_code_free(de_ctx->ea->percent_re);
     }
-    pcre2_match_data_free(percent_re_match);
 }
 
-/**
- * \brief Compiles regex for rule analysis
- * \retval 1 if successful
- * \retval 0 if on error
- */
-int PerCentEncodingSetup(void)
+void SetupEngineAnalysis(DetectEngineCtx *de_ctx, bool *fp_analysis, bool *rule_analysis)
 {
-#define DETECT_PERCENT_ENCODING_REGEX "%[0-9|a-f|A-F]{2}"
-    int en;
-    PCRE2_SIZE eo = 0;
-    int opts = 0; // PCRE2_NEWLINE_ANY??
+    *fp_analysis = false;
+    *rule_analysis = false;
 
-    percent_re = pcre2_compile((PCRE2_SPTR8)DETECT_PERCENT_ENCODING_REGEX, PCRE2_ZERO_TERMINATED,
-            opts, &en, &eo, NULL);
-    if (percent_re == NULL) {
-        PCRE2_UCHAR errbuffer[256];
-        pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
-        SCLogError("Compile of \"%s\" failed at offset %d: %s", DETECT_PERCENT_ENCODING_REGEX,
-                (int)eo, errbuffer);
-        return 0;
+    EngineAnalysisCtx *ea = SCCalloc(1, sizeof(EngineAnalysisCtx));
+    if (ea == NULL) {
+        FatalError("Unable to allocate per-engine analysis context");
     }
 
-    percent_re_match = pcre2_match_data_create_from_pattern(percent_re, NULL);
-    return 1;
+    ea->file_prefix = NULL;
+    int cfg_prefix_len = strlen(de_ctx->config_prefix);
+    if (cfg_prefix_len > 0) {
+        /* length of prefix + NULL + "." */
+        ea->file_prefix = SCCalloc(1, cfg_prefix_len + 1 + 1);
+        if (ea->file_prefix == NULL) {
+            FatalError("Unable to allocate per-engine analysis context name buffer");
+        }
+
+        snprintf(ea->file_prefix, cfg_prefix_len + 1 + 1, "%s.", de_ctx->config_prefix);
+    }
+
+    de_ctx->ea = ea;
+
+    *fp_analysis = SetupFPAnalyzer(de_ctx);
+    *rule_analysis = SetupRuleAnalyzer(de_ctx);
+
+    if (!(*fp_analysis || *rule_analysis)) {
+        if (ea->file_prefix)
+            SCFree(ea->file_prefix);
+        if (ea->analyzer_items)
+            SCFree(ea->analyzer_items);
+        SCFree(ea);
+    }
+}
+
+void CleanupEngineAnalysis(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx->ea) {
+        CleanupRuleAnalyzer(de_ctx);
+        CleanupFPAnalyzer(de_ctx);
+        if (de_ctx->ea->file_prefix)
+            SCFree(de_ctx->ea->file_prefix);
+        if (de_ctx->ea->analyzer_items)
+            SCFree(de_ctx->ea->analyzer_items);
+        SCFree(de_ctx->ea);
+        de_ctx->ea = NULL;
+    }
 }
 
 /**
@@ -462,18 +522,19 @@ int PerCentEncodingSetup(void)
  * \retval 0 if it doesn't have % encoding
  * \retval -1 on error
  */
-static int PerCentEncodingMatch(uint8_t *content, uint16_t content_len)
+static int PerCentEncodingMatch(EngineAnalysisCtx *ea_ctx, uint8_t *content, uint16_t content_len)
 {
     int ret = 0;
 
-    ret = pcre2_match(percent_re, (PCRE2_SPTR8)content, content_len, 0, 0, percent_re_match, NULL);
+    pcre2_match_data *match = pcre2_match_data_create_from_pattern(ea_ctx->percent_re, NULL);
+    ret = pcre2_match(ea_ctx->percent_re, (PCRE2_SPTR8)content, content_len, 0, 0, match, NULL);
     if (ret == -1) {
         return 0;
-    }
-    else if (ret < -1) {
+    } else if (ret < -1) {
         SCLogError("Error parsing content - %s; error code is %d", content, ret);
-        return -1;
+        ret = -1;
     }
+    pcre2_match_data_free(match);
     return ret;
 }
 
@@ -496,6 +557,9 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
     if (unlikely(pat == NULL)) {
         FatalError("Error allocating memory");
     }
+
+    EngineAnalysisCtx *ea_ctx = de_ctx->ea;
+
     memcpy(pat, fp_cd->content, fp_cd->content_len);
     pat[fp_cd->content_len] = '\0';
 
@@ -508,15 +572,15 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
         }
         memcpy(pat, fp_cd->content + fp_cd->fp_chop_offset, fp_cd->fp_chop_len);
         pat[fp_cd->fp_chop_len] = '\0';
-        fprintf(rule_engine_analysis_FD, "    Fast Pattern \"");
-        PrintRawUriFp(rule_engine_analysis_FD, pat, patlen);
+        fprintf(ea_ctx->rule_engine_analysis_fp, "    Fast Pattern \"");
+        PrintRawUriFp(ea_ctx->rule_engine_analysis_fp, pat, patlen);
     } else {
-        fprintf(rule_engine_analysis_FD, "    Fast Pattern \"");
-        PrintRawUriFp(rule_engine_analysis_FD, pat, patlen);
+        fprintf(ea_ctx->rule_engine_analysis_fp, "    Fast Pattern \"");
+        PrintRawUriFp(ea_ctx->rule_engine_analysis_fp, pat, patlen);
     }
     SCFree(pat);
 
-    fprintf(rule_engine_analysis_FD, "\" on \"");
+    fprintf(ea_ctx->rule_engine_analysis_fp, "\" on \"");
 
     const int list_type = mpm_sm_list;
     if (list_type == DETECT_SM_LIST_PMATCH) {
@@ -526,39 +590,39 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
             payload = 1;
         if (SignatureHasStreamContent(s))
             stream = 1;
-        fprintf(rule_engine_analysis_FD, "%s",
-                payload ? (stream ? "payload and reassembled stream" : "payload") : "reassembled stream");
+        fprintf(ea_ctx->rule_engine_analysis_fp, "%s",
+                payload ? (stream ? "payload and reassembled stream" : "payload")
+                        : "reassembled stream");
     }
     else {
         const char *desc = DetectEngineBufferTypeGetDescriptionById(de_ctx, list_type);
         const char *name = DetectEngineBufferTypeGetNameById(de_ctx, list_type);
         if (desc && name) {
-            fprintf(rule_engine_analysis_FD, "%s (%s)", desc, name);
+            fprintf(ea_ctx->rule_engine_analysis_fp, "%s (%s)", desc, name);
         } else if (desc || name) {
-            fprintf(rule_engine_analysis_FD, "%s", desc ? desc : name);
+            fprintf(ea_ctx->rule_engine_analysis_fp, "%s", desc ? desc : name);
         }
 
     }
 
-    fprintf(rule_engine_analysis_FD, "\" ");
+    fprintf(ea_ctx->rule_engine_analysis_fp, "\" ");
     const DetectBufferType *bt = DetectEngineBufferTypeGetById(de_ctx, list_type);
     if (bt && bt->transforms.cnt) {
-        fprintf(rule_engine_analysis_FD, "(with %d transform(s)) ", bt->transforms.cnt);
+        fprintf(ea_ctx->rule_engine_analysis_fp, "(with %d transform(s)) ", bt->transforms.cnt);
     }
-    fprintf(rule_engine_analysis_FD, "buffer.\n");
+    fprintf(ea_ctx->rule_engine_analysis_fp, "buffer.\n");
 
     return;
 }
 
-
-void EngineAnalysisRulesFailure(char *line, char *file, int lineno)
+void EngineAnalysisRulesFailure(const DetectEngineCtx *de_ctx, char *line, char *file, int lineno)
 {
-    fprintf(rule_engine_analysis_FD, "== Sid: UNKNOWN ==\n");
-    fprintf(rule_engine_analysis_FD, "%s\n", line);
-    fprintf(rule_engine_analysis_FD, "    FAILURE: invalid rule.\n");
-    fprintf(rule_engine_analysis_FD, "    File: %s.\n", file);
-    fprintf(rule_engine_analysis_FD, "    Line: %d.\n", lineno);
-    fprintf(rule_engine_analysis_FD, "\n");
+    fprintf(de_ctx->ea->fp_engine_analysis_fp, "== Sid: UNKNOWN ==\n");
+    fprintf(de_ctx->ea->fp_engine_analysis_fp, "%s\n", line);
+    fprintf(de_ctx->ea->fp_engine_analysis_fp, "    FAILURE: invalid rule.\n");
+    fprintf(de_ctx->ea->fp_engine_analysis_fp, "    File: %s.\n", file);
+    fprintf(de_ctx->ea->fp_engine_analysis_fp, "    Line: %d.\n", lineno);
+    fprintf(de_ctx->ea->fp_engine_analysis_fp, "\n");
 }
 
 typedef struct RuleAnalyzer {
@@ -1134,7 +1198,8 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     const char *filename = "rules.json";
     const char *log_dir = ConfigGetLogDirectory();
     char json_path[PATH_MAX] = "";
-    snprintf(json_path, sizeof(json_path), "%s/%s", log_dir, filename);
+    snprintf(json_path, sizeof(json_path), "%s/%s%s", log_dir,
+            de_ctx->ea->file_prefix ? de_ctx->ea->file_prefix : "", filename);
 
     SCMutexLock(&g_rules_analyzer_write_m);
     FILE *fp = fopen(json_path, "a");
@@ -1211,7 +1276,8 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
     const char *filename = "patterns.json";
     const char *log_dir = ConfigGetLogDirectory();
     char json_path[PATH_MAX] = "";
-    snprintf(json_path, sizeof(json_path), "%s/%s", log_dir, filename);
+    snprintf(json_path, sizeof(json_path), "%s/%s%s", log_dir,
+            de_ctx->ea->file_prefix ? de_ctx->ea->file_prefix : "", filename);
 
     SCMutexLock(&g_rules_analyzer_write_m);
     FILE *fp = fopen(json_path, "a");
@@ -1227,26 +1293,31 @@ void DumpPatterns(DetectEngineCtx *de_ctx)
     de_ctx->pattern_hash_table = NULL;
 }
 
-static void EngineAnalysisItemsReset(void)
+static void EngineAnalysisItemsReset(EngineAnalysisCtx *ea_ctx)
 {
     for (size_t i = 0; i < ARRAY_SIZE(analyzer_items); i++) {
-        analyzer_items[i].item_seen = false;
+        ea_ctx->analyzer_items[i].item_seen = false;
     }
 }
 
-static void EngineAnalysisItemsInit(void)
+static void EngineAnalysisItemsInit(EngineAnalysisCtx *ea_ctx)
 {
-    static bool analyzer_init = false;
-
-    if (analyzer_init) {
-        EngineAnalysisItemsReset();
+    if (ea_ctx->analyzer_initialized) {
+        EngineAnalysisItemsReset(ea_ctx);
         return;
     }
 
-    memset(analyzer_item_map, -1, sizeof(analyzer_item_map));
+    ea_ctx->exposed_item_seen_list[0].bufname = "http_method";
+    ea_ctx->exposed_item_seen_list[1].bufname = "file_data";
+    ea_ctx->analyzer_items = SCCalloc(1, sizeof(analyzer_items));
+    if (!ea_ctx->analyzer_items) {
+        FatalError("Unable to allocate analysis scratch pad");
+    }
+    memset(ea_ctx->analyzer_item_map, -1, sizeof(ea_ctx->analyzer_item_map));
 
     for (size_t i = 0; i < ARRAY_SIZE(analyzer_items); i++) {
-        DetectEngineAnalyzerItems *analyzer_item = &analyzer_items[i];
+        ea_ctx->analyzer_items[i] = analyzer_items[i];
+        DetectEngineAnalyzerItems *analyzer_item = &ea_ctx->analyzer_items[i];
 
         int item_id = DetectBufferTypeGetByName(analyzer_item->item_name);
         DEBUG_VALIDATE_BUG_ON(item_id < 0 || item_id > UINT16_MAX);
@@ -1260,16 +1331,16 @@ static void EngineAnalysisItemsInit(void)
         analyzer_item->item_seen = false;
 
         if (analyzer_item->export_item_seen) {
-            for (size_t k = 0; k < ARRAY_SIZE(exposed_item_seen_list); k++) {
-                if (0 == strcmp(exposed_item_seen_list[k].bufname, analyzer_item->item_name))
-                    exposed_item_seen_list[k].item_seen_ptr = &analyzer_item->item_seen;
+            for (size_t k = 0; k < ARRAY_SIZE(ea_ctx->exposed_item_seen_list); k++) {
+                if (0 ==
+                        strcmp(ea_ctx->exposed_item_seen_list[k].bufname, analyzer_item->item_name))
+                    ea_ctx->exposed_item_seen_list[k].item_seen_ptr = &analyzer_item->item_seen;
             }
-
         }
-        analyzer_item_map[analyzer_item->item_id] = (int16_t) i;
+        ea_ctx->analyzer_item_map[analyzer_item->item_id] = (int16_t)i;
     }
 
-    analyzer_init = true;
+    ea_ctx->analyzer_initialized = true;
 }
 
 /**
@@ -1325,10 +1396,10 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     uint32_t warn_no_direction = 0;
     uint32_t warn_both_direction = 0;
 
-    EngineAnalysisItemsInit();
+    EngineAnalysisItemsInit(de_ctx->ea);
 
-    bool *http_method_item_seen_ptr = exposed_item_seen_list[0].item_seen_ptr;
-    bool *http_server_body_item_seen_ptr = exposed_item_seen_list[1].item_seen_ptr;
+    bool *http_method_item_seen_ptr = de_ctx->ea->exposed_item_seen_list[0].item_seen_ptr;
+    bool *http_server_body_item_seen_ptr = de_ctx->ea->exposed_item_seen_list[1].item_seen_ptr;
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
         rule_bidirectional = 1;
@@ -1354,7 +1425,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
         SigMatch *sm = NULL;
         for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
-            int16_t item_slot = analyzer_item_map[list_id];
+            int16_t item_slot = de_ctx->ea->analyzer_item_map[list_id];
             if (sm->type == DETECT_PCRE) {
                 if (item_slot == -1) {
                     rule_pcre++;
@@ -1362,7 +1433,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                 }
 
                 rule_pcre_http++;
-                analyzer_items[item_slot].item_seen = true;
+                de_ctx->ea->analyzer_items[item_slot].item_seen = true;
             } else if (sm->type == DETECT_CONTENT) {
                 if (item_slot == -1) {
                     rule_content++;
@@ -1376,11 +1447,12 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                 }
 
                 rule_content_http++;
-                analyzer_items[item_slot].item_seen = true;
+                de_ctx->ea->analyzer_items[item_slot].item_seen = true;
 
-                if (analyzer_items[item_slot].check_encoding_match) {
+                if (de_ctx->ea->analyzer_items[item_slot].check_encoding_match) {
                     DetectContentData *cd = (DetectContentData *)sm->ctx;
-                    if (cd != NULL && PerCentEncodingMatch(cd->content, cd->content_len) > 0) {
+                    if (cd != NULL &&
+                            PerCentEncodingMatch(de_ctx->ea, cd->content, cd->content_len) > 0) {
                         warn_encoding_norm_http_buf += 1;
                     }
                 }
@@ -1510,60 +1582,64 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     }
 
     if (!rule_warnings_only || (rule_warnings_only && rule_warning > 0)) {
-        fprintf(rule_engine_analysis_FD, "== Sid: %u ==\n", s->id);
-        fprintf(rule_engine_analysis_FD, "%s\n", line);
+        FILE *fp = de_ctx->ea->rule_engine_analysis_fp;
+        fprintf(fp, "== Sid: %u ==\n", s->id);
+        fprintf(fp, "%s\n", line);
 
         switch (s->type) {
             case SIG_TYPE_NOT_SET:
                 break;
             case SIG_TYPE_IPONLY:
-                fprintf(rule_engine_analysis_FD, "    Rule is ip only.\n");
+                fprintf(fp, "    Rule is ip only.\n");
                 break;
             case SIG_TYPE_LIKE_IPONLY:
-                fprintf(rule_engine_analysis_FD, "    Rule is like ip only.\n");
+                fprintf(fp, "    Rule is like ip only.\n");
                 break;
             case SIG_TYPE_PDONLY:
-                fprintf(rule_engine_analysis_FD, "    Rule is PD only.\n");
+                fprintf(fp, "    Rule is PD only.\n");
                 break;
             case SIG_TYPE_DEONLY:
-                fprintf(rule_engine_analysis_FD, "    Rule is DE only.\n");
+                fprintf(fp, "    Rule is DE only.\n");
                 break;
             case SIG_TYPE_PKT:
-                fprintf(rule_engine_analysis_FD, "    Rule is packet inspecting.\n");
+                fprintf(fp, "    Rule is packet inspecting.\n");
                 break;
             case SIG_TYPE_PKT_STREAM:
-                fprintf(rule_engine_analysis_FD, "    Rule is packet and stream inspecting.\n");
+                fprintf(fp, "    Rule is packet and stream inspecting.\n");
                 break;
             case SIG_TYPE_STREAM:
-                fprintf(rule_engine_analysis_FD, "    Rule is stream inspecting.\n");
+                fprintf(fp, "    Rule is stream inspecting.\n");
                 break;
             case SIG_TYPE_APPLAYER:
-                fprintf(rule_engine_analysis_FD, "    Rule is app-layer inspecting.\n");
+                fprintf(fp, "    Rule is app-layer inspecting.\n");
                 break;
             case SIG_TYPE_APP_TX:
-                fprintf(rule_engine_analysis_FD, "    Rule is App-layer TX inspecting.\n");
+                fprintf(fp, "    Rule is App-layer TX inspecting.\n");
                 break;
             case SIG_TYPE_MAX:
                 break;
         }
-        if (rule_ipv6_only) fprintf(rule_engine_analysis_FD, "    Rule is IPv6 only.\n");
-        if (rule_ipv4_only) fprintf(rule_engine_analysis_FD, "    Rule is IPv4 only.\n");
-        if (packet_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on packets.\n");
+        if (rule_ipv6_only)
+            fprintf(fp, "    Rule is IPv6 only.\n");
+        if (rule_ipv4_only)
+            fprintf(fp, "    Rule is IPv4 only.\n");
+        if (packet_buf)
+            fprintf(fp, "    Rule matches on packets.\n");
         if (!rule_flow_nostream && stream_buf &&
                 (rule_flow || rule_flowbits || rule_flowint || rule_content || rule_pcre)) {
-            fprintf(rule_engine_analysis_FD, "    Rule matches on reassembled stream.\n");
+            fprintf(fp, "    Rule matches on reassembled stream.\n");
         }
         for(size_t i = 0; i < ARRAY_SIZE(analyzer_items); i++) {
-            DetectEngineAnalyzerItems *ai = &analyzer_items[i];
+            DetectEngineAnalyzerItems *ai = &de_ctx->ea->analyzer_items[i];
             if (ai->item_seen) {
-                 fprintf(rule_engine_analysis_FD, "    Rule matches on %s buffer.\n", ai->display_name);
+                fprintf(fp, "    Rule matches on %s buffer.\n", ai->display_name);
             }
         }
         if (s->alproto != ALPROTO_UNKNOWN) {
-            fprintf(rule_engine_analysis_FD, "    App layer protocol is %s.\n", AppProtoToString(s->alproto));
+            fprintf(fp, "    App layer protocol is %s.\n", AppProtoToString(s->alproto));
         }
         if (rule_content || rule_content_http || rule_pcre || rule_pcre_http) {
-            fprintf(rule_engine_analysis_FD,
+            fprintf(fp,
                     "    Rule contains %u content options, %u http content options, %u pcre "
                     "options, and %u pcre options with http modifiers.\n",
                     rule_content, rule_content_http, rule_pcre, rule_pcre_http);
@@ -1571,7 +1647,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
 
         /* print fast pattern info */
         if (s->init_data->prefilter_sm) {
-            fprintf(rule_engine_analysis_FD, "    Prefilter on: %s.\n",
+            fprintf(fp, "    Prefilter on: %s.\n",
                     sigmatch_table[s->init_data->prefilter_sm->type].name);
         } else {
             EngineAnalysisRulesPrintFP(de_ctx, s);
@@ -1579,91 +1655,106 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
 
         /* this is where the warnings start */
         if (warn_pcre_no_content /*rule_pcre > 0 && rule_content == 0 && rule_content_http == 0*/) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule uses pcre without a content option present.\n"
-                                             "             -Consider adding a content to improve performance of this rule.\n");
+            fprintf(fp, "    Warning: Rule uses pcre without a content option present.\n"
+                        "             -Consider adding a content to improve performance of this "
+                        "rule.\n");
         }
         if (warn_pcre_http_content /*rule_content_http > 0 && rule_pcre > 0 && rule_pcre_http == 0*/) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule uses content options with http_* and pcre options without http modifiers.\n"
-                                             "             -Consider adding http pcre modifier.\n");
+            fprintf(fp, "    Warning: Rule uses content options with http_* and pcre options "
+                        "without http modifiers.\n"
+                        "             -Consider adding http pcre modifier.\n");
         }
         else if (warn_pcre_http /*s->alproto == ALPROTO_HTTP1 && rule_pcre > 0 && rule_pcre_http == 0*/) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule app layer protocol is http, but pcre options do not have http modifiers.\n"
-                                             "             -Consider adding http pcre modifiers.\n");
+            fprintf(fp, "    Warning: Rule app layer protocol is http, but pcre options do not "
+                        "have http modifiers.\n"
+                        "             -Consider adding http pcre modifiers.\n");
         }
         if (warn_content_http_content /*rule_content > 0 && rule_content_http > 0*/) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule contains content with http_* and content without http_*.\n"
-                                         "             -Consider adding http content modifiers.\n");
+            fprintf(fp,
+                    "    Warning: Rule contains content with http_* and content without http_*.\n"
+                    "             -Consider adding http content modifiers.\n");
         }
         if (warn_content_http /*s->alproto == ALPROTO_HTTP1 && rule_content > 0 && rule_content_http == 0*/) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule app layer protocol is http, but content options do not have http_* modifiers.\n"
-                                             "             -Consider adding http content modifiers.\n");
+            fprintf(fp, "    Warning: Rule app layer protocol is http, but content options do not "
+                        "have http_* modifiers.\n"
+                        "             -Consider adding http content modifiers.\n");
         }
         if (rule_content == 1) {
              //todo: warning if content is weak, separate warning for pcre + weak content
         }
         if (warn_encoding_norm_http_buf) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule may contain percent encoded content for a normalized http buffer match.\n");
+            fprintf(fp, "    Warning: Rule may contain percent encoded content for a normalized "
+                        "http buffer match.\n");
         }
         if (warn_tcp_no_flow /*rule_flow == 0 && rule_flags == 0
                 && !(s->proto.flags & DETECT_PROTO_ANY) && DetectProtoContainsProto(&s->proto, IPPROTO_TCP)*/) {
-            fprintf(rule_engine_analysis_FD, "    Warning: TCP rule without a flow or flags option.\n"
-                                             "             -Consider adding flow or flags to improve performance of this rule.\n");
+            fprintf(fp, "    Warning: TCP rule without a flow or flags option.\n"
+                        "             -Consider adding flow or flags to improve performance of "
+                        "this rule.\n");
         }
         if (warn_client_ports /*rule_flow && !rule_bidirectional && (rule_flow_toserver || rule_flow_toclient)
                       && !((s->flags & SIG_FLAG_SP_ANY) && (s->flags & SIG_FLAG_DP_ANY)))
             if (((s->flags & SIG_FLAG_TOSERVER) && !(s->flags & SIG_FLAG_SP_ANY) && (s->flags & SIG_FLAG_DP_ANY))
                 || ((s->flags & SIG_FLAG_TOCLIENT) && !(s->flags & SIG_FLAG_DP_ANY) && (s->flags & SIG_FLAG_SP_ANY))*/) {
-                fprintf(rule_engine_analysis_FD, "    Warning: Rule contains ports or port variables only on the client side.\n"
-                                                 "             -Flow direction possibly inconsistent with rule.\n");
+            fprintf(fp,
+                    "    Warning: Rule contains ports or port variables only on the client side.\n"
+                    "             -Flow direction possibly inconsistent with rule.\n");
         }
         if (warn_direction /*rule_flow && rule_bidirectional && (rule_flow_toserver || rule_flow_toclient)*/) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule is bidirectional and has a flow option with a specific direction.\n");
+            fprintf(fp, "    Warning: Rule is bidirectional and has a flow option with a specific "
+                        "direction.\n");
         }
         if (warn_method_toclient /*http_method_buf && rule_flow && rule_flow_toclient*/) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule uses content or pcre for http_method with flow:to_client or from_server\n");
+            fprintf(fp, "    Warning: Rule uses content or pcre for http_method with "
+                        "flow:to_client or from_server\n");
         }
         if (warn_method_serverbody /*http_method_buf && http_server_body_buf*/) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule uses content or pcre for http_method with content or pcre for http_server_body.\n");
+            fprintf(fp, "    Warning: Rule uses content or pcre for http_method with content or "
+                        "pcre for http_server_body.\n");
         }
         if (warn_pcre_method /*http_method_buf && rule_content == 0 && rule_content_http == 0
                                && (rule_pcre > 0 || rule_pcre_http > 0)*/) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule uses pcre with only a http_method content; possible performance issue.\n");
+            fprintf(fp, "    Warning: Rule uses pcre with only a http_method content; possible "
+                        "performance issue.\n");
         }
         if (warn_offset_depth_pkt_stream) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule has depth"
-                    "/offset with raw content keywords.  Please note the "
-                    "offset/depth will be checked against both packet "
-                    "payloads and stream.  If you meant to have the offset/"
-                    "depth checked against just the payload, you can update "
-                    "the signature as \"alert tcp-pkt...\"\n");
+            fprintf(fp, "    Warning: Rule has depth"
+                        "/offset with raw content keywords.  Please note the "
+                        "offset/depth will be checked against both packet "
+                        "payloads and stream.  If you meant to have the offset/"
+                        "depth checked against just the payload, you can update "
+                        "the signature as \"alert tcp-pkt...\"\n");
         }
         if (warn_offset_depth_alproto) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule has "
+            fprintf(fp,
+                    "    Warning: Rule has "
                     "offset/depth set along with a match on a specific "
                     "app layer protocol - %d.  This can lead to FNs if we "
                     "have a offset/depth content match on a packet payload "
                     "before we can detect the app layer protocol for the "
-                    "flow.\n", s->alproto);
+                    "flow.\n",
+                    s->alproto);
         }
         if (warn_non_alproto_fp_for_alproto_sig) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule app layer "
-                    "protocol is http, but the fast_pattern is set on the raw "
-                    "stream.  Consider adding fast_pattern over a http "
-                    "buffer for increased performance.");
+            fprintf(fp, "    Warning: Rule app layer "
+                        "protocol is http, but the fast_pattern is set on the raw "
+                        "stream.  Consider adding fast_pattern over a http "
+                        "buffer for increased performance.");
         }
         if (warn_no_direction) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule has no direction indicator.\n");
+            fprintf(fp, "    Warning: Rule has no direction indicator.\n");
         }
         if (warn_both_direction) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule is inspecting both the request and the response.\n");
+            fprintf(fp, "    Warning: Rule is inspecting both the request and the response.\n");
         }
         if (warn_file_store_not_present) {
-            fprintf(rule_engine_analysis_FD, "    Warning: Rule requires file-store but the output file-store is not enabled.\n");
+            fprintf(fp, "    Warning: Rule requires file-store but the output file-store is not "
+                        "enabled.\n");
         }
         if (rule_warning == 0) {
-            fprintf(rule_engine_analysis_FD, "    No warnings for this rule.\n");
+            fprintf(fp, "    No warnings for this rule.\n");
         }
-        fprintf(rule_engine_analysis_FD, "\n");
+        fprintf(fp, "\n");
     }
     return;
 }
