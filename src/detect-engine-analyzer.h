@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,20 +26,17 @@
 
 #include <stdint.h>
 
-int SetupFPAnalyzer(void);
-void CleanupFPAnalyzer(void);
+struct DetectEngineCtx_;
 
-int SetupRuleAnalyzer(void);
-void CleanupRuleAnalyzer (void);
+void SetupEngineAnalysis(struct DetectEngineCtx_ *de_ctx, bool *, bool *);
+void CleanupEngineAnalysis(struct DetectEngineCtx_ *de_ctx);
 
-int PerCentEncodingSetup (void);
+void EngineAnalysisFP(const struct DetectEngineCtx_ *de_ctx, const Signature *s, char *line);
+void EngineAnalysisRules(
+        const struct DetectEngineCtx_ *de_ctx, const Signature *s, const char *line);
+void EngineAnalysisRulesFailure(
+        const struct DetectEngineCtx_ *de_ctx, char *line, char *file, int lineno);
 
-void EngineAnalysisFP(const DetectEngineCtx *de_ctx,
-        const Signature *s, char *line);
-void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
-        const Signature *s, const char *line);
-void EngineAnalysisRulesFailure(char *line, char *file, int lineno);
-
-void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s);
+void EngineAnalysisRules2(const struct DetectEngineCtx_ *de_ctx, const Signature *s);
 
 #endif /* __DETECT_ENGINE_ANALYZER_H__ */

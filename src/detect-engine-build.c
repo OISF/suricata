@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1896,7 +1896,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
     SCReturnInt(0);
 }
 
-extern int rule_engine_analysis_set;
+extern bool rule_engine_analysis_set;
 /** \internal
  *  \brief perform final per signature setup tasks
  *
