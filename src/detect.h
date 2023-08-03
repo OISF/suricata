@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -783,11 +783,6 @@ typedef struct DetectEngineCtx_ {
     /* used by the signature ordering module */
     struct SCSigOrderFunc_ *sc_sig_order_funcs;
 
-    /* hash table used for holding the classification config info */
-    HashTable *class_conf_ht;
-    /* hash table used for holding the reference config info */
-    HashTable *reference_conf_ht;
-
     /* main sigs */
     DetectEngineLookupFlow flow_gh[FLOW_STATES];
 
@@ -946,6 +941,23 @@ typedef struct DetectEngineCtx_ {
      *  run. */
     bool sm_types_prefilter[DETECT_TBLSIZE];
     bool sm_types_silent_error[DETECT_TBLSIZE];
+
+    /* classification config parsing */
+
+    /* hash table used for holding the classification config info */
+    HashTable *class_conf_ht;
+    pcre *class_conf_regex;
+    pcre_extra *class_conf_regex_study;
+
+    /* reference config parsing */
+
+    /* hash table used for holding the reference config info */
+    HashTable *reference_conf_ht;
+    pcre *reference_conf_regex;
+    pcre_extra *reference_conf_regex_study;
+
+    /* --engine-analysis */
+    struct EngineAnalysisCtx_ *ea;
 
 } DetectEngineCtx;
 

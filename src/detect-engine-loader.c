@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2021-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -49,8 +49,8 @@
 
 extern int rule_reload;
 extern int engine_analysis;
-static int fp_engine_analysis_set = 0;
-int rule_engine_analysis_set = 0;
+static bool fp_engine_analysis_set = false;
+bool rule_engine_analysis_set = false;
 
 /**
  *  \brief Create the path if default-rule-path was specified
@@ -193,7 +193,7 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
                 }
             }
             if (rule_engine_analysis_set) {
-                EngineAnalysisRulesFailure(line, sig_file, lineno - multiline);
+                EngineAnalysisRulesFailure(de_ctx, line, sig_file, lineno - multiline);
             }
             if (!de_ctx->sigerror_ok) {
                 bad++;
@@ -292,8 +292,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     }
 
     if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
-        fp_engine_analysis_set = SetupFPAnalyzer();
-        rule_engine_analysis_set = SetupRuleAnalyzer();
+        SetupEngineAnalysis(de_ctx, &fp_engine_analysis_set, &rule_engine_analysis_set);
     }
 
     /* ok, let's load signature files from the general config */
@@ -375,12 +374,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
  end:
     gettimeofday(&de_ctx->last_reload, NULL);
     if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
-        if (rule_engine_analysis_set) {
-            CleanupRuleAnalyzer();
-        }
-        if (fp_engine_analysis_set) {
-            CleanupFPAnalyzer();
-        }
+        CleanupEngineAnalysis(de_ctx);
     }
 
     DetectParseDupSigHashFree(de_ctx);
