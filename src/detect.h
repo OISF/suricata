@@ -1493,12 +1493,12 @@ typedef struct SigGroupHead_ {
 /** strict parsing is enabled */
 #define SIGMATCH_STRICT_PARSING         BIT_U16(11)
 
-enum DetectEngineTenantSelectors
-{
-    TENANT_SELECTOR_UNKNOWN = 0,    /**< not set */
-    TENANT_SELECTOR_DIRECT,         /**< method provides direct tenant id */
-    TENANT_SELECTOR_VLAN,           /**< map vlan to tenant id */
-    TENANT_SELECTOR_LIVEDEV,        /**< map livedev to tenant id */
+enum DetectEngineTenantSelectors {
+    TENANT_SELECTOR_UNKNOWN = 0, /**< not set */
+    TENANT_SELECTOR_DIRECT,      /**< method provides direct tenant id */
+    TENANT_SELECTOR_VLAN,        /**< map vlan to tenant id */
+    TENANT_SELECTOR_LIVEDEV,     /**< map livedev to tenant id */
+    TENANT_SELECTOR_VLAN_INNER,  /**< map inner vlan to tenant id */
 };
 
 typedef struct DetectEngineTenantMapping_ {
