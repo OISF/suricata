@@ -8,7 +8,7 @@ Multi tenancy support allows different tenants to use different
 rule sets with different rule variables.
 
 Tenants are identified by their `selector`; a `selector` can be
-a VLAN, interface/device, or from a pcap file ("direct").
+a VLAN (or VLAN tuple), interface/device, or from a pcap file (``direct``).
 
 YAML
 ----
@@ -18,7 +18,7 @@ Add a new section in the main ("master") Suricata configuration file -- ``surica
 Settings:
 
 * `enabled`: yes/no -> is multi-tenancy support enabled
-* `selector`: direct (for unix socket pcap processing, see below), VLAN or device
+* `selector`: direct (for unix socket pcap processing, see below), vlan, vlan-tuple or device
 * `loaders`: number of `loader` threads, for parallel tenant loading at startup
 * `tenants`: list of tenants
 * `config-path`: path from where the tenant yamls are loaded
@@ -28,14 +28,32 @@ Settings:
 
 * `mappings`:
 
+  * tenant-id: tenant to associate with the VLAN id, device or vlan-tuple.
+
+Tenant mappings depend on the type of selector used:
+
+* `vlan` or `device`
+
   * VLAN id or device: The outermost VLAN is used to match.
-  * tenant id: tenant to associate with the VLAN id or device
+
+* `vlan-tuple`
+
+  * VLAN tuple: Specify the VLAN identifiers -- outermost to innermost, e.g., `[3000, 1]` will match when the
+    outermost VLAN id is 3000 and the innermost VLAN id is 1. The special value of `0` is a wildcard and "any VLAN in that position" will match.
+
+.. note::
+    Note that there must the same number of layers of VLAN encapsulation as there are values in the tuple for it to match.
+    Additionally, Suricata supports 3 layers of VLAN ids: ``[outermost-id, middle-id, innermost-id]``
+
+    * `[0, 302]` will match any packet with an innermost VLAN id of `302` on packets that are QinQ
+    * `[3000, 0]` will match any packet with an outermost VLAN id of `3000` on packets that are QinQ
+    * `[3000, 1000, 40]` will match any packet with 3-VLAN identifiers of outermost `3000`, middle `1000` and innermost `40`
 
 ::
 
   multi-detect:
     enabled: yes
-    #selector: direct # direct or vlan
+    #selector: direct # direct, vlan, or vlan-tuple
     selector: vlan
     loaders: 3
 
@@ -54,6 +72,33 @@ Settings:
       tenant-id: 2
     - vlan-id: 1112
       tenant-id: 3
+
+
+This example uses the VLAN tuple selector for packets encapsulated with two VLAN ids:
+
+::
+
+  multi-detect:
+    enabled: yes
+    selector: vlan-tuple
+    loaders: 3
+
+    tenants:
+    - id: 1
+      yaml: tenant-1.yaml
+    - id: 2
+      yaml: tenant-2.yaml
+    - id: 3
+      yaml: tenant-3.yaml
+
+    mappings:
+    - vlan-tuple: [1000, 1001, 1002]
+      tenant-id: 1
+    - vlan-tuple: [2000, 2001, 2002]
+      tenant-id: 2
+    - vlan-tuple: [3000, 3001, 3002]
+      tenant-id: 3
+
 
 The tenant-1.yaml, tenant-2.yaml, tenant-3.yaml each contain a partial
 configuration:
@@ -97,8 +142,11 @@ configuration:
 vlan-id
 ~~~~~~~
 
-Assign tenants to VLAN ids. Suricata matches the outermost VLAN id with this value.
-Multiple VLANs can have the same tenant id. VLAN id values must be between 1 and 4094.
+Assign tenants to VLAN ids. Suricata matches the outermost VLAN id with this value with
+the selector ``vlan`` (default); the selector ``vlan-tuple`` should be used if QinQ is deployed and requires both
+the inner and outer VLAN id values to match to determine the tenant.
+Multiple VLANs can have the same tenant id. VLAN id values must be between 1 and 4094 with the ``vlan`` selector.
+A wildcard value of ``00`` can be used with the ``vlan-tuple`` selector.
 
 Example of VLAN mapping::
 
@@ -112,7 +160,29 @@ Example of VLAN mapping::
 
 The mappings can also be modified over the unix socket, see below.
 
-Note: can only be used if ``vlan.use-for-tracking`` is enabled.
+.. note::
+   This can only be used if ``vlan.use-for-tracking`` is enabled.
+
+vlan-tuple
+~~~~~~~~~~
+
+The ``vlan-tuple`` tag can only used with the ``vlan-tuple`` selector. The value will be used
+to match with the innermost VLAN. Values of ``0`` will match any VLAN value.
+
+Example of VLAN mapping::
+
+    mappings:
+    - vlan-tuple: [1000, 0]
+      tenant-id: 1
+    - vlan-tuple: [2000, 3000]
+      tenant-id: 2
+    - vlan-tuple: [1112, 3112]
+      tenant-id: 3
+
+The mappings can also be modified over the unix socket, see below.
+
+.. note::
+   This can only be used if ``vlan.use-for-tracking`` is enabled.
 
 device
 ~~~~~~
@@ -130,10 +200,12 @@ Example of device mapping::
 
 The mappings are static and cannot be modified over the unix socket.
 
-Note: Not currently supported for IPS.
+.. note::
+ Not currently supported for IPS.
 
-Note: support depends on a capture method using the 'livedev' API. Currently
-these are: pcap, AF_PACKET, PF_RING and Netmap.
+.. note::
+ Support depends on a capture method using the 'livedev' API. Currently
+ these are: pcap, AF_PACKET, PF_RING and Netmap.
 
 Per tenant settings
 -------------------
@@ -195,25 +267,52 @@ Live traffic mode
 
 Multi-tenancy supports both VLAN and devices with live traffic.
 
-In the master configuration yaml file, specify ``device`` or ``vlan`` for the ``selector`` setting.
+In the master configuration yaml file, specify ``device``, ``vlan`` or ``vlan-tuple`` for the ``selector`` setting.
 
 Registration
 ~~~~~~~~~~~~
 
 Tenants can be mapped to vlan ids.
 
-``register-tenant-handler <tenant id> vlan <vlan id>``
+
+Examples using the ``vlan`` selector:
+
+::
+
+  register-tenant-handler <tenant id> vlan <vlan id>
 
 ::
 
   register-tenant-handler 1 vlan 1000
 
-``unregister-tenant-handler <tenant id> vlan <vlan id>``
+::
+
+  unregister-tenant-handler <tenant id> vlan <vlan id>
 
 ::
 
   unregister-tenant-handler 4 vlan 1111
   unregister-tenant-handler 1 vlan 1000
+
+
+Examples using the ``vlan-tuple`` selector:
+
+::
+
+  register-tenant-handler <tenant id> vlan-tuple <vlan outer id> [ <vlan inner id> [ <vlan innermost id>]]
+
+::
+
+  register-tenant-handler 1 vlan-tuple 1000 1001
+
+::
+
+  unregister-tenant-handler <tenant id> vlan-tuple <vlan outer id> [ <vlan inner id> [ <vlan innermost id>]]
+
+::
+
+  unregister-tenant-handler 4 vlan-tuple 1111 1
+  unregister-tenant-handler 1 vlan-tuple 1000 2
 
 The registration of tenant and tenant handlers can be done on a
 running engine.
