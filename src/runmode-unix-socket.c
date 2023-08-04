@@ -881,22 +881,56 @@ TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
         traffic_id = json_integer_value(hargs);
     }
 
+    /* 3.5 (vlan-tuple only) Get optional hargs_extra (vlan-id-inner) */
+    int traffic_id_inner = -1;
+    if (0 == strcmp(htype, "vlan-tuple")) {
+        hargs = json_object_get(cmd, "hargs_extra");
+        if (hargs != NULL) {
+            if (!json_is_integer(hargs)) {
+                SCLogInfo("error: hargs_extra not a number");
+                json_object_set_new(answer, "message", json_string("hargs_extra not a number"));
+                return TM_ECODE_FAILED;
+            }
+            traffic_id_inner = json_integer_value(hargs);
+        }
+    }
+
     /* 4 add to system */
     int r = -1;
     if (strcmp(htype, "pcap") == 0) {
         r = DetectEngineTenantRegisterPcapFile(tenant_id);
-    } else if (strcmp(htype, "vlan") == 0) {
+    } else if (strcmp(htype, "vlan") == 0 || strcmp(htype, "vlan-tuple") == 0) {
         if (traffic_id < 0) {
             json_object_set_new(answer, "message", json_string("vlan requires argument"));
             return TM_ECODE_FAILED;
         }
-        if (traffic_id > USHRT_MAX) {
+        if (traffic_id > 4094) {
             json_object_set_new(answer, "message", json_string("vlan argument out of range"));
             return TM_ECODE_FAILED;
         }
+        if (strcmp(htype, "vlan-tuple") == 0) {
+            if (traffic_id_inner < 0) {
+                json_object_set_new(answer, "message", json_string("vlan-tuple requires argument"));
+                return TM_ECODE_FAILED;
+            }
+            if (traffic_id_inner > 4094) {
+                json_object_set_new(
+                        answer, "message", json_string("vlan-tuple argument out of range"));
+                return TM_ECODE_FAILED;
+            }
+        }
 
-        SCLogInfo("VLAN handler: id %u maps to tenant %u", (uint32_t)traffic_id, tenant_id);
-        r = DetectEngineTenantRegisterVlanId(tenant_id, (uint16_t)traffic_id);
+        if (strcmp(htype, "vlan") == 0) {
+            SCLogInfo("VLAN handler: id %u maps to tenant %u", (uint32_t)traffic_id, tenant_id);
+            r = DetectEngineTenantRegisterVlanId(tenant_id, (uint16_t)traffic_id);
+        } else {
+            SCLogInfo("VLAN-tuple handler: id %u:%u maps to tenant %u", (uint32_t)traffic_id,
+                    (uint32_t)traffic_id_inner, tenant_id);
+            TrafficId traffic_tuple = {
+                .vlan.count = 2, .vlan.tuple[0] = traffic_id, .vlan.tuple[1] = traffic_id_inner
+            };
+            r = DetectEngineTenantRegisterVlanIdTuple(tenant_id, traffic_tuple);
+        }
     }
     if (r != 0) {
         json_object_set_new(answer, "message", json_string("handler setup failure"));
@@ -961,23 +995,57 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
         }
         traffic_id = json_integer_value(hargs);
     }
+    /* 3.5 Get optional hargs_extra (only with vlan-tuple) */
+    int traffic_id_inner = -1;
+    if (0 == strcmp(htype, "vlan-tuple")) {
+        hargs = json_object_get(cmd, "hargs_extra");
+        if (hargs != NULL) {
+            if (!json_is_integer(hargs)) {
+                SCLogInfo("error: hargs_extra not a number");
+                json_object_set_new(answer, "message", json_string("hargs not a number"));
+                return TM_ECODE_FAILED;
+            }
+            traffic_id_inner = json_integer_value(hargs);
+        }
+    }
 
     /* 4 add to system */
     int r = -1;
     if (strcmp(htype, "pcap") == 0) {
         r = DetectEngineTenantUnregisterPcapFile(tenant_id);
-    } else if (strcmp(htype, "vlan") == 0) {
+    } else if (strcmp(htype, "vlan") == 0 || strcmp(htype, "vlan-tuple") == 0) {
         if (traffic_id < 0) {
             json_object_set_new(answer, "message", json_string("vlan requires argument"));
             return TM_ECODE_FAILED;
         }
-        if (traffic_id > USHRT_MAX) {
+        if (traffic_id > 4094) {
             json_object_set_new(answer, "message", json_string("vlan argument out of range"));
             return TM_ECODE_FAILED;
         }
+        if (strcmp(htype, "vlan-tuple") == 0) {
+            if (traffic_id_inner < 0) {
+                json_object_set_new(answer, "message", json_string("vlan-tuple requires argument"));
+                return TM_ECODE_FAILED;
+            }
+            if (traffic_id_inner > 4094) {
+                json_object_set_new(
+                        answer, "message", json_string("vlan-tuple argument out of range"));
+                return TM_ECODE_FAILED;
+            }
+        }
 
-        SCLogInfo("VLAN handler: removing mapping of %u to tenant %u", (uint32_t)traffic_id, tenant_id);
-        r = DetectEngineTenantUnregisterVlanId(tenant_id, (uint16_t)traffic_id);
+        if (strcmp(htype, "vlan") == 0) {
+            SCLogInfo("VLAN handler: removing mapping of %u to tenant %u", (uint32_t)traffic_id,
+                    tenant_id);
+            r = DetectEngineTenantUnregisterVlanId(tenant_id, (uint16_t)traffic_id);
+        } else {
+            SCLogInfo("VLAN handler: removing mapping of %u:%u to tenant %u", (uint32_t)traffic_id,
+                    (uint32_t)traffic_id_inner, tenant_id);
+            TrafficId traffic_tuple = {
+                .vlan.count = 2, .vlan.tuple[0] = traffic_id, .vlan.tuple[1] = traffic_id_inner
+            };
+            r = DetectEngineTenantUnregisterVlanIdTuple(tenant_id, traffic_tuple);
+        }
     }
     if (r != 0) {
         json_object_set_new(answer, "message", json_string("handler unregister failure"));
