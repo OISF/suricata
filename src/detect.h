@@ -1490,19 +1490,27 @@ typedef struct SigGroupHead_ {
 /** strict parsing is enabled */
 #define SIGMATCH_STRICT_PARSING         BIT_U16(11)
 
-enum DetectEngineTenantSelectors
-{
-    TENANT_SELECTOR_UNKNOWN = 0,    /**< not set */
-    TENANT_SELECTOR_DIRECT,         /**< method provides direct tenant id */
-    TENANT_SELECTOR_VLAN,           /**< map vlan to tenant id */
-    TENANT_SELECTOR_LIVEDEV,        /**< map livedev to tenant id */
+enum DetectEngineTenantSelectors {
+    TENANT_SELECTOR_UNKNOWN = 0, /**< not set */
+    TENANT_SELECTOR_DIRECT,      /**< method provides direct tenant id */
+    TENANT_SELECTOR_VLAN,        /**< map vlan to tenant id */
+    TENANT_SELECTOR_LIVEDEV,     /**< map livedev to tenant id */
+    TENANT_SELECTOR_VLAN_TUPLE,  /**< map vlan tuple to tenant id */
 };
+
+typedef union _traffic_id {
+    uint32_t id;
+    struct TrafficIdVlan_ {
+        uint16_t tuple[VLAN_MAX_LAYERS];
+        uint16_t count;
+    } vlan;
+} TrafficId;
 
 typedef struct DetectEngineTenantMapping_ {
     uint32_t tenant_id;
 
     /* traffic id that maps to the tenant id */
-    uint32_t traffic_id;
+    TrafficId traffic_id;
 
     struct DetectEngineTenantMapping_ *next;
 } DetectEngineTenantMapping;
