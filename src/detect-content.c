@@ -658,6 +658,30 @@ void DetectContentPropagateLimits(Signature *s)
 #undef VALIDATE
 }
 
+int DetectContentConvertToNocase(DetectEngineCtx *de_ctx, DetectContentData *cd)
+{
+    if (cd->flags & DETECT_CONTENT_NOCASE) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE,
+                "can't use multiple nocase modifiers with the same content");
+        return -1;
+    }
+
+    /* for consistency in later use (e.g. by MPM construction and hashing),
+     * coerce the content string to lower-case. */
+    for (uint8_t *c = cd->content; c < cd->content + cd->content_len; c++) {
+        *c = u8_tolower(*c);
+    }
+
+    cd->flags |= DETECT_CONTENT_NOCASE;
+    /* Recreate the context with nocase chars */
+    SpmDestroyCtx(cd->spm_ctx);
+    cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1, de_ctx->spm_global_thread_ctx);
+    if (cd->spm_ctx == NULL) {
+        return -1;
+    }
+    return 0;
+}
+
 #ifdef UNITTESTS /* UNITTESTS */
 
 static bool TestLastContent(const Signature *s, uint16_t o, uint16_t d)
