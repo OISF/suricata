@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -101,6 +101,7 @@ static char TenantIdCompare(void *d1, uint16_t d1_len, void *d2, uint16_t d2_len
 static void TenantIdFree(void *d);
 static uint32_t DetectEngineTenantGetIdFromLivedev(const void *ctx, const Packet *p);
 static uint32_t DetectEngineTenantGetIdFromVlanId(const void *ctx, const Packet *p);
+static uint32_t DetectEngineTenantGetIdFromVlanIdPair(const void *ctx, const Packet *p);
 static uint32_t DetectEngineTenantGetIdFromPcap(const void *ctx, const Packet *p);
 
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
@@ -3179,6 +3180,10 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
             det_ctx->TenantGetId = DetectEngineTenantGetIdFromVlanId;
             SCLogDebug("TENANT_SELECTOR_VLAN");
             break;
+        case TENANT_SELECTOR_VLAN_PAIR:
+            det_ctx->TenantGetId = DetectEngineTenantGetIdFromVlanIdPair;
+            SCLogDebug("TENANT_SELECTOR_VLAN_PAIR");
+            break;
         case TENANT_SELECTOR_LIVEDEV:
             det_ctx->TenantGetId = DetectEngineTenantGetIdFromLivedev;
             SCLogDebug("TENANT_SELECTOR_LIVEDEV");
@@ -4152,8 +4157,8 @@ error:
     return 0;
 }
 
-static int DetectEngineMultiTenantSetupLoadVlanMappings(const ConfNode *mappings_root_node,
-        bool failure_fatal)
+static int DetectEngineMultiTenantSetupLoadVlanMappings(enum DetectEngineTenantSelectors selector,
+        const ConfNode *mappings_root_node, bool failure_fatal)
 {
     ConfNode *mapping_node = NULL;
 
@@ -4176,25 +4181,55 @@ static int DetectEngineMultiTenantSetupLoadVlanMappings(const ConfNode *mappings
                 goto bad_mapping;
             }
 
+            /* With vlan-pair, "0" is a wild card value (matches any vlan) so permit it */
+            int min_val = 1;
+            if (selector == TENANT_SELECTOR_VLAN_PAIR)
+                min_val = 0;
             uint16_t vlan_id = 0;
-            if (StringParseUint16(
-                        &vlan_id, 10, (uint16_t)strlen(vlan_id_node->val), vlan_id_node->val) < 0) {
+            if (StringParseU16RangeCheck(&vlan_id, 10, (uint16_t)strlen(vlan_id_node->val),
+                        vlan_id_node->val, min_val, 4094) < 0) {
                 SCLogError("vlan-id  "
-                           "of %s is invalid",
-                        vlan_id_node->val);
-                goto bad_mapping;
-            }
-            if (vlan_id == 0 || vlan_id >= 4095) {
-                SCLogError("vlan-id  "
-                           "of %s is invalid. Valid range 1-4094.",
-                        vlan_id_node->val);
+                           "of %s is invalid; must be %d-4094",
+                        vlan_id_node->val, min_val);
                 goto bad_mapping;
             }
 
-            if (DetectEngineTenantRegisterVlanId(tenant_id, vlan_id) != 0) {
-                goto error;
+            if (selector == TENANT_SELECTOR_VLAN_PAIR) {
+                ConfNode *vlan_inner_id_node = ConfNodeLookupChild(mapping_node, "vlan-id-inner");
+                if (vlan_inner_id_node == NULL)
+                    goto bad_mapping;
+                uint16_t vlan_inner_id = 0;
+                /* 0 values are permitted as they represent a wild-card value */
+                if (StringParseU16RangeCheck(&vlan_inner_id, 10,
+                            (uint16_t)strlen(vlan_inner_id_node->val), vlan_inner_id_node->val, 0,
+                            4094) < 0) {
+                    SCLogError("vlan-inner-id "
+                               "of %s is invalid; must be 0-4094",
+                            vlan_inner_id_node->val);
+                    goto bad_mapping;
+                }
+
+                /* Reject if both vlan ids have wildcard values */
+                if (vlan_id == 0 && vlan_inner_id == 0) {
+                    SCLogError("Cannot use wild-card values for both vlan ids");
+                    goto error;
+                }
+
+                if (vlan_inner_id == 0) {
+                    SCLogNotice("The inner VLAN id is the wildcard value (0); suggest the use of "
+                                "the selector \"vlan\" instead.");
+                }
+
+                if (DetectEngineTenantRegisterVlanIdPair(tenant_id, vlan_id, vlan_inner_id) != 0)
+                    goto error;
+                SCLogConfig("vlan-pair %u:%u connected to tenant-id %u", vlan_id, vlan_inner_id,
+                        tenant_id);
+            } else if (selector == TENANT_SELECTOR_VLAN) {
+                if (DetectEngineTenantRegisterVlanId(tenant_id, vlan_id) != 0) {
+                    goto error;
+                }
+                SCLogConfig("vlan %u connected to tenant-id %u", vlan_id, tenant_id);
             }
-            SCLogConfig("vlan %u connected to tenant-id %u", vlan_id, tenant_id);
             mapping_cnt++;
             continue;
 
@@ -4238,17 +4273,20 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
         if (ConfGet("multi-detect.selector", &handler) == 1) {
             SCLogConfig("multi-tenant selector type %s", handler);
 
-            if (strcmp(handler, "vlan") == 0) {
-                tenant_selector = master->tenant_selector = TENANT_SELECTOR_VLAN;
+            if (strcmp(handler, "vlan") == 0 || strcmp(handler, "vlan-pair") == 0) {
+                if (strcmp(handler, "vlan") == 0)
+                    tenant_selector = master->tenant_selector = TENANT_SELECTOR_VLAN;
+                else
+                    tenant_selector = master->tenant_selector = TENANT_SELECTOR_VLAN_PAIR;
 
                 int vlanbool = 0;
                 if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
                     SCLogError("vlan tracking is disabled, "
-                               "can't use multi-detect selector 'vlan'");
+                               "can't use multi-detect selector '%s'",
+                            handler);
                     SCMutexUnlock(&master->lock);
                     goto error;
                 }
-
             } else if (strcmp(handler, "direct") == 0) {
                 tenant_selector = master->tenant_selector = TENANT_SELECTOR_DIRECT;
             } else if (strcmp(handler, "device") == 0) {
@@ -4273,12 +4311,13 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
         /* traffic -- tenant mappings */
         ConfNode *mappings_root_node = ConfGetNode("multi-detect.mappings");
 
-        if (tenant_selector == TENANT_SELECTOR_VLAN) {
-            int mapping_cnt = DetectEngineMultiTenantSetupLoadVlanMappings(mappings_root_node,
-                    failure_fatal);
+        if (tenant_selector == TENANT_SELECTOR_VLAN ||
+                tenant_selector == TENANT_SELECTOR_VLAN_PAIR) {
+            int mapping_cnt = DetectEngineMultiTenantSetupLoadVlanMappings(
+                    tenant_selector, mappings_root_node, failure_fatal);
             if (mapping_cnt == 0) {
-                /* no mappings are valid when we're in unix socket mode,
-                 * they can be added on the fly. Otherwise warn/error
+                /* no mappings are valid only when in unix socket mode,
+                 * as they can be added on the fly. Otherwise warn/error
                  * depending on failure_fatal */
 
                 if (unix_socket) {
@@ -4385,23 +4424,46 @@ error:
 
 static uint32_t DetectEngineTenantGetIdFromVlanId(const void *ctx, const Packet *p)
 {
-    const DetectEngineThreadCtx *det_ctx = ctx;
-    uint32_t x = 0;
-    uint32_t vlan_id = 0;
-
     if (p->vlan_idx == 0)
         return 0;
 
-    vlan_id = p->vlan_id[0];
-
+    const DetectEngineThreadCtx *det_ctx = ctx;
     if (det_ctx == NULL || det_ctx->tenant_array == NULL || det_ctx->tenant_array_size == 0)
         return 0;
 
     /* not very efficient, but for now we're targeting only limited amounts.
      * Can use hash/tree approach later. */
-    for (x = 0; x < det_ctx->tenant_array_size; x++) {
-        if (det_ctx->tenant_array[x].traffic_id == vlan_id)
+    for (uint32_t x = 0; x < det_ctx->tenant_array_size; x++) {
+        if (det_ctx->tenant_array[x].traffic_id.id == p->vlan_id[0])
             return det_ctx->tenant_array[x].tenant_id;
+    }
+
+    return 0;
+}
+
+/* Match if the configured vlan match is a wildcard or the vlan ids match */
+#define VLAN_ID_MATCH(tenant_val, traffic_val) ((tenant_val == 0) || (tenant_val == traffic_val))
+
+#define TRAFFIC_ID_VLAN_PAIR_MATCH(tenant_val, traffic_id)                                         \
+    (VLAN_ID_MATCH(tenant_val.vlan_pair[0], traffic_id.vlan_pair[0]) &&                            \
+            VLAN_ID_MATCH(tenant_val.vlan_pair[0], traffic_id.vlan_pair[1]))
+static uint32_t DetectEngineTenantGetIdFromVlanIdPair(const void *ctx, const Packet *p)
+{
+    if (p->vlan_idx < 2)
+        return 0;
+
+    const DetectEngineThreadCtx *det_ctx = ctx;
+    if (det_ctx == NULL || det_ctx->tenant_array == NULL || det_ctx->tenant_array_size == 0)
+        return 0;
+
+    TrafficId traffic_id = { .vlan_pair[0] = p->vlan_id[0], .vlan_pair[1] = p->vlan_id[1] };
+
+    /* not very efficient, but for now we're targeting only limited amounts.
+     * Can use hash/tree approach later. */
+    for (uint32_t x = 0; x < det_ctx->tenant_array_size; x++) {
+        if (TRAFFIC_ID_VLAN_PAIR_MATCH(det_ctx->tenant_array[x].traffic_id, traffic_id)) {
+            return det_ctx->tenant_array[x].tenant_id;
+        }
     }
 
     return 0;
@@ -4420,7 +4482,7 @@ static uint32_t DetectEngineTenantGetIdFromLivedev(const void *ctx, const Packet
 }
 
 static int DetectEngineTenantRegisterSelector(
-        enum DetectEngineTenantSelectors selector, uint32_t tenant_id, uint32_t traffic_id)
+        enum DetectEngineTenantSelectors selector, uint32_t tenant_id, TrafficId traffic_id)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
     SCMutexLock(&master->lock);
@@ -4433,10 +4495,18 @@ static int DetectEngineTenantRegisterSelector(
 
     DetectEngineTenantMapping *m = master->tenant_mapping_list;
     while (m) {
-        if (m->traffic_id == traffic_id) {
-            SCLogInfo("traffic id already registered");
-            SCMutexUnlock(&master->lock);
-            return -1;
+        if (selector == TENANT_SELECTOR_VLAN_PAIR) {
+            if (TRAFFIC_ID_VLAN_PAIR_MATCH(m->traffic_id, traffic_id)) {
+                SCLogInfo("traffic id already registered");
+                SCMutexUnlock(&master->lock);
+                return -1;
+            }
+        } else {
+            if (m->traffic_id.id == traffic_id.id) {
+                SCLogInfo("traffic id already registered");
+                SCMutexUnlock(&master->lock);
+                return -1;
+            }
         }
         m = m->next;
     }
@@ -4461,7 +4531,7 @@ static int DetectEngineTenantRegisterSelector(
 }
 
 static int DetectEngineTenantUnregisterSelector(
-        enum DetectEngineTenantSelectors selector, uint32_t tenant_id, uint32_t traffic_id)
+        enum DetectEngineTenantSelectors selector, uint32_t tenant_id, TrafficId traffic_id)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
     SCMutexLock(&master->lock);
@@ -4474,9 +4544,7 @@ static int DetectEngineTenantUnregisterSelector(
     DetectEngineTenantMapping *prev = NULL;
     DetectEngineTenantMapping *map = master->tenant_mapping_list;
     while (map) {
-        if (map->traffic_id == traffic_id &&
-            map->tenant_id == tenant_id)
-        {
+        if (map->traffic_id.id == traffic_id.id && map->tenant_id == tenant_id) {
             if (prev != NULL)
                 prev->next = map->next;
             else
@@ -4484,7 +4552,7 @@ static int DetectEngineTenantUnregisterSelector(
 
             map->next = NULL;
             SCFree(map);
-            SCLogInfo("tenant handler %u %u %u unregistered", selector, tenant_id, traffic_id);
+            SCLogInfo("tenant handler %u %u %u unregistered", selector, tenant_id, traffic_id.id);
             SCMutexUnlock(&master->lock);
             return 0;
         }
@@ -4498,30 +4566,48 @@ static int DetectEngineTenantUnregisterSelector(
 
 int DetectEngineTenantRegisterLivedev(uint32_t tenant_id, int device_id)
 {
-    return DetectEngineTenantRegisterSelector(
-            TENANT_SELECTOR_LIVEDEV, tenant_id, (uint32_t)device_id);
+    TrafficId traffic_id = { .id = device_id };
+    return DetectEngineTenantRegisterSelector(TENANT_SELECTOR_LIVEDEV, tenant_id, traffic_id);
 }
 
 int DetectEngineTenantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id)
 {
-    return DetectEngineTenantRegisterSelector(TENANT_SELECTOR_VLAN, tenant_id, (uint32_t)vlan_id);
+    TrafficId traffic_id = { .id = vlan_id };
+    return DetectEngineTenantRegisterSelector(TENANT_SELECTOR_VLAN, tenant_id, traffic_id);
 }
 
 int DetectEngineTenantUnregisterVlanId(uint32_t tenant_id, uint16_t vlan_id)
 {
-    return DetectEngineTenantUnregisterSelector(TENANT_SELECTOR_VLAN, tenant_id, (uint32_t)vlan_id);
+    TrafficId traffic_id = { .id = vlan_id };
+    return DetectEngineTenantUnregisterSelector(TENANT_SELECTOR_VLAN, tenant_id, traffic_id);
+}
+
+int DetectEngineTenantRegisterVlanIdPair(
+        uint32_t tenant_id, uint16_t vlan_outer, uint16_t vlan_inner)
+{
+    TrafficId traffic_id = { .vlan_pair[0] = vlan_outer, .vlan_pair[1] = vlan_inner };
+    return DetectEngineTenantRegisterSelector(TENANT_SELECTOR_VLAN_PAIR, tenant_id, traffic_id);
+}
+
+int DetectEngineTenantUnregisterVlanIdPair(
+        uint32_t tenant_id, uint16_t vlan_outer, uint16_t vlan_inner)
+{
+    TrafficId traffic_id = { .vlan_pair[0] = vlan_outer, .vlan_pair[1] = vlan_inner };
+    return DetectEngineTenantUnregisterSelector(TENANT_SELECTOR_VLAN_PAIR, tenant_id, traffic_id);
 }
 
 int DetectEngineTenantRegisterPcapFile(uint32_t tenant_id)
 {
+    TrafficId traffic_id = { .id = 0 };
     SCLogInfo("registering %u %d 0", TENANT_SELECTOR_DIRECT, tenant_id);
-    return DetectEngineTenantRegisterSelector(TENANT_SELECTOR_DIRECT, tenant_id, 0);
+    return DetectEngineTenantRegisterSelector(TENANT_SELECTOR_DIRECT, tenant_id, traffic_id);
 }
 
 int DetectEngineTenantUnregisterPcapFile(uint32_t tenant_id)
 {
+    TrafficId traffic_id = { .id = 0 };
     SCLogInfo("unregistering %u %d 0", TENANT_SELECTOR_DIRECT, tenant_id);
-    return DetectEngineTenantUnregisterSelector(TENANT_SELECTOR_DIRECT, tenant_id, 0);
+    return DetectEngineTenantUnregisterSelector(TENANT_SELECTOR_DIRECT, tenant_id, traffic_id);
 }
 
 static uint32_t DetectEngineTenantGetIdFromPcap(const void *ctx, const Packet *p)

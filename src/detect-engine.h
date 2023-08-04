@@ -133,8 +133,14 @@ int DetectEngineReloadTenantBlocking(uint32_t tenant_id, const char *yaml, int r
 int DetectEngineReloadTenantsBlocking(const int reload_cnt);
 
 int DetectEngineTenantRegisterLivedev(uint32_t tenant_id, int device_id);
+int DetectEngineTenantRegisterVlanIdInner(uint32_t tenant_id, uint16_t vlan_id);
+int DetectEngineTenantUnregisterVlanIdInner(uint32_t tenant_id, uint16_t vlan_id);
 int DetectEngineTenantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
 int DetectEngineTenantUnregisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
+int DetectEngineTenantRegisterVlanIdPair(
+        uint32_t tenant_id, uint16_t vlan_outer, uint16_t vlan_inner);
+int DetectEngineTenantUnregisterVlanIdPair(
+        uint32_t tenant_id, uint16_t vlan_outer, uint16_t vlan_inner);
 int DetectEngineTenantRegisterPcapFile(uint32_t tenant_id);
 int DetectEngineTenantUnregisterPcapFile(uint32_t tenant_id);
 

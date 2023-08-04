@@ -73,6 +73,11 @@ argsd = {
             "type": int,
             "required": 0,
         },
+        {
+            "name": "hargs_extra",
+            "type": int,
+            "required": 0,
+        },
     ],
     "register-tenant-handler": [
         {
@@ -86,6 +91,11 @@ argsd = {
         },
         {
             "name": "hargs",
+            "type": int,
+            "required": 0,
+        },
+        {
+            "name": "hargs_extra",
             "type": int,
             "required": 0,
         },
