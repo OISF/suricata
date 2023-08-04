@@ -18,7 +18,7 @@ Add a new section in the main ("master") Suricata configuration file -- ``surica
 Settings:
 
 * `enabled`: yes/no -> is multi-tenancy support enabled
-* `selector`: direct (for unix socket pcap processing, see below), VLAN or device
+* `selector`: direct (for unix socket pcap processing, see below), vlan, vlan-inner or device
 * `loaders`: number of `loader` threads, for parallel tenant loading at startup
 * `tenants`: list of tenants
 * `config-path`: path from where the tenant yamls are loaded
@@ -28,14 +28,14 @@ Settings:
 
 * `mappings`:
 
-  * VLAN id or device: The outermost VLAN is used to match.
+  * VLAN id or device: The VLAN is used to match. The outermost is chosen unless the ``vlan-inner`` was used..
   * tenant id: tenant to associate with the VLAN id or device
 
 ::
 
   multi-detect:
     enabled: yes
-    #selector: direct # direct or vlan
+    #selector: direct # direct or vlan, vlan-inner
     selector: vlan
     loaders: 3
 
@@ -97,7 +97,8 @@ configuration:
 vlan-id
 ~~~~~~~
 
-Assign tenants to VLAN ids. Suricata matches the outermost VLAN id with this value.
+Assign tenants to VLAN ids. Suricata matches the outermost VLAN id with this value when
+the selector is ``vlan`` (default). The innermost VLAN id is used when the selector is ``vlan-inner``.
 Multiple VLANs can have the same tenant id. VLAN id values must be between 1 and 4094.
 
 Example of VLAN mapping::
@@ -195,25 +196,34 @@ Live traffic mode
 
 Multi-tenancy supports both VLAN and devices with live traffic.
 
-In the master configuration yaml file, specify ``device`` or ``vlan`` for the ``selector`` setting.
+In the master configuration yaml file, specify ``device``, ``vlan`` or ``vlan-inner`` for the ``selector`` setting.
 
 Registration
 ~~~~~~~~~~~~
 
 Tenants can be mapped to vlan ids.
 
-``register-tenant-handler <tenant id> vlan <vlan id>``
+::
+
+  register-tenant-handler <tenant id> vlan <vlan id>
+  register-tenant-handler <tenant id> vlan-inner <vlan id>
 
 ::
 
   register-tenant-handler 1 vlan 1000
+  register-tenant-handler 1 vlan-inner 1000
 
-``unregister-tenant-handler <tenant id> vlan <vlan id>``
+::
+
+  unregister-tenant-handler <tenant id> vlan <vlan id>
+  unregister-tenant-handler <tenant id> vlan-inner <vlan id>
 
 ::
 
   unregister-tenant-handler 4 vlan 1111
   unregister-tenant-handler 1 vlan 1000
+  unregister-tenant-handler 4 vlan-inner 1111
+  unregister-tenant-handler 1 vlan-inner 1000
 
 The registration of tenant and tenant handlers can be done on a
 running engine.
