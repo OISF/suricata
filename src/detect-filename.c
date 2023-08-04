@@ -201,14 +201,9 @@ static int DetectFileextSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
         return -1;
 
     DetectContentData *cd = (DetectContentData *)sm->ctx;
-    cd->flags |= DETECT_CONTENT_NOCASE;
     cd->flags |= DETECT_CONTENT_ENDS_WITH;
-    /* Recreate the context with nocase chars */
-    SpmDestroyCtx(cd->spm_ctx);
-    cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1, de_ctx->spm_global_thread_ctx);
-    if (cd->spm_ctx == NULL) {
+    if (DetectContentConvertToNocase(de_ctx, cd) != 0)
         return -1;
-    }
     if (DetectEngineContentModifierBufferSetup(
                 de_ctx, s, NULL, DETECT_FILE_NAME, g_file_name_buffer_id, s->alproto) < 0)
         return -1;
@@ -244,13 +239,8 @@ static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
         return -1;
 
     DetectContentData *cd = (DetectContentData *)sm->ctx;
-    cd->flags |= DETECT_CONTENT_NOCASE;
-    /* Recreate the context with nocase chars */
-    SpmDestroyCtx(cd->spm_ctx);
-    cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1, de_ctx->spm_global_thread_ctx);
-    if (cd->spm_ctx == NULL) {
+    if (DetectContentConvertToNocase(de_ctx, cd) != 0)
         return -1;
-    }
     if (DetectEngineContentModifierBufferSetup(
                 de_ctx, s, NULL, DETECT_FILE_NAME, g_file_name_buffer_id, s->alproto) < 0)
         return -1;
