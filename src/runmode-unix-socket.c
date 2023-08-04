@@ -885,7 +885,7 @@ TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
     int r = -1;
     if (strcmp(htype, "pcap") == 0) {
         r = DetectEngineTenantRegisterPcapFile(tenant_id);
-    } else if (strcmp(htype, "vlan") == 0) {
+    } else if (strcmp(htype, "vlan") == 0 || strcmp(htype, "vlan-inner") == 0) {
         if (traffic_id < 0) {
             json_object_set_new(answer, "message", json_string("vlan requires argument"));
             return TM_ECODE_FAILED;
@@ -896,7 +896,11 @@ TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
         }
 
         SCLogInfo("VLAN handler: id %u maps to tenant %u", (uint32_t)traffic_id, tenant_id);
-        r = DetectEngineTenantRegisterVlanId(tenant_id, (uint16_t)traffic_id);
+        if (strcmp(htype, "vlan") == 0) {
+            r = DetectEngineTenantRegisterVlanId(tenant_id, (uint16_t)traffic_id);
+        } else {
+            r = DetectEngineTenantRegisterVlanIdInner(tenant_id, (uint16_t)traffic_id);
+        }
     }
     if (r != 0) {
         json_object_set_new(answer, "message", json_string("handler setup failure"));
@@ -966,7 +970,7 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
     int r = -1;
     if (strcmp(htype, "pcap") == 0) {
         r = DetectEngineTenantUnregisterPcapFile(tenant_id);
-    } else if (strcmp(htype, "vlan") == 0) {
+    } else if (strcmp(htype, "vlan") == 0 || strcmp(htype, "vlan-inner") == 0) {
         if (traffic_id < 0) {
             json_object_set_new(answer, "message", json_string("vlan requires argument"));
             return TM_ECODE_FAILED;
@@ -977,7 +981,11 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
         }
 
         SCLogInfo("VLAN handler: removing mapping of %u to tenant %u", (uint32_t)traffic_id, tenant_id);
-        r = DetectEngineTenantUnregisterVlanId(tenant_id, (uint16_t)traffic_id);
+        if (strcmp(htype, "vlan") == 0) {
+            r = DetectEngineTenantUnregisterVlanId(tenant_id, (uint16_t)traffic_id);
+        } else {
+            r = DetectEngineTenantUnregisterVlanIdInner(tenant_id, (uint16_t)traffic_id);
+        }
     }
     if (r != 0) {
         json_object_set_new(answer, "message", json_string("handler unregister failure"));
