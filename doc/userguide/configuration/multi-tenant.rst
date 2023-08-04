@@ -18,7 +18,7 @@ Add a new section in the main ("master") Suricata configuration file -- ``surica
 Settings:
 
 * `enabled`: yes/no -> is multi-tenancy support enabled
-* `selector`: direct (for unix socket pcap processing, see below), VLAN or device
+* `selector`: direct (for unix socket pcap processing, see below), vlan, vlan-pair or device
 * `loaders`: number of `loader` threads, for parallel tenant loading at startup
 * `tenants`: list of tenants
 * `config-path`: path from where the tenant yamls are loaded
@@ -29,13 +29,14 @@ Settings:
 * `mappings`:
 
   * VLAN id or device: The outermost VLAN is used to match.
+  * VLAN inner id: Required with the selector ``vlan-pair``; both VLAN values are used to match.
   * tenant id: tenant to associate with the VLAN id or device
 
 ::
 
   multi-detect:
     enabled: yes
-    #selector: direct # direct or vlan
+    #selector: direct # direct or vlan, vlan-pair
     selector: vlan
     loaders: 3
 
@@ -54,6 +55,36 @@ Settings:
       tenant-id: 2
     - vlan-id: 1112
       tenant-id: 3
+
+
+This example uses the VLAN pair selector:
+
+::
+
+  multi-detect:
+    enabled: yes
+    selector: vlan-pair
+    loaders: 3
+
+    tenants:
+    - id: 1
+      yaml: tenant-1.yaml
+    - id: 2
+      yaml: tenant-2.yaml
+    - id: 3
+      yaml: tenant-3.yaml
+
+    mappings:
+    - vlan-id: 1000
+      vlan-id-inner: 1
+      tenant-id: 1
+    - vlan-id: 2000
+      vlan-id-inner: 1
+      tenant-id: 2
+    - vlan-id: 1112
+      vlan-id-inner: 1
+      tenant-id: 3
+
 
 The tenant-1.yaml, tenant-2.yaml, tenant-3.yaml each contain a partial
 configuration:
@@ -97,8 +128,11 @@ configuration:
 vlan-id
 ~~~~~~~
 
-Assign tenants to VLAN ids. Suricata matches the outermost VLAN id with this value.
-Multiple VLANs can have the same tenant id. VLAN id values must be between 1 and 4094.
+Assign tenants to VLAN ids. Suricata matches the outermost VLAN id with this value with
+the selector ``vlan`` (default); the selector ``vlan-pair`` should be used if QinQ is deployed and requires both
+the inner and outer VLAN id values to match to determine the tenant.
+Multiple VLANs can have the same tenant id. VLAN id values must be between 1 and 4094 with the ``vlan`` selector.
+A wildcard value of ``00`` can be used with the ``vlan-pair`` selector.
 
 Example of VLAN mapping::
 
@@ -108,6 +142,29 @@ Example of VLAN mapping::
     - vlan-id: 2000
       tenant-id: 2
     - vlan-id: 1112
+      tenant-id: 3
+
+The mappings can also be modified over the unix socket, see below.
+
+Note: can only be used if ``vlan.use-for-tracking`` is enabled.
+
+vlan-id-inner
+~~~~~~~~~~~~~
+
+The ``vlan-id-inner`` tag can only used with the ``vlan-pair`` selector. The value will be used
+to match with the innermost VLAN. Values of ``0`` will match any inner VLAN value.
+
+Example of VLAN mapping::
+
+    mappings:
+    - vlan-id: 1000
+      vlan-id-inner: 0
+      tenant-id: 1
+    - vlan-id: 2000
+      vlan-id-inner: 3000
+      tenant-id: 2
+    - vlan-id: 1112
+      vlan-id-inner: 3112
       tenant-id: 3
 
 The mappings can also be modified over the unix socket, see below.
@@ -195,25 +252,34 @@ Live traffic mode
 
 Multi-tenancy supports both VLAN and devices with live traffic.
 
-In the master configuration yaml file, specify ``device`` or ``vlan`` for the ``selector`` setting.
+In the master configuration yaml file, specify ``device``, ``vlan`` or ``vlan-pair`` for the ``selector`` setting.
 
 Registration
 ~~~~~~~~~~~~
 
 Tenants can be mapped to vlan ids.
 
-``register-tenant-handler <tenant id> vlan <vlan id>``
+::
+
+  register-tenant-handler <tenant id> vlan <vlan id>
+  register-tenant-handler <tenant id> vlan-pair <vlan id>
 
 ::
 
   register-tenant-handler 1 vlan 1000
+  register-tenant-handler 1 vlan-pair 1000
 
-``unregister-tenant-handler <tenant id> vlan <vlan id>``
+::
+
+  unregister-tenant-handler <tenant id> vlan <vlan id>
+  unregister-tenant-handler <tenant id> vlan-pair <vlan id>
 
 ::
 
   unregister-tenant-handler 4 vlan 1111
   unregister-tenant-handler 1 vlan 1000
+  unregister-tenant-handler 4 vlan-pair 1111
+  unregister-tenant-handler 1 vlan-pair 1000
 
 The registration of tenant and tenant handlers can be done on a
 running engine.
