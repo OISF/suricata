@@ -123,4 +123,6 @@ void DetectContentFree(DetectEngineCtx *, void *);
 bool DetectContentPMATCHValidateCallback(const Signature *s);
 void DetectContentPropagateLimits(Signature *s);
 
+int DetectContentConvertToNocase(DetectEngineCtx *de_ctx, DetectContentData *cd);
+
 #endif /* __DETECT_CONTENT_H__ */
