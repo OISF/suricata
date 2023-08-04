@@ -132,5 +132,6 @@ void DetectContentPropagateLimits(Signature *s);
 void DetectContentPatternPrettyPrint(const DetectContentData *cd, char *str, size_t str_len);
 void SigParseRequiredContentSize(
         const Signature *s, const int max, const SigMatch *sm, int *len, int *offset);
+int DetectContentConvertToNocase(DetectEngineCtx *de_ctx, DetectContentData *cd);
 
 #endif /* __DETECT_CONTENT_H__ */
