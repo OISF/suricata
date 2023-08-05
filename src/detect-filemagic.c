@@ -112,10 +112,19 @@ void DetectFilemagicRegister(void)
     sigmatch_table[DETECT_FILE_MAGIC].Setup = DetectFilemagicSetupSticky;
     sigmatch_table[DETECT_FILE_MAGIC].flags = SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    AppProto protos_ts[] = {
-        ALPROTO_HTTP, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, ALPROTO_HTTP2, 0 };
-    AppProto protos_tc[] = {
-        ALPROTO_HTTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, ALPROTO_HTTP2, 0 };
+    AppProto protos_ts[] = { ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, ALPROTO_HTTP2,
+        0 };
+    AppProto protos_tc[] = { ALPROTO_FTP, ALPROTO_SMB, ALPROTO_NFS, ALPROTO_HTTP2, 0 };
+
+    DetectAppLayerInspectEngineRegister2("file.magic", ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_BODY, DetectEngineInspectFilemagic, NULL);
+    DetectAppLayerMpmRegister2("file.magic", SIG_FLAG_TOSERVER, 2, PrefilterMpmFilemagicRegister,
+            NULL, ALPROTO_HTTP, HTP_REQUEST_BODY);
+
+    DetectAppLayerInspectEngineRegister2("file.magic", ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            HTP_RESPONSE_BODY, DetectEngineInspectFilemagic, NULL);
+    DetectAppLayerMpmRegister2("file.magic", SIG_FLAG_TOCLIENT, 2, PrefilterMpmFilemagicRegister,
+            NULL, ALPROTO_HTTP, HTP_RESPONSE_BODY);
 
     for (int i = 0; protos_ts[i] != 0; i++) {
         DetectAppLayerInspectEngineRegister2("file.magic", protos_ts[i],
