@@ -142,10 +142,22 @@ void DetectFilenameRegister(void)
 
     g_file_match_list_id = DetectBufferTypeGetByName("files");
 
-    AppProto protos_ts[] = { ALPROTO_HTTP, ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_FTPDATA, ALPROTO_SMB,
+    AppProto protos_ts[] = { ALPROTO_SMTP, ALPROTO_FTP, ALPROTO_FTPDATA, ALPROTO_SMB,
         ALPROTO_NFS, 0 };
-    AppProto protos_tc[] = { ALPROTO_HTTP, ALPROTO_FTP, ALPROTO_FTPDATA, ALPROTO_SMB, ALPROTO_NFS,
+    AppProto protos_tc[] = { ALPROTO_FTP, ALPROTO_FTPDATA, ALPROTO_SMB, ALPROTO_NFS,
         0 };
+
+    DetectAppLayerInspectEngineRegister2("file.name", ALPROTO_HTTP,
+            SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
+            DetectEngineInspectFilename, NULL);
+    DetectAppLayerMpmRegister2("file.name", SIG_FLAG_TOSERVER, 2,
+            PrefilterMpmFilenameRegister, NULL, ALPROTO_HTTP, HTP_REQUEST_BODY);
+
+    DetectAppLayerInspectEngineRegister2("file.name", ALPROTO_HTTP,
+            SIG_FLAG_TOCLIENT, HTP_RESPONSE_BODY,
+            DetectEngineInspectFilename, NULL);
+    DetectAppLayerMpmRegister2("file.name", SIG_FLAG_TOCLIENT, 2,
+            PrefilterMpmFilenameRegister, NULL, ALPROTO_HTTP, HTP_RESPONSE_BODY);
 
     for (int i = 0; protos_ts[i] != 0; i++) {
         DetectAppLayerInspectEngineRegister2("file.name", protos_ts[i],
