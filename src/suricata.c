@@ -409,7 +409,6 @@ static void GlobalsDestroy(SCInstance *suri)
     LuajitFreeStatesPool();
 #endif
     DetectParseFreeRegexes();
-    SCThresholdConfGlobalFree();
 
     SCPidfileRemove(suri->pid_filename);
     SCFree(suri->pid_filename);
