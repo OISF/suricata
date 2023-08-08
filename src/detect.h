@@ -947,6 +947,11 @@ typedef struct DetectEngineCtx_ {
     bool sm_types_prefilter[DETECT_TBLSIZE];
     bool sm_types_silent_error[DETECT_TBLSIZE];
 
+    /* --engine-analysis */
+    struct EngineAnalysisCtx_ *ea;
+
+    /* path to the tenant yaml for this engine */
+    char *tenant_path;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */

@@ -116,7 +116,7 @@ argsd = {
         },
         {
             "name": "filename",
-            "required": 1,
+            "required": 0,
         },
     ],
     "add-hostbit": [

@@ -966,7 +966,7 @@ static int reload_cnt = 1;
  */
 TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
 {
-    const char *filename;
+    const char *filename = NULL;
     SCStat st;
 
     if (!(DetectEngineMultiTenantEnabled())) {
@@ -985,14 +985,16 @@ TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
 
     /* 2 get tenant yaml */
     jarg = json_object_get(cmd, "filename");
-    if (!json_is_string(jarg)) {
-        json_object_set_new(answer, "message", json_string("command is not a string"));
-        return TM_ECODE_FAILED;
-    }
-    filename = json_string_value(jarg);
-    if (SCStatFn(filename, &st) != 0) {
-        json_object_set_new(answer, "message", json_string("file does not exist"));
-        return TM_ECODE_FAILED;
+    if (jarg) {
+        if (!json_is_string(jarg)) {
+            json_object_set_new(answer, "message", json_string("command is not a string"));
+            return TM_ECODE_FAILED;
+        }
+        filename = json_string_value(jarg);
+        if (SCStatFn(filename, &st) != 0) {
+            json_object_set_new(answer, "message", json_string("file does not exist"));
+            return TM_ECODE_FAILED;
+        }
     }
 
     SCLogDebug("reload-tenant: %d %s", tenant_id, filename);

@@ -373,6 +373,7 @@ typedef enum {
     SC_ERR_PATH_JOIN,
     SC_ERR_PATH_RESOLVE,
     SC_WARN_REFCNT,
+    SC_ERR_PATH_UPDATE,
 
     SC_ERR_MAX
 } SCError;
