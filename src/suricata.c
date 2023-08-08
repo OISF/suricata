@@ -402,7 +402,7 @@ static void GlobalsDestroy(SCInstance *suri)
         DetectEngineMoveToFreeList(de_ctx);
         DetectEngineDeReference(&de_ctx);
     }
-    DetectEnginePruneFreeList();
+    DetectEngineClearMaster();
 
     AppLayerDeSetup();
     DatasetsSave();
