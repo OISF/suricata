@@ -1630,6 +1630,13 @@ decoder:
   # maximum number of decoder layers for a packet
   # max-layers: 16
 
+  # This option controls the use of packet recursion level in the flow
+  # (and defrag) hashing. This is enabled by default and should be
+  # disabled if packet pickup of tunneled packets occurs before the kernel
+  # has put the headers on, like when using netmap driver pickup.
+  recursion-level:
+    use-for-tracking: true
+
 ##
 ## Performance tuning and profiling
 ##
