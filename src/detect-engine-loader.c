@@ -389,7 +389,7 @@ static int num_loaders = NLOADERS;
 
 /** \param loader -1 for auto select
  *  \retval loader_id or negative in case of error */
-int DetectLoaderQueueTask(int loader_id, LoaderFunc Func, void *func_ctx)
+int DetectLoaderQueueTask(int loader_id, LoaderFunc Func, void *func_ctx, LoaderFreeFunc FreeFunc)
 {
     if (loader_id == -1) {
         loader_id = cur_loader;
@@ -409,6 +409,7 @@ int DetectLoaderQueueTask(int loader_id, LoaderFunc Func, void *func_ctx)
 
     t->Func = Func;
     t->ctx = func_ctx;
+    t->FreeFunc = FreeFunc;
 
     SCMutexLock(&loader->m);
     TAILQ_INSERT_TAIL(&loader->task_list, t, next);
@@ -584,7 +585,7 @@ static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
             int r = task->Func(task->ctx, ftd->instance);
             loader->result |= r;
             TAILQ_REMOVE(&loader->task_list, task, next);
-            SCFree(task->ctx);
+            task->FreeFunc(task->ctx);
             SCFree(task);
         }
 
