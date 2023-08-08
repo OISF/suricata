@@ -25,8 +25,6 @@
  *
  * \author Breno Silva Pinto <breno.silva@gmail.com>
  *
- * \todo Need to support suppress
- *
  * Implements Threshold support
  */
 
@@ -177,7 +175,8 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
         filename = SCThresholdConfGetConfFilename(de_ctx);
         if ( (fd = fopen(filename, "r")) == NULL) {
             SCLogWarning("Error opening file: \"%s\": %s", filename, strerror(errno));
-            goto error;
+            SCThresholdConfDeInitContext(de_ctx, fd);
+            return 0;
         }
 #ifdef UNITTESTS
     }
@@ -185,11 +184,12 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
 
     if (SCThresholdConfParseFile(de_ctx, fd) < 0) {
         SCLogWarning("Error loading threshold configuration from %s", filename);
+        SCThresholdConfDeInitContext(de_ctx, fd);
         /* maintain legacy behavior so no errors unless config testing */
         if (RunmodeGetCurrent() == RUNMODE_CONF_TEST) {
             ret = -1;
         }
-        goto error;
+        return ret;
     }
     SCThresholdConfDeInitContext(de_ctx, fd);
 
@@ -198,11 +198,6 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
 #endif
     SCLogDebug("Global thresholding options defined");
     return 0;
-
-error:
-    SCThresholdConfDeInitContext(de_ctx, fd);
-
-return ret;
 }
 
 /**
@@ -929,10 +924,8 @@ static int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx
     char *th_ip = NULL;
     uint32_t id = 0, gid = 0;
 
-    int r = 0;
-    r = ParseThresholdRule(de_ctx, rawstr, &id, &gid, &parsed_type, &parsed_track,
-                    &parsed_count, &parsed_seconds, &parsed_timeout, &parsed_new_action,
-                    &th_ip);
+    int r = ParseThresholdRule(de_ctx, rawstr, &id, &gid, &parsed_type, &parsed_track,
+            &parsed_count, &parsed_seconds, &parsed_timeout, &parsed_new_action, &th_ip);
     if (r < 0)
         goto error;
 
@@ -1051,7 +1044,6 @@ int SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
     }
 
     SCLogInfo("Threshold config parsed: %d rule(s) found", rule_num);
-
     return 0;
 }
 
