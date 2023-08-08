@@ -1103,15 +1103,6 @@ TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
 
     SCLogDebug("reload-tenant: %d %s", tenant_id, filename);
 
-    char prefix[64];
-    snprintf(prefix, sizeof(prefix), "multi-detect.%d.reload.%d", tenant_id, reload_cnt);
-    SCLogInfo("prefix %s", prefix);
-
-    if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
-        json_object_set_new(answer, "message", json_string("failed to load yaml"));
-        return TM_ECODE_FAILED;
-    }
-
     /* 3 load into the system */
     if (DetectEngineReloadTenantBlocking(tenant_id, filename, reload_cnt) != 0) {
         json_object_set_new(answer, "message", json_string("reload tenant failed"));
