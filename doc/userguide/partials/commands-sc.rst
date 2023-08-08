@@ -82,9 +82,11 @@
 
    Register tenant with a particular ID and filename.
 
-.. describe:: reload-tenant <id> <filename>
+.. describe:: reload-tenant <id> [filename]
 
-   Reload a tenant with specified ID and filename.
+   Reload a tenant with specified ID. A filename to a tenant yaml can be
+   specified. If it is omitted, the original yaml that was used to load
+   / last reload the tenant is used.
 
 .. describe:: unregister-tenant <id>
 
