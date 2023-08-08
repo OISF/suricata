@@ -32,10 +32,12 @@
  * \param loader_id id of the loader that executed the task
  */
 typedef int (*LoaderFunc)(void *ctx, int loader_id);
+typedef void (*LoaderFreeFunc)(void *ctx);
 
 typedef struct DetectLoaderTask_ {
     LoaderFunc Func;
     void *ctx;
+    LoaderFreeFunc FreeFunc;
     TAILQ_ENTRY(DetectLoaderTask_) next;
 } DetectLoaderTask;
 
@@ -46,7 +48,7 @@ typedef struct DetectLoaderControl_ {
     TAILQ_HEAD(, DetectLoaderTask_) task_list;
 } DetectLoaderControl;
 
-int DetectLoaderQueueTask(int loader_id, LoaderFunc Func, void *func_ctx);
+int DetectLoaderQueueTask(int loader_id, LoaderFunc Func, void *func_ctx, LoaderFreeFunc FreeFunc);
 int DetectLoadersSync(void);
 void DetectLoadersInit(void);
 
