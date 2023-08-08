@@ -21,6 +21,7 @@ Settings:
 * `selector`: direct (for unix socket pcap processing, see below), VLAN or device
 * `loaders`: number of `loader` threads, for parallel tenant loading at startup
 * `tenants`: list of tenants
+* `config-path`: path from where the tenant yamls are loaded
 
   * id: tenant id (numeric values only)
   * yaml: separate yaml file with the tenant specific settings

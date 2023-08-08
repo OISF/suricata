@@ -3918,8 +3918,17 @@ error:
 typedef struct TenantLoaderCtx_ {
     uint32_t tenant_id;
     int reload_cnt; /**< used by reload */
-    const char *yaml;
+    char *yaml;     /**< heap alloc'd copy of file path for the yaml */
 } TenantLoaderCtx;
+
+static void DetectLoaderFreeTenant(void *ctx)
+{
+    TenantLoaderCtx *t = (TenantLoaderCtx *)ctx;
+    if (t->yaml != NULL) {
+        SCFree(t->yaml);
+    }
+    SCFree(t);
+}
 
 static int DetectLoaderFuncLoadTenant(void *vctx, int loader_id)
 {
@@ -3939,9 +3948,13 @@ static int DetectLoaderSetupLoadTenant(uint32_t tenant_id, const char *yaml)
         return -ENOMEM;
 
     t->tenant_id = tenant_id;
-    t->yaml = yaml;
+    t->yaml = SCStrdup(yaml);
+    if (t->yaml == NULL) {
+        SCFree(t);
+        return -ENOMEM;
+    }
 
-    return DetectLoaderQueueTask(-1, DetectLoaderFuncLoadTenant, t);
+    return DetectLoaderQueueTask(-1, DetectLoaderFuncLoadTenant, t, DetectLoaderFreeTenant);
 }
 
 static int DetectLoaderFuncReloadTenant(void *vctx, int loader_id)
@@ -3969,12 +3982,17 @@ static int DetectLoaderSetupReloadTenant(uint32_t tenant_id, const char *yaml, i
         return -ENOMEM;
 
     t->tenant_id = tenant_id;
-    t->yaml = yaml;
+    t->yaml = SCStrdup(yaml);
+    if (t->yaml == NULL) {
+        SCFree(t);
+        return -ENOMEM;
+    }
     t->reload_cnt = reload_cnt;
 
     SCLogDebug("loader_id %d", loader_id);
 
-    return DetectLoaderQueueTask(loader_id, DetectLoaderFuncReloadTenant, t);
+    return DetectLoaderQueueTask(
+            loader_id, DetectLoaderFuncReloadTenant, t, DetectLoaderFreeTenant);
 }
 
 /** \brief Load a tenant and wait for loading to complete
@@ -4223,6 +4241,13 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
         ConfNode *tenant_node = NULL;
 
         if (tenants_root_node != NULL) {
+            const char *path = NULL;
+            ConfNode *path_node = ConfGetNode("multi-detect.config-path");
+            if (path_node) {
+                path = path_node->val;
+                SCLogConfig("tenants config path: %s", path);
+            }
+
             TAILQ_FOREACH(tenant_node, &tenants_root_node->head, next) {
                 ConfNode *id_node = ConfNodeLookupChild(tenant_node, "id");
                 if (id_node == NULL) {
@@ -4243,16 +4268,24 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
                 }
                 SCLogDebug("tenant id: %u, %s", tenant_id, yaml_node->val);
 
+                char yaml_path[PATH_MAX] = "";
+                if (path) {
+                    PathMerge(yaml_path, PATH_MAX, path, yaml_node->val);
+                } else {
+                    strlcpy(yaml_path, yaml_node->val, sizeof(yaml_path));
+                }
+                SCLogDebug("tenant path: %s", yaml_path);
+
                 /* setup the yaml in this loop so that it's not done by the loader
                  * threads. ConfYamlLoadFileWithPrefix is not thread safe. */
                 char prefix[64];
                 snprintf(prefix, sizeof(prefix), "multi-detect.%u", tenant_id);
-                if (ConfYamlLoadFileWithPrefix(yaml_node->val, prefix) != 0) {
-                    SCLogError("failed to load yaml %s", yaml_node->val);
+                if (ConfYamlLoadFileWithPrefix(yaml_path, prefix) != 0) {
+                    SCLogError("failed to load yaml %s", yaml_path);
                     goto bad_tenant;
                 }
 
-                int r = DetectLoaderSetupLoadTenant(tenant_id, yaml_node->val);
+                int r = DetectLoaderSetupLoadTenant(tenant_id, yaml_path);
                 if (r < 0) {
                     /* error logged already */
                     goto bad_tenant;
