@@ -2660,6 +2660,10 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     SCClassConfDeinit(de_ctx);
     SCReferenceConfDeinit(de_ctx);
 
+    if (de_ctx->tenant_path) {
+        SCFree(de_ctx->tenant_path);
+    }
+
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
@@ -3848,6 +3852,11 @@ static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *fil
     de_ctx->type = DETECT_ENGINE_TYPE_TENANT;
     de_ctx->tenant_id = tenant_id;
     de_ctx->loader_id = loader_id;
+    de_ctx->tenant_path = SCStrdup(filename);
+    if (de_ctx->tenant_path == NULL) {
+        SCLogError("Failed to duplicate path");
+        goto error;
+    }
 
     if (SigLoadSignatures(de_ctx, NULL, 0) < 0) {
         SCLogError("Loading signatures failed.");
@@ -3872,6 +3881,9 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
         SCLogError("tenant detect engine not found");
         return -1;
     }
+
+    if (filename == NULL)
+        filename = old_de_ctx->tenant_path;
 
     char prefix[64];
     snprintf(prefix, sizeof(prefix), "multi-detect.%u.reload.%d", tenant_id, reload_cnt);
@@ -3900,6 +3912,11 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
     new_de_ctx->type = DETECT_ENGINE_TYPE_TENANT;
     new_de_ctx->tenant_id = tenant_id;
     new_de_ctx->loader_id = old_de_ctx->loader_id;
+    new_de_ctx->tenant_path = SCStrdup(filename);
+    if (new_de_ctx->tenant_path == NULL) {
+        SCLogError("Failed to duplicate path");
+        goto error;
+    }
 
     if (SigLoadSignatures(new_de_ctx, NULL, 0) < 0) {
         SCLogError("Loading signatures failed.");
@@ -3986,10 +4003,12 @@ static int DetectLoaderSetupReloadTenant(uint32_t tenant_id, const char *yaml, i
         return -ENOMEM;
 
     t->tenant_id = tenant_id;
-    t->yaml = SCStrdup(yaml);
-    if (t->yaml == NULL) {
-        SCFree(t);
-        return -ENOMEM;
+    if (yaml != NULL) {
+        t->yaml = SCStrdup(yaml);
+        if (t->yaml == NULL) {
+            SCFree(t);
+            return -ENOMEM;
+        }
     }
     t->reload_cnt = reload_cnt;
 

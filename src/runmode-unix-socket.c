@@ -1091,7 +1091,7 @@ static int reload_cnt = 1;
  */
 TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
 {
-    const char *filename;
+    const char *filename = NULL;
 #ifdef OS_WIN32
     struct _stat st;
 #else
@@ -1114,18 +1114,20 @@ TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
 
     /* 2 get tenant yaml */
     jarg = json_object_get(cmd, "filename");
-    if (!json_is_string(jarg)) {
-        json_object_set_new(answer, "message", json_string("command is not a string"));
-        return TM_ECODE_FAILED;
-    }
-    filename = json_string_value(jarg);
+    if (jarg) {
+        if (!json_is_string(jarg)) {
+            json_object_set_new(answer, "message", json_string("command is not a string"));
+            return TM_ECODE_FAILED;
+        }
+        filename = json_string_value(jarg);
 #ifdef OS_WIN32
-    if (_stat(filename, &st) != 0) {
+        if (_stat(filename, &st) != 0) {
 #else
-    if (stat(filename, &st) != 0) {
+        if (stat(filename, &st) != 0) {
 #endif /* OS_WIN32 */
-        json_object_set_new(answer, "message", json_string("file does not exist"));
-        return TM_ECODE_FAILED;
+            json_object_set_new(answer, "message", json_string("file does not exist"));
+            return TM_ECODE_FAILED;
+        }
     }
 
     SCLogDebug("reload-tenant: %d %s", tenant_id, filename);
