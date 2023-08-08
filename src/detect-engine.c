@@ -3983,14 +3983,10 @@ int DetectEngineAddToMaster(DetectEngineCtx *de_ctx)
     return r;
 }
 
-int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx)
+static int DetectEngineMoveToFreeListNoLock(DetectEngineMasterCtx *master, DetectEngineCtx *de_ctx)
 {
-    DetectEngineMasterCtx *master = &g_master_de_ctx;
-
-    SCMutexLock(&master->lock);
     DetectEngineCtx *instance = master->list;
     if (instance == NULL) {
-        SCMutexUnlock(&master->lock);
         return -1;
     }
 
@@ -4013,7 +4009,6 @@ int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx)
             instance = next;
         }
         if (instance == NULL) {
-            SCMutexUnlock(&master->lock);
             return -1;
         }
     }
@@ -4029,9 +4024,17 @@ int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx)
         master->free_list = instance;
     }
     SCLogDebug("detect engine %p moved to free list (%u refs)", de_ctx, de_ctx->ref_cnt);
-
-    SCMutexUnlock(&master->lock);
     return 0;
+}
+
+int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx)
+{
+    int ret = 0;
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+    ret = DetectEngineMoveToFreeListNoLock(master, de_ctx);
+    SCMutexUnlock(&master->lock);
+    return ret;
 }
 
 void DetectEnginePruneFreeList(void)
@@ -4062,6 +4065,24 @@ void DetectEnginePruneFreeList(void)
         instance = next;
     }
     SCMutexUnlock(&master->lock);
+}
+
+void DetectEngineClearMaster(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    DetectEngineCtx *instance = master->list;
+    while (instance) {
+        DetectEngineCtx *next = instance->next;
+        DEBUG_VALIDATE_BUG_ON(instance->ref_cnt);
+        SCLogDebug("detect engine %p has %u ref(s)", instance, instance->ref_cnt);
+        instance->ref_cnt = 0;
+        DetectEngineMoveToFreeListNoLock(master, instance);
+        instance = next;
+    }
+    SCMutexUnlock(&master->lock);
+    DetectEnginePruneFreeList();
 }
 
 static int reloads = 0;
