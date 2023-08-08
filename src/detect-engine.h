@@ -95,6 +95,7 @@ DetectEngineCtx *DetectEngineGetCurrent(void);
 DetectEngineCtx *DetectEngineGetByTenantId(uint32_t tenant_id);
 void DetectEnginePruneFreeList(void);
 int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx);
+void DetectEngineClearMaster(void);
 DetectEngineCtx *DetectEngineReference(DetectEngineCtx *);
 void DetectEngineDeReference(DetectEngineCtx **de_ctx);
 int DetectEngineReload(const SCInstance *suri);
