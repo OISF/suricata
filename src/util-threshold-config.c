@@ -25,8 +25,6 @@
  *
  * \author Breno Silva Pinto <breno.silva@gmail.com>
  *
- * \todo Need to support suppress
- *
  * Implements Threshold support
  */
 
@@ -249,13 +247,24 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
         filename = SCThresholdConfGetConfFilename(de_ctx);
         if ( (fd = fopen(filename, "r")) == NULL) {
             SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
-            goto error;
+            SCThresholdConfDeInitContext(de_ctx, fd);
+            return 0;
         }
 #ifdef UNITTESTS
     }
 #endif
 
-    SCThresholdConfParseFile(de_ctx, fd);
+    if (SCThresholdConfParseFile(de_ctx, fd) < 0) {
+        SCLogWarning(
+                SC_ERR_THRESHOLD_SETUP, "Error loading threshold configuration from %s", filename);
+        SCThresholdConfDeInitContext(de_ctx, fd);
+        /* maintain legacy behavior so no errors unless config testing */
+        int ret = 0;
+        if (RunmodeGetCurrent() == RUNMODE_CONF_TEST) {
+            ret = -1;
+        }
+        return ret;
+    }
     SCThresholdConfDeInitContext(de_ctx, fd);
 
 #ifdef UNITTESTS
@@ -263,10 +272,6 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
 #endif
     SCLogDebug("Global thresholding options defined");
     return 0;
-
-error:
-    SCThresholdConfDeInitContext(de_ctx, fd);
-    return -1;
 }
 
 /**
@@ -955,10 +960,8 @@ static int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx
     char *th_ip = NULL;
     uint32_t id = 0, gid = 0;
 
-    int r = 0;
-    r = ParseThresholdRule(de_ctx, rawstr, &id, &gid, &parsed_type, &parsed_track,
-                    &parsed_count, &parsed_seconds, &parsed_timeout, &parsed_new_action,
-                    &th_ip);
+    int r = ParseThresholdRule(de_ctx, rawstr, &id, &gid, &parsed_type, &parsed_track,
+            &parsed_count, &parsed_seconds, &parsed_timeout, &parsed_new_action, &th_ip);
     if (r < 0)
         goto error;
 
@@ -1048,7 +1051,7 @@ static int SCThresholdConfLineIsMultiline(char *line)
  * \param de_ctx Pointer to the Detection Engine Context.
  * \param fd Pointer to file descriptor.
  */
-void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
+int SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
 {
     char line[8192] = "";
     int rule_num = 0;
@@ -1057,7 +1060,7 @@ void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
     int esc_pos = 0;
 
     if (fp == NULL)
-        return;
+        return -1;
 
     while (fgets(line + esc_pos, (int)sizeof(line) - esc_pos, fp) != NULL) {
         if (SCThresholdConfIsLineBlankOrComment(line)) {
@@ -1066,15 +1069,18 @@ void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
 
         esc_pos = SCThresholdConfLineIsMultiline(line);
         if (esc_pos == 0) {
-            rule_num++;
-            SCLogDebug("Adding threshold.config rule num %"PRIu32"( %s )", rule_num, line);
-            SCThresholdConfAddThresholdtype(line, de_ctx);
+            if (SCThresholdConfAddThresholdtype(line, de_ctx) < 0) {
+                if (RunmodeGetCurrent() == RUNMODE_CONF_TEST)
+                    return -1;
+            } else {
+                SCLogDebug("Adding threshold.config rule num %" PRIu32 "( %s )", rule_num, line);
+                rule_num++;
+            }
         }
     }
 
     SCLogInfo("Threshold config parsed: %d rule(s) found", rule_num);
-
-    return;
+    return 0;
 }
 
 #ifdef UNITTESTS
