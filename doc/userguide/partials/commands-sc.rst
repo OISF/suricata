@@ -88,6 +88,10 @@
    specified. If it is omitted, the original yaml that was used to load
    / last reload the tenant is used.
 
+.. describe:: reload-tenants
+
+   Reload all registered tenants by reloading their yaml.
+
 .. describe:: unregister-tenant <id>
 
    Unregister tenant with a particular ID.
