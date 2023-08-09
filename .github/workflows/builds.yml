@@ -558,7 +558,7 @@ jobs:
           name: prep
           path: prep
       - run: tar xf prep/suricata-verify.tar.gz
-      - run: python3 ./suricata-verify/run.py -q
+      - run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: suricata-update -V
       - run: suricatasc -h
 
@@ -645,7 +645,7 @@ jobs:
           name: prep
           path: prep
       - run: tar xf prep/suricata-verify.tar.gz
-      - run: python3 ./suricata-verify/run.py -q
+      - run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: suricata-update -V
       - run: suricatasc -h
 
@@ -724,7 +724,7 @@ jobs:
           name: prep
           path: prep
       - run: tar xf prep/suricata-verify.tar.gz
-      - run: python3 ./suricata-verify/run.py -q
+      - run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: suricata-update -V
       - run: suricatasc -h
 
@@ -812,7 +812,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: llvm-profdata merge -o default.profdata $(find suricata-verify/tests/ -name '*.profraw')
       - run: llvm-cov show ./src/suricata -instr-profile=default.profdata --show-instantiations --ignore-filename-regex="^/root/.*" > coverage.txt
       - name: Upload coverage to Codecov
@@ -908,7 +908,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       # Now install and make sure headers and libraries aren't
       # installed until requested.
       - run: make install
@@ -997,7 +997,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       # Now install and make sure headers and libraries aren't
       # installed until requested.
       - run: make install
@@ -1099,7 +1099,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       # Now install and make sure headers and libraries aren't install
       # until requested.
       - run: make install
@@ -1193,7 +1193,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       # Now install and make sure headers and libraries aren't install
       # until requested.
       - run: make install
@@ -1288,7 +1288,7 @@ jobs:
       - run: sudo -u suricata -s make check
         working-directory: /home/suricata/suricata
 
-      - run: sudo -u suricata -s python3 ./suricata-verify/run.py -q
+      - run: sudo -u suricata -s python3 ./suricata-verify/run.py -q --debug-failed
         working-directory: /home/suricata/suricata
 
   # Test that ./configure fails out of libjansson is not available.
@@ -1649,7 +1649,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       # Now install and make sure headers and libraries aren't install
       # until requested.
       - run: make install
@@ -1799,7 +1799,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
 
   # test build with afl and fuzztargets
   ubuntu-22-04-fuzz:
@@ -2134,7 +2134,7 @@ jobs:
         run: make doc
         working-directory: rust
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
@@ -2300,7 +2300,7 @@ jobs:
         run: make doc
         working-directory: rust
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
@@ -2376,7 +2376,7 @@ jobs:
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
@@ -2450,7 +2450,7 @@ jobs:
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
@@ -2502,7 +2502,7 @@ jobs:
       - run: rm libhtp/VERSION && make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py -q
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
@@ -2559,7 +2559,7 @@ jobs:
           ./src/suricata --build-info
           ./src/suricata -u -l /tmp/
           # need cwd in path due to npcap dlls (see above)
-          PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py -q
+          PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
 
@@ -2603,7 +2603,7 @@ jobs:
         run: |
           ./src/suricata --build-info
           ./src/suricata -u -l /tmp/
-          python3 ./suricata-verify/run.py -q
+          python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
 
