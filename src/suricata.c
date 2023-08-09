@@ -133,6 +133,7 @@
 #include "util-macset.h"
 #include "util-misc.h"
 #include "util-mpm-hs.h"
+#include "util-path.h"
 #include "util-pidfile.h"
 #include "util-plugin.h"
 #include "util-privs.h"
@@ -502,11 +503,7 @@ static void SetBpfStringFromFile(char *filename)
     char *bpf_comment_tmp = NULL;
     char *bpf_comment_start =  NULL;
     uint32_t bpf_len = 0;
-#ifdef OS_WIN32
-    struct _stat st;
-#else
-    struct stat st;
-#endif /* OS_WIN32 */
+    SCStat st;
     FILE *fp = NULL;
     size_t nm = 0;
 
@@ -516,11 +513,7 @@ static void SetBpfStringFromFile(char *filename)
         exit(EXIT_FAILURE);
     }
 
-#ifdef OS_WIN32
-    if (_fstat(_fileno(fp), &st) != 0) {
-#else
-    if (fstat(fileno(fp), &st) != 0) {
-#endif /* OS_WIN32 */
+    if (SCFstatFn(fileno(fp), &st) != 0) {
         SCLogError("Failed to stat file %s", filename);
         exit(EXIT_FAILURE);
     }
@@ -1955,13 +1948,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 PrintUsage(argv[0]);
                 return TM_ECODE_FAILED;
             }
-#ifdef OS_WIN32
-            struct _stat buf;
-            if(_stat(optarg, &buf) != 0) {
-#else
-            struct stat buf;
-            if (stat(optarg, &buf) != 0) {
-#endif /* OS_WIN32 */
+            SCStat buf;
+            if (SCStatFn(optarg, &buf) != 0) {
                 SCLogError("pcap file '%s': %s", optarg, strerror(errno));
                 return TM_ECODE_FAILED;
             }

@@ -28,6 +28,7 @@
 #include "runmode-unix-socket.h"
 #include "util-mem.h"
 #include "util-time.h"
+#include "util-path.h"
 #include "source-pcap-file.h"
 
 static void GetTime(struct timespec *tm);
@@ -219,23 +220,14 @@ TmEcode PcapDetermineDirectoryOrFile(char *filename, DIR **directory)
 
 int PcapDirectoryGetModifiedTime(char const *file, struct timespec *out)
 {
-#ifdef OS_WIN32
-    struct _stat buf;
-#else
-    struct stat buf;
-#endif /* OS_WIN32 */
+    SCStat buf;
     int ret;
 
     if (file == NULL)
         return -1;
 
-#ifdef OS_WIN32
-    if((ret = _stat(file, &buf)) != 0)
+    if ((ret = SCStatFn(file, &buf)) != 0)
         return ret;
-#else
-    if ((ret = stat(file, &buf)) != 0)
-        return ret;
-#endif
 
 #ifdef OS_DARWIN
     out->tv_sec = buf.st_mtimespec.tv_sec;
