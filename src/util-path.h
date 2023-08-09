@@ -25,6 +25,16 @@
 #ifndef __UTIL_PATH_H__
 #define __UTIL_PATH_H__
 
+#ifdef OS_WIN32
+typedef struct _stat SCStat;
+#define SCFstatFn(fd, statbuf)      _fstat((fd), (statbuf))
+#define SCStatFn(pathname, statbuf) _stat((pathname), (statbuf))
+#else
+typedef struct stat SCStat;
+#define SCFstatFn(fd, statbuf)      fstat((fd), (statbuf))
+#define SCStatFn(pathname, statbuf) stat((pathname), (statbuf))
+#endif
+
 #ifndef HAVE_NON_POSIX_MKDIR
     #define SCMkDir(a, b) mkdir(a, b)
 #else
