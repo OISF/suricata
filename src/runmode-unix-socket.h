@@ -37,6 +37,7 @@ TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
 TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data);
+TmEcode UnixSocketReloadTenants(json_t *cmd, json_t *answer, void *data);
 TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketHostbitAdd(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketHostbitRemove(json_t *cmd, json_t* answer, void *data);

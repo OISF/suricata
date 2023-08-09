@@ -3475,6 +3475,39 @@ static int DetectLoaderFuncReloadTenant(void *vctx, int loader_id)
     return 0;
 }
 
+static int DetectLoaderSetupReloadTenants(const int reload_cnt)
+{
+    int ret = 0;
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    DetectEngineCtx *de_ctx = master->list;
+    while (de_ctx) {
+        if (de_ctx->type == DETECT_ENGINE_TYPE_TENANT) {
+            TenantLoaderCtx *t = SCCalloc(1, sizeof(*t));
+            if (t == NULL) {
+                ret = -1;
+                goto error;
+            }
+            t->tenant_id = de_ctx->tenant_id;
+            t->reload_cnt = reload_cnt;
+            int loader_id = de_ctx->loader_id;
+
+            int r = DetectLoaderQueueTask(
+                    loader_id, DetectLoaderFuncReloadTenant, t, DetectLoaderFreeTenant);
+            if (r < 0) {
+                ret = -2;
+                goto error;
+            }
+        }
+
+        de_ctx = de_ctx->next;
+    }
+error:
+    SCMutexUnlock(&master->lock);
+    return ret;
+}
+
 static int DetectLoaderSetupReloadTenant(uint32_t tenant_id, const char *yaml, int reload_cnt)
 {
     DetectEngineCtx *old_de_ctx = DetectEngineGetByTenantId(tenant_id);
@@ -3522,6 +3555,20 @@ int DetectEngineLoadTenantBlocking(uint32_t tenant_id, const char *yaml)
 int DetectEngineReloadTenantBlocking(uint32_t tenant_id, const char *yaml, int reload_cnt)
 {
     int r = DetectLoaderSetupReloadTenant(tenant_id, yaml, reload_cnt);
+    if (r < 0)
+        return r;
+
+    if (DetectLoadersSync() != 0)
+        return -1;
+
+    return 0;
+}
+
+/** \brief Reload all tenants and wait for loading to complete
+ */
+int DetectEngineReloadTenantsBlocking(const int reload_cnt)
+{
+    int r = DetectLoaderSetupReloadTenants(reload_cnt);
     if (r < 0)
         return r;
 
