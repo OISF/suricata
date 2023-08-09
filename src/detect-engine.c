@@ -4504,11 +4504,15 @@ DetectEngineCtx *DetectEngineGetByTenantId(uint32_t tenant_id)
     return de_ctx;
 }
 
+/** \note use master lock to avoid possible concurrency issues on ref_cnt */
 void DetectEngineDeReference(DetectEngineCtx **de_ctx)
 {
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
     BUG_ON((*de_ctx)->ref_cnt == 0);
     (*de_ctx)->ref_cnt--;
     *de_ctx = NULL;
+    SCMutexUnlock(&master->lock);
 }
 
 static int DetectEngineAddToList(DetectEngineCtx *instance)
