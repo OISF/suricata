@@ -4336,10 +4336,10 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
 
                 char yaml_path[PATH_MAX] = "";
                 if (path) {
-                    strlcat(yaml_path, path, sizeof(yaml_path));
-                    strlcat(yaml_path, "/", sizeof(yaml_path));
+                    PathJoin(yaml_path, PATH_MAX, path, yaml_node->val);
+                } else {
+                    strlcpy(yaml_path, yaml_node->val, sizeof(yaml_path));
                 }
-                strlcat(yaml_path, yaml_node->val, sizeof(yaml_path));
                 SCLogDebug("tenant path: %s", yaml_path);
 
                 /* setup the yaml in this loop so that it's not done by the loader
