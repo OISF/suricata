@@ -26,6 +26,8 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "util-conf.h"
+#include "util-debug.h"
+#include "util-path.h"
 
 TmEcode ConfigSetLogDirectory(const char *name)
 {
@@ -53,13 +55,8 @@ const char *ConfigGetLogDirectory(void)
 TmEcode ConfigCheckLogDirectoryExists(const char *log_dir)
 {
     SCEnter();
-#ifdef OS_WIN32
-    struct _stat buf;
-    if (_stat(log_dir, &buf) != 0) {
-#else
-    struct stat buf;
-    if (stat(log_dir, &buf) != 0) {
-#endif /* OS_WIN32 */
+    SCStat buf;
+    if (SCStatFn(log_dir, &buf) != 0) {
         SCReturnInt(TM_ECODE_FAILED);
     }
     SCReturnInt(TM_ECODE_OK);
@@ -101,13 +98,8 @@ const char *ConfigGetDataDirectory(void)
 TmEcode ConfigCheckDataDirectory(const char *data_dir)
 {
     SCEnter();
-#ifdef OS_WIN32
-    struct _stat buf;
-    if (_stat(data_dir, &buf) != 0) {
-#else
-    struct stat buf;
-    if (stat(data_dir, &buf) != 0) {
-#endif /* OS_WIN32 */
+    SCStat buf;
+    if (SCStatFn(data_dir, &buf) != 0) {
         SCReturnInt(TM_ECODE_FAILED);
     }
     SCReturnInt(TM_ECODE_OK);
