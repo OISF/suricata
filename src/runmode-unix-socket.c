@@ -1125,6 +1125,41 @@ TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
 }
 
 /**
+ * \brief Command to reload all tenants
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketReloadTenants(json_t *cmd, json_t *answer, void *data)
+{
+    if (!(DetectEngineMultiTenantEnabled())) {
+        SCLogInfo("error: multi-tenant support not enabled");
+        json_object_set_new(answer, "message", json_string("multi-tenant support not enabled"));
+        return TM_ECODE_FAILED;
+    }
+
+    if (DetectEngineReloadTenantsBlocking(reload_cnt) != 0) {
+        json_object_set_new(answer, "message", json_string("reload tenants failed"));
+        return TM_ECODE_FAILED;
+    }
+
+    reload_cnt++;
+
+    /*  apply to the running system */
+    if (DetectEngineMTApply() < 0) {
+        json_object_set_new(answer, "message", json_string("couldn't apply settings"));
+        // TODO cleanup
+        return TM_ECODE_FAILED;
+    }
+
+    SCLogNotice("reload-tenants complete");
+
+    json_object_set_new(answer, "message", json_string("reloading tenants succeeded"));
+    return TM_ECODE_OK;
+}
+
+/**
  * \brief Command to remove a tenant
  *
  * \param cmd the content of command Arguments as a json_t object

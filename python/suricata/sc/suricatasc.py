@@ -94,6 +94,7 @@ class SuricataSC:
                 "pcap-last-processed",
                 "pcap-interrupt",
                 "iface-list",
+                "reload-tenants",
                 ]
         self.fn_commands = [
                 "pcap-file",
