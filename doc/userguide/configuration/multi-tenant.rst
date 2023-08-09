@@ -215,3 +215,33 @@ unregister-tenant-handler <tenant id> vlan <vlan id>
 
 The registration of tenant and tenant handlers can be done on a
 running engine.
+
+Reloads
+~~~~~~~
+
+Reloading all tenants:
+
+``reload-tenants``
+
+::
+
+  reload-tenants
+
+Reloading a single tenant:
+
+``reload-tenant <tenant id> [yaml path]``
+
+::
+
+  reload-tenant 1 tenant-1.yaml
+  reload-tenant 5
+
+The ``[yaml path]`` is optional. If it isn't provided, the original path of
+the tenant will be used during the reload.
+
+Eve JSON output
+---------------
+
+When multi-tenant support is configured and the detect engine is active then
+all EVE-types that report based on flows will also report the corresponding
+``tenant_id`` for events matching a tenant configuration.
