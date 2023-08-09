@@ -28,6 +28,7 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 #include "util-var-name.h"
+#include "util-path.h"
 #include "unix-manager.h"
 
 #include "detect-engine.h"
@@ -323,11 +324,7 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
     bool should_delete = false;
     time_t delay = 30;
     time_t poll_interval = 5;
-#ifdef OS_WIN32
-    struct _stat st;
-#else
-    struct stat st;
-#endif /* OS_WIN32 */
+    SCStat st;
 
     json_t *jarg = json_object_get(cmd, "filename");
     if (!json_is_string(jarg)) {
@@ -337,11 +334,7 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
         return TM_ECODE_FAILED;
     }
     filename = json_string_value(jarg);
-#ifdef OS_WIN32
-    if (_stat(filename, &st) != 0) {
-#else
-    if (stat(filename, &st) != 0) {
-#endif /* OS_WIN32 */
+    if (SCStatFn(filename, &st) != 0) {
         json_object_set_new(answer, "message",
                             json_string("filename does not exist"));
         return TM_ECODE_FAILED;
@@ -365,11 +358,7 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
         return TM_ECODE_FAILED;
     }
 
-#ifdef OS_WIN32
-    if (_stat(output_dir, &st) != 0) {
-#else
-    if (stat(output_dir, &st) != 0) {
-#endif /* OS_WIN32 */
+    if (SCStatFn(output_dir, &st) != 0) {
         json_object_set_new(answer, "message",
                             json_string("output-dir does not exist"));
         return TM_ECODE_FAILED;
@@ -1016,11 +1005,7 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
 TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
 {
     const char *filename;
-#ifdef OS_WIN32
-    struct _stat st;
-#else
-    struct stat st;
-#endif /* OS_WIN32 */
+    SCStat st;
 
     if (!(DetectEngineMultiTenantEnabled())) {
         SCLogInfo("error: multi-tenant support not enabled");
@@ -1043,11 +1028,7 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
         return TM_ECODE_FAILED;
     }
     filename = json_string_value(jarg);
-#ifdef OS_WIN32
-    if (_stat(filename, &st) != 0) {
-#else
-    if (stat(filename, &st) != 0) {
-#endif /* OS_WIN32 */
+    if (SCStatFn(filename, &st) != 0) {
         json_object_set_new(answer, "message", json_string("file does not exist"));
         return TM_ECODE_FAILED;
     }
@@ -1092,11 +1073,7 @@ static int reload_cnt = 1;
 TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
 {
     const char *filename = NULL;
-#ifdef OS_WIN32
-    struct _stat st;
-#else
-    struct stat st;
-#endif /* OS_WIN32 */
+    SCStat st;
 
     if (!(DetectEngineMultiTenantEnabled())) {
         SCLogInfo("error: multi-tenant support not enabled");
@@ -1120,11 +1097,7 @@ TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
             return TM_ECODE_FAILED;
         }
         filename = json_string_value(jarg);
-#ifdef OS_WIN32
-        if (_stat(filename, &st) != 0) {
-#else
-        if (stat(filename, &st) != 0) {
-#endif /* OS_WIN32 */
+        if (SCStatFn(filename, &st) != 0) {
             json_object_set_new(answer, "message", json_string("file does not exist"));
             return TM_ECODE_FAILED;
         }
