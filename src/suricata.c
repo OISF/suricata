@@ -169,6 +169,27 @@
 
 #include "tmqh-packetpool.h"
 
+#include "util-byte.h"
+#include "util-conf.h"
+#include "util-coredump-config.h"
+#include "util-cpu.h"
+#include "util-daemon.h"
+#include "util-device.h"
+#include "util-dpdk.h"
+#include "util-ebpf.h"
+#include "util-exception-policy.h"
+#include "util-host-os-info.h"
+#include "util-ioctl.h"
+#include "util-landlock.h"
+#include "util-luajit.h"
+#include "util-macset.h"
+#include "util-misc.h"
+#include "util-mpm-hs.h"
+#include "util-path.h"
+#include "util-pidfile.h"
+#include "util-plugin.h"
+#include "util-privs.h"
+#include "util-profiling.h"
 #include "util-proto-name.h"
 #include "util-mpm-hs.h"
 #include "util-storage.h"
@@ -511,20 +532,18 @@ static void SetBpfStringFromFile(char *filename)
     char *bpf_comment_tmp = NULL;
     char *bpf_comment_start =  NULL;
     uint32_t bpf_len = 0;
-#ifdef OS_WIN32
-    struct _stat st;
-#else
-    struct stat st;
-#endif /* OS_WIN32 */
+    SCStat st;
     FILE *fp = NULL;
     size_t nm = 0;
 
-#ifdef OS_WIN32
-    if(_stat(filename, &st) != 0) {
-#else
-    if(stat(filename, &st) != 0) {
-#endif /* OS_WIN32 */
-        SCLogError(SC_ERR_FOPEN, "Failed to stat file %s", filename);
+    fp = fopen(filename, "r");
+    if (fp == NULL) {
+        SCLogError("Failed to open file %s", filename);
+        exit(EXIT_FAILURE);
+    }
+
+    if (SCFstatFn(fileno(fp), &st) != 0) {
+        SCLogError("Failed to stat file %s", filename);
         exit(EXIT_FAILURE);
     }
     bpf_len = st.st_size + 1;
@@ -1821,14 +1840,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 PrintUsage(argv[0]);
                 return TM_ECODE_FAILED;
             }
-#ifdef OS_WIN32
-            struct _stat buf;
-            if(_stat(optarg, &buf) != 0) {
-#else
-            struct stat buf;
-            if (stat(optarg, &buf) != 0) {
-#endif /* OS_WIN32 */
-                SCLogError(SC_ERR_INITIALIZATION, "ERROR: Pcap file does not exist\n");
+            SCStat buf;
+            if (SCStatFn(optarg, &buf) != 0) {
+                SCLogError("pcap file '%s': %s", optarg, strerror(errno));
                 return TM_ECODE_FAILED;
             }
             if (ConfSetFinal("pcap-file.file", optarg) != 1) {
