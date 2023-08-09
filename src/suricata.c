@@ -175,8 +175,6 @@
 #include "util-proto-name.h"
 #include "util-running-modes.h"
 #include "util-signal.h"
-#include "util-time.h"
-#include "util-validate.h"
 #include "util-var-name.h"
 
 #include "util-lua.h"
@@ -518,30 +516,21 @@ static void SetBpfStringFromFile(char *filename)
     char *bpf_comment_tmp = NULL;
     char *bpf_comment_start =  NULL;
     uint32_t bpf_len = 0;
-#ifdef OS_WIN32
-    struct _stat st;
-#else
-    struct stat st;
-#endif /* OS_WIN32 */
+    SCStat st;
     FILE *fp = NULL;
     size_t nm = 0;
 
-#ifdef OS_WIN32
-    if(_stat(filename, &st) != 0) {
-#else
-    if(stat(filename, &st) != 0) {
-#endif /* OS_WIN32 */
-        SCLogError(SC_ERR_FOPEN, "Failed to stat file %s", filename);
-        exit(EXIT_FAILURE);
-    }
-    bpf_len = st.st_size + 1;
-
-    // coverity[toctou : FALSE]
-    fp = fopen(filename,"r");
+    fp = fopen(filename, "r");
     if (fp == NULL) {
         SCLogError(SC_ERR_FOPEN, "Failed to open file %s", filename);
         exit(EXIT_FAILURE);
     }
+
+    if (SCFstatFn(fileno(fp), &st) != 0) {
+        SCLogError(SC_ERR_FOPEN, "Failed to stat file %s", filename);
+        exit(EXIT_FAILURE);
+    }
+    bpf_len = st.st_size + 1;
 
     bpf_filter = SCMalloc(bpf_len * sizeof(char));
     if (unlikely(bpf_filter == NULL)) {
@@ -1828,14 +1817,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 PrintUsage(argv[0]);
                 return TM_ECODE_FAILED;
             }
-#ifdef OS_WIN32
-            struct _stat buf;
-            if(_stat(optarg, &buf) != 0) {
-#else
-            struct stat buf;
-            if (stat(optarg, &buf) != 0) {
-#endif /* OS_WIN32 */
-                SCLogError(SC_ERR_INITIALIZATION, "ERROR: Pcap file does not exist\n");
+            SCStat buf;
+            if (SCStatFn(optarg, &buf) != 0) {
+                SCLogError(SC_ERR_INITIALIZATION, "pcap file '%s': %s", optarg, strerror(errno));
                 return TM_ECODE_FAILED;
             }
             if (ConfSetFinal("pcap-file.file", optarg) != 1) {
