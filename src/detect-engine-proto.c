@@ -98,6 +98,9 @@ int DetectProtoParse(DetectProto *dp, const char *str)
         dp->flags |= DETECT_PROTO_ANY;
         memset(dp->proto, 0xff, sizeof(dp->proto));
         SCLogDebug("IP protocol detected");
+    } else if (strcasecmp(str, "gre") == 0) {
+        dp->proto[IPPROTO_GRE / 8] |= 1 << (IPPROTO_GRE % 8);
+        SCLogDebug("GRE protocol detected");
     } else {
         goto error;
 
