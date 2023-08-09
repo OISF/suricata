@@ -130,6 +130,7 @@ int DetectEngineReloadIsIdle(void);
 
 int DetectEngineLoadTenantBlocking(uint32_t tenant_id, const char *yaml);
 int DetectEngineReloadTenantBlocking(uint32_t tenant_id, const char *yaml, int reload_cnt);
+int DetectEngineReloadTenantsBlocking(const int reload_cnt);
 
 int DetectEngineTenantRegisterLivedev(uint32_t tenant_id, int device_id);
 int DetectEngineTenantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
