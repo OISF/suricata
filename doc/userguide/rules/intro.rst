@@ -77,6 +77,7 @@ concerns. You can choose between several basic protocols:
 * icmpv6
 * icmp (both icmpv4 and icmpv6)
 * sctp
+* gre
 * ip4 or ipv4 ('all' or 'any' IPv4 traffic)
 * ip6 or ipv6 ('all' or 'any' IPv6 traffic)
 * ip (ip stands for 'all' or 'any' both IPv4 and IPv6 traffic)
