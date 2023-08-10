@@ -1206,9 +1206,6 @@ error_exit:
         if (json_ctx->file_ctx->prefix) {
             SCFree(json_ctx->file_ctx->prefix);
         }
-        if (json_ctx->file_ctx->sensor_name) {
-            SCFree(json_ctx->file_ctx->sensor_name);
-        }
         LogFileFreeCtx(json_ctx->file_ctx);
     }
     SCFree(json_ctx);
