@@ -514,7 +514,7 @@ static TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void 
 
     if (pcapconfig->snaplen == 0) {
         /* We set snaplen if we can get the MTU */
-        ptv->pcap_snaplen = GetIfaceMaxPacketSize(pcapconfig->iface);
+        ptv->pcap_snaplen = GetIfaceMaxPacketSize(ptv->livedev);
     } else {
         ptv->pcap_snaplen = pcapconfig->snaplen;
     }
