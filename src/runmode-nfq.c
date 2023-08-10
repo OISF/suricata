@@ -60,8 +60,6 @@ int RunModeIpsNFQAutoFp(void)
     int ret = 0;
 #ifdef NFQ
 
-    RunModeInitialize();
-
     TimeModeSetLive();
 
     LiveDeviceHasNoStats();
@@ -79,8 +77,6 @@ int RunModeIpsNFQWorker(void)
     SCEnter();
     int ret = 0;
 #ifdef NFQ
-
-    RunModeInitialize();
 
     TimeModeSetLive();
 

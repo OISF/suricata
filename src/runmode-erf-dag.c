@@ -72,8 +72,6 @@ int RunModeIdsErfDagSingle(void)
 
     SCEnter();
 
-    RunModeInitialize();
-
     TimeModeSetLive();
 
     ret = RunModeSetLiveCaptureSingle(ParseDagConfig,
@@ -97,8 +95,6 @@ int RunModeIdsErfDagAutoFp(void)
 
     SCEnter();
 
-    RunModeInitialize();
-
     TimeModeSetLive();
 
     ret = RunModeSetLiveCaptureAutoFp(ParseDagConfig, DagConfigGetThreadCount, "ReceiveErfDag",
@@ -117,8 +113,6 @@ int RunModeIdsErfDagWorkers(void)
     int ret;
 
     SCEnter();
-
-    RunModeInitialize();
 
     TimeModeSetLive();
 
