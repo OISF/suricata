@@ -492,7 +492,6 @@ static TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
     SCEnter();
     AFPPeer *peer = SCMalloc(sizeof(AFPPeer));
     AFPPeer *pitem;
-    int mtu, out_mtu;
 
     if (unlikely(peer == NULL)) {
         SCReturnInt(TM_ECODE_FAILED);
@@ -527,12 +526,18 @@ static TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
                 continue;
             peer->peer = pitem;
             pitem->peer = peer;
-            mtu = GetIfaceMTU(ptv->iface);
-            out_mtu = GetIfaceMTU(ptv->out_iface);
-            if (mtu != out_mtu) {
-                SCLogWarning("MTU on %s (%d) and %s (%d) are not equal, "
-                             "transmission of packets bigger than %d will fail.",
-                        ptv->iface, mtu, ptv->out_iface, out_mtu, MIN(out_mtu, mtu));
+
+            LiveDevice *iface = ptv->livedev;
+            DEBUG_VALIDATE_BUG_ON(strcmp(iface->dev, ptv->iface) != 0);
+            DEBUG_VALIDATE_BUG_ON(iface == NULL);
+            LiveDevice *out_iface = LiveGetDevice(ptv->out_iface);
+            if (out_iface == NULL)
+                FatalError("AF_PACKET device %s not found. Aborting..", ptv->out_iface);
+            if (iface->mtu != out_iface->mtu) {
+                SCLogWarning("MTU on %s (%d) and %s (%d) are not equal, transmission of packets "
+                             "bigger than %d will fail.",
+                        iface->dev, iface->mtu, out_iface->dev, out_iface->mtu,
+                        MIN(out_iface->mtu, iface->mtu));
             }
             peerslist.peered += 2;
             break;
