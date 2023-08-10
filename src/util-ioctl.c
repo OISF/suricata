@@ -114,11 +114,12 @@ int GetIfaceMTU(const char *dev)
  * for the link. In case of uncertainty, it will output a
  * majorant to be sure avoid the cost of dynamic allocation.
  *
- * \param Name of a network interface
+ * \param LiveDevice object
  * \retval 0 in case of error
  */
-int GetIfaceMaxPacketSize(const char *pcap_dev)
+int GetIfaceMaxPacketSize(LiveDevice *ld)
 {
+    const char *dev = ld->dev;
     if ((dev == NULL) || strlen(dev) == 0)
         return 0;
 
