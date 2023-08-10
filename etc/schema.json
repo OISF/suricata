@@ -40,7 +40,8 @@
             "type": "integer"
         },
         "host": {
-            "$comment": "May change to sensor_name in the future, or become user configurable: https://redmine.openinfosecfoundation.org/issues/4919",
+            "$comment":
+                    "May change to sensor_name in the future, or become user configurable: https://redmine.openinfosecfoundation.org/issues/4919",
             "description": "the sensor-name, if configured",
             "type": "string"
         },

@@ -450,8 +450,6 @@ int RunModeIdsPfringAutoFp(void)
     const char *live_dev = NULL;
     ConfigIfaceParserFunc tparser;
 
-    RunModeInitialize();
-
     TimeModeSetLive();
 
     ret = GetDevAndParser(&live_dev, &tparser);
@@ -480,8 +478,6 @@ int RunModeIdsPfringSingle(void)
     int ret;
     const char *live_dev = NULL;
     ConfigIfaceParserFunc tparser;
-
-    RunModeInitialize();
 
     TimeModeSetLive();
 
@@ -514,8 +510,6 @@ int RunModeIdsPfringWorkers(void)
     int ret;
     const char *live_dev = NULL;
     ConfigIfaceParserFunc tparser;
-
-    RunModeInitialize();
 
     TimeModeSetLive();
 

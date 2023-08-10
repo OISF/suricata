@@ -216,7 +216,6 @@ static int NapatechInit(int runmode)
 {
     int status;
 
-    RunModeInitialize();
     TimeModeSetLive();
 
     /* Initialize the API and check version compatibility */

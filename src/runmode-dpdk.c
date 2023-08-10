@@ -1649,7 +1649,6 @@ int RunModeIdsDpdkWorkers(void)
 #ifdef HAVE_DPDK
     int ret;
 
-    RunModeInitialize();
     TimeModeSetLive();
 
     InitEal();

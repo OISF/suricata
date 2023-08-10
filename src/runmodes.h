@@ -85,7 +85,7 @@ void RunModeDispatch(int, const char *, const char *capture_plugin_name, const c
 void RunModeRegisterRunModes(void);
 void RunModeRegisterNewRunMode(enum RunModes, const char *, const char *, int (*RunModeFunc)(void),
         void (*RunModeIsIPSEnabled)(void));
-void RunModeInitialize(void);
+void RunModeInitializeThreadSettings(void);
 void RunModeInitializeOutputs(void);
 void RunModeShutDown(void);
 
