@@ -384,7 +384,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
 #define NLOADERS 4
 static DetectLoaderControl *loaders = NULL;
 static int cur_loader = 0;
-void TmThreadWakeupDetectLoaderThreads(void);
+static void TmThreadWakeupDetectLoaderThreads(void);
 static int num_loaders = NLOADERS;
 
 /** \param loader -1 for auto select
@@ -427,14 +427,14 @@ int DetectLoadersSync(void)
 {
     SCLogDebug("waiting");
     int errors = 0;
-    int i;
-    for (i = 0; i < num_loaders; i++) {
-        int done = 0;
+    for (int i = 0; i < num_loaders; i++) {
+        bool done = false;
+
         DetectLoaderControl *loader = &loaders[i];
         while (!done) {
             SCMutexLock(&loader->m);
             if (TAILQ_EMPTY(&loader->task_list)) {
-                done = 1;
+                done = true;
             }
             SCMutexUnlock(&loader->m);
         }
@@ -444,7 +444,6 @@ int DetectLoadersSync(void)
             loader->result = 0;
         }
         SCMutexUnlock(&loader->m);
-
     }
     if (errors) {
         SCLogError(SC_ERR_INITIALIZATION, "%d loaders reported errors", errors);
@@ -467,20 +466,18 @@ void DetectLoadersInit(void)
     (void)ConfGetInt("multi-detect.loaders", &setting);
 
     if (setting < 1 || setting > 1024) {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS,
-                "invalid multi-detect.loaders setting %"PRIdMAX, setting);
-        exit(EXIT_FAILURE);
+        FatalError(SC_ERR_INVALID_ARGUMENTS, "invalid multi-detect.loaders setting %" PRIdMAX,
+                setting);
     }
-    num_loaders = (int32_t)setting;
 
+    num_loaders = (int32_t)setting;
     SCLogInfo("using %d detect loader threads", num_loaders);
 
     BUG_ON(loaders != NULL);
     loaders = SCCalloc(num_loaders, sizeof(DetectLoaderControl));
     BUG_ON(loaders == NULL);
 
-    int i;
-    for (i = 0; i < num_loaders; i++) {
+    for (int i = 0; i < num_loaders; i++) {
         DetectLoaderInit(&loaders[i]);
     }
 }
@@ -488,14 +485,11 @@ void DetectLoadersInit(void)
 /**
  * \brief Unpauses all threads present in tv_root
  */
-void TmThreadWakeupDetectLoaderThreads(void)
+static void TmThreadWakeupDetectLoaderThreads(void)
 {
-    ThreadVars *tv = NULL;
-    int i = 0;
-
     SCMutexLock(&tv_root_lock);
-    for (i = 0; i < TVT_MAX; i++) {
-        tv = tv_root[i];
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
         while (tv != NULL) {
             if (strncmp(tv->name,"DL#",3) == 0) {
                 BUG_ON(tv->ctrl_cond == NULL);
@@ -505,8 +499,6 @@ void TmThreadWakeupDetectLoaderThreads(void)
         }
     }
     SCMutexUnlock(&tv_root_lock);
-
-    return;
 }
 
 /**
@@ -514,12 +506,9 @@ void TmThreadWakeupDetectLoaderThreads(void)
  */
 void TmThreadContinueDetectLoaderThreads(void)
 {
-    ThreadVars *tv = NULL;
-    int i = 0;
-
     SCMutexLock(&tv_root_lock);
-    for (i = 0; i < TVT_MAX; i++) {
-        tv = tv_root[i];
+    for (int i = 0; i < TVT_MAX; i++) {
+        ThreadVars *tv = tv_root[i];
         while (tv != NULL) {
             if (strncmp(tv->name,"DL#",3) == 0)
                 TmThreadContinue(tv);
@@ -528,10 +517,7 @@ void TmThreadContinueDetectLoaderThreads(void)
         }
     }
     SCMutexUnlock(&tv_root_lock);
-
-    return;
 }
-
 
 SC_ATOMIC_DECLARE(int, detect_loader_cnt);
 
@@ -609,27 +595,18 @@ static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
 /** \brief spawn the detect loader manager thread */
 void DetectLoaderThreadSpawn(void)
 {
-    int i;
-    for (i = 0; i < num_loaders; i++) {
-        ThreadVars *tv_loader = NULL;
-
+    for (int i = 0; i < num_loaders; i++) {
         char name[TM_THREAD_NAME_MAX];
         snprintf(name, sizeof(name), "%s#%02d", thread_name_detect_loader, i+1);
 
-        tv_loader = TmThreadCreateCmdThreadByName(name,
-                "DetectLoader", 1);
-        BUG_ON(tv_loader == NULL);
-
+        ThreadVars *tv_loader = TmThreadCreateCmdThreadByName(name, "DetectLoader", 1);
         if (tv_loader == NULL) {
-            printf("ERROR: TmThreadsCreate failed\n");
-            exit(1);
+            FatalError(SC_ERR_THREAD_CREATE, "failed to create thread %s", name);
         }
         if (TmThreadSpawn(tv_loader) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
-            exit(1);
+            FatalError(SC_ERR_THREAD_CREATE, "failed to create spawn %s", name);
         }
     }
-    return;
 }
 
 void TmModuleDetectLoaderRegister (void)
