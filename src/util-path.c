@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -71,36 +71,86 @@ int PathIsRelative(const char *path)
     return PathIsAbsolute(path) ? 0 : 1;
 }
 
+int PathMerge(char *out_buf, size_t buf_size, const char *const dir, const char *const fname)
+{
+    char path[PATH_MAX];
+    if (dir == NULL || strlen(dir) == 0)
+        return -1;
+
+    size_t r = strlcpy(path, dir, sizeof(path));
+    if (r >= sizeof(path)) {
+        return -1;
+    }
+
+#if defined OS_WIN32 || defined __CYGWIN__
+    if (path[strlen(path) - 1] != '\\')
+        r = strlcat(path, "\\\\", sizeof(path));
+#else
+    if (path[strlen(path) - 1] != '/')
+        r = strlcat(path, "/", sizeof(path));
+#endif
+    if (r >= sizeof(path)) {
+        return -1;
+    }
+    r = strlcat(path, fname, sizeof(path));
+    if (r >= sizeof(path)) {
+        return -1;
+    }
+    r = strlcpy(out_buf, path, buf_size);
+    if (r >= buf_size) {
+        return -1;
+    }
+
+    return 0;
+}
+
+char *PathMergeAlloc(const char *const dir, const char *const fname)
+{
+    char path[PATH_MAX];
+    if (PathMerge(path, sizeof(path), dir, fname) != 0)
+        return NULL;
+
+    char *ret = SCStrdup(path);
+    if (ret == NULL)
+        return NULL;
+
+    return ret;
+}
+
 /**
  * \brief Wrapper to join a directory and filename and resolve using realpath
  *   _fullpath is used for WIN32
  *
  * \param out_buf output buffer.  Up to PATH_MAX will be written.  Unchanged on exit failure.
- * \param buf_len length of output buffer
+ * \param buf_size length of output buffer, must be PATH_MAX
  * \param dir the directory
  * \param fname the filename
  *
- * \retval TM_ECODE_OK on success
- * \retval TM_ECODE_FAILED on failure
+ * \retval 0 on success
+ * \retval -1 on failure
  */
-TmEcode PathJoin (char *out_buf, uint16_t buf_len, const char *const dir, const char *const fname)
+int PathJoin(char *out_buf, size_t buf_size, const char *const dir, const char *const fname)
 {
     SCEnter();
-    uint16_t max_path_len = MAX(buf_len, PATH_MAX);
-    int bytes_written = snprintf(out_buf, max_path_len, "%s%c%s", dir, DIRECTORY_SEPARATOR, fname);
-    if (bytes_written <= 0) {
+    if (buf_size != PATH_MAX) {
+        return -1;
+    }
+    if (PathMerge(out_buf, buf_size, dir, fname) != 0) {
         SCLogError("Could not join filename to path");
-        SCReturnInt(TM_ECODE_FAILED);
+        return -1;
     }
     char *tmp_buf = SCRealPath(out_buf, NULL);
     if (tmp_buf == NULL) {
         SCLogError("Error resolving path: %s", strerror(errno));
-        SCReturnInt(TM_ECODE_FAILED);
+        return -1;
     }
-    memset(out_buf, 0, buf_len);
-    strlcpy(out_buf, tmp_buf, max_path_len);
+    memset(out_buf, 0, buf_size);
+    size_t ret = strlcpy(out_buf, tmp_buf, buf_size);
     free(tmp_buf);
-    SCReturnInt(TM_ECODE_OK);
+    if (ret >= buf_size) {
+        return -1;
+    }
+    return 0;
 }
 
 /**
