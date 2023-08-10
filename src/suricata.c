@@ -2486,7 +2486,8 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                             dev[len-1] = '\0';
                         }
                     }
-                    unsigned int iface_max_packet_size = GetIfaceMaxPacketSize(dev);
+                    LiveDevice *ld = LiveGetDevice(dev);
+                    unsigned int iface_max_packet_size = GetIfaceMaxPacketSize(ld);
                     if (iface_max_packet_size > default_packet_size)
                         default_packet_size = iface_max_packet_size;
                 }
