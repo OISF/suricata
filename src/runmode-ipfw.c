@@ -63,8 +63,6 @@ int RunModeIpsIPFWAutoFp(void)
     int ret = 0;
 #ifdef IPFW
 
-    RunModeInitialize();
-
     TimeModeSetLive();
 
     LiveDeviceHasNoStats();
@@ -82,8 +80,6 @@ int RunModeIpsIPFWWorker(void)
     SCEnter();
     int ret = 0;
 #ifdef IPFW
-
-    RunModeInitialize();
 
     TimeModeSetLive();
 

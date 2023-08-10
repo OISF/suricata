@@ -54,8 +54,6 @@ int RunModeIpsWinDivertAutoFp(void)
     SCEnter();
     int ret = 0;
 #ifdef WINDIVERT
-    RunModeInitialize();
-
     TimeModeSetLive();
 
     LiveDeviceHasNoStats();

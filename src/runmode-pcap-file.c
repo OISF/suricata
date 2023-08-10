@@ -64,7 +64,6 @@ int RunModeFilePcapSingle(void)
         FatalError("Failed retrieving pcap-file from Conf");
     }
 
-    RunModeInitialize();
     TimeModeSetOffline();
 
     PcapFileGlobalInit();
@@ -129,8 +128,6 @@ int RunModeFilePcapAutoFp(void)
     uint16_t cpu = 0;
     char *queues = NULL;
     uint16_t thread;
-
-    RunModeInitialize();
 
     const char *file = NULL;
     if (ConfGet("pcap-file.file", &file) == 0) {
