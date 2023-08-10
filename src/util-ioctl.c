@@ -132,6 +132,7 @@ int GetIfaceMaxPacketSize(LiveDevice *ld)
         case -1:
             return 0;
     }
+    ld->mtu = mtu;
     int ll_header = GetIfaceMaxHWHeaderLength(dev);
     return ll_header + mtu;
 }
