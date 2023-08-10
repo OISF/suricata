@@ -84,21 +84,9 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_f
     /* Path not specified */
     if (PathIsRelative(sig_file)) {
         if (defaultpath) {
-            SCLogDebug("Default path: %s", defaultpath);
-            size_t path_len = sizeof(char) * (strlen(defaultpath) +
-                          strlen(sig_file) + 2);
-            path = SCMalloc(path_len);
+            path = PathMergeAlloc(defaultpath, sig_file);
             if (unlikely(path == NULL))
                 return NULL;
-            strlcpy(path, defaultpath, path_len);
-#if defined OS_WIN32 || defined __CYGWIN__
-            if (path[strlen(path) - 1] != '\\')
-                strlcat(path, "\\\\", path_len);
-#else
-            if (path[strlen(path) - 1] != '/')
-                strlcat(path, "/", path_len);
-#endif
-            strlcat(path, sig_file, path_len);
         } else {
             path = SCStrdup(sig_file);
             if (unlikely(path == NULL))
