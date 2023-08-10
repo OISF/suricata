@@ -55,26 +55,16 @@
  *
  * \param Name of a network interface
  */
-static int GetIfaceMaxHWHeaderLength(const char *pcap_dev)
+static int GetIfaceMaxHWHeaderLength(const char *dev)
 {
-    if ((!strcmp("eth", pcap_dev))
-            ||
-            (!strcmp("br", pcap_dev))
-            ||
-            (!strcmp("bond", pcap_dev))
-            ||
-            (!strcmp("wlan", pcap_dev))
-            ||
-            (!strcmp("tun", pcap_dev))
-            ||
-            (!strcmp("tap", pcap_dev))
-            ||
-            (!strcmp("lo", pcap_dev))) {
+    if ((!strcmp("eth", dev)) || (!strcmp("br", dev)) || (!strcmp("bond", dev)) ||
+            (!strcmp("wlan", dev)) || (!strcmp("tun", dev)) || (!strcmp("tap", dev)) ||
+            (!strcmp("lo", dev))) {
         /* Add possible VLAN tag or Qing headers */
         return 8 + ETHERNET_HEADER_LEN;
     }
 
-    if (!strcmp("ppp", pcap_dev))
+    if (!strcmp("ppp", dev))
         return SLL_HEADER_LEN;
     /* SLL_HEADER_LEN is the biggest one and
        add possible VLAN tag and Qing headers */
@@ -88,29 +78,29 @@ static int GetIfaceMaxHWHeaderLength(const char *pcap_dev)
  * \param Name of link
  * \retval -1 in case of error, 0 if MTU can not be found
  */
-int GetIfaceMTU(const char *pcap_dev)
+int GetIfaceMTU(const char *dev)
 {
 #if defined SIOCGIFMTU
     struct ifreq ifr;
     int fd;
 
-    (void)strlcpy(ifr.ifr_name, pcap_dev, sizeof(ifr.ifr_name));
+    (void)strlcpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
         return -1;
     }
 
     if (ioctl(fd, SIOCGIFMTU, (char *)&ifr) < 0) {
-        SCLogWarning("Failure when trying to get MTU via ioctl for '%s': %s (%d)", pcap_dev,
+        SCLogWarning("Failure when trying to get MTU via ioctl for '%s': %s (%d)", dev,
                 strerror(errno), errno);
         close(fd);
         return -1;
     }
     close(fd);
-    SCLogInfo("%s: MTU %d", pcap_dev, ifr.ifr_mtu);
+    SCLogInfo("%s: MTU %d", dev, ifr.ifr_mtu);
     return ifr.ifr_mtu;
 #elif defined OS_WIN32
-    return GetIfaceMTUWin32(pcap_dev);
+    return GetIfaceMTUWin32(dev);
 #else
     /* ioctl is not defined, let's pretend returning 0 is ok */
     return 0;
@@ -127,12 +117,12 @@ int GetIfaceMTU(const char *pcap_dev)
  * \param Name of a network interface
  * \retval 0 in case of error
  */
-int GetIfaceMaxPacketSize(const char *pcap_dev)
+int GetIfaceMaxPacketSize(const char *dev)
 {
-    if ((pcap_dev == NULL) || strlen(pcap_dev) == 0)
+    if ((dev == NULL) || strlen(dev) == 0)
         return 0;
 
-    int mtu = GetIfaceMTU(pcap_dev);
+    int mtu = GetIfaceMTU(dev);
     switch (mtu) {
         case 0:
         case -1:
