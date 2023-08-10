@@ -1573,7 +1573,7 @@ sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
     int snaplen = default_packet_size;
 
     if (snaplen == 0) {
-        snaplen = GetIfaceMaxPacketSize(ptv->iface);
+        snaplen = GetIfaceMaxPacketSize(ptv->livedev);
         if (snaplen <= 0) {
             SCLogWarning("%s: unable to get MTU, setting snaplen default of 1514", ptv->iface);
             snaplen = 1514;
@@ -1607,7 +1607,7 @@ static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
     int snaplen = default_packet_size;
 
     if (snaplen == 0) {
-        snaplen = GetIfaceMaxPacketSize(ptv->iface);
+        snaplen = GetIfaceMaxPacketSize(ptv->livedev);
         if (snaplen <= 0) {
             SCLogWarning("%s: unable to get MTU, setting snaplen default of 1514", ptv->iface);
             snaplen = 1514;
