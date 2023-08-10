@@ -399,7 +399,6 @@ static int NetmapRunModeInit(NetmapRunMode_t runmode)
 {
     SCEnter();
 
-    RunModeInitialize();
     TimeModeSetLive();
 
     const char *live_dev = NULL;

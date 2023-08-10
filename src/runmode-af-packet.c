@@ -765,8 +765,6 @@ int RunModeIdsAFPAutoFp(void)
     int ret;
     const char *live_dev = NULL;
 
-    RunModeInitialize();
-
     TimeModeSetLive();
 
     (void)ConfGet("af-packet.live-interface", &live_dev);
@@ -804,7 +802,6 @@ int RunModeIdsAFPSingle(void)
     int ret;
     const char *live_dev = NULL;
 
-    RunModeInitialize();
     TimeModeSetLive();
 
     (void)ConfGet("af-packet.live-interface", &live_dev);
@@ -846,7 +843,6 @@ int RunModeIdsAFPWorkers(void)
     int ret;
     const char *live_dev = NULL;
 
-    RunModeInitialize();
     TimeModeSetLive();
 
     (void)ConfGet("af-packet.live-interface", &live_dev);

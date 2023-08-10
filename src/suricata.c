@@ -2941,6 +2941,7 @@ int SuricataMain(int argc, char **argv)
 
     LogVersion(&suricata);
     UtilCpuPrintSummary();
+    RunModeInitializeThreadSettings();
 
     if (suricata.run_mode == RUNMODE_CONF_TEST)
         SCLogInfo("Running suricata under test mode");

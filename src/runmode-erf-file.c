@@ -59,8 +59,6 @@ int RunModeErfFileSingle(void)
         FatalError("Failed to get erf-file.file from config.");
     }
 
-    RunModeInitialize();
-
     TimeModeSetOffline();
 
     /* Basically the same setup as PCAP files. */
@@ -112,8 +110,6 @@ int RunModeErfFileAutoFp(void)
     uint16_t cpu = 0;
     char *queues = NULL;
     uint16_t thread;
-
-    RunModeInitialize();
 
     const char *file = NULL;
     if (ConfGet("erf-file.file", &file) == 0) {
