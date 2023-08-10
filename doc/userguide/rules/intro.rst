@@ -69,12 +69,17 @@ Protocol
     alert :example-rule-emphasis:`http` $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP GET Request Containing Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"rule"; fast_pattern; classtype:bad-unknown; sid:123; rev:1;)
 
 This keyword in a signature tells Suricata which protocol it
-concerns. You can choose between four basic protocols:
+concerns. You can choose between several basic protocols:
 
 * tcp (for tcp-traffic)
 * udp
-* icmp
-* ip (ip stands for 'all' or 'any')
+* icmpv4
+* icmpv6
+* icmp (both icmpv4 and icmpv6)
+* sctp
+* ip4 or ipv4 ('all' or 'any' IPv4 traffic)
+* ip6 or ipv6 ('all' or 'any' IPv6 traffic)
+* ip (ip stands for 'all' or 'any' both IPv4 and IPv6 traffic)
 
 There are a couple of additional TCP related protocol options:
 
