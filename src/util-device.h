@@ -49,6 +49,7 @@ typedef struct {
 typedef struct LiveDevice_ {
     char *dev;  /**< the device (e.g. "eth0") */
     char dev_short[MAX_DEVNAME + 1];
+    int mtu; /* MTU of the device */
     bool tenant_id_set;
 
     uint16_t id;
