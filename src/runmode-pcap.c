@@ -235,7 +235,6 @@ int RunModeIdsPcapSingle(void)
 
     SCEnter();
 
-    RunModeInitialize();
     TimeModeSetLive();
 
     (void)ConfGet("pcap.single-pcap-dev", &live_dev);
@@ -275,7 +274,6 @@ int RunModeIdsPcapAutoFp(void)
     const char *live_dev = NULL;
 
     SCEnter();
-    RunModeInitialize();
     TimeModeSetLive();
 
     (void) ConfGet("pcap.single-pcap-dev", &live_dev);
@@ -303,7 +301,6 @@ int RunModeIdsPcapWorkers(void)
     const char *live_dev = NULL;
     SCEnter();
 
-    RunModeInitialize();
     TimeModeSetLive();
 
     (void) ConfGet("pcap.single-pcap-dev", &live_dev);

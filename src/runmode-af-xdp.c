@@ -330,7 +330,6 @@ int RunModeIdsAFXDPSingle(void)
     int ret;
     const char *live_dev = NULL;
 
-    RunModeInitialize();
     TimeModeSetLive();
 
     (void)ConfGet("af-xdp.live-interface", &live_dev);
@@ -365,7 +364,6 @@ int RunModeIdsAFXDPWorkers(void)
     int ret;
     const char *live_dev = NULL;
 
-    RunModeInitialize();
     TimeModeSetLive();
 
     (void)ConfGet("af-xdp.live-interface", &live_dev);

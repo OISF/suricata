@@ -153,7 +153,6 @@ static int RunModeIdsNflogAutoFp(void)
     SCEnter();
 
 #ifdef HAVE_NFLOG
-    RunModeInitialize();
     TimeModeSetLive();
 
     int ret = RunModeSetLiveCaptureAutoFp(ParseNflogConfig, NflogConfigGeThreadsCount,
@@ -173,7 +172,6 @@ static int RunModeIdsNflogSingle(void)
     SCEnter();
 
 #ifdef HAVE_NFLOG
-    RunModeInitialize();
     TimeModeSetLive();
 
     int ret = RunModeSetLiveCaptureSingle(ParseNflogConfig, NflogConfigGeThreadsCount,
@@ -193,7 +191,6 @@ static int RunModeIdsNflogWorkers(void)
     SCEnter();
 
 #ifdef HAVE_NFLOG
-    RunModeInitialize();
     TimeModeSetLive();
 
     int ret = RunModeSetLiveCaptureWorkers(ParseNflogConfig, NflogConfigGeThreadsCount,
