@@ -69,6 +69,7 @@ pub struct DHCPOptGeneric {
     pub data: Vec<u8>,
 }
 
+
 pub enum DHCPOptionWrapper {
     ClientId(DHCPOptClientId),
     TimeValue(DHCPOptTimeValue),
@@ -279,6 +280,35 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_parse_dhcp_option_60() {
+        let pcap = include_bytes!("singular_packet_option_60.pcap");
+        let payload = &pcap[24 + 16 + 42..];
+
+        match dhcp_parse(payload) {
+            Ok((_rem, message)) => {
+                assert_eq!(message.options.len(), 8);
+                let opt = &message.options[5];
+                let c = opt.code;
+                match opt.option {
+                    DHCPOptionWrapper::Generic(ref opt) => {
+                        match c {
+                            DHCP_OPT_VENDOR_CLASS_ID => {
+                                assert_eq!("MSFT 5.0", String::from_utf8_lossy(&opt.data))
+                            }
+                            _ => assert!(false)
+                        }
+                    }
+                    _ => assert!(false)
+                }
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+    }
+
 
     #[test]
     fn test_parse_client_id_too_short() {

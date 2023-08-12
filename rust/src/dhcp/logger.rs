@@ -101,7 +101,6 @@ impl DHCPLogger {
                               &dns_print_addr(&header.serverip))?;
             }
         }
-        
         for option in options {
             let code = option.code;
             match option.option {
@@ -166,6 +165,12 @@ impl DHCPLogger {
                         DHCP_OPT_ROUTERS => {
                             if self.extended {
                                 self.log_opt_routers(js, option)?;
+                            }
+                        }
+                        DHCP_OPT_VENDOR_CLASS_ID => {
+                            if self.extended && !option.data.is_empty(){
+                                js.set_string_from_bytes("vendor_class_identifier",
+                                                         &option.data)?;
                             }
                         }
                         _ => {}
