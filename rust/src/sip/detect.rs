@@ -23,9 +23,7 @@ use std::ptr;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_tx_get_method(
-    tx: &mut SIPTransaction,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &mut SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ref r) = tx.request {
         let m = &r.method;
@@ -44,9 +42,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_method(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_tx_get_uri(
-    tx: &mut SIPTransaction,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &mut SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ref r) = tx.request {
         let p = &r.path;
@@ -65,10 +61,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_uri(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_tx_get_protocol(
-    tx: &mut SIPTransaction,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
-    direction: u8,
+    tx: &mut SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32, direction: u8,
 ) -> u8 {
     match direction.into() {
         Direction::ToServer => {
@@ -101,9 +94,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_protocol(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_tx_get_stat_code(
-    tx: &mut SIPTransaction,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &mut SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ref r) = tx.response {
         let c = &r.code;
@@ -122,9 +113,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_stat_code(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_tx_get_stat_msg(
-    tx: &mut SIPTransaction,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &mut SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ref r) = tx.response {
         let re = &r.reason;
@@ -143,9 +132,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_stat_msg(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_tx_get_request_line(
-    tx: &mut SIPTransaction,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &mut SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ref r) = tx.request_line {
         if !r.is_empty() {
@@ -163,9 +150,7 @@ pub unsafe extern "C" fn rs_sip_tx_get_request_line(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_tx_get_response_line(
-    tx: &mut SIPTransaction,
-    buffer: *mut *const u8,
-    buffer_len: *mut u32,
+    tx: &mut SIPTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ref r) = tx.response_line {
         if !r.is_empty() {
