@@ -1826,7 +1826,8 @@
 
     if test "$enable_napatech" = "yes"; then
         CPPFLAGS="${CPPFLAGS} -I${with_napatech_includes}"
-        LDFLAGS="${LDFLAGS} -L${with_napatech_libraries} -lntapi"
+        LDFLAGS="${LDFLAGS} -L${with_napatech_libraries}"
+        LIBS="${LIBS} -lntapi"
         AC_CHECK_HEADER(nt.h,NAPATECH="yes",NAPATECH="no")
         if test "$NAPATECH" != "no"; then
             NAPATECH=""
