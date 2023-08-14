@@ -115,16 +115,59 @@ SC_ATOMIC_DECLARE(uint16_t, total_tallied);
  * are running*/
 SC_ATOMIC_DECLARE(uint16_t, stream_count);
 
-SC_ATOMIC_DECLARE(uint16_t, numa0_count);
-SC_ATOMIC_DECLARE(uint16_t, numa1_count);
-SC_ATOMIC_DECLARE(uint16_t, numa2_count);
-SC_ATOMIC_DECLARE(uint16_t, numa3_count);
+typedef struct NapatechNumaDetect_ {
+    SC_ATOMIC_DECLARE(uint16_t, count);
+} NapatechNumaDetect;
+
+NapatechNumaDetect *numa_detect = NULL;
 
 SC_ATOMIC_DECLARE(uint64_t, flow_callback_cnt);
 SC_ATOMIC_DECLARE(uint64_t, flow_callback_handled_pkts);
 SC_ATOMIC_DECLARE(uint64_t, flow_callback_udp_pkts);
 SC_ATOMIC_DECLARE(uint64_t, flow_callback_tcp_pkts);
 SC_ATOMIC_DECLARE(uint64_t, flow_callback_unhandled_pkts);
+
+/**
+ * \brief Initialize the Napatech receiver (reader) module for globals.
+ */
+static TmEcode NapatechStreamInit(void)
+{
+    int i;
+
+    SC_ATOMIC_INIT(total_packets);
+    SC_ATOMIC_INIT(total_drops);
+    SC_ATOMIC_INIT(total_tallied);
+    SC_ATOMIC_INIT(stream_count);
+
+    numa_detect = SCMalloc(sizeof(*numa_detect) * (numa_max_node() + 1));
+    if (numa_detect == NULL) {
+        FatalError("Failed to allocate memory for numa detection array: %s", strerror(errno));
+    }
+
+    for (i = 0; i <= numa_max_node(); ++i) {
+        SC_ATOMIC_INIT(numa_detect[i].count);
+    }
+
+    SC_ATOMIC_INIT(flow_callback_cnt);
+    SC_ATOMIC_INIT(flow_callback_handled_pkts);
+    SC_ATOMIC_INIT(flow_callback_udp_pkts);
+    SC_ATOMIC_INIT(flow_callback_tcp_pkts);
+    SC_ATOMIC_INIT(flow_callback_unhandled_pkts);
+
+    return TM_ECODE_OK;
+}
+
+/**
+ * \brief Deinitialize the Napatech receiver (reader) module for globals.
+ */
+static TmEcode NapatechStreamDeInit(void)
+{
+    if (numa_detect != NULL) {
+        SCFree(numa_detect);
+    }
+
+    return TM_ECODE_OK;
+}
 
 /**
  * \brief Register the Napatech  receiver (reader) module.
@@ -140,22 +183,8 @@ void TmModuleNapatechStreamRegister(void)
     tmm_modules[TMM_RECEIVENAPATECH].ThreadDeinit = NapatechStreamThreadDeinit;
     tmm_modules[TMM_RECEIVENAPATECH].cap_flags = SC_CAP_NET_RAW;
     tmm_modules[TMM_RECEIVENAPATECH].flags = TM_FLAG_RECEIVE_TM;
-
-    SC_ATOMIC_INIT(total_packets);
-    SC_ATOMIC_INIT(total_drops);
-    SC_ATOMIC_INIT(total_tallied);
-    SC_ATOMIC_INIT(stream_count);
-
-    SC_ATOMIC_INIT(numa0_count);
-    SC_ATOMIC_INIT(numa1_count);
-    SC_ATOMIC_INIT(numa2_count);
-    SC_ATOMIC_INIT(numa3_count);
-
-    SC_ATOMIC_INIT(flow_callback_cnt);
-    SC_ATOMIC_INIT(flow_callback_handled_pkts);
-    SC_ATOMIC_INIT(flow_callback_udp_pkts);
-    SC_ATOMIC_INIT(flow_callback_tcp_pkts);
-    SC_ATOMIC_INIT(flow_callback_unhandled_pkts);
+    tmm_modules[TMM_RECEIVENAPATECH].Init = NapatechStreamInit;
+    tmm_modules[TMM_RECEIVENAPATECH].DeInit = NapatechStreamDeInit;
 }
 
 /**
@@ -729,51 +758,31 @@ static int GetNumaNode(void)
  * \param log_level of the currently running instance.
  *
  */
-static void RecommendNUMAConfig(SCLogLevel log_level)
+static void RecommendNUMAConfig(void)
 {
-    char string0[16];
-    char string1[16];
-    char string2[16];
-    char string3[16];
+    char *buffer, *p;
     int set_cpu_affinity = 0;
+
+    p = buffer = SCCalloc(sizeof(char), (32 * (numa_max_node() + 1) + 1));
+    if (buffer == NULL) {
+        FatalError("Failed to allocate memory for temporary buffer: %s", strerror(errno));
+    }
 
     if (ConfGetBool("threading.set-cpu-affinity", &set_cpu_affinity) != 1) {
         set_cpu_affinity = 0;
     }
 
     if (set_cpu_affinity) {
-        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module,
-                "Minimum host buffers that should be defined in ntservice.ini:");
-
-        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module, "   NUMA Node 0: %d",
-                (SC_ATOMIC_GET(numa0_count)));
-
-        if (numa_max_node() >= 1)
-            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module, "   NUMA Node 1: %d ",
-                    (SC_ATOMIC_GET(numa1_count)));
-
-        if (numa_max_node() >= 2)
-            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module, "   NUMA Node 2: %d ",
-                    (SC_ATOMIC_GET(numa2_count)));
-
-        if (numa_max_node() >= 3)
-            SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module, "   NUMA Node 3: %d ",
-                    (SC_ATOMIC_GET(numa3_count)));
-
-        snprintf(string0, 16, "[%d, 16, 0]", SC_ATOMIC_GET(numa0_count));
-        snprintf(string1, 16, (numa_max_node() >= 1 ? ",[%d, 16, 1]" : ""),
-                SC_ATOMIC_GET(numa1_count));
-        snprintf(string2, 16, (numa_max_node() >= 2 ? ",[%d, 16, 2]" : ""),
-                SC_ATOMIC_GET(numa2_count));
-        snprintf(string3, 16, (numa_max_node() >= 3 ? ",[%d, 16, 3]" : ""),
-                SC_ATOMIC_GET(numa3_count));
-
-        SCLog(log_level, __FILE__, __FUNCTION__, __LINE__, _sc_module,
-                "E.g.: HostBuffersRx=%s%s%s%s", string0, string1, string2, string3);
-    } else if (log_level == SC_LOG_ERROR) {
-        SCLogError("Or, try running /opt/napatech3/bin/ntpl -e \"delete=all\" to clean-up stream "
-                   "NUMA config.");
+        SCLogPerf("Minimum host buffers that should be defined in ntservice.ini:");
+        for (int i = 0; i <= numa_max_node(); ++i) {
+            SCLogPerf("   NUMA Node %d: %d", i, SC_ATOMIC_GET(numa_detect[i].count));
+            p += snprintf(p, 32, "%s[%d, 16, %d]", (i == 0 ? "" : ","),
+                    SC_ATOMIC_GET(numa_detect[i].count), i);
+        }
+        SCLogPerf("E.g.: HostBuffersRx=%s", buffer);
     }
+
+    SCFree(buffer);
 }
 
 /**
@@ -820,21 +829,9 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
 
     if (is_autoconfig) {
         numa_node = GetNumaNode();
-        switch (numa_node) {
-        case 0:
-            SC_ATOMIC_ADD(numa0_count, 1);
-            break;
-        case 1:
-            SC_ATOMIC_ADD(numa1_count, 1);
-            break;
-        case 2:
-            SC_ATOMIC_ADD(numa2_count, 1);
-            break;
-        case 3:
-            SC_ATOMIC_ADD(numa3_count, 1);
-            break;
-        default:
-            break;
+
+        if (numa_node <= numa_max_node()) {
+            SC_ATOMIC_ADD(numa_detect[numa_node].count, 1);
         }
 
         if (ConfGetBool("threading.set-cpu-affinity", &set_cpu_affinity) != 1) {
@@ -845,7 +842,6 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
             NapatechSetupNuma(ntv->stream_id, numa_node);
         }
 
-        numa_node = GetNumaNode();
         SC_ATOMIC_ADD(stream_count, 1);
         if (SC_ATOMIC_GET(stream_count) == NapatechGetNumConfiguredStreams()) {
 
@@ -866,14 +862,13 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
             closer = 1;
 
             if (status == 0x20002061) {
-                SCLogError("Check host buffer configuration in ntservice.ini.");
-                RecommendNUMAConfig(SC_LOG_ERROR);
-                exit(EXIT_FAILURE);
-
+                FatalError("Check host buffer configuration in ntservice.ini"
+                           " or try running /opt/napatech3/bin/ntpl -e "
+                           "\"delete=all\" to clean-up stream NUMA config.");
             } else if (status == 0x20000008) {
                 FatalError("Check napatech.ports in the suricata config file.");
             }
-            RecommendNUMAConfig(SC_LOG_PERF);
+            RecommendNUMAConfig();
             SCLogNotice("Napatech packet input engine started.");
         }
     } // is_autoconfig
