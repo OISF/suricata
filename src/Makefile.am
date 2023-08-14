@@ -299,6 +299,7 @@ noinst_HEADERS = \
 	detect-dhcp-leasetime.h \
 	detect-dhcp-rebinding-time.h \
 	detect-dhcp-renewal-time.h \
+	detect-bacnetip-bacnet-bvlcfun.h \
 	detect-ssh-hassh.h \
 	detect-ssh-hassh-server.h \
 	detect-ssh-hassh-server-string.h \
@@ -424,6 +425,7 @@ noinst_HEADERS = \
 	output-json-snmp.h \
 	output-json-ssh.h \
 	output-json-stats.h \
+	output-json-bacnetip.h \
 	output-json-template.h \
 	output-json-tftp.h \
 	output-json-tls.h \
@@ -908,6 +910,7 @@ libsuricata_c_a_SOURCES = \
 	detect-dhcp-leasetime.c \
 	detect-dhcp-rebinding-time.c \
 	detect-dhcp-renewal-time.c \
+	detect-bacnetip-bacnet-bvlcfun.c \
 	detect-ssh-hassh.c \
 	detect-ssh-hassh-server.c \
 	detect-ssh-hassh-server-string.c \
@@ -1033,6 +1036,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-snmp.c \
 	output-json-ssh.c \
 	output-json-stats.c \
+	output-json-bacnetip.c \
 	output-json-template.c \
 	output-json-tftp.c \
 	output-json-tls.c \
