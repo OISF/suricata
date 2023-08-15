@@ -400,7 +400,7 @@ static NtFlowStream_t InitFlowStream(int adapter, int stream_id)
  * \return Error code indicating success (1) or failure (0).
  *
  */
-static int ProgramFlow(Packet *p, int is_inline)
+static int ProgramFlow(Packet *p, int inline_mode)
 {
     NtFlow_t flow_match;
     memset(&flow_match, 0, sizeof(flow_match));
@@ -586,7 +586,7 @@ static int ProgramFlow(Packet *p, int is_inline)
     if (PacketCheckAction(p, ACTION_DROP)) {
         flow_match.keySetId = NAPATECH_FLOWTYPE_DROP;
     } else {
-        if (is_inline) {
+        if (inline_mode) {
             flow_match.keySetId = NAPATECH_FLOWTYPE_PASS;
         } else {
             flow_match.keySetId = NAPATECH_FLOWTYPE_DROP;
