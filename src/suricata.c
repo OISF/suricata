@@ -175,12 +175,10 @@
 #include "util-cpu.h"
 #include "util-daemon.h"
 #include "util-device.h"
-#include "util-dpdk.h"
 #include "util-ebpf.h"
 #include "util-exception-policy.h"
 #include "util-host-os-info.h"
 #include "util-ioctl.h"
-#include "util-landlock.h"
 #include "util-luajit.h"
 #include "util-macset.h"
 #include "util-misc.h"
@@ -538,12 +536,12 @@ static void SetBpfStringFromFile(char *filename)
 
     fp = fopen(filename, "r");
     if (fp == NULL) {
-        SCLogError("Failed to open file %s", filename);
+        SCLogError(SC_ERR_OPENING_FILE, "Failed to open file %s", filename);
         exit(EXIT_FAILURE);
     }
 
     if (SCFstatFn(fileno(fp), &st) != 0) {
-        SCLogError("Failed to stat file %s", filename);
+        SCLogError(SC_ERR_STAT, "Failed to stat file %s", filename);
         exit(EXIT_FAILURE);
     }
     bpf_len = st.st_size + 1;
@@ -1842,7 +1840,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             SCStat buf;
             if (SCStatFn(optarg, &buf) != 0) {
-                SCLogError("pcap file '%s': %s", optarg, strerror(errno));
+                SCLogError(SC_ERR_INITIALIZATION, "pcap file '%s': %s", optarg, strerror(errno));
                 return TM_ECODE_FAILED;
             }
             if (ConfSetFinal("pcap-file.file", optarg) != 1) {
