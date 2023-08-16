@@ -845,6 +845,9 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
 
         SC_ATOMIC_ADD(stream_count, 1);
         if (SC_ATOMIC_GET(stream_count) == NapatechGetNumConfiguredStreams()) {
+            /* Print the recommended NUMA configuration early because it
+             * can fail with "No available hostbuffers" in NapatechSetupTraffic */
+            RecommendNUMAConfig();
 
 #ifdef NAPATECH_ENABLE_BYPASS
             if (ConfGetBool("napatech.inline", &is_inline) == 0) {
@@ -869,7 +872,6 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
             } else if (status == 0x20000008) {
                 FatalError("Check napatech.ports in the suricata config file.");
             }
-            RecommendNUMAConfig();
             SCLogNotice("Napatech packet input engine started.");
         }
     } // is_autoconfig
