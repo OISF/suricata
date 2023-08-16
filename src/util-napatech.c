@@ -1409,8 +1409,6 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
 #ifdef NAPATECH_ENABLE_BYPASS
     if (NapatechUseHWBypass()) {
         SCLogInfo("Napatech Hardware Bypass enabled.");
-    } else {
-        SCLogInfo("Napatech Hardware Bypass available but disabled.");
     }
 #else
     if (NapatechUseHWBypass()) {
