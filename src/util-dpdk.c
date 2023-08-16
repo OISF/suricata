@@ -24,6 +24,7 @@
 #include "suricata.h"
 #include "util-dpdk.h"
 #include "util-debug.h"
+#include <math.h>
 
 void DPDKCleanupEAL(void)
 {
@@ -63,6 +64,78 @@ void DPDKFreeDevice(LiveDevice *ldev)
         rte_mempool_free(ldev->dpdk_vars.pkt_mp);
     }
 #endif
+}
+
+static uint32_t MemInfoParseValue(FILE *fp, const char *keyword)
+{
+    char path[256], value_str[64];
+    uint32_t value = UINT32_MAX;
+
+    while (fscanf(fp, "%255s", path) != EOF) {
+        if (strcmp(path, keyword) == 0) {
+            if (fscanf(fp, "%63s", value_str) == EOF) {
+                SCLogDebug("%s: not followed by any number", keyword);
+                break;
+            }
+
+            errno = 0;
+            char *endptr;
+            value = (uint32_t)strtoul(value_str, &endptr, 10);
+            if (errno != 0 || *endptr != '\0') {
+                SCLogDebug("Failed to convert %s from /proc/meminfo", keyword);
+                value = UINT32_MAX;
+            }
+            break;
+        }
+    }
+    return value;
+}
+
+static void MemInfoEvaluateHugepages(uint32_t free_hugepages, uint32_t total_hugepages)
+{
+    if (free_hugepages == UINT32_MAX || total_hugepages == UINT32_MAX) {
+        SCLogDebug("Hugepages information not found in /proc/meminfo");
+        return;
+    }
+
+    if (total_hugepages == 0) {
+        SCLogDebug("HugePages_Total: 0 hugepages");
+        return;
+    }
+
+    float free_hugepages_ratio = (float)free_hugepages / (float)total_hugepages;
+    if (free_hugepages_ratio > 0.5) {
+        SCLogInfo("%" PRIu32 " of %" PRIu32
+                  " of hugepages are free - number of hugepages can be lowered to e.g. %.0lf",
+                free_hugepages, total_hugepages, ceil((total_hugepages - free_hugepages) * 1.15));
+    }
+}
+
+void DPDKEvaluateHugepages(void)
+{
+    if (run_mode != RUNMODE_DPDK)
+        return;
+
+#ifdef HAVE_DPDK
+    if (rte_eal_has_hugepages() == 0) { // hugepages disabled
+        SCLogPerf("Hugepages not enabled - enabling hugepages can improve performance");
+        return;
+    }
+#endif
+
+    FILE *fp = fopen("/proc/meminfo", "r");
+    if (fp == NULL) {
+        SCLogInfo("Can't analyze hugepage usage: failed to open /proc/meminfo");
+        return;
+    }
+
+    uint32_t free_hugepages = MemInfoParseValue(fp, "HugePages_Free:");
+    rewind(fp);
+    uint32_t total_hugepages = MemInfoParseValue(fp, "HugePages_Total:");
+
+    fclose(fp);
+
+    MemInfoEvaluateHugepages(free_hugepages, total_hugepages);
 }
 
 #ifdef HAVE_DPDK
