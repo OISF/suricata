@@ -689,7 +689,7 @@ TmEcode NapatechStreamThreadInit(ThreadVars *tv, const void *initdata, void **da
 
     DatalinkSetGlobalType(LINKTYPE_ETHERNET);
 
-    SCLogDebug("Started processing packets from NAPATECH  Stream: %lu", ntv->stream_id);
+    SCLogDebug("Started processing packets from NAPATECH  Stream: %u", ntv->stream_id);
 
     *data = (void *) ntv;
     SCReturnInt(TM_ECODE_OK);
@@ -888,7 +888,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         StatsSetupPrivate(tv);
         StatsSetUI64(tv, hba_pkt, 0);
     }
-    SCLogDebug("Opening NAPATECH Stream: %lu for processing", ntv->stream_id);
+    SCLogDebug("Opening NAPATECH Stream: %u for processing", ntv->stream_id);
 
     if ((status = NT_NetRxOpen(&(ntv->rx_stream), "SuricataStream",
             NT_NET_INTERFACE_PACKET, ntv->stream_id, ntv->hba)) != NT_SUCCESS) {
