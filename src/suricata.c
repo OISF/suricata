@@ -3037,6 +3037,8 @@ int SuricataMain(int argc, char **argv)
 
     PostRunStartedDetectSetup(&suricata);
 
+    DPDKEvaluateHugepages();
+
     SCPledge();
     SuricataMainLoop(&suricata);
 
