@@ -813,13 +813,14 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
 
 #ifdef NAPATECH_ENABLE_BYPASS
     NtFlowStream_t flow_stream[MAX_ADAPTERS] = { 0 };
-
-    /* Get a FlowStream handle for each adapter so we can efficiently find the
-     * correct handle corresponding to the port on which a packet is received.
-     */
-    int adapter = 0;
-    for (adapter = 0; adapter < NapatechGetNumAdapters(); ++adapter) {
-        flow_stream[adapter] = InitFlowStream(adapter, ntv->stream_id);
+    if (NapatechUseHWBypass()) {
+        /* Get a FlowStream handle for each adapter so we can efficiently find the
+         * correct handle corresponding to the port on which a packet is received.
+         */
+        int adapter = 0;
+        for (adapter = 0; adapter < NapatechGetNumAdapters(); ++adapter) {
+            flow_stream[adapter] = InitFlowStream(adapter, ntv->stream_id);
+        }
     }
 #endif
 
