@@ -3307,7 +3307,7 @@ static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *fil
 
     SCStat st;
     if (SCStatFn(filename, &st) != 0) {
-        SCLogError("failed to stat file %s", filename);
+        SCLogError(SC_ERR_STAT, "failed to stat file %s", filename);
         goto error;
     }
 

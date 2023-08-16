@@ -137,12 +137,12 @@ int PathJoin(char *out_buf, size_t buf_size, const char *const dir, const char *
         return -1;
     }
     if (PathMerge(out_buf, buf_size, dir, fname) != 0) {
-        SCLogError("Could not join filename to path");
+        SCLogError(SC_ERR_PATH_JOIN, "Could not join filename to path");
         return -1;
     }
     char *tmp_buf = SCRealPath(out_buf, NULL);
     if (tmp_buf == NULL) {
-        SCLogError("Error resolving path: %s", strerror(errno));
+        SCLogError(SC_ERR_PATH_RESOLVE, "Error resolving path: %s", strerror(errno));
         return -1;
     }
     memset(out_buf, 0, buf_size);
