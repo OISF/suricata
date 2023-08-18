@@ -87,6 +87,9 @@ bool ConfNodeHasChildren(const ConfNode *node);
 ConfNode *ConfGetChildWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name);
 ConfNode *ConfNodeLookupKeyValue(const ConfNode *base, const char *key, const char *value);
 int ConfGetChildValue(const ConfNode *base, const char *name, const char **vptr);
+int ConfGetChildValueString(const ConfNode *base, const char *name, const char **vptr);
+int ConfGetChildValueStringWithDefault(
+        const ConfNode *base, const ConfNode *dflt, const char *name, const char **vptr);
 int ConfGetChildValueInt(const ConfNode *base, const char *name, intmax_t *val);
 int ConfGetChildValueBool(const ConfNode *base, const char *name, int *val);
 int ConfGetChildValueWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name, const char **vptr);

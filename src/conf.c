@@ -469,6 +469,57 @@ int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt,
 }
 
 /**
+ * \brief Retrieve the value of a child configuration node as string.
+ *
+ * This function will return the value for a configuration node based
+ * on the full name of the node. In case the node exists but does not
+ * have a corresponding value, it is considered an error.
+ *
+ * \param base Base node to find the other nodes from.
+ * \param name Name of configuration parameter to get.
+ * \param vptr Pointer that will be set to the configuration value parameter.
+ *   Note that this is just a reference to the actual value, not a copy.
+ *
+ * \retval 1 will be returned if the name is found
+ * \retval 0 will be returned if the name is not found or has NULL value
+ */
+int ConfGetChildValueString(const ConfNode *base, const char *name, const char **vptr)
+{
+    int ret = ConfGetChildValue(base, name, vptr);
+
+    if ((ret == 1 && vptr && *vptr == NULL) || (ret == 0)) {
+        /* Cannot convert NULL to string */
+        return 0;
+    }
+    return 1;
+}
+
+/**
+ * \brief Retrieve the value of a child configuration node as string.
+ *
+ * This function will return the value for a configuration node based
+ * on the full name of the node.
+ *
+ * \param base Base node to find the other nodes from.
+ * \param dflt Default node to use as base.
+ * \param name Name of configuration parameter to get.
+ * \param vptr Pointer that will be set to the configuration value parameter.
+ *   Note that this is just a reference to the actual value, not a copy.
+ *
+ * \retval 1 will be returned if the name is found and is a valid string, 0 otherwise
+ */
+int ConfGetChildValueStringWithDefault(
+        const ConfNode *base, const ConfNode *dflt, const char *name, const char **vptr)
+{
+    int ret = ConfGetChildValueString(base, name, vptr);
+    /* Get 'default' value */
+    if (ret == 0 && dflt) {
+        return ConfGetChildValueString(dflt, name, vptr);
+    }
+    return ret;
+}
+
+/**
  * \brief Retrieve a configuration value as a boolean.
  *
  * \param name Name of configuration parameter to get.
