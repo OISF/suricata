@@ -485,6 +485,57 @@ int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt,
 }
 
 /**
+ * \brief Retrieve the value of a child configuration node as string.
+ *
+ * This function retrieves the value of a configuration node by name that
+ * exists under the provided base node.
+ *
+ * \param base Base node to find the other nodes from.
+ * \param name Name of configuration parameter to get.
+ * \param vptr Pointer that will be set to the configuration value parameter.
+ *   Note that this is just a reference to the actual value, not a copy.
+ *
+ * \retval 1 will be returned if the name is found
+ * \retval 0 will be returned if the name is not found or has NULL value
+ */
+int ConfGetChildValueString(const ConfNode *base, const char *name, const char **vptr)
+{
+    int ret = ConfGetChildValue(base, name, vptr);
+
+    if ((ret == 1 && vptr && *vptr == NULL) || (ret == 0)) {
+        /* Configuration node does not exist or does not have a value */
+        return 0;
+    }
+    return 1;
+}
+
+/**
+ * \brief Retrieve the value of a child configuration node as string.
+ *
+ * This function retrieves the value of a configuration node by name that
+ * exists under the provided base node. In case the base node is not found,
+ * the configuration node is retrieved from under the default node.
+ *
+ * \param base Base node to find the other nodes from.
+ * \param dflt Default node to use as base.
+ * \param name Name of configuration parameter to get.
+ * \param vptr Pointer that will be set to the configuration value parameter.
+ *   Note that this is just a reference to the actual value, not a copy.
+ *
+ * \retval 1 will be returned if the name is found and is a valid string, 0 otherwise
+ */
+int ConfGetChildValueStringWithDefault(
+        const ConfNode *base, const ConfNode *dflt, const char *name, const char **vptr)
+{
+    int ret = ConfGetChildValueString(base, name, vptr);
+    /* Get 'default' value */
+    if (ret == 0 && dflt) {
+        return ConfGetChildValueString(dflt, name, vptr);
+    }
+    return ret;
+}
+
+/**
  * \brief Retrieve a configuration value as a boolean.
  *
  * \param name Name of configuration parameter to get.
