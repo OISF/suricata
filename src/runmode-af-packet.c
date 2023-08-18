@@ -286,7 +286,7 @@ static void *ParseAFPConfig(const char *iface)
         }
     }
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1) {
+    if (ConfGetChildValueStringWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1) {
         if (out_iface != NULL) {
             if (strlen(out_iface) > 0) {
                 aconf->out_iface = out_iface;
