@@ -373,6 +373,22 @@ ConfNode *ConfGetChildWithDefault(const ConfNode *base, const ConfNode *dflt,
     return NULL;
 }
 
+/**
+ * \brief Retrieve a value from a node, failing over to a default node
+ *   if the value is not found.
+ *
+ * \param base The node to lookup the configuration value in
+ * \param dflt The node to failover to if the field is not found in base
+ * \param name The name of the value to find
+ * \param vptr Pointer to the configuration value if found
+ *
+ * \retval 1 will be returned if the configuration field was found,
+ *   otherwise 0 will be returned.
+ *
+ * \note NULL is a valid value, so if a configuration field was found,
+ *   and its value is NULL, this function will return 1 and vptr will be
+ *   set to NULL.
+ */
 int ConfGetChildValueWithDefault(const ConfNode *base, const ConfNode *dflt,
     const char *name, const char **vptr)
 {
@@ -1002,6 +1018,8 @@ int ConfSetRootAndDefaultNodes(
 
 #ifdef UNITTESTS
 
+#include "conf-yaml-loader.h"
+
 /**
  * Lookup a non-existant value.
  */
@@ -1222,22 +1240,54 @@ static int ConfNodeLookupChildValueTest(void)
 
 static int ConfGetChildValueWithDefaultTest(void)
 {
-    const char  *val = "";
+    const char *val = "";
     ConfCreateContextBackup();
     ConfInit();
-    ConfSet("af-packet.0.interface", "eth0");
-    ConfSet("af-packet.1.interface", "default");
-    ConfSet("af-packet.1.cluster-type", "cluster_cpu");
 
-    ConfNode *myroot = ConfGetNode("af-packet.0");
-    ConfNode *dflt = ConfGetNode("af-packet.1");
-    ConfGetChildValueWithDefault(myroot, dflt, "cluster-type", &val);
+    char input[] = "%YAML 1.1\n\
+---\n\
+af-packet:\n\
+  - interface: eth0\n\
+  - interface: default\n\
+    cluster-type: cluster_cpu\n\
+    null-value: null\n\
+";
+
+    ConfYamlLoadString(input, strlen(input));
+
+    ConfNode *if_eth0 = ConfGetNode("af-packet.0");
+    FAIL_IF_NULL(if_eth0);
+
+    ConfNode *if_default = ConfGetNode("af-packet.1");
+    FAIL_IF_NULL(if_default);
+
+    /* Get "cluster_type" from if_eth0, as this field does not exist
+       on if_eth0, the value from if_default should be returned. */
+    FAIL_IF_NOT(ConfGetChildValueWithDefault(if_eth0, if_default, "cluster-type", &val));
+    FAIL_IF_NULL(val);
     FAIL_IF(strcmp(val, "cluster_cpu"));
 
-    ConfSet("af-packet.0.cluster-type", "cluster_flow");
-    ConfGetChildValueWithDefault(myroot, dflt, "cluster-type", &val);
+    /* Get a value that does not exist at all. Should return a fail
+       value and the output pointer should not be touched. */
+    FAIL_IF(ConfGetChildValueWithDefault(if_eth0, if_default, "not-exist", &val));
+    FAIL_IF(strcmp(val, "cluster_cpu"));
 
-    FAIL_IF(strcmp(val, "cluster_flow"));
+    /* Get a value that exists, but has a null value.
+     *
+     * This shows a change of behavior from 6.0.x.  In 6.0.x null YAML
+     * values were not treated as nulls, but instead their literal
+     * string. So '~' was given a value of '~', same with 'null', or
+     * no value at all was treated as an empty string.
+     *
+     * As of 7.0, all these null YAML values will result in the node
+     * having a NULL value.
+     */
+    FAIL_IF_NOT(ConfGetChildValueWithDefault(if_eth0, if_default, "null-value", &val));
+    FAIL_IF_NOT_NULL(val);
+
+    /* Test that we fail if a non-existant values exists and no
+       default node has been provided. */
+    FAIL_IF(ConfGetChildValueWithDefault(if_eth0, NULL, "not-exist", &val));
 
     ConfDeInit();
     ConfRestoreContextBackup();
