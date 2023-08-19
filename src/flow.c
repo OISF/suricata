@@ -671,7 +671,8 @@ void FlowInitConfig(bool quiet)
     uint32_t sz = sizeof(Flow) + FlowStorageSize();
     SCLogConfig("flow size %u, memcap allows for %" PRIu64 " flows. Per hash row in perfect "
                 "conditions %" PRIu64,
-            sz, flow_memcap_copy / sz, (flow_memcap_copy / sz) / flow_config.hash_size);
+            sz, flow_memcap_copy / sz,
+            flow_config.hash_size > 0 ? (flow_memcap_copy / sz) / flow_config.hash_size : 0);
     return;
 }
 
