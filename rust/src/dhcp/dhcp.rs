@@ -42,6 +42,7 @@ pub const DHCP_OPT_TYPE: u8 = 53;
 pub const DHCP_OPT_PARAMETER_LIST: u8 = 55;
 pub const DHCP_OPT_RENEWAL_TIME: u8 = 58;
 pub const DHCP_OPT_REBINDING_TIME: u8 = 59;
+pub const DHCP_OPT_VENDOR_CLASS_ID: u8 = 60;
 pub const DHCP_OPT_CLIENT_ID: u8 = 61;
 pub const DHCP_OPT_END: u8 = 255;
 

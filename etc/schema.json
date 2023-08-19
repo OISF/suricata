@@ -560,10 +560,16 @@
                 "renewal_time": {
                     "type": "integer"
                 },
+                "requested_ip":{
+                    "type": "string"
+                },
                 "subnet_mask": {
                     "type": "string"
                 },
                 "type": {
+                    "type": "string"
+                },
+                "vendor_class_identifier":{
                     "type": "string"
                 },
                 "dns_servers": {
