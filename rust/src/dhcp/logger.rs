@@ -168,6 +168,12 @@ impl DHCPLogger {
                                 self.log_opt_routers(js, option)?;
                             }
                         }
+                        DHCP_OPT_VENDOR_CLASS_ID => {
+                            if self.extended && !option.data.is_empty(){
+                                js.set_string_from_bytes("vendor_class_identifier",
+                                                         &option.data)?;
+                            }
+                        }
                         _ => {}
                     }
                 }
