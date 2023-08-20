@@ -679,18 +679,6 @@ static bool CalculateCommunityFlowIdv4(const Flow *f,
     return false;
 }
 
-static inline bool FlowHashRawAddressIPv6LtU32(const uint32_t *a, const uint32_t *b)
-{
-    for (int i = 0; i < 4; i++) {
-        if (a[i] < b[i])
-            return true;
-        if (a[i] > b[i])
-            break;
-    }
-
-    return false;
-}
-
 static bool CalculateCommunityFlowIdv6(const Flow *f,
         const uint16_t seed, unsigned char *base64buf)
 {
@@ -714,9 +702,8 @@ static bool CalculateCommunityFlowIdv6(const Flow *f,
     dp = htons(dp);
 
     ipv6.seed = htons(seed);
-    if (FlowHashRawAddressIPv6LtU32(f->src.addr_data32, f->dst.addr_data32) ||
-            ((memcmp(&f->src, &f->dst, sizeof(f->src)) == 0) && sp < dp))
-    {
+    int cmp_r = memcmp(&f->src, &f->dst, sizeof(f->src));
+    if ((cmp_r < 0) || (cmp_r == 0 && sp < dp)) {
         memcpy(&ipv6.src, &f->src.addr_data32, 16);
         memcpy(&ipv6.dst, &f->dst.addr_data32, 16);
         ipv6.sp = sp;
