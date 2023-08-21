@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,19 +15,20 @@
  * 02110-1301, USA.
  */
 
-use std::ptr;
 use crate::core::*;
-use crate::smb::smb::*;
-use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
 use crate::dcerpc::dcerpc::DCERPC_TYPE_REQUEST;
+use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
 use crate::detect::uint::detect_match_uint;
+use crate::smb::smb::SMBTransaction;
+use crate::smb::smb::*;
+use std::ffi::CStr;
+use std::os::raw::{c_char, c_void};
+use std::ptr;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
-                                            buffer: *mut *const u8,
-                                            buffer_len: *mut u32)
-                                            -> u8
-{
+pub unsafe extern "C" fn rs_smb_tx_get_share(
+    tx: &mut SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
     if let Some(SMBTransactionTypeData::TREECONNECT(ref x)) = tx.type_data {
         SCLogDebug!("is_pipe {}", x.is_pipe);
         if !x.is_pipe {
@@ -43,11 +44,9 @@ pub unsafe extern "C" fn rs_smb_tx_get_share(tx: &mut SMBTransaction,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_tx_get_named_pipe(tx: &mut SMBTransaction,
-                                            buffer: *mut *const u8,
-                                            buffer_len: *mut u32)
-                                            -> u8
-{
+pub unsafe extern "C" fn rs_smb_tx_get_named_pipe(
+    tx: &mut SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
     if let Some(SMBTransactionTypeData::TREECONNECT(ref x)) = tx.type_data {
         SCLogDebug!("is_pipe {}", x.is_pipe);
         if x.is_pipe {
@@ -63,12 +62,9 @@ pub unsafe extern "C" fn rs_smb_tx_get_named_pipe(tx: &mut SMBTransaction,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_tx_get_stub_data(tx: &mut SMBTransaction,
-                                            direction: u8,
-                                            buffer: *mut *const u8,
-                                            buffer_len: *mut u32)
-                                            -> u8
-{
+pub unsafe extern "C" fn rs_smb_tx_get_stub_data(
+    tx: &mut SMBTransaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
     if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
         let vref = if direction == Direction::ToServer as u8 {
             &x.stub_data_ts
@@ -88,10 +84,9 @@ pub unsafe extern "C" fn rs_smb_tx_get_stub_data(tx: &mut SMBTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_tx_match_dce_opnum(tx: &mut SMBTransaction,
-                                          dce_data: &mut DCEOpnumData)
-                                            -> u8
-{
+pub extern "C" fn rs_smb_tx_match_dce_opnum(
+    tx: &mut SMBTransaction, dce_data: &mut DCEOpnumData,
+) -> u8 {
     SCLogDebug!("rs_smb_tx_get_dce_opnum: start");
     if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
         if x.req_cmd == DCERPC_TYPE_REQUEST {
@@ -115,17 +110,13 @@ pub extern "C" fn rs_smb_tx_match_dce_opnum(tx: &mut SMBTransaction,
  *                     dce_opnum and dce_stub_data)
  * - only match on approved ifaces (so ack_result == 0) */
 #[no_mangle]
-pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
-                                            tx: &mut SMBTransaction,
-                                            dce_data: &mut DCEIfaceData)
-                                            -> u8
-{
+pub extern "C" fn rs_smb_tx_get_dce_iface(
+    state: &mut SMBState, tx: &mut SMBTransaction, dce_data: &mut DCEIfaceData,
+) -> u8 {
     let if_uuid = dce_data.if_uuid.as_slice();
     let is_dcerpc_request = match tx.type_data {
-        Some(SMBTransactionTypeData::DCERPC(ref x)) => {
-            x.req_cmd == DCERPC_TYPE_REQUEST
-        },
-        _ => { false },
+        Some(SMBTransactionTypeData::DCERPC(ref x)) => x.req_cmd == DCERPC_TYPE_REQUEST,
+        _ => false,
     };
     if !is_dcerpc_request {
         return 0;
@@ -134,13 +125,18 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
         Some(ref x) => x,
         _ => {
             return 0;
-        },
+        }
     };
 
     SCLogDebug!("looking for UUID {:?}", if_uuid);
 
     for i in ifaces {
-        SCLogDebug!("stored UUID {:?} acked {} ack_result {}", i, i.acked, i.ack_result);
+        SCLogDebug!(
+            "stored UUID {:?} acked {} ack_result {}",
+            i,
+            i.acked,
+            i.ack_result
+        );
 
         if i.acked && i.ack_result == 0 && i.uuid == if_uuid {
             if let Some(x) = &dce_data.du16 {
@@ -156,11 +152,9 @@ pub extern "C" fn rs_smb_tx_get_dce_iface(state: &mut SMBState,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_user(tx: &mut SMBTransaction,
-                                            buffer: *mut *const u8,
-                                            buffer_len: *mut u32)
-                                            -> u8
-{
+pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_user(
+    tx: &mut SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
     if let Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) = tx.type_data {
         if let Some(ref ntlmssp) = x.ntlmssp {
             *buffer = ntlmssp.user.as_ptr();
@@ -175,11 +169,9 @@ pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_user(tx: &mut SMBTransaction,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_domain(tx: &mut SMBTransaction,
-                                            buffer: *mut *const u8,
-                                            buffer_len: *mut u32)
-                                            -> u8
-{
+pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_domain(
+    tx: &mut SMBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
     if let Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) = tx.type_data {
         if let Some(ref ntlmssp) = x.ntlmssp {
             *buffer = ntlmssp.domain.as_ptr();
@@ -191,4 +183,71 @@ pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_domain(tx: &mut SMBTransaction,
     *buffer = ptr::null();
     *buffer_len = 0;
     return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_version_match(
+    tx: &mut SMBTransaction, version_data: &mut u8,
+) -> u8 {
+    let version = tx.vercmd.get_version();
+    SCLogDebug!("smb_version: version returned: {}", version);
+    if version == *version_data {
+        return 1;
+    }
+
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_version_parse(carg: *const c_char) -> *mut c_void {
+    if carg.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    if let Ok(arg) = CStr::from_ptr(carg).to_str() {
+        if let Ok(detect) = parse_version_data(arg) {
+            return Box::into_raw(Box::new(detect)) as *mut _;
+        }
+    }
+
+    return std::ptr::null_mut();
+}
+
+fn parse_version_data(arg: &str) -> Result<u8, ()> {
+    let arg = arg.trim();
+    let version: u8 = arg.parse().map_err(|_| ())?;
+
+    SCLogDebug!("smb_version: sig parse arg: {} version: {}", arg, version);
+
+    if version != 1 && version != 2 {
+        return Err(());
+    }
+
+    return Ok(version);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_version_free(ptr: *mut c_void) {
+    if !ptr.is_null() {
+        std::mem::drop(Box::from_raw(ptr as *mut u8));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_cmd_data() {
+        assert_eq!(Err(()), parse_version_data("0"));
+        assert_eq!(1u8, parse_version_data("1").unwrap());
+        assert_eq!(2u8, parse_version_data("2").unwrap());
+        assert_eq!(Err(()), parse_version_data("3"));
+    }
+
+    #[test]
+    fn test_parse_cmd_data_with_spaces() {
+        assert_eq!(1u8, parse_version_data(" 1").unwrap());
+        assert_eq!(2u8, parse_version_data(" 2 ").unwrap());
+    }
 }
