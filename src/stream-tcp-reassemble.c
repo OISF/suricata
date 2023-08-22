@@ -1903,7 +1903,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
             SCLogDebug("StreamTcpReassembleHandleSegmentHandleData error");
             /* failure can only be because of memcap hit, so see if this should lead to a drop */
             ExceptionPolicyApply(
-                    p, stream_config.reassembly_memcap_policy, PKT_DROP_REASON_STREAM_MEMCAP);
+                    p, stream_config.reassembly_memcap_policy, PKT_DROP_REASON_STREAM_REASSEMBLY);
             SCReturnInt(-1);
         }
 

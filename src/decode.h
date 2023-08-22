@@ -411,6 +411,7 @@ enum PacketDropReason {
     PKT_DROP_REASON_STREAM_ERROR,
     PKT_DROP_REASON_STREAM_MEMCAP,
     PKT_DROP_REASON_STREAM_MIDSTREAM,
+    PKT_DROP_REASON_STREAM_REASSEMBLY,
 };
 
 /* forward declaration since Packet struct definition requires this */
