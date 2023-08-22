@@ -794,6 +794,8 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
             return "stream memcap";
         case PKT_DROP_REASON_STREAM_MIDSTREAM:
             return "stream midstream";
+        case PKT_DROP_REASON_STREAM_REASSEMBLY:
+            return "stream reassembly";
         case PKT_DROP_REASON_APPLAYER_ERROR:
             return "applayer error";
         case PKT_DROP_REASON_APPLAYER_MEMCAP:
