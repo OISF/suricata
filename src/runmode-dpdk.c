@@ -1522,11 +1522,17 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
 
     if (retval < 0) { // handles both configure attempts
         iconf->DerefFunc(iconf);
-        retval = rte_eal_cleanup();
-        if (retval != 0)
+        if (rte_eal_cleanup() != 0)
             FatalError("EAL cleanup failed: %s", strerror(-retval));
 
-        FatalError("%s: failed to configure", iface);
+        if (retval == -ENOMEM) {
+            FatalError("%s: memory allocation failed - consider"
+                       "%s freeing up some memory.",
+                    iface,
+                    rte_eal_has_hugepages() != 0 ? " increasing the number of hugepages or" : "");
+        } else {
+            FatalError("%s: failed to configure", iface);
+        }
     }
 
     SC_ATOMIC_RESET(iconf->ref);
