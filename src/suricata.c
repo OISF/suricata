@@ -2155,6 +2155,10 @@ static int InitRunAs(SCInstance *suri)
     }
     /* Get the suricata user ID to given user ID */
     if (suri->do_setuid == TRUE) {
+        if (suri->user_name == NULL) {
+            SCLogError("user name cannot be set to an empty value");
+            return TM_ECODE_FAILED;
+        }
         if (SCGetUserID(suri->user_name, suri->group_name,
                         &suri->userid, &suri->groupid) != 0) {
             SCLogError("failed in getting user ID");
@@ -2164,6 +2168,10 @@ static int InitRunAs(SCInstance *suri)
         sc_set_caps = TRUE;
     /* Get the suricata group ID to given group ID */
     } else if (suri->do_setgid == TRUE) {
+        if (suri->group_name == NULL) {
+            SCLogError("group name cannot be set to an empty value");
+            return TM_ECODE_FAILED;
+        }
         if (SCGetGroupID(suri->group_name, &suri->groupid) != 0) {
             SCLogError("failed in getting group ID");
             return TM_ECODE_FAILED;
@@ -2933,7 +2941,9 @@ int SuricataMain(int argc, char **argv)
         g_livedev_mask = 0x0000;
     }
     SetupUserMode(&suricata);
-    InitRunAs(&suricata);
+    if (InitRunAs(&suricata) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
 
     /* Since our config is now loaded we can finish configurating the
      * logging module. */

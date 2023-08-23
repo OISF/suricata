@@ -154,7 +154,7 @@ int SCGetUserID(const char *user_name, const char *group_name, uint32_t *uid, ui
     struct passwd *pw;
 
     /* Get the user ID */
-    if (isdigit((unsigned char)user_name[0]) != 0) {
+    if (user_name != NULL && isdigit((unsigned char)user_name[0]) != 0) {
         if (ByteExtractStringUint32(&userid, 10, 0, (const char *)user_name) < 0) {
             FatalError("invalid user id value: '%s'", user_name);
         }
