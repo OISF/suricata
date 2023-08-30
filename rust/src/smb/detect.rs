@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -190,6 +190,7 @@ pub unsafe extern "C" fn rs_smb_version_match(
     tx: &mut SMBTransaction, version_data: &mut u8,
 ) -> u8 {
     let version = tx.vercmd.get_version();
+    SCLogDebug!("smb_version: version returned: {}", version);
     if version == *version_data {
         return 1;
     }
@@ -212,22 +213,22 @@ pub unsafe extern "C" fn rs_smb_version_parse(carg: *const c_char) -> *mut c_voi
     return std::ptr::null_mut();
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_smb_version_free(ptr: *mut c_void) {
-    if ptr != std::ptr::null_mut() {
-        std::mem::drop(Box::from_raw(ptr as *mut u8));
-    }
-}
-
 fn parse_version_data(arg: &str) -> Result<u8, ()> {
     let arg = arg.trim();
-    let version = u8::from_str_radix(&arg, 10).map_err(|_| ())?;
+    let version: u8 = arg.parse().map_err(|_| ())?;
+
+    SCLogDebug!("smb_version: sig parse arg: {} version: {}", arg, version);
 
     if version != 1 && version != 2 {
         return Err(());
     }
 
     return Ok(version);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_version_free(ptr: *mut c_void) {
+    std::mem::drop(Box::from_raw(ptr as *mut u8));
 }
 
 #[cfg(test)]

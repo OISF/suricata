@@ -87,17 +87,12 @@ static int DetectSmbVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
         return -1;
     }
 
-    SigMatch *sm = SigMatchAlloc();
-
-    if (sm == NULL) {
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_SMB_VERSION, (SigMatchCtx *)dod, g_smb_version_list_id) == NULL) {
         DetectSmbVersionFree(de_ctx, dod);
         return -1;
     }
 
-    sm->type = DETECT_SMB_VERSION;
-    sm->ctx = dod;
-
-    SigMatchAppendSMToList(s, sm, g_smb_version_list_id);
     return 0;
 }
 
