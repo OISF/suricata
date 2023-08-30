@@ -46,7 +46,7 @@ pub unsafe extern "C" fn Base64Encode(
     if encoded.len() + 1 > *output_len as usize {
         return Base64ReturnCode::SC_BASE64_OVERFLOW;
     }
-    let output = std::slice::from_raw_parts_mut(&mut *(output as *mut u8), *output_len as usize);
+    let output = std::slice::from_raw_parts_mut(&mut *output, *output_len as usize);
     output[0..encoded.len()].copy_from_slice(encoded.as_bytes());
     output[encoded.len()] = 0;
     *output_len = encoded.len() as c_ulong;

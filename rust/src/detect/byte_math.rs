@@ -432,7 +432,7 @@ pub unsafe extern "C" fn ScByteMathParse(c_arg: *const c_char) -> *mut DetectByt
         }
     };
     match parse_bytemath(arg) {
-        Ok((_, detect)) => return Box::into_raw(Box::new(detect)) as *mut DetectByteMathData,
+        Ok((_, detect)) => return Box::into_raw(Box::new(detect)),
         Err(_) => return std::ptr::null_mut(),
     }
 }
@@ -440,7 +440,7 @@ pub unsafe extern "C" fn ScByteMathParse(c_arg: *const c_char) -> *mut DetectByt
 #[no_mangle]
 pub unsafe extern "C" fn ScByteMathFree(ptr: *mut DetectByteMathData) {
     if !ptr.is_null() {
-        let _ = Box::from_raw(ptr as *mut DetectByteMathData);
+        let _ = Box::from_raw(ptr);
     }
 }
 
