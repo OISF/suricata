@@ -1766,6 +1766,12 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
         state->body_begin = 1;
         state->body_end = 0;
 
+        // Begin the body md5 computation if config asks so
+        if (MimeDecGetConfig()->body_md5 && state->md5_ctx == NULL) {
+            state->md5_ctx = SCMd5New();
+            SCMd5Update(state->md5_ctx, buf, blen + state->current_line_delimiter_len);
+        }
+
         ret = ProcessBodyLine(buf, blen, state);
         if (ret != MIME_DEC_OK) {
             SCLogDebug("Error: ProcessBodyLine() function failed");
