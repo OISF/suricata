@@ -84,7 +84,7 @@ pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData> {
     let (i, name) = take_while(is_alphanumeric_or_slash)(i)?;
     // copy as to have final zero
     let namez = CString::new(name).unwrap();
-    let cat = unsafe { SRepCatGetByShortname(namez.as_ptr() as *const i8) };
+    let cat = unsafe { SRepCatGetByShortname(namez.as_ptr()) };
     if cat == 0 {
         return Err(Err::Error(make_error(i, ErrorKind::MapOpt)));
     }
