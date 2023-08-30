@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,7 +19,10 @@ use crate::core::*;
 use crate::dcerpc::dcerpc::DCERPC_TYPE_REQUEST;
 use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
 use crate::detect::uint::detect_match_uint;
+use crate::smb::smb::SMBTransaction;
 use crate::smb::smb::*;
+use std::ffi::CStr;
+use std::os::raw::{c_char, c_void};
 use std::ptr;
 
 #[no_mangle]
@@ -180,4 +183,71 @@ pub unsafe extern "C" fn rs_smb_tx_get_ntlmssp_domain(
     *buffer = ptr::null();
     *buffer_len = 0;
     return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_version_match(
+    tx: &mut SMBTransaction, version_data: &mut u8,
+) -> u8 {
+    let version = tx.vercmd.get_version();
+    SCLogDebug!("smb_version: version returned: {}", version);
+    if version == *version_data {
+        return 1;
+    }
+
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_version_parse(carg: *const c_char) -> *mut c_void {
+    if carg.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    if let Ok(arg) = CStr::from_ptr(carg).to_str() {
+        if let Ok(detect) = parse_version_data(arg) {
+            return Box::into_raw(Box::new(detect)) as *mut _;
+        }
+    }
+
+    return std::ptr::null_mut();
+}
+
+fn parse_version_data(arg: &str) -> Result<u8, ()> {
+    let arg = arg.trim();
+    let version: u8 = arg.parse().map_err(|_| ())?;
+
+    SCLogDebug!("smb_version: sig parse arg: {} version: {}", arg, version);
+
+    if version != 1 && version != 2 {
+        return Err(());
+    }
+
+    return Ok(version);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_smb_version_free(ptr: *mut c_void) {
+    if !ptr.is_null() {
+        std::mem::drop(Box::from_raw(ptr as *mut u8));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_cmd_data() {
+        assert_eq!(Err(()), parse_version_data("0"));
+        assert_eq!(1u8, parse_version_data("1").unwrap());
+        assert_eq!(2u8, parse_version_data("2").unwrap());
+        assert_eq!(Err(()), parse_version_data("3"));
+    }
+
+    #[test]
+    fn test_parse_cmd_data_with_spaces() {
+        assert_eq!(1u8, parse_version_data(" 1").unwrap());
+        assert_eq!(2u8, parse_version_data(" 2 ").unwrap());
+    }
 }
