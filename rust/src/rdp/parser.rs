@@ -139,7 +139,7 @@ pub struct NegotiationRequest {
 
 // rdp-spec, section 2.2.1.1.1
 bitflags! {
-    #[derive(Default)]
+    #[derive(Default, PartialEq, Eq, Clone, Debug)]
     pub struct NegotiationRequestFlags: u8 {
         const RESTRICTED_ADMIN_MODE_REQUIRED = 0x1;
         const REDIRECTED_AUTHENTICATION_MODE_REQUIRED = 0x2;
@@ -159,6 +159,7 @@ pub enum Protocol {
 
 // rdp-spec, section 2.2.1.1.1
 bitflags! {
+    #[derive(Clone, PartialEq, Eq, Debug)]
     pub struct ProtocolFlags: u32 {
         //Protocol::ProtocolRdp is 0 as always supported
         //and bitflags crate does not like zero-bit flags
@@ -197,7 +198,7 @@ pub struct NegotiationResponse {
 
 // rdp-spec, section 2.2.1.2.1
 bitflags! {
-    #[derive(Default)]
+    #[derive(Default, Clone, PartialEq, Eq, Debug)]
     pub struct NegotiationResponseFlags: u8 {
         const EXTENDED_CLIENT_DATA_SUPPORTED = 0x1;
         const DYNVC_GFX_PROTOCOL_SUPPORTED = 0x2;
@@ -367,7 +368,7 @@ pub enum HighColorDepth {
 
 // rdp-spec, section 2.2.1.3.2 Client Core Data
 bitflags! {
-    #[derive(Default)]
+    #[derive(Default, Clone, PartialEq, Eq, Debug)]
     pub struct SupportedColorDepth: u16 {
         const RNS_UD_24_BPP_SUPPORT = 0x1;
         const RNS_UD_16_BPP_SUPPORT = 0x2;
@@ -378,7 +379,7 @@ bitflags! {
 
 // rdp-spec, section 2.2.1.3.2 Client Core Data
 bitflags! {
-    #[derive(Default)]
+    #[derive(Default, Clone, PartialEq, Eq, Debug)]
     pub struct EarlyCapabilityFlags: u16 {
         const RNS_UD_CS_SUPPORT_ERRINFO_PDF = 0x1;
         const RNS_UD_CS_WANT_32BPP_SESSION = 0x2;
@@ -1090,7 +1091,7 @@ mod tests_negotiate_49350 {
                 cookie: None,
                 negotiation_request: Some(NegotiationRequest {
                     flags: NegotiationRequestFlags::empty(),
-                    protocols: ProtocolFlags { bits: Protocol::ProtocolRdp as u32 },
+                    protocols: ProtocolFlags::from_bits_retain(Protocol::ProtocolRdp as u32),
                 }),
                 data: Vec::new(),
             }),
@@ -1180,7 +1181,7 @@ mod tests_core_49350 {
             ),
             client_dig_product_id: Some(String::from("")),
             connection_hint: Some(ConnectionHint::ConnectionHintNotProvided),
-            server_selected_protocol: Some(ProtocolFlags { bits: Protocol::ProtocolRdp as u32 }),
+            server_selected_protocol: Some(ProtocolFlags::from_bits_retain(Protocol::ProtocolRdp as u32)),
             desktop_physical_width: None,
             desktop_physical_height: None,
             desktop_orientation: None,

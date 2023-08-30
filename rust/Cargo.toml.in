@@ -23,7 +23,7 @@ debug-validate = []
 
 [dependencies]
 nom7 = { version="7.0", package="nom" }
-bitflags = "~1.2.1"
+bitflags = "~2.4.0"
 byteorder = "~1.4.2"
 uuid = "~0.8.2"
 crc = "~1.8.1"
