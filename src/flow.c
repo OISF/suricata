@@ -606,8 +606,12 @@ void FlowInitConfig(bool quiet)
             FatalError("Invalid value for flow.hash-size: NULL");
         }
 
-        if (StringParseUint32(&configval, 10, strlen(conf_val), conf_val) > 0 || configval == 0) {
-            flow_config.hash_size = configval;
+        if (StringParseUint32(&configval, 10, strlen(conf_val), conf_val)) {
+            if (configval != 0) {
+                flow_config.hash_size = configval;
+            } else {
+                FatalError("Invalid value for flow.hash-size: 0");
+            }
         } else {
             FatalError("Invalid value for flow.hash-size");
         }
