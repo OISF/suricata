@@ -606,10 +606,11 @@ void FlowInitConfig(bool quiet)
             FatalError("Invalid value for flow.hash-size: NULL");
         }
 
-        if (StringParseUint32(&configval, 10, strlen(conf_val), conf_val) > 0 || configval == 0) {
+        if (StringParseUint32(&configval, 10, strlen(conf_val), conf_val) && configval != 0) {
             flow_config.hash_size = configval;
         } else {
-            FatalError("Invalid value for flow.hash-size");
+            FatalError("Invalid value for flow.hash-size. Must be a numeric value in the range "
+                       "1-4294967295");
         }
     }
     if ((ConfGet("flow.prealloc", &conf_val)) == 1)
