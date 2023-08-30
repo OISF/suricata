@@ -24,6 +24,7 @@ use nom7::Err;
 use nom7::IResult;
 
 use std::ffi::{CStr, CString};
+use std::os::raw::c_char;
 use std::str::FromStr;
 
 #[repr(u8)]
@@ -71,7 +72,7 @@ pub fn is_alphanumeric_or_slash(chr: char) -> bool {
 }
 
 extern "C" {
-    pub fn SRepCatGetByShortname(name: *const i8) -> u8;
+    pub fn SRepCatGetByShortname(name: *const c_char) -> u8;
 }
 
 pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData> {
@@ -84,7 +85,7 @@ pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData> {
     let (i, name) = take_while(is_alphanumeric_or_slash)(i)?;
     // copy as to have final zero
     let namez = CString::new(name).unwrap();
-    let cat = unsafe { SRepCatGetByShortname(namez.as_ptr() as *const i8) };
+    let cat = unsafe { SRepCatGetByShortname(namez.as_ptr()) };
     if cat == 0 {
         return Err(Err::Error(make_error(i, ErrorKind::MapOpt)));
     }
