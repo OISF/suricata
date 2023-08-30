@@ -593,7 +593,7 @@ pub fn pgsql_parse_startup_packet(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage> {
     let (i, b) = take(len - PGSQL_LENGTH_FIELD)(i)?;
     let (_, message) =
         match proto_major {
-            1 | 2 | 3 => {
+            1..=3 => {
                 let (b, proto_major) = be_u16(b)?;
                 let (b, proto_minor) = be_u16(b)?;
                 let (b, params) = pgsql_parse_startup_parameters(b)?;
