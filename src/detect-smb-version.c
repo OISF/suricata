@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2022-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,7 +18,10 @@
 /**
  * \file
  *
- * Keyword to match SMB version, which can be 1 or 2.
+ * \author Eloy Pérez
+ * \author Jason Taylor
+ *
+ * Implements the smb.version keyword
  */
 
 #include "suricata-common.h"
@@ -35,19 +38,30 @@
 #include "detect-smb-version.h"
 #include "rust.h"
 
+#define BUFFER_NAME  "smb_version"
+#define KEYWORD_NAME "smb.version"
+#define KEYWORD_ID   DETECT_SMB_VERSION
+
 static int g_smb_version_list_id = 0;
 
 static void DetectSmbVersionFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCEnter();
 
     SCLogDebug("smb_version: DetectSmbVersionFree");
-
-    if (ptr != NULL) {
-        rs_smb_version_free(ptr);
-    }
-    SCReturn;
+    rs_smb_version_free(ptr);
 }
+
+/**
+ * \brief Creates a SigMatch for the "smb.version" keyword being sent as argument,
+ *        and appends it to the rs_smb_version_match Signature(s).
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ * \param s      Pointer to signature for the current Signature being parsed
+ *               from the rules.
+ * \param arg    Pointer to the string holding the keyword value.
+ *
+ * \retval 0 on success, -1 on failure
+ */
 
 static int DetectSmbVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
@@ -57,19 +71,24 @@ static int DetectSmbVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
         return -1;
 
     if (arg == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing smb_version option in "
-                                             "signature, it needs a value");
+        SCLogError("Error parsing smb.version option in signature, it needs a value");
         return -1;
     }
 
     void *dod = rs_smb_version_parse(arg);
     if (dod == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing smb_version option in "
-                                             "signature");
+        SCLogError("Error parsing smb.version option in signature");
+        return -1;
+    }
+
+    if (DetectGetLastSMFromLists(s, DETECT_SMB_VERSION, -1)) {
+        SCLogError("Can't use 2 or more smb.version declarations in "
+                   "the same sig. Invalidating signature.");
         return -1;
     }
 
     SigMatch *sm = SigMatchAlloc();
+
     if (sm == NULL) {
         DetectSmbVersionFree(de_ctx, dod);
         return -1;
@@ -82,43 +101,59 @@ static int DetectSmbVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     return 0;
 }
 
+/**
+ * \brief App layer match function for the "smb.version" keyword.
+ *
+ * \param t       Pointer to the ThreadVars instance.
+ * \param det_ctx Pointer to the DetectEngineThreadCtx.
+ * \param f       Pointer to the flow.
+ * \param flags   Pointer to the flags indicating the flow direction.
+ * \param state   Pointer to the app layer state data.
+ * \param s       Pointer to the Signature instance.
+ * \param m       Pointer to the SigMatch.
+ *
+ * \retval 1 On Match.
+ * \retval 0 On no match.
+ */
+
 static int DetectSmbVersionMatchRust(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
         void *state, void *txv, const Signature *s, const SigMatchCtx *m)
 {
-    SCEnter();
 
     SCLogDebug("smb_version: DetectSmbVersionMatchRust");
 
-    if (rs_smb_version_match(txv, (void *)m) != 1)
+    int matchvalue = rs_smb_version_match(txv, (void *)m);
+
+    if (matchvalue != 1) {
+        SCLogDebug("rs_smb_version_match: didn't match");
         SCReturnInt(0);
-
-    SCReturnInt(1);
+    } else {
+        SCLogDebug("rs_smb_version_match: matched!");
+        return matchvalue;
+    }
 }
 
-static int DetectEngineInspectSmbVersion(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
-        uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    return DetectEngineInspectGenericList(
-            de_ctx, det_ctx, s, engine->smd, f, flags, alstate, txv, tx_id);
-}
+/**
+ * \brief Registers the keyword handlers for the "smb_version" keyword.
+ */
 
 void DetectSmbVersionRegister(void)
 {
-    sigmatch_table[DETECT_SMB_VERSION].name = "smb.version";
-    sigmatch_table[DETECT_SMB_VERSION].alias = "smb_version";
-
-    sigmatch_table[DETECT_SMB_VERSION].desc = "match SMB message type";
+    sigmatch_table[DETECT_SMB_VERSION].name = KEYWORD_NAME;
     sigmatch_table[DETECT_SMB_VERSION].Setup = DetectSmbVersionSetup;
     sigmatch_table[DETECT_SMB_VERSION].Match = NULL;
     sigmatch_table[DETECT_SMB_VERSION].AppLayerTxMatch = DetectSmbVersionMatchRust;
     sigmatch_table[DETECT_SMB_VERSION].Free = DetectSmbVersionFree;
+    sigmatch_table[DETECT_SMB_VERSION].desc = "smb keyword to match on SMB version";
+    sigmatch_table[DETECT_FLOW_AGE].url = "/rules/smb-keywords.html#smb-version";
 
     DetectAppLayerInspectEngineRegister2(
-            "smb_version", ALPROTO_SMB, SIG_FLAG_TOSERVER, 0, DetectEngineInspectSmbVersion, NULL);
+            BUFFER_NAME, ALPROTO_SMB, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
 
     DetectAppLayerInspectEngineRegister2(
-            "smb_version", ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectSmbVersion, NULL);
+            BUFFER_NAME, ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
 
-    g_smb_version_list_id = DetectBufferTypeRegister("smb_version");
+    g_smb_version_list_id = DetectBufferTypeRegister(BUFFER_NAME);
+
+    SCLogDebug("registering " BUFFER_NAME " rule option");
 }

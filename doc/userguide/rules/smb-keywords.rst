@@ -59,27 +59,29 @@ Examples::
 
 ``smb.ntlmssp_domain`` can be used as ``fast_pattern``.
 
+
 smb.version
---------------
+------------
 
-Used to match the SMB version, that can be 1 or 2.
+Keyword to match on SMB version.
 
-Example signatures::
+Examples::
 
-  alert smb any any -> any any (msg: "SMB1 version rule"; smb.version: 1; sid: 44;)
-  alert smb any any -> any any (msg: "SMB2 version rule"; smb.version: 2; sid: 45;)
+  alert smb $HOME_NET any -> any any (msg:"SMBv1 version rule"; smb.version:1; sid:1;)
+  alert smb $HOME_NET any -> any any (msg:"SMBv2 version rule"; smb.version:2; sid:2;)
+
 
 Matching in transition from SMBv1 to SMBv2
-********************************************
+******************************************
 
 In the initial negotiation protocol request, a client supporting SMBv1 and SMBv2 can send an initial SMBv1 request and receive an SMBv2 response from server, indicating that SMBv2 will be used.
 
 This first SMBv2 response made by the server will match as SMBv1, since the entire transaction will be considered a SMBv1 transaction.
 
-Does `smb.version` match SMBv3?
-****************************************
+Will `smb.version` match SMBv3 traffic?
+***************************************
 
-Yes, it will match SMBv3 messages using `smb.version: 2;`, which will match SMBv2 and SMBv3, since they use the same version identifier in the SMB header.
+Yes, it will match SMBv3 messages using `smb.version:2;`, which will match SMBv2 and SMBv3, since they use the same version identifier in the SMB header.
 
 This keyword will use the Protocol ID specified in SMB header to determine the version. Here is a summary of the Protocol ID codes:
 
@@ -100,3 +102,4 @@ On the other hand SMB3 is more an extension for SMB2. When using SMB2 we can sel
 
 We say we are using SMB3 when we select a 3.x dialect for the conversation, so you can use SMB3.0, SMB3.0.2 or SMB3.1.1. The higher you choose, the more capabilities you have, but the message syntax and message command number remains the same.
 
+SMB version and dialect are separate components. In the case of SMBv3 for instance, the SMB version will be 2 but the dialect will be 3.x.

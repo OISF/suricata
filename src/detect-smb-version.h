@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2022-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -22,4 +22,4 @@
  *         detect.c::SigTableSetup() */
 void DetectSmbVersionRegister(void);
 
-#endif /* __DETECT_SMB-VERSION_H__ */
+#endif /* __DETECT_SMB_VERSION_H__ */
