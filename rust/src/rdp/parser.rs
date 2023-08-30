@@ -160,7 +160,8 @@ pub enum Protocol {
 // rdp-spec, section 2.2.1.1.1
 bitflags! {
     pub struct ProtocolFlags: u32 {
-        const PROTOCOL_RDP = Protocol::ProtocolRdp as u32;
+        //Protocol::ProtocolRdp is 0 as always supported
+        //and bitflags crate does not like zero-bit flags
         const PROTOCOL_SSL = Protocol::ProtocolSsl as u32;
         const PROTOCOL_HYBRID = Protocol::ProtocolHybrid as u32;
         const PROTOCOL_RDSTLS = Protocol::ProtocolRdsTls as u32;
@@ -1089,7 +1090,7 @@ mod tests_negotiate_49350 {
                 cookie: None,
                 negotiation_request: Some(NegotiationRequest {
                     flags: NegotiationRequestFlags::empty(),
-                    protocols: ProtocolFlags::PROTOCOL_RDP,
+                    protocols: ProtocolFlags { bits: Protocol::ProtocolRdp as u32 },
                 }),
                 data: Vec::new(),
             }),
@@ -1179,7 +1180,7 @@ mod tests_core_49350 {
             ),
             client_dig_product_id: Some(String::from("")),
             connection_hint: Some(ConnectionHint::ConnectionHintNotProvided),
-            server_selected_protocol: Some(ProtocolFlags::PROTOCOL_RDP),
+            server_selected_protocol: Some(ProtocolFlags { bits: Protocol::ProtocolRdp as u32 }),
             desktop_physical_width: None,
             desktop_physical_height: None,
             desktop_orientation: None,
