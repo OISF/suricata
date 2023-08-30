@@ -613,7 +613,6 @@ void SigTableSetup(void)
     DetectSmbNtlmsspUserRegister();
     DetectSmbNtlmsspDomainRegister();
     DetectSmbVersionRegister();
-
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();
