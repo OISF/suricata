@@ -111,9 +111,10 @@ int main(int argc, char **argv)
     int n_workers = 0;
     const char *config = NULL;
     const char **pcap_files = NULL;
-    pthread_t *thread_ids;
-    thread_args *ta;
+    pthread_t *thread_ids = NULL;
+    thread_args *ta = NULL;
     SuricataCtx *ctx = NULL;
+    int retval = 0;
 
     struct option long_opts[] = { { "suricata-config-str", required_argument, 0, 0 },
         { 0, 0, 0, 0 } };
@@ -156,19 +157,22 @@ int main(int argc, char **argv)
     thread_ids = malloc(n_workers * sizeof(pthread_t));
     if (thread_ids == NULL) {
         fprintf(stderr, "Failed to allocate the required number of thread ids\n");
-        return 1;
+        retval = 1;
+        goto on_error;
     }
 
     ta = malloc(n_workers * sizeof(thread_args));
     if (ta == NULL) {
         fprintf(stderr, "Failed to allocate thread_args struct\n");
-        return 1;
+        retval = 1;
+        goto on_error;
     }
 
     pcap_files = malloc(n_workers * sizeof(char *));
     if (pcap_files == NULL) {
         fprintf(stderr, "Failed to allocate the pcap files array\n");
-        return 1;
+        retval = 1;
+        goto on_error;
     }
 
     for (int i = 0; i < n_workers; ++i) {
@@ -204,9 +208,17 @@ int main(int argc, char **argv)
     for (int i = 0; i < n_workers; ++i) {
         pthread_join(thread_ids[i], NULL);
     }
-    free(thread_ids);
-    free(pcap_files);
-    free(ta);
 
-    return 0;
+on_error:
+    if (thread_ids != NULL) {
+        free(thread_ids);
+    }
+    if (pcap_files != NULL) {
+        free(pcap_files);
+    }
+    if (ta != NULL) {
+        free(ta);
+    }
+
+    return retval;
 }
