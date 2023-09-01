@@ -65,7 +65,7 @@ static void AddCommonInfoFromFlow(const Flow *f, FlowEvent *event)
     }
 
     /* Tuple */
-    event->common.src_ip = srcip;
+    event->common.src_ip = SCStrdup(srcip);
     switch (f->proto) {
         case IPPROTO_ICMP:
             break;
@@ -75,7 +75,7 @@ static void AddCommonInfoFromFlow(const Flow *f, FlowEvent *event)
             event->common.sp = sp;
             break;
     }
-    event->common.dst_ip = dstip;
+    event->common.dst_ip = SCStrdup(dstip);
     switch (f->proto) {
         case IPPROTO_ICMP:
             break;
