@@ -115,8 +115,8 @@ void PacketPoolWaitForN(int n)
         }
 
         /* check return stack, return to our pool and retry counting */
+        SCMutexLock(&my_pool->return_stack.mutex);
         if (my_pool->return_stack.head != NULL) {
-            SCMutexLock(&my_pool->return_stack.mutex);
             /* Move all the packets from the locked return stack to the local stack. */
             if (pp) {
                 pp->next = my_pool->return_stack.head;
@@ -125,15 +125,13 @@ void PacketPoolWaitForN(int n)
             }
             my_pool->return_stack.head = NULL;
             SC_ATOMIC_RESET(my_pool->return_stack.sync_now);
-            SCMutexUnlock(&my_pool->return_stack.mutex);
 
-        /* or signal that we need packets and wait */
+            /* or signal that we need packets and wait */
         } else {
-            SCMutexLock(&my_pool->return_stack.mutex);
             SC_ATOMIC_ADD(my_pool->return_stack.sync_now, 1);
             SCCondWait(&my_pool->return_stack.cond, &my_pool->return_stack.mutex);
-            SCMutexUnlock(&my_pool->return_stack.mutex);
         }
+        SCMutexUnlock(&my_pool->return_stack.mutex);
     }
 }
 
