@@ -1375,16 +1375,21 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
          * size. We strip of spaces this while storing it in bvremain */
         if (consumed_bytes == 0 && leftover_bytes > B64_BLOCK) {
             DEBUG_VALIDATE_BUG_ON(state->bvr_len != 0);
-            return ProcessBase64BodyLineCopyRemainder(buf, len, offset, state);
+            ret = ProcessBase64BodyLineCopyRemainder(buf, len, offset, state);
+            break;
         } else if (leftover_bytes > 0 && leftover_bytes <= B64_BLOCK) {
             /* If remaining is 4 by this time, we encountered spaces during processing */
             DEBUG_VALIDATE_BUG_ON(state->bvr_len != 0);
-            return ProcessBase64BodyLineCopyRemainder(buf, len, offset + consumed_bytes, state);
+            ret = ProcessBase64BodyLineCopyRemainder(buf, len, offset + consumed_bytes, state);
+            break;
         }
 
         /* Update counts */
         remaining = leftover_bytes;
         offset += consumed_bytes;
+    }
+    if (ret == MIME_DEC_OK && state->data_chunk_len > 0) {
+        ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
     }
     return ret;
 }
