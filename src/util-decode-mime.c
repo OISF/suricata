@@ -1386,6 +1386,9 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
         remaining = leftover_bytes;
         offset += consumed_bytes;
     }
+    if (ret == MIME_DEC_OK && state->data_chunk_len > 0) {
+        ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
+    }
     return ret;
 }
 
