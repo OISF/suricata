@@ -1157,9 +1157,14 @@ static inline bool StillAlive(const Flow *f, const SCTime_t ts)
  */
 static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv, const SCTime_t ts)
 {
-    uint32_t idx = GetUsedAtomicUpdate(FLOW_GET_NEW_TRIES) % flow_config.hash_size;
     uint32_t tried = 0;
+    uint32_t idx;
 
+    if (!flow_config.force_reuse) {
+        return NULL;
+    }
+
+    idx = GetUsedAtomicUpdate(FLOW_GET_NEW_TRIES) % flow_config.hash_size;
     while (1) {
         if (tried++ > FLOW_GET_NEW_TRIES) {
             STATSADDUI64(counter_flow_get_used_eval, tried);
