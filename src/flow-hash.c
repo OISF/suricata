@@ -687,6 +687,10 @@ static Flow *FlowGetNew(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
                 FlowWakeupFlowManagerThread();
             }
 
+            if (!flow_config.force_reuse) {
+                StatsIncr(tv, fls->dtv->counter_flow_memcap);
+                return NULL;
+            }
             f = FlowGetUsedFlow(tv, fls->dtv, p->ts);
             if (f == NULL) {
                 NoFlowHandleIPS(p);

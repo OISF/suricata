@@ -622,12 +622,16 @@ void FlowInitConfig(bool quiet)
             flow_config.prealloc = configval;
         }
     }
+    if (ConfGetBool("flow.force-reuse", &flow_config.force_reuse) != 1) {
+        flow_config.force_reuse = 1;
+    }
 
     flow_config.memcap_policy = ExceptionPolicyParse("flow.memcap-policy", false);
 
     SCLogDebug("Flow config from suricata.yaml: memcap: %"PRIu64", hash-size: "
-               "%"PRIu32", prealloc: %"PRIu32, SC_ATOMIC_GET(flow_config.memcap),
-               flow_config.hash_size, flow_config.prealloc);
+               "%"PRIu32", prealloc: %"PRIu32 ", reuse: %s", SC_ATOMIC_GET(flow_config.memcap),
+               flow_config.hash_size, flow_config.prealloc,
+               flow_config.force_reuse ? "force" : "disabled");
 
     /* alloc hash memory */
     uint64_t hash_size = flow_config.hash_size * sizeof(FlowBucket);
