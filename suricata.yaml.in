@@ -1431,6 +1431,7 @@ flow:
   emergency-recovery: 30
   #managers: 1 # default to one flow manager
   #recyclers: 1 # default to one flow recycler thread
+  #force-reuse: true # Default to forcing flow reuse in low memory conditions
 
 # This option controls the use of VLAN ids in the flow (and defrag)
 # hashing. Normally this should be enabled, but in some (broken)
