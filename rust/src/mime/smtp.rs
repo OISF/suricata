@@ -84,6 +84,10 @@ pub struct MimeStateSMTP<'a> {
     decoder: Option<MimeBase64Decoder>,
     content_type: MimeSmtpContentType,
     decoded_line: Vec<u8>,
+    // small buffer for end of line
+    // waiting to see if it is part of the boundary
+    bufeol: [u8; 2],
+    bufeolen: u8,
     files: &'a mut FileContainer,
     sbcfg: *const StreamingBufferConfig,
     md5: md5::Md5,
@@ -124,6 +128,8 @@ pub fn mime_smtp_state_init(
         encoding: MimeSmtpEncoding::Plain,
         decoder: None,
         content_type: MimeSmtpContentType::Message,
+        bufeol: [0; 2],
+        bufeolen: 0,
         files,
         sbcfg,
         md5: Md5::new(),
@@ -579,9 +585,21 @@ fn mime_smtp_parse_line(
             match ctx.encoding {
                 MimeSmtpEncoding::Plain => {
                     mime_smtp_find_url_strings(ctx, full);
-                    unsafe {
-                        FileAppendData(ctx.files, ctx.sbcfg, full.as_ptr(), full.len() as u32);
+                    if ctx.bufeolen > 0 {
+                        unsafe {
+                            FileAppendData(
+                                ctx.files,
+                                ctx.sbcfg,
+                                ctx.bufeol.as_ptr(),
+                                ctx.bufeol.len() as u32,
+                            );
+                        }
                     }
+                    unsafe {
+                        FileAppendData(ctx.files, ctx.sbcfg, i.as_ptr(), i.len() as u32);
+                    }
+                    ctx.bufeolen = (full.len() - i.len()) as u8;
+                    ctx.bufeol.clone_from_slice(&full[i.len()..]);
                 }
                 MimeSmtpEncoding::Base64 => {
                     if unsafe { MIME_SMTP_CONFIG_DECODE_BASE64 } {
