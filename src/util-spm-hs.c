@@ -1,4 +1,4 @@
-/* Copyright (C) 2016 Open Information Security Foundation
+/* Copyright (C) 2016-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -84,7 +84,7 @@ static int HSBuildDatabase(const uint8_t *needle, uint16_t needle_len,
         SCLogError("Unable to compile '%s' with Hyperscan, "
                    "returned %d.",
                 expr, err);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     SCFree(expr);
@@ -96,7 +96,7 @@ static int HSBuildDatabase(const uint8_t *needle, uint16_t needle_len,
         /* If scratch allocation failed, this is not recoverable:  other SPM
          * contexts may need this scratch space. */
         SCLogError("Unable to alloc scratch for Hyperscan, returned %d.", err);
-        exit(EXIT_FAILURE);
+        return -1;
     }
     global_thread_ctx->ctx = scratch;
     sctx->db = db;
