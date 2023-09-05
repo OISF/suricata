@@ -2230,29 +2230,29 @@ fi
     fi
 
 # sphinx-build for documentation, and also check for a new enough version
-    AC_PATH_PROG(HAVE_SPHINXBUILD, sphinx-build, "no")
-    if test "$HAVE_SPHINXBUILD" != "no"; then
+    AC_PATH_PROG([SPHINX_BUILD], [sphinx-build], [no])
+    if test "$SPHINX_BUILD" != "no"; then
         MIN_SPHINX_BUILD_VERSION="3.4.3"
-        sphinx_build_version=$($HAVE_SPHINXBUILD --version 2>&1 | cut -d' ' -f2-)
+        sphinx_build_version=$($SPHINX_BUILD --version 2>&1 | cut -d' ' -f2-)
         AC_MSG_CHECKING([for sphinx-build >= $MIN_SPHINX_BUILD_VERSION])
         AS_VERSION_COMPARE([$sphinx_build_version], [$MIN_SPHINX_BUILD_VERSION],
             [
                 AC_MSG_RESULT([no, documentation will not be built])
-                HAVE_SPHINXBUILD="no"
+                SPHINX_BUILD="no"
             ],
             [], [])
-        if test "$HAVE_SPHINXBUILD" != "no"; then
-            AC_MSG_RESULT(yes)
+        if test "$SPHINX_BUILD" != "no"; then
+            AC_MSG_RESULT([yes])
         fi
     fi
 
-    if test "$HAVE_SPHINXBUILD" = "no"; then
+    if test "$SPHINX_BUILD" = "no"; then
        enable_sphinxbuild=no
        if test -e "$srcdir/doc/userguide/suricata.1"; then
            have_suricata_man=yes
        fi
     fi
-    AM_CONDITIONAL([HAVE_SPHINXBUILD], [test "x$enable_sphinxbuild" != "xno"])
+    AM_CONDITIONAL([SPHINX_BUILD], [test "x$enable_sphinxbuild" != "xno"])
     AM_CONDITIONAL([HAVE_SURICATA_MAN], [test "x$have_suricata_man" = "xyes"])
 
 # pdflatex for the pdf version of the user manual
