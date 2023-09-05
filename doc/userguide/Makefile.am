@@ -37,7 +37,7 @@ if HAVE_SURICATA_MAN
 dist_man1_MANS = suricata.1 suricatasc.1 suricatactl.1 suricatactl-filestore.1
 endif
 
-if HAVE_SPHINXBUILD
+if SPHINX_BUILD
 dist_man1_MANS = suricata.1 suricatasc.1 suricatactl.1 suricatactl-filestore.1
 
 if HAVE_PDFLATEX
@@ -92,4 +92,4 @@ clean-local:
 	rm -f $(top_builddir)/doc/userguide/suricata*.1
 	rm -f $(top_builddir)/doc/userguide/userguide.pdf
 
-endif # HAVE_SPHINXBUILD
+endif # SPHINX_BUILD
