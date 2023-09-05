@@ -2229,8 +2229,23 @@ fi
         AC_DEFINE([CLS],[64],[L1 cache line size])
     fi
 
-# sphinx for documentation
+# sphinx-build for documentation, and also check for a new enough version
     AC_PATH_PROG(HAVE_SPHINXBUILD, sphinx-build, "no")
+    if test "$HAVE_SPHINXBUILD" != "no"; then
+        MIN_SPHINX_BUILD_VERSION="3.4.3"
+        sphinx_build_version=$($HAVE_SPHINXBUILD --version 2>&1 | cut -d' ' -f2-)
+        AC_MSG_CHECKING([for sphinx-build >= $MIN_SPHINX_BUILD_VERSION])
+        AS_VERSION_COMPARE([$sphinx_build_version], [$MIN_SPHINX_BUILD_VERSION],
+            [
+                AC_MSG_RESULT([no, documentation will not be built])
+                HAVE_SPHINXBUILD="no"
+            ],
+            [], [])
+        if test "$HAVE_SPHINXBUILD" != "no"; then
+            AC_MSG_RESULT(yes)
+        fi
+    fi
+
     if test "$HAVE_SPHINXBUILD" = "no"; then
        enable_sphinxbuild=no
        if test -e "$srcdir/doc/userguide/suricata.1"; then
