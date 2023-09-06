@@ -453,7 +453,7 @@ pub fn mime_state_init(i: &[u8]) -> Option<MimeStateHTTP> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_state_init(
+pub unsafe extern "C" fn SCMimeStateInit(
     input: *const u8, input_len: u32,
 ) -> *mut MimeStateHTTP {
     let slice = build_slice!(input, input_len as usize);
@@ -466,7 +466,7 @@ pub unsafe extern "C" fn rs_mime_state_init(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_parse(
+pub unsafe extern "C" fn SCMimeParse(
     ctx: &mut MimeStateHTTP, input: *const u8, input_len: u32, consumed: *mut u32,
     warnings: *mut u32,
 ) -> MimeParserResult {
@@ -478,7 +478,7 @@ pub unsafe extern "C" fn rs_mime_parse(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_state_get_filename(
+pub unsafe extern "C" fn SCMimeStateGetFilename(
     ctx: &mut MimeStateHTTP, buffer: *mut *const u8, filename_len: *mut u16,
 ) {
     if !ctx.filename.is_empty() {
@@ -495,8 +495,7 @@ pub unsafe extern "C" fn rs_mime_state_get_filename(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_state_free(ctx: &mut MimeStateHTTP) {
-    // Just unbox...
+pub unsafe extern "C" fn SCMimeStateFree(ctx: &mut MimeStateHTTP) {
     std::mem::drop(Box::from_raw(ctx));
 }
 

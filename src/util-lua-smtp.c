@@ -80,7 +80,7 @@ static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name)
     const uint8_t *field_value;
     uint32_t field_len;
     /* check MIME field */
-    if (!rs_mime_smtp_get_header(mime, name, &field_value, &field_len)) {
+    if (!SCMimeSmtpGetHeader(mime, name, &field_value, &field_len)) {
         return LuaCallbackError(luastate, "Error: mimefield not found");
     }
     if (field_len == 0) {
@@ -151,7 +151,7 @@ static int GetMimeList(lua_State *luastate, Flow *flow)
     int num = 1;
     /* loop trough the list of mimeFields, printing each name found */
     lua_newtable(luastate);
-    while (rs_mime_smtp_get_header_name(mime, &field_name, &field_len, (uint32_t)num)) {
+    while (SCMimeSmtpGetHeaderName(mime, &field_name, &field_len, (uint32_t)num)) {
         if (field_len != 0) {
             lua_pushinteger(luastate,num++);
             LuaPushStringBuffer(luastate, field_name, field_len);

@@ -279,12 +279,12 @@ static void SMTPConfigure(void) {
 
         ret = ConfGetChildValueBool(config, "decode-base64", &val);
         if (ret) {
-            rs_mime_smtp_config_decode_base64(val);
+            SCMimeSmtpConfigDecodeBase64(val);
         }
 
         ret = ConfGetChildValueBool(config, "decode-quoted-printable", &val);
         if (ret) {
-            rs_mime_smtp_config_decode_quoted(val);
+            SCMimeSmtpConfigDecodeQuoted(val);
         }
 
         ret = ConfGetChildValueInt(config, "header-value-depth", &imval);
@@ -292,12 +292,12 @@ static void SMTPConfigure(void) {
             if (imval < 0 || imval > UINT32_MAX) {
                 FatalError("Invalid value for header-value-depth");
             }
-            rs_mime_smtp_config_header_value_depth((uint32_t)imval);
+            SCMimeSmtpConfigHeaderValueDepth((uint32_t)imval);
         }
 
         ret = ConfGetChildValueBool(config, "extract-urls", &val);
         if (ret) {
-            rs_mime_smtp_config_extract_urls(val);
+            SCMimeSmtpConfigExtractUrls(val);
         }
 
         /* Parse extract-urls-schemes from mime config, add '://' suffix to found schemes,
@@ -307,7 +307,7 @@ static void SMTPConfigure(void) {
         if (extract_urls_schemes) {
             ConfNode *scheme = NULL;
 
-            rs_mime_smtp_config_extract_urls_scheme_reset();
+            SCMimeSmtpConfigExtractUrlsSchemeReset();
             TAILQ_FOREACH (scheme, &extract_urls_schemes->head, next) {
                 size_t scheme_len = strlen(scheme->val);
                 if (scheme_len > UINT16_MAX - SCHEME_SUFFIX_LEN) {
@@ -326,7 +326,7 @@ static void SMTPConfigure(void) {
                     SCFree(scheme->val);
                     scheme->val = new_val;
                 }
-                int r = rs_mime_smtp_config_extract_urls_scheme_add(scheme->val);
+                int r = SCMimeSmtpConfigExtractUrlsSchemeAdd(scheme->val);
                 if (r < 0) {
                     FatalError("Failed to add smtp extract url scheme");
                 }
@@ -334,18 +334,18 @@ static void SMTPConfigure(void) {
         } else {
             /* Add default extract url scheme 'http' since
              * extract-urls-schemes wasn't found in the config */
-            rs_mime_smtp_config_extract_urls_scheme_reset();
-            rs_mime_smtp_config_extract_urls_scheme_add("http://");
+            SCMimeSmtpConfigExtractUrlsSchemeReset();
+            SCMimeSmtpConfigExtractUrlsSchemeAdd("http://");
         }
 
         ret = ConfGetChildValueBool(config, "log-url-scheme", &val);
         if (ret) {
-            rs_mime_smtp_config_log_url_scheme(val);
+            SCMimeSmtpConfigLogUrlScheme(val);
         }
 
         ret = ConfGetChildValueBool(config, "body-md5", &val);
         if (ret) {
-            rs_mime_smtp_config_body_md5(val);
+            SCMimeSmtpConfigBodyMd5(val);
         }
     }
 
@@ -654,7 +654,7 @@ static int SMTPProcessCommandDATA(SMTPState *state, SMTPTransaction *tx, Flow *f
         } else if (smtp_config.decode_mime && tx->mime_state != NULL) {
             /* Complete parsing task */
             uint32_t events = 0;
-            rs_smtp_mime_complete(tx->mime_state, &events);
+            SCSmtpMimeComplete(tx->mime_state, &events);
 
             /* Generate decoder events */
             SetMimeEvents(state, events);
@@ -680,13 +680,13 @@ static int SMTPProcessCommandDATA(SMTPState *state, SMTPTransaction *tx, Flow *f
 
             /* we depend on detection engine for file pruning */
             flags |= FILE_USE_DETECT;
-            MimeSmtpParserResult ret = rs_smtp_mime_parse_line(
+            MimeSmtpParserResult ret = SCSmtpMimeParseLine(
                     line->buf, line->len, line->delim_len, &events, tx->mime_state);
             SetMimeEvents(state, events);
             switch (ret) {
                 case MimeSmtpFileOpen:
                     // get filename owned by mime state
-                    rs_mime_smtp_get_filename(state->curr_tx->mime_state, &filename, &filename_len);
+                    SCMimeSmtpGetFilename(state->curr_tx->mime_state, &filename, &filename_len);
 
                     if (filename_len == 0) {
                         // not an attachment
@@ -1096,7 +1096,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
                 }
             } else if (smtp_config.decode_mime && tx->mime_state == NULL) {
                 // should happen only once per transaction
-                tx->mime_state = rs_mime_smtp_state_init(&tx->files_ts, &smtp_config.sbcfg);
+                tx->mime_state = SCMimeSmtpStateInit(&tx->files_ts, &smtp_config.sbcfg);
                 if (tx->mime_state == NULL) {
                     SCLogDebug("MimeDecInitParser() failed to "
                                "allocate data");
@@ -1207,7 +1207,7 @@ static int SMTPPreProcessCommands(
     /* fall back to strict line parsing for mime header parsing */
     // TODOrust4 use consumed API
     if (state->curr_tx && state->curr_tx->mime_state &&
-            rs_mime_smtp_get_state(state->curr_tx->mime_state) < MimeSmtpBody)
+            SCMimeSmtpGetState(state->curr_tx->mime_state) < MimeSmtpBody)
         return 1;
 
     bool line_complete = false;
@@ -1462,7 +1462,7 @@ static void SMTPLocalStorageFree(void *ptr)
 static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
 {
     if (tx->mime_state != NULL) {
-        rs_mime_smtp_state_free(tx->mime_state);
+        SCMimeSmtpStateFree(tx->mime_state);
     }
 
     if (tx->tx_data.events != NULL)
@@ -3944,8 +3944,8 @@ static int SMTPParserTest14(void)
 
     /* Enable mime decoding */
     smtp_config.decode_mime = true;
-    rs_mime_smtp_config_decode_base64(1);
-    rs_mime_smtp_config_decode_quoted(1);
+    SCMimeSmtpConfigDecodeBase64(1);
+    SCMimeSmtpConfigDecodeQuoted(1);
 
     /* DATA request */
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
