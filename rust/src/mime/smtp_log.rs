@@ -35,7 +35,7 @@ fn log_subject_md5(js: &mut JsonBuilder, ctx: &mut MimeStateSMTP) -> Result<(), 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_log_subject_md5(
+pub unsafe extern "C" fn SCMimeSmtpLogSubjectMd5(
     js: &mut JsonBuilder, ctx: &mut MimeStateSMTP,
 ) -> bool {
     return log_subject_md5(js, ctx).is_ok();
@@ -50,7 +50,7 @@ fn log_body_md5(js: &mut JsonBuilder, ctx: &mut MimeStateSMTP) -> Result<(), Jso
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_log_body_md5(
+pub unsafe extern "C" fn SCMimeSmtpLogBodyMd5(
     js: &mut JsonBuilder, ctx: &mut MimeStateSMTP,
 ) -> bool {
     return log_body_md5(js, ctx).is_ok();
@@ -80,7 +80,7 @@ fn log_field_array(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_log_field_array(
+pub unsafe extern "C" fn SCMimeSmtpLogFieldArray(
     js: &mut JsonBuilder, ctx: &mut MimeStateSMTP, email: *const std::os::raw::c_char,
     config: *const std::os::raw::c_char,
 ) -> bool {
@@ -111,7 +111,7 @@ fn log_field_comma(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_log_field_comma(
+pub unsafe extern "C" fn SCMimeSmtpLogFieldComma(
     js: &mut JsonBuilder, ctx: &mut MimeStateSMTP, email: *const std::os::raw::c_char,
     config: *const std::os::raw::c_char,
 ) -> bool {
@@ -138,7 +138,7 @@ fn log_field_string(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_log_field_string(
+pub unsafe extern "C" fn SCMimeSmtpLogFieldString(
     js: &mut JsonBuilder, ctx: &mut MimeStateSMTP, email: *const std::os::raw::c_char,
     config: *const std::os::raw::c_char,
 ) -> bool {
@@ -190,7 +190,7 @@ fn log_data(js: &mut JsonBuilder, ctx: &mut MimeStateSMTP) -> Result<(), JsonErr
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_log_data(
+pub unsafe extern "C" fn SCMimeSmtpLogData(
     js: &mut JsonBuilder, ctx: &mut MimeStateSMTP,
 ) -> bool {
     return log_data(js, ctx).is_ok();

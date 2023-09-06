@@ -140,7 +140,7 @@ pub fn mime_smtp_state_init(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_state_init(
+pub unsafe extern "C" fn SCMimeSmtpStateInit(
     files: &mut FileContainer, sbcfg: *const StreamingBufferConfig,
 ) -> *mut MimeStateSMTP {
     if let Some(ctx) = mime_smtp_state_init(files, sbcfg) {
@@ -151,7 +151,7 @@ pub unsafe extern "C" fn rs_mime_smtp_state_init(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_state_free(ctx: &mut MimeStateSMTP) {
+pub unsafe extern "C" fn SCMimeSmtpStateFree(ctx: &mut MimeStateSMTP) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
 }
@@ -702,7 +702,7 @@ fn mime_smtp_parse_line(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smtp_mime_parse_line(
+pub unsafe extern "C" fn SCSmtpMimeParseLine(
     input: *const u8, input_len: u32, delim_len: u8, warnings: *mut u32, ctx: &mut MimeStateSMTP,
 ) -> MimeSmtpParserResult {
     let full_line = build_slice!(input, input_len as usize + delim_len as usize);
@@ -724,18 +724,18 @@ fn mime_smtp_complete(ctx: &mut MimeStateSMTP) -> u32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smtp_mime_complete(ctx: &mut MimeStateSMTP, warnings: *mut u32) {
+pub unsafe extern "C" fn SCSmtpMimeComplete(ctx: &mut MimeStateSMTP, warnings: *mut u32) {
     let w = mime_smtp_complete(ctx);
     *warnings = w;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_get_state(ctx: &mut MimeStateSMTP) -> MimeSmtpParserState {
+pub unsafe extern "C" fn SCMimeSmtpGetState(ctx: &mut MimeStateSMTP) -> MimeSmtpParserState {
     return ctx.state_flag;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_get_filename(
+pub unsafe extern "C" fn SCMimeSmtpGetFilename(
     ctx: &mut MimeStateSMTP, buffer: *mut *const u8, filename_len: *mut u16,
 ) {
     if !ctx.filename.is_empty() {
@@ -752,7 +752,7 @@ pub unsafe extern "C" fn rs_mime_smtp_get_filename(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_get_header(
+pub unsafe extern "C" fn SCMimeSmtpGetHeader(
     ctx: &mut MimeStateSMTP, str: *const std::os::raw::c_char, buffer: *mut *const u8,
     buffer_len: *mut u32,
 ) -> bool {
@@ -770,7 +770,7 @@ pub unsafe extern "C" fn rs_mime_smtp_get_header(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_get_header_name(
+pub unsafe extern "C" fn SCMimeSmtpGetHeaderName(
     ctx: &mut MimeStateSMTP, buffer: *mut *const u8, buffer_len: *mut u32, num: u32,
 ) -> bool {
     if num as usize + ctx.main_headers_nb < ctx.headers.len() {
@@ -794,42 +794,42 @@ static mut MIME_SMTP_CONFIG_LOG_URL_SCHEME: bool = false;
 static mut MIME_SMTP_CONFIG_EXTRACT_URL_SCHEMES: Vec<&str> = Vec::new();
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_config_decode_base64(val: std::os::raw::c_int) {
+pub unsafe extern "C" fn SCMimeSmtpConfigDecodeBase64(val: std::os::raw::c_int) {
     MIME_SMTP_CONFIG_DECODE_BASE64 = val != 0;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_config_decode_quoted(val: std::os::raw::c_int) {
+pub unsafe extern "C" fn SCMimeSmtpConfigDecodeQuoted(val: std::os::raw::c_int) {
     MIME_SMTP_CONFIG_DECODE_QUOTED = val != 0;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_config_extract_urls(val: std::os::raw::c_int) {
+pub unsafe extern "C" fn SCMimeSmtpConfigExtractUrls(val: std::os::raw::c_int) {
     MIME_SMTP_CONFIG_EXTRACT_URLS = val != 0;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_config_log_url_scheme(val: std::os::raw::c_int) {
+pub unsafe extern "C" fn SCMimeSmtpConfigLogUrlScheme(val: std::os::raw::c_int) {
     MIME_SMTP_CONFIG_LOG_URL_SCHEME = val != 0;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_config_body_md5(val: std::os::raw::c_int) {
+pub unsafe extern "C" fn SCMimeSmtpConfigBodyMd5(val: std::os::raw::c_int) {
     MIME_SMTP_CONFIG_BODY_MD5 = val != 0;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_config_header_value_depth(val: u32) {
+pub unsafe extern "C" fn SCMimeSmtpConfigHeaderValueDepth(val: u32) {
     MIME_SMTP_CONFIG_HEADER_VALUE_DEPTH = val;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_config_extract_urls_scheme_reset() {
+pub unsafe extern "C" fn SCMimeSmtpConfigExtractUrlsSchemeReset() {
     MIME_SMTP_CONFIG_EXTRACT_URL_SCHEMES.clear();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_smtp_config_extract_urls_scheme_add(
+pub unsafe extern "C" fn SCMimeSmtpConfigExtractUrlsSchemeAdd(
     str: *const std::os::raw::c_char,
 ) -> std::os::raw::c_int {
     let scheme: &CStr = CStr::from_ptr(str); //unsafe
