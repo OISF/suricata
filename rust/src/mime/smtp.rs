@@ -453,7 +453,7 @@ fn mime_base64_decode(decoder: &mut MimeBase64Decoder, input: &[u8]) -> io::Resu
     let mut offset = 0;
     while !i.is_empty() {
         while decoder.nb < 4 && !i.is_empty() {
-            if i[0] != b' ' {
+            if mime_base64_map(i[0]).is_ok() || i[0] == b'=' {
                 decoder.tmp[decoder.nb as usize] = i[0];
                 decoder.nb += 1;
             }
@@ -563,6 +563,29 @@ fn mime_smtp_parse_line(
                 && i.len() >= ctx.boundary.len()
                 && i[..ctx.boundary.len()] == ctx.boundary
             {
+                if ctx.encoding == MimeSmtpEncoding::Base64 {
+                    if unsafe { MIME_SMTP_CONFIG_DECODE_BASE64 } {
+                        if let Some(ref mut decoder) = &mut ctx.decoder {
+                            if decoder.nb > 0 {
+                                // flush the base64 buffer with padding
+                                let mut v = Vec::new();
+                                for _i in 0..4 - decoder.nb {
+                                    v.push(b'=');
+                                }
+                                if let Ok(dec) = mime_base64_decode(decoder, &v) {
+                                    unsafe {
+                                        FileAppendData(
+                                            ctx.files,
+                                            ctx.sbcfg,
+                                            dec.as_ptr(),
+                                            dec.len() as u32,
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 ctx.state_flag = MimeSmtpParserState::MimeSmtpStart;
                 let toclose = !ctx.filename.is_empty();
                 ctx.filename.clear();
