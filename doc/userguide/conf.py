@@ -143,6 +143,7 @@ if not on_rtd:
         else:
             app.add_stylesheet('css/suricata.css')
 else:
+    html_theme = 'sphinx_rtd_theme'
     html_context = {
         'css_files': [
             'https://media.readthedocs.org/css/sphinx_rtd_theme.css',
