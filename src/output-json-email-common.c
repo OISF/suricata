@@ -90,7 +90,7 @@ static void EveEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, S
         if (entity == NULL) {
             return;
         }
-        rs_mime_smtp_log_subject_md5(js, entity);
+        SCMimeSmtpLogSubjectMd5(js, entity);
     }
 
     if (email_ctx->flags & LOG_EMAIL_BODY_MD5) {
@@ -98,7 +98,7 @@ static void EveEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, S
         if (entity == NULL) {
             return;
         }
-        rs_mime_smtp_log_body_md5(js, entity);
+        SCMimeSmtpLogBodyMd5(js, entity);
     }
 }
 
@@ -116,13 +116,13 @@ static void EveEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, JsonBuilder *js
               ((email_ctx->flags & LOG_EMAIL_EXTENDED) && (email_fields[f].flags & LOG_EMAIL_EXTENDED))
            ) {
             if (email_fields[f].flags & LOG_EMAIL_ARRAY) {
-                rs_mime_smtp_log_field_array(
+                SCMimeSmtpLogFieldArray(
                         js, entity, email_fields[f].email_field, email_fields[f].config_field);
             } else if (email_fields[f].flags & LOG_EMAIL_COMMA) {
-                rs_mime_smtp_log_field_comma(
+                SCMimeSmtpLogFieldComma(
                         js, entity, email_fields[f].email_field, email_fields[f].config_field);
             } else {
-                rs_mime_smtp_log_field_string(
+                SCMimeSmtpLogFieldString(
                         js, entity, email_fields[f].email_field, email_fields[f].config_field);
             }
 
@@ -156,7 +156,7 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
             SCReturnBool(false);
     }
     if ((mime_state != NULL)) {
-        rs_mime_smtp_log_data(sjs, mime_state);
+        SCMimeSmtpLogData(sjs, mime_state);
         SCReturnBool(true);
     }
 
