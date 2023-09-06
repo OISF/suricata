@@ -28,16 +28,16 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     uint32_t events;
     FileContainer *files = FileContainerAlloc();
     StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
-    MimeStateSMTP *state = rs_mime_smtp_state_init(files, &sbcfg);
+    MimeStateSMTP *state = SCMimeSmtpStateInit(files, &sbcfg);
     const uint8_t * buffer = data;
     while (1) {
         uint8_t * next = memchr(buffer, '\n', size);
         if (next == NULL) {
-            if (rs_mime_smtp_get_state(state) >= MimeSmtpBody)
-                (void)rs_smtp_mime_parse_line(buffer, size, 0, &events, state);
+            if (SCMimeSmtpGetState(state) >= MimeSmtpBody)
+                (void)SCSmtpMimeParseLine(buffer, size, 0, &events, state);
             break;
         } else {
-            (void)rs_smtp_mime_parse_line(buffer, next - buffer, 1, &events, state);
+            (void)SCSmtpMimeParseLine(buffer, next - buffer, 1, &events, state);
             if (buffer + size < next + 1) {
                 break;
             }
@@ -46,9 +46,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         }
     }
     /* Completed */
-    (void)rs_smtp_mime_complete(state, &events);
+    (void)SCSmtpMimeComplete(state, &events);
     /* De Init parser */
-    rs_mime_smtp_state_free(state);
+    SCMimeSmtpStateFree(state);
     FileContainerFree(files, &sbcfg);
 
     return 0;
