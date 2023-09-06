@@ -1902,6 +1902,11 @@ int AppLayerProtoDetectConfProtoDetectionEnabledDefault(
     if (RunmodeIsUnittests())
         goto enabled;
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    // so that fuzzig takes place for DNP3 and such
+    default_enabled = true;
+#endif
+
     r = snprintf(param, sizeof(param), "%s%s%s", "app-layer.protocols.",
                  alproto, ".enabled");
     if (r < 0) {
