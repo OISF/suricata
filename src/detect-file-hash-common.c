@@ -321,7 +321,6 @@ int DetectFileHashSetup(
         DetectEngineCtx *de_ctx, Signature *s, const char *str, uint16_t type, int list)
 {
     DetectFileHashData *filehash = NULL;
-    SigMatch *sm = NULL;
 
     filehash = DetectFileHashParse(de_ctx, str, type);
     if (filehash == NULL)
@@ -329,14 +328,10 @@ int DetectFileHashSetup(
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+
+    if (SigMatchAppendSMToList(de_ctx, s, type, (SigMatchCtx *)filehash, list) == NULL) {
         goto error;
-
-    sm->type = type;
-    sm->ctx = (void *)filehash;
-
-    SigMatchAppendSMToList(s, sm, list);
+    }
 
     s->file_flags |= FILE_SIG_NEED_FILE;
 
@@ -355,8 +350,6 @@ int DetectFileHashSetup(
 error:
     if (filehash != NULL)
         DetectFileHashFree(de_ctx, filehash);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 

@@ -1013,7 +1013,6 @@ error:
 static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectLuaData *lua = NULL;
-    SigMatch *sm = NULL;
 
     /* First check if Lua rules are enabled, by default Lua in rules
      * is disabled. */
@@ -1047,12 +1046,6 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_LUA;
-    sm->ctx = (SigMatchCtx *)lua;
 
     int list = -1;
     if (lua->alproto == ALPROTO_UNKNOWN) {
@@ -1118,15 +1111,15 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
         goto error;
     }
 
-    SigMatchAppendSMToList(s, sm, list);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_LUA, (SigMatchCtx *)lua, list) == NULL) {
+        goto error;
+    }
 
     return 0;
 
 error:
     if (lua != NULL)
         DetectLuaFree(de_ctx, lua);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 

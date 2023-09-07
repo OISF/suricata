@@ -153,7 +153,6 @@ static int DetectNfsProcedureSetup (DetectEngineCtx *de_ctx, Signature *s,
                                    const char *rawstr)
 {
     DetectU32Data *dd = NULL;
-    SigMatch *sm = NULL;
 
     SCLogDebug("\'%s\'", rawstr);
 
@@ -168,15 +167,12 @@ static int DetectNfsProcedureSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_AL_NFS_PROCEDURE;
-    sm->ctx = (void *)dd;
 
     SCLogDebug("low %u hi %u", dd->arg1, dd->arg2);
-    SigMatchAppendSMToList(s, sm, g_nfs_request_buffer_id);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_NFS_PROCEDURE, (SigMatchCtx *)dd,
+                g_nfs_request_buffer_id) == NULL) {
+        goto error;
+    }
     return 0;
 
 error:

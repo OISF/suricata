@@ -110,24 +110,19 @@ static int DetectAckMatch(DetectEngineThreadCtx *det_ctx,
 static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
 {
     DetectAckData *data = NULL;
-    SigMatch *sm = NULL;
 
     data = SCMalloc(sizeof(DetectAckData));
     if (unlikely(data == NULL))
         goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_ACK;
-
     if (StringParseUint32(&data->ack, 10, 0, optstr) < 0) {
         goto error;
     }
-    sm->ctx = (SigMatchCtx*)data;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ACK, (SigMatchCtx *)data, DETECT_SM_LIST_MATCH) ==
+            NULL) {
+        goto error;
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
@@ -135,8 +130,6 @@ static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s, const char *opt
 error:
     if (data)
         SCFree(data);
-    if (sm)
-        SigMatchFree(de_ctx, sm);
     return -1;
 
 }

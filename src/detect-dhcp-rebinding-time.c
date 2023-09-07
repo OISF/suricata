@@ -93,14 +93,11 @@ static int DetectDHCPRebindingTimeSetup(DetectEngineCtx *de_ctx, Signature *s, c
 
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL)
+
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_AL_DHCP_REBINDING_TIME, (SigMatchCtx *)dd, g_buffer_id) == NULL) {
         goto error;
-
-    sm->type = DETECT_AL_DHCP_REBINDING_TIME;
-    sm->ctx = (void *)dd;
-
-    SigMatchAppendSMToList(s, sm, g_buffer_id);
+    }
     return 0;
 
 error:

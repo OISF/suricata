@@ -198,7 +198,6 @@ error:
 static int DetectMQTTFlagsSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectMQTTFlagsData *de = NULL;
-    SigMatch *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_MQTT) < 0)
         return -1;
@@ -207,22 +206,16 @@ static int DetectMQTTFlagsSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (de == NULL)
         goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_MQTT_FLAGS, (SigMatchCtx *)de, mqtt_flags_id) ==
+            NULL) {
         goto error;
-
-    sm->type = DETECT_AL_MQTT_FLAGS;
-    sm->ctx = (SigMatchCtx *)de;
-
-    SigMatchAppendSMToList(s, sm, mqtt_flags_id);
+    }
 
     return 0;
 
 error:
     if (de != NULL)
         SCFree(de);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 
