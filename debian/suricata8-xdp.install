@@ -5,4 +5,5 @@ opt/suricata8/share/suricata/classification.config /opt/suricata8/etc
 opt/suricata8/share/suricata/reference.config /opt/suricata8/etc
 opt/suricata8/share/suricata/env.config /opt/suricata8/etc
 suricata.yaml /opt/suricata8/etc
-
+ebpf/*bpf /opt/suricata8/ebpf
+libbpf.so* /opt/suricata8/lib
