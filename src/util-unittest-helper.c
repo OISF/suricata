@@ -316,6 +316,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     }
     SET_PKT_LEN(p, hdr_offset + payload_len);
     p->payload = GET_PKT_DATA(p)+hdr_offset;
+    p->app_update_direction = UPDATE_DIR_BOTH;
 
     return p;
 
