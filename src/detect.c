@@ -152,6 +152,12 @@ static void DetectRun(ThreadVars *th_v,
                 DetectRunFrames(th_v, de_ctx, det_ctx, p, pflow, &scratch);
                 // PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX);
             }
+            // no update to transactions
+            if (!PKT_IS_PSEUDOPKT(p) && p->app_update_direction == 0 &&
+                    ((PKT_IS_TOSERVER(p) && (p->flow->flags & FLOW_TS_APP_UPDATED) == 0) ||
+                            (PKT_IS_TOCLIENT(p) && (p->flow->flags & FLOW_TC_APP_UPDATED) == 0))) {
+                goto end;
+            }
         } else if (p->proto == IPPROTO_UDP) {
             DetectRunFrames(th_v, de_ctx, det_ctx, p, pflow, &scratch);
         }
