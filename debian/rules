@@ -38,6 +38,7 @@ override_dh_auto_configure:
 		CFLAGS="$(CFLAGS)" \
 		--prefix=/usr/ --sysconfdir=/etc/ --localstatedir=/var/ \
 		--enable-ebpf \
+		--enable-ebpf-build \
 		--enable-nfqueue \
 		--disable-gccmarch-native \
 		--enable-geoip \

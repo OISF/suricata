@@ -35,6 +35,20 @@
 
 #include "hash_func01.h"
 
+#define DEBUG 1
+
+#define INLINE __always_inline __attribute__((always_inline))
+
+#if DEBUG
+#define DPRINTF(fmt_str, args...) \
+    { \
+        char fmt[] = fmt_str; \
+        bpf_trace_printk(fmt, sizeof(fmt), args); \
+    }
+#else
+#define DPRINTF(fmt_str, args...) ;
+#endif
+
 #define LINUX_VERSION_CODE 263682
 
 /* Hashing initval */
@@ -70,27 +84,116 @@ struct bpf_map_def SEC("maps") cpus_count = {
     .max_entries	= 1,
 };
 
-static int __always_inline hash_ipv4(void *data, void *data_end)
+static INLINE __u16 ntohs(__u16 val) {
+    return ((val & 0xff00) >> 8) + ((val & 0x00ff) << 8);
+}
+
+static INLINE int get_sport(void *trans_data, void *data_end,
+        __u8 protocol)
 {
+    struct tcphdr *th;
+    struct udphdr *uh;
+
+    switch (protocol) {
+        case IPPROTO_TCP:
+            th = (struct tcphdr *)trans_data;
+            if ((void *)(th + 1) > data_end) {
+                return -1;
+            }
+            return th->source;
+        case IPPROTO_UDP:
+            uh = (struct udphdr *)trans_data;
+            if ((void *)(uh + 1) > data_end) {
+                return -1;
+            }
+            return uh->source;
+        default:
+            return 0;
+    }
+}
+
+static INLINE int get_dport(void *trans_data, void *data_end,
+        __u8 protocol)
+{
+    struct tcphdr *th;
+    struct udphdr *uh;
+
+    switch (protocol) {
+        case IPPROTO_TCP:
+            th = (struct tcphdr *)trans_data;
+            if ((void *)(th + 1) > data_end)
+                return -1;
+            return th->dest;
+        case IPPROTO_UDP:
+            uh = (struct udphdr *)trans_data;
+            if ((void *)(uh + 1) > data_end)
+                return -1;
+            return uh->dest;
+        default:
+            return 0;
+    }
+}
+
+static int INLINE hash_ipv4(void *data, void *data_end)
+{
+    DPRINTF("hash_ipv4 %d\n", (int)(data_end - data));
+
     struct iphdr *iph = data;
-    if ((void *)(iph + 1) > data_end)
+    if ((void *)(iph + 1) > data_end) {
         return XDP_PASS;
+    }
 
     __u32 key0 = 0;
     __u32 cpu_dest;
     __u32 *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
     __u32 *cpu_selected;
-    __u32 cpu_hash;
 
-    /* IP-pairs hit same CPU */
-    cpu_hash = iph->saddr + iph->daddr;
-    cpu_hash = SuperFastHash((char *)&cpu_hash, 4, INITVAL);
+    int dport = get_dport(iph + 1, data_end, iph->protocol);
+    if (dport == -1) {
+        return XDP_PASS;
+    }
+
+    int sport = get_sport(iph + 1, data_end, iph->protocol);
+    if (sport == -1) {
+        return XDP_PASS;
+    }
+
+    DPRINTF("Flow proto  %d\n", iph->protocol);
+    DPRINTF("     src %x:%d\n", iph->saddr, ntohs(sport));
+    DPRINTF("     dst %x:%d\n", iph->daddr, ntohs(dport));
+
+     __u32 cpu_hash;
+     __u64 cpu_hash_input = 0;
+
+    // Sort the client/server parts of the 5-tuple for a symmetric hash
+    //
+    // NOTE: saddr and daddr are in network order (i.e., big endian), and we're running 
+    // an on Intel (little endian), which means the least significant bits contain the 
+    // network portion of the IP address, which we intentionally add the layer 4 port  
+    // on top of it.
+    // This does two things:
+    //   - it uses the full 5-tuple for hashing
+    //   - creates more entropy by distrupting the fairly static network bits
+    if (iph->saddr > iph->daddr) {
+        ((__u32*)&cpu_hash_input)[0] = iph->saddr + sport;
+        ((__u32*)&cpu_hash_input)[1] = iph->daddr + dport;
+
+        cpu_hash = SuperFastHash((char *)&cpu_hash_input, 8, INITVAL + iph->protocol);
+    } else {
+        ((__u32*)&cpu_hash_input)[0] = iph->daddr + dport;
+        ((__u32*)&cpu_hash_input)[1] = iph->saddr + sport;
+
+        cpu_hash = SuperFastHash((char *)&cpu_hash_input, 8, INITVAL + iph->protocol);
+    }
 
     if (cpu_max && *cpu_max) {
         cpu_dest = cpu_hash % *cpu_max;
+
+        DPRINTF("    hash %x to %d\n", cpu_hash, cpu_dest);
         cpu_selected = bpf_map_lookup_elem(&cpus_available, &cpu_dest);
-        if (!cpu_selected)
+        if (!cpu_selected) {
             return XDP_ABORTED;
+        }
         cpu_dest = *cpu_selected;
         return bpf_redirect_map(&cpu_map, cpu_dest, 0);
     } else {
@@ -98,11 +201,12 @@ static int __always_inline hash_ipv4(void *data, void *data_end)
     }
 }
 
-static int __always_inline hash_ipv6(void *data, void *data_end)
+static int INLINE hash_ipv6(void *data, void *data_end)
 {
     struct ipv6hdr *ip6h = data;
-    if ((void *)(ip6h + 1) > data_end)
+    if ((void *)(ip6h + 1) > data_end) {
         return XDP_PASS;
+    }
 
     __u32 key0 = 0;
     __u32 cpu_dest;
@@ -120,8 +224,9 @@ static int __always_inline hash_ipv6(void *data, void *data_end)
     if (cpu_max && *cpu_max) {
         cpu_dest = cpu_hash % *cpu_max;
         cpu_selected = bpf_map_lookup_elem(&cpus_available, &cpu_dest);
-        if (!cpu_selected)
+        if (!cpu_selected) {
             return XDP_ABORTED;
+        }
         cpu_dest = *cpu_selected;
         return bpf_redirect_map(&cpu_map, cpu_dest, 0);
     } else {
@@ -131,7 +236,7 @@ static int __always_inline hash_ipv6(void *data, void *data_end)
     return XDP_PASS;
 }
 
-static int __always_inline filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
+static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
 {
     struct iphdr *iph = data + nh_off;
     __be16 proto;
@@ -140,53 +245,81 @@ static int __always_inline filter_gre(struct xdp_md *ctx, void *data, __u64 nh_o
         __be16 proto;
     };
 
+    // TODO: use length from IP header
     nh_off += sizeof(struct iphdr);
     struct gre_hdr *grhdr = (struct gre_hdr *)(iph + 1);
 
-    if ((void *)(grhdr + 1) > data_end)
+    if ((void *)(grhdr + 1) > data_end) {
         return XDP_PASS;
+    }
 
-    if (grhdr->flags & (GRE_VERSION|GRE_ROUTING))
+    if (grhdr->flags & (GRE_VERSION|GRE_ROUTING)) {
         return XDP_PASS;
+    }
 
     nh_off += 4;
     proto = grhdr->proto;
-    if (grhdr->flags & GRE_CSUM)
+    if (grhdr->flags & GRE_CSUM) {
         nh_off += 4;
-    if (grhdr->flags & GRE_KEY)
+    }
+    if (grhdr->flags & GRE_KEY) {
         nh_off += 4;
-    if (grhdr->flags & GRE_SEQ)
+    }
+    if (grhdr->flags & GRE_SEQ) {
         nh_off += 4;
+    }
 
-    if (data + nh_off > data_end)
+    /* Update offset to skip ERSPAN header if we have one */
+    if (proto == __constant_htons(ETH_P_ERSPAN)) {
+        nh_off += 8;
+    }
+
+    if (data + nh_off > data_end) {
         return XDP_PASS;
-    if (bpf_xdp_adjust_head(ctx, 0 + nh_off))
+    }
+
+    if (bpf_xdp_adjust_head(ctx, 0 + nh_off)) {
         return XDP_PASS;
+    }
 
     data = (void *)(long)ctx->data;
     data_end = (void *)(long)ctx->data_end;
 
+    /* we have new data starting at Ethernet header */
+    struct ethhdr *eth = data;
+    proto = eth->h_proto;
+    /* we want to hash on IP so we need to get to ip hdr */
+    nh_off = sizeof(*eth);
+
+    if (data + nh_off > data_end) {
+        return XDP_PASS;
+    }
+
     if (proto == __constant_htons(ETH_P_8021Q)) {
         struct vlan_hdr *vhdr = (struct vlan_hdr *)(data);
-        if ((void *)(vhdr + 1) > data_end)
+        if ((void *)(vhdr + 1) > data_end) {
             return XDP_PASS;
+        }
         proto = vhdr->h_vlan_encapsulated_proto;
         nh_off += sizeof(struct vlan_hdr);
     }
 
     if (proto == __constant_htons(ETH_P_IP)) {
-        return hash_ipv4(data, data_end);
+        return hash_ipv4(data + nh_off, data_end);
     } else if (proto == __constant_htons(ETH_P_IPV6)) {
-        return hash_ipv6(data, data_end);
-    } else
+        return hash_ipv6(data + nh_off, data_end);
+    } else {
+        DPRINTF("GRE unknown inner proto %d\n", ntohs(proto));
         return XDP_PASS;
+    }
 }
 
-static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
+static int INLINE filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
 {
     struct iphdr *iph = data + nh_off;
-    if ((void *)(iph + 1) > data_end)
+    if ((void *)(iph + 1) > data_end) {
         return XDP_PASS;
+    }
 
     if (iph->protocol == IPPROTO_GRE) {
         return filter_gre(ctx, data, nh_off, data_end);
@@ -194,7 +327,7 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
     return hash_ipv4(data + nh_off, data_end);
 }
 
-static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
+static int INLINE filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
 {
     struct ipv6hdr *ip6h = data + nh_off;
     return hash_ipv6((void *)ip6h, data_end);
@@ -208,18 +341,15 @@ int SEC("xdp") xdp_loadfilter(struct xdp_md *ctx)
     __u16 h_proto;
     __u64 nh_off;
 
-    nh_off = sizeof(*eth);
-    if (data + nh_off > data_end)
+    DPRINTF("Packet %d len\n", (int)(ctx->data_end - ctx->data));
+
+    nh_off = sizeof(*eth); 
+    if (data + nh_off > data_end) {
         return XDP_PASS;
+    }
 
     h_proto = eth->h_proto;
 
-#if 0
-    if (h_proto != __constant_htons(ETH_P_IP)) {
-        char fmt[] = "Current proto: %u\n";
-        bpf_trace_printk(fmt, sizeof(fmt), h_proto);
-    }
-#endif
     if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
         struct vlan_hdr *vhdr;
 
@@ -239,10 +369,12 @@ int SEC("xdp") xdp_loadfilter(struct xdp_md *ctx)
         h_proto = vhdr->h_vlan_encapsulated_proto;
     }
 
-    if (h_proto == __constant_htons(ETH_P_IP))
+    if (h_proto == __constant_htons(ETH_P_IP)) {
         return filter_ipv4(ctx, data, nh_off, data_end);
-    else if (h_proto == __constant_htons(ETH_P_IPV6))
+    }
+    else if (h_proto == __constant_htons(ETH_P_IPV6)) {
         return filter_ipv6(ctx, data, nh_off, data_end);
+    }
 
     return XDP_PASS;
 }
