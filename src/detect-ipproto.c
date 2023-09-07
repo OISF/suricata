@@ -188,7 +188,6 @@ static int DetectIPProtoTypePresentForOP(Signature *s, uint8_t op)
  */
 static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
 {
-    SigMatch *sm = NULL;
     int i;
 
     DetectIPProtoData *data = DetectIPProtoParse(optstr);
@@ -414,12 +413,10 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
             break;
     }
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_IPPROTO, (SigMatchCtx *)data, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
-    sm->type = DETECT_IPPROTO;
-    sm->ctx = (void *)data;
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
@@ -429,7 +426,6 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     DetectIPProtoFree(de_ctx, data);
     return -1;
 }
-
 
 void DetectIPProtoRemoveAllSMs(DetectEngineCtx *de_ctx, Signature *s)
 {

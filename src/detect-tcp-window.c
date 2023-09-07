@@ -181,28 +181,24 @@ error:
 static int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *windowstr)
 {
     DetectWindowData *wd = NULL;
-    SigMatch *sm = NULL;
 
     wd = DetectWindowParse(de_ctx, windowstr);
     if (wd == NULL) goto error;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_WINDOW, (SigMatchCtx *)wd, DETECT_SM_LIST_MATCH) ==
+            NULL) {
         goto error;
-
-    sm->type = DETECT_WINDOW;
-    sm->ctx = (SigMatchCtx *)wd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 
 error:
-    if (wd != NULL) DetectWindowFree(de_ctx, wd);
-    if (sm != NULL) SCFree(sm);
+    if (wd != NULL)
+        DetectWindowFree(de_ctx, wd);
     return -1;
 
 }

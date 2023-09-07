@@ -369,7 +369,6 @@ error:
 static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectFlowintData *sfd = NULL;
-    SigMatch *sm = NULL;
 
     sfd = DetectFlowintParse(de_ctx, rawstr);
     if (sfd == NULL)
@@ -377,18 +376,15 @@ static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_FLOWINT;
-    sm->ctx = (SigMatchCtx *)sfd;
 
     switch (sfd->modifier) {
         case FLOWINT_MODIFIER_SET:
         case FLOWINT_MODIFIER_ADD:
         case FLOWINT_MODIFIER_SUB:
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+            if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOWINT, (SigMatchCtx *)sfd,
+                        DETECT_SM_LIST_POSTMATCH) == NULL) {
+                goto error;
+            }
             break;
 
         case FLOWINT_MODIFIER_LT:
@@ -399,7 +395,10 @@ static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
         case FLOWINT_MODIFIER_GT:
         case FLOWINT_MODIFIER_ISSET:
         case FLOWINT_MODIFIER_NOTSET:
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+            if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOWINT, (SigMatchCtx *)sfd,
+                        DETECT_SM_LIST_MATCH) == NULL) {
+                goto error;
+            }
             break;
         default:
             goto error;
@@ -410,8 +409,6 @@ static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 error:
     if (sfd)
         DetectFlowintFree(de_ctx, sfd);
-    if (sm)
-        SCFree(sm);
     return -1;
 }
 

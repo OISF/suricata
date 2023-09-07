@@ -85,7 +85,6 @@ static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
 {
     SCEnter();
     DetectModbusRust *modbus = NULL;
-    SigMatch        *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0)
         return -1;
@@ -96,22 +95,16 @@ static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     }
 
     /* Okay so far so good, lets get this into a SigMatch and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_AL_MODBUS, (SigMatchCtx *)modbus, g_modbus_buffer_id) == NULL) {
         goto error;
-
-    sm->type    = DETECT_AL_MODBUS;
-    sm->ctx     = (void *) modbus;
-
-    SigMatchAppendSMToList(s, sm, g_modbus_buffer_id);
+    }
 
     SCReturnInt(0);
 
 error:
     if (modbus != NULL)
         DetectModbusFree(de_ctx, modbus);
-    if (sm != NULL)
-        SCFree(sm);
     SCReturnInt(-1);
 }
 
