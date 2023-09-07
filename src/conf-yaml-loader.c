@@ -374,8 +374,9 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
         }
         else if (event.type == YAML_SEQUENCE_START_EVENT) {
             SCLogDebug("event.type=YAML_SEQUENCE_START_EVENT; state=%d", state);
-            if (ConfYamlParse(parser, node, 1, rlevel, state == CONF_INCLUDE ? CONF_INCLUDE : 0) !=
-                    0)
+            /* If we're processing a list of includes, use the current parent. */
+            if (ConfYamlParse(parser, state == CONF_INCLUDE ? parent : node, 1, rlevel,
+                        state == CONF_INCLUDE ? CONF_INCLUDE : 0) != 0)
                 goto fail;
             node->is_seq = 1;
             state = CONF_KEY;
