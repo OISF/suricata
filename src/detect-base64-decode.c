@@ -191,7 +191,6 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
     uint8_t relative = 0;
     DetectBase64Decode *data = NULL;
     int sm_list;
-    SigMatch *sm = NULL;
     SigMatch *pm = NULL;
 
     if (str != NULL) {
@@ -226,13 +225,10 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
         }
     }
 
-    sm = SigMatchAlloc();
-    if (sm == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_BASE64_DECODE, (SigMatchCtx *)data, sm_list) ==
+            NULL) {
         goto error;
     }
-    sm->type = DETECT_BASE64_DECODE;
-    sm->ctx = (SigMatchCtx *)data;
-    SigMatchAppendSMToList(s, sm, sm_list);
 
     if (!data->bytes) {
         data->bytes = BASE64_DECODE_MAX;

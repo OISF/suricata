@@ -383,13 +383,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
     if (fd == NULL)
         return -1;
 
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_FLOW;
-    sm->ctx = (SigMatchCtx *)fd;
-
+    bool appendsm = true;
     /* set the signature direction flags */
     if (fd->flags & DETECT_FLOW_FLAG_TOSERVER) {
         s->flags |= SIG_FLAG_TOSERVER;
@@ -409,14 +403,18 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
     {
         /* no direct flow is needed for just direction,
          * no sigmatch is needed either. */
-        SigMatchFree(de_ctx, sm);
-        sm = NULL;
+        appendsm = false;
     } else {
         s->init_data->init_flags |= SIG_FLAG_INIT_FLOW;
     }
 
-    if (sm != NULL) {
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (appendsm) {
+        if (SigMatchAppendSMToList(
+                    de_ctx, s, DETECT_FLOW, (SigMatchCtx *)fd, DETECT_SM_LIST_MATCH) == NULL) {
+            goto error;
+        }
+    } else if (fd != NULL) {
+        DetectFlowFree(de_ctx, fd);
     }
     return 0;
 

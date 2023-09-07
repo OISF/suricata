@@ -278,20 +278,19 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
     }
     SCLogDebug("data->event_id %u", data->event_id);
 
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_AL_APP_LAYER_EVENT;
-    sm->ctx = (SigMatchCtx *)data;
-
     if (event_type == APP_LAYER_EVENT_TYPE_PACKET) {
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+        if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_APP_LAYER_EVENT, (SigMatchCtx *)data,
+                    DETECT_SM_LIST_MATCH) == NULL) {
+            goto error;
+        }
     } else {
         if (DetectSignatureSetAppProto(s, data->alproto) != 0)
             goto error;
 
-        SigMatchAppendSMToList(s, sm, g_applayer_events_list_id);
+        if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_APP_LAYER_EVENT, (SigMatchCtx *)data,
+                    g_applayer_events_list_id) == NULL) {
+            goto error;
+        }
         s->flags |= SIG_FLAG_APPLAYER;
     }
 
@@ -300,10 +299,6 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
 error:
     if (data) {
         DetectAppLayerEventFree(de_ctx, data);
-    }
-    if (sm) {
-        sm->ctx = NULL;
-        SigMatchFree(de_ctx, sm);
     }
     return -1;
 }

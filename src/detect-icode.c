@@ -118,18 +118,14 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
 {
 
     DetectU8Data *icd = NULL;
-    SigMatch *sm = NULL;
 
     icd = DetectU8Parse(icodestr);
     if (icd == NULL) goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL) goto error;
-
-    sm->type = DETECT_ICODE;
-    sm->ctx = (SigMatchCtx *)icd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ICODE, (SigMatchCtx *)icd, DETECT_SM_LIST_MATCH) ==
+            NULL) {
+        goto error;
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
@@ -137,7 +133,6 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
 error:
     if (icd != NULL)
         rs_detect_u8_free(icd);
-    if (sm != NULL) SCFree(sm);
     return -1;
 }
 

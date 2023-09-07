@@ -69,7 +69,6 @@ void DetectBypassRegister(void)
 
 static int DetectBypassSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    SigMatch *sm = NULL;
 
     if (s->flags & SIG_FLAG_FILESTORE) {
         SCLogError("bypass can't work with filestore keyword");
@@ -77,13 +76,9 @@ static int DetectBypassSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     }
     s->flags |= SIG_FLAG_BYPASS;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_BYPASS, NULL, DETECT_SM_LIST_POSTMATCH) == NULL) {
         return -1;
-
-    sm->type = DETECT_BYPASS;
-    sm->ctx = NULL;
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+    }
 
     return 0;
 }
