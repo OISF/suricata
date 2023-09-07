@@ -582,7 +582,6 @@ error:
 
 static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
 {
-    SigMatch *sm = NULL;
     SigMatch *prev_pm = NULL;
     char *value = NULL;
     char *offset = NULL;
@@ -696,12 +695,9 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         nbytes = NULL;
     }
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_BYTETEST, (SigMatchCtx *)data, sm_list) != NULL) {
         goto error;
-    sm->type = DETECT_BYTETEST;
-    sm->ctx = (SigMatchCtx *)data;
-    SigMatchAppendSMToList(s, sm, sm_list);
+    }
 
     if (!(data->flags & DETECT_BYTETEST_RELATIVE))
         goto okay;
@@ -728,7 +724,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         SCFree(nbytes);
     DetectBytetestFree(de_ctx, data);
     return ret;
-}
+ }
 
 /**
  * \brief this function will free memory associated with DetectBytetestData

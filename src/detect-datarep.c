@@ -292,7 +292,6 @@ static int SetupLoadPath(const DetectEngineCtx *de_ctx,
 
 static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    SigMatch *sm = NULL;
     char cmd_str[16] = "", name[64] = "";
     enum DatasetTypes type = DATASET_TYPE_NOTSET;
     char load[PATH_MAX] = "";
@@ -352,20 +351,15 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
 
-    sm->type = DETECT_DATAREP;
-    sm->ctx = (SigMatchCtx *)cd;
-    SigMatchAppendSMToList(s, sm, list);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_DATAREP, (SigMatchCtx *)cd, list) != NULL) {
+        goto error;
+    }
     return 0;
 
 error:
     if (cd != NULL)
         SCFree(cd);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 

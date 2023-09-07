@@ -298,7 +298,6 @@ error:
 static int DetectTlsSubjectSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectTlsData *tls = NULL;
-    SigMatch *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
@@ -309,21 +308,16 @@ static int DetectTlsSubjectSetup (DetectEngineCtx *de_ctx, Signature *s, const c
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_AL_TLS_SUBJECT, (SigMatchCtx *)tls, g_tls_cert_list_id) != NULL) {
         goto error;
-
-    sm->type = DETECT_AL_TLS_SUBJECT;
-    sm->ctx = (void *)tls;
-
-    SigMatchAppendSMToList(s, sm, g_tls_cert_list_id);
+    }
     return 0;
 
 error:
     if (tls != NULL)
         DetectTlsSubjectFree(de_ctx, tls);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 
 }
@@ -494,7 +488,6 @@ error:
 static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectTlsData *tls = NULL;
-    SigMatch *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
@@ -505,21 +498,16 @@ static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_TLS_ISSUERDN, (SigMatchCtx *)tls,
+                g_tls_cert_list_id) != NULL) {
         goto error;
-
-    sm->type = DETECT_AL_TLS_ISSUERDN;
-    sm->ctx = (void *)tls;
-
-    SigMatchAppendSMToList(s, sm, g_tls_cert_list_id);
+    }
     return 0;
 
 error:
     if (tls != NULL)
         DetectTlsIssuerDNFree(de_ctx, tls);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 
 }
@@ -594,19 +582,16 @@ static void DetectTlsFingerprintFree(DetectEngineCtx *de_ctx, void *ptr)
  */
 static int DetectTlsStoreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    SigMatch *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        return -1;
-
-    sm->type = DETECT_AL_TLS_STORE;
     s->flags |= SIG_FLAG_TLSSTORE;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_TLS_STORE, NULL, DETECT_SM_LIST_POSTMATCH) !=
+            NULL) {
+        return -1;
+    }
     return 0;
 }
 

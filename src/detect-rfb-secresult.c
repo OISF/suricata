@@ -210,7 +210,6 @@ error:
 static int DetectRfbSecresultSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectRfbSecresultData *de = NULL;
-    SigMatch *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_RFB) < 0)
         return -1;
@@ -219,20 +218,16 @@ static int DetectRfbSecresultSetup (DetectEngineCtx *de_ctx, Signature *s, const
     if (de == NULL)
         goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_AL_RFB_SECRESULT, (SigMatchCtx *)de, rfb_secresult_id) != NULL) {
         goto error;
-
-    sm->type = DETECT_AL_RFB_SECRESULT;
-    sm->ctx = (SigMatchCtx *)de;
-
-    SigMatchAppendSMToList(s, sm, rfb_secresult_id);
+    }
 
     return 0;
 
 error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    if (de)
+        SCFree(de);
     return -1;
 }
 

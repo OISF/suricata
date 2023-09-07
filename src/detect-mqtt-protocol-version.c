@@ -106,7 +106,6 @@ static int DetectMQTTProtocolVersionMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectMQTTProtocolVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    SigMatch *sm = NULL;
     DetectU8Data *de = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_MQTT) < 0)
@@ -116,22 +115,16 @@ static int DetectMQTTProtocolVersionSetup(DetectEngineCtx *de_ctx, Signature *s,
     if (de == NULL)
         return -1;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_MQTT_PROTOCOL_VERSION, (SigMatchCtx *)de,
+                mqtt_protocol_version_id) != NULL) {
         goto error;
-
-    sm->type = DETECT_AL_MQTT_PROTOCOL_VERSION;
-    sm->ctx = (SigMatchCtx *)de;
-
-    SigMatchAppendSMToList(s, sm, mqtt_protocol_version_id);
+    }
 
     return 0;
 
 error:
     if (de != NULL)
         rs_detect_u8_free(de);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 

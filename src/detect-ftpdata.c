@@ -191,15 +191,11 @@ static int DetectFtpdataSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     if (ftpcommandd == NULL)
         return -1;
 
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FTPDATA, (SigMatchCtx *)ftpcommandd,
+                g_ftpdata_buffer_id) != NULL) {
         DetectFtpdataFree(de_ctx, ftpcommandd);
         return -1;
     }
-    sm->type = DETECT_FTPDATA;
-    sm->ctx = (void *)ftpcommandd;
-
-    SigMatchAppendSMToList(s, sm, g_ftpdata_buffer_id);
     return 0;
 }
 

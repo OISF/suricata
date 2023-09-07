@@ -266,26 +266,21 @@ error:
 int DetectRpcSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rpcstr)
 {
     DetectRpcData *rd = NULL;
-    SigMatch *sm = NULL;
 
     rd = DetectRpcParse(de_ctx, rpcstr);
     if (rd == NULL) goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_RPC, (SigMatchCtx *)rd, DETECT_SM_LIST_MATCH) !=
+            NULL) {
         goto error;
-
-    sm->type = DETECT_RPC;
-    sm->ctx = (SigMatchCtx *)rd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 
 error:
-    if (rd != NULL) DetectRpcFree(de_ctx, rd);
-    if (sm != NULL) SCFree(sm);
+    if (rd != NULL)
+        DetectRpcFree(de_ctx, rd);
     return -1;
 
 }

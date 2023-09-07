@@ -156,7 +156,6 @@ error:
 static int DetectMQTTConnackSessionPresentSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     bool *de = NULL;
-    SigMatch *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_MQTT) < 0)
         return -1;
@@ -165,22 +164,16 @@ static int DetectMQTTConnackSessionPresentSetup (DetectEngineCtx *de_ctx, Signat
     if (de == NULL)
         goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_MQTT_CONNACK_SESSION_PRESENT, (SigMatchCtx *)de,
+                mqtt_connack_session_present_id) != NULL) {
         goto error;
-
-    sm->type = DETECT_AL_MQTT_CONNACK_SESSION_PRESENT;
-    sm->ctx = (SigMatchCtx *)de;
-
-    SigMatchAppendSMToList(s, sm, mqtt_connack_session_present_id);
+    }
 
     return 0;
 
 error:
     if (de != NULL)
         SCFree(de);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 

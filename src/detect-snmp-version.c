@@ -132,7 +132,6 @@ static int DetectSNMPVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
                                    const char *rawstr)
 {
     DetectU32Data *dd = NULL;
-    SigMatch *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0)
         return -1;
@@ -145,15 +144,12 @@ static int DetectSNMPVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_AL_SNMP_VERSION;
-    sm->ctx = (void *)dd;
 
     SCLogDebug("snmp.version %d", dd->arg1);
-    SigMatchAppendSMToList(s, sm, g_snmp_version_buffer_id);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_SNMP_VERSION, (SigMatchCtx *)dd,
+                g_snmp_version_buffer_id) != NULL) {
+        goto error;
+    }
     return 0;
 
 error:

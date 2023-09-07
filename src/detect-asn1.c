@@ -127,18 +127,11 @@ static int DetectAsn1Setup(DetectEngineCtx *de_ctx, Signature *s, const char *as
     if (ad == NULL)
         return -1;
 
-    /* Okay so far so good, lets get this into a SigMatch
-     * and put it in the Signature. */
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ASN1, (SigMatchCtx *)ad, DETECT_SM_LIST_MATCH) !=
+            NULL) {
         DetectAsn1Free(de_ctx, ad);
         return -1;
     }
-
-    sm->type = DETECT_ASN1;
-    sm->ctx = (SigMatchCtx *)ad;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     return 0;
 }

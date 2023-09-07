@@ -239,7 +239,6 @@ error:
 static int DetectThresholdSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectThresholdData *de = NULL;
-    SigMatch *sm = NULL;
     SigMatch *tmpm = NULL;
 
     /* checks if there is a previous instance of detection_filter */
@@ -259,20 +258,16 @@ static int DetectThresholdSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (de == NULL)
         goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_THRESHOLD, (SigMatchCtx *)de, DETECT_SM_LIST_THRESHOLD) != NULL) {
         goto error;
-
-    sm->type = DETECT_THRESHOLD;
-    sm->ctx = (SigMatchCtx *)de;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
+    }
 
     return 0;
 
 error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    if (de)
+        SCFree(de);
     return -1;
 }
 

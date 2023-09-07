@@ -192,16 +192,11 @@ static int DetectTemplateSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     if (templated == NULL)
         return -1;
 
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_TEMPLATE, (SigMatchCtx *)templated,
+                DETECT_SM_LIST_MATCH) != NULL) {
         DetectTemplateFree(de_ctx, templated);
         return -1;
     }
-
-    sm->type = DETECT_TEMPLATE;
-    sm->ctx = (void *)templated;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;

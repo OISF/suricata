@@ -199,7 +199,6 @@ static int SigParseGetMaxBsize(DetectU64Data *bsz)
 static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *sizestr)
 {
     SCEnter();
-    SigMatch *sm = NULL;
 
     if (DetectBufferGetActiveList(de_ctx, s) == -1)
         SCReturnInt(-1);
@@ -212,13 +211,9 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     if (bsz == NULL)
         goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_BSIZE, (SigMatchCtx *)bsz, list) != NULL) {
         goto error;
-    sm->type = DETECT_BSIZE;
-    sm->ctx = (void *)bsz;
-
-    SigMatchAppendSMToList(s, sm, list);
+    }
 
     SCReturnInt(0);
 

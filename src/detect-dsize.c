@@ -119,7 +119,6 @@ static int DetectDsizeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectU16Data *dd = NULL;
-    SigMatch *sm = NULL;
 
     if (DetectGetLastSMFromLists(s, DETECT_DSIZE, -1)) {
         SCLogError("Can't use 2 or more dsizes in "
@@ -137,17 +136,12 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL){
-        SCLogError("Failed to allocate memory for SigMatch");
+    SigMatch *sm = SigMatchAppendSMToList(
+            de_ctx, s, DETECT_DSIZE, (SigMatchCtx *)dd, DETECT_SM_LIST_MATCH);
+    if (sm != NULL) {
         rs_detect_u16_free(dd);
         goto error;
     }
-
-    sm->type = DETECT_DSIZE;
-    sm->ctx = (SigMatchCtx *)dd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     SCLogDebug("dd->arg1 %" PRIu16 ", dd->arg2 %" PRIu16 ", dd->mode %" PRIu8 "", dd->arg1,
             dd->arg2, dd->mode);

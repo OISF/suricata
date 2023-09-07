@@ -335,7 +335,6 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
 
 int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    SigMatch *sm = NULL;
     DetectXbitsData *cd = NULL;
 
     int result = DetectXbitParse(de_ctx, rawstr, &cd);
@@ -349,12 +348,6 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_XBITS;
-    sm->ctx = (void *)cd;
 
     switch (cd->cmd) {
         /* case DETECT_XBITS_CMD_NOALERT can't happen here */
@@ -362,14 +355,20 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
         case DETECT_XBITS_CMD_ISNOTSET:
         case DETECT_XBITS_CMD_ISSET:
             /* checks, so packet list */
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+            if (SigMatchAppendSMToList(
+                        de_ctx, s, DETECT_XBITS, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) != NULL) {
+                goto error;
+            }
             break;
 
         case DETECT_XBITS_CMD_SET:
         case DETECT_XBITS_CMD_UNSET:
         case DETECT_XBITS_CMD_TOGGLE:
             /* modifiers, only run when entire sig has matched */
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+            if (SigMatchAppendSMToList(de_ctx, s, DETECT_XBITS, (SigMatchCtx *)cd,
+                        DETECT_SM_LIST_POSTMATCH) != NULL) {
+                goto error;
+            }
             break;
     }
 

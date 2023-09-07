@@ -349,7 +349,6 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     }
 
     DetectFilestoreData *fd = NULL;
-    SigMatch *sm = NULL;
     char *args[3] = {NULL,NULL,NULL};
     int res = 0;
     size_t pcre2len;
@@ -360,12 +359,6 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         SCLogError("filestore can't work with bypass keyword");
         return -1;
     }
-
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_FILESTORE;
 
     if (str != NULL && strlen(str) > 0) {
         char str_0[32];
@@ -455,25 +448,22 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
             if (fd->scope == 0)
                 fd->scope = FILESTORE_SCOPE_DEFAULT;
         }
-
-        sm->ctx = (SigMatchCtx*)fd;
-    } else {
-        sm->ctx = (SigMatchCtx*)NULL;
     }
 
     if (s->alproto == ALPROTO_HTTP1 || s->alproto == ALPROTO_HTTP) {
         AppLayerHtpNeedFileInspection();
     }
 
-    SigMatchAppendSMToList(s, sm, g_file_match_list_id);
-    s->filestore_ctx = (const DetectFilestoreData *)sm->ctx;
-
-    sm = SigMatchAlloc();
-    if (unlikely(sm == NULL))
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_FILESTORE, (SigMatchCtx *)fd, g_file_match_list_id) != NULL) {
         goto error;
-    sm->type = DETECT_FILESTORE_POSTMATCH;
-    sm->ctx = NULL;
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+    }
+    s->filestore_ctx = fd;
+
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_FILESTORE_POSTMATCH, NULL, DETECT_SM_LIST_POSTMATCH) != NULL) {
+        goto error;
+    }
 
     s->flags |= SIG_FLAG_FILESTORE;
 
@@ -486,8 +476,6 @@ error:
     if (match) {
         pcre2_match_data_free(match);
     }
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 

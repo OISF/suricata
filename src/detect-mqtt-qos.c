@@ -135,7 +135,6 @@ static uint8_t *DetectMQTTQosParse(const char *rawstr)
 static int DetectMQTTQosSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     uint8_t *de = NULL;
-    SigMatch *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_MQTT) < 0)
         return -1;
@@ -144,22 +143,16 @@ static int DetectMQTTQosSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     if (de == NULL)
         goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_MQTT_QOS, (SigMatchCtx *)de, mqtt_qos_id) !=
+            NULL) {
         goto error;
-
-    sm->type = DETECT_AL_MQTT_QOS;
-    sm->ctx = (SigMatchCtx *)de;
-
-    SigMatchAppendSMToList(s, sm, mqtt_qos_id);
+    }
 
     return 0;
 
 error:
     if (de != NULL)
         SCFree(de);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 

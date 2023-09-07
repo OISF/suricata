@@ -531,7 +531,6 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
  */
 static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    SigMatch *sm = NULL;
     SigMatch *prev_pm = NULL;
     DetectByteExtractData *data = NULL;
     int ret = -1;
@@ -609,14 +608,9 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     if (data->local_id > de_ctx->byte_extract_max_local_id)
         de_ctx->byte_extract_max_local_id = data->local_id;
 
-
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_BYTE_EXTRACT, data, sm_list) != NULL) {
         goto error;
-    sm->type = DETECT_BYTE_EXTRACT;
-    sm->ctx = (void *)data;
-    SigMatchAppendSMToList(s, sm, sm_list);
-
+    }
 
     if (!(data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE))
         goto okay;
@@ -638,7 +632,7 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const c
  error:
     DetectByteExtractFree(de_ctx, data);
     return ret;
-}
+ }
 
 /**
  * \brief Used to free instances of DetectByteExtractData.

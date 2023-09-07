@@ -176,7 +176,6 @@ error:
 static int DetectKrb5ErrCodeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *krb5str)
 {
     DetectKrb5ErrCodeData *krb5d = NULL;
-    SigMatch *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_KRB5) != 0)
         return -1;
@@ -185,22 +184,16 @@ static int DetectKrb5ErrCodeSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     if (krb5d == NULL)
         goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_KRB5_ERRCODE, (SigMatchCtx *)krb5d,
+                g_krb5_err_code_list_id) != NULL) {
         goto error;
-
-    sm->type = DETECT_AL_KRB5_ERRCODE;
-    sm->ctx = (void *)krb5d;
-
-    SigMatchAppendSMToList(s, sm, g_krb5_err_code_list_id);
+    }
 
     return 0;
 
 error:
     if (krb5d != NULL)
         DetectKrb5ErrCodeFree(de_ctx, krb5d);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 

@@ -121,14 +121,12 @@ static int DetectIkeKeyExchangePayloadLengthSetup(
 
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL)
+
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH,
+                (SigMatchCtx *)key_exchange_payload_length,
+                g_ike_key_exch_payload_length_buffer_id) != NULL) {
         goto error;
-
-    sm->type = DETECT_AL_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH;
-    sm->ctx = (SigMatchCtx *)key_exchange_payload_length;
-
-    SigMatchAppendSMToList(s, sm, g_ike_key_exch_payload_length_buffer_id);
+    }
     return 0;
 
 error:

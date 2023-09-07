@@ -230,25 +230,21 @@ error:
 static int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *fragoffsetstr)
 {
     DetectFragOffsetData *fragoff = NULL;
-    SigMatch *sm = NULL;
 
     fragoff = DetectFragOffsetParse(de_ctx, fragoffsetstr);
     if (fragoff == NULL) goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL) goto error;
-
-    sm->type = DETECT_FRAGOFFSET;
-    sm->ctx = (SigMatchCtx *)fragoff;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FRAGOFFSET, (SigMatchCtx *)fragoff,
+                DETECT_SM_LIST_MATCH) != NULL) {
+        goto error;
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 
 error:
-    if (fragoff != NULL) DetectFragOffsetFree(de_ctx, fragoff);
-    if (sm != NULL) SCFree(sm);
+    if (fragoff != NULL)
+        DetectFragOffsetFree(de_ctx, fragoff);
     return -1;
 
 }

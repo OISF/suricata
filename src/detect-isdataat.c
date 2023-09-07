@@ -211,7 +211,6 @@ error:
  */
 int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isdataatstr)
 {
-    SigMatch *sm = NULL;
     SigMatch *prev_pm = NULL;
     DetectIsdataatData *idad = NULL;
     char *offset = NULL;
@@ -273,12 +272,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
         goto end;
     }
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ISDATAAT, (SigMatchCtx *)idad, sm_list) != NULL) {
         goto end;
-    sm->type = DETECT_ISDATAAT;
-    sm->ctx = (SigMatchCtx *)idad;
-    SigMatchAppendSMToList(s, sm, sm_list);
+    }
 
     if (!(idad->flags & ISDATAAT_RELATIVE)) {
         ret = 0;

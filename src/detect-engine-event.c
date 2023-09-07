@@ -211,16 +211,11 @@ static int DetectEngineEventSetupDo(
 
     SCLogDebug("rawstr %s %u", rawstr, de->event);
 
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, smtype, (SigMatchCtx *)de, DETECT_SM_LIST_MATCH) !=
+            NULL) {
         SCFree(de);
         return -1;
     }
-
-    sm->type = smtype;
-    sm->ctx = (SigMatchCtx *)de;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     return 0;
 }
 

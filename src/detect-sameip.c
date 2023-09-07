@@ -92,26 +92,18 @@ static int DetectSameipMatch(DetectEngineThreadCtx *det_ctx,
  */
 static int DetectSameipSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
 {
-    SigMatch *sm = NULL;
 
     /* Get this into a SigMatch and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_SAMEIP, NULL, DETECT_SM_LIST_MATCH) != NULL) {
         goto error;
-
-    sm->type = DETECT_SAMEIP;
-    sm->ctx = NULL;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 
 error:
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
-
 }
 
 #ifdef UNITTESTS

@@ -115,14 +115,11 @@ static int DetectIkeExchTypeSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL)
+
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_IKE_EXCH_TYPE, (SigMatchCtx *)ike_exch_type,
+                g_ike_exch_type_buffer_id) != NULL) {
         goto error;
-
-    sm->type = DETECT_AL_IKE_EXCH_TYPE;
-    sm->ctx = (SigMatchCtx *)ike_exch_type;
-
-    SigMatchAppendSMToList(s, sm, g_ike_exch_type_buffer_id);
+    }
     return 0;
 
 error:

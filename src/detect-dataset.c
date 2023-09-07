@@ -344,7 +344,6 @@ static int SetupSavePath(const DetectEngineCtx *de_ctx,
 int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectDatasetData *cd = NULL;
-    SigMatch *sm = NULL;
     uint8_t cmd = 0;
     uint64_t memcap = 0;
     uint32_t hashsize = 0;
@@ -424,20 +423,15 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
 
-    sm->type = DETECT_DATASET;
-    sm->ctx = (SigMatchCtx *)cd;
-    SigMatchAppendSMToList(s, sm, list);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_DATASET, (SigMatchCtx *)cd, list) != NULL) {
+        goto error;
+    }
     return 0;
 
 error:
     if (cd != NULL)
         SCFree(cd);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 
