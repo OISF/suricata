@@ -414,7 +414,6 @@ static int DetectTlsExpiredSetup (DetectEngineCtx *de_ctx, Signature *s,
                                   const char *rawstr)
 {
     DetectTlsValidityData *dd = NULL;
-    SigMatch *sm = NULL;
 
     SCLogDebug("\'%s\'", rawstr);
 
@@ -429,25 +428,20 @@ static int DetectTlsExpiredSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
 
     dd->mode = DETECT_TLS_VALIDITY_EX;
     dd->type = DETECT_TLS_TYPE_NOTAFTER;
     dd->epoch = 0;
     dd->epoch2 = 0;
 
-    sm->type = DETECT_AL_TLS_EXPIRED;
-    sm->ctx = (void *)dd;
-
-    SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_TLS_EXPIRED, (SigMatchCtx *)dd,
+                g_tls_validity_buffer_id) == NULL) {
+        goto error;
+    }
     return 0;
 
 error:
     DetectTlsValidityFree(de_ctx, dd);
-    if (sm)
-        SCFree(sm);
     return -1;
 }
 
@@ -465,7 +459,6 @@ static int DetectTlsValidSetup (DetectEngineCtx *de_ctx, Signature *s,
                                 const char *rawstr)
 {
     DetectTlsValidityData *dd = NULL;
-    SigMatch *sm = NULL;
 
     SCLogDebug("\'%s\'", rawstr);
 
@@ -480,25 +473,20 @@ static int DetectTlsValidSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
 
     dd->mode = DETECT_TLS_VALIDITY_VA;
     dd->type = DETECT_TLS_TYPE_NOTAFTER;
     dd->epoch = 0;
     dd->epoch2 = 0;
 
-    sm->type = DETECT_AL_TLS_VALID;
-    sm->ctx = (void *)dd;
-
-    SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_TLS_VALID, (SigMatchCtx *)dd,
+                g_tls_validity_buffer_id) == NULL) {
+        goto error;
+    }
     return 0;
 
 error:
     DetectTlsValidityFree(de_ctx, dd);
-    if (sm)
-        SCFree(sm);
     return -1;
 }
 
@@ -555,7 +543,6 @@ static int DetectTlsValiditySetup (DetectEngineCtx *de_ctx, Signature *s,
                                    const char *rawstr, uint8_t type)
 {
     DetectTlsValidityData *dd = NULL;
-    SigMatch *sm = NULL;
 
     SCLogDebug("\'%s\'", rawstr);
 
@@ -570,31 +557,25 @@ static int DetectTlsValiditySetup (DetectEngineCtx *de_ctx, Signature *s,
 
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
 
     if (type == DETECT_TLS_TYPE_NOTBEFORE) {
         dd->type = DETECT_TLS_TYPE_NOTBEFORE;
-        sm->type = DETECT_AL_TLS_NOTBEFORE;
     }
     else if (type == DETECT_TLS_TYPE_NOTAFTER) {
         dd->type = DETECT_TLS_TYPE_NOTAFTER;
-        sm->type = DETECT_AL_TLS_NOTAFTER;
     }
     else {
         goto error;
     }
 
-    sm->ctx = (void *)dd;
-
-    SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_TLS_NOTAFTER, (SigMatchCtx *)dd,
+                g_tls_validity_buffer_id) == NULL) {
+        goto error;
+    }
     return 0;
 
 error:
     DetectTlsValidityFree(de_ctx, dd);
-    if (sm)
-        SCFree(sm);
     return -1;
 }
 

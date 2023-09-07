@@ -409,21 +409,17 @@ error:
 static int DetectGeoipSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
 {
     DetectGeoipData *geoipdata = NULL;
-    SigMatch *sm = NULL;
 
     geoipdata = DetectGeoipDataParse(de_ctx, optstr);
     if (geoipdata == NULL)
         goto error;
 
     /* Get this into a SigMatch and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_GEOIP, (SigMatchCtx *)geoipdata, DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
-
-    sm->type = DETECT_GEOIP;
-    sm->ctx = (SigMatchCtx *)geoipdata;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
@@ -431,8 +427,6 @@ static int DetectGeoipSetup(DetectEngineCtx *de_ctx, Signature *s, const char *o
 error:
     if (geoipdata != NULL)
         DetectGeoipDataFree(de_ctx, geoipdata);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 
 }

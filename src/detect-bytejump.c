@@ -469,7 +469,6 @@ error:
 
 static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
 {
-    SigMatch *sm = NULL;
     SigMatch *prev_pm = NULL;
     DetectBytejumpData *data = NULL;
     char *offset = NULL;
@@ -569,12 +568,9 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         offset = NULL;
     }
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_BYTEJUMP, (SigMatchCtx *)data, sm_list) == NULL) {
         goto error;
-    sm->type = DETECT_BYTEJUMP;
-    sm->ctx = (SigMatchCtx *)data;
-    SigMatchAppendSMToList(s, sm, sm_list);
+    }
 
     if (!(data->flags & DETECT_BYTEJUMP_RELATIVE))
         goto okay;
@@ -603,7 +599,7 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     }
     DetectBytejumpFree(de_ctx, data);
     return ret;
-}
+ }
 
 /**
  * \brief this function will free memory associated with DetectBytejumpData

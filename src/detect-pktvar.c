@@ -152,15 +152,10 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    SigMatch *sm = SigMatchAlloc();
-    if (unlikely(sm == NULL)) {
-        DetectPktvarFree(de_ctx, cd);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_PKTVAR, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) ==
+            NULL) {
         goto error;
     }
-    sm->type = DETECT_PKTVAR;
-    sm->ctx = (SigMatchCtx *)cd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     pcre2_match_data_free(match);
     return 0;

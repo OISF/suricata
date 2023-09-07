@@ -180,7 +180,6 @@ static int DetectSNMPPduTypeSetup (DetectEngineCtx *de_ctx, Signature *s,
                                    const char *rawstr)
 {
     DetectSNMPPduTypeData *dd = NULL;
-    SigMatch *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0)
         return -1;
@@ -193,15 +192,12 @@ static int DetectSNMPPduTypeSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     /* okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_AL_SNMP_PDU_TYPE;
-    sm->ctx = (void *)dd;
 
     SCLogDebug("snmp.pdu_type %d", dd->pdu_type);
-    SigMatchAppendSMToList(s, sm, g_snmp_pdu_type_buffer_id);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_SNMP_PDU_TYPE, (SigMatchCtx *)dd,
+                g_snmp_pdu_type_buffer_id) == NULL) {
+        goto error;
+    }
     return 0;
 
 error:

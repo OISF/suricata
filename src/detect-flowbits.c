@@ -276,7 +276,6 @@ error:
 int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectFlowbitsData *cd = NULL;
-    SigMatch *sm = NULL;
     uint8_t fb_cmd = 0;
     char fb_cmd_str[16] = "", fb_name[256] = "";
 
@@ -339,12 +338,6 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     }
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_FLOWBITS;
-    sm->ctx = (SigMatchCtx *)cd;
 
     switch (fb_cmd) {
         /* case DETECT_FLOWBITS_CMD_NOALERT can't happen here */
@@ -352,14 +345,20 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         case DETECT_FLOWBITS_CMD_ISNOTSET:
         case DETECT_FLOWBITS_CMD_ISSET:
             /* checks, so packet list */
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+            if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOWBITS, (SigMatchCtx *)cd,
+                        DETECT_SM_LIST_MATCH) == NULL) {
+                goto error;
+            }
             break;
 
         case DETECT_FLOWBITS_CMD_SET:
         case DETECT_FLOWBITS_CMD_UNSET:
         case DETECT_FLOWBITS_CMD_TOGGLE:
             /* modifiers, only run when entire sig has matched */
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+            if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOWBITS, (SigMatchCtx *)cd,
+                        DETECT_SM_LIST_POSTMATCH) == NULL) {
+                goto error;
+            }
             break;
 
         // suppress coverity warning as scan-build-7 warns w/o this.
@@ -373,8 +372,6 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
 error:
     if (cd != NULL)
         DetectFlowbitFree(de_ctx, cd);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 
