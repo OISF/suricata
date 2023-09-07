@@ -116,16 +116,11 @@ static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, const char *tt
     if (ttld == NULL)
         return -1;
 
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_TTL, (SigMatchCtx *)ttld, DETECT_SM_LIST_MATCH) ==
+            NULL) {
         DetectTtlFree(de_ctx, ttld);
         return -1;
     }
-
-    sm->type = DETECT_TTL;
-    sm->ctx = (SigMatchCtx *)ttld;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
     return 0;
 }

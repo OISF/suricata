@@ -141,7 +141,6 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
         Signature *s, const char *arg)
 {
     DetectAppLayerProtocolData *data = NULL;
-    SigMatch *sm = NULL;
 
     if (s->alproto != ALPROTO_UNKNOWN) {
         SCLogError("Either we already "
@@ -169,14 +168,10 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
         }
     }
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_APP_LAYER_PROTOCOL, (SigMatchCtx *)data,
+                DETECT_SM_LIST_MATCH) == NULL) {
         goto error;
-
-    sm->type = DETECT_AL_APP_LAYER_PROTOCOL;
-    sm->ctx = (void *)data;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    }
     return 0;
 
 error:
