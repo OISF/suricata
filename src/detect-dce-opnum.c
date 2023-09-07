@@ -151,7 +151,13 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     sm->type = DETECT_DCE_OPNUM;
     sm->ctx = (void *)dod;
 
-    SigMatchAppendSMToList(s, sm, g_dce_generic_list_id);
+    if (SigMatchAppendSMToList(s, sm, g_dce_generic_list_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        DetectDceOpnumFree(de_ctx, dod);
+        return -1;
+    }
     return 0;
 }
 

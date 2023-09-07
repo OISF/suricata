@@ -230,7 +230,12 @@ static int DetectMQTTConnectFlagsSetup(DetectEngineCtx *de_ctx, Signature *s, co
     sm->type = DETECT_AL_MQTT_CONNECT_FLAGS;
     sm->ctx = (SigMatchCtx *)de;
 
-    SigMatchAppendSMToList(s, sm, mqtt_connect_flags_id);
+    if (SigMatchAppendSMToList(s, sm, mqtt_connect_flags_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     return 0;
 

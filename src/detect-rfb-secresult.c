@@ -226,7 +226,12 @@ static int DetectRfbSecresultSetup (DetectEngineCtx *de_ctx, Signature *s, const
     sm->type = DETECT_AL_RFB_SECRESULT;
     sm->ctx = (SigMatchCtx *)de;
 
-    SigMatchAppendSMToList(s, sm, rfb_secresult_id);
+    if (SigMatchAppendSMToList(s, sm, rfb_secresult_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     return 0;
 

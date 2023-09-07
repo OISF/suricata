@@ -103,7 +103,12 @@ static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     sm->type    = DETECT_AL_MODBUS;
     sm->ctx     = (void *) modbus;
 
-    SigMatchAppendSMToList(s, sm, g_modbus_buffer_id);
+    if (SigMatchAppendSMToList(s, sm, g_modbus_buffer_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     SCReturnInt(0);
 

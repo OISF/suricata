@@ -232,7 +232,12 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
     }
     sm->type = DETECT_BASE64_DECODE;
     sm->ctx = (SigMatchCtx *)data;
-    SigMatchAppendSMToList(s, sm, sm_list);
+    if (SigMatchAppendSMToList(s, sm, sm_list) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     if (!data->bytes) {
         data->bytes = BASE64_DECODE_MAX;

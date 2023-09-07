@@ -100,7 +100,12 @@ static int DetectDHCPLeaseTimeSetup(DetectEngineCtx *de_ctx, Signature *s, const
     sm->type = DETECT_AL_DHCP_LEASETIME;
     sm->ctx = (void *)dd;
 
-    SigMatchAppendSMToList(s, sm, g_buffer_id);
+    if (SigMatchAppendSMToList(s, sm, g_buffer_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     return 0;
 
 error:

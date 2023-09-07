@@ -220,7 +220,13 @@ static int DetectEngineEventSetupDo(
     sm->type = smtype;
     sm->ctx = (SigMatchCtx *)de;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        SCFree(de);
+        return -1;
+    }
     return 0;
 }
 

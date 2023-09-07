@@ -60,7 +60,12 @@ static int DetectKrb5TicketEncryptionSetup(
     sm->type = DETECT_AL_KRB5_TICKET_ENCRYPTION;
     sm->ctx = (void *)krb5d;
 
-    SigMatchAppendSMToList(s, sm, g_krb5_ticket_encryption_list_id);
+    if (SigMatchAppendSMToList(s, sm, g_krb5_ticket_encryption_list_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     return 0;
 

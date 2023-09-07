@@ -201,7 +201,12 @@ static int DetectSNMPPduTypeSetup (DetectEngineCtx *de_ctx, Signature *s,
     sm->ctx = (void *)dd;
 
     SCLogDebug("snmp.pdu_type %d", dd->pdu_type);
-    SigMatchAppendSMToList(s, sm, g_snmp_pdu_type_buffer_id);
+    if (SigMatchAppendSMToList(s, sm, g_snmp_pdu_type_buffer_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     return 0;
 
 error:

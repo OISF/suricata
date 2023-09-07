@@ -55,7 +55,13 @@ static int DetectFlowAgeSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     sm->type = DETECT_FLOW_AGE;
     sm->ctx = (SigMatchCtx *)du32;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        DetectFlowAgeFree(de_ctx, du32);
+        return -1;
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;

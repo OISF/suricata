@@ -123,7 +123,13 @@ static int DetectICMPv6mtuSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     sm->type = DETECT_ICMPV6MTU;
     sm->ctx = (SigMatchCtx *)icmpv6mtud;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        DetectICMPv6mtuFree(de_ctx, icmpv6mtud);
+        return -1;
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
     s->proto.flags |= DETECT_PROTO_IPV6;
 

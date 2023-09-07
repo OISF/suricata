@@ -83,7 +83,12 @@ static int DetectBypassSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
 
     sm->type = DETECT_BYPASS;
     sm->ctx = NULL;
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        return -1;
+    }
 
     return 0;
 }

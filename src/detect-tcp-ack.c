@@ -127,7 +127,12 @@ static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s, const char *opt
     }
     sm->ctx = (SigMatchCtx*)data;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;

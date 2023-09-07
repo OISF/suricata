@@ -286,12 +286,22 @@ static int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, const
     sm->ctx = (SigMatchCtx *)data;
 
     if (event_type == APP_LAYER_EVENT_TYPE_PACKET) {
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+        if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+            sm->ctx = NULL;
+            SigMatchFree(de_ctx, sm);
+            sm = NULL;
+            goto error;
+        }
     } else {
         if (DetectSignatureSetAppProto(s, data->alproto) != 0)
             goto error;
 
-        SigMatchAppendSMToList(s, sm, g_applayer_events_list_id);
+        if (SigMatchAppendSMToList(s, sm, g_applayer_events_list_id) < 0) {
+            sm->ctx = NULL;
+            SigMatchFree(de_ctx, sm);
+            sm = NULL;
+            goto error;
+        }
         s->flags |= SIG_FLAG_APPLAYER;
     }
 

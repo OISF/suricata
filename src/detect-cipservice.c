@@ -224,7 +224,12 @@ static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_CIPSERVICE;
     sm->ctx = (void *) cipserviced;
 
-    SigMatchAppendSMToList(s, sm, g_cip_buffer_id);
+    if (SigMatchAppendSMToList(s, sm, g_cip_buffer_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     SCReturnInt(0);
 
 error:
@@ -394,7 +399,12 @@ static int DetectEnipCommandSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_ENIPCOMMAND;
     sm->ctx = (void *) enipcmdd;
 
-    SigMatchAppendSMToList(s, sm, g_enip_buffer_id);
+    if (SigMatchAppendSMToList(s, sm, g_enip_buffer_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     SCReturnInt(0);
 
 error:

@@ -160,7 +160,12 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     sm->type = DETECT_PKTVAR;
     sm->ctx = (SigMatchCtx *)cd;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     pcre2_match_data_free(match);
     return 0;

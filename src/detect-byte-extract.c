@@ -615,8 +615,12 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const c
         goto error;
     sm->type = DETECT_BYTE_EXTRACT;
     sm->ctx = (void *)data;
-    SigMatchAppendSMToList(s, sm, sm_list);
-
+    if (SigMatchAppendSMToList(s, sm, sm_list) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     if (!(data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE))
         goto okay;

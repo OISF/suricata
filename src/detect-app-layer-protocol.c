@@ -176,7 +176,12 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
     sm->type = DETECT_AL_APP_LAYER_PROTOCOL;
     sm->ctx = (void *)data;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     return 0;
 
 error:

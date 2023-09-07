@@ -229,7 +229,12 @@ static int DetectDNP3FuncSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     sm->type = DETECT_AL_DNP3FUNC;
     sm->ctx = (void *)dnp3;
 
-    SigMatchAppendSMToList(s, sm, g_dnp3_match_buffer_id);
+    if (SigMatchAppendSMToList(s, sm, g_dnp3_match_buffer_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     SCReturnInt(0);
 error:
@@ -314,7 +319,12 @@ static int DetectDNP3IndSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     }
     sm->type = DETECT_AL_DNP3IND;
     sm->ctx = (void *)detect;
-    SigMatchAppendSMToList(s, sm, g_dnp3_match_buffer_id);
+    if (SigMatchAppendSMToList(s, sm, g_dnp3_match_buffer_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     SCReturnInt(0);
 error:
@@ -388,7 +398,12 @@ static int DetectDNP3ObjSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     }
     sm->type = DETECT_AL_DNP3OBJ;
     sm->ctx = (void *)detect;
-    SigMatchAppendSMToList(s, sm, g_dnp3_match_buffer_id);
+    if (SigMatchAppendSMToList(s, sm, g_dnp3_match_buffer_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto fail;
+    }
 
     SCReturnInt(1);
 fail:

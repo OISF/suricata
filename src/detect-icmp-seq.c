@@ -255,7 +255,12 @@ static int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     sm->type = DETECT_ICMP_SEQ;
     sm->ctx = (SigMatchCtx *)iseq;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     return 0;
 

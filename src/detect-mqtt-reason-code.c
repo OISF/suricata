@@ -167,7 +167,12 @@ static int DetectMQTTReasonCodeSetup (DetectEngineCtx *de_ctx, Signature *s, con
     sm->type = DETECT_AL_MQTT_REASON_CODE;
     sm->ctx = (SigMatchCtx *)de;
 
-    SigMatchAppendSMToList(s, sm, mqtt_reason_code_id);
+    if (SigMatchAppendSMToList(s, sm, mqtt_reason_code_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     return 0;
 

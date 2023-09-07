@@ -136,7 +136,12 @@ static int DetectFilesizeSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     sm->type = DETECT_FILESIZE;
     sm->ctx = (SigMatchCtx *)fsd;
 
-    SigMatchAppendSMToList(s, sm, g_file_match_list_id);
+    if (SigMatchAppendSMToList(s, sm, g_file_match_list_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_SIZE);
     SCReturnInt(0);

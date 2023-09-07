@@ -336,7 +336,12 @@ int DetectFileHashSetup(
     sm->type = type;
     sm->ctx = (void *)filehash;
 
-    SigMatchAppendSMToList(s, sm, list);
+    if (SigMatchAppendSMToList(s, sm, list) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     s->file_flags |= FILE_SIG_NEED_FILE;
 

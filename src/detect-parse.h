@@ -75,7 +75,7 @@ SigMatchData* SigMatchList2DataArray(SigMatch *head);
 void SigParseRegisterTests(void);
 Signature *DetectEngineAppendSig(DetectEngineCtx *, const char *);
 
-void SigMatchAppendSMToList(Signature *, SigMatch *, int);
+int SigMatchAppendSMToList(Signature *, SigMatch *, int);
 void SigMatchRemoveSMFromList(Signature *, SigMatch *, int);
 int SigMatchListSMBelongsTo(const Signature *, const SigMatch *);
 

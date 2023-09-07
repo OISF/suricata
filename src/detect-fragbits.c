@@ -300,7 +300,12 @@ static int DetectFragBitsSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     sm->type = DETECT_FRAGBITS;
     sm->ctx = (SigMatchCtx *)de;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
