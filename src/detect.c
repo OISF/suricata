@@ -152,6 +152,12 @@ static void DetectRun(ThreadVars *th_v,
                 DetectRunFrames(th_v, de_ctx, det_ctx, p, pflow, &scratch);
                 // PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX);
             }
+            // no update to transactions
+            if (!PKT_IS_PSEUDOPKT(p) && p->app_update_direction == 0 &&
+                    ((PKT_IS_TOSERVER(p) && (p->flow->flags & FLOW_TS_APP_UPDATED) == 0) ||
+                            (PKT_IS_TOCLIENT(p) && (p->flow->flags & FLOW_TC_APP_UPDATED) == 0))) {
+                goto end;
+            }
         } else if (p->proto == IPPROTO_UDP) {
             DetectRunFrames(th_v, de_ctx, det_ctx, p, pflow, &scratch);
         }
@@ -159,6 +165,11 @@ static void DetectRun(ThreadVars *th_v,
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX);
         DetectRunTx(th_v, de_ctx, det_ctx, p, pflow, &scratch);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX);
+        /* see if we need to increment the inspect_id and reset the de_state */
+        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX_UPDATE);
+        AppLayerParserSetTransactionInspectId(
+                pflow, pflow->alparser, pflow->alstate, scratch.flow_flags, (scratch.sgh == NULL));
+        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX_UPDATE);
     }
 
 end:
@@ -911,14 +922,6 @@ static inline void DetectRunPostRules(
     Flow * const pflow,
     DetectRunScratchpad *scratch)
 {
-    /* see if we need to increment the inspect_id and reset the de_state */
-    if (pflow && pflow->alstate) {
-        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX_UPDATE);
-        AppLayerParserSetTransactionInspectId(pflow, pflow->alparser, pflow->alstate,
-                scratch->flow_flags, (scratch->sgh == NULL));
-        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX_UPDATE);
-    }
-
     /* so now let's iterate the alerts and remove the ones after a pass rule
      * matched (if any). This is done inside PacketAlertFinalize() */
     /* PR: installed "tag" keywords are handled after the threshold inspection */
