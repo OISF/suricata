@@ -279,7 +279,6 @@ static DetectByteMathData *DetectByteMathParse(
  */
 static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    SigMatch *sm = NULL;
     SigMatch *prev_pm = NULL;
     DetectByteMathData *data;
     char *rvalue = NULL;
@@ -393,12 +392,9 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         de_ctx->byte_extract_max_local_id = data->local_id;
     }
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_BYTEMATH, (SigMatchCtx *)data, sm_list) == NULL) {
         goto error;
-    sm->type = DETECT_BYTEMATH;
-    sm->ctx = (void *)data;
-    SigMatchAppendSMToList(s, sm, sm_list);
+    }
 
     if (!(data->flags & DETECT_BYTEMATH_FLAG_RELATIVE))
         goto okay;
@@ -424,7 +420,7 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         SCFree(nbytes);
     DetectByteMathFree(de_ctx, data);
     return ret;
-}
+ }
 
 /**
  * \brief Used to free instances of DetectByteMathractData.

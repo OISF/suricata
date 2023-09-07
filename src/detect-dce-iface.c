@@ -154,15 +154,10 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         return -1;
     }
 
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_DCE_IFACE, did, g_dce_generic_list_id) == NULL) {
+        DetectDceIfaceFree(de_ctx, did);
         return -1;
     }
-
-    sm->type = DETECT_DCE_IFACE;
-    sm->ctx = did;
-
-    SigMatchAppendSMToList(s, sm, g_dce_generic_list_id);
     return 0;
 }
 

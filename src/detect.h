@@ -283,7 +283,6 @@ typedef struct DetectPort_ {
     BIT_U32(8) /**< priority is explicitly set by the priority keyword */
 #define SIG_FLAG_INIT_FILEDATA              BIT_U32(9)  /**< signature has filedata keyword */
 #define SIG_FLAG_INIT_JA3                   BIT_U32(10) /**< signature has ja3 keyword */
-#define SIG_FLAG_INIT_OVERFLOW              BIT_U32(11) /**< signature has overflown buffers */
 
 /* signature mask flags */
 /** \note: additions should be added to the rule analyzer as well */

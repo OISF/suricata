@@ -274,15 +274,8 @@ static int DetectIPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
 static int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
     DetectCsumData *cd = NULL;
-    SigMatch *sm = NULL;
 
     //printf("DetectCsumSetup: \'%s\'\n", csum_str);
-
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_IPV4_CSUM;
 
     if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
         goto error;
@@ -291,15 +284,16 @@ static int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    sm->ctx = (SigMatchCtx *)cd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_IPV4_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
+        goto error;
+    }
 
     return 0;
 
 error:
-    if (cd != NULL) DetectIPV4CsumFree(de_ctx, cd);
-    if (sm != NULL) SCFree(sm);
+    if (cd != NULL)
+        DetectIPV4CsumFree(de_ctx, cd);
 
     return -1;
 }
@@ -371,15 +365,8 @@ static int DetectTCPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
 static int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
     DetectCsumData *cd = NULL;
-    SigMatch *sm = NULL;
 
     //printf("DetectCsumSetup: \'%s\'\n", csum_str);
-
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_TCPV4_CSUM;
 
     if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
         goto error;
@@ -388,15 +375,16 @@ static int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    sm->ctx = (SigMatchCtx *)cd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_TCPV4_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
+        goto error;
+    }
 
     return 0;
 
 error:
-    if (cd != NULL) DetectTCPV4CsumFree(de_ctx, cd);
-    if (sm != NULL) SCFree(sm);
+    if (cd != NULL)
+        DetectTCPV4CsumFree(de_ctx, cd);
 
     return -1;
 }
@@ -468,15 +456,8 @@ static int DetectTCPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
 static int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
     DetectCsumData *cd = NULL;
-    SigMatch *sm = NULL;
 
     //printf("DetectCsumSetup: \'%s\'\n", csum_str);
-
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_TCPV6_CSUM;
 
     if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
         goto error;
@@ -485,15 +466,16 @@ static int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    sm->ctx = (SigMatchCtx *)cd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_TCPV6_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
+        goto error;
+    }
 
     return 0;
 
 error:
-    if (cd != NULL) DetectTCPV6CsumFree(de_ctx, cd);
-    if (sm != NULL) SCFree(sm);
+    if (cd != NULL)
+        DetectTCPV6CsumFree(de_ctx, cd);
 
     return -1;
 }
@@ -565,15 +547,8 @@ static int DetectUDPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
 static int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
     DetectCsumData *cd = NULL;
-    SigMatch *sm = NULL;
 
     //printf("DetectCsumSetup: \'%s\'\n", csum_str);
-
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_UDPV4_CSUM;
 
     if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
         goto error;
@@ -582,15 +557,16 @@ static int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    sm->ctx = (SigMatchCtx *)cd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_UDPV4_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
+        goto error;
+    }
 
     return 0;
 
 error:
-    if (cd != NULL) DetectUDPV4CsumFree(de_ctx, cd);
-    if (sm != NULL) SCFree(sm);
+    if (cd != NULL)
+        DetectUDPV4CsumFree(de_ctx, cd);
 
     return -1;
 }
@@ -662,15 +638,8 @@ static int DetectUDPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
 static int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
     DetectCsumData *cd = NULL;
-    SigMatch *sm = NULL;
 
     //printf("DetectCsumSetup: \'%s\'\n", csum_str);
-
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_UDPV6_CSUM;
 
     if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
         goto error;
@@ -679,15 +648,16 @@ static int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    sm->ctx = (void *)cd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_UDPV6_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
+        goto error;
+    }
 
     return 0;
 
 error:
-    if (cd != NULL) DetectUDPV6CsumFree(de_ctx, cd);
-    if (sm != NULL) SCFree(sm);
+    if (cd != NULL)
+        DetectUDPV6CsumFree(de_ctx, cd);
 
     return -1;
 }
@@ -757,15 +727,8 @@ static int DetectICMPV4CsumMatch(DetectEngineThreadCtx *det_ctx,
 static int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
     DetectCsumData *cd = NULL;
-    SigMatch *sm = NULL;
 
     //printf("DetectCsumSetup: \'%s\'\n", csum_str);
-
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_ICMPV4_CSUM;
 
     if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
         goto error;
@@ -774,15 +737,16 @@ static int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    sm->ctx = (SigMatchCtx *)cd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_ICMPV4_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
+        goto error;
+    }
 
     return 0;
 
 error:
-    if (cd != NULL) DetectICMPV4CsumFree(de_ctx, cd);
-    if (sm != NULL) SCFree(sm);
+    if (cd != NULL)
+        DetectICMPV4CsumFree(de_ctx, cd);
 
     return -1;
 }
@@ -857,13 +821,6 @@ static int DetectICMPV6CsumMatch(DetectEngineThreadCtx *det_ctx,
 static int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
     DetectCsumData *cd = NULL;
-    SigMatch *sm = NULL;
-
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_ICMPV6_CSUM;
 
     if ( (cd = SCMalloc(sizeof(DetectCsumData))) == NULL)
         goto error;
@@ -872,15 +829,16 @@ static int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    sm->ctx = (SigMatchCtx *)cd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_ICMPV6_CSUM, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
+        goto error;
+    }
 
     return 0;
 
 error:
-    if (cd != NULL) DetectICMPV6CsumFree(de_ctx, cd);
-    if (sm != NULL) SCFree(sm);
+    if (cd != NULL)
+        DetectICMPV6CsumFree(de_ctx, cd);
 
     return -1;
 }

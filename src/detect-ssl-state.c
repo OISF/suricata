@@ -303,7 +303,6 @@ error:
 static int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     DetectSslStateData *ssd = NULL;
-    SigMatch *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
@@ -312,21 +311,15 @@ static int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (ssd == NULL)
         goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_SSL_STATE, (SigMatchCtx *)ssd,
+                g_tls_generic_list_id) == NULL) {
         goto error;
-
-    sm->type = DETECT_AL_SSL_STATE;
-    sm->ctx = (SigMatchCtx*)ssd;
-
-    SigMatchAppendSMToList(s, sm, g_tls_generic_list_id);
+    }
     return 0;
 
 error:
     if (ssd != NULL)
         DetectSslStateFree(de_ctx, ssd);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 

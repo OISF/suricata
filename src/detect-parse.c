@@ -447,8 +447,16 @@ void SigTableApplyStrictCommandLineOption(const char *str)
  * \param new  The sig match to append.
  * \param list The list to append to.
  */
-void SigMatchAppendSMToList(Signature *s, SigMatch *new, const int list)
+SigMatch *SigMatchAppendSMToList(
+        DetectEngineCtx *de_ctx, Signature *s, uint16_t type, SigMatchCtx *ctx, const int list)
 {
+    SigMatch *new = SigMatchAlloc();
+    if (new == NULL)
+        return NULL;
+
+    new->type = type;
+    new->ctx = ctx;
+
     if (new->type == DETECT_CONTENT) {
         s->init_data->max_content_list_id = MAX(s->init_data->max_content_list_id, (uint32_t)list);
     }
@@ -498,10 +506,9 @@ void SigMatchAppendSMToList(Signature *s, SigMatch *new, const int list)
                 s->init_data->curbuf == NULL) {
             if (SignatureInitDataBufferCheckExpand(s) < 0) {
                 SCLogError("failed to expand rule buffer array");
-                s->init_data->init_flags |= SIG_FLAG_INIT_OVERFLOW;
-                // SignatureInitDataBufferCheckExpand should not fail in this case
-                DEBUG_VALIDATE_BUG_ON(s->init_data->curbuf == NULL);
-                // keep curbuf even with wrong id as we error on this signature
+                new->ctx = NULL;
+                SigMatchFree(de_ctx, new);
+                return NULL;
             } else {
                 /* initialize new buffer */
                 s->init_data->curbuf = &s->init_data->buffers[s->init_data->buffer_index++];
@@ -530,6 +537,7 @@ void SigMatchAppendSMToList(Signature *s, SigMatch *new, const int list)
                     sigmatch_table[sm->type].name, sm->idx);
         }
     }
+    return new;
 }
 
 void SigMatchRemoveSMFromList(Signature *s, SigMatch *sm, int sm_list)
@@ -1017,11 +1025,8 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         /* setup may or may not add a new SigMatch to the list */
         setup_ret = st->Setup(de_ctx, s, NULL);
     }
-    if (setup_ret < 0 || (s->init_data->init_flags & SIG_FLAG_INIT_OVERFLOW)) {
+    if (setup_ret < 0) {
         SCLogDebug("\"%s\" failed to setup", st->name);
-        if (s->init_data->init_flags & SIG_FLAG_INIT_OVERFLOW) {
-            SCLogError("rule %u tries to use too many buffers", s->id);
-        }
 
         /* handle 'silent' error case */
         if (setup_ret == -2) {
