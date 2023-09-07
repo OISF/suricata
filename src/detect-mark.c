@@ -218,7 +218,8 @@ static int DetectMarkSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
         sm->ctx = NULL;
         SigMatchFree(de_ctx, sm);
         sm = NULL;
-        goto error;
+        DetectMarkDataFree(de_ctx, data);
+        return -1;
     }
     return 0;
 #endif
