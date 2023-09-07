@@ -342,15 +342,11 @@ static int DetectTLSCertChainLenSetup(DetectEngineCtx *de_ctx, Signature *s, con
         return -1;
     }
 
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, KEYWORD_ID, (SigMatchCtx *)dd, g_tls_cert_buffer_id) ==
+            NULL) {
         rs_detect_u32_free(dd);
         return -1;
     }
-    sm->type = KEYWORD_ID;
-    sm->ctx = (void *)dd;
-
-    SigMatchAppendSMToList(s, sm, g_tls_cert_buffer_id);
     return 0;
 }
 

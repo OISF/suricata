@@ -210,27 +210,22 @@ error:
 static int DetectIpOptsSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectIpOptsData *de = NULL;
-    SigMatch *sm = NULL;
 
     de = DetectIpOptsParse(rawstr);
     if (de == NULL)
         goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_IPOPTS, (SigMatchCtx *)de, DETECT_SM_LIST_MATCH) ==
+            NULL) {
         goto error;
-
-    sm->type = DETECT_IPOPTS;
-    sm->ctx = (SigMatchCtx *)de;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 
 error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    if (de)
+        SCFree(de);
     return -1;
 }
 

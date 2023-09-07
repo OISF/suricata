@@ -191,7 +191,6 @@ error:
 int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *idstr)
 {
     DetectIdData *id_d = NULL;
-    SigMatch *sm = NULL;
 
     id_d = DetectIdParse(idstr);
     if (id_d == NULL)
@@ -199,16 +198,11 @@ int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *idstr)
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ID, (SigMatchCtx *)id_d, DETECT_SM_LIST_MATCH) ==
+            NULL) {
         DetectIdFree(de_ctx, id_d);
         return -1;
     }
-
-    sm->type = DETECT_ID;
-    sm->ctx = (SigMatchCtx *)id_d;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
     return 0;
 }

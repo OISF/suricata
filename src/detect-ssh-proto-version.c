@@ -233,7 +233,6 @@ error:
 static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectSshVersionData *ssh = NULL;
-    SigMatch *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SSH) != 0)
         return -1;
@@ -244,21 +243,16 @@ static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const c
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_SSH_PROTOVERSION, (SigMatchCtx *)ssh,
+                g_ssh_banner_list_id) == NULL) {
         goto error;
-
-    sm->type = DETECT_AL_SSH_PROTOVERSION;
-    sm->ctx = (void *)ssh;
-
-    SigMatchAppendSMToList(s, sm, g_ssh_banner_list_id);
+    }
     return 0;
 
 error:
     if (ssh != NULL)
         DetectSshVersionFree(de_ctx, ssh);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 
 }

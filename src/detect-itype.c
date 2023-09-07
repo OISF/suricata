@@ -129,25 +129,21 @@ static int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
 {
 
     DetectU8Data *itd = NULL;
-    SigMatch *sm = NULL;
 
     itd = DetectITypeParse(de_ctx, itypestr);
     if (itd == NULL) goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL) goto error;
-
-    sm->type = DETECT_ITYPE;
-    sm->ctx = (SigMatchCtx *)itd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ITYPE, (SigMatchCtx *)itd, DETECT_SM_LIST_MATCH) ==
+            NULL) {
+        goto error;
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 
 error:
-    if (itd != NULL) DetectITypeFree(de_ctx, itd);
-    if (sm != NULL) SCFree(sm);
+    if (itd == NULL)
+        DetectITypeFree(de_ctx, itd);
     return -1;
 }
 

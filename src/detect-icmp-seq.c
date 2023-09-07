@@ -244,24 +244,20 @@ error:
 static int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, const char *icmpseqstr)
 {
     DetectIcmpSeqData *iseq = NULL;
-    SigMatch *sm = NULL;
 
     iseq = DetectIcmpSeqParse(de_ctx, icmpseqstr);
     if (iseq == NULL) goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL) goto error;
-
-    sm->type = DETECT_ICMP_SEQ;
-    sm->ctx = (SigMatchCtx *)iseq;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_ICMP_SEQ, (SigMatchCtx *)iseq, DETECT_SM_LIST_MATCH) == NULL) {
+        goto error;
+    }
 
     return 0;
 
 error:
-    if (iseq != NULL) DetectIcmpSeqFree(de_ctx, iseq);
-    if (sm != NULL) SCFree(sm);
+    if (iseq != NULL)
+        DetectIcmpSeqFree(de_ctx, iseq);
     return -1;
 
 }

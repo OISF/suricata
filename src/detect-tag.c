@@ -303,17 +303,12 @@ int DetectTagSetup(DetectEngineCtx *de_ctx, Signature *s, const char *tagstr)
     if (td == NULL)
         return -1;
 
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL) {
+    /* Append it to the list of tags */
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_TAG, (SigMatchCtx *)td, DETECT_SM_LIST_TMATCH) ==
+            NULL) {
         DetectTagDataFree(de_ctx, td);
         return -1;
     }
-
-    sm->type = DETECT_TAG;
-    sm->ctx = (SigMatchCtx *)td;
-
-    /* Append it to the list of tags */
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_TMATCH);
     return 0;
 }
 
@@ -325,7 +320,7 @@ int DetectTagSetup(DetectEngineCtx *de_ctx, Signature *s, const char *tagstr)
  */
 static void DetectTagDataEntryFree(void *ptr)
 {
-    if (ptr != NULL) {
+    if (ptr == NULL) {
         DetectTagDataEntry *dte = (DetectTagDataEntry *)ptr;
         SCFree(dte);
     }

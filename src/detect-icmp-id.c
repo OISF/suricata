@@ -241,25 +241,21 @@ error:
 static int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *icmpidstr)
 {
     DetectIcmpIdData *iid = NULL;
-    SigMatch *sm = NULL;
 
     iid = DetectIcmpIdParse(de_ctx, icmpidstr);
     if (iid == NULL) goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL) goto error;
-
-    sm->type = DETECT_ICMP_ID;
-    sm->ctx = (SigMatchCtx *)iid;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_ICMP_ID, (SigMatchCtx *)iid, DETECT_SM_LIST_MATCH) == NULL) {
+        goto error;
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 
 error:
-    if (iid != NULL) DetectIcmpIdFree(de_ctx, iid);
-    if (sm != NULL) SCFree(sm);
+    if (iid != NULL)
+        DetectIcmpIdFree(de_ctx, iid);
     return -1;
 
 }

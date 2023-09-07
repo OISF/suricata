@@ -156,15 +156,9 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
     SCFree(content);
     content = NULL;
 
-    SigMatch *sm = SigMatchAlloc();
-    if (unlikely(sm == NULL)) {
-        SCFree(ud->replace);
-        ud->replace = NULL;
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_REPLACE, NULL, DETECT_SM_LIST_POSTMATCH) == NULL) {
         goto error;
     }
-    sm->type = DETECT_REPLACE;
-    sm->ctx = NULL;
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
     return 0;
 
 error:

@@ -213,7 +213,6 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 
 int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    SigMatch *sm = NULL;
 
     DetectIPRepData *cd = rs_detect_iprep_parse(rawstr);
     if (cd == NULL) {
@@ -225,22 +224,17 @@ int DetectIPRepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_IPREP, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) ==
+            NULL) {
         goto error;
-
-    sm->type = DETECT_IPREP;
-    sm->ctx = (SigMatchCtx *)cd;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    }
 
     return 0;
 
 error:
-    if (cd != NULL)
+    if (cd == NULL)
         DetectIPRepFree(de_ctx, cd);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 

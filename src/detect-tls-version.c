@@ -232,7 +232,6 @@ error:
 static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectTlsVersionData *tls = NULL;
-    SigMatch *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
@@ -243,22 +242,17 @@ static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const c
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_TLS_VERSION, (SigMatchCtx *)tls,
+                g_tls_generic_list_id) == NULL) {
         goto error;
-
-    sm->type = DETECT_AL_TLS_VERSION;
-    sm->ctx = (void *)tls;
-
-    SigMatchAppendSMToList(s, sm, g_tls_generic_list_id);
+    }
 
     return 0;
 
 error:
     if (tls != NULL)
         DetectTlsVersionFree(de_ctx, tls);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 
 }
