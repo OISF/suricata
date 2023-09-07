@@ -46,16 +46,11 @@ static int DetectFlowPktsToClientSetup(DetectEngineCtx *de_ctx, Signature *s, co
     if (du32 == NULL)
         return -1;
 
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOW_PKTS_TO_CLIENT, (SigMatchCtx *)du32,
+                DETECT_SM_LIST_MATCH) == NULL) {
         DetectFlowPktsToClientFree(de_ctx, du32);
         return -1;
     }
-
-    sm->type = DETECT_FLOW_PKTS_TO_CLIENT;
-    sm->ctx = (SigMatchCtx *)du32;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
@@ -124,16 +119,11 @@ static int DetectFlowPktsToServerSetup(DetectEngineCtx *de_ctx, Signature *s, co
     if (du32 == NULL)
         return -1;
 
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOW_PKTS_TO_SERVER, (SigMatchCtx *)du32,
+                DETECT_SM_LIST_MATCH) == NULL) {
         DetectFlowPktsToServerFree(de_ctx, du32);
         return -1;
     }
-
-    sm->type = DETECT_FLOW_PKTS_TO_SERVER;
-    sm->ctx = (SigMatchCtx *)du32;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
@@ -202,16 +192,11 @@ static int DetectFlowBytesToClientSetup(DetectEngineCtx *de_ctx, Signature *s, c
     if (du64 == NULL)
         return -1;
 
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOW_BYTES_TO_CLIENT, (SigMatchCtx *)du64,
+                DETECT_SM_LIST_MATCH) == NULL) {
         DetectFlowBytesToClientFree(de_ctx, du64);
         return -1;
     }
-
-    sm->type = DETECT_FLOW_BYTES_TO_CLIENT;
-    sm->ctx = (SigMatchCtx *)du64;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
@@ -251,16 +236,11 @@ static int DetectFlowBytesToServerSetup(DetectEngineCtx *de_ctx, Signature *s, c
     if (du64 == NULL)
         return -1;
 
-    SigMatch *sm = SigMatchAlloc();
-    if (sm == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_FLOW_BYTES_TO_SERVER, (SigMatchCtx *)du64,
+                DETECT_SM_LIST_MATCH) == NULL) {
         DetectFlowBytesToServerFree(de_ctx, du64);
         return -1;
     }
-
-    sm->type = DETECT_FLOW_BYTES_TO_SERVER;
-    sm->ctx = (SigMatchCtx *)du64;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;

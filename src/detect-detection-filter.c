@@ -220,7 +220,6 @@ static int DetectDetectionFilterSetup(DetectEngineCtx *de_ctx, Signature *s, con
 {
     SCEnter();
     DetectThresholdData *df = NULL;
-    SigMatch *sm = NULL;
     SigMatch *tmpm = NULL;
 
     /* checks if there's a previous instance of threshold */
@@ -240,22 +239,16 @@ static int DetectDetectionFilterSetup(DetectEngineCtx *de_ctx, Signature *s, con
     if (df == NULL)
         goto error;
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_DETECTION_FILTER, (SigMatchCtx *)df,
+                DETECT_SM_LIST_THRESHOLD) == NULL) {
         goto error;
-
-    sm->type = DETECT_DETECTION_FILTER;
-    sm->ctx = (SigMatchCtx *)df;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
+    }
 
     return 0;
 
 error:
     if (df)
         SCFree(df);
-    if (sm)
-        SCFree(sm);
     return -1;
 }
 

@@ -331,7 +331,6 @@ error:
 int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectXbitsData *cd = NULL;
-    SigMatch *sm = NULL;
     uint8_t fb_cmd = 0;
     uint8_t hb_dir = 0;
     char fb_cmd_str[16] = "", fb_name[256] = "";
@@ -406,12 +405,6 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_HOSTBITS;
-    sm->ctx = (void *)cd;
 
     switch (fb_cmd) {
         /* case DETECT_XBITS_CMD_NOALERT can't happen here */
@@ -419,14 +412,20 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         case DETECT_XBITS_CMD_ISNOTSET:
         case DETECT_XBITS_CMD_ISSET:
             /* checks, so packet list */
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+            if (SigMatchAppendSMToList(de_ctx, s, DETECT_HOSTBITS, (SigMatchCtx *)cd,
+                        DETECT_SM_LIST_MATCH) == NULL) {
+                goto error;
+            }
             break;
 
         case DETECT_XBITS_CMD_SET:
         case DETECT_XBITS_CMD_UNSET:
         case DETECT_XBITS_CMD_TOGGLE:
             /* modifiers, only run when entire sig has matched */
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+            if (SigMatchAppendSMToList(de_ctx, s, DETECT_HOSTBITS, (SigMatchCtx *)cd,
+                        DETECT_SM_LIST_POSTMATCH) == NULL) {
+                goto error;
+            }
             break;
 
         // suppress coverity warning as scan-build-7 warns w/o this.
@@ -440,8 +439,6 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
 error:
     if (cd != NULL)
         SCFree(cd);
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 

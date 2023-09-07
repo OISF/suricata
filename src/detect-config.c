@@ -170,7 +170,6 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     SCEnter();
 
     DetectConfigData *fd = NULL;
-    SigMatch *sm = NULL;
     int res = 0;
     size_t pcre2len;
 #if 0
@@ -182,10 +181,6 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     }
 #endif
     pcre2_match_data *match = NULL;
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-    sm->type = DETECT_CONFIG;
 
     if (str == NULL || strlen(str) == 0) {
         SCLogError("config keywords need arguments");
@@ -297,8 +292,10 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
         s->flags |= SIG_FLAG_APPLAYER;
     }
 
-    sm->ctx = (SigMatchCtx*)fd;
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_CONFIG, (SigMatchCtx *)fd, DETECT_SM_LIST_POSTMATCH) == NULL) {
+        goto error;
+    }
 
     pcre2_match_data_free(match);
     return 0;
@@ -307,8 +304,6 @@ error:
     if (match) {
         pcre2_match_data_free(match);
     }
-    if (sm != NULL)
-        SCFree(sm);
     return -1;
 }
 
