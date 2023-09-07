@@ -116,18 +116,21 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     sm->type = DETECT_AL_URILEN;
     sm->ctx = (void *)urilend;
 
-    if (urilend->raw_buffer)
+    if (urilend->raw_buffer) {
         if (SigMatchAppendSMToList(s, sm, g_http_raw_uri_buffer_id) < 0) {
             sm->ctx = NULL;
             SigMatchFree(de_ctx, sm);
             sm = NULL;
             goto error;
-        } else if (SigMatchAppendSMToList(s, sm, g_http_uri_buffer_id) < 0) {
+        }
+    } else {
+        if (SigMatchAppendSMToList(s, sm, g_http_uri_buffer_id) < 0) {
             sm->ctx = NULL;
             SigMatchFree(de_ctx, sm);
             sm = NULL;
             goto error;
         }
+    }
 
     SCReturnInt(0);
 
