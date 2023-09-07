@@ -326,6 +326,13 @@ static inline void FlowApplySignatureActions(
         if ((pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH)) ||
                 (s->flags & (SIG_FLAG_IPONLY | SIG_FLAG_LIKE_IPONLY | SIG_FLAG_PDONLY |
                                     SIG_FLAG_APPLAYER))) {
+
+            /* No action when the signature doesn't require a stream */
+            if ((s->flags &
+                        (SIG_FLAG_APPLAYER | SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM)) ==
+                    (SIG_FLAG_APPLAYER | SIG_FLAG_REQUIRE_PACKET))
+                return;
+
             pa->flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW;
             SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x (set "
                        "PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)",
