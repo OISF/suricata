@@ -138,7 +138,12 @@ static int DetectAsn1Setup(DetectEngineCtx *de_ctx, Signature *s, const char *as
     sm->type = DETECT_ASN1;
     sm->ctx = (SigMatchCtx *)ad;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        DetectAsn1Free(de_ctx, ad);
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        return -1;
+    }
 
     return 0;
 }
