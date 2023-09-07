@@ -191,7 +191,12 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     sm->type = DETECT_FLOWVAR;
     sm->ctx = (SigMatchCtx *)fd;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     SCFree(content);
     return 0;
@@ -284,7 +289,12 @@ int DetectFlowvarPostMatchSetup(DetectEngineCtx *de_ctx, Signature *s, uint32_t 
     sm->type = DETECT_FLOWVAR_POSTMATCH;
     sm->ctx = (SigMatchCtx *)fv;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     return 0;
 error:
     if (fv != NULL)

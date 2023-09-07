@@ -194,7 +194,13 @@ static int DetectTosSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg
     sm->type = DETECT_TOS;
     sm->ctx = (SigMatchCtx *)tosd;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        DetectTosFree(de_ctx, tosd);
+        return -1;
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
     return 0;
 }

@@ -128,7 +128,12 @@ static int DetectIkeKeyExchangePayloadLengthSetup(
     sm->type = DETECT_AL_IKE_KEY_EXCHANGE_PAYLOAD_LENGTH;
     sm->ctx = (SigMatchCtx *)key_exchange_payload_length;
 
-    SigMatchAppendSMToList(s, sm, g_ike_key_exch_payload_length_buffer_id);
+    if (SigMatchAppendSMToList(s, sm, g_ike_key_exch_payload_length_buffer_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     return 0;
 
 error:

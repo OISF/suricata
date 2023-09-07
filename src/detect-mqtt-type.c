@@ -156,7 +156,12 @@ static int DetectMQTTTypeSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     sm->type = DETECT_AL_MQTT_TYPE;
     sm->ctx = (SigMatchCtx *)de;
 
-    SigMatchAppendSMToList(s, sm, mqtt_type_id);
+    if (SigMatchAppendSMToList(s, sm, mqtt_type_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     return 0;
 

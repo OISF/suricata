@@ -48,8 +48,13 @@ static int DetectDnsOpcodeSetup(DetectEngineCtx *de_ctx, Signature *s,
 
     sm->type = DETECT_AL_DNS_OPCODE;
     sm->ctx = (void *)detect;
-    SigMatchAppendSMToList(s, sm, dns_opcode_list_id);
-    
+    if (SigMatchAppendSMToList(s, sm, dns_opcode_list_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
+
     SCReturnInt(0);
 
 error:

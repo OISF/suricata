@@ -701,7 +701,12 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         goto error;
     sm->type = DETECT_BYTETEST;
     sm->ctx = (SigMatchCtx *)data;
-    SigMatchAppendSMToList(s, sm, sm_list);
+    if (SigMatchAppendSMToList(s, sm, sm_list) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     if (!(data->flags & DETECT_BYTETEST_RELATIVE))
         goto okay;

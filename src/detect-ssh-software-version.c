@@ -238,7 +238,12 @@ static int DetectSshSoftwareVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_AL_SSH_SOFTWAREVERSION;
     sm->ctx = (void *)ssh;
 
-    SigMatchAppendSMToList(s, sm, g_ssh_banner_list_id);
+    if (SigMatchAppendSMToList(s, sm, g_ssh_banner_list_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     return 0;
 
 error:

@@ -266,7 +266,12 @@ static int DetectThresholdSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     sm->type = DETECT_THRESHOLD;
     sm->ctx = (SigMatchCtx *)de;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     return 0;
 

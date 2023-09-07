@@ -362,14 +362,24 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
         case DETECT_XBITS_CMD_ISNOTSET:
         case DETECT_XBITS_CMD_ISSET:
             /* checks, so packet list */
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+            if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+                sm->ctx = NULL;
+                SigMatchFree(de_ctx, sm);
+                sm = NULL;
+                goto error;
+            }
             break;
 
         case DETECT_XBITS_CMD_SET:
         case DETECT_XBITS_CMD_UNSET:
         case DETECT_XBITS_CMD_TOGGLE:
             /* modifiers, only run when entire sig has matched */
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+            if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH) < 0) {
+                sm->ctx = NULL;
+                SigMatchFree(de_ctx, sm);
+                sm = NULL;
+                goto error;
+            }
             break;
     }
 

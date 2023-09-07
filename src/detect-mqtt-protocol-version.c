@@ -123,7 +123,12 @@ static int DetectMQTTProtocolVersionSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_AL_MQTT_PROTOCOL_VERSION;
     sm->ctx = (SigMatchCtx *)de;
 
-    SigMatchAppendSMToList(s, sm, mqtt_protocol_version_id);
+    if (SigMatchAppendSMToList(s, sm, mqtt_protocol_version_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     return 0;
 

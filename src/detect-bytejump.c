@@ -681,7 +681,12 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         goto error;
     sm->type = DETECT_BYTEJUMP;
     sm->ctx = (SigMatchCtx *)data;
-    SigMatchAppendSMToList(s, sm, sm_list);
+    if (SigMatchAppendSMToList(s, sm, sm_list) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     if (!(data->flags & DETECT_BYTEJUMP_RELATIVE))
         goto okay;

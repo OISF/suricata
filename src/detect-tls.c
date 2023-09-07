@@ -316,7 +316,12 @@ static int DetectTlsSubjectSetup (DetectEngineCtx *de_ctx, Signature *s, const c
     sm->type = DETECT_AL_TLS_SUBJECT;
     sm->ctx = (void *)tls;
 
-    SigMatchAppendSMToList(s, sm, g_tls_cert_list_id);
+    if (SigMatchAppendSMToList(s, sm, g_tls_cert_list_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     return 0;
 
 error:
@@ -512,7 +517,12 @@ static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     sm->type = DETECT_AL_TLS_ISSUERDN;
     sm->ctx = (void *)tls;
 
-    SigMatchAppendSMToList(s, sm, g_tls_cert_list_id);
+    if (SigMatchAppendSMToList(s, sm, g_tls_cert_list_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     return 0;
 
 error:
@@ -606,7 +616,12 @@ static int DetectTlsStoreSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     sm->type = DETECT_AL_TLS_STORE;
     s->flags |= SIG_FLAG_TLSSTORE;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        return -1;
+    }
     return 0;
 }
 

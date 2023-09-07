@@ -153,7 +153,12 @@ static int DetectSNMPVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
     sm->ctx = (void *)dd;
 
     SCLogDebug("snmp.version %d", dd->arg1);
-    SigMatchAppendSMToList(s, sm, g_snmp_version_buffer_id);
+    if (SigMatchAppendSMToList(s, sm, g_snmp_version_buffer_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     return 0;
 
 error:

@@ -129,7 +129,12 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
     sm->type = DETECT_ICODE;
     sm->ctx = (SigMatchCtx *)icd;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;

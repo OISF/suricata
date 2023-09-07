@@ -218,7 +218,12 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     sm->type = DETECT_BSIZE;
     sm->ctx = (void *)bsz;
 
-    SigMatchAppendSMToList(s, sm, list);
+    if (SigMatchAppendSMToList(s, sm, list) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     SCReturnInt(0);
 

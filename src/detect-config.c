@@ -298,7 +298,12 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     }
 
     sm->ctx = (SigMatchCtx*)fd;
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     pcre2_match_data_free(match);
     return 0;

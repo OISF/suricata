@@ -114,7 +114,13 @@ static int DetectTcpmssSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     sm->type = DETECT_TCPMSS;
     sm->ctx = (SigMatchCtx *)tcpmssd;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        DetectTcpmssFree(de_ctx, tcpmssd);
+        return -1;
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;

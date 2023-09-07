@@ -122,7 +122,12 @@ static int DetectIkeNoncePayloadLengthSetup(
     sm->type = DETECT_AL_IKE_NONCE_PAYLOAD_LENGTH;
     sm->ctx = (SigMatchCtx *)nonce_payload_length;
 
-    SigMatchAppendSMToList(s, sm, g_ike_nonce_payload_length_buffer_id);
+    if (SigMatchAppendSMToList(s, sm, g_ike_nonce_payload_length_buffer_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     return 0;
 
 error:

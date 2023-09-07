@@ -398,7 +398,12 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         goto error;
     sm->type = DETECT_BYTEMATH;
     sm->ctx = (void *)data;
-    SigMatchAppendSMToList(s, sm, sm_list);
+    if (SigMatchAppendSMToList(s, sm, sm_list) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     if (!(data->flags & DETECT_BYTEMATH_FLAG_RELATIVE))
         goto okay;

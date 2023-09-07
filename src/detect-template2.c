@@ -121,7 +121,13 @@ static int DetectTemplate2Setup (DetectEngineCtx *de_ctx, Signature *s, const ch
     sm->type = DETECT_TEMPLATE2;
     sm->ctx = (SigMatchCtx *)template2d;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        DetectTemplate2Free(de_ctx, template2d);
+        return -1;
+    }
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;

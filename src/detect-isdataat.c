@@ -278,7 +278,12 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
         goto end;
     sm->type = DETECT_ISDATAAT;
     sm->ctx = (SigMatchCtx *)idad;
-    SigMatchAppendSMToList(s, sm, sm_list);
+    if (SigMatchAppendSMToList(s, sm, sm_list) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto end;
+    }
 
     if (!(idad->flags & ISDATAAT_RELATIVE)) {
         ret = 0;

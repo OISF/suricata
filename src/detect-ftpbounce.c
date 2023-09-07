@@ -230,6 +230,11 @@ int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *ftpb
      */
     sm->ctx = NULL;
 
-    SigMatchAppendSMToList(s, sm, g_ftp_request_list_id);
+    if (SigMatchAppendSMToList(s, sm, g_ftp_request_list_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        return -1;
+    }
     SCReturnInt(0);
 }

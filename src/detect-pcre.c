@@ -923,7 +923,12 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
         goto error;
     sm->type = DETECT_PCRE;
     sm->ctx = (void *)pd;
-    SigMatchAppendSMToList(s, sm, sm_list);
+    if (SigMatchAppendSMToList(s, sm, sm_list) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     for (uint8_t x = 0; x < pd->idx; x++) {
         if (DetectFlowvarPostMatchSetup(de_ctx, s, pd->capids[x]) < 0)

@@ -274,7 +274,12 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
 
             sm->type = DETECT_THRESHOLD;
             sm->ctx = (void *)de;
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_SUPPRESS);
+            if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_SUPPRESS) < 0) {
+                sm->ctx = NULL;
+                SigMatchFree(de_ctx, sm);
+                sm = NULL;
+                goto error;
+            }
         }
     } else if (id == 0 && gid > 0)    {
         if (parsed_track == TRACK_RULE) {
@@ -304,7 +309,12 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
             sm->type = DETECT_THRESHOLD;
             sm->ctx = (void *)de;
 
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_SUPPRESS);
+            if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_SUPPRESS) < 0) {
+                sm->ctx = NULL;
+                SigMatchFree(de_ctx, sm);
+                sm = NULL;
+                goto error;
+            }
         }
     } else if (id > 0 && gid == 0) {
         SCLogError("Can't use a event config that has "
@@ -336,7 +346,12 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
             sm->type = DETECT_THRESHOLD;
             sm->ctx = (void *)de;
 
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_SUPPRESS);
+            if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_SUPPRESS) < 0) {
+                sm->ctx = NULL;
+                SigMatchFree(de_ctx, sm);
+                sm = NULL;
+                goto error;
+            }
         }
     }
 
@@ -423,7 +438,12 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 sm->type = DETECT_THRESHOLD;
             sm->ctx = (void *)de;
 
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
+            if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD) < 0) {
+                sm->ctx = NULL;
+                SigMatchFree(de_ctx, sm);
+                sm = NULL;
+                goto error;
+            }
         }
 
     } else if (id == 0 && gid > 0) {
@@ -464,7 +484,12 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                     sm->type = DETECT_THRESHOLD;
                 sm->ctx = (void *)de;
 
-                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
+                if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD) < 0) {
+                    sm->ctx = NULL;
+                    SigMatchFree(de_ctx, sm);
+                    sm = NULL;
+                    goto error;
+                }
             }
         }
     } else if (id > 0 && gid == 0) {
@@ -538,7 +563,12 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 sm->type = DETECT_THRESHOLD;
             sm->ctx = (void *)de;
 
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
+            if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD) < 0) {
+                sm->ctx = NULL;
+                SigMatchFree(de_ctx, sm);
+                sm = NULL;
+                goto error;
+            }
         }
     }
 end:

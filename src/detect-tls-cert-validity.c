@@ -441,7 +441,12 @@ static int DetectTlsExpiredSetup (DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_AL_TLS_EXPIRED;
     sm->ctx = (void *)dd;
 
-    SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id);
+    if (SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     return 0;
 
 error:
@@ -492,7 +497,12 @@ static int DetectTlsValidSetup (DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_AL_TLS_VALID;
     sm->ctx = (void *)dd;
 
-    SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id);
+    if (SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     return 0;
 
 error:
@@ -588,7 +598,12 @@ static int DetectTlsValiditySetup (DetectEngineCtx *de_ctx, Signature *s,
 
     sm->ctx = (void *)dd;
 
-    SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id);
+    if (SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     return 0;
 
 error:

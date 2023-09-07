@@ -465,7 +465,12 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         AppLayerHtpNeedFileInspection();
     }
 
-    SigMatchAppendSMToList(s, sm, g_file_match_list_id);
+    if (SigMatchAppendSMToList(s, sm, g_file_match_list_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     s->filestore_ctx = (const DetectFilestoreData *)sm->ctx;
 
     sm = SigMatchAlloc();
@@ -473,7 +478,12 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         goto error;
     sm->type = DETECT_FILESTORE_POSTMATCH;
     sm->ctx = NULL;
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     s->flags |= SIG_FLAG_FILESTORE;
 

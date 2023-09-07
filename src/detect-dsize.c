@@ -147,7 +147,12 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
     sm->type = DETECT_DSIZE;
     sm->ctx = (SigMatchCtx *)dd;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    if (SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     SCLogDebug("dd->arg1 %" PRIu16 ", dd->arg2 %" PRIu16 ", dd->mode %" PRIu8 "", dd->arg1,
             dd->arg2, dd->mode);

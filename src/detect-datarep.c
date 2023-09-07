@@ -358,7 +358,12 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
 
     sm->type = DETECT_DATAREP;
     sm->ctx = (SigMatchCtx *)cd;
-    SigMatchAppendSMToList(s, sm, list);
+    if (SigMatchAppendSMToList(s, sm, list) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
     return 0;
 
 error:

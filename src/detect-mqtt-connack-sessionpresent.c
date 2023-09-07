@@ -172,7 +172,12 @@ static int DetectMQTTConnackSessionPresentSetup (DetectEngineCtx *de_ctx, Signat
     sm->type = DETECT_AL_MQTT_CONNACK_SESSION_PRESENT;
     sm->ctx = (SigMatchCtx *)de;
 
-    SigMatchAppendSMToList(s, sm, mqtt_connack_session_present_id);
+    if (SigMatchAppendSMToList(s, sm, mqtt_connack_session_present_id) < 0) {
+        sm->ctx = NULL;
+        SigMatchFree(de_ctx, sm);
+        sm = NULL;
+        goto error;
+    }
 
     return 0;
 
