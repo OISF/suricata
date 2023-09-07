@@ -184,6 +184,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
     SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x", p->pcap_cnt, s->id,
             s->action, pa->flags);
 
+    bool applies_to_flow = (s->flags & SIG_FLAG_REQUIRE_PACKET) != SIG_FLAG_REQUIRE_PACKET;
     /* REJECT also sets ACTION_DROP, just make it more visible with this check */
     if (pa->action & (ACTION_DROP | ACTION_REJECT_ANY)) {
         /* PacketDrop will update the packet action, too */
@@ -194,7 +195,8 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
             p->alerts.drop.action = pa->action;
             p->alerts.drop.s = (Signature *)s;
         }
-        if ((p->flow != NULL) && (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
+        if (applies_to_flow && (p->flow != NULL) &&
+                (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
             RuleActionToFlow(pa->action, p->flow);
         }
 
@@ -202,7 +204,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
     } else {
         p->action |= pa->action;
 
-        if ((pa->action & ACTION_PASS) && (p->flow != NULL) &&
+        if (applies_to_flow && (pa->action & ACTION_PASS) && (p->flow != NULL) &&
                 (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
             RuleActionToFlow(pa->action, p->flow);
         }
