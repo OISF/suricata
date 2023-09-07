@@ -633,7 +633,7 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const c
  error:
     DetectByteExtractFree(de_ctx, data);
     return ret;
-}
+ }
 
 /**
  * \brief Used to free instances of DetectByteExtractData.

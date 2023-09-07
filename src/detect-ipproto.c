@@ -425,7 +425,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 
     DetectIPProtoFree(de_ctx, data);
     return -1;
-}
+ }
 
 void DetectIPProtoRemoveAllSMs(DetectEngineCtx *de_ctx, Signature *s)
 {

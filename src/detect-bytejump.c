@@ -599,7 +599,7 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     }
     DetectBytejumpFree(de_ctx, data);
     return ret;
-}
+ }
 
 /**
  * \brief this function will free memory associated with DetectBytejumpData

@@ -420,7 +420,7 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         SCFree(nbytes);
     DetectByteMathFree(de_ctx, data);
     return ret;
-}
+ }
 
 /**
  * \brief Used to free instances of DetectByteMathractData.
