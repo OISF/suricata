@@ -200,13 +200,9 @@ void FlowInit(Flow *f, const Packet *p)
     f->timeout_at = timeout_at;
 
     if (MacSetFlowStorageEnabled()) {
-        MacSet *ms = FlowGetStorageById(f, MacSetGetFlowStorageID());
-        if (ms != NULL) {
-            MacSetReset(ms);
-        } else {
-            ms = MacSetInit(10);
-            FlowSetStorageById(f, MacSetGetFlowStorageID(), ms);
-        }
+        DEBUG_VALIDATE_BUG_ON(FlowGetStorageById(f, MacSetGetFlowStorageID()) != NULL);
+        MacSet *ms = MacSetInit(10);
+        FlowSetStorageById(f, MacSetGetFlowStorageID(), ms);
     }
 
     SCReturn;

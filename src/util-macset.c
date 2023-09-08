@@ -259,14 +259,6 @@ int MacSetSize(const MacSet *ms)
     return size;
 }
 
-void MacSetReset(MacSet *ms)
-{
-    if (ms == NULL)
-        return;
-    ms->state[MAC_SET_SRC] = ms->state[MAC_SET_DST] = EMPTY_SET;
-    ms->last[MAC_SET_SRC] = ms->last[MAC_SET_DST] = 0;
-}
-
 void MacSetFree(MacSet *ms)
 {
     size_t total_free = 0;
@@ -331,16 +323,6 @@ static int MacSetTest01(void)
     FAIL_IF_NOT(MacSetSize(ms) == 3);
 
     i = 0;
-    ret = MacSetForEach(ms, CheckTest1Membership, &i);
-    FAIL_IF_NOT(ret == 0);
-
-    MacSetReset(ms);
-    FAIL_IF_NOT(MacSetSize(ms) == 0);
-
-    MacSetAdd(ms, addr2, addr3);
-    FAIL_IF_NOT(MacSetSize(ms) == 2);
-
-    i = 1;
     ret = MacSetForEach(ms, CheckTest1Membership, &i);
     FAIL_IF_NOT(ret == 0);
 
