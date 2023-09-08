@@ -145,9 +145,9 @@ void SCDropCaps(ThreadVars *tv)
  * \param   uid         pointer to the user id in which result will be stored
  * \param   gid         pointer to the group id in which result will be stored
  *
- * \retval  upon success it return 0
+ * \retval  FatalError on a failure
  */
-int SCGetUserID(const char *user_name, const char *group_name, uint32_t *uid, uint32_t *gid)
+void SCGetUserID(const char *user_name, const char *group_name, uint32_t *uid, uint32_t *gid)
 {
     uint32_t userid = 0;
     uint32_t groupid = 0;
@@ -204,8 +204,6 @@ int SCGetUserID(const char *user_name, const char *group_name, uint32_t *uid, ui
 
     *uid = userid;
     *gid = groupid;
-
-    return 0;
 }
 
 /**
@@ -214,9 +212,9 @@ int SCGetUserID(const char *user_name, const char *group_name, uint32_t *uid, ui
  * \param   group_name  pointer to the given group name
  * \param   gid         pointer to the group id in which result will be stored
  *
- * \retval  upon success it return 0
+ * \retval  FatalError on a failure
  */
-int SCGetGroupID(const char *group_name, uint32_t *gid)
+void SCGetGroupID(const char *group_name, uint32_t *gid)
 {
     uint32_t grpid = 0;
     struct group *gp;
@@ -244,8 +242,6 @@ int SCGetGroupID(const char *group_name, uint32_t *gid)
     endgrent();
 
     *gid = grpid;
-
-    return 0;
 }
 
 #ifdef __OpenBSD__
