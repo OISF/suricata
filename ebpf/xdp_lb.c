@@ -39,15 +39,10 @@
 
 #define INLINE __always_inline __attribute__((always_inline))
 
-#if DEBUG
-#define DPRINTF(fmt_str, args...) \
-    { \
-        char fmt[] = fmt_str; \
+#define DPRINTF(fmt, args...) \
+    if (DEBUG) { \
         bpf_trace_printk(fmt, sizeof(fmt), args); \
     }
-#else
-#define DPRINTF(fmt_str, args...) ;
-#endif
 
 #define LINUX_VERSION_CODE 263682
 
