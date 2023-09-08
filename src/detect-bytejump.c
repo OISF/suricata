@@ -132,10 +132,10 @@ static bool DetectBytejumpValidateNbytes(const DetectBytejumpData *data, int32_t
  *  \param m byte jump sigmatch
  *  \param payload ptr to the payload
  *  \param payload_len length of the payload
- *  \retval 1 match
- *  \retval 0 no match
+ *  \retval true match
+ *  \retval false no match
  */
-int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
+bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         const SigMatchCtx *ctx, const uint8_t *payload, uint32_t payload_len, uint16_t flags,
         int32_t nbytes, int32_t offset)
 {
@@ -148,7 +148,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     int extbytes;
 
     if (payload_len == 0) {
-        SCReturnInt(0);
+        SCReturnBool(false);
     }
 
     /* Validate the number of bytes we are testing
@@ -161,7 +161,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
             SCLogDebug("Invalid byte_jump nbytes "
                        "seen in byte_jump - %d",
                     nbytes);
-            SCReturnInt(0);
+            SCReturnBool(false);
         }
     }
 
@@ -177,7 +177,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 
         /* No match if there is no relative base */
         if (ptr == NULL || len <= 0) {
-            SCReturnInt(0);
+            SCReturnBool(false);
         }
     }
     else {
@@ -190,7 +190,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         SCLogDebug("Data not within payload "
                    "pkt=%p, ptr=%p, len=%d, nbytes=%d",
                 payload, ptr, len, nbytes);
-        SCReturnInt(0);
+        SCReturnBool(false);
     }
 
     /* Extract the byte data */
@@ -198,7 +198,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         extbytes = ByteExtractStringUint64(&val, data->base, nbytes, (const char *)ptr);
         if(extbytes <= 0) {
             SCLogDebug("error extracting %d bytes of string data: %d", nbytes, extbytes);
-            SCReturnInt(0);
+            SCReturnBool(false);
         }
     }
     else {
@@ -206,7 +206,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         extbytes = ByteExtractUint64(&val, endianness, (uint16_t)nbytes, ptr);
         if (extbytes != nbytes) {
             SCLogDebug("error extracting %d bytes of numeric data: %d", nbytes, extbytes);
-            SCReturnInt(0);
+            SCReturnBool(false);
         }
     }
 
@@ -239,7 +239,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         SCLogDebug("Jump location (%" PRIu64 ") is not within "
                    "payload (%" PRIu32 ")",
                 val, payload_len);
-        SCReturnInt(0);
+        SCReturnBool(false);
     }
 
 #ifdef DEBUG
@@ -252,7 +252,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     /* Adjust the detection context to the jump location. */
     det_ctx->buffer_offset = val;
 
-    SCReturnInt(1);
+    SCReturnBool(true);
 }
 
 static int DetectBytejumpMatch(DetectEngineThreadCtx *det_ctx,
