@@ -153,6 +153,11 @@ int SCGetUserID(const char *user_name, const char *group_name, uint32_t *uid, ui
     uint32_t groupid = 0;
     struct passwd *pw;
 
+    if (user_name == NULL || strlen(user_name) == 0) {
+        FatalError("no user name was provided - ensure it is specified either in the configuration "
+                   "file (run-as.user) or in command-line arguments (--user)");
+    }
+
     /* Get the user ID */
     if (isdigit((unsigned char)user_name[0]) != 0) {
         if (ByteExtractStringUint32(&userid, 10, 0, (const char *)user_name) < 0) {
@@ -215,6 +220,11 @@ int SCGetGroupID(const char *group_name, uint32_t *gid)
 {
     uint32_t grpid = 0;
     struct group *gp;
+
+    if (group_name == NULL || strlen(group_name) == 0) {
+        FatalError("no group name was provided - ensure it is specified either in the "
+                   "configuration file (run-as.group) or in command-line arguments (--group)");
+    }
 
     /* Get the group ID */
     if (isdigit((unsigned char)group_name[0]) != 0) {
