@@ -63,7 +63,7 @@ Dependencies
 
 For Suricata's compilation you'll need the following libraries and their development headers installed::
 
-  libjansson, libpcap, libpcre, libmagic, zlib, libyaml
+  libjansson, libpcap, libpcre, libyaml, zlib
 
 The following tools are required::
 
@@ -75,29 +75,39 @@ For full features, also add::
 
 Rust support::
 
-  rustc, cargo
+  rustc, cargo, cbindgen
 
-  Not every distro provides Rust packages yet. Rust can also be installed
-  directly from the Rust project itself::
+  Rust packages can be found in package managers but some distros
+  don't provide or provide outdated Rust packages.
+  In case of insufficient version you can install Rust directly
+  from the Rust project itself::
 
-  https://www.rust-lang.org/en-US/install.html
+    1) Install Rust https://www.rust-lang.org/en-US/install.html
+    2) Install cbindgen - if the cbindgen is not found in the repository
+       or the cbindgen version is lower than required, it can be
+       alternatively installed as: cargo install --force cbindgen
+    3) Make sure the cargo path is within your PATH environment
+        e.g. echo 'export PATH=”${PATH}:~/.cargo/bin”' >> ~/.bashrc
+        e.g. export PATH="${PATH}:/root/.cargo/bin"
 
 Ubuntu/Debian
 """""""""""""
 
 Minimal::
 
-    apt-get install libpcre3 libpcre3-dbg libpcre3-dev build-essential libpcap-dev   \
-                    libyaml-0-2 libyaml-dev pkg-config zlib1g zlib1g-dev \
-                    make libmagic-dev libjansson libjansson-dev
+    apt-get install build-essential cargo cbindgen git libjansson-dev \ 
+                    libpcap-dev libpcre3-dev libtool libyaml-dev make \
+                    pkg-config rustc zlib1g-dev
 
 Recommended::
 
-    apt-get install libpcre3 libpcre3-dbg libpcre3-dev build-essential libpcap-dev   \
-                    libnet1-dev libyaml-0-2 libyaml-dev pkg-config zlib1g zlib1g-dev \
-                    libcap-ng-dev libcap-ng0 make libmagic-dev         \
-                    libnss3-dev libgeoip-dev liblua5.1-dev libhiredis-dev libevent-dev \
-                    python-yaml rustc cargo
+    apt-get install autoconf automake build-essential cargo cbindgen ccache \
+                    clang curl git jq libbpf-dev libcap-ng0 libcap-ng-dev \
+                    libelf-dev libevent-dev libgeoip-dev libhiredis-dev \
+                    libjansson-dev liblua5.1-dev libmagic-dev libnet1-dev \
+                    libpcap-dev libpcre3-dev libtool libyaml-0-2 libyaml-dev \
+                    m4 make pkg-config python3 python3-dev python3-yaml rustc \
+                    sudo zlib1g zlib1g-dev
 
 Extra for iptables/nftables IPS integration::
 
@@ -105,10 +115,60 @@ Extra for iptables/nftables IPS integration::
                     libnetfilter-log-dev libnetfilter-log1      \
                     libnfnetlink-dev libnfnetlink0
 
-For Rust support::
+CentOS, AlmaLinux, RockyLinux, Fedora, etc
+""""""""""""""""""""""""""""""""""""""""""
 
-    apt-get install rustc cargo
-    cargo install --force --debug --version 0.14.1 cbindgen
+To install all minimal dependencies, it is required to enable extra package
+repository in most distros. You can enable it possibly by
+one of the following ways::
+
+    dnf -y update
+    dnf -y install dnf-plugins-core
+    # AlmaLinux 8 / RockyLinux 8
+    dnf config-manager --set-enabled powertools
+    # AlmaLinux 9 / RockyLinux 9
+    dnf config-manager --set-enable crb
+    # Oracle Linux 8
+    dnf config-manager --set-enable ol8_codeready_builder
+    # Oracle Linux 9
+    dnf config-manager --set-enable ol9_codeready_builder
+
+Minimal::
+
+    dnf install -y rustc cargo
+    cargo install --force cbindgen # can be run as a non-root
+    # Make sure the cargo path is within your PATH environment e.g.:
+    echo 'export PATH=”${PATH}:~/.cargo/bin”' >> ~/.bashrc
+    export PATH="${PATH}:/root/.cargo/bin"
+    dnf install -y gcc gcc-c++ git jansson-devel libpcap-devel libtool \
+                   libyaml-devel make pcre-devel which zlib-devel
+
+Recommended::
+
+    dnf install -y rustc cargo
+    cargo install --force cbindgen # can be run as a non-root
+    # Make sure the cargo path is within your PATH environment e.g.:
+    echo 'export PATH=”${PATH}:~/.cargo/bin”' >> ~/.bashrc
+    export PATH="${PATH}:/root/.cargo/bin"
+    dnf install -y autoconf automake diffutils file-devel gcc gcc-c++ git \
+                   jansson-devel jq libcap-ng-devel libevent-devel \
+                   libmaxminddb-devel libnet-devel libnetfilter_queue-devel \
+                   libnfnetlink-devel libpcap-devel libtool libyaml-devel \
+                   lua-devel lz4-devel make nss-devel pcre-devel pkgconfig \
+                   python3-devel python3-sphinx python3-yaml sudo which \
+                   zlib-devel
+
+Compilation
+"""""""""""
+
+Follow these steps from your Suricata directory::
+
+    ./configure # you may want to add additional parameters here
+    # ./configure --help to get all available parameters
+    make -j8 # j is for simultaneous compilation, number can be de/increased based on your CPU
+    make install # to install your Suricata compiled binary
+    # make install-full - installs configuration and rules but it requires to
+    # have Python3 package pyyaml installed (python3 -m pip install pyyaml)
 
 .. _install-binary-packages:
 
