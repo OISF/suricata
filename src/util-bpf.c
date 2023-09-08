@@ -42,7 +42,7 @@ void ConfSetBPFFilter(
         }
     } else if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", bpf_filter) ==
                1) { // reading from a file
-        if (strlen(*bpf_filter) > 0) {
+        if (*bpf_filter && strlen(*bpf_filter) > 0) {
             SCLogConfig("%s: using file provided bpf filter %s", iface, *bpf_filter);
         }
     } else {
