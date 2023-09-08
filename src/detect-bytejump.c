@@ -40,6 +40,7 @@
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-validate.h"
 #include "detect-pcre.h"
 
 /**
@@ -112,9 +113,11 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     /* Calculate the ptr value for the bytejump and length remaining in
      * the packet from that point.
      */
+    ptr = payload;
+    len = payload_len;
     if (flags & DETECT_BYTEJUMP_RELATIVE) {
-        ptr = payload + det_ctx->buffer_offset;
-        len = payload_len - det_ctx->buffer_offset;
+        ptr += det_ctx->buffer_offset;
+        len -= det_ctx->buffer_offset;
 
         ptr += offset;
         len -= offset;
@@ -125,8 +128,8 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         }
     }
     else {
-        ptr = payload + offset;
-        len = payload_len - offset;
+        ptr += offset;
+        len -= offset;
     }
 
     /* Verify the to-be-extracted data is within the packet */
@@ -157,7 +160,8 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         }
     }
 
-    SCLogDebug("VAL: (%" PRIu64 " x %" PRIu32 ") + %d + %" PRId32, val, data->multiplier, extbytes, data->post_offset);
+    SCLogDebug("VAL: (%" PRIu64 " x %" PRIu32 ") + %" PRIi32 " + %" PRId32, val, data->multiplier,
+            extbytes, data->post_offset);
 
     /* Adjust the jump value based on flags */
     val *= data->multiplier;
@@ -167,27 +171,31 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         }
     }
     val += data->post_offset;
+    SCLogDebug("val: %" PRIi64 " post_offset: %" PRIi32, val, data->post_offset);
 
     /* Calculate the jump location */
     if (flags & DETECT_BYTEJUMP_BEGIN) {
-        jumpptr = payload + val;
-        SCLogDebug("NEWVAL: payload %p + %" PRIu64 "= %p", payload, val, jumpptr);
+        jumpptr = payload + (int64_t)val;
+        SCLogDebug("NEWVAL: payload %p + %" PRIi64 " = %p\n", payload, (int64_t)val, jumpptr);
     } else if (flags & DETECT_BYTEJUMP_END) {
-        jumpptr = payload + payload_len + val;
-        SCLogDebug("NEWVAL: payload %p + %" PRIu32 " - %" PRIu64 " = %p", payload, payload_len, val, jumpptr);
+        jumpptr = payload + payload_len + (int64_t)val;
+        SCLogDebug(
+                "NEWVAL: payload %p + %" PRIu32 " + %" PRIi64, payload, payload_len, (int64_t)val);
     } else {
-        val += extbytes;
-        jumpptr = ptr + val;
-        SCLogDebug("NEWVAL: ptr %p + %" PRIu64 " = %p", ptr, val, jumpptr);
+        jumpptr = ptr + (int64_t)val + extbytes;
+        SCLogDebug("NEWVAL: ptr %p + %" PRIi64 " = %p\n", ptr, val, jumpptr);
     }
 
 
     /* Validate that the jump location is still in the packet
      * \todo Should this validate it is still in the *payload*?
      */
-    if ((jumpptr < payload) || (jumpptr >= payload + payload_len)) {
-        SCLogDebug("Jump location (%p) is not within "
-               "payload (%p-%p)", jumpptr, payload, payload + payload_len - 1);
+    if (jumpptr < payload) {
+        jumpptr = payload;
+        SCLogDebug("jump location is before buffer start; resetting to buffer start");
+    } else if (jumpptr >= (payload + payload_len)) {
+        SCLogDebug("Jump location (%" PRIu64 ") is not within payload (%" PRIu32 ")",
+                payload_len + val, payload_len);
         SCReturnInt(0);
     }
 
@@ -201,6 +209,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 #endif /* DEBUG */
 
     /* Adjust the detection context to the jump location. */
+    DEBUG_VALIDATE_BUG_ON(jumpptr < payload);
     det_ctx->buffer_offset = jumpptr - payload;
 
     SCReturnInt(1);
@@ -413,7 +422,8 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
         if (*offset == NULL)
             goto error;
     } else {
-        if (StringParseInt32(&data->offset, 0, strlen(args[1]), args[1]) <= 0) {
+        if (StringParseI32RangeCheck(
+                    &data->offset, 10, (uint16_t)strlen(args[1]), args[1], -65535, 65535) <= 0) {
             SCLogError(SC_ERR_INVALID_VALUE, "Malformed offset: %s", optstr);
             goto error;
         }
@@ -454,13 +464,12 @@ static DetectBytejumpData *DetectBytejumpParse(DetectEngineCtx *de_ctx, const ch
                 goto error;
             }
         } else if (strncasecmp("post_offset ", args[i], 12) == 0) {
-            if (StringParseInt32(&data->post_offset, 10,
-                                       strlen(args[i]) - 12,
-                                       args[i] + 12) <= 0)
-            {
+            if (StringParseI32RangeCheck(&data->post_offset, 10, (uint16_t)strlen(args[i]) - 12,
+                        args[i] + 12, -65535, 65535) <= 0) {
                 SCLogError(SC_ERR_INVALID_VALUE, "Malformed post_offset: %s", optstr);
                 goto error;
             }
+            SCLogDebug("post_offset: %s [%d]", optstr, data->post_offset);
         } else if (strcasecmp("dce", args[i]) == 0) {
             data->flags |= DETECT_BYTEJUMP_DCE;
         } else {
