@@ -524,8 +524,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                       DETECT_BYTEJUMP_LITTLE: 0);
         }
 
-        if (DetectBytejumpDoMatch(det_ctx, s, smd->ctx, buffer, buffer_len,
-                                  bjflags, offset) != 1) {
+        if (!DetectBytejumpDoMatch(det_ctx, s, smd->ctx, buffer, buffer_len, bjflags, offset)) {
             goto no_match;
         }
 
