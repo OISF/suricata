@@ -534,8 +534,8 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
                       DETECT_BYTEJUMP_LITTLE: 0);
         }
 
-        if (DetectBytejumpDoMatch(
-                    det_ctx, s, smd->ctx, buffer, buffer_len, bjflags, nbytes, offset) != 1) {
+        if (!DetectBytejumpDoMatch(
+                    det_ctx, s, smd->ctx, buffer, buffer_len, bjflags, nbytes, offset)) {
             goto no_match;
         }
 

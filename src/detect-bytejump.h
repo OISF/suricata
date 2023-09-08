@@ -68,16 +68,10 @@ void DetectBytejumpRegister (void);
  * \param p pointer to the current packet
  * \param m pointer to the sigmatch that we will cast into DetectBytejumpData
  *
- * \retval -1 error
- * \retval  0 no match
- * \retval  1 match
- *
- * \todo The return seems backwards.  We should return a non-zero error code.
- *       One of the error codes is "no match".  As-is if someone accidentally
- *       does: if (DetectBytejumpMatch(...)) { match }, then they catch an
- *       error as a match.
+ * \retval  false no match
+ * \retval  true
  */
-int DetectBytejumpDoMatch(DetectEngineThreadCtx *, const Signature *, const SigMatchCtx *,
+bool DetectBytejumpDoMatch(DetectEngineThreadCtx *, const Signature *, const SigMatchCtx *,
         const uint8_t *, uint32_t, uint16_t, int32_t, int32_t);
 
 #endif /* __DETECT_BYTEJUMP_H__ */
