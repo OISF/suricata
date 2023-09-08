@@ -2157,16 +2157,14 @@ static int InitRunAs(SCInstance *suri)
     if (suri->do_setuid == TRUE) {
         if (SCGetUserID(suri->user_name, suri->group_name,
                         &suri->userid, &suri->groupid) != 0) {
-            SCLogError("failed in getting user ID");
-            return TM_ECODE_FAILED;
+            FatalError("failed to get user ID");
         }
 
         sc_set_caps = TRUE;
     /* Get the suricata group ID to given group ID */
     } else if (suri->do_setgid == TRUE) {
         if (SCGetGroupID(suri->group_name, &suri->groupid) != 0) {
-            SCLogError("failed in getting group ID");
-            return TM_ECODE_FAILED;
+            FatalError("failed to get group ID");
         }
 
         sc_set_caps = TRUE;
