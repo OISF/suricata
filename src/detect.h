@@ -246,6 +246,10 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_FLUSH                  BIT_U32(12) /**< detection logic needs stream flush notification */
 
+#define SIG_FLAG_REQUIRE_STREAM_ONLY                                                               \
+    BIT_U32(13) /**< signature is requiring stream match. Stream match is not optional, so no      \
+                   fallback to packet payload. */
+
 // vacancies
 
 #define SIG_FLAG_REQUIRE_FLOWVAR        BIT_U32(17) /**< signature can only match if a flowbit, flowvar or flowint is available. */
