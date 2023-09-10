@@ -310,9 +310,6 @@ typedef struct DetectPort_ {
 /* for now a uint8_t is enough */
 #define SignatureMask uint8_t
 
-#define DETECT_ENGINE_THREAD_CTX_FRAME_ID_SET         0x0001
-#define DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH 0x0004
-
 #define FILE_SIG_NEED_FILE          0x01
 #define FILE_SIG_NEED_FILENAME      0x02
 #define FILE_SIG_NEED_MAGIC         0x04    /**< need the start of the file */
@@ -1179,8 +1176,6 @@ typedef struct DetectEngineThreadCtx_ {
         uint32_t to_clear_idx;
         uint32_t *to_clear_queue;
     } multi_inspect;
-
-    uint16_t flags; /**< DETECT_ENGINE_THREAD_CTX_* flags */
 
     /* true if tx_id is set */
     bool tx_id_set;
