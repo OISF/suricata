@@ -825,8 +825,6 @@ next:
         DetectVarProcessList(det_ctx, pflow, p);
         DetectReplaceFree(det_ctx);
         RULE_PROFILING_END(det_ctx, s, smatch, p);
-
-        det_ctx->flags = 0;
         continue;
     }
 }
@@ -1731,7 +1729,6 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
                     DetectRunPostMatch(tv, det_ctx, p, s);
 
                     uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_FRAME);
-                    det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_FRAME_ID_SET;
                     det_ctx->frame_id = frame->id;
                     SCLogDebug(
                             "%p/%" PRIi64 " sig %u (%u) matched", frame, frame->id, s->id, s->num);
