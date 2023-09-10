@@ -1919,7 +1919,6 @@ static int DetectEngineInspectRulePayloadMatches(
         if (p->flags & PKT_DETECT_HAS_STREAMDATA) {
             pmatch = DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, p->flow, p);
             if (pmatch) {
-                det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;
                 *alert_flags |= PACKET_ALERT_FLAG_STREAM_MATCH;
             }
         }
