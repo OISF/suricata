@@ -144,6 +144,7 @@ typedef struct MimeDecEntity {
     uint8_t *msg_id;  /**< Quick access pointer to message Id */
     struct MimeDecEntity *next;  /**< Pointer to list of sibling entities */
     struct MimeDecEntity *child;  /**< Pointer to list of child entities */
+    struct MimeDecEntity *last_child; /**< Pointer to tail of the list of child entities */
 } MimeDecEntity;
 
 /**
