@@ -3760,6 +3760,9 @@
                                 "krb5_udp": {
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "modbus": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "mqtt": {
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
