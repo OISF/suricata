@@ -50,6 +50,7 @@ void ThresholdContextDestroy(DetectEngineCtx *);
 int ThresholdHostTimeoutCheck(Host *, SCTime_t);
 int ThresholdIPPairTimeoutCheck(IPPair *, SCTime_t);
 void ThresholdListFree(void *ptr);
+void ThresholdCacheThreadFree(void);
 
 void FlowThresholdVarFree(void *ptr);
 
