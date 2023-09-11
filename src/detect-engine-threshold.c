@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -98,6 +98,212 @@ int ThresholdHostHasThreshold(Host *host)
 int ThresholdIPPairHasThreshold(IPPair *pair)
 {
     return IPPairGetStorageById(pair, ippair_threshold_id) ? 1 : 0;
+}
+
+#include "util-hash.h"
+
+typedef struct ThresholdCacheItem {
+    int8_t track; // by_src/by_dst
+    int8_t ipv;
+    int8_t retval;
+    uint32_t addr;
+    uint32_t sid;
+    SCTime_t expires_at;
+    RB_ENTRY(ThresholdCacheItem) rb;
+} ThresholdCacheItem;
+
+static thread_local HashTable *threshold_cache_ht = NULL;
+
+thread_local uint64_t cache_lookup_cnt = 0;
+thread_local uint64_t cache_lookup_notinit = 0;
+thread_local uint64_t cache_lookup_nosupport = 0;
+thread_local uint64_t cache_lookup_miss_expired = 0;
+thread_local uint64_t cache_lookup_miss = 0;
+thread_local uint64_t cache_lookup_hit = 0;
+thread_local uint64_t cache_housekeeping_check = 0;
+thread_local uint64_t cache_housekeeping_expired = 0;
+
+static void DumpCacheStats(void)
+{
+    SCLogPerf("threshold thread cache stats: cnt:%" PRIu64 " notinit:%" PRIu64 " nosupport:%" PRIu64
+              " miss_expired:%" PRIu64 " miss:%" PRIu64 " hit:%" PRIu64
+              ", housekeeping: checks:%" PRIu64 ", expired:%" PRIu64,
+            cache_lookup_cnt, cache_lookup_notinit, cache_lookup_nosupport,
+            cache_lookup_miss_expired, cache_lookup_miss, cache_lookup_hit,
+            cache_housekeeping_check, cache_housekeeping_expired);
+}
+
+/* rbtree for expiry handling */
+
+static int ThresholdCacheTreeCompareFunc(ThresholdCacheItem *a, ThresholdCacheItem *b)
+{
+    if (SCTIME_CMP_GTE(a->expires_at, b->expires_at)) {
+        return 1;
+    } else {
+        return -1;
+    }
+}
+
+RB_HEAD(THRESHOLD_CACHE, ThresholdCacheItem);
+RB_PROTOTYPE(THRESHOLD_CACHE, ThresholdCacheItem, rb, ThresholdCacheTreeCompareFunc);
+RB_GENERATE(THRESHOLD_CACHE, ThresholdCacheItem, rb, ThresholdCacheTreeCompareFunc);
+thread_local struct THRESHOLD_CACHE threshold_cache_tree;
+thread_local uint64_t threshold_cache_housekeeping_ts = 0;
+
+static void ThresholdCacheExpire(SCTime_t now)
+{
+    ThresholdCacheItem *iter, *safe = NULL;
+    int cnt = 0;
+    threshold_cache_housekeeping_ts = SCTIME_SECS(now);
+
+    RB_FOREACH_SAFE (iter, THRESHOLD_CACHE, &threshold_cache_tree, safe) {
+        cache_housekeeping_check++;
+
+        if (SCTIME_CMP_LT(iter->expires_at, now)) {
+            THRESHOLD_CACHE_RB_REMOVE(&threshold_cache_tree, iter);
+            HashTableRemove(threshold_cache_ht, iter, 0);
+            SCLogDebug("iter %p expired", iter);
+            cache_housekeeping_expired++;
+        }
+
+        if (cnt++ >= 2)
+            break;
+    }
+}
+
+/* hash table for threshold look ups */
+
+static uint32_t ThresholdCacheHashFunc(HashTable *ht, void *data, uint16_t datalen)
+{
+    ThresholdCacheItem *tci = data;
+    int hash = tci->ipv * tci->track + tci->addr + tci->sid;
+    hash = hash % ht->array_size;
+    return hash;
+}
+
+static char ThresholdCacheHashCompareFunc(
+        void *data1, uint16_t datalen1, void *data2, uint16_t datalen2)
+{
+    ThresholdCacheItem *tci1 = data1;
+    ThresholdCacheItem *tci2 = data2;
+    return tci1->ipv == tci2->ipv && tci1->track == tci2->track && tci1->addr == tci2->addr &&
+           tci1->sid == tci2->sid;
+}
+
+static void ThresholdCacheHashFreeFunc(void *data)
+{
+    SCFree(data);
+}
+
+/// \brief Thread local cache
+static int SetupCache(const Packet *p, const int8_t track, const int8_t retval, const uint32_t sid,
+        SCTime_t expires)
+{
+    if (!threshold_cache_ht) {
+        threshold_cache_ht = HashTableInit(256, ThresholdCacheHashFunc,
+                ThresholdCacheHashCompareFunc, ThresholdCacheHashFreeFunc);
+    }
+
+    uint32_t addr;
+    if (track == TRACK_SRC) {
+        addr = p->src.addr_data32[0];
+    } else if (track == TRACK_DST) {
+        addr = p->dst.addr_data32[0];
+    } else {
+        return -1;
+    }
+
+    ThresholdCacheItem lookup = {
+        .track = track,
+        .ipv = 4,
+        .retval = retval,
+        .addr = addr,
+        .sid = sid,
+        .expires_at = expires,
+    };
+    ThresholdCacheItem *found = HashTableLookup(threshold_cache_ht, &lookup, 0);
+    if (!found) {
+        ThresholdCacheItem *n = SCCalloc(1, sizeof(*n));
+        if (n) {
+            n->track = track;
+            n->ipv = 4;
+            n->retval = retval;
+            n->addr = addr;
+            n->sid = sid;
+            n->expires_at = expires;
+
+            if (HashTableAdd(threshold_cache_ht, n, 0) == 0) {
+                (void)THRESHOLD_CACHE_RB_INSERT(&threshold_cache_tree, n);
+                return 1;
+            }
+            SCFree(n);
+        }
+        return -1;
+    } else {
+        found->expires_at = expires;
+        found->retval = retval;
+
+        THRESHOLD_CACHE_RB_REMOVE(&threshold_cache_tree, found);
+        THRESHOLD_CACHE_RB_INSERT(&threshold_cache_tree, found);
+        return 1;
+    }
+}
+
+/** \brief Check Thread local thresholding cache
+ *  \retval negative value cache miss (-1 miss, -2 expired)
+ */
+static int CheckCache(const Packet *p, const int8_t track, const uint32_t sid)
+{
+    cache_lookup_cnt++;
+
+    if (!threshold_cache_ht) {
+        cache_lookup_notinit++;
+        return -3;
+    }
+
+    uint32_t addr;
+    if (track == TRACK_SRC) {
+        addr = p->src.addr_data32[0];
+    } else if (track == TRACK_DST) {
+        addr = p->dst.addr_data32[0];
+    } else {
+        cache_lookup_nosupport++;
+        return -4;
+    }
+
+    if (SCTIME_SECS(p->ts) > threshold_cache_housekeeping_ts) {
+        ThresholdCacheExpire(p->ts);
+    }
+
+    ThresholdCacheItem lookup = {
+        .track = track,
+        .ipv = 4,
+        .addr = addr,
+        .sid = sid,
+    };
+    ThresholdCacheItem *found = HashTableLookup(threshold_cache_ht, &lookup, 0);
+    if (found) {
+        if (SCTIME_CMP_GT(p->ts, found->expires_at)) {
+            THRESHOLD_CACHE_RB_REMOVE(&threshold_cache_tree, found);
+            HashTableRemove(threshold_cache_ht, found, 0);
+            cache_lookup_miss_expired++;
+            return -2; // CACHE MISS
+        }
+        cache_lookup_hit++;
+        return found->retval;
+    }
+    cache_lookup_miss++;
+    return -1; // CACHE MISS
+}
+
+void ThresholdCacheThreadFree(void)
+{
+    if (threshold_cache_ht) {
+        HashTableFree(threshold_cache_ht);
+        threshold_cache_ht = NULL;
+    }
+    RB_INIT(&threshold_cache_tree);
+    DumpCacheStats();
 }
 
 /**
@@ -411,6 +617,10 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
                         ret = 1;
                     } else {
                         ret = 2;
+
+                        if (PKT_IS_IPV4(p)) {
+                            SetupCache(p, td->track, (int8_t)ret, sid, entry);
+                        }
                     }
                 } else {
                     lookup_tsh->tv1 = p->ts;
@@ -466,6 +676,10 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
                     } else if (lookup_tsh->current_count > td->count) {
                         /* silent match */
                         ret = 2;
+
+                        if (PKT_IS_IPV4(p)) {
+                            SetupCache(p, td->track, (int8_t)ret, sid, entry);
+                        }
                     }
                 } else {
                     /* expired, so reset */
@@ -612,12 +826,24 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     if (td->type == TYPE_SUPPRESS) {
         ret = ThresholdHandlePacketSuppress(p,td,s->id,s->gid);
     } else if (td->track == TRACK_SRC) {
+        if (PKT_IS_IPV4(p) && (td->type == TYPE_LIMIT || td->type == TYPE_BOTH)) {
+            int cache_ret = CheckCache(p, td->track, s->id);
+            if (cache_ret >= 0) {
+                SCReturnInt(cache_ret);
+            }
+        }
         Host *src = HostGetHostFromHash(&p->src);
         if (src) {
             ret = ThresholdHandlePacketHost(src,p,td,s->id,s->gid,pa);
             HostRelease(src);
         }
     } else if (td->track == TRACK_DST) {
+        if (PKT_IS_IPV4(p) && (td->type == TYPE_LIMIT || td->type == TYPE_BOTH)) {
+            int cache_ret = CheckCache(p, td->track, s->id);
+            if (cache_ret >= 0) {
+                SCReturnInt(cache_ret);
+            }
+        }
         Host *dst = HostGetHostFromHash(&p->dst);
         if (dst) {
             ret = ThresholdHandlePacketHost(dst,p,td,s->id,s->gid,pa);
