@@ -730,10 +730,11 @@ uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint
 {
     SCEnter();
 
-    if (pstate == NULL)
-        SCReturnCT(0ULL, "uint64_t");
+    if (pstate != NULL)
+        SCReturnCT(pstate->inspect_id[(direction & STREAM_TOSERVER) ? 0 : 1], "uint64_t");
 
-    SCReturnCT(pstate->inspect_id[(direction & STREAM_TOSERVER) ? 0 : 1], "uint64_t");
+    DEBUG_VALIDATE_BUG_ON(1);
+    SCReturnCT(0ULL, "uint64_t");
 }
 
 inline uint64_t AppLayerParserGetTxDetectFlags(AppLayerTxData *txd, const uint8_t dir)
