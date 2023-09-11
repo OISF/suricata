@@ -1090,33 +1090,34 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
             break;
         }
 
-        const bool emerg = (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY);
-        if (emerg || !time_is_live) {
-            usleep(250);
-        } else {
-            struct timeval cond_tv;
-            gettimeofday(&cond_tv, NULL);
-            cond_tv.tv_sec += 1;
-            struct timespec cond_time = FROM_TIMEVAL(cond_tv);
-            SCCtrlMutexLock(&flow_recycler_ctrl_mutex);
-            while (1) {
-                int rc = SCCtrlCondTimedwait(
-                        &flow_recycler_ctrl_cond, &flow_recycler_ctrl_mutex, &cond_time);
-                if (rc == ETIMEDOUT || rc < 0) {
-                    break;
+        if (cnt > 0) {
+            const bool emerg = (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY);
+            if (emerg || !time_is_live) {
+                usleep(250);
+            } else {
+                struct timeval cond_tv;
+                gettimeofday(&cond_tv, NULL);
+                cond_tv.tv_sec += 1;
+                struct timespec cond_time = FROM_TIMEVAL(cond_tv);
+                SCCtrlMutexLock(&flow_recycler_ctrl_mutex);
+                while (1) {
+                    int rc = SCCtrlCondTimedwait(
+                            &flow_recycler_ctrl_cond, &flow_recycler_ctrl_mutex, &cond_time);
+                    if (rc == ETIMEDOUT || rc < 0) {
+                        break;
+                    }
+                    if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) {
+                        break;
+                    }
+                    if (SC_ATOMIC_GET(flow_recycle_q.non_empty) == true) {
+                        break;
+                    }
                 }
-                if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) {
-                    break;
-                }
-                if (SC_ATOMIC_GET(flow_recycle_q.non_empty) == true) {
-                    break;
-                }
+                SCCtrlMutexUnlock(&flow_recycler_ctrl_mutex);
             }
-            SCCtrlMutexUnlock(&flow_recycler_ctrl_mutex);
+
+            SCLogDebug("woke up...");
         }
-
-        SCLogDebug("woke up...");
-
         StatsSyncCountersIfSignalled(th_v);
     }
     StatsSyncCounters(th_v);
