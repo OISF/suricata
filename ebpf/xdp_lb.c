@@ -39,8 +39,9 @@
 
 #define INLINE __always_inline __attribute__((always_inline))
 
-#define DPRINTF(fmt, args...) \
+#define DPRINTF(fmt_str, args...) \
     if (DEBUG) { \
+        char fmt[] = fmt_str; \
         bpf_trace_printk(fmt, sizeof(fmt), args); \
     }
 
