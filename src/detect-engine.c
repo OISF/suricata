@@ -3518,6 +3518,8 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
 
     SCFree(det_ctx);
+
+    ThresholdCacheThreadFree();
 }
 
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
