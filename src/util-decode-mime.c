@@ -390,7 +390,7 @@ static MimeDecUrl * MimeDecAddUrl(MimeDecEntity *entity, uint8_t *url, uint32_t 
  */
 MimeDecEntity * MimeDecAddEntity(MimeDecEntity *parent)
 {
-    MimeDecEntity *curr, *node = SCMalloc(sizeof(MimeDecEntity));
+    MimeDecEntity *node = SCMalloc(sizeof(MimeDecEntity));
     if (unlikely(node == NULL)) {
         return NULL;
     }
@@ -400,12 +400,10 @@ MimeDecEntity * MimeDecAddEntity(MimeDecEntity *parent)
     if (parent != NULL) {
         if (parent->child == NULL) {
             parent->child = node;
+            parent->last_child = node;
         } else {
-            curr = parent->child;
-            while (curr->next != NULL) {
-                curr = curr->next;
-            }
-            curr->next = node;
+            parent->last_child->next = node;
+            parent->last_child = node;
         }
     }
 
