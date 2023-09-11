@@ -1251,14 +1251,14 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
     }
     uint64_t detect_flags =
             (flow_flags & STREAM_TOSERVER) ? txd->detect_flags_ts : txd->detect_flags_tc;
-    if (detect_flags & APP_LAYER_TX_INSPECTED_FLAG) {
+    if (unlikely(detect_flags & APP_LAYER_TX_INSPECTED_FLAG)) {
         SCLogDebug("%"PRIu64" tx already fully inspected for %s. Flags %016"PRIx64,
                 tx_id, flow_flags & STREAM_TOSERVER ? "toserver" : "toclient",
                 detect_flags);
         DetectTransaction no_tx = NO_TX;
         return no_tx;
     }
-    if (detect_flags & APP_LAYER_TX_SKIP_INSPECT_FLAG) {
+    if (unlikely(detect_flags & APP_LAYER_TX_SKIP_INSPECT_FLAG)) {
         SCLogDebug("%" PRIu64 " tx should not be inspected in direction %s. Flags %016" PRIx64,
                 tx_id, flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
         DetectTransaction no_tx = NO_TX;
