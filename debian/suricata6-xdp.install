@@ -9,3 +9,4 @@ opt/suricata6/share/suricata/reference.config /opt/suricata6/etc
 opt/suricata6/share/suricata/env.config /opt/suricata6/etc
 suricata.yaml /opt/suricata6/etc
 ebpf/*bpf /opt/suricata6/ebpf
+libbpf.so* /opt/suricata6/lib
