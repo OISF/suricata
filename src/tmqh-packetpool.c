@@ -172,18 +172,21 @@ void PacketPoolReturnPacket(Packet *p)
         my_pool->head = p;
     } else {
         PktPool *pending_pool = my_pool->pending_pool;
-        if (pending_pool == NULL) {
-            /* No pending packet, so store the current packet. */
-            p->next = NULL;
-            my_pool->pending_pool = pool;
-            my_pool->pending_head = p;
-            my_pool->pending_tail = p;
-            my_pool->pending_count = 1;
-        } else if (pending_pool == pool) {
-            /* Another packet for the pending pool list. */
-            p->next = my_pool->pending_head;
-            my_pool->pending_head = p;
-            my_pool->pending_count++;
+        if (pending_pool == NULL || pending_pool == pool) {
+            if (pending_pool == NULL) {
+                /* No pending packet, so store the current packet. */
+                p->next = NULL;
+                my_pool->pending_pool = pool;
+                my_pool->pending_head = p;
+                my_pool->pending_tail = p;
+                my_pool->pending_count = 1;
+            } else if (pending_pool == pool) {
+                /* Another packet for the pending pool list. */
+                p->next = my_pool->pending_head;
+                my_pool->pending_head = p;
+                my_pool->pending_count++;
+            }
+
             if (SC_ATOMIC_GET(pool->return_stack.sync_now) || my_pool->pending_count > max_pending_return_packets) {
                 /* Return the entire list of pending packets. */
                 SCMutexLock(&pool->return_stack.mutex);
