@@ -370,8 +370,6 @@ static inline void FlowForceReassemblyForHash(void)
 {
     for (uint32_t idx = 0; idx < flow_config.hash_size; idx++) {
         FlowBucket *fb = &flow_hash[idx];
-
-        PacketPoolWaitForN(9);
         FBLOCK_LOCK(fb);
 
         Flow *f = fb->head;
@@ -380,7 +378,6 @@ static inline void FlowForceReassemblyForHash(void)
         /* we need to loop through all the flows in the queue */
         while (f != NULL) {
             Flow *next_f = f->next;
-            PacketPoolWaitForN(3);
 
             FLOWLOCK_WRLOCK(f);
 
