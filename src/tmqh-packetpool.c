@@ -81,62 +81,6 @@ void PacketPoolWait(void)
         cc_barrier();
 }
 
-/** \brief Wait until we have the requested amount of packets in the pool
- *
- *  In some cases waiting for packets is undesirable. Especially when
- *  a wait would happen under a lock of some kind, other parts of the
- *  engine could have to wait.
- *
- *  This function only returns when at least N packets are in our pool.
- *
- *  If counting in our pool's main stack didn't give us the number we
- *  are seeking, we check if the return stack is filled and add those
- *  to our main stack. Then we retry.
- *
- *  \param n number of packets needed
- */
-void PacketPoolWaitForN(int n)
-{
-    PktPool *my_pool = GetThreadPacketPool();
-
-    while (1) {
-        PacketPoolWait();
-
-        /* count packets in our stack */
-        int i = 0;
-        Packet *p, *pp;
-        pp = p = my_pool->head;
-        while (p != NULL) {
-            if (++i == n)
-                return;
-
-            pp = p;
-            p = p->next;
-        }
-
-        /* check return stack, return to our pool and retry counting */
-        if (my_pool->return_stack.head != NULL) {
-            SCMutexLock(&my_pool->return_stack.mutex);
-            /* Move all the packets from the locked return stack to the local stack. */
-            if (pp) {
-                pp->next = my_pool->return_stack.head;
-            } else {
-                my_pool->head = my_pool->return_stack.head;
-            }
-            my_pool->return_stack.head = NULL;
-            SC_ATOMIC_RESET(my_pool->return_stack.sync_now);
-            SCMutexUnlock(&my_pool->return_stack.mutex);
-
-        /* or signal that we need packets and wait */
-        } else {
-            SCMutexLock(&my_pool->return_stack.mutex);
-            SC_ATOMIC_ADD(my_pool->return_stack.sync_now, 1);
-            SCCondWait(&my_pool->return_stack.cond, &my_pool->return_stack.mutex);
-            SCMutexUnlock(&my_pool->return_stack.mutex);
-        }
-    }
-}
-
 /** \brief a initialized packet
  *
  *  \warning Use *only* at init, not at packet runtime
