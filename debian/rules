@@ -34,11 +34,11 @@ endif
 	dh $@ --parallel
 override_dh_auto_configure:
 	./autogen.sh
-	dh_auto_configure -- CC=clang-4.0 CXX=clang++-4.0 \
+	dh_auto_configure -- CC=clang-10 CXX=clang++-10 \
 		CFLAGS="$(CFLAGS)" \
 		--prefix=/usr/ --sysconfdir=/etc/ --localstatedir=/var/ \
 		--enable-ebpf \
-		--enable-ebpf-build --with-clang=/usr/bin/clang-10 \
+		--enable-ebpf-build \
 		--enable-nfqueue \
 		--disable-gccmarch-native \
 		--enable-geoip \
