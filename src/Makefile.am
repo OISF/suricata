@@ -281,6 +281,7 @@ noinst_HEADERS = \
 	detect-rpc.h \
 	detect-sameip.h \
 	detect-sid.h \
+	detect-sip-headers-stub.h \
 	detect-sip-method.h \
 	detect-sip-protocol.h \
 	detect-sip-request-line.h \
