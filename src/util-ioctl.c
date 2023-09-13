@@ -138,11 +138,7 @@ int GetIfaceMaxPacketSize(const char *pcap_dev)
         case -1:
             return 0;
     }
-    int ll_header = GetIfaceMaxHWHeaderLength(pcap_dev);
-    if (ll_header == -1) {
-        /* be conservative, choose a big one */
-        ll_header = 16;
-    }
+    int ll_header = GetIfaceMaxHWHeaderLength(dev);
     return ll_header + mtu;
 }
 
