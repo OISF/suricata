@@ -1,3 +1,37 @@
+7.0.1 -- 2023-09-13
+
+Security #6279: Crash in SMTP parser during parsing of email
+Security #6195: process exit in hyperscan error handling 
+Bug #6276: community-id: Fix IPv6 address sorting not respecting byte order
+Bug #6256: eve: crash if output dir isn't writeable
+Bug #6255: flow: possible divide by zero at start up
+Bug #6247: pcre: parsing crash in multi-tenant multi-loader setup
+Bug #6244: tcp: RST with data used in reassembly
+Bug #6243: Parsing ip-reputation reputation config files now rejects CR and CR+LF
+Bug #6240: pcap/file: negative pcap file timestamps lead to weird output
+Bug #6233: dpdk: fix overall threads check for IPS mode
+Bug #6232: dpdk: treat unknown socket value as a valid value
+Bug #6222: Decode-events of IPv6 GRE are not triggered
+Bug #6201: multi-tenancy: crash under test mode when tenant signature load fails
+Bug #6191: if protocol dcerpc first packet type is Alter_context, it will not parse dcerpc
+Bug #6095: windows: lua script path truncated
+Bug #6094: eve/stats: memcap_pressure and memcap_pressure_max not logged
+Bug #6044: detect: multi-tenancy leaks memory if more than 1 tenant registered
+Bug #5870: ips/af-packet: crash when copy-iface is the same as the interface
+Bug #5619: dpdk/ips: crash at shutdown with mlx
+Bug #5443: ftp-data: failed assertion
+Bug #4881: alert event incorrectly log stored files
+Optimization #6265: threading: set a higher default stack size for threads
+Optimization #6263: mpm/ac: reduce stack usage
+Optimization #5920: investigate: check and fix unhandled divisions by 0
+Optimization #3637: Performance impact of Cisco Fabricpath
+Feature #6267: multi-tenancy: reload-tenants command
+Feature #6230: stats: add drop reason counters
+Feature #4756: capture: support ips stats for all IPS capture methods
+Feature #4587: dhcp: vendor class indentifier support
+Documentation #6231: userguide: add installation from Ubuntu PPA section
+Documentation #6124: userguide: add instructions/explanation for (not) running suricata with root
+
 7.0.0 -- 2023-07-18
 
 Bug #6212: file.magic: rule reload can lead to crashes
