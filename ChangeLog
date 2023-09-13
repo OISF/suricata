@@ -1,3 +1,39 @@
+6.0.14 -- 2023-09-13
+
+Security #6289: Crash in SMTP parser during parsing of email (6.0.x backport)
+Security #6196: process exit in hyperscan error handling  (6.0.x backport)
+Security #6156: dcerpc: max-tx config parameter, also for UDP (6.0.x backport)
+Bug #6285: community-id: Fix IPv6 address sorting not respecting byte order (6.0.x backport)
+Bug #6248: Multi-tenancy: crash under test mode when tenant signature load fails (6.0.x backport)
+Bug #6245: tcp: RST with data used in reassembly (6.0.x backport)
+Bug #6236: if protocol dcerpc first packet type is Alter_context, it will not parse dcerpc (6.0.x backport)
+Bug #6228: ips/af-packet: crash when copy-iface is the same as the interface (6.0.x backport)
+Bug #6227: windows: lua script path truncated (6.0.x backport)
+Bug #6226: Decode-events of IPv6 GRE are not triggered (6.0.x backport)
+Bug #6224: base64: complete support for RFC2045 (6.0.x backport)
+Bug #6220: Backport tenant_id conversion to uint32_t
+Bug #6213: file.magic: rule reload can lead to crashes (6.0.x backport)
+Bug #6193: smtp: Attachment not being md5 matched (6.0.x backport)
+Bug #6192: smtp: use every byte to compute email.body_md5 (6.0.x backport)
+Bug #6182: log-pcap: fix segfault on lz4 compressed pcaps (6.0.x backport)
+Bug #6181: eve/alert: deprecated fields can have unexpected side affects (6.0.x backport)
+Bug #6174: FTP bounce detection doesn't work for big-endian platforms (6.0.x backport)
+Bug #6166: http2: fileinfo events log http2 object instead of http object as alerts and http2 do (6.0.x backport)
+Bug #6139: smb: wrong offset when parse SMB_COM_WRITE_ANDX record (6.0.x backport)
+Bug #6082: pcap: device reopen broken (6.0.x backport)
+Bug #6068: pcap: memory leaks (6.0.x backport)
+Bug #6045: detect: multi-tenancy leaks memory if more than 1 tenant registered (6.0.x backport)
+Bug #6035: stream.midstream: if enabled breaks exception policy (6.0.x backport)
+Bug #5915: rfb: parser returns error on unimplemented record types (6.0.x backport)
+Bug #5794: eve: if alert and drop rules match for a packet, "alert.action" is ambigious (6.0.x backport)
+Bug #5439: Invalid certificate when Issuer is not present. 
+Optimization #6229: Performance impact of Cisco Fabricpath (6.0.x backport)
+Optimization #6203: detect: modernize filename fileext filemagic (6.0.x backport)
+Optimization #6153: suricatasc: Gracefully handle unsupported commands (6.0.x backport)
+Feature #6282: dns/eve: add 'HTTPS' type logging (6.0.x backport)
+Feature #5935: ips: add 'master switch' to enable dropping on traffic (handling) exceptions (6.0.x backport)
+Documentation #6234: userguide: add installation from Ubuntu PPA section (6.0.x backport)
+
 6.0.13 -- 2023-06-15
 
 Security #6119: datasets: absolute path in rules can overwrite arbitrary files (6.0.x backport)
