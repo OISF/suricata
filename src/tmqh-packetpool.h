@@ -32,7 +32,11 @@ typedef struct PktPoolLockedStack_{
     /* linked list of free packets. */
     SCMutex mutex;
     SCCondT cond;
-    SC_ATOMIC_DECLARE(int, sync_now);
+    /** number of packets in needed to trigger a sync during
+     *  the return to pool logic. Updated by pool owner based
+     *  on how full the pool is. */
+    SC_ATOMIC_DECLARE(uint32_t, return_threshold);
+    uint32_t cnt;
     Packet *head;
 } __attribute__((aligned(CLS))) PktPoolLockedStack;
 
@@ -41,6 +45,8 @@ typedef struct PktPool_ {
      * No mutex is needed.
      */
     Packet *head;
+    uint32_t cnt;
+
     /* Packets waiting (pending) to be returned to the given Packet
      * Pool. Accumulate packets for the same pool until a threshold is
      * reached, then return them all at once.  Keep the head and tail
