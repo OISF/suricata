@@ -1893,7 +1893,6 @@ int DetectEngineBufferTypeGetByIdTransforms(
     BUG_ON(HashListTableAdd(de_ctx->buffer_type_hash_name, (void *)map, 0) != 0);
     BUG_ON(HashListTableAdd(de_ctx->buffer_type_hash_id, (void *)map, 0) != 0);
     SCLogDebug("buffer %s registered with id %d, parent %d", map->name, map->id, map->parent_id);
-    de_ctx->buffer_type_id++;
 
     if (map->frame) {
         DetectFrameInspectEngineCopy(de_ctx, map->parent_id, map->id, &map->transforms);
