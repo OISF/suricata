@@ -120,6 +120,39 @@ struct DetectIpOpts_ {
 };
 
 /**
+ * \brief Return human readable value for ipopts flag
+ *
+ * \param flag uint16_t DetectIpOptsData ipopts flag value
+ */
+const char *IpOptsFlagToString(uint16_t flag)
+{
+    switch (flag) {
+        case IPV4_OPT_FLAG_RR:
+            return "rr";
+        case IPV4_OPT_FLAG_LSRR:
+            return "lsrr";
+        case IPV4_OPT_FLAG_EOL:
+            return "eol";
+        case IPV4_OPT_FLAG_NOP:
+            return "nop";
+        case IPV4_OPT_FLAG_TS:
+            return "ts";
+        case IPV4_OPT_FLAG_SEC:
+            return "sec";
+        case IPV4_OPT_FLAG_ESEC:
+            return "esec";
+        case IPV4_OPT_FLAG_SSRR:
+            return "ssrr";
+        case IPV4_OPT_FLAG_SID:
+            return "satid";
+        case 0xffff:
+            return "any";
+        default:
+            return NULL;
+    }
+}
+
+/**
  * \internal
  * \brief This function is used to match ip option on a packet with those passed via ipopts:
  *

@@ -45,5 +45,7 @@ typedef struct DetectIpOptsData_ {
 
 void DetectIpOptsRegister (void);
 
+const char *IpOptsFlagToString(uint16_t flag);
+
 #endif /*__DETECT_IPOPTS_H__ */
 
