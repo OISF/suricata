@@ -640,7 +640,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     uint32_t mpms_min = 0;
     uint32_t mpms_max = 0;
 
-    int max_buffer_type_id = DetectBufferTypeMaxId() + 1;
+    int max_buffer_type_id = de_ctx->buffer_type_id;
 
     struct {
         uint32_t total;
@@ -755,6 +755,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
             if (w > mpms_max)
                 mpms_max = w;
 
+            BUG_ON(mpm_list >= max_buffer_type_id);
             mpm_stats[mpm_list].total += w;
             mpm_stats[mpm_list].cnt++;
             if (mpm_stats[mpm_list].min == 0 || w < mpm_stats[mpm_list].min)
