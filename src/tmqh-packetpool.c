@@ -223,8 +223,8 @@ void PacketPoolReturnPacket(Packet *p)
                 my_pool->pending_tail->next = pool->return_stack.head;
                 pool->return_stack.head = my_pool->pending_head;
                 pool->return_stack.cnt += my_pool->pending_count;
-                SCMutexUnlock(&pool->return_stack.mutex);
                 SCCondSignal(&pool->return_stack.cond);
+                SCMutexUnlock(&pool->return_stack.mutex);
                 /* Clear the list of pending packets to return. */
                 my_pool->pending_pool = NULL;
                 my_pool->pending_head = NULL;
