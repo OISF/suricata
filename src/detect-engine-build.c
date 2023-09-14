@@ -668,10 +668,8 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
 
     json_t *js_array = json_array();
 
-    const Signature *s;
-    uint32_t x;
-    for (x = 0; x < sgh->init->sig_cnt; x++) {
-        s = sgh->init->match_array[x];
+    for (uint32_t x = 0; x < sgh->init->sig_cnt; x++) {
+        const Signature *s = sgh->init->match_array[x];
         if (s == NULL)
             continue;
 
