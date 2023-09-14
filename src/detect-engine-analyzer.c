@@ -39,6 +39,7 @@
 #include "detect-bytetest.h"
 #include "detect-flow.h"
 #include "detect-tcp-flags.h"
+#include "detect-ipopts.h"
 #include "feature.h"
 #include "util-print.h"
 #include "util-time.h"
@@ -848,6 +849,15 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 if (cd->flags & DETECT_BYTETEST_DCE)
                     jb_append_string(js, "dce");
                 jb_close(js);
+                jb_close(js);
+                break;
+            }
+            case DETECT_IPOPTS: {
+                const DetectIpOptsData *cd = (const DetectIpOptsData *)smd->ctx;
+
+                jb_open_object(js, "ipopts");
+                const char *flag = IpOptsFlagToString(cd->ipopt);
+                jb_set_string(js, "option", flag);
                 jb_close(js);
                 break;
             }
