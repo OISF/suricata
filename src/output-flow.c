@@ -42,7 +42,10 @@ typedef struct OutputFlowLogger_ {
     FlowLogger LogFunc;
     OutputCtx *output_ctx;
     struct OutputFlowLogger_ *next;
+
+    /** A name for this logger, used for debugging only. */
     const char *name;
+
     TmEcode (*ThreadInit)(ThreadVars *, const void *, void **);
     TmEcode (*ThreadDeinit)(ThreadVars *, void *);
     void (*ThreadExitPrintStats)(ThreadVars *, void *);
@@ -50,6 +53,14 @@ typedef struct OutputFlowLogger_ {
 
 static OutputFlowLogger *list = NULL;
 
+/**
+ * \brief Register a new low-level flow logger.
+ *
+ * \param name The name of this logger. Its only used for debugging,
+ *     so choose something unique.
+ *
+ * \retval 0 on success, -1 on failure.
+ */
 int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc,
     OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
     ThreadDeinitFunc ThreadDeinit,
