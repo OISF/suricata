@@ -26,7 +26,9 @@
 #ifndef SURICATA_OUTPUT_FLOW_H
 #define SURICATA_OUTPUT_FLOW_H
 
+#include "decode.h"
 #include "tm-modules.h"
+#include "flow.h"
 
 /** flow logger function pointer type */
 typedef int (*FlowLogger)(ThreadVars *, void *thread_data, Flow *f);
