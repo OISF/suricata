@@ -121,7 +121,7 @@ TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f)
 /** \brief thread init for the flow logger
  *  This will run the thread init functions for the individual registered
  *  loggers */
-TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void **data)
 {
     OutputFlowLoggerThreadData *td = SCMalloc(sizeof(*td));
     if (td == NULL)
