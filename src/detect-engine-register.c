@@ -206,6 +206,7 @@
 #include "detect-sip-stat-msg.h"
 #include "detect-sip-request-line.h"
 #include "detect-sip-response-line.h"
+#include "detect-sip-headers.h"
 #include "detect-rfb-secresult.h"
 #include "detect-rfb-sectype.h"
 #include "detect-rfb-name.h"
@@ -673,6 +674,7 @@ void SigTableSetup(void)
     DetectSipStatMsgRegister();
     DetectSipRequestLineRegister();
     DetectSipResponseLineRegister();
+    DetectSipHeadersRegister();
     DetectRfbSecresultRegister();
     DetectRfbSectypeRegister();
     DetectRfbNameRegister();
