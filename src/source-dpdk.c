@@ -373,8 +373,10 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
     // Indicate that the thread is actually running its application level code (i.e., it can poll
     // packets)
     TmThreadsSetFlag(tv, THV_RUNNING);
-
     PacketPoolWait();
+
+    rte_eth_stats_reset(ptv->port_id);
+    rte_eth_xstats_reset(ptv->port_id);
     while (1) {
         if (unlikely(suricata_ctl_flags != 0)) {
             SCLogDebug("Stopping Suricata!");
