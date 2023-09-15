@@ -20,6 +20,7 @@
 use crate::core::Direction;
 use crate::sip::sip::SIPTransaction;
 use std::ptr;
+use std::ffi::CStr;
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_tx_get_method(
@@ -157,6 +158,48 @@ pub unsafe extern "C" fn rs_sip_tx_get_response_line(
             *buffer = r.as_ptr();
             *buffer_len = r.len() as u32;
             return 1;
+        }
+    }
+
+    *buffer = ptr::null();
+    *buffer_len = 0;
+
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_sip_tx_get_header_value(
+    tx: &mut SIPTransaction,
+    direction: u8,
+    strname: *const std::os::raw::c_char,
+    buffer: *mut *const u8,
+    buffer_len: *mut u32,
+) -> u8 {
+    let hname: &CStr = CStr::from_ptr(strname);
+    if let Ok(s) = hname.to_str() {
+        match direction.into() {
+            Direction::ToServer => {
+                if let Some(ref r) = tx.request {
+                    if let Some(v) = r.headers.get(s) {
+                        if !v.is_empty() {
+                            *buffer = v.as_ptr();
+                            *buffer_len = v.len() as u32;
+                            return 1;
+                        }
+                    }
+                }
+            }
+            Direction::ToClient => {
+                if let Some(ref r) = tx.response {
+                    if let Some(v) = r.headers.get(s) {
+                        if !v.is_empty() {
+                            *buffer = v.as_ptr();
+                            *buffer_len = v.len() as u32;
+                            return 1;
+                        }
+                    }
+                }
+            }
         }
     }
 
