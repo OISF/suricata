@@ -289,6 +289,7 @@ noinst_HEADERS = \
 	detect-sameip.h \
 	detect-sid.h \
 	detect-sip-headers-stub.h \
+	detect-sip-from.h \
 	detect-sip-method.h \
 	detect-sip-protocol.h \
 	detect-sip-request-line.h \
@@ -900,6 +901,7 @@ libsuricata_c_a_SOURCES = \
 	detect-rpc.c \
 	detect-sameip.c \
 	detect-sid.c \
+	detect-sip-from.c \
 	detect-sip-method.c \
 	detect-sip-protocol.c \
 	detect-sip-request-line.c \
