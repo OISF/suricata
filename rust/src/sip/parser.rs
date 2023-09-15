@@ -50,6 +50,7 @@ pub struct Response {
     pub version: String,
     pub code: String,
     pub reason: String,
+    pub headers: HashMap<String, String>,
 
     pub response_line_len: u16,
     pub headers_len: u16,
@@ -130,7 +131,7 @@ pub fn sip_parse_response(oi: &[u8]) -> IResult<&[u8], Response> {
     let (i, reason) = parse_reason(i)?;
     let (hi, _) = crlf(i)?;
     let response_line_len = oi.len() - hi.len();
-    let (phi, _headers) = parse_headers(hi)?;
+    let (phi, headers) = parse_headers(hi)?;
     let headers_len = hi.len() - phi.len();
     let (bi, _) = crlf(phi)?;
     let body_offset = oi.len() - bi.len();
@@ -140,6 +141,7 @@ pub fn sip_parse_response(oi: &[u8]) -> IResult<&[u8], Response> {
             version,
             code: code.into(),
             reason: reason.into(),
+            headers,
 
             response_line_len: response_line_len as u16,
             headers_len: headers_len as u16,
