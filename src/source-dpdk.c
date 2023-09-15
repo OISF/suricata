@@ -212,7 +212,7 @@ static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *d
         i40eDeviceSetRSS(ptv->port_id, ptv->threads);
 }
 
-static void DevicePreStopPMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
+static void DevicePreClosePMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
 {
     if (strcmp(driver_name, "net_bonding") == 0) {
         driver_name = BondingDeviceDriverGet(ptv->port_id);
@@ -378,6 +378,12 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
     while (1) {
         if (unlikely(suricata_ctl_flags != 0)) {
             SCLogDebug("Stopping Suricata!");
+            if (ptv->queue_id == 0) {
+                rte_eth_dev_stop(ptv->port_id);
+                if (ptv->copy_mode == DPDK_COPY_MODE_TAP || ptv->copy_mode == DPDK_COPY_MODE_IPS) {
+                    rte_eth_dev_stop(ptv->out_port_id);
+                }
+            }
             DPDKDumpCounters(ptv);
             break;
         }
@@ -668,12 +674,7 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
             SCReturnInt(TM_ECODE_FAILED);
         }
 
-        DevicePreStopPMDSpecificActions(ptv, dev_info.driver_name);
-    }
-
-    rte_eth_dev_stop(ptv->port_id);
-    if (ptv->copy_mode == DPDK_COPY_MODE_TAP || ptv->copy_mode == DPDK_COPY_MODE_IPS) {
-        rte_eth_dev_stop(ptv->out_port_id);
+        DevicePreClosePMDSpecificActions(ptv, dev_info.driver_name);
     }
 
     ptv->pkt_mempool = NULL; // MP is released when device is closed
