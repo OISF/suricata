@@ -28,14 +28,13 @@
 
 #include "tm-modules.h"
 
-/** flow logger function pointer type */
-typedef int (*FlowLogger)(ThreadVars *, void *thread_data, Flow *f);
+/** Flow logging callback function pointer type. */
+typedef int (*SCFlowLoggerFunc)(ThreadVars *, void *thread_data, Flow *f);
 
-int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, void *,
+int OutputRegisterFlowLogger(const char *name, SCFlowLoggerFunc LogFunc, void *,
         ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
 
 void OutputFlowShutdown(void);
-
 TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f);
 TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void **data);
 TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data);

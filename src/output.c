@@ -584,11 +584,10 @@ error:
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterFlowSubModule(LoggerId id, const char *parent_name,
-    const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
-    FlowLogger FlowLogFunc, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+void OutputRegisterFlowSubModule(LoggerId id, const char *parent_name, const char *name,
+        const char *conf_name, OutputInitSubFunc InitFunc, SCFlowLoggerFunc FlowLogFunc,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     if (unlikely(FlowLogFunc == NULL)) {
         goto error;

@@ -39,7 +39,7 @@ typedef struct OutputFlowLoggerThreadData_ {
  * it's perfectly valid that have multiple instances of the same
  * log module (e.g. http.log) with different output ctx'. */
 typedef struct OutputFlowLogger_ {
-    FlowLogger LogFunc;
+    SCFlowLoggerFunc LogFunc;
 
     /** Data that will be passed to the ThreadInit callback. */
     void *initdata;
@@ -64,7 +64,7 @@ static OutputFlowLogger *list = NULL;
  *
  * \retval 0 on success, -1 on failure.
  */
-int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, void *initdata,
+int OutputRegisterFlowLogger(const char *name, SCFlowLoggerFunc LogFunc, void *initdata,
         ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputFlowLogger *op = SCMalloc(sizeof(*op));
