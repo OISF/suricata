@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,7 +19,25 @@
 
 use crate::core::Direction;
 use crate::sip::sip::SIPTransaction;
+use std::ffi::CStr;
 use std::ptr;
+
+fn header_compact_name(h: &str) -> Option<String> {
+    let compact = match h {
+        "Call-ID" => "i",
+        "Contact" => "m",
+        "Content-Encoding" => "e",
+        "Content-Length" => "l",
+        "Content-Type" => "c",
+        "From" => "f",
+        "Subject" => "s",
+        "Supported" => "k",
+        "To" => "t",
+        "Via" => "v",
+        _ => return None,
+    };
+    Some(compact.to_string())
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_tx_get_method(
@@ -158,6 +176,39 @@ pub unsafe extern "C" fn rs_sip_tx_get_response_line(
             *buffer_len = r.len() as u32;
             return 1;
         }
+    }
+
+    *buffer = ptr::null();
+    *buffer_len = 0;
+
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_sip_tx_get_header_value(
+    tx: &mut SIPTransaction, direction: u8, strname: *const std::os::raw::c_char,
+    buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    let hname: &CStr = CStr::from_ptr(strname);
+    if let Ok(s) = hname.to_str() {
+        let s2 = header_compact_name(s);
+        let headers = match direction.into() {
+            Direction::ToServer => tx.request.as_ref().map(|r| &r.headers),
+            Direction::ToClient => tx.response.as_ref().map(|r| &r.headers),
+        };
+        if let Some(headers) = headers {
+            let header_value = headers
+                .get(s)
+                .or_else(|| s2.as_ref().and_then(|s2| headers.get(s2)));
+
+            if let Some(value) = header_value {
+                if !value.is_empty() {
+                    *buffer = value.as_ptr();
+                    *buffer_len = value.len() as u32;
+                    return 1;
+                }
+            }
+        };
     }
 
     *buffer = ptr::null();
