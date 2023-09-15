@@ -50,7 +50,6 @@ typedef struct OutputFlowLogger_ {
 
     TmEcode (*ThreadInit)(ThreadVars *, const void *, void **);
     TmEcode (*ThreadDeinit)(ThreadVars *, void *);
-    void (*ThreadExitPrintStats)(ThreadVars *, void *);
 } OutputFlowLogger;
 
 static OutputFlowLogger *list = NULL;
@@ -66,8 +65,7 @@ static OutputFlowLogger *list = NULL;
  * \retval 0 on success, -1 on failure.
  */
 int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, void *initdata,
-        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-        ThreadExitPrintStatsFunc ThreadExitPrintStats)
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     OutputFlowLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
@@ -79,7 +77,6 @@ int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, void *initdat
     op->name = name;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
-    op->ThreadExitPrintStats = ThreadExitPrintStats;
 
     if (list == NULL)
         list = op;
@@ -199,22 +196,6 @@ TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data)
 
     SCFree(op_thread_data);
     return TM_ECODE_OK;
-}
-
-void OutputFlowLogExitPrintStats(ThreadVars *tv, void *thread_data)
-{
-    OutputFlowLoggerThreadData *op_thread_data = (OutputFlowLoggerThreadData *)thread_data;
-    OutputLoggerThreadStore *store = op_thread_data->store;
-    OutputFlowLogger *logger = list;
-
-    while (logger && store) {
-        if (logger->ThreadExitPrintStats) {
-            logger->ThreadExitPrintStats(tv, store->thread_data);
-        }
-
-        logger = logger->next;
-        store = store->next;
-    }
 }
 
 void OutputFlowShutdown(void)

@@ -32,14 +32,12 @@
 typedef int (*FlowLogger)(ThreadVars *, void *thread_data, Flow *f);
 
 int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, void *,
-        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-        ThreadExitPrintStatsFunc ThreadExitPrintStats);
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
 
 void OutputFlowShutdown(void);
 
 TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f);
 TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void **data);
 TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data);
-void OutputFlowLogExitPrintStats(ThreadVars *tv, void *thread_data);
 
 #endif /* __OUTPUT_FLOW_H__ */
