@@ -26,7 +26,9 @@
 #ifndef __OUTPUT_FLOW_H__
 #define __OUTPUT_FLOW_H__
 
+#include "decode.h"
 #include "tm-modules.h"
+#include "flow.h"
 
 /** Flow logging callback function pointer type. */
 typedef int (*SCFlowLoggerFunc)(ThreadVars *, void *thread_data, Flow *f);
