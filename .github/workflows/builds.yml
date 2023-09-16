@@ -1014,11 +1014,11 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
 
-  # Fedora 37 build using Clang.
-  fedora-37-clang:
-    name: Fedora 37 (clang, debug, asan, wshadow, rust-strict, systemd)
+  # Fedora 39 build using Clang.
+  fedora-39-clang:
+    name: Fedora 39 (clang, debug, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
-    container: fedora:37
+    container: fedora:39
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -1041,6 +1041,7 @@ jobs:
                 autoconf \
                 automake \
                 cargo \
+                cbindgen \
                 ccache \
                 clang \
                 diffutils \
@@ -1082,12 +1083,6 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
-      - name: Setup cbindgen
-        run: |
-          mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
-          chmod 755 $HOME/.cargo/bin/cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-lua
         env:
@@ -1118,11 +1113,11 @@ jobs:
       # Check compilation against systemd
       - run: ldd src/suricata | grep libsystemd &> /dev/null
 
-  # Fedora 37 build using GCC.
-  fedora-37-gcc:
-    name: Fedora 37 (gcc, debug, asan, wshadow, rust-strict)
+  # Fedora 39 build using GCC.
+  fedora-39-gcc:
+    name: Fedora 39 (gcc, debug, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
-    container: fedora:37
+    container: fedora:39
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -1138,6 +1133,7 @@ jobs:
                 autoconf \
                 automake \
                 cargo \
+                cbindgen \
                 ccache \
                 diffutils \
                 file-devel \
@@ -1175,12 +1171,6 @@ jobs:
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
-      - name: Setup cbindgen
-        run: |
-          mkdir -p $HOME/.cargo/bin
-          cp prep/cbindgen $HOME/.cargo/bin
-          chmod 755 $HOME/.cargo/bin/cbindgen
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
         env:
@@ -1213,10 +1203,10 @@ jobs:
   # This job builds and tests Suricata as a non-root user as some
   # issues only show up when not running as root, and by default all
   # jobs in GitHub actions are run as root inside the container.
-  fedora-37-non-root:
-    name: Fedora 37 (non-root, debug, clang, asan, wshadow, rust-strict, systemd)
+  fedora-39-non-root:
+    name: Fedora 39 (non-root, debug, clang, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
-    container: fedora:37
+    container: fedora:39
     needs: [prepare-deps]
     steps:
       - run: |
