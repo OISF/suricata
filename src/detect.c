@@ -1296,6 +1296,81 @@ static inline void StoreDetectFlags(DetectTransaction *tx, const uint8_t flow_fl
     }
 }
 
+// Merge 'state' rules from the regular prefilter
+// updates array_idx on the way
+static inline void RuleMatchCandidateMergeStateRules(
+        DetectEngineThreadCtx *det_ctx, uint32_t *array_idx)
+{
+    // Now, we will merge 2 sorted lists :
+    // the one in det_ctx->tx_candidates
+    // and the one in det_ctx->match_array
+    // For match_array, we take only the relevant elements where s->app_inspect != NULL
+
+    // Basically, we iterate at the same time over the 2 lists
+    // comparing and taking an element from either.
+
+    // Trick is to do so in place in det_ctx->tx_candidates,
+    // so as to minimize the number of moves in det_ctx->tx_candidates.
+    // For this, the algorithm traverses the lists in reverse order.
+    // Otherwise, if the first element of match_array was to be put before
+    // all tx_candidates, we would need to shift all tx_candidates
+
+    // Retain the number of elements sorted in tx_candidates before merge
+    uint32_t j = *array_idx;
+    // First loop only counting the number of elements to add
+    for (uint32_t i = 0; i < det_ctx->match_array_cnt; i++) {
+        const Signature *s = det_ctx->match_array[i];
+        if (s->app_inspect != NULL) {
+            (*array_idx)++;
+        }
+    }
+    // Future number of elements in tx_candidates after merge
+    uint32_t k = *array_idx;
+
+    if (k == j) {
+        // no new element from match_array to merge in tx_candidates
+        return;
+    }
+
+    // variable i is for all elements of match_array (even not relevant ones)
+    // variable j is for elements of tx_candidates before merge
+    // variable k is for elements of tx_candidates after merge
+    for (uint32_t i = det_ctx->match_array_cnt; i > 0;) {
+        const Signature *s = det_ctx->match_array[i - 1];
+        if (s->app_inspect == NULL) {
+            // no relevant element, get the next one from match_array
+            i--;
+            continue;
+        }
+        // we have one element from match_array to merge in tx_candidates
+        k--;
+        if (j > 0) {
+            // j > 0 means there is still at least one element in tx_candidates to merge
+            const RuleMatchCandidateTx *s0 = &det_ctx->tx_candidates[j - 1];
+            if (s->num <= s0->id) {
+                // get next element from previous tx_candidates
+                j--;
+                // take the element from tx_candidates before merge
+                det_ctx->tx_candidates[k].s = det_ctx->tx_candidates[j].s;
+                det_ctx->tx_candidates[k].id = det_ctx->tx_candidates[j].id;
+                det_ctx->tx_candidates[k].flags = det_ctx->tx_candidates[j].flags;
+                det_ctx->tx_candidates[k].stream_reset = det_ctx->tx_candidates[j].stream_reset;
+                continue;
+            }
+        } // otherwise
+        // get next element from match_array
+        i--;
+        // take the element from match_array
+        det_ctx->tx_candidates[k].s = s;
+        det_ctx->tx_candidates[k].id = s->num;
+        det_ctx->tx_candidates[k].flags = NULL;
+        det_ctx->tx_candidates[k].stream_reset = 0;
+    }
+    // Even if k > 0 or j > 0, the loop is over. (Note that j == k now)
+    // The remaining elements in tx_candidates up to k were already sorted
+    // and come before any other element later in the list
+}
+
 static void DetectRunTx(ThreadVars *tv,
                     DetectEngineCtx *de_ctx,
                     DetectEngineThreadCtx *det_ctx,
@@ -1369,24 +1444,10 @@ static void DetectRunTx(ThreadVars *tv,
         }
 
         /* merge 'state' rules from the regular prefilter */
+#ifdef PROFILING
         uint32_t x = array_idx;
-        for (uint32_t i = 0; i < det_ctx->match_array_cnt; i++) {
-            const Signature *s = det_ctx->match_array[i];
-            if (s->app_inspect != NULL) {
-                const SigIntId id = s->num;
-                det_ctx->tx_candidates[array_idx].s = s;
-                det_ctx->tx_candidates[array_idx].id = id;
-                det_ctx->tx_candidates[array_idx].flags = NULL;
-                det_ctx->tx_candidates[array_idx].stream_reset = 0;
-                array_idx++;
-
-                SCLogDebug("%p/%"PRIu64" rule %u (%u) added from 'match' list",
-                        tx.tx_ptr, tx.tx_id, s->id, id);
-            }
-        }
-        do_sort = (array_idx > x); // sort if match added anything
-        SCLogDebug("%p/%" PRIu64 " rules added from 'match' list: %u", tx.tx_ptr, tx.tx_id,
-                array_idx - x);
+#endif
+        RuleMatchCandidateMergeStateRules(det_ctx, &array_idx);
 
         /* merge stored state into results */
         if (tx.de_state != NULL) {
