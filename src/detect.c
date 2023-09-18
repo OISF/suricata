@@ -1296,6 +1296,46 @@ static inline void StoreDetectFlags(DetectTransaction *tx, const uint8_t flow_fl
     }
 }
 
+static inline RuleMatchCandidateMergeSorted(DetectEngineThreadCtx *det_ctx, uint32_t j, uint32_t k)
+{
+    for (uint32_t i = det_ctx->match_array_cnt; i > 0;) {
+        const Signature *s = det_ctx->match_array[i - 1];
+        if (s->app_inspect != NULL) {
+            const SigIntId id = s->num;
+            if (j > 0) {
+                const RuleMatchCandidateTx *s0 = &det_ctx->tx_candidates[j - 1];
+                if (s->id > s0->id) {
+                    det_ctx->tx_candidates[k - 1].s = s;
+                    det_ctx->tx_candidates[k - 1].id = id;
+                    det_ctx->tx_candidates[k - 1].flags = NULL;
+                    det_ctx->tx_candidates[k - 1].stream_reset = 0;
+                    i--;
+                } else {
+                    // progress in the sorted list
+                    det_ctx->tx_candidates[k - 1].s = det_ctx->tx_candidates[j - 1].s;
+                    det_ctx->tx_candidates[k - 1].id = det_ctx->tx_candidates[j - 1].id;
+                    det_ctx->tx_candidates[k - 1].flags = det_ctx->tx_candidates[j - 1].flags;
+                    det_ctx->tx_candidates[k - 1].stream_reset =
+                            det_ctx->tx_candidates[j - 1].stream_reset;
+                    j--;
+                }
+            } else {
+                // simply append the end of sorted list
+                det_ctx->tx_candidates[k - 1].s = s;
+                det_ctx->tx_candidates[k - 1].id = id;
+                det_ctx->tx_candidates[k - 1].flags = NULL;
+                det_ctx->tx_candidates[k - 1].stream_reset = 0;
+                i--;
+                SCLogDebug("%p/%" PRIu64 " rule %u (%u) added from 'match' list", tx.tx_ptr,
+                        tx.tx_id, s->id, id);
+            }
+            k--;
+        } else {
+            i--;
+        }
+    }
+}
+
 static void DetectRunTx(ThreadVars *tv,
                     DetectEngineCtx *de_ctx,
                     DetectEngineThreadCtx *det_ctx,
@@ -1373,18 +1413,10 @@ static void DetectRunTx(ThreadVars *tv,
         for (uint32_t i = 0; i < det_ctx->match_array_cnt; i++) {
             const Signature *s = det_ctx->match_array[i];
             if (s->app_inspect != NULL) {
-                const SigIntId id = s->num;
-                det_ctx->tx_candidates[array_idx].s = s;
-                det_ctx->tx_candidates[array_idx].id = id;
-                det_ctx->tx_candidates[array_idx].flags = NULL;
-                det_ctx->tx_candidates[array_idx].stream_reset = 0;
                 array_idx++;
-
-                SCLogDebug("%p/%"PRIu64" rule %u (%u) added from 'match' list",
-                        tx.tx_ptr, tx.tx_id, s->id, id);
             }
         }
-        do_sort = (array_idx > x); // sort if match added anything
+        RuleMatchCandidateMergeSorted(det_ctx, x, array_idx);
         SCLogDebug("%p/%" PRIu64 " rules added from 'match' list: %u", tx.tx_ptr, tx.tx_id,
                 array_idx - x);
 
