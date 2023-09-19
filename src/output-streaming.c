@@ -280,7 +280,8 @@ static int TcpDataLogger (Flow *f, TcpSession *ssn, TcpStream *stream,
             progress, &progress, eof);
 
     if (progress > STREAM_LOG_PROGRESS(stream)) {
-        uint32_t slide = progress - STREAM_LOG_PROGRESS(stream);
+        DEBUG_VALIDATE_BUG_ON(progress - STREAM_LOG_PROGRESS(stream) > UINT32_MAX);
+        uint32_t slide = (uint32_t)(progress - STREAM_LOG_PROGRESS(stream));
         stream->log_progress_rel += slide;
     }
 
