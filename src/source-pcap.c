@@ -166,7 +166,7 @@ void TmModuleDecodePcapRegister (void)
 static inline void UpdatePcapStatsValue64(uint64_t *last, uint32_t current32)
 {
     /* uint64_t -> uint32_t is defined behaviour. It slices lower 32bits. */
-    uint32_t last32 = *last;
+    uint32_t last32 = (uint32_t)*last;
 
     /* Branchless code as wrap-around is defined for unsigned */
     *last += (uint32_t)(current32 - last32);
