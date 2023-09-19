@@ -128,6 +128,7 @@ static void PayloadAsHex(const uint8_t *data, uint32_t data_len, char *str, size
 static void FrameAddPayloadTCP(JsonBuilder *js, const TcpStream *stream, const Frame *frame)
 {
     uint32_t sb_data_len = 0;
+    uint64_t sb_frame_data_len = 0;
     const uint8_t *data = NULL;
     uint64_t data_offset = 0;
 
@@ -153,20 +154,22 @@ static void FrameAddPayloadTCP(JsonBuilder *js, const TcpStream *stream, const F
     }
 
     if (frame->len >= 0) {
-        sb_data_len = MIN(frame->len, (int32_t)sb_data_len);
+        sb_frame_data_len = MIN(frame->len, sb_data_len);
+    } else {
+        sb_frame_data_len = sb_data_len;
     }
-    SCLogDebug("frame data_offset %" PRIu64 ", data_len %u frame len %" PRIi64, data_offset,
-            sb_data_len, frame->len);
+    SCLogDebug("frame data_offset %" PRIu64 ", data_len %" PRIu64 " frame len %" PRIi64,
+            data_offset, sb_frame_data_len, frame->len);
 
     bool complete = false;
     if (frame->len > 0) {
         const uint64_t frame_re = frame->offset + (uint64_t)frame->len;
-        const uint64_t data_re = data_offset + sb_data_len;
+        const uint64_t data_re = data_offset + sb_frame_data_len;
         complete = frame_re <= data_re;
     }
     jb_set_bool(js, "complete", complete);
 
-    uint32_t data_len = MIN(sb_data_len, 256);
+    uint32_t data_len = MIN(sb_frame_data_len, 256);
     jb_set_base64(js, "payload", data, data_len);
 
     uint8_t printable_buf[data_len + 1];
@@ -190,12 +193,12 @@ static void FrameAddPayloadUDP(JsonBuilder *js, const Packet *p, const Frame *fr
 
     uint32_t frame_len;
     if (frame->len == -1) {
-        frame_len = p->payload_len - frame->offset;
+        frame_len = p->payload_len - (uint16_t)frame->offset;
     } else {
         frame_len = (uint32_t)frame->len;
     }
     if (frame->offset + frame_len > p->payload_len) {
-        frame_len = p->payload_len - frame->offset;
+        frame_len = p->payload_len - (uint16_t)frame->offset;
         JB_SET_FALSE(js, "complete");
     } else {
         JB_SET_TRUE(js, "complete");
