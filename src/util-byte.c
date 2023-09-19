@@ -228,7 +228,7 @@ int ByteExtractString(uint64_t *res, int base, size_t len, const char *str, bool
         return -1;
     }
 
-    return (endptr - ptr);
+    return (int)(endptr - ptr);
 }
 
 int ByteExtractStringUint64(uint64_t *res, int base, size_t len, const char *str)
@@ -531,7 +531,7 @@ int ByteExtractStringSigned(int64_t *res, int base, size_t len, const char *str,
 
     //fprintf(stderr, "ByteExtractStringSigned: Extracted base %d: 0x%" PRIx64 "\n", base, *res);
 
-    return (endptr - ptr);
+    return (int)(endptr - ptr);
 }
 
 int ByteExtractStringInt64(int64_t *res, int base, size_t len, const char *str)
