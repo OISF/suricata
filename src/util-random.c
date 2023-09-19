@@ -38,7 +38,7 @@ static long int RandomGetClock(void)
     clock_gettime(CLOCK_REALTIME, &ts);
 
     // coverity[dont_call : FALSE]
-    srandom(ts.tv_nsec ^ ts.tv_sec);
+    srandom((unsigned int)(ts.tv_nsec ^ ts.tv_sec));
     long int value = random();
     return value;
 }

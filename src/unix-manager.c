@@ -161,7 +161,7 @@ static int UnixNew(UnixCommand * this)
     addr.sun_family = AF_UNIX;
     strlcpy(addr.sun_path, sockettarget, sizeof(addr.sun_path));
     addr.sun_path[sizeof(addr.sun_path) - 1] = 0;
-    len = strlen(addr.sun_path) + sizeof(addr.sun_family) + 1;
+    len = (int)(strlen(addr.sun_path) + sizeof(addr.sun_family) + 1);
 
     /* create socket */
     this->socket = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -335,7 +335,7 @@ static int UnixCommandAccept(UnixCommand *this)
     json_error_t jerror;
     int client;
     int client_version;
-    int ret;
+    size_t ret;
     UnixClient *uclient = NULL;
 
     /* accept client socket */
@@ -537,7 +537,7 @@ error:
 static void UnixCommandRun(UnixCommand * this, UnixClient *client)
 {
     char buffer[4096];
-    int ret;
+    size_t ret;
     if (client->version <= UNIX_PROTO_V1) {
         ret = recv(client->fd, buffer, sizeof(buffer) - 1, 0);
         if (ret <= 0) {
@@ -570,7 +570,7 @@ static void UnixCommandRun(UnixCommand * this, UnixClient *client)
                 UnixCommandClose(this, client->fd);
                 return;
             }
-            if (ret >= (int)(sizeof(buffer)- offset - 1)) {
+            if (ret >= (sizeof(buffer) - offset - 1)) {
                 SCLogInfo("Command server: client command is too long, "
                         "disconnect him.");
                 UnixCommandClose(this, client->fd);
@@ -582,15 +582,16 @@ static void UnixCommandRun(UnixCommand * this, UnixClient *client)
                 struct timeval tv;
                 fd_set select_set;
                 offset += ret;
+                int rets = 0;
                 do {
                     FD_ZERO(&select_set);
                     FD_SET(client->fd, &select_set);
                     tv.tv_sec = 0;
                     tv.tv_usec = 200 * 1000;
                     try++;
-                    ret = select(client->fd, &select_set, NULL, NULL, &tv);
+                    rets = select(client->fd, &select_set, NULL, NULL, &tv);
                     /* catch select() error */
-                    if (ret == -1) {
+                    if (rets == -1) {
                         /* Signal was caught: just ignore it */
                         if (errno != EINTR) {
                             SCLogInfo("Unix socket: lost connection with client");
@@ -598,8 +599,8 @@ static void UnixCommandRun(UnixCommand * this, UnixClient *client)
                             return;
                         }
                     }
-                } while (ret == 0 && try < 3);
-                if (ret > 0) {
+                } while (rets == 0 && try < 3);
+                if (rets > 0) {
                     ret = recv(client->fd, buffer + offset,
                                sizeof(buffer) - offset - 1, 0);
                 }
@@ -695,7 +696,7 @@ static TmEcode UnixManagerUptimeCommand(json_t *cmd,
                                  json_t *server_msg, void *data)
 {
     SCEnter();
-    int uptime;
+    int64_t uptime;
     UnixCommand *ucmd = (UnixCommand *)data;
 
     uptime = time(NULL) - ucmd->start_timestamp;
