@@ -117,8 +117,7 @@ void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
     fprintf(fp, "%s", nbuf);
 }
 
-void PrintRawUriBuf(char *retbuf, uint32_t *offset, uint32_t retbuflen,
-                    uint8_t *buf, size_t buflen)
+void PrintRawUriBuf(char *retbuf, uint32_t *offset, uint32_t retbuflen, uint8_t *buf, size_t buflen)
 {
     size_t u = 0;
 
