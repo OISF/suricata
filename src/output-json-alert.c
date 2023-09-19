@@ -849,8 +849,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
                         uint8_t printable_buf[payload->offset + 1];
                         uint32_t offset = 0;
-                        PrintStringsToBuffer(printable_buf, &offset,
-                                sizeof(printable_buf),
+                        PrintStringsToBuffer(printable_buf, &offset, payload->offset + 1,
                                 payload->buffer, payload->offset);
                         jb_set_string(jb, "payload_printable", (char *)printable_buf);
                     }
