@@ -44,6 +44,7 @@
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
+#include "util-validate.h"
 #include "output-json.h"
 #include "output-json-flow.h"
 
@@ -225,7 +226,9 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
     CreateIsoTimeString(f->lastts, timebuf2, sizeof(timebuf2));
     jb_set_string(jb, "end", timebuf2);
 
-    int32_t age = SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts);
+    DEBUG_VALIDATE_BUG_ON((int64_t)(SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts)) < INT32_MIN ||
+                          (int64_t)(SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts)) > INT32_MAX);
+    int32_t age = (int32_t)(SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts));
     jb_set_uint(jb, "age", age);
 
     if (f->flow_end_flags & FLOW_END_FLAG_EMERGENCY)

@@ -126,7 +126,7 @@ typedef struct LogFileCtx_ {
     /**< Used by some alert loggers like the unified ones that append
      * the date onto the end of files. */
     char *prefix;
-    size_t prefix_len;
+    uint32_t prefix_len;
 
     /** Generic size_limit and size_current
      * They must be common to the threads accessing the same file */
