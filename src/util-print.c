@@ -118,9 +118,9 @@ void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 }
 
 void PrintRawUriBuf(char *retbuf, uint32_t *offset, uint32_t retbuflen,
-                    uint8_t *buf, uint32_t buflen)
+                    uint8_t *buf, size_t buflen)
 {
-    uint32_t u = 0;
+    size_t u = 0;
 
     for (u = 0; u < buflen; u++) {
         if (isprint(buf[u]) && buf[u] != '\"') {
