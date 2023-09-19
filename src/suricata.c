@@ -517,7 +517,12 @@ static void SetBpfStringFromFile(char *filename)
         SCLogError("Failed to stat file %s", filename);
         exit(EXIT_FAILURE);
     }
-    bpf_len = st.st_size + 1;
+    // st.st_size is signed on Windows
+    if ((uint64_t)st.st_size >= UINT32_MAX) {
+        SCLogError("Cannot handle file %s because of its size", filename);
+        exit(EXIT_FAILURE);
+    }
+    bpf_len = (uint32_t)st.st_size + 1;
 
     bpf_filter = SCMalloc(bpf_len);
     if (unlikely(bpf_filter == NULL)) {
