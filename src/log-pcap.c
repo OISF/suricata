@@ -1546,7 +1546,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
             } else {
                 lvl = 0;
             }
-            comp->lz4f_prefs.compressionLevel = lvl;
+            comp->lz4f_prefs.compressionLevel = (int)lvl;
 
             /* Allocate resources for lz4. */
 

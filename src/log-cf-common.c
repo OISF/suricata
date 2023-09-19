@@ -123,7 +123,7 @@ int LogCustomFormatParse(LogCustomFormat *cf, const char *format)
                 n = LOG_NODE_STRLEN-2;
                 np = NULL; /* End */
             }else{
-                n = np-p;
+                n = (uint32_t)(np - p);
             }
             strlcpy(node->data,p,n+1);
             p = np;
@@ -151,7 +151,7 @@ int LogCustomFormatParse(LogCustomFormat *cf, const char *format)
                 np = strchr(p, '}');
                 if (np != NULL && np-p > 1 && np-p < LOG_NODE_STRLEN-2) {
                     p++;
-                    n = np-p;
+                    n = (uint32_t)(np - p);
                     strlcpy(node->data, p, n+1);
                     p = np;
                 } else {
