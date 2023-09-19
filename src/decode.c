@@ -291,7 +291,7 @@ inline int PacketCopyDataOffset(Packet *p, uint32_t offset, const uint8_t *data,
  */
 inline int PacketCopyData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
 {
-    SET_PKT_LEN(p, (size_t)pktlen);
+    SET_PKT_LEN(p, pktlen);
     return PacketCopyDataOffset(p, 0, pktdata, pktlen);
 }
 
