@@ -776,7 +776,7 @@ static bool LogFileThreadedName(
          * for update
          */
         dot = strrchr(original_name, '.');
-        int dotpos = dot - original_name;
+        long dotpos = dot - original_name;
         tname[dotpos] = '\0';
         char *ext = tname + dotpos + 1;
         if (strlen(tname) && strlen(ext)) {

@@ -549,7 +549,7 @@ int SCTimeToStringPattern (time_t epoch, const char *pattern, char *str, size_t 
         return 1;
     }
 
-    int r = strftime(buffer, sizeof(buffer), pattern, tp);
+    size_t r = strftime(buffer, sizeof(buffer), pattern, tp);
     if (r == 0) {
         return 1;
     }

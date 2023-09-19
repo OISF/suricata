@@ -707,7 +707,7 @@ static uint8_t * GetLine(uint8_t *buf, uint32_t blen, uint8_t **remainPtr,
     }
 
     /* Calculate token length */
-    *tokLen = (buf + i) - tok;
+    *tokLen = (uint32_t)((buf + i) - tok);
 
     return tok;
 }
@@ -774,7 +774,7 @@ static uint8_t * GetToken(uint8_t *buf, uint32_t blen, const char *delims,
         }
 
         /* Calculate token length */
-        *tokenLen = (buf + i) - tok;
+        *tokenLen = (uint32_t)((buf + i) - tok);
     }
 
     return tok;
@@ -844,7 +844,7 @@ static int StoreMimeHeader(MimeDecParseState *state)
 static int IsExeUrl(const uint8_t *url, uint32_t len)
 {
     int isExeUrl = 0;
-    uint32_t i, extLen;
+    size_t i, extLen;
     uint8_t *ext;
 
     /* Now check for executable extensions and if not found, cut off at first '/' */
@@ -1009,12 +1009,13 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
             SCLogDebug("Looking for URL String starting with: %s", schemeStr);
 
             /* Check for token definition */
-            fptr = FindBuffer(remptr, len - (remptr - line), (uint8_t *)schemeStr, schemeStrLen);
+            fptr = FindBuffer(
+                    remptr, len - (uint32_t)(remptr - line), (uint8_t *)schemeStr, schemeStrLen);
             if (fptr != NULL) {
                 if (!mdcfg->log_url_scheme) {
                     fptr += schemeStrLen; /* Strip scheme from stored URL */
                 }
-                tok = GetToken(fptr, len - (fptr - line), " \"\'<>]\t", &remptr, &tokLen);
+                tok = GetToken(fptr, len - (uint32_t)(fptr - line), " \"\'<>]\t", &remptr, &tokLen);
                 if (tok == fptr) {
                     SCLogDebug("Found url string");
 
@@ -1117,8 +1118,8 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
                 /* Parse each line one by one */
                 remainPtr = (uint8_t *)chunk;
                 do {
-                    tok = GetLine(
-                            remainPtr, len - (remainPtr - (uint8_t *)chunk), &remainPtr, &tokLen);
+                    tok = GetLine(remainPtr, len - (uint32_t)(remainPtr - (uint8_t *)chunk),
+                            &remainPtr, &tokLen);
                     if (tok != remainPtr) {
                         /* Search line for URL */
                         ret = FindUrlStrings(tok, tokLen, state);
@@ -1812,7 +1813,7 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
 
         if (hval != NULL) {
             /* If max header value exceeded, flag it */
-            vlen = blen - (hval - buf);
+            vlen = blen - (uint32_t)(hval - buf);
             if ((mdcfg != NULL) && (state->hvlen + vlen > mdcfg->header_value_depth)) {
                 SCLogDebug("Error: Header value of length (%u) is too long",
                         state->hvlen + vlen);
@@ -2618,7 +2619,7 @@ MimeDecEntity * MimeDecParseFullMsg(const uint8_t *buf, uint32_t blen, void *dat
     remainPtr = (uint8_t *) buf;
     uint8_t *line = NULL;
     do {
-        tok = GetLine(remainPtr, blen - (remainPtr - buf), &remainPtr, &tokLen);
+        tok = GetLine(remainPtr, blen - (uint32_t)(remainPtr - buf), &remainPtr, &tokLen);
         if (tok != remainPtr) {
 
             line = tok;
