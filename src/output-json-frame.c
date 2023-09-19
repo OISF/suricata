@@ -153,7 +153,8 @@ static void FrameAddPayloadTCP(JsonBuilder *js, const TcpStream *stream, const F
     }
 
     if (frame->len >= 0) {
-        sb_data_len = MIN(frame->len, (int32_t)sb_data_len);
+        DEBUG_VALIDATE_BUG_ON(frame->len > UINT32_MAX);
+        sb_data_len = MIN((uint32_t)frame->len, sb_data_len);
     }
     SCLogDebug("frame data_offset %" PRIu64 ", data_len %u frame len %" PRIi64, data_offset,
             sb_data_len, frame->len);
@@ -190,12 +191,12 @@ static void FrameAddPayloadUDP(JsonBuilder *js, const Packet *p, const Frame *fr
 
     uint32_t frame_len;
     if (frame->len == -1) {
-        frame_len = p->payload_len - frame->offset;
+        frame_len = p->payload_len - (uint32_t)frame->offset;
     } else {
         frame_len = (uint32_t)frame->len;
     }
     if (frame->offset + frame_len > p->payload_len) {
-        frame_len = p->payload_len - frame->offset;
+        frame_len = p->payload_len - (uint32_t)frame->offset;
         JB_SET_FALSE(js, "complete");
     } else {
         JB_SET_TRUE(js, "complete");
