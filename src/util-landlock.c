@@ -28,6 +28,7 @@
 #include "util-landlock.h"
 #include "util-mem.h"
 #include "util-path.h"
+#include "util-validate.h"
 
 #ifndef HAVE_LINUX_LANDLOCK_H
 
@@ -43,7 +44,9 @@ void LandlockSandboxing(SCInstance *suri)
 static inline int landlock_create_ruleset(
         const struct landlock_ruleset_attr *const attr, const size_t size, const __u32 flags)
 {
-    return syscall(__NR_landlock_create_ruleset, attr, size, flags);
+    long r = syscall(__NR_landlock_create_ruleset, attr, size, flags);
+    DEBUG_VALIDATE_BUG_ON(r > INT_MAX);
+    return (int)r;
 }
 #endif
 
@@ -51,14 +54,18 @@ static inline int landlock_create_ruleset(
 static inline int landlock_add_rule(const int ruleset_fd, const enum landlock_rule_type rule_type,
         const void *const rule_attr, const __u32 flags)
 {
-    return syscall(__NR_landlock_add_rule, ruleset_fd, rule_type, rule_attr, flags);
+    long r = syscall(__NR_landlock_add_rule, ruleset_fd, rule_type, rule_attr, flags);
+    DEBUG_VALIDATE_BUG_ON(r > INT_MAX);
+    return (int)r;
 }
 #endif
 
 #ifndef landlock_restrict_self
 static inline int landlock_restrict_self(const int ruleset_fd, const __u32 flags)
 {
-    return syscall(__NR_landlock_restrict_self, ruleset_fd, flags);
+    long r = syscall(__NR_landlock_restrict_self, ruleset_fd, flags);
+    DEBUG_VALIDATE_BUG_ON(r > INT_MAX);
+    return (int)r;
 }
 #endif
 
