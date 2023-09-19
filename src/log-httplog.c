@@ -131,7 +131,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const SCTime_t
 {
     LogHttpFileCtx *httplog_ctx = aft->httplog_ctx;
     uint32_t i;
-    uint32_t datalen;
+    size_t datalen;
     char buf[128];
 
     uint8_t *cvalue = NULL;
@@ -252,9 +252,9 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const SCTime_t
                 if (tx->request_headers != NULL) {
                     h_request_hdr = htp_table_get_c(tx->request_headers, "Cookie");
                     if (h_request_hdr != NULL) {
-                        cvalue_len = GetCookieValue((uint8_t *) bstr_ptr(h_request_hdr->value),
-                                    bstr_len(h_request_hdr->value), (char *) node->data,
-                                    &cvalue);
+                        cvalue_len = GetCookieValue((uint8_t *)bstr_ptr(h_request_hdr->value),
+                                (uint32_t)bstr_len(h_request_hdr->value), (char *)node->data,
+                                &cvalue);
                     }
                 }
                 if (cvalue_len > 0 && cvalue != NULL) {
