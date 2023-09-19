@@ -726,7 +726,7 @@ void DecodeThreadVarsFree(ThreadVars *tv, DecodeThreadVars *dtv)
  */
 inline int PacketSetData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
 {
-    SET_PKT_LEN(p, (size_t)pktlen);
+    SET_PKT_LEN(p, pktlen);
     if (unlikely(!pktdata)) {
         return -1;
     }
