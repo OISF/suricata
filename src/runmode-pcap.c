@@ -91,7 +91,7 @@ static void *ParsePcapConfig(const char *iface)
     if ((ConfGetInt("pcap.buffer-size", &value)) == 1) {
         if (value >= 0 && value <= INT_MAX) {
             SCLogInfo("Pcap will use %d buffer size", (int)value);
-            aconf->buffer_size = value;
+            aconf->buffer_size = (int)value;
         } else {
             SCLogWarning("pcap.buffer-size "
                          "value of %" PRIiMAX " is invalid. Valid range is "
@@ -209,8 +209,10 @@ static void *ParsePcapConfig(const char *iface)
     aconf->snaplen = 0;
     if (ConfGetChildValueIntWithDefault(if_root, if_default, "snaplen", &snaplen) != 1) {
         SCLogDebug("could not get snaplen or none specified");
+    } else if (snaplen < INT_MIN || snaplen > INT_MAX) {
+        SCLogDebug("snaplen value is not in the accepted range");
     } else {
-        aconf->snaplen = snaplen;
+        aconf->snaplen = (int)snaplen;
     }
 
     return aconf;

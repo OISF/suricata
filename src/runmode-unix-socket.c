@@ -832,6 +832,15 @@ TmEcode UnixSocketDatasetLookup(json_t *cmd, json_t *answer, void *data)
     }
 }
 
+static uint32_t json_u32_value(json_t *jarg)
+{
+    int64_t r = json_integer_value(jarg);
+    if (r < 0 || r > UINT32_MAX) {
+        SCLogInfo("error: value is not within u32 range");
+    }
+    return (uint32_t)r;
+}
+
 /**
  * \brief Command to add a tenant handler
  *
@@ -857,7 +866,7 @@ TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
         json_object_set_new(answer, "message", json_string("id is not an integer"));
         return TM_ECODE_FAILED;
     }
-    uint32_t tenant_id = json_integer_value(jarg);
+    uint32_t tenant_id = json_u32_value(jarg);
 
     /* 2 get tenant handler type */
     jarg = json_object_get(cmd, "htype");
@@ -938,7 +947,7 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
         json_object_set_new(answer, "message", json_string("id is not an integer"));
         return TM_ECODE_FAILED;
     }
-    uint32_t tenant_id = json_integer_value(jarg);
+    uint32_t tenant_id = json_u32_value(jarg);
 
     /* 2 get tenant handler type */
     jarg = json_object_get(cmd, "htype");
@@ -1019,7 +1028,7 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
         json_object_set_new(answer, "message", json_string("id is not an integer"));
         return TM_ECODE_FAILED;
     }
-    uint32_t tenant_id = json_integer_value(jarg);
+    uint32_t tenant_id = json_u32_value(jarg);
 
     /* 2 get tenant yaml */
     jarg = json_object_get(cmd, "filename");
@@ -1087,7 +1096,7 @@ TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
         json_object_set_new(answer, "message", json_string("id is not an integer"));
         return TM_ECODE_FAILED;
     }
-    uint32_t tenant_id = json_integer_value(jarg);
+    uint32_t tenant_id = json_u32_value(jarg);
 
     /* 2 get tenant yaml */
     jarg = json_object_get(cmd, "filename");
@@ -1181,7 +1190,7 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
         json_object_set_new(answer, "message", json_string("id is not an integer"));
         return TM_ECODE_FAILED;
     }
-    uint32_t tenant_id = json_integer_value(jarg);
+    uint32_t tenant_id = json_u32_value(jarg);
 
     SCLogInfo("remove-tenant: removing tenant %d", tenant_id);
 
@@ -1272,14 +1281,19 @@ TmEcode UnixSocketHostbitAdd(json_t *cmd, json_t* answer, void *data_usused)
         json_object_set_new(answer, "message", json_string("expire is not an integer"));
         return TM_ECODE_FAILED;
     }
-    uint32_t expire = json_integer_value(jarg);
+    uint32_t expire = json_u32_value(jarg);
 
     SCLogInfo("add-hostbit: ip %s hostbit %s expire %us", ipaddress, hostbit, expire);
 
     SCTime_t current_time = TimeGet();
     Host *host = HostGetHostFromHash(&a);
     if (host) {
-        HostBitSet(host, idx, SCTIME_SECS(current_time) + expire);
+        if (SCTIME_SECS(current_time) + expire > UINT32_MAX) {
+            json_object_set_new(answer, "message", json_string("couldn't set host expire"));
+            HostUnlock(host);
+            return TM_ECODE_FAILED;
+        }
+        HostBitSet(host, idx, (uint32_t)(SCTIME_SECS(current_time) + expire));
         HostUnlock(host);
 
         json_object_set_new(answer, "message", json_string("hostbit added"));
