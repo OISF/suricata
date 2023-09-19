@@ -290,25 +290,25 @@ static const char *SCTransformModule(const char *module_name, int *dn_len)
      *        app-layer-*
      */
     if (strncmp("tm-", module_name, 3) == 0) {
-        *dn_len = strlen(module_name) - 3;
+        *dn_len = (int)strlen(module_name) - 3;
         return module_name + 3;
     } else if (strncmp("util-", module_name, 5) == 0) {
-        *dn_len = strlen(module_name) - 5;
+        *dn_len = (int)strlen(module_name) - 5;
         return module_name + 5;
     } else if (strncmp("source-pcap-file", module_name, 16) == 0) {
-        *dn_len = strlen("pcap");
+        *dn_len = (int)strlen("pcap");
         return "pcap";
     } else if (strncmp("source-", module_name, 7) == 0) {
-        *dn_len = strlen(module_name) - 7;
+        *dn_len = (int)strlen(module_name) - 7;
         return module_name + 7;
     } else if (strncmp("runmode-", module_name, 8) == 0) {
-        *dn_len = strlen(module_name) - 8;
+        *dn_len = (int)strlen(module_name) - 8;
         return module_name + 8;
     } else if (strncmp("app-layer-", module_name, 10) == 0) {
-        *dn_len = strlen(module_name);
+        *dn_len = (int)strlen(module_name);
         return module_name;
     } else if (strncmp("detect-engine", module_name, 13) == 0) {
-        *dn_len = strlen("detect");
+        *dn_len = (int)strlen("detect");
         return "detect";
     }
 
@@ -323,9 +323,9 @@ static const char *SCTransformModule(const char *module_name, int *dn_len)
     }
 
     if (seg_cnt < transform_max_segs)
-        *dn_len = strlen(module_name);
+        *dn_len = (int)strlen(module_name);
     else
-        *dn_len = last - module_name;
+        *dn_len = (int)(last - module_name);
 
     return module_name;
 }

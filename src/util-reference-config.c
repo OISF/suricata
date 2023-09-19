@@ -417,9 +417,9 @@ uint32_t SCRConfReferenceHashFunc(HashTable *ht, void *data, uint16_t datalen)
 {
     SCRConfReference *ref = (SCRConfReference *)data;
     uint32_t hash = 0;
-    int i = 0;
+    size_t i = 0;
 
-    int len = strlen(ref->system);
+    size_t len = strlen(ref->system);
 
     for (i = 0; i < len; i++)
         hash += u8_tolower((unsigned char)ref->system[i]);
@@ -447,8 +447,8 @@ char SCRConfReferenceHashCompareFunc(void *data1, uint16_t datalen1,
 {
     SCRConfReference *ref1 = (SCRConfReference *)data1;
     SCRConfReference *ref2 = (SCRConfReference *)data2;
-    int len1 = 0;
-    int len2 = 0;
+    size_t len1 = 0;
+    size_t len2 = 0;
 
     if (ref1 == NULL || ref2 == NULL)
         return 0;

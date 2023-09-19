@@ -299,7 +299,8 @@ THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
     THashTableContext *ctx = SCCalloc(1, sizeof(*ctx));
     BUG_ON(!ctx);
 
-    ctx->config.data_size = data_size;
+    BUG_ON(data_size > UINT32_MAX);
+    ctx->config.data_size = (uint32_t)data_size;
     ctx->config.DataSet = DataSet;
     ctx->config.DataFree = DataFree;
     ctx->config.DataHash = DataHash;

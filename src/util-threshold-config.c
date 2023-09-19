@@ -991,12 +991,12 @@ static int SCThresholdConfLineIsMultiline(char *line)
 {
     int flag = 0;
     char *rline = line;
-    int len = strlen(line);
+    size_t len = strlen(line);
 
     while (line < rline + len && *line != '\n') {
         /* we have a comment */
         if (*line == '\\')
-            flag = line - rline;
+            flag = (int)(line - rline);
         else
             if (!isspace((unsigned char)*line))
                 flag = 0;

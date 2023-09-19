@@ -695,7 +695,7 @@ static int SetCPUAffinitySet(cpu_set_t *cs)
     int r = thread_policy_set(mach_thread_self(), THREAD_AFFINITY_POLICY,
                               (void*)cs, THREAD_AFFINITY_POLICY_COUNT);
 #else
-    pid_t tid = syscall(SYS_gettid);
+    pid_t tid = (pid_t)syscall(SYS_gettid);
     int r = sched_setaffinity(tid, sizeof(cpu_set_t), cs);
 #endif /* OS_FREEBSD */
 
