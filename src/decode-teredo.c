@@ -182,7 +182,7 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
         if (len ==  IPV6_HEADER_LEN +
                 IPV6_GET_RAW_PLEN(thdr) + (start - pkt)) {
-            int blen = len - (start - pkt);
+            uint32_t blen = len - (uint32_t)(start - pkt);
             /* spawn off tunnel packet */
             Packet *tp = PacketTunnelPktSetup(tv, dtv, p, start, blen,
                     DECODE_TUNNEL_IPV6_TEREDO);
