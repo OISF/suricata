@@ -931,7 +931,8 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
     const uint64_t left_edge = GetLeftEdge(f, ssn, stream);
     SCLogDebug("buffer left_edge %" PRIu64, left_edge);
     if (left_edge && left_edge > STREAM_BASE_OFFSET(stream)) {
-        uint32_t slide = left_edge - STREAM_BASE_OFFSET(stream);
+        DEBUG_VALIDATE_BUG_ON(left_edge - STREAM_BASE_OFFSET(stream) > UINT32_MAX);
+        uint32_t slide = (uint32_t)(left_edge - STREAM_BASE_OFFSET(stream));
         SCLogDebug("buffer sliding %u to offset %"PRIu64, slide, left_edge);
 
         if (!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {

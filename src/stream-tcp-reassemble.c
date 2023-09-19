@@ -1111,9 +1111,9 @@ static bool GetAppBuffer(const TcpStream *stream, const uint8_t **data, uint32_t
                     "got data at %"PRIu64". GAP of size %"PRIu64,
                     offset, blk->offset, blk->offset - offset);
             *data = NULL;
-            *data_len = blk->offset - offset;
+            *data_len = (uint32_t)(blk->offset - offset);
 
-        /* block starts before offset, but ends after */
+            /* block starts before offset, but ends after */
         } else if (offset > blk->offset && offset <= (blk->offset + blk->len)) {
             SCLogDebug("get data from offset %"PRIu64". SBB %"PRIu64"/%u",
                     offset, blk->offset, blk->len);
@@ -1203,7 +1203,7 @@ static inline uint32_t AdjustToAcked(const Packet *p,
             /* see if the buffer contains unack'd data as well */
             if (app_progress <= last_ack_abs && app_progress + data_len > last_ack_abs) {
                 uint32_t check = data_len;
-                adjusted = last_ack_abs - app_progress;
+                adjusted = (uint32_t)(last_ack_abs - app_progress);
                 BUG_ON(adjusted > check);
                 SCLogDebug("data len adjusted to %u to make sure only ACK'd "
                         "data is considered", adjusted);
@@ -1436,7 +1436,7 @@ static int GetRawBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_
             uint64_t delta = offset - (*iter)->offset;
             if (delta < mydata_len) {
                 *data = mydata + delta;
-                *data_len = mydata_len - delta;
+                *data_len = (uint32_t)(mydata_len - delta);
                 *data_offset = offset;
             } else {
                 SCLogDebug("no data (yet)");
@@ -1520,7 +1520,8 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, const uint64_
     }
 
     if (progress > STREAM_RAW_PROGRESS(stream)) {
-        uint32_t slide = progress - STREAM_RAW_PROGRESS(stream);
+        DEBUG_VALIDATE_BUG_ON(progress - STREAM_RAW_PROGRESS(stream) > UINT32_MAX);
+        uint32_t slide = (uint32_t)(progress - STREAM_RAW_PROGRESS(stream));
         stream->raw_progress_rel += slide;
         stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
 
@@ -1532,7 +1533,8 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, const uint64_
             target = GetAbsLastAck(stream);
         }
         if (target > STREAM_RAW_PROGRESS(stream)) {
-            uint32_t slide = target - STREAM_RAW_PROGRESS(stream);
+            DEBUG_VALIDATE_BUG_ON(target - STREAM_RAW_PROGRESS(stream) > UINT32_MAX);
+            uint32_t slide = (uint32_t)(target - STREAM_RAW_PROGRESS(stream));
             stream->raw_progress_rel += slide;
         }
         stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
@@ -1801,7 +1803,7 @@ static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
             /* see if the buffer contains unack'd data as well */
             if (progress + mydata_len > re) {
                 uint32_t check = mydata_len;
-                mydata_len = re - progress;
+                mydata_len = (uint32_t)(re - progress);
                 BUG_ON(check < mydata_len);
                 SCLogDebug("data len adjusted to %u to make sure only ACK'd "
                         "data is considered", mydata_len);
