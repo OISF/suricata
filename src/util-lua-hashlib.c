@@ -74,7 +74,7 @@ static int LuaHashLibSha256Update(lua_State *L)
     }
     size_t data_len;
     const char *data = luaL_checklstring(L, 2, &data_len);
-    SCSha256Update(*hasher, (const uint8_t *)data, data_len);
+    SCSha256Update(*hasher, (const uint8_t *)data, (uint32_t)data_len);
     return 0;
 }
 
@@ -123,7 +123,7 @@ static int LuaHashLibSha256Digest(lua_State *L)
     size_t buf_len;
     const char *input = luaL_checklstring(L, 1, &buf_len);
 
-    size_t output_len = SC_SHA256_LEN;
+    uint32_t output_len = SC_SHA256_LEN;
     uint8_t output[output_len];
     if (!SCSha256HashBuffer((uint8_t *)input, (uint32_t)buf_len, output, output_len)) {
         return luaL_error(L, "sha256 hashing failed");
@@ -178,7 +178,7 @@ static int LuaHashLibSha1Update(lua_State *L)
 
     size_t data_len;
     const char *data = luaL_checklstring(L, 2, &data_len);
-    SCSha1Update(*hasher, (const uint8_t *)data, data_len);
+    SCSha1Update(*hasher, (const uint8_t *)data, (uint32_t)data_len);
     return 0;
 }
 
@@ -280,7 +280,7 @@ static int LuaHashLibMd5Update(lua_State *L)
 
     size_t data_len;
     const char *data = luaL_checklstring(L, 2, &data_len);
-    SCMd5Update(*hasher, (const uint8_t *)data, data_len);
+    SCMd5Update(*hasher, (const uint8_t *)data, (uint32_t)data_len);
     return 0;
 }
 
@@ -344,7 +344,7 @@ static int LuaHashLibMd5HexDigest(lua_State *L)
     const char *input = luaL_checklstring(L, 1, &buf_len);
 
     char output[SC_MD5_HEX_LEN + 1];
-    if (!SCMd5HashBufferToHex((uint8_t *)input, (size_t)buf_len, output, sizeof(output))) {
+    if (!SCMd5HashBufferToHex((uint8_t *)input, (uint32_t)buf_len, output, sizeof(output))) {
         return luaL_error(L, "md5 hashing failed");
     }
 

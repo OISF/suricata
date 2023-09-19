@@ -40,8 +40,8 @@ bool IPv4AddressStringIsValid(const char *str)
 
     memset(&addr, 0, sizeof(addr));
 
-    uint32_t len = strlen(str);
-    uint32_t i = 0;
+    size_t len = strlen(str);
+    size_t i = 0;
     for (i = 0; i < len; i++) {
         if (!(str[i] == '.' || isdigit(str[i]))) {
             return false;
@@ -85,8 +85,8 @@ bool IPv6AddressStringIsValid(const char *str)
     int sep = 0;
     bool colon_seen = false;
 
-    uint32_t len = strlen(str);
-    uint32_t i = 0;
+    size_t len = strlen(str);
+    size_t i = 0;
     for (i = 0; i < len && str[i] != 0; i++) {
         if (!(str[i] == '.' || str[i] == ':' ||
             isxdigit(str[i])))
