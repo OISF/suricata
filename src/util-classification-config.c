@@ -450,9 +450,9 @@ uint32_t SCClassConfClasstypeHashFunc(HashTable *ht, void *data, uint16_t datale
 {
     SCClassConfClasstype *ct = (SCClassConfClasstype *)data;
     uint32_t hash = 0;
-    int i = 0;
+    size_t i = 0;
 
-    int len = strlen(ct->classtype);
+    size_t len = strlen(ct->classtype);
 
     for (i = 0; i < len; i++)
         hash += u8_tolower((unsigned char)(ct->classtype)[i]);
@@ -480,8 +480,8 @@ char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
 {
     SCClassConfClasstype *ct1 = (SCClassConfClasstype *)data1;
     SCClassConfClasstype *ct2 = (SCClassConfClasstype *)data2;
-    int len1 = 0;
-    int len2 = 0;
+    size_t len1 = 0;
+    size_t len2 = 0;
 
     if (ct1 == NULL || ct2 == NULL)
         return 0;

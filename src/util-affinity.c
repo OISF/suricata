@@ -102,7 +102,7 @@ void BuildCpusetWithCallback(const char *name, ConfNode *node,
     ConfNode *lnode;
     TAILQ_FOREACH(lnode, &node->head, next) {
         int i;
-        long int a,b;
+        int a, b;
         int stop = 0;
         int max = UtilCpuGetNumProcessorsOnline() - 1;
         if (!strcmp(lnode->val, "all")) {
@@ -112,12 +112,12 @@ void BuildCpusetWithCallback(const char *name, ConfNode *node,
         } else if (strchr(lnode->val, '-') != NULL) {
             char *sep = strchr(lnode->val, '-');
             char *end;
-            a = strtoul(lnode->val, &end, 10);
+            a = (int)strtoul(lnode->val, &end, 10);
             if (end != sep) {
                 SCLogError("%s: invalid cpu range (start invalid): \"%s\"", name, lnode->val);
                 exit(EXIT_FAILURE);
             }
-            b = strtol(sep + 1, &end, 10);
+            b = (int)strtol(sep + 1, &end, 10);
             if (end != sep + strlen(sep)) {
                 SCLogError("%s: invalid cpu range (end invalid): \"%s\"", name, lnode->val);
                 exit(EXIT_FAILURE);
@@ -127,12 +127,12 @@ void BuildCpusetWithCallback(const char *name, ConfNode *node,
                 exit(EXIT_FAILURE);
             }
             if (b > max) {
-                SCLogError("%s: upper bound (%ld) of cpu set is too high, only %d cpu(s)", name, b,
+                SCLogError("%s: upper bound (%d) of cpu set is too high, only %d cpu(s)", name, b,
                         max + 1);
             }
         } else {
             char *end;
-            a = strtoul(lnode->val, &end, 10);
+            a = (int)strtoul(lnode->val, &end, 10);
             if (end != lnode->val + strlen(lnode->val)) {
                 SCLogError("%s: invalid cpu range (not an integer): \"%s\"", name, lnode->val);
                 exit(EXIT_FAILURE);

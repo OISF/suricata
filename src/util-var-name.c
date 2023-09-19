@@ -336,7 +336,8 @@ uint32_t VarNameStoreLookupByName(const char *name, const enum VarTypes type)
 static uint32_t VariableNameHash(HashListTable *ht, void *buf, uint16_t buflen)
 {
     VariableName *vn = (VariableName *)buf;
-    uint32_t hash = StringHashDjb2((const uint8_t *)vn->name, strlen(vn->name)) + vn->type;
+    uint32_t hash =
+            StringHashDjb2((const uint8_t *)vn->name, (uint32_t)strlen(vn->name)) + vn->type;
     return (hash % VARNAME_HASHSIZE);
 }
 
