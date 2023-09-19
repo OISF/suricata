@@ -47,7 +47,7 @@ typedef struct SCLuaSbState {
     /* Execution Limits */
     uint64_t instruction_count;
     uint64_t instruction_limit;
-    uint64_t hook_instruction_count;
+    uint32_t hook_instruction_count;
 
     /* Errors. */
     bool blocked_function_error;
