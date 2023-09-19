@@ -376,7 +376,7 @@ TmEcode EveEmailLogJson(JsonEmailLogThread *aft, JsonBuilder *js, const Packet *
     SCReturnInt(TM_ECODE_OK);
 }
 
-bool EveEmailAddMetadata(const Flow *f, uint32_t tx_id, JsonBuilder *js)
+bool EveEmailAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
 {
     SMTPState *smtp_state = (SMTPState *)FlowGetAppState(f);
     if (smtp_state) {
