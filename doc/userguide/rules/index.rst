@@ -33,6 +33,7 @@ Suricata Rules
    ike-keywords
    http2-keywords
    quic-keywords
+   nfs-keywords
    app-layer
    xbits
    thresholding
