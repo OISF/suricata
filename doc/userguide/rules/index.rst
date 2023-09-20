@@ -34,6 +34,7 @@ Suricata Rules
    http2-keywords
    quic-keywords
    nfs-keywords
+   smtp-keywords
    app-layer
    xbits
    thresholding
