@@ -29,3 +29,15 @@ Detect FTP bounce attacks.
 Syntax::
 
   ftpbounce
+
+file.name
+---------
+
+The ``file.name`` keyword can be used at the FTP application level.
+
+Example::
+
+alert ftp-data any any -> any any (msg:"ftp layer file.name keyword usage"; \
+file.name; content:"file.txt"; classtype:bad-unknown; sid:1; rev:1;)
+
+For additional information on the ``file.name`` keyword, see :doc:`file-keywords`.
