@@ -58,3 +58,15 @@ Examples::
 ``smb.ntlmssp_domain`` is a 'sticky buffer'.
 
 ``smb.ntlmssp_domain`` can be used as ``fast_pattern``.
+
+file.name
+---------
+
+The ``file.name`` keyword can be used at the SMB application level. 
+
+Example::
+
+  alert smb any any -> any any (msg:"smb layer file.name keyword usage"; \
+ file.name; content:"file.txt"; classtype:bad-unknown; sid:1; rev:1;)
+
+For additional information on the ``file.name`` keyword, see :doc:`file-keywords`.
