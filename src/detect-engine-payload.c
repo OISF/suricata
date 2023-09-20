@@ -64,9 +64,8 @@ static int StreamMpmFunc(
         smd->det_ctx->stream_mpm_cnt++;
         smd->det_ctx->stream_mpm_size += data_len;
 #endif
-        (void)mpm_table[smd->mpm_ctx->mpm_type].Search(smd->mpm_ctx,
-                &smd->det_ctx->mtcs, &smd->det_ctx->pmq,
-                data, data_len);
+        (void)mpm_table[smd->mpm_ctx->mpm_type].Search(
+                smd->mpm_ctx, &smd->det_ctx->mtc, &smd->det_ctx->pmq, data, data_len);
         PREFILTER_PROFILING_ADD_BYTES(smd->det_ctx, data_len);
     }
     return 0;

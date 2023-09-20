@@ -1172,12 +1172,7 @@ typedef struct DetectEngineThreadCtx_ {
     SignatureNonPrefilterStore *non_pf_store_ptr;
     uint32_t non_pf_store_cnt;
 
-    /** pointer to the current mpm ctx that is stored
-     *  in a rule group head -- can be either a content
-     *  or uricontent ctx. */
-    MpmThreadCtx mtc;   /**< thread ctx for the mpm */
-    MpmThreadCtx mtcu;  /**< thread ctx for uricontent mpm */
-    MpmThreadCtx mtcs;  /**< thread ctx for stream mpm */
+    MpmThreadCtx mtc; /**< thread ctx for the mpm */
     PrefilterRuleStore pmq;
 
     /** SPM thread context used for scanning. This has been cloned from the

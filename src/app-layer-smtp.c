@@ -1590,7 +1590,7 @@ static void SMTPLocalStorageFree(void *ptr)
         }
 
         if (td->smtp_mpm_thread_ctx != NULL) {
-            mpm_table[SMTP_MPM].DestroyThreadCtx(smtp_mpm_ctx, td->smtp_mpm_thread_ctx);
+            MpmDestroyThreadCtx(td->smtp_mpm_thread_ctx, SMTP_MPM);
             SCFree(td->smtp_mpm_thread_ctx);
         }
 

@@ -126,7 +126,7 @@ static int FrameStreamDataPrefilterFunc(
         // PrintRawDataFp(stdout, data, data_len);
 
         (void)mpm_table[mpm_ctx->mpm_type].Search(
-                mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq, data, data_len);
+                mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, data, data_len);
         SCLogDebug("det_ctx->pmq.rule_id_array_cnt %u", det_ctx->pmq.rule_id_array_cnt);
         PREFILTER_PROFILING_ADD_BYTES(det_ctx, data_len);
     }
@@ -167,7 +167,7 @@ static void PrefilterMpmFrame(DetectEngineThreadCtx *det_ctx, const void *pectx,
 
         if (data != NULL && data_len >= mpm_ctx->minlen) {
             (void)mpm_table[mpm_ctx->mpm_type].Search(
-                    mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq, data, data_len);
+                    mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, data, data_len);
             SCLogDebug("det_ctx->pmq.rule_id_array_cnt %u", det_ctx->pmq.rule_id_array_cnt);
             PREFILTER_PROFILING_ADD_BYTES(det_ctx, data_len);
         }
