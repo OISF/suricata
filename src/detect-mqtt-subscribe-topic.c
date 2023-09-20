@@ -158,9 +158,8 @@ static void PrefilterTxMQTTSubscribeTopic(DetectEngineThreadCtx *det_ctx, const 
             break;
 
         if (buffer->inspect_len >= mpm_ctx->minlen) {
-            (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                    &det_ctx->mtcu, &det_ctx->pmq,
-                    buffer->inspect, buffer->inspect_len);
+            (void)mpm_table[mpm_ctx->mpm_type].Search(
+                    mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, buffer->inspect, buffer->inspect_len);
             PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
         }
         local_id++;

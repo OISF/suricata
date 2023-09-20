@@ -77,13 +77,6 @@ typedef struct SCACCtx_ {
 
 } SCACCtx;
 
-typedef struct SCACThreadCtx_ {
-    /* the total calls we make to the search function */
-    uint32_t total_calls;
-    /* the total patterns that we ended up matching against */
-    uint64_t total_matches;
-} SCACThreadCtx;
-
 void MpmACRegister(void);
 
 #endif /* __UTIL_MPM_AC__H__ */
