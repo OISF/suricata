@@ -1,6 +1,8 @@
 SMB Keywords
 ==============
 
+.. role:: example-rule-options
+
 SMB keywords used in both SMB1 and SMB2 protocols.
 
 smb.named_pipe
@@ -58,3 +60,18 @@ Examples::
 ``smb.ntlmssp_domain`` is a 'sticky buffer'.
 
 ``smb.ntlmssp_domain`` can be used as ``fast_pattern``.
+
+file.name
+---------
+
+The ``file.name`` keyword can be used at the SMB application level. 
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert smb any any -> any any (msg:"SMB file.name usage"; \
+  :example-rule-options:`file.name; content:"file.txt";` \
+  classtype:bad-unknown; sid:1; rev:1;)
+
+For additional information on the ``file.name`` keyword, see :doc:`file-keywords`.
