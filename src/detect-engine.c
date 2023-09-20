@@ -3211,8 +3211,6 @@ error:
 static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
 {
     PatternMatchThreadPrepare(&det_ctx->mtc, de_ctx->mpm_matcher);
-    PatternMatchThreadPrepare(&det_ctx->mtcs, de_ctx->mpm_matcher);
-    PatternMatchThreadPrepare(&det_ctx->mtcu, de_ctx->mpm_matcher);
 
     PmqSetup(&det_ctx->pmq);
 
@@ -3463,8 +3461,6 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     /** \todo get rid of this static */
     if (det_ctx->de_ctx != NULL) {
         PatternMatchThreadDestroy(&det_ctx->mtc, det_ctx->de_ctx->mpm_matcher);
-        PatternMatchThreadDestroy(&det_ctx->mtcs, det_ctx->de_ctx->mpm_matcher);
-        PatternMatchThreadDestroy(&det_ctx->mtcu, det_ctx->de_ctx->mpm_matcher);
     }
 
     PmqFree(&det_ctx->pmq);
@@ -3552,7 +3548,6 @@ void DetectEngineThreadCtxInfo(ThreadVars *t, DetectEngineThreadCtx *det_ctx)
 {
     /* XXX */
     PatternMatchThreadPrint(&det_ctx->mtc, det_ctx->de_ctx->mpm_matcher);
-    PatternMatchThreadPrint(&det_ctx->mtcu, det_ctx->de_ctx->mpm_matcher);
 }
 
 static uint32_t DetectKeywordCtxHashFunc(HashListTable *ht, void *data, uint16_t datalen)

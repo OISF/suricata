@@ -71,11 +71,4 @@ typedef struct SCACBSCtx_ {
     uint16_t single_state_size;
 } SCACBSCtx;
 
-typedef struct SCACBSThreadCtx_ {
-    /* the total calls we make to the search function */
-    uint32_t total_calls;
-    /* the total patterns that we ended up matching against */
-    uint64_t total_matches;
-} SCACBSThreadCtx;
-
 void MpmACBSRegister(void);

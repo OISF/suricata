@@ -895,8 +895,7 @@ void PatternMatchThreadPrint(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)
 void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)
 {
     SCLogDebug("mpm_thread_ctx %p, mpm_matcher %"PRIu16"", mpm_thread_ctx, mpm_matcher);
-    if (mpm_table[mpm_matcher].DestroyThreadCtx != NULL)
-        mpm_table[mpm_matcher].DestroyThreadCtx(NULL, mpm_thread_ctx);
+    MpmDestroyThreadCtx(mpm_thread_ctx, mpm_matcher);
 }
 void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)
 {

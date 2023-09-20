@@ -277,7 +277,7 @@ static void FTPLocalStorageFree(void *ptr)
         }
 
         if (td->ftp_mpm_thread_ctx != NULL) {
-            mpm_table[FTP_MPM].DestroyThreadCtx(ftp_mpm_ctx, td->ftp_mpm_thread_ctx);
+            MpmDestroyThreadCtx(td->ftp_mpm_thread_ctx, FTP_MPM);
             SCFree(td->ftp_mpm_thread_ctx);
         }
 

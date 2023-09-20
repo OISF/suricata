@@ -145,14 +145,6 @@ typedef struct SCACTileSearchCtx_ {
 
 } SCACTileSearchCtx;
 
-
-typedef struct SCACTileThreadCtx_ {
-    /* the total calls we make to the search function */
-    uint32_t total_calls;
-    /* the total patterns that we ended up matching against */
-    uint64_t total_matches;
-} SCACTileThreadCtx;
-
 void MpmACTileRegister(void);
 
 #endif /* __UTIL_MPM_AC_KS__H__ */
