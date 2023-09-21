@@ -93,7 +93,8 @@ void DetectFiledataRegister(void)
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
 }
 
-static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
+static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx)
+{
     if (de_ctx->filedata_config)
         return;
 
