@@ -344,7 +344,7 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     /* update inspected tracker */
     buffer->inspect_offset = offset;
 
-    if (ips && file_size < cur_file->inspect_min_size) {
+    if (ips && file_size < cur_file->inspect_min_size && cur_file->state == FILE_STATE_OPENED) {
         // don't update content_inspected yet
     } else {
         SCLogDebug("content inspected: %" PRIu64, cur_file->content_inspected);
