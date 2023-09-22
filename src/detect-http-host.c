@@ -245,7 +245,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         if (tx->request_hostname == NULL)
             return NULL;
 
-        const uint32_t data_len = bstr_len(tx->request_hostname);
+        const uint32_t data_len = (uint32_t)bstr_len(tx->request_hostname);
         const uint8_t *data = bstr_ptr(tx->request_hostname);
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
@@ -355,10 +355,10 @@ static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
                 return NULL;
 
             data = (const uint8_t *)bstr_ptr(h->value);
-            data_len = bstr_len(h->value);
+            data_len = (uint32_t)bstr_len(h->value);
         } else {
             data = (const uint8_t *)bstr_ptr(tx->parsed_uri->hostname);
-            data_len = bstr_len(tx->parsed_uri->hostname);
+            data_len = (uint32_t)bstr_len(tx->parsed_uri->hostname);
         }
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
