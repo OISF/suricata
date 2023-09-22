@@ -115,7 +115,7 @@ static uint8_t *GetBufferForTX(
         SCLogDebug("size %"PRIuMAX" + buf->len %u vs buf->size %u",
                 (uintmax_t)size, buf->len, buf->size);
         if (size + buf->len > buf->size) {
-            if (HttpHeaderExpandBuffer(hdr_td, buf, size) != 0) {
+            if (HttpHeaderExpandBuffer(hdr_td, buf, (uint32_t)size) != 0) {
                 return NULL;
             }
         }

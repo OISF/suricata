@@ -116,7 +116,7 @@ static void TransformStripWhitespace(InspectionBuffer *buffer, void *options)
         }
         input++;
     }
-    uint32_t output_size = oi - os;
+    uint32_t output_size = (uint32_t)(oi - os);
     //PrintRawDataFp(stdout, output, output_size);
 
     InspectionBufferCopy(buffer, os, output_size);
