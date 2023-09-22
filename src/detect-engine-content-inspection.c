@@ -656,7 +656,7 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
             goto match;
         }
 
-        det_ctx->discontinue_matching = 0;
+        det_ctx->discontinue_matching = 1;
 
         goto no_match;
 #ifdef HAVE_LUA
