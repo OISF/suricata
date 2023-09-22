@@ -107,7 +107,7 @@ static int DetectTransformDotPrefixSetup (DetectEngineCtx *de_ctx, Signature *s,
  */
 static void TransformDotPrefix(InspectionBuffer *buffer, void *options)
 {
-    const size_t input_len = buffer->inspect_len;
+    const uint32_t input_len = buffer->inspect_len;
 
     if (input_len) {
         uint8_t output[input_len + 1]; // For the leading '.'

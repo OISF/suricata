@@ -349,7 +349,7 @@ static int IsThresholdReached(
             if (lookup_tsh->current_count > td->count) {
                 /* Then we must enable the new action by setting a
                 * timeout */
-                lookup_tsh->tv_timeout = SCTIME_SECS(packet_time);
+                lookup_tsh->tv_timeout = (uint32_t)SCTIME_SECS(packet_time);
                 ret = 1;
             }
         } else {

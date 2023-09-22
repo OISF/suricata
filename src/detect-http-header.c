@@ -118,7 +118,7 @@ static uint8_t *GetBufferForTX(
             size += 2;
 #endif
         if (size + buf->len > buf->size) {
-            if (HttpHeaderExpandBuffer(hdr_td, buf, size) != 0) {
+            if (HttpHeaderExpandBuffer(hdr_td, buf, (uint32_t)size) != 0) {
                 return NULL;
             }
         }
@@ -197,17 +197,16 @@ static uint8_t DetectEngineInspectBufferHttpHeader(DetectEngineCtx *de_ctx,
 
     const uint32_t data_len = buffer->inspect_len;
     const uint8_t *data = buffer->inspect;
-    const uint64_t offset = buffer->inspect_offset;
 
     det_ctx->discontinue_matching = 0;
     det_ctx->buffer_offset = 0;
     det_ctx->inspection_recursion_counter = 0;
 
+    // buffer->inspect_offset is always 0 here
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd,
-            NULL, f, (uint8_t *)data, data_len, offset,
-            DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f, (uint8_t *)data,
+            data_len, 0, DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
     SCLogDebug("r = %d", r);
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
@@ -554,9 +553,10 @@ static uint8_t DetectEngineInspectHttp2Header(DetectEngineCtx *de_ctx,
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
+        // buffer->inspect_offset is always 0 here
         const int match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
-                (uint8_t *)buffer->inspect, buffer->inspect_len, buffer->inspect_offset,
-                DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+                (uint8_t *)buffer->inspect, buffer->inspect_len, 0, DETECT_CI_FLAGS_SINGLE,
+                DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
         if (match == 1) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }
@@ -613,7 +613,7 @@ static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx, cons
         size_t size2 = bstr_size(h->value);
         size_t b_len = size1 + 2 + size2;
         if (b_len > buf->size) {
-            if (HttpHeaderExpandBuffer(hdr_td, buf, b_len) != 0) {
+            if (HttpHeaderExpandBuffer(hdr_td, buf, (uint32_t)b_len) != 0) {
                 return NULL;
             }
         }
@@ -621,7 +621,7 @@ static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx, cons
         buf->buffer[size1] = ':';
         buf->buffer[size1 + 1] = ' ';
         memcpy(buf->buffer + size1 + 2, bstr_ptr(h->value), bstr_size(h->value));
-        buf->len = b_len;
+        buf->len = (uint32_t)b_len;
     } else {
         InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
@@ -706,9 +706,10 @@ static uint8_t DetectEngineInspectHttp1Header(DetectEngineCtx *de_ctx,
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
+        // buffer->inspect_offset is always 0 here
         const int match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
-                (uint8_t *)buffer->inspect, buffer->inspect_len, buffer->inspect_offset,
-                DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+                (uint8_t *)buffer->inspect, buffer->inspect_len, 0, DETECT_CI_FLAGS_SINGLE,
+                DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
         if (match == 1) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }

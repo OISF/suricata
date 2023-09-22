@@ -189,7 +189,7 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *sm
             break;
     }
 
-    det_ctx->buffer_offset = ptr - payload;
+    det_ctx->buffer_offset = (uint32_t)(ptr - payload);
 
     if (data->flags & DETECT_BYTEMATH_FLAG_BITMASK) {
         val &= data->bitmask_val;
