@@ -91,7 +91,7 @@ static uint8_t DetectEngineInspectTemplateRustBuffer(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, const struct DetectEngineAppInspectionEngine_ *engine,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    uint8_t ret = 0;
+    uint8_t ret = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     const uint8_t *data = NULL;
     uint32_t data_len = 0;
 
@@ -102,12 +102,15 @@ static uint8_t DetectEngineInspectTemplateRustBuffer(DetectEngineCtx *de_ctx,
     }
 
     if (data != NULL) {
-        ret = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
+        const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
                 (uint8_t *)data, data_len, 0, DETECT_CI_FLAGS_SINGLE,
                 DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+        if (match) {
+            ret = DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
     }
 
-    SCLogNotice("Returning %d.", ret);
+    SCLogNotice("Returning %u.", ret);
     return ret;
 }
 

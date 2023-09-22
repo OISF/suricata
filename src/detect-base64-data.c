@@ -65,10 +65,10 @@ int DetectBase64DataDoMatch(DetectEngineCtx *de_ctx,
     DetectEngineThreadCtx *det_ctx, const Signature *s, Flow *f)
 {
     if (det_ctx->base64_decoded_len) {
-        return DetectEngineContentInspection(de_ctx, det_ctx, s,
-            s->sm_arrays[DETECT_SM_LIST_BASE64_DATA], NULL, f, det_ctx->base64_decoded,
-            det_ctx->base64_decoded_len, 0, DETECT_CI_FLAGS_SINGLE,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+        return DetectEngineContentInspectionInternal(de_ctx, det_ctx, s,
+                s->sm_arrays[DETECT_SM_LIST_BASE64_DATA], NULL, f, det_ctx->base64_decoded,
+                det_ctx->base64_decoded_len, 0, DETECT_CI_FLAGS_SINGLE,
+                DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
     }
 
     return 0;
