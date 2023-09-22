@@ -1141,8 +1141,6 @@ typedef struct DetectEngineThreadCtx_ {
         uint32_t *to_clear_queue;
     } multi_inspect;
 
-    /* used to discontinue any more matching */
-    uint16_t discontinue_matching;
     uint16_t flags; /**< DETECT_ENGINE_THREAD_CTX_* flags */
 
     /* true if tx_id is set */

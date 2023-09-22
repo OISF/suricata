@@ -2204,18 +2204,12 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
     ci_flags |= (offset == 0 ? DETECT_CI_FLAGS_START : 0);
     ci_flags |= buffer->flags;
 
-    det_ctx->discontinue_matching = 0;
-    det_ctx->buffer_offset = 0;
-    det_ctx->inspection_recursion_counter = 0;
-
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx,
-                                          s, engine->smd,
-                                          NULL, f,
-                                          (uint8_t *)data, data_len, offset, ci_flags,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-    if (r == 1) {
+    const bool match =
+            DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f, (uint8_t *)data,
+                    data_len, offset, ci_flags, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+    if (match) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
         return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH :
@@ -2260,16 +2254,12 @@ int DetectEngineInspectPktBufferGeneric(
     uint8_t ci_flags = DETECT_CI_FLAGS_START|DETECT_CI_FLAGS_END;
     ci_flags |= buffer->flags;
 
-    det_ctx->discontinue_matching = 0;
-    det_ctx->buffer_offset = 0;
-    det_ctx->inspection_recursion_counter = 0;
-
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
-    int r = DetectEngineContentInspection(det_ctx->de_ctx, det_ctx, s, engine->smd, p, p->flow,
-            buffer->inspect, buffer->inspect_len, 0, ci_flags,
+    const bool match = DetectEngineContentInspection(det_ctx->de_ctx, det_ctx, s, engine->smd, p,
+            p->flow, buffer->inspect, buffer->inspect_len, 0, ci_flags,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_HEADER);
-    if (r == 1) {
+    if (match) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
