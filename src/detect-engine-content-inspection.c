@@ -126,8 +126,7 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
 
     /* \todo unify this which is phase 2 of payload inspection unification */
     if (smd->type == DETECT_CONTENT) {
-
-        DetectContentData *cd = (DetectContentData *)smd->ctx;
+        const DetectContentData *cd = (const DetectContentData *)smd->ctx;
         SCLogDebug("inspecting content %"PRIu32" buffer_len %"PRIu32, cd->id, buffer_len);
 
         /* we might have already have this content matched by the mpm.
