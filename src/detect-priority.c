@@ -94,9 +94,9 @@ static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     if (s->init_data->init_flags & SIG_FLAG_INIT_PRIO_EXPLICIT) {
         SCLogWarning("duplicate priority "
                      "keyword. Using highest priority in the rule");
-        s->prio = MIN(s->prio, prio);
+        s->prio = MIN(s->prio, (int)prio);
     } else {
-        s->prio = prio;
+        s->prio = (int)prio;
         s->init_data->init_flags |= SIG_FLAG_INIT_PRIO_EXPLICIT;
     }
     return 0;

@@ -64,7 +64,7 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
 
-        const uint32_t data_len = bstr_len(h->value);
+        const uint32_t data_len = (uint32_t)bstr_len(h->value);
         const uint8_t *data = bstr_ptr(h->value);
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
@@ -120,7 +120,7 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
 
-        const uint32_t data_len = bstr_len(h->value);
+        const uint32_t data_len = (uint32_t)bstr_len(h->value);
         const uint8_t *data = bstr_ptr(h->value);
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);

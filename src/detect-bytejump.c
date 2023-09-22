@@ -250,7 +250,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 #endif /* DEBUG */
 
     /* Adjust the detection context to the jump location. */
-    det_ctx->buffer_offset = val;
+    det_ctx->buffer_offset = (uint32_t)val;
 
     SCReturnInt(1);
 }
@@ -362,7 +362,7 @@ static int DetectBytejumpMatch(DetectEngineThreadCtx *det_ctx,
 #endif /* DEBUG */
 
     /* Adjust the detection context to the jump location. */
-    det_ctx->buffer_offset = jumpptr - p->payload;
+    det_ctx->buffer_offset = (uint32_t)(jumpptr - p->payload);
 
     return 1;
 }

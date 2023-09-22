@@ -263,7 +263,7 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
 
     while (iter != NULL) {
         /* update counters */
-        iter->last_ts = SCTIME_SECS(p->ts);
+        iter->last_ts = (uint32_t)SCTIME_SECS(p->ts);
         switch (iter->metric) {
             case DETECT_TAG_METRIC_PACKET:
                 iter->packets++;
@@ -385,7 +385,7 @@ static void TagHandlePacketHost(Host *host, Packet *p)
     prev = NULL;
     while (iter != NULL) {
         /* update counters */
-        iter->last_ts = SCTIME_SECS(p->ts);
+        iter->last_ts = (uint32_t)SCTIME_SECS(p->ts);
         switch (iter->metric) {
             case DETECT_TAG_METRIC_PACKET:
                 iter->packets++;
