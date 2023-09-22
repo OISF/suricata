@@ -160,7 +160,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         if (unlikely(tx->response_line == NULL)) {
             return NULL;
         }
-        const uint32_t data_len = bstr_len(tx->response_line);
+        const uint32_t data_len = (uint32_t)bstr_len(tx->response_line);
         const uint8_t *data = bstr_ptr(tx->response_line);
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
