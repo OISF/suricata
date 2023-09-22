@@ -311,10 +311,10 @@ static int DetectFrameInspectUdp(DetectEngineThreadCtx *det_ctx,
 
     // PrintRawDataFp(stdout, data, data_len);
 
-    int r = DetectEngineContentInspection(det_ctx->de_ctx, det_ctx, s, engine->smd, p, p->flow,
-            (uint8_t *)data, data_len, 0, buffer->flags,
+    const bool match = DetectEngineContentInspection(det_ctx->de_ctx, det_ctx, s, engine->smd, p,
+            p->flow, (uint8_t *)data, data_len, 0, buffer->flags,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_FRAME);
-    if (r == 1) {
+    if (match) {
         SCLogDebug("match!");
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
@@ -457,9 +457,6 @@ static int FrameStreamDataInspectFunc(
     const uint8_t *data = buffer->inspect;
     const uint64_t data_offset = buffer->inspect_offset;
     DetectEngineThreadCtx *det_ctx = fsd->det_ctx;
-    det_ctx->discontinue_matching = 0;
-    det_ctx->buffer_offset = 0;
-    det_ctx->inspection_recursion_counter = 0;
 
     const DetectEngineFrameInspectionEngine *engine = fsd->inspect_engine;
     const Signature *s = fsd->s;
@@ -481,10 +478,10 @@ static int FrameStreamDataInspectFunc(
 #endif
     BUG_ON(fsd->frame->len > 0 && (int64_t)data_len > fsd->frame->len);
 
-    int r = DetectEngineContentInspection(det_ctx->de_ctx, det_ctx, s, engine->smd, p, p->flow,
-            (uint8_t *)data, data_len, data_offset, buffer->flags,
+    const bool match = DetectEngineContentInspection(det_ctx->de_ctx, det_ctx, s, engine->smd, p,
+            p->flow, (uint8_t *)data, data_len, data_offset, buffer->flags,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_FRAME);
-    if (r == 1) {
+    if (match) {
         SCLogDebug("DETECT_ENGINE_INSPECT_SIG_MATCH");
         fsd->inspect_result = DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
