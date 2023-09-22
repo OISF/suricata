@@ -26,10 +26,10 @@
  */
 static int SNMPValidityTestParse01 (void)
 {
-    DetectSNMPPduTypeData *dd = NULL;
-    dd = DetectSNMPPduTypeParse("2");
+    DetectU32Data *dd = NULL;
+    dd = DetectU32Parse("2");
     FAIL_IF_NULL(dd);
-    FAIL_IF_NOT(dd->pdu_type == 2);
+    FAIL_IF_NOT(dd->arg1 == 2);
     DetectSNMPPduTypeFree(NULL, dd);
     PASS;
 }
