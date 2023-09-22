@@ -26,7 +26,8 @@
 
 #include "detect-content.h"
 
-DetectReplaceList * DetectReplaceAddToList(DetectReplaceList *replist, uint8_t *found, DetectContentData *cd);
+DetectReplaceList *DetectReplaceAddToList(
+        DetectReplaceList *replist, uint8_t *found, const DetectContentData *cd);
 
 /* Internal functions are only called via the inline functions below. */
 void DetectReplaceExecuteInternal(Packet *p, DetectReplaceList *replist);

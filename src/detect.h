@@ -721,7 +721,7 @@ typedef struct DetectPatternTracker {
 } DetectPatternTracker;
 
 typedef struct DetectReplaceList_ {
-    struct DetectContentData_ *cd;
+    const struct DetectContentData_ *cd;
     uint8_t *found;
     struct DetectReplaceList_ *next;
 } DetectReplaceList;

@@ -176,9 +176,8 @@ error:
  * earlier changes. Thus the highest priority modifications should be
  * applied last.
  */
-DetectReplaceList *DetectReplaceAddToList(DetectReplaceList *replist,
-                                          uint8_t *found,
-                                          DetectContentData *cd)
+DetectReplaceList *DetectReplaceAddToList(
+        DetectReplaceList *replist, uint8_t *found, const DetectContentData *cd)
 {
     DetectReplaceList *newlist;
 
