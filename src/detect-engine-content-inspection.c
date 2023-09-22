@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -68,16 +68,6 @@
 /**
  * \brief Run the actual payload match functions
  *
- * The following keywords are inspected:
- * - content, including all the http and dce modified contents
- * - isdataat
- * - pcre
- * - bytejump
- * - bytetest
- * - byte_extract
- * - urilen
- * -
- *
  * All keywords are evaluated against the buffer with buffer_len.
  *
  * For accounting the last match in relative matching the
@@ -124,7 +114,6 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
         SCReturnInt(0);
     }
 
-    /* \todo unify this which is phase 2 of payload inspection unification */
     if (smd->type == DETECT_CONTENT) {
         const DetectContentData *cd = (const DetectContentData *)smd->ctx;
         SCLogDebug("inspecting content %"PRIu32" buffer_len %"PRIu32, cd->id, buffer_len);
