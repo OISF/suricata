@@ -26,6 +26,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-uint.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-snmp-pdu_type.h"
 #include "app-layer-parser.h"
@@ -34,14 +35,7 @@
 /**
  *   [snmp.pdu_type]:<type>;
  */
-#define PARSE_REGEX "^\\s*([0-9]+)\\s*$"
-static DetectParseRegex parse_regex;
 
-typedef struct DetectSNMPPduTypeData_ {
-    uint32_t pdu_type;
-} DetectSNMPPduTypeData;
-
-static DetectSNMPPduTypeData *DetectSNMPPduTypeParse (const char *);
 static int DetectSNMPPduTypeSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DetectSNMPPduTypeFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
@@ -66,8 +60,6 @@ void DetectSNMPPduTypeRegister(void)
     sigmatch_table[DETECT_AL_SNMP_PDU_TYPE].RegisterTests = DetectSNMPPduTypeRegisterTests;
 #endif
 
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
-
     DetectAppLayerInspectEngineRegister2("snmp.pdu_type", ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectGenericList, NULL);
 
@@ -88,7 +80,7 @@ void DetectSNMPPduTypeRegister(void)
  * \param state   App layer state.
  * \param s       Pointer to the Signature.
  * \param m       Pointer to the sigmatch that we will cast into
- *                DetectSNMPPduTypeData.
+ *                DetectU32Data.
  *
  * \retval 0 no match.
  * \retval 1 match.
@@ -100,69 +92,13 @@ static int DetectSNMPPduTypeMatch (DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    const DetectSNMPPduTypeData *dd = (const DetectSNMPPduTypeData *)ctx;
+    const DetectU32Data *dd = (const DetectU32Data *)ctx;
     uint32_t pdu_type;
     rs_snmp_tx_get_pdu_type(txv, &pdu_type);
-    SCLogDebug("pdu_type %u ref_pdu_type %d",
-            pdu_type, dd->pdu_type);
-    if (pdu_type == dd->pdu_type)
+    SCLogDebug("pdu_type %u ref_pdu_type %d", pdu_type, dd->arg1);
+    if (pdu_type == dd->arg1)
         SCReturnInt(1);
     SCReturnInt(0);
-}
-
-/**
- * \internal
- * \brief Function to parse options passed via snmp.pdu_type keywords.
- *
- * \param rawstr Pointer to the user provided options.
- *
- * \retval dd pointer to DetectSNMPPduTypeData on success.
- * \retval NULL on failure.
- */
-static DetectSNMPPduTypeData *DetectSNMPPduTypeParse (const char *rawstr)
-{
-    DetectSNMPPduTypeData *dd = NULL;
-    int res = 0;
-    size_t pcre2len;
-    char value1[20] = "";
-    char *endptr = NULL;
-
-    pcre2_match_data *match = NULL;
-    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
-    if (ret != 2) {
-        SCLogError("Parse error %s", rawstr);
-        goto error;
-    }
-
-    pcre2len = sizeof(value1);
-    res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)value1, &pcre2len);
-    if (res < 0) {
-        SCLogError("pcre2_substring_copy_bynumber failed");
-        goto error;
-    }
-
-    dd = SCCalloc(1, sizeof(DetectSNMPPduTypeData));
-    if (unlikely(dd == NULL))
-        goto error;
-
-    /* set the value */
-    dd->pdu_type = strtoul(value1, &endptr, 10);
-    if (endptr == NULL || *endptr != '\0') {
-        SCLogError("invalid character as arg "
-                   "to snmp.pdu_type keyword");
-        goto error;
-    }
-
-    pcre2_match_data_free(match);
-    return dd;
-
-error:
-    if (match) {
-        pcre2_match_data_free(match);
-    }
-    if (dd)
-        SCFree(dd);
-    return NULL;
 }
 
 /**
@@ -179,13 +115,13 @@ error:
 static int DetectSNMPPduTypeSetup (DetectEngineCtx *de_ctx, Signature *s,
                                    const char *rawstr)
 {
-    DetectSNMPPduTypeData *dd = NULL;
+    DetectU32Data *dd = NULL;
     SigMatch *sm = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0)
         return -1;
 
-    dd = DetectSNMPPduTypeParse(rawstr);
+    dd = DetectU32Parse(rawstr);
     if (dd == NULL) {
         SCLogError("Parsing \'%s\' failed", rawstr);
         goto error;
@@ -200,7 +136,7 @@ static int DetectSNMPPduTypeSetup (DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_AL_SNMP_PDU_TYPE;
     sm->ctx = (void *)dd;
 
-    SCLogDebug("snmp.pdu_type %d", dd->pdu_type);
+    SCLogDebug("snmp.pdu_type %d", dd->arg1);
     SigMatchAppendSMToList(s, sm, g_snmp_pdu_type_buffer_id);
     return 0;
 
@@ -211,13 +147,13 @@ error:
 
 /**
  * \internal
- * \brief Function to free memory associated with DetectSNMPPduTypeData.
+ * \brief Function to free memory associated with DetectU32Data.
  *
- * \param de_ptr Pointer to DetectSNMPPduTypeData.
+ * \param de_ptr Pointer to DetectU32Data.
  */
 static void DetectSNMPPduTypeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    SCFree(ptr);
+    rs_detect_u32_free(ptr);
 }
 
 #ifdef UNITTESTS

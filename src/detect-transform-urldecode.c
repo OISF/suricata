@@ -111,7 +111,7 @@ static bool BufferUrlDecode(const uint8_t *input, const uint32_t input_len, uint
             *oi++ = input[i];
         }
     }
-    *output_size = oi - output;
+    *output_size = (uint32_t)(oi - output);
     return changed;
 }
 
