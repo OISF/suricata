@@ -107,7 +107,7 @@ Recommended::
                     liblua5.1-dev libmagic-dev libnet1-dev libpcap-dev \
                     libpcre2-dev libtool libyaml-0-2 libyaml-dev m4 make \
                     pkg-config python3 python3-dev python3-yaml sudo zlib1g \
-                    zlib1g-dev
+                    zlib1g-dev libhyperscan-dev
     cargo install --force cbindgen
 
 Extra for iptables/nftables IPS integration::
@@ -150,7 +150,7 @@ Recommended::
                    libnfnetlink-devel libpcap-devel libtool libyaml-devel \
                    lua-devel lz4-devel make nss-devel pcre2-devel pkgconfig \
                    python3-devel python3-sphinx python3-yaml sudo which \
-                   zlib-devel
+                   zlib-devel hyperscan-devel
     cargo install --force cbindgen
 
 Compilation
