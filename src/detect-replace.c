@@ -179,23 +179,19 @@ error:
 DetectReplaceList *DetectReplaceAddToList(
         DetectReplaceList *replist, uint8_t *found, const DetectContentData *cd)
 {
-    DetectReplaceList *newlist;
-
     if (cd->content_len != cd->replace_len)
         return NULL;
     SCLogDebug("replace: Adding match");
 
-    newlist = SCMalloc(sizeof(DetectReplaceList));
+    DetectReplaceList *newlist = SCMalloc(sizeof(DetectReplaceList));
     if (unlikely(newlist == NULL))
         return replist;
     newlist->found = found;
     newlist->cd = cd;
     /* Push new value onto the front of the list. */
     newlist->next = replist;
-
     return newlist;
 }
-
 
 void DetectReplaceExecuteInternal(Packet *p, DetectReplaceList *replist)
 {
