@@ -193,12 +193,12 @@ static void FrameAddPayloadUDP(JsonBuilder *js, const Packet *p, const Frame *fr
 
     uint32_t frame_len;
     if (frame->len == -1) {
-        frame_len = p->payload_len - (uint32_t)frame->offset;
+        frame_len = p->payload_len - (uint16_t)frame->offset;
     } else {
         frame_len = (uint32_t)frame->len;
     }
     if (frame->offset + frame_len > p->payload_len) {
-        frame_len = p->payload_len - (uint32_t)frame->offset;
+        frame_len = p->payload_len - (uint16_t)frame->offset;
         JB_SET_FALSE(js, "complete");
     } else {
         JB_SET_TRUE(js, "complete");
