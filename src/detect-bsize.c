@@ -176,9 +176,9 @@ static int SigParseGetMaxBsize(DetectU64Data *bsz)
     switch (bsz->mode) {
         case DETECT_UINT_LT:
         case DETECT_UINT_EQ:
-            return bsz->arg1;
+            return (int)bsz->arg1;
         case DETECT_UINT_RA:
-            return bsz->arg2;
+            return (int)bsz->arg2;
         case DETECT_UINT_GT:
         default:
             SCReturnInt(-2);
@@ -210,6 +210,8 @@ static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
 
     DetectU64Data *bsz = DetectBsizeParse(sizestr);
     if (bsz == NULL)
+        goto error;
+    if (bsz->arg1 > INT_MAX || bsz->arg2 > INT_MAX)
         goto error;
 
     sm = SigMatchAlloc();

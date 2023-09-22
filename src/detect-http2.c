@@ -736,12 +736,10 @@ static uint8_t DetectEngineInspectHttp2HeaderName(DetectEngineCtx *de_ctx,
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        const int match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd,
-                                              NULL, f,
-                                              (uint8_t *)buffer->inspect,
-                                              buffer->inspect_len,
-                                              buffer->inspect_offset, DETECT_CI_FLAGS_SINGLE,
-                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+        // buffer->inspect_offset is always 0 here
+        const int match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
+                (uint8_t *)buffer->inspect, buffer->inspect_len, 0, DETECT_CI_FLAGS_SINGLE,
+                DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
         if (match == 1) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }

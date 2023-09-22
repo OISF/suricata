@@ -111,12 +111,10 @@ static uint8_t DetectEngineInspectMQTTUnsubscribeTopic(DetectEngineCtx *de_ctx,
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        const int match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd,
-                                              NULL, f,
-                                              (uint8_t *)buffer->inspect,
-                                              buffer->inspect_len,
-                                              buffer->inspect_offset, DETECT_CI_FLAGS_SINGLE,
-                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+        // buffer->inspect_offset is always 0 here
+        const int match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
+                (uint8_t *)buffer->inspect, buffer->inspect_len, 0, DETECT_CI_FLAGS_SINGLE,
+                DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
         if (match == 1) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }
@@ -201,7 +199,11 @@ void DetectMQTTUnsubscribeTopicRegister (void)
 
     intmax_t val = 0;
     if (ConfGetInt("app-layer.protocols.mqtt.unsubscribe-topic-match-limit", &val)) {
-        unsubscribe_topic_match_limit = val;
+        if (val >= 0 && val <= UINT32_MAX) {
+            unsubscribe_topic_match_limit = (uint32_t)val;
+        } else {
+            SCLogWarning("mqtt.unsubscribe-topic-match-limit is outside of valid range: %ji", val);
+        }
     }
     if (unsubscribe_topic_match_limit <= 0) {
         SCLogDebug("Using unrestricted MQTT UNSUBSCRIBE topic matching");

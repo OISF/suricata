@@ -105,7 +105,7 @@ static uint8_t *GetBufferForTX(
 
     size_t line_size = bstr_len(line) + 2;
     if (line_size + buf->len > buf->size) {
-        if (HttpHeaderExpandBuffer(hdr_td, buf, line_size) != 0) {
+        if (HttpHeaderExpandBuffer(hdr_td, buf, (uint32_t)line_size) != 0) {
             return NULL;
         }
     }
@@ -124,7 +124,7 @@ static uint8_t *GetBufferForTX(
         if (i + 1 == no_of_headers)
             size += 2;
         if (size + buf->len > buf->size) {
-            if (HttpHeaderExpandBuffer(hdr_td, buf, size) != 0) {
+            if (HttpHeaderExpandBuffer(hdr_td, buf, (uint32_t)size) != 0) {
                 return NULL;
             }
         }
