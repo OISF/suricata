@@ -103,7 +103,7 @@ static uint8_t DetectEngineInspectTemplateRustBuffer(DetectEngineCtx *de_ctx,
 
     if (data != NULL) {
         const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
-                (uint8_t *)data, data_len, 0, DETECT_CI_FLAGS_SINGLE,
+                data, data_len, 0, DETECT_CI_FLAGS_SINGLE,
                 DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
         if (match) {
             ret = DETECT_ENGINE_INSPECT_SIG_MATCH;
