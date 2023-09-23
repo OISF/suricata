@@ -227,7 +227,7 @@ static int StreamContentInspectFunc(
 #endif
 
     const bool match = DetectEngineContentInspection(smd->de_ctx, smd->det_ctx, smd->s,
-            smd->s->sm_arrays[DETECT_SM_LIST_PMATCH], NULL, smd->f, (uint8_t *)data, data_len, 0,
+            smd->s->sm_arrays[DETECT_SM_LIST_PMATCH], NULL, smd->f, data, data_len, 0,
             0, // TODO
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM);
     if (match) {
@@ -282,7 +282,7 @@ static int StreamContentInspectEngineFunc(
 #endif
 
     const bool match = DetectEngineContentInspection(smd->de_ctx, smd->det_ctx, smd->s, smd->smd,
-            NULL, smd->f, (uint8_t *)data, data_len, 0, 0, // TODO
+            NULL, smd->f, data, data_len, 0, 0, // TODO
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM);
     if (match) {
         SCReturnInt(1);
