@@ -863,19 +863,33 @@ static void StatsLogSummary(void)
         return;
     }
     uint64_t alerts = 0;
+    uint64_t ips_blocked = 0;
     SCMutexLock(&stats_table_mutex);
     if (stats_table.start_time != 0) {
         const StatsTable *st = &stats_table;
+        bool have_alerts = false;
+        bool have_blocked = false;
         for (uint32_t u = 0; u < st->nstats; u++) {
             const char *name = st->stats[u].name;
-            if (name == NULL || strcmp(name, "detect.alert") != 0)
+            if (name == NULL)
                 continue;
-            alerts = st->stats[u].value;
-            break;
+            if (!have_alerts && 0 == strcmp(name, "detect.alert")) {
+                alerts = st->stats[u].value;
+                have_alerts = true;
+            } else if (!have_blocked && 0 == strcmp(name, "ips.blocked")) {
+                ips_blocked = st->stats[u].value;
+                have_blocked = true;
+            }
+            if (have_alerts && have_blocked)
+                break;
         }
     }
     SCMutexUnlock(&stats_table_mutex);
     SCLogInfo("Alerts: %"PRIu64, alerts);
+
+    if (EngineModeIsIPS()) {
+        SCLogInfo("IPS blocked: %" PRIu64, ips_blocked);
+    }
 }
 
 /**
