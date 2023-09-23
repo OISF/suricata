@@ -2257,10 +2257,6 @@ int DetectEngineInspectPktBufferGeneric(
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
 
-    const uint32_t data_len = buffer->inspect_len;
-    const uint8_t *data = buffer->inspect;
-    const uint64_t offset = 0;
-
     uint8_t ci_flags = DETECT_CI_FLAGS_START|DETECT_CI_FLAGS_END;
     ci_flags |= buffer->flags;
 
@@ -2270,11 +2266,9 @@ int DetectEngineInspectPktBufferGeneric(
 
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
-    int r = DetectEngineContentInspection(det_ctx->de_ctx, det_ctx,
-                                          s, engine->smd,
-                                          p, p->flow,
-                                          (uint8_t *)data, data_len, offset, ci_flags,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_HEADER);
+    int r = DetectEngineContentInspection(det_ctx->de_ctx, det_ctx, s, engine->smd, p, p->flow,
+            buffer->inspect, buffer->inspect_len, 0, ci_flags,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_HEADER);
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
