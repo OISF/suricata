@@ -415,7 +415,7 @@ uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadC
             ciflags |= DETECT_CI_FLAGS_START;
 
         const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
-                (uint8_t *)buffer->inspect, buffer->inspect_len, buffer->inspect_offset, ciflags,
+                buffer->inspect, buffer->inspect_len, buffer->inspect_offset, ciflags,
                 DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
         if (match) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
