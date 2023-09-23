@@ -651,10 +651,16 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
     } else if (smd->type == DETECT_BASE64_DECODE) {
         if (DetectBase64DecodeDoMatch(det_ctx, s, smd, buffer, buffer_len)) {
             if (s->sm_arrays[DETECT_SM_LIST_BASE64_DATA] != NULL) {
-                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-                if (DetectBase64DataDoMatch(de_ctx, det_ctx, s, f) == 1) {
-                    /* Base64 is a terminal list. */
-                    goto final_match;
+                if (det_ctx->base64_decoded_len) {
+                    KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+                    int r = DetectEngineContentInspectionInternal(de_ctx, det_ctx, s,
+                            s->sm_arrays[DETECT_SM_LIST_BASE64_DATA], NULL, f,
+                            det_ctx->base64_decoded, det_ctx->base64_decoded_len, 0,
+                            DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+                    if (r == 1) {
+                        /* Base64 is a terminal list. */
+                        goto final_match;
+                    }
                 }
             }
         }
