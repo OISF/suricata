@@ -105,7 +105,7 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
 
     det_ctx->inspection_recursion_counter++;
 
-    if (det_ctx->inspection_recursion_counter == de_ctx->inspection_recursion_limit) {
+    if (unlikely(det_ctx->inspection_recursion_counter == de_ctx->inspection_recursion_limit)) {
         KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
         SCReturnInt(-1);
     }
