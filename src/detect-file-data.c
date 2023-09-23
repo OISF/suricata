@@ -401,7 +401,6 @@ uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadC
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
     }
 
-    bool match = false;
     int local_file_id = 0;
     File *file = ffc->head;
     for (; file != NULL; file = file->next) {
@@ -418,22 +417,16 @@ uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadC
         det_ctx->buffer_offset = 0;
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
-        match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd,
-                                              NULL, f,
-                                              (uint8_t *)buffer->inspect,
-                                              buffer->inspect_len,
-                                              buffer->inspect_offset, ciflags,
-                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+        const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
+                (uint8_t *)buffer->inspect, buffer->inspect_len, buffer->inspect_offset, ciflags,
+                DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
         if (match) {
-            break;
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }
         local_file_id++;
     }
 
-    if (match)
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-    else
-        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
 /** \brief Filedata Filedata Mpm prefilter callback
