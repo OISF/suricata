@@ -95,9 +95,10 @@
  *  \retval 0 no match
  *  \retval 1 match
  */
-int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd, Packet *p, Flow *f, const uint8_t *buffer,
-        const uint32_t buffer_len, const uint32_t stream_start_offset, const uint8_t flags,
+static int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatchData *smd, Packet *p,
+        Flow *f, const uint8_t *buffer, const uint32_t buffer_len,
+        const uint32_t stream_start_offset, const uint8_t flags,
         const enum DetectContentInspectionType inspection_mode)
 {
     SCEnter();
