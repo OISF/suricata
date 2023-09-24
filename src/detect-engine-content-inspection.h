@@ -46,12 +46,6 @@ enum DetectContentInspectionType {
  *  inspection function contains both start and end of the data. */
 #define DETECT_CI_FLAGS_SINGLE  (DETECT_CI_FLAGS_START|DETECT_CI_FLAGS_END)
 
-/* "internal" returns 1 match, 0 no match, -1 can't match */
-int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd, Packet *p, Flow *f, const uint8_t *buffer,
-        const uint32_t buffer_len, const uint32_t stream_start_offset, const uint8_t flags,
-        const enum DetectContentInspectionType inspection_mode);
-
 /* implicit "public" just returns true match, false no match */
 bool DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd, Packet *p, Flow *f, const uint8_t *buffer,
