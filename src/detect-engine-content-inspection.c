@@ -141,10 +141,8 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
         do {
             if ((cd->flags & DETECT_CONTENT_DISTANCE) ||
                 (cd->flags & DETECT_CONTENT_WITHIN)) {
-                SCLogDebug("det_ctx->buffer_offset %"PRIu32, det_ctx->buffer_offset);
-
+                SCLogDebug("det_ctx->buffer_offset %" PRIu32, det_ctx->buffer_offset);
                 offset = prev_buffer_offset;
-                depth = buffer_len;
 
                 int distance = cd->distance;
                 if (cd->flags & DETECT_CONTENT_DISTANCE) {
@@ -266,7 +264,6 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
 
             const uint8_t *sbuffer = buffer + offset;
             uint32_t sbuffer_len = depth - offset;
-            uint32_t match_offset = 0;
             SCLogDebug("sbuffer_len %" PRIu32 " depth: %" PRIu32 ", buffer_len: %" PRIu32,
                     sbuffer_len, depth, buffer_len);
 #ifdef DEBUG
@@ -299,7 +296,7 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
                     goto match;
                 }
             } else {
-                match_offset = (uint32_t)((found - buffer) + cd->content_len);
+                uint32_t match_offset = (uint32_t)((found - buffer) + cd->content_len);
                 if (cd->flags & DETECT_CONTENT_NEGATED) {
                     SCLogDebug("content %" PRIu32 " matched at offset %" PRIu32
                                ", but negated so no match",
