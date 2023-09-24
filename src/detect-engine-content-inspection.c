@@ -307,83 +307,81 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 } else {
                     goto match;
                 }
-            } else {
-                uint32_t match_offset = (uint32_t)((found - buffer) + cd->content_len);
-                if (cd->flags & DETECT_CONTENT_NEGATED) {
-                    SCLogDebug("content %" PRIu32 " matched at offset %" PRIu32
-                               ", but negated so no match",
-                            cd->id, match_offset);
-                    /* don't bother carrying recursive matches now, for preceding
-                     * relative keywords */
-
-                    /* found a match but not at the end of the buffer */
-                    if (cd->flags & DETECT_CONTENT_ENDS_WITH) {
-                        if (sbuffer_len != match_offset) {
-                            SCLogDebug("content \"%s\" %" PRIu32 " matched at offset %" PRIu32
-                                       ", but not at end of buffer so match",
-                                    cd->content, cd->id, match_offset);
-                            goto match;
-                        }
-                    }
-                    if (DETECT_CONTENT_IS_SINGLE(cd)) {
-                        goto no_match_discontinue;
-                    }
-                    goto no_match;
-                } else {
-                    SCLogDebug("content %" PRIu32 " matched at offset %" PRIu32 "", cd->id,
-                            match_offset);
-                    det_ctx->buffer_offset = match_offset;
-
-                    if ((cd->flags & DETECT_CONTENT_ENDS_WITH) == 0 || match_offset == buffer_len) {
-                        /* Match branch, add replace to the list if needed */
-                        if (cd->flags & DETECT_CONTENT_REPLACE) {
-                            if (inspection_mode == DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD) {
-                                /* we will need to replace content if match is confirmed
-                                 * cast to non-const as replace writes to it. */
-                                det_ctx->replist = DetectReplaceAddToList(
-                                        det_ctx->replist, (uint8_t *)found, cd);
-                            } else {
-                                SCLogWarning("Can't modify payload without packet");
-                            }
-                        }
-
-                        /* if this is the last match we're done */
-                        if (smd->is_last) {
-                            goto match;
-                        }
-
-                        SCLogDebug("content %" PRIu32, cd->id);
-                        KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-
-                        /* see if the next buffer keywords match. If not, we will
-                         * search for another occurrence of this content and see
-                         * if the others match then until we run out of matches */
-                        int r = DetectEngineContentInspectionInternal(det_ctx, ctx, s, smd + 1, p,
-                                f, buffer, buffer_len, stream_start_offset, flags, inspection_mode);
-                        if (r == 1) {
-                            SCReturnInt(1);
-                        } else if (r == -1) {
-                            SCLogDebug("'next sm' said to discontinue this right now");
-                            SCReturnInt(-1);
-                        }
-                        SCLogDebug("no match for 'next sm'");
-
-                        /* no match and no reason to look for another instance */
-                        if ((cd->flags & DETECT_CONTENT_WITHIN_NEXT) == 0) {
-                            SCLogDebug("'next sm' does not depend on me, so we can give up");
-                            SCReturnInt(-1);
-                        }
-
-                        SCLogDebug("'next sm' depends on me %p, lets see what we can do (flags %u)",
-                                cd, cd->flags);
-                    }
-                    /* set the previous match offset to the start of this match + 1 */
-                    prev_offset = (match_offset - (cd->content_len - 1));
-                    SCLogDebug("trying to see if there is another match after prev_offset %" PRIu32,
-                            prev_offset);
-                }
             }
 
+            uint32_t match_offset = (uint32_t)((found - buffer) + cd->content_len);
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                SCLogDebug("content %" PRIu32 " matched at offset %" PRIu32
+                           ", but negated so no match",
+                        cd->id, match_offset);
+                /* don't bother carrying recursive matches now, for preceding
+                 * relative keywords */
+
+                /* found a match but not at the end of the buffer */
+                if (cd->flags & DETECT_CONTENT_ENDS_WITH) {
+                    if (sbuffer_len != match_offset) {
+                        SCLogDebug("content \"%s\" %" PRIu32 " matched at offset %" PRIu32
+                                   ", but not at end of buffer so match",
+                                cd->content, cd->id, match_offset);
+                        goto match;
+                    }
+                }
+                if (DETECT_CONTENT_IS_SINGLE(cd)) {
+                    goto no_match_discontinue;
+                }
+                goto no_match;
+            }
+
+            SCLogDebug("content %" PRIu32 " matched at offset %" PRIu32 "", cd->id, match_offset);
+            det_ctx->buffer_offset = match_offset;
+
+            if ((cd->flags & DETECT_CONTENT_ENDS_WITH) == 0 || match_offset == buffer_len) {
+                /* Match branch, add replace to the list if needed */
+                if (cd->flags & DETECT_CONTENT_REPLACE) {
+                    if (inspection_mode == DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD) {
+                        /* we will need to replace content if match is confirmed
+                         * cast to non-const as replace writes to it. */
+                        det_ctx->replist =
+                                DetectReplaceAddToList(det_ctx->replist, (uint8_t *)found, cd);
+                    } else {
+                        SCLogWarning("Can't modify payload without packet");
+                    }
+                }
+
+                /* if this is the last match we're done */
+                if (smd->is_last) {
+                    goto match;
+                }
+
+                SCLogDebug("content %" PRIu32, cd->id);
+                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+
+                /* see if the next buffer keywords match. If not, we will
+                 * search for another occurrence of this content and see
+                 * if the others match then until we run out of matches */
+                int r = DetectEngineContentInspectionInternal(det_ctx, ctx, s, smd + 1, p, f,
+                        buffer, buffer_len, stream_start_offset, flags, inspection_mode);
+                if (r == 1) {
+                    SCReturnInt(1);
+                } else if (r == -1) {
+                    SCLogDebug("'next sm' said to discontinue this right now");
+                    SCReturnInt(-1);
+                }
+                SCLogDebug("no match for 'next sm'");
+
+                /* no match and no reason to look for another instance */
+                if ((cd->flags & DETECT_CONTENT_WITHIN_NEXT) == 0) {
+                    SCLogDebug("'next sm' does not depend on me, so we can give up");
+                    SCReturnInt(-1);
+                }
+
+                SCLogDebug("'next sm' depends on me %p, lets see what we can do (flags %u)", cd,
+                        cd->flags);
+            }
+            /* set the previous match offset to the start of this match + 1 */
+            prev_offset = (match_offset - (cd->content_len - 1));
+            SCLogDebug("trying to see if there is another match after prev_offset %" PRIu32,
+                    prev_offset);
         } while(1);
 
     } else if (smd->type == DETECT_ISDATAAT) {
