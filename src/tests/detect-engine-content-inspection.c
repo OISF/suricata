@@ -29,33 +29,34 @@
 #include "../detect.h"
 #include "detect-engine-build.h"
 
+extern thread_local uint32_t ut_inspection_recursion_counter;
+
 #define TEST_HEADER                                     \
     ThreadVars tv;                                      \
     memset(&tv, 0, sizeof(tv));                         \
     Flow f;                                             \
     memset(&f, 0, sizeof(f));
 
-#define TEST_RUN(buf, buflen, sig, match, steps)                                            \
-{                                                                                           \
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();                                        \
-    FAIL_IF_NULL(de_ctx);                                                                   \
-    DetectEngineThreadCtx *det_ctx = NULL;                                                  \
-    char rule[2048];                                                                        \
-    snprintf(rule, sizeof(rule), "alert tcp any any -> any any (%s sid:1; rev:1;)", (sig)); \
-    Signature *s = DetectEngineAppendSig(de_ctx, rule);                                     \
-    FAIL_IF_NULL(s);                                                                        \
-    SigGroupBuild(de_ctx);                                                                  \
-    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);                       \
-    FAIL_IF_NULL(det_ctx);                                                                  \
-    int r = DetectEngineContentInspection(de_ctx, det_ctx,                                  \
-                s, s->sm_arrays[DETECT_SM_LIST_PMATCH], NULL, &f,                           \
-                (uint8_t *)(buf), (buflen), 0, DETECT_CI_FLAGS_SINGLE,                      \
-                DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD);                             \
-    FAIL_IF_NOT(r == (match));                                                              \
-    FAIL_IF_NOT(det_ctx->inspection_recursion_counter == (steps));                          \
-    DetectEngineThreadCtxDeinit(&tv, det_ctx);                                              \
-    DetectEngineCtxFree(de_ctx);                                                            \
-}
+#define TEST_RUN(buf, buflen, sig, match, steps)                                                   \
+    {                                                                                              \
+        DetectEngineCtx *de_ctx = DetectEngineCtxInit();                                           \
+        FAIL_IF_NULL(de_ctx);                                                                      \
+        DetectEngineThreadCtx *det_ctx = NULL;                                                     \
+        char rule[2048];                                                                           \
+        snprintf(rule, sizeof(rule), "alert tcp any any -> any any (%s sid:1; rev:1;)", (sig));    \
+        Signature *s = DetectEngineAppendSig(de_ctx, rule);                                        \
+        FAIL_IF_NULL(s);                                                                           \
+        SigGroupBuild(de_ctx);                                                                     \
+        DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);                          \
+        FAIL_IF_NULL(det_ctx);                                                                     \
+        int r = DetectEngineContentInspection(de_ctx, det_ctx, s,                                  \
+                s->sm_arrays[DETECT_SM_LIST_PMATCH], NULL, &f, (uint8_t *)(buf), (buflen), 0,      \
+                DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD);            \
+        FAIL_IF_NOT(r == (match));                                                                 \
+        FAIL_IF_NOT(ut_inspection_recursion_counter == (steps));                                   \
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);                                                 \
+        DetectEngineCtxFree(de_ctx);                                                               \
+    }
 #define TEST_FOOTER     \
     PASS
 

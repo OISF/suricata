@@ -1159,9 +1159,6 @@ typedef struct DetectEngineThreadCtx_ {
 
     SC_ATOMIC_DECLARE(int, so_far_used_by_detect);
 
-    /* holds the current recursion depth on content inspection */
-    int inspection_recursion_counter;
-
     /** array of signature pointers we're going to inspect in the detection
      *  loop. */
     Signature **match_array;
