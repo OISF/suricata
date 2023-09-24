@@ -66,6 +66,17 @@
 #include "util-lua.h"
 #endif
 
+#ifdef UNITTESTS
+thread_local uint32_t ut_inspection_recursion_counter = 0;
+#endif
+
+struct DetectEngineContentInspectionCtx {
+    struct {
+        uint32_t count;
+        const uint32_t limit;
+    } recursion;
+};
+
 /**
  * \brief Run the actual payload match functions
  *
@@ -74,7 +85,6 @@
  * For accounting the last match in relative matching the
  * det_ctx->buffer_offset int is used.
  *
- * \param de_ctx          Detection engine context
  * \param det_ctx         Detection engine thread context
  * \param s               Signature to inspect
  * \param sm              SigMatch to inspect
@@ -95,18 +105,17 @@
  *  \retval 0 no match
  *  \retval 1 match
  */
-static int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatchData *smd, Packet *p,
-        Flow *f, const uint8_t *buffer, const uint32_t buffer_len,
+static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
+        struct DetectEngineContentInspectionCtx *ctx, const Signature *s, const SigMatchData *smd,
+        Packet *p, Flow *f, const uint8_t *buffer, const uint32_t buffer_len,
         const uint32_t stream_start_offset, const uint8_t flags,
         const enum DetectContentInspectionType inspection_mode)
 {
     SCEnter();
     KEYWORD_PROFILING_START;
 
-    det_ctx->inspection_recursion_counter++;
-
-    if (unlikely(det_ctx->inspection_recursion_counter == de_ctx->inspection_recursion_limit)) {
+    ctx->recursion.count++;
+    if (unlikely(ctx->recursion.count == ctx->recursion.limit)) {
         KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
         SCReturnInt(-1);
     }
@@ -349,9 +358,8 @@ static int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx,
                         /* see if the next buffer keywords match. If not, we will
                          * search for another occurrence of this content and see
                          * if the others match then until we run out of matches */
-                        int r = DetectEngineContentInspectionInternal(de_ctx, det_ctx, s, smd + 1,
-                                p, f, buffer, buffer_len, stream_start_offset, flags,
-                                inspection_mode);
+                        int r = DetectEngineContentInspectionInternal(det_ctx, ctx, s, smd + 1, p,
+                                f, buffer, buffer_len, stream_start_offset, flags, inspection_mode);
                         if (r == 1) {
                             SCReturnInt(1);
                         } else if (r == -1) {
@@ -448,7 +456,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx,
             /* see if the next payload keywords match. If not, we will
              * search for another occurrence of this pcre and see
              * if the others match, until we run out of matches */
-            r = DetectEngineContentInspectionInternal(de_ctx, det_ctx, s, smd + 1, p, f, buffer,
+            r = DetectEngineContentInspectionInternal(det_ctx, ctx, s, smd + 1, p, f, buffer,
                     buffer_len, stream_start_offset, flags, inspection_mode);
             if (r == 1) {
                 SCReturnInt(1);
@@ -654,7 +662,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx,
             if (s->sm_arrays[DETECT_SM_LIST_BASE64_DATA] != NULL) {
                 if (det_ctx->base64_decoded_len) {
                     KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-                    int r = DetectEngineContentInspectionInternal(de_ctx, det_ctx, s,
+                    int r = DetectEngineContentInspectionInternal(det_ctx, ctx, s,
                             s->sm_arrays[DETECT_SM_LIST_BASE64_DATA], NULL, f,
                             det_ctx->base64_decoded, det_ctx->base64_decoded_len, 0,
                             DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
@@ -692,7 +700,7 @@ match:
      * the buffer portion of the signature matched. */
     if (!smd->is_last) {
         KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-        int r = DetectEngineContentInspectionInternal(de_ctx, det_ctx, s, smd + 1, p, f, buffer,
+        int r = DetectEngineContentInspectionInternal(det_ctx, ctx, s, smd + 1, p, f, buffer,
                 buffer_len, stream_start_offset, flags, inspection_mode);
         SCReturnInt(r);
     }
@@ -710,11 +718,15 @@ bool DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCt
         const uint32_t buffer_len, const uint32_t stream_start_offset, const uint8_t flags,
         const enum DetectContentInspectionType inspection_mode)
 {
+    struct DetectEngineContentInspectionCtx ctx = { .recursion.count = 0,
+        .recursion.limit = de_ctx->inspection_recursion_limit };
     det_ctx->buffer_offset = 0;
-    det_ctx->inspection_recursion_counter = 0;
 
-    int r = DetectEngineContentInspectionInternal(de_ctx, det_ctx, s, smd, p, f, buffer, buffer_len,
+    int r = DetectEngineContentInspectionInternal(det_ctx, &ctx, s, smd, p, f, buffer, buffer_len,
             stream_start_offset, flags, inspection_mode);
+#ifdef UNITTESTS
+    ut_inspection_recursion_counter = ctx.recursion.count;
+#endif
     if (r == 1)
         return true;
     else
@@ -729,11 +741,16 @@ bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineTh
         const Signature *s, const SigMatchData *smd, Packet *p, Flow *f, const InspectionBuffer *b,
         const enum DetectContentInspectionType inspection_mode)
 {
-    det_ctx->buffer_offset = 0;
-    det_ctx->inspection_recursion_counter = 0;
+    struct DetectEngineContentInspectionCtx ctx = { .recursion.count = 0,
+        .recursion.limit = de_ctx->inspection_recursion_limit };
 
-    int r = DetectEngineContentInspectionInternal(de_ctx, det_ctx, s, smd, p, f, b->inspect,
+    det_ctx->buffer_offset = 0;
+
+    int r = DetectEngineContentInspectionInternal(det_ctx, &ctx, s, smd, p, f, b->inspect,
             b->inspect_len, b->inspect_offset, b->flags, inspection_mode);
+#ifdef UNITTESTS
+    ut_inspection_recursion_counter = ctx.recursion.count;
+#endif
     if (r == 1)
         return true;
     else
