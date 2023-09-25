@@ -408,23 +408,34 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 SCLogDebug("det_ctx->buffer_offset + dataat %"PRIu32" > %"PRIu32, det_ctx->buffer_offset + dataat, buffer_len);
                 if (id->flags & ISDATAAT_NEGATED)
                     goto match;
+                if ((id->flags & ISDATAAT_OFFSET_VAR) == 0) {
+                    goto no_match_discontinue;
+                }
                 goto no_match;
             } else {
                 SCLogDebug("relative isdataat match");
-                if (id->flags & ISDATAAT_NEGATED)
+                if (id->flags & ISDATAAT_NEGATED) {
                     goto no_match;
+                }
                 goto match;
             }
         } else {
             if (dataat < buffer_len) {
                 SCLogDebug("absolute isdataat match");
-                if (id->flags & ISDATAAT_NEGATED)
+                if (id->flags & ISDATAAT_NEGATED) {
+                    if ((id->flags & ISDATAAT_OFFSET_VAR) == 0) {
+                        goto no_match_discontinue;
+                    }
                     goto no_match;
+                }
                 goto match;
             } else {
                 SCLogDebug("absolute isdataat mismatch, id->isdataat %"PRIu32", buffer_len %"PRIu32"", dataat, buffer_len);
                 if (id->flags & ISDATAAT_NEGATED)
                     goto match;
+                if ((id->flags & ISDATAAT_OFFSET_VAR) == 0) {
+                    goto no_match_discontinue;
+                }
                 goto no_match;
             }
         }
