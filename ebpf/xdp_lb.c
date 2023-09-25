@@ -35,7 +35,7 @@
 
 #include "hash_func01.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 #define INLINE __always_inline __attribute__((always_inline))
 
@@ -44,6 +44,13 @@
         char fmt[] = fmt_str; \
         bpf_trace_printk(fmt, sizeof(fmt), args); \
     }
+
+#define DPRINTF_ALWAYS(fmt_str, args...) \
+    { \
+        char fmt[] = fmt_str; \
+        bpf_trace_printk(fmt, sizeof(fmt), args); \
+    }
+
 
 #define LINUX_VERSION_CODE 263682
 
@@ -139,17 +146,19 @@ static int INLINE hash_ipv4(void *data, void *data_end)
         return XDP_PASS;
     }
 
+    void* layer4 = data + (iph->ihl << 2);
+
     __u32 key0 = 0;
     __u32 cpu_dest;
     __u32 *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
     __u32 *cpu_selected;
 
-    int dport = get_dport(iph + 1, data_end, iph->protocol);
+    int dport = get_dport(layer4, data_end, iph->protocol);
     if (dport == -1) {
         return XDP_PASS;
     }
 
-    int sport = get_sport(iph + 1, data_end, iph->protocol);
+    int sport = get_sport(layer4, data_end, iph->protocol);
     if (sport == -1) {
         return XDP_PASS;
     }
@@ -241,15 +250,16 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
         __be16 proto;
     };
 
-    // TODO: use length from IP header
-    nh_off += sizeof(struct iphdr);
-    struct gre_hdr *grhdr = (struct gre_hdr *)(iph + 1);
+    nh_off += iph->ihl << 2;
+    struct gre_hdr *grhdr = (struct gre_hdr *)(data + nh_off);
 
     if ((void *)(grhdr + 1) > data_end) {
+        DPRINTF_ALWAYS("malformed gre %d", __LINE__);
         return XDP_PASS;
     }
 
     if (grhdr->flags & (GRE_VERSION|GRE_ROUTING)) {
+        DPRINTF_ALWAYS("malformed gre %d", __LINE__);
         return XDP_PASS;
     }
 
@@ -271,10 +281,12 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
     }
 
     if (data + nh_off > data_end) {
+        DPRINTF_ALWAYS("malformed gre %d", __LINE__);
         return XDP_PASS;
     }
 
     if (bpf_xdp_adjust_head(ctx, 0 + nh_off)) {
+        DPRINTF_ALWAYS("malformed gre %d", __LINE__);
         return XDP_PASS;
     }
 
@@ -288,12 +300,14 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
     nh_off = sizeof(*eth);
 
     if (data + nh_off > data_end) {
+        DPRINTF_ALWAYS("malformed gre %d", __LINE__);
         return XDP_PASS;
     }
 
     if (proto == __constant_htons(ETH_P_8021Q)) {
         struct vlan_hdr *vhdr = (struct vlan_hdr *)(data);
         if ((void *)(vhdr + 1) > data_end) {
+            DPRINTF_ALWAYS("malformed gre %d", __LINE__);
             return XDP_PASS;
         }
         proto = vhdr->h_vlan_encapsulated_proto;
@@ -305,7 +319,7 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
     } else if (proto == __constant_htons(ETH_P_IPV6)) {
         return hash_ipv6(data + nh_off, data_end);
     } else {
-        DPRINTF("GRE unknown inner proto %d\n", ntohs(proto));
+        DPRINTF_ALWAYS("GRE unknown inner proto %d\n", ntohs(proto));
         return XDP_PASS;
     }
 }
