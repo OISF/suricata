@@ -31,6 +31,7 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
+#include "detect-asn1.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-isdataat.h"
@@ -656,6 +657,13 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
                 }
             }
         }
+    } else if (smd->type == DETECT_ASN1) {
+        if (!DetectAsn1Match(smd, buffer, buffer_len, det_ctx->buffer_offset)) {
+            SCLogDebug("asn1 no_match");
+            goto no_match;
+        }
+        SCLogDebug("asn1 match");
+        goto match;
     } else {
         SCLogDebug("sm->type %u", smd->type);
 #ifdef DEBUG
