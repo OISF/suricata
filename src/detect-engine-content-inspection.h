@@ -54,7 +54,8 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
 /* implicit "public" just returns true match, false no match */
 bool DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd, Packet *p, Flow *f, const uint8_t *buffer,
-        uint32_t buffer_len, uint32_t stream_start_offset, uint8_t flags, uint8_t inspection_mode);
+        const uint32_t buffer_len, const uint32_t stream_start_offset, const uint8_t flags,
+        const uint8_t inspection_mode);
 
 void DetectEngineContentInspectionRegisterTests(void);
 
