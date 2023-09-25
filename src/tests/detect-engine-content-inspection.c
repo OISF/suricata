@@ -143,6 +143,10 @@ static int DetectEngineContentInspectionTest06(void) {
     // 6 steps: (1) a, (2) 1st b, (3) c not found, (4) 2nd b, (5) c found, isdataat
     TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; within:1; isdataat:!1,relative;", true, 5);
     TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; within:1; isdataat:1,relative;", false, 6);
+    TEST_RUN("abcabc", 6,
+            "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; "
+            "within:1; isdataat:10,relative;",
+            false, 4);
 
     TEST_RUN("ababcabc", 8, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; within:1; isdataat:!1,relative;", true, 7);
     TEST_RUN("ababcabc", 8, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; within:1; isdataat:1,relative;", true, 6);
@@ -228,6 +232,11 @@ static int DetectEngineContentInspectionTest10(void) {
     TEST_RUN("x9x9abcdefghi", 13, "content:\"x\"; byte_extract:1,0,data_size,string,relative; isdataat:data_size,relative;", true, 3);
     TEST_RUN("x9x9abcdefgh", 12, "content:\"x\"; byte_extract:1,0,data_size,string,relative; isdataat:!data_size,relative;", true, 5);
     TEST_RUN("x9x9abcdefgh", 12, "content:\"x\"; depth:1; byte_extract:1,0,data_size,string,relative; isdataat:!data_size,relative;", false, 3);
+    /* first isdataat should fail, second succeed */
+    TEST_RUN("x9x5abcdef", 10,
+            "content:\"x\"; byte_extract:1,0,data_size,string,relative; "
+            "isdataat:data_size,relative;",
+            true, 5);
     /* check for super high extracted values */
     TEST_RUN("100000000abcdefghi", 18, "byte_extract:0,0,data_size,string; isdataat:data_size;", false, 2);
     TEST_RUN("100000000abcdefghi", 18, "byte_extract:0,0,data_size,string; isdataat:!data_size;", true, 2);
