@@ -36,8 +36,6 @@
 #include "util-byte.h"
 #include "util-debug.h"
 
-static int DetectAsn1Match(DetectEngineThreadCtx *, Packet *,
-                     const Signature *, const SigMatchCtx *);
 static int DetectAsn1Setup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectAsn1RegisterTests(void);
@@ -50,7 +48,6 @@ static void DetectAsn1Free(DetectEngineCtx *, void *);
 void DetectAsn1Register(void)
 {
     sigmatch_table[DETECT_ASN1].name = "asn1";
-    sigmatch_table[DETECT_ASN1].Match = DetectAsn1Match;
     sigmatch_table[DETECT_ASN1].Setup = DetectAsn1Setup;
     sigmatch_table[DETECT_ASN1].Free  = DetectAsn1Free;
 #ifdef UNITTESTS
@@ -58,37 +55,14 @@ void DetectAsn1Register(void)
 #endif
 }
 
-/**
- * \brief This function will decode the asn1 data and inspect the resulting
- *        nodes to detect if any of the specified checks match this data
- *
- * \param det_ctx pointer to the detect engine thread context
- * \param p pointer to the current packet
- * \param s pointer to the signature
- * \param ctx pointer to the sigmatch that we will cast into `DetectAsn1Data`
- *
- * \retval 1 match
- * \retval 0 no match
- */
-static int DetectAsn1Match(DetectEngineThreadCtx *det_ctx, Packet *p,
-                    const Signature *s, const SigMatchCtx *ctx)
+bool DetectAsn1Match(const SigMatchData *smd, const uint8_t *buffer, const uint32_t buffer_len,
+        const uint32_t offset)
 {
-    uint8_t ret = 0;
-
-    if (p->payload_len == 0) {
-        /* No error, parser done, no data in bounds to decode */
-        return 0;
-    }
-
-    const DetectAsn1Data *ad = (const DetectAsn1Data *)ctx;
-
-    Asn1 *asn1 = rs_asn1_decode(p->payload, p->payload_len, det_ctx->buffer_offset, ad);
-
-    ret = rs_asn1_checks(asn1, ad);
-
+    const DetectAsn1Data *ad = (const DetectAsn1Data *)smd->ctx;
+    Asn1 *asn1 = rs_asn1_decode(buffer, buffer_len, offset, ad);
+    uint8_t ret = rs_asn1_checks(asn1, ad);
     rs_asn1_free(asn1);
-
-    return ret;
+    return ret == 1;
 }
 
 /**
@@ -127,12 +101,13 @@ static int DetectAsn1Setup(DetectEngineCtx *de_ctx, Signature *s, const char *as
     if (ad == NULL)
         return -1;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ASN1, (SigMatchCtx *)ad, DETECT_SM_LIST_MATCH) ==
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ASN1, (SigMatchCtx *)ad, DETECT_SM_LIST_PMATCH) ==
             NULL) {
         DetectAsn1Free(de_ctx, ad);
         return -1;
     }
 
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
     return 0;
 }
 
