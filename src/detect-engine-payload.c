@@ -161,8 +161,6 @@ uint8_t DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx, DetectEngineTh
     det_ctx->payload_persig_cnt++;
     det_ctx->payload_persig_size += p->payload_len;
 #endif
-    det_ctx->replist = NULL;
-
     const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s,
             s->sm_arrays[DETECT_SM_LIST_PMATCH], p, f, p->payload, p->payload_len, 0,
             DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD);
@@ -198,8 +196,6 @@ static uint8_t DetectEngineInspectStreamUDPPayload(DetectEngineCtx *de_ctx,
     det_ctx->payload_persig_cnt++;
     det_ctx->payload_persig_size += p->payload_len;
 #endif
-    det_ctx->replist = NULL;
-
     const bool match =
             DetectEngineContentInspection(de_ctx, det_ctx, s, smd, p, f, p->payload, p->payload_len,
                     0, DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD);
