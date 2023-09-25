@@ -2561,23 +2561,22 @@ end:
  */
 static int UriTestSig27(void)
 {
-    int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /we_need_to_fix_this_and_yes_fix_this_now HTTP/1.0\r\n"
         "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
-    HtpState *http_state = NULL;
-    Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
-    p = UTHBuildPacket(http_buf, http_buf_len, IPPROTO_TCP);
+    Packet *p = UTHBuildPacket(http_buf, http_buf_len, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -2593,94 +2592,36 @@ static int UriTestSig27(void)
     StreamTcpInitConfig(true);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"fix_this\"; isdataat:!10,relative; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any ("
+            "uricontent:\"fix_this\"; isdataat:!10,relative; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf, http_buf_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
-
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NULL(f.alstate);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1)) {
-        printf("sig 1 didn't alert, but it should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+    PASS;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 static int UriTestSig28(void)
 {
