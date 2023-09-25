@@ -133,13 +133,12 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
 
         /* search for our pattern, checking the matches recursively.
          * if we match we look for the next SigMatch as well */
-        const uint8_t *found = NULL;
-        uint32_t offset = 0;
-        uint32_t depth = buffer_len;
         uint32_t prev_offset = 0; /**< used in recursive searching */
         uint32_t prev_buffer_offset = det_ctx->buffer_offset;
 
         do {
+            uint32_t depth = buffer_len;
+            uint32_t offset = 0;
             if ((cd->flags & DETECT_CONTENT_DISTANCE) ||
                 (cd->flags & DETECT_CONTENT_WITHIN)) {
                 SCLogDebug("det_ctx->buffer_offset %" PRIu32, det_ctx->buffer_offset);
@@ -270,6 +269,7 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
 #ifdef DEBUG
             BUG_ON(sbuffer_len > buffer_len);
 #endif
+            const uint8_t *found;
             if (cd->flags & DETECT_CONTENT_ENDS_WITH && depth < buffer_len) {
                 SCLogDebug("depth < buffer_len while DETECT_CONTENT_ENDS_WITH is set. Can't possibly match.");
                 found = NULL;
