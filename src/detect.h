@@ -1112,6 +1112,17 @@ typedef struct DetectEngineThreadCtx_ {
      *  points to 1 byte after the start of the last pcre match if a pcre match happened. */
     uint32_t pcre_match_start_offset;
 
+    /** SPM thread context used for scanning. This has been cloned from the
+     * prototype held by DetectEngineCtx. */
+    SpmThreadCtx *spm_thread_ctx;
+
+    /* byte_* values */
+    uint64_t *byte_values;
+
+    uint8_t *base64_decoded;
+    int base64_decoded_len;
+    int base64_decoded_len_max;
+
     /* counter for the filestore array below -- up here for cache reasons. */
     uint16_t filestore_cnt;
 
@@ -1177,13 +1188,6 @@ typedef struct DetectEngineThreadCtx_ {
     MpmThreadCtx mtc; /**< thread ctx for the mpm */
     PrefilterRuleStore pmq;
 
-    /** SPM thread context used for scanning. This has been cloned from the
-     * prototype held by DetectEngineCtx. */
-    SpmThreadCtx *spm_thread_ctx;
-
-    /* byte_* values */
-    uint64_t *byte_values;
-
     /* string to replace */
     DetectReplaceList *replist;
     /* vars to store in post match function */
@@ -1204,10 +1208,6 @@ typedef struct DetectEngineThreadCtx_ {
     /** store for keyword contexts that need a per thread storage. Global. */
     int global_keyword_ctxs_size;
     void **global_keyword_ctxs_array;
-
-    uint8_t *base64_decoded;
-    int base64_decoded_len;
-    int base64_decoded_len_max;
 
     AppLayerDecoderEvents *decoder_events;
     uint16_t events;
