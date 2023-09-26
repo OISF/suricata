@@ -437,7 +437,7 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
 
     } else if (smd->type == DETECT_PCRE) {
         SCLogDebug("inspecting pcre");
-        DetectPcreData *pe = (DetectPcreData *)smd->ctx;
+        const DetectPcreData *pe = (const DetectPcreData *)smd->ctx;
         uint32_t prev_buffer_offset = det_ctx->buffer_offset;
         uint32_t prev_offset = 0;
 
@@ -473,7 +473,7 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
         } while (1);
 
     } else if (smd->type == DETECT_BYTETEST) {
-        DetectBytetestData *btd = (DetectBytetestData *)smd->ctx;
+        const DetectBytetestData *btd = (const DetectBytetestData *)smd->ctx;
         uint16_t btflags = btd->flags;
         int32_t offset = btd->offset;
         uint64_t value = btd->value;
@@ -505,7 +505,7 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
         goto match;
 
     } else if (smd->type == DETECT_BYTEJUMP) {
-        DetectBytejumpData *bjd = (DetectBytejumpData *)smd->ctx;
+        const DetectBytejumpData *bjd = (const DetectBytejumpData *)smd->ctx;
         uint16_t bjflags = bjd->flags;
         int32_t offset = bjd->offset;
         int32_t nbytes;
@@ -538,7 +538,7 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
 
     } else if (smd->type == DETECT_BYTE_EXTRACT) {
 
-        DetectByteExtractData *bed = (DetectByteExtractData *)smd->ctx;
+        const DetectByteExtractData *bed = (const DetectByteExtractData *)smd->ctx;
         uint8_t endian = bed->endian;
 
         /* if we have dce enabled we will have to use the endianness
@@ -602,7 +602,7 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
 
     } else if (smd->type == DETECT_BSIZE) {
 
-        bool eof = (flags & DETECT_CI_FLAGS_END);
+        const bool eof = (flags & DETECT_CI_FLAGS_END);
         const uint64_t data_size = buffer_len + stream_start_offset;
         int r = DetectBsizeMatch(smd->ctx, data_size, eof);
         if (r < 0) {
@@ -635,8 +635,8 @@ int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineT
     } else if (smd->type == DETECT_AL_URILEN) {
         SCLogDebug("inspecting uri len");
 
-        int r = 0;
-        DetectUrilenData *urilend = (DetectUrilenData *) smd->ctx;
+        int r;
+        const DetectUrilenData *urilend = (const DetectUrilenData *)smd->ctx;
         if (buffer_len > UINT16_MAX) {
             r = DetectU16Match(UINT16_MAX, &urilend->du16);
         } else {
