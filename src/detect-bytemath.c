@@ -29,20 +29,22 @@
 #include "threads.h"
 #include "decode.h"
 
+#include "app-layer-parser.h"
+#include "app-layer-protos.h"
+
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 #include "detect-engine-build.h"
+
+#include "rust-bindings.h"
+
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-byte.h"
 #include "detect-bytemath.h"
-
-#include "app-layer-parser.h"
-#include "app-layer-protos.h"
-#include "rust-bindings.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -82,11 +84,10 @@ static inline bool DetectByteMathValidateNbytesOnly(const DetectByteMathData *da
            (((data->flags & DETECT_BYTEMATH_FLAG_STRING) && nbytes <= 10) || (nbytes <= 4));
 }
 
-int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *smd,
+int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const DetectByteMathData *data,
         const Signature *s, const uint8_t *payload, uint16_t payload_len, uint8_t nbytes,
         uint64_t rvalue, uint64_t *value, uint8_t endian)
 {
-    const DetectByteMathData *data = (DetectByteMathData *)smd->ctx;
     if (payload_len == 0) {
         return 0;
     }

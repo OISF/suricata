@@ -25,12 +25,14 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-
 #include "decode.h"
 
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
+
+#include "rust.h"
+
 #include "detect-asn1.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
@@ -59,8 +61,6 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-profiling.h"
-
-#include "rust.h"
 
 #ifdef HAVE_LUA
 #include "util-lua.h"
@@ -569,17 +569,16 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
     } else if (smd->type == DETECT_BYTEMATH) {
 
-        DetectByteMathData *bmd = (DetectByteMathData *)smd->ctx;
+        const DetectByteMathData *bmd = (const DetectByteMathData *)smd->ctx;
         uint8_t endian = bmd->endian;
 
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
         if ((bmd->flags & DETECT_BYTEMATH_FLAG_ENDIAN) && endian == (int)EndianDCE &&
                 flags & (DETECT_CI_FLAGS_DCE_LE | DETECT_CI_FLAGS_DCE_BE)) {
-
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            endian |= (uint8_t)((flags & DETECT_CI_FLAGS_DCE_LE) ? LittleEndian : BigEndian);
+            endian = (uint8_t)((flags & DETECT_CI_FLAGS_DCE_LE) ? LittleEndian : BigEndian);
         }
         uint64_t rvalue;
         if (bmd->flags & DETECT_BYTEMATH_FLAG_RVALUE_VAR) {
@@ -596,7 +595,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         }
 
         DEBUG_VALIDATE_BUG_ON(buffer_len > UINT16_MAX);
-        if (DetectByteMathDoMatch(det_ctx, smd, s, buffer, (uint16_t)buffer_len, nbytes, rvalue,
+        if (DetectByteMathDoMatch(det_ctx, bmd, s, buffer, (uint16_t)buffer_len, nbytes, rvalue,
                     &det_ctx->byte_values[bmd->local_id], endian) != 1) {
             goto no_match;
         }
