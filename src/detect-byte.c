@@ -22,10 +22,11 @@
  */
 
 #include "suricata-common.h"
+#include "rust.h"
 #include "detect-byte.h"
 #include "detect-byte-extract.h"
 #include "detect-bytemath.h"
-#include "rust.h"
+
 /**
  * \brief Used to retrieve args from BM.
  *
