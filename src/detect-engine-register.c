@@ -43,6 +43,8 @@
 #include "detect-engine-threshold.h"
 #include "detect-engine-prefilter.h"
 
+#include "rust.h"
+
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
 #include "detect-dns-opcode.h"
