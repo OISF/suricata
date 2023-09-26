@@ -949,6 +949,10 @@ static int JsonAlertLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 
 static int JsonAlertLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
 {
+    if (PKT_IS_PSEUDOPKT(p)) {
+        JsonAlertLogThread *aft = thread_data;
+        LogFileFlush(aft->json_output_ctx->file_ctx);
+    }
     if (p->alerts.cnt || (p->flags & PKT_HAS_TAG)) {
         return TRUE;
     }
