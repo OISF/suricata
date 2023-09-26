@@ -1082,6 +1082,8 @@ typedef struct DetectEngineThreadCtx_ {
      *        on this being the first member */
     uint32_t tenant_id;
 
+    SC_ATOMIC_DECLARE(int, so_far_used_by_detect);
+
     /* the thread to which this detection engine thread belongs */
     ThreadVars *tv;
 
@@ -1156,8 +1158,6 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t alert_queue_size;
     uint16_t alert_queue_capacity;
     PacketAlert *alert_queue;
-
-    SC_ATOMIC_DECLARE(int, so_far_used_by_detect);
 
     /** array of signature pointers we're going to inspect in the detection
      *  loop. */
