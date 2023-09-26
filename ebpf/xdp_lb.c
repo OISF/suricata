@@ -37,6 +37,11 @@
 
 #define DEBUG 0
 
+/* Both are required in order to ensure *everything* is inlined.  The kernel version that 
+ * we're using doesn't support calling functions in XDP, so it must appear as a single function.
+ * Kernel 4.16+ support function calls:
+ * https://stackoverflow.com/questions/70529753/clang-bpf-attribute-always-inline-does-not-working
+ */
 #define INLINE __always_inline __attribute__((always_inline))
 
 #define DPRINTF(fmt_str, args...) \
@@ -51,6 +56,13 @@
         bpf_trace_printk(fmt, sizeof(fmt), args); \
     }
 
+#ifndef CTX_GET_DATA
+#define CTX_GET_DATA(ctx) (void*)(long)ctx->data
+#endif
+
+#ifndef CTX_GET_DATA_END
+#define CTX_GET_DATA_END(ctx) (void*)(long)ctx->data_end
+#endif
 
 #define LINUX_VERSION_CODE 263682
 
@@ -290,8 +302,8 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
         return XDP_PASS;
     }
 
-    data = (void *)(long)ctx->data;
-    data_end = (void *)(long)ctx->data_end;
+    data = CTX_GET_DATA(ctx);
+    data_end = CTX_GET_DATA_END(ctx);
 
     /* we have new data starting at Ethernet header */
     struct ethhdr *eth = data;
@@ -345,13 +357,13 @@ static int INLINE filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_off, void
 
 int SEC("xdp") xdp_loadfilter(struct xdp_md *ctx)
 {
-    void *data_end = (void *)(long)ctx->data_end;
-    void *data = (void *)(long)ctx->data;
+    void *data_end = CTX_GET_DATA_END(ctx);
+    void *data = CTX_GET_DATA(ctx);
     struct ethhdr *eth = data;
     __u16 h_proto;
     __u64 nh_off;
 
-    DPRINTF("Packet %d len\n", (int)(ctx->data_end - ctx->data));
+    DPRINTF("Packet %d len\n", (int)(data_end - data));
 
     nh_off = sizeof(*eth); 
     if (data + nh_off > data_end) {
