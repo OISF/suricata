@@ -32,10 +32,15 @@ pub const AES128_IV_LEN: usize = 12;
 pub struct HeaderProtectionKey(Aes128);
 
 impl HeaderProtectionKey {
-    fn new(secret: &[u8]) -> Self {
+    fn new(secret: &[u8], version: u32) -> Self {
         let hk = Hkdf::<Sha256>::from_prk(secret).unwrap();
         let mut secret = [0u8; AES128_KEY_LEN];
-        hkdf_expand_label(&hk, b"quic hp", &mut secret, AES128_KEY_LEN as u16);
+        let quichp = if version == 0x6b3343cf {
+            b"quicv2 hp" as &[u8]
+        } else {
+            b"quic hp" as &[u8]
+        };
+        hkdf_expand_label(&hk, quichp, &mut secret, AES128_KEY_LEN as u16);
         return Self(Aes128::new(GenericArray::from_slice(&secret)));
     }
 
@@ -70,17 +75,27 @@ pub struct PacketKey {
 }
 
 impl PacketKey {
-    fn new(secret: &[u8]) -> Self {
+    fn new(secret: &[u8], version: u32) -> Self {
         let hk = Hkdf::<Sha256>::from_prk(secret).unwrap();
         let mut secret = [0u8; AES128_KEY_LEN];
-        hkdf_expand_label(&hk, b"quic key", &mut secret, AES128_KEY_LEN as u16);
+        let quickey = if version == 0x6b3343cf {
+            b"quicv2 key" as &[u8]
+        } else {
+            b"quic key" as &[u8]
+        };
+        hkdf_expand_label(&hk, quickey, &mut secret, AES128_KEY_LEN as u16);
         let key = Aes128Gcm::new(GenericArray::from_slice(&secret));
 
         let mut r = PacketKey {
             key,
             iv: [0u8; AES128_IV_LEN],
         };
-        hkdf_expand_label(&hk, b"quic iv", &mut r.iv, AES128_IV_LEN as u16);
+        let quiciv = if version == 0x6b3343cf {
+            b"quicv2 iv" as &[u8]
+        } else {
+            b"quic iv" as &[u8]
+        };
+        hkdf_expand_label(&hk, quiciv, &mut r.iv, AES128_IV_LEN as u16);
         return r;
     }
 
@@ -111,10 +126,10 @@ pub struct DirectionalKeys {
 }
 
 impl DirectionalKeys {
-    fn new(secret: &[u8]) -> Self {
+    fn new(secret: &[u8], version: u32) -> Self {
         Self {
-            header: HeaderProtectionKey::new(secret),
-            packet: PacketKey::new(secret),
+            header: HeaderProtectionKey::new(secret, version),
+            packet: PacketKey::new(secret, version),
         }
     }
 }
@@ -163,6 +178,11 @@ pub fn quic_keys_initial(version: u32, client_dst_connection_id: &[u8]) -> Optio
             0x38, 0x76, 0x2c, 0xf7, 0xf5, 0x59, 0x34, 0xb3, 0x4d, 0x17, 0x9a, 0xe6, 0xa4, 0xc8,
             0x0c, 0xad, 0xcc, 0xbb, 0x7f, 0x0a,
         ],
+        0x6b3343cf => &[
+            // https://www.rfc-editor.org/rfc/rfc9369.html#section-3.3.1
+            0x0d, 0xed, 0xe3, 0xde, 0xf7, 0x00, 0xa6, 0xdb, 0x81, 0x93, 0x81, 0xbe, 0x6e, 0x26,
+            0x9d, 0xcb, 0xf9, 0xbd, 0x2e, 0xd9,
+        ],
         _ => {
             return None;
         }
@@ -174,7 +194,7 @@ pub fn quic_keys_initial(version: u32, client_dst_connection_id: &[u8]) -> Optio
     hkdf_expand_label(&hk, b"server in", &mut server_secret, 32);
 
     return Some(QuicKeys {
-        local: DirectionalKeys::new(&server_secret),
-        remote: DirectionalKeys::new(&client_secret),
+        local: DirectionalKeys::new(&server_secret, version),
+        remote: DirectionalKeys::new(&client_secret, version),
     });
 }

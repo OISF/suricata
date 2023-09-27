@@ -44,6 +44,7 @@ impl QuicVersion {
     pub const Q044: QuicVersion = QuicVersion(0x51303434);
     pub const Q045: QuicVersion = QuicVersion(0x51303435);
     pub const Q046: QuicVersion = QuicVersion(0x51303436);
+    pub const V2: QuicVersion = QuicVersion(0x6b3343cf);
 
     fn is_gquic(&self) -> bool {
         *self == QuicVersion::Q043
@@ -61,6 +62,7 @@ impl From<QuicVersion> for String {
             QuicVersion(0x51303434) => "Q044".to_string(),
             QuicVersion(0x51303435) => "Q045".to_string(),
             QuicVersion(0x51303436) => "Q046".to_string(),
+            QuicVersion(0x6b3343cf) => "v2".to_string(),
             QuicVersion(x) => format!("{:x}", x),
         }
     }
@@ -286,7 +288,18 @@ impl QuicHeader {
                             return Err(nom7::Err::Error(QuicError::InvalidPacket));
                         }
                     }
+                } else if version == QuicVersion::V2 {
+                    match (first & 0x30) >> 4 {
+                        0x01 => QuicType::Initial,
+                        0x02 => QuicType::ZeroRTT,
+                        0x03 => QuicType::Handshake,
+                        0x00 => QuicType::Retry,
+                        _ => {
+                            return Err(nom7::Err::Error(QuicError::InvalidPacket));
+                        }
+                    }
                 } else {
+                    //if version == QuicVersion(1)
                     match (first & 0x30) >> 4 {
                         0x00 => QuicType::Initial,
                         0x01 => QuicType::ZeroRTT,
