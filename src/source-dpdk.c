@@ -93,6 +93,13 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #define BURST_SIZE 32
 static struct timeval machine_start_time = { 0, 0 };
+// interrupt mode constants
+#define MIN_ZERO_POLL_COUNT          10U
+#define MIN_ZERO_POLL_COUNT_TO_SLEEP 10U
+#define MINIMUM_SLEEP_TIME_US        1U
+#define STANDARD_SLEEP_TIME_US       100U
+#define MAX_EPOLL_TIMEOUT_MS         500U
+static rte_spinlock_t intr_lock[RTE_MAX_ETHPORTS];
 
 /**
  * \brief Structure to hold thread specific variables.
@@ -104,6 +111,7 @@ typedef struct DPDKThreadVars_ {
     TmSlot *slot;
     LiveDevice *livedev;
     ChecksumValidationMode checksum_mode;
+    bool intr_enabled;
     /* references to packet and drop counters */
     uint16_t capture_dpdk_packets;
     uint16_t capture_dpdk_rx_errs;
@@ -141,6 +149,40 @@ static uint64_t CyclesToMicroseconds(uint64_t cycles);
 static uint64_t CyclesToSeconds(uint64_t cycles);
 static void DPDKFreeMbufArray(struct rte_mbuf **mbuf_array, uint16_t mbuf_cnt, uint16_t offset);
 static uint64_t DPDKGetSeconds(void);
+
+static bool InterruptsRXEnable(uint16_t port_id, uint16_t queue_id)
+{
+    uint32_t event_data = port_id << UINT16_WIDTH | queue_id;
+    int32_t ret = rte_eth_dev_rx_intr_ctl_q(port_id, queue_id, RTE_EPOLL_PER_THREAD,
+            RTE_INTR_EVENT_ADD, (void *)((uintptr_t)event_data));
+
+    if (ret != 0) {
+        SCLogError("%s-Q%d: failed to enable interrupt mode: %s", DPDKGetPortNameByPortID(port_id),
+                queue_id, rte_strerror(-ret));
+        return false;
+    }
+    return true;
+}
+
+static inline uint32_t InterruptsSleepHeuristic(uint32_t no_pkt_polls_count)
+{
+    if (no_pkt_polls_count < MIN_ZERO_POLL_COUNT_TO_SLEEP)
+        return MINIMUM_SLEEP_TIME_US;
+
+    return STANDARD_SLEEP_TIME_US;
+}
+
+static inline void InterruptsTurnOnOff(uint16_t port_id, uint16_t queue_id, bool on)
+{
+    rte_spinlock_lock(&(intr_lock[port_id]));
+
+    if (on)
+        rte_eth_dev_rx_intr_enable(port_id, queue_id);
+    else
+        rte_eth_dev_rx_intr_disable(port_id, queue_id);
+
+    rte_spinlock_unlock(&(intr_lock[port_id]));
+}
 
 static void DPDKFreeMbufArray(struct rte_mbuf **mbuf_array, uint16_t mbuf_cnt, uint16_t offset)
 {
@@ -377,6 +419,11 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
 
     rte_eth_stats_reset(ptv->port_id);
     rte_eth_xstats_reset(ptv->port_id);
+
+    uint32_t pwd_zero_rx_packet_polls_count = 0;
+    if (ptv->intr_enabled && !InterruptsRXEnable(ptv->port_id, ptv->queue_id))
+        SCReturnInt(TM_ECODE_FAILED);
+
     while (1) {
         if (unlikely(suricata_ctl_flags != 0)) {
             SCLogDebug("Stopping Suricata!");
@@ -398,7 +445,27 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
                 TmThreadsCaptureHandleTimeout(tv, NULL);
                 last_timeout_msec = msecs;
             }
-            continue;
+
+            if (!ptv->intr_enabled)
+                continue;
+
+            pwd_zero_rx_packet_polls_count++;
+            if (pwd_zero_rx_packet_polls_count <= MIN_ZERO_POLL_COUNT)
+                continue;
+
+            uint32_t pwd_idle_hint = InterruptsSleepHeuristic(pwd_zero_rx_packet_polls_count);
+
+            if (pwd_idle_hint < STANDARD_SLEEP_TIME_US) {
+                rte_delay_us(pwd_idle_hint);
+            } else {
+                InterruptsTurnOnOff(ptv->port_id, ptv->queue_id, true);
+                struct rte_epoll_event event;
+                rte_epoll_wait(RTE_EPOLL_PER_THREAD, &event, 1, MAX_EPOLL_TIMEOUT_MS);
+                InterruptsTurnOnOff(ptv->port_id, ptv->queue_id, false);
+                continue;
+            }
+        } else if (ptv->intr_enabled && pwd_zero_rx_packet_polls_count) {
+            pwd_zero_rx_packet_polls_count = 0;
         }
 
         ptv->pkts += (uint64_t)nb_rx;
@@ -522,6 +589,7 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->checksum_mode = dpdk_config->checksum_mode;
 
     ptv->threads = dpdk_config->threads;
+    ptv->intr_enabled = (dpdk_config->flags & DPDK_IRQ_MODE) ? true : false;
     ptv->port_id = dpdk_config->port_id;
     ptv->out_port_id = dpdk_config->out_port_id;
     ptv->port_socket_id = dpdk_config->socket_id;
@@ -568,6 +636,9 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
             SCLogNotice(
                     "%s: unable to determine NIC's NUMA node, degraded performance can be expected",
                     dpdk_config->iface);
+        }
+        if (ptv->intr_enabled) {
+            rte_spinlock_init(&intr_lock[ptv->port_id]);
         }
     }
 
