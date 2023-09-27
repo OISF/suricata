@@ -19,6 +19,7 @@ Commits
     * Description, wrapped at ~72 characters
 #. Commits should be individually compilable, starting with the oldest commit. Make sure that
    each commit can be built if it and the preceding commits in the PR are used.
+#. Commits should be authored with the format: "FirstName LastName <name@example.com>"
 
 Information that needs to be part of a commit (if applicable):
 
