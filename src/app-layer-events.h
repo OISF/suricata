@@ -59,15 +59,14 @@ int AppLayerGetEventInfoById(int event_id, const char **event_name,
                              AppLayerEventType *event_type);
 void AppLayerDecoderEventsSetEventRaw(AppLayerDecoderEvents **sevents, uint8_t event);
 
-static inline int AppLayerDecoderEventsIsEventSet(AppLayerDecoderEvents *devents,
-                                                  uint8_t event)
+static inline int AppLayerDecoderEventsIsEventSet(
+        const AppLayerDecoderEvents *devents, uint8_t event)
 {
     if (devents == NULL)
         return 0;
 
-    int i;
     int cnt = devents->cnt;
-    for (i = 0; i < cnt; i++) {
+    for (int i = 0; i < cnt; i++) {
         if (devents->events[i] == event)
             return 1;
     }
