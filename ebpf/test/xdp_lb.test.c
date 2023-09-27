@@ -171,6 +171,45 @@ void test_inner_packet_symmetry(struct xdp_md* ctx) {
 	assert(result3 != result);
 }
 
+void test_ipv6_symmetry(struct xdp_md* ctx) {
+	char packet[] = 
+	"\x33\x33\x00\x01\x00\x02\x00\x22\xfb\x12\xda\xe8\x86\xdd\x60\x00"
+	"\x00\x00\x00\x61\x11\x01\xfe\x80\x00\x00\x00\x00\x00\x00\x35\xd0"
+	"\xb3\x9e\xc3\xf7\xe2\x0f\xff\x02\x00\x00\x00\x00\x00\x00\x00\x00"
+	"\x00\x00\x00\x01\x00\x02\x02\x22\x02\x23\x00\x61\x56\x62\x01\x00"
+	"\x57\x03\x00\x08\x00\x02\x18\x9c\x00\x01\x00\x0e\x00\x01\x00\x01"
+	"\x15\xb7\xc4\xfa\x00\x1c\x25\xbc\xea\x83\x00\x03\x00\x0c\x1d\x00"
+	"\x22\xfb\x00\x00\x00\x00\x00\x00\x00\x00\x00\x27\x00\x0b\x00\x09"
+	"\x4c\x61\x70\x74\x6f\x70\x2d\x50\x43\x00\x10\x00\x0e\x00\x00\x01"
+	"\x37\x00\x08\x4d\x53\x46\x54\x20\x35\x2e\x30\x00\x06\x00\x08\x00"
+	"\x18\x00\x17\x00\x11\x00\x27";
+
+	CTX_SET(ctx, packet);
+
+	int result = xdp_loadfilter(ctx);
+	assert((result & 0xffff) == XDP_REDIRECT);
+
+	// create a return packet...
+	assert(packet[14] == 0x60); // sanity; start of ipv6 header
+	struct ipv6hdr *ip6 = (struct ipv6hdr *)&packet[14];
+	for(int i = 0; i <= 3; i++) {
+		SWAP(ip6->saddr.s6_addr32[i], ip6->daddr.s6_addr32[i]);
+	}
+	struct udphdr * udp = (struct udphdr *)&packet[54];
+	SWAP(udp->dest, udp->source);
+
+	int result2 = xdp_loadfilter(ctx);
+	assert(result == result2);
+
+	// modify the 5-tuple to see that it balances to a different CPU
+	udp->dest = udp->dest ^ 0xffff;
+	udp->source = udp->source ^ 0xffff;
+	
+	int result3 = xdp_loadfilter(ctx);
+	assert((result3 & 0xffff) == XDP_REDIRECT);
+	assert(result3 != result);
+}
+
 int main() {
 	// setup our mocks...
 	bpf_xdp_adjust_head = bpf_xdp_adjust_head_mock;
@@ -183,6 +222,7 @@ int main() {
 
 	TEST(inner_packet_balance);
 	TEST(inner_packet_symmetry);
+	TEST(ipv6_symmetry);
 
 	return 0;
 }
