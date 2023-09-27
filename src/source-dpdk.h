@@ -38,6 +38,7 @@ typedef enum { DPDK_COPY_MODE_NONE, DPDK_COPY_MODE_TAP, DPDK_COPY_MODE_IPS } Dpd
 // General flags
 #define DPDK_PROMISC   (1 << 0) /**< Promiscuous mode */
 #define DPDK_MULTICAST (1 << 1) /**< Enable multicast packets */
+#define DPDK_IRQ_MODE  (1 << 2) /**< Interrupt mode */
 // Offloads
 #define DPDK_RX_CHECKSUM_OFFLOAD (1 << 4) /**< Enable chsum offload */
 
