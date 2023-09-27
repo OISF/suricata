@@ -56,6 +56,7 @@
         bpf_trace_printk(fmt, sizeof(fmt), args); \
     }
 
+/* The ifndef's around CTX_GET_*() allow the UT's to override them */
 #ifndef CTX_GET_DATA
 #define CTX_GET_DATA(ctx) (void*)(long)ctx->data
 #endif
@@ -103,8 +104,7 @@ static INLINE __u16 ntohs(__u16 val) {
     return ((val & 0xff00) >> 8) + ((val & 0x00ff) << 8);
 }
 
-static INLINE int get_sport(void *trans_data, void *data_end,
-        __u8 protocol)
+static INLINE int get_sport(void *trans_data, void *data_end, __u8 protocol)
 {
     struct tcphdr *th;
     struct udphdr *uh;
@@ -127,8 +127,7 @@ static INLINE int get_sport(void *trans_data, void *data_end,
     }
 }
 
-static INLINE int get_dport(void *trans_data, void *data_end,
-        __u8 protocol)
+static INLINE int get_dport(void *trans_data, void *data_end, __u8 protocol)
 {
     struct tcphdr *th;
     struct udphdr *uh;
@@ -182,15 +181,17 @@ static int INLINE hash_ipv4(void *data, void *data_end)
      __u32 cpu_hash;
      __u64 cpu_hash_input = 0;
 
-    // Sort the client/server parts of the 5-tuple for a symmetric hash
-    //
-    // NOTE: saddr and daddr are in network order (i.e., big endian), and we're running 
-    // an on Intel (little endian), which means the least significant bits contain the 
-    // network portion of the IP address, which we intentionally add the layer 4 port  
-    // on top of it.
-    // This does two things:
-    //   - it uses the full 5-tuple for hashing
-    //   - creates more entropy by distrupting the fairly static network bits
+    /* 
+     * Sort the client/server parts of the 5-tuple for a symmetric hash
+     *
+     * NOTE: saddr and daddr are in network order (i.e., big endian), and we're running 
+     * an on Intel (little endian), which means the least significant bits contain the 
+     * network portion of the IP address, which we intentionally add the layer 4 port  
+     * on top of it.
+     * This does two things:
+     *   - it uses the full 5-tuple for hashing
+     *   - creates more entropy by distrupting the fairly static network bits
+     */
     if (iph->saddr > iph->daddr) {
         ((__u32*)&cpu_hash_input)[0] = iph->saddr + sport;
         ((__u32*)&cpu_hash_input)[1] = iph->daddr + dport;
@@ -218,6 +219,11 @@ static int INLINE hash_ipv4(void *data, void *data_end)
     }
 }
 
+static int INLINE sort128(__u64 *source, __u64 *dest)
+{
+    return (source[0] < dest[0]) | ((source[0] == dest[0]) & (source[1] < dest[1]));
+}
+
 static int INLINE hash_ipv6(void *data, void *data_end)
 {
     struct ipv6hdr *ip6h = data;
@@ -225,18 +231,64 @@ static int INLINE hash_ipv6(void *data, void *data_end)
         return XDP_PASS;
     }
 
+    /**
+     * TODO: we will likely eventually need to support a set 
+     * of IPV6 header extension; the UDP or TCP header wont 
+     * *always* be the next header after the IP header...
+     */
+
+    void* layer4 = (void*)(ip6h + 1);
+    int dport = get_dport(layer4, data_end, ip6h->nexthdr);
+    if (dport == -1) {
+        return XDP_PASS;
+    }
+
+    int sport = get_sport(layer4, data_end, ip6h->nexthdr);
+    if (sport == -1) {
+        return XDP_PASS;
+    }
+
     __u32 key0 = 0;
     __u32 cpu_dest;
     __u32 *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
     __u32 *cpu_selected;
+
+    __u64 ip_hash_input;
     __u32 cpu_hash;
 
-    /* IP-pairs hit same CPU */
-    cpu_hash  = ip6h->saddr.s6_addr32[0] + ip6h->daddr.s6_addr32[0];
-    cpu_hash += ip6h->saddr.s6_addr32[1] + ip6h->daddr.s6_addr32[1];
-    cpu_hash += ip6h->saddr.s6_addr32[2] + ip6h->daddr.s6_addr32[2];
-    cpu_hash += ip6h->saddr.s6_addr32[3] + ip6h->daddr.s6_addr32[3];
-    cpu_hash = SuperFastHash((char *)&cpu_hash, 4, INITVAL);
+    /*
+     * IPV6 addresses are 128 bits, commonly expressed as a series of up to 
+     * 8 16-bit words; but very rarely are all 16-bit words defined.  Typically 
+     * the middle words are unset/zero.
+     * 
+     * Additionally, like IPV4, the upper bits consist of more static network/routing 
+     * bits, while the lower bits identify individual interfaces/hosts, which 
+     * tend to be more variable.
+     * 
+     * So, in order to create more entropy, we can merge source and dest 
+     * addresses in opposite orders -- colliding static bits with more dynamic bits 
+     * in both sides of the hash input.  However, to keep flow symmetry, we 
+     * must do this identically for each side of a flow, so we must have a way 
+     * to consistently choose which address is added in 0-1 order, and which is 
+     * added in 1-0 order.
+     * 
+     * For IPV4 addresses, we simply sorted them, which can also work here, 
+     * although sorting 128 bits is a bit more involved and requires our own 
+     * function.
+     * 
+     * NOTE that we're sorting the address in network order; this doens't matter, 
+     * as long as it's consistent.
+     */
+    __u64 *source = (__u64 *)&ip6h->saddr;
+    __u64 *dest   = (__u64 *)&ip6h->daddr;
+    if (sort128(source, dest)) {
+        ip_hash_input = source[0] + dest[1] + sport;
+        ip_hash_input += source[1] + dest[0] + dport;
+    } else {
+        ip_hash_input = dest[0] + source[1] + dport;
+        ip_hash_input += dest[1] + source[0] + sport;
+    }
+    cpu_hash = SuperFastHash((char *)&ip_hash_input, 8, INITVAL + ip6h->nexthdr);
 
     if (cpu_max && *cpu_max) {
         cpu_dest = cpu_hash % *cpu_max;
