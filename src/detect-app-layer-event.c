@@ -92,14 +92,14 @@ static uint8_t DetectEngineAptEventInspect(DetectEngineCtx *de_ctx, DetectEngine
 {
     int r = 0;
     const AppProto alproto = f->alproto;
-    AppLayerDecoderEvents *decoder_events =
-        AppLayerParserGetEventsByTx(f->proto, alproto, tx);
+    const AppLayerDecoderEvents *decoder_events =
+            AppLayerParserGetEventsByTx(f->proto, alproto, tx);
     if (decoder_events == NULL) {
         goto end;
     }
-    SigMatchData *smd = engine->smd;
+    const SigMatchData *smd = engine->smd;
     while (1) {
-        DetectAppLayerEventData *aled = (DetectAppLayerEventData *)smd->ctx;
+        const DetectAppLayerEventData *aled = (const DetectAppLayerEventData *)smd->ctx;
         KEYWORD_PROFILING_START;
 
         if (AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
