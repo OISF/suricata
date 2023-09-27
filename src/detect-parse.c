@@ -473,7 +473,8 @@ void SigMatchAppendSMToList(Signature *s, SigMatch *new, const int list)
                 s->init_data->curbuf == NULL) {
             if (SignatureInitDataBufferCheckExpand(s) < 0) {
                 SCLogError("failed to expand rule buffer array");
-                // return -1; TODO error handle
+                s->init_data->init_flags |= SIG_FLAG_INIT_OVERFLOW;
+                return;
             }
 
             /* initialize new buffer */
@@ -1901,6 +1902,11 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     if (s->init_data->curbuf && s->init_data->curbuf->head == NULL) {
         SCLogError("rule %u setup buffer %s but didn't add matches to it", s->id,
                 DetectEngineBufferTypeGetNameById(de_ctx, s->init_data->curbuf->id));
+        SCReturnInt(0);
+    }
+
+    if (s->init_data->init_flags & SIG_FLAG_INIT_OVERFLOW) {
+        SCLogError("rule %u tries to use too many buffers", s->id);
         SCReturnInt(0);
     }
 
