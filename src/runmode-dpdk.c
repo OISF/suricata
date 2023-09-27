@@ -111,6 +111,7 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface);
 static void DPDKDerefConfig(void *conf);
 
 #define DPDK_CONFIG_DEFAULT_THREADS                     "auto"
+#define DPDK_CONFIG_DEFAULT_INTERRUPT_MODE              false
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE                65535
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_CACHE_SIZE          "auto"
 #define DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS              1024
@@ -126,6 +127,7 @@ static void DPDKDerefConfig(void *conf);
 
 DPDKIfaceConfigAttributes dpdk_yaml = {
     .threads = "threads",
+    .irq_mode = "interrupt-mode",
     .promisc = "promisc",
     .multicast = "multicast",
     .checksum_checks = "checksum-checks",
@@ -434,6 +436,15 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
     SCReturnInt(0);
 }
 
+static bool ConfigSetInterruptMode(DPDKIfaceConfig *iconf, bool enable)
+{
+    SCEnter();
+    if (enable)
+        iconf->flags |= DPDK_IRQ_MODE;
+
+    SCReturnBool(true);
+}
+
 static int ConfigSetRxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues)
 {
     SCEnter();
@@ -694,6 +705,17 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
                      : ConfigSetThreads(iconf, entry_str);
     if (retval < 0)
         SCReturnInt(retval);
+
+    bool irq_enable;
+    retval = ConfGetChildValueBoolWithDefault(if_root, if_default, dpdk_yaml.irq_mode, &entry_bool);
+    if (retval != 1) {
+        irq_enable = DPDK_CONFIG_DEFAULT_INTERRUPT_MODE;
+    } else {
+        irq_enable = entry_bool ? true : false;
+    }
+    retval = ConfigSetInterruptMode(iconf, irq_enable);
+    if (retval != true)
+        SCReturnInt(-EINVAL);
 
     // currently only mapping "1 thread == 1 RX (and 1 TX queue in IPS mode)" is supported
     retval = ConfigSetRxQueues(iconf, (uint16_t)iconf->threads);
@@ -1105,6 +1127,11 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
                     .offloads = 0,
             },
     };
+
+    SCLogConfig("%s: interrupt mode is %s", iconf->iface,
+            iconf->flags & DPDK_IRQ_MODE ? "enabled" : "disabled");
+    if (iconf->flags & DPDK_IRQ_MODE)
+        port_conf->intr_conf.rxq = 1;
 
     // configure RX offloads
     if (dev_info->rx_offload_capa & RTE_ETH_RX_OFFLOAD_RSS_HASH) {
