@@ -91,6 +91,43 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #include "util-dpdk-bonding.h"
 #include <numa.h>
 
+#define MIN_ZERO_POLL_COUNT          10U
+#define MIN_ZERO_POLL_COUNT_TO_SLEEP 10U
+#define MINIMUM_SLEEP_TIME_US        1U
+#define STANDARD_SLEEP_TIME_US       100U
+#define MAX_EPOLL_TIMEOUT_S          5U
+
+static int InterruptsRXEnable(uint16_t portid, uint16_t queueid)
+{
+    uint32_t event_data;
+    event_data = portid << UINT16_WIDTH | queueid;
+    int32_t ret = rte_eth_dev_rx_intr_ctl_q(portid, queueid, RTE_EPOLL_PER_THREAD,
+            RTE_INTR_EVENT_ADD, (void *)((uintptr_t)event_data));
+    if (ret) {
+        SCLogError("%s-Q%d: rte_eth_dev_rx_intr_ctl_q failed: %s", DPDKGetPortNameByPortID(portid),
+                queueid, rte_strerror(-ret));
+        return ret;
+    }
+
+    return 0;
+}
+
+static inline uint32_t InterruptsSleepHeuristic(uint32_t no_pkt_polls_count)
+{
+    if (no_pkt_polls_count < MIN_ZERO_POLL_COUNT_TO_SLEEP)
+        return MINIMUM_SLEEP_TIME_US;
+
+    return STANDARD_SLEEP_TIME_US;
+}
+
+static void InterruptsTurnOnOff(uint16_t port_id, uint16_t queue_id, bool on)
+{
+    if (on)
+        rte_eth_dev_rx_intr_enable(port_id, queue_id);
+    else
+        rte_eth_dev_rx_intr_disable(port_id, queue_id);
+}
+
 #define BURST_SIZE 32
 static struct timeval machine_start_time = { 0, 0 };
 
@@ -104,6 +141,7 @@ typedef struct DPDKThreadVars_ {
     TmSlot *slot;
     LiveDevice *livedev;
     ChecksumValidationMode checksum_mode;
+    int16_t intr_en;
     /* references to packet and drop counters */
     uint16_t capture_dpdk_packets;
     uint16_t capture_dpdk_rx_errs;
@@ -375,8 +413,22 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
     TmThreadsSetFlag(tv, THV_RUNNING);
     PacketPoolWait();
 
+    if (ptv->intr_en == 1) {
+        if (InterruptsRXEnable(ptv->port_id, ptv->queue_id) == 0) {
+            SCLogDebug("Enabling interrupt for port %d queue %d", ptv->port_id, ptv->queue_id);
+            ptv->intr_en = 1;
+        } else {
+            SCLogConfig(
+                    "Failed to enable interrupt (power-saving) mode, falling back to polling mode");
+            ptv->intr_en = 0;
+        }
+    }
     rte_eth_stats_reset(ptv->port_id);
     rte_eth_xstats_reset(ptv->port_id);
+
+    uint32_t pwd_zero_rx_packet_polls_count = 0;
+    uint32_t pwd_idle_hint = 0;
+
     while (1) {
         if (unlikely(suricata_ctl_flags != 0)) {
             SCLogDebug("Stopping Suricata!");
@@ -391,6 +443,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
         }
 
         nb_rx = rte_eth_rx_burst(ptv->port_id, ptv->queue_id, ptv->received_mbufs, BURST_SIZE);
+
         if (unlikely(nb_rx == 0)) {
             t = DPDKSetTimevalReal(&machine_start_time);
             uint64_t msecs = SCTIME_MSECS(t);
@@ -398,7 +451,26 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
                 TmThreadsCaptureHandleTimeout(tv, NULL);
                 last_timeout_msec = msecs;
             }
-            continue;
+
+            if (ptv->intr_en) {
+                pwd_zero_rx_packet_polls_count++;
+                if (pwd_zero_rx_packet_polls_count <= MIN_ZERO_POLL_COUNT)
+                    continue;
+
+                pwd_idle_hint = InterruptsSleepHeuristic(pwd_zero_rx_packet_polls_count);
+
+                if (pwd_idle_hint < STANDARD_SLEEP_TIME_US) {
+                    rte_delay_us(pwd_idle_hint);
+                } else {
+                    InterruptsTurnOnOff(ptv->port_id, ptv->queue_id, 1);
+                    struct rte_epoll_event event;
+                    rte_epoll_wait(RTE_EPOLL_PER_THREAD, &event, 1, MAX_EPOLL_TIMEOUT_S);
+                    InterruptsTurnOnOff(ptv->port_id, ptv->queue_id, 0);
+                    continue;
+                }
+            }
+        } else if (pwd_zero_rx_packet_polls_count) {
+            pwd_zero_rx_packet_polls_count = 0;
         }
 
         ptv->pkts += (uint64_t)nb_rx;
@@ -522,6 +594,7 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->checksum_mode = dpdk_config->checksum_mode;
 
     ptv->threads = dpdk_config->threads;
+    ptv->intr_en = (dpdk_config->flags & DPDK_POWER_SAVE) != 0;
     ptv->port_id = dpdk_config->port_id;
     ptv->out_port_id = dpdk_config->out_port_id;
     ptv->port_socket_id = dpdk_config->socket_id;
