@@ -259,6 +259,11 @@ void EveAddFlowTcpFlags(const TcpSession *ssn, const char *name, JsonBuilder *jb
     jb_close(jb);
 }
 
+static void LogStreamSB(const StreamingBuffer *sb, JsonBuilder *js)
+{
+    jb_set_uint(js, "sb_region_size", sb->region.buf_size);
+}
+
 static void LogStream(const TcpStream *stream, JsonBuilder *js)
 {
     jb_set_uint(js, "isn", stream->isn);
@@ -273,6 +278,15 @@ static void LogStream(const TcpStream *stream, JsonBuilder *js)
     jb_set_uint(js, "wscale", stream->wscale);
 
     EveAddFlowTcpStreamFlags(stream, "flags", js);
+
+    TcpSegment *s;
+    uint32_t segs = 0;
+    RB_FOREACH(s, TCPSEG, (struct TCPSEG *)&stream->seg_tree)
+    {
+        segs++;
+    }
+    jb_set_uint(js, "seg_cnt", segs);
+    LogStreamSB(&stream->sb, js);
 }
 
 /**
