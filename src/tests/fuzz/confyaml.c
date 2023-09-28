@@ -112,4 +112,6 @@ app-layer:\n\
       enabled: yes\n\
     quic:\n\
       enabled: yes\n\
+    smtp:\n\
+      mime:\n\
 ";

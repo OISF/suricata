@@ -98,4 +98,8 @@ ConfNode *ConfSetIfaceNode(const char *ifaces_node_name, const char *iface);
 int ConfSetRootAndDefaultNodes(
         const char *ifaces_node_name, const char *iface, ConfNode **if_root, ConfNode **if_default);
 ConfNode *ConfNodeGetNodeOrCreate(ConfNode *parent, const char *name, int final);
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+void FuzzConfReload(uint8_t **data, size_t *size);
+#endif
+
 #endif /* ! __CONF_H__ */

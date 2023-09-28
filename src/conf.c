@@ -431,8 +431,33 @@ int ConfGetInt(const char *name, intmax_t *val)
     return 1;
 }
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+
+#include "app-layer-smtp.h"
+
+uint8_t **FuzzConfData = NULL;
+size_t *FuzzConfSize = NULL;
+
+void FuzzConfReload(uint8_t **data, size_t *size)
+{
+    FuzzConfData = data;
+    FuzzConfSize = size;
+    SMTPConfigure();
+}
+#endif
+
 int ConfGetChildValueInt(const ConfNode *base, const char *name, intmax_t *val)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if (FuzzConfData) {
+        if (*FuzzConfSize >= 4) {
+            *val = (uint32_t)(*((uint32_t *)(*FuzzConfData)));
+            *FuzzConfSize = *FuzzConfSize - 4;
+            *FuzzConfData = *FuzzConfData + 4;
+        }
+        return 1;
+    }
+#endif
     const char *strval = NULL;
     intmax_t tmpint;
     char *endptr;
@@ -482,6 +507,16 @@ int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt,
  */
 int ConfGetBool(const char *name, int *val)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if (FuzzConfData) {
+        if (*FuzzConfSize > 0) {
+            *val = (**FuzzConfData) & 1;
+            *FuzzConfSize = *FuzzConfSize - 1;
+            *FuzzConfData = *FuzzConfData + 1;
+        }
+        return 1;
+    }
+#endif
     const char *strval = NULL;
 
     *val = 0;
@@ -500,6 +535,16 @@ int ConfGetBool(const char *name, int *val)
  */
 int ConfGetChildValueBool(const ConfNode *base, const char *name, int *val)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if (FuzzConfData) {
+        if (*FuzzConfSize > 0) {
+            *val = (**FuzzConfData) & 1;
+            *FuzzConfSize = *FuzzConfSize - 1;
+            *FuzzConfData = *FuzzConfData + 1;
+        }
+        return 1;
+    }
+#endif
     const char *strval = NULL;
 
     *val = 0;
