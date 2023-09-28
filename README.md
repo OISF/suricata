@@ -26,10 +26,10 @@ for how to get started.
 Suricata is a complex piece of software dealing with mostly untrusted
 input. Mishandling this input will have serious consequences:
 
-* in IPS mode a crash may knock a network offline;
+* in IPS mode a crash may knock a network offline
 * in passive mode a compromise of the IDS may lead to loss of critical
-  and confidential data;
-* missed detection may lead to undetected compromise of the network.
+  and confidential data
+* missed detection may lead to undetected compromise of the network
 
 In other words, we think the stakes are pretty high, especially since
 in many common cases the IDS/IPS will be directly reachable by an
@@ -118,7 +118,7 @@ failure. If the GitHub-CI checks failed, the PR should be fixed right
 away. No need for a discussion about it, unless you believe the QA
 failure is incorrect.
 
-__Q: the compiler/code analyser/tool is wrong, what now?__
+__Q: The compiler/code analyser/tool is wrong, what now?__
 
 A: To assist in the automation of the QA, we're not accepting warnings
 or errors to stay. In some cases this could mean that we add a
@@ -135,7 +135,7 @@ A: If you really think it is, we can discuss how to improve it. But
 don't come to this conclusion too quickly, more often it's the code
 that turns out to be wrong.
 
-__Q: do you require signing of a contributor license agreement?__
+__Q: Do you require signing of a contributor license agreement?__
 
 A: Yes, we do this to keep the ownership of Suricata in one hand: the
 Open Information Security Foundation. See
