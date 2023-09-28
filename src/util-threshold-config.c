@@ -510,7 +510,6 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 if (sm != NULL) {
                     SigMatchRemoveSMFromList(s, sm, DETECT_SM_LIST_THRESHOLD);
                     SigMatchFree(de_ctx, sm);
-                    sm = NULL;
                 }
             }
 

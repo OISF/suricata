@@ -1645,8 +1645,6 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, Detect
             /* when a group's sigs are added to the joingr, we can free it */
             gr->next = NULL;
             DetectPortFree(de_ctx, gr);
-            gr = NULL;
-
         /* append */
         } else {
             gr->next = NULL;
