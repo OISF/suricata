@@ -34,7 +34,6 @@ void TmModuleNapatechDecodeRegister(void);
 struct NapatechStreamDevConf
 {
     uint16_t stream_id;
-    intmax_t hba;
 };
 
 int NapatechSetPortmap(int port, int peer);

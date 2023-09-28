@@ -88,7 +88,6 @@ typedef struct NapatechThreadVars_
     ThreadVars *tv;
     NtNetStreamRx_t rx_stream;
     uint16_t stream_id;
-    int hba;
     TmSlot *slot;
 } NapatechThreadVars;
 
@@ -685,7 +684,6 @@ TmEcode NapatechStreamThreadInit(ThreadVars *tv, const void *initdata, void **da
     memset(ntv, 0, sizeof (NapatechThreadVars));
     ntv->stream_id = stream_id;
     ntv->tv = tv;
-    ntv->hba = conf->hba;
 
     DatalinkSetGlobalType(LINKTYPE_ETHERNET);
 
@@ -800,9 +798,6 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
     uint64_t pkt_ts;
     NtNetBuf_t packet_buffer;
     NapatechThreadVars *ntv = (NapatechThreadVars *) data;
-    uint64_t hba_pkt_drops = 0;
-    uint64_t hba_byte_drops = 0;
-    uint16_t hba_pkt = 0;
     int numa_node = -1;
     int set_cpu_affinity = 0;
     int closer = 0;
@@ -880,20 +875,10 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
             "Napatech Packet Loop Started - cpu: %3d, cpu_numa: %3d   stream: %3u ",
             sched_getcpu(), numa_node, ntv->stream_id);
 
-    if (ntv->hba > 0) {
-        char *s_hbad_pkt = SCCalloc(1, 32);
-        if (unlikely(s_hbad_pkt == NULL)) {
-            FatalError("Failed to allocate memory for NAPATECH stream counter.");
-        }
-        snprintf(s_hbad_pkt, 32, "nt%d.hba_drop", ntv->stream_id);
-        hba_pkt = StatsRegisterCounter(s_hbad_pkt, tv);
-        StatsSetupPrivate(tv);
-        StatsSetUI64(tv, hba_pkt, 0);
-    }
     SCLogDebug("Opening NAPATECH Stream: %u for processing", ntv->stream_id);
 
     if ((status = NT_NetRxOpen(&(ntv->rx_stream), "SuricataStream",
-            NT_NET_INTERFACE_PACKET, ntv->stream_id, ntv->hba)) != NT_SUCCESS) {
+            NT_NET_INTERFACE_PACKET, ntv->stream_id, -1)) != NT_SUCCESS) {
 
         NAPATECH_ERROR(status);
         SCFree(ntv);
@@ -969,22 +954,6 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
                 SCReturnInt(TM_ECODE_FAILED);
         }
 
-        if (unlikely(ntv->hba > 0)) {
-            NtNetRx_t stat_cmd;
-            stat_cmd.cmd = NT_NETRX_READ_CMD_STREAM_DROP;
-            /* Update drop counter */
-            if (unlikely((status = NT_NetRxRead(ntv->rx_stream, &stat_cmd)) != NT_SUCCESS)) {
-                NAPATECH_ERROR(status);
-                SCLogInfo("Couldn't retrieve drop statistics from the RX stream: %u",
-                        ntv->stream_id);
-            } else {
-                hba_pkt_drops = stat_cmd.u.streamDrop.pktsDropped;
-
-                StatsSetUI64(tv, hba_pkt, hba_pkt_drops);
-            }
-            StatsSyncCountersIfSignalled(tv);
-        }
-
 #ifdef NAPATECH_ENABLE_BYPASS
         p->ntpv.dyn3 = _NT_NET_GET_PKT_DESCR_PTR_DYN3(packet_buffer);
         p->BypassPacketsFlow = (NapatechIsBypassSupported() ? NapatechBypassCallback : NULL);
@@ -1017,10 +986,6 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
 
     if (closer) {
         NapatechDeleteFilters();
-    }
-
-    if (unlikely(ntv->hba > 0)) {
-        SCLogInfo("Host Buffer Allowance Drops - pkts: %ld,  bytes: %ld", hba_pkt_drops, hba_byte_drops);
     }
 
     SCReturnInt(TM_ECODE_OK);
