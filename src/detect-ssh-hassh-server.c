@@ -104,7 +104,7 @@ static int DetectSshHasshServerSetup(DetectEngineCtx *de_ctx, Signature *s, cons
         return -1;
             
     /* try to enable Hassh */
-    rs_ssh_enable_hassh();
+    rs_ssh_enable_hassh(true);
 
     /* Check if Hassh is disabled */
     if (!RunmodeIsUnittests() && !rs_ssh_hassh_is_enabled()) {

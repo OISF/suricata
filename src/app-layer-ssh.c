@@ -76,6 +76,17 @@ int SSHTxLogCondition(ThreadVars * tv, const Packet * p, void *state, void *tx, 
     return rs_ssh_tx_get_log_condition(tx);
 }
 
+void SSHConfigure(void)
+{
+    /* Check if we should generate Hassh fingerprints */
+    int enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
+    if (ConfGetEnumAuto("app-layer.protocols.ssh.hassh") == CONF_ENUM_TRUE) {
+        enable_hassh = true;
+    }
+
+    rs_ssh_enable_hassh(enable_hassh);
+}
+
 /** \brief Function to register the SSH protocol parsers and other functions
  */
 void RegisterSSHParsers(void)
@@ -86,23 +97,7 @@ void RegisterSSHParsers(void)
         AppLayerProtoDetectRegisterProtocol(ALPROTO_SSH, proto_name);
         if (SSHRegisterPatternsForProtocolDetection() < 0)
             return;
-
-        /* Check if we should generate Hassh fingerprints */
-        int enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
-        const char *strval = NULL;
-        if (ConfGet("app-layer.protocols.ssh.hassh", &strval) != 1) {
-            enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
-        } else if (strcmp(strval, "auto") == 0) {
-            enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
-        } else if (ConfValIsFalse(strval)) {
-            enable_hassh = SSH_CONFIG_DEFAULT_HASSH;
-        } else if (ConfValIsTrue(strval)) {
-            enable_hassh = true;
-        }
-
-        if (RunmodeIsUnittests() || enable_hassh) {
-            rs_ssh_enable_hassh();
-        }
+        SSHConfigure();
     }
 
     SCLogDebug("Registering Rust SSH parser.");

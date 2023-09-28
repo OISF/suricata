@@ -2950,6 +2950,32 @@ static int SSLRegisterPatternsForProtocolDetection(void)
     return 0;
 }
 
+void SSLConfigure(void)
+{
+    /* Check if we should generate JA3 fingerprints */
+    int enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
+    switch (ConfGetEnumAuto("app-layer.protocols.tls.ja3-fingerprints")) {
+        case CONF_ENUM_TRUE:
+            enable_ja3 = 1;
+            break;
+        case CONF_ENUM_FALSE:
+            enable_ja3 = 0;
+            ssl_config.disable_ja3 = true;
+            break;
+    }
+    SC_ATOMIC_SET(ssl_config.enable_ja3, enable_ja3);
+
+    if (g_disable_hashing) {
+        if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
+            SCLogWarning("MD5 calculation has been disabled, disabling JA3");
+            SC_ATOMIC_SET(ssl_config.enable_ja3, 0);
+        }
+    } else {
+        if (RunmodeIsUnittests()) {
+            SC_ATOMIC_SET(ssl_config.enable_ja3, 1);
+        }
+    }
+}
 /**
  * \brief Function to register the SSL protocol parser and other functions
  */
@@ -3049,31 +3075,7 @@ void RegisterSSLParsers(void)
         }
         SCLogDebug("ssl_config.encrypt_mode %u", ssl_config.encrypt_mode);
 
-        /* Check if we should generate JA3 fingerprints */
-        int enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
-        const char *strval = NULL;
-        if (ConfGet("app-layer.protocols.tls.ja3-fingerprints", &strval) != 1) {
-            enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
-        } else if (strcmp(strval, "auto") == 0) {
-            enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
-        } else if (ConfValIsFalse(strval)) {
-            enable_ja3 = 0;
-            ssl_config.disable_ja3 = true;
-        } else if (ConfValIsTrue(strval)) {
-            enable_ja3 = true;
-        }
-        SC_ATOMIC_SET(ssl_config.enable_ja3, enable_ja3);
-
-        if (g_disable_hashing) {
-            if (SC_ATOMIC_GET(ssl_config.enable_ja3)) {
-                SCLogWarning("MD5 calculation has been disabled, disabling JA3");
-                SC_ATOMIC_SET(ssl_config.enable_ja3, 0);
-            }
-        } else {
-            if (RunmodeIsUnittests()) {
-                SC_ATOMIC_SET(ssl_config.enable_ja3, 1);
-            }
-        }
+        SSLConfigure();
     } else {
         SCLogConfig("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

@@ -307,5 +307,6 @@ void RegisterSSLParsers(void);
 void SSLVersionToString(uint16_t, char *);
 void SSLEnableJA3(void);
 bool SSLJA3IsEnabled(void);
+void SSLConfigure(void);
 
 #endif /* __APP_LAYER_SSL_H__ */

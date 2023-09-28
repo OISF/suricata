@@ -267,7 +267,8 @@ static SMTPString *SMTPStringAlloc(void);
  *
  * \return none
  */
-static void SMTPConfigure(void) {
+void SMTPConfigure(void)
+{
 
     SCEnter();
     intmax_t imval;
@@ -309,7 +310,7 @@ static void SMTPConfigure(void) {
          * and provide a default value of 'http' for the schemes to be extracted
          * if no schemes are found in the config */
         extract_urls_schemes = ConfNodeLookupChild(config, "extract-urls-schemes");
-        if (extract_urls_schemes) {
+        if (extract_urls_schemes && smtp_config.mime_config.extract_urls_schemes == NULL) {
             ConfNode *scheme = NULL;
 
             TAILQ_FOREACH (scheme, &extract_urls_schemes->head, next) {
@@ -335,7 +336,7 @@ static void SMTPConfigure(void) {
             }
 
             smtp_config.mime_config.extract_urls_schemes = extract_urls_schemes;
-        } else {
+        } else if (smtp_config.mime_config.extract_urls_schemes == NULL) {
             /* Add default extract url scheme 'http' since
              * extract-urls-schemes wasn't found in the config */
             ConfNode *seq_node = ConfNodeNew();

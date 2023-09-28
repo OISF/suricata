@@ -157,5 +157,6 @@ void *SMTPStateAlloc(void *orig_state, AppProto proto_orig);
 void RegisterSMTPParsers(void);
 void SMTPParserCleanup(void);
 void SMTPParserRegisterTests(void);
+void SMTPConfigure(void);
 
 #endif /* __APP_LAYER_SMTP_H__ */

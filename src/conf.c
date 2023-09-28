@@ -431,8 +431,37 @@ int ConfGetInt(const char *name, intmax_t *val)
     return 1;
 }
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+
+#include "app-layer-smtp.h"
+#include "app-layer-ssh.h"
+#include "app-layer-ssl.h"
+
+uint8_t **FuzzConfData = NULL;
+size_t *FuzzConfSize = NULL;
+
+void FuzzConfReload(uint8_t **data, size_t *size)
+{
+    FuzzConfData = data;
+    FuzzConfSize = size;
+    SMTPConfigure();
+    SSHConfigure();
+    SSLConfigure();
+}
+#endif
+
 int ConfGetChildValueInt(const ConfNode *base, const char *name, intmax_t *val)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if (FuzzConfData) {
+        if (*FuzzConfSize >= 4) {
+            *val = (uint32_t)(*((uint32_t *)(*FuzzConfData)));
+            *FuzzConfSize = *FuzzConfSize - 4;
+            *FuzzConfData = *FuzzConfData + 4;
+        }
+        return 1;
+    }
+#endif
     const char *strval = NULL;
     intmax_t tmpint;
     char *endptr;
@@ -482,6 +511,16 @@ int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt,
  */
 int ConfGetBool(const char *name, int *val)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if (FuzzConfData) {
+        if (*FuzzConfSize > 0) {
+            *val = (**FuzzConfData) & 1;
+            *FuzzConfSize = *FuzzConfSize - 1;
+            *FuzzConfData = *FuzzConfData + 1;
+        }
+        return 1;
+    }
+#endif
     const char *strval = NULL;
 
     *val = 0;
@@ -500,6 +539,16 @@ int ConfGetBool(const char *name, int *val)
  */
 int ConfGetChildValueBool(const ConfNode *base, const char *name, int *val)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if (FuzzConfData) {
+        if (*FuzzConfSize > 0) {
+            *val = (**FuzzConfData) & 1;
+            *FuzzConfSize = *FuzzConfSize - 1;
+            *FuzzConfData = *FuzzConfData + 1;
+        }
+        return 1;
+    }
+#endif
     const char *strval = NULL;
 
     *val = 0;
@@ -522,7 +571,30 @@ int ConfGetChildValueBoolWithDefault(const ConfNode *base, const ConfNode *dflt,
     return ret;
 }
 
-
+int ConfGetEnumAuto(const char *name)
+{
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if (FuzzConfData) {
+        if (*FuzzConfSize > 0) {
+            uint8_t val = (**FuzzConfData);
+            *FuzzConfSize = *FuzzConfSize - 1;
+            *FuzzConfData = *FuzzConfData + 1;
+            return (val & 3); // no CONF_ENUM_UNKNOWN
+        }
+    }
+#endif
+    const char *strval = NULL;
+    if (ConfGet(name, &strval) != 1) {
+        return CONF_ENUM_FAILED;
+    } else if (strcmp(strval, "auto") == 0) {
+        return CONF_ENUM_AUTO;
+    } else if (ConfValIsFalse(strval)) {
+        return CONF_ENUM_FALSE;
+    } else if (ConfValIsTrue(strval)) {
+        return CONF_ENUM_TRUE;
+    }
+    return CONF_ENUM_UNKNOWN;
+}
 /**
  * \brief Check if a value is true.
  *

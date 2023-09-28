@@ -482,8 +482,8 @@ pub unsafe extern "C" fn rs_ssh_register_parser() {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ssh_enable_hassh() {
-    HASSH_ENABLED.store(true, Ordering::Relaxed)
+pub extern "C" fn rs_ssh_enable_hassh(val: bool) {
+    HASSH_ENABLED.store(val, Ordering::Relaxed)
 }
 
 #[no_mangle]
