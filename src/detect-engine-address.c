@@ -1289,7 +1289,6 @@ int DetectAddressTestConfVars(void)
         }
 
         DetectAddressHeadFree(gh);
-        gh = NULL;
         DetectAddressHeadFree(ghn);
         ghn = NULL;
     }
