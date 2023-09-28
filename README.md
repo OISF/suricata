@@ -8,14 +8,13 @@
 [Suricata](https://suricata.io) is a network IDS, IPS and NSM engine
 developed by the [OISF](https://oisf.net) and the Suricata community.
 
-## Installation
+## Resources
 
-https://docs.suricata.io/en/latest/install.html
-
-## User Guide
-
-You can follow the [Suricata user
-guide](https://docs.suricata.io/en/latest/) to get started.
+- [Home Page](https://suricata.io)
+- [Bug Tracker](https://redmine.openinfosecfoundation.org/projects/suricata)
+- [User Guide](https://docs.suricata.io)
+- [Installation Guide](https://docs.suricata.io/en/latest/install.html)
+- [User Support Forum](https://forum.suricata.io)
 
 ## Contributing
 
