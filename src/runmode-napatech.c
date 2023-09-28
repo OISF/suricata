@@ -194,14 +194,6 @@ static void *NapatechConfigParser(const char *device)
         return NULL;
     }
 
-    /* Set the host buffer allowance for this stream
-     * Right now we just look at the global default - there is no per-stream hba configuration
-     */
-    if (ConfGetInt("napatech.hba", &conf->hba) == 0) {
-        conf->hba = -1;
-    } else {
-        SCLogWarning("Napatech Host Buffer Allocation (hba) will be deprecated in Suricata v7.0.");
-    }
     return (void *) conf;
 }
 
@@ -233,10 +225,6 @@ static int NapatechInit(int runmode)
                             SCCalloc(1, sizeof (struct NapatechStreamDevConf));
     if (unlikely(conf == NULL)) {
         FatalError("Failed to allocate memory for NAPATECH device.");
-    }
-
-    if ((ConfGetInt("napatech.hba", &conf->hba) != 0) && (conf->hba > 0)) {
-        SCLogInfo("Host Buffer Allowance: %d", (int) conf->hba);
     }
 
     if (use_hw_bypass) {
