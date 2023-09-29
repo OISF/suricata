@@ -57,7 +57,11 @@ typedef struct {
 #define SCTIME_SECS(t)           ((uint64_t)(t).secs)
 #define SCTIME_MSECS(t)          (SCTIME_SECS(t) * 1000 + SCTIME_USECS(t) / 1000)
 #define SCTIME_ADD_SECS(ts, s)   SCTIME_FROM_SECS((ts).secs + (s))
-#define SCTIME_ADD_USECS(ts, us) SCTIME_FROM_USECS((ts).usecs + (us))
+#define SCTIME_ADD_USECS(ts, us)                                                                   \
+    (SCTime_t)                                                                                     \
+    {                                                                                              \
+        .secs = (ts).secs + ((ts).usecs + (us)) / 1000000, .usecs = ((ts).usecs + (us)) % 1000000  \
+    }
 #define SCTIME_FROM_SECS(s)                                                                        \
     (SCTime_t)                                                                                     \
     {                                                                                              \
