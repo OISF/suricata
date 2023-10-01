@@ -741,6 +741,12 @@ static void PrintBuildInfo(void)
 #ifdef HAVE_LUA
     strlcat(features, "HAVE_LUA ", sizeof(features));
 #endif
+#ifdef HAVE_JA3
+    strlcat(features, "HAVE_JA3 ", sizeof(features));
+#endif
+#ifdef HAVE_JA4
+    strlcat(features, "HAVE_JA4 ", sizeof(features));
+#endif
 #ifdef HAVE_LUAJIT
     strlcat(features, "HAVE_LUAJIT ", sizeof(features));
 #endif
@@ -2687,6 +2693,10 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     SetMasterExceptionPolicy();
 
+    /* Must occur prior to output mod registration
+       and app layer setup. */
+    FeatureTrackingRegister();
+
     AppLayerSetup();
 
     /* Suricata will use this umask if provided. By default it will use the
@@ -2744,7 +2754,6 @@ int PostConfLoadedSetup(SCInstance *suri)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    FeatureTrackingRegister(); /* must occur prior to output mod registration */
     RegisterAllModules();
 #ifdef HAVE_PLUGINS
     SCPluginsLoad(suri->capture_plugin_name, suri->capture_plugin_args);

@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,23 +18,13 @@
 /**
  * \file
  *
- * \author Jeff Lucovsky <jeff@lucovsky.org>
+ * \author Sascha Steinbiss <sascha@steinbiss.name>
  */
 
-#ifndef __FEATURE_H__
-#define __FEATURE_H__
+#ifndef __DETECT_JA4_HASH_H__
+#define __DETECT_JA4_HASH_H__
 
-/* Provided feature names */
-#define FEATURE_OUTPUT_FILESTORE    "output::file-store"
-#define FEATURE_JA3                 "ja3"
-#define FEATURE_JA4                 "ja4"
+/* Prototypes */
+void DetectJa4HashRegister(void);
 
-void ProvidesFeature(const char *);
-bool RequiresFeature(const char *);
-
-void FeatureDump(void);
-
-void FeatureTrackingRelease(void);
-void FeatureTrackingRegister(void);
-
-#endif /* __FEATURE_H__ */
+#endif /* __DETECT_JA4_HASH_H__ */

@@ -20,6 +20,7 @@ lua_int8 = ["lua"]
 strict = []
 debug = []
 debug-validate = []
+ja4 = []
 
 [dependencies]
 nom7 = { version="7.0", package="nom" }
