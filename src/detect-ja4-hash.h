@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,12 +15,16 @@
  * 02110-1301, USA.
  */
 
-mod crypto;
-mod cyu;
-pub mod detect;
-mod error;
-mod frames;
-mod ja4;
-mod logger;
-mod parser;
-pub mod quic;
+/**
+ * \file
+ *
+ * \author Sascha Steinbiss <sascha@steinbiss.name>
+ */
+
+#ifndef __DETECT_JA4_HASH_H__
+#define __DETECT_JA4_HASH_H__
+
+/* Prototypes */
+void DetectJa4HashRegister(void);
+
+#endif /* __DETECT_JA4_HASH_H__ */
