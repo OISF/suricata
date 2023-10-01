@@ -551,6 +551,7 @@ noinst_HEADERS = \
 	util-ioctl.h \
 	util-ip.h \
 	util-ja3.h \
+	util-ja4.h \
 	util-landlock.h \
 	util-logopenfile.h \
 	util-log-redis.h \
@@ -1146,6 +1147,7 @@ libsuricata_c_a_SOURCES = \
 	util-ioctl.c \
 	util-ip.c \
 	util-ja3.c \
+	util-ja4.c \
 	util-landlock.c \
 	util-logopenfile.c \
 	util-log-redis.c \

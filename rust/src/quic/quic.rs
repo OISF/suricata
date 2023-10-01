@@ -23,7 +23,7 @@ use super::{
 };
 use crate::applayer::{self, *};
 use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP, Direction};
-use std::collections::VecDeque;
+use std::{collections::VecDeque};
 use std::ffi::CString;
 use tls_parser::TlsExtensionType;
 
@@ -48,6 +48,7 @@ pub struct QuicTransaction {
     pub ua: Option<Vec<u8>>,
     pub extv: Vec<QuicTlsExtension>,
     pub ja3: Option<String>,
+    pub ja4: Option<String>,
     pub client: bool,
     tx_data: AppLayerTxData,
 }
@@ -55,7 +56,7 @@ pub struct QuicTransaction {
 impl QuicTransaction {
     fn new(
         header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
-        extv: Vec<QuicTlsExtension>, ja3: Option<String>, client: bool,
+        extv: Vec<QuicTlsExtension>, ja3: Option<String>, ja4: Option<String>, client: bool,
     ) -> Self {
 	let direction = if client { Direction::ToServer } else { Direction::ToClient };
         let cyu = Cyu::generate(&header, &data.frames);
@@ -67,6 +68,7 @@ impl QuicTransaction {
             ua,
             extv,
             ja3,
+            ja4,
             client,
             tx_data: AppLayerTxData::for_direction(direction),
         }
@@ -82,6 +84,7 @@ impl QuicTransaction {
             ua: None,
             extv: Vec::new(),
             ja3: None,
+            ja4: None,
             client,
             tx_data: AppLayerTxData::for_direction(direction),
         }
@@ -132,9 +135,9 @@ impl QuicState {
 
     fn new_tx(
         &mut self, header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
-        extb: Vec<QuicTlsExtension>, ja3: Option<String>, client: bool,
+        extb: Vec<QuicTlsExtension>, ja3: Option<String>, ja4: Option<String>, client: bool,
     ) {
-        let mut tx = QuicTransaction::new(header, data, sni, ua, extb, ja3, client);
+        let mut tx = QuicTransaction::new(header, data, sni, ua, extb, ja3, ja4, client);
         self.max_tx_id += 1;
         tx.tx_id = self.max_tx_id;
         self.transactions.push_back(tx);
@@ -212,6 +215,7 @@ impl QuicState {
         let mut sni: Option<Vec<u8>> = None;
         let mut ua: Option<Vec<u8>> = None;
         let mut ja3: Option<String> = None;
+        let mut ja4: Option<String> = None;
         let mut extv: Vec<QuicTlsExtension> = Vec::new();
         for frame in &data.frames {
             match frame {
@@ -231,6 +235,16 @@ impl QuicState {
                 }
                 Frame::Crypto(c) => {
                     ja3 = Some(c.ja3.clone());
+                    // we only do client fingerprints for now
+                    if to_server {
+                        // our hash is complete, let's only use strings from
+                        // now on
+                        if let Some(ref rja4) = c.ja4 {
+                            if let Ok(hashstring) =  rja4.get_hash() {
+                                ja4 = Some(hashstring);
+                            }
+                        }
+                    }
                     for e in &c.extv {
                         if e.etype == TlsExtensionType::ServerName && !e.values.is_empty() {
                             sni = Some(e.values[0].to_vec());
@@ -246,7 +260,7 @@ impl QuicState {
                 _ => {}
             }
         }
-        self.new_tx(header, data, sni, ua, extv, ja3, to_server);
+        self.new_tx(header, data, sni, ua, extv, ja3, ja4, to_server);
     }
 
     fn set_event_notx(&mut self, event: QuicEvent, header: QuicHeader, client: bool) {
@@ -302,6 +316,7 @@ impl QuicState {
                             None,
                             None,
                             Vec::new(),
+                            None,
                             None,
                             to_server,
                         );
