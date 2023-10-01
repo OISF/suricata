@@ -1045,8 +1045,9 @@ If extended logging is enabled the following fields are also included:
 * "notafter": The NotAfter field from the TLS certificate
 * "ja3": The JA3 fingerprint consisting of both a JA3 hash and a JA3 string
 * "ja3s": The JA3S fingerprint consisting of both a JA3 hash and a JA3 string
+* "ja4": The JA4 client fingerprint for TLS
 
-JA3 must be enabled in the Suricata config file (set 'app-layer.protocols.tls.ja3-fingerprints' to 'yes').
+JA3 and JA4 must be enabled in the Suricata config file (set 'app-layer.protocols.tls.ja3-fingerprints'/'app-layer.protocols.tls.ja4-fingerprints' to 'yes').
 
 In addition to this, custom logging also allows the following fields:
 
@@ -2915,11 +2916,14 @@ Fields
 * "cyu": List of found CYUs in the packet
 * "cyu[].hash": CYU hash
 * "cyu[].string": CYU string
+* "ja3": The JA3 fingerprint consisting of both a JA3 hash and a JA3 string
+* "ja3s": The JA3S fingerprint consisting of both a JA3 hash and a JA3 string
+* "ja4": The JA4 client fingerprint for QUIC
 
 Examples
 ~~~~~~~~
 
-Example of QUIC logging with a CYU hash:
+Example of QUIC logging with CYU, JA3 and JA4 hashes (note that the JA4 hash is only an example to illustrate the format and does not correlate with the others):
 
 ::
 
@@ -2931,7 +2935,12 @@ Example of QUIC logging with a CYU hash:
             "hash": "7b3ceb1adc974ad360cfa634e8d0a730",
             "string": "46,PAD-SNI-STK-SNO-VER-CCS-NONC-AEAD-UAID-SCID-TCID-PDMD-SMHL-ICSL-NONP-PUBS-MIDS-SCLS-KEXS-XLCT-CSCT-COPT-CCRT-IRTT-CFCW-SFCW"
         }
-    ]
+    ],
+    "ja3": {
+        "hash": "324f8c50e267adba4b5dd06c964faf67",
+        "string": "771,4865-4866-4867,51-43-13-27-17513-16-45-0-10-57,29-23-24,"
+    },
+    "ja4": "q13d0310h3_55b375c5d22e_cd85d2d88918"
   }
 
 Event type: DHCP
