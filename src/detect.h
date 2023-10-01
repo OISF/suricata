@@ -284,6 +284,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_FILEDATA              BIT_U32(9)  /**< signature has filedata keyword */
 #define SIG_FLAG_INIT_JA3                   BIT_U32(10) /**< signature has ja3 keyword */
 #define SIG_FLAG_INIT_OVERFLOW              BIT_U32(11) /**< signature has overflown buffers */
+#define SIG_FLAG_INIT_JA4                   BIT_U32(12) /**< signature has ja4 keyword */
 
 /* signature mask flags */
 /** \note: additions should be added to the rule analyzer as well */

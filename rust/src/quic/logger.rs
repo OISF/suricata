@@ -122,6 +122,11 @@ fn log_template(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonEr
         js.set_string("string", ja3)?;
         js.close()?;
     }
+
+    if let Some(ref ja4) = &tx.ja4 {
+        js.set_string("ja4", ja4)?;
+    }
+
     if !tx.extv.is_empty() {
         js.open_array("extensions")?;
         for e in &tx.extv {
