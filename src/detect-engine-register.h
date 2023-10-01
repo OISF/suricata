@@ -344,6 +344,10 @@ enum DetectKeywordId {
     DETECT_AL_IKE_NONCE,
     DETECT_AL_IKE_KEY_EXCHANGE,
 
+    DETECT_AL_JA4_HASH,
+    DETECT_AL_JA4_R,
+    DETECT_AL_JA4_RO,
+
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };

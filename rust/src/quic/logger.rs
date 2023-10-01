@@ -122,6 +122,16 @@ fn log_quic(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
         js.set_string("string", ja3)?;
         js.close()?;
     }
+
+    if let Some(ref ja4) = &tx.ja4 {
+        let (ja4h, ja4r, ja4ro) = ja4;
+        js.open_object("ja4")?;
+        js.set_string("ja4", ja4h)?;
+        js.set_string("ja4_r", ja4r)?;
+        js.set_string("ja4_ro", ja4ro)?;
+        js.close()?;
+    }
+
     if !tx.extv.is_empty() {
         js.open_array("extensions")?;
         for e in &tx.extv {

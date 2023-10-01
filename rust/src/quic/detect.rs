@@ -64,6 +64,51 @@ pub unsafe extern "C" fn rs_quic_tx_get_ja3(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn rs_quic_tx_get_ja4(
+    tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    if let Some((ja4h, _ja4r, _ja4ro)) = &tx.ja4 {
+        *buffer = ja4h.as_ptr();
+        *buffer_len = ja4h.len() as u32;
+        1
+    } else {
+        *buffer = ptr::null();
+        *buffer_len = 0;
+        0
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_quic_tx_get_ja4_r(
+    tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    if let Some((_ja4h, ja4r, _ja4ro)) = &tx.ja4 {
+        *buffer = ja4r.as_ptr();
+        *buffer_len = ja4r.len() as u32;
+        1
+    } else {
+        *buffer = ptr::null();
+        *buffer_len = 0;
+        0
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_quic_tx_get_ja4_ro(
+    tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    if let Some((_ja4h, _ja4r, ja4ro)) = &tx.ja4 {
+        *buffer = ja4ro.as_ptr();
+        *buffer_len = ja4ro.len() as u32;
+        1
+    } else {
+        *buffer = ptr::null();
+        *buffer_len = 0;
+        0
+    }
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn rs_quic_tx_get_version(
     tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {

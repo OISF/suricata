@@ -3055,6 +3055,21 @@
                     },
                     "additionalProperties": false
                 },
+                "ja4": {
+                    "type": "object",
+                    "properties": {
+                        "ja4": {
+                            "type": "string"
+                        },
+                        "ja4_r": {
+                            "type": "string"
+                        },
+                        "ja4_ro": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "sni": {
                     "description": "Server Name Indication",
                     "type": "string"
@@ -5444,6 +5459,21 @@
                             "type": "string"
                         },
                         "string": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "ja4": {
+                    "type": "object",
+                    "properties": {
+                        "ja4": {
+                            "type": "string"
+                        },
+                        "ja4_r": {
+                            "type": "string"
+                        },
+                        "ja4_ro": {
                             "type": "string"
                         }
                     },

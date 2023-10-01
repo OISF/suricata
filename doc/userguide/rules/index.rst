@@ -17,6 +17,7 @@ Suricata Rules
    tls-keywords
    ssh-keywords
    ja3-keywords
+   ja4-keywords
    modbus-keyword
    dcerpc-keywords
    dhcp-keywords
