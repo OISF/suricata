@@ -20,6 +20,7 @@ mod cyu;
 pub mod detect;
 mod error;
 mod frames;
+mod ja4;
 mod logger;
 mod parser;
 pub mod quic;
