@@ -111,6 +111,9 @@ typedef struct LogFileCtx_ {
     /** File permissions */
     uint32_t filemode;
 
+    /** File buffering */
+    uint32_t buffer_size;
+
     /** Suricata sensor name */
     char *sensor_name;
 
@@ -167,6 +170,9 @@ typedef struct LogFileCtx_ {
 
 /* flags for LogFileCtx */
 #define LOGFILE_ROTATE_INTERVAL 0x04
+
+/* Default EVE output buffering size */
+#define LOGFILE_EVE_BUFFER_SIZE (8 * 1024)
 
 LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
