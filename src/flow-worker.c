@@ -430,6 +430,10 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
             TmqhOutputPacketpool(tv, x);
         }
     }
+    if (FlowChangeProto(p->flow) && p->flow->flags & FLOW_ACTION_DROP) {
+        // in case f->flags & FLOW_ACTION_DROP was set by one of the dequeued packets
+        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FLOW_DROP);
+    }
 }
 
 static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadData *fw,
