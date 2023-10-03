@@ -119,7 +119,7 @@ impl JA4 {
     }
 
     pub fn add_signature_algorithm(&mut self, sigalgo: u16) {
-        if JA4::is_grease(u16::from(sigalgo)) {
+        if JA4::is_grease(sigalgo) {
             return;
         }
         self.signature_algorithms.push(sigalgo);
@@ -170,7 +170,7 @@ impl JA4 {
         let unsorted_sigalgostrings: Vec<String> = self
             .signature_algorithms
             .iter()
-            .map(|v| format!("{:04x}", u16::from(*v)))
+            .map(|v| format!("{:04x}", (*v)))
             .collect();
         let ja4_c2_raw = unsorted_sigalgostrings.join(",");
         let ja4_c_raw = format!("{}_{}", ja4_c1_raw, ja4_c2_raw);
@@ -241,12 +241,12 @@ mod tests {
         let mut alpn = "foobar".as_bytes();
         let mut len = alpn.len();
         let v: u16 = (alpn[0] as u16) << 8 | alpn[len - 1] as u16;
-        assert_eq!(JA4::is_grease(v), false);
+        assert!(!JA4::is_grease(v));
 
         alpn = &[0x0a, 0x00, 0x0a];
         len = alpn.len();
         let v: u16 = (alpn[0] as u16) << 8 | alpn[len - 1] as u16;
-        assert_eq!(JA4::is_grease(v), true);
+        assert!(JA4::is_grease(v));
     }
 
     #[test]
