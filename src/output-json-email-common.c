@@ -391,6 +391,7 @@ bool EveEmailAddMetadata(const Flow *f, uint32_t tx_id, JsonBuilder *js)
 
 void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx)
 {
+    email_ctx->fields = 0;
     if (conf) {
         const char *extended = ConfNodeLookupChildValue(conf, "extended");
 
@@ -400,7 +401,6 @@ void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx)
             }
         }
 
-        email_ctx->fields  = 0;
         ConfNode *custom;
         if ((custom = ConfNodeLookupChild(conf, "custom")) != NULL) {
             ConfNode *field;
