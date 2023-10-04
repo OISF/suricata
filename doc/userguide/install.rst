@@ -93,15 +93,15 @@ Ubuntu/Debian
 Minimal::
 
     # Installed Rust and cargo as indicated above
-    apt-get install build-essential git libjansson-dev libpcap-dev \
+    sudo apt-get install build-essential git libjansson-dev libpcap-dev \
                     libpcre2-dev libtool libyaml-dev make pkg-config zlib1g-dev
     # On most distros installing cbindgen with package manager should be enough
-    apt-get install cbindgen # alternative: cargo install --force cbindgen
+    sudo apt-get install cbindgen # alternative: cargo install --force cbindgen
 
 Recommended::
 
     # Installed Rust and cargo as indicated above
-    apt-get install autoconf automake build-essential ccache clang curl git \
+    sudo apt-get install autoconf automake build-essential ccache clang curl git \
                     gosu jq libbpf-dev libcap-ng0 libcap-ng-dev libelf-dev \
                     libevent-dev libgeoip-dev libhiredis-dev libjansson-dev \
                     liblua5.1-dev libmagic-dev libnet1-dev libpcap-dev \
@@ -112,7 +112,7 @@ Recommended::
 
 Extra for iptables/nftables IPS integration::
 
-    apt-get install libnetfilter-queue-dev libnetfilter-queue1  \
+    sudo apt-get install libnetfilter-queue-dev libnetfilter-queue1  \
                     libnetfilter-log-dev libnetfilter-log1      \
                     libnfnetlink-dev libnfnetlink0
 
@@ -123,28 +123,28 @@ To install all minimal dependencies, it is required to enable extra package
 repository in most distros. You can enable it possibly by
 one of the following ways::
 
-    dnf -y update
-    dnf -y install dnf-plugins-core
+    sudo dnf -y update
+    sudo dnf -y install dnf-plugins-core
     # AlmaLinux 8
-    dnf config-manager --set-enabled powertools
+    sudo dnf config-manager --set-enabled powertools
     # AlmaLinux 9
-    dnf config-manager --set-enable crb
+    sudo dnf config-manager --set-enable crb
     # Oracle Linux 8
-    dnf config-manager --set-enable ol8_codeready_builder
+    sudo dnf config-manager --set-enable ol8_codeready_builder
     # Oracle Linux 9
-    dnf config-manager --set-enable ol9_codeready_builder
+    sudo dnf config-manager --set-enable ol9_codeready_builder
 
 Minimal::
 
     # Installed Rust and cargo as indicated above
-    dnf install -y gcc gcc-c++ git jansson-devel libpcap-devel libtool \
+    sudo dnf install -y gcc gcc-c++ git jansson-devel libpcap-devel libtool \
                    libyaml-devel make pcre2-devel which zlib-devel
     cargo install --force cbindgen
 
 Recommended::
 
     # Installed Rust and cargo as indicated above
-    dnf install -y autoconf automake diffutils file-devel gcc gcc-c++ git \
+    sudo dnf install -y autoconf automake diffutils file-devel gcc gcc-c++ git \
                    jansson-devel jq libcap-ng-devel libevent-devel \
                    libmaxminddb-devel libnet-devel libnetfilter_queue-devel \
                    libnfnetlink-devel libpcap-devel libtool libyaml-devel \
@@ -267,10 +267,10 @@ To use backports, the backports repository for the current stable
 distribution needs to be added to the system-wide sources list.
 For Debian 10 (buster), for instance, run the following as ``root``::
 
-    echo "deb http://http.debian.net/debian buster-backports main" > \
+    sudo echo "deb http://http.debian.net/debian buster-backports main" > \
         /etc/apt/sources.list.d/backports.list
-    apt-get update
-    apt-get install suricata -t buster-backports
+    sudo apt-get update
+    sudo apt-get install suricata -t buster-backports
 
 CentOS, AlmaLinux, RockyLinux, Fedora, etc
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -290,27 +290,27 @@ CentOS, RHEL, AlmaLinux, RockyLinux, etc Version 8+
 
 .. code-block:: none
 
-   dnf install epel-release dnf-plugins-core
-   dnf copr enable @oisf/suricata-7.0
-   dnf install suricata
+   sudo dnf install epel-release dnf-plugins-core
+   sudo dnf copr enable @oisf/suricata-7.0
+   sudo dnf install suricata
 
 CentOS 7
 ''''''''
 
 .. code-block:: none
 
-   yum install epel-release yum-plugin-copr
-   yum copr enable @oisf/suricata-7.0
-   yum install suricata
+   sudo yum install epel-release yum-plugin-copr
+   sudo yum copr enable @oisf/suricata-7.0
+   sudo yum install suricata
 
 Fedora
 ''''''
 
 .. code-block:: none
 
-    dnf install dnf-plugins-core
-    dnf copr enable @oisf/suricata-7.0
-    dnf install suricata
+    sudo dnf install dnf-plugins-core
+    sudo dnf copr enable @oisf/suricata-7.0
+    sudo dnf install suricata
 
 Additional Notes for RPM Installations
 """"""""""""""""""""""""""""""""""""""
@@ -333,19 +333,19 @@ The Suricata RPMs are configured to run from Systemd.
 
 To start Suricata::
 
-  systemctl start suricata
+  sudo systemctl start suricata
 
 To stop Suricata::
 
-  systemctl stop suricata
+  sudo systemctl stop suricata
 
 To have Suricata start on-boot::
 
-  systemctl enable suricata
+  sudo systemctl enable suricata
 
 To reload rules::
 
-   systemctl reload suricata
+  sudo systemctl reload suricata
 
 .. _install-advanced:
 
