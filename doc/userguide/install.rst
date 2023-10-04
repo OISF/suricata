@@ -364,5 +364,9 @@ Suricata packages.
 Advanced Installation
 ---------------------
 
-Various installation guides for installing from GIT and for other operating systems are maintained at:
+If you are using Ubuntu, you can follow
+:doc:`devguide/codebase/installation-from-git`.
+
+For other various installation guides for installing from GIT and for other operating
+systems, please check (bear in mind that those may be somewhat outdated):
 https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_Installation
