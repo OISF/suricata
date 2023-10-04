@@ -11,6 +11,7 @@ It's assumed that you run a recent Ubuntu release as the official PPA can then
 be used for the installation. To install the latest stable Suricata version, follow
 the steps::
 
+    sudo apt-get install software-properties-common
     sudo add-apt-repository ppa:oisf/suricata-stable
     sudo apt update
     sudo apt install suricata jq
