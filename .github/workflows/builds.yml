@@ -1961,7 +1961,7 @@ jobs:
     needs: [ prepare-deps, prepare-cbindgen ]
     strategy:
       matrix:
-        dpdk_version: [ 22.11.3, 21.11.5, 20.11.9, 19.11.14 ]
+        dpdk_version: [ "main", 22.11.3, 21.11.5, 20.11.9, 19.11.14 ]
     steps:
 
       # Cache Rust stuff.
@@ -2028,7 +2028,13 @@ jobs:
           rm -rf dpdk_${{ matrix.dpdk_version }}
           find /usr/ -name 'librte_*.a' -delete
           mkdir -p dpdk_${{ matrix.dpdk_version }} && cd dpdk_${{ matrix.dpdk_version }}
-          curl -fsLS https://fast.dpdk.org/rel/dpdk-${{ matrix.dpdk_version }}.tar.xz | tar -xJ --strip-components=1
+
+          if [ "${{ matrix.dpdk_version }}" = "main" ]; then
+            git clone https://github.com/DPDK/dpdk.git .
+          else
+            curl -fsLS https://fast.dpdk.org/rel/dpdk-${{ matrix.dpdk_version }}.tar.xz | tar -xJ --strip-components=1
+          fi
+
           rm -rf build/
           meson setup -Dtests=false --prefix=/usr/ build
           ninja -C build
@@ -2048,7 +2054,14 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-dpdk
+      - name: Configure with conditionally modified CFLAGS
+        run: |
+          if [ "${{ matrix.dpdk_version }}" = "main" ]; then
+            NEW_CFLAGS=$(echo "${DEFAULT_CFLAGS}" | sed 's/-Werror//g')
+            CFLAGS="${NEW_CFLAGS}" ./configure --enable-dpdk
+          else
+            CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-dpdk
+          fi
       - run: make -j2
       - run: make check
 
