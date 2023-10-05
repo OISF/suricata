@@ -499,16 +499,18 @@ void SigMatchAppendSMToList(Signature *s, SigMatch *new, const int list)
             if (SignatureInitDataBufferCheckExpand(s) < 0) {
                 SCLogError("failed to expand rule buffer array");
                 s->init_data->init_flags |= SIG_FLAG_INIT_OVERFLOW;
-                return;
+                // SignatureInitDataBufferCheckExpand should not fail in this case
+                DEBUG_VALIDATE_BUG_ON(s->init_data->curbuf == NULL);
+                // keep curbuf even with wrong id as we error on this signature
+            } else {
+                /* initialize new buffer */
+                s->init_data->curbuf = &s->init_data->buffers[s->init_data->buffer_index++];
+                s->init_data->curbuf->id = list;
+                /* buffer set up by sigmatch is tracked in case we add a stickybuffer for the
+                 * same list. */
+                s->init_data->curbuf->sm_init = true;
+                SCLogDebug("s->init_data->buffer_index %u", s->init_data->buffer_index);
             }
-
-            /* initialize new buffer */
-            s->init_data->curbuf = &s->init_data->buffers[s->init_data->buffer_index++];
-            s->init_data->curbuf->id = list;
-            /* buffer set up by sigmatch is tracked in case we add a stickybuffer for the
-             * same list. */
-            s->init_data->curbuf->sm_init = true;
-            SCLogDebug("s->init_data->buffer_index %u", s->init_data->buffer_index);
         }
         BUG_ON(s->init_data->curbuf == NULL);
 
@@ -1015,8 +1017,11 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         /* setup may or may not add a new SigMatch to the list */
         setup_ret = st->Setup(de_ctx, s, NULL);
     }
-    if (setup_ret < 0) {
+    if (setup_ret < 0 || (s->init_data->init_flags & SIG_FLAG_INIT_OVERFLOW)) {
         SCLogDebug("\"%s\" failed to setup", st->name);
+        if (s->init_data->init_flags & SIG_FLAG_INIT_OVERFLOW) {
+            SCLogError("rule %u tries to use too many buffers", s->id);
+        }
 
         /* handle 'silent' error case */
         if (setup_ret == -2) {
@@ -1927,11 +1932,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     if (s->init_data->curbuf && s->init_data->curbuf->head == NULL) {
         SCLogError("rule %u setup buffer %s but didn't add matches to it", s->id,
                 DetectEngineBufferTypeGetNameById(de_ctx, s->init_data->curbuf->id));
-        SCReturnInt(0);
-    }
-
-    if (s->init_data->init_flags & SIG_FLAG_INIT_OVERFLOW) {
-        SCLogError("rule %u tries to use too many buffers", s->id);
         SCReturnInt(0);
     }
 
