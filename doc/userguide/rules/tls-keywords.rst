@@ -278,3 +278,27 @@ Example::
     tls.random_bytes; content:"|57 5d 77 02 07 c2 9d be 24 01 cc f0 5d cd e1 d2 a5 86 9c 4a 3e ee 38 db 55 1a d9 bc|"; sid: 200076;)
 
 ``tls.random_bytes`` is a sticky buffer.
+
+tls.cert_chain_len
+------------------
+
+Matches on the TLS certificate chain length.
+
+tls.cert_chain_len supports `<, >, <>, !` and using an exact value.
+
+Example::
+
+  alert tls any any -> any any (msg:"cert chain exact value"; \
+ tls.cert_chain_len:1; classtype:misc-activity; sid:1; rev:1;)
+
+  alert tls any any -> any any (msg:"cert chain less than value"; \
+ tls.cert_chain_len:<2; classtype:misc-activity; sid:2; rev:1;)
+
+  alert tls any any -> any any (msg:"cert chain greater than value"; \
+ tls.cert_chain_len:>0; classtype:misc-activity; sid:2; rev:1;)
+
+  alert tls any any -> any any (msg:"cert chain greater than less than value";\
+ tls.cert_chain_len:0<>2; classtype:misc-activity; sid:3; rev:1;)
+
+  alert tls any any -> any any (msg:"cert chain not value"; \
+ tls.cert_chain_len:!2; classtype:misc-activity; sid:4; rev:1;)
