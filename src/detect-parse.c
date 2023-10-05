@@ -474,6 +474,8 @@ void SigMatchAppendSMToList(Signature *s, SigMatch *new, const int list)
             if (SignatureInitDataBufferCheckExpand(s) < 0) {
                 SCLogError("failed to expand rule buffer array");
                 s->init_data->init_flags |= SIG_FLAG_INIT_OVERFLOW;
+                SigMatchFree(de_ctx, new);
+                sigmatch_table[new->type].Free(de_ctx, new->ctx);
                 return;
             }
 
