@@ -222,14 +222,14 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     /* Calculate the jump location */
     if (flags & DETECT_BYTEJUMP_BEGIN) {
         jumpptr = payload + (int64_t)val;
-        SCLogDebug("NEWVAL: payload %p + %" PRIi64 " = %p\n", payload, (int64_t)val, jumpptr + val);
+        SCLogDebug("NEWVAL: payload %p + %" PRIi64 " = %p", payload, (int64_t)val, jumpptr + val);
     } else if (flags & DETECT_BYTEJUMP_END) {
         jumpptr = payload + payload_len + (int64_t)val;
         SCLogDebug(
                 "NEWVAL: payload %p + %" PRIu32 " + %" PRIi64, payload, payload_len, (int64_t)val);
     } else {
         jumpptr = ptr + (int64_t)val + extbytes;
-        SCLogDebug("NEWVAL: ptr %p + %" PRIi64 " = %p\n", ptr, val, jumpptr);
+        SCLogDebug("NEWVAL: ptr %p + %" PRIi64 " = %p", ptr, val, jumpptr);
     }
 
     /* Validate that the jump location is still in the packet
