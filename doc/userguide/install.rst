@@ -90,6 +90,8 @@ Rust support::
 Ubuntu/Debian
 """""""""""""
 
+.. Important:: The following instructions require `sudo` be installed.
+
 Minimal::
 
     # Installed Rust and cargo as indicated above
@@ -118,6 +120,8 @@ Extra for iptables/nftables IPS integration::
 
 CentOS, AlmaLinux, RockyLinux, Fedora, etc
 """"""""""""""""""""""""""""""""""""""""""
+
+.. Important:: The following instructions require `sudo` be installed.
 
 To install all minimal dependencies, it is required to enable extra package
 repository in most distros. You can enable it possibly by
@@ -176,6 +180,8 @@ Ubuntu from Personal Package Archives (PPA)
 For Ubuntu, OISF maintains a PPA ``suricata-stable`` that always contains the
 latest stable release.
 
+.. Important:: The following instructions require `sudo` be installed.
+
 Setup to install the latest stable Suricata::
 
     sudo apt-get install software-properties-common
@@ -193,6 +199,8 @@ After installing you can proceed to the :ref:`Basic setup`.
 Upgrading
 """""""""
 
+.. Important:: The following instructions require `sudo` be installed.
+
 To upgrade::
 
     sudo apt-get update
@@ -200,6 +208,8 @@ To upgrade::
 
 Remove
 """"""
+
+.. Important:: The following instructions require `sudo` be installed.
 
 To remove Suricata from your system::
 
@@ -209,6 +219,8 @@ To remove Suricata from your system::
 
 Getting Debug or Pre-release Versions
 """""""""""""""""""""""""""""""""""""
+
+.. Important:: The following instructions require `sudo` be installed.
 
 If you want Suricata with built-in (enabled) debugging, you can install the
 debug package::
@@ -229,6 +241,8 @@ Suricata will then always be the latest release, stable or beta.
 
 Daily Releases
 """"""""""""""
+
+.. Important:: The following instructions require `sudo` be installed.
 
 If you would like to help test the daily build packages from our latest git(dev)
 repository, the same procedures as above apply, just using another PPA,
@@ -255,6 +269,8 @@ repository, the same procedures as above apply, just using another PPA,
 Debian
 ^^^^^^
 
+.. Important:: The following instructions require `sudo` be installed.
+
 In Debian 9 (stretch) and later do::
 
     sudo apt-get install suricata
@@ -267,10 +283,10 @@ To use backports, the backports repository for the current stable
 distribution needs to be added to the system-wide sources list.
 For Debian 10 (buster), for instance, run the following as ``root``::
 
-    sudo echo "deb http://http.debian.net/debian buster-backports main" > \
+    echo "deb http://http.debian.net/debian buster-backports main" > \
         /etc/apt/sources.list.d/backports.list
-    sudo apt-get update
-    sudo apt-get install suricata -t buster-backports
+    apt-get update
+    apt-get install suricata -t buster-backports
 
 CentOS, AlmaLinux, RockyLinux, Fedora, etc
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -287,6 +303,8 @@ Installing From Package Repositories
 
 CentOS, RHEL, AlmaLinux, RockyLinux, etc Version 8+
 '''''''''''''''''''''''''''''''''''''''''''''''''''
+
+.. Important:: The following instructions require `sudo` be installed.
 
 .. code-block:: none
 
@@ -330,6 +348,8 @@ Starting Suricata On-Boot
 '''''''''''''''''''''''''
 
 The Suricata RPMs are configured to run from Systemd.
+
+.. Important:: The following instructions require `sudo` be installed.
 
 To start Suricata::
 
