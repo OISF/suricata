@@ -787,7 +787,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
     char error_buffer[100];
     uint64_t pkt_ts;
     NtNetBuf_t packet_buffer;
-    NapatechThreadVars *ntv = (NapatechThreadVars *) data;
+    NapatechThreadVars *ntv = (NapatechThreadVars *)data;
     int numa_node = -1;
     int set_cpu_affinity = 0;
     int closer = 0;
@@ -880,8 +880,8 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
 
     SCLogDebug("Opening NAPATECH Stream: %u for processing", ntv->stream_id);
 
-    if ((status = NT_NetRxOpen(&(ntv->rx_stream), "SuricataStream",
-            NT_NET_INTERFACE_PACKET, ntv->stream_id, -1)) != NT_SUCCESS) {
+    if ((status = NT_NetRxOpen(&(ntv->rx_stream), "SuricataStream", NT_NET_INTERFACE_PACKET,
+                 ntv->stream_id, -1)) != NT_SUCCESS) {
 
         NAPATECH_ERROR(SC_ERR_NAPATECH_OPEN_FAILED, status);
         SCFree(ntv);

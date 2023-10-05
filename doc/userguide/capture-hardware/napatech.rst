@@ -391,14 +391,6 @@ that is being processed, the following counters will be output in stats.log:
 This is useful for fine-grain debugging to determine if a specific CPU core or
 thread is falling behind resulting in dropped packets.
 
-If hba is enabled the following counter will also be provided:
-
-- napa<streamid>.hba_drop: the number of packets dropped because the host buffer allowance high-water mark was reached.
-
-In addition to counters host buffer utilization is tracked and logged. This is also useful for
-debugging. Log messages are output for both Host and On-Board buffers when reach 25, 50, 75
-percent of utilization. Corresponding messages are output when utilization decreases.
-
 Debugging:
 
 For debugging configurations it is useful to see what traffic is flowing as well as what streams are
@@ -419,15 +411,6 @@ Napatech configuration options:
 These are the Napatech options available in the Suricata configuration file::
 
   napatech:
-    # The Host Buffer Allowance for all streams
-    # (-1 = OFF, 1 - 100 = percentage of the host buffer that can be held back)
-    # This may be enabled when sharing streams with another application.
-    # Otherwise, it should be turned off.
-    #
-    # Note: hba will be deprecated in Suricata 7
-    #
-    #hba: -1
-
     # When use_all_streams is set to "yes" the initialization code will query
     # the Napatech service for all configured streams and listen on all of them.
     # When set to "no" the streams config array will be used.
@@ -515,12 +498,6 @@ These are the Napatech options available in the Suricata configuration file::
     # This parameter has no effect if auto-config is disabled.
     #
     hashmode: hash5tuplesorted
-
-*Note: hba is useful only when a stream is shared with another application. When hba is enabled packets will be dropped
-(i.e. not delivered to Suricata) when the host-buffer utilization reaches the high-water mark indicated by the hba value.
-This insures that, should Suricata get behind in its packet processing, the other application will still receive all
-of the packets. If this is enabled without another application sharing the stream it will result in sub-optimal packet
-buffering.*
 
 Make sure that there are enough host-buffers declared in ``ntservice.ini`` to
 accommodate the number of cores/streams being used.
