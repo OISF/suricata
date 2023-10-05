@@ -79,7 +79,7 @@ static int pcre2_use_jit = 1;
 
 /* \brief Helper function for using pcre2_match with/without JIT
  */
-static inline int DetectPcreExec(DetectEngineThreadCtx *det_ctx, DetectPcreData *pd,
+static inline int DetectPcreExec(DetectEngineThreadCtx *det_ctx, const DetectPcreData *pd,
         const char *str, const size_t strlen, int start_offset, int options,
         pcre2_match_data *match)
 {
@@ -182,7 +182,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     uint32_t len = 0;
     PCRE2_SIZE capture_len = 0;
 
-    DetectPcreData *pe = (DetectPcreData *)smd->ctx;
+    const DetectPcreData *pe = (const DetectPcreData *)smd->ctx;
 
     if (pe->flags & DETECT_PCRE_RELATIVE) {
         ptr = payload + det_ctx->buffer_offset;
