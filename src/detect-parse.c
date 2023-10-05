@@ -474,7 +474,9 @@ void SigMatchAppendSMToList(Signature *s, SigMatch *new, const int list)
             if (SignatureInitDataBufferCheckExpand(s) < 0) {
                 SCLogError("failed to expand rule buffer array");
                 s->init_data->init_flags |= SIG_FLAG_INIT_OVERFLOW;
-                return;
+                if (s->init_data->buffer_index >= s->init_data->buffers_size) {
+                    return;
+                }
             }
 
             /* initialize new buffer */
@@ -990,8 +992,11 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         /* setup may or may not add a new SigMatch to the list */
         setup_ret = st->Setup(de_ctx, s, NULL);
     }
-    if (setup_ret < 0) {
+    if (setup_ret < 0 || (s->init_data->init_flags & SIG_FLAG_INIT_OVERFLOW)) {
         SCLogDebug("\"%s\" failed to setup", st->name);
+        if (s->init_data->init_flags & SIG_FLAG_INIT_OVERFLOW) {
+            SCLogError("rule %u tries to use too many buffers", s->id);
+        }
 
         /* handle 'silent' error case */
         if (setup_ret == -2) {
@@ -1902,11 +1907,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     if (s->init_data->curbuf && s->init_data->curbuf->head == NULL) {
         SCLogError("rule %u setup buffer %s but didn't add matches to it", s->id,
                 DetectEngineBufferTypeGetNameById(de_ctx, s->init_data->curbuf->id));
-        SCReturnInt(0);
-    }
-
-    if (s->init_data->init_flags & SIG_FLAG_INIT_OVERFLOW) {
-        SCLogError("rule %u tries to use too many buffers", s->id);
         SCReturnInt(0);
     }
 
