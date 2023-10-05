@@ -3150,7 +3150,6 @@ static int DetectEngineHttpServerBodyFileDataTest03(void)
     Packet *p1 = NULL;
     Packet *p2 = NULL;
     ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
@@ -3167,7 +3166,6 @@ static int DetectEngineHttpServerBodyFileDataTest03(void)
         "\r\n"
         "XYZ_klm_1234abcd_XYZ_klm_5678abcd";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&th_v, 0, sizeof(th_v));
@@ -3194,82 +3192,55 @@ static int DetectEngineHttpServerBodyFileDataTest03(void)
 
     StreamTcpInitConfig(true);
 
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"match on 1st\"; "
-                               "file_data; content:\"XYZ\"; content:\"_klm_\"; distance:0; content:\"abcd\"; distance:4; byte_test:4,=,1234,-8,relative,string;"
-                               "sid:1;)")))
-        goto end;
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"match on 2nd\"; "
-                               "file_data; content:\"XYZ\"; content:\"_klm_\"; distance:0; content:\"abcd\"; distance:4; byte_test:4,=,5678,-8,relative,string;"
-                               "sid:2;)")))
-        goto end;
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"match on 1st\"; "
+            "file_data; content:\"XYZ\"; content:\"_klm_\"; distance:0; content:\"abcd\"; "
+            "distance:4; byte_test:4,=,1234,-8,relative,string;"
+            "sid:1;)");
+    FAIL_IF_NULL(s);
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"match on 2nd\"; "
+            "file_data; content:\"XYZ\"; content:\"_klm_\"; distance:0; content:\"abcd\"; "
+            "distance:4; byte_test:4,=,5678,-8,relative,string;"
+            "sid:2;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF(r != 0);
     http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: \n");
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched but shouldn't have: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p1, 1));
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!PacketAlertCheck(p2, 1)) {
-        printf("sid 1 did not match but should have: ");
-        goto end;
-    }
-    if (!PacketAlertCheck(p2, 2)) {
-        printf("sid 2 did not match but should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p2, 1));
+    FAIL_IF_NOT(PacketAlertCheck(p2, 2));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(true);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    return result;
+    PASS;
 }
 
 static int DetectEngineHttpServerBodyFileDataTest04(void)
