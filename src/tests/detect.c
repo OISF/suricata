@@ -3174,12 +3174,8 @@ end:
 
 static int SigTest39(void)
 {
-    Packet *p1 = PacketGetFromAlloc();
-    if (unlikely(p1 == NULL))
-        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 1;
     uint8_t raw_eth[] = {
         0x00, 0x00, 0x03, 0x04, 0x00, 0x06, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -3216,23 +3212,13 @@ static int SigTest39(void)
 
     memset(&th_v, 0, sizeof(ThreadVars));
 
+    Packet *p1 = PacketGetFromAlloc();
+    FAIL_IF_NULL(p1);
     /* Copy raw data into packet */
-    if (PacketCopyData(p1, raw_eth, ethlen) == -1) {
-        SCFree(p1);
-        return 1;
-    }
-    if (PacketCopyDataOffset(p1, ethlen, raw_ipv4, ipv4len) == -1) {
-        SCFree(p1);
-        return 1;
-    }
-    if (PacketCopyDataOffset(p1, ethlen + ipv4len, raw_tcp, tcplen) == -1) {
-        SCFree(p1);
-        return 1;
-    }
-    if (PacketCopyDataOffset(p1, ethlen + ipv4len + tcplen, buf, buflen) == -1) {
-        SCFree(p1);
-        return 1;
-    }
+    FAIL_IF(PacketCopyData(p1, raw_eth, ethlen) == -1);
+    FAIL_IF(PacketCopyDataOffset(p1, ethlen, raw_ipv4, ipv4len) == -1);
+    FAIL_IF(PacketCopyDataOffset(p1, ethlen + ipv4len, raw_tcp, tcplen) == -1);
+    FAIL_IF(PacketCopyDataOffset(p1, ethlen + ipv4len + tcplen, buf, buflen) == -1);
     SET_PKT_LEN(p1, ethlen + ipv4len + tcplen + buflen);
 
     PACKET_RESET_CHECKSUMS(p1);
@@ -3246,64 +3232,36 @@ static int SigTest39(void)
     p1->proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(content:\"LEN1|20|\"; "
-                               "byte_test:4,=,8,0; "
-                               "byte_jump:4,0; "
-                               "byte_test:6,=,0x4c454e312038,0,relative; "
-                               "msg:\"byte_jump keyword check(1)\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result &= 0;
-        goto end;
-    }
-    // XXX TODO
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(content:\"LEN1|20|\"; "
-                               "byte_test:4,=,8,4,relative,string,dec; "
-                               "byte_jump:4,4,relative,string,dec,post_offset 2; "
-                               "byte_test:4,=,0x4c454e32,0,relative; "
-                               "msg:\"byte_jump keyword check(2)\"; sid:2;)");
-    if (de_ctx->sig_list->next == NULL) {
-        result &= 0;
-        goto end;
-    }
-
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                                 "(content:\"LEN1|20|\"; "
+                                                 "byte_test:4,=,8,0; "
+                                                 "byte_jump:4,0; "
+                                                 "byte_test:6,=,0x4c454e312038,0,relative; "
+                                                 "msg:\"byte_jump keyword check(1)\"; sid:1;)");
+    FAIL_IF_NULL(s);
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                      "(content:\"LEN1|20|\"; "
+                                      "byte_test:4,=,8,4,relative,string,dec; "
+                                      "byte_jump:4,4,relative,string,dec,post_offset 2; "
+                                      "byte_test:4,=,0x4c454e32,0,relative; "
+                                      "msg:\"byte_jump keyword check(2)\"; sid:2;)");
+    FAIL_IF_NULL(s);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (PacketAlertCheck(p1, 1)) {
-        result = 1;
-    } else {
-        result = 0;
-        printf("sid 1 didn't alert, but should have: ");
-        goto cleanup;
-    }
-    if (PacketAlertCheck(p1, 2)) {
-        result = 1;
-    } else {
-        result = 0;
-        printf("sid 2 didn't alert, but should have: ");
-        goto cleanup;
-    }
 
-cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    FAIL_IF_NOT(PacketAlertCheck(p1, 1));
+    FAIL_IF_NOT(PacketAlertCheck(p1, 2));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-end:
     SCFree(p1);
-    return result;
+    PASS;
 }
 
 /**
