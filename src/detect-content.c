@@ -1163,16 +1163,12 @@ static int DetectContentParseTest08 (void)
 static int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, const char *sig,
                       uint32_t sid)
 {
-    int result = 0;
-
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF_NULL(p);
     DecodeThreadVars dtv;
 
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
@@ -1180,26 +1176,17 @@ static int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pkts
     DecodeEthernet(&th_v, &dtv, p, raw_eth_pkt, pktsize);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig);
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
-    de_ctx->sig_list->next = NULL;
+    Signature *s = DetectEngineAppendSig(de_ctx, sig);
+    FAIL_IF_NULL(s);
 
     if (de_ctx->sig_list->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_CONTENT) {
         DetectContentData *co = (DetectContentData *)de_ctx->sig_list->init_data
                                         ->smlists_tail[DETECT_SM_LIST_PMATCH]
                                         ->ctx;
-        if (co->flags & DETECT_CONTENT_RELATIVE_NEXT) {
-            printf("relative next flag set on final match which is content: ");
-            goto end;
-        }
+        FAIL_IF(co->flags & DETECT_CONTENT_RELATIVE_NEXT);
     }
 
     SCLogDebug("---DetectContentLongPatternMatchTest---");
@@ -1209,23 +1196,12 @@ static int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pkts
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, sid) != 1) {
-        goto end;
-    }
+    int result = PacketAlertCheck(p, sid);
 
-    result = 1;
-end:
-    if (de_ctx != NULL)
-    {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        if (det_ctx != NULL)
-            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
     PacketRecycle(p);
     FlowShutdown();
-
     SCFree(p);
     return result;
 }
