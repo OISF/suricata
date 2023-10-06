@@ -289,6 +289,20 @@ static int DetectEngineContentInspectionTest13(void) {
     TEST_FOOTER;
 }
 
+static int DetectEngineContentInspectionTest14(void)
+{
+    TEST_HEADER;
+    TEST_RUN("XYZ_klm_1234abcd_XYZ_klm_5678abcd", 33,
+            "content:\"XYZ\"; content:\"_klm_\"; distance:0; content:\"abcd\"; distance:4; "
+            "byte_test:4,=,1234,-8,relative,string;",
+            true, 4);
+    TEST_RUN("XYZ_klm_1234abcd_XYZ_klm_5678abcd", 33,
+            "content:\"XYZ\"; content:\"_klm_\"; distance:0; content:\"abcd\"; distance:4; "
+            "byte_test:4,=,5678,-8,relative,string;",
+            true, 5);
+    TEST_FOOTER;
+}
+
 void DetectEngineContentInspectionRegisterTests(void)
 {
     UtRegisterTest("DetectEngineContentInspectionTest01",
@@ -317,6 +331,8 @@ void DetectEngineContentInspectionRegisterTests(void)
                    DetectEngineContentInspectionTest12);
     UtRegisterTest("DetectEngineContentInspectionTest13 mix startswith/endswith",
                    DetectEngineContentInspectionTest13);
+    UtRegisterTest("DetectEngineContentInspectionTest14 byte_test negative offset",
+            DetectEngineContentInspectionTest14);
 }
 
 #undef TEST_HEADER
