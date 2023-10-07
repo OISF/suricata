@@ -105,6 +105,7 @@ JsonBuilder *CreateEveHeaderWithTxId(const Packet *p, enum OutputJsonLogDirectio
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 int OutputJsonBuilderBuffer(JsonBuilder *js, OutputJsonThreadCtx *ctx);
 OutputInitResult OutputJsonInitCtx(ConfNode *);
+int OutputJsonLogFlush(ThreadVars *tv, void *thread_data, const Packet *p);
 
 OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx);
 TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data);
@@ -118,5 +119,6 @@ int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
 OutputJsonThreadCtx *CreateEveThreadCtx(ThreadVars *t, OutputJsonCtx *ctx);
 void FreeEveThreadCtx(OutputJsonThreadCtx *ctx);
+void OutputJsonFlush(OutputJsonThreadCtx *ctx);
 
 #endif /* __OUTPUT_JSON_H__ */

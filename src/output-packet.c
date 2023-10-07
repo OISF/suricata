@@ -40,6 +40,7 @@ typedef struct OutputPacketLoggerThreadData_ {
  * log module (e.g. fast.log) with different output ctx'. */
 typedef struct OutputPacketLogger_ {
     PacketLogger LogFunc;
+    PacketLogger FlushFunc;
     PacketLogCondition ConditionFunc;
     OutputCtx *output_ctx;
     struct OutputPacketLogger_ *next;
@@ -52,11 +53,10 @@ typedef struct OutputPacketLogger_ {
 
 static OutputPacketLogger *list = NULL;
 
-int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
-    PacketLogger LogFunc, PacketLogCondition ConditionFunc,
-    OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+int OutputRegisterPacketLogger(LoggerId logger_id, const char *name, PacketLogger LogFunc,
+        PacketLogger FlushFunc, PacketLogCondition ConditionFunc, OutputCtx *output_ctx,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     OutputPacketLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
@@ -65,6 +65,7 @@ int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
 
     op->LogFunc = LogFunc;
     op->ConditionFunc = ConditionFunc;
+    op->FlushFunc = FlushFunc;
     op->output_ctx = output_ctx;
     op->name = name;
     op->ThreadInit = ThreadInit;
@@ -83,6 +84,40 @@ int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
 
     SCLogDebug("OutputRegisterPacketLogger happy");
     return 0;
+}
+
+static TmEcode OutputPacketFlush(ThreadVars *tv, Packet *p, void *thread_data)
+{
+    DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
+
+    if (list == NULL) {
+        /* No child loggers. */
+        return TM_ECODE_OK;
+    }
+
+    OutputPacketLoggerThreadData *op_thread_data = (OutputPacketLoggerThreadData *)thread_data;
+    OutputPacketLogger *logger = list;
+    OutputLoggerThreadStore *store = op_thread_data->store;
+
+    DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+    DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
+    DEBUG_VALIDATE_BUG_ON(logger == NULL && store == NULL);
+
+    while (logger && store) {
+        if (logger->FlushFunc) {
+            PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
+            logger->FlushFunc(tv, store->thread_data, (const Packet *)p);
+            PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
+        }
+
+        logger = logger->next;
+        store = store->next;
+
+        DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
+        DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
+    }
+
+    return TM_ECODE_OK;
 }
 
 static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data)
@@ -215,9 +250,9 @@ static uint32_t OutputPacketLoggerGetActiveCount(void)
 
 void OutputPacketLoggerRegister(void)
 {
-    OutputRegisterRootLogger(OutputPacketLogThreadInit,
-        OutputPacketLogThreadDeinit, OutputPacketLogExitPrintStats,
-        OutputPacketLog, OutputPacketLoggerGetActiveCount);
+    OutputRegisterRootLogger(OutputPacketLogThreadInit, OutputPacketLogThreadDeinit,
+            OutputPacketLogExitPrintStats, OutputPacketLog, OutputPacketFlush,
+            OutputPacketLoggerGetActiveCount);
 }
 
 void OutputPacketShutdown(void)

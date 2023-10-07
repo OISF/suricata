@@ -509,6 +509,6 @@ error:
 void JsonFrameLogRegister(void)
 {
     OutputRegisterPacketSubModule(LOGGER_JSON_FRAME, "eve-log", MODULE_NAME, "eve-log.frame",
-            JsonFrameLogInitCtxSub, JsonFrameLogger, JsonFrameLogCondition, JsonFrameLogThreadInit,
-            JsonFrameLogThreadDeinit, NULL);
+            JsonFrameLogInitCtxSub, JsonFrameLogger, OutputJsonLogFlush, JsonFrameLogCondition,
+            JsonFrameLogThreadInit, JsonFrameLogThreadDeinit, NULL);
 }
