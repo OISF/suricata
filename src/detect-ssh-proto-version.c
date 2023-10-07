@@ -286,12 +286,11 @@ static int DetectSshVersionTestParse01 (void)
 {
     DetectSshVersionData *ssh = NULL;
     ssh = DetectSshVersionParse(NULL, "1.0");
-    if (ssh != NULL && strncmp((char *) ssh->ver, "1.0", 3) == 0) {
-        DetectSshVersionFree(NULL, ssh);
-        return 1;
-    }
+    FAIL_IF_NULL(ssh);
+    FAIL_IF_NOT(strncmp((char *)ssh->ver, "1.0", 3) == 0);
+    DetectSshVersionFree(NULL, ssh);
 
-    return 0;
+    PASS;
 }
 
 /**
@@ -302,12 +301,10 @@ static int DetectSshVersionTestParse02 (void)
 {
     DetectSshVersionData *ssh = NULL;
     ssh = DetectSshVersionParse(NULL, "2_compat");
-    if (ssh->flags & SSH_FLAG_PROTOVERSION_2_COMPAT) {
-        DetectSshVersionFree(NULL, ssh);
-        return 1;
-    }
+    FAIL_IF_NOT(ssh->flags & SSH_FLAG_PROTOVERSION_2_COMPAT);
+    DetectSshVersionFree(NULL, ssh);
 
-    return 0;
+    PASS;
 }
 
 /**
@@ -318,27 +315,15 @@ static int DetectSshVersionTestParse03 (void)
 {
     DetectSshVersionData *ssh = NULL;
     ssh = DetectSshVersionParse(NULL, "2_com");
-    if (ssh != NULL) {
-        DetectSshVersionFree(NULL, ssh);
-        return 0;
-    }
+    FAIL_IF_NOT_NULL(ssh);
     ssh = DetectSshVersionParse(NULL, "");
-    if (ssh != NULL) {
-        DetectSshVersionFree(NULL, ssh);
-        return 0;
-    }
+    FAIL_IF_NOT_NULL(ssh);
     ssh = DetectSshVersionParse(NULL, ".1");
-    if (ssh != NULL) {
-        DetectSshVersionFree(NULL, ssh);
-        return 0;
-    }
+    FAIL_IF_NOT_NULL(ssh);
     ssh = DetectSshVersionParse(NULL, "lalala");
-    if (ssh != NULL) {
-        DetectSshVersionFree(NULL, ssh);
-        return 0;
-    }
+    FAIL_IF_NOT_NULL(ssh);
 
-    return 1;
+    PASS;
 }
 
 
