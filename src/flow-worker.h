@@ -32,6 +32,9 @@ const char *ProfileFlowWorkerIdToString(enum ProfileFlowWorkerId fwi);
 
 void FlowWorkerReplaceDetectCtx(void *flow_worker, void *detect_ctx);
 void *FlowWorkerGetDetectCtxPtr(void *flow_worker);
+void *FlowWorkerGetThreadData(void *flow_worker);
+bool FlowWorkerGetFlushAck(void *flow_worker);
+void FlowWorkerSetFlushAck(void *flow_worker);
 
 void TmModuleFlowWorkerRegister (void);
 
