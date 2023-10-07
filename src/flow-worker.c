@@ -561,8 +561,11 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     SCLogDebug("packet %"PRIu64, p->pcap_cnt);
 
     /* update time */
-    if (!(PKT_IS_PSEUDOPKT(p))) {
+    if (!(PKT_IS_PSEUDOPKT(p) || PKT_IS_FLUSHPKT(p))) {
         TimeSetByThread(tv->id, p->ts);
+    }
+    if ((PKT_IS_FLUSHPKT(p))) {
+        OutputLoggerFlush(tv, p, fw->output_thread);
     }
 
     /* handle Flow */

@@ -2798,6 +2798,13 @@ int PostConfLoadedSetup(SCInstance *suri)
 
 static void SuricataMainLoop(SCInstance *suri)
 {
+    /*
+     * Use the flush interval to determine how many iterations through the
+     * loop constitute a flush_interval.
+     * The sleep interval is 10ms.
+     */
+    const int flush_wait_count = (suri->output_flush_interval * 1000) / 10;
+    int wait_count = 0;
     while(1) {
         if (sigterm_count || sigint_count) {
             suricata_ctl_flags |= SURICATA_STOP;
@@ -2826,6 +2833,14 @@ static void SuricataMainLoop(SCInstance *suri)
         } else if (DetectEngineReloadIsStart()) {
             DetectEngineReload(suri);
             DetectEngineReloadSetIdle();
+        }
+
+        if (flush_wait_count) {
+            if (++wait_count == flush_wait_count) {
+                SCLogDebug("Sending flush packet to threads");
+                WorkerFlushLogs();
+                wait_count = 0;
+            }
         }
 
         usleep(10* 1000);
@@ -2988,6 +3003,17 @@ int SuricataMain(int argc, char **argv)
         limit_nproc = 0;
     }
 
+    intmax_t flush_interval = 0;
+    if (ConfGetInt("logging.flush-interval", &flush_interval) == 0) {
+        flush_interval = 0;
+    }
+    if (flush_interval < 0 || flush_interval > 60) {
+        SCLogConfig("flush_interval must be 0 or less than 60; using 0");
+        flush_interval = 0;
+    }
+    suricata.output_flush_interval = flush_interval;
+    SCLogConfig("Using flush-interval of %d seconds", (int)flush_interval);
+
 #if defined(SC_ADDRESS_SANITIZER)
     if (limit_nproc) {
         SCLogWarning(
@@ -3000,7 +3026,7 @@ int SuricataMain(int argc, char **argv)
 #if defined(HAVE_SYS_RESOURCE_H)
 #ifdef linux
         if (geteuid() == 0) {
-            SCLogWarning("setrlimit has no effet when running as root.");
+            SCLogWarning("setrlimit has no effect when running as root.");
         }
 #endif
         struct rlimit r = { 0, 0 };
