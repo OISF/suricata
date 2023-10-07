@@ -204,4 +204,6 @@ void DetectEngineStateResetTxs(Flow *f);
 
 void DeStateRegisterTests(void);
 
+/* packet injection */
+void InjectPacketsForFlush(ThreadVars **detect_tvs, int no_of_detect_tvs);
 #endif /* SURICATA_DETECT_ENGINE_H */

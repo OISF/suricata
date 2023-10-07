@@ -563,19 +563,20 @@ outputs:
       scripts:
       #   - script1.lua
 
-# Logging configuration.  This is not about logging IDS alerts/events, but
-# output about what Suricata is doing, like startup messages, errors, etc.
-logging:
-
-  # The flush-interval governs how often Suricata will instruct the detection
-  # threads to flush their EVE output. Specify the value in seconds [1-60]
+heartbeat:
+  # The output-flush-interval value governs how often Suricata will instruct the
+  # detection threads to flush their EVE output. Specify the value in seconds [1-60]
   # and Suricata will initiate EVE log output flushes at that interval. A value
   # of 0 means no EVE log output flushes are initiated. When the EVE output
   # buffer-size value is non-zero, some EVE output that was written may remain
-  # buffered. The flush-interval governs how much buffered data exists.
+  # buffered. The output-flush-interval governs how much buffered data exists.
   #
   # The default value is: 0 (never instruct detection threads to flush output)
-  #flush-interval: 0
+  #output-flush-interval: 0
+
+# Logging configuration.  This is not about logging IDS alerts/events, but
+# output about what Suricata is doing, like startup messages, errors, etc.
+logging:
 
   # The default log level: can be overridden in an output section.
   # Note that debug level logging will only be emitted if Suricata was

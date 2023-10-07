@@ -3038,7 +3038,7 @@ void SuricataPostInit(void)
 #if defined(HAVE_SYS_RESOURCE_H)
 #ifdef linux
         if (geteuid() == 0) {
-            SCLogWarning("setrlimit has no effet when running as root.");
+            SCLogWarning("setrlimit has no effect when running as root.");
         }
 #endif
         struct rlimit r = { 0, 0 };

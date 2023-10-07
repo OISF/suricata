@@ -749,6 +749,21 @@ void OutputNotifyFileRotation(void) {
     }
 }
 
+TmEcode OutputLoggerFlush(ThreadVars *tv, Packet *p, void *thread_data)
+{
+    LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
+    RootLogger *logger = TAILQ_FIRST(&active_loggers);
+    LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
+    while (logger && thread_store_node) {
+        if (logger->FlushFunc)
+            logger->FlushFunc(tv, p, thread_store_node->thread_data);
+
+        logger = TAILQ_NEXT(logger, entries);
+        thread_store_node = TAILQ_NEXT(thread_store_node, entries);
+    }
+    return TM_ECODE_OK;
+}
+
 TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
