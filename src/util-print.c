@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -43,9 +43,7 @@
  */
 void PrintBufferRawLineHex(char *nbuf, int *offset, int max_size, const uint8_t *buf, uint32_t buflen)
 {
-    uint32_t u = 0;
-
-    for (u = 0; u < buflen; u++) {
+    for (uint32_t u = 0; u < buflen; u++) {
         PrintBufferData(nbuf, offset, max_size, "%02X ", buf[u]);
     }
 }
@@ -63,9 +61,7 @@ void PrintBufferRawLineHex(char *nbuf, int *offset, int max_size, const uint8_t 
 void PrintRawLineHexBuf(char *retbuf, uint32_t retbuflen, const uint8_t *buf, uint32_t buflen)
 {
     uint32_t offset = 0;
-    uint32_t u = 0;
-
-    for (u = 0; u < buflen; u++) {
+    for (uint32_t u = 0; u < buflen; u++) {
         PrintBufferData(retbuf, &offset, retbuflen, "%02X ", buf[u]);
     }
 }
@@ -75,9 +71,8 @@ void PrintRawJsonFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 #define BUFFER_LENGTH 2048
     char nbuf[BUFFER_LENGTH] = "";
     uint32_t offset = 0;
-    uint32_t u = 0;
 
-    for (u = 0; u < buflen; u++) {
+    for (uint32_t u = 0; u < buflen; u++) {
         if (buf[u] == '\\' || buf[u] == '/' || buf[u] == '\"') {
             PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
                              "\\%c", buf[u]);
@@ -97,9 +92,8 @@ void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 #define BUFFER_LENGTH 2048
     char nbuf[BUFFER_LENGTH] = "";
     uint32_t offset = 0;
-    uint32_t u = 0;
 
-    for (u = 0; u < buflen; u++) {
+    for (uint32_t u = 0; u < buflen; u++) {
         if (isprint(buf[u]) && buf[u] != '\"') {
             if (buf[u] == '\\') {
                 PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
@@ -120,9 +114,7 @@ void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 void PrintRawUriBuf(char *retbuf, uint32_t *offset, uint32_t retbuflen,
                     uint8_t *buf, uint32_t buflen)
 {
-    uint32_t u = 0;
-
-    for (u = 0; u < buflen; u++) {
+    for (uint32_t u = 0; u < buflen; u++) {
         if (isprint(buf[u]) && buf[u] != '\"') {
             if (buf[u] == '\\') {
                 PrintBufferData(retbuf, offset, retbuflen,
@@ -143,13 +135,12 @@ void PrintRawUriBuf(char *retbuf, uint32_t *offset, uint32_t retbuflen,
 void PrintRawDataFp(FILE *fp, const uint8_t *buf, uint32_t buflen)
 {
     int ch = 0;
-    uint32_t u = 0;
 
     if (buf == NULL) {
         fprintf(fp, " (null)\n");
         return;
     }
-    for (u = 0; u < buflen; u+=16) {
+    for (uint32_t u = 0; u < buflen; u += 16) {
         fprintf(fp ," %04X  ", u);
         for (ch = 0; (u+ch) < buflen && ch < 16; ch++) {
              fprintf(fp, "%02X ", (uint8_t)buf[u+ch]);
@@ -182,9 +173,8 @@ void PrintRawDataToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32
                           const uint8_t *src_buf, uint32_t src_buf_len)
 {
     int ch = 0;
-    uint32_t u = 0;
 
-    for (u = 0; u < src_buf_len; u+=16) {
+    for (uint32_t u = 0; u < src_buf_len; u += 16) {
         PrintBufferData((char *)dst_buf, dst_buf_offset_ptr, dst_buf_size,
                         " %04X  ", u);
         for (ch = 0; (u + ch) < src_buf_len && ch < 16; ch++) {
@@ -230,8 +220,7 @@ void PrintRawDataToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32
 void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32_t dst_buf_size,
                           const uint8_t *src_buf, const uint32_t src_buf_len)
 {
-    uint32_t ch = 0;
-    for (ch = 0; ch < src_buf_len && *dst_buf_offset_ptr < dst_buf_size;
+    for (uint32_t ch = 0; ch < src_buf_len && *dst_buf_offset_ptr < dst_buf_size;
             ch++, (*dst_buf_offset_ptr)++) {
         if (isprint((uint8_t)src_buf[ch]) || src_buf[ch] == '\n' || src_buf[ch] == '\r') {
             dst_buf[*dst_buf_offset_ptr] = src_buf[ch];
@@ -250,7 +239,6 @@ void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32
 
 static const char *PrintInetIPv6(const void *src, char *dst, socklen_t size)
 {
-    int i;
     char s_part[6];
     uint16_t x[8];
     memcpy(&x, src, 16);
@@ -261,7 +249,7 @@ static const char *PrintInetIPv6(const void *src, char *dst, socklen_t size)
         return NULL;
     }
     memset(dst, 0, size);
-    for(i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++) {
         snprintf(s_part, sizeof(s_part), "%04x:", htons(x[i]));
         strlcat(dst, s_part, size);
     }
