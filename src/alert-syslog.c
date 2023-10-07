@@ -391,8 +391,8 @@ static int AlertSyslogLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 void AlertSyslogRegister (void)
 {
 #ifndef OS_WIN32
-    OutputRegisterPacketModule(LOGGER_ALERT_SYSLOG, MODULE_NAME, "syslog",
-        AlertSyslogInitCtx, AlertSyslogLogger, AlertSyslogCondition,
-        AlertSyslogThreadInit, AlertSyslogThreadDeinit, NULL);
+    OutputRegisterPacketModule(LOGGER_ALERT_SYSLOG, MODULE_NAME, "syslog", AlertSyslogInitCtx,
+            AlertSyslogLogger, NULL, AlertSyslogCondition, AlertSyslogThreadInit,
+            AlertSyslogThreadDeinit, NULL);
 #endif /* !OS_WIN32 */
 }

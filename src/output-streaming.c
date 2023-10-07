@@ -454,9 +454,9 @@ static uint32_t OutputStreamingLoggerGetActiveCount(void)
 }
 
 void OutputStreamingLoggerRegister(void) {
-    OutputRegisterRootLogger(OutputStreamingLogThreadInit,
-        OutputStreamingLogThreadDeinit, OutputStreamingLogExitPrintStats,
-        OutputStreamingLog, OutputStreamingLoggerGetActiveCount);
+    OutputRegisterRootLogger(OutputStreamingLogThreadInit, OutputStreamingLogThreadDeinit,
+            OutputStreamingLogExitPrintStats, OutputStreamingLog, NULL,
+            OutputStreamingLoggerGetActiveCount);
 }
 
 void OutputStreamingShutdown(void)

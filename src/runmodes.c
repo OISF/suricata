@@ -645,10 +645,9 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
 
     if (module->PacketLogFunc) {
         SCLogDebug("%s is a packet logger", module->name);
-        OutputRegisterPacketLogger(module->logger_id, module->name,
-            module->PacketLogFunc, module->PacketConditionFunc, output_ctx,
-            module->ThreadInit, module->ThreadDeinit,
-            module->ThreadExitPrintStats);
+        OutputRegisterPacketLogger(module->logger_id, module->name, module->PacketLogFunc,
+                module->PacketFlushFunc, module->PacketConditionFunc, output_ctx,
+                module->ThreadInit, module->ThreadDeinit, module->ThreadExitPrintStats);
     } else if (module->TxLogFunc) {
         SCLogDebug("%s is a tx logger", module->name);
         OutputRegisterTxLogger(module->logger_id, module->name, module->alproto,

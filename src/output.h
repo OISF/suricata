@@ -51,6 +51,7 @@ typedef struct OutputInitResult_ {
 typedef OutputInitResult (*OutputInitFunc)(ConfNode *);
 typedef OutputInitResult (*OutputInitSubFunc)(ConfNode *, OutputCtx *);
 typedef TmEcode (*OutputLogFunc)(ThreadVars *, Packet *, void *);
+typedef TmEcode (*OutputFlushFunc)(ThreadVars *, Packet *, void *);
 typedef uint32_t (*OutputGetActiveCountFunc)(void);
 
 typedef struct OutputModule_ {
@@ -66,6 +67,7 @@ typedef struct OutputModule_ {
     ThreadExitPrintStatsFunc ThreadExitPrintStats;
 
     PacketLogger PacketLogFunc;
+    PacketLogger PacketFlushFunc;
     PacketLogCondition PacketConditionFunc;
     TxLogger TxLogFunc;
     TxLoggerCondition TxLogCondition;
@@ -87,15 +89,14 @@ extern OutputModuleList output_modules;
 
 void OutputRegisterModule(const char *, const char *, OutputInitFunc);
 
-void OutputRegisterPacketModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc, PacketLogger LogFunc,
-    PacketLogCondition ConditionFunc, ThreadInitFunc, ThreadDeinitFunc,
-    ThreadExitPrintStatsFunc);
-void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name,
-    const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
-    PacketLogger LogFunc, PacketLogCondition ConditionFunc,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
+void OutputRegisterPacketModule(LoggerId id, const char *name, const char *conf_name,
+        OutputInitFunc InitFunc, PacketLogger LogFunc, PacketLogger FlushFunc,
+        PacketLogCondition ConditionFunc, ThreadInitFunc, ThreadDeinitFunc,
+        ThreadExitPrintStatsFunc);
+void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name, const char *name,
+        const char *conf_name, OutputInitSubFunc InitFunc, PacketLogger LogFunc,
+        PacketLogger FlushFunc, PacketLogCondition ConditionFunc, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit, ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void OutputRegisterTxModule(LoggerId id, const char *name,
     const char *conf_name, OutputInitFunc InitFunc, AppProto alproto,
@@ -194,13 +195,13 @@ void OutputRegisterFileRotationFlag(int *flag);
 void OutputUnregisterFileRotationFlag(int *flag);
 void OutputNotifyFileRotation(void);
 
-void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats,
-    OutputLogFunc LogFunc, OutputGetActiveCountFunc ActiveCntFunc);
+void OutputRegisterRootLogger(ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats, OutputLogFunc LogFunc,
+        OutputFlushFunc FlushFunc, OutputGetActiveCountFunc ActiveCntFunc);
 void TmModuleLoggerRegister(void);
 
 TmEcode OutputLoggerLog(ThreadVars *, Packet *, void *);
+TmEcode OutputLoggerFlush(ThreadVars *, Packet *, void *);
 TmEcode OutputLoggerThreadInit(ThreadVars *, const void *, void **);
 TmEcode OutputLoggerThreadDeinit(ThreadVars *, void *);
 void OutputLoggerExitPrintStats(ThreadVars *, void *);

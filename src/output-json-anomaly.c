@@ -273,6 +273,14 @@ static int AnomalyJson(ThreadVars *tv, JsonAnomalyLogThread *aft, const Packet *
     return rc;
 }
 
+static int JsonAnomalyFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    JsonAnomalyLogThread *aft = thread_data;
+    SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(aft->ctx->file_ctx))->filename);
+    OutputJsonFlush(aft->ctx);
+    return 0;
+}
+
 static int JsonAnomalyLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     JsonAnomalyLogThread *aft = thread_data;
@@ -451,10 +459,9 @@ static OutputInitResult JsonAnomalyLogInitCtxSub(ConfNode *conf, OutputCtx *pare
 
 void JsonAnomalyLogRegister (void)
 {
-    OutputRegisterPacketSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME,
-        "eve-log.anomaly", JsonAnomalyLogInitCtxSub, JsonAnomalyLogger,
-        JsonAnomalyLogCondition, JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit,
-        NULL);
+    OutputRegisterPacketSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME, "eve-log.anomaly",
+            JsonAnomalyLogInitCtxSub, JsonAnomalyLogger, JsonAnomalyFlush, JsonAnomalyLogCondition,
+            JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit, NULL);
 
     OutputRegisterTxSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME,
         "eve-log.anomaly", JsonAnomalyLogInitCtxHelper, ALPROTO_UNKNOWN,
