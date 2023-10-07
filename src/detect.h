@@ -1160,6 +1160,7 @@ typedef struct DetectEngineThreadCtx_ {
     PacketAlert *alert_queue;
 
     SC_ATOMIC_DECLARE(int, so_far_used_by_detect);
+    SC_ATOMIC_DECLARE(int, flush_ack);
 
     /* holds the current recursion depth on content inspection */
     int inspection_recursion_counter;

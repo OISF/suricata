@@ -206,6 +206,8 @@ void DetectRunStoreStateTx(const SigGroupHead *sgh, Flow *f, void *tx, uint64_t 
 
 void DetectEngineStateResetTxs(Flow *f);
 
+void WorkerFlushLogs(void);
+
 void DeStateRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_H__ */

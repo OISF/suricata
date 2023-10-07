@@ -1761,6 +1761,10 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data)
                   det_ctx);
     }
 
+    /* Ack if a flush was requested */
+    int notset = 0;
+    SC_ATOMIC_CAS(&det_ctx->flush_ack, notset, 1);
+
     /* if in MT mode _and_ we have tenants registered, use
      * MT logic. */
     if (det_ctx->mt_det_ctxs_cnt > 0 && det_ctx->TenantGetId != NULL)
