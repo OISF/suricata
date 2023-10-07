@@ -1335,9 +1335,12 @@ void DecodeUnregisterCounters(void);
 #define PKT_FIRST_ALERTS BIT_U32(29)
 #define PKT_FIRST_TAG    BIT_U32(30)
 
+#define PKT_PSEUDO_LOG_FLUSH BIT_U32(31) /**< Detect/log flush for protocol upgrade */
+
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) \
     ((p)->flags & (PKT_PSEUDO_STREAM_END|PKT_PSEUDO_DETECTLOG_FLUSH))
+#define PKT_IS_FLUSHPKT(p) ((p)->flags & (PKT_PSEUDO_LOG_FLUSH))
 
 #define PKT_SET_SRC(p, src_val) ((p)->pkt_src = src_val)
 
