@@ -437,6 +437,6 @@ static bool EveStreamLogCondition(ThreadVars *tv, void *data, const Packet *p)
 void EveStreamLogRegister(void)
 {
     OutputRegisterPacketSubModule(LOGGER_JSON_STREAM, "eve-log", MODULE_NAME, "eve-log.stream",
-            EveStreamLogInitCtxSub, EveStreamLogger, EveStreamLogCondition, EveStreamLogThreadInit,
-            EveStreamLogThreadDeinit, NULL);
+            EveStreamLogInitCtxSub, EveStreamLogger, OutputJsonLogFlush, EveStreamLogCondition,
+            EveStreamLogThreadInit, EveStreamLogThreadDeinit, NULL);
 }

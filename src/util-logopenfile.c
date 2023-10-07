@@ -190,6 +190,21 @@ static inline void OutputWriteLock(pthread_mutex_t *m)
 }
 
 /**
+ * \brief Flush a log file.
+ */
+static void SCLogFileFlushNoLock(LogFileCtx *log_ctx)
+{
+    SCFflushUnlocked(log_ctx->fp);
+}
+
+static void SCLogFileFlush(LogFileCtx *log_ctx)
+{
+    OutputWriteLock(&log_ctx->fp_mutex);
+    SCLogFileFlushNoLock(log_ctx);
+    SCMutexUnlock(&log_ctx->fp_mutex);
+}
+
+/**
  * \brief Write buffer to log file.
  * \retval 0 on failure; otherwise, the return value of fwrite_unlocked (number of
  * characters successfully written).
@@ -273,8 +288,6 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
                             log_ctx->filename);
                 }
                 log_ctx->output_errors++;
-            } else {
-                fflush(log_ctx->fp);
             }
         }
     }
@@ -704,6 +717,7 @@ LogFileCtx *LogFileNewCtx(void)
 
     lf_ctx->Write = SCLogFileWrite;
     lf_ctx->Close = SCLogFileClose;
+    lf_ctx->Flush = SCLogFileFlush;
 
     return lf_ctx;
 }
@@ -865,6 +879,7 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
         thread->is_regular = true;
         thread->Write = SCLogFileWriteNoLock;
         thread->Close = SCLogFileCloseNoLock;
+        thread->Flush = SCLogFileFlushNoLock;
         OutputRegisterFileRotationFlag(&thread->rotation_flag);
     } else if (parent_ctx->type == LOGFILE_TYPE_PLUGIN) {
         entry->slot_number = SC_ATOMIC_ADD(eve_file_id, 1);
@@ -950,6 +965,11 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
     SCFree(lf_ctx);
 
     SCReturnInt(1);
+}
+
+void LogFileFlush(LogFileCtx *file_ctx)
+{
+    file_ctx->Flush(file_ctx);
 }
 
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)

@@ -669,7 +669,7 @@ static uint32_t OutputTxLoggerGetActiveCount(void)
 void OutputTxLoggerRegister (void)
 {
     OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit,
-        OutputTxLogExitPrintStats, OutputTxLog, OutputTxLoggerGetActiveCount);
+            OutputTxLogExitPrintStats, OutputTxLog, NULL, OutputTxLoggerGetActiveCount);
 }
 
 void OutputTxShutdown(void)

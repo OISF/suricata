@@ -91,6 +91,7 @@
 
 typedef struct RootLogger_ {
     OutputLogFunc LogFunc;
+    OutputFlushFunc FlushFunc;
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
     ThreadExitPrintStatsFunc ThreadExitPrintStats;
@@ -173,11 +174,10 @@ error:
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterPacketModule(LoggerId id, const char *name,
-    const char *conf_name, OutputInitFunc InitFunc,
-    PacketLogger PacketLogFunc, PacketLogCondition PacketConditionFunc,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+void OutputRegisterPacketModule(LoggerId id, const char *name, const char *conf_name,
+        OutputInitFunc InitFunc, PacketLogger PacketLogFunc, PacketLogger PacketFlushFunc,
+        PacketLogCondition PacketConditionFunc, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit, ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     if (unlikely(PacketLogFunc == NULL || PacketConditionFunc == NULL)) {
         goto error;
@@ -193,6 +193,7 @@ void OutputRegisterPacketModule(LoggerId id, const char *name,
     module->conf_name = conf_name;
     module->InitFunc = InitFunc;
     module->PacketLogFunc = PacketLogFunc;
+    module->PacketFlushFunc = PacketFlushFunc;
     module->PacketConditionFunc = PacketConditionFunc;
     module->ThreadInit = ThreadInit;
     module->ThreadDeinit = ThreadDeinit;
@@ -213,11 +214,11 @@ error:
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name,
-    const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
-    PacketLogger PacketLogFunc, PacketLogCondition PacketConditionFunc,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name, const char *name,
+        const char *conf_name, OutputInitSubFunc InitFunc, PacketLogger PacketLogFunc,
+        PacketLogger PacketFlushFunc, PacketLogCondition PacketConditionFunc,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     if (unlikely(PacketLogFunc == NULL || PacketConditionFunc == NULL)) {
         goto error;
@@ -234,6 +235,7 @@ void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name,
     module->parent_name = parent_name;
     module->InitSubFunc = InitFunc;
     module->PacketLogFunc = PacketLogFunc;
+    module->PacketFlushFunc = PacketFlushFunc;
     module->PacketConditionFunc = PacketConditionFunc;
     module->ThreadInit = ThreadInit;
     module->ThreadDeinit = ThreadDeinit;
@@ -874,6 +876,21 @@ void OutputNotifyFileRotation(void) {
     }
 }
 
+TmEcode OutputLoggerFlush(ThreadVars *tv, Packet *p, void *thread_data)
+{
+    LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
+    RootLogger *logger = TAILQ_FIRST(&active_loggers);
+    LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
+    while (logger && thread_store_node) {
+        if (logger->FlushFunc)
+            logger->FlushFunc(tv, p, thread_store_node->thread_data);
+
+        logger = TAILQ_NEXT(logger, entries);
+        thread_store_node = TAILQ_NEXT(thread_store_node, entries);
+    }
+    return TM_ECODE_OK;
+}
+
 TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
@@ -959,10 +976,9 @@ void OutputLoggerExitPrintStats(ThreadVars *tv, void *thread_data)
     }
 }
 
-void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats,
-    OutputLogFunc LogFunc, OutputGetActiveCountFunc ActiveCntFunc)
+void OutputRegisterRootLogger(ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats, OutputLogFunc LogFunc,
+        OutputLogFunc FlushFunc, OutputGetActiveCountFunc ActiveCntFunc)
 {
     BUG_ON(LogFunc == NULL);
 
@@ -974,6 +990,7 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
     logger->ThreadDeinit = ThreadDeinit;
     logger->ThreadExitPrintStats = ThreadExitPrintStats;
     logger->LogFunc = LogFunc;
+    logger->FlushFunc = FlushFunc;
     logger->ActiveCntFunc = ActiveCntFunc;
     TAILQ_INSERT_TAIL(&registered_loggers, logger, entries);
 }
@@ -988,6 +1005,7 @@ static void OutputRegisterActiveLogger(RootLogger *reg)
     logger->ThreadDeinit = reg->ThreadDeinit;
     logger->ThreadExitPrintStats = reg->ThreadExitPrintStats;
     logger->LogFunc = reg->LogFunc;
+    logger->FlushFunc = reg->FlushFunc;
     logger->ActiveCntFunc = reg->ActiveCntFunc;
     TAILQ_INSERT_TAIL(&active_loggers, logger, entries);
 }

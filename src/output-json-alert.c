@@ -935,6 +935,14 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
     return TM_ECODE_OK;
 }
 
+static int JsonAlertFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    JsonAlertLogThread *aft = thread_data;
+    SCLogDebug("%s flushing %s", tv->name, ((LogFileCtx *)(aft->ctx->file_ctx))->filename);
+    OutputJsonFlush(aft->ctx);
+    return 0;
+}
+
 static int JsonAlertLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     JsonAlertLogThread *aft = thread_data;
@@ -1177,8 +1185,7 @@ error:
 
 void JsonAlertLogRegister (void)
 {
-    OutputRegisterPacketSubModule(LOGGER_JSON_ALERT, "eve-log", MODULE_NAME,
-        "eve-log.alert", JsonAlertLogInitCtxSub, JsonAlertLogger,
-        JsonAlertLogCondition, JsonAlertLogThreadInit, JsonAlertLogThreadDeinit,
-        NULL);
+    OutputRegisterPacketSubModule(LOGGER_JSON_ALERT, "eve-log", MODULE_NAME, "eve-log.alert",
+            JsonAlertLogInitCtxSub, JsonAlertLogger, JsonAlertFlush, JsonAlertLogCondition,
+            JsonAlertLogThreadInit, JsonAlertLogThreadDeinit, NULL);
 }

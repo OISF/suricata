@@ -95,11 +95,11 @@ static bool JsonMetadataLogCondition(ThreadVars *tv, void *data, const Packet *p
 void JsonMetadataLogRegister (void)
 {
     OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME, "eve-log.metadata",
-            OutputJsonLogInitSub, JsonMetadataLogger, JsonMetadataLogCondition, JsonLogThreadInit,
-            JsonLogThreadDeinit, NULL);
+            OutputJsonLogInitSub, JsonMetadataLogger, OutputJsonLogFlush, JsonMetadataLogCondition,
+            JsonLogThreadInit, JsonLogThreadDeinit, NULL);
 
     /* Kept for compatibility. */
     OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME, "eve-log.vars",
-            OutputJsonLogInitSub, JsonMetadataLogger, JsonMetadataLogCondition, JsonLogThreadInit,
-            JsonLogThreadDeinit, NULL);
+            OutputJsonLogInitSub, JsonMetadataLogger, OutputJsonLogFlush, JsonMetadataLogCondition,
+            JsonLogThreadInit, JsonLogThreadDeinit, NULL);
 }
