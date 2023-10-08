@@ -15,5 +15,7 @@
  * 02110-1301, USA.
  */
 
+//! telnet application layer and parser.
+
 pub mod telnet;
 mod parser;

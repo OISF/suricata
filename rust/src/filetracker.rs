@@ -28,6 +28,8 @@
  * The tracker does continue to follow the file.
  */
 
+//! Gap handling and Chunk-based file transfer tracker.
+
 use crate::core::*;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};

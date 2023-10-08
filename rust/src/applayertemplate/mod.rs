@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Application Layer template parser and logger.
+
 mod parser;
 pub mod template;
 /* TEMPLATE_START_REMOVE */

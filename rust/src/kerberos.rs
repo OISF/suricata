@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Kerberos Parser.
+
 use nom7::IResult;
 use nom7::error::{ErrorKind, ParseError};
 use nom7::number::streaming::le_u16;

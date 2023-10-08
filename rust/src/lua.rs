@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Lua wrapper.
+
 use std::os::raw::c_char;
 use std::os::raw::c_int;
 use std::os::raw::c_long;

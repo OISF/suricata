@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! lzma decompression utility.
+
 use lzma_rs::decompress::{Options, Stream};
 use lzma_rs::error::Error;
 use std::io::{Cursor, Write};

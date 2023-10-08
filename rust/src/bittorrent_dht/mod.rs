@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! BitTorrent DHT Application Layer and Parser.
+
 pub mod bittorrent_dht;
 pub mod logger;
 pub mod parser;

@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Utility to test strings for valid UTF-8.
+
 use std::ffi::CStr;
 use std::os::raw::c_char;
 

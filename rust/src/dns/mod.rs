@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! DNS parser and Application layer.
+
 pub mod detect;
 pub mod dns;
 pub mod log;

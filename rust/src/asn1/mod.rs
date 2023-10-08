@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! ASN.1 Parser.
+
 use der_parser::ber::{parse_ber_recursive, BerObject, BerObjectContent, Tag};
 use nom7::Err;
 use std::convert::TryFrom;
