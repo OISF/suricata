@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Foreign Function Interface module for hashing(sha256, sha1, md5), base64 and strings.
+
 pub mod hashing;
 pub mod base64;
 pub mod strings;

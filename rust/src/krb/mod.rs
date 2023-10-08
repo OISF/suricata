@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Kerberos-v5 Application layer module.
+
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 pub mod krb5;

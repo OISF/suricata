@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! MQQT Application layer and parser module.
+
 pub mod detect;
 pub mod logger;
 pub mod mqtt;

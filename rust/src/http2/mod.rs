@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! HTTP/2 parser and Application layer module.
+
 #![allow(clippy::result_unit_err)]
 
 mod decompression;

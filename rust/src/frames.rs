@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Module for Rust API Implementation with C.
+
 use crate::applayer::StreamSlice;
 use crate::core::Flow;
 #[cfg(not(test))]

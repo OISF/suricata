@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Module for Rule parsing.
+
 pub mod byte_math;
 pub mod error;
 pub mod iprep;

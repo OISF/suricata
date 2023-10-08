@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Bootstrap plugin utility module.
+
 pub fn init() {
     unsafe {
         let context = super::core::SCGetContext();
