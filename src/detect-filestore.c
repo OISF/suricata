@@ -333,6 +333,11 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     static bool warn_not_configured = false;
     static uint32_t de_version = 0;
 
+    if (de_ctx->filestore_cnt == UINT16_MAX) {
+        SCLogError("Cannot have more than 65535 filestore signatures");
+        return -1;
+    }
+
     /* Check on first-time loads (includes following a reload) */
     if (!warn_not_configured || (de_ctx->version != de_version)) {
         if (de_version != de_ctx->version) {
@@ -476,6 +481,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
 
     s->flags |= SIG_FLAG_FILESTORE;
+    de_ctx->filestore_cnt++;
 
     if (match)
         pcre2_match_data_free(match);
