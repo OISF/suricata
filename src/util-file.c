@@ -1226,7 +1226,12 @@ void FileStoreAllFilesForTx(FileContainer *fc, uint64_t tx_id)
     if (fc != NULL) {
         for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
             if (ptr->txid == tx_id) {
-                FileStore(ptr);
+                // Checks if an already opened file has already set
+                // FILE_NOSTORE, and thus not saved the content
+                // it the streaming buffer
+                if ((ptr->flags & FILE_NOSTORE) == 0) {
+                    FileStore(ptr);
+                }
             }
         }
     }
@@ -1240,7 +1245,9 @@ void FileStoreAllFiles(FileContainer *fc)
 
     if (fc != NULL) {
         for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
-            FileStore(ptr);
+            if ((ptr->flags & FILE_NOSTORE) == 0) {
+                FileStore(ptr);
+            }
         }
     }
 }
