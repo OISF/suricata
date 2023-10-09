@@ -48,6 +48,7 @@
 
 #include "util-error.h"
 #include "util-debug.h"
+#include "util-validate.h"
 #include "util-cidr.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -552,6 +553,8 @@ void SigGroupHeadSetupFiles(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
 #endif
         if (SignatureIsFilestoring(s)) {
+            // should be insured by caller that we do not overflow
+            DEBUG_VALIDATE_BUG_ON(sgh->filestore_cnt == UINT16_MAX);
             sgh->filestore_cnt++;
         }
     }
