@@ -103,8 +103,8 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
 
         flags = FileFlowToFlags(s->f, STREAM_TOCLIENT);
 
-        if ((s->flags & HTP_FLAG_STORE_FILES_TS) ||
-                ((s->flags & HTP_FLAG_STORE_FILES_TX_TS) && txid == s->store_tx_id)) {
+        if ((s->flags & HTP_FLAG_STORE_FILES_TC) ||
+                ((s->flags & HTP_FLAG_STORE_FILES_TX_TC) && txid == s->store_tx_id)) {
             flags |= FILE_STORE;
             flags &= ~FILE_NOSTORE;
         } else if (!(flags & FILE_STORE) && (s->f->file_flags & FLOWFILE_NO_STORE_TC)) {
@@ -125,8 +125,8 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
         files = s->files_ts;
 
         flags = FileFlowToFlags(s->f, STREAM_TOSERVER);
-        if ((s->flags & HTP_FLAG_STORE_FILES_TC) ||
-                ((s->flags & HTP_FLAG_STORE_FILES_TX_TC) && txid == s->store_tx_id)) {
+        if ((s->flags & HTP_FLAG_STORE_FILES_TS) ||
+                ((s->flags & HTP_FLAG_STORE_FILES_TX_TS) && txid == s->store_tx_id)) {
             flags |= FILE_STORE;
             flags &= ~FILE_NOSTORE;
         } else if (!(flags & FILE_STORE) && (s->f->file_flags & FLOWFILE_NO_STORE_TS)) {
