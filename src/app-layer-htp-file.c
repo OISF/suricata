@@ -107,7 +107,7 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
                 ((s->flags & HTP_FLAG_STORE_FILES_TX_TC) && txid == s->store_tx_id)) {
             flags |= FILE_STORE;
             flags &= ~FILE_NOSTORE;
-        } else if (!(flags & FILE_STORE) && (s->f->file_flags & FLOWFILE_NO_STORE_TC)) {
+        } else if (s->f->file_flags & FLOWFILE_NO_STORE_TC) {
             flags |= FILE_NOSTORE;
         }
 
@@ -129,7 +129,7 @@ int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_
                 ((s->flags & HTP_FLAG_STORE_FILES_TX_TS) && txid == s->store_tx_id)) {
             flags |= FILE_STORE;
             flags &= ~FILE_NOSTORE;
-        } else if (!(flags & FILE_STORE) && (s->f->file_flags & FLOWFILE_NO_STORE_TS)) {
+        } else if (s->f->file_flags & FLOWFILE_NO_STORE_TS) {
             flags |= FILE_NOSTORE;
         }
 
