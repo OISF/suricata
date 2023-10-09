@@ -553,6 +553,7 @@ void FileContainerAdd(FileContainer *ffc, File *ff)
  */
 int FileStore(File *ff)
 {
+    DEBUG_VALIDATE_BUG_ON(ff->flags & FILE_NOSTORE);
     ff->flags |= FILE_STORE;
     SCReturnInt(0);
 }
@@ -985,6 +986,7 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
         if (flags & FILE_NOSTORE) {
             SCLogDebug("not storing this file");
             ff->flags |= FILE_NOSTORE;
+            ff->flags &= ~FILE_STORE;
         } else {
 #ifdef HAVE_NSS
             if (g_file_force_sha256 && ff->sha256_ctx) {
