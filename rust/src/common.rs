@@ -1,3 +1,5 @@
+//! Utility library module for handling strings, hexadecimals and bytes.
+
 use super::build_slice;
 use crate::jsonbuilder::HEX;
 use std::ffi::CString;

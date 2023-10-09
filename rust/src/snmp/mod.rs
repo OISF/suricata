@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! SNMP Application Layer, parser and logger module.
+
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 extern crate snmp_parser;

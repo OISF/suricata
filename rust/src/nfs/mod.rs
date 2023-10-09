@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! NFS Application layer parsing, logging and detection module.
+
 pub mod types;
 pub mod rpc_records;
 pub mod nfs_records;

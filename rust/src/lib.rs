@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Library tree module.
+
 #![cfg_attr(feature = "strict", deny(warnings))]
 
 // Allow these patterns as its a style we like.

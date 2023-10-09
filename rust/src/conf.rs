@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Module for retrieving configuration details.
+
 use std::os::raw::c_char;
 use std::os::raw::c_void;
 use std::os::raw::c_int;

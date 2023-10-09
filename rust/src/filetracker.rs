@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Gap handling and Chunk-based file transfer tracker module.
+
 /**
  *  \file
  *  \author Victor Julien <victor@inliniac.net>

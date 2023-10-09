@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-//! PostgreSQL parser and application layer
+//! PostgreSQL parser and application layer module.
 //!
 //! written by Juliana Fajardini <jufajardini@oisf.net>
 

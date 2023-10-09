@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+ //! JSON logger utility library module.
+
 #![allow(clippy::missing_safety_doc)]
 
 use std::cmp::max;

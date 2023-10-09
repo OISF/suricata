@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-//! Parser registration functions and common interface
+//! Parser registration functions and common interface module.
 
 use std;
 use crate::core::{self,DetectEngineState,Flow,AppLayerEventType,AppProto,Direction};

@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! SMB Application layer and parser module.
+
 pub mod error;
 pub mod smb_records;
 pub mod smb_status;

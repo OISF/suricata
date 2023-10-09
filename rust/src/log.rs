@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Logging utility module.
+
 use std;
 use std::ffi::CString;
 use std::path::Path;

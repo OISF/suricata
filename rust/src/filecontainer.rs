@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! This module handles file-related operations(open, append, close).
+
 use std::ptr;
 use std::os::raw::{c_void};
 
