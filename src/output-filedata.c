@@ -167,6 +167,7 @@ static void OutputFiledataLogFfc(ThreadVars *tv, OutputLoggerThreadData *td,
                 SCLogDebug("ff FILE_STORE not set");
                 continue;
             }
+            DEBUG_VALIDATE_BUG_ON(ff->flags & FILE_NOSTORE);
 
             /* if we have no data chunks left to log, we should still
              * close the logger(s) */
