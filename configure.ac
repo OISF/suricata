@@ -1678,6 +1678,14 @@
     ;;
     esac
 
+    AC_ARG_ENABLE(nulloutput,
+	        AS_HELP_STRING([--enable-nulloutput],[Enable null output support]),
+	        [ enable_nulloutput="$enableval"],
+	        [ enable_nulloutput="no"])
+    if test "x$enable_nulloutput" == "xyes"; then
+        AC_DEFINE([HAVE_NULL_LOGOUTPUT],[1],[null output support])
+    fi
+
     AC_CHECK_LIB(unwind,unw_backtrace,,LIBUNW="no")
     if test "$LIBUNW" = "no"; then
         echo
@@ -2672,6 +2680,7 @@ Development settings:
   Debug output enabled:                    ${enable_debug}
   Debug validation enabled:                ${enable_debug_validation}
   Fuzz targets enabled:                    ${enable_fuzztargets}
+  Null output device enabled:              ${enable_nulloutput}
 
 Generic build parameters:
   Installation prefix:                     ${prefix}
