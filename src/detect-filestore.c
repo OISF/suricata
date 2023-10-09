@@ -333,6 +333,11 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     static bool warn_not_configured = false;
     static uint32_t de_version = 0;
 
+    if (de_ctx->filestore_cnt == UINT16_MAX) {
+        SCLogError("Cannot have more than " PRIu16 " filestore signatures", UINT16_MAX);
+        return -1;
+    }
+
     /* Check on first-time loads (includes following a reload) */
     if (!warn_not_configured || (de_ctx->version != de_version)) {
         if (de_version != de_ctx->version) {
@@ -466,6 +471,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     }
 
     s->flags |= SIG_FLAG_FILESTORE;
+    de_ctx->filestore_cnt++;
 
     if (match)
         pcre2_match_data_free(match);
