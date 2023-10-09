@@ -630,7 +630,11 @@ void SigGroupHeadSetFilestoreCount(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             continue;
 
         if (SignatureIsFilestoring(s)) {
-            sgh->filestore_cnt++;
+            if (sgh->filestore_cnt == UINT16_MAX) {
+                SCLogWarning("Too many filestore in signature group head");
+            } else {
+                sgh->filestore_cnt++;
+            }
         }
     }
 
