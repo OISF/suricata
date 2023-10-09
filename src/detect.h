@@ -1040,6 +1040,9 @@ typedef struct DetectEngineCtx_ {
 
     /* Track rule requirements for reporting after loading rules. */
     SCDetectRequiresStatus *requirements;
+
+    /* number of signatures using filestore, limited as u16 */
+    uint16_t filestore_cnt;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
