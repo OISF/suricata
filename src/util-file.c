@@ -1109,7 +1109,13 @@ void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction
         FileContainer *ffc = AppLayerParserGetFiles(f, direction);
         if (ffc != NULL) {
             for (File *ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
-                ptr->flags |= per_file_flags;
+                if ((per_file_flags & FILE_NOSTORE) && (ptr->flags & FILE_STORE)) {
+                    // if a rule reload removes a rule storing file
+                    // but a file was being stored...
+                    ptr->flags |= per_file_flags & (~FILE_NOSTORE);
+                } else {
+                    ptr->flags |= per_file_flags;
+                }
 
 #ifdef HAVE_NSS
                 /* destroy any ctx we may have so far */
