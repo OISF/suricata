@@ -515,6 +515,7 @@ typedef struct SignatureInitDataBuffer_ {
     bool sm_init; /**< initialized by sigmatch, which is likely something like `urilen:10; http.uri;
                      content:"abc";`. These need to be in the same list. Unset once `http.uri` is
                      set up. */
+    bool multi_capable; /**< true if we can have multiple instances */
     /* sig match list */
     SigMatch *head;
     SigMatch *tail;
