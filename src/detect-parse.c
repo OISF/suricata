@@ -289,19 +289,32 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
             SCLogError("no matches for previous buffer");
             return -1;
         }
-        if (SignatureInitDataBufferCheckExpand(s) < 0) {
-            SCLogError("failed to expand rule buffer array");
-            return -1;
+        bool reuse_buffer = false;
+        if (s->init_data->curbuf != NULL && (int)s->init_data->curbuf->id != sm_list) {
+            for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+                if (s->init_data->buffers[x].id == (uint32_t)sm_list) {
+                    s->init_data->curbuf = &s->init_data->buffers[x];
+                    reuse_buffer = true;
+                    break;
+                }
+            }
         }
 
-        /* initialize a new buffer */
-        s->init_data->curbuf = &s->init_data->buffers[s->init_data->buffer_index++];
-        s->init_data->curbuf->id = sm_list;
-        s->init_data->curbuf->head = NULL;
-        s->init_data->curbuf->tail = NULL;
-        SCLogDebug("idx %u list %d set up curbuf %p s->init_data->buffer_index %u",
-                s->init_data->buffer_index - 1, sm_list, s->init_data->curbuf,
-                s->init_data->buffer_index);
+        if (!reuse_buffer) {
+            if (SignatureInitDataBufferCheckExpand(s) < 0) {
+                SCLogError("failed to expand rule buffer array");
+                return -1;
+            }
+
+            /* initialize a new buffer */
+            s->init_data->curbuf = &s->init_data->buffers[s->init_data->buffer_index++];
+            s->init_data->curbuf->id = sm_list;
+            s->init_data->curbuf->head = NULL;
+            s->init_data->curbuf->tail = NULL;
+            SCLogDebug("idx %u list %d set up curbuf %p s->init_data->buffer_index %u",
+                    s->init_data->buffer_index - 1, sm_list, s->init_data->curbuf,
+                    s->init_data->buffer_index);
+        }
     }
 
     /* transfer the sm from the pmatch list to sm_list */
@@ -469,6 +482,18 @@ void SigMatchAppendSMToList(Signature *s, SigMatch *new, const int list)
             SCLogDebug("reset: list %d != s->init_data->list %d", list, s->init_data->list);
             s->init_data->list = DETECT_SM_LIST_NOTSET;
         }
+
+        if (s->init_data->curbuf != NULL && (int)s->init_data->curbuf->id != list) {
+            for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+                if (s->init_data->buffers[x].id == (uint32_t)list &&
+                        !s->init_data->buffers[x].multi_capable) {
+                    SCLogDebug("reusing buffer %u as it isn't multi-capable", x);
+                    s->init_data->curbuf = &s->init_data->buffers[x];
+                    break;
+                }
+            }
+        }
+
         if ((s->init_data->curbuf != NULL && (int)s->init_data->curbuf->id != list) ||
                 s->init_data->curbuf == NULL) {
             if (SignatureInitDataBufferCheckExpand(s) < 0) {

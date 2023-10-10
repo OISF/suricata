@@ -1444,6 +1444,8 @@ int DetectBufferSetActiveList(DetectEngineCtx *de_ctx, Signature *s, const int l
     s->init_data->curbuf->id = list;
     s->init_data->curbuf->head = NULL;
     s->init_data->curbuf->tail = NULL;
+    s->init_data->curbuf->multi_capable =
+            DetectEngineBufferTypeSupportsMultiInstanceGetById(de_ctx, list);
     SCLogDebug("new: idx %u list %d set up curbuf %p", s->init_data->buffer_index - 1, list,
             s->init_data->curbuf);
 
@@ -1470,6 +1472,7 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
         if (new_list == -1) {
             SCReturnInt(-1);
         }
+        int base_list = s->init_data->list;
         SCLogDebug("new_list %d", new_list);
         s->init_data->list = new_list;
         s->init_data->list_set = false;
@@ -1482,6 +1485,8 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
                 return -1;
             }
             s->init_data->curbuf = &s->init_data->buffers[s->init_data->buffer_index++];
+            s->init_data->curbuf->multi_capable =
+                    DetectEngineBufferTypeSupportsMultiInstanceGetById(de_ctx, base_list);
         }
         if (s->init_data->curbuf == NULL) {
             SCLogError("failed to setup buffer");
