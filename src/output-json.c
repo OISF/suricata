@@ -47,7 +47,10 @@
 #include "app-layer-parser.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
+
+/* Internal output plugins */
 #include "output-eve-syslog.h"
+#include "output-eve-null.h"
 
 #include "output.h"
 #include "output-json.h"
@@ -98,6 +101,7 @@ void OutputJsonRegister (void)
     // Register output file types that use the new eve filetype registration
     // API.
     SyslogInitialize();
+    NullLogInitialize();
 }
 
 json_t *SCJsonString(const char *val)
