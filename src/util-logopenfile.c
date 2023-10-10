@@ -194,6 +194,7 @@ static inline void OutputWriteLock(pthread_mutex_t *m)
  */
 static void SCLogFileFlushNoLock(LogFileCtx *log_ctx)
 {
+    log_ctx->bytes_since_last_flush = 0;
     SCFflushUnlocked(log_ctx->fp);
 }
 
@@ -239,8 +240,15 @@ static int SCLogFileWriteNoLock(const char *buffer, int buffer_len, LogFileCtx *
                         log_ctx->filename);
             }
             log_ctx->output_errors++;
-        } else if (log_ctx->buffer_size) {
-            SCFflushUnlocked(log_ctx->fp);
+            return ret;
+        }
+
+        log_ctx->bytes_since_last_flush += buffer_len;
+
+        if (log_ctx->buffer_size && log_ctx->bytes_since_last_flush >= log_ctx->buffer_size) {
+            SCLogDebug("%s: flushing %" PRIu64 " during write", log_ctx->filename,
+                    log_ctx->bytes_since_last_flush);
+            SCLogFileFlushNoLock(log_ctx);
         }
     }
 
@@ -456,7 +464,7 @@ static FILE *SCLogOpenFileFp(
     /* Set buffering behavior */
     if (buffer_size == 0) {
         setbuf(ret, NULL);
-        SCLogNotice("Setting output to %s non-buffered", filename);
+        SCLogConfig("Setting output to %s non-buffered", filename);
     } else {
         if (setvbuf(ret, NULL, _IOFBF, buffer_size) < 0)
             FatalError("unable to set %s to buffered: %d", filename, buffer_size);
@@ -559,7 +567,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
         buffer_size = value;
     }
 
-    SCLogNotice("buffering: %s -> %d", buffer_size_value, buffer_size);
+    SCLogDebug("buffering: %s -> %d", buffer_size_value, buffer_size);
     const char *filemode = ConfNodeLookupChildValue(conf, "filemode");
     uint32_t mode = 0;
     if (filemode != NULL && StringParseUint32(&mode, 8, (uint16_t)strlen(filemode), filemode) > 0) {
@@ -969,6 +977,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
 
 void LogFileFlush(LogFileCtx *file_ctx)
 {
+    SCLogDebug("%s: bytes-to-flush %ld", file_ctx->filename, file_ctx->bytes_since_last_flush);
     file_ctx->Flush(file_ctx);
 }
 
