@@ -1037,6 +1037,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-tftp.c \
 	output-json-tls.c \
 	output-eve-syslog.c \
+	output-eve-null.c \
 	output-lua.c \
 	output-packet.c \
 	output-stats.c \
