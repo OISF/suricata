@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Utility module.
+
 use std::ffi::CStr;
 use std::os::raw::c_char;
 

@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! RFB protocol parser module.
+
 // Author: Frank Honza <frank.honza@dcso.de>
 
 pub mod detect;

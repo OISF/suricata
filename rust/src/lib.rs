@@ -15,6 +15,13 @@
  * 02110-1301, USA.
  */
 
+//! Suricata Rust Core Library.
+//!
+//! Suricata is a network intrusion detection and prevention engine.
+//!
+//! Suricata is a hybrid C and Rust application. This library contains
+//! the components written in Rust.
+
 #![cfg_attr(feature = "strict", deny(warnings))]
 
 // Allow these patterns as its a style we like.
