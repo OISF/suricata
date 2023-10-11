@@ -218,6 +218,7 @@
 #include "detect-mqtt-connect-clientid.h"
 #include "detect-mqtt-connect-username.h"
 #include "detect-mqtt-connect-password.h"
+#include "detect-mqtt-connect-protocol-string.h"
 #include "detect-mqtt-connect-willtopic.h"
 #include "detect-mqtt-connect-willmessage.h"
 #include "detect-mqtt-connack-sessionpresent.h"
@@ -671,6 +672,7 @@ void SigTableSetup(void)
     DetectMQTTConnectClientIDRegister();
     DetectMQTTConnectUsernameRegister();
     DetectMQTTConnectPasswordRegister();
+    DetectMQTTConnectProtocolStringRegister();
     DetectMQTTConnectWillTopicRegister();
     DetectMQTTConnectWillMessageRegister();
     DetectMQTTConnackSessionPresentRegister();
