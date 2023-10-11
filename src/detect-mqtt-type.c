@@ -43,7 +43,7 @@ void MQTTTypeRegisterTests(void);
 void DetectMQTTTypeFree(DetectEngineCtx *de_ctx, void *);
 
 /**
- * \brief Registration function for ipopts: keyword
+ * \brief Registration function for mqtt.type: keyword
  */
 void DetectMQTTTypeRegister (void)
 {
