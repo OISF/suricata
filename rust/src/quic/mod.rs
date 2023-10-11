@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! QUIC application layer, parser, detection and logger module.
+
 mod crypto;
 mod cyu;
 pub mod detect;

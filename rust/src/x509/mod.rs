@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Module for SSL/TLS X.509 certificates parser and decoder.
+
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use crate::common::rust_string_to_c;

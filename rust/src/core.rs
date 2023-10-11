@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-// This file exposes items from the core "C" code to Rust.
+//! This module exposes items from the core "C" code to Rust.
 
 use std;
 use crate::filecontainer::*;

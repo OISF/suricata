@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! DHCP parser, detection and logger module.
+
 pub mod dhcp;
 pub mod parser;
 pub mod logger;
