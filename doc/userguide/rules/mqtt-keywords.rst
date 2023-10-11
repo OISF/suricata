@@ -163,6 +163,19 @@ Examples::
 ``mqtt.connect.password`` is a 'sticky buffer' and can be used as ``fast_pattern``.
 
 
+mqtt.connect.protocol_string
+----------------------------
+
+Match on the protocol string in the MQTT CONNECT message. In contrast to ``mqtt.protocol_version`` this is a property that is only really relevant in the initial CONNECT communication and never used again; hence it is organized under ``mqtt.connect``.
+
+Examples::
+
+  mqtt.connect.protocol_string; content:"MQTT";
+  mqtt.connect.protocol_string; content:"MQIsdp";
+
+``mqtt.connect.protocol_string`` is a 'sticky buffer' and can be used as ``fast_pattern``.
+
+
 mqtt.connect.username
 ---------------------
 
