@@ -1,0 +1,91 @@
+\href{https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:suricata}{\texttt{ }} \href{https://codecov.io/gh/OISF/suricata}{\texttt{ }}\hypertarget{md__r_e_a_d_m_e_autotoc_md1}{}\doxysection{Introduction}\label{md__r_e_a_d_m_e_autotoc_md1}
+\href{https://suricata.io}{\texttt{ Suricata}} is a network IDS, IPS and NSM engine developed by the \href{https://oisf.net}{\texttt{ OISF}} and the Suricata community.\hypertarget{md__r_e_a_d_m_e_autotoc_md2}{}\doxysection{Resources}\label{md__r_e_a_d_m_e_autotoc_md2}
+
+\begin{DoxyItemize}
+\item \href{https://suricata.io}{\texttt{ Home Page}}
+\item \href{https://redmine.openinfosecfoundation.org/projects/suricata}{\texttt{ Bug Tracker}}
+\item \href{https://docs.suricata.io}{\texttt{ User Guide}}
+\item \href{https://docs.suricata.io/en/latest/install.html}{\texttt{ Installation Guide}}
+\item \href{https://forum.suricata.io}{\texttt{ User Support Forum}}
+\end{DoxyItemize}\hypertarget{md__r_e_a_d_m_e_autotoc_md3}{}\doxysection{Contributing}\label{md__r_e_a_d_m_e_autotoc_md3}
+We\textquotesingle{}re happily taking patches and other contributions. Please see our \href{https://docs.suricata.io/en/latest/devguide/codebase/contributing/contribution-process.html}{\texttt{ Contribution Process}} for how to get started.
+
+Suricata is a complex piece of software dealing with mostly untrusted input. Mishandling this input will have serious consequences\+:
+
+
+\begin{DoxyItemize}
+\item in IPS mode a crash may knock a network offline
+\item in passive mode a compromise of the IDS may lead to loss of critical and confidential data
+\item missed detection may lead to undetected compromise of the network
+\end{DoxyItemize}
+
+In other words, we think the stakes are pretty high, especially since in many common cases the IDS/\+IPS will be directly reachable by an attacker.
+
+For this reason, we have developed a QA process that is quite extensive. A consequence is that contributing to Suricata can be a somewhat lengthy process.
+
+On a high level, the steps are\+:
+
+
+\begin{DoxyEnumerate}
+\item Git\+Hub-\/\+CI based checks. This runs automatically when a pull request is made.
+\item Review by devs from the team and community
+\item QA runs from private QA setups. These are private due to the nature of the test traffic.
+\end{DoxyEnumerate}\hypertarget{md__r_e_a_d_m_e_autotoc_md4}{}\doxysubsection{Overview of Suricata\textquotesingle{}s QA steps}\label{md__r_e_a_d_m_e_autotoc_md4}
+OISF team members are able to submit builds to our private QA setup. It will run a series of build tests and a regression suite to confirm no existing features break.
+
+The final QA runs takes a few hours minimally, and generally runs overnight. It currently runs\+:
+
+
+\begin{DoxyItemize}
+\item extensive build tests on different OS\textquotesingle{}, compilers, optimization levels, configure features
+\item static code analysis using cppcheck, scan-\/build
+\item runtime code analysis using valgrind, Address\+Sanitizer, Leak\+Sanitizer
+\item regression tests for past bugs
+\item output validation of logging
+\item unix socket testing
+\item pcap based fuzz testing using ASAN and LSAN
+\item traffic replay based IDS and IPS tests
+\end{DoxyItemize}
+
+Next to these tests, based on the type of code change further tests can be run manually\+:
+
+
+\begin{DoxyItemize}
+\item traffic replay testing (multi-\/gigabit)
+\item large pcap collection processing (multi-\/terabytes)
+\item fuzz testing (might take multiple days or even weeks)
+\item pcap based performance testing
+\item live performance testing
+\item various other manual tests based on evaluation of the proposed changes
+\end{DoxyItemize}
+
+It\textquotesingle{}s important to realize that almost all of the tests above are used as acceptance tests. If something fails, it\textquotesingle{}s up to you to address this in your code.
+
+One step of the QA is currently run post-\/merge. We submit builds to the Coverity Scan program. Due to limitations of this (free) service, we can submit once a day max. Of course it can happen that after the merge the community will find issues. For both cases we request you to help address the issues as they may come up.\hypertarget{md__r_e_a_d_m_e_autotoc_md5}{}\doxysection{FAQ}\label{md__r_e_a_d_m_e_autotoc_md5}
+{\bfseries{Q\+: Will you accept my PR?}}
+
+A\+: That depends on a number of things, including the code quality. With new features it also depends on whether the team and/or the community think the feature is useful, how much it affects other code and features, the risk of performance regressions, etc.
+
+{\bfseries{Q\+: When will my PR be merged?}}
+
+A\+: It depends, if it\textquotesingle{}s a major feature or considered a high risk change, it will probably go into the next major version.
+
+{\bfseries{Q\+: Why was my PR closed?}}
+
+A\+: As documented in the \href{https://docs.suricata.io/en/latest/devguide/codebase/contributing/github-pr-workflow.html}{\texttt{ Suricata Git\+Hub workflow}}, we expect a new pull request for every change.
+
+Normally, the team (or community) will give feedback on a pull request after which it is expected to be replaced by an improved PR. So look at the comments. If you disagree with the comments we can still discuss them in the closed PR.
+
+If the PR was closed without comments it\textquotesingle{}s likely due to QA failure. If the Git\+Hub-\/\+CI checks failed, the PR should be fixed right away. No need for a discussion about it, unless you believe the QA failure is incorrect.
+
+{\bfseries{Q\+: The compiler/code analyser/tool is wrong, what now?}}
+
+A\+: To assist in the automation of the QA, we\textquotesingle{}re not accepting warnings or errors to stay. In some cases this could mean that we add a suppression if the tool supports that (e.\+g. valgrind, Dr\+Memory). Some warnings can be disabled. In some exceptional cases the only \textquotesingle{}solution\textquotesingle{} is to refactor the code to work around a static code checker limitation false positive. While frustrating, we prefer this over leaving warnings in the output. Warnings tend to get ignored and then increase risk of hiding other warnings.
+
+{\bfseries{Q\+: I think your QA test is wrong}}
+
+A\+: If you really think it is, we can discuss how to improve it. But don\textquotesingle{}t come to this conclusion too quickly, more often it\textquotesingle{}s the code that turns out to be wrong.
+
+{\bfseries{Q\+: Do you require signing of a contributor license agreement?}}
+
+A\+: Yes, we do this to keep the ownership of Suricata in one hand\+: the Open Information Security Foundation. See \href{http://suricata.io/about/open-source/}{\texttt{ http\+://suricata.\+io/about/open-\/source/}} and \href{http://suricata.io/about/contribution-agreement/}{\texttt{ http\+://suricata.\+io/about/contribution-\/agreement/}} 

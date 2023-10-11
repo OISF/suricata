@@ -15,6 +15,11 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file 
+ * 
+ * Memory Management Functions for HTP
+ */
 
 void HTPParseMemcap(void);
 void *HTPMalloc(size_t size);

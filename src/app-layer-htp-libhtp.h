@@ -36,7 +36,11 @@
  ***************************************************************************/
 
 /**
- * Anoop Saldanha <anoopsaldanha@gmail.com>
+ *\file 
+ *
+ *This file contains URL Normalization Function
+ *
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
 #ifndef __APP_LAYER_HTP_LIBHTP__H__

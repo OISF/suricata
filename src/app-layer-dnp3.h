@@ -15,6 +15,11 @@
  * 02110-1301, USA.
  */
 
+/**
+ *\file
+ *
+ * This file contains DNP3  Protocol Handling
+*/
 #ifndef __APP_LAYER_DNP3_H__
 #define __APP_LAYER_DNP3_H__
 

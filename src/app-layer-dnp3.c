@@ -15,6 +15,12 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file 
+ * 
+ * This file contains DNP3 Protocol Implementation
+ * 
+ */
 #include "suricata-common.h"
 #include "suricata.h"
 #include "stream.h"
