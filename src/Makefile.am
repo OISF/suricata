@@ -250,6 +250,7 @@ noinst_HEADERS = \
 	detect-mqtt-connect-clientid.h \
 	detect-mqtt-connect-flags.h \
 	detect-mqtt-connect-password.h \
+	detect-mqtt-connect-protocol-string.h \
 	detect-mqtt-connect-username.h \
 	detect-mqtt-connect-willmessage.h \
 	detect-mqtt-connect-willtopic.h \
@@ -862,6 +863,7 @@ libsuricata_c_a_SOURCES = \
 	detect-mqtt-connect-clientid.c \
 	detect-mqtt-connect-flags.c \
 	detect-mqtt-connect-password.c \
+	detect-mqtt-connect-protocol-string.c \
 	detect-mqtt-connect-username.c \
 	detect-mqtt-connect-willmessage.c \
 	detect-mqtt-connect-willtopic.c \

@@ -232,6 +232,26 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_willmessage(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn rs_mqtt_tx_get_connect_protocol_string(
+    tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
+    for msg in tx.msg.iter() {
+        if let MQTTOperation::CONNECT(ref cv) = msg.op {
+            let p = &cv.protocol_string;
+            if !p.is_empty() {
+                *buffer = p.as_ptr();
+                *buffer_len = p.len() as u32;
+                return 1;
+            }
+        }
+    }
+
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    return 0;
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_get_connack_sessionpresent(
     tx: &MQTTTransaction, session_present: *mut bool,
 ) -> u8 {
