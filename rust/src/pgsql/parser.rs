@@ -210,7 +210,7 @@ pub struct BackendKeyDataMessage {
 #[derive(Debug, PartialEq, Eq)]
 pub struct ConsolidatedDataRowPacket {
     pub identifier: u8,
-    pub row_cnt: u16,
+    pub row_cnt: u64,
     pub data_size: u64,
 }
 
