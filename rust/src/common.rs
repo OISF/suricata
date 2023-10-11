@@ -1,3 +1,5 @@
+//! Utility library module for commonly used strings, hexadecimals and other elements.
+
 use super::build_slice;
 use crate::jsonbuilder::HEX;
 use std::ffi::CString;

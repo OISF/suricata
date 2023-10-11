@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! SIP protocol parser, detection and logger module.
+
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 pub mod detect;

@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Module that exposes C bindings to the Suricata Rust library.
+
 pub mod hashing;
 pub mod base64;
 pub mod strings;
