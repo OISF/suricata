@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! SSH application layer, logger, detection and parser module.
+
 pub mod detect;
 pub mod logger;
 mod parser;

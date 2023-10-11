@@ -15,18 +15,17 @@
  * 02110-1301, USA.
  */
 
-/**
- *  \file
- *  \author Victor Julien <victor@inliniac.net>
- *
- * Tracks chunk based file transfers. Chunks may be transferred out
- * of order, but cannot be transferred in parallel. So only one
- * chunk at a time.
- *
- * GAP handling. If a data gap is encountered, the file is truncated
- * and new data is no longer pushed down to the lower level APIs.
- * The tracker does continue to follow the file.
- */
+//! Gap handling and Chunk-based file transfer tracker module.
+//!
+//! GAP handling. If a data gap is encountered, the file is truncated
+//! and new data is no longer pushed down to the lower level APIs.
+//! The tracker does continue to follow the file
+//
+//! Tracks chunk based file transfers. Chunks may be transferred out
+//! of order, but cannot be transferred in parallel. So only one
+//! chunk at a time.
+//!
+//! Author: Victor Julien <victor@inliniac.net>
 
 use crate::core::*;
 use std::collections::HashMap;

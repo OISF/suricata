@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Modbus application layer, logger, parser and detection module.
+
 pub mod detect;
 pub mod log;
 pub mod modbus;

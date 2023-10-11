@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! Module for bindings to the Suricata C frame API.
+
 use crate::applayer::StreamSlice;
 use crate::core::Flow;
 #[cfg(not(test))]
