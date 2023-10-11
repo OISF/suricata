@@ -237,7 +237,7 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             row_cnt,
             data_size,
         }) => {
-            jb.set_uint("data_rows", (*row_cnt).into())?;
+            jb.set_uint("data_rows", *row_cnt)?;
             jb.set_uint("data_size", *data_size)?;
         }
         PgsqlBEMessage::NotificationResponse(NotificationResponse {

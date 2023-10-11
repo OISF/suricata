@@ -50,7 +50,7 @@ pub struct PgsqlTransaction {
     pub request: Option<PgsqlFEMessage>,
     pub responses: Vec<PgsqlBEMessage>,
 
-    pub data_row_cnt: u16,
+    pub data_row_cnt: u64,
     pub data_size: u64,
 
     tx_data: AppLayerTxData,
@@ -82,10 +82,10 @@ impl PgsqlTransaction {
     }
 
     pub fn incr_row_cnt(&mut self) {
-        self.data_row_cnt += 1;
+        self.data_row_cnt = self.data_row_cnt.saturating_add(1);
     }
 
-    pub fn get_row_cnt(&self) -> u16 {
+    pub fn get_row_cnt(&self) -> u64 {
         self.data_row_cnt
     }
 
