@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! DCE/RPC protocol parser, logger and detection module.
+
 pub mod dcerpc;
 pub mod dcerpc_udp;
 pub mod parser;
