@@ -224,7 +224,8 @@ outputs:
             # https://docs.suricata.io/en/latest/output/eve/eve-json-output.html#dns-v1-format
 
             # As of Suricata 5.0, version 2 of the eve dns output
-            # format is the default.
+            # format is the default. Use version 3 to get IP addresses
+            # swapped correctly in the log between request and answer.
             #version: 2
 
             # Enable/disable this logger. Default: enabled.
