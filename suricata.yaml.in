@@ -278,8 +278,9 @@ outputs:
             # for the body you need to set app-layer.protocols.smtp.mime.body-md5
             # to yes
             #md5: [body, subject]
-
         #- dnp3
+            # Set version to 2 to have event logged in the direction of the flow
+            #version: 1
         - ftp
         - rdp
         - nfs

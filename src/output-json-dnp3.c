@@ -41,8 +41,13 @@
 #include "output-json-dnp3.h"
 #include "output-json-dnp3-objects.h"
 
+typedef enum { DNP3_VERSION_1 = 1, DNP3_VERSION_2 } Dnp3Version;
+
+#define DNP3_VERSION_DEFAULT DNP3_VERSION_1
+
 typedef struct LogDNP3FileCtx_ {
     uint32_t    flags;
+    Dnp3Version version;
     uint8_t     include_object_data;
     OutputJsonCtx *eve_ctx;
 } LogDNP3FileCtx;
@@ -51,6 +56,36 @@ typedef struct LogDNP3LogThread_ {
     LogDNP3FileCtx *dnp3log_ctx;
     OutputJsonThreadCtx *ctx;
 } LogDNP3LogThread;
+
+static Dnp3Version JsonDnp3ParseVersion(ConfNode *conf)
+{
+    if (conf == NULL) {
+        return DNP3_VERSION_DEFAULT;
+    }
+
+    const ConfNode *has_version = ConfNodeLookupChild(conf, "version");
+    if (has_version != NULL) {
+        bool invalid = false;
+        intmax_t config_version;
+        if (ConfGetChildValueInt(conf, "version", &config_version)) {
+            switch (config_version) {
+                case DNP3_VERSION_1:
+                case DNP3_VERSION_2:
+                    return config_version;
+                default:
+                    invalid = true;
+                    break;
+            }
+        } else {
+            invalid = true;
+        }
+        if (invalid) {
+            SCLogWarning("Invalid EVE DNP3 version \"%s\", will use v%d", has_version->val,
+                    DNP3_VERSION_DEFAULT);
+        }
+    }
+    return DNP3_VERSION_DEFAULT;
+}
 
 static void JsonDNP3LogLinkControl(JsonBuilder *js, uint8_t lc)
 {
@@ -217,7 +252,11 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
     LogDNP3LogThread *thread = (LogDNP3LogThread *)thread_data;
     DNP3Transaction *tx = vtx;
 
-    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL, thread->dnp3log_ctx->eve_ctx);
+    enum OutputJsonLogDirection dir = LOG_DIR_FLOW;
+    if (thread->dnp3log_ctx->version == DNP3_VERSION_2) {
+        dir = LOG_DIR_FLOW_TOSERVER;
+    }
+    JsonBuilder *js = CreateEveHeader(p, dir, "dnp3", NULL, thread->dnp3log_ctx->eve_ctx);
     if (unlikely(js == NULL)) {
         return TM_ECODE_OK;
     }
@@ -238,7 +277,11 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
     LogDNP3LogThread *thread = (LogDNP3LogThread *)thread_data;
     DNP3Transaction *tx = vtx;
 
-    JsonBuilder *js = CreateEveHeader(p, LOG_DIR_FLOW, "dnp3", NULL, thread->dnp3log_ctx->eve_ctx);
+    enum OutputJsonLogDirection dir = LOG_DIR_FLOW;
+    if (thread->dnp3log_ctx->version == DNP3_VERSION_2) {
+        dir = LOG_DIR_FLOW_TOCLIENT;
+    }
+    JsonBuilder *js = CreateEveHeader(p, dir, "dnp3", NULL, thread->dnp3log_ctx->eve_ctx);
     if (unlikely(js == NULL)) {
         return TM_ECODE_OK;
     }
@@ -284,7 +327,11 @@ static OutputInitResult OutputDNP3LogInitSub(ConfNode *conf, OutputCtx *parent_c
     if (unlikely(dnp3log_ctx == NULL)) {
         return result;
     }
+
+    Dnp3Version version = JsonDnp3ParseVersion(conf);
+
     dnp3log_ctx->eve_ctx = json_ctx;
+    dnp3log_ctx->version = version;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
