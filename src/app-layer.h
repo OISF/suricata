@@ -16,8 +16,12 @@
  */
 
 /**
+ * \file
+ *
  * \author Victor Julien <victor@inliniac.net>
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * 
+ *  Application layer handling and protocols implementation
  */
 
 #ifndef __APP_LAYER_H__

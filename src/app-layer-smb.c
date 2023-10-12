@@ -15,6 +15,12 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file
+ *
+ * SMB protocol handling
+ */
+
 #include "suricata-common.h"
 #include "suricata.h"
 
