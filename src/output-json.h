@@ -77,7 +77,7 @@ typedef struct OutputJsonCommonSettings_ {
     bool include_ethernet;
     uint16_t community_id_seed;
     uint8_t version;
-} OutputJsonCommonSettin]s;
+} OutputJsonCommonSettings;
 
 /*
  * Global configuration context data

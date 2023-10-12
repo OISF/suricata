@@ -317,7 +317,11 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     }
 
     for (uint16_t i = 0; i < 0xffff; i++) {
-        JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
+        enum OutputJsonLogDirection dir = LOG_DIR_FLOW;
+        if (dnslog_ctx->eve_ctx->cfg.version >= EVE_LOG_WITH_IP_DATA_WAY) {
+            dir = LOG_DIR_FLOW_TOSERVER;
+        }
+        JsonBuilder *jb = CreateEveHeader(p, dir, "dns", NULL, dnslog_ctx->eve_ctx);
         if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;
         }
@@ -349,7 +353,11 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     }
 
     if (rs_dns_do_log_answer(txptr, td->dnslog_ctx->flags)) {
-        JsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "dns", NULL, dnslog_ctx->eve_ctx);
+        enum OutputJsonLogDirection dir = LOG_DIR_FLOW;
+        if (dnslog_ctx->eve_ctx->cfg.version >= EVE_LOG_WITH_IP_DATA_WAY) {
+            dir = LOG_DIR_FLOW_TOCLIENT;
+        }
+        JsonBuilder *jb = CreateEveHeader(p, dir, "dns", NULL, dnslog_ctx->eve_ctx);
         if (unlikely(jb == NULL)) {
             return TM_ECODE_OK;
         }
