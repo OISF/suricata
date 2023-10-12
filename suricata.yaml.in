@@ -282,7 +282,6 @@ outputs:
             # for the body you need to set app-layer.protocols.smtp.mime.body-md5
             # to yes
             #md5: [body, subject]
-
         #- dnp3
         - ftp
         - rdp
