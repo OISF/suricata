@@ -40,9 +40,8 @@
  * 
  * APIs from libhtp 0.5.x.
  *
- * \author Saldanha <anoopsaldanha@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
-
 #ifndef __APP_LAYER_HTP_LIBHTP__H__
 #define __APP_LAYER_HTP_LIBHTP__H__
 

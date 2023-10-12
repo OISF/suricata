@@ -18,7 +18,7 @@
 /**
  * \file 
  * 
- * Header file for SMB protocol handling
+ * SMB protocol handling
  */
 
 #ifndef __APP_LAYER_SMB_H__

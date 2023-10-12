@@ -40,7 +40,7 @@
  * 
  * APIs from libhtp 0.5.x.
  * 
- * \author Saldanha <anoopsaldanha@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
 #include "suricata-common.h"

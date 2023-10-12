@@ -18,7 +18,7 @@
 /**
  * \file
  *
- *SMB protocol handling 
+ * SMB protocol handling 
  */
 
 #include "suricata-common.h"
