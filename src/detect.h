@@ -1103,10 +1103,11 @@ typedef struct DetectEngineThreadCtx_ {
 
     uint64_t raw_stream_progress;
 
-    /** offset into the payload of the last match by:
-     *  content, pcre, etc */
+    /** offset into the payload of the end of the last match by: content, pcre, etc */
     uint32_t buffer_offset;
-    /* used by pcre match function alone */
+
+    /** used by pcre match function alone: normally in sync with buffer_offset, but
+     *  points to 1 byte after the start of the last pcre match if a pcre match happened. */
     uint32_t pcre_match_start_offset;
 
     /* counter for the filestore array below -- up here for cache reasons. */
