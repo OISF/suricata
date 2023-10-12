@@ -15,6 +15,12 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file 
+ * 
+ * Header file for SMB protocol handling
+ */
+
 #ifndef __APP_LAYER_SMB_H__
 #define __APP_LAYER_SMB_H__
 

@@ -36,7 +36,11 @@
  ***************************************************************************/
 
 /**
- * Anoop Saldanha <anoopsaldanha@gmail.com>
+ *\file 
+ * 
+ * APIs from libhtp 0.5.x.
+ *
+ * \author Saldanha <anoopsaldanha@gmail.com>
  */
 
 #ifndef __APP_LAYER_HTP_LIBHTP__H__
