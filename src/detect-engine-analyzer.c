@@ -45,6 +45,7 @@
 #include "util-time.h"
 #include "util-validate.h"
 #include "util-conf.h"
+#include "detect-tcp-ack.h"
 
 static int rule_warnings_only = 0;
 
@@ -858,6 +859,14 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 jb_open_object(js, "ipopts");
                 const char *flag = IpOptsFlagToString(cd->ipopt);
                 jb_set_string(js, "option", flag);
+                jb_close(js);
+                break;
+            }
+            case DETECT_ACK: {
+                const DetectAckData *cd = (const DetectAckData *)smd->ctx;
+
+                jb_open_object(js, "ack");
+                jb_set_uint(js, "ack", cd->ack);
                 jb_close(js);
                 break;
             }
