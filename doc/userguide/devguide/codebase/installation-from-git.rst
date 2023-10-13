@@ -19,7 +19,7 @@ you should replace those commands with your OS-specific commands.
 Pre-installation requirements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Before you can build Suricata for your system, run the following command
+Before you can build Suricata on your system, run the following command
 to ensure that you have everything you need for the installation.
 
 .. code-block:: bash
@@ -27,9 +27,20 @@ to ensure that you have everything you need for the installation.
   sudo apt-get -y install libpcre2-dev build-essential autoconf \
   automake libtool libpcap-dev libnet1-dev libyaml-0-2 libyaml-dev \
   pkg-config zlib1g zlib1g-dev libcap-ng-dev libcap-ng0 make \
-  libmagic-dev libjansson-dev rustc cargo jq git-core
+  libmagic-dev libjansson-dev jq git-core
 
-Add ``${HOME}/.cargo/bin`` to your path:
+Rust is also a requirement. For developers, we recommend installing Rust using
+rustup (as recommended by its community). Run the command below, and follow
+the on-screen instructions.
+
+.. code-block:: bash
+
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+For more information on installing Rust, please check
+https://www.rust-lang.org/tools/install.
+
+Don't forget to add ``${HOME}/.cargo/bin`` to your path:
 
 .. code-block:: bash
 
