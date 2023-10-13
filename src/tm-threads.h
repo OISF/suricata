@@ -63,14 +63,18 @@ typedef struct TmSlot_ {
 
     SC_ATOMIC_DECLARE(void *, slot_data);
 
+    /** copy of the TmModule::flags */
+    uint8_t tm_flags;
+
+    /* store the thread module id */
+    int tm_id;
+
     TmEcode (*SlotThreadInit)(ThreadVars *, const void *, void **);
     void (*SlotThreadExitPrintStats)(ThreadVars *, void *);
     TmEcode (*SlotThreadDeinit)(ThreadVars *, void *);
 
     /* data storage */
     const void *slot_initdata;
-    /* store the thread module id */
-    int tm_id;
 
 } TmSlot;
 
