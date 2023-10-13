@@ -142,9 +142,11 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p, TmSlot *slot)
             TmThreadsSlotProcessPktFail(tv, s, NULL);
             return TM_ECODE_FAILED;
         }
-
-        if (TmThreadsProcessDecodePseudoPackets(tv, &tv->decode_pq, s->slot_next) != TM_ECODE_OK) {
-            return TM_ECODE_FAILED;
+        if (s->tm_flags & TM_FLAG_DECODE_TM) {
+            if (TmThreadsProcessDecodePseudoPackets(tv, &tv->decode_pq, s->slot_next) !=
+                    TM_ECODE_OK) {
+                return TM_ECODE_FAILED;
+            }
         }
     }
 
@@ -661,6 +663,7 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, const void *data)
     /* we don't have to check for the return value "-1".  We wouldn't have
      * received a TM as arg, if it didn't exist */
     slot->tm_id = TmModuleGetIDForTM(tm);
+    slot->tm_flags |= tm->flags;
 
     tv->tmm_flags |= tm->flags;
     tv->cap_flags |= tm->cap_flags;
