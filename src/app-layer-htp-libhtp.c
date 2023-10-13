@@ -36,10 +36,10 @@
  ***************************************************************************/
 
 /**
- *\file 
- * 
+ *\file
+ *
  * APIs from libhtp 0.5.x.
- * 
+ *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 

@@ -16,8 +16,8 @@
  */
 
 /**
- * \file 
- * 
+ * \file
+ *
  * Memory management functions for HTP in the application layer
  */
 

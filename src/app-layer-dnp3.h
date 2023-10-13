@@ -17,7 +17,7 @@
 
 /**
  * \file
- * 
+ *
  * DNP3 application layer protocol header file
  */
 

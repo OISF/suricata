@@ -16,10 +16,10 @@
  */
 
 /**
- * \file 
- * 
+ * \file
+ *
  * Application layer handling and protocols implementation
- * 
+ *
  * \author Victor Julien <victor@inliniac.net>
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */

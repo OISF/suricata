@@ -16,8 +16,8 @@
  */
 
 /**
- * \file 
- * 
+ * \file
+ *
  * DNP3 protocol implementation
  */
 

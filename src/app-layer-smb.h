@@ -16,8 +16,8 @@
  */
 
 /**
- * \file 
- * 
+ * \file
+ *
  * SMB protocol handling
  */
 
