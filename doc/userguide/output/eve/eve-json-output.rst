@@ -30,6 +30,10 @@ Output types::
       # Enable for multi-threaded eve.json output; output files are amended
       # with an identifier, e.g., eve.9.json. Default: off
       #threaded: off
+      # Specify the amount of buffering, in bytes, for
+      # this output type. The default value 0 means "no
+      # buffering".
+      #buffer-size: 0
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
