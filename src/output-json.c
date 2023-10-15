@@ -79,7 +79,8 @@
 
 static void OutputJsonDeInitCtx(OutputCtx *);
 static void CreateEveCommunityFlowId(JsonBuilder *js, const Flow *f, const uint16_t seed);
-static int CreateJSONEther(JsonBuilder *parent, const Packet *p, const Flow *f);
+static int CreateJSONEther(
+        JsonBuilder *parent, const Packet *p, const Flow *f, enum OutputJsonLogDirection dir);
 
 static const char *TRAFFIC_ID_PREFIX = "traffic/id/";
 static const char *TRAFFIC_LABEL_PREFIX = "traffic/label/";
@@ -412,14 +413,14 @@ void EveAddMetadata(const Packet *p, const Flow *f, JsonBuilder *js)
     }
 }
 
-void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
-        const Packet *p, const Flow *f, JsonBuilder *js)
+void EveAddCommonOptions(const OutputJsonCommonSettings *cfg, const Packet *p, const Flow *f,
+        JsonBuilder *js, enum OutputJsonLogDirection dir)
 {
     if (cfg->include_metadata) {
         EveAddMetadata(p, f, js);
     }
     if (cfg->include_ethernet) {
-        CreateJSONEther(js, p, f);
+        CreateJSONEther(js, p, f, dir);
     }
     if (cfg->include_community_id && f != NULL) {
         CreateEveCommunityFlowId(js, f, cfg->community_id_seed);
@@ -742,14 +743,42 @@ static int MacSetIterateToJSON(uint8_t *val, MacSetSide side, void *data)
     return 0;
 }
 
-static int CreateJSONEther(JsonBuilder *js, const Packet *p, const Flow *f)
+static int CreateJSONEther(
+        JsonBuilder *js, const Packet *p, const Flow *f, enum OutputJsonLogDirection dir)
 {
     if (p != NULL) {
         /* this is a packet context, so we need to add scalar fields */
         if (p->ethh != NULL) {
             jb_open_object(js, "ether");
-            uint8_t *src = p->ethh->eth_src;
-            uint8_t *dst = p->ethh->eth_dst;
+            uint8_t *src;
+            uint8_t *dst;
+            switch (dir) {
+                case LOG_DIR_FLOW_TOSERVER:
+                    // fallthrough
+                case LOG_DIR_FLOW:
+                    if (PKT_IS_TOCLIENT(p)) {
+                        src = p->ethh->eth_dst;
+                        dst = p->ethh->eth_src;
+                    } else {
+                        src = p->ethh->eth_src;
+                        dst = p->ethh->eth_dst;
+                    }
+                    break;
+                case LOG_DIR_FLOW_TOCLIENT:
+                    if (PKT_IS_TOSERVER(p)) {
+                        src = p->ethh->eth_dst;
+                        dst = p->ethh->eth_src;
+                    } else {
+                        src = p->ethh->eth_src;
+                        dst = p->ethh->eth_dst;
+                    }
+                    break;
+                case LOG_DIR_PACKET:
+                default:
+                    src = p->ethh->eth_src;
+                    dst = p->ethh->eth_dst;
+                    break;
+            }
             JSONFormatAndAddMACAddr(js, "src_mac", src, false);
             JSONFormatAndAddMACAddr(js, "dest_mac", dst, false);
             jb_close(js);
@@ -773,8 +802,15 @@ static int CreateJSONEther(JsonBuilder *js, const Packet *p, const Flow *f)
             }
             jb_close(info.dst);
             jb_close(info.src);
-            jb_set_object(js, "dest_macs", info.dst);
-            jb_set_object(js, "src_macs", info.src);
+            /* case is handling netflow too so may need to revert */
+            if (dir == LOG_DIR_FLOW_TOCLIENT) {
+                jb_set_object(js, "dest_macs", info.src);
+                jb_set_object(js, "src_macs", info.dst);
+            } else {
+                DEBUG_VALIDATE_BUG_ON(dir != LOG_DIR_FLOW_TOSERVER && dir != LOG_DIR_FLOW);
+                jb_set_object(js, "dest_macs", info.dst);
+                jb_set_object(js, "src_macs", info.src);
+            }
             jb_free(info.dst);
             jb_free(info.src);
             jb_close(js);
@@ -863,7 +899,7 @@ JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
     jb_set_string(js, "pkt_src", PktSrcToString(p->pkt_src));
 
     if (eve_ctx != NULL) {
-        EveAddCommonOptions(&eve_ctx->cfg, p, f, js);
+        EveAddCommonOptions(&eve_ctx->cfg, p, f, js, dir);
     }
 
     return js;
