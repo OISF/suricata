@@ -1,4 +1,3 @@
-/* vi: set et ts=4: */
 /* Copyright (C) 2007-2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
