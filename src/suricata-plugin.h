@@ -40,6 +40,7 @@ typedef struct SCPlugin_ {
 } SCPlugin;
 
 typedef SCPlugin *(*SCPluginRegisterFunc)(void);
+typedef uint32_t ThreadId;
 
 /**
  * Structure used to define an Eve output file type plugin.
@@ -54,8 +55,9 @@ typedef struct SCEveFileType_ {
     int (*Write)(const char *buffer, int buffer_len, void *init_data, void *thread_data);
     /* Close - Called on final close */
     void (*Deinit)(void *init_data);
-    /* ThreadInit - Called for each thread using file object*/
-    int (*ThreadInit)(void *init_data, int thread_id, void **thread_data);
+    /* ThreadInit - Called for each thread using file object; non-zero thread_ids correlate
+     * to Suricata's worker threads; 0 correlates to the Suricata main thread */
+    int (*ThreadInit)(void *init_data, ThreadId thread_id, void **thread_data);
     /* ThreadDeinit - Called for each thread using file object */
     int (*ThreadDeinit)(void *init_data, void *thread_data);
     TAILQ_ENTRY(SCEveFileType_) entries;

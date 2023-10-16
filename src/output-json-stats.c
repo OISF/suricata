@@ -375,7 +375,7 @@ static TmEcode JsonStatsLogThreadInit(ThreadVars *t, const void *initdata, void 
     /* Use the Output Context (file pointer and mutex) */
     aft->statslog_ctx = ((OutputCtx *)initdata)->data;
 
-    aft->file_ctx = LogFileEnsureExists(aft->statslog_ctx->file_ctx);
+    aft->file_ctx = LogFileEnsureExists(t->id, aft->statslog_ctx->file_ctx);
     if (!aft->file_ctx) {
         goto error_exit;
     }
@@ -471,8 +471,8 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
     }
 
     SCLogDebug("Preparing file context for stats submodule logger");
-    /* Share output slot with thread 1 */
-    stats_ctx->file_ctx = LogFileEnsureExists(ajt->file_ctx);
+    /* prepared by suricata-main */
+    stats_ctx->file_ctx = LogFileEnsureExists(0, ajt->file_ctx);
     if (!stats_ctx->file_ctx) {
         SCFree(stats_ctx);
         SCFree(output_ctx);

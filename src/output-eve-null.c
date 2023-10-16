@@ -47,7 +47,7 @@ static int NullLogWrite(const char *buffer, int buffer_len, void *init_data, voi
     return 0;
 }
 
-static int NullLogThreadInit(void *init_data, int thread_id, void **thread_data)
+static int NullLogThreadInit(void *init_data, ThreadId thread_id, void **thread_data)
 {
     *thread_data = NULL;
     return 0;
