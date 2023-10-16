@@ -50,7 +50,8 @@ typedef struct SyslogSetup_ {
 
 typedef struct ThreadLogFileHashEntry {
     uint64_t thread_id;
-    int slot_number; /* slot identifier -- for plugins */
+    int slot_number;    /* slot identifier */
+    int suri_thread_id; /* suri thread id -- for plugins */
     bool isopen;
     struct LogFileCtx_ *ctx;
 } ThreadLogFileHashEntry;
@@ -169,7 +170,7 @@ LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
 
-LogFileCtx *LogFileEnsureExists(LogFileCtx *lf_ctx);
+LogFileCtx *LogFileEnsureExists(int suri_thread_id, LogFileCtx *lf_ctx);
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
 int SCConfLogReopen(LogFileCtx *);
 bool SCLogOpenThreadedFile(const char *log_path, const char *append, LogFileCtx *parent_ctx);
