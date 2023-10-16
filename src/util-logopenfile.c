@@ -678,7 +678,7 @@ LogFileCtx *LogFileNewCtx(void)
  * Each thread -- identified by its operating system thread-id -- has its
  * own file entry that includes a file pointer.
  */
-static ThreadLogFileHashEntry *LogFileThread2Slot(LogThreadedFileCtx *parent)
+static ThreadLogFileHashEntry *LogFileThread2Slot(LogThreadedFileCtx *parent, int suri_thread_id)
 {
     ThreadLogFileHashEntry thread_hash_entry;
 
@@ -690,12 +690,14 @@ static ThreadLogFileHashEntry *LogFileThread2Slot(LogThreadedFileCtx *parent)
     if (!ent) {
         ent = SCCalloc(1, sizeof(*ent));
         if (!ent) {
-            FatalError("Unable to allocate thread/entry entry");
+            FatalError("Unable to allocate thread/hash-entry entry");
         }
         ent->thread_id = thread_hash_entry.thread_id;
-        SCLogDebug("Trying to add thread %ld to entry %d", ent->thread_id, ent->slot_number);
+        ent->suri_thread_id = suri_thread_id;
+        SCLogDebug(
+                "Trying to add thread %" PRIi64 " to entry %d", ent->thread_id, ent->slot_number);
         if (0 != HashTableAdd(parent->ht, ent, 0)) {
-            FatalError("Unable to add thread/entry mapping");
+            FatalError("Unable to add thread/hash-entry mapping");
         }
     }
     return ent;
@@ -705,7 +707,7 @@ static ThreadLogFileHashEntry *LogFileThread2Slot(LogThreadedFileCtx *parent)
  * \param parent_ctx
  * \retval LogFileCtx * pointer if successful; NULL otherwise
  */
-LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx)
+LogFileCtx *LogFileEnsureExists(int suri_thread_id, LogFileCtx *parent_ctx)
 {
     /* threaded output disabled */
     if (!parent_ctx->threaded)
@@ -713,15 +715,15 @@ LogFileCtx *LogFileEnsureExists(LogFileCtx *parent_ctx)
 
     SCMutexLock(&parent_ctx->threads->mutex);
     /* Find this thread's entry */
-    ThreadLogFileHashEntry *entry = LogFileThread2Slot(parent_ctx->threads);
-    SCLogDebug("Adding reference for thread %ld [slot %d] to file %s [ctx %p]", SCGetThreadIdLong(),
-            entry->slot_number, parent_ctx->filename, parent_ctx);
+    ThreadLogFileHashEntry *entry = LogFileThread2Slot(parent_ctx->threads, suri_thread_id);
+    SCLogDebug("Adding reference for thread %" PRIi64 " (local thread id %d) to file %s [ctx %p]",
+            SCGetThreadIdLong(), suri_thread_id, parent_ctx->filename, parent_ctx);
 
     bool new = entry->isopen;
     /* has it been opened yet? */
     if (!entry->isopen) {
-        SCLogDebug("Opening new file for thread/slot %d to file %s [ctx %p]", entry->slot_number,
-                parent_ctx->filename, parent_ctx);
+        SCLogDebug("%s: Opening new file for thread/id %d to file %s [ctx %p]", t_thread_name,
+                suri_thread_id, parent_ctx->filename, parent_ctx);
         if (LogFileNewThreadedCtx(
                     parent_ctx, parent_ctx->filename, parent_ctx->threads->append, entry)) {
             entry->isopen = true;
@@ -811,11 +813,13 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
     *thread = *parent_ctx;
     if (parent_ctx->type == LOGFILE_TYPE_FILE) {
         char fname[LOGFILE_NAME_MAX];
-        if (!LogFileThreadedName(log_path, fname, sizeof(fname), SC_ATOMIC_ADD(eve_file_id, 1))) {
+        entry->slot_number = SC_ATOMIC_ADD(eve_file_id, 1);
+        if (!LogFileThreadedName(log_path, fname, sizeof(fname), entry->slot_number)) {
             SCLogError("Unable to create threaded filename for log");
             goto error;
         }
-        SCLogDebug("Thread open -- using name %s [replaces %s]", fname, log_path);
+        SCLogDebug("%s: thread open -- using name %s [replaces %s] - thread %d [slot %d]",
+                t_thread_name, fname, log_path, entry->suri_thread_id, entry->slot_number);
         thread->fp = SCLogOpenFileFp(fname, append, thread->filemode);
         if (thread->fp == NULL) {
             goto error;
@@ -831,8 +835,9 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
         OutputRegisterFileRotationFlag(&thread->rotation_flag);
     } else if (parent_ctx->type == LOGFILE_TYPE_PLUGIN) {
         entry->slot_number = SC_ATOMIC_ADD(eve_file_id, 1);
+        SCLogDebug("%s - thread %d [slot %d]", log_path, entry->suri_thread_id, entry->slot_number);
         thread->plugin.plugin->ThreadInit(
-                thread->plugin.init_data, entry->slot_number, &thread->plugin.thread_data);
+                thread->plugin.init_data, entry->suri_thread_id, &thread->plugin.thread_data);
     }
     thread->threaded = false;
     thread->parent = parent_ctx;
