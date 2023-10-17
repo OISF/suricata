@@ -1086,6 +1086,8 @@ app-layer:
            #compression-bomb-limit: 1mb
            # Maximum time spent decompressing a single transaction in usec
            #decompression-time-limit: 100000
+           # Maximum number of live transactions per flow
+           #max-tx: 512
 
          server-config:
 
