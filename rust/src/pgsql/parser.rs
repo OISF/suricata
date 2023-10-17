@@ -23,7 +23,7 @@ use crate::common::nom7::take_until_and_consume;
 use nom7::branch::alt;
 use nom7::bytes::streaming::{tag, take, take_until, take_until1};
 use nom7::character::streaming::{alphanumeric1, char};
-use nom7::combinator::{all_consuming, cond, eof, map_parser, opt, peek, rest, verify};
+use nom7::combinator::{all_consuming, cond, eof, map_parser, opt, peek, verify};
 use nom7::error::{make_error, ErrorKind};
 use nom7::multi::{many1, many_m_n, many_till};
 use nom7::number::streaming::{be_i16, be_i32};
@@ -1078,10 +1078,12 @@ pub fn pgsql_parse_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
                 b'A' => parse_notification_response(i)?,
                 b'D' => parse_consolidated_data_row(i)?,
                 _ => {
-                    let (i, payload) = rest(i)?;
+                    let (i, identifier) = be_u8(i)?;
+                    let (i, length) = verify(be_u32, |&x| x > PGSQL_LENGTH_FIELD)(i)?;
+                    let (i, payload) = take(length - PGSQL_LENGTH_FIELD)(i)?;
                     let unknown = PgsqlBEMessage::UnknownMessageType (RegularPacket{
-                        identifier: pseudo_header.0,
-                        length: pseudo_header.1,
+                        identifier,
+                        length,
                         payload: payload.to_vec(),
                     });
                     (i, unknown)
@@ -1919,7 +1921,7 @@ mod tests {
         let res = PgsqlBEMessage::UnknownMessageType(RegularPacket {
             identifier: b'`',
             length: 54,
-            payload: bad_buf.to_vec(),
+            payload: bad_buf[5..].to_vec(),
         });
         assert_eq!(result, res);
         assert!(remainder.is_empty());
