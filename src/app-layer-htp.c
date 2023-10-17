@@ -2518,6 +2518,10 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
 #ifdef HAVE_HTP_CONFIG_SET_COMPRESSION_TIME_LIMIT
     htp_config_set_compression_time_limit(cfg_prec->cfg, HTP_CONFIG_DEFAULT_COMPRESSION_TIME_LIMIT);
 #endif
+#ifdef HAVE_HTP_CONFIG_SET_MAX_TX
+#define HTP_CONFIG_DEFAULT_MAX_TX_LIMIT 512
+    htp_config_set_max_tx(cfg_prec->cfg, HTP_CONFIG_DEFAULT_MAX_TX_LIMIT);
+#endif
     /* libhtp <= 0.5.9 doesn't use soft limit, but it's impossible to set
      * only the hard limit. So we set both here to the (current) htp defaults.
      * The reason we do this is that if the user sets the hard limit in the
@@ -2868,6 +2872,18 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             }
             SCLogConfig("Setting HTTP decompression time limit to %" PRIu32 " usec", limit);
             htp_config_set_compression_time_limit(cfg_prec->cfg, (size_t)limit);
+#endif
+#ifdef HAVE_HTP_CONFIG_SET_MAX_TX
+        } else if (strcasecmp("max-tx", p->name) == 0) {
+            uint32_t limit = 0;
+            if (ParseSizeStringU32(p->val, &limit) < 0) {
+                FatalError("failed to parse 'max-tx' "
+                           "from conf file - %s.",
+                        p->val);
+            }
+            /* set default soft-limit with our new hard limit */
+            SCLogConfig("Setting HTTP max-tx limit to %" PRIu32 " bytes", limit);
+            htp_config_set_max_tx(cfg_prec->cfg, (size_t)limit);
 #endif
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
             if (!g_disable_randomness) {
