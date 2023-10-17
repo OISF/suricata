@@ -719,7 +719,6 @@ fn pgsql_parse_authentication_message<'a>(i: &'a [u8]) -> IResult<&'a [u8], Pgsq
     let (i, identifier) = verify(be_u8, |&x| x == b'R')(i)?;
     let (i, length) = verify(be_u32, |&x| x >= 8)(i)?;
     let (i, auth_type) = be_u32(i)?;
-    let (i, payload) = peek(rest)(i)?;
     let (i, message) = map_parser(
         take(length - 8),
         |b: &'a [u8]| {
@@ -729,14 +728,14 @@ fn pgsql_parse_authentication_message<'a>(i: &'a [u8]) -> IResult<&'a [u8], Pgsq
                                 identifier,
                                 length,
                                 auth_type,
-                                payload: payload.to_vec(),
+                                payload: b.to_vec(),
                             }))),
                 3 => Ok((b, PgsqlBEMessage::AuthenticationCleartextPassword(
                             AuthenticationMessage {
                                 identifier,
                                 length,
                                 auth_type,
-                                payload: payload.to_vec(),
+                                payload: b.to_vec(),
                             }))),
                 5 => {
                     let (b, salt) = all_consuming(take(4_usize))(b)?;
@@ -753,7 +752,7 @@ fn pgsql_parse_authentication_message<'a>(i: &'a [u8]) -> IResult<&'a [u8], Pgsq
                                 identifier,
                                 length,
                                 auth_type,
-                                payload: payload.to_vec(),
+                                payload: b.to_vec(),
                             }))),
                 // TODO - For SASL, should we parse specific details of the challenge itself? (as seen in: https://github.com/launchbadge/sqlx/blob/master/sqlx-core/src/postgres/message/authentication.rs )
                 10 => {
@@ -767,23 +766,21 @@ fn pgsql_parse_authentication_message<'a>(i: &'a [u8]) -> IResult<&'a [u8], Pgsq
                                 })))
                 }
                 11 => {
-                    let (b, sasl_challenge) = rest(i)?;
                     Ok((b, PgsqlBEMessage::AuthenticationSASLContinue(
                                 AuthenticationMessage {
                                     identifier,
                                     length,
                                     auth_type,
-                                    payload: sasl_challenge.to_vec(),
+                                    payload: b.to_vec(),
                                 })))
                 },
                 12 => {
-                    let (i, signature) = take(length - 8)(i)?;
-                    Ok((i, PgsqlBEMessage::AuthenticationSASLFinal(
+                    Ok((b, PgsqlBEMessage::AuthenticationSASLFinal(
                                 AuthenticationMessage {
                                     identifier,
                                     length,
                                     auth_type,
-                                    payload: signature.to_vec(),
+                                    payload: b.to_vec(),
                                 }
                                 )))
                 }
