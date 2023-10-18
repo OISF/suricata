@@ -54,7 +54,12 @@ uint16_t BondingMemberDevicesGet(
         uint16_t bond_pid, uint16_t bonded_devs[], uint16_t bonded_devs_length)
 {
 #ifdef HAVE_DPDK_BOND
+#if RTE_VERSION >= RTE_VERSION_NUM(23, 11, 0, 0)
+    int32_t len = rte_eth_bond_members_get(bond_pid, bonded_devs, bonded_devs_length);
+#else
     int32_t len = rte_eth_bond_slaves_get(bond_pid, bonded_devs, bonded_devs_length);
+#endif /* RTE_VERSION >= RTE_VERSION_NUM(23, 11, 0, 0) */
+
     if (len == 0)
         FatalError("%s: no bonded devices found", DPDKGetPortNameByPortID(bond_pid));
     else if (len < 0)

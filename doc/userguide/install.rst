@@ -154,7 +154,7 @@ Recommended::
     cargo install --force cbindgen
 
 Compilation
-"""""""""""
+^^^^^^^^^^^
 
 Follow these steps from your Suricata directory::
 
@@ -164,6 +164,32 @@ Follow these steps from your Suricata directory::
     # ./configure --help to get all available parameters
     make -j8 # j is for paralleling, you may de/increase depending on your CPU
     make install # to install your Suricata compiled binary
+
+Auto-Setup
+^^^^^^^^^^
+
+You can also use the available auto-setup features of Suricata:
+
+::
+
+    ./configure && make && sudo make install-conf
+
+*make install-conf* would do the regular "make install" and then it would automatically
+create/setup all the necessary directories and ``suricata.yaml`` for you.
+
+::
+
+    ./configure && make && sudo make install-rules
+
+*make install-rules* would do the regular "make install" and then it would automatically
+download and set up the latest ruleset from Emerging Threats available for Suricata.
+
+::
+
+    ./configure && make && sudo make install-full
+
+*make install-full* would combine everything mentioned above (install-conf and install-rules)
+and will present you with a ready-to-run (configured and set-up) Suricata.
 
 .. _install-binary-packages:
 
