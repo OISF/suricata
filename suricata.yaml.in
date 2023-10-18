@@ -118,6 +118,11 @@ outputs:
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entries to keep in buffer
 
+      # version of EVE log
+      # with 7 (default) events have IP not reverted for some protocols (DNS, DNP3)
+      # with 8 the IP are reverted based on data path
+      version: 7
+
       # Include top level metadata. Default yes.
       #metadata: no
 

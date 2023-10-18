@@ -75,6 +75,8 @@
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define MODULE_NAME "OutputJSON"
 
+#define DEFAULT_EVE_VERSION 7
+
 #define MAX_JSON_SIZE 2048
 
 static void OutputJsonDeInitCtx(OutputCtx *);
@@ -794,6 +796,9 @@ JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
         return NULL;
     }
 
+    if (eve_ctx->cfg.version >= EVE_LOG_WITH_VERSION)
+        jb_set_uint(js, "v", eve_ctx->cfg.version);
+
     CreateIsoTimeString(p->ts, timebuf, sizeof(timebuf));
 
     jb_set_string(js, "timestamp", timebuf);
@@ -1161,6 +1166,18 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                 FatalError("Failed to initialize JSON output, "
                            "invalid community-id-seed: %s",
                         cid_seed);
+            }
+        }
+
+        json_ctx->cfg.version = DEFAULT_EVE_VERSION;
+        const char *eve_version = ConfNodeLookupChildValue(conf, "version");
+        if (eve_version != NULL) {
+            if (StringParseUint8(&json_ctx->cfg.version,
+                        10, 0, eve_version) < 0)
+            {
+                FatalError("Failed to initialize JSON output, "
+                           "invalid eve log version: %s",
+                        eve_version);
             }
         }
 

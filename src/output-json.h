@@ -45,6 +45,9 @@ enum OutputJsonLogDirection {
 #define JSON_ADDR_LEN 46
 #define JSON_PROTO_LEN 16
 
+#define EVE_LOG_WITH_VERSION 8
+#define EVE_LOG_WITH_IP_DATA_WAY 8
+
 /* A struct to contain address info for rendering to JSON. */
 typedef struct JsonAddrInfo_ {
     char src_ip[JSON_ADDR_LEN];
@@ -73,7 +76,8 @@ typedef struct OutputJsonCommonSettings_ {
     bool include_community_id;
     bool include_ethernet;
     uint16_t community_id_seed;
-} OutputJsonCommonSettings;
+    uint8_t version;
+} OutputJsonCommonSettin]s;
 
 /*
  * Global configuration context data
