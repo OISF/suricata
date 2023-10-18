@@ -1,3 +1,11 @@
+6.0.15 -- 2023-10-18
+
+Security #6363: mime: quadratic complexity in MimeDecAddEntity (6.0.x backport)
+Bug #6407: email: disabled fields in suricata.yaml also get logged (6.0.x backport)
+Bug #6403: detect: multi-level tunneling inspection fails (6.0.x backport)
+Bug #6377: byte_jump with negative post_offset before start of buffer failure (6.0.x backport)
+Task #6364: decode: add drop reason for stream reassembly memcap (6.0.x backport)
+
 6.0.14 -- 2023-09-13
 
 Security #6289: Crash in SMTP parser during parsing of email (6.0.x backport)
