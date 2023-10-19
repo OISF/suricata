@@ -39,6 +39,7 @@
 #include "detect-bytetest.h"
 #include "detect-flow.h"
 #include "detect-tcp-flags.h"
+#include "detect-tcp-ack.h"
 #include "detect-ipopts.h"
 #include "feature.h"
 #include "util-print.h"
@@ -858,6 +859,14 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 jb_open_object(js, "ipopts");
                 const char *flag = IpOptsFlagToString(cd->ipopt);
                 jb_set_string(js, "option", flag);
+                jb_close(js);
+                break;
+            }
+            case DETECT_ACK: {
+                const DetectAckData *cd = (const DetectAckData *)smd->ctx;
+
+                jb_open_object(js, "ack");
+                jb_set_uint(js, "number", cd->ack);
                 jb_close(js);
                 break;
             }
