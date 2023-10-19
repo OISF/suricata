@@ -1092,6 +1092,16 @@ typedef struct RuleMatchCandidateTx {
     const Signature *s;     /**< ptr to sig */
 } RuleMatchCandidateTx;
 
+#define SIG_JSON_CONTENT_ARRAY_LEN 16
+#define SIG_JSON_CONTENT_ITEM_LEN  256
+#define SIG_JSON_CONTENT_KEY_LEN   32
+
+/** structure to store the json content with info on sig that triggered it */
+typedef struct SigJsonContent {
+    void *id;
+    char json_content[SIG_JSON_CONTENT_ITEM_LEN];
+} SigJsonContent;
+
 /**
   * Detection engine thread data.
   */
@@ -1140,6 +1150,9 @@ typedef struct DetectEngineThreadCtx_ {
     uint8_t *base64_decoded;
     int base64_decoded_len;
     int base64_decoded_len_max;
+
+    SigJsonContent json_content[SIG_JSON_CONTENT_ARRAY_LEN];
+    size_t json_content_len;
 
     /* counter for the filestore array below -- up here for cache reasons. */
     uint16_t filestore_cnt;
