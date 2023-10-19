@@ -39,6 +39,7 @@ hkdf = "~0.12.3"
 aes = "~0.7.5"
 aes-gcm = "~0.9.4"
 
+htp = { git = "https://github.com/catenacyber/libhtp-rs.git", branch = "main", version = "2.0.0" }
 der-parser = "~8.2.0"
 kerberos-parser = { version = "~0.7.1", default_features = false }
 

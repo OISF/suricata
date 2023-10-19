@@ -30,7 +30,7 @@ Use these to check that specific functions behave as expected, in success and in
 during development, for nom parsers in the Rust codebase, for instance, or for checking that messages
 or message parts of a protocol/stream are processed as they should.
 
-To execute all unit tests (both from C and Rust code), as well as ``libhtp`` ones, from the Suricata main directory, run::
+To execute all unit tests (both from C and Rust code) from the Suricata main directory, run::
 
     make check
 

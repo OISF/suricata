@@ -231,7 +231,7 @@ Example:
 HttpGetRequestHost
 ~~~~~~~~~~~~~~~~~~
 
-Get the host from libhtp's tx->request_hostname, which can either be
+Get the host from libhtp's htp_tx_request_hostname(tx), which can either be
 the host portion of the url or the host portion of the Host header.
 
 Example:
