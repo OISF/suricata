@@ -32,7 +32,9 @@
 #include "datasets-md5.h"
 #include "datasets-sha256.h"
 #include "datasets-reputation.h"
+#include "datasets-json.h"
 #include "util-conf.h"
+#include "util-mem.h"
 #include "util-thash.h"
 #include "util-print.h"
 #include "util-byte.h"
@@ -46,6 +48,9 @@ static uint32_t set_ids = 0;
 
 static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
         DataRepType *rep);
+
+static int DatasetAddwJson(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, DataJsonType *json);
 
 static inline void DatasetUnlockData(THashData *d)
 {
@@ -165,6 +170,22 @@ static int ParseRepLine(const char *in, size_t ins, DataRepType *rep_out)
     return 0;
 }
 
+static int ParseJsonLine(const char *in, size_t ins, DataJsonType *rep_out)
+{
+    json_error_t jerror;
+    json_t *msg;
+    msg = json_loads(in, 0, &jerror);
+    if (msg == NULL) {
+        SCLogWarning("dataset: Invalid json: %s\n", jerror.text);
+        return -1;
+    } else {
+        json_decref(msg);
+    }
+    rep_out->len = ins;
+    rep_out->value = SCStrndup(in, ins);
+    return 0;
+}
+
 static int DatasetLoadIPv4(Dataset *set)
 {
     if (strlen(set->load) == 0)
@@ -182,6 +203,7 @@ static int DatasetLoadIPv4(Dataset *set)
         return -1;
     }
 
+    int add_ret;
     uint32_t cnt = 0;
     char line[1024];
     while (fgets(line, (int)sizeof(line), fp) != NULL) {
@@ -205,31 +227,60 @@ static int DatasetLoadIPv4(Dataset *set)
             /* list with rep data */
         } else {
             line[strlen(line) - 1] = '\0';
-            SCLogDebug("IPv4 with REP line: '%s'", line);
-
             *r = '\0';
 
-            struct in_addr in;
-            if (inet_pton(AF_INET, line, &in) != 1) {
-                FatalErrorOnInit("dataset data parse failed %s/%s: %s", set->name, set->load, line);
-                continue;
+            if ((*(r + 1) == '{') || (*(r + 1) == '[')) {
+                struct in_addr in;
+                if (inet_pton(AF_INET, line, &in) != 1) {
+                    FatalErrorOnInit(
+                            "datajson IPv4 parse failed %s/%s: %s", set->name, set->load, line);
+                    continue;
+                }
+
+                r++;
+
+                DataJsonType json = { .value = NULL, .len = 0 };
+                if (ParseJsonLine(r, strlen(r), &json) < 0) {
+                    FatalErrorOnInit("bad json value for dataset %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                add_ret = DatasetAddwJson(set, (const uint8_t *)&in.s_addr, 4, &json);
+                if (add_ret < 0) {
+                    FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+                    continue;
+                } else if (add_ret == 0) {
+                    SCFree(json.value);
+                }
+
+                cnt++;
+
+            } else {
+                SCLogDebug("IPv4 with REP line: '%s'", line);
+
+                struct in_addr in;
+                if (inet_pton(AF_INET, line, &in) != 1) {
+                    FatalErrorOnInit(
+                            "dataset data parse failed %s/%s: %s", set->name, set->load, line);
+                    continue;
+                }
+
+                r++;
+
+                DataRepType rep = { .value = 0 };
+                if (ParseRepLine(r, strlen(r), &rep) < 0) {
+                    FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                SCLogDebug("rep v:%u", rep.value);
+                if (DatasetAddwRep(set, (const uint8_t *)&in.s_addr, 4, &rep) < 0) {
+                    FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                cnt++;
             }
-
-            r++;
-
-            DataRepType rep = { .value = 0 };
-            if (ParseRepLine(r, strlen(r), &rep) < 0) {
-                FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
-                continue;
-            }
-
-            SCLogDebug("rep v:%u", rep.value);
-            if (DatasetAddwRep(set, (const uint8_t *)&in.s_addr, 4, &rep) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-
-            cnt++;
         }
     }
     THashConsolidateMemcap(set->hash);
@@ -287,6 +338,7 @@ static int DatasetLoadIPv6(Dataset *set)
         return -1;
     }
 
+    int add_ret;
     uint32_t cnt = 0;
     char line[1024];
     while (fgets(line, (int)sizeof(line), fp) != NULL) {
@@ -314,29 +366,55 @@ static int DatasetLoadIPv6(Dataset *set)
             SCLogDebug("IPv6 with REP line: '%s'", line);
 
             *r = '\0';
+            if ((*(r + 1) == '{') || (*(r + 1) == '[')) {
 
-            struct in6_addr in6;
-            int ret = ParseIpv6String(set, line, &in6);
-            if (ret < 0) {
-                FatalErrorOnInit("unable to parse IP address");
-                continue;
+                struct in6_addr in6;
+                int ret = ParseIpv6String(set, line, &in6);
+                if (ret < 0) {
+                    FatalErrorOnInit("unable to parse IP address");
+                    continue;
+                }
+
+                r++;
+
+                DataJsonType json = { .value = NULL, .len = 0 };
+                if (ParseJsonLine(r, strlen(r), &json) < 0) {
+                    FatalErrorOnInit("bad json value for dataset %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                add_ret = DatasetAddwJson(set, (const uint8_t *)&in6.s6_addr, 16, &json);
+                if (add_ret < 0) {
+                    FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+                    continue;
+                } else if (add_ret == 0) {
+                    SCFree(json.value);
+                }
+                cnt++;
+
+            } else {
+                struct in6_addr in6;
+                int ret = ParseIpv6String(set, line, &in6);
+                if (ret < 0) {
+                    FatalErrorOnInit("unable to parse IP address");
+                    continue;
+                }
+
+                r++;
+
+                DataRepType rep = { .value = 0 };
+                if (ParseRepLine(r, strlen(r), &rep) < 0) {
+                    FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                SCLogDebug("rep v:%u", rep.value);
+                if (DatasetAddwRep(set, (const uint8_t *)&in6.s6_addr, 16, &rep) < 0) {
+                    FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
+                    continue;
+                }
+                cnt++;
             }
-
-            r++;
-
-            DataRepType rep = { .value = 0 };
-            if (ParseRepLine(r, strlen(r), &rep) < 0) {
-                FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
-                continue;
-            }
-
-            SCLogDebug("rep v:%u", rep.value);
-            if (DatasetAddwRep(set, (const uint8_t *)&in6.s6_addr, 16, &rep) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-
-            cnt++;
         }
     }
     THashConsolidateMemcap(set->hash);
@@ -363,6 +441,7 @@ static int DatasetLoadMd5(Dataset *set)
         return -1;
     }
 
+    int add_ret;
     uint32_t cnt = 0;
     char line[1024];
     while (fgets(line, (int)sizeof(line), fp) != NULL) {
@@ -386,7 +465,7 @@ static int DatasetLoadMd5(Dataset *set)
         /* list with rep data */
         } else if (strlen(line) > 33 && line[32] == ',') {
             line[strlen(line) - 1] = '\0';
-            SCLogDebug("MD5 with REP line: '%s'", line);
+            SCLogDebug("MD5 with REP/JSON line: '%s'", line);
 
             uint8_t hash[16];
             if (HexToRaw((const uint8_t *)line, 32, hash, sizeof(hash)) < 0) {
@@ -394,19 +473,38 @@ static int DatasetLoadMd5(Dataset *set)
                 continue;
             }
 
-            DataRepType rep = { .value = 0};
-            if (ParseRepLine(line + 33, strlen(line) - 33, &rep) < 0) {
-                FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
-                continue;
-            }
+            if ((line[33] == '{') || (line[33] == '[')) {
+                DataJsonType json = { .value = NULL, .len = 0 };
+                if (ParseJsonLine(line + 33, strlen(line) - 33, &json) < 0) {
+                    FatalErrorOnInit("bad json for dataset %s/%s", set->name, set->load);
+                    continue;
+                }
 
-            SCLogDebug("rep v:%u", rep.value);
-            if (DatasetAddwRep(set, hash, 16, &rep) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
+                SCLogDebug("json v:%s", json.value);
+                add_ret = DatasetAddwJson(set, hash, 16, &json);
+                if (add_ret < 0) {
+                    FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+                    continue;
+                } else if (add_ret == 0) {
+                    SCFree(json.value);
+                }
 
-            cnt++;
+                cnt++;
+            } else {
+                DataRepType rep = { .value = 0 };
+                if (ParseRepLine(line + 33, strlen(line) - 33, &rep) < 0) {
+                    FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                SCLogDebug("rep v:%u", rep.value);
+                if (DatasetAddwRep(set, hash, 16, &rep) < 0) {
+                    FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                cnt++;
+            }
         }
         else {
             FatalErrorOnInit("MD5 bad line len %u: '%s'", (uint32_t)strlen(line), line);
@@ -437,6 +535,7 @@ static int DatasetLoadSha256(Dataset *set)
         return -1;
     }
 
+    int add_ret;
     uint32_t cnt = 0;
     char line[1024];
     while (fgets(line, (int)sizeof(line), fp) != NULL) {
@@ -468,19 +567,38 @@ static int DatasetLoadSha256(Dataset *set)
                 continue;
             }
 
-            DataRepType rep = { .value = 0 };
-            if (ParseRepLine(line + 65, strlen(line) - 65, &rep) < 0) {
-                FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
-                continue;
-            }
+            if ((line[65] == '{') || (line[65] == '[')) {
+                DataJsonType json = { .value = NULL, .len = 0 };
+                if (ParseJsonLine(line + 65, strlen(line) - 65, &json) < 0) {
+                    FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
+                    continue;
+                }
 
-            SCLogDebug("rep %u", rep.value);
+                SCLogDebug("json %s", json.value);
 
-            if (DatasetAddwRep(set, hash, 32, &rep) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
+                add_ret = DatasetAddwJson(set, hash, 32, &json);
+                if (add_ret < 0) {
+                    FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+                    continue;
+                } else if (add_ret == 0) {
+                    SCFree(json.value);
+                }
+                cnt++;
+            } else {
+                DataRepType rep = { .value = 0 };
+                if (ParseRepLine(line + 65, strlen(line) - 65, &rep) < 0) {
+                    FatalErrorOnInit("bad rep for dataset %s/%s", set->name, set->load);
+                    continue;
+                }
+
+                SCLogDebug("rep %u", rep.value);
+
+                if (DatasetAddwRep(set, hash, 32, &rep) < 0) {
+                    FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
+                    continue;
+                }
+                cnt++;
             }
-            cnt++;
         }
     }
     THashConsolidateMemcap(set->hash);
@@ -507,6 +625,7 @@ static int DatasetLoadString(Dataset *set)
         return -1;
     }
 
+    int add_ret;
     uint32_t cnt = 0;
     char line[1024];
     while (fgets(line, (int)sizeof(line), fp) != NULL) {
@@ -550,20 +669,42 @@ static int DatasetLoadString(Dataset *set)
             r++;
             SCLogDebug("r '%s'", r);
 
-            DataRepType rep = { .value = 0 };
-            if (ParseRepLine(r, strlen(r), &rep) < 0) {
-                FatalErrorOnInit("die: bad rep");
-                continue;
-            }
-            SCLogDebug("rep %u", rep.value);
+            if ((*r == '{') || (*r == '[')) {
+                // coverity[alloc_strlen : FALSE]
+                DataJsonType json = { .value = NULL, .len = 0 };
+                if (ParseJsonLine(r, strlen(r), &json) < 0) {
+                    FatalErrorOnInit("die: bad json");
+                    continue;
+                }
+                SCLogDebug("json %s", json.value);
 
-            if (DatasetAddwRep(set, (const uint8_t *)decoded, num_decoded, &rep) < 0) {
-                FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
-                continue;
-            }
-            cnt++;
+                add_ret = DatasetAddwJson(set, (const uint8_t *)decoded, num_decoded, &json);
+                if (add_ret < 0) {
+                    FatalErrorOnInit("datajson data add failed %s/%s", set->name, set->load);
+                    continue;
+                } else if (add_ret == 0) {
+                    SCFree(json.value);
+                }
+                cnt++;
 
-            SCLogDebug("line with rep %s, %s", line, r);
+                SCLogDebug("line with json %s, %s", line, r);
+            } else {
+                // coverity[alloc_strlen : FALSE]
+                DataRepType rep = { .value = 0 };
+                if (ParseRepLine(r, strlen(r), &rep) < 0) {
+                    FatalErrorOnInit("die: bad rep");
+                    continue;
+                }
+                SCLogDebug("rep %u", rep.value);
+
+                if (DatasetAddwRep(set, (const uint8_t *)decoded, num_decoded, &rep) < 0) {
+                    FatalErrorOnInit("dataset data add failed %s/%s", set->name, set->load);
+                    continue;
+                }
+                cnt++;
+
+                SCLogDebug("line with rep %s, %s", line, r);
+            }
         }
     }
     THashConsolidateMemcap(set->hash);
@@ -727,10 +868,10 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
                 goto out_err;
             break;
         case DATASET_TYPE_IPV4:
-            set->hash =
-                    THashInit(cnf_name, sizeof(IPv4Type), IPv4Set, IPv4Free, IPv4Hash, IPv4Compare,
-                            NULL, NULL, load != NULL ? 1 : 0, memcap > 0 ? memcap : default_memcap,
-                            hashsize > 0 ? hashsize : default_hashsize);
+            set->hash = THashInit(cnf_name, sizeof(IPv4TypeJson), IPv4Set, IPv4Free, IPv4Hash,
+                    IPv4Compare, NULL, NULL, load != NULL ? 1 : 0,
+                    memcap > 0 ? memcap : default_memcap,
+                    hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
                 goto out_err;
             if (DatasetLoadIPv4(set) < 0)
@@ -772,6 +913,134 @@ out_err:
     return NULL;
 }
 
+Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *load, uint64_t memcap,
+        uint32_t hashsize)
+{
+    uint64_t default_memcap = 0;
+    uint32_t default_hashsize = 0;
+    if (strlen(name) > DATASET_NAME_MAX_LEN) {
+        return NULL;
+    }
+
+    SCMutexLock(&sets_lock);
+    Dataset *set = DatasetSearchByName(name);
+    if (set) {
+        if (type != DATASET_TYPE_NOTSET && set->type != type) {
+            SCLogError("dataset %s already "
+                       "exists and is of type %u",
+                    set->name, set->type);
+            SCMutexUnlock(&sets_lock);
+            return NULL;
+        }
+
+        if (load == NULL || strlen(load) == 0) {
+            // OK, rule keyword doesn't have to set state/load,
+            // even when yaml set has set it.
+        } else {
+            if ((load == NULL && strlen(set->load) > 0) ||
+                    (load != NULL && strcmp(set->load, load) != 0)) {
+                SCLogError("dataset %s load mismatch: %s != %s", set->name, set->load, load);
+                SCMutexUnlock(&sets_lock);
+                return NULL;
+            }
+        }
+
+        SCMutexUnlock(&sets_lock);
+        return set;
+    } else {
+        if (type == DATASET_TYPE_NOTSET) {
+            SCLogError("dataset %s not defined", name);
+            goto out_err;
+        }
+    }
+
+    set = DatasetAlloc(name);
+    if (set == NULL) {
+        goto out_err;
+    }
+
+    strlcpy(set->name, name, sizeof(set->name));
+    set->type = type;
+    if (load && strlen(load)) {
+        strlcpy(set->load, load, sizeof(set->load));
+        SCLogDebug("set \'%s\' loading \'%s\' from \'%s\'", set->name, load, set->load);
+    }
+
+    char cnf_name[128];
+    snprintf(cnf_name, sizeof(cnf_name), "datasets.%s.hash", name);
+
+    GetDefaultMemcap(&default_memcap, &default_hashsize);
+    switch (type) {
+        case DATASET_TYPE_MD5:
+            set->hash = THashInit(cnf_name, sizeof(Md5TypeJson), Md5StrJsonSet, Md5StrJsonFree,
+                    Md5StrJsonHash, Md5StrJsonCompare, NULL, NULL, load != NULL ? 1 : 0,
+                    memcap > 0 ? memcap : default_memcap,
+                    hashsize > 0 ? hashsize : default_hashsize);
+            if (set->hash == NULL)
+                goto out_err;
+            if (DatasetLoadMd5(set) < 0)
+                goto out_err;
+            break;
+        case DATASET_TYPE_STRING:
+            set->hash = THashInit(cnf_name, sizeof(StringTypeJson), StringJsonSet, StringJsonFree,
+                    StringJsonHash, StringJsonCompare, NULL, NULL, load != NULL ? 1 : 0,
+                    memcap > 0 ? memcap : default_memcap,
+                    hashsize > 0 ? hashsize : default_hashsize);
+            if (set->hash == NULL)
+                goto out_err;
+            if (DatasetLoadString(set) < 0)
+                goto out_err;
+            break;
+        case DATASET_TYPE_SHA256:
+            set->hash = THashInit(cnf_name, sizeof(Sha256TypeJson), Sha256StrJsonSet,
+                    Sha256StrJsonFree, Sha256StrJsonHash, Sha256StrJsonCompare, NULL, NULL,
+                    load != NULL ? 1 : 0, memcap > 0 ? memcap : default_memcap,
+                    hashsize > 0 ? hashsize : default_hashsize);
+            if (set->hash == NULL)
+                goto out_err;
+            if (DatasetLoadSha256(set) < 0)
+                goto out_err;
+            break;
+        case DATASET_TYPE_IPV4:
+            set->hash = THashInit(cnf_name, sizeof(IPv4TypeJson), IPv4JsonSet, IPv4JsonFree,
+                    IPv4JsonHash, IPv4JsonCompare, NULL, NULL, load != NULL ? 1 : 0,
+                    memcap > 0 ? memcap : default_memcap,
+                    hashsize > 0 ? hashsize : default_hashsize);
+            if (set->hash == NULL)
+                goto out_err;
+            if (DatasetLoadIPv4(set) < 0)
+                goto out_err;
+            break;
+        case DATASET_TYPE_IPV6:
+            set->hash = THashInit(cnf_name, sizeof(IPv6TypeJson), IPv6JsonSet, IPv6JsonFree,
+                    IPv6JsonHash, IPv6JsonCompare, NULL, NULL, load != NULL ? 1 : 0,
+                    memcap > 0 ? memcap : default_memcap,
+                    hashsize > 0 ? hashsize : default_hashsize);
+            if (set->hash == NULL)
+                goto out_err;
+            if (DatasetLoadIPv6(set) < 0)
+                goto out_err;
+            break;
+    }
+
+    SCLogDebug(
+            "set %p/%s type %u save %s load %s", set, set->name, set->type, set->save, set->load);
+
+    set->next = sets;
+    sets = set;
+
+    SCMutexUnlock(&sets_lock);
+    return set;
+out_err:
+    if (set) {
+        if (set->hash) {
+            THashShutdown(set->hash);
+        }
+        SCFree(set);
+    }
+    SCMutexUnlock(&sets_lock);
+    return NULL;
+}
 static bool DatasetIsStatic(const char *save, const char *load)
 {
     /* A set is static if it does not have any dynamic properties like
@@ -1140,6 +1409,28 @@ static DataRepResultType DatasetLookupStringwRep(Dataset *set,
     return rrep;
 }
 
+static DataJsonResultType DatasetLookupStringwJson(
+        Dataset *set, const uint8_t *data, const uint32_t data_len)
+{
+    DataJsonResultType rrep = { .found = false, .json = { .value = NULL, .len = 0 } };
+
+    if (set == NULL)
+        return rrep;
+
+    StringTypeJson lookup = {
+        .ptr = (uint8_t *)data, .len = data_len, .json.value = NULL, .json.len = 0
+    };
+    THashData *rdata = THashLookupFromHash(set->hash, &lookup);
+    if (rdata) {
+        StringTypeJson *found = rdata->data;
+        rrep.found = true;
+        rrep.json = found->json;
+        DatasetUnlockData(rdata);
+        return rrep;
+    }
+    return rrep;
+}
+
 static int DatasetLookupIPv4(Dataset *set, const uint8_t *data, const uint32_t data_len)
 {
     if (set == NULL)
@@ -1176,6 +1467,30 @@ static DataRepResultType DatasetLookupIPv4wRep(
         IPv4Type *found = rdata->data;
         rrep.found = true;
         rrep.rep = found->rep;
+        DatasetUnlockData(rdata);
+        return rrep;
+    }
+    return rrep;
+}
+
+static DataJsonResultType DatasetLookupIPv4wJson(
+        Dataset *set, const uint8_t *data, const uint32_t data_len)
+{
+    DataJsonResultType rrep = { .found = false, .json = { .value = NULL, .len = 0 } };
+
+    if (set == NULL)
+        return rrep;
+
+    if (data_len != 4)
+        return rrep;
+
+    IPv4TypeJson lookup = { .json.value = NULL, .json.len = 0 };
+    memcpy(lookup.ipv4, data, data_len);
+    THashData *rdata = THashLookupFromHash(set->hash, &lookup);
+    if (rdata) {
+        IPv4TypeJson *found = rdata->data;
+        rrep.found = true;
+        rrep.json = found->json;
         DatasetUnlockData(rdata);
         return rrep;
     }
@@ -1224,6 +1539,30 @@ static DataRepResultType DatasetLookupIPv6wRep(
     return rrep;
 }
 
+static DataJsonResultType DatasetLookupIPv6wJson(
+        Dataset *set, const uint8_t *data, const uint32_t data_len)
+{
+    DataJsonResultType rrep = { .found = false, .json = { .value = NULL, .len = 0 } };
+
+    if (set == NULL)
+        return rrep;
+
+    if (data_len != 16 && data_len != 4)
+        return rrep;
+
+    IPv6TypeJson lookup = { .json.value = NULL, .json.len = 0 };
+    memcpy(lookup.ipv6, data, data_len);
+    THashData *rdata = THashLookupFromHash(set->hash, &lookup);
+    if (rdata) {
+        IPv6TypeJson *found = rdata->data;
+        rrep.found = true;
+        rrep.json = found->json;
+        DatasetUnlockData(rdata);
+        return rrep;
+    }
+    return rrep;
+}
+
 static int DatasetLookupMd5(Dataset *set, const uint8_t *data, const uint32_t data_len)
 {
     if (set == NULL)
@@ -1266,6 +1605,30 @@ static DataRepResultType DatasetLookupMd5wRep(Dataset *set,
     return rrep;
 }
 
+static DataJsonResultType DatasetLookupMd5wJson(
+        Dataset *set, const uint8_t *data, const uint32_t data_len)
+{
+    DataJsonResultType rrep = { .found = false, .json = { .value = NULL, .len = 0 } };
+
+    if (set == NULL)
+        return rrep;
+
+    if (data_len != 16)
+        return rrep;
+
+    Md5TypeJson lookup = { .json.value = NULL, .json.len = 0 };
+    memcpy(lookup.md5, data, data_len);
+    THashData *rdata = THashLookupFromHash(set->hash, &lookup);
+    if (rdata) {
+        Md5TypeJson *found = rdata->data;
+        rrep.found = true;
+        rrep.json = found->json;
+        DatasetUnlockData(rdata);
+        return rrep;
+    }
+    return rrep;
+}
+
 static int DatasetLookupSha256(Dataset *set, const uint8_t *data, const uint32_t data_len)
 {
     if (set == NULL)
@@ -1302,6 +1665,30 @@ static DataRepResultType DatasetLookupSha256wRep(Dataset *set,
         Sha256Type *found = rdata->data;
         rrep.found = true;
         rrep.rep = found->rep;
+        DatasetUnlockData(rdata);
+        return rrep;
+    }
+    return rrep;
+}
+
+static DataJsonResultType DatasetLookupSha256wJson(
+        Dataset *set, const uint8_t *data, const uint32_t data_len)
+{
+    DataJsonResultType rrep = { .found = false, .json = { .value = NULL, .len = 0 } };
+
+    if (set == NULL)
+        return rrep;
+
+    if (data_len != 32)
+        return rrep;
+
+    Sha256TypeJson lookup = { .json.value = NULL, .json.len = 0 };
+    memcpy(lookup.sha256, data, data_len);
+    THashData *rdata = THashLookupFromHash(set->hash, &lookup);
+    if (rdata) {
+        Sha256TypeJson *found = rdata->data;
+        rrep.found = true;
+        rrep.json = found->json;
         DatasetUnlockData(rdata);
         return rrep;
     }
@@ -1355,6 +1742,29 @@ DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uin
             return DatasetLookupIPv4wRep(set, data, data_len, rep);
         case DATASET_TYPE_IPV6:
             return DatasetLookupIPv6wRep(set, data, data_len, rep);
+    }
+    return rrep;
+}
+
+DataJsonResultType DatasetLookupwJson(Dataset *set, const uint8_t *data, const uint32_t data_len)
+{
+    DataJsonResultType rrep = { .found = false, .json = { .value = 0 } };
+    if (set == NULL)
+        return rrep;
+
+    switch (set->type) {
+        case DATASET_TYPE_STRING:
+            return DatasetLookupStringwJson(set, data, data_len);
+        case DATASET_TYPE_MD5:
+            return DatasetLookupMd5wJson(set, data, data_len);
+        case DATASET_TYPE_SHA256:
+            return DatasetLookupSha256wJson(set, data, data_len);
+        case DATASET_TYPE_IPV4:
+            return DatasetLookupIPv4wJson(set, data, data_len);
+        case DATASET_TYPE_IPV6:
+            return DatasetLookupIPv6wJson(set, data, data_len);
+        default:
+            break;
     }
     return rrep;
 }
@@ -1478,6 +1888,64 @@ static int DatasetAddIPv6wRep(
     return -1;
 }
 
+static int DatasetAddIPv4wJson(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
+{
+    if (set == NULL)
+        return -1;
+
+    if (data_len < 4)
+        return -2;
+
+    IPv4TypeJson lookup = { .json = *json };
+    memcpy(lookup.ipv4, data, 4);
+    struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
+    if (res.data) {
+        DatasetUnlockData(res.data);
+        return res.is_new ? 1 : 0;
+    }
+    return -1;
+}
+
+static int DatasetAddIPv6wJson(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
+{
+    if (set == NULL)
+        return -1;
+
+    if (data_len != 16)
+        return -2;
+
+    IPv6TypeJson lookup = { .json = *json };
+    memcpy(lookup.ipv6, data, 16);
+    struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
+    if (res.data) {
+        DatasetUnlockData(res.data);
+        return res.is_new ? 1 : 0;
+    }
+    return -1;
+}
+
+/**
+ *  \retval 1 data was added to the hash
+ *  \retval 0 data was not added to the hash as it is already there
+ *  \retval -1 failed to add data to the hash
+ */
+static int DatasetAddStringwJson(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
+{
+    if (set == NULL)
+        return -1;
+
+    StringTypeJson lookup = { .ptr = (uint8_t *)data, .len = data_len, .json = *json };
+    struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
+    if (res.data) {
+        DatasetUnlockData(res.data);
+        return res.is_new ? 1 : 0;
+    }
+    return -1;
+}
+
 static int DatasetAddMd5(Dataset *set, const uint8_t *data, const uint32_t data_len)
 {
     if (set == NULL)
@@ -1515,6 +1983,25 @@ static int DatasetAddMd5wRep(
     return -1;
 }
 
+static int DatasetAddMd5wJson(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
+{
+    if (set == NULL)
+        return -1;
+
+    if (data_len != 16)
+        return -2;
+
+    Md5TypeJson lookup = { .json = *json };
+    memcpy(lookup.md5, data, 16);
+    struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
+    if (res.data) {
+        DatasetUnlockData(res.data);
+        return res.is_new ? 1 : 0;
+    }
+    return -1;
+}
+
 static int DatasetAddSha256wRep(
         Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep)
 {
@@ -1525,6 +2012,25 @@ static int DatasetAddSha256wRep(
         return -2;
 
     Sha256Type lookup = { .rep = *rep };
+    memcpy(lookup.sha256, data, 32);
+    struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
+    if (res.data) {
+        DatasetUnlockData(res.data);
+        return res.is_new ? 1 : 0;
+    }
+    return -1;
+}
+
+static int DatasetAddSha256wJson(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataJsonType *json)
+{
+    if (set == NULL)
+        return -1;
+
+    if (data_len != 32)
+        return -2;
+
+    Sha256TypeJson lookup = { .json = *json };
     memcpy(lookup.sha256, data, 32);
     struct THashDataGetResult res = THashGetFromHash(set->hash, &lookup);
     if (res.data) {
@@ -1589,6 +2095,29 @@ static int DatasetAddwRep(Dataset *set, const uint8_t *data, const uint32_t data
             return DatasetAddIPv4wRep(set, data, data_len, rep);
         case DATASET_TYPE_IPV6:
             return DatasetAddIPv6wRep(set, data, data_len, rep);
+    }
+    return -1;
+}
+
+static int DatasetAddwJson(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, DataJsonType *json)
+{
+    if (set == NULL)
+        return -1;
+
+    switch (set->type) {
+        case DATASET_TYPE_STRING:
+            return DatasetAddStringwJson(set, data, data_len, json);
+        case DATASET_TYPE_MD5:
+            return DatasetAddMd5wJson(set, data, data_len, json);
+        case DATASET_TYPE_SHA256:
+            return DatasetAddSha256wJson(set, data, data_len, json);
+        case DATASET_TYPE_IPV4:
+            return DatasetAddIPv4wJson(set, data, data_len, json);
+        case DATASET_TYPE_IPV6:
+            return DatasetAddIPv6wJson(set, data, data_len, json);
+        default:
+            break;
     }
     return -1;
 }

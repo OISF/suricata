@@ -274,6 +274,24 @@ static inline PacketAlert PacketAlertSet(
     /* Set tx_id if the frame has it */
     pa.tx_id = tx_id;
     pa.frame_id = (alert_flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
+    pa.json_array_last_index = -1;
+    if (det_ctx->json_content_len) {
+        /* We have some JSON attached in the current detection so let's try
+           to see if some need to be used for current signature. */
+        for (size_t i = 0; i < det_ctx->json_content_len; i++) {
+            if (s == det_ctx->json_content[i].id) {
+                pa.json_array_last_index++;
+                if (pa.json_array_last_index < ALERT_JSON_ARRAY_LEN) {
+                    pa.json_strings[pa.json_array_last_index] =
+                            det_ctx->json_content[i].json_content;
+                } else {
+                    SCLogDebug("Not enough room for json data in packet alert");
+                    pa.json_array_last_index--;
+                    break;
+                }
+            }
+        }
+    }
     return pa;
 }
 

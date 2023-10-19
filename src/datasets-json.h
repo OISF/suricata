@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,30 +21,18 @@
  * \author Eric Leblond <el@stamus-networks.com>
  */
 
-#ifndef SURICATA_DATASETS_IPV4_H
-#define SURICATA_DATASETS_IPV4_H
+#ifndef __DATASETS_JSON_H__
+#define __DATASETS_JSON_H__
 
-#include "datasets-reputation.h"
-#include "datasets-json.h"
+#include <stdint.h>
+typedef struct DataJsonType {
+    char *value;
+    size_t len;
+} DataJsonType;
 
-typedef struct IPv4Type {
-    uint8_t ipv4[4];
-    DataRepType rep;
-} IPv4Type;
-
-typedef struct IPv4TypeJson {
-    uint8_t ipv4[4];
+typedef struct DataJsonResultType {
+    bool found;
     DataJsonType json;
-} IPv4TypeJson;
+} DataJsonResultType;
 
-int IPv4Set(void *dst, void *src);
-bool IPv4Compare(void *a, void *b);
-uint32_t IPv4Hash(uint32_t hash_seed, void *s);
-void IPv4Free(void *s);
-
-int IPv4JsonSet(void *dst, void *src);
-bool IPv4JsonCompare(void *a, void *b);
-uint32_t IPv4JsonHash(uint32_t hash_seed, void *s);
-void IPv4JsonFree(void *s);
-
-#endif /* SURICATA_DATASETS_IPV4_H */
+#endif /* __DATASETS_JSON_H__ */

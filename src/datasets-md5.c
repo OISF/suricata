@@ -57,3 +57,36 @@ uint32_t Md5StrHash(uint32_t hash_seed, void *s)
 void Md5StrFree(void *s)
 {
 }
+
+int Md5StrJsonSet(void *dst, void *src)
+{
+    Md5TypeJson *src_s = src;
+    Md5TypeJson *dst_s = dst;
+    memcpy(dst_s->md5, src_s->md5, sizeof(dst_s->md5));
+    dst_s->json.value = src_s->json.value;
+    dst_s->json.len = src_s->json.len;
+    return 0;
+}
+
+bool Md5StrJsonCompare(void *a, void *b)
+{
+    const Md5TypeJson *as = a;
+    const Md5TypeJson *bs = b;
+
+    return (memcmp(as->md5, bs->md5, sizeof(as->md5)) == 0);
+}
+
+uint32_t Md5StrJsonHash(uint32_t hash_seed, void *s)
+{
+    const Md5TypeJson *str = s;
+    return hashword((uint32_t *)str->md5, sizeof(str->md5) / 4, hash_seed);
+}
+
+// data stays in hash
+void Md5StrJsonFree(void *s)
+{
+    const Md5TypeJson *as = s;
+    if (as->json.value) {
+        SCFree(as->json.value);
+    }
+}

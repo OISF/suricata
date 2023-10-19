@@ -50,6 +50,7 @@ noinst_HEADERS = \
 	datasets.h \
 	datasets-ipv4.h \
 	datasets-ipv6.h \
+	datasets-json.h \
 	datasets-md5.h \
 	datasets-reputation.h \
 	datasets-sha256.h \
@@ -102,6 +103,7 @@ noinst_HEADERS = \
 	detect-config.h \
 	detect-content.h \
 	detect-csum.h \
+	detect-datajson.h \
 	detect-datarep.h \
 	detect-dataset.h \
 	detect-dce-iface.h \
@@ -662,6 +664,7 @@ libsuricata_c_a_SOURCES = \
 	detect-config.c \
 	detect-content.c \
 	detect-csum.c \
+	detect-datajson.c \
 	detect-datarep.c \
 	detect-dataset.c \
 	detect-dce-iface.c \

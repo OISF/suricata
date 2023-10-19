@@ -212,6 +212,10 @@
                 "xff": {
                     "type": "string"
                 },
+                "extra": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
                 "metadata": {
                     "type": "object",
                     "properties": {
