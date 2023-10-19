@@ -20,6 +20,7 @@
 
 #include "util-thash.h"
 #include "datasets-reputation.h"
+#include "datasets-json.h"
 
 int DatasetsInit(void);
 void DatasetsDestroy(void);
@@ -60,6 +61,9 @@ int DatasetRemove(Dataset *set, const uint8_t *data, const uint32_t data_len);
 int DatasetLookup(Dataset *set, const uint8_t *data, const uint32_t data_len);
 DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
         const DataRepType *rep);
+DataJsonResultType DatasetLookupwJson(Dataset *set, const uint8_t *data, const uint32_t data_len);
+Dataset *DatasetJsonGet(const char *name, enum DatasetTypes type, const char *load, uint64_t memcap,
+        uint32_t hashsize);
 
 int DatasetAddSerialized(Dataset *set, const char *string);
 int DatasetRemoveSerialized(Dataset *set, const char *string);

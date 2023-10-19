@@ -56,3 +56,37 @@ uint32_t IPv4Hash(uint32_t hash_seed, void *s)
 void IPv4Free(void *s)
 {
 }
+
+int IPv4JsonSet(void *dst, void *src)
+{
+    IPv4TypeJson *src_s = src;
+    IPv4TypeJson *dst_s = dst;
+    memcpy(dst_s->ipv4, src_s->ipv4, sizeof(dst_s->ipv4));
+    dst_s->json.value = src_s->json.value;
+    dst_s->json.len = src_s->json.len;
+
+    return 0;
+}
+
+bool IPv4JsonCompare(void *a, void *b)
+{
+    const IPv4TypeJson *as = a;
+    const IPv4TypeJson *bs = b;
+
+    return (memcmp(as->ipv4, bs->ipv4, sizeof(as->ipv4)) == 0);
+}
+
+uint32_t IPv4JsonHash(uint32_t hash_seed, void *s)
+{
+    const IPv4TypeJson *str = s;
+    return hashword((uint32_t *)str->ipv4, 1, hash_seed);
+}
+
+// data stays in hash
+void IPv4JsonFree(void *s)
+{
+    const IPv4TypeJson *as = s;
+    if (as->json.value) {
+        SCFree(as->json.value);
+    }
+}
