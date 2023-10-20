@@ -138,69 +138,51 @@ void FlowBitFree(FlowBit *fb)
 #ifdef UNITTESTS
 static int FlowBitTest01 (void)
 {
-    int ret = 0;
-
     Flow f;
     memset(&f, 0, sizeof(Flow));
 
     FlowBitAdd(&f, 0);
 
-    FlowBit *fb = FlowBitGet(&f,0);
-    if (fb != NULL)
-        ret = 1;
+    FlowBit *fb = FlowBitGet(&f, 0);
+    FAIL_IF_NULL(fb);
 
     GenericVarFree(f.flowvar);
-    return ret;
+    PASS;
 }
 
 static int FlowBitTest02 (void)
 {
-    int ret = 0;
-
     Flow f;
     memset(&f, 0, sizeof(Flow));
 
-    FlowBit *fb = FlowBitGet(&f,0);
-    if (fb == NULL)
-        ret = 1;
+    FlowBit *fb = FlowBitGet(&f, 0);
+    FAIL_IF_NOT_NULL(fb);
 
     GenericVarFree(f.flowvar);
-    return ret;
+    PASS;
 }
 
 static int FlowBitTest03 (void)
 {
-    int ret = 0;
-
     Flow f;
     memset(&f, 0, sizeof(Flow));
 
     FlowBitAdd(&f, 0);
 
     FlowBit *fb = FlowBitGet(&f,0);
-    if (fb == NULL) {
-        printf("fb == NULL although it was just added: ");
-        goto end;
-    }
+    FAIL_IF_NULL(fb);
 
     FlowBitRemove(&f, 0);
 
-    fb = FlowBitGet(&f,0);
-    if (fb != NULL) {
-        printf("fb != NULL although it was just removed: ");
-        goto end;
-    } else {
-        ret = 1;
-    }
-end:
+    fb = FlowBitGet(&f, 0);
+    FAIL_IF_NOT_NULL(fb);
+
     GenericVarFree(f.flowvar);
-    return ret;
+    PASS;
 }
 
 static int FlowBitTest04 (void)
 {
-    int ret = 0;
-
     Flow f;
     memset(&f, 0, sizeof(Flow));
 
@@ -209,18 +191,15 @@ static int FlowBitTest04 (void)
     FlowBitAdd(&f, 2);
     FlowBitAdd(&f, 3);
 
-    FlowBit *fb = FlowBitGet(&f,0);
-    if (fb != NULL)
-        ret = 1;
+    FlowBit *fb = FlowBitGet(&f, 0);
+    FAIL_IF_NULL(fb);
 
     GenericVarFree(f.flowvar);
-    return ret;
+    PASS;
 }
 
 static int FlowBitTest05 (void)
 {
-    int ret = 0;
-
     Flow f;
     memset(&f, 0, sizeof(Flow));
 
@@ -229,18 +208,15 @@ static int FlowBitTest05 (void)
     FlowBitAdd(&f, 2);
     FlowBitAdd(&f, 3);
 
-    FlowBit *fb = FlowBitGet(&f,1);
-    if (fb != NULL)
-        ret = 1;
+    FlowBit *fb = FlowBitGet(&f, 1);
+    FAIL_IF_NULL(fb);
 
     GenericVarFree(f.flowvar);
-    return ret;
+    PASS;
 }
 
 static int FlowBitTest06 (void)
 {
-    int ret = 0;
-
     Flow f;
     memset(&f, 0, sizeof(Flow));
 
@@ -249,18 +225,15 @@ static int FlowBitTest06 (void)
     FlowBitAdd(&f, 2);
     FlowBitAdd(&f, 3);
 
-    FlowBit *fb = FlowBitGet(&f,2);
-    if (fb != NULL)
-        ret = 1;
+    FlowBit *fb = FlowBitGet(&f, 2);
+    FAIL_IF_NULL(fb);
 
     GenericVarFree(f.flowvar);
-    return ret;
+    PASS;
 }
 
 static int FlowBitTest07 (void)
 {
-    int ret = 0;
-
     Flow f;
     memset(&f, 0, sizeof(Flow));
 
@@ -269,18 +242,15 @@ static int FlowBitTest07 (void)
     FlowBitAdd(&f, 2);
     FlowBitAdd(&f, 3);
 
-    FlowBit *fb = FlowBitGet(&f,3);
-    if (fb != NULL)
-        ret = 1;
+    FlowBit *fb = FlowBitGet(&f, 3);
+    FAIL_IF_NULL(fb);
 
     GenericVarFree(f.flowvar);
-    return ret;
+    PASS;
 }
 
 static int FlowBitTest08 (void)
 {
-    int ret = 0;
-
     Flow f;
     memset(&f, 0, sizeof(Flow));
 
@@ -290,27 +260,19 @@ static int FlowBitTest08 (void)
     FlowBitAdd(&f, 3);
 
     FlowBit *fb = FlowBitGet(&f,0);
-    if (fb == NULL)
-        goto end;
+    FAIL_IF_NULL(fb);
 
     FlowBitRemove(&f,0);
 
-    fb = FlowBitGet(&f,0);
-    if (fb != NULL) {
-        printf("fb != NULL even though it was removed: ");
-        goto end;
-    }
+    fb = FlowBitGet(&f, 0);
+    FAIL_IF_NOT_NULL(fb);
 
-    ret = 1;
-end:
     GenericVarFree(f.flowvar);
-    return ret;
+    PASS;
 }
 
 static int FlowBitTest09 (void)
 {
-    int ret = 0;
-
     Flow f;
     memset(&f, 0, sizeof(Flow));
 
@@ -320,27 +282,19 @@ static int FlowBitTest09 (void)
     FlowBitAdd(&f, 3);
 
     FlowBit *fb = FlowBitGet(&f,1);
-    if (fb == NULL)
-        goto end;
+    FAIL_IF_NULL(fb);
 
     FlowBitRemove(&f,1);
 
-    fb = FlowBitGet(&f,1);
-    if (fb != NULL) {
-        printf("fb != NULL even though it was removed: ");
-        goto end;
-    }
+    fb = FlowBitGet(&f, 1);
+    FAIL_IF_NOT_NULL(fb);
 
-    ret = 1;
-end:
     GenericVarFree(f.flowvar);
-    return ret;
+    PASS;
 }
 
 static int FlowBitTest10 (void)
 {
-    int ret = 0;
-
     Flow f;
     memset(&f, 0, sizeof(Flow));
 
@@ -350,27 +304,19 @@ static int FlowBitTest10 (void)
     FlowBitAdd(&f, 3);
 
     FlowBit *fb = FlowBitGet(&f,2);
-    if (fb == NULL)
-        goto end;
+    FAIL_IF_NULL(fb);
 
     FlowBitRemove(&f,2);
 
-    fb = FlowBitGet(&f,2);
-    if (fb != NULL) {
-        printf("fb != NULL even though it was removed: ");
-        goto end;
-    }
+    fb = FlowBitGet(&f, 2);
+    FAIL_IF_NOT_NULL(fb);
 
-    ret = 1;
-end:
     GenericVarFree(f.flowvar);
-    return ret;
+    PASS;
 }
 
 static int FlowBitTest11 (void)
 {
-    int ret = 0;
-
     Flow f;
     memset(&f, 0, sizeof(Flow));
 
@@ -380,21 +326,15 @@ static int FlowBitTest11 (void)
     FlowBitAdd(&f, 3);
 
     FlowBit *fb = FlowBitGet(&f,3);
-    if (fb == NULL)
-        goto end;
+    FAIL_IF_NULL(fb);
 
     FlowBitRemove(&f,3);
 
-    fb = FlowBitGet(&f,3);
-    if (fb != NULL) {
-        printf("fb != NULL even though it was removed: ");
-        goto end;
-    }
+    fb = FlowBitGet(&f, 3);
+    FAIL_IF_NOT_NULL(fb);
 
-    ret = 1;
-end:
     GenericVarFree(f.flowvar);
-    return ret;
+    PASS;
 }
 
 #endif /* UNITTESTS */
