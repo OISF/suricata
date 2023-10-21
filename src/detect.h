@@ -1173,8 +1173,8 @@ typedef struct DetectEngineThreadCtx_ {
     RuleMatchCandidateTx *tx_candidates;
     uint32_t tx_candidates_size;
 
-    SignatureNonPrefilterStore *non_pf_store_ptr;
     uint32_t non_pf_store_cnt;
+    SignatureNonPrefilterStore *non_pf_store_ptr;
 
     /** pointer to the current mpm ctx that is stored
      *  in a rule group head -- can be either a content
