@@ -2369,6 +2369,7 @@ static int FinalizeRunMode(SCInstance *suri, char **argv)
 {
     switch (suri->run_mode) {
         case RUNMODE_UNKNOWN:
+            SCLogError("Error: Missing run mode. Please specify a capture runmode.");
             PrintUsage(argv[0]);
             return TM_ECODE_FAILED;
         default:
