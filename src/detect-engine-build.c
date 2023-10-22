@@ -1496,11 +1496,17 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
     }
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("%" PRIu32 " signatures processed. %" PRIu32 " are IP-only "
-                "rules, %" PRIu32 " are inspecting packet payload, %"PRIu32
-                " inspect application layer, %"PRIu32" are decoder event only",
-                de_ctx->sig_cnt, cnt_iponly, cnt_payload, cnt_applayer,
-                cnt_deonly);
+        if (strlen(de_ctx->config_prefix) > 0)
+            SCLogInfo("tenant id %d: %" PRIu32 " signatures processed. %" PRIu32 " are IP-only "
+                      "rules, %" PRIu32 " are inspecting packet payload, %" PRIu32
+                      " inspect application layer, %" PRIu32 " are decoder event only",
+                    de_ctx->tenant_id, de_ctx->sig_cnt, cnt_iponly, cnt_payload, cnt_applayer,
+                    cnt_deonly);
+        else
+            SCLogInfo("%" PRIu32 " signatures processed. %" PRIu32 " are IP-only "
+                      "rules, %" PRIu32 " are inspecting packet payload, %" PRIu32
+                      " inspect application layer, %" PRIu32 " are decoder event only",
+                    de_ctx->sig_cnt, cnt_iponly, cnt_payload, cnt_applayer, cnt_deonly);
 
         SCLogConfig("building signature grouping structure, stage 1: "
                "preprocessing rules... complete");

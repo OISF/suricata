@@ -245,7 +245,11 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
         if (strcmp("/dev/null", fname) == 0)
             return 0;
 #endif
-        SCLogConfig("Loading rule file: %s", fname);
+        if (strlen(de_ctx->config_prefix) > 0) {
+            SCLogConfig("tenant id %d: Loading rule file: %s", de_ctx->tenant_id, fname);
+        } else {
+            SCLogConfig("Loading rule file: %s", fname);
+        }
         r = DetectLoadSigFile(de_ctx, fname, good_sigs, bad_sigs);
         if (r < 0) {
             ++(st->bad_files);
@@ -347,8 +351,15 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
         }
     } else {
         /* we report the total of files and rules successfully loaded and failed */
-        SCLogInfo("%" PRId32 " rule files processed. %" PRId32 " rules successfully loaded, %" PRId32 " rules failed",
-            sig_stat->total_files, sig_stat->good_sigs_total, sig_stat->bad_sigs_total);
+        if (strlen(de_ctx->config_prefix) > 0)
+            SCLogInfo("tenant id %d:  %" PRId32 " rule files processed. %" PRId32
+                      " rules successfully loaded, %" PRId32 " rules failed",
+                    de_ctx->tenant_id, sig_stat->total_files, sig_stat->good_sigs_total,
+                    sig_stat->bad_sigs_total);
+        else
+            SCLogInfo("%" PRId32 " rule files processed. %" PRId32
+                      " rules successfully loaded, %" PRId32 " rules failed",
+                    sig_stat->total_files, sig_stat->good_sigs_total, sig_stat->bad_sigs_total);
     }
 
     if ((sig_stat->bad_sigs_total || sig_stat->bad_files) && de_ctx->failure_fatal) {

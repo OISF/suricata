@@ -363,8 +363,12 @@ static bool SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
     }
 
 #ifdef UNITTESTS
-    SCLogInfo("Added \"%d\" classification types from the classification file",
-              de_ctx->class_conf_ht->count);
+    if (strlen(de_ctx->config_prefix) > 0)
+        SCLogInfo("tenant id %d: Added \"%d\" classification types from the classification file",
+                de_ctx->tenant_id, de_ctx->class_conf_ht->count);
+    else
+        SCLogInfo("Added \"%d\" classification types from the classification file",
+                de_ctx->class_conf_ht->count);
 #endif
 
     return errors == 0;

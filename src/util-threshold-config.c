@@ -1042,7 +1042,11 @@ int SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
         }
     }
 
-    SCLogInfo("Threshold config parsed: %d rule(s) found", rule_num);
+    if (strlen(de_ctx->config_prefix) > 0)
+        SCLogInfo("tenant id %d: Threshold config parsed: %d rule(s) found", de_ctx->tenant_id,
+                rule_num);
+    else
+        SCLogInfo("Threshold config parsed: %d rule(s) found", rule_num);
     return 0;
 }
 
