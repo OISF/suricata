@@ -2462,7 +2462,8 @@ retry:
     return -1;
 }
 
-static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, const char *prefix)
+static DetectEngineCtx *DetectEngineCtxInitReal(
+        enum DetectEngineType type, const char *prefix, uint32_t tenant_id)
 {
     DetectEngineCtx *de_ctx = SCMalloc(sizeof(DetectEngineCtx));
     if (unlikely(de_ctx == NULL))
@@ -2474,6 +2475,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, cons
     de_ctx->sigerror = NULL;
     de_ctx->type = type;
     de_ctx->filemagic_thread_ctx_id = -1;
+    de_ctx->tenant_id = tenant_id;
 
     if (type == DETECT_ENGINE_TYPE_DD_STUB || type == DETECT_ENGINE_TYPE_MT_STUB) {
         de_ctx->version = DetectEngineGetVersion();
@@ -2547,25 +2549,25 @@ error:
 
 DetectEngineCtx *DetectEngineCtxInitStubForMT(void)
 {
-    return DetectEngineCtxInitReal(DETECT_ENGINE_TYPE_MT_STUB, NULL);
+    return DetectEngineCtxInitReal(DETECT_ENGINE_TYPE_MT_STUB, NULL, 0);
 }
 
 DetectEngineCtx *DetectEngineCtxInitStubForDD(void)
 {
-    return DetectEngineCtxInitReal(DETECT_ENGINE_TYPE_DD_STUB, NULL);
+    return DetectEngineCtxInitReal(DETECT_ENGINE_TYPE_DD_STUB, NULL, 0);
 }
 
 DetectEngineCtx *DetectEngineCtxInit(void)
 {
-    return DetectEngineCtxInitReal(DETECT_ENGINE_TYPE_NORMAL, NULL);
+    return DetectEngineCtxInitReal(DETECT_ENGINE_TYPE_NORMAL, NULL, 0);
 }
 
-DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix)
+DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix, uint32_t tenant_id)
 {
     if (prefix == NULL || strlen(prefix) == 0)
         return DetectEngineCtxInit();
     else
-        return DetectEngineCtxInitReal(DETECT_ENGINE_TYPE_NORMAL, prefix);
+        return DetectEngineCtxInitReal(DETECT_ENGINE_TYPE_NORMAL, prefix, tenant_id);
 }
 
 static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
@@ -3841,7 +3843,7 @@ static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *fil
         goto error;
     }
 
-    de_ctx = DetectEngineCtxInitWithPrefix(prefix);
+    de_ctx = DetectEngineCtxInitWithPrefix(prefix, tenant_id);
     if (de_ctx == NULL) {
         SCLogError("initializing detection engine "
                    "context failed.");
@@ -3901,7 +3903,7 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
         goto error;
     }
 
-    DetectEngineCtx *new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
+    DetectEngineCtx *new_de_ctx = DetectEngineCtxInitWithPrefix(prefix, tenant_id);
     if (new_de_ctx == NULL) {
         SCLogError("initializing detection engine "
                    "context failed.");
@@ -4759,7 +4761,7 @@ int DetectEngineReload(const SCInstance *suri)
     }
 
     /* get new detection engine */
-    new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
+    new_de_ctx = DetectEngineCtxInitWithPrefix(prefix, old_de_ctx->tenant_id);
     if (new_de_ctx == NULL) {
         SCLogError("initializing detection engine "
                    "context failed.");
