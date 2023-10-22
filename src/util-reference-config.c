@@ -335,8 +335,12 @@ static bool SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
     }
 
 #ifdef UNITTESTS
-    SCLogInfo("Added \"%d\" reference types from the reference.config file",
-              de_ctx->reference_conf_ht->count);
+    if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0)
+        SCLogInfo("tenant id %d: Added \"%d\" reference types from the reference.config file",
+                de_ctx->tenant_id, de_ctx->reference_conf_ht->count);
+    else
+        SCLogInfo("Added \"%d\" reference types from the reference.config file",
+                de_ctx->reference_conf_ht->count);
 #endif /* UNITTESTS */
     return true;
 }
