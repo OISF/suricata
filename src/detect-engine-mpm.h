@@ -90,7 +90,7 @@ typedef int (*PrefilterRegisterFunc)(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
  *  \note direction must be set to either toserver or toclient.
  *        If both are needed, register the keyword twice.
  */
-void DetectAppLayerMpmRegister2(const char *name, int direction, int priority,
+void DetectAppLayerMpmRegister(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionBufferGetDataPtr GetData,
         AppProto alproto, int tx_min_progress);
 void DetectAppLayerMpmRegisterByParentId(

@@ -555,17 +555,15 @@ static void DetectDNP3DataRegister(void)
             ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric,
             GetDNP3Data);
-    DetectAppLayerMpmRegister2("dnp3_data", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetDNP3Data,
-            ALPROTO_DNP3, 0);
+    DetectAppLayerMpmRegister("dnp3_data", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetDNP3Data, ALPROTO_DNP3, 0);
 
     DetectAppLayerInspectEngineRegister2("dnp3_data",
             ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectBufferGeneric,
             GetDNP3Data);
-    DetectAppLayerMpmRegister2("dnp3_data", SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister, GetDNP3Data,
-            ALPROTO_DNP3, 0);
+    DetectAppLayerMpmRegister("dnp3_data", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetDNP3Data, ALPROTO_DNP3, 0);
 
     g_dnp3_data_buffer_id = DetectBufferTypeGetByName("dnp3_data");
     SCReturn;

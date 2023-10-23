@@ -141,7 +141,7 @@ void DetectIkeSpiRegister(void)
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME_INITIATOR, ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectBufferGeneric, GetInitiatorData);
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME_INITIATOR, SIG_FLAG_TOSERVER, 1,
+    DetectAppLayerMpmRegister(BUFFER_NAME_INITIATOR, SIG_FLAG_TOSERVER, 1,
             PrefilterGenericMpmRegister, GetInitiatorData, ALPROTO_IKE, 1);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME_INITIATOR, BUFFER_DESC_INITIATOR);
@@ -161,7 +161,7 @@ void DetectIkeSpiRegister(void)
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME_RESPONDER, ALPROTO_IKE, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectBufferGeneric, GetResponderData);
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME_RESPONDER, SIG_FLAG_TOCLIENT, 1,
+    DetectAppLayerMpmRegister(BUFFER_NAME_RESPONDER, SIG_FLAG_TOCLIENT, 1,
             PrefilterGenericMpmRegister, GetResponderData, ALPROTO_IKE, 1);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME_RESPONDER, BUFFER_DESC_RESPONDER);
