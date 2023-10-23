@@ -100,12 +100,10 @@ void DetectSipProtocolRegister(void)
     sigmatch_table[DETECT_AL_SIP_PROTOCOL].Setup = DetectSipProtocolSetup;
     sigmatch_table[DETECT_AL_SIP_PROTOCOL].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_SIP,
-            1);
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_SIP,
-            1);
+    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_SIP, 1);
+    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_SIP, 1);
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
             ALPROTO_SIP, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectBufferGeneric, GetData);

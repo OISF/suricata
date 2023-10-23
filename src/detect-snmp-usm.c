@@ -68,11 +68,11 @@ void DetectSNMPUsmRegister(void)
     /* register inspect engines */
     DetectAppLayerInspectEngineRegister2("snmp.usm", ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
-    DetectAppLayerMpmRegister2("snmp.usm", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister("snmp.usm", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_SNMP, 0);
     DetectAppLayerInspectEngineRegister2("snmp.usm", ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectBufferGeneric, GetData);
-    DetectAppLayerMpmRegister2("snmp.usm", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister("snmp.usm", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_SNMP, 0);
 
     DetectBufferTypeSetDescriptionByName("snmp.usm", "SNMP USM");

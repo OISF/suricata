@@ -79,10 +79,10 @@ void DetectTlsJa3SStringRegister(void)
     DetectAppLayerInspectEngineRegister2("ja3s.string", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("ja3s.string", SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, 0);
+    DetectAppLayerMpmRegister("ja3s.string", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_TLS, 0);
 
-    DetectAppLayerMpmRegister2("ja3s.string", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister("ja3s.string", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             Ja3DetectGetString, ALPROTO_QUIC, 1);
 
     DetectAppLayerInspectEngineRegister2("ja3s.string", ALPROTO_QUIC, SIG_FLAG_TOCLIENT, 1,

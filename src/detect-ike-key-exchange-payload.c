@@ -103,13 +103,13 @@ void DetectIkeKeyExchangeRegister(void)
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME_KEY_EXCHANGE, ALPROTO_IKE, SIG_FLAG_TOSERVER,
             1, DetectEngineInspectBufferGeneric, GetKeyExchangeData);
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME_KEY_EXCHANGE, SIG_FLAG_TOSERVER, 1,
+    DetectAppLayerMpmRegister(BUFFER_NAME_KEY_EXCHANGE, SIG_FLAG_TOSERVER, 1,
             PrefilterGenericMpmRegister, GetKeyExchangeData, ALPROTO_IKE, 1);
 
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME_KEY_EXCHANGE, ALPROTO_IKE, SIG_FLAG_TOCLIENT,
             1, DetectEngineInspectBufferGeneric, GetKeyExchangeData);
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME_KEY_EXCHANGE, SIG_FLAG_TOCLIENT, 1,
+    DetectAppLayerMpmRegister(BUFFER_NAME_KEY_EXCHANGE, SIG_FLAG_TOCLIENT, 1,
             PrefilterGenericMpmRegister, GetKeyExchangeData, ALPROTO_IKE, 1);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME_KEY_EXCHANGE, BUFFER_DESC_KEY_EXCHANGE);

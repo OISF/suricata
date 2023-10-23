@@ -211,9 +211,8 @@ void DetectMQTTUnsubscribeTopicRegister (void)
                 unsubscribe_topic_match_limit);
     }
 
-    DetectAppLayerMpmRegister2("mqtt.unsubscribe.topic", SIG_FLAG_TOSERVER, 1,
-            PrefilterMpmMQTTUnsubscribeTopicRegister, NULL,
-            ALPROTO_MQTT, 1);
+    DetectAppLayerMpmRegister("mqtt.unsubscribe.topic", SIG_FLAG_TOSERVER, 1,
+            PrefilterMpmMQTTUnsubscribeTopicRegister, NULL, ALPROTO_MQTT, 1);
 
     DetectAppLayerInspectEngineRegister2("mqtt.unsubscribe.topic",
             ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,

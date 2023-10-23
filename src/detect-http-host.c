@@ -108,13 +108,13 @@ void DetectHttpHHRegister(void)
     DetectAppLayerInspectEngineRegister2("http_host", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_HEADERS, DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("http_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister("http_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_HTTP1, HTP_REQUEST_HEADERS);
 
     DetectAppLayerInspectEngineRegister2("http_host", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetData2);
 
-    DetectAppLayerMpmRegister2("http_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister("http_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData2, ALPROTO_HTTP2, HTTP2StateDataClient);
 
     DetectBufferTypeRegisterValidateCallback("http_host",
@@ -143,13 +143,13 @@ void DetectHttpHHRegister(void)
     DetectAppLayerInspectEngineRegister2("http_raw_host", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_HEADERS, DetectEngineInspectBufferGeneric, GetRawData);
 
-    DetectAppLayerMpmRegister2("http_raw_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister("http_raw_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetRawData, ALPROTO_HTTP1, HTP_REQUEST_HEADERS);
 
     DetectAppLayerInspectEngineRegister2("http_raw_host", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetRawData2);
 
-    DetectAppLayerMpmRegister2("http_raw_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister("http_raw_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetRawData2, ALPROTO_HTTP2, HTTP2StateDataClient);
 
     DetectBufferTypeSetDescriptionByName("http_raw_host",
