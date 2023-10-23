@@ -111,12 +111,12 @@ void DetectHttpResponseLineRegister(void)
     DetectAppLayerInspectEngineRegister2("http_response_line", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_LINE, DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("http_response_line", SIG_FLAG_TOCLIENT, 2,
+    DetectAppLayerMpmRegister("http_response_line", SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister, GetData, ALPROTO_HTTP1, HTP_RESPONSE_LINE);
 
     DetectAppLayerInspectEngineRegister2("http_response_line", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
             HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetData2);
-    DetectAppLayerMpmRegister2("http_response_line", SIG_FLAG_TOCLIENT, 2,
+    DetectAppLayerMpmRegister("http_response_line", SIG_FLAG_TOCLIENT, 2,
             PrefilterGenericMpmRegister, GetData2, ALPROTO_HTTP2, HTTP2StateDataServer);
 
     DetectBufferTypeSetDescriptionByName("http_response_line",

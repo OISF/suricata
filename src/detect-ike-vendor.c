@@ -178,7 +178,7 @@ void DetectIkeVendorRegister(void)
     sigmatch_table[DETECT_AL_IKE_VENDOR].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_IKE_VENDOR].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerMpmRegister2("ike.vendor", SIG_FLAG_TOSERVER, 1, PrefilterMpmIkeVendorRegister,
+    DetectAppLayerMpmRegister("ike.vendor", SIG_FLAG_TOSERVER, 1, PrefilterMpmIkeVendorRegister,
             NULL, ALPROTO_IKE, 1);
 
     DetectAppLayerInspectEngineRegister2(

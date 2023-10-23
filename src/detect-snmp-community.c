@@ -65,13 +65,13 @@ void DetectSNMPCommunityRegister(void)
     DetectAppLayerInspectEngineRegister2("snmp.community",
             ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
-    DetectAppLayerMpmRegister2("snmp.community", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_SNMP, 0);
+    DetectAppLayerMpmRegister("snmp.community", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_SNMP, 0);
     DetectAppLayerInspectEngineRegister2("snmp.community",
             ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectBufferGeneric, GetData);
-    DetectAppLayerMpmRegister2("snmp.community", SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_SNMP, 0);
+    DetectAppLayerMpmRegister("snmp.community", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_SNMP, 0);
 
     DetectBufferTypeSetDescriptionByName("snmp.community", "SNMP Community identifier");
 

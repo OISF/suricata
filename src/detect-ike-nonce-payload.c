@@ -102,13 +102,13 @@ void DetectIkeNonceRegister(void)
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME_NONCE, ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectBufferGeneric, GetNonceData);
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME_NONCE, SIG_FLAG_TOSERVER, 1, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister(BUFFER_NAME_NONCE, SIG_FLAG_TOSERVER, 1, PrefilterGenericMpmRegister,
             GetNonceData, ALPROTO_IKE, 1);
 
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME_NONCE, ALPROTO_IKE, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectBufferGeneric, GetNonceData);
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME_NONCE, SIG_FLAG_TOCLIENT, 1, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister(BUFFER_NAME_NONCE, SIG_FLAG_TOCLIENT, 1, PrefilterGenericMpmRegister,
             GetNonceData, ALPROTO_IKE, 1);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME_NONCE, BUFFER_DESC_NONCE);
