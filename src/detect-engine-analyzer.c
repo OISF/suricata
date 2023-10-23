@@ -32,6 +32,7 @@
 #include "detect-engine.h"
 #include "detect-engine-analyzer.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-uint.h"
 #include "conf.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
@@ -39,6 +40,7 @@
 #include "detect-bytetest.h"
 #include "detect-flow.h"
 #include "detect-tcp-flags.h"
+#include "detect-tcpmss.h"
 #include "detect-ipopts.h"
 #include "feature.h"
 #include "util-print.h"
@@ -858,6 +860,17 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 jb_open_object(js, "ipopts");
                 const char *flag = IpOptsFlagToString(cd->ipopt);
                 jb_set_string(js, "option", flag);
+                jb_close(js);
+                break;
+            }
+            case DETECT_TCPMSS: {
+                const DetectU16Data *cd = (const DetectU16Data *)smd->ctx;
+
+                jb_open_object(js, "tcp_mss");
+                const char *flag = TcpmssModeToString(cd->mode);
+                jb_set_string(js, "mode", flag);
+                jb_set_uint(js, "value1", cd->arg1);
+                jb_set_uint(js, "value2", cd->arg2);
                 jb_close(js);
                 break;
             }
