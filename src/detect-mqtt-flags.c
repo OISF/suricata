@@ -66,7 +66,7 @@ void DetectMQTTFlagsRegister (void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "mqtt.flags", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
 
     mqtt_flags_id = DetectBufferTypeGetByName("mqtt.flags");

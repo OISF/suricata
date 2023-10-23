@@ -54,7 +54,7 @@ void DetectRfbSectypeRegister (void)
     sigmatch_table[DETECT_AL_RFB_SECTYPE].Setup = DetectRfbSectypeSetup;
     sigmatch_table[DETECT_AL_RFB_SECTYPE].Free = DetectRfbSectypeFree;
 
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "rfb.sectype", ALPROTO_RFB, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
 
     g_rfb_sectype_buffer_id = DetectBufferTypeGetByName("rfb.sectype");

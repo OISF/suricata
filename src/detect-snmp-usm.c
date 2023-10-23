@@ -66,11 +66,11 @@ void DetectSNMPUsmRegister(void)
     sigmatch_table[DETECT_AL_SNMP_USM].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     /* register inspect engines */
-    DetectAppLayerInspectEngineRegister2("snmp.usm", ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister("snmp.usm", ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
     DetectAppLayerMpmRegister("snmp.usm", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_SNMP, 0);
-    DetectAppLayerInspectEngineRegister2("snmp.usm", ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister("snmp.usm", ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectBufferGeneric, GetData);
     DetectAppLayerMpmRegister("snmp.usm", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_SNMP, 0);

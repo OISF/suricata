@@ -57,10 +57,10 @@ void DetectIkeExchTypeRegister(void)
     sigmatch_table[DETECT_AL_IKE_EXCH_TYPE].Setup = DetectIkeExchTypeSetup;
     sigmatch_table[DETECT_AL_IKE_EXCH_TYPE].Free = DetectIkeExchTypeFree;
 
-    DetectAppLayerInspectEngineRegister2("ike.exchtype", ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
+    DetectAppLayerInspectEngineRegister("ike.exchtype", ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectGenericList, NULL);
 
-    DetectAppLayerInspectEngineRegister2("ike.exchtype", ALPROTO_IKE, SIG_FLAG_TOCLIENT, 1,
+    DetectAppLayerInspectEngineRegister("ike.exchtype", ALPROTO_IKE, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectGenericList, NULL);
 
     g_ike_exch_type_buffer_id = DetectBufferTypeGetByName("ike.exchtype");

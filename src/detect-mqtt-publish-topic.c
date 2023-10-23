@@ -78,8 +78,7 @@ void DetectMQTTPublishTopicRegister(void)
     sigmatch_table[DETECT_AL_MQTT_PUBLISH_TOPIC].Setup = DetectMQTTPublishTopicSetup;
     sigmatch_table[DETECT_AL_MQTT_PUBLISH_TOPIC].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_MQTT,
-            SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_MQTT, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,

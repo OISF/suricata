@@ -58,7 +58,7 @@ void DetectMQTTQosRegister (void)
     sigmatch_table[DETECT_AL_MQTT_QOS].RegisterTests = MQTTQosRegisterTests;
 #endif
 
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "mqtt.qos", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
 
     mqtt_qos_id = DetectBufferTypeGetByName("mqtt.qos");
