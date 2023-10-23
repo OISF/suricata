@@ -881,6 +881,24 @@ pub unsafe extern "C" fn rs_dns_tx_get_query_name(
     return 0;
 }
 
+/// Get the DNS response answer name and index i.
+#[no_mangle]
+pub unsafe extern "C" fn SCDnsTxGetAnswerName(
+    tx: &mut DNSTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
+) -> bool {
+    let index = i as usize;
+    if let Some(response) = &tx.response {
+        if let Some(name) = response.answers.get(index).map(|answer| &answer.name) {
+            if !name.is_empty() {
+                *buf = name.as_ptr();
+                *len = name.len() as u32;
+                return true;
+            }
+        }
+    }
+    false
+}
+
 /// Get the DNS transaction ID of a transaction.
 //
 /// extern uint16_t rs_dns_tx_get_tx_id(RSDNSTransaction *);
