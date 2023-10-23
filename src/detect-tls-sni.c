@@ -76,8 +76,8 @@ void DetectTlsSniRegister(void)
     DetectAppLayerInspectEngineRegister2("tls.sni", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("tls.sni", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, 0);
+    DetectAppLayerMpmRegister(
+            "tls.sni", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, 0);
 
     DetectBufferTypeSetDescriptionByName("tls.sni",
             "TLS Server Name Indication (SNI) extension");
