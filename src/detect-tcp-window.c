@@ -226,15 +226,13 @@ void DetectWindowFree(DetectEngineCtx *de_ctx, void *ptr)
  */
 static int DetectWindowTestParse01 (void)
 {
-    int result = 0;
     DetectWindowData *wd = NULL;
     wd = DetectWindowParse(NULL, "35402");
-    if (wd != NULL &&wd->size==35402) {
-        DetectWindowFree(NULL, wd);
-        result = 1;
-    }
+    FAIL_IF_NULL(wd);
+    FAIL_IF_NOT(wd->size == 35402);
 
-    return result;
+    DetectWindowFree(NULL, wd);
+    PASS;
 }
 
 /**
@@ -242,19 +240,14 @@ static int DetectWindowTestParse01 (void)
  */
 static int DetectWindowTestParse02 (void)
 {
-    int result = 0;
     DetectWindowData *wd = NULL;
     wd = DetectWindowParse(NULL, "!35402");
-    if (wd != NULL) {
-        if (wd->negated == 1 && wd->size==35402) {
-            result = 1;
-        } else {
-            printf("expected wd->negated=1 and wd->size=35402\n");
-        }
-        DetectWindowFree(NULL, wd);
-    }
+    FAIL_IF_NULL(wd);
+    FAIL_IF_NOT(wd->negated == 1);
+    FAIL_IF_NOT(wd->size == 35402);
 
-    return result;
+    DetectWindowFree(NULL, wd);
+    PASS;
 }
 
 /**
@@ -262,17 +255,12 @@ static int DetectWindowTestParse02 (void)
  */
 static int DetectWindowTestParse03 (void)
 {
-    int result = 0;
     DetectWindowData *wd = NULL;
     wd = DetectWindowParse(NULL, "");
-    if (wd == NULL) {
-        result = 1;
-    } else {
-        printf("expected a NULL pointer (It was an empty string)\n");
-    }
-    DetectWindowFree(NULL, wd);
+    FAIL_IF_NOT_NULL(wd);
 
-    return result;
+    DetectWindowFree(NULL, wd);
+    PASS;
 }
 
 /**
@@ -280,16 +268,12 @@ static int DetectWindowTestParse03 (void)
  */
 static int DetectWindowTestParse04 (void)
 {
-    int result = 0;
     DetectWindowData *wd = NULL;
     wd = DetectWindowParse(NULL, "1235402");
-    if (wd != NULL) {
-        printf("expected a NULL pointer (It was exceeding the MAX window size)\n");
-        DetectWindowFree(NULL, wd);
-    }else
-        result=1;
+    FAIL_IF_NOT_NULL(wd);
 
-    return result;
+    DetectWindowFree(NULL, wd);
+    PASS;
 }
 
 /**
@@ -297,7 +281,6 @@ static int DetectWindowTestParse04 (void)
  */
 static int DetectWindowTestPacket01 (void)
 {
-    int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint16_t buflen = strlen((char *)buf);
     Packet *p[3];
@@ -305,8 +288,7 @@ static int DetectWindowTestPacket01 (void)
     p[1] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     p[2] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_ICMP);
 
-    if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
-        goto end;
+    FAIL_IF(p[0] == NULL || p[1] == NULL || p[2] == NULL);
 
     /* TCP wwindow = 40 */
     p[0]->tcph->th_win = htons(40);
@@ -327,11 +309,10 @@ static int DetectWindowTestPacket01 (void)
                               {0, 1},
                               /* packet 2 should not match */
                               {0, 0} };
-    result = UTHGenericTest(p, 3, sigs, sid, (uint32_t *) results, 2);
+    FAIL_IF(UTHGenericTest(p, 3, sigs, sid, (uint32_t *)results, 2) == 0);
 
     UTHFreePackets(p, 3);
-end:
-    return result;
+    PASS;
 }
 
 /**
