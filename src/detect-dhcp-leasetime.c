@@ -117,10 +117,10 @@ void DetectDHCPLeaseTimeRegister(void)
     sigmatch_table[DETECT_AL_DHCP_LEASETIME].Setup = DetectDHCPLeaseTimeSetup;
     sigmatch_table[DETECT_AL_DHCP_LEASETIME].Free = DetectDHCPLeaseTimeFree;
 
-    DetectAppLayerInspectEngineRegister2("dhcp.leasetime", ALPROTO_DHCP, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister("dhcp.leasetime", ALPROTO_DHCP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectGenericList, NULL);
 
-    DetectAppLayerInspectEngineRegister2("dhcp.leasetime", ALPROTO_DHCP, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister("dhcp.leasetime", ALPROTO_DHCP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectGenericList, NULL);
 
     g_buffer_id = DetectBufferTypeGetByName("dhcp.leasetime");

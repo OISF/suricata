@@ -62,13 +62,11 @@ void DetectSNMPCommunityRegister(void)
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
     /* register inspect engines */
-    DetectAppLayerInspectEngineRegister2("snmp.community",
-            ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister("snmp.community", ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
     DetectAppLayerMpmRegister("snmp.community", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_SNMP, 0);
-    DetectAppLayerInspectEngineRegister2("snmp.community",
-            ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister("snmp.community", ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectBufferGeneric, GetData);
     DetectAppLayerMpmRegister("snmp.community", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_SNMP, 0);

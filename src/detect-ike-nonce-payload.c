@@ -99,13 +99,13 @@ void DetectIkeNonceRegister(void)
     sigmatch_table[DETECT_AL_IKE_NONCE].Setup = DetectNonceSetup;
     sigmatch_table[DETECT_AL_IKE_NONCE].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME_NONCE, ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME_NONCE, ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectBufferGeneric, GetNonceData);
 
     DetectAppLayerMpmRegister(BUFFER_NAME_NONCE, SIG_FLAG_TOSERVER, 1, PrefilterGenericMpmRegister,
             GetNonceData, ALPROTO_IKE, 1);
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME_NONCE, ALPROTO_IKE, SIG_FLAG_TOCLIENT, 1,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME_NONCE, ALPROTO_IKE, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectBufferGeneric, GetNonceData);
 
     DetectAppLayerMpmRegister(BUFFER_NAME_NONCE, SIG_FLAG_TOCLIENT, 1, PrefilterGenericMpmRegister,

@@ -206,9 +206,8 @@ void DetectDnsQueryRegister (void)
     DetectAppLayerMpmRegister(
             "dns_query", SIG_FLAG_TOSERVER, 2, PrefilterMpmDnsQueryRegister, NULL, ALPROTO_DNS, 1);
 
-    DetectAppLayerInspectEngineRegister2("dns_query",
-            ALPROTO_DNS, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectDnsQuery, NULL);
+    DetectAppLayerInspectEngineRegister(
+            "dns_query", ALPROTO_DNS, SIG_FLAG_TOSERVER, 1, DetectEngineInspectDnsQuery, NULL);
 
     DetectBufferTypeSetDescriptionByName("dns_query",
             "dns request query");
@@ -218,9 +217,9 @@ void DetectDnsQueryRegister (void)
 
 #ifdef HAVE_LUA
     /* register these generic engines from here for now */
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "dns_request", ALPROTO_DNS, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
-    DetectAppLayerInspectEngineRegister2("dns_response", ALPROTO_DNS, SIG_FLAG_TOCLIENT, 1,
+    DetectAppLayerInspectEngineRegister("dns_response", ALPROTO_DNS, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectGenericList, NULL);
 
     DetectBufferTypeSetDescriptionByName("dns_request",

@@ -59,8 +59,8 @@ void DetectMQTTProtocolVersionRegister (void)
     sigmatch_table[DETECT_AL_MQTT_PROTOCOL_VERSION].RegisterTests = MQTTProtocolVersionRegisterTests;
 #endif
 
-    DetectAppLayerInspectEngineRegister2("mqtt.protocol_version", ALPROTO_MQTT, SIG_FLAG_TOSERVER,
-            1, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister("mqtt.protocol_version", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
+            DetectEngineInspectGenericList, NULL);
 
     mqtt_protocol_version_id = DetectBufferTypeGetByName("mqtt.protocol_version");
 }

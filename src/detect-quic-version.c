@@ -85,9 +85,9 @@ void DetectQuicVersionRegister(void)
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetVersionData, ALPROTO_QUIC, 1);
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectBufferGeneric, GetVersionData);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOCLIENT, 1,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectBufferGeneric, GetVersionData);
 
     quic_version_id = DetectBufferTypeGetByName(BUFFER_NAME);
