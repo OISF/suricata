@@ -134,7 +134,7 @@ void DetectModbusRegister(void)
     sigmatch_table[DETECT_AL_MODBUS].Free = DetectModbusFree;
     sigmatch_table[DETECT_AL_MODBUS].AppLayerTxMatch = DetectModbusMatch;
 
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "modbus", ALPROTO_MODBUS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
 
     g_modbus_buffer_id = DetectBufferTypeGetByName("modbus");

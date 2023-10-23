@@ -83,7 +83,7 @@ void DetectQuicUaRegister(void)
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetUaData, ALPROTO_QUIC, 1);
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectBufferGeneric, GetUaData);
 
     quic_ua_id = DetectBufferTypeGetByName(BUFFER_NAME);

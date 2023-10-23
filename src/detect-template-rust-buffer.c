@@ -67,9 +67,9 @@ void DetectTemplateRustBufferRegister(void)
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].flags |= SIGMATCH_NOOPT;
 
     /* register inspect engines */
-    DetectAppLayerInspectEngineRegister2("template_buffer", ALPROTO_TEMPLATE, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister("template_buffer", ALPROTO_TEMPLATE, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectTemplateRustBuffer, NULL);
-    DetectAppLayerInspectEngineRegister2("template_buffer", ALPROTO_TEMPLATE, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister("template_buffer", ALPROTO_TEMPLATE, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectTemplateRustBuffer, NULL);
 
     g_template_rust_id = DetectBufferTypeGetByName("template_buffer");

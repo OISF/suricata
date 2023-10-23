@@ -67,7 +67,7 @@ void DetectRfbSecresultRegister (void)
 #endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
-    DetectAppLayerInspectEngineRegister2("rfb.secresult", ALPROTO_RFB, SIG_FLAG_TOCLIENT, 1,
+    DetectAppLayerInspectEngineRegister("rfb.secresult", ALPROTO_RFB, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectGenericList, NULL);
 
     rfb_secresult_id = DetectBufferTypeGetByName("rfb.secresult");

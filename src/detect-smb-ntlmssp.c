@@ -84,7 +84,7 @@ void DetectSmbNtlmsspUserRegister(void)
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetNtlmsspUserData, ALPROTO_SMB, 1);
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetNtlmsspUserData);
 
     g_smb_nltmssp_user_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
@@ -142,7 +142,7 @@ void DetectSmbNtlmsspDomainRegister(void)
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetNtlmsspDomainData, ALPROTO_SMB, 1);
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetNtlmsspDomainData);
 
     g_smb_nltmssp_domain_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);

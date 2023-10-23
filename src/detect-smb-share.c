@@ -86,8 +86,7 @@ void DetectSmbNamedPipeRegister(void)
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetNamedPipeData, ALPROTO_SMB, 1);
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetNamedPipeData);
 
     g_smb_named_pipe_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
@@ -148,8 +147,7 @@ void DetectSmbShareRegister(void)
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetShareData, ALPROTO_SMB, 1);
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetShareData);
 
     g_smb_share_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);

@@ -193,9 +193,9 @@ void DetectHttpStartRegister(void)
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetBuffer1ForTX, ALPROTO_HTTP1, HTP_RESPONSE_HEADERS);
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_HEADERS, DetectEngineInspectBufferGeneric, GetBuffer1ForTX);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_HEADERS, DetectEngineInspectBufferGeneric, GetBuffer1ForTX);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,

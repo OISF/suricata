@@ -73,10 +73,10 @@ void DetectFtpdataRegister(void) {
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FTPDATA].RegisterTests = DetectFtpdataRegisterTests;
 #endif
-    DetectAppLayerInspectEngineRegister2("ftpdata_command", ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister("ftpdata_command", ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectGenericList, NULL);
 
-    DetectAppLayerInspectEngineRegister2("ftpdata_command", ALPROTO_FTPDATA, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister("ftpdata_command", ALPROTO_FTPDATA, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectGenericList, NULL);
     g_ftpdata_buffer_id = DetectBufferTypeGetByName("ftpdata_command");
 

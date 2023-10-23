@@ -74,7 +74,7 @@ void DetectNfsProcedureRegister (void)
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].RegisterTests = DetectNfsProcedureRegisterTests;
 #endif
 
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "nfs_request", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
 
     g_nfs_request_buffer_id = DetectBufferTypeGetByName("nfs_request");

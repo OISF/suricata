@@ -77,7 +77,7 @@ void DetectIkeChosenSaRegister(void)
 #endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
-    DetectAppLayerInspectEngineRegister2("ike.chosen_sa_attribute", ALPROTO_IKE, SIG_FLAG_TOCLIENT,
+    DetectAppLayerInspectEngineRegister("ike.chosen_sa_attribute", ALPROTO_IKE, SIG_FLAG_TOCLIENT,
             1, DetectEngineInspectGenericList, NULL);
 
     g_ike_chosen_sa_buffer_id = DetectBufferTypeGetByName("ike.chosen_sa_attribute");
