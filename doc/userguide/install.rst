@@ -298,6 +298,8 @@ For Debian 10 (buster), for instance, run the following as ``root``::
     apt-get update
     apt-get install suricata -t buster-backports
 
+.. _RPM packages:
+
 CentOS, AlmaLinux, RockyLinux, Fedora, etc
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
