@@ -106,9 +106,9 @@ void DetectHttpCookieRegister(void)
     sigmatch_table[DETECT_HTTP_COOKIE].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_COOKIE].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+    DetectAppLayerInspectEngineRegister("http_cookie", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_HEADERS, DetectEngineInspectBufferGeneric, GetRequestData);
-    DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
+    DetectAppLayerInspectEngineRegister("http_cookie", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_REQUEST_HEADERS, DetectEngineInspectBufferGeneric, GetResponseData);
 
     DetectAppLayerMpmRegister("http_cookie", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
@@ -116,9 +116,9 @@ void DetectHttpCookieRegister(void)
     DetectAppLayerMpmRegister("http_cookie", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetResponseData, ALPROTO_HTTP1, HTP_REQUEST_HEADERS);
 
-    DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+    DetectAppLayerInspectEngineRegister("http_cookie", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetRequestData2);
-    DetectAppLayerInspectEngineRegister2("http_cookie", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+    DetectAppLayerInspectEngineRegister("http_cookie", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
             HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetResponseData2);
 
     DetectAppLayerMpmRegister("http_cookie", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,

@@ -100,8 +100,7 @@ void DetectSipResponseLineRegister(void)
     sigmatch_table[DETECT_AL_SIP_RESPONSE_LINE].Setup = DetectSipResponseLineSetup;
     sigmatch_table[DETECT_AL_SIP_RESPONSE_LINE].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SIP,
-            SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_SIP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,

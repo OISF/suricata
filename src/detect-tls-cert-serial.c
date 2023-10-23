@@ -83,14 +83,13 @@ void DetectTlsSerialRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_TLS_CERT_SERIAL].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("tls.cert_serial", ALPROTO_TLS,
-            SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
-            DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerInspectEngineRegister("tls.cert_serial", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            TLS_STATE_CERT_READY, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("tls.cert_serial", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_TLS, TLS_STATE_CERT_READY);
 
-    DetectAppLayerInspectEngineRegister2("tls.cert_serial", ALPROTO_TLS, SIG_FLAG_TOSERVER,
+    DetectAppLayerInspectEngineRegister("tls.cert_serial", ALPROTO_TLS, SIG_FLAG_TOSERVER,
             TLS_STATE_CERT_READY, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("tls.cert_serial", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,

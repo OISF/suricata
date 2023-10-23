@@ -100,14 +100,14 @@ void DetectIkeKeyExchangeRegister(void)
     sigmatch_table[DETECT_AL_IKE_KEY_EXCHANGE].flags |=
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME_KEY_EXCHANGE, ALPROTO_IKE, SIG_FLAG_TOSERVER,
-            1, DetectEngineInspectBufferGeneric, GetKeyExchangeData);
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME_KEY_EXCHANGE, ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
+            DetectEngineInspectBufferGeneric, GetKeyExchangeData);
 
     DetectAppLayerMpmRegister(BUFFER_NAME_KEY_EXCHANGE, SIG_FLAG_TOSERVER, 1,
             PrefilterGenericMpmRegister, GetKeyExchangeData, ALPROTO_IKE, 1);
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME_KEY_EXCHANGE, ALPROTO_IKE, SIG_FLAG_TOCLIENT,
-            1, DetectEngineInspectBufferGeneric, GetKeyExchangeData);
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME_KEY_EXCHANGE, ALPROTO_IKE, SIG_FLAG_TOCLIENT, 1,
+            DetectEngineInspectBufferGeneric, GetKeyExchangeData);
 
     DetectAppLayerMpmRegister(BUFFER_NAME_KEY_EXCHANGE, SIG_FLAG_TOCLIENT, 1,
             PrefilterGenericMpmRegister, GetKeyExchangeData, ALPROTO_IKE, 1);

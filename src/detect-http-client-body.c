@@ -103,13 +103,13 @@ void DetectHttpClientBodyRegister(void)
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_REQUEST_BODY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_client_body", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+    DetectAppLayerInspectEngineRegister("http_client_body", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_BODY, DetectEngineInspectBufferHttpBody, NULL);
 
     DetectAppLayerMpmRegister("http_client_body", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmHttpRequestBodyRegister, NULL, ALPROTO_HTTP1, HTP_REQUEST_BODY);
 
-    DetectAppLayerInspectEngineRegister2("http_client_body", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+    DetectAppLayerInspectEngineRegister("http_client_body", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateDataClient, DetectEngineInspectFiledata, NULL);
     DetectAppLayerMpmRegister("http_client_body", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmFiledataRegister, NULL, ALPROTO_HTTP2, HTTP2StateDataClient);

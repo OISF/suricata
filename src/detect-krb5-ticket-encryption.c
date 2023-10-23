@@ -85,7 +85,7 @@ void DetectKrb5TicketEncryptionRegister(void)
     sigmatch_table[DETECT_AL_KRB5_TICKET_ENCRYPTION].Free = DetectKrb5TicketEncryptionFree;
 
     // Tickets are only from server to client
-    DetectAppLayerInspectEngineRegister2("krb5_ticket_encryption", ALPROTO_KRB5, SIG_FLAG_TOCLIENT,
+    DetectAppLayerInspectEngineRegister("krb5_ticket_encryption", ALPROTO_KRB5, SIG_FLAG_TOCLIENT,
             0, DetectEngineInspectGenericList, NULL);
 
     g_krb5_ticket_encryption_list_id = DetectBufferTypeRegister("krb5_ticket_encryption");

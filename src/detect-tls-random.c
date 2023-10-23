@@ -62,13 +62,13 @@ void DetectTlsRandomTimeRegister(void)
     sigmatch_table[DETECT_AL_TLS_RANDOM_TIME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     /* Register engine for Server random */
-    DetectAppLayerInspectEngineRegister2("tls.random_time", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister("tls.random_time", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetRandomTimeData);
     DetectAppLayerMpmRegister("tls.random_time", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetRandomTimeData, ALPROTO_TLS, 0);
 
     /* Register engine for Client random */
-    DetectAppLayerInspectEngineRegister2("tls.random_time", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister("tls.random_time", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectBufferGeneric, GetRandomTimeData);
     DetectAppLayerMpmRegister("tls.random_time", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetRandomTimeData, ALPROTO_TLS, 0);
@@ -90,13 +90,13 @@ void DetectTlsRandomBytesRegister(void)
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     /* Register engine for Server random */
-    DetectAppLayerInspectEngineRegister2("tls.random_bytes", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister("tls.random_bytes", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetRandomBytesData);
     DetectAppLayerMpmRegister("tls.random_bytes", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetRandomBytesData, ALPROTO_TLS, 0);
 
     /* Register engine for Client random */
-    DetectAppLayerInspectEngineRegister2("tls.random_bytes", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister("tls.random_bytes", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectBufferGeneric, GetRandomBytesData);
     DetectAppLayerMpmRegister("tls.random_bytes", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetRandomBytesData, ALPROTO_TLS, 0);
@@ -122,13 +122,13 @@ void DetectTlsRandomRegister(void)
     sigmatch_table[DETECT_AL_TLS_RANDOM].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     /* Register engine for Server random */
-    DetectAppLayerInspectEngineRegister2("tls.random", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister("tls.random", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetRandomData);
     DetectAppLayerMpmRegister("tls.random", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetRandomData, ALPROTO_TLS, 0);
 
     /* Register engine for Client random */
-    DetectAppLayerInspectEngineRegister2("tls.random", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister("tls.random", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectBufferGeneric, GetRandomData);
     DetectAppLayerMpmRegister("tls.random", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetRandomData, ALPROTO_TLS, 0);

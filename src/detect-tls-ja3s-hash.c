@@ -79,7 +79,7 @@ void DetectTlsJa3SHashRegister(void)
     sigmatch_table[DETECT_AL_TLS_JA3S_HASH].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_TLS_JA3S_HASH].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("ja3s.hash", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister("ja3s.hash", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("ja3s.hash", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
@@ -88,7 +88,7 @@ void DetectTlsJa3SHashRegister(void)
     DetectAppLayerMpmRegister("ja3s.hash", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             Ja3DetectGetHash, ALPROTO_QUIC, 1);
 
-    DetectAppLayerInspectEngineRegister2("ja3s.hash", ALPROTO_QUIC, SIG_FLAG_TOCLIENT, 1,
+    DetectAppLayerInspectEngineRegister("ja3s.hash", ALPROTO_QUIC, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectBufferGeneric, Ja3DetectGetHash);
 
     DetectBufferTypeSetDescriptionByName("ja3s.hash", "TLS JA3S hash");

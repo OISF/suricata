@@ -551,17 +551,13 @@ static void DetectDNP3DataRegister(void)
     sigmatch_table[DETECT_AL_DNP3DATA].Setup         = DetectDNP3DataSetup;
     sigmatch_table[DETECT_AL_DNP3DATA].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("dnp3_data",
-            ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectBufferGeneric,
-            GetDNP3Data);
+    DetectAppLayerInspectEngineRegister("dnp3_data", ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectBufferGeneric, GetDNP3Data);
     DetectAppLayerMpmRegister("dnp3_data", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetDNP3Data, ALPROTO_DNP3, 0);
 
-    DetectAppLayerInspectEngineRegister2("dnp3_data",
-            ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectBufferGeneric,
-            GetDNP3Data);
+    DetectAppLayerInspectEngineRegister("dnp3_data", ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0,
+            DetectEngineInspectBufferGeneric, GetDNP3Data);
     DetectAppLayerMpmRegister("dnp3_data", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetDNP3Data, ALPROTO_DNP3, 0);
 
@@ -578,9 +574,9 @@ void DetectDNP3Register(void)
     DetectDNP3ObjRegister();
 
     /* Register the list of func, ind and obj. */
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "dnp3", ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "dnp3", ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
 
     g_dnp3_match_buffer_id = DetectBufferTypeRegister("dnp3");

@@ -78,9 +78,9 @@ void DetectAppLayerEventRegister(void)
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Setup = DetectAppLayerEventSetup;
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Free = DetectAppLayerEventFree;
 
-    DetectAppLayerInspectEngineRegister2("app-layer-events", ALPROTO_UNKNOWN, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister("app-layer-events", ALPROTO_UNKNOWN, SIG_FLAG_TOSERVER, 0,
             DetectEngineAptEventInspect, NULL);
-    DetectAppLayerInspectEngineRegister2("app-layer-events", ALPROTO_UNKNOWN, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister("app-layer-events", ALPROTO_UNKNOWN, SIG_FLAG_TOCLIENT, 0,
             DetectEngineAptEventInspect, NULL);
 
     g_applayer_events_list_id = DetectBufferTypeGetByName("app-layer-events");

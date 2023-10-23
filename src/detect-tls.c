@@ -141,10 +141,10 @@ void DetectTlsRegister (void)
     g_tls_cert_list_id = DetectBufferTypeRegister("tls_cert");
     g_tls_cert_fingerprint_list_id = DetectBufferTypeRegister("tls.cert_fingerprint");
 
-    DetectAppLayerInspectEngineRegister2("tls_cert", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+    DetectAppLayerInspectEngineRegister("tls_cert", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
             TLS_STATE_CERT_READY, DetectEngineInspectGenericList, NULL);
 
-    DetectAppLayerInspectEngineRegister2("tls_cert", ALPROTO_TLS, SIG_FLAG_TOSERVER,
+    DetectAppLayerInspectEngineRegister("tls_cert", ALPROTO_TLS, SIG_FLAG_TOSERVER,
             TLS_STATE_CERT_READY, DetectEngineInspectGenericList, NULL);
 }
 
