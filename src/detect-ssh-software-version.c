@@ -98,9 +98,9 @@ void DetectSshSoftwareVersionRegister(void)
 
     g_ssh_banner_list_id = DetectBufferTypeRegister("ssh_banner");
 
-    DetectAppLayerInspectEngineRegister2("ssh_banner", ALPROTO_SSH, SIG_FLAG_TOSERVER,
+    DetectAppLayerInspectEngineRegister("ssh_banner", ALPROTO_SSH, SIG_FLAG_TOSERVER,
             SshStateBannerDone, DetectEngineInspectGenericList, NULL);
-    DetectAppLayerInspectEngineRegister2("ssh_banner", ALPROTO_SSH, SIG_FLAG_TOCLIENT,
+    DetectAppLayerInspectEngineRegister("ssh_banner", ALPROTO_SSH, SIG_FLAG_TOCLIENT,
             SshStateBannerDone, DetectEngineInspectGenericList, NULL);
 }
 

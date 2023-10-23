@@ -89,9 +89,9 @@ void DetectSslStateRegister(void)
     DetectBufferTypeSetDescriptionByName("tls_generic",
             "generic ssl/tls inspection");
 
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "tls_generic", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "tls_generic", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
 }
 

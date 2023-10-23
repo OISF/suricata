@@ -138,7 +138,7 @@ void DetectIkeSpiRegister(void)
     sigmatch_table[DETECT_AL_IKE_SPI_INITIATOR].flags |=
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME_INITIATOR, ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME_INITIATOR, ALPROTO_IKE, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectBufferGeneric, GetInitiatorData);
 
     DetectAppLayerMpmRegister(BUFFER_NAME_INITIATOR, SIG_FLAG_TOSERVER, 1,
@@ -158,7 +158,7 @@ void DetectIkeSpiRegister(void)
     sigmatch_table[DETECT_AL_IKE_SPI_RESPONDER].flags |=
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME_RESPONDER, ALPROTO_IKE, SIG_FLAG_TOCLIENT, 1,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME_RESPONDER, ALPROTO_IKE, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectBufferGeneric, GetResponderData);
 
     DetectAppLayerMpmRegister(BUFFER_NAME_RESPONDER, SIG_FLAG_TOCLIENT, 1,

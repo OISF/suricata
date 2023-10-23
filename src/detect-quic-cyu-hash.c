@@ -233,7 +233,7 @@ void DetectQuicCyuHashRegister(void)
     DetectAppLayerMpmRegister(
             BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterMpmQuicHashRegister, NULL, ALPROTO_QUIC, 1);
 
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 0, DetectEngineInspectQuicHash, NULL);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);

@@ -109,14 +109,14 @@ void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *reg)
         if (direction & SIG_FLAG_TOCLIENT) {
             DetectAppLayerMpmRegister(reg->name, SIG_FLAG_TOCLIENT, reg->priority, reg->PrefilterFn,
                     reg->GetData, al_protocols[i].al_proto, al_protocols[i].to_client_progress);
-            DetectAppLayerInspectEngineRegister2(reg->name, al_protocols[i].al_proto,
+            DetectAppLayerInspectEngineRegister(reg->name, al_protocols[i].al_proto,
                     SIG_FLAG_TOCLIENT, al_protocols[i].to_client_progress, reg->Callback,
                     reg->GetData);
         }
         if (direction & SIG_FLAG_TOSERVER) {
             DetectAppLayerMpmRegister(reg->name, SIG_FLAG_TOSERVER, reg->priority, reg->PrefilterFn,
                     reg->GetData, al_protocols[i].al_proto, al_protocols[i].to_server_progress);
-            DetectAppLayerInspectEngineRegister2(reg->name, al_protocols[i].al_proto,
+            DetectAppLayerInspectEngineRegister(reg->name, al_protocols[i].al_proto,
                     SIG_FLAG_TOSERVER, al_protocols[i].to_server_progress, reg->Callback,
                     reg->GetData);
         }

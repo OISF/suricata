@@ -62,7 +62,7 @@ void DetectMQTTConnackSessionPresentRegister (void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
-    DetectAppLayerInspectEngineRegister2("mqtt.connack.session_present", ALPROTO_MQTT,
+    DetectAppLayerInspectEngineRegister("mqtt.connack.session_present", ALPROTO_MQTT,
             SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
 
     mqtt_connack_session_present_id = DetectBufferTypeGetByName("mqtt.connack.session_present");

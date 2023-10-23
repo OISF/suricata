@@ -186,7 +186,7 @@ void DetectQuicCyuStringRegister(void)
     DetectAppLayerMpmRegister(
             BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterMpmListIdRegister, NULL, ALPROTO_QUIC, 1);
 
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 0, DetectEngineInspectQuicString, NULL);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);

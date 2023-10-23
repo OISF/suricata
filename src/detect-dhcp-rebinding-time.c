@@ -118,10 +118,10 @@ void DetectDHCPRebindingTimeRegister(void)
     sigmatch_table[DETECT_AL_DHCP_REBINDING_TIME].Setup = DetectDHCPRebindingTimeSetup;
     sigmatch_table[DETECT_AL_DHCP_REBINDING_TIME].Free = DetectDHCPRebindingTimeFree;
 
-    DetectAppLayerInspectEngineRegister2("dhcp.rebinding-time", ALPROTO_DHCP, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister("dhcp.rebinding-time", ALPROTO_DHCP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectGenericList, NULL);
 
-    DetectAppLayerInspectEngineRegister2("dhcp.rebinding-time", ALPROTO_DHCP, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister("dhcp.rebinding-time", ALPROTO_DHCP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectGenericList, NULL);
 
     g_buffer_id = DetectBufferTypeGetByName("dhcp.rebinding-time");
