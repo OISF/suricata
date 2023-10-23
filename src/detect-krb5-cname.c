@@ -195,9 +195,8 @@ void DetectKrb5CNameRegister(void)
     sigmatch_table[DETECT_AL_KRB5_CNAME].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
     sigmatch_table[DETECT_AL_KRB5_CNAME].desc = "sticky buffer to match on Kerberos 5 client name";
 
-    DetectAppLayerMpmRegister2("krb5_cname", SIG_FLAG_TOCLIENT, 2,
-            PrefilterMpmKrb5CNameRegister, NULL,
-            ALPROTO_KRB5, 1);
+    DetectAppLayerMpmRegister("krb5_cname", SIG_FLAG_TOCLIENT, 2, PrefilterMpmKrb5CNameRegister,
+            NULL, ALPROTO_KRB5, 1);
 
     DetectAppLayerInspectEngineRegister2("krb5_cname",
             ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0,

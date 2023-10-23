@@ -177,15 +177,13 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_HEADERNAME].Setup = DetectHTTP2headerNameSetup;
     sigmatch_table[DETECT_HTTP2_HEADERNAME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerMpmRegister2("http2_header_name", SIG_FLAG_TOCLIENT, 2,
-                               PrefilterMpmHttp2HeaderNameRegister, NULL,
-                               ALPROTO_HTTP2, HTTP2StateOpen);
+    DetectAppLayerMpmRegister("http2_header_name", SIG_FLAG_TOCLIENT, 2,
+            PrefilterMpmHttp2HeaderNameRegister, NULL, ALPROTO_HTTP2, HTTP2StateOpen);
     DetectAppLayerInspectEngineRegister2("http2_header_name",
                                          ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, HTTP2StateOpen,
                                          DetectEngineInspectHttp2HeaderName, NULL);
-    DetectAppLayerMpmRegister2("http2_header_name", SIG_FLAG_TOSERVER, 2,
-                               PrefilterMpmHttp2HeaderNameRegister, NULL,
-                               ALPROTO_HTTP2, HTTP2StateOpen);
+    DetectAppLayerMpmRegister("http2_header_name", SIG_FLAG_TOSERVER, 2,
+            PrefilterMpmHttp2HeaderNameRegister, NULL, ALPROTO_HTTP2, HTTP2StateOpen);
     DetectAppLayerInspectEngineRegister2("http2_header_name",
                                          ALPROTO_HTTP2, SIG_FLAG_TOSERVER, HTTP2StateOpen,
                                          DetectEngineInspectHttp2HeaderName, NULL);

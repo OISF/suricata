@@ -234,7 +234,7 @@ void DetectQuicCyuHashRegister(void)
     sigmatch_table[DETECT_AL_QUIC_CYU_HASH].RegisterTests = DetectQuicCyuHashRegisterTests;
 #endif
 
-    DetectAppLayerMpmRegister2(
+    DetectAppLayerMpmRegister(
             BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterMpmQuicHashRegister, NULL, ALPROTO_QUIC, 1);
 
     DetectAppLayerInspectEngineRegister2(

@@ -97,15 +97,14 @@ void DetectTlsCertsRegister(void)
             SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             DetectEngineInspectTlsCerts, NULL);
 
-    DetectAppLayerMpmRegister2("tls.certs", SIG_FLAG_TOCLIENT, 2,
-            PrefilterMpmTlsCertsRegister, NULL, ALPROTO_TLS,
-            TLS_STATE_CERT_READY);
+    DetectAppLayerMpmRegister("tls.certs", SIG_FLAG_TOCLIENT, 2, PrefilterMpmTlsCertsRegister, NULL,
+            ALPROTO_TLS, TLS_STATE_CERT_READY);
 
     DetectAppLayerInspectEngineRegister2("tls.certs", ALPROTO_TLS, SIG_FLAG_TOSERVER,
             TLS_STATE_CERT_READY, DetectEngineInspectTlsCerts, NULL);
 
-    DetectAppLayerMpmRegister2("tls.certs", SIG_FLAG_TOSERVER, 2, PrefilterMpmTlsCertsRegister,
-            NULL, ALPROTO_TLS, TLS_STATE_CERT_READY);
+    DetectAppLayerMpmRegister("tls.certs", SIG_FLAG_TOSERVER, 2, PrefilterMpmTlsCertsRegister, NULL,
+            ALPROTO_TLS, TLS_STATE_CERT_READY);
 
     DetectBufferTypeSetDescriptionByName("tls.certs", "TLS certificate");
 

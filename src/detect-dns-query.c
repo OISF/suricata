@@ -210,9 +210,8 @@ void DetectDnsQueryRegister (void)
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerMpmRegister2("dns_query", SIG_FLAG_TOSERVER, 2,
-            PrefilterMpmDnsQueryRegister, NULL,
-            ALPROTO_DNS, 1);
+    DetectAppLayerMpmRegister(
+            "dns_query", SIG_FLAG_TOSERVER, 2, PrefilterMpmDnsQueryRegister, NULL, ALPROTO_DNS, 1);
 
     DetectAppLayerInspectEngineRegister2("dns_query",
             ALPROTO_DNS, SIG_FLAG_TOSERVER, 1,

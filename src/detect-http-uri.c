@@ -110,13 +110,13 @@ void DetectHttpUriRegister (void)
     DetectAppLayerInspectEngineRegister2("http_uri", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_LINE, DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("http_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister("http_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_HTTP1, HTP_REQUEST_LINE);
 
     DetectAppLayerInspectEngineRegister2("http_uri", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetData2);
 
-    DetectAppLayerMpmRegister2("http_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister("http_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData2, ALPROTO_HTTP2, HTTP2StateDataClient);
 
     DetectBufferTypeSetDescriptionByName("http_uri",
@@ -148,14 +148,14 @@ void DetectHttpUriRegister (void)
     DetectAppLayerInspectEngineRegister2("http_raw_uri", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_LINE, DetectEngineInspectBufferGeneric, GetRawData);
 
-    DetectAppLayerMpmRegister2("http_raw_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister("http_raw_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetRawData, ALPROTO_HTTP1, HTP_REQUEST_LINE);
 
     // no difference between raw and decoded uri for HTTP2
     DetectAppLayerInspectEngineRegister2("http_raw_uri", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetData2);
 
-    DetectAppLayerMpmRegister2("http_raw_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister("http_raw_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData2, ALPROTO_HTTP2, HTTP2StateDataClient);
 
     DetectBufferTypeSetDescriptionByName("http_raw_uri",

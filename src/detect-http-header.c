@@ -436,24 +436,24 @@ void DetectHttpHeaderRegister(void)
 
     DetectAppLayerInspectEngineRegister2("http_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_HEADERS, DetectEngineInspectBufferHttpHeader, NULL);
-    DetectAppLayerMpmRegister2("http_header", SIG_FLAG_TOSERVER, 2,
+    DetectAppLayerMpmRegister("http_header", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmHttpHeaderRequestRegister, NULL, ALPROTO_HTTP1,
             0); /* not used, registered twice: HEADERS/TRAILER */
 
     DetectAppLayerInspectEngineRegister2("http_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_HEADERS, DetectEngineInspectBufferHttpHeader, NULL);
-    DetectAppLayerMpmRegister2("http_header", SIG_FLAG_TOCLIENT, 2,
+    DetectAppLayerMpmRegister("http_header", SIG_FLAG_TOCLIENT, 2,
             PrefilterMpmHttpHeaderResponseRegister, NULL, ALPROTO_HTTP1,
             0); /* not used, registered twice: HEADERS/TRAILER */
 
     DetectAppLayerInspectEngineRegister2("http_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
-    DetectAppLayerMpmRegister2("http_header", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister("http_header", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2StateDataClient);
 
     DetectAppLayerInspectEngineRegister2("http_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
             HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
-    DetectAppLayerMpmRegister2("http_header", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister("http_header", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2StateDataServer);
 
     DetectBufferTypeSetDescriptionByName("http_header",
@@ -739,11 +739,11 @@ void DetectHttpRequestHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_REQUEST_HEADER].flags |=
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerMpmRegister2("http_request_header", SIG_FLAG_TOSERVER, 2,
+    DetectAppLayerMpmRegister("http_request_header", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmHttp2HeaderRegister, NULL, ALPROTO_HTTP2, HTTP2StateOpen);
     DetectAppLayerInspectEngineRegister2("http_request_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateOpen, DetectEngineInspectHttp2Header, NULL);
-    DetectAppLayerMpmRegister2("http_request_header", SIG_FLAG_TOSERVER, 2,
+    DetectAppLayerMpmRegister("http_request_header", SIG_FLAG_TOSERVER, 2,
             PrefilterMpmHttp1HeaderRegister, NULL, ALPROTO_HTTP1, 0);
     DetectAppLayerInspectEngineRegister2("http_request_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_HEADERS, DetectEngineInspectHttp1Header, NULL);
@@ -774,11 +774,11 @@ void DetectHttpResponseHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_RESPONSE_HEADER].flags |=
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerMpmRegister2("http_response_header", SIG_FLAG_TOCLIENT, 2,
+    DetectAppLayerMpmRegister("http_response_header", SIG_FLAG_TOCLIENT, 2,
             PrefilterMpmHttp2HeaderRegister, NULL, ALPROTO_HTTP2, HTTP2StateOpen);
     DetectAppLayerInspectEngineRegister2("http_response_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
             HTTP2StateOpen, DetectEngineInspectHttp2Header, NULL);
-    DetectAppLayerMpmRegister2("http_response_header", SIG_FLAG_TOCLIENT, 2,
+    DetectAppLayerMpmRegister("http_response_header", SIG_FLAG_TOCLIENT, 2,
             PrefilterMpmHttp1HeaderRegister, NULL, ALPROTO_HTTP1, 0);
     DetectAppLayerInspectEngineRegister2("http_response_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_HEADERS, DetectEngineInspectHttp1Header, NULL);
