@@ -64,7 +64,7 @@ void DetectMQTTReasonCodeRegister (void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
-    DetectAppLayerInspectEngineRegister2("mqtt.reason_code", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
+    DetectAppLayerInspectEngineRegister("mqtt.reason_code", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectGenericList, NULL);
 
     mqtt_reason_code_id = DetectBufferTypeGetByName("mqtt.reason_code");

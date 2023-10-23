@@ -108,13 +108,13 @@ void DetectHttpStatMsgRegister (void)
     sigmatch_table[DETECT_HTTP_STAT_MSG].Setup = DetectHttpStatMsgSetupSticky;
     sigmatch_table[DETECT_HTTP_STAT_MSG].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_stat_msg", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
+    DetectAppLayerInspectEngineRegister("http_stat_msg", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_LINE, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("http_stat_msg", SIG_FLAG_TOCLIENT, 3, PrefilterGenericMpmRegister,
             GetData, ALPROTO_HTTP1, HTP_RESPONSE_LINE);
 
-    DetectAppLayerInspectEngineRegister2("http_stat_msg", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+    DetectAppLayerInspectEngineRegister("http_stat_msg", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
             HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetData2);
     DetectAppLayerMpmRegister("http_stat_msg", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetData2, ALPROTO_HTTP2, HTTP2StateDataServer);

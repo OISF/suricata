@@ -206,8 +206,7 @@ void DetectMQTTSubscribeTopicRegister (void)
     DetectAppLayerMpmRegister("mqtt.subscribe.topic", SIG_FLAG_TOSERVER, 1,
             PrefilterMpmMQTTSubscribeTopicRegister, NULL, ALPROTO_MQTT, 1);
 
-    DetectAppLayerInspectEngineRegister2("mqtt.subscribe.topic",
-            ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
+    DetectAppLayerInspectEngineRegister("mqtt.subscribe.topic", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectMQTTSubscribeTopic, NULL);
 
     DetectBufferTypeSetDescriptionByName("mqtt.subscribe.topic",

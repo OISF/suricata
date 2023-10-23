@@ -69,10 +69,10 @@ void DetectKrb5ErrCodeRegister(void)
     sigmatch_table[DETECT_AL_KRB5_ERRCODE].RegisterTests = DetectKrb5ErrCodeRegisterTests;
 #endif
 
-    DetectAppLayerInspectEngineRegister2("krb5_err_code", ALPROTO_KRB5, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister("krb5_err_code", ALPROTO_KRB5, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectGenericList, NULL);
 
-    DetectAppLayerInspectEngineRegister2("krb5_err_code", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister("krb5_err_code", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectGenericList, NULL);
 
     /* set up the PCRE for keyword parsing */

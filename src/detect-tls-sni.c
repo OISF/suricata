@@ -73,7 +73,7 @@ void DetectTlsSniRegister(void)
     sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("tls.sni", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister("tls.sni", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister(

@@ -181,7 +181,7 @@ void DetectIkeVendorRegister(void)
     DetectAppLayerMpmRegister("ike.vendor", SIG_FLAG_TOSERVER, 1, PrefilterMpmIkeVendorRegister,
             NULL, ALPROTO_IKE, 1);
 
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "ike.vendor", ALPROTO_IKE, SIG_FLAG_TOSERVER, 1, DetectEngineInspectIkeVendor, NULL);
 
     g_ike_vendor_buffer_id = DetectBufferTypeGetByName("ike.vendor");

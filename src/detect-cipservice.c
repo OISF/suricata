@@ -63,9 +63,9 @@ void DetectCipServiceRegister(void)
     sigmatch_table[DETECT_CIPSERVICE].RegisterTests
             = DetectCipServiceRegisterTests;
 #endif
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "cip", ALPROTO_ENIP, SIG_FLAG_TOSERVER, 0, DetectEngineInspectCIP, NULL);
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "cip", ALPROTO_ENIP, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectCIP, NULL);
 
     g_cip_buffer_id = DetectBufferTypeGetByName("cip");
@@ -309,9 +309,9 @@ void DetectEnipCommandRegister(void)
     sigmatch_table[DETECT_ENIPCOMMAND].RegisterTests
             = DetectEnipCommandRegisterTests;
 #endif
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "enip", ALPROTO_ENIP, SIG_FLAG_TOSERVER, 0, DetectEngineInspectENIP, NULL);
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "enip", ALPROTO_ENIP, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectENIP, NULL);
 
     g_enip_buffer_id = DetectBufferTypeGetByName("enip");

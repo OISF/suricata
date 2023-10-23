@@ -68,10 +68,10 @@ void DetectSNMPPduTypeRegister(void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
-    DetectAppLayerInspectEngineRegister2("snmp.pdu_type", ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister("snmp.pdu_type", ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectGenericList, NULL);
 
-    DetectAppLayerInspectEngineRegister2("snmp.pdu_type", ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister("snmp.pdu_type", ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectGenericList, NULL);
 
     g_snmp_pdu_type_buffer_id = DetectBufferTypeGetByName("snmp.pdu_type");
