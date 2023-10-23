@@ -79,10 +79,10 @@ void DetectDnsOpcodeRegister(void)
     sigmatch_table[DETECT_AL_DNS_OPCODE].AppLayerTxMatch =
         DetectDnsOpcodeMatch;
 
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "dns.opcode", ALPROTO_DNS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
 
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "dns.opcode", ALPROTO_DNS, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
 
     dns_opcode_list_id = DetectBufferTypeGetByName("dns.opcode");

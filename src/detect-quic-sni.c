@@ -83,7 +83,7 @@ void DetectQuicSniRegister(void)
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetSniData, ALPROTO_QUIC, 1);
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1,
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectBufferGeneric, GetSniData);
 
     quic_sni_id = DetectBufferTypeGetByName(BUFFER_NAME);

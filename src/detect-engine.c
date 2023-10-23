@@ -213,10 +213,8 @@ void DetectFrameInspectEngineRegister(const char *name, int dir,
 /** \brief register inspect engine at start up time
  *
  *  \note errors are fatal */
-void DetectAppLayerInspectEngineRegister2(const char *name,
-        AppProto alproto, uint32_t dir, int progress,
-        InspectEngineFuncPtr2 Callback2,
-        InspectionBufferGetDataPtr GetData)
+void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
+        int progress, InspectEngineFuncPtr2 Callback2, InspectionBufferGetDataPtr GetData)
 {
     BUG_ON(progress >= 48);
 

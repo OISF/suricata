@@ -201,7 +201,7 @@ void DetectSshHasshRegister(void)
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetSshData, ALPROTO_SSH, SshStateBannerDone),
-            DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, SIG_FLAG_TOSERVER,
+            DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_SSH, SIG_FLAG_TOSERVER,
                     SshStateBannerDone, DetectEngineInspectBufferGeneric, GetSshData);
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 

@@ -125,29 +125,21 @@ void DetectDceStubDataRegister(void)
 #endif
     sigmatch_table[DETECT_DCE_STUB_DATA].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectBufferGeneric,
-            GetSMBData);
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectBufferGeneric, GetSMBData);
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetSMBData, ALPROTO_SMB, 0);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectBufferGeneric,
-            GetSMBData);
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0,
+            DetectEngineInspectBufferGeneric, GetSMBData);
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetSMBData, ALPROTO_SMB, 0);
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_DCERPC, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectBufferGeneric,
-            GetDCEData);
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_DCERPC, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectBufferGeneric, GetDCEData);
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetDCEData, ALPROTO_DCERPC, 0);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
-            ALPROTO_DCERPC, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectBufferGeneric,
-            GetDCEData);
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_DCERPC, SIG_FLAG_TOCLIENT, 0,
+            DetectEngineInspectBufferGeneric, GetDCEData);
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetDCEData, ALPROTO_DCERPC, 0);
 

@@ -107,13 +107,13 @@ void DetectHttpUriRegister (void)
     sigmatch_table[DETECT_HTTP_URI].Setup = DetectHttpUriSetupSticky;
     sigmatch_table[DETECT_HTTP_URI].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_uri", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+    DetectAppLayerInspectEngineRegister("http_uri", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_LINE, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("http_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_HTTP1, HTP_REQUEST_LINE);
 
-    DetectAppLayerInspectEngineRegister2("http_uri", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+    DetectAppLayerInspectEngineRegister("http_uri", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetData2);
 
     DetectAppLayerMpmRegister("http_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
@@ -145,14 +145,14 @@ void DetectHttpUriRegister (void)
     sigmatch_table[DETECT_HTTP_URI_RAW].Setup = DetectHttpRawUriSetupSticky;
     sigmatch_table[DETECT_HTTP_URI_RAW].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("http_raw_uri", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+    DetectAppLayerInspectEngineRegister("http_raw_uri", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_LINE, DetectEngineInspectBufferGeneric, GetRawData);
 
     DetectAppLayerMpmRegister("http_raw_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetRawData, ALPROTO_HTTP1, HTP_REQUEST_LINE);
 
     // no difference between raw and decoded uri for HTTP2
-    DetectAppLayerInspectEngineRegister2("http_raw_uri", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+    DetectAppLayerInspectEngineRegister("http_raw_uri", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2StateDataClient, DetectEngineInspectBufferGeneric, GetData2);
 
     DetectAppLayerMpmRegister("http_raw_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,

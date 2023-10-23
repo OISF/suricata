@@ -198,9 +198,8 @@ void DetectKrb5CNameRegister(void)
     DetectAppLayerMpmRegister("krb5_cname", SIG_FLAG_TOCLIENT, 2, PrefilterMpmKrb5CNameRegister,
             NULL, ALPROTO_KRB5, 1);
 
-    DetectAppLayerInspectEngineRegister2("krb5_cname",
-            ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectKrb5CName, NULL);
+    DetectAppLayerInspectEngineRegister(
+            "krb5_cname", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectKrb5CName, NULL);
 
     DetectBufferTypeSetDescriptionByName("krb5_cname",
             "Kerberos 5 ticket client name");

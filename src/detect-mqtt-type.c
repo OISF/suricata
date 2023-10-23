@@ -57,7 +57,7 @@ void DetectMQTTTypeRegister (void)
     sigmatch_table[DETECT_AL_MQTT_TYPE].RegisterTests = MQTTTypeRegisterTests;
 #endif
 
-    DetectAppLayerInspectEngineRegister2(
+    DetectAppLayerInspectEngineRegister(
             "mqtt.type", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
 
     mqtt_type_id = DetectBufferTypeGetByName("mqtt.type");
