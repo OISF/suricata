@@ -18,8 +18,8 @@ Installing from the source distribution files gives the most control over the Su
 
 Basic steps::
 
-    tar xzvf suricata-6.0.0.tar.gz
-    cd suricata-6.0.0
+    tar xzvf suricata-7.0.0.tar.gz
+    cd suricata-7.0.0
     ./configure
     make
     make install
@@ -28,6 +28,7 @@ This will install Suricata into ``/usr/local/bin/``, use the default
 configuration in ``/usr/local/etc/suricata/`` and will output to
 ``/usr/local/var/log/suricata``
 
+You can obtain the source code for the latest release from our [downloads page](https://suricata.io/download/).
 
 Common configure options
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -162,8 +163,6 @@ Compilation
 
 Follow these steps from your Suricata directory::
 
-    ./scripts/bundle.sh
-    ./autogen.sh
     ./configure # you may want to add additional parameters here
     # ./configure --help to get all available parameters
     make -j8 # j is for paralleling, you may de/increase depending on your CPU
