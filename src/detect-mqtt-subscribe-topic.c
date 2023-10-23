@@ -203,9 +203,8 @@ void DetectMQTTSubscribeTopicRegister (void)
                 subscribe_topic_match_limit);
     }
 
-    DetectAppLayerMpmRegister2("mqtt.subscribe.topic", SIG_FLAG_TOSERVER, 1,
-            PrefilterMpmMQTTSubscribeTopicRegister, NULL,
-            ALPROTO_MQTT, 1);
+    DetectAppLayerMpmRegister("mqtt.subscribe.topic", SIG_FLAG_TOSERVER, 1,
+            PrefilterMpmMQTTSubscribeTopicRegister, NULL, ALPROTO_MQTT, 1);
 
     DetectAppLayerInspectEngineRegister2("mqtt.subscribe.topic",
             ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,

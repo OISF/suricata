@@ -80,7 +80,7 @@ void DetectQuicUaRegister(void)
     sigmatch_table[DETECT_AL_QUIC_UA].RegisterTests = DetectQuicUaRegisterTests;
 #endif
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetUaData, ALPROTO_QUIC, 1);
 
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1,
