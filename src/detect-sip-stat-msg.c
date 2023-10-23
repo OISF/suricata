@@ -107,9 +107,8 @@ void DetectSipStatMsgRegister (void)
             SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 3,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_SIP,
-            1);
+    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 3, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_SIP, 1);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
