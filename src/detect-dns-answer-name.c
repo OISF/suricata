@@ -24,14 +24,19 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-dns-answer-name.h"
+#include "util-profiling.h"
 #include "rust.h"
 
 static int DetectSetup(DetectEngineCtx *, Signature *, const char *);
 static uint8_t DetectEngineInspectCb(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
+static int PrefilterMpmRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistry *mpm_reg, int list_id);
+
 static int dns_response_answer_name_id = 0;
 
 void DetectDnsResponseAnswerNameRegister(void)
@@ -42,6 +47,9 @@ void DetectDnsResponseAnswerNameRegister(void)
     sigmatch_table[DETECT_AL_DNS_RESPONSE_ANSWER_NAME].Setup = DetectSetup;
     sigmatch_table[DETECT_AL_DNS_RESPONSE_ANSWER_NAME].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_DNS_RESPONSE_ANSWER_NAME].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+
+    DetectAppLayerMpmRegister(
+            keyword, SIG_FLAG_TOCLIENT, 2, PrefilterMpmRegister, NULL, ALPROTO_DNS, 1);
 
     /* register inspect engines */
     DetectAppLayerInspectEngineRegister(
@@ -114,4 +122,52 @@ static uint8_t DetectEngineInspectCb(DetectEngineCtx *de_ctx, DetectEngineThread
     }
 
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+}
+
+typedef struct PrefilterMpm {
+    int list_id;
+    const MpmCtx *mpm_ctx;
+    const DetectEngineTransforms *transforms;
+} PrefilterMpm;
+
+static void PrefilterTx(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f,
+        void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
+{
+    SCEnter();
+
+    const PrefilterMpm *ctx = (const PrefilterMpm *)pectx;
+    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
+    const int list_id = ctx->list_id;
+
+    for (uint32_t i = 0;; i++) {
+        InspectionBuffer *buffer = GetBuffer(det_ctx, ctx->transforms, txv, i, list_id);
+        if (buffer == NULL) {
+            break;
+        }
+
+        if (buffer->inspect_len >= mpm_ctx->minlen) {
+            (void)mpm_table[mpm_ctx->mpm_type].Search(
+                    mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq, buffer->inspect, buffer->inspect_len);
+            PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
+        }
+    }
+}
+
+static void PrefilterMpmFree(void *ptr)
+{
+    SCFree(ptr);
+}
+
+static int PrefilterMpmRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistry *mpm_reg, int list_id)
+{
+    PrefilterMpm *pectx = SCCalloc(1, sizeof(*pectx));
+    if (pectx == NULL)
+        return -1;
+    pectx->list_id = list_id;
+    pectx->mpm_ctx = mpm_ctx;
+    pectx->transforms = &mpm_reg->transforms;
+
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTx, mpm_reg->app_v2.alproto,
+            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmFree, mpm_reg->pname);
 }
