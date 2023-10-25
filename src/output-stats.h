@@ -34,6 +34,8 @@ typedef struct StatsRecord_ {
     const char *tm_name;
     int64_t value;  /**< total value */
     int64_t pvalue; /**< prev value (may be higher for memuse counters) */
+    int64_t counter_value;  /**< counter value used to calculate this stats */
+    int64_t counter_pvalue; /**< counter prev value used to calculate this stats */
 } StatsRecord;
 
 typedef struct StatsTable_ {

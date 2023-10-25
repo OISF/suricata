@@ -56,8 +56,9 @@ enum {
     STATS_TYPE_AVERAGE = 2,
     STATS_TYPE_MAXIMUM = 3,
     STATS_TYPE_FUNC = 4,
+    STATS_TYPE_TIMED = 5,
 
-    STATS_TYPE_MAX = 5,
+    STATS_TYPE_MAX = 6,
 };
 
 /**
@@ -778,6 +779,8 @@ static int StatsOutput(ThreadVars *tv)
             StatsRecord *r = &stats_table.tstats[offset];
             /* xfer previous value to pvalue and reset value */
             r->pvalue = r->value;
+            r->counter_pvalue = r->counter_value;
+            r->counter_value = e->value;
             r->value = 0;
             r->name = table[c].name;
             r->short_name = table[c].short_name;
@@ -788,6 +791,10 @@ static int StatsOutput(ThreadVars *tv)
                     if (e->value > 0 && e->updates > 0) {
                         r->value = (uint64_t)(e->value / e->updates);
                     }
+                    break;
+                case STATS_TYPE_TIMED:
+                    r->value = r->counter_value - r->counter_pvalue;
+                    r->value = (uint64_t)(r->value / stats_tts);
                     break;
                 default:
                     r->value = e->value;
@@ -801,12 +808,14 @@ static int StatsOutput(ThreadVars *tv)
 
     /* transfer 'merge table' to final stats table */
     for (uint16_t x = 0; x < max_id; x++) {
+        struct CountersMergeTable *m = &merge_table[x];
         /* xfer previous value to pvalue and reset value */
+        table[x].counter_pvalue = table[x].counter_value;
+        table[x].counter_value = m->value;
         table[x].pvalue = table[x].value;
         table[x].value = 0;
         table[x].tm_name = "Total";
 
-        struct CountersMergeTable *m = &merge_table[x];
         switch (m->type) {
             case STATS_TYPE_MAXIMUM:
                 if (m->value > table[x].value)
@@ -816,6 +825,10 @@ static int StatsOutput(ThreadVars *tv)
                 if (m->value > 0 && m->updates > 0) {
                     table[x].value = (uint64_t)(m->value / m->updates);
                 }
+                break;
+            case STATS_TYPE_TIMED:
+                table[x].value = table[x].counter_value - table[x].counter_pvalue;
+                table[x].value = (uint64_t)(table[x].value / stats_tts);
                 break;
             default:
                 table[x].value += m->value;
@@ -1004,6 +1017,25 @@ uint16_t StatsRegisterMaxCounter(const char *name, struct ThreadVars_ *tv)
             (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
             &tv->perf_public_ctx,
             STATS_TYPE_MAXIMUM, NULL);
+    return id;
+}
+
+/**
+ * \brief Registers a counter, whose value holds the aggregate value assigned
+ *        to it in the stats interval, divided by seconds.
+ *
+ * \param name Name of the counter, to be registered
+ * \param tv    Pointer to the ThreadVars instance for which the counter would
+ *              be registered
+ *
+ * \retval id Counter id for the newly registered counter, or the already
+ *            present counter
+ */
+uint16_t StatsRegisterTmdCounter(const char *name, struct ThreadVars_ *tv)
+{
+    uint16_t id = StatsRegisterQualifiedCounter(name,
+            (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
+            &tv->perf_public_ctx, STATS_TYPE_TIMED, NULL);
     return id;
 }
 

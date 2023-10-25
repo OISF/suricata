@@ -564,6 +564,8 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_mpls = StatsRegisterCounter("decoder.mpls", tv);
     dtv->counter_avg_pkt_size = StatsRegisterAvgCounter("decoder.avg_pkt_size", tv);
     dtv->counter_max_pkt_size = StatsRegisterMaxCounter("decoder.max_pkt_size", tv);
+    dtv->counter_pkts_per_sec = StatsRegisterTmdCounter("decoder.pkts_per_sec", tv);
+    dtv->counter_bytes_per_sec = StatsRegisterTmdCounter("decoder.bytes_per_sec", tv);
     dtv->counter_max_mac_addrs_src = StatsRegisterMaxCounter("decoder.max_mac_addrs_src", tv);
     dtv->counter_max_mac_addrs_dst = StatsRegisterMaxCounter("decoder.max_mac_addrs_dst", tv);
     dtv->counter_erspan = StatsRegisterMaxCounter("decoder.erspan", tv);
@@ -655,8 +657,9 @@ void DecodeUpdatePacketCounters(ThreadVars *tv,
                                 const DecodeThreadVars *dtv, const Packet *p)
 {
     StatsIncr(tv, dtv->counter_pkts);
-    //StatsIncr(tv, dtv->counter_pkts_per_sec);
+    StatsIncr(tv, dtv->counter_pkts_per_sec);
     StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
+    StatsAddUI64(tv, dtv->counter_bytes_per_sec, GET_PKT_LEN(p));
     StatsAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
     StatsSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
 }
