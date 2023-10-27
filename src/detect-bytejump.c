@@ -61,8 +61,6 @@
 
 static DetectParseRegex parse_regex;
 
-static int DetectBytejumpMatch(DetectEngineThreadCtx *det_ctx,
-                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static DetectBytejumpData *DetectBytejumpParse(
         DetectEngineCtx *de_ctx, const char *optstr, char **nbytes, char **offset);
 static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr);
@@ -76,7 +74,7 @@ void DetectBytejumpRegister (void)
     sigmatch_table[DETECT_BYTEJUMP].name = "byte_jump";
     sigmatch_table[DETECT_BYTEJUMP].desc = "allow the ability to select a <num of bytes> from an <offset> and move the detection pointer to that position";
     sigmatch_table[DETECT_BYTEJUMP].url = "/rules/payload-keywords.html#byte-jump";
-    sigmatch_table[DETECT_BYTEJUMP].Match = DetectBytejumpMatch;
+    sigmatch_table[DETECT_BYTEJUMP].Match = NULL;
     sigmatch_table[DETECT_BYTEJUMP].Setup = DetectBytejumpSetup;
     sigmatch_table[DETECT_BYTEJUMP].Free  = DetectBytejumpFree;
 #ifdef UNITTESTS
@@ -263,118 +261,6 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     det_ctx->buffer_offset = jumpptr - payload;
 
     SCReturnBool(true);
-}
-
-static int DetectBytejumpMatch(DetectEngineThreadCtx *det_ctx,
-                        Packet *p, const Signature *s, const SigMatchCtx *ctx)
-{
-    const DetectBytejumpData *data = (const DetectBytejumpData *)ctx;
-    const uint8_t *ptr = NULL;
-    const uint8_t *jumpptr = NULL;
-    uint16_t len = 0;
-    uint64_t val = 0;
-    int extbytes;
-
-    if (p->payload_len == 0) {
-        return 0;
-    }
-
-    /* Calculate the ptr value for the bytejump and length remaining in
-     * the packet from that point.
-     */
-    if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
-        ptr = p->payload + det_ctx->buffer_offset;
-        DEBUG_VALIDATE_BUG_ON(p->payload_len - det_ctx->buffer_offset > UINT16_MAX);
-        len = (uint16_t)(p->payload_len - det_ctx->buffer_offset);
-
-        /* No match if there is no relative base */
-        if (ptr == NULL || len == 0) {
-            return 0;
-        }
-
-        ptr += data->offset;
-        len -= data->offset;
-    }
-    else {
-        ptr = p->payload + data->offset;
-        DEBUG_VALIDATE_BUG_ON(p->payload_len - data->offset > UINT16_MAX);
-        len = (uint16_t)(p->payload_len - data->offset);
-    }
-
-    /* Verify the to-be-extracted data is within the packet */
-    if (ptr < p->payload || data->nbytes > len) {
-        SCLogDebug("Data not within packet "
-               "payload=%p, ptr=%p, len=%d, nbytes=%d",
-               p->payload, ptr, len, data->nbytes);
-        return 0;
-    }
-
-    /* Extract the byte data */
-    if (data->flags & DETECT_BYTEJUMP_STRING) {
-        extbytes = ByteExtractStringUint64(&val, data->base,
-                                           data->nbytes, (const char *)ptr);
-        if (extbytes <= 0) {
-            SCLogDebug("error extracting %d bytes of string data: %d",
-                    data->nbytes, extbytes);
-            return -1;
-        }
-    }
-    else {
-        int endianness = (data->flags & DETECT_BYTEJUMP_LITTLE) ? BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
-        extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
-        if (extbytes != data->nbytes) {
-            SCLogDebug("error extracting %d bytes of numeric data: %d",
-                    data->nbytes, extbytes);
-            return -1;
-        }
-    }
-
-    //printf("VAL: (%" PRIu64 " x %" PRIu32 ") + %d + %" PRId32 "\n", val, data->multiplier, extbytes, data->post_offset);
-
-    /* Adjust the jump value based on flags */
-    val *= data->multiplier;
-    if (data->flags & DETECT_BYTEJUMP_ALIGN) {
-        if ((val % 4) != 0) {
-            val += 4 - (val % 4);
-        }
-    }
-    val += data->post_offset;
-
-    /* Calculate the jump location */
-    if (data->flags & DETECT_BYTEJUMP_BEGIN) {
-        jumpptr = p->payload + val;
-        //printf("NEWVAL: payload %p + %ld = %p\n", p->payload, val, jumpptr);
-    }
-    else {
-        val += extbytes;
-        jumpptr = ptr + val;
-        //printf("NEWVAL: ptr %p + %ld = %p\n", ptr, val, jumpptr);
-    }
-
-
-    /* Validate that the jump location is still in the packet
-     * \todo Should this validate it is still in the *payload*?
-     */
-    if ((jumpptr < p->payload) || (jumpptr >= p->payload + p->payload_len)) {
-        SCLogDebug("Jump location (%p) is not within "
-               "packet (%p-%p)", jumpptr, p->payload, p->payload + p->payload_len - 1);
-        return 0;
-    }
-
-#ifdef DEBUG
-    if (SCLogDebugEnabled()) {
-        const uint8_t *sptr = (data->flags & DETECT_BYTEJUMP_BEGIN) ? p->payload
-                                                              : ptr;
-        SCLogDebug("jumping %" PRId64 " bytes from %p (%08x) to %p (%08x)",
-               val, sptr, (int)(sptr - p->payload),
-               jumpptr, (int)(jumpptr - p->payload));
-    }
-#endif /* DEBUG */
-
-    /* Adjust the detection context to the jump location. */
-    det_ctx->buffer_offset = jumpptr - p->payload;
-
-    return 1;
 }
 
 static DetectBytejumpData *DetectBytejumpParse(
