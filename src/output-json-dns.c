@@ -512,14 +512,22 @@ static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
         if (dnslog_ctx->flags & LOG_ANSWERS) {
             ConfNode *format;
             if ((format = ConfNodeLookupChild(conf, "formats")) != NULL) {
-                dnslog_ctx->flags &= ~LOG_FORMAT_ALL;
+                uint64_t flags = 0;
                 ConfNode *field;
                 TAILQ_FOREACH (field, &format->head, next) {
                     if (strcasecmp(field->val, "detailed") == 0) {
-                        dnslog_ctx->flags |= LOG_FORMAT_DETAILED;
+                        flags |= LOG_FORMAT_DETAILED;
                     } else if (strcasecmp(field->val, "grouped") == 0) {
-                        dnslog_ctx->flags |= LOG_FORMAT_GROUPED;
+                        flags |= LOG_FORMAT_GROUPED;
+                    } else {
+                        SCLogError("Invalid JSON DNS log format: %s", field->val);
                     }
+                }
+                if (flags) {
+                    dnslog_ctx->flags &= ~LOG_FORMAT_ALL;
+                    dnslog_ctx->flags |= flags;
+                } else {
+                    SCLogWarning("Empty EVE DNS format array, using defaults");
                 }
             } else {
                 dnslog_ctx->flags |= LOG_FORMAT_ALL;
