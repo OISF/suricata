@@ -545,7 +545,7 @@ static int StreamTcpReassembleTest01(void)
     OverlapBSDBefore(UINT_MAX - 10);
     OverlapBSDSame(UINT_MAX - 10);
     OverlapBSDAfter(UINT_MAX - 10);
-    return 1;
+    PASS;
 }
 
 
@@ -553,7 +553,7 @@ static int StreamTcpReassembleTest01(void)
  */
 static int StreamTcpReassembleTest02(void)
 {
-    OverlapVISTA(0);
+   FAIL_IF(OverlapVISTA(0) ==0);
     OverlapVISTABefore(0);
     OverlapVISTASame(0);
     OverlapVISTAAfter(0);
@@ -572,7 +572,7 @@ static int StreamTcpReassembleTest02(void)
     OverlapVISTABefore(UINT_MAX - 10);
     OverlapVISTASame(UINT_MAX - 10);
     OverlapVISTAAfter(UINT_MAX - 10);
-    return 1;
+    PASS;
 }
 
 
@@ -580,7 +580,7 @@ static int StreamTcpReassembleTest02(void)
  */
 static int StreamTcpReassembleTest03(void)
 {
-    OverlapLINUX(0);
+   FAIL_IF(OverlapLINUX(0) ==0);
     OverlapLINUXBefore(0);
     OverlapLINUXSame(0);
     OverlapLINUXAfter(0);
@@ -599,14 +599,14 @@ static int StreamTcpReassembleTest03(void)
     OverlapLINUXBefore(UINT_MAX - 10);
     OverlapLINUXSame(UINT_MAX - 10);
     OverlapLINUXAfter(UINT_MAX - 10);
-    return 1;
+    PASS;
 }
 
 /** \test policy Linux old
  */
 static int StreamTcpReassembleTest04(void)
 {
-    OverlapLINUXOLD(0);
+   FAIL_IF(OverlapLINUXOLD(0) ==0);
     OverlapLINUXOLDBefore(0);
     OverlapLINUXOLDSame(0);
     OverlapLINUXOLDAfter(0);
@@ -625,14 +625,14 @@ static int StreamTcpReassembleTest04(void)
     OverlapLINUXOLDBefore(UINT_MAX - 10);
     OverlapLINUXOLDSame(UINT_MAX - 10);
     OverlapLINUXOLDAfter(UINT_MAX - 10);
-    return 1;
+    PASS;
 }
 
 /** \test Solaris policy
  */
 static int StreamTcpReassembleTest05(void)
 {
-    OverlapSOLARIS(0);
+   FAIL_IF(OverlapSOLARIS(0) ==0);
     OverlapSOLARISBefore(0);
     OverlapSOLARISSame(0);
     OverlapSOLARISAfter(0);
@@ -651,14 +651,14 @@ static int StreamTcpReassembleTest05(void)
     OverlapSOLARISBefore(UINT_MAX - 10);
     OverlapSOLARISSame(UINT_MAX - 10);
     OverlapSOLARISAfter(UINT_MAX - 10);
-    return 1;
+    PASS;
 }
 
 /** \test policy 'last'
  */
 static int StreamTcpReassembleTest06(void)
 {
-    OverlapLAST(0);
+   FAIL_IF(OverlapLAST(0) ==0);
     OverlapLASTBefore(0);
     OverlapLASTSame(0);
     OverlapLASTAfter(0);
@@ -677,7 +677,7 @@ static int StreamTcpReassembleTest06(void)
     OverlapLASTBefore(UINT_MAX - 10);
     OverlapLASTSame(UINT_MAX - 10);
     OverlapLASTAfter(UINT_MAX - 10);
-    return 1;
+    PASS;
 }
 
 static int StreamTcpReassembleTest30 (void)
@@ -686,6 +686,7 @@ static int StreamTcpReassembleTest30 (void)
     OVERLAP_STEP(3, "BBB", 3, "\0\0BBB", 5);
     OVERLAP_STEP(1, "AA", 2, "AABBB", 5);
     OVERLAP_END;
+    PASS;
 }
 
 static int StreamTcpReassembleTest31 (void)
@@ -694,6 +695,7 @@ static int StreamTcpReassembleTest31 (void)
     OVERLAP_STEP(1, "AA", 2, "AA", 2);
     OVERLAP_STEP(3, "BBB", 3, "AABBB", 5);
     OVERLAP_END;
+    PASS;
 }
 
 static int StreamTcpReassembleTest32(void)
@@ -705,6 +707,7 @@ static int StreamTcpReassembleTest32(void)
     OVERLAP_STEP(6,  "aaaaaaaaaaaaaaaaaaaa", 20, "\0\0\0\0\0aaaaaaaaaaaaaaaaaaaaBBBBB\0\0\0\0\0\0\0\0\0\0CCCCCCCCCC", 50);
     OVERLAP_STEP(1,  "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 50, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 50);
     OVERLAP_END;
+    PASS;
 }
 
 void StreamTcpListRegisterTests(void)
