@@ -42,11 +42,8 @@ void RunModeFilePcapRegister(void)
     RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE, "single", "Single threaded pcap file mode",
             RunModeFilePcapSingle, NULL);
     RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE, "autofp",
-            "Multi threaded pcap file mode.  Packets from "
-            "each flow are assigned to a single detect thread, "
-            "unlike \"pcap-file-auto\" where packets from "
-            "the same flow can be processed by any detect "
-            "thread",
+            "Multi-threaded pcap file mode. Packets from each flow are assigned to a consistent "
+            "detection thread",
             RunModeFilePcapAutoFp, NULL);
 
     return;
