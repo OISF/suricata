@@ -166,23 +166,18 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     /* Calculate the ptr value for the bytejump and length remaining in
      * the packet from that point.
      */
-    ptr = payload;
-    len = payload_len;
+    ptr = payload + offset;
+    len = payload_len - offset;
     if (flags & DETECT_BYTEJUMP_RELATIVE) {
         ptr += det_ctx->buffer_offset;
         len -= det_ctx->buffer_offset;
 
-        ptr += offset;
-        len -= offset;
+        SCLogDebug("[relative] after: ptr %p [len %d]", ptr, len);
 
         /* No match if there is no relative base */
-        if (ptr == NULL || len <= 0) {
+        if (ptr == NULL || (nbytes && len <= 0)) {
             SCReturnBool(false);
         }
-    }
-    else {
-        ptr += offset;
-        len -= offset;
     }
 
     /* Verify the to-be-extracted data is within the packet */
@@ -243,7 +238,7 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     if (jumpptr < payload) {
         jumpptr = payload;
         SCLogDebug("jump location is before buffer start; resetting to buffer start");
-    } else if (jumpptr >= (payload + payload_len)) {
+    } else if (jumpptr > (payload + payload_len)) {
         SCLogDebug("Jump location (%" PRIu64 ") is not within payload (%" PRIu32 ")",
                 payload_len + val, payload_len);
         SCReturnBool(false);
