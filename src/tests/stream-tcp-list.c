@@ -526,7 +526,7 @@ static int OverlapLASTAfter(uint32_t isn)
  */
 static int StreamTcpReassembleTest01(void)
 {
-    FAIL_IF(OverlapBSD(0) == 0);
+    FAIL_IF_NOT(OverlapBSD(0) == 0);
     OverlapBSDBefore(0);
     OverlapBSDSame(0);
     OverlapBSDAfter(0);
@@ -545,7 +545,6 @@ static int StreamTcpReassembleTest01(void)
     OverlapBSDBefore(UINT_MAX - 10);
     OverlapBSDSame(UINT_MAX - 10);
     OverlapBSDAfter(UINT_MAX - 10);
-    return 1;
 }
 
 
@@ -553,7 +552,7 @@ static int StreamTcpReassembleTest01(void)
  */
 static int StreamTcpReassembleTest02(void)
 {
-    OverlapVISTA(0);
+    FAIL_IF_NOT(OverlapVISTA(0) == 0);
     OverlapVISTABefore(0);
     OverlapVISTASame(0);
     OverlapVISTAAfter(0);
@@ -572,7 +571,6 @@ static int StreamTcpReassembleTest02(void)
     OverlapVISTABefore(UINT_MAX - 10);
     OverlapVISTASame(UINT_MAX - 10);
     OverlapVISTAAfter(UINT_MAX - 10);
-    return 1;
 }
 
 
@@ -580,7 +578,7 @@ static int StreamTcpReassembleTest02(void)
  */
 static int StreamTcpReassembleTest03(void)
 {
-    OverlapLINUX(0);
+    FAIL_IF_NOT(OverlapLINUX(0) == 0);
     OverlapLINUXBefore(0);
     OverlapLINUXSame(0);
     OverlapLINUXAfter(0);
@@ -599,14 +597,13 @@ static int StreamTcpReassembleTest03(void)
     OverlapLINUXBefore(UINT_MAX - 10);
     OverlapLINUXSame(UINT_MAX - 10);
     OverlapLINUXAfter(UINT_MAX - 10);
-    return 1;
 }
 
 /** \test policy Linux old
  */
 static int StreamTcpReassembleTest04(void)
 {
-    OverlapLINUXOLD(0);
+    FAIL_IF_NOT(OverlapLINUXOLD(0) == 0);
     OverlapLINUXOLDBefore(0);
     OverlapLINUXOLDSame(0);
     OverlapLINUXOLDAfter(0);
@@ -625,14 +622,13 @@ static int StreamTcpReassembleTest04(void)
     OverlapLINUXOLDBefore(UINT_MAX - 10);
     OverlapLINUXOLDSame(UINT_MAX - 10);
     OverlapLINUXOLDAfter(UINT_MAX - 10);
-    return 1;
 }
 
 /** \test Solaris policy
  */
 static int StreamTcpReassembleTest05(void)
 {
-    OverlapSOLARIS(0);
+    FAIL_IF_NOT(OverlapSOLARIS(0) == 0);
     OverlapSOLARISBefore(0);
     OverlapSOLARISSame(0);
     OverlapSOLARISAfter(0);
@@ -651,14 +647,13 @@ static int StreamTcpReassembleTest05(void)
     OverlapSOLARISBefore(UINT_MAX - 10);
     OverlapSOLARISSame(UINT_MAX - 10);
     OverlapSOLARISAfter(UINT_MAX - 10);
-    return 1;
 }
 
 /** \test policy 'last'
  */
 static int StreamTcpReassembleTest06(void)
 {
-    OverlapLAST(0);
+    FAIL_IF_NOT(OverlapLAST(0) == 0);
     OverlapLASTBefore(0);
     OverlapLASTSame(0);
     OverlapLASTAfter(0);
@@ -677,7 +672,6 @@ static int StreamTcpReassembleTest06(void)
     OverlapLASTBefore(UINT_MAX - 10);
     OverlapLASTSame(UINT_MAX - 10);
     OverlapLASTAfter(UINT_MAX - 10);
-    return 1;
 }
 
 static int StreamTcpReassembleTest30 (void)
