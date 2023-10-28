@@ -38,9 +38,7 @@ static int MemcmpTest01 (void)
     uint8_t a[] = "abcd";
     uint8_t b[] = "abcd";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 0)
-        return 0;
-
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
     return 1;
 }
 
@@ -49,9 +47,7 @@ static int MemcmpTest02 (void)
     uint8_t a[] = "abcdabcdabcdabcd";
     uint8_t b[] = "abcdabcdabcdabcd";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 0)
-        return 0;
-
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
     return 1;
 }
 
@@ -60,9 +56,7 @@ static int MemcmpTest03 (void)
     uint8_t a[] = "abcdabcd";
     uint8_t b[] = "abcdabcd";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 0)
-        return 0;
-
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
     return 1;
 }
 
@@ -71,10 +65,10 @@ static int MemcmpTest04 (void)
     uint8_t a[] = "abcd";
     uint8_t b[] = "abcD";
 
-    int r = SCMemcmp(a, b, sizeof(a)-1);
+    int r = SCMemcmp(a, b, sizeof(a) - 1);
     if (r != 1) {
         printf("%s != %s, but memcmp returned %d: ", a, b, r);
-        return 0;
+        FAIL;
     }
 
     return 1;
@@ -85,9 +79,7 @@ static int MemcmpTest05 (void)
     uint8_t a[] = "abcdabcdabcdabcd";
     uint8_t b[] = "abcDabcdabcdabcd";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 1)
-        return 0;
-
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
     return 1;
 }
 
@@ -96,9 +88,7 @@ static int MemcmpTest06 (void)
     uint8_t a[] = "abcdabcd";
     uint8_t b[] = "abcDabcd";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 1)
-        return 0;
-
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
     return 1;
 }
 
@@ -107,9 +97,7 @@ static int MemcmpTest07 (void)
     uint8_t a[] = "abcd";
     uint8_t b[] = "abcde";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 0)
-        return 0;
-
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
     return 1;
 }
 
@@ -118,9 +106,7 @@ static int MemcmpTest08 (void)
     uint8_t a[] = "abcdabcdabcdabcd";
     uint8_t b[] = "abcdabcdabcdabcde";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 0)
-        return 0;
-
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);        
     return 1;
 }
 
@@ -129,9 +115,7 @@ static int MemcmpTest09 (void)
     uint8_t a[] = "abcdabcd";
     uint8_t b[] = "abcdabcde";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 0)
-        return 0;
-
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
     return 1;
 }
 
@@ -140,9 +124,7 @@ static int MemcmpTest10 (void)
     uint8_t a[] = "abcd";
     uint8_t b[] = "Zbcde";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 1)
-        return 0;
-
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);        
     return 1;
 }
 
@@ -150,10 +132,8 @@ static int MemcmpTest11 (void)
 {
     uint8_t a[] = "abcdabcdabcdabcd";
     uint8_t b[] = "Zbcdabcdabcdabcde";
-
-    if (SCMemcmp(a, b, sizeof(a)-1) != 1)
-        return 0;
-
+ 
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
     return 1;
 }
 
@@ -162,9 +142,7 @@ static int MemcmpTest12 (void)
     uint8_t a[] = "abcdabcd";
     uint8_t b[] = "Zbcdabcde";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 1)
-        return 0;
-
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
     return 1;
 }
 
@@ -173,9 +151,7 @@ static int MemcmpTest13 (void)
     uint8_t a[] = "abcdefgh";
     uint8_t b[] = "AbCdEfGhIjK";
 
-    if (SCMemcmpLowercase(a, b, sizeof(a)-1) != 0)
-        return 0;
-
+    FAIL_IF(SCMemcmpLowercase(a, b, sizeof(a) - 1) != 0);
     return 1;
 }
 
@@ -216,8 +192,8 @@ static int MemcmpTest14 (void)
     SCLogInfo("ticks passed %"PRIu64, ticks_end - ticks_start);
 
     printf("r1 %d\n", r1);
-    if (r1 != (51 * TEST_RUNS))
-        return 0;
+
+    FAIL_IF(r1 != (51 * TEST_RUNS));
 #endif
     return 1;
 }
@@ -255,8 +231,8 @@ static int MemcmpTest15 (void)
     SCLogInfo("ticks passed %"PRIu64, ticks_end - ticks_start);
 
     printf("r2 %d\n", r2);
-    if (r2 != (51 * TEST_RUNS))
-        return 0;
+
+    FAIL_IF(r2 != (51 * TEST_RUNS));
 #endif
     return 1;
 }
@@ -294,8 +270,8 @@ static int MemcmpTest16 (void)
     SCLogInfo("ticks passed %"PRIu64, ticks_end - ticks_start);
 
     printf("r3 %d\n", r3);
-    if (r3 != (51 * TEST_RUNS))
-        return 0;
+
+    FAIL_IF(r3 != (51 * TEST_RUNS));
 #endif
     return 1;
 }
@@ -333,8 +309,8 @@ static int MemcmpTest17 (void)
     SCLogInfo("ticks passed %"PRIu64, ticks_end - ticks_start);
 
     printf("r4 %d\n", r4);
-    if (r4 != (51 * TEST_RUNS))
-        return 0;
+
+    FAIL_IF(r4 != (51 * TEST_RUNS));
 #endif
     return 1;
 }
@@ -368,10 +344,8 @@ static int MemcmpTest18 (void)
 {
     struct MemcmpTest18Tests *t = memcmp_tests18_tests;
 
-    while (t && t->a != NULL) {
-
-        if (SCMemcmpLowercase(t->a, t->b, strlen(t->a)-1) != t->result)
-            return 0;
+    while (t && t->a != NULL) {   
+        FAIL_IF(SCMemcmpLowercase(t->a, t->b, strlen(t->a) - 1) != t->result);  
         t++;
     }
 
