@@ -28,12 +28,6 @@
 #include "output.h" /* DEFAULT_LOG_* */
 #include "output-eve-null.h"
 
-#ifdef OS_WIN32
-void NullLogInitialize(void)
-{
-}
-#else /* !OS_WIN32 */
-
 #define OUTPUT_NAME "nullsink"
 
 static int NullLogInit(ConfNode *conf, bool threaded, void **init_data)
@@ -82,4 +76,3 @@ void NullLogInitialize(void)
         FatalError("Failed to register EVE file type: %s", OUTPUT_NAME);
     }
 }
-#endif /* !OS_WIN32 */
