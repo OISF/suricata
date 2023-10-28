@@ -38,10 +38,8 @@ static int MemcmpTest01 (void)
     uint8_t a[] = "abcd";
     uint8_t b[] = "abcd";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 0)
-        return 0;
-
-    return 1;
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    PASS;
 }
 
 static int MemcmpTest02 (void)
@@ -49,10 +47,8 @@ static int MemcmpTest02 (void)
     uint8_t a[] = "abcdabcdabcdabcd";
     uint8_t b[] = "abcdabcdabcdabcd";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 0)
-        return 0;
-
-    return 1;
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    PASS;
 }
 
 static int MemcmpTest03 (void)
@@ -60,10 +56,8 @@ static int MemcmpTest03 (void)
     uint8_t a[] = "abcdabcd";
     uint8_t b[] = "abcdabcd";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 0)
-        return 0;
-
-    return 1;
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    PASS;
 }
 
 static int MemcmpTest04 (void)
@@ -71,13 +65,10 @@ static int MemcmpTest04 (void)
     uint8_t a[] = "abcd";
     uint8_t b[] = "abcD";
 
-    int r = SCMemcmp(a, b, sizeof(a)-1);
-    if (r != 1) {
-        printf("%s != %s, but memcmp returned %d: ", a, b, r);
-        return 0;
-    }
+    int r = SCMemcmp(a, b, sizeof(a) - 1);
+    FAIL_IF(r != 1);
 
-    return 1;
+    PASS;
 }
 
 static int MemcmpTest05 (void)
@@ -85,10 +76,8 @@ static int MemcmpTest05 (void)
     uint8_t a[] = "abcdabcdabcdabcd";
     uint8_t b[] = "abcDabcdabcdabcd";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 1)
-        return 0;
-
-    return 1;
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
+    PASS;
 }
 
 static int MemcmpTest06 (void)
@@ -96,10 +85,8 @@ static int MemcmpTest06 (void)
     uint8_t a[] = "abcdabcd";
     uint8_t b[] = "abcDabcd";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 1)
-        return 0;
-
-    return 1;
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
+    PASS;
 }
 
 static int MemcmpTest07 (void)
@@ -107,10 +94,8 @@ static int MemcmpTest07 (void)
     uint8_t a[] = "abcd";
     uint8_t b[] = "abcde";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 0)
-        return 0;
-
-    return 1;
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    PASS;
 }
 
 static int MemcmpTest08 (void)
@@ -118,10 +103,8 @@ static int MemcmpTest08 (void)
     uint8_t a[] = "abcdabcdabcdabcd";
     uint8_t b[] = "abcdabcdabcdabcde";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 0)
-        return 0;
-
-    return 1;
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    PASS;
 }
 
 static int MemcmpTest09 (void)
@@ -129,10 +112,8 @@ static int MemcmpTest09 (void)
     uint8_t a[] = "abcdabcd";
     uint8_t b[] = "abcdabcde";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 0)
-        return 0;
-
-    return 1;
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 0);
+    PASS;
 }
 
 static int MemcmpTest10 (void)
@@ -140,10 +121,8 @@ static int MemcmpTest10 (void)
     uint8_t a[] = "abcd";
     uint8_t b[] = "Zbcde";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 1)
-        return 0;
-
-    return 1;
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
+    PASS;
 }
 
 static int MemcmpTest11 (void)
@@ -151,10 +130,8 @@ static int MemcmpTest11 (void)
     uint8_t a[] = "abcdabcdabcdabcd";
     uint8_t b[] = "Zbcdabcdabcdabcde";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 1)
-        return 0;
-
-    return 1;
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
+    PASS;
 }
 
 static int MemcmpTest12 (void)
@@ -162,10 +139,8 @@ static int MemcmpTest12 (void)
     uint8_t a[] = "abcdabcd";
     uint8_t b[] = "Zbcdabcde";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 1)
-        return 0;
-
-    return 1;
+    FAIL_IF(SCMemcmp(a, b, sizeof(a) - 1) != 1);
+    PASS;
 }
 
 static int MemcmpTest13 (void)
@@ -173,10 +148,8 @@ static int MemcmpTest13 (void)
     uint8_t a[] = "abcdefgh";
     uint8_t b[] = "AbCdEfGhIjK";
 
-    if (SCMemcmpLowercase(a, b, sizeof(a)-1) != 0)
-        return 0;
-
-    return 1;
+    FAIL_IF(SCMemcmpLowercase(a, b, sizeof(a) - 1) != 0);
+    PASS;
 }
 
 #include "util-cpu.h"
@@ -188,8 +161,12 @@ static int MemcmpTest14 (void)
 #ifdef PROFILING
     uint64_t ticks_start = 0;
     uint64_t ticks_end = 0;
-    const char *a[] = { "0123456789012345", "abc", "abcdefghij", "suricata", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
-    const char *b[] = { "1234567890123456", "abc", "abcdefghik", "suricatb", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
+    const char *a[] = { "0123456789012345", "abc", "abcdefghij", "suricata", "test", "xyz",
+        "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+        "abcdefghijklmnopqrstuvwxyz", NULL };
+    const char *b[] = { "1234567890123456", "abc", "abcdefghik", "suricatb", "test", "xyz",
+        "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+        "abcdefghijklmnopqrstuvwxyz", NULL };
 
     int t = 0;
     int i, j;
@@ -207,19 +184,21 @@ static int MemcmpTest14 (void)
                 // printf("b[%d] = %s\n", j, b[j]);
                 size_t blen = strlen(b[j]) - 1;
 
-                r1 += (memcmp((uint8_t *)a[i], (uint8_t *)b[j], (alen < blen) ? alen : blen) ? 1 : 0);
+                r1 += (memcmp((uint8_t *)a[i], (uint8_t *)b[j], (alen < blen) ? alen : blen) ? 1
+                                                                                             : 0);
             }
         }
     }
     ticks_end = UtilCpuGetTicks();
-    printf("memcmp(%d) \t\t\t%"PRIu64"\n", TEST_RUNS, ((uint64_t)(ticks_end - ticks_start))/TEST_RUNS);
-    SCLogInfo("ticks passed %"PRIu64, ticks_end - ticks_start);
+    printf("memcmp(%d) \t\t\t%" PRIu64 "\n", TEST_RUNS,
+            ((uint64_t)(ticks_end - ticks_start)) / TEST_RUNS);
+    SCLogInfo("ticks passed %" PRIu64, ticks_end - ticks_start);
 
     printf("r1 %d\n", r1);
-    if (r1 != (51 * TEST_RUNS))
-        return 0;
+
+    FAIL_IF(r1 != (51 * TEST_RUNS));
 #endif
-    return 1;
+    PASS;
 }
 
 static int MemcmpTest15 (void)
@@ -227,8 +206,12 @@ static int MemcmpTest15 (void)
 #ifdef PROFILING
     uint64_t ticks_start = 0;
     uint64_t ticks_end = 0;
-    const char *a[] = { "0123456789012345", "abc", "abcdefghij", "suricata", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
-    const char *b[] = { "1234567890123456", "abc", "abcdefghik", "suricatb", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
+    const char *a[] = { "0123456789012345", "abc", "abcdefghij", "suricata", "test", "xyz",
+        "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+        "abcdefghijklmnopqrstuvwxyz", NULL };
+    const char *b[] = { "1234567890123456", "abc", "abcdefghik", "suricatb", "test", "xyz",
+        "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+        "abcdefghijklmnopqrstuvwxyz", NULL };
 
     int t = 0;
     int i, j;
@@ -246,19 +229,21 @@ static int MemcmpTest15 (void)
                 // printf("b[%d] = %s\n", j, b[j]);
                 size_t blen = strlen(b[j]) - 1;
 
-                r2 += MemcmpLowercase((uint8_t *)a[i], (uint8_t *)b[j], (alen < blen) ? alen : blen);
+                r2 += MemcmpLowercase(
+                        (uint8_t *)a[i], (uint8_t *)b[j], (alen < blen) ? alen : blen);
             }
         }
     }
     ticks_end = UtilCpuGetTicks();
-    printf("MemcmpLowercase(%d) \t\t%"PRIu64"\n", TEST_RUNS, ((uint64_t)(ticks_end - ticks_start))/TEST_RUNS);
-    SCLogInfo("ticks passed %"PRIu64, ticks_end - ticks_start);
+    printf("MemcmpLowercase(%d) \t\t%" PRIu64 "\n", TEST_RUNS,
+            ((uint64_t)(ticks_end - ticks_start)) / TEST_RUNS);
+    SCLogInfo("ticks passed %" PRIu64, ticks_end - ticks_start);
 
     printf("r2 %d\n", r2);
-    if (r2 != (51 * TEST_RUNS))
-        return 0;
+
+    FAIL_IF(r2 != (51 * TEST_RUNS));
 #endif
-    return 1;
+    PASS;
 }
 
 static int MemcmpTest16 (void)
@@ -266,8 +251,12 @@ static int MemcmpTest16 (void)
 #ifdef PROFILING
     uint64_t ticks_start = 0;
     uint64_t ticks_end = 0;
-    const char *a[] = { "0123456789012345", "abc", "abcdefghij", "suricata", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
-    const char *b[] = { "1234567890123456", "abc", "abcdefghik", "suricatb", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
+    const char *a[] = { "0123456789012345", "abc", "abcdefghij", "suricata", "test", "xyz",
+        "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+        "abcdefghijklmnopqrstuvwxyz", NULL };
+    const char *b[] = { "1234567890123456", "abc", "abcdefghik", "suricatb", "test", "xyz",
+        "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+        "abcdefghijklmnopqrstuvwxyz", NULL };
 
     int t = 0;
     int i, j;
@@ -290,14 +279,15 @@ static int MemcmpTest16 (void)
         }
     }
     ticks_end = UtilCpuGetTicks();
-    printf("SCMemcmp(%d) \t\t\t%"PRIu64"\n", TEST_RUNS, ((uint64_t)(ticks_end - ticks_start))/TEST_RUNS);
-    SCLogInfo("ticks passed %"PRIu64, ticks_end - ticks_start);
+    printf("SCMemcmp(%d) \t\t\t%" PRIu64 "\n", TEST_RUNS,
+            ((uint64_t)(ticks_end - ticks_start)) / TEST_RUNS);
+    SCLogInfo("ticks passed %" PRIu64, ticks_end - ticks_start);
 
     printf("r3 %d\n", r3);
-    if (r3 != (51 * TEST_RUNS))
-        return 0;
+
+    FAIL_IF(r3 != (51 * TEST_RUNS));
 #endif
-    return 1;
+    PASS;
 }
 
 static int MemcmpTest17 (void)
@@ -305,8 +295,12 @@ static int MemcmpTest17 (void)
 #ifdef PROFILING
     uint64_t ticks_start = 0;
     uint64_t ticks_end = 0;
-    const char *a[] = { "0123456789012345", "abc", "abcdefghij", "suricata", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
-    const char *b[] = { "1234567890123456", "abc", "abcdefghik", "suricatb", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
+    const char *a[] = { "0123456789012345", "abc", "abcdefghij", "suricata", "test", "xyz",
+        "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+        "abcdefghijklmnopqrstuvwxyz", NULL };
+    const char *b[] = { "1234567890123456", "abc", "abcdefghik", "suricatb", "test", "xyz",
+        "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+        "abcdefghijklmnopqrstuvwxyz", NULL };
 
     int t = 0;
     int i, j;
@@ -324,19 +318,21 @@ static int MemcmpTest17 (void)
                 // printf("b[%d] = %s\n", j, b[j]);
                 size_t blen = strlen(b[j]) - 1;
 
-                r4 += SCMemcmpLowercase((uint8_t *)a[i], (uint8_t *)b[j], (alen < blen) ? alen : blen);
+                r4 += SCMemcmpLowercase(
+                        (uint8_t *)a[i], (uint8_t *)b[j], (alen < blen) ? alen : blen);
             }
         }
     }
     ticks_end = UtilCpuGetTicks();
-    printf("SCMemcmpLowercase(%d) \t\t%"PRIu64"\n", TEST_RUNS, ((uint64_t)(ticks_end - ticks_start))/TEST_RUNS);
-    SCLogInfo("ticks passed %"PRIu64, ticks_end - ticks_start);
+    printf("SCMemcmpLowercase(%d) \t\t%" PRIu64 "\n", TEST_RUNS,
+            ((uint64_t)(ticks_end - ticks_start)) / TEST_RUNS);
+    SCLogInfo("ticks passed %" PRIu64, ticks_end - ticks_start);
 
     printf("r4 %d\n", r4);
-    if (r4 != (51 * TEST_RUNS))
-        return 0;
+
+    FAIL_IF(r4 != (51 * TEST_RUNS));
 #endif
-    return 1;
+    PASS;
 }
 
 struct MemcmpTest18Tests {
@@ -344,38 +340,88 @@ struct MemcmpTest18Tests {
     const char *b;
     int result;
 } memcmp_tests18_tests[] = {
-        { "abcdefgh", "!bcdefgh", 1, },
-        { "?bcdefgh", "!bcdefgh", 1, },
-        { "!bcdefgh", "abcdefgh", 1, },
-        { "!bcdefgh", "?bcdefgh", 1, },
-        { "zbcdefgh", "bbcdefgh", 1, },
+    {
+            "abcdefgh",
+            "!bcdefgh",
+            1,
+    },
+    {
+            "?bcdefgh",
+            "!bcdefgh",
+            1,
+    },
+    {
+            "!bcdefgh",
+            "abcdefgh",
+            1,
+    },
+    {
+            "!bcdefgh",
+            "?bcdefgh",
+            1,
+    },
+    {
+            "zbcdefgh",
+            "bbcdefgh",
+            1,
+    },
 
-        { "abcdefgh12345678", "!bcdefgh12345678", 1, },
-        { "?bcdefgh12345678", "!bcdefgh12345678", 1, },
-        { "!bcdefgh12345678", "abcdefgh12345678", 1, },
-        { "!bcdefgh12345678", "?bcdefgh12345678", 1, },
-        { "bbcdefgh12345678", "zbcdefgh12345678", 1, },
+    {
+            "abcdefgh12345678",
+            "!bcdefgh12345678",
+            1,
+    },
+    {
+            "?bcdefgh12345678",
+            "!bcdefgh12345678",
+            1,
+    },
+    {
+            "!bcdefgh12345678",
+            "abcdefgh12345678",
+            1,
+    },
+    {
+            "!bcdefgh12345678",
+            "?bcdefgh12345678",
+            1,
+    },
+    {
+            "bbcdefgh12345678",
+            "zbcdefgh12345678",
+            1,
+    },
 
-        { "abcdefgh", "abcdefgh", 0, },
-        { "abcdefgh", "Abcdefgh", 0, },
-        { "abcdefgh12345678", "Abcdefgh12345678", 0, },
+    {
+            "abcdefgh",
+            "abcdefgh",
+            0,
+    },
+    {
+            "abcdefgh",
+            "Abcdefgh",
+            0,
+    },
+    {
+            "abcdefgh12345678",
+            "Abcdefgh12345678",
+            0,
+    },
 
-        { NULL, NULL, 0 },
+    { NULL, NULL, 0 },
 
-    };
+};
 
 static int MemcmpTest18 (void)
 {
     struct MemcmpTest18Tests *t = memcmp_tests18_tests;
 
     while (t && t->a != NULL) {
-
-        if (SCMemcmpLowercase(t->a, t->b, strlen(t->a)-1) != t->result)
-            return 0;
+        FAIL_IF(SCMemcmpLowercase(t->a, t->b, strlen(t->a) - 1) != t->result);
         t++;
     }
 
-    return 1;
+    PASS;
 }
 
 #endif /* UNITTESTS */
@@ -403,4 +449,3 @@ void MemcmpRegisterTests(void)
     UtRegisterTest("MemcmpTest18", MemcmpTest18);
 #endif /* UNITTESTS */
 }
-
