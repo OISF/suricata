@@ -61,7 +61,6 @@ typedef struct SCEveFileType_ {
     TAILQ_ENTRY(SCEveFileType_) entries;
 } SCEveFileType;
 
-bool SCPluginRegisterEveFileType(SCEveFileType *);
 bool SCRegisterEveFileType(SCEveFileType *);
 
 typedef struct SCCapturePlugin_ {

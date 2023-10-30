@@ -72,7 +72,6 @@ typedef struct LogFilePluginCtx_ {
 typedef struct LogFileCtx_ {
     union {
         FILE *fp;
-        void *plugin_data;
 #ifdef HAVE_LIBHIREDIS
         void *redis;
 #endif
