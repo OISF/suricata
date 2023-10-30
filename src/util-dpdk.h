@@ -117,11 +117,33 @@
 
 #include "util-device.h"
 
+typedef struct {
+    uint32_t size_kb;
+    uint16_t allocated;
+    uint16_t free;
+} HugepageInfo;
+
+// Structure to hold information about individual NUMA nodes in the system and
+// and their respective allocated hugepages
+// So for e.g. NUMA node 0 there can be 2 hugepage_size - 2 MB and 1 GB
+// Each hugepage size will then have a record of number of allocated/free hpages
+typedef struct {
+    uint16_t num_hugepage_sizes;
+    HugepageInfo *hugepages;
+} NodeInfo;
+
+typedef struct {
+    uint16_t num_nodes;
+    NodeInfo *nodes;
+} SystemHugepageSnapshot;
+
 void DPDKCleanupEAL(void);
 
 void DPDKCloseDevice(LiveDevice *ldev);
 void DPDKFreeDevice(LiveDevice *ldev);
-void DPDKEvaluateHugepages(void);
+SystemHugepageSnapshot *SystemHugepageSnapshotCreate(void);
+void SystemHugepageSnapshotDestroy(SystemHugepageSnapshot *s);
+void DPDKEvaluateHugepages(SystemHugepageSnapshot *pre_s, SystemHugepageSnapshot *post_s);
 
 #ifdef HAVE_DPDK
 const char *DPDKGetPortNameByPortID(uint16_t pid);

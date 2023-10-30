@@ -15,6 +15,57 @@ learn more about the basic setup for DPDK.
 The following sections contain examples of how to set up DPDK and Suricata for
 more obscure use-cases.
 
+Hugepage analysis
+-----------------
+
+Suricata can analyse utilized hugepages on the system. This can be particularly 
+beneficial when there's a potential overallocation of hugepages. 
+The hugepage analysis is designed to examine the hugepages in use and 
+provide recommendations on an adequate number of hugepages. This then ensures 
+Suricata operates optimally while leaving sufficient memory for other 
+applications on the system. The analysis works by comparing snapshots of the
+hugepages before and after Suricata is initialized. After the initialization,
+no more hugepages are allocated by Suricata.
+The hugepage analysis can be seen in the Perf log level and is printed out 
+during the Suricata start. It is only printed when Suricata detects some 
+disrepancies in the system related to hugepage allocation.
+
+It's recommended to perform this analysis from a "clean" state - 
+that is a state when all your hugepages are free. It is especially recommended 
+when no other hugepage-dependent applications are running on your system.
+This can be checked in one of two ways:
+
+.. code-block:: 
+
+  # global check
+  cat /proc/meminfo
+
+  HugePages_Total:    1024
+  HugePages_Free:     1024
+
+  # per-numa check depends on NUMA node ID, hugepage size, 
+  # and nr_hugepages/free_hugepages - e.g.:
+  cat /sys/devices/system/node/node0/hugepages/hugepages-2048kB/free_hugepages
+
+After the termination of Suricata and other hugepage-related applications, 
+if the count of free hugepages is not equal with the total number of hugepages, 
+it indicates some hugepages were not freed completely.
+This can be fixed by removing DPDK-related files from the hugepage-mounted 
+directory (filesystem). 
+It's important to exercise caution while removing hugepages, especially when 
+other hugepage-dependent applications are in operation, as this action will 
+disrupt their memory functionality.
+Removing the DPDK files from the hugepage directory can often be done as:
+
+.. code-block:: bash
+
+  sudo rm -rf /dev/hugepages/rtemap_*
+
+  # To check where hugepages are mounted:
+  dpdk-hugepages.py -s
+  # or 
+  mount | grep huge
+
 Bond interface
 --------------
 
