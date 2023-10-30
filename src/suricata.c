@@ -127,6 +127,7 @@
 #include "util-ebpf.h"
 #include "util-exception-policy.h"
 #include "util-host-os-info.h"
+#include "util-hugepages.h"
 #include "util-ioctl.h"
 #include "util-landlock.h"
 #include "util-luajit.h"
@@ -2979,6 +2980,7 @@ int SuricataMain(int argc, char **argv)
         goto out;
     }
 
+    SystemHugepageSnapshot *prerun_snap = SystemHugepageSnapshotCreate();
     SCSetStartTime(&suricata);
     RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode,
             suricata.capture_plugin_name, suricata.capture_plugin_args);
@@ -3037,7 +3039,10 @@ int SuricataMain(int argc, char **argv)
 
     PostRunStartedDetectSetup(&suricata);
 
-    DPDKEvaluateHugepages();
+    SystemHugepageSnapshot *postrun_snap = SystemHugepageSnapshotCreate();
+    SystemHugepageEvaluateHugepages(prerun_snap, postrun_snap);
+    SystemHugepageSnapshotDestroy(prerun_snap);
+    SystemHugepageSnapshotDestroy(postrun_snap);
 
     SCPledge();
     SuricataMainLoop(&suricata);
