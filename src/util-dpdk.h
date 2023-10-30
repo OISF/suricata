@@ -121,7 +121,6 @@ void DPDKCleanupEAL(void);
 
 void DPDKCloseDevice(LiveDevice *ldev);
 void DPDKFreeDevice(LiveDevice *ldev);
-void DPDKEvaluateHugepages(void);
 
 #ifdef HAVE_DPDK
 const char *DPDKGetPortNameByPortID(uint16_t pid);

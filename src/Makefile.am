@@ -552,6 +552,7 @@ noinst_HEADERS = \
 	util-hash-string.h \
 	util-host-info.h \
 	util-host-os-info.h \
+	util-hugepages.h \
 	util-hyperscan.h \
 	util-ioctl.h \
 	util-ip.h \
@@ -1152,6 +1153,7 @@ libsuricata_c_a_SOURCES = \
 	util-hash-string.c \
 	util-host-info.c \
 	util-host-os-info.c \
+	util-hugepages.c \
 	util-hyperscan.c \
 	util-ioctl.c \
 	util-ip.c \
