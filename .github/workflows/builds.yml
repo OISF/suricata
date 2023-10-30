@@ -284,6 +284,18 @@ jobs:
           test -e /usr/local/lib/suricata/python/suricata/update/configs/modify.conf
           test -e /usr/local/lib/suricata/python/suricata/update/configs/threshold.in
           test -e /usr/local/lib/suricata/python/suricata/update/configs/update.yaml
+      - name: Build C json filetype plugin
+        working-directory: examples/plugins/c-json-filetype
+        run: make
+      - name: Check C json filetype plugin
+        run: test -e examples/plugins/c-json-filetype/.libs/json-filetype.so.0.0.0
+      - name: Installing headers and library
+        run: |
+          make install-headers
+          make install-library
+      - name: Test plugin build with Makefile.example
+        working-directory: examples/plugins/c-json-filetype
+        run: PATH=/usr/local/bin:$PATH make -f Makefile.example
 
   almalinux-9-templates:
     name: AlmaLinux 9 Test Templates
