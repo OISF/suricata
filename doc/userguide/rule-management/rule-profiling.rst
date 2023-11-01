@@ -6,11 +6,11 @@ can be activated on demand from the unix socket and dumped from it.
 
 To start profiling ::
 
- surictasc -c ruleset-profile-start
+ suricatasc -c ruleset-profile-start
 
 To stop profiling ::
 
- surictasc -c ruleset-profile-stop
+ suricatasc -c ruleset-profile-stop
 
 To dump profiling ::
 
@@ -18,9 +18,9 @@ To dump profiling ::
 
 A typical scenario to get rules performance would be ::
 
- surictasc -c ruleset-profile-start
+ suricatasc -c ruleset-profile-start
  sleep 30
- surictasc -c ruleset-profile-stop
+ suricatasc -c ruleset-profile-stop
  suricatasc -c ruleset-profile
 
 On busy systems, using the sampling capability to capture performance
