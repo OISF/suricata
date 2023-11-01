@@ -1167,16 +1167,14 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     DetectPort *list = NULL;
     while (s) {
         /* IP Only rules are handled separately */
-        if (s->type == SIG_TYPE_IPONLY)
+        if ((s->type == SIG_TYPE_IPONLY) ||
+                /* Protocol does not match the Signature protocol and is neither IP or pkthdr */
+                (!(s->proto.proto[ipproto / 8] & (1 << (ipproto % 8)) ||
+                        (s->proto.flags & DETECT_PROTO_ANY))) ||
+                /* Direction does not match Signature direction */
+                ((direction == SIG_FLAG_TOSERVER) && (!(s->flags & SIG_FLAG_TOSERVER))) ||
+                ((direction == SIG_FLAG_TOCLIENT) && (!(s->flags & SIG_FLAG_TOCLIENT)))) {
             goto next;
-        if (!(s->proto.proto[ipproto / 8] & (1<<(ipproto % 8)) || (s->proto.flags & DETECT_PROTO_ANY)))
-            goto next;
-        if (direction == SIG_FLAG_TOSERVER) {
-            if (!(s->flags & SIG_FLAG_TOSERVER))
-                goto next;
-        } else if (direction == SIG_FLAG_TOCLIENT) {
-            if (!(s->flags & SIG_FLAG_TOCLIENT))
-                goto next;
         }
 
         DetectPort *p = NULL;
