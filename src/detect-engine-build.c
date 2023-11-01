@@ -1141,8 +1141,7 @@ static int RuleSetWhitelist(Signature *s)
             SCLogDebug("Rule %u No MPM. Payload inspecting. Whitelisting SGH's.", s->id);
             wl = 55;
 
-        } else if (DetectFlagsSignatureNeedsSynPackets(s) &&
-                   DetectFlagsSignatureNeedsSynOnlyPackets(s)) {
+        } else if (DetectFlagsSignatureNeedsSynOnlyPackets(s)) {
             SCLogDebug("Rule %u Needs SYN, so inspected often. Whitelisting SGH's.", s->id);
             wl = 33;
         }
@@ -1189,12 +1188,10 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
 
         /* see if we want to exclude directionless sigs that really care only for
          * to_server syn scans/floods */
-        if ((direction == SIG_FLAG_TOCLIENT) &&
-             DetectFlagsSignatureNeedsSynPackets(s) &&
-             DetectFlagsSignatureNeedsSynOnlyPackets(s) &&
-            ((s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) &&
-            (!(s->dp->port == 0 && s->dp->port2 == 65535)))
-        {
+        if ((direction == SIG_FLAG_TOCLIENT) && DetectFlagsSignatureNeedsSynOnlyPackets(s) &&
+                ((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) ==
+                        (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) &&
+                (!(s->dp->port == 0 && s->dp->port2 == 65535))) {
             SCLogWarning("rule %u: SYN-only to port(s) %u:%u "
                          "w/o direction specified, disabling for toclient direction",
                     s->id, s->dp->port, s->dp->port2);
