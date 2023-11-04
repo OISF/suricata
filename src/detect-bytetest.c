@@ -759,15 +759,11 @@ static int g_dce_stub_data_buffer_id = 0;
  */
 static int DetectBytetestTestParse01(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4, =, 1 , 0", NULL, NULL, NULL);
-    if (data != NULL) {
-        DetectBytetestFree(NULL, data);
-        result = 1;
-    }
-
-    return result;
+    FAIL_IF_NULL(data);
+    DetectBytetestFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -775,23 +771,18 @@ static int DetectBytetestTestParse01(void)
  */
 static int DetectBytetestTestParse02(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4, !=, 1, 0", NULL, NULL, NULL);
-    if (data != NULL) {
-        if (   (data->op == DETECT_BYTETEST_OP_EQ)
-            && (data->nbytes == 4)
-            && (data->value == 1)
-            && (data->offset == 0)
-            && (data->neg_op)
-            && (data->base == DETECT_BYTETEST_BASE_UNSET))
-        {
-            result = 1;
-        }
-        DetectBytetestFree(NULL, data);
-    }
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_EQ);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->value == 1);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->neg_op);
+    FAIL_IF_NOT(data->base == DETECT_BYTETEST_BASE_UNSET);
 
-    return result;
+    DetectBytetestFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -799,24 +790,19 @@ static int DetectBytetestTestParse02(void)
  */
 static int DetectBytetestTestParse03(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4, !=, 1, 0, relative", NULL, NULL, NULL);
-    if (data != NULL) {
-        if (   (data->op == DETECT_BYTETEST_OP_EQ)
-            && (data->nbytes == 4)
-            && (data->value == 1)
-            && (data->offset == 0)
-            && (data->neg_op)
-            && (data->flags == DETECT_BYTETEST_RELATIVE)
-            && (data->base == DETECT_BYTETEST_BASE_UNSET))
-        {
-            result = 1;
-        }
-        DetectBytetestFree(NULL, data);
-    }
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_EQ);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->value == 1);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->neg_op);
+    FAIL_IF_NOT(data->flags == DETECT_BYTETEST_RELATIVE);
+    FAIL_IF_NOT(data->base == DETECT_BYTETEST_BASE_UNSET);
 
-    return result;
+    DetectBytetestFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -824,24 +810,18 @@ static int DetectBytetestTestParse03(void)
  */
 static int DetectBytetestTestParse04(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4, !=, 1, 0, string, oct", NULL, NULL, NULL);
-    if (data != NULL) {
-        if (   (data->op == DETECT_BYTETEST_OP_EQ)
-            && (data->nbytes == 4)
-            && (data->value == 1)
-            && (data->offset == 0)
-            && (data->neg_op)
-            && (data->flags == DETECT_BYTETEST_STRING)
-            && (data->base == DETECT_BYTETEST_BASE_OCT))
-        {
-            result = 1;
-        }
-        DetectBytetestFree(NULL, data);
-    }
-
-    return result;
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_EQ);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->value == 1);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->neg_op);
+    FAIL_IF_NOT(data->flags == DETECT_BYTETEST_STRING);
+    FAIL_IF_NOT(data->base == DETECT_BYTETEST_BASE_OCT);
+    DetectBytetestFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -849,23 +829,17 @@ static int DetectBytetestTestParse04(void)
  */
 static int DetectBytetestTestParse05(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4, =, 1, 0, string, dec", NULL, NULL, NULL);
-    if (data != NULL) {
-        if (   (data->op == DETECT_BYTETEST_OP_EQ)
-            && (data->nbytes == 4)
-            && (data->value == 1)
-            && (data->offset == 0)
-            && (data->flags == DETECT_BYTETEST_STRING)
-            && (data->base == DETECT_BYTETEST_BASE_DEC))
-        {
-            result = 1;
-        }
-        DetectBytetestFree(NULL, data);
-    }
-
-    return result;
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_EQ);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->value == 1);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->flags == DETECT_BYTETEST_STRING);
+    FAIL_IF_NOT(data->base == DETECT_BYTETEST_BASE_DEC);
+    DetectBytetestFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -873,23 +847,17 @@ static int DetectBytetestTestParse05(void)
  */
 static int DetectBytetestTestParse06(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4, >, 1, 0, string, hex", NULL, NULL, NULL);
-    if (data != NULL) {
-        if (   (data->op == DETECT_BYTETEST_OP_GT)
-            && (data->nbytes == 4)
-            && (data->value == 1)
-            && (data->offset == 0)
-            && (data->flags == DETECT_BYTETEST_STRING)
-            && (data->base == DETECT_BYTETEST_BASE_HEX))
-        {
-            result = 1;
-        }
-        DetectBytetestFree(NULL, data);
-    }
-
-    return result;
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_GT);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->value == 1);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->flags == DETECT_BYTETEST_STRING);
+    FAIL_IF_NOT(data->base == DETECT_BYTETEST_BASE_HEX);
+    DetectBytetestFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -897,23 +865,17 @@ static int DetectBytetestTestParse06(void)
  */
 static int DetectBytetestTestParse07(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4, <, 5, 0, big", NULL, NULL, NULL);
-    if (data != NULL) {
-        if (   (data->op == DETECT_BYTETEST_OP_LT)
-            && (data->nbytes == 4)
-            && (data->value == 5)
-            && (data->offset == 0)
-            && (data->flags & DETECT_BYTETEST_BIG)
-            && (data->base == DETECT_BYTETEST_BASE_UNSET))
-        {
-            result = 1;
-        }
-        DetectBytetestFree(NULL, data);
-    }
-
-    return result;
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_LT);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->value == 5);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->flags & DETECT_BYTETEST_BIG);
+    FAIL_IF_NOT(data->base == DETECT_BYTETEST_BASE_UNSET);
+    DetectBytetestFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -921,23 +883,18 @@ static int DetectBytetestTestParse07(void)
  */
 static int DetectBytetestTestParse08(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4, <, 5, 0, little", NULL, NULL, NULL);
-    if (data != NULL) {
-        if (   (data->op == DETECT_BYTETEST_OP_LT)
-            && (data->nbytes == 4)
-            && (data->value == 5)
-            && (data->offset == 0)
-            && (data->flags == DETECT_BYTETEST_LITTLE)
-            && (data->base == DETECT_BYTETEST_BASE_UNSET))
-        {
-            result = 1;
-        }
-        DetectBytetestFree(NULL, data);
-    }
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_LT);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->value == 5);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->flags == DETECT_BYTETEST_LITTLE);
+    FAIL_IF_NOT(data->base == DETECT_BYTETEST_BASE_UNSET);
 
-    return result;
+    DetectBytetestFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -945,23 +902,17 @@ static int DetectBytetestTestParse08(void)
  */
 static int DetectBytetestTestParse09(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4, !, 5, 0", NULL, NULL, NULL);
-    if (data != NULL) {
-        if (   (data->op == DETECT_BYTETEST_OP_EQ)
-            && (data->nbytes == 4)
-            && (data->value == 5)
-            && (data->offset == 0)
-            && (data->neg_op)
-            && (data->base == DETECT_BYTETEST_BASE_UNSET))
-        {
-            result = 1;
-        }
-        DetectBytetestFree(NULL, data);
-    }
-
-    return result;
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_EQ);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->value == 5);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->neg_op);
+    FAIL_IF_NOT(data->base == DETECT_BYTETEST_BASE_UNSET);
+    DetectBytetestFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -969,24 +920,19 @@ static int DetectBytetestTestParse09(void)
  */
 static int DetectBytetestTestParse10(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("	4 , ! &, 5	, 0 , little ", NULL, NULL, NULL);
-    if (data != NULL) {
-        if (   (data->op == DETECT_BYTETEST_OP_AND)
-            && (data->nbytes == 4)
-            && (data->value == 5)
-            && (data->offset == 0)
-            && (data->neg_op)
-            && (data->flags == DETECT_BYTETEST_LITTLE)
-            && (data->base == DETECT_BYTETEST_BASE_UNSET))
-        {
-            result = 1;
-        }
-        DetectBytetestFree(NULL, data);
-    }
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_AND);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->value == 5);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->neg_op);
+    FAIL_IF_NOT(data->flags == DETECT_BYTETEST_LITTLE);
+    FAIL_IF_NOT(data->base == DETECT_BYTETEST_BASE_UNSET);
 
-    return result;
+    DetectBytetestFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -994,26 +940,20 @@ static int DetectBytetestTestParse10(void)
  */
 static int DetectBytetestTestParse11(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4,!^,5,0,little,string,relative,hex", NULL, NULL, NULL);
-    if (data != NULL) {
-        if (   (data->op == DETECT_BYTETEST_OP_OR)
-            && (data->nbytes == 4)
-            && (data->value == 5)
-            && (data->offset == 0)
-            && (data->neg_op)
-            && (data->flags == (DETECT_BYTETEST_LITTLE
-                                |DETECT_BYTETEST_STRING
-                                |DETECT_BYTETEST_RELATIVE))
-            && (data->base == DETECT_BYTETEST_BASE_HEX))
-        {
-            result = 1;
-        }
-        DetectBytetestFree(NULL, data);
-    }
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_OR);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->value == 5);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->neg_op);
+    FAIL_IF_NOT(data->flags ==
+                (DETECT_BYTETEST_LITTLE | DETECT_BYTETEST_STRING | DETECT_BYTETEST_RELATIVE));
+    FAIL_IF_NOT(data->base == DETECT_BYTETEST_BASE_HEX);
 
-    return result;
+    DetectBytetestFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -1021,14 +961,11 @@ static int DetectBytetestTestParse11(void)
  */
 static int DetectBytetestTestParse12(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4, =, 1, 0, hex", NULL, NULL, NULL);
-    if (data == NULL) {
-        result = 1;
-    }
+    FAIL_IF_NOT_NULL(data);
 
-    return result;
+    PASS;
 }
 
 /**
@@ -1036,14 +973,10 @@ static int DetectBytetestTestParse12(void)
  */
 static int DetectBytetestTestParse13(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("9, =, 1, 0", NULL, NULL, NULL);
-    if (data == NULL) {
-        result = 1;
-    }
-
-    return result;
+    FAIL_IF_NOT_NULL(data);
+    PASS;
 }
 
 /**
@@ -1051,23 +984,18 @@ static int DetectBytetestTestParse13(void)
  */
 static int DetectBytetestTestParse14(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("23,=,0xffffffffffffffffULL,0,string,oct", NULL, NULL, NULL);
-    if (data != NULL) {
-        if (   (data->op == DETECT_BYTETEST_OP_EQ)
-            && (data->nbytes == 23)
-            && (data->value == 0xffffffffffffffffULL)
-            && (data->offset == 0)
-            && (data->flags == DETECT_BYTETEST_STRING)
-            && (data->base == DETECT_BYTETEST_BASE_OCT))
-        {
-            result = 1;
-        }
-        DetectBytetestFree(NULL, data);
-    }
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_EQ);
+    FAIL_IF_NOT(data->nbytes == 23);
+    FAIL_IF_NOT(data->value == 0xffffffffffffffffULL);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->flags == DETECT_BYTETEST_STRING);
+    FAIL_IF_NOT(data->base == DETECT_BYTETEST_BASE_OCT);
 
-    return result;
+    DetectBytetestFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -1075,14 +1003,11 @@ static int DetectBytetestTestParse14(void)
  */
 static int DetectBytetestTestParse15(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("24, =, 0xffffffffffffffffULL, 0, string", NULL, NULL, NULL);
-    if (data == NULL) {
-        result = 1;
-    }
+    FAIL_IF_NOT_NULL(data);
 
-    return result;
+    PASS;
 }
 
 /**
@@ -1090,14 +1015,11 @@ static int DetectBytetestTestParse15(void)
  */
 static int DetectBytetestTestParse16(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4,=,0,0xffffffffffffffffULL", NULL, NULL, NULL);
-    if (data == NULL) {
-        result = 1;
-    }
+    FAIL_IF_NOT_NULL(data);
 
-    return result;
+    PASS;
 }
 
 /**
@@ -1105,21 +1027,17 @@ static int DetectBytetestTestParse16(void)
  */
 static int DetectBytetestTestParse17(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4, <, 5, 0, dce", NULL, NULL, NULL);
-    if (data != NULL) {
-        if ( (data->op == DETECT_BYTETEST_OP_LT) &&
-             (data->nbytes == 4) &&
-             (data->value == 5) &&
-             (data->offset == 0) &&
-             (data->flags & DETECT_BYTETEST_DCE) ) {
-            result = 1;
-        }
-        DetectBytetestFree(NULL, data);
-    }
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_LT);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->value == 5);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->flags & DETECT_BYTETEST_DCE);
 
-    return result;
+    DetectBytetestFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -1127,21 +1045,17 @@ static int DetectBytetestTestParse17(void)
  */
 static int DetectBytetestTestParse18(void)
 {
-    int result = 0;
     DetectBytetestData *data = NULL;
     data = DetectBytetestParse("4, <, 5, 0", NULL, NULL, NULL);
-    if (data != NULL) {
-        if ( (data->op == DETECT_BYTETEST_OP_LT) &&
-             (data->nbytes == 4) &&
-             (data->value == 5) &&
-             (data->offset == 0) &&
-             !(data->flags & DETECT_BYTETEST_DCE) ) {
-            result = 1;
-        }
-        DetectBytetestFree(NULL, data);
-    }
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->op == DETECT_BYTETEST_OP_LT);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->value == 5);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF(data->flags & DETECT_BYTETEST_DCE);
 
-    return result;
+    DetectBytetestFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -1150,26 +1064,20 @@ static int DetectBytetestTestParse18(void)
 static int DetectBytetestTestParse19(void)
 {
     Signature *s = SigAlloc();
-    if (s == NULL)
-        return 0;
+    FAIL_IF_NULL(s);
 
-    int result = 1;
+    FAIL_IF(DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0);
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0) {
-        SigFree(NULL, s);
-        return 0;
-    }
-
-    result &= (DetectBytetestSetup(NULL, s, "1,=,1,6,dce") == 0);
-    result &= (DetectBytetestSetup(NULL, s, "1,=,1,6,string,dce") == -1);
-    result &= (DetectBytetestSetup(NULL, s, "1,=,1,6,big,dce") == -1);
-    result &= (DetectBytetestSetup(NULL, s, "1,=,1,6,little,dce") == -1);
-    result &= (DetectBytetestSetup(NULL, s, "1,=,1,6,hex,dce") == -1);
-    result &= (DetectBytetestSetup(NULL, s, "1,=,1,6,oct,dce") == -1);
-    result &= (DetectBytetestSetup(NULL, s, "1,=,1,6,dec,dce") == -1);
+    FAIL_IF_NOT(DetectBytetestSetup(NULL, s, "1,=,1,6,dce") == 0);
+    FAIL_IF_NOT(DetectBytetestSetup(NULL, s, "1,=,1,6,string,dce") == -1);
+    FAIL_IF_NOT(DetectBytetestSetup(NULL, s, "1,=,1,6,big,dce") == -1);
+    FAIL_IF_NOT(DetectBytetestSetup(NULL, s, "1,=,1,6,little,dce") == -1);
+    FAIL_IF_NOT(DetectBytetestSetup(NULL, s, "1,=,1,6,hex,dce") == -1);
+    FAIL_IF_NOT(DetectBytetestSetup(NULL, s, "1,=,1,6,oct,dce") == -1);
+    FAIL_IF_NOT(DetectBytetestSetup(NULL, s, "1,=,1,6,dec,dce") == -1);
 
     SigFree(NULL, s);
-    return result;
+    PASS;
 }
 
 /**
@@ -1178,13 +1086,11 @@ static int DetectBytetestTestParse19(void)
 static int DetectBytetestTestParse20(void)
 {
     DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
     Signature *s = NULL;
     DetectBytetestData *bd = NULL;
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -1193,10 +1099,8 @@ static int DetectBytetestTestParse20(void)
                                "dce_stub_data; "
                                "content:\"one\"; distance:0; "
                                "byte_test:1,=,1,6,relative,dce; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
+
     s = de_ctx->sig_list;
 
     SigMatch *sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
@@ -1205,15 +1109,12 @@ static int DetectBytetestTestParse20(void)
     sm = sm->next;
     FAIL_IF_NOT(sm->type == DETECT_BYTETEST);
     bd = (DetectBytetestData *)sm->ctx;
-    if (!(bd->flags & DETECT_BYTETEST_DCE) &&
-        !(bd->flags & DETECT_BYTETEST_RELATIVE) &&
-        (bd->flags & DETECT_BYTETEST_STRING) &&
-        (bd->flags & DETECT_BYTETEST_BIG) &&
-        (bd->flags & DETECT_BYTETEST_LITTLE) &&
-        (bd->neg_op) ) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(bd->flags & DETECT_BYTETEST_DCE);
+    FAIL_IF_NOT(bd->flags & DETECT_BYTETEST_RELATIVE);
+    FAIL_IF(bd->flags & DETECT_BYTETEST_STRING);
+    FAIL_IF(bd->flags & DETECT_BYTETEST_BIG);
+    FAIL_IF(bd->flags & DETECT_BYTETEST_LITTLE);
+    FAIL_IF(bd->neg_op);
 
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytetest_body\"; "
@@ -1221,10 +1122,8 @@ static int DetectBytetestTestParse20(void)
                       "dce_stub_data; "
                       "content:\"one\"; distance:0; "
                       "byte_test:1,=,1,6,relative,dce; sid:1;)");
-    if (s->next == NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(s->next);
+
     s = s->next;
 
     sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
@@ -1232,15 +1131,12 @@ static int DetectBytetestTestParse20(void)
     FAIL_IF_NULL(sm->next);
     sm = sm->next;
     bd = (DetectBytetestData *)sm->ctx;
-    if (!(bd->flags & DETECT_BYTETEST_DCE) &&
-        !(bd->flags & DETECT_BYTETEST_RELATIVE) &&
-        (bd->flags & DETECT_BYTETEST_STRING) &&
-        (bd->flags & DETECT_BYTETEST_BIG) &&
-        (bd->flags & DETECT_BYTETEST_LITTLE) &&
-        (bd->neg_op) ) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT(bd->flags & DETECT_BYTETEST_DCE);
+    FAIL_IF_NOT(bd->flags & DETECT_BYTETEST_RELATIVE);
+    FAIL_IF(bd->flags & DETECT_BYTETEST_STRING);
+    FAIL_IF(bd->flags & DETECT_BYTETEST_BIG);
+    FAIL_IF(bd->flags & DETECT_BYTETEST_LITTLE);
+    FAIL_IF(bd->neg_op);
 
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytetest_body\"; "
@@ -1248,32 +1144,26 @@ static int DetectBytetestTestParse20(void)
                       "dce_stub_data; "
                       "content:\"one\"; distance:0; "
                       "byte_test:1,=,1,6,relative; sid:1;)");
-    if (s->next == NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(s->next);
+
     s = s->next;
     sm = DetectBufferGetFirstSigMatch(s, g_dce_stub_data_buffer_id);
     FAIL_IF_NULL(sm);
     FAIL_IF_NULL(sm->next);
     sm = sm->next;
     bd = (DetectBytetestData *)sm->ctx;
-    if ((bd->flags & DETECT_BYTETEST_DCE) &&
-        !(bd->flags & DETECT_BYTETEST_RELATIVE) &&
-        (bd->flags & DETECT_BYTETEST_STRING) &&
-        (bd->flags & DETECT_BYTETEST_BIG) &&
-        (bd->flags & DETECT_BYTETEST_LITTLE) &&
-        (bd->neg_op) ) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(bd->flags & DETECT_BYTETEST_DCE);
+    FAIL_IF_NOT(bd->flags & DETECT_BYTETEST_RELATIVE);
+    FAIL_IF(bd->flags & DETECT_BYTETEST_STRING);
+    FAIL_IF(bd->flags & DETECT_BYTETEST_BIG);
+    FAIL_IF(bd->flags & DETECT_BYTETEST_LITTLE);
+    FAIL_IF(bd->neg_op);
 
- end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    return result;
+    PASS;
 }
 
 /**
@@ -1282,119 +1172,83 @@ static int DetectBytetestTestParse20(void)
 static int DetectBytetestTestParse21(void)
 {
     DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
     Signature *s = NULL;
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytetest_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "content:\"one\"; byte_test:1,=,1,6,string,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytetest_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "content:\"one\"; byte_test:1,=,1,6,big,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytetest_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "content:\"one\"; byte_test:1,=,1,6,little,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytetest_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "content:\"one\"; byte_test:1,=,1,6,hex,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytetest_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "content:\"one\"; byte_test:1,=,1,6,dec,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytetest_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "content:\"one\"; byte_test:1,=,1,6,oct,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytetest_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "content:\"one\"; byte_test:1,=,1,6,string,hex,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytetest_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "content:\"one\"; byte_test:1,=,1,6,big,string,hex,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytetest_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "content:\"one\"; byte_test:1,=,1,6,big,string,oct,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytetest_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "content:\"one\"; byte_test:1,=,1,6,little,string,hex,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytetest_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "content:\"one\"; byte_test:1,=,1,6,big,string,dec,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
- end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    return result;
+    PASS;
 }
 
 /**
@@ -1403,44 +1257,34 @@ static int DetectBytetestTestParse21(void)
 static int DetectBytetestTestParse22(void)
 {
     DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
     Signature *s = NULL;
     DetectBytetestData *bd = NULL;
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(file_data; byte_test:1,=,1,6,relative; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
 
     s = de_ctx->sig_list;
     SigMatch *sm = DetectBufferGetFirstSigMatch(s, g_file_data_buffer_id);
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_BYTETEST);
     bd = (DetectBytetestData *)sm->ctx;
-    if (bd->flags & DETECT_BYTETEST_DCE &&
-        bd->flags & DETECT_BYTETEST_RELATIVE &&
-        (bd->flags & DETECT_BYTETEST_STRING) &&
-        (bd->flags & DETECT_BYTETEST_BIG) &&
-        (bd->flags & DETECT_BYTETEST_LITTLE) &&
-        (bd->neg_op) ) {
-        printf("wrong flags: ");
-        goto end;
-    }
+    FAIL_IF(bd->flags & DETECT_BYTETEST_DCE);
+    FAIL_IF_NOT(bd->flags & DETECT_BYTETEST_RELATIVE);
+    FAIL_IF(bd->flags & DETECT_BYTETEST_STRING);
+    FAIL_IF(bd->flags & DETECT_BYTETEST_BIG);
+    FAIL_IF(bd->flags & DETECT_BYTETEST_LITTLE);
+    FAIL_IF(bd->neg_op);
 
-    result = 1;
- end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    return result;
+    PASS;
 }
 
 /**

@@ -15,6 +15,11 @@
  * 02110-1301, USA.
  */
 
+//! Suricata is a network intrusion prevention and monitoring engine.
+//!
+//! Suricata is a hybrid C and Rust application. What is found here are
+//! the components written in Rust.
+
 #![cfg_attr(feature = "strict", deny(warnings))]
 
 // Allow these patterns as its a style we like.
@@ -70,7 +75,6 @@ pub mod conf;
 pub mod jsonbuilder;
 #[macro_use]
 pub mod applayer;
-/// cbindgen:ignore
 pub mod frames;
 pub mod filecontainer;
 pub mod filetracker;

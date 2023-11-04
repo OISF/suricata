@@ -486,7 +486,7 @@ static void JsonDnsCheckVersion(ConfNode *conf)
                     break;
                 case 1:
                     if (!v1_deprecation_warned) {
-                        SCLogError("DNS EVE v1 logging has been removed, will use v2");
+                        SCLogWarning("DNS EVE v1 logging has been removed, will use v2");
                         v1_deprecation_warned = true;
                     }
                     break;
@@ -512,14 +512,22 @@ static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
         if (dnslog_ctx->flags & LOG_ANSWERS) {
             ConfNode *format;
             if ((format = ConfNodeLookupChild(conf, "formats")) != NULL) {
-                dnslog_ctx->flags &= ~LOG_FORMAT_ALL;
+                uint64_t flags = 0;
                 ConfNode *field;
                 TAILQ_FOREACH (field, &format->head, next) {
                     if (strcasecmp(field->val, "detailed") == 0) {
-                        dnslog_ctx->flags |= LOG_FORMAT_DETAILED;
+                        flags |= LOG_FORMAT_DETAILED;
                     } else if (strcasecmp(field->val, "grouped") == 0) {
-                        dnslog_ctx->flags |= LOG_FORMAT_GROUPED;
+                        flags |= LOG_FORMAT_GROUPED;
+                    } else {
+                        SCLogWarning("Invalid JSON DNS log format: %s", field->val);
                     }
+                }
+                if (flags) {
+                    dnslog_ctx->flags &= ~LOG_FORMAT_ALL;
+                    dnslog_ctx->flags |= flags;
+                } else {
+                    SCLogWarning("Empty EVE DNS format array, using defaults");
                 }
             } else {
                 dnslog_ctx->flags |= LOG_FORMAT_ALL;

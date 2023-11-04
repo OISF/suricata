@@ -1,3 +1,26 @@
+7.0.2 -- 2023-10-18
+
+Security #6306: mime: quadratic complexity in MimeDecAddEntity
+Bug #6402: detect: multi-level tunneling inspection fails
+Bug #6397: detect: multiple legacy buffer selection leading to multi-buffer
+Bug #6381: DPDK 23.11 changed function name of Bond API
+Bug #6380: email: disabled fields in suricata.yaml also get logged
+Bug #6303: conf: an empty child node is not checked for NULL
+Bug #6300: config: includes provided as a sequence are loaded into the wrong parent configuration node
+Bug #6297: configure/docs: check for a supported version of sphinx-build
+Bug #6104: detect/multi-buffer: Heap-buffer-overflow in SigMatchAppendSMToList
+Bug #6009: dpdk: incorrect final stats
+Bug #5831: af-packet/ips: excessive mtu log messages
+Bug #5211: detect/frames: crash with detect.profiling.grouping.dump-to-disk
+Bug #4624: byte_jump with negative post_offset before start of buffer failure
+Feature #6367: SMTP: do not delay mime chunk processing
+Feature #5966: dpdk: Analyze hugepage allocation on startup
+Feature #4968: QUIC v2 support
+Task #6348: detect/analyzer: add more details for the ipopts keyword
+Task #6235: decode: add drop reason for stream reassembly memcap
+Documentation #6349: userguide: add section about tcp.flags
+Documentation #6342: userguide: cover install-full and install-conf in the install page
+
 7.0.1 -- 2023-09-13
 
 Security #6279: Crash in SMTP parser during parsing of email

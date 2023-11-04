@@ -61,8 +61,6 @@
 
 static DetectParseRegex parse_regex;
 
-static int DetectBytejumpMatch(DetectEngineThreadCtx *det_ctx,
-                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static DetectBytejumpData *DetectBytejumpParse(
         DetectEngineCtx *de_ctx, const char *optstr, char **nbytes, char **offset);
 static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr);
@@ -76,7 +74,7 @@ void DetectBytejumpRegister (void)
     sigmatch_table[DETECT_BYTEJUMP].name = "byte_jump";
     sigmatch_table[DETECT_BYTEJUMP].desc = "allow the ability to select a <num of bytes> from an <offset> and move the detection pointer to that position";
     sigmatch_table[DETECT_BYTEJUMP].url = "/rules/payload-keywords.html#byte-jump";
-    sigmatch_table[DETECT_BYTEJUMP].Match = DetectBytejumpMatch;
+    sigmatch_table[DETECT_BYTEJUMP].Match = NULL;
     sigmatch_table[DETECT_BYTEJUMP].Setup = DetectBytejumpSetup;
     sigmatch_table[DETECT_BYTEJUMP].Free  = DetectBytejumpFree;
 #ifdef UNITTESTS
@@ -168,23 +166,18 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     /* Calculate the ptr value for the bytejump and length remaining in
      * the packet from that point.
      */
-    ptr = payload;
-    len = payload_len;
+    ptr = payload + offset;
+    len = payload_len - offset;
     if (flags & DETECT_BYTEJUMP_RELATIVE) {
         ptr += det_ctx->buffer_offset;
         len -= det_ctx->buffer_offset;
 
-        ptr += offset;
-        len -= offset;
+        SCLogDebug("[relative] after: ptr %p [len %d]", ptr, len);
 
         /* No match if there is no relative base */
-        if (ptr == NULL || len <= 0) {
+        if (ptr == NULL || (nbytes && len <= 0)) {
             SCReturnBool(false);
         }
-    }
-    else {
-        ptr += offset;
-        len -= offset;
     }
 
     /* Verify the to-be-extracted data is within the packet */
@@ -245,7 +238,7 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     if (jumpptr < payload) {
         jumpptr = payload;
         SCLogDebug("jump location is before buffer start; resetting to buffer start");
-    } else if (jumpptr >= (payload + payload_len)) {
+    } else if (jumpptr > (payload + payload_len)) {
         SCLogDebug("Jump location (%" PRIu64 ") is not within payload (%" PRIu32 ")",
                 payload_len + val, payload_len);
         SCReturnBool(false);
@@ -263,118 +256,6 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     det_ctx->buffer_offset = jumpptr - payload;
 
     SCReturnBool(true);
-}
-
-static int DetectBytejumpMatch(DetectEngineThreadCtx *det_ctx,
-                        Packet *p, const Signature *s, const SigMatchCtx *ctx)
-{
-    const DetectBytejumpData *data = (const DetectBytejumpData *)ctx;
-    const uint8_t *ptr = NULL;
-    const uint8_t *jumpptr = NULL;
-    uint16_t len = 0;
-    uint64_t val = 0;
-    int extbytes;
-
-    if (p->payload_len == 0) {
-        return 0;
-    }
-
-    /* Calculate the ptr value for the bytejump and length remaining in
-     * the packet from that point.
-     */
-    if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
-        ptr = p->payload + det_ctx->buffer_offset;
-        DEBUG_VALIDATE_BUG_ON(p->payload_len - det_ctx->buffer_offset > UINT16_MAX);
-        len = (uint16_t)(p->payload_len - det_ctx->buffer_offset);
-
-        /* No match if there is no relative base */
-        if (ptr == NULL || len == 0) {
-            return 0;
-        }
-
-        ptr += data->offset;
-        len -= data->offset;
-    }
-    else {
-        ptr = p->payload + data->offset;
-        DEBUG_VALIDATE_BUG_ON(p->payload_len - data->offset > UINT16_MAX);
-        len = (uint16_t)(p->payload_len - data->offset);
-    }
-
-    /* Verify the to-be-extracted data is within the packet */
-    if (ptr < p->payload || data->nbytes > len) {
-        SCLogDebug("Data not within packet "
-               "payload=%p, ptr=%p, len=%d, nbytes=%d",
-               p->payload, ptr, len, data->nbytes);
-        return 0;
-    }
-
-    /* Extract the byte data */
-    if (data->flags & DETECT_BYTEJUMP_STRING) {
-        extbytes = ByteExtractStringUint64(&val, data->base,
-                                           data->nbytes, (const char *)ptr);
-        if (extbytes <= 0) {
-            SCLogDebug("error extracting %d bytes of string data: %d",
-                    data->nbytes, extbytes);
-            return -1;
-        }
-    }
-    else {
-        int endianness = (data->flags & DETECT_BYTEJUMP_LITTLE) ? BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
-        extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
-        if (extbytes != data->nbytes) {
-            SCLogDebug("error extracting %d bytes of numeric data: %d",
-                    data->nbytes, extbytes);
-            return -1;
-        }
-    }
-
-    //printf("VAL: (%" PRIu64 " x %" PRIu32 ") + %d + %" PRId32 "\n", val, data->multiplier, extbytes, data->post_offset);
-
-    /* Adjust the jump value based on flags */
-    val *= data->multiplier;
-    if (data->flags & DETECT_BYTEJUMP_ALIGN) {
-        if ((val % 4) != 0) {
-            val += 4 - (val % 4);
-        }
-    }
-    val += data->post_offset;
-
-    /* Calculate the jump location */
-    if (data->flags & DETECT_BYTEJUMP_BEGIN) {
-        jumpptr = p->payload + val;
-        //printf("NEWVAL: payload %p + %ld = %p\n", p->payload, val, jumpptr);
-    }
-    else {
-        val += extbytes;
-        jumpptr = ptr + val;
-        //printf("NEWVAL: ptr %p + %ld = %p\n", ptr, val, jumpptr);
-    }
-
-
-    /* Validate that the jump location is still in the packet
-     * \todo Should this validate it is still in the *payload*?
-     */
-    if ((jumpptr < p->payload) || (jumpptr >= p->payload + p->payload_len)) {
-        SCLogDebug("Jump location (%p) is not within "
-               "packet (%p-%p)", jumpptr, p->payload, p->payload + p->payload_len - 1);
-        return 0;
-    }
-
-#ifdef DEBUG
-    if (SCLogDebugEnabled()) {
-        const uint8_t *sptr = (data->flags & DETECT_BYTEJUMP_BEGIN) ? p->payload
-                                                              : ptr;
-        SCLogDebug("jumping %" PRId64 " bytes from %p (%08x) to %p (%08x)",
-               val, sptr, (int)(sptr - p->payload),
-               jumpptr, (int)(jumpptr - p->payload));
-    }
-#endif /* DEBUG */
-
-    /* Adjust the detection context to the jump location. */
-    det_ctx->buffer_offset = jumpptr - p->payload;
-
-    return 1;
 }
 
 static DetectBytejumpData *DetectBytejumpParse(
@@ -751,15 +632,12 @@ static int g_dce_stub_data_buffer_id = 0;
  */
 static int DetectBytejumpTestParse01(void)
 {
-    int result = 0;
     DetectBytejumpData *data = NULL;
     data = DetectBytejumpParse(NULL, "4,0", NULL, NULL);
-    if (data != NULL) {
-        DetectBytejumpFree(NULL, data);
-        result = 1;
-    }
+    FAIL_IF_NULL(data);
 
-    return result;
+    DetectBytejumpFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -767,23 +645,18 @@ static int DetectBytejumpTestParse01(void)
  */
 static int DetectBytejumpTestParse02(void)
 {
-    int result = 0;
     DetectBytejumpData *data = NULL;
     data = DetectBytejumpParse(NULL, "4, 0", NULL, NULL);
-    if (data != NULL) {
-        if (   (data->nbytes == 4)
-            && (data->offset == 0)
-            && (data->multiplier == 1)
-            && (data->post_offset == 0)
-            && (data->flags == 0)
-            && (data->base == DETECT_BYTEJUMP_BASE_UNSET))
-        {
-            result = 1;
-        }
-        DetectBytejumpFree(NULL, data);
-    }
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->multiplier == 1);
+    FAIL_IF_NOT(data->post_offset == 0);
+    FAIL_IF_NOT(data->flags == 0);
+    FAIL_IF_NOT(data->base == DETECT_BYTEJUMP_BASE_UNSET);
 
-    return result;
+    DetectBytejumpFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -791,30 +664,23 @@ static int DetectBytejumpTestParse02(void)
  */
 static int DetectBytejumpTestParse03(void)
 {
-    int result = 0;
     DetectBytejumpData *data = NULL;
     data = DetectBytejumpParse(NULL,
             " 4,0 , relative , little, string, "
             "dec, align, from_beginning",
             NULL, NULL);
-    if (data != NULL) {
-        if (   (data->nbytes == 4)
-            && (data->offset == 0)
-            && (data->multiplier == 1)
-            && (data->post_offset == 0)
-            && (data->flags == ( DETECT_BYTEJUMP_RELATIVE
-                                |DETECT_BYTEJUMP_LITTLE
-                                |DETECT_BYTEJUMP_STRING
-                                |DETECT_BYTEJUMP_ALIGN
-                                |DETECT_BYTEJUMP_BEGIN))
-            && (data->base == DETECT_BYTEJUMP_BASE_DEC))
-        {
-            result = 1;
-        }
-        DetectBytejumpFree(NULL, data);
-    }
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->multiplier == 1);
+    FAIL_IF_NOT(data->post_offset == 0);
+    FAIL_IF_NOT(data->flags ==
+                (DETECT_BYTEJUMP_RELATIVE | DETECT_BYTEJUMP_LITTLE | DETECT_BYTEJUMP_STRING |
+                        DETECT_BYTEJUMP_ALIGN | DETECT_BYTEJUMP_BEGIN));
+    FAIL_IF_NOT(data->base == DETECT_BYTEJUMP_BASE_DEC);
 
-    return result;
+    DetectBytejumpFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -825,31 +691,24 @@ static int DetectBytejumpTestParse03(void)
  */
 static int DetectBytejumpTestParse04(void)
 {
-    int result = 0;
     DetectBytejumpData *data = NULL;
     data = DetectBytejumpParse(NULL,
             " 4,0 , relative , little, string, "
             "dec, align, from_beginning , "
             "multiplier 2 , post_offset -16 ",
             NULL, NULL);
-    if (data != NULL) {
-        if (   (data->nbytes == 4)
-            && (data->offset == 0)
-            && (data->multiplier == 2)
-            && (data->post_offset == -16)
-            && (data->flags == ( DETECT_BYTEJUMP_RELATIVE
-                                |DETECT_BYTEJUMP_LITTLE
-                                |DETECT_BYTEJUMP_ALIGN
-                                |DETECT_BYTEJUMP_STRING
-                                |DETECT_BYTEJUMP_BEGIN))
-            && (data->base == DETECT_BYTEJUMP_BASE_DEC))
-        {
-            result = 1;
-        }
-        DetectBytejumpFree(NULL, data);
-    }
+    FAIL_IF_NULL(data);
+    FAIL_IF_NOT(data->nbytes == 4);
+    FAIL_IF_NOT(data->offset == 0);
+    FAIL_IF_NOT(data->multiplier == 2);
+    FAIL_IF_NOT(data->post_offset == -16);
+    FAIL_IF_NOT(data->flags ==
+                (DETECT_BYTEJUMP_RELATIVE | DETECT_BYTEJUMP_LITTLE | DETECT_BYTEJUMP_ALIGN |
+                        DETECT_BYTEJUMP_STRING | DETECT_BYTEJUMP_BEGIN));
+    FAIL_IF_NOT(data->base == DETECT_BYTEJUMP_BASE_DEC);
 
-    return result;
+    DetectBytejumpFree(NULL, data);
+    PASS;
 }
 
 /**
@@ -857,17 +716,14 @@ static int DetectBytejumpTestParse04(void)
  */
 static int DetectBytejumpTestParse05(void)
 {
-    int result = 0;
     DetectBytejumpData *data = NULL;
     data = DetectBytejumpParse(NULL,
             " 4,0 , relative , little, dec, "
             "align, from_beginning",
             NULL, NULL);
-    if (data == NULL) {
-        result = 1;
-    }
+    FAIL_IF_NOT_NULL(data);
 
-    return result;
+    PASS;
 }
 
 /**
@@ -875,14 +731,11 @@ static int DetectBytejumpTestParse05(void)
  */
 static int DetectBytejumpTestParse06(void)
 {
-    int result = 0;
     DetectBytejumpData *data = NULL;
     data = DetectBytejumpParse(NULL, "9, 0", NULL, NULL);
-    if (data == NULL) {
-        result = 1;
-    }
+    FAIL_IF_NOT_NULL(data);
 
-    return result;
+    PASS;
 }
 
 /**
@@ -890,14 +743,11 @@ static int DetectBytejumpTestParse06(void)
  */
 static int DetectBytejumpTestParse07(void)
 {
-    int result = 0;
     DetectBytejumpData *data = NULL;
     data = DetectBytejumpParse(NULL, "24, 0, string, dec", NULL, NULL);
-    if (data == NULL) {
-        result = 1;
-    }
+    FAIL_IF_NOT_NULL(data);
 
-    return result;
+    PASS;
 }
 
 /**
@@ -905,14 +755,11 @@ static int DetectBytejumpTestParse07(void)
  */
 static int DetectBytejumpTestParse08(void)
 {
-    int result = 0;
     DetectBytejumpData *data = NULL;
     data = DetectBytejumpParse(NULL, "4, 0xffffffffffffffff", NULL, NULL);
-    if (data == NULL) {
-        result = 1;
-    }
+    FAIL_IF_NOT_NULL(data);
 
-    return result;
+    PASS;
 }
 
 /**
@@ -975,11 +822,11 @@ static int DetectBytejumpTestParse10(void)
     FAIL_IF_NOT(sm->type == DETECT_BYTEJUMP);
 
     DetectBytejumpData *bd = (DetectBytejumpData *)sm->ctx;
-    if (!(bd->flags & DETECT_BYTEJUMP_DCE) && !(bd->flags & DETECT_BYTEJUMP_RELATIVE) &&
-            (bd->flags & DETECT_BYTEJUMP_STRING) && (bd->flags & DETECT_BYTEJUMP_BIG) &&
-            (bd->flags & DETECT_BYTEJUMP_LITTLE)) {
-        goto end;
-    }
+    FAIL_IF_NOT(bd->flags & DETECT_BYTEJUMP_DCE);
+    FAIL_IF_NOT(bd->flags & DETECT_BYTEJUMP_RELATIVE);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_STRING);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_BIG);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_LITTLE);
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                                       "(msg:\"Testing bytejump_body\"; "
@@ -998,11 +845,11 @@ static int DetectBytejumpTestParse10(void)
     FAIL_IF_NOT(sm->type == DETECT_BYTEJUMP);
 
     bd = (DetectBytejumpData *)sm->ctx;
-    if (!(bd->flags & DETECT_BYTEJUMP_DCE) && !(bd->flags & DETECT_BYTEJUMP_RELATIVE) &&
-            (bd->flags & DETECT_BYTEJUMP_STRING) && (bd->flags & DETECT_BYTEJUMP_BIG) &&
-            (bd->flags & DETECT_BYTEJUMP_LITTLE)) {
-        goto end;
-    }
+    FAIL_IF_NOT(bd->flags & DETECT_BYTEJUMP_DCE);
+    FAIL_IF_NOT(bd->flags & DETECT_BYTEJUMP_RELATIVE);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_STRING);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_BIG);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_LITTLE);
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                                       "(msg:\"Testing bytejump_body\"; "
@@ -1021,13 +868,12 @@ static int DetectBytejumpTestParse10(void)
     FAIL_IF_NOT(sm->type == DETECT_BYTEJUMP);
 
     bd = (DetectBytejumpData *)sm->ctx;
-    if ((bd->flags & DETECT_BYTEJUMP_DCE) && !(bd->flags & DETECT_BYTEJUMP_RELATIVE) &&
-            (bd->flags & DETECT_BYTEJUMP_STRING) && (bd->flags & DETECT_BYTEJUMP_BIG) &&
-            (bd->flags & DETECT_BYTEJUMP_LITTLE)) {
-        goto end;
-    }
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_DCE);
+    FAIL_IF_NOT(bd->flags & DETECT_BYTEJUMP_RELATIVE);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_STRING);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_BIG);
+    FAIL_IF(bd->flags & DETECT_BYTEJUMP_LITTLE);
 
-end:
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -1038,12 +884,10 @@ end:
 static int DetectBytejumpTestParse11(void)
 {
     DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
     Signature *s = NULL;
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     s = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -1052,10 +896,7 @@ static int DetectBytejumpTestParse11(void)
                 "dce_stub_data; "
                 "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
                 "post_offset -16,string,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytejump_body\"; "
@@ -1063,10 +904,7 @@ static int DetectBytejumpTestParse11(void)
                 "dce_sub_data; "
                 "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
                 "post_offset -16,big,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytejump_body\"; "
@@ -1074,10 +912,7 @@ static int DetectBytejumpTestParse11(void)
                 "dce_stub_data; "
                 "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
                 "post_offset -16,little,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytejump_body\"; "
@@ -1085,10 +920,7 @@ static int DetectBytejumpTestParse11(void)
                 "dce_stub_data; "
                 "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
                 "post_offset -16,string,hex,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytejump_body\"; "
@@ -1096,10 +928,7 @@ static int DetectBytejumpTestParse11(void)
                 "dce_stub_data; "
                 "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
                 "post_offset -16,string,dec,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytejump_body\"; "
@@ -1107,10 +936,7 @@ static int DetectBytejumpTestParse11(void)
                 "dce_stub_data; "
                 "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
                 "post_offset -16,string,oct,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
                 "(msg:\"Testing bytejump_body\"; "
@@ -1118,17 +944,12 @@ static int DetectBytejumpTestParse11(void)
                 "dce_stub_data; "
                 "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
                 "post_offset -16,from_beginning,dce; sid:1;)");
-    if (s != NULL) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(s);
 
- end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
-
-    return result;
+    PASS;
 }
 
 /**
@@ -1192,7 +1013,6 @@ static int DetectBytejumpTestParse14(void)
  */
 static int DetectByteJumpTestPacket01 (void)
 {
-    int result = 0;
     uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
                     "User-Agent: Wget/1.11.4"
                     "Accept: */*"
@@ -1203,18 +1023,16 @@ static int DetectByteJumpTestPacket01 (void)
     Packet *p;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (msg:\"pcre + byte_test + "
     "relative\"; pcre:\"/AllWorkAndNoPlayMakesWillADullBoy/\"; byte_jump:1,6,"
     "relative,string,dec; content:\"0\"; sid:134; rev:1;)";
 
-    result = UTHPacketMatchSig(p, sig);
+    FAIL_IF_NOT(UTHPacketMatchSig(p, sig));
 
     UTHFreePacket(p);
-end:
-    return result;
+    PASS;
 }
 
 /**
@@ -1224,7 +1042,6 @@ end:
  */
 static int DetectByteJumpTestPacket02 (void)
 {
-    int result = 0;
     uint8_t buf[] = { 0x00, 0x00, 0x00, 0x77, 0xff, 0x53,
                     0x4d, 0x42, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x18,
                     0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1236,23 +1053,20 @@ static int DetectByteJumpTestPacket02 (void)
     Packet *p;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (msg:\"byte_jump with byte_jump"
                  " + relative\"; byte_jump:1,13; byte_jump:4,0,relative; "
                  "content:\"|48 00 00|\"; within:3; sid:144; rev:1;)";
 
-    result = UTHPacketMatchSig(p, sig);
+    FAIL_IF_NOT(UTHPacketMatchSig(p, sig));
 
     UTHFreePacket(p);
-end:
-    return result;
+    PASS;
 }
 
 static int DetectByteJumpTestPacket03(void)
 {
-    int result = 0;
     uint8_t *buf = NULL;
     uint16_t buflen = 0;
     buf = SCMalloc(4);
@@ -1266,20 +1080,18 @@ static int DetectByteJumpTestPacket03(void)
     Packet *p;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (msg:\"byte_jump\"; "
         "byte_jump:1,214748364; sid:1; rev:1;)";
 
-    result = !UTHPacketMatchSig(p, sig);
+    FAIL_IF(UTHPacketMatchSig(p, sig));
 
     UTHFreePacket(p);
+    FAIL_IF_NULL(buf);
 
-end:
-    if (buf != NULL)
-        SCFree(buf);
-    return result;
+    SCFree(buf);
+    PASS;
 }
 
 /**
@@ -1287,22 +1099,19 @@ end:
  */
 static int DetectByteJumpTestPacket04 (void)
 {
-    int result = 0;
     uint8_t *buf = (uint8_t *)"XYZ04abcdABCD";
     uint16_t buflen = strlen((char *)buf);
     Packet *p;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (content:\"XYZ\"; byte_jump:2,0,relative,string,dec; content:\"ABCD\"; distance:0; within:4; sid:1; rev:1;)";
 
-    result = UTHPacketMatchSig(p, sig);
+    FAIL_IF_NOT(UTHPacketMatchSig(p, sig));
 
     UTHFreePacket(p);
-end:
-    return result;
+    PASS;
 }
 
 /**
@@ -1310,22 +1119,19 @@ end:
  */
 static int DetectByteJumpTestPacket05 (void)
 {
-    int result = 0;
     uint8_t *buf = (uint8_t *)"XYZ04abcdABCD";
     uint16_t buflen = strlen((char *)buf);
     Packet *p;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (content:\"XYZ\"; byte_jump:2,0,relative,string,dec; content:\"cdABCD\"; within:6; sid:1; rev:1;)";
 
-    result = UTHPacketMatchSig(p, sig) ? 0 : 1;
+    FAIL_IF_NOT(UTHPacketMatchSig(p, sig) ? 0 : 1);
 
     UTHFreePacket(p);
-end:
-    return result;
+    PASS;
 }
 
 /**
@@ -1333,22 +1139,19 @@ end:
  */
 static int DetectByteJumpTestPacket06 (void)
 {
-    int result = 0;
     uint8_t *buf = (uint8_t *)"XX04abcdABCD";
     uint16_t buflen = strlen((char *)buf);
     Packet *p;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (content:\"XX\"; byte_jump:2,0,relative,string,dec,from_beginning; content:\"ABCD\"; distance:4; within:4; sid:1; rev:1;)";
 
-    result = UTHPacketMatchSig(p, sig);
+    FAIL_IF_NOT(UTHPacketMatchSig(p, sig));
 
     UTHFreePacket(p);
-end:
-    return result;
+    PASS;
 }
 
 /**
@@ -1356,22 +1159,19 @@ end:
  */
 static int DetectByteJumpTestPacket07 (void)
 {
-    int result = 0;
     uint8_t *buf = (uint8_t *)"XX04abcdABCD";
     uint16_t buflen = strlen((char *)buf);
     Packet *p;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (content:\"XX\"; byte_jump:2,0,relative,string,dec,from_beginning; content:\"abcdABCD\"; distance:0; within:8; sid:1; rev:1;)";
 
-    result = UTHPacketMatchSig(p, sig) ? 1 : 0;
+    FAIL_IF_NOT(UTHPacketMatchSig(p, sig) ? 1 : 0);
 
     UTHFreePacket(p);
-end:
-    return result;
+    PASS;
 }
 
 /**

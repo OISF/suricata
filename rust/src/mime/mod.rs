@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! MIME protocol parser module.
+
 use crate::common::nom7::take_until_and_consume;
 use nom7::branch::alt;
 use nom7::bytes::streaming::{tag, take_until, take_while};

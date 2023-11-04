@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! IKE parser, detection, logger and application layer module.
+
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 extern crate ipsec_parser;

@@ -90,8 +90,8 @@ void SCDropMainThreadCaps(uint32_t , uint32_t );
 #define SCDropMainThreadCaps(...)
 #endif /* HAVE_LIBCAP_NG */
 
-int SCGetUserID(const char *, const char *, uint32_t *, uint32_t *);
-int SCGetGroupID(const char *, uint32_t *);
+void SCGetUserID(const char *, const char *, uint32_t *, uint32_t *);
+void SCGetGroupID(const char *, uint32_t *);
 
 #ifdef __OpenBSD__
 int SCPledge(void);

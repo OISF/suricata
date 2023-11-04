@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+//! FTP parser and application layer module.
+
 use nom7::bytes::complete::{tag, take_until};
 use nom7::character::complete::{digit1, multispace0};
 use nom7::combinator::{complete, map_res, opt, verify};
