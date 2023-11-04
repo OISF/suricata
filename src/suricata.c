@@ -2358,12 +2358,11 @@ static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
 
 static int FinalizeRunMode(SCInstance *suri, char **argv)
 {
-    switch (suri->run_mode) {
-        case RUNMODE_UNKNOWN:
-            PrintUsage(argv[0]);
-            return TM_ECODE_FAILED;
-        default:
-            break;
+    if (suri->run_mode == RUNMODE_UNKNOWN) {
+        SCLogError("No capture mode specified as a command-line argument, specify one from the "
+                   "--list-runmodes.");
+        PrintUsage(argv[0]);
+        return TM_ECODE_FAILED;
     }
     /* Set the global run mode and offline flag. */
     run_mode = suri->run_mode;
