@@ -203,9 +203,25 @@ impl HTTP2Transaction {
     }
 
     fn handle_headers(&mut self, blocks: &[parser::HTTP2FrameHeaderBlock], dir: Direction) {
+        let mut authority = None;
+        let mut host = None;
         for block in blocks {
             if block.name == b"content-encoding" {
                 self.decoder.http2_encoding_fromvec(&block.value, dir);
+            } else if block.name.eq_ignore_ascii_case(b":authority") {
+                authority = Some(&block.value);
+            } else if block.name.eq_ignore_ascii_case(b"host") {
+                host = Some(&block.value);
+            }
+        }
+        if let Some(a) = authority {
+            if let Some(h) = host {
+                if !a.eq_ignore_ascii_case(h) {
+                    // The event is triggered only if both headers
+                    // are in the same frame to avoid excessive
+                    // complexity at runtime.
+                    self.set_event(HTTP2Event::AuthorityHostMismatch);
+                }
             }
         }
     }
@@ -383,6 +399,7 @@ pub enum HTTP2Event {
     InvalidRange,
     HeaderIntegerOverflow,
     TooManyStreams,
+    AuthorityHostMismatch,
 }
 
 pub struct HTTP2DynTable {
