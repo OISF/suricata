@@ -175,14 +175,32 @@ impl HTTP2Transaction {
         }
     }
 
-    #[cfg(not(feature = "decompression"))]
-    fn handle_headers(&mut self, _blocks: &Vec<parser::HTTP2FrameHeaderBlock>, _dir: u8) {}
+    pub fn set_event(&mut self, event: HTTP2Event) {
+        let ev = event as u8;
+        core::sc_app_layer_decoder_events_set_event_raw(&mut self.events, ev);
+    }
 
-    #[cfg(feature = "decompression")]
-    fn handle_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: u8) {
-        for i in 0..blocks.len() {
-            if blocks[i].name == b"content-encoding" {
-                self.decoder.http2_encoding_fromvec(&blocks[i].value, dir);
+    fn handle_headers(&mut self, blocks: &[parser::HTTP2FrameHeaderBlock], _dir: u8) {
+        let mut authority = None;
+        let mut host = None;
+        for block in blocks {
+            if block.name == b"content-encoding" {
+                #[cfg(feature = "decompression")]
+                self.decoder.http2_encoding_fromvec(&block.value, _dir);
+            } else if block.name.eq_ignore_ascii_case(b":authority") {
+                authority = Some(&block.value);
+            } else if block.name.eq_ignore_ascii_case(b"host") {
+                host = Some(&block.value);
+            }
+        }
+        if let Some(a) = authority {
+            if let Some(h) = host {
+                if !a.eq_ignore_ascii_case(h) {
+                    // The event is triggered only if both headers
+                    // are in the same frame to avoid excessive
+                    // complexity at runtime.
+                    self.set_event(HTTP2Event::AuthorityHostMismatch);
+                }
             }
         }
     }
@@ -336,6 +354,7 @@ pub enum HTTP2Event {
     StreamIdReuse,
     InvalidHTTP1Settings,
     FailedDecompression,
+    AuthorityHostMismatch,
 }
 
 impl HTTP2Event {
@@ -351,6 +370,7 @@ impl HTTP2Event {
             7 => Some(HTTP2Event::StreamIdReuse),
             8 => Some(HTTP2Event::InvalidHTTP1Settings),
             9 => Some(HTTP2Event::FailedDecompression),
+            10 => Some(HTTP2Event::AuthorityHostMismatch),
             _ => None,
         }
     }
@@ -1146,6 +1166,7 @@ pub extern "C" fn rs_http2_state_get_event_info(
                 "stream_id_reuse" => HTTP2Event::StreamIdReuse as i32,
                 "invalid_http1_settings" => HTTP2Event::InvalidHTTP1Settings as i32,
                 "failed_decompression" => HTTP2Event::FailedDecompression as i32,
+                "authority_host_mismatch" => HTTP2Event::AuthorityHostMismatch as i32,
                 _ => -1, // unknown event
             }
         }
@@ -1175,6 +1196,7 @@ pub extern "C" fn rs_http2_state_get_event_info_by_id(
             HTTP2Event::StreamIdReuse => "stream_id_reuse\0",
             HTTP2Event::InvalidHTTP1Settings => "invalid_http1_settings\0",
             HTTP2Event::FailedDecompression => "failed_decompression\0",
+            HTTP2Event::AuthorityHostMismatch => "authority_host_mismatch\0",
         };
         unsafe {
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
