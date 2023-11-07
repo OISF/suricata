@@ -189,6 +189,11 @@ impl HTTP2Transaction {
                 self.decoder.http2_encoding_fromvec(&block.value, _dir);
             } else if block.name.eq_ignore_ascii_case(b":authority") {
                 authority = Some(&block.value);
+                if block.value.iter().any(|&x| x == b'@') {
+                    // it is forbidden by RFC 9113 to have userinfo in this field
+                    // when in HTTP1 we can have user:password@domain.com
+                    self.set_event(HTTP2Event::UserinfoInUri);
+                }
             } else if block.name.eq_ignore_ascii_case(b"host") {
                 host = Some(&block.value);
             }
@@ -355,6 +360,7 @@ pub enum HTTP2Event {
     InvalidHTTP1Settings,
     FailedDecompression,
     AuthorityHostMismatch,
+    UserinfoInUri,
 }
 
 impl HTTP2Event {
@@ -371,6 +377,7 @@ impl HTTP2Event {
             8 => Some(HTTP2Event::InvalidHTTP1Settings),
             9 => Some(HTTP2Event::FailedDecompression),
             10 => Some(HTTP2Event::AuthorityHostMismatch),
+            11 => Some(HTTP2Event::UserinfoInUri),
             _ => None,
         }
     }
@@ -1167,6 +1174,7 @@ pub extern "C" fn rs_http2_state_get_event_info(
                 "invalid_http1_settings" => HTTP2Event::InvalidHTTP1Settings as i32,
                 "failed_decompression" => HTTP2Event::FailedDecompression as i32,
                 "authority_host_mismatch" => HTTP2Event::AuthorityHostMismatch as i32,
+                "userinfo_in_uri" => HTTP2Event::UserinfoInUri as i32,
                 _ => -1, // unknown event
             }
         }
@@ -1197,6 +1205,7 @@ pub extern "C" fn rs_http2_state_get_event_info_by_id(
             HTTP2Event::InvalidHTTP1Settings => "invalid_http1_settings\0",
             HTTP2Event::FailedDecompression => "failed_decompression\0",
             HTTP2Event::AuthorityHostMismatch => "authority_host_mismatch\0",
+            HTTP2Event::UserinfoInUri => "userinfo_in_uri\0",
         };
         unsafe {
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;

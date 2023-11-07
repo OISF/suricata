@@ -16,3 +16,4 @@ alert http2 any any -> any any (msg:"SURICATA HTTP2 stream identifier reuse"; fl
 alert http2 any any -> any any (msg:"SURICATA HTTP2 invalid HTTP1 settings during upgrade"; flow:established; app-layer-event:http2.invalid_http1_settings; classtype:protocol-command-decode; sid:2290008; rev:1;)
 alert http2 any any -> any any (msg:"SURICATA HTTP2 failed decompression"; flow:established; app-layer-event:http2.failed_decompression; classtype:protocol-command-decode; sid:2290009; rev:1;)
 alert http2 any any -> any any (msg:"SURICATA HTTP2 authority host mismatch"; flow:established,to_server; app-layer-event:http2.authority_host_mismatch; classtype:protocol-command-decode; sid:2290013; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 user info in uri"; flow:established,to_server; app-layer-event:http2.userinfo_in_uri; classtype:protocol-command-decode; sid:2290014; rev:1;)
