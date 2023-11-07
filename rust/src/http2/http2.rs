@@ -206,6 +206,8 @@ impl HTTP2Transaction {
         for block in blocks {
             if block.name == b"content-encoding" {
                 self.decoder.http2_encoding_fromvec(&block.value, dir);
+            } else if block.name == b":authority" && block.value.iter().any(|&x| x == b'@') {
+                self.set_event(HTTP2Event::UserinfoInUri);
             }
         }
     }
@@ -383,6 +385,7 @@ pub enum HTTP2Event {
     InvalidRange,
     HeaderIntegerOverflow,
     TooManyStreams,
+    UserinfoInUri,
 }
 
 pub struct HTTP2DynTable {
