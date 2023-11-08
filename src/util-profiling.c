@@ -1456,6 +1456,9 @@ void SCProfilingInit(void)
 /* see if we want to profile rules for this packet */
 int SCProfileRuleStart(Packet *p)
 {
+    if (p->flags & PKT_PROFILE)
+        return 1;
+
     if (!SC_ATOMIC_GET(profiling_rules_active)) {
         return 0;
     }
@@ -1464,9 +1467,6 @@ int SCProfileRuleStart(Packet *p)
         p->flags |= PKT_PROFILE;
         return 1;
     }
-
-    if (p->flags & PKT_PROFILE)
-        return 1;
     return 0;
 }
 
