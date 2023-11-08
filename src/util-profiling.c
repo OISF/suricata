@@ -1472,7 +1472,6 @@ int SCProfileRuleStart(Packet *p)
         p->flags |= PKT_PROFILE;
         return 1;
     }
-
     return 0;
 }
 
