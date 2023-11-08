@@ -1430,6 +1430,7 @@ void SCProfilingInit(void)
     SC_ATOMIC_INIT(profiling_rules_active);
     SC_ATOMIC_INIT(samples);
     intmax_t rate_v = 0;
+    ConfNode *conf;
 
     (void)ConfGetInt("profiling.sample-rate", &rate_v);
     if (rate_v > 0 && rate_v < INT_MAX) {
@@ -1445,6 +1446,11 @@ void SCProfilingInit(void)
             SCLogInfo("profiling runs for every %luth packet", rate + 1);
         else
             SCLogInfo("profiling runs for every packet");
+    }
+
+    conf = ConfGetNode("profiling.rules");
+    if (ConfNodeChildValueIsTrue(conf, "active")) {
+        SC_ATOMIC_SET(profiling_rules_active, 1);
     }
 }
 
