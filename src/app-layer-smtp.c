@@ -111,6 +111,8 @@
 #define SMTP_EHLO_EXTENSION_STARTTLS
 #define SMTP_EHLO_EXTENSION_8BITMIME
 
+#define SMTP_DEFAULT_MAX_TX 256
+
 SCEnumCharMap smtp_decoder_event_table[] = {
     { "INVALID_REPLY", SMTP_DECODER_EVENT_INVALID_REPLY },
     { "UNABLE_TO_MATCH_REPLY_WITH_REQUEST", SMTP_DECODER_EVENT_UNABLE_TO_MATCH_REPLY_WITH_REQUEST },
@@ -218,7 +220,8 @@ SCEnumCharMap smtp_reply_map[ ] = {
 };
 
 /* Create SMTP config structure */
-SMTPConfig smtp_config = { 0, { 0, 0, 0, 0, 0 }, 0, 0, 0, 0, STREAMING_BUFFER_CONFIG_INITIALIZER};
+SMTPConfig smtp_config = { 0, { 0, 0, 0, 0, 0 }, 0, 0, 0, SMTP_DEFAULT_MAX_TX, 0,
+    STREAMING_BUFFER_CONFIG_INITIALIZER };
 
 static SMTPString *SMTPStringAlloc(void);
 static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState *pstate);
@@ -327,6 +330,8 @@ static void SMTPConfigure(void) {
         smtp_config.raw_extraction = 0;
     }
 
+    smtp_config.max_tx = SMTP_DEFAULT_MAX_TX;
+
     SCReturn;
 }
 
@@ -342,8 +347,11 @@ static void SMTPSetEvent(SMTPState *s, uint8_t e)
     SCLogDebug("couldn't set event %u", e);
 }
 
-static SMTPTransaction *SMTPTransactionCreate(void)
+static SMTPTransaction *SMTPTransactionCreate(SMTPState *state)
 {
+    if (state->tx_cnt > smtp_config.max_tx) {
+        return NULL;
+    }
     SMTPTransaction *tx = SCCalloc(1, sizeof(*tx));
     if (tx == NULL) {
         return NULL;
@@ -1081,7 +1089,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
         return 0;
     }
     if (state->curr_tx == NULL || (state->curr_tx->done && !NoNewTx(state))) {
-        tx = SMTPTransactionCreate();
+        tx = SMTPTransactionCreate(state);
         if (tx == NULL)
             return -1;
         state->curr_tx = tx;
@@ -1124,7 +1132,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                     // we did not close the previous tx, set error
                     SMTPSetEvent(state, SMTP_DECODER_EVENT_UNPARSABLE_CONTENT);
                     FileCloseFile(state->files_ts, NULL, 0, FILE_TRUNCATED);
-                    tx = SMTPTransactionCreate();
+                    tx = SMTPTransactionCreate(state);
                     if (tx == NULL)
                         return -1;
                     state->curr_tx = tx;
@@ -1143,7 +1151,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                      * of first one. So we start a new transaction. */
                     tx->mime_state->state_flag = PARSE_ERROR;
                     SMTPSetEvent(state, SMTP_DECODER_EVENT_UNPARSABLE_CONTENT);
-                    tx = SMTPTransactionCreate();
+                    tx = SMTPTransactionCreate(state);
                     if (tx == NULL)
                         return -1;
                     state->curr_tx = tx;
@@ -1904,6 +1912,8 @@ static void SMTPTestInitConfig(void)
     smtp_config.content_limit = FILEDATA_CONTENT_LIMIT;
     smtp_config.content_inspect_window = FILEDATA_CONTENT_INSPECT_WINDOW;
     smtp_config.content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
+
+    smtp_config.max_tx = SMTP_DEFAULT_MAX_TX;
 
     smtp_config.sbcfg.buf_size = FILEDATA_CONTENT_INSPECT_WINDOW;
 }
