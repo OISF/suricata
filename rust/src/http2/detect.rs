@@ -613,13 +613,28 @@ fn http2_lower(value: &[u8]) -> Option<Vec<u8>> {
 }
 
 // returns a tuple with the value and its size
-fn http2_normalize_host(value: &[u8]) -> (Option<Vec<u8>>, usize) {
-    match value.iter().position(|&x| x == b':') {
+fn http2_normalize_host(value: &[u8]) -> Option<Vec<u8>> {
+    match value.iter().position(|&x| x == b'@') {
         Some(i) => {
-            return (http2_lower(&value[..i]), i);
+            let value = &value[i+1..];
+            match value.iter().position(|&x| x == b':') {
+                Some(i) => {
+                    return http2_lower(&value[..i]);
+                }
+                None => {
+                    return http2_lower(value);
+                }
+            }
         }
         None => {
-            return (http2_lower(value), value.len());
+            match value.iter().position(|&x| x == b':') {
+                Some(i) => {
+                    return http2_lower(&value[..i]);
+                }
+                None => {
+                    return http2_lower(value);
+                }
+            }
         }
     }
 }
@@ -632,7 +647,7 @@ pub unsafe extern "C" fn rs_http2_tx_get_host_norm(
         let r = http2_normalize_host(value);
         // r is a tuple with the value and its size
         // this is useful when we only take a substring (before the port)
-        match r.0 {
+        match r {
             Some(normval) => {
                 // In case we needed some normalization,
                 // the transaction needs to take ownership of this normalized host
@@ -640,12 +655,12 @@ pub unsafe extern "C" fn rs_http2_tx_get_host_norm(
                 let idx = tx.escaped.len() - 1;
                 let resvalue = &tx.escaped[idx];
                 *buffer = resvalue.as_ptr(); //unsafe
-                *buffer_len = r.1 as u32;
+                *buffer_len = resvalue.len() as u32;
                 return 1;
             }
             None => {
                 *buffer = value.as_ptr(); //unsafe
-                *buffer_len = r.1 as u32;
+                *buffer_len = value.len() as u32;
                 return 1;
             }
         }
@@ -1008,7 +1023,7 @@ mod tests {
     fn test_http2_normalize_host() {
         let buf0 = "aBC.com:1234".as_bytes();
         let r0 = http2_normalize_host(buf0);
-        match r0.0 {
+        match r0 {
             Some(r) => {
                 assert_eq!(r, "abc.com".as_bytes().to_vec());
             }
@@ -1018,22 +1033,36 @@ mod tests {
         }
         let buf1 = "oisf.net".as_bytes();
         let r1 = http2_normalize_host(buf1);
-        match r1.0 {
+        match r1 {
             Some(r) => {
                 panic!("Result should not have been None, not {:?}", r);
             }
             None => {}
         }
-        assert_eq!(r1.1, "oisf.net".len());
         let buf2 = "localhost:3000".as_bytes();
         let r2 = http2_normalize_host(buf2);
-        match r2.0 {
+        match r2 {
             Some(r) => {
                 panic!("Result should not have been None, not {:?}", r);
             }
             None => {}
         }
-        assert_eq!(r2.1, "localhost".len());
+        let buf3 = "user:pass@localhost".as_bytes();
+        let r3 = http2_normalize_host(buf3);
+        match r3 {
+            Some(r) => {
+                panic!("Result should not have been None, not {:?}", r);
+            }
+            None => {}
+        }
+        let buf4 = "user:pass@localhost:123".as_bytes();
+        let r4 = http2_normalize_host(buf4);
+        match r4 {
+            Some(r) => {
+                panic!("Result should not have been None, not {:?}", r);
+            }
+            None => {}
+        }
     }
 
     #[test]
