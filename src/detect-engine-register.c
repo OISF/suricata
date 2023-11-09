@@ -245,6 +245,7 @@
 #include "detect-transform-urldecode.h"
 #include "detect-transform-xor.h"
 #include "detect-transform-header-lowercase.h"
+#include "detect-transform-casechange.h"
 
 #include "util-rule-vars.h"
 
@@ -698,6 +699,8 @@ void SigTableSetup(void)
     DetectTransformUrlDecodeRegister();
     DetectTransformXorRegister();
     DetectTransformHeaderLowercaseRegister();
+    DetectTransformToLowerRegister();
+    DetectTransformToUpperRegister();
 
     DetectFileHandlerRegister();
 
