@@ -159,3 +159,18 @@ Example::
     alert http any any -> any any (msg:"HTTP with xor"; http.uri; \
         xor:"0d0ac8ff"; content:"password="; sid:1;)
 
+header_lowercase
+----------------
+
+This transform is meant for HTTP/1 HTTP/2 header names normalization.
+It lowercases the header names, while keeping untouched the header values.
+
+The implementation uses a state machine :
+- it lowercases until it finds ``:```
+- it does not change until it finds a new line and switch back to first state
+
+This example alerts for both HTTP/1 and HTTP/2 with a authorization header
+Example::
+
+    alert http any any -> any any (msg:"HTTP authorization"; http.header_names; \
+        header_lowercase; content:"authorization:"; sid:1;)
