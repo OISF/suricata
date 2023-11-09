@@ -611,9 +611,21 @@ impl HTTP2State {
 
     pub fn find_or_create_tx(
         &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: Direction,
-    ) -> &mut HTTP2Transaction {
+    ) -> Option<&mut HTTP2Transaction> {
         if header.stream_id == 0 {
-            return self.create_global_tx();
+            if self.transactions.len() >= unsafe { HTTP2_MAX_STREAMS } {
+                for tx_old in &mut self.transactions {
+                    if tx_old.state == HTTP2TransactionState::HTTP2StateTodrop {
+                        // loop was already run
+                        break;
+                    }
+                    tx_old.set_event(HTTP2Event::TooManyStreams);
+                    // use a distinct state, even if we do not log it
+                    tx_old.state = HTTP2TransactionState::HTTP2StateTodrop;
+                }
+                return None;
+            }
+            return Some(self.create_global_tx());
         }
         let sid = match data {
             //yes, the right stream_id for Suricata is not the header one
@@ -643,30 +655,31 @@ impl HTTP2State {
             let tx = &mut self.transactions[index - 1];
             tx.tx_data.update_file_flags(self.state_data.file_flags);
             tx.update_file_flags(tx.tx_data.file_flags);
-            return tx;
+            return Some(tx);
         } else {
+            // do not use SETTINGS_MAX_CONCURRENT_STREAMS as it can grow too much
+            if self.transactions.len() >= unsafe { HTTP2_MAX_STREAMS } {
+                for tx_old in &mut self.transactions {
+                    if tx_old.state == HTTP2TransactionState::HTTP2StateTodrop {
+                        // loop was already run
+                        break;
+                    }
+                    tx_old.set_event(HTTP2Event::TooManyStreams);
+                    // use a distinct state, even if we do not log it
+                    tx_old.state = HTTP2TransactionState::HTTP2StateTodrop;
+                }
+                return None;
+            }
             let mut tx = HTTP2Transaction::new();
             self.tx_id += 1;
             tx.tx_id = self.tx_id;
             tx.stream_id = sid;
             tx.state = HTTP2TransactionState::HTTP2StateOpen;
-            // do not use SETTINGS_MAX_CONCURRENT_STREAMS as it can grow too much
-            if self.transactions.len() > unsafe { HTTP2_MAX_STREAMS } {
-                // set at least one another transaction to the drop state
-                for tx_old in &mut self.transactions {
-                    if tx_old.state != HTTP2TransactionState::HTTP2StateTodrop {
-                        // use a distinct state, even if we do not log it
-                        tx_old.set_event(HTTP2Event::TooManyStreams);
-                        tx_old.state = HTTP2TransactionState::HTTP2StateTodrop;
-                        break;
-                    }
-                }
-            }
             tx.tx_data.update_file_flags(self.state_data.file_flags);
             tx.update_file_flags(tx.tx_data.file_flags);
             tx.tx_data.file_tx = STREAM_TOSERVER|STREAM_TOCLIENT; // might hold files in both directions
             self.transactions.push_back(tx);
-            return self.transactions.back_mut().unwrap();
+            return Some(self.transactions.back_mut().unwrap());
         }
     }
 
@@ -1038,6 +1051,10 @@ impl HTTP2State {
                     );
 
                     let tx = self.find_or_create_tx(&head, &txdata, dir);
+                    if tx.is_none() {
+                        return AppLayerResult::err();
+                    }
+                    let tx = tx.unwrap();
                     if reass_limit_reached {
                         tx.tx_data.set_event(HTTP2Event::ReassemblyLimitReached as u8);
                     }

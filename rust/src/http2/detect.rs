@@ -932,7 +932,7 @@ fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
         blocks,
     };
     let txdata = HTTP2FrameTypeData::HEADERS(hs);
-    let tx = state.find_or_create_tx(&head, &txdata, Direction::ToServer);
+    let tx = state.find_or_create_tx(&head, &txdata, Direction::ToServer).unwrap();
     tx.frames_ts.push(HTTP2Frame {
         header: head,
         data: txdata,
@@ -975,7 +975,7 @@ fn http2_tx_set_settings(state: &mut HTTP2State, input: &[u8]) {
             match parser::http2_parse_frame_settings(&dec) {
                 Ok((_, set)) => {
                     let txdata = HTTP2FrameTypeData::SETTINGS(set);
-                    let tx = state.find_or_create_tx(&head, &txdata, Direction::ToServer);
+                    let tx = state.find_or_create_tx(&head, &txdata, Direction::ToServer).unwrap();
                     tx.frames_ts.push(HTTP2Frame {
                         header: head,
                         data: txdata,
