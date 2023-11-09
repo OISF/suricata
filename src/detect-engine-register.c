@@ -244,6 +244,7 @@
 #include "detect-transform-pcrexform.h"
 #include "detect-transform-urldecode.h"
 #include "detect-transform-xor.h"
+#include "detect-transform-header-lowercase.h"
 
 #include "util-rule-vars.h"
 
@@ -696,6 +697,7 @@ void SigTableSetup(void)
     DetectTransformPcrexformRegister();
     DetectTransformUrlDecodeRegister();
     DetectTransformXorRegister();
+    DetectTransformHeaderLowercaseRegister();
 
     DetectFileHandlerRegister();
 
