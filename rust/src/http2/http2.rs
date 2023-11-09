@@ -67,6 +67,7 @@ const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
 pub const HTTP2_MAX_TABLESIZE: u32 = 0x10000; // 65536
 // maximum size of reassembly for header + continuation
 static mut HTTP2_MAX_REASS: usize = 102400;
+static mut HTTP2_MAX_STREAMS: usize = 4096; // 0x1000
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
@@ -117,6 +118,8 @@ pub enum HTTP2TransactionState {
     HTTP2StateClosed = 7,
     //not a RFC-defined state, used for stream 0 frames appyling to the global connection
     HTTP2StateGlobal = 8,
+    //not a RFC-defined state, dropping this old tx because we have too many
+    HTTP2StateTodrop = 9,
 }
 
 #[derive(Debug)]
@@ -365,6 +368,7 @@ pub enum HTTP2Event {
     AuthorityHostMismatch,
     UserinfoInUri,
     ReassemblyLimitReached,
+    TooManyStreams,
 }
 
 impl HTTP2Event {
@@ -382,6 +386,7 @@ impl HTTP2Event {
             9 => Some(HTTP2Event::FailedDecompression),
             10 => Some(HTTP2Event::AuthorityHostMismatch),
             11 => Some(HTTP2Event::UserinfoInUri),
+            12 => Some(HTTP2Event::TooManyStreams),
             _ => None,
         }
     }
@@ -523,9 +528,21 @@ impl HTTP2State {
 
     pub fn find_or_create_tx(
         &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: u8,
-    ) -> &mut HTTP2Transaction {
+    ) -> Option<&mut HTTP2Transaction> {
         if header.stream_id == 0 {
-            return self.create_global_tx();
+            if self.transactions.len() >= unsafe { HTTP2_MAX_STREAMS } {
+                for tx_old in &mut self.transactions {
+                    if tx_old.state == HTTP2TransactionState::HTTP2StateTodrop {
+                        // loop was already run
+                        break;
+                    }
+                    tx_old.set_event(HTTP2Event::TooManyStreams);
+                    // use a distinct state, even if we do not log it
+                    tx_old.state = HTTP2TransactionState::HTTP2StateTodrop;
+                }
+                return None;
+            }
+            return Some(self.create_global_tx());
         }
         let sid = match data {
             //yes, the right stream_id for Suricata is not the header one
@@ -551,15 +568,28 @@ impl HTTP2State {
                     self.set_event(HTTP2Event::StreamIdReuse);
                 }
             }
-            return &mut self.transactions[index - 1];
+            return Some(&mut self.transactions[index - 1]);
         } else {
+            // do not use SETTINGS_MAX_CONCURRENT_STREAMS as it can grow too much
+            if self.transactions.len() >= unsafe { HTTP2_MAX_STREAMS } {
+                for tx_old in &mut self.transactions {
+                    if tx_old.state == HTTP2TransactionState::HTTP2StateTodrop {
+                        // loop was already run
+                        break;
+                    }
+                    tx_old.set_event(HTTP2Event::TooManyStreams);
+                    // use a distinct state, even if we do not log it
+                    tx_old.state = HTTP2TransactionState::HTTP2StateTodrop;
+                }
+                return None;
+            }
             let mut tx = HTTP2Transaction::new();
             self.tx_id += 1;
             tx.tx_id = self.tx_id;
             tx.stream_id = sid;
             tx.state = HTTP2TransactionState::HTTP2StateOpen;
             self.transactions.push_back(tx);
-            return self.transactions.back_mut().unwrap();
+            return Some(self.transactions.back_mut().unwrap());
         }
     }
 
@@ -925,6 +955,10 @@ impl HTTP2State {
                     );
 
                     let tx = self.find_or_create_tx(&head, &txdata, dir);
+                    if tx.is_none() {
+                        return AppLayerResult::err();
+                    }
+                    let tx = tx.unwrap();
                     if reass_limit_reached {
                         tx.set_event(HTTP2Event::ReassemblyLimitReached);
                     }
@@ -1279,6 +1313,7 @@ pub extern "C" fn rs_http2_state_get_event_info_by_id(
             HTTP2Event::AuthorityHostMismatch => "authority_host_mismatch\0",
             HTTP2Event::UserinfoInUri => "userinfo_in_uri\0",
             HTTP2Event::ReassemblyLimitReached => "reassembly_limit_reached\0",
+            HTTP2Event::TooManyStreams => "too_many_streams\0",
         };
         unsafe {
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
