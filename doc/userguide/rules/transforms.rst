@@ -134,3 +134,23 @@ Example::
 
     alert http any any -> any any (msg:"HTTP with xor"; http.uri; \
         xor:"0d0ac8ff"; content:"password="; sid:1;)
+
+to_lowercase
+------------
+
+Converts the buffer to lowercase.
+
+Example::
+
+    alert http any any -> any any (http.uri; to_lowercase; \
+        content:"|this text has been converted to lowercase|"; sid:1;)
+
+to_uppercase
+------------
+
+Converts the buffer to uppercase.
+
+Example::
+
+    alert http any any -> any any (http.uri; to_uppercase; \
+        content:"|THIS TEXT HAS BEEN CONVERTED TO UPPERCASE|"; sid:1;)
