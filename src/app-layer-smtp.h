@@ -101,6 +101,7 @@ typedef struct SMTPConfig {
     uint32_t content_limit;
     uint32_t content_inspect_min_size;
     uint32_t content_inspect_window;
+    uint64_t max_tx;
 
     bool raw_extraction;
 
