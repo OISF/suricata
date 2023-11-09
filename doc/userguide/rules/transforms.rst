@@ -68,6 +68,18 @@ compress_whitespace
 
 Compresses all consecutive whitespace into a single space.
 
+to_lowercase
+------------
+
+Converts the buffer to lowercase and passes the value on.
+
+This example alerts if ``http.uri`` contains ``this text has been converted to lowercase``
+
+Example::
+
+    alert http any any -> any any (http.uri; to_lowercase; \
+        content:"this text has been converted to lowercase"; sid:1;)
+
 to_md5
 ------
 
@@ -78,6 +90,18 @@ Example::
 
     alert http any any -> any any (http_request_line; to_md5; \
         content:"|54 A9 7A 8A B0 9C 1B 81 37 25 22 14 51 D3 F9 97|"; sid:1;)
+
+to_uppercase
+------------
+
+Converts the buffer to uppercase and passes the value on.
+
+This example alerts if ``http.uri`` contains ``THIS TEXT HAS BEEN CONVERTED TO LOWERCASE``
+
+Example::
+
+    alert http any any -> any any (http.uri; to_uppercase; \
+        content:"THIS TEXT HAS BEEN CONVERTED TO UPPERCASE"; sid:1;)
 
 to_sha1
 ---------
