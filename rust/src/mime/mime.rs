@@ -453,9 +453,7 @@ pub fn mime_state_init(i: &[u8]) -> Option<MimeStateHTTP> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCMimeStateInit(
-    input: *const u8, input_len: u32,
-) -> *mut MimeStateHTTP {
+pub unsafe extern "C" fn SCMimeStateInit(input: *const u8, input_len: u32) -> *mut MimeStateHTTP {
     let slice = build_slice!(input, input_len as usize);
 
     if let Some(ctx) = mime_state_init(slice) {

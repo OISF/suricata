@@ -190,8 +190,6 @@ fn log_data(js: &mut JsonBuilder, ctx: &mut MimeStateSMTP) -> Result<(), JsonErr
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCMimeSmtpLogData(
-    js: &mut JsonBuilder, ctx: &mut MimeStateSMTP,
-) -> bool {
+pub unsafe extern "C" fn SCMimeSmtpLogData(js: &mut JsonBuilder, ctx: &mut MimeStateSMTP) -> bool {
     return log_data(js, ctx).is_ok();
 }
