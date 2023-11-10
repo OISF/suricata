@@ -1192,11 +1192,11 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             DecodeMPLS(tv, dtv, p, data, len);
             break;
         case ETHERNET_TYPE_DCE:
-            if (unlikely(len < ETHERNET_DCE_HEADER_LEN)) {
+            if (unlikely(len < ETHERNET_DCE_HEADER_LEN + 4)) {
                 ENGINE_SET_INVALID_EVENT(p, DCE_PKT_TOO_SMALL);
             } else {
-                // DCE layer is ethernet + 2 bytes, followed by another ethernet
-                DecodeEthernet(tv, dtv, p, data + 2, len - 2);
+                // DCE layer is ethernet + 2 bytes, followed by another ethernet, + 4 bytes footer
+                DecodeEthernet(tv, dtv, p, data + 2, len - 6);
             }
             break;
         case ETHERNET_TYPE_VNTAG:
