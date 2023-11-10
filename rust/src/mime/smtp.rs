@@ -79,7 +79,7 @@ pub struct MimeStateSMTP<'a> {
     filename: Vec<u8>,
     pub(crate) attachments: Vec<Vec<u8>>,
     pub(crate) urls: Vec<Vec<u8>>,
-    boundary: Vec<u8>,
+    boundaries: Vec<Vec<u8>>,
     encoding: MimeSmtpEncoding,
     decoder: Option<MimeBase64Decoder>,
     content_type: MimeSmtpContentType,
@@ -123,7 +123,7 @@ pub fn mime_smtp_state_init(
         filename: Vec::new(),
         attachments: Vec::new(),
         urls: Vec::new(),
-        boundary: Vec::new(),
+        boundaries: Vec::new(),
         decoded_line: Vec::new(),
         encoding: MimeSmtpEncoding::Plain,
         decoder: None,
@@ -240,19 +240,19 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> u32 {
                     sections_values.clear();
                 }
             }
-            if ctx.main_headers_nb == 0 {
-                if let Some(value) =
-                    mime::mime_find_header_token(&h.value, b"boundary", &mut sections_values)
-                {
-                    // start wih 2 additional hyphens
-                    ctx.boundary.push(b'-');
-                    ctx.boundary.push(b'-');
-                    ctx.boundary.extend_from_slice(value);
-                    if value.len() > MAX_BOUNDARY_LEN {
-                        warnings |= MIME_ANOM_LONG_BOUNDARY;
-                    }
-                    sections_values.clear();
+            if let Some(value) =
+                mime::mime_find_header_token(&h.value, b"boundary", &mut sections_values)
+            {
+                // start wih 2 additional hyphens
+                let mut boundary = Vec::new();
+                boundary.push(b'-');
+                boundary.push(b'-');
+                boundary.extend_from_slice(value);
+                ctx.boundaries.push(boundary);
+                if value.len() > MAX_BOUNDARY_LEN {
+                    warnings |= MIME_ANOM_LONG_BOUNDARY;
                 }
+                sections_values.clear();
             }
             let ct = if let Some(x) = h.value.iter().position(|&x| x == b';') {
                 &h.value[..x]
@@ -559,40 +559,45 @@ fn mime_smtp_parse_line(
                 ctx.md5_state = MimeSmtpMd5State::MimeSmtpMd5Started;
                 Update::update(&mut ctx.md5, full);
             }
-            if !ctx.boundary.is_empty()
-                && i.len() >= ctx.boundary.len()
-                && i[..ctx.boundary.len()] == ctx.boundary
-            {
-                if ctx.encoding == MimeSmtpEncoding::Base64 && unsafe { MIME_SMTP_CONFIG_DECODE_BASE64 } {
-                    if let Some(ref mut decoder) = &mut ctx.decoder {
-                        if decoder.nb > 0 {
-                            // flush the base64 buffer with padding
-                            let mut v = Vec::new();
-                            for _i in 0..4 - decoder.nb {
-                                v.push(b'=');
-                            }
-                            if let Ok(dec) = mime_base64_decode(decoder, &v) {
-                                unsafe {
-                                    FileAppendData(
-                                        ctx.files,
-                                        ctx.sbcfg,
-                                        dec.as_ptr(),
-                                        dec.len() as u32,
-                                    );
+            let boundary = ctx.boundaries.last();
+            if let Some(b) = boundary {
+                if i.len() >= b.len() && &i[..b.len()] == b {
+                    if ctx.encoding == MimeSmtpEncoding::Base64
+                        && unsafe { MIME_SMTP_CONFIG_DECODE_BASE64 }
+                    {
+                        if let Some(ref mut decoder) = &mut ctx.decoder {
+                            if decoder.nb > 0 {
+                                // flush the base64 buffer with padding
+                                let mut v = Vec::new();
+                                for _i in 0..4 - decoder.nb {
+                                    v.push(b'=');
+                                }
+                                if let Ok(dec) = mime_base64_decode(decoder, &v) {
+                                    unsafe {
+                                        FileAppendData(
+                                            ctx.files,
+                                            ctx.sbcfg,
+                                            dec.as_ptr(),
+                                            dec.len() as u32,
+                                        );
+                                    }
                                 }
                             }
                         }
                     }
+                    ctx.state_flag = MimeSmtpParserState::MimeSmtpStart;
+                    let toclose = !ctx.filename.is_empty();
+                    ctx.filename.clear();
+                    ctx.headers.truncate(ctx.main_headers_nb);
+                    ctx.encoding = MimeSmtpEncoding::Plain;
+                    if i.len() >= b.len() + 2 && i[b.len()] == b'-' && i[b.len() + 1] == b'-' {
+                        ctx.boundaries.pop();
+                    }
+                    if toclose {
+                        return (MimeSmtpParserResult::MimeSmtpFileClose, 0);
+                    }
+                    return (MimeSmtpParserResult::MimeSmtpNeedsMore, 0);
                 }
-                ctx.state_flag = MimeSmtpParserState::MimeSmtpStart;
-                let toclose = !ctx.filename.is_empty();
-                ctx.filename.clear();
-                ctx.headers.truncate(ctx.main_headers_nb);
-                ctx.encoding = MimeSmtpEncoding::Plain;
-                if toclose {
-                    return (MimeSmtpParserResult::MimeSmtpFileClose, 0);
-                }
-                return (MimeSmtpParserResult::MimeSmtpNeedsMore, 0);
             }
             if ctx.filename.is_empty() {
                 if ctx.content_type == MimeSmtpContentType::PlainText
