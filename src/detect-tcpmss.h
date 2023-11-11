@@ -26,4 +26,6 @@
 
 void DetectTcpmssRegister(void);
 
+const char *TcpmssModeToString(uint8_t mode);
+
 #endif	/* _DETECT_TCPMSS_H */

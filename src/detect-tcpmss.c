@@ -63,6 +63,31 @@ void DetectTcpmssRegister(void)
 }
 
 /**
+ * \brief Return human readable value for tcp.mss mode
+ *
+ * \param mode uint8_t DetectU16Data tcp.mss mode value
+ */
+const char *TcpmssModeToString(uint8_t mode)
+{
+    switch (mode) {
+        case 0:
+            return "equal";
+        case 1:
+            return "less than";
+        case 2:
+            return "less than or equal to";
+        case 3:
+            return "greater than";
+        case 4:
+            return "greater than or equal to";
+        case 5:
+            return "range";
+        case 6:
+            return "not equal to";
+    }
+}
+
+/**
  * \brief This function is used to match TCPMSS rule option on a packet with those passed via
  * tcpmss:
  *
