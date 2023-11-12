@@ -88,6 +88,8 @@ void AppLayerFrameDump(Flow *f);
 
 Frame *FrameGetByIndex(Frames *frames, const uint32_t idx);
 Frame *FrameGetById(Frames *frames, const int64_t id);
+Frame *FrameGetLastByType(Frames *frames, const uint8_t frame_type);
+Frame *FrameGetLastOpenByType(Frames *frames, const uint8_t frame_type);
 
 Frame *AppLayerFrameGetById(Flow *f, const int direction, const FrameId frame_id);
 FrameId AppLayerFrameGetId(Frame *r);
