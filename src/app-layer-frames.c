@@ -83,6 +83,56 @@ static void FrameDebug(const char *prefix, const Frames *frames, const Frame *fr
 #endif
 }
 
+/** \todo perhaps we can search backwards */
+Frame *FrameGetLastByType(Frames *frames, const uint8_t frame_type)
+{
+    Frame *candidate = NULL;
+
+    SCLogDebug(
+            "frames %p cnt %u, looking for last of type %" PRIu8, frames, frames->cnt, frame_type);
+    for (uint16_t i = 0; i < frames->cnt; i++) {
+        if (i < FRAMES_STATIC_CNT) {
+            Frame *frame = &frames->sframes[i];
+            FrameDebug("get_by_id(static)", frames, frame);
+            if (frame->type == frame_type)
+                candidate = frame;
+        } else {
+            const uint16_t o = i - FRAMES_STATIC_CNT;
+            Frame *frame = &frames->dframes[o];
+            FrameDebug("get_by_id(dynamic)", frames, frame);
+            if (frame->type == frame_type)
+                candidate = frame;
+        }
+    }
+    return candidate;
+}
+
+/**
+ * \note "open" means a frame that has no length set (len == -1)
+ * \todo perhaps we can search backwards */
+Frame *FrameGetLastOpenByType(Frames *frames, const uint8_t frame_type)
+{
+    Frame *candidate = NULL;
+
+    SCLogDebug(
+            "frames %p cnt %u, looking for last of type %" PRIu8, frames, frames->cnt, frame_type);
+    for (uint16_t i = 0; i < frames->cnt; i++) {
+        if (i < FRAMES_STATIC_CNT) {
+            Frame *frame = &frames->sframes[i];
+            FrameDebug("get_by_id(static)", frames, frame);
+            if (frame->type == frame_type && frame->len == -1)
+                candidate = frame;
+        } else {
+            const uint16_t o = i - FRAMES_STATIC_CNT;
+            Frame *frame = &frames->dframes[o];
+            FrameDebug("get_by_id(dynamic)", frames, frame);
+            if (frame->type == frame_type && frame->len == -1)
+                candidate = frame;
+        }
+    }
+    return candidate;
+}
+
 Frame *FrameGetById(Frames *frames, const int64_t id)
 {
     SCLogDebug("frames %p cnt %u, looking for %" PRIi64, frames, frames->cnt, id);
