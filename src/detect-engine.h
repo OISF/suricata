@@ -162,7 +162,7 @@ int DetectEngineInspectPktBufferGeneric(
  * \param Callback The engine callback.
  */
 void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr2 Callback2, InspectionBufferGetDataPtr GetData);
+        int progress, InspectEngineFuncPtr Callback2, InspectionBufferGetDataPtr GetData);
 
 void DetectPktInspectEngineRegister(const char *name,
         InspectionBufferGetPktDataPtr GetPktData,
