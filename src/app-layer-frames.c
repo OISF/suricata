@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -81,6 +81,32 @@ static void FrameDebug(const char *prefix, const Frames *frames, const Frame *fr
             frame->len, frame->inspect_progress, frame->event_cnt, frame->events[0],
             frame->events[1], frame->events[2], frame->events[3]);
 #endif
+}
+
+/**
+ * \note "open" means a frame that has no length set (len == -1)
+ * \todo perhaps we can search backwards */
+Frame *FrameGetLastOpenByType(Frames *frames, const uint8_t frame_type)
+{
+    Frame *candidate = NULL;
+
+    SCLogDebug(
+            "frames %p cnt %u, looking for last of type %" PRIu8, frames, frames->cnt, frame_type);
+    for (uint16_t i = 0; i < frames->cnt; i++) {
+        if (i < FRAMES_STATIC_CNT) {
+            Frame *frame = &frames->sframes[i];
+            FrameDebug("get_by_id(static)", frames, frame);
+            if (frame->type == frame_type && frame->len == -1)
+                candidate = frame;
+        } else {
+            const uint16_t o = i - FRAMES_STATIC_CNT;
+            Frame *frame = &frames->dframes[o];
+            FrameDebug("get_by_id(dynamic)", frames, frame);
+            if (frame->type == frame_type && frame->len == -1)
+                candidate = frame;
+        }
+    }
+    return candidate;
 }
 
 Frame *FrameGetById(Frames *frames, const int64_t id)
