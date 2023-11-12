@@ -716,6 +716,48 @@ Frame *AppLayerFrameGetById(Flow *f, const int dir, const FrameId frame_id)
     return FrameGetById(frames, frame_id);
 }
 
+Frame *AppLayerFrameGetLastByType(Flow *f, const int dir, const uint8_t frame_type)
+{
+    if (!(FrameConfigTypeIsEnabled(f->alproto, frame_type)))
+        return NULL;
+
+    FramesContainer *frames_container = AppLayerFramesGetContainer(f);
+    SCLogDebug("get frame_type %" PRIu8 " direction %u/%s frames_container %p", frame_type, dir,
+            dir == 0 ? "toserver" : "toclient", frames_container);
+    if (frames_container == NULL)
+        return NULL;
+
+    Frames *frames;
+    if (dir == 0) {
+        frames = &frames_container->toserver;
+    } else {
+        frames = &frames_container->toclient;
+    }
+    SCLogDebug("frames %p", frames);
+    return FrameGetLastByType(frames, frame_type);
+}
+
+Frame *AppLayerFrameGetLastOpenByType(Flow *f, const int dir, const uint8_t frame_type)
+{
+    if (!(FrameConfigTypeIsEnabled(f->alproto, frame_type)))
+        return NULL;
+
+    FramesContainer *frames_container = AppLayerFramesGetContainer(f);
+    SCLogDebug("get frame_type %" PRIu8 " direction %u/%s frames_container %p", frame_type, dir,
+            dir == 0 ? "toserver" : "toclient", frames_container);
+    if (frames_container == NULL)
+        return NULL;
+
+    Frames *frames;
+    if (dir == 0) {
+        frames = &frames_container->toserver;
+    } else {
+        frames = &frames_container->toclient;
+    }
+    SCLogDebug("frames %p", frames);
+    return FrameGetLastOpenByType(frames, frame_type);
+}
+
 static inline bool FrameIsDone(const Frame *frame, const uint64_t abs_right_edge)
 {
     /* frame with negative length means we don't know the size yet. */
