@@ -410,7 +410,7 @@ typedef InspectionBuffer *(*InspectionBufferGetDataPtr)(
         void *txv, const int list_id);
 struct DetectEngineAppInspectionEngine_;
 
-typedef uint8_t (*InspectEngineFuncPtr2)(struct DetectEngineCtx_ *de_ctx,
+typedef uint8_t (*InspectEngineFuncPtr)(struct DetectEngineCtx_ *de_ctx,
         struct DetectEngineThreadCtx_ *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const struct Signature_ *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
@@ -427,7 +427,7 @@ typedef struct DetectEngineAppInspectionEngine_ {
 
     struct {
         InspectionBufferGetDataPtr GetData;
-        InspectEngineFuncPtr2 Callback;
+        InspectEngineFuncPtr Callback;
         /** pointer to the transforms in the 'DetectBuffer entry for this list */
         const DetectEngineTransforms *transforms;
     } v2;

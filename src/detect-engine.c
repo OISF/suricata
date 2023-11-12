@@ -214,7 +214,7 @@ void DetectFrameInspectEngineRegister(const char *name, int dir,
  *
  *  \note errors are fatal */
 void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr2 Callback2, InspectionBufferGetDataPtr GetData)
+        int progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData)
 {
     BUG_ON(progress >= 48);
 
@@ -225,15 +225,12 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
     }
     SCLogDebug("name %s id %d", name, sm_list);
 
-    if ((alproto >= ALPROTO_FAILED) ||
-        (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
-        (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) ||
-        (progress < 0 || progress >= SHRT_MAX) ||
-        (Callback2 == NULL))
-    {
+    if ((alproto >= ALPROTO_FAILED) || (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
+            (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) ||
+            (progress < 0 || progress >= SHRT_MAX) || (Callback == NULL)) {
         SCLogError("Invalid arguments");
         BUG_ON(1);
-    } else if (Callback2 == DetectEngineInspectBufferGeneric && GetData == NULL) {
+    } else if (Callback == DetectEngineInspectBufferGeneric && GetData == NULL) {
         SCLogError("Invalid arguments: must register "
                    "GetData with DetectEngineInspectBufferGeneric");
         BUG_ON(1);
@@ -256,7 +253,7 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
     new_engine->sm_list = (uint16_t)sm_list;
     new_engine->sm_list_base = (uint16_t)sm_list;
     new_engine->progress = (int16_t)progress;
-    new_engine->v2.Callback = Callback2;
+    new_engine->v2.Callback = Callback;
     new_engine->v2.GetData = GetData;
 
     if (g_app_inspect_engines == NULL) {

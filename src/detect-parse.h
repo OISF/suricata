@@ -33,7 +33,7 @@ typedef struct DetectFileHandlerTableElmt_ {
     const char *name;
     int priority;
     PrefilterRegisterFunc PrefilterFn;
-    InspectEngineFuncPtr2 Callback;
+    InspectEngineFuncPtr Callback;
     InspectionBufferGetDataPtr GetData;
     int al_protocols[MAX_DETECT_ALPROTO_CNT];
     int tx_progress;
