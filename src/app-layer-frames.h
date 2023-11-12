@@ -91,7 +91,10 @@ Frame *FrameGetById(Frames *frames, const int64_t id);
 Frame *FrameGetLastOpenByType(Frames *frames, const uint8_t frame_type);
 
 Frame *AppLayerFrameGetById(Flow *f, const int direction, const FrameId frame_id);
+Frame *AppLayerFrameGetLastOpenByType(Flow *f, const int direction, const uint8_t frame_type);
+
 FrameId AppLayerFrameGetId(Frame *r);
+
 void AppLayerFrameAddEvent(Frame *frame, uint8_t e);
 void AppLayerFrameAddEventById(Flow *f, const int dir, const FrameId id, uint8_t e);
 void AppLayerFrameSetLength(Frame *frame, int64_t len);
