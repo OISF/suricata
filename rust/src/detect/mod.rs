@@ -25,6 +25,7 @@ pub mod stream_size;
 pub mod uint;
 pub mod uri;
 pub mod requires;
+pub mod dump;
 
 /// EnumString trait that will be implemented on enums that
 /// derive StringEnum.
