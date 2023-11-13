@@ -35,6 +35,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
+#include "app-layer-frames.h"
 #include "app-layer-smtp.h"
 
 #include "util-enum.h"
@@ -153,6 +154,43 @@ SCEnumCharMap smtp_decoder_event_table[] = {
     { "TRUNCATED_LINE", SMTP_DECODER_EVENT_TRUNCATED_LINE },
     { NULL, -1 },
 };
+
+enum SMTPFrameTypes {
+    SMTP_FRAME_COMMAND_LINE,
+    SMTP_FRAME_DATA,
+    SMTP_FRAME_RESPONSE_LINE,
+};
+
+SCEnumCharMap smtp_frame_table[] = {
+    {
+            "command_line",
+            SMTP_FRAME_COMMAND_LINE,
+    },
+    {
+            "data",
+            SMTP_FRAME_DATA,
+    },
+    {
+            "response_line",
+            SMTP_FRAME_RESPONSE_LINE,
+    },
+    { NULL, -1 },
+};
+
+static int SMTPGetFrameIdByName(const char *frame_name)
+{
+    int id = SCMapEnumNameToValue(frame_name, smtp_frame_table);
+    if (id < 0) {
+        return -1;
+    }
+    return id;
+}
+
+static const char *SMTPGetFrameNameById(const uint8_t frame_id)
+{
+    const char *name = SCMapEnumValueToName(frame_id, smtp_frame_table);
+    return name;
+}
 
 typedef struct SMTPThreadCtx_ {
     MpmThreadCtx *smtp_mpm_thread_ctx;
@@ -646,14 +684,25 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
  * \retval -1 Either when we don't have any new lines to supply anymore or
  *            on failure.
  */
-static AppLayerResult SMTPGetLine(
-        SMTPState *state, SMTPInput *input, SMTPLine *line, uint16_t direction)
+static AppLayerResult SMTPGetLine(Flow *f, StreamSlice *slice, SMTPState *state, SMTPInput *input,
+        SMTPLine *line, uint16_t direction)
 {
     SCEnter();
 
     /* we have run out of input */
     if (input->len <= 0)
         return APP_LAYER_ERROR;
+
+    const uint8_t type = direction == 0 ? SMTP_FRAME_COMMAND_LINE : SMTP_FRAME_RESPONSE_LINE;
+    Frame *frame = AppLayerFrameGetLastOpenByType(f, direction, type);
+    if (frame == NULL) {
+        if (!(state->current_command == SMTP_COMMAND_DATA &&
+                    (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE))) {
+            frame = AppLayerFrameNewByPointer(f, slice, input->buf + input->consumed, -1, direction,
+                    direction == 0 ? SMTP_FRAME_COMMAND_LINE : SMTP_FRAME_RESPONSE_LINE);
+        }
+    }
+    SCLogDebug("frame %p", frame);
 
     uint8_t *lf_idx = memchr(input->buf + input->consumed, 0x0a, input->len);
     bool discard_till_lf = (direction == 0) ? state->discard_till_lf_ts : state->discard_till_lf_tc;
@@ -681,6 +730,11 @@ static AppLayerResult SMTPGetLine(
         input->len -= line->len;
         DEBUG_VALIDATE_BUG_ON((input->consumed + input->len) != input->orig_len);
         line->buf = input->buf + o_consumed;
+
+        if (frame != NULL) {
+            frame->len = (int64_t)line->len;
+        }
+
         if (line->len >= SMTP_LINE_BUFFER_LIMIT) {
             line->len = SMTP_LINE_BUFFER_LIMIT;
             line->delim_len = 0;
@@ -1334,12 +1388,27 @@ static inline void ResetLine(SMTPLine *line)
  *          1 for handing control over to GetLine
  *         -1 for errors and inconsistent states
  * */
-static int SMTPPreProcessCommands(
-        SMTPState *state, Flow *f, AppLayerParserState *pstate, SMTPInput *input, SMTPLine *line)
+static int SMTPPreProcessCommands(SMTPState *state, Flow *f, AppLayerParserState *pstate,
+        StreamSlice *slice, SMTPInput *input, SMTPLine *line)
 {
     DEBUG_VALIDATE_BUG_ON((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) == 0);
     DEBUG_VALIDATE_BUG_ON(line->len != 0);
     DEBUG_VALIDATE_BUG_ON(line->delim_len != 0);
+
+    Frame *data_frame = NULL;
+    if (state->curr_tx) {
+        data_frame = state->curr_tx->data_frame_opened
+                             ? AppLayerFrameGetLastOpenByType(f, 0, SMTP_FRAME_DATA)
+                             : NULL;
+        if (data_frame == NULL && !state->curr_tx->data_frame_opened) {
+            data_frame = AppLayerFrameNewByPointer(
+                    f, slice, input->buf + input->consumed, -1, 0, SMTP_FRAME_DATA);
+            if (data_frame == NULL) {
+                SCLogDebug("data_frame %p - no data frame set up", data_frame);
+            }
+            state->curr_tx->data_frame_opened = true;
+        }
+    }
 
     /* fall back to strict line parsing for mime header parsing */
     if (state->curr_tx && state->curr_tx->mime_state &&
@@ -1384,6 +1453,19 @@ static int SMTPPreProcessCommands(
             if (line->len < 0) {
                 return -1;
             }
+
+            Frame *frame = AppLayerFrameGetLastOpenByType(f, 0, SMTP_FRAME_COMMAND_LINE);
+            if (frame) {
+                frame->len = (int64_t)line->len;
+            } else {
+                if (!(state->current_command == SMTP_COMMAND_DATA &&
+                            (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE))) {
+                    frame = AppLayerFrameNewByPointer(
+                            f, slice, line->buf, line->len, 0, SMTP_FRAME_COMMAND_LINE);
+                    (void)frame;
+                }
+            }
+
             input->consumed = total_consumed;
             input->len -= current_line_consumed;
             DEBUG_VALIDATE_BUG_ON(input->consumed + input->len != input->orig_len);
@@ -1396,8 +1478,14 @@ static int SMTPPreProcessCommands(
             line->delim_len = 0;
 
             /* bail if `SMTPProcessRequest` ended the data mode */
-            if ((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) == 0)
+            if ((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) == 0) {
+                if (data_frame == NULL)
+                    data_frame = AppLayerFrameGetLastOpenByType(f, 0, SMTP_FRAME_DATA);
+                if (data_frame) {
+                    data_frame->len = (slice->offset + input->consumed) - data_frame->offset;
+                }
                 break;
+            }
         }
     }
     return 0;
@@ -1428,7 +1516,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
         if (((state->current_command == SMTP_COMMAND_DATA) ||
                     (state->current_command == SMTP_COMMAND_BDAT)) &&
                 (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
-            int ret = SMTPPreProcessCommands(state, f, pstate, &input, &line);
+            int ret = SMTPPreProcessCommands(state, f, pstate, &stream_slice, &input, &line);
             DEBUG_VALIDATE_BUG_ON(ret != 0 && ret != -1 && ret != 1);
             if (ret == 0 && input.consumed == input.orig_len) {
                 SCReturnStruct(APP_LAYER_OK);
@@ -1436,7 +1524,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
                 SCReturnStruct(APP_LAYER_ERROR);
             }
         }
-        AppLayerResult res = SMTPGetLine(state, &input, &line, direction);
+        AppLayerResult res = SMTPGetLine(f, &stream_slice, state, &input, &line, direction);
         while (res.status == 0) {
             int retval = SMTPProcessRequest(state, f, pstate, &input, &line);
             if (retval != 0)
@@ -1459,7 +1547,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
              * In case of another boundary, the control should be passed to SMTPGetLine */
             if ((input.len > 0) && (state->current_command == SMTP_COMMAND_DATA) &&
                     (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
-                int ret = SMTPPreProcessCommands(state, f, pstate, &input, &line);
+                int ret = SMTPPreProcessCommands(state, f, pstate, &stream_slice, &input, &line);
                 DEBUG_VALIDATE_BUG_ON(ret != 0 && ret != -1 && ret != 1);
                 if (ret == 0 && input.consumed == input.orig_len) {
                     SCReturnStruct(APP_LAYER_OK);
@@ -1467,13 +1555,13 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
                     SCReturnStruct(APP_LAYER_ERROR);
                 }
             }
-            res = SMTPGetLine(state, &input, &line, direction);
+            res = SMTPGetLine(f, &stream_slice, state, &input, &line, direction);
         }
         if (res.status == 1)
             return res;
         /* toclient */
     } else {
-        AppLayerResult res = SMTPGetLine(state, &input, &line, direction);
+        AppLayerResult res = SMTPGetLine(f, &stream_slice, state, &input, &line, direction);
         while (res.status == 0) {
             if (SMTPProcessReply(state, f, pstate, thread_data, &input, &line) != 0)
                 SCReturnStruct(APP_LAYER_ERROR);
@@ -1485,7 +1573,7 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_TRUNCATED_LINE);
                 break;
             }
-            res = SMTPGetLine(state, &input, &line, direction);
+            res = SMTPGetLine(f, &stream_slice, state, &input, &line, direction);
         }
         if (res.status == 1)
             return res;
@@ -1893,6 +1981,8 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterTxDataFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetTxData);
         AppLayerParserRegisterStateDataFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetStateData);
         AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_SMTP, 1, 1);
+        AppLayerParserRegisterGetFrameFuncs(
+                IPPROTO_TCP, ALPROTO_SMTP, SMTPGetFrameIdByName, SMTPGetFrameNameById);
     } else {
         SCLogInfo("Parser disabled for %s protocol. Protocol detection still on.", proto_name);
     }
