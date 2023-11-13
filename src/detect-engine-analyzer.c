@@ -32,6 +32,7 @@
 #include "detect-engine.h"
 #include "detect-engine-analyzer.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-uint.h"
 #include "conf.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
@@ -915,9 +916,15 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
             }
             case DETECT_SEQ: {
                 const DetectSeqData *cd = (const DetectSeqData *)smd->ctx;
-
                 jb_open_object(js, "seq");
                 jb_set_uint(js, "number", cd->seq);
+                jb_close(js);
+                break;
+            }
+            case DETECT_TCPMSS: {
+                const DetectU16Data *cd = (const DetectU16Data *)smd->ctx;
+                jb_open_object(js, "tcp_mss");
+                rs_detect_u16_to_json(js, cd);
                 jb_close(js);
                 break;
             }
