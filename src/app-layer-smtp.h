@@ -24,6 +24,7 @@
 #ifndef SURICATA_APP_LAYER_SMTP_H
 #define SURICATA_APP_LAYER_SMTP_H
 
+#include "app-layer-frames.h"
 #include "util-decode-mime.h"
 #include "util-streaming-buffer.h"
 #include "rust.h"
@@ -81,6 +82,8 @@ typedef struct SMTPTransaction_ {
     // another DATA command within the same context
     // will trigger an app-layer event.
     bool is_data;
+    /** did we try to open the data frame? */
+    bool data_frame_opened;
     /** the first message contained in the session */
     MimeDecEntity *msg_head;
     /** the last message contained in the session */
