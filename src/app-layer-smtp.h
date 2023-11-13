@@ -24,6 +24,7 @@
 #ifndef SURICATA_APP_LAYER_SMTP_H
 #define SURICATA_APP_LAYER_SMTP_H
 
+#include "app-layer-frames.h"
 #include "util-streaming-buffer.h"
 #include "rust.h"
 
