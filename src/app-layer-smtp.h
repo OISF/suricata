@@ -24,6 +24,7 @@
 #ifndef __APP_LAYER_SMTP_H__
 #define __APP_LAYER_SMTP_H__
 
+#include "app-layer-frames.h"
 #include "util-decode-mime.h"
 #include "util-streaming-buffer.h"
 #include "rust.h"
@@ -76,6 +77,8 @@ typedef struct SMTPTransaction_ {
     AppLayerTxData tx_data;
 
     int done;
+    /** did we try to open the data frame? */
+    bool data_frame_opened;
     /** the first message contained in the session */
     MimeDecEntity *msg_head;
     /** the last message contained in the session */
