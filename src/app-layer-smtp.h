@@ -75,7 +75,12 @@ typedef struct SMTPTransaction_ {
 
     AppLayerTxData tx_data;
 
-    int done;
+    /** the tx is complete and can be logged and cleaned */
+    bool done;
+    /** the tx has seen a DATA command */
+    // another DATA command within the same context
+    // will trigger an app-layer event.
+    bool is_data;
     /** the first message contained in the session */
     MimeDecEntity *msg_head;
     /** the last message contained in the session */
