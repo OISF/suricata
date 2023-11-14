@@ -870,6 +870,31 @@ pub unsafe extern "C" fn rs_dns_tx_get_query_name(
     return 0;
 }
 
+/// Get the DNS query name at index i.
+#[no_mangle]
+pub unsafe extern "C" fn SCDnsTxGetQueryName(
+    tx: &mut DNSTransaction, to_client: bool, i: u32, buf: *mut *const u8, len: *mut u32,
+) -> bool {
+    let queries = if to_client {
+        tx.response.as_ref().map(|response| &response.queries)
+    } else {
+        tx.request.as_ref().map(|request| &request.queries)
+    };
+    let index = i as usize;
+
+    if let Some(queries) = queries {
+        if let Some(query) = queries.get(index) {
+            if !query.name.is_empty() {
+                *buf = query.name.as_ptr();
+                *len = query.name.len() as u32;
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
 /// Get the DNS response answer name and index i.
 #[no_mangle]
 pub unsafe extern "C" fn SCDnsTxGetAnswerName(
