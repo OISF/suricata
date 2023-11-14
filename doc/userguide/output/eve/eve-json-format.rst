@@ -43,7 +43,174 @@ All the JSON log types share a common structure:
 ::
 
 
-  {"timestamp":"2009-11-24T21:27:09.534255","event_type":"TYPE", ...tuple... ,"TYPE":{ ... type specific content ... }}
+  {"timestamp":"2009-11-24T21:27:09.534255","flow_id":ID_NUMBER, "event_type":"TYPE", ...tuple... ,"TYPE":{ ... type specific content ... }}
+
+Flow id
+~~~~~~~
+
+Correlates the network protocol EVE data and evidence that Suricata has logged to
+an alert event and that alert's metadata, as well as fileinfo and flow logs, if
+available.
+
+The ability to correlate any existing evidence/logs to an alert and/ or the
+ability to correlate all logs belonging to a specific session/flow was
+introduced in 2014 by Suricata lead developer, Victor Julien (see `commit f1185d051c21
+<https://github.com/OISF/suricata/commit/f1185d051c210ca0daacdddbe865a51af24f4ea3>`_).
+
+Below, you can see an :ref:`alert<eve-format-alert>` for a ``TCP`` rule, and
+following fileinfo, :ref:`http<eve-format-http>`, :ref:`anomaly<eve-format-anomaly>`
+and :ref:`flow<eve-format-flow>` events, all easily correlated by using the ``flow_id`` EVE field::
+
+    {
+      "timestamp": "2016-07-13T22:42:07.199672+0000",
+      "flow_id": 1983488844015394,
+      "event_type": "alert",
+      "src_ip": "82.165.177.154",
+      "src_port": 80,
+      "dest_ip": "10.16.1.11",
+      "dest_port": 54186,
+      "proto": "TCP",
+      "pkt_src": "stream (flow timeout)",
+      "alert": {
+        "action": "allowed",
+        "gid": 1,
+        "signature_id": 2100498,
+        "rev": 7,
+        "signature": "GPL ATTACK_RESPONSE id check returned root",
+        "category": "Potentially Bad Traffic",
+        "severity": 2
+      },
+      "http": {
+        "http_port": 0,
+        "url": "/libhtp::request_uri_not_seen",
+        "http_content_type": "text/html",
+        "status": 200,
+        "length": 39
+      },
+      "files": [
+        {
+          "filename": "/libhtp::request_uri_not_seen",
+          "gaps": false,
+          "state": "CLOSED",
+          "stored": false,
+          "size": 39,
+          "tx_id": 0
+        }
+      ],
+      "app_proto": "http",
+      "direction": "to_client",
+      "flow": {
+        "pkts_toserver": 0,
+        "pkts_toclient": 4,
+        "bytes_toserver": 0,
+        "bytes_toclient": 495,
+        "start": "2016-07-13T22:42:07.199672+0000",
+        "src_ip": "10.16.1.11",
+        "dest_ip": "82.165.177.154",
+        "src_port": 54186,
+        "dest_port": 80
+      }
+    }
+    {
+      "timestamp": "2016-07-13T22:42:07.199672+0000",
+      "flow_id": 1983488844015394,
+      "event_type": "fileinfo",
+      "src_ip": "82.165.177.154",
+      "src_port": 80,
+      "dest_ip": "10.16.1.11",
+      "dest_port": 54186,
+      "proto": "TCP",
+      "pkt_src": "stream (flow timeout)",
+      "http": {
+        "http_port": 0,
+        "url": "/libhtp::request_uri_not_seen",
+        "http_content_type": "text/html",
+        "status": 200,
+        "length": 39
+      },
+      "app_proto": "http",
+      "fileinfo": {
+        "filename": "/libhtp::request_uri_not_seen",
+        "gaps": false,
+        "state": "CLOSED",
+        "stored": false,
+        "size": 39,
+        "tx_id": 0
+      }
+    }
+    {
+      "timestamp": "2016-07-13T22:42:07.199672+0000",
+      "flow_id": 1983488844015394,
+      "event_type": "anomaly",
+      "src_ip": "82.165.177.154",
+      "src_port": 80,
+      "dest_ip": "10.16.1.11",
+      "dest_port": 54186,
+      "proto": "TCP",
+      "pkt_src": "stream (flow timeout)",
+      "tx_id": 0,
+      "anomaly": {
+        "app_proto": "http",
+        "type": "applayer",
+        "event": "UNABLE_TO_MATCH_RESPONSE_TO_REQUEST",
+        "layer": "proto_parser"
+      }
+    }
+    {
+      "timestamp": "2016-07-13T22:42:07.199672+0000",
+      "flow_id": 1983488844015394,
+      "event_type": "http",
+      "src_ip": "10.16.1.11",
+      "src_port": 54186,
+      "dest_ip": "82.165.177.154",
+      "dest_port": 80,
+      "proto": "TCP",
+      "pkt_src": "stream (flow timeout)",
+      "tx_id": 0,
+      "http": {
+        "http_port": 0,
+        "url": "/libhtp::request_uri_not_seen",
+        "http_content_type": "text/html",
+        "status": 200,
+        "length": 39
+      }
+    }
+    {
+      "timestamp": "2016-07-13T22:42:07.199672+0000",
+      "flow_id": 1983488844015394,
+      "event_type": "flow",
+      "src_ip": "10.16.1.11",
+      "src_port": 54186,
+      "dest_ip": "82.165.177.154",
+      "dest_port": 80,
+      "proto": "TCP",
+      "app_proto": "http",
+      "flow": {
+        "pkts_toserver": 0,
+        "pkts_toclient": 4,
+        "bytes_toserver": 0,
+        "bytes_toclient": 495,
+        "start": "2016-07-13T22:42:07.199672+0000",
+        "end": "2016-07-13T22:42:07.573103+0000",
+        "age": 0,
+        "state": "established",
+        "reason": "shutdown",
+        "alerted": true
+      },
+      "tcp": {
+        "tcp_flags": "1b",
+        "tcp_flags_ts": "10",
+        "tcp_flags_tc": "1b",
+        "syn": true,
+        "fin": true,
+        "psh": true,
+        "ack": true,
+        "state": "fin_wait1",
+        "ts_max_regions": 1,
+        "tc_max_regions": 1
+      }
+    }
+
 
 Event types
 ~~~~~~~~~~~
@@ -85,6 +252,8 @@ generated the event.
 .. note:: the pcap fields are only available on "real" packets, and are
           omitted from internal "pseudo" packets such as flow timeout
           packets.
+
+.. _eve-format-alert:
 
 Event type: Alert
 -----------------
@@ -190,6 +359,8 @@ Pcap Field
 If pcap log capture is active in `multi` mode, a `capture_file` key will be added to the event
 with value being the full path of the pcap file where the corresponding packets
 have been extracted.
+
+.. _eve-format-anomaly:
 
 Event type: Anomaly
 -------------------
@@ -303,6 +474,8 @@ Examples
         "layer": "proto_parser"
       }
     }
+
+.. _eve-format-http:
 
 Event type: HTTP
 ----------------
@@ -1344,6 +1517,8 @@ Example of SSH logging:
         }
      }
   }
+
+.. _eve-format-flow:
 
 Event type: Flow
 ----------------
