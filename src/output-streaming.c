@@ -454,9 +454,14 @@ static uint32_t OutputStreamingLoggerGetActiveCount(void)
 }
 
 void OutputStreamingLoggerRegister(void) {
-    OutputRegisterRootLogger(OutputStreamingLogThreadInit, OutputStreamingLogThreadDeinit,
-            OutputStreamingLogExitPrintStats, OutputStreamingLog, NULL,
-            OutputStreamingLoggerGetActiveCount);
+    OutputRootLoggerFunctions root_logger_functions = { .ThreadInitFunc =
+                                                                OutputStreamingLogThreadInit,
+        .ThreadDeinitFunc = OutputStreamingLogThreadDeinit,
+        .LogFunc = OutputStreamingLog,
+        .FlushFunc = NULL,
+        .ThreadExitPrintStatsFunc = OutputStreamingLogExitPrintStats,
+        .ActiveCntFunc = OutputStreamingLoggerGetActiveCount };
+    OutputRegisterRootLogger(&root_logger_functions);
 }
 
 void OutputStreamingShutdown(void)

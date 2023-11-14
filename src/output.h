@@ -89,14 +89,30 @@ extern OutputModuleList output_modules;
 
 void OutputRegisterModule(const char *, const char *, OutputInitFunc);
 
+/* struct for packet module and packet sub-module registration */
+typedef struct OutputPacketLoggerFunctions_ {
+    PacketLogger LogFunc;
+    PacketLogger FlushFunc;
+    PacketLogCondition ConditionFunc;
+    ThreadInitFunc ThreadInitFunc;
+    ThreadDeinitFunc ThreadDeinitFunc;
+    ThreadExitPrintStatsFunc ThreadExitPrintStatsFunc;
+} OutputPacketLoggerFunctions;
+
+/* struct for root logger registration */
+typedef struct OutputRootLoggerFunctions_ {
+    ThreadInitFunc ThreadInitFunc;
+    ThreadDeinitFunc ThreadDeinitFunc;
+    ThreadExitPrintStatsFunc ThreadExitPrintStatsFunc;
+    OutputLogFunc LogFunc;
+    OutputFlushFunc FlushFunc;
+    OutputGetActiveCountFunc ActiveCntFunc;
+} OutputRootLoggerFunctions;
+
 void OutputRegisterPacketModule(LoggerId id, const char *name, const char *conf_name,
-        OutputInitFunc InitFunc, PacketLogger LogFunc, PacketLogger FlushFunc,
-        PacketLogCondition ConditionFunc, ThreadInitFunc, ThreadDeinitFunc,
-        ThreadExitPrintStatsFunc);
+        OutputInitFunc InitFunc, OutputPacketLoggerFunctions *);
 void OutputRegisterPacketSubModule(LoggerId id, const char *parent_name, const char *name,
-        const char *conf_name, OutputInitSubFunc InitFunc, PacketLogger LogFunc,
-        PacketLogger FlushFunc, PacketLogCondition ConditionFunc, ThreadInitFunc ThreadInit,
-        ThreadDeinitFunc ThreadDeinit, ThreadExitPrintStatsFunc ThreadExitPrintStats);
+        const char *conf_name, OutputInitSubFunc InitFunc, OutputPacketLoggerFunctions *);
 
 void OutputRegisterTxModule(LoggerId id, const char *name,
     const char *conf_name, OutputInitFunc InitFunc, AppProto alproto,
@@ -195,9 +211,7 @@ void OutputRegisterFileRotationFlag(int *flag);
 void OutputUnregisterFileRotationFlag(int *flag);
 void OutputNotifyFileRotation(void);
 
-void OutputRegisterRootLogger(ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-        ThreadExitPrintStatsFunc ThreadExitPrintStats, OutputLogFunc LogFunc,
-        OutputFlushFunc FlushFunc, OutputGetActiveCountFunc ActiveCntFunc);
+void OutputRegisterRootLogger(OutputRootLoggerFunctions *);
 void TmModuleLoggerRegister(void);
 
 TmEcode OutputLoggerLog(ThreadVars *, Packet *, void *);

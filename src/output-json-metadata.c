@@ -97,12 +97,19 @@ static int JsonMetadataLogCondition(ThreadVars *tv, void *data, const Packet *p)
 
 void JsonMetadataLogRegister (void)
 {
+    OutputPacketLoggerFunctions output_logger_functions = {
+        .LogFunc = JsonMetadataLogger,
+        .FlushFunc = OutputJsonLogFlush,
+        .ConditionFunc = JsonMetadataLogCondition,
+        .ThreadInitFunc = JsonLogThreadInit,
+        .ThreadDeinitFunc = JsonLogThreadDeinit,
+        .ThreadExitPrintStatsFunc = NULL,
+    };
+
     OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME, "eve-log.metadata",
-            OutputJsonLogInitSub, JsonMetadataLogger, OutputJsonLogFlush, JsonMetadataLogCondition,
-            JsonLogThreadInit, JsonLogThreadDeinit, NULL);
+            OutputJsonLogInitSub, &output_logger_functions);
 
     /* Kept for compatibility. */
     OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME, "eve-log.vars",
-            OutputJsonLogInitSub, JsonMetadataLogger, OutputJsonLogFlush, JsonMetadataLogCondition,
-            JsonLogThreadInit, JsonLogThreadDeinit, NULL);
+            OutputJsonLogInitSub, &output_logger_functions);
 }

@@ -459,9 +459,17 @@ static OutputInitResult JsonAnomalyLogInitCtxSub(ConfNode *conf, OutputCtx *pare
 
 void JsonAnomalyLogRegister (void)
 {
+    OutputPacketLoggerFunctions output_logger_functions = {
+        .LogFunc = JsonAnomalyLogger,
+        .FlushFunc = JsonAnomalyFlush,
+        .ConditionFunc = JsonAnomalyLogCondition,
+        .ThreadInitFunc = JsonAnomalyLogThreadInit,
+        .ThreadDeinitFunc = JsonAnomalyLogThreadDeinit,
+        .ThreadExitPrintStatsFunc = NULL,
+    };
+
     OutputRegisterPacketSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME, "eve-log.anomaly",
-            JsonAnomalyLogInitCtxSub, JsonAnomalyLogger, JsonAnomalyFlush, JsonAnomalyLogCondition,
-            JsonAnomalyLogThreadInit, JsonAnomalyLogThreadDeinit, NULL);
+            JsonAnomalyLogInitCtxSub, &output_logger_functions);
 
     OutputRegisterTxSubModule(LOGGER_JSON_ANOMALY, "eve-log", MODULE_NAME,
         "eve-log.anomaly", JsonAnomalyLogInitCtxHelper, ALPROTO_UNKNOWN,

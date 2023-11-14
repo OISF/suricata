@@ -250,9 +250,13 @@ static uint32_t OutputPacketLoggerGetActiveCount(void)
 
 void OutputPacketLoggerRegister(void)
 {
-    OutputRegisterRootLogger(OutputPacketLogThreadInit, OutputPacketLogThreadDeinit,
-            OutputPacketLogExitPrintStats, OutputPacketLog, OutputPacketFlush,
-            OutputPacketLoggerGetActiveCount);
+    OutputRootLoggerFunctions root_logger_functions = { .ThreadInitFunc = OutputPacketLogThreadInit,
+        .ThreadDeinitFunc = OutputPacketLogThreadDeinit,
+        .LogFunc = OutputPacketLog,
+        .FlushFunc = OutputPacketFlush,
+        .ThreadExitPrintStatsFunc = OutputPacketLogExitPrintStats,
+        .ActiveCntFunc = OutputPacketLoggerGetActiveCount };
+    OutputRegisterRootLogger(&root_logger_functions);
 }
 
 void OutputPacketShutdown(void)
