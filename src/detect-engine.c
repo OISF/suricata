@@ -1928,7 +1928,7 @@ static int DetectEngineInspectRulePacketMatches(
         if (sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx) <= 0) {
             KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
             SCLogDebug("no match");
-            return false;
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
         }
         KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
         if (smd->is_last) {
@@ -1937,7 +1937,7 @@ static int DetectEngineInspectRulePacketMatches(
         }
         smd++;
     }
-    return true;
+    return DETECT_ENGINE_INSPECT_SIG_MATCH;
 }
 
 static int DetectEngineInspectRulePayloadMatches(
@@ -1968,22 +1968,22 @@ static int DetectEngineInspectRulePayloadMatches(
             /* skip if we don't have to inspect the packet and segment was
              * added to stream */
             if (!(s->flags & SIG_FLAG_REQUIRE_PACKET) && (p->flags & PKT_STREAM_ADD)) {
-                return false;
+                return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
             }
             if (s->flags & SIG_FLAG_REQUIRE_STREAM_ONLY) {
                 SCLogDebug("SIG_FLAG_REQUIRE_STREAM_ONLY, so no match");
-                return false;
+                return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
             }
             if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, p) != 1) {
-                return false;
+                return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
             }
         }
     } else {
         if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, p) != 1) {
-            return false;
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
         }
     }
-    return true;
+    return DETECT_ENGINE_INSPECT_SIG_MATCH;
 }
 
 bool DetectEnginePktInspectionRun(ThreadVars *tv,
@@ -1994,8 +1994,8 @@ bool DetectEnginePktInspectionRun(ThreadVars *tv,
     SCEnter();
 
     for (DetectEnginePktInspectionEngine *e = s->pkt_inspect; e != NULL; e = e->next) {
-        if (e->v1.Callback(det_ctx, e, s, p, alert_flags) == false) {
-            SCLogDebug("sid %u: e %p Callback returned false", s->id, e);
+        if (e->v1.Callback(det_ctx, e, s, p, alert_flags) != DETECT_ENGINE_INSPECT_SIG_MATCH) {
+            SCLogDebug("sid %u: e %p Callback returned no match", s->id, e);
             return false;
         }
         SCLogDebug("sid %u: e %p Callback returned true", s->id, e);
