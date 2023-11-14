@@ -48,6 +48,7 @@
 #include "detect-dns-opcode.h"
 #include "detect-dns-query.h"
 #include "detect-dns-answer-name.h"
+#include "detect-dns-query-name.h"
 #include "detect-tls-sni.h"
 #include "detect-tls-certs.h"
 #include "detect-tls-cert-fingerprint.h"
@@ -513,6 +514,7 @@ void SigTableSetup(void)
     DetectDnsQueryRegister();
     DetectDnsOpcodeRegister();
     DetectDnsAnswerNameRegister();
+    DetectDnsQueryNameRegister();
     DetectModbusRegister();
     DetectCipServiceRegister();
     DetectEnipCommandRegister();
