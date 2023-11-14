@@ -227,6 +227,10 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
                 if (fd->flags & DETECT_FLOW_FLAG_ESTABLISHED) {
                     SCLogError("DETECT_FLOW_FLAG_ESTABLISHED flag is already set");
                     goto error;
+                } else if (fd->flags & DETECT_FLOW_FLAG_NOT_ESTABLISHED) {
+                    SCLogError("cannot set DETECT_FLOW_FLAG_ESTABLISHED, "
+                               "DETECT_FLOW_FLAG_NOT_ESTABLISHED already set");
+                    goto error;
                 } else if (fd->flags & DETECT_FLOW_FLAG_STATELESS) {
                     SCLogError("DETECT_FLOW_FLAG_STATELESS already set");
                     goto error;
@@ -236,7 +240,7 @@ static DetectFlowData *DetectFlowParse (DetectEngineCtx *de_ctx, const char *flo
                 if (fd->flags & DETECT_FLOW_FLAG_NOT_ESTABLISHED) {
                     SCLogError("DETECT_FLOW_FLAG_NOT_ESTABLISHED flag is already set");
                     goto error;
-                } else if (fd->flags & DETECT_FLOW_FLAG_NOT_ESTABLISHED) {
+                } else if (fd->flags & DETECT_FLOW_FLAG_ESTABLISHED) {
                     SCLogError("cannot set DETECT_FLOW_FLAG_NOT_ESTABLISHED, "
                                "DETECT_FLOW_FLAG_ESTABLISHED already set");
                     goto error;
@@ -946,6 +950,19 @@ static int DetectFlowTestParse21 (void)
     PASS;
 }
 
+/**
+ * \test DetectFlowTestParse22 is a test for setting the established,not_established flow opts both
+ */
+static int DetectFlowTestParse22(void)
+{
+    DetectFlowData *fd = NULL;
+    fd = DetectFlowParse(NULL, "established,not_established");
+    FAIL_IF_NOT_NULL(fd);
+    fd = DetectFlowParse(NULL, "not_established,established");
+    FAIL_IF_NOT_NULL(fd);
+    PASS;
+}
+
 static int DetectFlowSigTest01(void)
 {
     uint8_t *buf = (uint8_t *)"supernovaduper";
@@ -1104,6 +1121,7 @@ static void DetectFlowRegisterTests(void)
     UtRegisterTest("DetectFlowTestParse20", DetectFlowTestParse20);
     UtRegisterTest("DetectFlowTestParseNocase20", DetectFlowTestParseNocase20);
     UtRegisterTest("DetectFlowTestParse21", DetectFlowTestParse21);
+    UtRegisterTest("DetectFlowTestParse22", DetectFlowTestParse22);
     UtRegisterTest("DetectFlowTestParseNotEstablished",
         DetectFlowTestParseNotEstablished);
     UtRegisterTest("DetectFlowTestParseNoFrag", DetectFlowTestParseNoFrag);
