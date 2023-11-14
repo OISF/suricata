@@ -43,7 +43,283 @@ All the JSON log types share a common structure:
 ::
 
 
-  {"timestamp":"2009-11-24T21:27:09.534255","event_type":"TYPE", ...tuple... ,"TYPE":{ ... type specific content ... }}
+  {"timestamp":"2009-11-24T21:27:09.534255","flow_id":ID_NUMBER, "event_type":"TYPE", ...tuple... ,"TYPE":{ ... type specific content ... }}
+
+Field: flow_id
+~~~~~~~~~~~~~~
+
+Correlates the network protocol EVE data and evidence that Suricata has logged to
+an alert event and that alert's metadata, as well as fileinfo and flow logs, if
+available.
+
+The ability to correlate any existing evidence/logs to an alert and/ or the
+ability to correlate all logs belonging to a specific session/flow was
+introduced in 2014 (see `commit f1185d051c21 <https://github.com/OISF/suricata/
+commit/f1185d051c210ca0daacdddbe865a51af24f4ea3>`_).
+
+Further below, you can see several examples of events logged by Suricata: an
+:ref:`alert<eve-format-alert>` for a ``TCP`` rule, fileinfo, :ref:`http<eve-format-http>`,
+:ref:`anomaly<eve-format-anomaly>` and :ref:`flow<eve-format-flow>` events, all
+easily correlated using the ``flow_id`` EVE field::
+
+    $ jq 'select(.flow_id==1676750920491097)' eve.json
+
+Event type: ``alert``::
+
+    {
+      "timestamp": "2023-09-18T06:13:33.903924+0000",
+      "flow_id": 1676750920491097,
+      "pcap_cnt": 70,
+      "event_type": "alert",
+      "src_ip": "192.168.100.237",
+      "src_port": 49175,
+      "dest_ip": "142.11.240.191",
+      "dest_port": 35361,
+      "proto": "TCP",
+      "pkt_src": "wire/pcap",
+      "ether": {
+        "src_mac": "12:a9:86:6c:77:de",
+        "dest_mac": "52:54:00:36:3e:ff"
+      },
+      "alert": {
+        "action": "allowed",
+        "gid": 1,
+        "signature_id": 2,
+        "rev": 1,
+        "signature": "tcp rule from suspect host",
+        "category": "",
+        "severity": 3
+      },
+      "http": {
+        "hostname": "142.11.240.191",
+        "http_port": 35361,
+        "url": "/",
+        "http_content_type": "text/xml",
+        "http_method": "POST",
+        "protocol": "HTTP/1.1",
+        "status": 200,
+        "length": 212
+      },
+      "files": [
+        {
+          "filename": "/",
+          "gaps": false,
+          "state": "CLOSED",
+          "sha256": "59fb57baf1ed70984221ca94cd509b46a1242a99092ec0c05585c2b58c74ccf5",
+          "stored": false,
+          "size": 137,
+          "tx_id": 0
+        }
+      ],
+      "app_proto": "http",
+      "direction": "to_server",
+      "flow": {
+        "pkts_toserver": 5,
+        "pkts_toclient": 3,
+        "bytes_toserver": 660,
+        "bytes_toclient": 558,
+        "start": "2023-09-18T06:13:33.324862+0000",
+        "src_ip": "192.168.100.237",
+        "dest_ip": "142.11.240.191",
+        "src_port": 49175,
+        "dest_port": 35361
+      }
+    }
+
+Event type: ``fileinfo``::
+
+    {
+      "timestamp": "2023-09-18T06:13:33.903924+0000",
+      "flow_id": 1676750920491097,
+      "pcap_cnt": 70,
+      "event_type": "fileinfo",
+      "src_ip": "192.168.100.237",
+      "src_port": 49175,
+      "dest_ip": "142.11.240.191",
+      "dest_port": 35361,
+      "proto": "TCP",
+      "pkt_src": "wire/pcap",
+      "ether": {
+        "src_mac": "12:a9:86:6c:77:de",
+        "dest_mac": "52:54:00:36:3e:ff"
+      },
+      "http": {
+        "hostname": "142.11.240.191",
+        "http_port": 35361,
+        "url": "/",
+        "http_content_type": "text/xml",
+        "http_method": "POST",
+        "protocol": "HTTP/1.1",
+        "status": 200,
+        "length": 212
+      },
+      "app_proto": "http",
+      "fileinfo": {
+        "filename": "/",
+        "magic": "ASCII text, with no line terminators",
+        "gaps": false,
+        "state": "CLOSED",
+        "sha256": "59fb57baf1ed70984221ca94cd509b46a1242a99092ec0c05585c2b58c74ccf5",
+        "stored": false,
+        "size": 137,
+        "tx_id": 0
+      }
+    }
+
+Event type: ``HTTP``::
+
+    {
+      "timestamp": "2023-09-18T06:13:33.903924+0000",
+      "flow_id": 1676750920491097,
+      "pcap_cnt": 70,
+      "event_type": "http",
+      "src_ip": "192.168.100.237",
+      "src_port": 49175,
+      "dest_ip": "142.11.240.191",
+      "dest_port": 35361,
+      "proto": "TCP",
+      "pkt_src": "wire/pcap",
+      "ether": {
+        "src_mac": "12:a9:86:6c:77:de",
+        "dest_mac": "52:54:00:36:3e:ff"
+      },
+      "tx_id": 0,
+      "http": {
+        "hostname": "142.11.240.191",
+        "http_port": 35361,
+        "url": "/",
+        "http_content_type": "text/xml",
+        "http_method": "POST",
+        "protocol": "HTTP/1.1",
+        "status": 200,
+        "length": 212,
+        "request_headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/xml; charset=utf-8"
+          },
+          {
+            "name": "SOAPAction",
+            "value": "\"http://tempuri.org/Endpoint/CheckConnect\""
+          },
+          {
+            "name": "Host",
+            "value": "142.11.240.191:35361"
+          },
+          {
+            "name": "Content-Length",
+            "value": "137"
+          },
+          {
+            "name": "Expect",
+            "value": "100-continue"
+          },
+          {
+            "name": "Accept-Encoding",
+            "value": "gzip, deflate"
+          },
+          {
+            "name": "Connection",
+            "value": "Keep-Alive"
+          }
+        ],
+        "response_headers": [
+          {
+            "name": "Content-Length",
+            "value": "212"
+          },
+          {
+            "name": "Content-Type",
+            "value": "text/xml; charset=utf-8"
+          },
+          {
+            "name": "Server",
+            "value": "Microsoft-HTTPAPI/2.0"
+          },
+          {
+            "name": "Date",
+            "value": "Mon, 18 Sep 2023 06:13:33 GMT"
+          }
+        ]
+      }
+    }
+
+Event type: ``anomaly``::
+
+    {
+      "timestamp": "2023-09-18T06:13:58.882971+0000",
+      "flow_id": 1676750920491097,
+      "pcap_cnt": 2878,
+      "event_type": "anomaly",
+      "src_ip": "192.168.100.237",
+      "src_port": 49175,
+      "dest_ip": "142.11.240.191",
+      "dest_port": 35361,
+      "proto": "TCP",
+      "pkt_src": "wire/pcap",
+      "ether": {
+        "src_mac": "12:a9:86:6c:77:de",
+        "dest_mac": "52:54:00:36:3e:ff"
+      },
+      "tx_id": 3,
+      "anomaly": {
+        "app_proto": "http",
+        "type": "applayer",
+        "event": "UNABLE_TO_MATCH_RESPONSE_TO_REQUEST",
+        "layer": "proto_parser"
+      }
+    }
+
+Event type: ``flow``::
+
+    {
+      "timestamp": "2023-09-18T06:13:21.216460+0000",
+      "flow_id": 1676750920491097,
+      "event_type": "flow",
+      "src_ip": "192.168.100.237",
+      "src_port": 49175,
+      "dest_ip": "142.11.240.191",
+      "dest_port": 35361,
+      "proto": "TCP",
+      "app_proto": "http",
+      "flow": {
+        "pkts_toserver": 3869,
+        "pkts_toclient": 1523,
+        "bytes_toserver": 3536402,
+        "bytes_toclient": 94102,
+        "start": "2023-09-18T06:13:33.324862+0000",
+        "end": "2023-09-18T06:14:13.752399+0000",
+        "age": 40,
+        "state": "closed",
+        "reason": "shutdown",
+        "alerted": true
+      },
+      "ether": {
+        "dest_macs": [
+          "52:54:00:36:3e:ff"
+        ],
+        "src_macs": [
+          "12:a9:86:6c:77:de"
+        ]
+      },
+      "tcp": {
+        "tcp_flags": "1e",
+        "tcp_flags_ts": "1e",
+        "tcp_flags_tc": "1a",
+        "syn": true,
+        "rst": true,
+        "psh": true,
+        "ack": true,
+        "state": "closed",
+        "ts_max_regions": 1,
+        "tc_max_regions": 1
+      }
+    }
+
+.. note::
+   It is possible to have even more detailed alert records, by enabling for
+   instance logging http-body, or alert metadata (:ref:`alert output<eve-output-alert>`).
+
 
 Event types
 ~~~~~~~~~~~
@@ -85,6 +361,8 @@ generated the event.
 .. note:: the pcap fields are only available on "real" packets, and are
           omitted from internal "pseudo" packets such as flow timeout
           packets.
+
+.. _eve-format-alert:
 
 Event type: Alert
 -----------------
@@ -190,6 +468,8 @@ Pcap Field
 If pcap log capture is active in `multi` mode, a `capture_file` key will be added to the event
 with value being the full path of the pcap file where the corresponding packets
 have been extracted.
+
+.. _eve-format-anomaly:
 
 Event type: Anomaly
 -------------------
@@ -303,6 +583,8 @@ Examples
         "layer": "proto_parser"
       }
     }
+
+.. _eve-format-http:
 
 Event type: HTTP
 ----------------
@@ -1344,6 +1626,8 @@ Example of SSH logging:
         }
      }
   }
+
+.. _eve-format-flow:
 
 Event type: Flow
 ----------------
