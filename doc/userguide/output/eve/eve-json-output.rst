@@ -53,6 +53,8 @@ Output types::
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entry to keep in buffer
 
+.. _eve-output-alert:
+
 Alerts
 ~~~~~~
 
