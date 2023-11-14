@@ -1690,8 +1690,8 @@ void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_l
  *  transform may validate that it's compatible with the transform.
  *
  *  When a transform indicates the byte array is incompatible, none of the
- *  subsequent transforms, if any, are invoked. This means the first positive
- *  validation result terminates the loop.
+ *  subsequent transforms, if any, are invoked. This means the first validation
+ *  failure terminates the loop.
  *
  *  \param de_ctx Detection engine context.
  *  \param sm_list The SM list id.
