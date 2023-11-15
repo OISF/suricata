@@ -221,13 +221,7 @@ pub struct DNSAnswerEntry {
 }
 
 #[derive(Debug)]
-pub struct DNSRequest {
-    pub header: DNSHeader,
-    pub queries: Vec<DNSQueryEntry>,
-}
-
-#[derive(Debug)]
-pub struct DNSResponse {
+pub struct DNSMessage {
     pub header: DNSHeader,
     pub queries: Vec<DNSQueryEntry>,
     pub answers: Vec<DNSAnswerEntry>,
@@ -237,8 +231,8 @@ pub struct DNSResponse {
 #[derive(Debug, Default)]
 pub struct DNSTransaction {
     pub id: u64,
-    pub request: Option<DNSRequest>,
-    pub response: Option<DNSResponse>,
+    pub request: Option<DNSMessage>,
+    pub response: Option<DNSMessage>,
     pub tx_data: AppLayerTxData,
 }
 
@@ -402,7 +396,7 @@ impl DNSState {
             return !is_tcp;
         };
 
-        match parser::dns_parse_request_body(body, input, header) {
+        match parser::dns_parse_body(body, input, header) {
             Ok((_, request)) => {
                 if request.header.flags & 0x8000 != 0 {
                     SCLogDebug!("DNS message is not a request");
@@ -474,7 +468,7 @@ impl DNSState {
             return !is_tcp;
         };
 
-        match parser::dns_parse_response_body(body, input, header) {
+        match parser::dns_parse_body(body, input, header) {
             Ok((_, response)) => {
                 SCLogDebug!("Response header flags: {}", response.header.flags);
 
@@ -702,14 +696,9 @@ fn probe(input: &[u8], dlen: usize) -> (bool, bool, bool) {
         }
     }
 
-    match parser::dns_parse_request(input) {
-        Ok((_, request)) => {
-            return probe_header_validity(&request.header, dlen);
-        }
-        Err(Err::Incomplete(_)) => match parser::dns_parse_header(input) {
-            Ok((_, header)) => {
-                return probe_header_validity(&header, dlen);
-            }
+    match parser::dns_parse_header(input) {
+        Ok((body, header)) => match parser::dns_parse_body(body, input, header) {
+            Ok((_, request)) => probe_header_validity(&request.header, dlen),
             Err(Err::Incomplete(_)) => (false, false, true),
             Err(_) => (false, false, false),
         },
