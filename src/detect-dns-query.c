@@ -87,7 +87,7 @@ static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
 
     const uint8_t *data;
     uint32_t data_len;
-    if (rs_dns_tx_get_query_name(cbdata->txv, cbdata->local_id, &data, &data_len) == 0) {
+    if (SCDnsTxGetQueryName(cbdata->txv, false, cbdata->local_id, &data, &data_len) == 0) {
         InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
