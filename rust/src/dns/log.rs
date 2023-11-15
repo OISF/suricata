@@ -476,7 +476,7 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, Js
 }
 
 fn dns_log_json_answer(
-    js: &mut JsonBuilder, response: &DNSResponse, flags: u64,
+    js: &mut JsonBuilder, response: &DNSMessage, flags: u64,
 ) -> Result<(), JsonError> {
     let header = &response.header;
 
