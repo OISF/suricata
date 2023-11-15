@@ -864,23 +864,6 @@ pub unsafe extern "C" fn rs_dns_state_get_tx_data(
 
 export_state_data_get!(rs_dns_get_state_data, DNSState);
 
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_tx_get_query_name(
-    tx: &mut DNSTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
-) -> u8 {
-    if let Some(request) = &tx.request {
-        if (i as usize) < request.queries.len() {
-            let query = &request.queries[i as usize];
-            if !query.name.is_empty() {
-                *len = query.name.len() as u32;
-                *buf = query.name.as_ptr();
-                return 1;
-            }
-        }
-    }
-    return 0;
-}
-
 /// Get the DNS query name at index i.
 #[no_mangle]
 pub unsafe extern "C" fn SCDnsTxGetQueryName(
