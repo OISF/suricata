@@ -43,3 +43,4 @@ Suricata Rules
    lua-detection
    differences-from-snort
    multi-buffer-matching
+   tag
