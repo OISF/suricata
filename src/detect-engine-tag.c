@@ -493,6 +493,26 @@ static void TagHandlePacketHost(Host *host, Packet *p)
     }
 }
 
+static Host *GetLockedSrcHost(Packet *p)
+{
+    if (p->host_src == NULL) {
+        p->host_src = HostLookupHostFromHash(&p->src);
+    } else {
+        HostLock(p->host_src);
+    }
+    return p->host_src;
+}
+
+static Host *GetLockedDstHost(Packet *p)
+{
+    if (p->host_dst == NULL) {
+        p->host_dst = HostLookupHostFromHash(&p->dst);
+    } else {
+        HostLock(p->host_dst);
+    }
+    return p->host_dst;
+}
+
 /**
  * \brief Search tags for src and dst. Update entries of the tag, remove if necessary
  *
@@ -516,20 +536,22 @@ void TagHandlePacket(DetectEngineCtx *de_ctx,
         TagHandlePacketFlow(p->flow, p);
     }
 
-    Host *src = HostLookupHostFromHash(&p->src);
-    if (src) {
+    Host *src = GetLockedSrcHost(p);
+    if (src != NULL) {
         if (TagHostHasTag(src)) {
-            TagHandlePacketHost(src,p);
+            TagHandlePacketHost(src, p);
         }
-        HostRelease(src);
+        HostUnlock(src);
     }
-    Host *dst = HostLookupHostFromHash(&p->dst);
-    if (dst) {
+
+    Host *dst = GetLockedDstHost(p);
+    if (dst != NULL) {
         if (TagHostHasTag(dst)) {
-            TagHandlePacketHost(dst,p);
+            TagHandlePacketHost(dst, p);
         }
-        HostRelease(dst);
+        HostUnlock(dst);
     }
+
     SCReturn;
 }
 
