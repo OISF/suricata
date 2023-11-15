@@ -1256,6 +1256,37 @@ network inspection.
 
 .. image:: suricata-yaml/IDS_chunk_size.png
 
+
+Host Tracking
+-------------
+
+.. _suricata-yaml-host-settings:
+
+
+The Host table is used for tracking per IP address. This is used for tracking
+per IP thresholding, per IP tagging, storing `iprep` data and storing `hostbit`.
+
+Settings
+~~~~~~~~
+
+The configuration allows specifying the following settings: `hash-size`,  `prealloc` and `memcap`.
+
+.. code-block:: yaml
+
+    host:
+      hash-size: 4096
+      prealloc: 1000
+      memcap: 32mb
+
+* `hash-size`: size of the hash table in number of rows
+* `prealloc`: number of `Host` objects preallocated for efficiency
+* `memcap`: max memory use for hosts, including the hash table size
+
+Hosts are evicted from the hash table by the Flow Manager thread when all
+data in the host is expired (tag, threshold, etc). Hosts with iprep will
+not expire.
+
+
 Application Layer Parsers
 -------------------------
 
