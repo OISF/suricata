@@ -486,28 +486,7 @@ void UTHFreePacket(Packet *p)
 {
     if (p == NULL)
         return;
-#if 0 // VJ we now use one buffer
-    switch (p->proto) {
-        case IPPROTO_UDP:
-            if (p->udph != NULL)
-                SCFree(p->udph);
-            if (p->ip4h != NULL)
-                SCFree(p->ip4h);
-        break;
-        case IPPROTO_TCP:
-            if (p->tcph != NULL)
-                SCFree(p->tcph);
-            if (p->ip4h != NULL)
-                SCFree(p->ip4h);
-        break;
-        case IPPROTO_ICMP:
-            if (p->ip4h != NULL)
-                SCFree(p->ip4h);
-        break;
-        /* TODO: Add more protocols */
-    }
-#endif
-    SCFree(p);
+    PacketFree(p);
 }
 
 void UTHAssignFlow(Packet *p, Flow *f)

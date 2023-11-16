@@ -1064,14 +1064,11 @@ static int SigTest17 (void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     uint32_t capid = VarNameStoreLookupByName("http_host", VAR_TYPE_PKT_VAR);
-
     PktVar *pv_hn = PktVarGet(p, capid);
     FAIL_IF_NULL(pv_hn);
-
     FAIL_IF(pv_hn->value_len != 15);
     FAIL_IF_NOT(memcmp(pv_hn->value, "one.example.org", pv_hn->value_len) == 0);
 
-    PktVarFree(pv_hn);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     ConfDeInit();
