@@ -26,4 +26,6 @@ SCCapturePlugin *SCPluginFindCaptureByName(const char *name);
 
 bool RegisterPlugin(SCPlugin *, void *);
 
+SCAppLayerPlugin *SCPluginFindAppLayerByIndex(size_t i);
+
 #endif /* __UTIL_PLUGIN_H__ */

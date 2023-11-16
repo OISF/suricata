@@ -385,6 +385,7 @@ static void GlobalsDestroy(SCInstance *suri)
     FeatureTrackingRelease();
     SCProtoNameRelease();
     TimeDeinit();
+    SigTableCleanup();
     TmqhCleanup();
     TmModuleRunDeInit();
     ParseSizeDeinit();
@@ -2675,6 +2676,9 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     RunModeEngineIsIPS(
             suricata.run_mode, suricata.runmode_custom_mode, suricata.capture_plugin_name);
+#ifdef HAVE_PLUGINS
+    SCPluginsLoad(suri->capture_plugin_name, suri->capture_plugin_args);
+#endif
 
     if (EngineModeIsUnknown()) { // if still uninitialized, set the default
         SCLogInfo("Setting engine mode to IDS mode by default");
@@ -2742,9 +2746,6 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     FeatureTrackingRegister(); /* must occur prior to output mod registration */
     RegisterAllModules();
-#ifdef HAVE_PLUGINS
-    SCPluginsLoad(suri->capture_plugin_name, suri->capture_plugin_args);
-#endif
     AppLayerHtpNeedFileInspection();
 
     StorageFinalize();

@@ -216,5 +216,6 @@ typedef struct SimpleJsonAppLayerLogger {
 } SimpleJsonAppLayerLogger;
 
 SimpleJsonAppLayerLogger *GetAppProtoSimpleJsonLogger(AppProto alproto);
+void RegisterAppProtoAppLayerLogger(AppProto alproto, SimpleJsonTxLogFunc log);
 
 #endif /* ! __OUTPUT_H__ */
