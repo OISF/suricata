@@ -44,8 +44,7 @@ jobs:
           script: |
             let fs = require('fs');
             let issue_number = Number(fs.readFileSync('./pr-number.txt'));
-            let new_authors = String(fs.readFileSync('./new-authors.txt'));
-            let msg = 'NOTE: This PR may contain new authors:\n\n```\n' + new_authors + '```';
+            let msg = 'NOTE: This PR may contain new authors.';
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
