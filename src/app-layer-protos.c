@@ -26,9 +26,9 @@
 #include "app-layer-protos.h"
 #include "rust.h"
 
-AppProto AlprotoMax = ALPROTO_MAX_STATIC + 1;
+AppProto AlprotoMax = ALPROTO_MAX_STATIC;
 #define ARRAY_CAP_STEP 16
-AppProto AppProtoStringsCap = ALPROTO_MAX_STATIC + 1;
+AppProto AppProtoStringsCap = ALPROTO_MAX_STATIC;
 
 typedef struct AppProtoStringTuple {
     AppProto alproto;
@@ -80,7 +80,7 @@ void AppProtoRegisterProtoString(AppProto alproto, const char *proto_name)
                 FatalError("Unable to allocate AppProtoStrings");
             }
         }
-    } else if (alproto + 1 == AlprotoMax) {
+    } else if (alproto == AlprotoMax) {
         if (AlprotoMax == AppProtoStringsCap) {
             void *tmp = SCRealloc(AppProtoStrings,
                     sizeof(AppProtoStringTuple) * (AppProtoStringsCap + ARRAY_CAP_STEP));
