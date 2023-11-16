@@ -34,6 +34,7 @@
 #include "util-byte.h"
 #include "util-affinity.h"
 #include "conf.h"
+#include "log-flush.h"
 #include "queue.h"
 #include "runmodes.h"
 #include "runmode-af-packet.h"
@@ -87,6 +88,7 @@ const char *thread_name_unix_socket = "US";
 const char *thread_name_detect_loader = "DL";
 const char *thread_name_counter_stats = "CS";
 const char *thread_name_counter_wakeup = "CW";
+const char *thread_name_log_flusher = "LF";
 
 /**
  * \brief Holds description for a runmode.
@@ -462,6 +464,7 @@ void RunModeDispatch(int runmode, const char *custom_mode, const char *capture_p
             BypassedFlowManagerThreadSpawn();
         }
         StatsSpawnThreads();
+        LogFlushThreads();
     }
 }
 
