@@ -29,7 +29,7 @@
 
 static SCRadixTree *defrag_tree = NULL;
 
-static int default_timeout = 0;
+static uint32_t default_timeout = 0;
 
 static void DefragPolicyFreeUserData(void *data)
 {
@@ -88,16 +88,16 @@ static int DefragPolicyGetIPv6HostTimeout(uint8_t *ipv6_addr)
     return *((int *)user_data);
 }
 
-int DefragPolicyGetHostTimeout(Packet *p)
+uint32_t DefragPolicyGetHostTimeout(Packet *p)
 {
-    int timeout = 0;
+    uint32_t timeout = 0;
 
     if (PKT_IS_IPV4(p))
         timeout = DefragPolicyGetIPv4HostTimeout((uint8_t *)GET_IPV4_DST_ADDR_PTR(p));
     else if (PKT_IS_IPV6(p))
         timeout = DefragPolicyGetIPv6HostTimeout((uint8_t *)GET_IPV6_DST_ADDR(p));
 
-    if (timeout <= 0)
+    if (timeout == 0)
         timeout = default_timeout;
 
     return timeout;
@@ -125,7 +125,7 @@ static void DefragParseParameters(ConfNode *n)
     }
 }
 
-void DefragSetDefaultTimeout(int timeout)
+void DefragSetDefaultTimeout(uint32_t timeout)
 {
     default_timeout = timeout;
     SCLogDebug("default timeout %d", default_timeout);
