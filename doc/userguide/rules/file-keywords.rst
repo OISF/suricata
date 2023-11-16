@@ -5,6 +5,36 @@ Suricata comes with several rule keywords to match on various file
 properties. They depend on properly configured
 :doc:`../file-extraction/file-extraction`.
 
+file.data
+---------
+
+The ``file.data`` sticky buffer matches on contents of files that are 
+seen in flows that Suricata evaluates. The various payload keywords can
+be used (e.g. ``startswith``, ``nocase`` and ``bsize``) with ``file.data``.
+
+Example::
+
+  alert smtp any any -> any any (msg:"smtp app layer file.data example"; \
+ file.data; content:"example file content"; sid:1; rev:1)
+
+  alert http any any -> any any (msg:"http app layer file.data example"; \
+ file.data; content:"example file content"; sid:2; rev:1)
+
+  alert http2 any any -> any any (msg:"http2 app layer file.data example"; \
+ file.data; content:"example file content"; sid:3; rev:1;)
+
+  alert nfs any any -> any any (msg:"nfs app layer file.data example"; \
+ file.data; content:" "; sid:5; rev:1)
+
+  alert ftp-data any any -> any any (msg:"ftp app layer file.data example"; \
+ file.data; content:"example file content"; sid:6; rev:1;)
+
+  alert tcp any any -> any any (msg:"tcp file.data example"; \
+ file.data; content:"example file content"; sid:4; rev:1)
+
+**Note** file_data is the legacy notation but can still be used.
+
+
 file.name
 ---------
 
