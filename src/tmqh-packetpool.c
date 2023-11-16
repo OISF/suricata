@@ -237,8 +237,8 @@ void PacketPoolReturnPacket(Packet *p)
             p->next = pool->return_stack.head;
             pool->return_stack.head = p;
             pool->return_stack.cnt++;
-            SCMutexUnlock(&pool->return_stack.mutex);
             SCCondSignal(&pool->return_stack.cond);
+            SCMutexUnlock(&pool->return_stack.mutex);
         }
     }
 }
