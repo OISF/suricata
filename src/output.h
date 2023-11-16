@@ -216,5 +216,6 @@ typedef struct EveJsonSimpleAppLayerLogger {
 } EveJsonSimpleAppLayerLogger;
 
 EveJsonSimpleAppLayerLogger *SCEveJsonSimpleGetLogger(AppProto alproto);
+void RegisterAppProtoAppLayerLogger(AppProto alproto, EveJsonSimpleTxLogFunc log);
 
 #endif /* ! __OUTPUT_H__ */

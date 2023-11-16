@@ -1346,3 +1346,11 @@ EveJsonSimpleAppLayerLogger *SCEveJsonSimpleGetLogger(AppProto alproto)
     }
     return NULL;
 }
+
+void RegisterAppProtoAppLayerLogger(AppProto alproto, EveJsonSimpleTxLogFunc log)
+{
+    if (alproto < ALPROTO_MAX) {
+        simple_json_applayer_loggers[alproto].proto = alproto;
+        simple_json_applayer_loggers[alproto].LogTx = log;
+    }
+}

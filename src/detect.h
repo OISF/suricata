@@ -1544,6 +1544,7 @@ typedef struct DetectEngineMasterCtx_ {
 
 /* Table with all SigMatch registrations */
 extern SigTableElmt *sigmatch_table;
+extern SigTableElmt sigmatch_table_static[DETECT_TBLSIZE_STATIC];
 
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 

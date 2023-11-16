@@ -68,6 +68,7 @@
 #include "string.h"
 #include "detect-parse.h"
 #include "detect-engine-iponly.h"
+#include "detect-engine-file.h"
 #include "app-layer-detect-proto.h"
 
 #include "action-globals.h"
@@ -76,32 +77,43 @@
 /* Table with all filehandler registrations */
 DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE_STATIC];
 
+// file protocols with common file handling
+DetectFileHandlerProtocol_t al_protocols[ALPROTO_MAX] = {
+    { .al_proto = ALPROTO_NFS, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
+    { .al_proto = ALPROTO_SMB, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
+    { .al_proto = ALPROTO_FTP, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
+    { .al_proto = ALPROTO_FTPDATA, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
+    { .al_proto = ALPROTO_HTTP1,
+            .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
+            .to_client_progress = HTP_RESPONSE_BODY,
+            .to_server_progress = HTP_REQUEST_BODY },
+    { .al_proto = ALPROTO_HTTP2,
+            .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
+            .to_client_progress = HTTP2StateDataServer,
+            .to_server_progress = HTTP2StateDataClient },
+    { .al_proto = ALPROTO_SMTP, .direction = SIG_FLAG_TOSERVER }, { .al_proto = ALPROTO_UNKNOWN }
+};
+
+void DetectFileRegisterProto(
+        AppProto alproto, int direction, int to_client_progress, int to_server_progress)
+{
+    size_t i = 0;
+    while (al_protocols[i].al_proto != ALPROTO_UNKNOWN) {
+        i++;
+    }
+    al_protocols[i].al_proto = alproto;
+    al_protocols[i].direction = direction;
+    al_protocols[i].to_client_progress = to_client_progress;
+    al_protocols[i].to_server_progress = to_server_progress;
+    al_protocols[i + 1].al_proto = ALPROTO_UNKNOWN;
+}
+
 void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *reg)
 {
-    // file protocols with common file handling
-    typedef struct {
-        AppProto al_proto;
-        int direction;
-        int to_client_progress;
-        int to_server_progress;
-    } DetectFileHandlerProtocol_t;
-    static DetectFileHandlerProtocol_t al_protocols[] = {
-        { .al_proto = ALPROTO_NFS, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
-        { .al_proto = ALPROTO_SMB, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
-        { .al_proto = ALPROTO_FTP, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
-        { .al_proto = ALPROTO_FTPDATA, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
-        { .al_proto = ALPROTO_HTTP1,
-                .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
-                .to_client_progress = HTP_RESPONSE_BODY,
-                .to_server_progress = HTP_REQUEST_BODY },
-        { .al_proto = ALPROTO_HTTP2,
-                .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
-                .to_client_progress = HTTP2StateDataServer,
-                .to_server_progress = HTTP2StateDataClient },
-        { .al_proto = ALPROTO_SMTP, .direction = SIG_FLAG_TOSERVER }
-    };
-
     for (size_t i = 0; i < ARRAY_SIZE(al_protocols); i++) {
+        if (al_protocols[i].al_proto == ALPROTO_UNKNOWN) {
+            break;
+        }
         int direction = al_protocols[i].direction == 0
                                 ? (int)(SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)
                                 : al_protocols[i].direction;
