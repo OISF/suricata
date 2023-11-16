@@ -22,6 +22,7 @@ use crate::krb::krb5::{KRB5Transaction,test_weak_encryption};
 
 fn krb5_log_response(jsb: &mut JsonBuilder, tx: &mut KRB5Transaction) -> Result<(), JsonError>
 {
+    jsb.open_object("krb5")?;
     match tx.error_code {
         Some(c) => {
             jsb.set_string("msg_type", &format!("{:?}", tx.msg_type))?;
@@ -63,12 +64,13 @@ fn krb5_log_response(jsb: &mut JsonBuilder, tx: &mut KRB5Transaction) -> Result<
         jsb.set_string("ticket_encryption", &refs)?;
         jsb.set_bool("ticket_weak_encryption", test_weak_encryption(x))?;
     }
+    jsb.close()?;
 
     return Ok(());
 }
 
 #[no_mangle]
-pub extern "C" fn rs_krb5_log_json_response(jsb: &mut JsonBuilder, tx: &mut KRB5Transaction) -> bool
+pub extern "C" fn rs_krb5_log_json_response(tx: &mut KRB5Transaction, jsb: &mut JsonBuilder) -> bool
 {
     krb5_log_response(jsb, tx).is_ok()
 }
