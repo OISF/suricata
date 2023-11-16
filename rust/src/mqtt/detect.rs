@@ -168,7 +168,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_username(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_tx_get_connect_password(
-    tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &MQTTTransaction, _flow_flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
         if let MQTTOperation::CONNECT(ref cv) = msg.op {
