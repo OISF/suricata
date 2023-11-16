@@ -24,13 +24,16 @@
 
 #include "suricata-common.h"
 #include "app-layer-protos.h"
+#include "rust.h"
+
+AppProto ALPROTO_FAILED = ALPROTO_MAX_STATIC;
 
 typedef struct AppProtoStringTuple {
     AppProto alproto;
     const char *str;
 } AppProtoStringTuple;
 
-const AppProtoStringTuple AppProtoStrings[ALPROTO_MAX] = {
+AppProtoStringTuple AppProtoStrings[ALPROTO_MAX] = {
     { ALPROTO_UNKNOWN, "unknown" },
     { ALPROTO_HTTP1, "http1" },
     { ALPROTO_FTP, "ftp" },
@@ -65,10 +68,10 @@ const AppProtoStringTuple AppProtoStrings[ALPROTO_MAX] = {
     { ALPROTO_HTTP2, "http2" },
     { ALPROTO_BITTORRENT_DHT, "bittorrent-dht" },
     { ALPROTO_HTTP, "http" },
-    { ALPROTO_FAILED, "failed" },
 #ifdef UNITTESTS
     { ALPROTO_TEST, "test" },
 #endif
+    { ALPROTO_MAX_STATIC, "failed" },
 };
 
 const char *AppProtoToString(AppProto alproto)
@@ -103,4 +106,16 @@ AppProto StringToAppProto(const char *proto_name)
     }
 
     return ALPROTO_UNKNOWN;
+}
+
+void RegisterAppProtoString(AppProto alproto, const char *proto_name)
+{
+    if (alproto == ALPROTO_FAILED && alproto + 1 < ALPROTO_MAX) {
+        AppProtoStrings[alproto].str = proto_name;
+        AppProtoStrings[alproto].alproto = alproto;
+        ALPROTO_FAILED++;
+        rs_update_alproto_failed(ALPROTO_FAILED);
+        AppProtoStrings[ALPROTO_FAILED].str = "failed";
+        AppProtoStrings[ALPROTO_FAILED].alproto = ALPROTO_FAILED;
+    }
 }

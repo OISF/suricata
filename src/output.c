@@ -1332,10 +1332,10 @@ static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_HTTP2, rs_http2_log_json },
     { ALPROTO_BITTORRENT_DHT, rs_bittorrent_dht_logger_log },
     { ALPROTO_HTTP, NULL }, // signature protocol, not for app-layer logging
-    { ALPROTO_FAILED, NULL },
 #ifdef UNITTESTS
     { ALPROTO_TEST, NULL },
 #endif /* UNITESTS */
+    { ALPROTO_MAX_STATIC, NULL },
 };
 
 EveJsonSimpleAppLayerLogger *SCEveJsonSimpleGetLogger(AppProto alproto)
