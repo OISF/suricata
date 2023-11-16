@@ -35,7 +35,9 @@
 
 #include "hash_func01.h"
 
+#ifndef DEBUG
 #define DEBUG 0
+#endif
 
 /* Both are required in order to ensure *everything* is inlined.  The kernel version that 
  * we're using doesn't support calling functions in XDP, so it must appear as a single function.
@@ -323,7 +325,7 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
     }
 
     if (grhdr->flags & (GRE_VERSION|GRE_ROUTING)) {
-        DPRINTF_ALWAYS("malformed gre %d", __LINE__);
+        DPRINTF_ALWAYS("unsupported gre flags %x on %d",grhdr->flags, __LINE__);
         return XDP_PASS;
     }
 
@@ -341,7 +343,11 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
 
     /* Update offset to skip ERSPAN header if we have one */
     if (proto == __constant_htons(ETH_P_ERSPAN)) {
-        nh_off += 8;
+        // If sequence is set, then an ERSPAN header follows, otherwise the 
+        // inner ether header follows...
+        if(grhdr->flags & GRE_SEQ) {
+            nh_off += 8;
+        }
     }
 
     if (data + nh_off > data_end) {
@@ -369,7 +375,7 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
     }
 
     if (proto == __constant_htons(ETH_P_8021Q)) {
-        struct vlan_hdr *vhdr = (struct vlan_hdr *)(data);
+        struct vlan_hdr *vhdr = (struct vlan_hdr *)(data + nh_off);
         if ((void *)(vhdr + 1) > data_end) {
             DPRINTF_ALWAYS("malformed gre %d", __LINE__);
             return XDP_PASS;
