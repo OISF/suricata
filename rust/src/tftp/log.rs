@@ -24,6 +24,7 @@ fn tftp_log_request(tx: &mut TFTPTransaction,
                     jb: &mut JsonBuilder)
                     -> Result<(), JsonError>
 {
+    jb.open_object("tftp")?;
     match tx.opcode {
         1 => jb.set_string("packet", "read")?,
         2 => jb.set_string("packet", "write")?,
@@ -31,6 +32,7 @@ fn tftp_log_request(tx: &mut TFTPTransaction,
     };
     jb.set_string("file", tx.filename.as_str())?;
     jb.set_string("mode", tx.mode.as_str())?;
+    jb.close()?;
     Ok(())
 }
 
