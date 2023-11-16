@@ -26,6 +26,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-helper.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-mqtt-connect-password.h"
@@ -49,24 +50,11 @@ static int DetectMQTTConnectPasswordSetup(DetectEngineCtx *de_ctx, Signature *s,
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *_f, const uint8_t _flow_flags,
-        void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
-    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
-    if (buffer->inspect == NULL) {
-        const uint8_t *b = NULL;
-        uint32_t b_len = 0;
-
-        if (rs_mqtt_tx_get_connect_password(txv, &b, &b_len) != 1)
-            return NULL;
-        if (b == NULL || b_len == 0)
-            return NULL;
-
-        InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
-        InspectionBufferApplyTransforms(buffer, transforms);
-    }
-    return buffer;
+    return DetectHelperGetData(det_ctx, transforms, _f, flow_flags, txv, list_id,
+            (SimpleGetTxBuffer)rs_mqtt_tx_get_connect_password);
 }
 
 void DetectMQTTConnectPasswordRegister(void)
@@ -78,17 +66,8 @@ void DetectMQTTConnectPasswordRegister(void)
     sigmatch_table[DETECT_AL_MQTT_CONNECT_PASSWORD].Setup = DetectMQTTConnectPasswordSetup;
     sigmatch_table[DETECT_AL_MQTT_CONNECT_PASSWORD].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_MQTT,
-            SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectBufferGeneric, GetData);
-
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_MQTT,
-	        1);
-
-    DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
-
-    g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
+    g_buffer_id = DetectHelperBufferMpmRegister(
+            BUFFER_NAME, BUFFER_DESC, ALPROTO_MQTT, false, true, GetData);
 
     SCLogDebug("registering " BUFFER_NAME " rule option");
 }

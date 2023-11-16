@@ -29,6 +29,7 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-snmp-version.h"
 #include "detect-engine-uint.h"
+#include "detect-engine-helper.h"
 #include "app-layer-parser.h"
 #include "rust.h"
 
@@ -60,13 +61,7 @@ void DetectSNMPVersionRegister (void)
     sigmatch_table[DETECT_AL_SNMP_VERSION].RegisterTests = DetectSNMPVersionRegisterTests;
 #endif
 
-    DetectAppLayerInspectEngineRegister2("snmp.version", ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectGenericList, NULL);
-
-    DetectAppLayerInspectEngineRegister2("snmp.version", ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectGenericList, NULL);
-
-    g_snmp_version_buffer_id = DetectBufferTypeGetByName("snmp.version");
+    g_snmp_version_buffer_id = DetectHelperBufferRegister("snmp.version", ALPROTO_SNMP, true, true);
 }
 
 /**
@@ -131,34 +126,19 @@ static DetectU32Data *DetectSNMPVersionParse(const char *rawstr)
 static int DetectSNMPVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
                                    const char *rawstr)
 {
-    DetectU32Data *dd = NULL;
-    SigMatch *sm = NULL;
-
-    if (DetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0)
-        return -1;
-
-    dd = DetectSNMPVersionParse(rawstr);
+    DetectU32Data *dd = DetectSNMPVersionParse(rawstr);
     if (dd == NULL) {
         SCLogError("Parsing \'%s\' failed", rawstr);
-        goto error;
+        return -1;
+    }
+    if (DetectHelperKeywordSetup(
+                ALPROTO_SNMP, DETECT_AL_SNMP_VERSION, g_snmp_version_buffer_id, s, dd) < 0) {
+        DetectSNMPVersionFree(de_ctx, dd);
+        return -1;
     }
 
-    /* okay so far so good, lets get this into a SigMatch
-     * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
-    sm->type = DETECT_AL_SNMP_VERSION;
-    sm->ctx = (void *)dd;
-
     SCLogDebug("snmp.version %d", dd->arg1);
-    SigMatchAppendSMToList(s, sm, g_snmp_version_buffer_id);
     return 0;
-
-error:
-    DetectSNMPVersionFree(de_ctx, dd);
-    return -1;
 }
 
 /**
