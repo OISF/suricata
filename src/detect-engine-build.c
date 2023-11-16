@@ -877,7 +877,7 @@ static json_t *RulesGroupPrintSghStats(const DetectEngineCtx *de_ctx, const SigG
     }
     json_object_set_new(js, "stats", stats);
 
-    json_object_set_new(js, "whitelist", json_integer(sgh->init->whitelist));
+    json_object_set_new(js, "score", json_integer(sgh->init->score));
 
     return js;
 }
@@ -1147,7 +1147,7 @@ static int RuleSetWhitelist(Signature *s)
         }
     }
 
-    s->init_data->whitelist = wl;
+    s->init_data->score = wl;
     return wl;
 }
 
@@ -1198,7 +1198,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             goto next;
         }
 
-        int wl = s->init_data->whitelist;
+        int wl = s->init_data->score;
         while (p) {
             int pwl = PortIsWhitelisted(de_ctx, p, ipproto) ? 111 : 0;
             pwl = MAX(wl,pwl);
@@ -1206,12 +1206,12 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             DetectPort *lookup = DetectPortHashLookup(de_ctx, p);
             if (lookup) {
                 SigGroupHeadAppendSig(de_ctx, &lookup->sh, s);
-                lookup->sh->init->whitelist = MAX(lookup->sh->init->whitelist, pwl);
+                lookup->sh->init->score = MAX(lookup->sh->init->score, pwl);
             } else {
                 DetectPort *tmp2 = DetectPortCopySingle(de_ctx, p);
                 BUG_ON(tmp2 == NULL);
                 SigGroupHeadAppendSig(de_ctx, &tmp2->sh, s);
-                tmp2->sh->init->whitelist = pwl;
+                tmp2->sh->init->score = pwl;
                 DetectPortHashAdd(de_ctx, tmp2);
             }
 
@@ -1519,7 +1519,7 @@ error:
 
 static int PortGroupWhitelist(const DetectPort *a)
 {
-    return a->sh->init->whitelist;
+    return a->sh->init->score;
 }
 
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b)
