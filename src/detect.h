@@ -561,7 +561,7 @@ typedef struct SignatureInitData_ {
     /** score to influence rule grouping. A higher value leads to a higher
      *  likelihood of a rulegroup with this sig ending up as a contained
      *  group. */
-    int whitelist;
+    int score;
 
     /** address settings for this signature */
     const DetectAddressHead *src, *dst;
@@ -1414,7 +1414,7 @@ typedef struct SigGroupHeadInitData_ {
 
     uint8_t protos[256];    /**< proto(s) this sgh is for */
     uint32_t direction;     /**< set to SIG_FLAG_TOSERVER, SIG_FLAG_TOCLIENT or both */
-    int whitelist;          /**< try to make this group a unique one */
+    int score;              /**< try to make this group a unique one */
 
     MpmCtx **app_mpms;
     MpmCtx **pkt_mpms;
