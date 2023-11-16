@@ -305,6 +305,7 @@
 #include "util-path.h"
 #include "util-mpm-ac.h"
 #include "runmodes.h"
+#include "util-plugin.h"
 
 int DETECT_TBLSIZE = DETECT_TBLSIZE_STATIC;
 int DETECT_TBLSIZE_IDX = DETECT_TBLSIZE_STATIC;
@@ -452,14 +453,48 @@ int SigTableList(const char *keyword)
 
 static void DetectFileHandlerRegister(void)
 {
-    for (int i = 0; i < DETECT_TBLSIZE; i++) {
+    for (int i = 0; i < DETECT_TBLSIZE_STATIC; i++) {
         if (filehandler_table[i].name)
             DetectFileRegisterFileProtocols(&filehandler_table[i]);
     }
 }
 
+void SigTableCleanup(void)
+{
+    if (sigmatch_table != sigmatch_table_static) {
+        SCFree(sigmatch_table);
+        sigmatch_table = sigmatch_table_static;
+        DETECT_TBLSIZE = DETECT_TBLSIZE_STATIC;
+    }
+}
+
 void SigTableSetup(void)
 {
+#ifdef ALPROTO_DYNAMIC_NB
+    bool to_grow = false;
+    for (size_t i = 0; i < ALPROTO_DYNAMIC_NB; i++) {
+        SCAppLayerPlugin *app_layer_plugin = SCPluginFindAppLayerByIndex(i);
+        if (app_layer_plugin == NULL) {
+            break;
+        }
+        if (app_layer_plugin->keywords_nb > 0) {
+            DETECT_TBLSIZE += app_layer_plugin->keywords_nb;
+            to_grow = true;
+        }
+    }
+    if (to_grow) {
+        if (sigmatch_table == sigmatch_table_static) {
+            sigmatch_table = SCMalloc(DETECT_TBLSIZE * sizeof(SigTableElmt));
+        } else {
+            sigmatch_table = SCRealloc(sigmatch_table, DETECT_TBLSIZE * sizeof(SigTableElmt));
+        }
+        if (sigmatch_table == NULL) {
+            SCLogError("Failed to allocate bigger sigmatch_table, falling back to static one");
+            sigmatch_table = sigmatch_table_static;
+            DETECT_TBLSIZE = DETECT_TBLSIZE_STATIC;
+        }
+    }
+#endif
     memset(sigmatch_table, 0, DETECT_TBLSIZE * sizeof(SigTableElmt));
 
     DetectSidRegister();
@@ -686,6 +721,18 @@ void SigTableSetup(void)
     DetectQuicVersionRegister();
     DetectQuicCyuHashRegister();
     DetectQuicCyuStringRegister();
+
+#ifdef ALPROTO_DYNAMIC_NB
+    for (size_t i = 0; i < ALPROTO_DYNAMIC_NB; i++) {
+        SCAppLayerPlugin *app_layer_plugin = SCPluginFindAppLayerByIndex(i);
+        if (app_layer_plugin == NULL) {
+            break;
+        }
+        if (app_layer_plugin->KeywordsRegister != NULL) {
+            app_layer_plugin->KeywordsRegister();
+        }
+    }
+#endif
 
     DetectBypassRegister();
     DetectConfigRegister();
