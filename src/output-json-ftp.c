@@ -46,15 +46,16 @@
 #include "app-layer-ftp.h"
 #include "output-json-ftp.h"
 
-static void EveFTPLogCommand(FTPTransaction *tx, JsonBuilder *jb)
+bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
 {
+    FTPTransaction *tx = vtx;
     /* Preallocate array objects to simplify failure case */
     JsonBuilder *js_resplist = NULL;
     if (!TAILQ_EMPTY(&tx->response_list)) {
         js_resplist = jb_new_array();
 
         if (unlikely(js_resplist == NULL)) {
-            return;
+            return false;
         }
     }
     jb_open_object(jb, "ftp");
@@ -151,6 +152,7 @@ static void EveFTPLogCommand(FTPTransaction *tx, JsonBuilder *jb)
         JB_SET_FALSE(jb, "reply_truncated");
     }
     jb_close(jb);
+    return true;
 }
 
 
@@ -166,7 +168,6 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
     } else {
         event_type = "ftp";
     }
-    FTPTransaction *tx = vtx;
 
     JsonBuilder *jb =
             CreateEveHeaderWithTxId(p, LOG_DIR_FLOW, event_type, NULL, tx_id, thread->ctx);
@@ -176,7 +177,7 @@ static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
                 goto fail;
             }
         } else {
-            EveFTPLogCommand(tx, jb);
+            EveFTPLogCommand(vtx, jb);
         }
 
         OutputJsonBuilderBuffer(jb, thread);
