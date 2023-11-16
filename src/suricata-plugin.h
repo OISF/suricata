@@ -52,4 +52,15 @@ typedef struct SCCapturePlugin_ {
 
 int SCPluginRegisterCapture(SCCapturePlugin *);
 
+typedef struct SCAppLayerPlugin_ {
+    char *name;
+    void (*Register)(void);
+    void (*KeywordsRegister)(void);
+    char *logname;
+    char *confname;
+    bool (*Logger)(void *tx, void *jb);
+} SCAppLayerPlugin;
+
+int SCPluginRegisterAppLayer(SCAppLayerPlugin *);
+
 #endif /* __SURICATA_PLUGIN_H */

@@ -339,6 +339,7 @@ extern int DETECT_TBLSIZE_IDX;
 int SigTableList(const char *keyword);
 void SigTableCleanup(void);
 void SigTableSetup(void);
+int SigTablePreRegister(void (*KeywordsRegister)(void));
 void SigTableRegisterTests(void);
 
 #endif /* SURICATA_DETECT_ENGINE_REGISTER_H */
