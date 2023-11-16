@@ -82,6 +82,7 @@
 #include "app-layer-parser.h"
 #include "output-filestore.h"
 #include "output-json-arp.h"
+#include "util-plugin.h"
 
 typedef struct RootLogger_ {
     OutputLogFunc LogFunc;
@@ -1105,4 +1106,21 @@ void OutputRegisterLoggers(void)
     }
     /* ARP JSON logger */
     JsonArpLogRegister();
+
+#ifdef HAVE_PLUGINS
+    for (size_t i = 0; i < app_layer_plugins_nb; i++) {
+        SCAppLayerPlugin *app_layer_plugin = SCPluginFindAppLayerByIndex(i);
+        if (app_layer_plugin == NULL) {
+            break;
+        }
+
+        OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", app_layer_plugin->logname,
+                app_layer_plugin->confname, OutputJsonLogInitSub,
+                (AppProto)(ALPROTO_MAX_STATIC + i), JsonGenericDirFlowLogger, JsonLogThreadInit,
+                JsonLogThreadDeinit);
+        SCLogNotice("%s JSON logger registered.", app_layer_plugin->name);
+        RegisterSimpleJsonApplayerLogger((AppProto)(ALPROTO_MAX_STATIC + i),
+                (EveJsonSimpleTxLogFunc)app_layer_plugin->Logger, NULL);
+    }
+#endif
 }
