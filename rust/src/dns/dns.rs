@@ -250,10 +250,10 @@ impl Transaction for DNSTransaction {
 
 impl DNSTransaction {
     pub fn new(direction: Direction) -> Self {
-	Self {
-	    tx_data: AppLayerTxData::for_direction(direction),
+        Self {
+            tx_data: AppLayerTxData::for_direction(direction),
             ..Default::default()
-	}
+        }
     }
 
     /// Get the DNS transactions ID (not the internal tracking ID).
