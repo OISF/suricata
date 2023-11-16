@@ -439,6 +439,27 @@ void SigTableCleanup(void)
     }
 }
 
+#define ARRAY_CAP_STEP 16
+static void (**preregistered_callbacks)(void) = NULL;
+static size_t preregistered_callbacks_nb = 0;
+static size_t preregistered_callbacks_cap = 0;
+
+int SigTablePreRegister(void (*KeywordsRegister)(void))
+{
+    if (preregistered_callbacks_nb == preregistered_callbacks_cap) {
+        void *tmp = SCRealloc(preregistered_callbacks,
+                sizeof(void *) * (preregistered_callbacks_cap + ARRAY_CAP_STEP));
+        if (tmp == NULL) {
+            return 1;
+        }
+        preregistered_callbacks_cap += ARRAY_CAP_STEP;
+        preregistered_callbacks = tmp;
+    }
+    preregistered_callbacks[preregistered_callbacks_nb] = KeywordsRegister;
+    preregistered_callbacks_nb++;
+    return 0;
+}
+
 void SigTableInit(void)
 {
     if (sigmatch_table == NULL) {
@@ -685,6 +706,10 @@ void SigTableSetup(void)
     ScDetectRfbRegister();
     ScDetectSipRegister();
     ScDetectTemplateRegister();
+
+    for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
+        preregistered_callbacks[i]();
+    }
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
