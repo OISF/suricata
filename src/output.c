@@ -1132,8 +1132,8 @@ void OutputRegisterLoggers(void)
 static SimpleJsonAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_UNKNOWN, NULL },
     { ALPROTO_HTTP1, NULL }, // special: uses some options flags
-    { ALPROTO_FTP, NULL },   // TODO missing
-    { ALPROTO_SMTP, NULL },  // special: uses state
+    { ALPROTO_FTP, EveFTPLogCommand },
+    { ALPROTO_SMTP, NULL }, // special: uses state
     { ALPROTO_TLS, JsonTlsLogJSONExtended },
     { ALPROTO_SSH, rs_ssh_log_json },
     { ALPROTO_IMAP, NULL },   // protocol detection only
