@@ -905,42 +905,39 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
                 tctx->alpd_tctx, f, p->payload, p->payload_len, IPPROTO_UDP, flags, &reverse_flow);
         PACKET_PROFILING_APP_PD_END(tctx);
 
-        switch (*alproto) {
-            case ALPROTO_UNKNOWN:
-                if (*alproto_otherdir != ALPROTO_UNKNOWN) {
-                    // Use recognized side
-                    f->alproto = *alproto_otherdir;
-                    // do not keep ALPROTO_UNKNOWN for this side so as not to loop
-                    *alproto = *alproto_otherdir;
-                    if (*alproto_otherdir == ALPROTO_FAILED) {
-                        SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
-                    }
-                } else {
-                    // First side of protocol is unknown
-                    *alproto = ALPROTO_FAILED;
+        if (*alproto == ALPROTO_UNKNOWN) {
+            if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+                // Use recognized side
+                f->alproto = *alproto_otherdir;
+                // do not keep ALPROTO_UNKNOWN for this side so as not to loop
+                *alproto = *alproto_otherdir;
+                if (*alproto_otherdir == ALPROTO_FAILED) {
+                    SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
                 }
-                break;
-            case ALPROTO_FAILED:
-                if (*alproto_otherdir != ALPROTO_UNKNOWN) {
-                    // Use recognized side
-                    f->alproto = *alproto_otherdir;
-                    if (*alproto_otherdir == ALPROTO_FAILED) {
-                        SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
-                    }
+            } else {
+                // First side of protocol is unknown
+                *alproto = ALPROTO_FAILED;
+            }
+        } else if (*alproto == ALPROTO_FAILED) {
+            if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+                // Use recognized side
+                f->alproto = *alproto_otherdir;
+                if (*alproto_otherdir == ALPROTO_FAILED) {
+                    SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
                 }
-                // else wait for second side of protocol
-                break;
-            default:
-                if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != ALPROTO_FAILED) {
-                    if (*alproto_otherdir != *alproto) {
-                        AppLayerDecoderEventsSetEventRaw(
-                                &p->app_layer_events, APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
-                        // data already sent to parser, we cannot change the protocol to use the one
-                        // of the server
-                    }
-                } else {
-                    f->alproto = *alproto;
+            }
+            // else wait for second side of protocol
+        } else {
+            if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != ALPROTO_FAILED) {
+                if (*alproto_otherdir != *alproto) {
+                    AppLayerDecoderEventsSetEventRaw(
+                            &p->app_layer_events, APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
+                    // data already sent to parser, we cannot change the protocol to use the one
+                    // of the server
                 }
+            } else {
+                f->alproto = *alproto;
+            }
         }
         if (*alproto_otherdir == ALPROTO_UNKNOWN) {
             if (f->alproto == ALPROTO_UNKNOWN) {

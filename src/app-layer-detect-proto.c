@@ -491,8 +491,8 @@ static inline AppProto PPGetProto(const AppLayerProtoDetectProbingParserElement 
         if (AppProtoIsValid(alproto)) {
             SCReturnUInt(alproto);
         }
-        if (alproto == ALPROTO_FAILED ||
-            (pe->max_depth != 0 && buflen > pe->max_depth)) {
+        if (alproto == ALPROTO_FAILED || alproto == ALPROTO_INVALID ||
+                (pe->max_depth != 0 && buflen > pe->max_depth)) {
             alproto_masks[0] |= pe->alproto_mask;
         }
         pe = pe->next;
