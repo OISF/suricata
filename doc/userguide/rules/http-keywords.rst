@@ -786,4 +786,5 @@ Notes
    than 1k, 'content:!"<html"; depth:1024;' can only match if the
    pattern '<html' is absent from the first inspected chunk.
 
--  ``file_data`` can also be used with SMTP
+
+-  Refer to :doc:`file-keywords` for additional information.
