@@ -1149,8 +1149,8 @@ static SimpleJsonAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_NTP, NULL }, // no logging
     { ALPROTO_FTPDATA, EveFTPDataAddMetadata },
     { ALPROTO_TFTP, (SimpleJsonTxLogFunc)rs_tftp_log_json_request },
-    { ALPROTO_IKE, NULL },  // special: uses state
-    { ALPROTO_KRB5, NULL }, // TODO missing
+    { ALPROTO_IKE, NULL }, // special: uses state
+    { ALPROTO_KRB5, (SimpleJsonTxLogFunc)rs_krb5_log_json_response },
     { ALPROTO_QUIC, rs_quic_to_json },
     { ALPROTO_DHCP, NULL }, // TODO missing
     { ALPROTO_SNMP, (SimpleJsonTxLogFunc)rs_snmp_log_json_response },
