@@ -341,9 +341,11 @@ enum DetectKeywordId {
     DETECT_AL_IKE_KEY_EXCHANGE,
 
     /* make sure this stays last */
-    DETECT_TBLSIZE,
+    DETECT_TBLSIZE_STATIC,
 };
 
+extern int DETECT_TBLSIZE;
+extern int DETECT_TBLSIZE_IDX;
 int SigTableList(const char *keyword);
 void SigTableSetup(void);
 void SigTableRegisterTests(void);
