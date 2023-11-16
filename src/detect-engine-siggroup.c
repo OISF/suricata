@@ -402,8 +402,8 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
     for (idx = 0; idx < src->init->sig_size; idx++)
         (*dst)->init->sig_array[idx] = (*dst)->init->sig_array[idx] | src->init->sig_array[idx];
 
-    if (src->init->whitelist)
-        (*dst)->init->whitelist = MAX((*dst)->init->whitelist, src->init->whitelist);
+    if (src->init->score)
+        (*dst)->init->score = MAX((*dst)->init->score, src->init->score);
 
     return 0;
 
