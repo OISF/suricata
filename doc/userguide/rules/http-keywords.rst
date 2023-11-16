@@ -787,3 +787,4 @@ Notes
    pattern '<html' is absent from the first inspected chunk.
 
 -  ``file_data`` can also be used with SMTP
+-  Refer to :doc:`file-keywords` for additional information.
