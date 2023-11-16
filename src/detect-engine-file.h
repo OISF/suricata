@@ -28,4 +28,15 @@ uint8_t DetectFileInspectGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx 
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *_alstate, void *tx, uint64_t tx_id);
 
+// file protocols with common file handling
+typedef struct {
+    AppProto al_proto;
+    int direction;
+    int to_client_progress;
+    int to_server_progress;
+} DetectFileHandlerProtocol_t;
+
+void DetectFileRegisterProto(
+        AppProto alproto, int direction, int to_client_progress, int to_server_progress);
+
 #endif /* SURICATA_DETECT_ENGINE_FILE_H */

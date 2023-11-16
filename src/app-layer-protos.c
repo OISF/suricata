@@ -103,7 +103,7 @@ AppProto StringToAppProto(const char *proto_name)
 
     // We could use a Multi Pattern Matcher
     for (size_t i = 0; i < ARRAY_SIZE(AppProtoStrings); i++) {
-        if (strcmp(proto_name, AppProtoStrings[i].str) == 0)
+        if (AppProtoStrings[i].str != NULL && strcmp(proto_name, AppProtoStrings[i].str) == 0)
             return AppProtoStrings[i].alproto;
     }
 

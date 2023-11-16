@@ -55,6 +55,10 @@
 #include "app-layer-rfb.h"
 #include "app-layer-http2.h"
 
+#ifdef ALPROTO_DYNAMIC_NB
+#include "util-plugin.h"
+#endif
+
 struct AppLayerParserThreadCtx_ {
     void *alproto_local_storage[FLOW_PROTO_MAX][ALPROTO_MAX];
 };
@@ -1776,6 +1780,15 @@ void AppLayerParserRegisterProtocolParsers(void)
     } else {
         SCLogInfo("Protocol detection and parser disabled for pop3 protocol.");
     }
+#ifdef ALPROTO_DYNAMIC_NB
+    for (size_t i = 0; i < ALPROTO_DYNAMIC_NB; i++) {
+        SCAppLayerPlugin *app_layer_plugin = SCPluginFindAppLayerByIndex(i);
+        if (app_layer_plugin == NULL) {
+            break;
+        }
+        app_layer_plugin->Register();
+    }
+#endif
 
     ValidateParsers();
 }

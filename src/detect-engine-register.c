@@ -312,6 +312,7 @@
 #include "util-path.h"
 #include "util-mpm-ac.h"
 #include "runmodes.h"
+#include "util-plugin.h"
 
 int DETECT_TBLSIZE = 0;
 int DETECT_TBLSIZE_IDX = DETECT_TBLSIZE_STATIC;
@@ -714,6 +715,18 @@ void SigTableSetup(void)
     DetectQuicCyuHashRegister();
     DetectQuicCyuStringRegister();
     DetectJa4HashRegister();
+
+#ifdef ALPROTO_DYNAMIC_NB
+    for (size_t i = 0; i < ALPROTO_DYNAMIC_NB; i++) {
+        SCAppLayerPlugin *app_layer_plugin = SCPluginFindAppLayerByIndex(i);
+        if (app_layer_plugin == NULL) {
+            break;
+        }
+        if (app_layer_plugin->KeywordsRegister != NULL) {
+            app_layer_plugin->KeywordsRegister();
+        }
+    }
+#endif
 
     DetectBypassRegister();
     DetectConfigRegister();
