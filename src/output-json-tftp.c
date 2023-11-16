@@ -58,11 +58,9 @@ static int JsonTFTPLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
-    jb_open_object(jb, "tftp");
     if (unlikely(!rs_tftp_log_json_request(tx, jb))) {
         goto error;
     }
-    jb_close(jb);
 
     OutputJsonBuilderBuffer(jb, thread);
 
