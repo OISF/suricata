@@ -152,7 +152,6 @@ typedef struct SCInstance_ {
     int offline;
     int verbose;
     int checksum_validation;
-    int output_flush_interval;
 
     struct timeval start_time;
 

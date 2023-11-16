@@ -2283,7 +2283,7 @@ int DetectEngineInspectPktBufferGeneric(
  *      -that doesn't use the new det_ctx yet
  *      -*or*, if the thread should flush its output logs.
  */
-static void InjectPackets(ThreadVars **detect_tvs, DetectEngineThreadCtx **new_det_ctx,
+void InjectPackets(ThreadVars **detect_tvs, DetectEngineThreadCtx **new_det_ctx,
         int no_of_detect_tvs, bool flush_logs)
 {
     /* inject a fake packet if the detect thread that needs it. This function
@@ -2309,111 +2309,6 @@ static void InjectPackets(ThreadVars **detect_tvs, DetectEngineThreadCtx **new_d
             }
         }
     }
-}
-
-/**
- * \brief Trigger detect threads to flush their output logs
- *
- * This function is intended to be called at regular intervals to force
- * buffered log data to be persisted
- */
-void WorkerFlushLogs(void)
-{
-    SCEnter();
-    uint32_t i = 0;
-
-    /* count detect threads in use */
-    uint32_t no_of_detect_tvs = TmThreadCountThreadsByTmmFlags(TM_FLAG_DETECT_TM);
-    /* can be zero in unix socket mode */
-    if (no_of_detect_tvs == 0) {
-        return;
-    }
-
-    /* prepare swap structures */
-    DetectEngineThreadCtx *det_ctx[no_of_detect_tvs];
-    ThreadVars *detect_tvs[no_of_detect_tvs];
-    memset(det_ctx, 0x00, (no_of_detect_tvs * sizeof(DetectEngineThreadCtx *)));
-    memset(detect_tvs, 0x00, (no_of_detect_tvs * sizeof(ThreadVars *)));
-
-    /* start the process of swapping detect threads ctxs */
-
-    /* get reference to tv's and setup new_det_ctx array */
-    SCMutexLock(&tv_root_lock);
-    for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
-        if ((tv->tmm_flags & TM_FLAG_DETECT_TM) == 0) {
-            continue;
-        }
-        for (TmSlot *s = tv->tm_slots; s != NULL; s = s->slot_next) {
-            TmModule *tm = TmModuleGetById(s->tm_id);
-            if (!(tm->flags & TM_FLAG_DETECT_TM)) {
-                continue;
-            }
-
-            if (suricata_ctl_flags != 0) {
-                SCMutexUnlock(&tv_root_lock);
-                goto error;
-            }
-
-            det_ctx[i] = FlowWorkerGetDetectCtxPtr(SC_ATOMIC_GET(s->slot_data));
-            SC_ATOMIC_SET(det_ctx[i]->flush_ack, 0);
-            detect_tvs[i] = tv;
-
-            i++;
-            break;
-        }
-    }
-    BUG_ON(i != no_of_detect_tvs);
-
-    SCMutexUnlock(&tv_root_lock);
-
-    SCLogDebug("Creating flush pseudo packets for %d threads", no_of_detect_tvs);
-    InjectPackets(detect_tvs, det_ctx, no_of_detect_tvs, true);
-
-    uint32_t threads_done = 0;
-retry:
-    for (i = 0; i < no_of_detect_tvs; i++) {
-        if (suricata_ctl_flags != 0) {
-            threads_done = no_of_detect_tvs;
-            break;
-        }
-        usleep(1000);
-        if (SC_ATOMIC_GET(det_ctx[i]->flush_ack) == 1) {
-            SCLogDebug("thread slot %d has ack'd flush request", i);
-            threads_done++;
-        } else {
-            SCLogDebug("thread slot %d not yet ack'd flush request", i);
-            TmThreadsCaptureBreakLoop(detect_tvs[i]);
-        }
-    }
-    if (threads_done < no_of_detect_tvs) {
-        threads_done = 0;
-        SleepMsec(250);
-        goto retry;
-    }
-
-    /* this is to make sure that if someone initiated shutdown during
-     * this process
-     *
-     * TODO: needed?
-     *
-     * .rule swap, the live rule swap won't clean up the old det_ctx and
-     * de_ctx, till all detect threads have stopped working and sitting
-     * silently after setting RUNNING_DONE flag and while waiting for
-     * THV_DEINIT flag */
-    if (i != no_of_detect_tvs) { // not all threads we swapped
-        for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
-            if ((tv->tmm_flags & TM_FLAG_DETECT_TM) == 0) {
-                continue;
-            }
-
-            while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
-                usleep(100);
-            }
-        }
-    }
-
-error:
-    return;
 }
 
 /** \internal
