@@ -277,6 +277,7 @@
 #include "util-path.h"
 #include "util-mpm-ac.h"
 #include "runmodes.h"
+#include "util-plugin.h"
 
 int DETECT_TBLSIZE = 0;
 int DETECT_TBLSIZE_IDX = DETECT_TBLSIZE_STATIC;
@@ -683,6 +684,18 @@ void SigTableSetup(void)
     ScDetectRfbRegister();
     ScDetectSipRegister();
     ScDetectTemplateRegister();
+
+#ifdef HAVE_PLUGINS
+    for (size_t i = 0; i < app_layer_plugins_nb; i++) {
+        SCAppLayerPlugin *app_layer_plugin = SCPluginFindAppLayerByIndex(i);
+        if (app_layer_plugin == NULL) {
+            break;
+        }
+        if (app_layer_plugin->KeywordsRegister != NULL) {
+            app_layer_plugin->KeywordsRegister();
+        }
+    }
+#endif
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
