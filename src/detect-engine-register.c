@@ -306,6 +306,9 @@
 #include "util-mpm-ac.h"
 #include "runmodes.h"
 
+int DETECT_TBLSIZE = DETECT_TBLSIZE_STATIC;
+int DETECT_TBLSIZE_IDX = DETECT_TBLSIZE_STATIC;
+
 static void PrintFeatureList(const SigTableElmt *e, char sep)
 {
     const uint16_t flags = e->flags;
@@ -374,7 +377,7 @@ static void SigMultilinePrint(int i, const char *prefix)
 
 int SigTableList(const char *keyword)
 {
-    size_t size = sizeof(sigmatch_table) / sizeof(SigTableElmt);
+    size_t size = DETECT_TBLSIZE;
     size_t i;
 
     if (keyword == NULL) {
@@ -457,7 +460,7 @@ static void DetectFileHandlerRegister(void)
 
 void SigTableSetup(void)
 {
-    memset(sigmatch_table, 0, sizeof(sigmatch_table));
+    memset(sigmatch_table, 0, DETECT_TBLSIZE * sizeof(SigTableElmt));
 
     DetectSidRegister();
     DetectPriorityRegister();
