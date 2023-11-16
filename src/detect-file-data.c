@@ -50,7 +50,6 @@
 #include "util-spm-bm.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include "util-file-decompression.h"
 #include "util-profiling.h"
 
 static int DetectFiledataSetup (DetectEngineCtx *, Signature *, const char *);
@@ -352,23 +351,6 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     SCLogDebug("[list %d] [before] buffer offset %" PRIu64 "; buffer len %" PRIu32
                "; data_len %" PRIu32 "; file_size %" PRIu64,
             list_id, buffer->inspect_offset, buffer->inspect_len, data_len, file_size);
-
-    if (f->alproto == ALPROTO_HTTP1 && flow_flags & STREAM_TOCLIENT) {
-        HtpState *htp_state = f->alstate;
-        /* built-in 'transformation' */
-        if (htp_state->cfg->swf_decompression_enabled) {
-            int swf_file_type = FileIsSwfFile(data, data_len);
-            if (swf_file_type == FILE_SWF_ZLIB_COMPRESSION ||
-                    swf_file_type == FILE_SWF_LZMA_COMPRESSION) {
-                SCLogDebug("decompressing ...");
-                (void)FileSwfDecompression(data, data_len, det_ctx, buffer,
-                        htp_state->cfg->swf_compression_type, htp_state->cfg->swf_decompress_depth,
-                        htp_state->cfg->swf_compress_depth);
-                SCLogDebug("uncompressed buffer %p size %u; buf: \"%s\"", buffer,
-                        buffer->inspect_len, (char *)buffer->inspect);
-            }
-        }
-    }
 
     SCLogDebug("content inspected: %" PRIu64, cur_file->content_inspected);
 
