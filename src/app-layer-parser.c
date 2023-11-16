@@ -54,6 +54,7 @@
 #include "app-layer-ike.h"
 #include "app-layer-http2.h"
 #include "app-layer-imap.h"
+#include "util-plugin.h"
 
 struct AppLayerParserThreadCtx_ {
     void *(*alproto_local_storage)[FLOW_PROTO_MAX];
@@ -1744,6 +1745,13 @@ void AppLayerParserRegisterProtocolParsers(void)
         }
     } else {
         SCLogInfo("Protocol detection and parser disabled for pop3 protocol.");
+    }
+    for (size_t i = 0; i < app_layer_plugins_nb; i++) {
+        SCAppLayerPlugin *app_layer_plugin = SCPluginFindAppLayerByIndex(i);
+        if (app_layer_plugin == NULL) {
+            break;
+        }
+        app_layer_plugin->Register();
     }
 
     ValidateParsers();
