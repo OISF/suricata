@@ -541,9 +541,7 @@ noinst_HEADERS = \
 	util-enum.h \
 	util-error.h \
 	util-exception-policy.h \
-	util-file-decompression.h \
 	util-file.h \
-	util-file-swf-decompression.h \
 	util-fix_checksum.h \
 	util-fmemopen.h \
 	util-hash.h \
@@ -1142,8 +1140,6 @@ libsuricata_c_a_SOURCES = \
 	util-error.c \
 	util-exception-policy.c \
 	util-file.c \
-	util-file-decompression.c \
-	util-file-swf-decompression.c \
 	util-fix_checksum.c \
 	util-fmemopen.c \
 	util-hash.c \
