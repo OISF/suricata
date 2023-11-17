@@ -592,6 +592,7 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
         case ALPROTO_BITTORRENT_DHT:
             AlertJsonBitTorrentDHT(p->flow, tx_id, jb);
             break;
+        // TODOlol enip
         default:
             break;
     }
