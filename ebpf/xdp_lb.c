@@ -39,6 +39,14 @@
 #define DEBUG 0
 #endif
 
+/* Sizes (in bytes) of various GRE/ERSPAN optional protocol options.
+ */
+#define GRE_CSUM_SIZE   (2)
+#define GRE_OFFSET_SIZE (2)
+#define GRE_KEY_SIZE    (4)
+#define GRE_SEQ_SIZE    (4)
+#define GRE_ERSPAN_TYPE_II_HEADER_SIZE (8)
+
 /* Both are required in order to ensure *everything* is inlined.  The kernel version that 
  * we're using doesn't support calling functions in XDP, so it must appear as a single function.
  * Kernel 4.16+ support function calls:
@@ -332,13 +340,13 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
     nh_off += 4;
     proto = grhdr->proto;
     if (grhdr->flags & GRE_CSUM) {
-        nh_off += 4;
+        nh_off += GRE_CSUM_SIZE + GRE_OFFSET_SIZE;
     }
     if (grhdr->flags & GRE_KEY) {
-        nh_off += 4;
+        nh_off += GRE_KEY_SIZE;
     }
     if (grhdr->flags & GRE_SEQ) {
-        nh_off += 4;
+        nh_off += GRE_SEQ_SIZE;
     }
 
     /* Update offset to skip ERSPAN header if we have one */
@@ -346,7 +354,7 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
         // If sequence is set, then an ERSPAN header follows, otherwise the 
         // inner ether header follows...
         if(grhdr->flags & GRE_SEQ) {
-            nh_off += 8;
+            nh_off += GRE_ERSPAN_TYPE_II_HEADER_SIZE;
         }
     }
 
