@@ -184,7 +184,7 @@ static int INLINE hash_ipv4(void *data, void *data_end)
         return XDP_PASS;
     }
 
-    DPRINTF("Flow proto  %d\n", iph->protocol);
+    DPRINTF("Flow proto  %d id %d\n", iph->protocol, iph->id);
     DPRINTF("     src %x:%d\n", iph->saddr, ntohs(sport));
     DPRINTF("     dst %x:%d\n", iph->daddr, ntohs(dport));
 
@@ -325,6 +325,11 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
     };
 
     nh_off += iph->ihl << 2;
+    /* need to save this off before we advance the packet beyond it, else the bpf verifier 
+     * will catch this and refuse to load our program
+     */
+    int pkt_id = ntohs(iph->id);
+
     struct gre_hdr *grhdr = (struct gre_hdr *)(data + nh_off);
 
     if ((void *)(grhdr + 1) > data_end) {
@@ -397,7 +402,12 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
     } else if (proto == __constant_htons(ETH_P_IPV6)) {
         return hash_ipv6(data + nh_off, data_end);
     } else {
-        DPRINTF_ALWAYS("GRE unknown inner proto %d\n", ntohs(proto));
+        /* This packet isn't IPV4 or IPV6... it's likely still a legit ether type, but we intentionally 
+         * keep the packet handling light here, so even though we don't understand it, return it to the 
+         * network stack (we've already advanced past the GRE/ERSPAN headers to the encapsulated ethernet 
+         * frame, so chances are the linux stack, and suricata, know what to do with it)
+         */
+        DPRINTF("GRE unknown inner proto %d id %d\n", ntohs(proto), pkt_id);
         return XDP_PASS;
     }
 }
