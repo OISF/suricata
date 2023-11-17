@@ -272,6 +272,8 @@
 #include "detect-ssl-state.h"
 #include "detect-modbus.h"
 #include "detect-cipservice.h"
+#include "detect-enip-command.h"
+#include "detect-enip-status.h"
 #include "detect-dnp3.h"
 #include "detect-ike-exch-type.h"
 #include "detect-ike-spi.h"
@@ -518,6 +520,7 @@ void SigTableSetup(void)
     DetectModbusRegister();
     DetectCipServiceRegister();
     DetectEnipCommandRegister();
+    DetectEnipStatusRegister();
     DetectDNP3Register();
 
     DetectIkeExchTypeRegister();

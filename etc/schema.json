@@ -1399,6 +1399,75 @@
             },
             "additionalProperties": false
         },
+        "enip": {
+            "type": "object",
+            "properties": {
+                "request": {
+                    "type": "object",
+                    "properties": {
+                        "command": {
+                            "type": "string"
+                        },
+                        "status": {
+                            "type": "string"
+                        },
+                        "length": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "response": {
+                    "type": "object",
+                    "properties": {
+                        "command": {
+                            "type": "string"
+                        },
+                        "status": {
+                            "type": "string"
+                        },
+                        "length": {
+                            "type": "integer"
+                        },
+                        "identity": {
+                            "type": "object",
+                            "properties": {
+                                "protocol_version": {
+                                    "type": "integer"
+                                },
+                                "revision": {
+                                    "type": "string"
+                                },
+                                "vendor_id": {
+                                    "type": "integer"
+                                },
+                                "device_type": {
+                                    "type": "integer"
+                                },
+                                "product_code": {
+                                    "type": "integer"
+                                },
+                                "status": {
+                                    "type": "integer"
+                                },
+                                "serial": {
+                                    "type": "integer"
+                                },
+                                "product_name": {
+                                    "type": "string"
+                                },
+                                "state": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
         "ether": {
             "type": "object",
             "properties": {
