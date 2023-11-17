@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2022 Open Information Security Foundation
+/* Copyright (C) 2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,12 +18,12 @@
 /**
  * \file
  *
- * \author Kevin Wong <kwong@solananetworks.com>
+ * \author Philippe Antoine
  */
 
-#ifndef _DETECT_CIPSERVICE_H
-#define	_DETECT_CIPSERVICE_H
+#ifndef __OUTPUT_JSON_ENIP_H__
+#define __OUTPUT_JSON_ENIP_H__
 
-void DetectCipServiceRegister(void);
+void JsonEnipLogRegister(void);
 
-#endif	/* _DETECT_CIPSERVICE_H */
+#endif /* __OUTPUT_JSON_ENIP_H__ */
