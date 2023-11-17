@@ -17,8 +17,6 @@ noinst_HEADERS = \
 	app-layer-detect-proto.h \
 	app-layer-dnp3.h \
 	app-layer-dnp3-objects.h \
-	app-layer-enip-common.h \
-	app-layer-enip.h \
 	app-layer-events.h \
 	app-layer-expectation.h \
 	app-layer-frames.h \
@@ -132,7 +130,6 @@ noinst_HEADERS = \
 	detect-engine-build.h \
 	detect-engine-content-inspection.h \
 	detect-engine-dcepayload.h \
-	detect-engine-enip.h \
 	detect-engine-event.h \
 	detect-engine-file.h \
 	detect-engine-frame.h \
@@ -153,6 +150,7 @@ noinst_HEADERS = \
 	detect-engine-tag.h \
 	detect-engine-threshold.h \
 	detect-engine-uint.h \
+	detect-enip-command.h \
 	detect-fast-pattern.h \
 	detect-file-data.h \
 	detect-file-hash-common.h \
@@ -403,6 +401,7 @@ noinst_HEADERS = \
 	output-json-dns.h \
 	output-json-drop.h \
 	output-json-email-common.h \
+	output-json-enip.h \
 	output-json-file.h \
 	output-json-flow.h \
 	output-json-frame.h \
@@ -633,8 +632,6 @@ libsuricata_c_a_SOURCES = \
 	app-layer-detect-proto.c \
 	app-layer-dnp3.c \
 	app-layer-dnp3-objects.c \
-	app-layer-enip.c \
-	app-layer-enip-common.c \
 	app-layer-events.c \
 	app-layer-expectation.c \
 	app-layer-ftp.c \
@@ -747,7 +744,6 @@ libsuricata_c_a_SOURCES = \
 	detect-engine.c \
 	detect-engine-content-inspection.c \
 	detect-engine-dcepayload.c \
-	detect-engine-enip.c \
 	detect-engine-event.c \
 	detect-engine-file.c \
 	detect-engine-frame.c \
@@ -767,6 +763,7 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-tag.c \
 	detect-engine-threshold.c \
 	detect-engine-uint.c \
+	detect-enip-command.c \
 	detect-fast-pattern.c \
 	detect-file-data.c \
 	detect-file-hash-common.c \
@@ -1015,6 +1012,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-dns.c \
 	output-json-drop.c \
 	output-json-email-common.c \
+	output-json-enip.c \
 	output-json-file.c \
 	output-json-flow.c \
 	output-json-frame.c \
