@@ -1457,6 +1457,208 @@
             },
             "additionalProperties": false
         },
+        "enip": {
+            "type": "object",
+            "properties": {
+                "request": {
+                    "type": "object",
+                    "properties": {
+                        "command": {
+                            "type": "string"
+                        },
+                        "status": {
+                            "type": "string"
+                        },
+                        "register_session": {
+                            "type": "object",
+                            "properties": {
+                                "protocol_version": {
+                                    "type": "integer"
+                                },
+                                "options": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "cip": {
+                            "type": "object",
+                            "properties": {
+                                "service": {
+                                    "type": "string"
+                                },
+                                "path": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "segment_type": {
+                                                "type": "string"
+                                            },
+                                            "value": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "class_name": {
+                                    "type": "string"
+                                },
+                                "multiple" : {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "service": {
+                                                "type": "string"
+                                            },
+                                            "path": {
+                                                "type": "array",
+                                                "minItems": 1,
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "segment_type": {
+                                                            "type": "string"
+                                                        },
+                                                        "value": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "class_name": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "response": {
+                    "type": "object",
+                    "properties": {
+                        "command": {
+                            "type": "string"
+                        },
+                        "status": {
+                            "type": "string"
+                        },
+                        "register_session": {
+                            "type": "object",
+                            "properties": {
+                                "protocol_version": {
+                                    "type": "integer"
+                                },
+                                "options": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "list_services": {
+                            "type": "object",
+                            "properties": {
+                                "protocol_version": {
+                                    "type": "integer"
+                                },
+                                "capabilities": {
+                                    "type": "integer"
+                                },
+                                "service_name": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "identity": {
+                            "type": "object",
+                            "properties": {
+                                "protocol_version": {
+                                    "type": "integer"
+                                },
+                                "revision": {
+                                    "type": "string"
+                                },
+                                "vendor_id": {
+                                    "type": "string"
+                                },
+                                "device_type": {
+                                    "type": "string"
+                                },
+                                "product_code": {
+                                    "type": "integer"
+                                },
+                                "status": {
+                                    "type": "integer"
+                                },
+                                "serial": {
+                                    "type": "integer"
+                                },
+                                "product_name": {
+                                    "type": "string"
+                                },
+                                "state": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "cip": {
+                            "type": "object",
+                            "properties": {
+                                "service": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                },
+                                "status_extended": {
+                                    "type": "string"
+                                },
+                                "status_extended_meaning": {
+                                    "type": "string"
+                                },
+                                "multiple" : {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "service": {
+                                                "type": "string"
+                                            },
+                                            "status": {
+                                                "type": "string"
+                                            },
+                                            "status_extended": {
+                                                "type": "string"
+                                            },
+                                            "status_extended_meaning": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
         "ether": {
             "type": "object",
             "properties": {

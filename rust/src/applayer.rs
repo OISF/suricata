@@ -491,6 +491,7 @@ extern {
     pub fn AppLayerParserSetStreamDepth(ipproto: u8, alproto: AppProto, stream_depth: u32);
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
     pub fn AppLayerParserRegisterLogger(pproto: u8, alproto: AppProto);
+    pub fn AppLayerParserRegisterParserAcceptableDataDirection(ipproto: u8, alproto: AppProto, dir: u8);
 }
 
 #[repr(C)]

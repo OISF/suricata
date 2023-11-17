@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,20 +15,15 @@
  * 02110-1301, USA.
  */
 
-/** \file
+/**
+ * \file
  *
- *  \author Kevin Wong <kwong@solananetworks.com>
+ * \author Philippe Antoine
  */
 
-#ifndef SURICATA_DETECT_ENGINE_ENIP_H
-#define SURICATA_DETECT_ENGINE_ENIP_H
+#ifndef SURICATA_DETECT_ENIP_CIP_EXTENDEDSTATUS_H
+#define SURICATA_DETECT_ENIP_CIP_EXTENDEDSTATUS_H
 
-uint8_t DetectEngineInspectCIP(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
-        const struct DetectEngineAppInspectionEngine_ *, const Signature *, Flow *, uint8_t, void *,
-        void *, uint64_t);
+void DetectEnipCipExtendedstatusRegister(void);
 
-uint8_t DetectEngineInspectENIP(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
-        const struct DetectEngineAppInspectionEngine_ *, const Signature *, Flow *, uint8_t, void *,
-        void *, uint64_t);
-
-#endif /* SURICATA_DETECT_ENGINE_ENIP_H */
+#endif /* SURICATA_DETECT_ENIP_CIP_EXTENDEDSTATUS_H */
