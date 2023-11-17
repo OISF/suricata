@@ -80,6 +80,7 @@
 #include "output-json-rfb.h"
 #include "output-json-mqtt.h"
 #include "output-json-pgsql.h"
+#include "output-json-enip.h"
 #include "output-json-template.h"
 #include "output-json-rdp.h"
 #include "output-json-http2.h"
@@ -1117,6 +1118,8 @@ void OutputRegisterLoggers(void)
     JsonMQTTLogRegister();
     /* Pgsql JSON logger. */
     JsonPgsqlLogRegister();
+    /* Enip JSON logger. */
+    JsonEnipLogRegister();
     /* Template JSON logger. */
     JsonTemplateLogRegister();
     /* RDP JSON logger. */
@@ -1143,7 +1146,7 @@ static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_IRC, NULL },    // no parser, no logging
     { ALPROTO_DNS, AlertJsonDns },
     { ALPROTO_MODBUS, (EveJsonSimpleTxLogFunc)rs_modbus_to_json },
-    { ALPROTO_ENIP, NULL }, // no logging
+    { ALPROTO_ENIP, rs_enip_logger_log },
     { ALPROTO_DNP3, AlertJsonDnp3 },
     { ALPROTO_NFS, NULL }, // special: uses state
     { ALPROTO_NTP, NULL }, // no logging
