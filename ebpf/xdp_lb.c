@@ -328,7 +328,7 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
     /* need to save this off before we advance the packet beyond it, else the bpf verifier 
      * will catch this and refuse to load our program
      */
-    int pkt_id = ntohs(iph->id);
+    int pkt_id = iph->id;
 
     struct gre_hdr *grhdr = (struct gre_hdr *)(data + nh_off);
 
@@ -407,7 +407,7 @@ static int INLINE filter_gre(struct xdp_md *ctx, void *data, __u64 nh_off, void 
          * network stack (we've already advanced past the GRE/ERSPAN headers to the encapsulated ethernet 
          * frame, so chances are the linux stack, and suricata, know what to do with it)
          */
-        DPRINTF("GRE unknown inner proto %d id %d\n", ntohs(proto), pkt_id);
+        DPRINTF("GRE unknown inner proto %d id %d\n", ntohs(proto), ntohs(pkt_id));
         return XDP_PASS;
     }
 }
