@@ -1,0 +1,8 @@
+# ENIP app layer event rules
+#
+# SID's fall in the 2223000+ range. See https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
+#
+# These sigs fire at most once per connection.
+#
+alert enip any any -> any any (msg:"SURICATA ENIP too many transactions"; app-layer-event:enip.too_many_transactions; classtype:protocol-command-decode; sid:2234000; rev:1;)
+alert enip any any -> any any (msg:"SURICATA ENIP invalid PDU"; app-layer-event:enip.invalid_pdu; classtype:protocol-command-decode; sid:2234001; rev:1;)
