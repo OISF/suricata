@@ -284,6 +284,7 @@ outputs:
             #md5: [body, subject]
 
         #- dnp3
+        #- enip
         - ftp
         - rdp
         - nfs

@@ -1083,6 +1083,10 @@ void OutputRegisterLoggers(void)
     JsonMQTTLogRegister();
     /* Pgsql JSON logger. */
     JsonPgsqlLogRegister();
+    /* Enip JSON logger. */
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonEnipLog", "eve-log.enip",
+            OutputJsonLogInitSub, ALPROTO_ENIP, JsonGenericDirFlowLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
     /* Template JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTemplateLog", "eve-log.template",
             OutputJsonLogInitSub, ALPROTO_TEMPLATE, JsonGenericDirPacketLogger, JsonLogThreadInit,
@@ -1119,7 +1123,7 @@ static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_IRC, NULL },    // no parser, no logging
     { ALPROTO_DNS, AlertJsonDns },
     { ALPROTO_MODBUS, (EveJsonSimpleTxLogFunc)rs_modbus_to_json },
-    { ALPROTO_ENIP, NULL }, // no logging
+    { ALPROTO_ENIP, rs_enip_logger_log },
     { ALPROTO_DNP3, AlertJsonDnp3 },
     { ALPROTO_NFS, NULL }, // special: uses state
     { ALPROTO_NTP, NULL }, // no logging

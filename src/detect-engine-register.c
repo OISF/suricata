@@ -281,6 +281,24 @@
 #include "detect-ssl-state.h"
 #include "detect-modbus.h"
 #include "detect-cipservice.h"
+#include "detect-enip-command.h"
+#include "detect-enip-status.h"
+#include "detect-enip-product-name.h"
+#include "detect-enip-protocol-version.h"
+#include "detect-enip-cip-attribute.h"
+#include "detect-enip-cip-instance.h"
+#include "detect-enip-cip-class.h"
+#include "detect-enip-cip-extendedstatus.h"
+#include "detect-enip-cip-status.h"
+#include "detect-enip-service-name.h"
+#include "detect-enip-capabilities.h"
+#include "detect-enip-revision.h"
+#include "detect-enip-identity-status.h"
+#include "detect-enip-state.h"
+#include "detect-enip-serial.h"
+#include "detect-enip-product-code.h"
+#include "detect-enip-device-type.h"
+#include "detect-enip-vendor-id.h"
 #include "detect-dnp3.h"
 #include "detect-ike-exch-type.h"
 #include "detect-ike-spi.h"
@@ -531,6 +549,23 @@ void SigTableSetup(void)
     DetectModbusRegister();
     DetectCipServiceRegister();
     DetectEnipCommandRegister();
+    DetectEnipStatusRegister();
+    DetectEnipProductNameRegister();
+    DetectEnipProtocolVersionRegister();
+    DetectEnipCipAttributeRegister();
+    DetectEnipCipInstanceRegister();
+    DetectEnipCipClassRegister();
+    DetectEnipCipExtendedstatusRegister();
+    DetectEnipCipStatusRegister();
+    DetectEnipServiceNameRegister();
+    DetectEnipCapabilitiesRegister();
+    DetectEnipRevisionRegister();
+    DetectEnipIdentityStatusRegister();
+    DetectEnipStateRegister();
+    DetectEnipSerialRegister();
+    DetectEnipProductCodeRegister();
+    DetectEnipDeviceTypeRegister();
+    DetectEnipVendorIdRegister();
     DetectDNP3Register();
 
     DetectIkeExchTypeRegister();
