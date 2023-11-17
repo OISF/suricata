@@ -77,7 +77,7 @@ represents the version of the signature. If a signature is modified,
 the number of rev will be incremented by the signature writers. The
 format of rev is::
 
-  rev:123;
+  rev:1;
 
 
 Example of rev in a signature:
