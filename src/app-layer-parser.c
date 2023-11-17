@@ -47,7 +47,6 @@
 #include "app-layer-ssl.h"
 #include "app-layer-ssh.h"
 #include "app-layer-modbus.h"
-#include "app-layer-enip.h"
 #include "app-layer-dnp3.h"
 #include "app-layer-nfs-tcp.h"
 #include "app-layer-nfs-udp.h"
@@ -1734,8 +1733,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     SCRegisterDnsTcpParser();
     rs_bittorrent_dht_udp_register_parser();
     RegisterModbusParsers();
-    RegisterENIPUDPParsers();
-    RegisterENIPTCPParsers();
+    SCEnipRegisterParsers();
     RegisterDNP3Parsers();
     RegisterNFSTCPParsers();
     RegisterNFSUDPParsers();

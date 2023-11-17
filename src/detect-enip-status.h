@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2022 Open Information Security Foundation
+/* Copyright (C) 2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,12 +18,12 @@
 /**
  * \file
  *
- * \author Kevin Wong <kwong@solananetworks.com>
+ * \author Philippe Antoine
  */
 
-#ifndef SURICATA_DETECT_CIPSERVICE_H
-#define SURICATA_DETECT_CIPSERVICE_H
+#ifndef SURICATA_DETECT_ENIP_STATUS_H
+#define SURICATA_DETECT_ENIP_STATUS_H
 
-void DetectCipServiceRegister(void);
+void DetectEnipStatusRegister(void);
 
-#endif /* SURICATA_DETECT_CIPSERVICE_H */
+#endif /* SURICATA_DETECT_ENIP_STATUS_H */
