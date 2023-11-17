@@ -56,3 +56,8 @@ pub fn derive_app_layer_frame_type(input: TokenStream) -> TokenStream {
 pub fn derive_enum_string_u8(input: TokenStream) -> TokenStream {
     stringenum::derive_enum_string::<u8>(input, "u8")
 }
+
+#[proc_macro_derive(EnumStringU16, attributes(name))]
+pub fn derive_enum_string_u16(input: TokenStream) -> TokenStream {
+    stringenum::derive_enum_string::<u16>(input, "u16")
+}

@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2022 Open Information Security Foundation
+/* Copyright (C) 2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,15 +15,20 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Kevin Wong <kwong@solananetworks.com>
- */
+use suricata_derive::EnumStringU16;
 
-#ifndef _DETECT_CIPSERVICE_H
-#define	_DETECT_CIPSERVICE_H
-
-void DetectCipServiceRegister(void);
-
-#endif	/* _DETECT_CIPSERVICE_H */
+#[derive(Clone, Debug, Default, EnumStringU16)]
+#[repr(u16)]
+pub enum EnipCommand {
+    #[default]
+    Nop = 0,
+    ListServices = 4,
+    ListIdentity = 0x63,
+    ListInterfaces = 0x64,
+    RegisterSession = 0x65,
+    UnregisterSession = 0x66,
+    SendRRData = 0x6F,
+    SendUnitData = 0x70,
+    IndicateStatus = 0x72,
+    Cancel = 0x73,
+}
