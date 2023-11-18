@@ -2296,8 +2296,9 @@ void InjectPackets(ThreadVars **detect_tvs, DetectEngineThreadCtx **new_det_ctx,
      *  - Or, it should process a pseudo packet and flush its output logs.
      * to speed the process. */
     for (int i = 0; i < no_of_detect_tvs; i++) {
-        if (flush_logs || SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) != 1) {
-            if (detect_tvs[i]->inq != NULL) {
+        if (flush_logs ||
+                (new_det_ctx[i] && SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) != 1)) {
+            if (detect_tvs[i] && detect_tvs[i]->inq != NULL) {
                 Packet *p = PacketGetFromAlloc();
                 if (p != NULL) {
                     p->flags |= PKT_PSEUDO_STREAM_END;
@@ -2425,7 +2426,7 @@ retry:
         if (SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) == 1) {
             SCLogDebug("new_det_ctx - %p used by detect engine", new_det_ctx[i]);
             threads_done++;
-        } else {
+        } else if (detect_tvs[i]) {
             TmThreadsCaptureBreakLoop(detect_tvs[i]);
         }
     }

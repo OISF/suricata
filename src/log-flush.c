@@ -41,6 +41,7 @@
 static void WorkerFlushLogs(void)
 {
     SCEnter();
+
     /* count detect threads in use */
     uint32_t no_of_detect_tvs = TmThreadCountThreadsByTmmFlags(TM_FLAG_DETECT_TM);
     /* can be zero in unix socket mode */
@@ -57,8 +58,8 @@ static void WorkerFlushLogs(void)
     /* start the process of swapping detect threads ctxs */
 
     uint32_t i = 0;
-    /* get reference to tv's and setup new_det_ctx array */
     SCMutexLock(&tv_root_lock);
+    /* get reference to tv's and setup det_ctx array */
     for (ThreadVars *tv = tv_root[TVT_PPT]; tv != NULL; tv = tv->next) {
         if ((tv->tmm_flags & TM_FLAG_DETECT_TM) == 0) {
             continue;
@@ -75,8 +76,10 @@ static void WorkerFlushLogs(void)
             }
 
             det_ctx[i] = FlowWorkerGetDetectCtxPtr(SC_ATOMIC_GET(s->slot_data));
-            SC_ATOMIC_SET(det_ctx[i]->flush_ack, 0);
-            detect_tvs[i] = tv;
+            if (det_ctx[i]) {
+                SC_ATOMIC_SET(det_ctx[i]->flush_ack, 0);
+                detect_tvs[i] = tv;
+            }
 
             i++;
             break;
@@ -97,10 +100,10 @@ retry:
             break;
         }
         usleep(1000);
-        if (SC_ATOMIC_GET(det_ctx[i]->flush_ack) == 1) {
+        if (det_ctx[i] && SC_ATOMIC_GET(det_ctx[i]->flush_ack) == 1) {
             SCLogDebug("thread slot %d has ack'd flush request", i);
             threads_done++;
-        } else {
+        } else if (detect_tvs[i]) {
             SCLogDebug("thread slot %d not yet ack'd flush request", i);
             TmThreadsCaptureBreakLoop(detect_tvs[i]);
         }
@@ -136,20 +139,36 @@ error:
     return;
 }
 
-static void *LogFlusherWakeupThread(void *arg)
+static int OutputFlushInterval(void)
 {
-    ThreadVars *tv_local = (ThreadVars *)arg;
-
     intmax_t output_flush_interval = 0;
-    if (ConfGetInt("logging.flush-interval", &output_flush_interval) == 0) {
+    if (ConfGetInt("heartbeat.output-flush-interval", &output_flush_interval) == 0) {
         output_flush_interval = 0;
     }
     if (output_flush_interval < 0 || output_flush_interval > 60) {
         SCLogConfig("flush_interval must be 0 or less than 60; using 0");
         output_flush_interval = 0;
     }
-    SCLogNotice("Using flush-interval of %d seconds", (int)output_flush_interval);
 
+    return (int)output_flush_interval;
+}
+
+static void *LogFlusherWakeupThread(void *arg)
+{
+    int output_flush_interval = OutputFlushInterval();
+    /* This was checked by the logic creating this thread */
+    BUG_ON(output_flush_interval == 0);
+
+    SCLogConfig("Using output-flush-interval of %d seconds", output_flush_interval);
+    /*
+     * Calculate the number of sleep intervals based on the output flush interval. This is necessary
+     * because this thread pauses a fixed amount of time to react to shutdown situations more
+     * quickly.
+     */
+    const int log_flush_sleep_time = 500; /* milliseconds */
+    const int flush_wait_count = (1000 * output_flush_interval) / log_flush_sleep_time;
+
+    ThreadVars *tv_local = (ThreadVars *)arg;
     SCSetThreadName(tv_local->name);
 
     if (tv_local->thread_setup_flags != 0)
@@ -161,6 +180,7 @@ static void *LogFlusherWakeupThread(void *arg)
 
     TmThreadsSetFlag(tv_local, THV_INIT_DONE | THV_RUNNING);
 
+    int wait_count = 0;
     while (1) {
         if (TmThreadsCheckFlag(tv_local, THV_PAUSE)) {
             TmThreadsSetFlag(tv_local, THV_PAUSED);
@@ -168,8 +188,12 @@ static void *LogFlusherWakeupThread(void *arg)
             TmThreadsUnsetFlag(tv_local, THV_PAUSED);
         }
 
-        WorkerFlushLogs();
-        sleep(output_flush_interval);
+        usleep(log_flush_sleep_time * 1000);
+
+        if (++wait_count == flush_wait_count) {
+            WorkerFlushLogs();
+            wait_count = 0;
+        }
 
         if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
             break;
@@ -184,25 +208,14 @@ static void *LogFlusherWakeupThread(void *arg)
 
 void LogFlushThreads(void)
 {
-    intmax_t output_flush_interval = 0;
-    if (ConfGetInt("logging.flush-interval", &output_flush_interval) == 0) {
-        output_flush_interval = 0;
-    }
-    if (output_flush_interval < 0 || output_flush_interval > 60) {
-        output_flush_interval = 0;
+    if (0 == OutputFlushInterval()) {
+        SCLogConfig("log flusher thread not used with heartbeat.output-flush-interval of 0");
+        return;
     }
 
-    if (output_flush_interval) {
-        ThreadVars *tv_log_flush =
-                TmThreadCreateMgmtThread(thread_name_log_flusher, LogFlusherWakeupThread, 1);
-        if (tv_log_flush == NULL) {
-            FatalError("Unable to create log flush thread");
-        }
-        if (TmThreadSpawn(tv_log_flush) != 0) {
-            FatalError("Unable to spawn log flush thread");
-        }
-    } else {
-        SCLogConfig("log flusher thread not started since flush-interval is %d",
-                (int)output_flush_interval);
+    ThreadVars *tv_log_flush =
+            TmThreadCreateMgmtThread(thread_name_log_flusher, LogFlusherWakeupThread, 1);
+    if (!tv_log_flush || (TmThreadSpawn(tv_log_flush) != 0)) {
+        FatalError("Unable to create and start log flush thread");
     }
 }
