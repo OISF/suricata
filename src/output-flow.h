@@ -26,20 +26,19 @@
 #ifndef __OUTPUT_FLOW_H__
 #define __OUTPUT_FLOW_H__
 
+#include "decode.h"
 #include "tm-modules.h"
+#include "flow.h"
 
-/** flow logger function pointer type */
-typedef int (*FlowLogger)(ThreadVars *, void *thread_data, Flow *f);
+/** Flow logging callback function pointer type. */
+typedef int (*SCFlowLoggerFunc)(ThreadVars *, void *thread_data, Flow *f);
 
-int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc,
-    OutputCtx *, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
+int OutputRegisterFlowLogger(const char *name, SCFlowLoggerFunc LogFunc, void *,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
 
 void OutputFlowShutdown(void);
-
 TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f);
-TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data);
+TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void **data);
 TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data);
-void OutputFlowLogExitPrintStats(ThreadVars *tv, void *thread_data);
 
 #endif /* __OUTPUT_FLOW_H__ */

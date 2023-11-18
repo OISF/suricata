@@ -983,7 +983,7 @@ static TmEcode FlowRecyclerThreadInit(ThreadVars *t, const void *initdata, void 
     FlowRecyclerThreadData *ftd = SCCalloc(1, sizeof(FlowRecyclerThreadData));
     if (ftd == NULL)
         return TM_ECODE_FAILED;
-    if (OutputFlowLogThreadInit(t, NULL, &ftd->output_thread_data) != TM_ECODE_OK) {
+    if (OutputFlowLogThreadInit(t, &ftd->output_thread_data) != TM_ECODE_OK) {
         SCLogError("initializing flow log API for thread failed");
         SCFree(ftd);
         return TM_ECODE_FAILED;

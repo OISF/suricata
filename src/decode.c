@@ -695,7 +695,7 @@ DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *tv)
 
     dtv->app_tctx = AppLayerGetCtxThread(tv);
 
-    if (OutputFlowLogThreadInit(tv, NULL, &dtv->output_flow_thread_data) != TM_ECODE_OK) {
+    if (OutputFlowLogThreadInit(tv, &dtv->output_flow_thread_data) != TM_ECODE_OK) {
         SCLogError("initializing flow log API for thread failed");
         DecodeThreadVarsFree(tv, dtv);
         return NULL;
