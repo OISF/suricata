@@ -545,7 +545,7 @@ fn http2_tx_get_resp_line(tx: &mut HTTP2Transaction) {
         } else {
             &empty
         };
-    resp_line.extend(b" HTTP/2 ");
+    resp_line.extend(b"HTTP/2 ");
     resp_line.extend(status);
     resp_line.extend(b"\r\n");
     tx.resp_line.extend(resp_line)
