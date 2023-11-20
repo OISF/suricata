@@ -1061,16 +1061,18 @@ void AppLayerSetupCounters(void)
     for (uint8_t p = 0; p < IPPROTOS_MAX; p++) {
         const uint8_t ipproto = ipprotos[p];
         const uint8_t ipproto_map = FlowGetProtoMapping(ipproto);
-        const uint8_t other_ipproto = ipproto == IPPROTO_TCP ? IPPROTO_UDP : IPPROTO_TCP;
         const char *ipproto_suffix = (ipproto == IPPROTO_TCP) ? "_tcp" : "_udp";
+        uint8_t ipprotos[256 / 8];
 
         for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
             if (alprotos[alproto] == 1) {
                 const char *tx_str = "app_layer.tx.";
                 const char *alproto_str = AppLayerGetProtoName(alproto);
 
-                if (AppLayerParserProtoIsRegistered(ipproto, alproto) &&
-                        AppLayerParserProtoIsRegistered(other_ipproto, alproto)) {
+                memset(ipprotos, 0, sizeof(ipprotos));
+                AppLayerProtoDetectSupportedIpprotos(alproto, ipprotos);
+                if ((ipprotos[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8))) &&
+                        (ipprotos[IPPROTO_UDP / 8] & (1 << (IPPROTO_UDP % 8)))) {
                     snprintf(applayer_counter_names[ipproto_map][alproto].name,
                             sizeof(applayer_counter_names[ipproto_map][alproto].name),
                             "%s%s%s", str, alproto_str, ipproto_suffix);
