@@ -48,6 +48,8 @@ RUN sudo apt -y install \
 # IDS and IPS 
 RUN sudo apt-get -y install libnetfilter-queue-dev libnetfilter-queue1 \
     libnfnetlink-dev libnfnetlink0
+#Code Style
+RUN sudo apt-get install clang-format -y
 
 # Clean up
  RUN sudo apt-get autoremove -y \
