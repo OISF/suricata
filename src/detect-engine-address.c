@@ -1377,7 +1377,12 @@ static int DetectAddressMapAdd(DetectEngineCtx *de_ctx, const char *string,
     map->address = address;
     map->contains_negation = contains_negation;
 
-    BUG_ON(HashListTableAdd(de_ctx->address_table, (void *)map, 0) != 0);
+    if (HashListTableAdd(de_ctx->address_table, (void *)map, 0) != 0) {
+        if (map->string)
+            SCFree(map->string);
+        SCFree(map);
+        BUG_ON(true);
+    }
     return 0;
 }
 
