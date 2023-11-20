@@ -1244,7 +1244,6 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         BUG_ON(r == -1);
     }
     DetectPortHashFree(de_ctx);
-    de_ctx->dport_hash_table = NULL;
 
     SCLogDebug("rules analyzed");
 
