@@ -1264,6 +1264,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     DetectPort *iter;
     for (iter = list ; iter != NULL; iter = iter->next) {
         BUG_ON (iter->sh == NULL);
+        DEBUG_VALIDATE_BUG_ON(own + ref != cnt);
         cnt++;
 
         SigGroupHead *lookup_sgh = SigGroupHeadHashLookup(de_ctx, iter->sh);
@@ -1579,7 +1580,7 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, Detect
     uint32_t groups = 0;
     DetectPort *list;
 
-    /* insert the addresses into the tmplist, where it will
+    /* insert the ports into the tmplist, where it will
      * be sorted descending on 'cnt' and on whether a group
      * is whitelisted. */
 
