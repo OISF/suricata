@@ -43,6 +43,13 @@
 #include "util-var-name.h"
 #include "util-conf.h"
 
+/* Magic numbers to make the rules of a certain order fall in the same group */
+#define DETECT_PGSCORE_RULE_PORT_WHITELISTED 111 /* Rule port group contains a whitelisted port */
+#define DETECT_PGSCORE_RULE_MPM_FAST_PATTERN 99  /* Rule contains an MPM fast pattern */
+#define DETECT_PGSCORE_RULE_MPM_NEGATED      77  /* Rule contains a negated MPM */
+#define DETECT_PGSCORE_RULE_NO_MPM           55  /* Rule does not contain MPM */
+#define DETECT_PGSCORE_RULE_SYN_ONLY         33  /* Rule needs SYN check */
+
 void SigCleanSignatures(DetectEngineCtx *de_ctx)
 {
     if (de_ctx == NULL)
@@ -1129,22 +1136,22 @@ static int RuleSetWhitelist(Signature *s)
         /* pure pcre, bytetest, etc rules */
         if (RuleInspectsPayloadHasNoMpm(s)) {
             SCLogDebug("Rule %u MPM has 1 byte fast_pattern. Whitelisting SGH's.", s->id);
-            wl = 99;
+            wl = DETECT_PGSCORE_RULE_MPM_FAST_PATTERN;
 
         } else if (RuleMpmIsNegated(s)) {
             SCLogDebug("Rule %u MPM is negated. Whitelisting SGH's.", s->id);
-            wl = 77;
+            wl = DETECT_PGSCORE_RULE_MPM_NEGATED;
 
             /* one byte pattern in packet/stream payloads */
         } else if (s->init_data->mpm_sm != NULL &&
                    s->init_data->mpm_sm_list == DETECT_SM_LIST_PMATCH &&
                    RuleGetMpmPatternSize(s) == 1) {
             SCLogDebug("Rule %u No MPM. Payload inspecting. Whitelisting SGH's.", s->id);
-            wl = 55;
+            wl = DETECT_PGSCORE_RULE_NO_MPM;
 
         } else if (DetectFlagsSignatureNeedsSynOnlyPackets(s)) {
             SCLogDebug("Rule %u Needs SYN, so inspected often. Whitelisting SGH's.", s->id);
-            wl = 33;
+            wl = DETECT_PGSCORE_RULE_SYN_ONLY;
         }
     }
 
@@ -1201,7 +1208,8 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
 
         int wl = s->init_data->score;
         while (p) {
-            int pwl = PortIsWhitelisted(de_ctx, p, ipproto) ? 111 : 0;
+            int pwl = PortIsWhitelisted(de_ctx, p, ipproto) ? DETECT_PGSCORE_RULE_PORT_WHITELISTED
+                                                            : 0;
             pwl = MAX(wl,pwl);
 
             DetectPort *lookup = DetectPortHashLookup(de_ctx, p);
