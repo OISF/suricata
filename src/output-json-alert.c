@@ -33,6 +33,7 @@
 #include "stream.h"
 #include "threadvars.h"
 #include "util-debug.h"
+#include "stream-tcp.h"
 
 #include "util-logopenfile.h"
 #include "util-misc.h"
@@ -111,17 +112,6 @@ typedef struct JsonAlertLogThread_ {
     AlertJsonOutputCtx* json_output_ctx;
     OutputJsonThreadCtx *ctx;
 } JsonAlertLogThread;
-
-/* Callback function to pack payload contents from a stream into a buffer
- * so we can report them in JSON output. */
-static int AlertJsonDumpStreamSegmentCallback(
-        const Packet *p, TcpSegment *seg, void *data, const uint8_t *buf, uint32_t buflen)
-{
-    MemBuffer *payload = (MemBuffer *)data;
-    MemBufferWriteRaw(payload, buf, buflen);
-
-    return 1;
-}
 
 static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
                                   JsonBuilder *js, JsonAddrInfo *addr)
@@ -502,9 +492,61 @@ void EveAddVerdict(JsonBuilder *jb, const Packet *p)
     jb_close(jb);
 }
 
+struct AlertJsonStreamDataCallbackData {
+    MemBuffer *payload;
+    uint64_t last_re;
+};
+
+static int AlertJsonStreamDataCallback(
+        void *cb_data, const uint8_t *input, const uint32_t input_len, const uint64_t input_offset)
+{
+    struct AlertJsonStreamDataCallbackData *cbd = cb_data;
+    if (input_offset > cbd->last_re) {
+        MemBufferWriteString(
+                cbd->payload, "[%" PRIu64 " bytes missing]", input_offset - cbd->last_re);
+    }
+
+    MemBufferWriteRaw(cbd->payload, input, input_len);
+    cbd->last_re = input_offset + input_len;
+    return 0;
+}
+
+/** \internal
+ *  \brief try to log stream data into payload/payload_printable
+ *  \retval true stream data logged
+ *  \retval false stream data not logged
+ */
+static bool AlertJsonStreamData(const AlertJsonOutputCtx *json_output_ctx, JsonAlertLogThread *aft,
+        Flow *f, const Packet *p, JsonBuilder *jb)
+{
+    TcpSession *ssn = f->protoctx;
+    TcpStream *stream = (PKT_IS_TOSERVER(p)) ? &ssn->client : &ssn->server;
+
+    MemBufferReset(aft->payload_buffer);
+    struct AlertJsonStreamDataCallbackData cbd = { .payload = aft->payload_buffer,
+        .last_re = STREAM_BASE_OFFSET(stream) };
+    uint64_t unused = 0;
+    StreamReassembleLog(ssn, stream, AlertJsonStreamDataCallback, &cbd, STREAM_BASE_OFFSET(stream),
+            &unused, false);
+    if (cbd.payload->offset) {
+        if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
+            jb_set_base64(jb, "payload", cbd.payload->buffer, cbd.payload->offset);
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
+            uint8_t printable_buf[cbd.payload->offset + 1];
+            uint32_t offset = 0;
+            PrintStringsToBuffer(printable_buf, &offset, sizeof(printable_buf), cbd.payload->buffer,
+                    cbd.payload->offset);
+            jb_set_string(jb, "payload_printable", (char *)printable_buf);
+        }
+        return true;
+    }
+    return false;
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
-    MemBuffer *payload = aft->payload_buffer;
     AlertJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
 
     if (p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG))
@@ -610,36 +652,14 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             int stream = (p->proto == IPPROTO_TCP) ?
                          (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH) ?
                          1 : 0) : 0;
+            DEBUG_VALIDATE_BUG_ON(
+                    p->flow == NULL); // should be impossible, but scan-build got confused
 
             /* Is this a stream?  If so, pack part of it into the payload field */
-            if (stream) {
-                uint8_t flag;
-
-                MemBufferReset(payload);
-
-                if (p->flowflags & FLOW_PKT_TOSERVER) {
-                    flag = STREAM_DUMP_TOCLIENT;
-                } else {
-                    flag = STREAM_DUMP_TOSERVER;
-                }
-
-                StreamSegmentForEach((const Packet *)p, flag,
-                                    AlertJsonDumpStreamSegmentCallback,
-                                    (void *)payload);
-                if (payload->offset) {
-                    if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
-                        jb_set_base64(jb, "payload", payload->buffer, payload->offset);
-                    }
-
-                    if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
-                        uint8_t printable_buf[payload->offset + 1];
-                        uint32_t offset = 0;
-                        PrintStringsToBuffer(printable_buf, &offset,
-                                sizeof(printable_buf),
-                                payload->buffer, payload->offset);
-                        jb_set_string(jb, "payload_printable", (char *)printable_buf);
-                    }
-                } else if (p->payload_len) {
+            if (stream && p->flow != NULL) {
+                const bool stream_data_logged =
+                        AlertJsonStreamData(json_output_ctx, aft, p->flow, p, jb);
+                if (!stream_data_logged && p->payload_len) {
                     /* Fallback on packet payload */
                     AlertAddPayload(json_output_ctx, jb, p);
                 }
