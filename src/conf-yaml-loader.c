@@ -185,7 +185,7 @@ static int ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq, int
 
     while (!done) {
         if (!yaml_parser_parse(parser, &event)) {
-            SCLogError("Failed to parse configuration file at line %" PRIuMAX ": %s\n",
+            SCLogError("Failed to parse configuration file at line %" PRIuMAX ": %s",
                     (uintmax_t)parser->problem_mark.line, parser->problem);
             retval = -1;
             break;
