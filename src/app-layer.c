@@ -1049,6 +1049,23 @@ void AppLayerRegisterGlobalCounters(void)
     StatsRegisterGlobalCounter("app_layer.expectations", ExpectationGetCounter);
 }
 
+static bool AppLayerParserBothTcpUdp(AppProto alproto)
+{
+    switch (alproto) {
+        case ALPROTO_DCERPC:
+            // fallthrough
+        case ALPROTO_DNS:
+            // fallthrough
+        case ALPROTO_ENIP:
+            // fallthrough
+        case ALPROTO_KRB5:
+            // fallthrough
+        case ALPROTO_NFS:
+            return true;
+    }
+    return false;
+}
+
 #define IPPROTOS_MAX 2
 void AppLayerSetupCounters(void)
 {
@@ -1062,7 +1079,6 @@ void AppLayerSetupCounters(void)
     for (uint8_t p = 0; p < IPPROTOS_MAX; p++) {
         const uint8_t ipproto = ipprotos[p];
         const uint8_t ipproto_map = FlowGetProtoMapping(ipproto);
-        const uint8_t other_ipproto = ipproto == IPPROTO_TCP ? IPPROTO_UDP : IPPROTO_TCP;
         const char *ipproto_suffix = (ipproto == IPPROTO_TCP) ? "_tcp" : "_udp";
 
         for (AppProto alproto = 0; alproto < ALPROTO_MAX; alproto++) {
@@ -1070,8 +1086,7 @@ void AppLayerSetupCounters(void)
                 const char *tx_str = "app_layer.tx.";
                 const char *alproto_str = AppLayerGetProtoName(alproto);
 
-                if (AppLayerParserProtoIsRegistered(ipproto, alproto) &&
-                        AppLayerParserProtoIsRegistered(other_ipproto, alproto)) {
+                if (AppLayerParserBothTcpUdp(alproto)) {
                     snprintf(applayer_counter_names[ipproto_map][alproto].name,
                             sizeof(applayer_counter_names[ipproto_map][alproto].name),
                             "%s%s%s", str, alproto_str, ipproto_suffix);
