@@ -49,6 +49,13 @@
  *  classtype. */
 #define DETECT_DEFAULT_PRIO 3
 
+/* Magic numbers to make the rules of a certain order fall in the same group */
+#define DETECT_PGSCORE_RULE_PORT_WHITELISTED 111 /* Rule port group contains a whitelisted port */
+#define DETECT_PGSCORE_RULE_MPM_FAST_PATTERN 99  /* Rule contains an MPM fast pattern */
+#define DETECT_PGSCORE_RULE_MPM_NEGATED      77  /* Rule contains a negated MPM */
+#define DETECT_PGSCORE_RULE_NO_MPM           55  /* Rule does not contain MPM */
+#define DETECT_PGSCORE_RULE_SYN_ONLY         33  /* Rule needs SYN check */
+
 /* forward declarations for the structures from detect-engine-sigorder.h */
 struct SCSigOrderFunc_;
 struct SCSigSignatureWrapper_;
