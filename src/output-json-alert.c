@@ -404,7 +404,8 @@ static void AlertAddFiles(const Packet *p, JsonBuilder *jb, const uint64_t tx_id
     }
 }
 
-static void AlertAddFrame(const Packet *p, JsonBuilder *jb, const int64_t frame_id)
+static void AlertAddFrame(
+        const Packet *p, const int64_t frame_id, JsonBuilder *jb, MemBuffer *buffer)
 {
     if (p->flow == NULL || (p->proto == IPPROTO_TCP && p->flow->protoctx == NULL))
         return;
@@ -426,7 +427,7 @@ static void AlertAddFrame(const Packet *p, JsonBuilder *jb, const int64_t frame_
         }
         Frame *frame = FrameGetById(frames, frame_id);
         if (frame != NULL) {
-            FrameJsonLogOneFrame(IPPROTO_TCP, frame, p->flow, stream, p, jb);
+            FrameJsonLogOneFrame(IPPROTO_TCP, frame, p->flow, stream, p, jb, buffer);
         }
     } else if (p->proto == IPPROTO_UDP) {
         if (PKT_IS_TOSERVER(p)) {
@@ -436,7 +437,7 @@ static void AlertAddFrame(const Packet *p, JsonBuilder *jb, const int64_t frame_
         }
         Frame *frame = FrameGetById(frames, frame_id);
         if (frame != NULL) {
-            FrameJsonLogOneFrame(IPPROTO_UDP, frame, p->flow, NULL, p, jb);
+            FrameJsonLogOneFrame(IPPROTO_UDP, frame, p->flow, NULL, p, jb, buffer);
         }
     }
 }
@@ -672,7 +673,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         }
 
         if (pa->flags & PACKET_ALERT_FLAG_FRAME) {
-            AlertAddFrame(p, jb, pa->frame_id);
+            AlertAddFrame(p, pa->frame_id, jb, aft->payload_buffer);
         }
 
         /* base64-encoded full packet */
