@@ -379,29 +379,29 @@ typedef struct SCHSCompileData_ {
 
 static SCHSCompileData *SCHSAllocCompileData(unsigned int pattern_cnt)
 {
-    SCHSCompileData *cd = SCCalloc(1, pattern_cnt * sizeof(SCHSCompileData));
+    SCHSCompileData *cd = SCCalloc(pattern_cnt, sizeof(SCHSCompileData));
     if (cd == NULL) {
         goto error;
     }
 
     cd->pattern_cnt = pattern_cnt;
 
-    cd->ids = SCCalloc(1, pattern_cnt * sizeof(unsigned int));
+    cd->ids = SCCalloc(pattern_cnt, sizeof(unsigned int));
     if (cd->ids == NULL) {
         goto error;
     }
 
-    cd->flags = SCCalloc(1, pattern_cnt * sizeof(unsigned int));
+    cd->flags = SCCalloc(pattern_cnt, sizeof(unsigned int));
     if (cd->flags == NULL) {
         goto error;
     }
 
-    cd->expressions = SCCalloc(1, pattern_cnt * sizeof(char *));
+    cd->expressions = SCCalloc(pattern_cnt, sizeof(char *));
     if (cd->expressions == NULL) {
         goto error;
     }
 
-    cd->ext = SCCalloc(1, pattern_cnt * sizeof(hs_expr_ext_t *));
+    cd->ext = SCCalloc(pattern_cnt, sizeof(hs_expr_ext_t *));
     if (cd->ext == NULL) {
         goto error;
     }
@@ -559,7 +559,7 @@ static PatternDatabase *PatternDatabaseAlloc(uint32_t pattern_cnt)
     pd->hs_db = NULL;
 
     /* alloc the pattern array */
-    pd->parray = (SCHSPattern **)SCCalloc(1, pd->pattern_cnt * sizeof(SCHSPattern *));
+    pd->parray = (SCHSPattern **)SCCalloc(pd->pattern_cnt, sizeof(SCHSPattern *));
     if (pd->parray == NULL) {
         SCFree(pd);
         return NULL;
@@ -806,7 +806,7 @@ void SCHSInitCtx(MpmCtx *mpm_ctx)
 
     /* initialize the hash we use to speed up pattern insertions */
     SCHSCtx *ctx = (SCHSCtx *)mpm_ctx->ctx;
-    ctx->init_hash = SCCalloc(1, sizeof(SCHSPattern *) * INIT_HASH_SIZE);
+    ctx->init_hash = SCCalloc(INIT_HASH_SIZE, sizeof(SCHSPattern *));
     if (ctx->init_hash == NULL) {
         exit(EXIT_FAILURE);
     }

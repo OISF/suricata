@@ -493,7 +493,7 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 
     BUG_ON(sgh->init->match_array != NULL);
 
-    sgh->init->match_array = SCCalloc(1, sgh->init->sig_cnt * sizeof(Signature *));
+    sgh->init->match_array = SCCalloc(sgh->init->sig_cnt, sizeof(Signature *));
     if (sgh->init->match_array == NULL)
         return -1;
 
@@ -672,12 +672,12 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
     }
 
     if (non_pf > 0) {
-        sgh->non_pf_other_store_array = SCCalloc(1, non_pf * sizeof(SignatureNonPrefilterStore));
+        sgh->non_pf_other_store_array = SCCalloc(non_pf, sizeof(SignatureNonPrefilterStore));
         BUG_ON(sgh->non_pf_other_store_array == NULL);
     }
 
     if (non_pf_syn > 0) {
-        sgh->non_pf_syn_store_array = SCCalloc(1, non_pf_syn * sizeof(SignatureNonPrefilterStore));
+        sgh->non_pf_syn_store_array = SCCalloc(non_pf_syn, sizeof(SignatureNonPrefilterStore));
         BUG_ON(sgh->non_pf_syn_store_array == NULL);
     }
 

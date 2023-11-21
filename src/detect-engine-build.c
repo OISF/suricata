@@ -1383,7 +1383,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
     de_ctx->sig_array_len = DetectEngineGetMaxSigId(de_ctx);
     de_ctx->sig_array_size = (de_ctx->sig_array_len * sizeof(Signature *));
-    de_ctx->sig_array = (Signature **)SCCalloc(1, de_ctx->sig_array_size);
+    de_ctx->sig_array = (Signature **)SCCalloc(de_ctx->sig_array_len, sizeof(Signature *));
     if (de_ctx->sig_array == NULL)
         goto error;
 

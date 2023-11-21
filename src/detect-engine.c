@@ -3046,7 +3046,7 @@ static int DetectEngineThreadCtxInitKeywords(DetectEngineCtx *de_ctx, DetectEngi
 {
     if (de_ctx->keyword_id > 0) {
         // coverity[suspicious_sizeof : FALSE]
-        det_ctx->keyword_ctxs_array = SCCalloc(1, de_ctx->keyword_id * sizeof(void *));
+        det_ctx->keyword_ctxs_array = SCCalloc(de_ctx->keyword_id, sizeof(void *));
         if (det_ctx->keyword_ctxs_array == NULL) {
             SCLogError("setting up thread local detect ctx");
             return TM_ECODE_FAILED;
@@ -3226,7 +3226,7 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     /* DeState */
     if (de_ctx->sig_array_len > 0) {
         det_ctx->match_array_len = de_ctx->sig_array_len;
-        det_ctx->match_array = SCCalloc(1, det_ctx->match_array_len * sizeof(Signature *));
+        det_ctx->match_array = SCCalloc(det_ctx->match_array_len, sizeof(Signature *));
         if (det_ctx->match_array == NULL) {
             return TM_ECODE_FAILED;
         }

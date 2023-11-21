@@ -476,7 +476,7 @@ static inline void SCACCreateFailureTable(MpmCtx *mpm_ctx)
 
     /* allot space for the failure table.  A failure entry in the table for
      * every state(SCACCtx->state_count) */
-    ctx->failure_table = SCCalloc(1, ctx->state_count * sizeof(int32_t));
+    ctx->failure_table = SCCalloc(ctx->state_count, sizeof(int32_t));
     if (ctx->failure_table == NULL) {
         FatalError("Error allocating memory");
     }
@@ -736,7 +736,7 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
     }
 
     /* alloc the pattern array */
-    ctx->parray = (MpmPattern **)SCCalloc(1, mpm_ctx->pattern_cnt * sizeof(MpmPattern *));
+    ctx->parray = (MpmPattern **)SCCalloc(mpm_ctx->pattern_cnt, sizeof(MpmPattern *));
     if (ctx->parray == NULL)
         goto error;
     mpm_ctx->memory_cnt++;
@@ -762,7 +762,7 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
     ctx->single_state_size = sizeof(int32_t) * 256;
 
     /* handle no case patterns */
-    ctx->pid_pat_list = SCCalloc(1, (mpm_ctx->max_pat_id + 1) * sizeof(SCACPatternList));
+    ctx->pid_pat_list = SCCalloc((mpm_ctx->max_pat_id + 1), sizeof(SCACPatternList));
     if (ctx->pid_pat_list == NULL) {
         FatalError("Error allocating memory");
     }
@@ -831,7 +831,7 @@ void SCACInitCtx(MpmCtx *mpm_ctx)
     mpm_ctx->memory_size += sizeof(SCACCtx);
 
     /* initialize the hash we use to speed up pattern insertions */
-    mpm_ctx->init_hash = SCCalloc(1, sizeof(MpmPattern *) * MPM_INIT_HASH_SIZE);
+    mpm_ctx->init_hash = SCCalloc(MPM_INIT_HASH_SIZE, sizeof(MpmPattern *));
     if (mpm_ctx->init_hash == NULL) {
         exit(EXIT_FAILURE);
     }

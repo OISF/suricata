@@ -588,7 +588,7 @@ void SCProfilingRuleThreadSetup(SCProfileDetectCtx *ctx, DetectEngineThreadCtx *
     if (ctx == NULL|| ctx->size == 0)
         return;
 
-    SCProfileData *a = SCCalloc(1, sizeof(SCProfileData) * ctx->size);
+    SCProfileData *a = SCCalloc(ctx->size, sizeof(SCProfileData));
     if (a != NULL) {
         det_ctx->rule_perf_data = a;
         det_ctx->rule_perf_data_size = ctx->size;
@@ -665,7 +665,7 @@ SCProfilingRuleInitCounters(DetectEngineCtx *de_ctx)
     }
 
     if (count > 0) {
-        de_ctx->profile_ctx->data = SCCalloc(1, sizeof(SCProfileData) * de_ctx->profile_ctx->size);
+        de_ctx->profile_ctx->data = SCCalloc(de_ctx->profile_ctx->size, sizeof(SCProfileData));
         BUG_ON(de_ctx->profile_ctx->data == NULL);
 
         sig = de_ctx->sig_list;
