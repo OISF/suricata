@@ -57,7 +57,7 @@ BloomFilterCounting *BloomFilterCountingInit(uint32_t size, uint8_t type, uint8_
     bf->Hash = Hash;
 
     /* setup the bitarray */
-    bf->array = SCCalloc(1, bf->array_size * bf->type);
+    bf->array = SCCalloc(bf->array_size, bf->type);
     if (bf->array == NULL)
         goto error;
 

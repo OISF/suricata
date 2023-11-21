@@ -149,14 +149,14 @@ int StorageFinalize(void)
     if (count == 0)
         return 0;
 
-    storage_map = SCCalloc(1, sizeof(StorageMapping *) * STORAGE_MAX);
+    storage_map = SCCalloc(STORAGE_MAX, sizeof(StorageMapping *));
     if (unlikely(storage_map == NULL)) {
         return -1;
     }
 
     for (i = 0; i < STORAGE_MAX; i++) {
         if (storage_max_id[i] > 0) {
-            storage_map[i] = SCCalloc(1, sizeof(StorageMapping) * storage_max_id[i]);
+            storage_map[i] = SCCalloc(storage_max_id[i], sizeof(StorageMapping));
             if (storage_map[i] == NULL)
                 return -1;
         }
@@ -262,7 +262,7 @@ void *StorageAllocById(Storage **storage, StorageEnum type, int id)
     Storage *store = *storage;
     if (store == NULL) {
         // coverity[suspicious_sizeof : FALSE]
-        store = SCCalloc(1, sizeof(void *) * storage_max_id[type]);
+        store = SCCalloc(storage_max_id[type], sizeof(void *));
         if (unlikely(store == NULL))
             return NULL;
     }
