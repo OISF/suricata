@@ -1268,7 +1268,7 @@ static int AppLayerProtoDetectPMMapSignatures(AppLayerProtoDetectPMCtx *ctx)
     int mpm_ret;
     SigIntId id = 0;
 
-    ctx->map = SCCalloc(1, ctx->max_sig_id * sizeof(AppLayerProtoDetectPMSignature *));
+    ctx->map = SCCalloc(ctx->max_sig_id, sizeof(AppLayerProtoDetectPMSignature *));
     if (ctx->map == NULL)
         goto error;
 

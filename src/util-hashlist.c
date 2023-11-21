@@ -65,7 +65,7 @@ HashListTable *HashListTableInit(uint32_t size,
         ht->Compare = HashListTableDefaultCompare;
 
     /* setup the bitarray */
-    ht->array = SCCalloc(1, ht->array_size * sizeof(HashListTableBucket *));
+    ht->array = SCCalloc(ht->array_size, sizeof(HashListTableBucket *));
     if (ht->array == NULL) {
         sc_errno = SC_ENOMEM;
         goto error;

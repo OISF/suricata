@@ -283,7 +283,7 @@ void SCProfilingKeywordThreadSetup(SCProfileKeywordDetectCtx *ctx, DetectEngineT
     if (ctx == NULL)
         return;
 
-    SCProfileKeywordData *a = SCCalloc(1, sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
+    SCProfileKeywordData *a = SCCalloc(DETECT_TBLSIZE, sizeof(SCProfileKeywordData));
     if (a != NULL) {
         det_ctx->keyword_perf_data = a;
     }
@@ -294,7 +294,7 @@ void SCProfilingKeywordThreadSetup(SCProfileKeywordDetectCtx *ctx, DetectEngineT
 
     int i;
     for (i = 0; i < nlists; i++) {
-        SCProfileKeywordData *b = SCCalloc(1, sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
+        SCProfileKeywordData *b = SCCalloc(DETECT_TBLSIZE, sizeof(SCProfileKeywordData));
         if (b != NULL) {
             det_ctx->keyword_perf_data_per_list[i] = b;
         }
@@ -369,7 +369,7 @@ SCProfilingKeywordInitCounters(DetectEngineCtx *de_ctx)
     de_ctx->profile_keyword_ctx = SCProfilingKeywordInitCtx();
     BUG_ON(de_ctx->profile_keyword_ctx == NULL);
 
-    de_ctx->profile_keyword_ctx->data = SCCalloc(1, sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
+    de_ctx->profile_keyword_ctx->data = SCCalloc(DETECT_TBLSIZE, sizeof(SCProfileKeywordData));
     BUG_ON(de_ctx->profile_keyword_ctx->data == NULL);
 
     de_ctx->profile_keyword_ctx_per_list = SCCalloc(nlists, sizeof(SCProfileKeywordDetectCtx *));
@@ -380,7 +380,7 @@ SCProfilingKeywordInitCounters(DetectEngineCtx *de_ctx)
         de_ctx->profile_keyword_ctx_per_list[i] = SCProfilingKeywordInitCtx();
         BUG_ON(de_ctx->profile_keyword_ctx_per_list[i] == NULL);
         de_ctx->profile_keyword_ctx_per_list[i]->data =
-                SCCalloc(1, sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
+                SCCalloc(DETECT_TBLSIZE, sizeof(SCProfileKeywordData));
         BUG_ON(de_ctx->profile_keyword_ctx_per_list[i]->data == NULL);
     }
 

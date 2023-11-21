@@ -59,7 +59,7 @@ HashTable* HashTableInit(uint32_t size, uint32_t (*Hash)(struct HashTable_ *, vo
         ht->Compare = HashTableDefaultCompare;
 
     /* setup the bitarray */
-    ht->array = SCCalloc(1, ht->array_size * sizeof(HashTableBucket *));
+    ht->array = SCCalloc(ht->array_size, sizeof(HashTableBucket *));
     if (ht->array == NULL)
         goto error;
 
