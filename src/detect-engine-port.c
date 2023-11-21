@@ -594,9 +594,6 @@ int DetectPortCmp(DetectPort *a, DetectPort *b)
     } else if (a_port1 > b_port2) {
         //SCLogDebug("PORT_GT");
         return PORT_GT;
-    } else {
-        /* should be unreachable */
-        BUG_ON(1);
     }
 
     return PORT_ER;
