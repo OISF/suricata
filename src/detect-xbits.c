@@ -340,44 +340,39 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
     int result = DetectXbitParse(de_ctx, rawstr, &cd);
     if (result < 0) {
         return -1;
-    /* noalert doesn't use a cd/sm struct. It flags the sig. We're done. */
-    } else if (result == 0 && cd == NULL) {
+    } else if (cd == NULL) {
+        /* noalert doesn't use a cd/sm struct. It flags the sig. We're done. */
         s->flags |= SIG_FLAG_NOALERT;
         return 0;
     }
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-
     switch (cd->cmd) {
         /* case DETECT_XBITS_CMD_NOALERT can't happen here */
-
         case DETECT_XBITS_CMD_ISNOTSET:
         case DETECT_XBITS_CMD_ISSET:
             /* checks, so packet list */
             if (SigMatchAppendSMToList(
                         de_ctx, s, DETECT_XBITS, (SigMatchCtx *)cd, DETECT_SM_LIST_MATCH) == NULL) {
-                goto error;
+                SCFree(cd);
+                return -1;
             }
             break;
 
-        case DETECT_XBITS_CMD_SET:
-        case DETECT_XBITS_CMD_UNSET:
-        case DETECT_XBITS_CMD_TOGGLE:
+        // all other cases
+        // DETECT_XBITS_CMD_SET, DETECT_XBITS_CMD_UNSET, DETECT_XBITS_CMD_TOGGLE:
+        default:
             /* modifiers, only run when entire sig has matched */
             if (SigMatchAppendSMToList(de_ctx, s, DETECT_XBITS, (SigMatchCtx *)cd,
                         DETECT_SM_LIST_POSTMATCH) == NULL) {
-                goto error;
+                SCFree(cd);
+                return -1;
             }
             break;
     }
 
     return 0;
-
-error:
-    if (cd != NULL)
-        SCFree(cd);
-    return -1;
 }
 
 static void DetectXbitFree (DetectEngineCtx *de_ctx, void *ptr)
