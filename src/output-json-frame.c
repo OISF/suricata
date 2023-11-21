@@ -224,7 +224,7 @@ static void FrameAddPayloadUDP(JsonBuilder *js, const Packet *p, const Frame *fr
  *  \note ipproto argument is passed to assist static code analyzers
  */
 void FrameJsonLogOneFrame(const uint8_t ipproto, const Frame *frame, const Flow *f,
-        const TcpStream *stream, const Packet *p, JsonBuilder *jb)
+        const TcpStream *stream, const Packet *p, JsonBuilder *jb, MemBuffer *buffer)
 {
     DEBUG_VALIDATE_BUG_ON(ipproto != p->proto);
     DEBUG_VALIDATE_BUG_ON(ipproto != f->proto);
@@ -287,7 +287,7 @@ static int FrameJsonUdp(
             return TM_ECODE_OK;
 
         jb_set_string(jb, "app_proto", AppProtoToString(f->alproto));
-        FrameJsonLogOneFrame(IPPROTO_UDP, frame, p->flow, NULL, p, jb);
+        FrameJsonLogOneFrame(IPPROTO_UDP, frame, p->flow, NULL, p, jb, aft->payload_buffer);
         OutputJsonBuilderBuffer(jb, aft->ctx);
         jb_free(jb);
         frame->flags |= FRAME_FLAG_LOGGED;
@@ -359,7 +359,7 @@ static int FrameJson(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p)
                 return TM_ECODE_OK;
 
             jb_set_string(jb, "app_proto", AppProtoToString(p->flow->alproto));
-            FrameJsonLogOneFrame(IPPROTO_TCP, frame, p->flow, stream, p, jb);
+            FrameJsonLogOneFrame(IPPROTO_TCP, frame, p->flow, stream, p, jb, aft->payload_buffer);
             OutputJsonBuilderBuffer(jb, aft->ctx);
             jb_free(jb);
             frame->flags |= FRAME_FLAG_LOGGED;
