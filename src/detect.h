@@ -193,7 +193,7 @@ typedef struct DetectMatchAddressIPv6_ {
 
 /* a is ... than b */
 enum {
-    PORT_ER = -1, /* error e.g. compare ipv4 and ipv6 */
+    PORT_ER = -1, /* error */
     PORT_LT,      /* smaller              [aaa] [bbb] */
     PORT_LE,      /* smaller with overlap [aa[bab]bb] */
     PORT_EQ,      /* exactly equal        [abababab]  */
