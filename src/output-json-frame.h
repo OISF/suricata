@@ -31,7 +31,7 @@
 #include "stream-tcp-private.h"
 
 void FrameJsonLogOneFrame(const uint8_t ipproto, const Frame *frame, const Flow *f,
-        const TcpStream *stream, const Packet *p, JsonBuilder *jb);
+        const TcpStream *stream, const Packet *p, JsonBuilder *jb, MemBuffer *);
 void JsonFrameLogRegister(void);
 
 #endif /* SURICATA_OUTPUT_JSON_FRAME_H */
