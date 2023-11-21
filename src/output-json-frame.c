@@ -125,61 +125,88 @@ static void PayloadAsHex(const uint8_t *data, uint32_t data_len, char *str, size
 }
 #endif
 
-static void FrameAddPayloadTCP(JsonBuilder *js, const TcpStream *stream, const Frame *frame)
+struct FrameJsonStreamDataCallbackData {
+    MemBuffer *payload;
+    const Frame *frame;
+    uint64_t last_re; /**< used to detect gaps */
+};
+
+static int FrameJsonStreamDataCallback(
+        void *cb_data, const uint8_t *input, const uint32_t input_len, const uint64_t input_offset)
 {
-    uint32_t sb_data_len = 0;
-    const uint8_t *data = NULL;
-    uint64_t data_offset = 0;
+    struct FrameJsonStreamDataCallbackData *cbd = cb_data;
+    const Frame *frame = cbd->frame;
 
-    // TODO consider ACK'd
-
-    if (frame->offset < STREAM_BASE_OFFSET(stream)) {
-        if (StreamingBufferGetData(&stream->sb, &data, &sb_data_len, &data_offset) == 0) {
-            SCLogDebug("NO DATA1");
-            return;
-        }
-    } else {
-        data_offset = (uint64_t)frame->offset;
-        SCLogDebug("data_offset %" PRIu64, data_offset);
-        if (StreamingBufferGetDataAtOffset(
-                    &stream->sb, &data, &sb_data_len, (uint64_t)data_offset) == 0) {
-            SCLogDebug("NO DATA1");
-            return;
-        }
-    }
-    if (data == NULL || sb_data_len == 0) {
-        SCLogDebug("NO DATA2");
-        return;
-    }
+    uint32_t write_size = input_len;
+    int done = 0;
 
     if (frame->len >= 0) {
-        sb_data_len = MIN(frame->len, (int32_t)sb_data_len);
-    }
-    SCLogDebug("frame data_offset %" PRIu64 ", data_len %u frame len %" PRIi64, data_offset,
-            sb_data_len, frame->len);
-
-    bool complete = false;
-    if (frame->len > 0) {
+        const uint64_t data_re = input_offset + input_len;
         const uint64_t frame_re = frame->offset + (uint64_t)frame->len;
-        const uint64_t data_re = data_offset + sb_data_len;
-        complete = frame_re <= data_re;
+
+        /* data entirely after frame, we're done */
+        if (input_offset >= frame_re) {
+            return 1;
+        }
+        /* make sure to only log data belonging to the frame */
+        if (data_re >= frame_re) {
+            const uint64_t to_write = frame_re - input_offset;
+            if (to_write < (uint64_t)write_size) {
+                write_size = (uint32_t)to_write;
+            }
+            done = 1;
+        }
     }
-    jb_set_bool(js, "complete", complete);
+    if (input_offset > cbd->last_re) {
+        MemBufferWriteString(
+                cbd->payload, "[%" PRIu64 " bytes missing]", input_offset - cbd->last_re);
+    }
 
-    uint32_t data_len = MIN(sb_data_len, 256);
-    jb_set_base64(js, "payload", data, data_len);
+    if (write_size > 0) {
+        MemBufferWriteRaw(cbd->payload, input, write_size);
+    }
+    cbd->last_re = input_offset + write_size;
+    return done;
+}
 
-    uint8_t printable_buf[data_len + 1];
-    uint32_t o = 0;
-    PrintStringsToBuffer(printable_buf, &o, data_len + 1, data, data_len);
-    printable_buf[data_len] = '\0';
-    jb_set_string(js, "payload_printable", (char *)printable_buf);
-#if 0
-    char pretty_buf[data_len * 4 + 1];
-    pretty_buf[0] = '\0';
-    PayloadAsHex(data, data_len, pretty_buf, data_len * 4 + 1);
-    jb_set_string(js, "payload_hex", pretty_buf);
-#endif
+/** \internal
+ *  \brief try to log frame's stream data into payload/payload_printable
+ */
+static void FrameAddPayloadTCP(Flow *f, const TcpSession *ssn, const TcpStream *stream,
+        const Frame *frame, JsonBuilder *jb, MemBuffer *buffer)
+{
+    MemBufferReset(buffer);
+
+    /* consider all data, ACK'd and non-ACK'd */
+    const uint64_t stream_data_re = StreamDataRightEdge(stream, true);
+    bool complete = false;
+    if (frame->len >= 0 && frame->offset + (uint64_t)frame->len <= stream_data_re) {
+        complete = true;
+    }
+
+    struct FrameJsonStreamDataCallbackData cbd = {
+        .payload = buffer, .frame = frame, .last_re = frame->offset
+    };
+    uint64_t unused = 0;
+    StreamReassembleLog(
+            ssn, stream, FrameJsonStreamDataCallback, &cbd, frame->offset, &unused, false);
+    /* if we have all data, but didn't log until the end of the frame, we have a gap at the
+     * end of the frame
+     * TODO what about not logging due to buffer full? */
+    if (complete && frame->len >= 0 && cbd.last_re < frame->offset + (uint64_t)frame->len) {
+        MemBufferWriteString(cbd.payload, "[%" PRIu64 " bytes missing]",
+                (frame->offset + (uint64_t)frame->len) - cbd.last_re);
+    }
+
+    if (cbd.payload->offset) {
+        jb_set_base64(jb, "payload", cbd.payload->buffer, cbd.payload->offset);
+        uint8_t printable_buf[cbd.payload->offset + 1];
+        uint32_t offset = 0;
+        PrintStringsToBuffer(printable_buf, &offset, sizeof(printable_buf), cbd.payload->buffer,
+                cbd.payload->offset);
+        jb_set_string(jb, "payload_printable", (char *)printable_buf);
+        jb_set_bool(jb, "complete", complete);
+    }
 }
 
 static void FrameAddPayloadUDP(JsonBuilder *js, const Packet *p, const Frame *frame)
@@ -223,7 +250,7 @@ static void FrameAddPayloadUDP(JsonBuilder *js, const Packet *p, const Frame *fr
 /** \brief log a single frame
  *  \note ipproto argument is passed to assist static code analyzers
  */
-void FrameJsonLogOneFrame(const uint8_t ipproto, const Frame *frame, const Flow *f,
+void FrameJsonLogOneFrame(const uint8_t ipproto, const Frame *frame, Flow *f,
         const TcpStream *stream, const Packet *p, JsonBuilder *jb, MemBuffer *buffer)
 {
     DEBUG_VALIDATE_BUG_ON(ipproto != p->proto);
@@ -249,7 +276,7 @@ void FrameJsonLogOneFrame(const uint8_t ipproto, const Frame *frame, const Flow 
         } else {
             jb_set_uint(jb, "length", frame->len);
         }
-        FrameAddPayloadTCP(jb, stream, frame);
+        FrameAddPayloadTCP(f, f->protoctx, stream, frame, jb, buffer);
     } else {
         jb_set_uint(jb, "length", frame->len);
         FrameAddPayloadUDP(jb, p, frame);
