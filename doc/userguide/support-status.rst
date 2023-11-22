@@ -77,7 +77,7 @@ support is done by the core team. If someone wants to help maintain
 and support such a feature, we recommend talking to the core team
 before spending a lot of time on it.
 
-Please see :doc:`devguide/codebase/contributing/contribution-process`
+Please see :doc:`devguide/contributing/contribution-process`
 for more information if you wish to contribute.
 
 Distributions
