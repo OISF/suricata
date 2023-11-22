@@ -9,16 +9,17 @@ Commits
 #. Commits need to be logically separated. Don't fix unrelated things in one commit.
 #. Don't add unnecessary commits, if commit 2 fixes commit 1 merge them together (squash)
 #. Commits need to have proper messages, explaining anything that is non-trivial
-#. Commits should not at the same time change, rename and/or move code. Use separate commits
-   for each of this, e.g, a commit to rename files, then a commit to change the code.
+#. Commits should not, at the same time, change, rename and/or move code. Use separate commits
+     for each of this, e.g, a commit to rename files, then a commit to change the code.
 #. Documentation updates should be in their own commit (not mixed with code commits)
-#. Commit messages need to be properly formatted:
-    * Meaningful and short (50 chars max) subject line followed by an empty line
-    * Naming convention: prefix message with sub-system ("rule parsing: fixing foobar"). If
-      you're not sure what to use, look at past commits to the file(s) in your PR.
-    * Description, wrapped at ~72 characters
+#. Commit messages need to be properly formatted (check the example further
+     below in this section):
+      * Meaningful and short (50 chars max) subject line followed by an empty line
+      * Naming convention: prefix message with sub-system (**"rule parsing: fixing foobar"**). If
+        you're not sure what to use, look at past commits to the file(s) in your PR.
+      * Description, wrapped at ~72 characters
 #. Commits should be individually compilable, starting with the oldest commit. Make sure that
-   each commit can be built if it and the preceding commits in the PR are used.
+     each commit can be built if it and the preceding commits in the PR are used.
 #. Commits should be authored with the format: "FirstName LastName <name@example.com>"
 
 Information that needs to be part of a commit (if applicable):
