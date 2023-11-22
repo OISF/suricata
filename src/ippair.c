@@ -338,14 +338,11 @@ void IPPairShutdown(void)
  */
 void IPPairCleanup(void)
 {
-    IPPair *h;
-    uint32_t u;
-
     if (ippair_hash != NULL) {
-        for (u = 0; u < ippair_config.hash_size; u++) {
-            h = ippair_hash[u].head;
+        for (uint32_t u = 0; u < ippair_config.hash_size; u++) {
             IPPairHashRow *hb = &ippair_hash[u];
             HRLOCK_LOCK(hb);
+            IPPair *h = ippair_hash[u].head;
             while (h) {
                 if ((SC_ATOMIC_GET(h->use_cnt) > 0)) {
                     /* iprep is attached to ippair only clear local storage */
