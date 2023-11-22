@@ -66,36 +66,33 @@ const char *RunModeAFPGetDefaultMode(void)
     return "workers";
 }
 
-static int AFPRunModeIsIPS(void)
+static bool AFPRunModeIsIPS(void)
 {
     int nlive = LiveGetDeviceCount();
-    int ldev;
-    ConfNode *if_root;
-    ConfNode *if_default = NULL;
-    ConfNode *af_packet_node;
-    int has_ips = 0;
-    int has_ids = 0;
+    bool has_ips = false;
+    bool has_ids = false;
 
-    /* Find initial node */
-    af_packet_node = ConfGetNode("af-packet");
+    ConfNode *af_packet_node = ConfGetNode("af-packet");
     if (af_packet_node == NULL) {
-        return 0;
+        SCLogConfig("no 'af-packet' section in the yaml, default to IDS");
+        return false;
     }
 
-    if_default = ConfNodeLookupKeyValue(af_packet_node, "interface", "default");
+    ConfNode *if_default = ConfNodeLookupKeyValue(af_packet_node, "interface", "default");
 
-    for (ldev = 0; ldev < nlive; ldev++) {
+    for (int ldev = 0; ldev < nlive; ldev++) {
         const char *live_dev = LiveGetDeviceName(ldev);
         if (live_dev == NULL) {
-            SCLogError("Problem with config file");
-            return -1;
+            SCLogConfig("invalid livedev at index %d, default to IDS", ldev);
+            return false;
         }
-        if_root = ConfFindDeviceConfig(af_packet_node, live_dev);
-
+        ConfNode *if_root = ConfFindDeviceConfig(af_packet_node, live_dev);
         if (if_root == NULL) {
             if (if_default == NULL) {
-                SCLogError("Problem with config file");
-                return -1;
+                SCLogConfig(
+                        "no 'af-packet' section for '%s' or 'default' in the yaml, default to IDS",
+                        live_dev);
+                return false;
             }
             if_root = if_default;
         }
@@ -105,19 +102,19 @@ static int AFPRunModeIsIPS(void)
         if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1 &&
                 ConfGetChildValue(if_root, "copy-iface", &copyifacestr) == 1) {
             if (strcmp(copymodestr, "ips") == 0) {
-                has_ips = 1;
+                has_ips = true;
             } else {
-                has_ids = 1;
+                has_ids = true;
             }
         } else {
-            has_ids = 1;
+            has_ids = true;
         }
     }
 
     if (has_ids && has_ips) {
         SCLogError("using both IPS and TAP/IDS mode is not allowed due to undefined behavior. See "
                    "ticket #5588.");
-        return -1;
+        return false;
     }
 
     return has_ips;
@@ -125,8 +122,8 @@ static int AFPRunModeIsIPS(void)
 
 static int AFPRunModeEnableIPS(void)
 {
-    int r = AFPRunModeIsIPS();
-    if (r == 1) {
+    bool r = AFPRunModeIsIPS();
+    if (r) {
         SCLogInfo("Setting IPS mode");
         EngineModeSetIPS();
     }
