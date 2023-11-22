@@ -7,7 +7,8 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
              $(SURICATA_UPDATE_DIR) \
 	     lua \
 	     acsite.m4 \
-	     scripts/generate-images.sh
+	     scripts/generate-images.sh \
+	     scripts/install-deps.sh
 SUBDIRS = $(HTP_DIR) rust src qa rules doc contrib etc python ebpf \
           $(SURICATA_UPDATE_DIR)
 DIST_SUBDIRS = examples/plugins/c-json-filetype $(SUBDIRS)
