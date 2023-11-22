@@ -453,6 +453,18 @@ static void *StatsMgmtThread(void *arg)
     return NULL;
 }
 
+void StatsSyncCounters(ThreadVars *tv)
+{
+    StatsUpdateCounterArray(&tv->perf_private_ctx, &tv->perf_public_ctx);
+}
+
+void StatsSyncCountersIfSignalled(ThreadVars *tv)
+{
+    if (tv->perf_public_ctx.perf_flag == 1) {
+        StatsUpdateCounterArray(&tv->perf_private_ctx, &tv->perf_public_ctx);
+    }
+}
+
 /**
  * \brief Wake up thread.  This thread wakes up every TTS(time to sleep) seconds
  *        and sets the flag for every ThreadVars' StatsPublicThreadContext

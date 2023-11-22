@@ -135,16 +135,8 @@ uint64_t StatsGetLocalCounterValue(struct ThreadVars_ *, uint16_t);
 int StatsSetupPrivate(struct ThreadVars_ *);
 void StatsThreadCleanup(struct ThreadVars_ *);
 
-#define StatsSyncCounters(tv) \
-    StatsUpdateCounterArray(&(tv)->perf_private_ctx, &(tv)->perf_public_ctx);  \
-
-#define StatsSyncCountersIfSignalled(tv)                                       \
-    do {                                                                        \
-        if ((tv)->perf_public_ctx.perf_flag == 1) {                             \
-            StatsUpdateCounterArray(&(tv)->perf_private_ctx,                   \
-                                     &(tv)->perf_public_ctx);                   \
-        }                                                                       \
-    } while (0)
+void StatsSyncCounters(struct ThreadVars_ *tv);
+void StatsSyncCountersIfSignalled(struct ThreadVars_ *tv);
 
 #ifdef BUILD_UNIX_SOCKET
 TmEcode StatsOutputCounterSocket(json_t *cmd,
