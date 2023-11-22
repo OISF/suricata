@@ -4,12 +4,12 @@ GitHub Pull Request Workflow
 Draft Pull Requests
 ~~~~~~~~~~~~~~~~~~~
 
-A Pull Request (PR) should be marked as `draft` if it is not intended to be merged as is,
+A Pull Request (PR) should be marked as *draft* if it is not intended to be merged as is,
 but is waiting for some sort of feedback.
 The author of the PR should be explicit with what kind of feedback is expected
 (CI/QA run, discussion on the code, etc...)
 
-GitHub filter is ``is:pr is:open draft:true sort:updated-asc``
+The GitHub filter is ``is:pr is:open draft:true sort:updated-asc``.
 
 A draft may be closed if it has not been updated in two months.
 
@@ -22,25 +22,44 @@ When a Pull Request is intended to be merged as is, the workflow is the followin
     (and eventually request changes if CI finds anything)
  3. get merged and closed
 
-A newly created PR should match the filter
-``is:pr is:open draft:false review:none sort:updated-asc no:assignee``
-The whole team is responsible to assign a PR to someone precise within 2 weeks.
+ Once submitted, we aim at providing a first PR review within two weeks and a
+ month.
 
-When someone gets assigned a PR, the PR should get a review status within 2 weeks:
-either changes requested, approved, or assigned to someone else if more
-expertise is needed.
+ If either code, documentation wording or commit messages need re-work, the
+ reviewer will set the PR state to *changes requested*.
 
-GitHub filter for changes-requested PRs is ``is:pr is:open draft:false sort:
-updated-asc review:changes-requested``
+.. note:: It is expected that the author will create a new PR with a new version
+   of the patch as described in :ref:`Pull Requests Criteria <pull-requests-criteria>`.
+   A PR may be closed as stale if it has not been updated in two months after
+   changes were requested.
 
-Such a PR may be closed if it has not been updated in two months.
-It is expected that the author creates a new PR with a new version of the patch
-as described in :ref:`Pull Requests Criteria <pull-requests-criteria>`.
-
-Command to get approved PRs is ``gh pr list --json number,reviewDecision --search
-"state:open type:pr -review:none" | jq '.[] | select(.reviewDecision=="")'``
-
-Web UI filter does not work cf https://github.com/orgs/community/discussions/55826
+A PR may be labeled *decision-required* if the reviewer thinks the team needs
+more time to analyze the best approach to a proposed solution or discussion
+raised by the PR.
 
 Once in approved state, the PRs are in the responsibility of the merger, along
 with the next branches/PRs.
+
+Reviewers and Maintainers
+-------------------------
+
+A newly created PR should match the filter::
+
+    is:pr is:open draft:false review:none sort:updated-asc no:assignee
+
+The whole team is responsible to assign a PR to someone precise within 2 weeks.
+
+When someone gets assigned a PR, it should get a review status within 2 weeks:
+either changes requested, approved, or assigned to someone else if more
+expertise is needed.
+
+The GitHub filter for changes-requested PRs is::
+
+    is:pr is:open draft:false sort: updated-asc review:changes-requested
+
+The command to get approved PRs is::
+
+    gh pr list --json number,reviewDecision --search "state:open type:pr -review:none" | jq '.[] | select(.reviewDecision=="")'
+
+An approved PR should match the filter: ``is:open is:pr review:approved``.
+
