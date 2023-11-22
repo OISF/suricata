@@ -13,6 +13,7 @@ developed by the [OISF](https://oisf.net) and the Suricata community.
 - [Home Page](https://suricata.io)
 - [Bug Tracker](https://redmine.openinfosecfoundation.org/projects/suricata)
 - [User Guide](https://docs.suricata.io)
+- [Dev Guide](https://docs.suricata.io/en/latest/devguide/index.html#suricata-developer-guide)
 - [Installation Guide](https://docs.suricata.io/en/latest/install.html)
 - [User Support Forum](https://forum.suricata.io)
 
@@ -20,7 +21,7 @@ developed by the [OISF](https://oisf.net) and the Suricata community.
 
 We're happily taking patches and other contributions. Please see our
 [Contribution
-Process](https://docs.suricata.io/en/latest/devguide/codebase/contributing/contribution-process.html)
+Process](https://docs.suricata.io/en/latest/devguide/contributing/contribution-process.html)
 for how to get started.
 
 Suricata is a complex piece of software dealing with mostly untrusted
@@ -105,7 +106,7 @@ change, it will probably go into the next major version.
 __Q: Why was my PR closed?__
 
 A: As documented in the [Suricata GitHub
-workflow](https://docs.suricata.io/en/latest/devguide/codebase/contributing/github-pr-workflow.html),
+workflow](https://docs.suricata.io/en/latest/devguide/contributing/github-pr-workflow.html),
 we expect a new pull request for every change.
 
 Normally, the team (or community) will give feedback on a pull request
