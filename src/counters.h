@@ -63,7 +63,7 @@ typedef struct StatsCounter_ {
  */
 typedef struct StatsPublicThreadContext_ {
     /* flag set by the wakeup thread, to inform the client threads to sync */
-    uint32_t perf_flag;
+    SC_ATOMIC_DECLARE(bool, sync_now);
 
     /* pointer to the head of a list of counters assigned under this context */
     StatsCounter *head;

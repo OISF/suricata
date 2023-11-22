@@ -130,7 +130,7 @@ static void StatsPublicThreadContextCleanup(StatsPublicThreadContext *t)
     SCMutexLock(&t->m);
     StatsReleaseCounters(t->head);
     t->head = NULL;
-    t->perf_flag = 0;
+    SC_ATOMIC_SET(t->sync_now, false);
     t->curr_id = 0;
     SCMutexUnlock(&t->m);
     SCMutexDestroy(&t->m);
@@ -460,7 +460,7 @@ void StatsSyncCounters(ThreadVars *tv)
 
 void StatsSyncCountersIfSignalled(ThreadVars *tv)
 {
-    if (tv->perf_public_ctx.perf_flag == 1) {
+    if (SC_ATOMIC_GET(tv->perf_public_ctx.sync_now) == true) {
         StatsUpdateCounterArray(&tv->perf_private_ctx, &tv->perf_public_ctx);
     }
 }
@@ -521,13 +521,13 @@ static void *StatsWakeupThread(void *arg)
                 continue;
             }
 
-            /* assuming the assignment of an int to be atomic, and even if it's
-             * not, it should be okay */
-            tv->perf_public_ctx.perf_flag = 1;
+            SC_ATOMIC_SET(tv->perf_public_ctx.sync_now, true);
 
             if (tv->inq != NULL) {
                 PacketQueue *q = tv->inq->pq;
+                SCMutexLock(&q->mutex_q);
                 SCCondSignal(&q->cond_q);
+                SCMutexUnlock(&q->mutex_q);
             }
 
             tv = tv->next;
@@ -541,9 +541,7 @@ static void *StatsWakeupThread(void *arg)
                 continue;
             }
 
-            /* assuming the assignment of an int to be atomic, and even if it's
-             * not, it should be okay */
-            tv->perf_public_ctx.perf_flag = 1;
+            SC_ATOMIC_SET(tv->perf_public_ctx.sync_now, true);
 
             tv = tv->next;
         }
@@ -1256,7 +1254,7 @@ int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicThreadCon
     }
     SCMutexUnlock(&pctx->m);
 
-    pctx->perf_flag = 0;
+    SC_ATOMIC_SET(pctx->sync_now, false);
     return 1;
 }
 
