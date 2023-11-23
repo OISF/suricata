@@ -151,7 +151,7 @@ impl Default for PgsqlState {
         Self::new()
     }
 }
-    
+
 impl PgsqlState {
     pub fn new() -> Self {
         Self {
@@ -563,8 +563,20 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_ts(
     if input_len >= 1 && !input.is_null() {
 
         let slice: &[u8] = build_slice!(input, input_len as usize);
-        if probe_ts(slice) {
-            return ALPROTO_PGSQL;
+
+        match parser::parse_request(slice) {
+            Ok((_, request)) => {
+                if let PgsqlFEMessage::UnknownMessageType(_regular_packet) = request {
+                    return ALPROTO_UNKNOWN;
+                }
+                return ALPROTO_PGSQL;
+            }
+            Err(Err::Incomplete(_)) => {
+                return ALPROTO_UNKNOWN;
+            }
+            Err(_e) => {
+                return ALPROTO_FAILED;
+            }
         }
     }
     return ALPROTO_UNKNOWN;
@@ -584,7 +596,10 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
         }
 
         match parser::pgsql_parse_response(slice) {
-            Ok((_, _response)) => {
+            Ok((_, response)) => {
+                if let PgsqlBEMessage::UnknownMessageType(_regular_packet) = response {
+                    return ALPROTO_UNKNOWN;
+                }
                 return ALPROTO_PGSQL;
             }
             Err(Err::Incomplete(_)) => {
