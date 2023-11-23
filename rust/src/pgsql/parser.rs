@@ -320,6 +320,7 @@ pub enum PgsqlFEMessage {
     SASLResponse(RegularPacket),
     SimpleQuery(RegularPacket),
     Terminate(TerminationMessage),
+    UnknownMessageType(RegularPacket),
 }
 
 impl PgsqlFEMessage {
@@ -332,6 +333,7 @@ impl PgsqlFEMessage {
             PgsqlFEMessage::SASLResponse(_) => "sasl_response",
             PgsqlFEMessage::SimpleQuery(_) => "simple_query",
             PgsqlFEMessage::Terminate(_) => "termination_message",
+            PgsqlFEMessage::UnknownMessageType(_) => "unknown_message_type",
         }
     }
 }
@@ -673,7 +675,18 @@ pub fn parse_request(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage> {
         b'\0' => pgsql_parse_startup_packet(i)?,
         b'Q' => parse_simple_query(i)?,
         b'X' => parse_terminate_message(i)?,
-        _ => return Err(Err::Error(make_error(i, ErrorKind::Switch))),
+        //_ => return Err(Err::Error(make_error(i, ErrorKind::Switch))),
+        _ => {
+            let (i, identifier) = be_u8(i)?;
+            let (i, length) = verify(be_u32, |&x| x > PGSQL_LENGTH_FIELD)(i)?;
+            let (i, payload) = take(length - PGSQL_LENGTH_FIELD)(i)?;
+            let unknown = PgsqlFEMessage::UnknownMessageType (RegularPacket{
+                identifier,
+                length,
+                payload: payload.to_vec(),
+            });
+            (i, unknown)
+        }
     };
     Ok((i, message))
 }
