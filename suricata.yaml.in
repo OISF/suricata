@@ -177,6 +177,7 @@ outputs:
         - frame:
             # disabled by default as this is very verbose.
             enabled: no
+            # payload-buffer-size: 4kb # max size of frame payload buffer to output in eve-log
         - anomaly:
             # Anomaly log records describe unexpected conditions such
             # as truncated packets, packets with invalid IP/UDP/TCP
