@@ -102,6 +102,14 @@ fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonErro
         }) => {
             js.set_string("message", req.to_str())?;
         }
+        PgsqlFEMessage::UnknownMessageType(RegularPacket {
+            identifier: _,
+            length: _,
+            payload: _,
+        }) => {
+            // We don't expect to log this, as the probing function will fail the proto if we see
+            // such a message
+        }
     }
     js.close()?;
     Ok(js)
