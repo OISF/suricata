@@ -909,14 +909,13 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
                 warn_no_meta = true;
             }
         }
-
-        json_output_ctx->payload_buffer_size = payload_buffer_size;
     }
 
     if (flags & LOG_JSON_RULE_METADATA) {
         DetectEngineSetParseMetadata();
     }
 
+    json_output_ctx->payload_buffer_size = payload_buffer_size;
     json_output_ctx->flags |= flags;
 }
 
