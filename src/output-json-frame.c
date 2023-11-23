@@ -482,8 +482,22 @@ static OutputInitResult JsonFrameLogInitCtxSub(ConfNode *conf, OutputCtx *parent
         goto error;
     }
 
+    uint32_t payload_buffer_size = 4096;
+    if (conf != NULL) {
+        const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
+        if (payload_buffer_value != NULL) {
+            uint32_t value;
+            if (ParseSizeStringU32(payload_buffer_value, &value) < 0) {
+                SCLogError("Error parsing payload-buffer-size \"%s\"", payload_buffer_value);
+                goto error;
+            }
+            payload_buffer_size = value;
+        }
+    }
+
     json_output_ctx->file_ctx = ajt->file_ctx;
     json_output_ctx->eve_ctx = ajt;
+    json_output_ctx->payload_buffer_size = payload_buffer_size;
 
     output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonFrameLogDeInitCtxSub;
