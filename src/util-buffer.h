@@ -111,8 +111,9 @@ void MemBufferPrintToFPAsHex(MemBuffer *b, FILE *fp);
  *
  * \param raw_buffer     The buffer to write.
  * \param raw_buffer_len Length of the above buffer.
+ * \retval write_len Bytes written. If less than raw_len, the buffer is full.
  */
-void MemBufferWriteRaw(MemBuffer *dst, const uint8_t *raw, const uint32_t raw_len);
+uint32_t MemBufferWriteRaw(MemBuffer *dst, const uint8_t *raw, const uint32_t raw_len);
 
 /**
  * \brief Write a string buffer to the Membuffer dst.
