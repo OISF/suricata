@@ -128,6 +128,6 @@ uint32_t MemBufferWriteRaw(MemBuffer *dst, const uint8_t *raw, const uint32_t ra
  * \param format The format string.
  * \param ...    Variable arguments.
  */
-void MemBufferWriteString(MemBuffer *dst, const char *fmt, ...);
+void MemBufferWriteString(MemBuffer *dst, const char *fmt, ...) ATTR_FMT_PRINTF(2, 3);
 
 #endif /* SURICATA_UTIL_BUFFER_H */
