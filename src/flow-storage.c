@@ -39,28 +39,28 @@ unsigned int FlowStorageSize(void)
 
 void *FlowGetStorageById(const Flow *f, FlowStorageId id)
 {
-    return StorageGetById((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id.id);
+    return StorageGetById(f->storage, STORAGE_FLOW, id.id);
 }
 
 int FlowSetStorageById(Flow *f, FlowStorageId id, void *ptr)
 {
-    return StorageSetById((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id.id, ptr);
+    return StorageSetById(f->storage, STORAGE_FLOW, id.id, ptr);
 }
 
 void *FlowAllocStorageById(Flow *f, FlowStorageId id)
 {
-    return StorageAllocByIdPrealloc((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id.id);
+    return StorageAllocByIdPrealloc(f->storage, STORAGE_FLOW, id.id);
 }
 
 void FlowFreeStorageById(Flow *f, FlowStorageId id)
 {
-    StorageFreeById((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW, id.id);
+    StorageFreeById(f->storage, STORAGE_FLOW, id.id);
 }
 
 void FlowFreeStorage(Flow *f)
 {
     if (FlowStorageSize() > 0)
-        StorageFreeAll((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW);
+        StorageFreeAll(f->storage, STORAGE_FLOW);
 }
 
 FlowStorageId FlowStorageRegister(const char *name, const unsigned int size,
