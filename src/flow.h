@@ -325,6 +325,8 @@ typedef unsigned short FlowStateType;
 /** Local Thread ID */
 typedef uint16_t FlowThreadId;
 
+#include "util-storage.h"
+
 /**
  *  \brief Flow data structure.
  *
@@ -489,6 +491,8 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
+
+    Storage storage[];
 } Flow;
 
 enum FlowState {
