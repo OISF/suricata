@@ -34,6 +34,18 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading 7.0 to 8.0
+--------------------
+- SIP parser has been updated to inspect traffic carried by TCP as well.
+  SIP keywords can still match on their respective fields in addition
+  to these improvements.
+  Transactions are logged with the same schema regardless of which
+  transport protocol is carrying the payload.
+  Also, SIP protocol is detected using pattern matching and not only
+  probing parser.
+- ``SIP_PORTS`` variable has been introduced in suricata.yaml
+- Application layer's ``sip`` counter has been split into ``sip_tcp`` and ``sip_udp``.
+
 Upgrading 6.0 to 7.0
 --------------------
 
