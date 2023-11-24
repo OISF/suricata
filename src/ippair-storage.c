@@ -34,28 +34,28 @@ unsigned int IPPairStorageSize(void)
 
 void *IPPairGetStorageById(IPPair *h, IPPairStorageId id)
 {
-    return StorageGetById((Storage *)((void *)h + sizeof(IPPair)), STORAGE_IPPAIR, id.id);
+    return StorageGetById(h->storage, STORAGE_IPPAIR, id.id);
 }
 
 int IPPairSetStorageById(IPPair *h, IPPairStorageId id, void *ptr)
 {
-    return StorageSetById((Storage *)((void *)h + sizeof(IPPair)), STORAGE_IPPAIR, id.id, ptr);
+    return StorageSetById(h->storage, STORAGE_IPPAIR, id.id, ptr);
 }
 
 void *IPPairAllocStorageById(IPPair *h, IPPairStorageId id)
 {
-    return StorageAllocByIdPrealloc((Storage *)((void *)h + sizeof(IPPair)), STORAGE_IPPAIR, id.id);
+    return StorageAllocByIdPrealloc(h->storage, STORAGE_IPPAIR, id.id);
 }
 
 void IPPairFreeStorageById(IPPair *h, IPPairStorageId id)
 {
-    StorageFreeById((Storage *)((void *)h + sizeof(IPPair)), STORAGE_IPPAIR, id.id);
+    StorageFreeById(h->storage, STORAGE_IPPAIR, id.id);
 }
 
 void IPPairFreeStorage(IPPair *h)
 {
     if (IPPairStorageSize() > 0)
-        StorageFreeAll((Storage *)((void *)h + sizeof(IPPair)), STORAGE_IPPAIR);
+        StorageFreeAll(h->storage, STORAGE_IPPAIR);
 }
 
 IPPairStorageId IPPairStorageRegister(const char *name, const unsigned int size,
