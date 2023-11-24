@@ -300,7 +300,7 @@ static int UnixCommandSendJSONToClient(UnixClient *client, json_t *js)
         if (MEMBUFFER_OFFSET(client->mbuf) + 1 >= MEMBUFFER_SIZE(client->mbuf)) {
             MemBufferExpand(&client->mbuf, 1);
         }
-        MemBufferWriteRaw(client->mbuf, "\n", 1);
+        MemBufferWriteString(client->mbuf, "\n");
     }
 
     if (send(client->fd, (const char *)MEMBUFFER_BUFFER(client->mbuf),
