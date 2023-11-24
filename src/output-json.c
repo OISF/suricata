@@ -933,7 +933,7 @@ int OutputJSONMemBufferCallback(const char *str, size_t size, void *data)
         MemBufferExpand(memb, wrapper->expand_by);
     }
 
-    MemBufferWriteRaw((*memb), str, size);
+    MemBufferWriteRaw((*memb), (const uint8_t *)str, size);
     return 0;
 }
 
@@ -949,7 +949,7 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
     }
 
     if (file_ctx->prefix) {
-        MemBufferWriteRaw((*buffer), file_ctx->prefix, file_ctx->prefix_len);
+        MemBufferWriteRaw((*buffer), (const uint8_t *)file_ctx->prefix, file_ctx->prefix_len);
     }
 
     OutputJSONMemBufferWrapper wrapper = {
@@ -983,7 +983,7 @@ int OutputJsonBuilderBuffer(JsonBuilder *js, OutputJsonThreadCtx *ctx)
     MemBufferReset(*buffer);
 
     if (file_ctx->prefix) {
-        MemBufferWriteRaw((*buffer), file_ctx->prefix, file_ctx->prefix_len);
+        MemBufferWriteRaw((*buffer), (const uint8_t *)file_ctx->prefix, file_ctx->prefix_len);
     }
 
     size_t jslen = jb_len(js);
