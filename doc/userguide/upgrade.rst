@@ -34,6 +34,10 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading 7.0 to 8.0
+--------------------
+- SIP over TCP is detected
+
 Upgrading 6.0 to 7.0
 --------------------
 
