@@ -507,9 +507,12 @@ static int AlertJsonStreamDataCallback(
                 cbd->payload, "[%" PRIu64 " bytes missing]", input_offset - cbd->last_re);
     }
 
-    MemBufferWriteRaw(cbd->payload, input, input_len);
+    int done = 0;
+    uint32_t written = MemBufferWriteRaw(cbd->payload, input, input_len);
+    if (written < input_len)
+        done = 1;
     cbd->last_re = input_offset + input_len;
-    return 0;
+    return done;
 }
 
 /** \internal
