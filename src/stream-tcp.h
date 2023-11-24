@@ -131,10 +131,9 @@ typedef int (*StreamReassembleRawFunc)(
 
 int StreamReassembleForFrame(TcpSession *ssn, TcpStream *stream, StreamReassembleRawFunc Callback,
         void *cb_data, const uint64_t offset, const bool eof);
-int StreamReassembleLog(TcpSession *ssn, TcpStream *stream,
-        StreamReassembleRawFunc Callback, void *cb_data,
-        uint64_t progress_in,
-        uint64_t *progress_out, bool eof);
+int StreamReassembleLog(const TcpSession *ssn, const TcpStream *stream,
+        StreamReassembleRawFunc Callback, void *cb_data, const uint64_t progress_in,
+        uint64_t *progress_out, const bool eof);
 int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
         StreamReassembleRawFunc Callback, void *cb_data,
         uint64_t *progress_out, bool respect_inspect_depth);
