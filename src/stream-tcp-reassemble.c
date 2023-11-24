@@ -1392,7 +1392,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 /** \internal
  *  \brief get stream data from offset
  *  \param offset stream offset */
-static int GetRawBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_len,
+static int GetRawBuffer(const TcpStream *stream, const uint8_t **data, uint32_t *data_len,
         StreamingBufferBlock **iter, uint64_t offset, uint64_t *data_offset)
 {
     const uint8_t *mydata;
@@ -1415,7 +1415,7 @@ static int GetRawBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_
                 *iter == NULL ? "starting" : "continuing", offset);
         if (*iter == NULL) {
             StreamingBufferBlock key = { .offset = offset, .len = 0 };
-            *iter = SBB_RB_FIND_INCLUSIVE(&stream->sb.sbb_tree, &key);
+            *iter = SBB_RB_FIND_INCLUSIVE((struct SBB *)&stream->sb.sbb_tree, &key);
             SCLogDebug("*iter %p", *iter);
         }
         if (*iter == NULL) {
@@ -1756,7 +1756,7 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
  *  `respect_inspect_depth` is used to avoid useless inspection of too
  *  much data.
  */
-static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
+static int StreamReassembleRawDo(const TcpSession *ssn, const TcpStream *stream,
         StreamReassembleRawFunc Callback, void *cb_data, const uint64_t progress_in,
         const uint64_t re, uint64_t *progress_out, bool eof, bool respect_inspect_depth)
 {
@@ -1918,10 +1918,9 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
             progress_out, (p->flags & PKT_PSEUDO_STREAM_END), respect_inspect_depth);
 }
 
-int StreamReassembleLog(TcpSession *ssn, TcpStream *stream,
-                        StreamReassembleRawFunc Callback, void *cb_data,
-                        uint64_t progress_in,
-                        uint64_t *progress_out, bool eof)
+int StreamReassembleLog(const TcpSession *ssn, const TcpStream *stream,
+        StreamReassembleRawFunc Callback, void *cb_data, const uint64_t progress_in,
+        uint64_t *progress_out, const bool eof)
 {
     if (stream->flags & (STREAMTCP_STREAM_FLAG_NOREASSEMBLY))
         return 0;
