@@ -37,10 +37,10 @@ optimizations, and/or ask for help, it is important to communicate.
 
 These are our main channels:
 
-- `Suricata's issue tracker <https://redmine.openinfosecfoundation.org/
+* `Suricata's issue tracker <https://redmine.openinfosecfoundation.org/
   projects/suricata/issues>`_
-- `Suricata's forum <https://forum.suricata.io/c/developers/8>`_
-- `Suricata's Discord server <https://discord.com/invite/t3rV2x7MrG>`_
+* `Suricata's forum <https://forum.suricata.io/c/developers/8>`_
+* `Suricata's Discord server <https://discord.com/invite/t3rV2x7MrG>`_
 
 
 .. _claim-ticket:
