@@ -19,7 +19,7 @@
 
 use crate::applayer::{self, *};
 use crate::core;
-use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN};
+use crate::core::{AppProto, ALPROTO_UNKNOWN};
 use crate::frames::*;
 use crate::sip::parser::*;
 use nom7::Err;
@@ -403,70 +403,6 @@ pub extern "C" fn rs_sip_tx_get_alstate_progress(
 static mut ALPROTO_SIP: AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_sip_probing_parser_ts(
-    _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
-) -> AppProto {
-    let buf = build_slice!(input, input_len as usize);
-    if sip_parse_request(buf).is_ok() {
-        return ALPROTO_SIP;
-    }
-    return ALPROTO_UNKNOWN;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_probing_parser_tcp_ts(
-    _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
-) -> AppProto {
-    if !input.is_null() {
-        let buf = build_slice!(input, input_len as usize);
-        match sip_parse_request(buf) {
-            Ok((_, _request)) => {
-                return ALPROTO_SIP;
-            }
-            Err(Err::Incomplete(_)) => {
-                return ALPROTO_UNKNOWN;
-            }
-            Err(_e) => {
-                return ALPROTO_FAILED;
-            }
-        }
-    }
-    return ALPROTO_UNKNOWN;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_probing_parser_tc(
-    _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
-) -> AppProto {
-    let buf = build_slice!(input, input_len as usize);
-    if sip_parse_response(buf).is_ok() {
-        return ALPROTO_SIP;
-    }
-    return ALPROTO_UNKNOWN;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_sip_probing_parser_tcp_tc(
-    _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
-) -> AppProto {
-    if !input.is_null() {
-        let buf = build_slice!(input, input_len as usize);
-        match sip_parse_response(buf) {
-            Ok((_, _response)) => {
-                return ALPROTO_SIP;
-            }
-            Err(Err::Incomplete(_)) => {
-                return ALPROTO_UNKNOWN;
-            }
-            Err(_e) => {
-                return ALPROTO_FAILED;
-            }
-        }
-    }
-    return ALPROTO_UNKNOWN;
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rs_sip_parse_request(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
@@ -518,6 +454,53 @@ pub unsafe extern "C" fn rs_sip_parse_response_tcp(
     state.parse_response_tcp(flow, stream_slice)
 }
 
+fn register_pattern_probe(proto: u8) -> i8 {
+    let methods: Vec<&str> = vec![
+        "REGISTER\0",
+        "INVITE\0",
+        "ACK\0",
+        "BYE\0",
+        "CANCEL\0",
+        "UPDATE\0",
+        "REFER\0",
+        "PRACK\0",
+        "SUBSCRIBE\0",
+        "NOTIFY\0",
+        "PUBLISH\0",
+        "MESSAGE\0",
+        "INFO\0",
+        "OPTIONS\0",
+    ];
+    let mut r = 0;
+    unsafe {
+        for method in methods {
+            let depth = (method.len() - 1) as u16;
+            r |= AppLayerProtoDetectPMRegisterPatternCS(
+                proto,
+                ALPROTO_SIP,
+                method.as_ptr() as *const std::os::raw::c_char,
+                depth,
+                0,
+                core::Direction::ToServer as u8,
+            );
+        }
+        r |= AppLayerProtoDetectPMRegisterPatternCS(
+            proto,
+            ALPROTO_SIP,
+            b"SIP/2.0\0".as_ptr() as *const std::os::raw::c_char,
+            8,
+            0,
+            core::Direction::ToClient as u8,
+        );
+    }
+
+    if r == 0 {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
 export_tx_data_get!(rs_sip_get_tx_data, SIPTransaction);
 export_state_data_get!(rs_sip_get_state_data, SIPState);
 
@@ -525,13 +508,12 @@ const PARSER_NAME: &[u8] = b"sip\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_sip_register_parser() {
-    let default_port = CString::new("[5060,5061]").unwrap();
     let mut parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
-        default_port: default_port.as_ptr(),
+        default_port: std::ptr::null(),
         ipproto: core::IPPROTO_UDP,
-        probe_ts: Some(rs_sip_probing_parser_ts),
-        probe_tc: Some(rs_sip_probing_parser_tc),
+        probe_ts: None,
+        probe_tc: None,
         min_depth: 0,
         max_depth: 16,
         state_new: rs_sip_state_new,
@@ -566,14 +548,17 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
+        if register_pattern_probe(core::IPPROTO_UDP) < 0 {
+            return;
+        }
     } else {
         SCLogDebug!("Protocol detection and parsing disabled for UDP SIP.");
     }
 
     // register TCP parser
     parser.ipproto = core::IPPROTO_TCP;
-    parser.probe_ts = Some(rs_sip_probing_parser_tcp_ts);
-    parser.probe_tc = Some(rs_sip_probing_parser_tcp_tc);
+    parser.probe_ts = None;
+    parser.probe_tc = None;
     parser.parse_ts = rs_sip_parse_request_tcp;
     parser.parse_tc = rs_sip_parse_response_tcp;
 
@@ -583,6 +568,9 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
         ALPROTO_SIP = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        if register_pattern_probe(core::IPPROTO_TCP) < 0 {
+            return;
         }
     } else {
         SCLogDebug!("Protocol detection and parsing disabled for TCP SIP.");
