@@ -11,7 +11,8 @@ Commits
 #. Commits need to have proper messages, explaining anything that is non-trivial
 #. Commits should not, at the same time, change, rename and/or move code. Use separate commits
      for each of this, e.g, a commit to rename files, then a commit to change the code.
-#. Documentation updates should be in their own commit (not mixed with code commits)
+#. If your code changes or adds new behavior, update the documentation in the same commit.
+     Otherwise, documentation updates should be in their own commit (not mixed with code commits).
 #. Commit messages need to be properly formatted (check the example further
      below in this section):
       * Meaningful and short (50 chars max) subject line followed by an empty line
