@@ -218,7 +218,7 @@ void *StorageGetById(const Storage *storage, const StorageEnum type, const int i
     SCLogDebug("storage %p id %d", storage, id);
     if (storage == NULL)
         return NULL;
-    return storage[id];
+    return storage[id].ptr;
 }
 
 int StorageSetById(Storage *storage, const StorageEnum type, const int id, void *ptr)
@@ -229,7 +229,7 @@ int StorageSetById(Storage *storage, const StorageEnum type, const int id, void 
     SCLogDebug("storage %p id %d", storage, id);
     if (storage == NULL)
         return -1;
-    storage[id] = ptr;
+    storage[id].ptr = ptr;
     return 0;
 }
 
@@ -241,14 +241,14 @@ void *StorageAllocByIdPrealloc(Storage *storage, StorageEnum type, int id)
     SCLogDebug("storage %p id %d", storage, id);
 
     StorageMapping *map = &storage_map[type][id];
-    if (storage[id] == NULL && map->Alloc != NULL) {
-        storage[id] = map->Alloc(map->size);
-        if (storage[id] == NULL) {
+    if (storage[id].ptr == NULL && map->Alloc != NULL) {
+        storage[id].ptr = map->Alloc(map->size);
+        if (storage[id].ptr == NULL) {
             return NULL;
         }
     }
 
-    return storage[id];
+    return storage[id].ptr;
 }
 
 void StorageFreeById(Storage *storage, StorageEnum type, int id)
@@ -265,10 +265,10 @@ void StorageFreeById(Storage *storage, StorageEnum type, int id)
     Storage *store = storage;
     if (store != NULL) {
         SCLogDebug("store %p", store);
-        if (store[id] != NULL) {
+        if (store[id].ptr != NULL) {
             StorageMapping *map = &storage_map[type][id];
-            map->Free(store[id]);
-            store[id] = NULL;
+            map->Free(store[id].ptr);
+            store[id].ptr = NULL;
         }
     }
 }
@@ -288,10 +288,10 @@ void StorageFreeAll(Storage *storage, StorageEnum type)
     Storage *store = storage;
     int i;
     for (i = 0; i < storage_max_id[type]; i++) {
-        if (store[i] != NULL) {
+        if (store[i].ptr != NULL) {
             StorageMapping *map = &storage_map[type][i];
-            map->Free(store[i]);
-            store[i] = NULL;
+            map->Free(store[i].ptr);
+            store[i].ptr = NULL;
         }
     }
 }
