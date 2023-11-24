@@ -185,12 +185,11 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
         }
         PgsqlBEMessage::UnknownMessageType(RegularPacket {
             identifier: _,
-            length,
-            payload,
+            length: _,
+            payload: _,
         }) => {
-            // jb.set_string_from_bytes("identifier", identifier.to_vec())?;
-            jb.set_uint("length", (*length).into())?;
-            jb.set_string_from_bytes("payload", payload)?;
+            // We don't expect to log these, as the probing function won't recognize them as pgsql
+            // traffic
         }
         PgsqlBEMessage::AuthenticationOk(_)
         | PgsqlBEMessage::AuthenticationCleartextPassword(_)
