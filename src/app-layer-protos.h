@@ -79,9 +79,9 @@ typedef uint16_t AppProto;
 extern AppProto ALPROTO_FAILED;
 
 #ifdef ALPROTO_DYNAMIC_NB
-#define ALPROTO_MAX ALPROTO_MAX_STATIC + 1 + ALPROTO_DYNAMIC_NB
+#define ALPROTO_MAX (ALPROTO_MAX_STATIC + 1 + ALPROTO_DYNAMIC_NB)
 #else
-#define ALPROTO_MAX ALPROTO_MAX_STATIC + 1
+#define ALPROTO_MAX (ALPROTO_MAX_STATIC + 1)
 #endif
 static inline bool AppProtoIsValid(AppProto a)
 {
