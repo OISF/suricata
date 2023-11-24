@@ -151,18 +151,20 @@ it, so everyone knows that work is still open and waiting to be done.
 What branch to work on
 ======================
 
-There are 2 or 3 active branches:
+There are usually 2 or 3 active branches:
 
-    * master-x.x.x (e.g. master-6.x.y)
+    * master-x.x.x (e.g. master-6.0.x)
+    * main-x.x.x (e.g. main-7.0.x)
     * master
 
-The former is the stable branch. The latter the development branch.
+The ones with version numbers are stable branches. **master** is the development branch.
 
-The stable branch should only be worked on for important bug fixes. Those are
-mainly expected from more experienced contributors.
+The stable branch should only be worked on for important bug fixes or other
+needed :doc:`backports<backports-guide>`. Those are mainly expected from more
+experienced contributors.
 
 Development of new features or large scale redesign is done in the development
-branch. New development and new contributors should work with ``master`` except
+branch. New development and new contributors should work with *master* except
 in very special cases - which should and would be discussed with us first.
 
 If in doubt, please reach out to us via :ref:`Redmine, Discord or
