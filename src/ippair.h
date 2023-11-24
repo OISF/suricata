@@ -65,9 +65,6 @@ typedef struct IPPair_ {
     /** use cnt, reference counter */
     SC_ATOMIC_DECLARE(unsigned int, use_cnt);
 
-    /** storage api handle */
-    Storage *storage;
-
     /** hash pointers, protected by hash row mutex/spin */
     struct IPPair_ *hnext;
     struct IPPair_ *hprev;
@@ -75,6 +72,9 @@ typedef struct IPPair_ {
     /** list pointers, protected by ippair-queue mutex/spin */
     struct IPPair_ *lnext;
     struct IPPair_ *lprev;
+
+    /** storage api handle as a flex array member, so must stay last */
+    Storage storage[];
 } IPPair;
 
 typedef struct IPPairHashRow_ {
