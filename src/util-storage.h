@@ -36,7 +36,9 @@ typedef enum StorageEnum_ {
 } StorageEnum;
 
 /** void ptr array for now */
-typedef void* Storage;
+typedef struct Storage {
+    void *ptr;
+} Storage;
 
 void StorageInit(void);
 void StorageCleanup(void);
