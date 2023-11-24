@@ -25,9 +25,9 @@
 #define SURICATA_UTIL_BUFFER_H
 
 typedef struct MemBuffer_ {
-   uint8_t *buffer;
-   uint32_t size;
-   uint32_t offset;
+    uint32_t size;
+    uint32_t offset;
+    uint8_t buffer[];
 } MemBuffer;
 
 MemBuffer *MemBufferCreateNew(uint32_t size);
