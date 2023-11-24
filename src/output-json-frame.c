@@ -163,7 +163,9 @@ static int FrameJsonStreamDataCallback(
     }
 
     if (write_size > 0) {
-        MemBufferWriteRaw(cbd->payload, input, write_size);
+        uint32_t written = MemBufferWriteRaw(cbd->payload, input, write_size);
+        if (written < write_size)
+            done = 1;
     }
     cbd->last_re = input_offset + write_size;
     return done;
