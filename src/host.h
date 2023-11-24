@@ -68,9 +68,6 @@ typedef struct Host_ {
     /** pointers to iprep storage */
     void *iprep;
 
-    /** storage api handle */
-    Storage *storage;
-
     /** hash pointers, protected by hash row mutex/spin */
     struct Host_ *hnext;
     struct Host_ *hprev;
@@ -78,6 +75,9 @@ typedef struct Host_ {
     /** list pointers, protected by host-queue mutex/spin */
     struct Host_ *lnext;
     struct Host_ *lprev;
+
+    /** storage api handle */
+    Storage storage[];
 } Host;
 
 typedef struct HostHashRow_ {
