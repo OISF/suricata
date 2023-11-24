@@ -48,8 +48,6 @@ MemBuffer *MemBufferCreateNew(uint32_t size)
         return NULL;
     }
     buffer->size = size;
-    buffer->buffer = (uint8_t *)buffer + sizeof(MemBuffer);
-
     return buffer;
 }
 
@@ -75,7 +73,6 @@ int MemBufferExpand(MemBuffer **buffer, uint32_t expand_by) {
     }
     *buffer = tbuffer;
     (*buffer)->size += expand_by;
-    (*buffer)->buffer = (uint8_t *)tbuffer + sizeof(MemBuffer);
 
     SCLogDebug("expanded buffer by %u, size is now %u", expand_by, (*buffer)->size);
     return 0;
