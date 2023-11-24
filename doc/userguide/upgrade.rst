@@ -38,6 +38,19 @@ Upgrading 7.0 to 8.0
 --------------------
 .. note:: ``stats.whitelist`` has been renamed to ``stats.score`` in ``eve.json``
 
+Major changes
+~~~~~~~~~~~~~
+- SIP parser has been updated to inspect traffic carried by TCP as well.
+  SIP keywords can still match on their respective fields in addition
+  to these improvements.
+  Transactions are logged with the same schema regardless of which
+  transport protocol is carrying the payload.
+  Also, SIP protocol is detected using pattern matching and not only
+  probing parser.
+- ``SIP_PORTS`` variable has been introduced in suricata.yaml
+- Application layer's ``sip`` counter has been split into ``sip_tcp`` and ``sip_udp``
+  for the ``stats`` event.
+
 Upgrading 6.0 to 7.0
 --------------------
 
