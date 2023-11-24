@@ -109,7 +109,7 @@ void MemBufferPrintToFPAsHex(MemBuffer *b, FILE *fp)
     }
 }
 
-void MemBufferWriteRaw(MemBuffer *dst, const uint8_t *raw, const uint32_t raw_len)
+uint32_t MemBufferWriteRaw(MemBuffer *dst, const uint8_t *raw, const uint32_t raw_len)
 {
     uint32_t write_len;
     if (raw_len >= dst->size - dst->offset) {
@@ -121,6 +121,7 @@ void MemBufferWriteRaw(MemBuffer *dst, const uint8_t *raw, const uint32_t raw_le
     memcpy(dst->buffer + dst->offset, raw, write_len);
     dst->offset += write_len;
     dst->buffer[dst->offset] = '\0';
+    return write_len;
 }
 
 void MemBufferWriteString(MemBuffer *dst, const char *fmt, ...)
