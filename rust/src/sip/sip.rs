@@ -518,6 +518,59 @@ pub unsafe extern "C" fn rs_sip_parse_response_tcp(
     state.parse_response_tcp(flow, stream_slice)
 }
 
+fn register_pattern_probe(proto: u8) -> i8 {
+    let methods: Vec<&str> = vec![
+        "REGISTER\0",
+        "INVITE\0",
+        "ACK\0",
+        "BYE\0",
+        "CANCEL\0",
+        "UPDATE\0",
+        "REFER\0",
+        "PRACK\0",
+        "SUBSCRIBE\0",
+        "NOTIFY\0",
+        "PUBLISH\0",
+        "MESSAGE\0",
+        "INFO\0",
+        "OPTIONS\0",
+    ];
+    let mut r = 0;
+    unsafe {
+        for method in methods {
+            let depth = (method.len() - 1) as u16;
+            r |= AppLayerProtoDetectPMRegisterPatternCSwPP(
+                proto,
+                ALPROTO_SIP,
+                method.as_ptr() as *const std::os::raw::c_char,
+                depth,
+                0,
+                core::Direction::ToServer as u8,
+                rs_sip_probing_parser_tcp_ts,
+                0,
+                0,
+            );
+        }
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(
+            proto,
+            ALPROTO_SIP,
+            b"SIP/2.0\0".as_ptr() as *const std::os::raw::c_char,
+            8,
+            0,
+            core::Direction::ToClient as u8,
+            rs_sip_probing_parser_tcp_tc,
+            0,
+            0,
+        );
+    }
+
+    if r == 0 {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
 export_tx_data_get!(rs_sip_get_tx_data, SIPTransaction);
 export_state_data_get!(rs_sip_get_state_data, SIPState);
 
@@ -563,6 +616,9 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_SIP = alproto;
+        if register_pattern_probe(core::IPPROTO_UDP) < 0 {
+            return;
+        }
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
@@ -581,6 +637,9 @@ pub unsafe extern "C" fn rs_sip_register_parser() {
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_SIP = alproto;
+        if register_pattern_probe(core::IPPROTO_TCP) < 0 {
+            return;
+        }
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
