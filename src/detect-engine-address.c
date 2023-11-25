@@ -1362,23 +1362,28 @@ void DetectAddressMapFree(DetectEngineCtx *de_ctx)
     return;
 }
 
-static int DetectAddressMapAdd(DetectEngineCtx *de_ctx, const char *string,
-                        DetectAddressHead *address, bool contains_negation)
+static bool DetectAddressMapAdd(DetectEngineCtx *de_ctx, const char *string,
+        DetectAddressHead *address, bool contains_negation)
 {
     DetectAddressMap *map = SCCalloc(1, sizeof(*map));
     if (map == NULL)
-        return -1;
+        return false;
 
     map->string = SCStrdup(string);
     if (map->string == NULL) {
         SCFree(map);
-        return -1;
+        return false;
     }
     map->address = address;
     map->contains_negation = contains_negation;
 
-    BUG_ON(HashListTableAdd(de_ctx->address_table, (void *)map, 0) != 0);
-    return 0;
+    if (HashListTableAdd(de_ctx->address_table, (void *)map, 0) != 0) {
+        SCFree(map->string);
+        SCFree(map);
+        return false;
+    }
+
+    return true;
 }
 
 static const DetectAddressMap *DetectAddressMapLookup(DetectEngineCtx *de_ctx,
@@ -1471,8 +1476,11 @@ const DetectAddressHead *DetectParseAddress(DetectEngineCtx *de_ctx,
         *contains_negation = false;
     }
 
-    DetectAddressMapAdd((DetectEngineCtx *)de_ctx, string, head,
-            *contains_negation);
+    if (!DetectAddressMapAdd((DetectEngineCtx *)de_ctx, string, head, *contains_negation)) {
+        DetectAddressHeadFree(head);
+        return NULL;
+    }
+
     return head;
 }
 
