@@ -842,16 +842,11 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
             r = next;
         }
         SCLogDebug("to_shift %p", to_shift);
-    } else {
-        to_shift = &sb->region;
-        SCLogDebug("shift start region %p", to_shift);
-    }
 
-    // this region is main, or will xfer its buffer to main
-    if (to_shift) {
-        SCLogDebug("main: offset %" PRIu64 " buf %p size %u offset %u", to_shift->stream_offset,
-                to_shift->buf, to_shift->buf_size, to_shift->buf_offset);
-        if (to_shift != &sb->region) {
+        // this region is main, or will xfer its buffer to main
+        if (to_shift && to_shift != &sb->region) {
+            SCLogDebug("main: offset %" PRIu64 " buf %p size %u offset %u", to_shift->stream_offset,
+                    to_shift->buf, to_shift->buf_size, to_shift->buf_offset);
             DEBUG_VALIDATE_BUG_ON(sb->region.buf != NULL);
 
             sb->region.buf = to_shift->buf;
@@ -860,12 +855,20 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
             sb->region.buf_size = to_shift->buf_size;
             sb->region.next = to_shift->next;
 
+            BUG_ON(to_shift == &sb->region);
             FREE(cfg, to_shift, sizeof(*to_shift));
             to_shift = &sb->region;
             sb->regions--;
             DEBUG_VALIDATE_BUG_ON(sb->regions == 0);
         }
 
+    } else {
+        to_shift = &sb->region;
+        SCLogDebug("shift start region %p", to_shift);
+    }
+
+    // this region is main, or will xfer its buffer to main
+    if (to_shift) {
         // Do the shift. If new region is exactly at the slide offset we can skip this.
         DEBUG_VALIDATE_BUG_ON(to_shift->stream_offset > slide_offset);
         const uint32_t s = slide_offset - to_shift->stream_offset;
