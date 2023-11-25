@@ -17,9 +17,9 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
-use nom7::bytes::streaming::{take, take_while, take_while1};
+use nom7::bytes::streaming::{tag, take, take_while, take_while1};
 use nom7::character::streaming::{char, crlf};
-use nom7::character::{is_alphabetic, is_alphanumeric, is_space};
+use nom7::character::{is_alphabetic, is_alphanumeric, is_digit, is_space};
 use nom7::combinator::map_res;
 use nom7::sequence::delimited;
 use nom7::{Err, IResult, Needed};
@@ -78,7 +78,7 @@ fn is_request_uri_char(b: u8) -> bool {
 
 #[inline]
 fn is_version_char(b: u8) -> bool {
-    is_alphanumeric(b) || b"./".contains(&b)
+    is_digit(b) || b".".contains(&b)
 }
 
 #[inline]
@@ -111,7 +111,7 @@ pub fn sip_parse_request(oi: &[u8]) -> IResult<&[u8], Request> {
         Request {
             method: method.into(),
             path: path.into(),
-            version: version.into(),
+            version,
             headers,
 
             request_line_len: request_line_len as u16,
@@ -137,7 +137,7 @@ pub fn sip_parse_response(oi: &[u8]) -> IResult<&[u8], Response> {
     Ok((
         bi,
         Response {
-            version: version.into(),
+            version,
             code: code.into(),
             reason: reason.into(),
 
@@ -160,8 +160,10 @@ fn parse_request_uri(i: &[u8]) -> IResult<&[u8], &str> {
 }
 
 #[inline]
-fn parse_version(i: &[u8]) -> IResult<&[u8], &str> {
-    map_res(take_while1(is_version_char), std::str::from_utf8)(i)
+fn parse_version(i: &[u8]) -> IResult<&[u8], String> {
+    let (i, prefix) = map_res(tag("SIP/"), std::str::from_utf8)(i)?;
+    let (i, version) = map_res(take_while1(is_version_char), std::str::from_utf8)(i)?;
+    Ok((i, format!("{}{}", prefix, version)))
 }
 
 #[inline]
@@ -313,5 +315,21 @@ mod tests {
         assert_eq!(resp.version, "SIP/2.0");
         assert_eq!(resp.code, "401");
         assert_eq!(resp.reason, "Unauthorized");
+    }
+
+    #[test]
+    fn test_parse_invalid_version() {
+        let buf: &[u8] = "HTTP/1.1\r\n".as_bytes();
+
+        // This test must fail if 'HTTP/1.1' is accepted
+        assert!(parse_version(buf).is_err());
+    }
+
+    #[test]
+    fn test_parse_valid_version() {
+        let buf: &[u8] = "SIP/2.0\r\n".as_bytes();
+
+        let (_rem, result) = parse_version(buf).unwrap();
+        assert_eq!(result, "SIP/2.0");
     }
 }
