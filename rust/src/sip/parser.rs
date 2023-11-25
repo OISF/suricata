@@ -78,7 +78,7 @@ fn is_request_uri_char(b: u8) -> bool {
 
 #[inline]
 fn is_version_char(b: u8) -> bool {
-    is_alphanumeric(b) || b"./".contains(&b)
+    b"SIP/2.0".contains(&b)
 }
 
 #[inline]
@@ -322,6 +322,35 @@ mod tests {
                 assert_eq!(resp.reason, "Unauthorized");
             }
             _ => {
+                assert!(false);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_invalid_version() {
+        let buf: &[u8] = "HTTP/1.1\r\n".as_bytes();
+
+        // This test must fail if 'HTTP/1.1' is accepted
+        match parse_version(buf) {
+            Ok((_, _)) => {
+                assert!(false);
+            }
+            Err(_) => {
+                assert!(true);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_valid_version() {
+        let buf: &[u8] = "SIP/2.0\r\n".as_bytes();
+
+        match parse_version(buf) {
+            Ok((_, version)) => {
+                assert_eq!(version, "SIP/2.0");
+            }
+            Err(_) => {
                 assert!(false);
             }
         }
