@@ -498,7 +498,7 @@ static void PcapLogUnlock(PcapLogData *pl)
 }
 
 static inline int PcapWrite(
-        PcapLogData *pl, PcapLogCompressionData *comp, uint8_t *data, size_t len)
+        PcapLogData *pl, PcapLogCompressionData *comp, const uint8_t *data, const size_t len)
 {
     struct timeval current_dump;
     gettimeofday(&current_dump, NULL);
