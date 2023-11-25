@@ -216,8 +216,8 @@ typedef struct Address_ {
 #define GET_TCP_SRC_PORT(p)  ((p)->sp)
 #define GET_TCP_DST_PORT(p)  ((p)->dp)
 
-#define GET_PKT_LEN(p) ((p)->pktlen)
-#define GET_PKT_DATA(p)            ((((p)->ext_pkt) == NULL) ? GET_PKT_DIRECT_DATA(p) : (p)->ext_pkt)
+#define GET_PKT_LEN(p)             (p)->pktlen
+#define GET_PKT_DATA(p)            (((p)->ext_pkt == NULL) ? GET_PKT_DIRECT_DATA(p) : (p)->ext_pkt)
 #define GET_PKT_DIRECT_DATA(p)     (p)->pkt_data
 #define GET_PKT_DIRECT_MAX_SIZE(p) (default_packet_size)
 
