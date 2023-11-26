@@ -116,3 +116,4 @@ pub mod plugin;
 pub mod lzma;
 pub mod util;
 pub mod ffi;
+pub mod mpm_ac_rs;
