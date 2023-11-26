@@ -581,6 +581,7 @@ noinst_HEADERS = \
 	util-mpm-ac-bs.h \
 	util-mpm-ac.h \
 	util-mpm-ac-ks.h \
+	util-mpm-ac-rs.h \
 	util-mpm.h \
 	util-mpm-hs.h \
 	util-napatech.h \
@@ -1181,6 +1182,7 @@ libsuricata_c_a_SOURCES = \
 	util-mpm-ac.c \
 	util-mpm-ac-ks.c \
 	util-mpm-ac-ks-small.c \
+	util-mpm-ac-rs.c \
 	util-mpm.c \
 	util-mpm-hs.c \
 	util-napatech.c \
