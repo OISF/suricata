@@ -152,3 +152,160 @@ pub unsafe extern "C" fn rs_to_hex_sep(
     // overwrites last separator with final null char
     oslice[3 * islice.len() - 1] = 0;
 }
+
+use aho_corasick::AhoCorasick;
+use std::collections::HashMap;
+
+#[derive(Debug,Clone)]
+struct AhoCorasickPatternData {
+    pat: Vec<u8>,
+    sids: Vec<u32>,
+    ci: bool,
+    offset: u16,
+    depth: u16,
+}
+
+impl AhoCorasickPatternData {
+    fn new(pat: Vec<u8>, ci: bool, sids: Vec<u32>, offset: u16, depth: u16) -> Self {
+        Self { pat, ci, sids, offset, depth }
+    }
+}
+
+#[derive(Default)]
+pub struct AhoCorasickStateBuilder {
+    /// vector of patterns. The final pattern id will depend on the position in this
+    /// vector, starting at 0.
+    patterns: Vec<Vec<u8>>,
+    pattern_id: u32,
+    /// Hash of patterns with their settings. Will be copied to AhoCorasickStateBuilder
+    /// in the prepare step.
+    pattern_data: HashMap<u32,AhoCorasickPatternData>,
+    /// track if we have case insensitive patterns. If so, we need to tell AC and
+    /// do a bit more work in validation.
+    has_ci: bool,
+}
+
+impl AhoCorasickStateBuilder {
+    fn new() -> Self {
+        Self { ..Default::default() }
+    }
+    fn add_pattern(&mut self, pat: Vec<u8>, ci: bool, sids: Vec<u32>, offset: u16, depth: u16) {
+        self.patterns.push(pat.clone());
+        if ci {
+            self.has_ci = true;
+        }
+        let pattern_id = self.pattern_id;
+        self.pattern_id += 1;
+
+        self.pattern_data.insert(pattern_id, AhoCorasickPatternData::new(pat.clone(), ci, sids, offset, depth));
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_mpm_acrs_new_builder() -> *mut std::os::raw::c_void {
+    let state = AhoCorasickStateBuilder::new();
+    let boxed = Box::new(state);
+    return Box::into_raw(boxed) as *mut _;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_mpm_acrs_free_builder(state: *mut std::os::raw::c_void) {
+    let mut _state = unsafe { Box::from_raw(state as *mut AhoCorasickStateBuilder) };
+}
+
+#[no_mangle]
+pub extern "C" fn rs_mpm_acrs_add_pattern(state: &mut AhoCorasickStateBuilder,
+    pat: *mut u8, pat_len: u16, sids: *mut u32, sids_len: u32, ci: bool, offset: u16, depth: u16) -> i32 {
+    let p = unsafe { build_slice!(pat, pat_len as usize) };
+    let s = unsafe { build_slice!(sids, sids_len as usize) };
+    state.add_pattern(p.to_vec(), ci, s.to_vec(), offset, depth);
+    return 0;
+}
+
+pub struct AhoCorasickState {
+    pattern_cnt: u32,
+    pattern_data: HashMap<u32,AhoCorasickPatternData>,
+    has_ci: bool,
+    ac: AhoCorasick,
+}
+
+impl AhoCorasickState {
+    /// build the AC state from the builder
+    fn prepare(builder: &AhoCorasickStateBuilder) -> Self {
+        let ac = AhoCorasick::builder()
+            .ascii_case_insensitive(builder.has_ci)
+            .build(&builder.patterns)
+            .unwrap();
+        Self { ac, has_ci: builder.has_ci, pattern_cnt: builder.pattern_id, pattern_data: builder.pattern_data.clone() }
+    }
+
+    /// Search for the patterns. Returns number of matches.
+    /// Per pattern found sids are only appended once.
+    /// TODO review match_cnt logic. In general it's tuned to the unittests now, but it leads to
+    /// some inefficienty. Could make sense to check the bool array first instead of doing the
+    /// hash map lookup.
+    fn search(&self, haystack: &[u8], sids: &mut Vec<u32>) -> u32 {
+        SCLogDebug!("haystack {:?}: looking for {} patterns. Has CI {}", haystack, self.pattern_cnt, self.has_ci);
+        let mut match_cnt = 0;
+        // array of bools for patterns we found
+        let mut matches = vec![false; self.pattern_cnt as usize];
+        for mat in self.ac.find_overlapping_iter(haystack) {
+            let pat_id = mat.pattern();
+            let data = self.pattern_data.get(&pat_id.as_u32()).unwrap();
+            if self.has_ci && !data.ci {
+                let found = &haystack[mat.start()..mat.end()];
+                if found != data.pat {
+                    SCLogDebug!("pattern {:?} failed: not an exact match", pat_id);
+                    continue;
+                }
+            }
+            match_cnt += 1;
+
+            /* bail if we found this pattern before */
+            // TODO would prefer to do this first, but this messes up match_cnt.
+            if matches[pat_id] {
+                SCLogDebug!("pattern {:?} already found", pat_id);
+                continue;
+            }
+            /* enforce offset and depth */
+            if data.offset as usize > mat.start() {
+                SCLogDebug!("pattern {:?} failed: found before offset", pat_id);
+                continue;
+            }
+            if data.depth != 0 && mat.end() > data.depth as usize {
+                SCLogDebug!("pattern {:?} failed: after depth", pat_id);
+                continue;
+            }
+            matches[pat_id] = true;
+            SCLogDebug!("match! {:?}: {:?}", pat_id, data);
+            sids.append(&mut data.sids.clone());
+        }
+        return match_cnt;
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_mpm_acrs_prepare_builder(builder: &AhoCorasickStateBuilder) -> *mut std::os::raw::c_void {
+    let state = AhoCorasickState::prepare(builder);
+    let boxed = Box::new(state);
+    return Box::into_raw(boxed) as *mut _;
+}
+#[no_mangle]
+pub extern "C" fn rs_mpm_acrs_state_free(state: *mut std::os::raw::c_void) {
+    let mut _state = unsafe { Box::from_raw(state as *mut AhoCorasickState) };
+}
+
+#[no_mangle]
+pub extern "C" fn rs_mpm_acrs_search(state: &AhoCorasickState, data: *const u8, data_len: u32,
+    func: unsafe extern "C" fn(*mut std::os::raw::c_void, *const u32, u32),
+    thunk: *mut std::os::raw::c_void) -> u32
+{
+    let mut sids: Vec<u32> = Vec::new();
+    let data = unsafe { build_slice!(data, data_len as usize) };
+    let matches = state.search(data, &mut sids);
+    if sids.len() > 0 {
+        let sids_s = sids.as_ptr();
+        unsafe { func(thunk, sids_s, sids.len() as u32); };
+    }
+    matches
+}

@@ -38,6 +38,7 @@ brotli = "~3.4.0"
 hkdf = "~0.12.3"
 aes = "~0.7.5"
 aes-gcm = "~0.9.4"
+aho-corasick = "1.1.2"
 
 der-parser = "~8.2.0"
 kerberos-parser = { version = "~0.7.1", default_features = false }

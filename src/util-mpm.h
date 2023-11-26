@@ -37,6 +37,7 @@ enum {
     MPM_AC_BS,
     MPM_AC_KS,
     MPM_HS,
+    MPM_AC_RS,
     /* table size */
     MPM_TABLE_SIZE,
 };

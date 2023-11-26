@@ -31,6 +31,7 @@
 #include "util-mpm-ac.h"
 #include "util-mpm-ac-bs.h"
 #include "util-mpm-ac-ks.h"
+#include "util-mpm-ac-rs.h"
 #include "util-mpm-hs.h"
 #include "util-hashlist.h"
 
@@ -231,6 +232,7 @@ void MpmTableSetup(void)
     MpmACRegister();
     MpmACBSRegister();
     MpmACTileRegister();
+    MpmACRSRegister();
 #ifdef BUILD_HYPERSCAN
     #ifdef HAVE_HS_VALID_PLATFORM
     /* Enable runtime check for SSSE3. Do not use Hyperscan MPM matcher if
