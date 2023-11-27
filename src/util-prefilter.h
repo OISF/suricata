@@ -58,8 +58,8 @@ int PrefilterAddSidsResize(PrefilterRuleStore *pmq, uint32_t new_size);
  *  \param sids_size number of Signature IDs in sids array.
  *
  */
-static inline void
-PrefilterAddSids(PrefilterRuleStore *pmq, SigIntId *sids, uint32_t sids_size)
+static inline void PrefilterAddSids(
+        PrefilterRuleStore *pmq, const SigIntId *sids, uint32_t sids_size)
 {
     if (sids_size == 0)
         return;
