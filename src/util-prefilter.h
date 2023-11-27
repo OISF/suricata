@@ -59,7 +59,7 @@ int PrefilterAddSidsResize(PrefilterRuleStore *pmq, uint32_t new_size);
  *
  */
 static inline void
-PrefilterAddSids(PrefilterRuleStore *pmq, SigIntId *sids, uint32_t sids_size)
+PrefilterAddSids(PrefilterRuleStore *pmq, const SigIntId *sids, uint32_t sids_size)
 {
     if (sids_size == 0)
         return;
