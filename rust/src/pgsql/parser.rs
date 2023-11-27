@@ -1056,7 +1056,6 @@ pub fn pgsql_parse_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
                 b'T' => parse_row_description(i)?,
                 b'A' => parse_notification_response(i)?,
                 b'D' => parse_consolidated_data_row(i)?,
-                // _ => return Err(Err::Error(make_error(i, ErrorKind::Switch))),
                 _ => {
                     let (i, payload) = rest(i)?;
                     let unknown = PgsqlBEMessage::UnknownMessageType (RegularPacket{
