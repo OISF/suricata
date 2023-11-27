@@ -1442,59 +1442,59 @@ static int DefragDoSturgesNovakTest(int policy, u_char *expected,
      * Original fragments.
      */
 
-    /* A*24 at 0. */
+    /* <1> A*24 at 0. */
     packets[0] = BuildTestPacket(IPPROTO_ICMP, id, 0, 1, 'A', 24);
 
-    /* B*15 at 32. */
+    /* <2> B*16 at 32. */
     packets[1] = BuildTestPacket(IPPROTO_ICMP, id, 32 >> 3, 1, 'B', 16);
 
-    /* C*24 at 48. */
+    /* <3> C*24 at 48. */
     packets[2] = BuildTestPacket(IPPROTO_ICMP, id, 48 >> 3, 1, 'C', 24);
 
-    /* D*8 at 80. */
+    /* <3_1> D*8 at 80. */
     packets[3] = BuildTestPacket(IPPROTO_ICMP, id, 80 >> 3, 1, 'D', 8);
 
-    /* E*16 at 104. */
+    /* <3_2> E*16 at 104. */
     packets[4] = BuildTestPacket(IPPROTO_ICMP, id, 104 >> 3, 1, 'E', 16);
 
-    /* F*24 at 120. */
+    /* <3_3> F*24 at 120. */
     packets[5] = BuildTestPacket(IPPROTO_ICMP, id, 120 >> 3, 1, 'F', 24);
 
-    /* G*16 at 144. */
+    /* <3_4> G*16 at 144. */
     packets[6] = BuildTestPacket(IPPROTO_ICMP, id, 144 >> 3, 1, 'G', 16);
 
-    /* H*16 at 160. */
+    /* <3_5> H*16 at 160. */
     packets[7] = BuildTestPacket(IPPROTO_ICMP, id, 160 >> 3, 1, 'H', 16);
 
-    /* I*8 at 176. */
+    /* <3_6> I*8 at 176. */
     packets[8] = BuildTestPacket(IPPROTO_ICMP, id, 176 >> 3, 1, 'I', 8);
 
     /*
      * Overlapping subsequent fragments.
      */
 
-    /* J*32 at 8. */
+    /* <4> J*32 at 8. */
     packets[9] = BuildTestPacket(IPPROTO_ICMP, id, 8 >> 3, 1, 'J', 32);
 
-    /* K*24 at 48. */
+    /* <5> K*24 at 48. */
     packets[10] = BuildTestPacket(IPPROTO_ICMP, id, 48 >> 3, 1, 'K', 24);
 
-    /* L*24 at 72. */
+    /* <6> L*24 at 72. */
     packets[11] = BuildTestPacket(IPPROTO_ICMP, id, 72 >> 3, 1, 'L', 24);
 
-    /* M*24 at 96. */
+    /* <7> M*24 at 96. */
     packets[12] = BuildTestPacket(IPPROTO_ICMP, id, 96 >> 3, 1, 'M', 24);
 
-    /* N*8 at 128. */
+    /* <8> N*8 at 128. */
     packets[13] = BuildTestPacket(IPPROTO_ICMP, id, 128 >> 3, 1, 'N', 8);
 
-    /* O*8 at 152. */
+    /* <9> O*8 at 152. */
     packets[14] = BuildTestPacket(IPPROTO_ICMP, id, 152 >> 3, 1, 'O', 8);
 
-    /* P*8 at 160. */
+    /* <10> P*8 at 160. */
     packets[15] = BuildTestPacket(IPPROTO_ICMP, id, 160 >> 3, 1, 'P', 8);
 
-    /* Q*16 at 176. */
+    /* <11> Q*16 at 176. */
     packets[16] = BuildTestPacket(IPPROTO_ICMP, id, 176 >> 3, 0, 'Q', 16);
 
     default_policy = policy;
@@ -1521,6 +1521,7 @@ static int DefragDoSturgesNovakTest(int policy, u_char *expected,
 
     FAIL_IF(IPV4_GET_HLEN(reassembled) != 20);
     FAIL_IF(IPV4_GET_IPLEN(reassembled) != 20 + 192);
+    FAIL_IF(expected_len != 192);
 
     FAIL_IF(memcmp(GET_PKT_DATA(reassembled) + 20, expected, expected_len) != 0);
     SCFree(reassembled);
@@ -1554,59 +1555,59 @@ static int IPV6DefragDoSturgesNovakTest(int policy, u_char *expected,
      * Original fragments.
      */
 
-    /* A*24 at 0. */
+    /* <1> A*24 at 0. */
     packets[0] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 0, 1, 'A', 24);
 
-    /* B*15 at 32. */
+    /* <2> B*16 at 32. */
     packets[1] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 32 >> 3, 1, 'B', 16);
 
-    /* C*24 at 48. */
+    /* <3> C*24 at 48. */
     packets[2] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 48 >> 3, 1, 'C', 24);
 
-    /* D*8 at 80. */
+    /* <3_1> D*8 at 80. */
     packets[3] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 80 >> 3, 1, 'D', 8);
 
-    /* E*16 at 104. */
+    /* <3_2> E*16 at 104. */
     packets[4] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 104 >> 3, 1, 'E', 16);
 
-    /* F*24 at 120. */
+    /* <3_3> F*24 at 120. */
     packets[5] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 120 >> 3, 1, 'F', 24);
 
-    /* G*16 at 144. */
+    /* <3_4> G*16 at 144. */
     packets[6] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 144 >> 3, 1, 'G', 16);
 
-    /* H*16 at 160. */
+    /* <3_5> H*16 at 160. */
     packets[7] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 160 >> 3, 1, 'H', 16);
 
-    /* I*8 at 176. */
+    /* <3_6> I*8 at 176. */
     packets[8] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 176 >> 3, 1, 'I', 8);
 
     /*
      * Overlapping subsequent fragments.
      */
 
-    /* J*32 at 8. */
+    /* <4> J*32 at 8. */
     packets[9] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 8 >> 3, 1, 'J', 32);
 
-    /* K*24 at 48. */
+    /* <5> K*24 at 48. */
     packets[10] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 48 >> 3, 1, 'K', 24);
 
-    /* L*24 at 72. */
+    /* <6> L*24 at 72. */
     packets[11] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 72 >> 3, 1, 'L', 24);
 
-    /* M*24 at 96. */
+    /* <7> M*24 at 96. */
     packets[12] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 96 >> 3, 1, 'M', 24);
 
-    /* N*8 at 128. */
+    /* <8> N*8 at 128. */
     packets[13] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 128 >> 3, 1, 'N', 8);
 
-    /* O*8 at 152. */
+    /* <9> O*8 at 152. */
     packets[14] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 152 >> 3, 1, 'O', 8);
 
-    /* P*8 at 160. */
+    /* <10> P*8 at 160. */
     packets[15] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 160 >> 3, 1, 'P', 8);
 
-    /* Q*16 at 176. */
+    /* <11> Q*16 at 176. */
     packets[16] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 176 >> 3, 0, 'Q', 16);
 
     default_policy = policy;
@@ -1646,35 +1647,61 @@ static int IPV6DefragDoSturgesNovakTest(int policy, u_char *expected,
     PASS;
 }
 
+/* Define data that matches the naming "Target-Based Fragmentation
+ * Reassembly".
+ *
+ * For example, the data refers to a fragment of data as <1>, or <3_6>
+ * and uses these to diagram the input fragments and the resulting
+ * policies. We build test cases for the papers scenario but assign
+ * specific values to each segment.
+*/
+#define D_1   'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'
+#define D_2   'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'
+#define D_3   'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C'
+#define D_3_1 'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D'
+#define D_3_2 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E'
+#define D_3_3 'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F'
+#define D_3_4 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'
+#define D_3_5 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H'
+#define D_3_6 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I'
+#define D_4   'J', 'J', 'J', 'J', 'J', 'J', 'J', 'J'
+#define D_5   'K', 'K', 'K', 'K', 'K', 'K', 'K', 'K'
+#define D_6   'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L'
+#define D_7   'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M'
+#define D_8   'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N'
+#define D_9   'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O'
+#define D_10  'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'
+#define D_11  'Q', 'Q', 'Q', 'Q', 'Q', 'Q', 'Q', 'Q'
+
 static int
 DefragSturgesNovakBsdTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "JJJJJJJJ"
-        "JJJJJJJJ"
-        "BBBBBBBB"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "GGGGGGGG"
-        "GGGGGGGG"
-        "HHHHHHHH"
-        "HHHHHHHH"
-        "IIIIIIII"
-        "QQQQQQQQ"
+        D_1,
+        D_1,
+        D_1,
+        D_4,
+        D_4,
+        D_2,
+        D_3,
+        D_3,
+        D_3,
+        D_6,
+        D_6,
+        D_6,
+        D_7,
+        D_7,
+        D_7,
+        D_3_3,
+        D_3_3,
+        D_3_3,
+        D_3_4,
+        D_3_4,
+        D_3_5,
+        D_3_5,
+        D_3_6,
+        D_11,
     };
 
     FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_BSD, expected,
@@ -1686,30 +1713,30 @@ static int IPV6DefragSturgesNovakBsdTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "JJJJJJJJ"
-        "JJJJJJJJ"
-        "BBBBBBBB"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "GGGGGGGG"
-        "GGGGGGGG"
-        "HHHHHHHH"
-        "HHHHHHHH"
-        "IIIIIIII"
-        "QQQQQQQQ"
+        D_1,
+        D_1,
+        D_1,
+        D_4,
+        D_4,
+        D_2,
+        D_3,
+        D_3,
+        D_3,
+        D_6,
+        D_6,
+        D_6,
+        D_7,
+        D_7,
+        D_7,
+        D_3_3,
+        D_3_3,
+        D_3_3,
+        D_3_4,
+        D_3_4,
+        D_3_5,
+        D_3_5,
+        D_3_6,
+        D_11,
     };
 
     FAIL_IF_NOT(IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_BSD, expected,
@@ -1721,30 +1748,30 @@ static int DefragSturgesNovakLinuxIpv4Test(void)
 {
     /* Expected data. */
     u_char expected[] = {
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "JJJJJJJJ"
-        "JJJJJJJJ"
-        "BBBBBBBB"
-        "KKKKKKKK"
-        "KKKKKKKK"
-        "KKKKKKKK"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "GGGGGGGG"
-        "GGGGGGGG"
-        "PPPPPPPP"
-        "HHHHHHHH"
-        "QQQQQQQQ"
-        "QQQQQQQQ"
+        D_1,
+        D_1,
+        D_1,
+        D_4,
+        D_4,
+        D_2,
+        D_5,
+        D_5,
+        D_5,
+        D_6,
+        D_6,
+        D_6,
+        D_7,
+        D_7,
+        D_7,
+        D_3_3,
+        D_3_3,
+        D_3_3,
+        D_3_4,
+        D_3_4,
+        D_10,
+        D_3_5,
+        D_11,
+        D_11,
     };
 
     FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_LINUX, expected,
@@ -1756,30 +1783,30 @@ static int IPV6DefragSturgesNovakLinuxTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "JJJJJJJJ"
-        "JJJJJJJJ"
-        "BBBBBBBB"
-        "KKKKKKKK"
-        "KKKKKKKK"
-        "KKKKKKKK"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "GGGGGGGG"
-        "GGGGGGGG"
-        "PPPPPPPP"
-        "HHHHHHHH"
-        "QQQQQQQQ"
-        "QQQQQQQQ"
+        D_1,
+        D_1,
+        D_1,
+        D_4,
+        D_4,
+        D_2,
+        D_5,
+        D_5,
+        D_5,
+        D_6,
+        D_6,
+        D_6,
+        D_7,
+        D_7,
+        D_7,
+        D_3_3,
+        D_3_3,
+        D_3_3,
+        D_3_4,
+        D_3_4,
+        D_10,
+        D_3_5,
+        D_11,
+        D_11,
     };
 
     FAIL_IF_NOT(IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_LINUX, expected,
@@ -1791,30 +1818,30 @@ static int DefragSturgesNovakWindowsIpv4Test(void)
 {
     /* Expected data. */
     u_char expected[] = {
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "JJJJJJJJ"
-        "BBBBBBBB"
-        "BBBBBBBB"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "MMMMMMMM"
-        "EEEEEEEE"
-        "EEEEEEEE"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "GGGGGGGG"
-        "GGGGGGGG"
-        "HHHHHHHH"
-        "HHHHHHHH"
-        "IIIIIIII"
-        "QQQQQQQQ"
+        D_1,
+        D_1,
+        D_1,
+        D_4,
+        D_2,
+        D_2,
+        D_3,
+        D_3,
+        D_3,
+        D_6,
+        D_6,
+        D_6,
+        D_7,
+        D_3_2,
+        D_3_2,
+        D_3_3,
+        D_3_3,
+        D_3_3,
+        D_3_4,
+        D_3_4,
+        D_3_5,
+        D_3_5,
+        D_3_6,
+        D_11,
     };
 
     FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_WINDOWS, expected,
@@ -1826,30 +1853,30 @@ static int IPV6DefragSturgesNovakWindowsTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "JJJJJJJJ"
-        "BBBBBBBB"
-        "BBBBBBBB"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "MMMMMMMM"
-        "EEEEEEEE"
-        "EEEEEEEE"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "GGGGGGGG"
-        "GGGGGGGG"
-        "HHHHHHHH"
-        "HHHHHHHH"
-        "IIIIIIII"
-        "QQQQQQQQ"
+        D_1,
+        D_1,
+        D_1,
+        D_4,
+        D_2,
+        D_2,
+        D_3,
+        D_3,
+        D_3,
+        D_6,
+        D_6,
+        D_6,
+        D_7,
+        D_3_2,
+        D_3_2,
+        D_3_3,
+        D_3_3,
+        D_3_3,
+        D_3_4,
+        D_3_4,
+        D_3_5,
+        D_3_5,
+        D_3_6,
+        D_11,
     };
 
     FAIL_IF_NOT(IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_WINDOWS, expected,
@@ -1861,30 +1888,30 @@ static int DefragSturgesNovakSolarisTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "JJJJJJJJ"
-        "BBBBBBBB"
-        "BBBBBBBB"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "GGGGGGGG"
-        "GGGGGGGG"
-        "HHHHHHHH"
-        "HHHHHHHH"
-        "IIIIIIII"
-        "QQQQQQQQ"
+        D_1,
+        D_1,
+        D_1,
+        D_4,
+        D_2,
+        D_2,
+        D_3,
+        D_3,
+        D_3,
+        D_6,
+        D_6,
+        D_6,
+        D_7,
+        D_7,
+        D_7,
+        D_3_3,
+        D_3_3,
+        D_3_3,
+        D_3_4,
+        D_3_4,
+        D_3_5,
+        D_3_5,
+        D_3_6,
+        D_11,
     };
 
     FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_SOLARIS, expected,
@@ -1896,30 +1923,30 @@ static int IPV6DefragSturgesNovakSolarisTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "JJJJJJJJ"
-        "BBBBBBBB"
-        "BBBBBBBB"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "GGGGGGGG"
-        "GGGGGGGG"
-        "HHHHHHHH"
-        "HHHHHHHH"
-        "IIIIIIII"
-        "QQQQQQQQ"
+        D_1,
+        D_1,
+        D_1,
+        D_4,
+        D_2,
+        D_2,
+        D_3,
+        D_3,
+        D_3,
+        D_6,
+        D_6,
+        D_6,
+        D_7,
+        D_7,
+        D_7,
+        D_3_3,
+        D_3_3,
+        D_3_3,
+        D_3_4,
+        D_3_4,
+        D_3_5,
+        D_3_5,
+        D_3_6,
+        D_11,
     };
 
     FAIL_IF_NOT(IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_SOLARIS, expected,
@@ -1931,30 +1958,30 @@ static int DefragSturgesNovakFirstTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "JJJJJJJJ"
-        "BBBBBBBB"
-        "BBBBBBBB"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "LLLLLLLL"
-        "DDDDDDDD"
-        "LLLLLLLL"
-        "MMMMMMMM"
-        "EEEEEEEE"
-        "EEEEEEEE"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "GGGGGGGG"
-        "GGGGGGGG"
-        "HHHHHHHH"
-        "HHHHHHHH"
-        "IIIIIIII"
-        "QQQQQQQQ"
+        D_1,
+        D_1,
+        D_1,
+        D_4,
+        D_2,
+        D_2,
+        D_3,
+        D_3,
+        D_3,
+        D_6,
+        D_3_1,
+        D_6,
+        D_7,
+        D_3_2,
+        D_3_2,
+        D_3_3,
+        D_3_3,
+        D_3_3,
+        D_3_4,
+        D_3_4,
+        D_3_5,
+        D_3_5,
+        D_3_6,
+        D_11,
     };
 
     FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_FIRST, expected,
@@ -1966,30 +1993,30 @@ static int IPV6DefragSturgesNovakFirstTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "JJJJJJJJ"
-        "BBBBBBBB"
-        "BBBBBBBB"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "LLLLLLLL"
-        "DDDDDDDD"
-        "LLLLLLLL"
-        "MMMMMMMM"
-        "EEEEEEEE"
-        "EEEEEEEE"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "FFFFFFFF"
-        "GGGGGGGG"
-        "GGGGGGGG"
-        "HHHHHHHH"
-        "HHHHHHHH"
-        "IIIIIIII"
-        "QQQQQQQQ"
+        D_1,
+        D_1,
+        D_1,
+        D_4,
+        D_2,
+        D_2,
+        D_3,
+        D_3,
+        D_3,
+        D_6,
+        D_3_1,
+        D_6,
+        D_7,
+        D_3_2,
+        D_3_2,
+        D_3_3,
+        D_3_3,
+        D_3_3,
+        D_3_4,
+        D_3_4,
+        D_3_5,
+        D_3_5,
+        D_3_6,
+        D_11,
     };
 
     return IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_FIRST, expected,
@@ -2001,30 +2028,30 @@ DefragSturgesNovakLastTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
-        "AAAAAAAA"
-        "JJJJJJJJ"
-        "JJJJJJJJ"
-        "JJJJJJJJ"
-        "JJJJJJJJ"
-        "BBBBBBBB"
-        "KKKKKKKK"
-        "KKKKKKKK"
-        "KKKKKKKK"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "FFFFFFFF"
-        "NNNNNNNN"
-        "FFFFFFFF"
-        "GGGGGGGG"
-        "OOOOOOOO"
-        "PPPPPPPP"
-        "HHHHHHHH"
-        "QQQQQQQQ"
-        "QQQQQQQQ"
+        D_1,
+        D_4,
+        D_4,
+        D_4,
+        D_4,
+        D_2,
+        D_5,
+        D_5,
+        D_5,
+        D_6,
+        D_6,
+        D_6,
+        D_7,
+        D_7,
+        D_7,
+        D_3_3,
+        D_8,
+        D_3_3,
+        D_3_4,
+        D_9,
+        D_10,
+        D_3_5,
+        D_11,
+        D_11,
     };
 
     FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_LAST, expected,
@@ -2036,30 +2063,30 @@ static int IPV6DefragSturgesNovakLastTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
-        "AAAAAAAA"
-        "JJJJJJJJ"
-        "JJJJJJJJ"
-        "JJJJJJJJ"
-        "JJJJJJJJ"
-        "BBBBBBBB"
-        "KKKKKKKK"
-        "KKKKKKKK"
-        "KKKKKKKK"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "LLLLLLLL"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "MMMMMMMM"
-        "FFFFFFFF"
-        "NNNNNNNN"
-        "FFFFFFFF"
-        "GGGGGGGG"
-        "OOOOOOOO"
-        "PPPPPPPP"
-        "HHHHHHHH"
-        "QQQQQQQQ"
-        "QQQQQQQQ"
+        D_1,
+        D_4,
+        D_4,
+        D_4,
+        D_4,
+        D_2,
+        D_5,
+        D_5,
+        D_5,
+        D_6,
+        D_6,
+        D_6,
+        D_7,
+        D_7,
+        D_7,
+        D_3_3,
+        D_8,
+        D_3_3,
+        D_3_4,
+        D_9,
+        D_10,
+        D_3_5,
+        D_11,
+        D_11,
     };
 
     FAIL_IF_NOT(IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_LAST, expected,
