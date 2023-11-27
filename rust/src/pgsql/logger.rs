@@ -102,6 +102,13 @@ fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonErro
         }) => {
             js.set_string("message", req.to_str())?;
         }
+        PgsqlFEMessage::UnknownMessageType(RegularPacket {
+            identifier: _,
+            length: _,
+            payload: _,
+        }) => {
+            // We don't want to log these, for now. Cf redmine: #6576
+        }
     }
     js.close()?;
     Ok(js)

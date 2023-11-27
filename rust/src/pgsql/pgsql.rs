@@ -284,6 +284,11 @@ impl PgsqlState {
                 SCLogDebug!("Match: Terminate message");
                 Some(PgsqlStateProgress::ConnectionTerminated)
             }
+            PgsqlFEMessage::UnknownMessageType(_) => {
+                SCLogDebug!("Match: Unknown message type");
+                // Not changing state when we don't know the message
+                None
+            }
         }
     }
 
