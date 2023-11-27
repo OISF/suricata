@@ -455,6 +455,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
 
     if (SigMatchAppendSMToList(
                 de_ctx, s, DETECT_FILESTORE, (SigMatchCtx *)fd, g_file_match_list_id) == NULL) {
+        SCFree(fd);
         goto error;
     }
     s->filestore_ctx = fd;
