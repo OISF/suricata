@@ -358,30 +358,30 @@ static inline MpmPattern *MpmAllocPattern(MpmCtx *mpm_ctx)
  */
 void MpmFreePattern(MpmCtx *mpm_ctx, MpmPattern *p)
 {
-    if (p != NULL && p->cs != NULL && p->cs != p->ci) {
+    if (p == NULL)
+        return;
+
+    if (p->cs != NULL && p->cs != p->ci) {
         SCFree(p->cs);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= p->len;
     }
 
-    if (p != NULL && p->ci != NULL) {
+    if (p->ci != NULL) {
         SCFree(p->ci);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= p->len;
     }
 
-    if (p != NULL && p->original_pat != NULL) {
+    if (p->original_pat != NULL) {
         SCFree(p->original_pat);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= p->len;
     }
 
-    if (p != NULL) {
-        SCFree(p);
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= sizeof(MpmPattern);
-    }
-    return;
+    SCFree(p);
+    mpm_ctx->memory_cnt--;
+    mpm_ctx->memory_size -= sizeof(MpmPattern);
 }
 
 static inline uint32_t MpmInitHash(MpmPattern *p)
