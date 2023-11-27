@@ -218,10 +218,10 @@ void MpmInitCtx(MpmCtx *mpm_ctx, uint8_t matcher)
 /* MPM matcher to use by default, i.e. when "mpm-algo" is set to "auto".
  * If Hyperscan is available, use it. Otherwise, use AC. */
 #ifdef BUILD_HYPERSCAN
-# define DEFAULT_MPM    MPM_HS
-# define DEFAULT_MPM_AC MPM_AC
+#define DEFAULT_MPM    MPM_AC_RS
+#define DEFAULT_MPM_AC MPM_AC_RS
 #else
-# define DEFAULT_MPM    MPM_AC
+#define DEFAULT_MPM MPM_AC_RS
 #endif
 
 void MpmTableSetup(void)
