@@ -214,7 +214,7 @@ pub extern "C" fn rs_mpm_acrs_free_builder(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mpm_acrs_add_pattern(state: &mut AhoCorasickStateBuilder,
+pub unsafe extern "C" fn rs_mpm_acrs_add_pattern(state: &mut AhoCorasickStateBuilder,
     pat: *mut u8, pat_len: u16, sids: *mut u32, sids_len: u32, ci: bool, offset: u16, depth: u16) -> i32 {
     let p = unsafe { build_slice!(pat, pat_len as usize) };
     let s = unsafe { build_slice!(sids, sids_len as usize) };
@@ -296,16 +296,16 @@ pub extern "C" fn rs_mpm_acrs_state_free(state: *mut std::os::raw::c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mpm_acrs_search(state: &AhoCorasickState, data: *const u8, data_len: u32,
-    func: unsafe extern "C" fn(*mut std::os::raw::c_void, *const u32, u32),
-    thunk: *mut std::os::raw::c_void) -> u32
+pub unsafe extern "C" fn rs_mpm_acrs_search(state: &AhoCorasickState, data: *const u8, data_len: u32,
+    cb: unsafe extern "C" fn(*mut std::os::raw::c_void, *const u32, u32),
+    cbdata: *mut std::os::raw::c_void) -> u32
 {
     let mut sids: Vec<u32> = Vec::new();
     let data = unsafe { build_slice!(data, data_len as usize) };
     let matches = state.search(data, &mut sids);
     if !sids.is_empty() {
         let sids_s = sids.as_ptr();
-        unsafe { func(thunk, sids_s, sids.len() as u32); };
+        unsafe { cb(cbdata, sids_s, sids.len() as u32); };
     }
     matches
 }
