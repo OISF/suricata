@@ -277,10 +277,8 @@ fn mime_parse_headers<'a>(
                 if value.is_empty() {
                     errored = true;
                 }
-            } else {
-                if !line.is_empty() {
-                    errored = true;
-                }
+            } else if !line.is_empty() {
+                errored = true;
             }
             let (input3, _) = tag("\r\n")(input2)?;
             input = input3;
