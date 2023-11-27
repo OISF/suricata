@@ -377,6 +377,10 @@ void MpmFreePattern(MpmCtx *mpm_ctx, MpmPattern *p)
         mpm_ctx->memory_size -= p->len;
     }
 
+    if (p->sids != NULL) {
+        SCFree(p->sids);
+    }
+
     SCFree(p);
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(MpmPattern);
