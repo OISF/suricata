@@ -391,8 +391,19 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
     StreamTcp(tv, p, fw->stream_thread, &fw->pq);
     FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_STREAM);
 
-    if (FlowChangeProto(p->flow)) {
+    // this is the first packet that sets no payload inspection
+    bool setting_nopayload =
+            (p->flow->flags & FLOW_NOPAYLOAD_INSPECTION) && !(p->flags & PKT_NOPAYLOAD_INSPECTION);
+    if (FlowChangeProto(p->flow) || setting_nopayload) {
+        if (setting_nopayload) {
+            // We still need to flush detection on previous packets.
+            // The pseudo packets should not have NOPAYLOAD_INSPECTION set yet.
+            p->flow->flags &= ~FLOW_NOPAYLOAD_INSPECTION;
+        }
         StreamTcpDetectLogFlush(tv, fw->stream_thread, p->flow, p, &fw->pq);
+        if (setting_nopayload) {
+            p->flow->flags |= FLOW_NOPAYLOAD_INSPECTION;
+        }
         AppLayerParserStateSetFlag(p->flow->alparser, APP_LAYER_PARSER_EOF_TS);
         AppLayerParserStateSetFlag(p->flow->alparser, APP_LAYER_PARSER_EOF_TC);
     }
