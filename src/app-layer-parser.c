@@ -1440,7 +1440,6 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     /* set the packets to no inspection and reassembly if required */
     if (pstate->flags & APP_LAYER_PARSER_NO_INSPECTION) {
         AppLayerParserSetEOF(pstate);
-        FlowSetNoPayloadInspectionFlag(f);
 
         if (f->proto == IPPROTO_TCP) {
             StreamTcpDisableAppLayer(f);
@@ -1462,6 +1461,9 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
                     StreamTcpSetSessionBypassFlag(ssn);
                 }
             }
+        } else {
+            // for TCP, this is set after flushing
+            FlowSetNoPayloadInspectionFlag(f);
         }
     }
 
