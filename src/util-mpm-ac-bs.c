@@ -906,6 +906,8 @@ int SCACBSPreparePatterns(MpmCtx *mpm_ctx)
         /* ACPatternList now owns this memory */
         ctx->pid_pat_list[ctx->parray[i]->id].sids_size = ctx->parray[i]->sids_size;
         ctx->pid_pat_list[ctx->parray[i]->id].sids = ctx->parray[i]->sids;
+        ctx->parray[i]->sids = NULL;
+        ctx->parray[i]->sids_size = 0;
     }
 
     /* prepare the state table required by AC */
