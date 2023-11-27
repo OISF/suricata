@@ -288,6 +288,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         pv->filename = SCStrdup((char*)initdata);
         if (unlikely(pv->filename == NULL)) {
             SCLogError("Failed to allocate filename");
+            closedir(directory);
             CleanupPcapFileDirectoryVars(pv);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_OK);
@@ -309,6 +310,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         if (pv->should_recurse == true && pv->should_loop == true) {
             SCLogError("Error, --pcap-file-continuous and --pcap-file-recursive "
                        "cannot be used together.");
+            closedir(directory);
             CleanupPcapFileDirectoryVars(pv);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_FAILED);
