@@ -318,7 +318,7 @@ impl PgsqlState {
 
         // If there was gap, check we can sync up again.
         if self.request_gap {
-            if !probe_ts(input) {
+            if parser::parse_request(input).is_ok() {
                 // The parser now needs to decide what to do as we are not in sync.
                 // For now, we'll just try again next time.
                 SCLogDebug!("Suricata interprets there's a gap in the request");
@@ -530,14 +530,6 @@ impl PgsqlState {
     fn on_response_gap(&mut self, _size: u32) {
         self.response_gap = true;
     }
-}
-
-/// Probe for a valid PostgreSQL request
-///
-/// PGSQL messages don't have a header per se, so we parse the slice for an ok()
-fn probe_ts(input: &[u8]) -> bool {
-    SCLogDebug!("We are in probe_ts");
-    parser::parse_request(input).is_ok()
 }
 
 /// Probe for a valid PostgreSQL response
