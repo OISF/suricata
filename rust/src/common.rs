@@ -303,7 +303,7 @@ pub extern "C" fn rs_mpm_acrs_search(state: &AhoCorasickState, data: *const u8, 
     let mut sids: Vec<u32> = Vec::new();
     let data = unsafe { build_slice!(data, data_len as usize) };
     let matches = state.search(data, &mut sids);
-    if sids.len() > 0 {
+    if !sids.is_empty() {
         let sids_s = sids.as_ptr();
         unsafe { func(thunk, sids_s, sids.len() as u32); };
     }
