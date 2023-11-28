@@ -18,7 +18,7 @@
 /* Wrapper around the aho-corasick crate to expose to the Suricata's
  * MPM API. */
 
-use aho_corasick::AhoCorasick;
+use aho_corasick::{AhoCorasick,AhoCorasickKind};
 
 #[derive(Debug,Clone)]
 struct AhoCorasickPatternData {
@@ -93,6 +93,7 @@ impl AhoCorasickState {
     /// build the AC state from the builder
     fn prepare(builder: &AhoCorasickStateBuilder) -> Self {
         let ac = AhoCorasick::builder()
+            .kind(Some(AhoCorasickKind::DFA))
             .ascii_case_insensitive(builder.has_ci)
             .build(&builder.patterns)
             .unwrap();
