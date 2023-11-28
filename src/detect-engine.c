@@ -2728,7 +2728,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         /* for now, since we still haven't implemented any intelligence into
          * understanding the patterns and distributing mpm_ctx across sgh */
         if (de_ctx->mpm_matcher == MPM_AC || de_ctx->mpm_matcher == MPM_AC_KS ||
-                de_ctx->mpm_matcher == MPM_HS || de_ctx->mpm_matcher == MPM_AC_BS) {
+                de_ctx->mpm_matcher == MPM_HS) {
             de_ctx->sgh_mpm_ctx_cnf = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
         } else {
             de_ctx->sgh_mpm_ctx_cnf = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
