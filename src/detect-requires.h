@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,13 +15,9 @@
  * 02110-1301, USA.
  */
 
-//! Module for rule parsing.
+#ifndef __DETECT_REQUIRES_H__
+#define __DETECT_REQUIRES_H__
 
-pub mod byte_math;
-pub mod error;
-pub mod iprep;
-pub mod parser;
-pub mod stream_size;
-pub mod uint;
-pub mod uri;
-pub mod requires;
+void DetectRequiresRegister(void);
+
+#endif /* __DETECT_REQUIRES_H__ */
