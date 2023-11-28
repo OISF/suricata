@@ -1126,13 +1126,6 @@ static int CheckMatch(const SCACTileSearchCtx *ctx, PrefilterRuleStore *pmq,
         MpmPatternIndex pindex = patterns[k] & 0x0FFFFFFF;
         if (mpm_bitarray[pindex / 8] & (1 << (pindex % 8))) {
             /* Pattern already seen by this MPM. */
-            /* NOTE: This is faster then rechecking if it is a case-sensitive match
-             * since we know this pattern has already been seen, but incrementing
-             * matches here could over report matches. For example if the case-sensitive
-             * pattern is "Foo" and the string is "Foo bar foo", matches would be reported
-             * as 2, when it should really be 1, since "foo" is not a true match.
-             */
-            matches++;
             continue;
         }
         const SCACTilePatternList *pat = &pattern_list[pindex];
@@ -1613,7 +1606,6 @@ static int SCACTileTest06(void)
 
 static int SCACTileTest07(void)
 {
-    int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
     PrefilterRuleStore pmq;
@@ -1636,22 +1628,18 @@ static int SCACTileTest07(void)
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
                      30, 0, 0, 5, 0, 0);
     PmqSetup(&pmq);
-    /* total matches: 135 */
+    /* total matches: 135: 6 unique */
 
     SCACTilePreparePatterns(&mpm_ctx);
 
     const char *buf = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
-
-    if (cnt == 135)
-        result = 1;
-    else
-        printf("135 != %" PRIu32 " ",cnt);
+    FAIL_IF_NOT(cnt == 6);
 
     SCACTileDestroyCtx(&mpm_ctx);
     PmqFree(&pmq);
-    return result;
+    PASS;
 }
 
 static int SCACTileTest08(void)
