@@ -44,6 +44,8 @@
 #include "util-threshold-config.h"
 #include "util-path.h"
 
+#include "rust.h"
+
 #ifdef HAVE_GLOB_H
 #include <glob.h>
 #endif
@@ -109,11 +111,11 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_f
  *  \param badsigs_tot Will store number of invalid signatures in the file
  *  \retval 0 on success, -1 on error
  */
-static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
-        int *goodsigs, int *badsigs)
+static int DetectLoadSigFile(
+        DetectEngineCtx *de_ctx, char *sig_file, int *goodsigs, int *badsigs, int *skippedsigs)
 {
     Signature *sig = NULL;
-    int good = 0, bad = 0;
+    int good = 0, bad = 0, skipped = 0;
     char line[DETECT_MAX_RULE_SIZE] = "";
     size_t offset = 0;
     int lineno = 0, multiline = 0;
@@ -196,6 +198,12 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
             if (!de_ctx->sigerror_ok) {
                 bad++;
             }
+            if (de_ctx->sigerror_requires) {
+                SCLogInfo("Skipping signature due to missing requirements: %s from file %s at line "
+                          "%" PRId32,
+                        line, sig_file, lineno - multiline);
+                skipped++;
+            }
         }
         multiline = 0;
     }
@@ -203,6 +211,7 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
 
     *goodsigs = good;
     *badsigs = bad;
+    *skippedsigs = skipped;
     return 0;
 }
 
@@ -212,8 +221,8 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
  *  \param sig_file Filename (or pattern) holding signatures
  *  \retval -1 on error
  */
-static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
-        SigFileLoaderStat *st, int *good_sigs, int *bad_sigs)
+static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern, SigFileLoaderStat *st,
+        int *good_sigs, int *bad_sigs, int *skipped_sigs)
 {
     int r = 0;
 
@@ -246,7 +255,7 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
             return 0;
 #endif
         SCLogConfig("Loading rule file: %s", fname);
-        r = DetectLoadSigFile(de_ctx, fname, good_sigs, bad_sigs);
+        r = DetectLoadSigFile(de_ctx, fname, good_sigs, bad_sigs, skipped_sigs);
         if (r < 0) {
             ++(st->bad_files);
         }
@@ -255,6 +264,7 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
 
         st->good_sigs_total += *good_sigs;
         st->bad_sigs_total += *bad_sigs;
+        st->skipped_sigs_total += *skipped_sigs;
 
 #ifdef HAVE_GLOB_H
     }
@@ -282,6 +292,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     char varname[128] = "rule-files";
     int good_sigs = 0;
     int bad_sigs = 0;
+    int skipped_sigs = 0;
 
     if (strlen(de_ctx->config_prefix) > 0) {
         snprintf(varname, sizeof(varname), "%s.rule-files",
@@ -303,8 +314,9 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
             else {
                 TAILQ_FOREACH(file, &rule_files->head, next) {
                     sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
-                    good_sigs = bad_sigs = 0;
-                    ret = ProcessSigFiles(de_ctx, sfile, sig_stat, &good_sigs, &bad_sigs);
+                    good_sigs = bad_sigs = skipped_sigs = 0;
+                    ret = ProcessSigFiles(
+                            de_ctx, sfile, sig_stat, &good_sigs, &bad_sigs, &skipped_sigs);
                     SCFree(sfile);
 
                     if (de_ctx->failure_fatal && ret != 0) {
@@ -323,7 +335,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
 
     /* If a Signature file is specified from command-line, parse it too */
     if (sig_file != NULL) {
-        ret = ProcessSigFiles(de_ctx, sig_file, sig_stat, &good_sigs, &bad_sigs);
+        ret = ProcessSigFiles(de_ctx, sig_file, sig_stat, &good_sigs, &bad_sigs, &skipped_sigs);
 
         if (ret != 0) {
             if (de_ctx->failure_fatal) {
@@ -347,8 +359,14 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
         }
     } else {
         /* we report the total of files and rules successfully loaded and failed */
-        SCLogInfo("%" PRId32 " rule files processed. %" PRId32 " rules successfully loaded, %" PRId32 " rules failed",
-            sig_stat->total_files, sig_stat->good_sigs_total, sig_stat->bad_sigs_total);
+        SCLogInfo("%" PRId32 " rule files processed. %" PRId32
+                  " rules successfully loaded, %" PRId32 " rules failed, %" PRId32,
+                sig_stat->total_files, sig_stat->good_sigs_total, sig_stat->bad_sigs_total,
+                sig_stat->skipped_sigs_total);
+        if (de_ctx->requirements != NULL && sig_stat->skipped_sigs_total > 0) {
+            SCDetectRequiresStatusLog(de_ctx->requirements, PROG_VER,
+                    strlen(de_ctx->config_prefix) > 0 ? de_ctx->tenant_id : 0);
+        }
     }
 
     if ((sig_stat->bad_sigs_total || sig_stat->bad_files) && de_ctx->failure_fatal) {

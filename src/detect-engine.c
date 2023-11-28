@@ -2669,6 +2669,10 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
         SCFree(de_ctx->tenant_path);
     }
 
+    if (de_ctx->requirements) {
+        SCDetectRequiresStatusFree(de_ctx->requirements);
+    }
+
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();

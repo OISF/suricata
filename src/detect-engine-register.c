@@ -114,6 +114,7 @@
 #include "detect-rev.h"
 #include "detect-flow.h"
 #include "detect-flow-age.h"
+#include "detect-requires.h"
 #include "detect-tcp-window.h"
 #include "detect-ftpbounce.h"
 #include "detect-isdataat.h"
@@ -564,6 +565,7 @@ void SigTableSetup(void)
     DetectReplaceRegister();
     DetectFlowRegister();
     DetectFlowAgeRegister();
+    DetectRequiresRegister();
     DetectWindowRegister();
     DetectRpcRegister();
     DetectFtpbounceRegister();
