@@ -211,3 +211,52 @@ The format is::
 If the value is src_ip then the source IP in the generated event (src_ip
 field in JSON) is the target of the attack. If target is set to dest_ip
 then the target is the destination IP in the generated event.
+
+requires
+--------
+
+The ``requires`` keyword allows a rule to require specific Suricata
+features to be enabled, or the Suricata version to match an
+expression. Rules that do not meet the requirements will by ignored,
+and Suricata will not treat them as errors.
+
+When parsing rules, the parser attempts to process the 'requires'
+keywords before others. This allows it to occur after keywords that
+may only be present in specific versions of Suricata, as specified by
+the 'requires' statement. However, the keywords preceding it must
+still adhere to the basic known formats of Suricata rules.
+
+The format is::
+
+   requires: feature geoip, version >= 7.0.0
+
+To require multiple features, the feature sub-keyword must be
+specified multiple times::
+
+   requires: feature geoip, feature lua
+
+The version sub-keyword may also be present multiple times, for
+example a rule may express that it is for Suricata verisons greater
+than or equal to 7.0.3, but less than version 8::
+
+   requires: version >= 7.0.4, version < 8
+
+Alternatively, *and* expressions may be expressed like::
+
+   requires: version >= 7.0.4 < 8
+
+and *or* expressions may expressed with ``|`` like::
+
+   requires: version >= 7.0.4 < 8 | >= 8.0.3
+
+to express that a rules requires version 7.0.4 or greater, but less
+than 8, **OR** greater than or equal to 8.0.3. Which could be useful
+if a keyword wasn't added until 7.0.4 and the 8.0.3 patch releases, as
+it would not exist in 8.0.1.
+
+This can be extended to multiple release branches::
+
+   requires: version >= 7.0.10 < 8 | >= 8.0.5 < 9 | >= 9.0.3
+
+If no *minor* or *patch* version component is provided, it will
+default to 0.

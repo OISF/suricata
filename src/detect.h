@@ -797,6 +797,7 @@ typedef struct SigFileLoaderStat_ {
     int total_files;
     int good_sigs_total;
     int bad_sigs_total;
+    int skipped_sigs_total;
 } SigFileLoaderStat;
 
 typedef struct DetectEngineThreadKeywordCtxItem_ {
@@ -925,6 +926,9 @@ typedef struct DetectEngineCtx_ {
     bool sigerror_silent;
     bool sigerror_ok;
 
+    /** The rule errored out due to missing requirements. */
+    bool sigerror_requires;
+
     bool filedata_config_initialized;
 
     /* specify the configuration for mpm context factory */
@@ -1032,6 +1036,10 @@ typedef struct DetectEngineCtx_ {
 
     /* path to the tenant yaml for this engine */
     char *tenant_path;
+
+    /* Pointer to SCDetectRequiresStatus. Using void * here to prevent
+     * a circular dependency between rust.h and detect.h. */
+    void *requirements;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
