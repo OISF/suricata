@@ -275,9 +275,19 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     uint16_t hlen = 0;
     int ip_hdr_offset = 0;
 
+    /* Assume more frags. */
+    uint16_t prev_offset = 0;
+    bool more_frags = 1;
+
     RB_FOREACH(frag, IP_FRAGMENTS, &tracker->fragment_tree) {
         SCLogDebug("frag %p, data_len %u, offset %u, pcap_cnt %"PRIu64,
                 frag, frag->data_len, frag->offset, frag->pcap_cnt);
+
+        /* Previous fragment has no more fragments, and this packet
+         * doesn't overlap. We're done. */
+        if (!more_frags && frag->offset > prev_offset) {
+            break;
+        }
 
         if (frag->skip)
             continue;
@@ -319,9 +329,16 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
                 fragmentable_len = frag->offset + frag->data_len;
         }
 
-        if (!frag->more_frags) {
-            break;
-        }
+        /* Even if this fragment is flagged as having no more
+         * fragments, still continue. The next fragment may have the
+         * same offset with data that is preferred.
+         *
+         * For example, DefragBsdFragmentAfterNoMfIpv{4,6}Test
+         *
+         * This is due to not all fragments being completely trimmed,
+         * but relying on the copy ordering. */
+        more_frags = frag->more_frags;
+        prev_offset = frag->offset;
     }
 
     SCLogDebug("ip_hdr_offset %u, hlen %" PRIu16 ", fragmentable_len %" PRIu16, ip_hdr_offset, hlen,
@@ -418,7 +435,15 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     uint16_t fragmentable_len = 0;
     int ip_hdr_offset = 0;
     uint8_t next_hdr = 0;
+
+    /* Assume more frags. */
+    uint16_t prev_offset = 0;
+    bool more_frags = 1;
+
     RB_FOREACH(frag, IP_FRAGMENTS, &tracker->fragment_tree) {
+        if (!more_frags && frag->offset > prev_offset) {
+            break;
+        }
         if (frag->skip)
             continue;
         if (frag->data_len - frag->ltrim <= 0)
@@ -463,9 +488,16 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
                 fragmentable_len = frag->offset + frag->data_len;
         }
 
-        if (!frag->more_frags) {
-            break;
-        }
+        /* Even if this fragment is flagged as having no more
+         * fragments, still continue. The next fragment may have the
+         * same offset with data that is preferred.
+         *
+         * For example, DefragBsdFragmentAfterNoMfIpv{4,6}Test
+         *
+         * This is due to not all fragments being completely trimmed,
+         * but relying on the copy ordering. */
+        more_frags = frag->more_frags;
+        prev_offset = frag->offset;
     }
 
     rp->ip6h = (IPV6Hdr *)(GET_PKT_DATA(rp) + ip_hdr_offset);
@@ -2378,6 +2410,10 @@ static int DefragMfIpv4Test(void)
      * fragments should be in the re-assembled packet. */
     FAIL_IF(IPV4_GET_IPLEN(p) != 36);
 
+    /* Verify the payload of the IPv4 packet. */
+    uint8_t expected_payload[] = "AAAAAAAABBBBBBBB";
+    FAIL_IF(memcmp(GET_PKT_DATA(p) + sizeof(IPV4Hdr), expected_payload, sizeof(expected_payload)));
+
     SCFree(p1);
     SCFree(p2);
     SCFree(p3);
@@ -2420,6 +2456,10 @@ static int DefragMfIpv6Test(void)
     /* For IPv6 the expected length is just the length of the payload
      * of 2 fragments, so 16. */
     FAIL_IF(IPV6_GET_PLEN(p) != 16);
+
+    /* Verify the payload of the IPv4 packet. */
+    uint8_t expected_payload[] = "AAAAAAAABBBBBBBB";
+    FAIL_IF(memcmp(GET_PKT_DATA(p) + sizeof(IPV6Hdr), expected_payload, sizeof(expected_payload)));
 
     SCFree(p1);
     SCFree(p2);
@@ -2514,6 +2554,96 @@ static int DefragTestJeremyLinux(void)
     PASS;
 }
 
+static int DefragBsdFragmentAfterNoMfIpv4Test(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[4];
+
+    packets[0] = BuildIpv4TestPacket(IPPROTO_ICMP, 0x96, 24 >> 3, 0, 'A', 16);
+    packets[1] = BuildIpv4TestPacket(IPPROTO_ICMP, 0x96, 8 >> 3, 1, 'B', 16);
+    packets[2] = BuildIpv4TestPacket(IPPROTO_ICMP, 0x96, 16 >> 3, 1, 'C', 16);
+    packets[3] = BuildIpv4TestPacket(IPPROTO_ICMP, 0x96, 0, 1, 'D', 8);
+
+    Packet *r = Defrag(NULL, NULL, packets[0]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[1]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[2]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[3]);
+    FAIL_IF_NULL(r);
+
+    // clang-format off
+    uint8_t expected[] = {
+	'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+	'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B',
+	'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B',
+	'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+	'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+    };
+    // clang-format on
+
+    if (memcmp(expected, GET_PKT_DATA(r) + 20, sizeof(expected)) != 0) {
+        printf("Expected:\n");
+        PrintRawDataFp(stdout, expected, sizeof(expected));
+        printf("Got:\n");
+        PrintRawDataFp(stdout, GET_PKT_DATA(r) + 20, GET_PKT_LEN(r) - 20);
+        FAIL;
+    }
+
+    DefragDestroy();
+    PASS;
+}
+
+static int DefragBsdFragmentAfterNoMfIpv6Test(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[4];
+
+    packets[0] = BuildIpv6TestPacket(IPPROTO_ICMP, 0x96, 24 >> 3, 0, 'A', 16);
+    packets[1] = BuildIpv6TestPacket(IPPROTO_ICMP, 0x96, 8 >> 3, 1, 'B', 16);
+    packets[2] = BuildIpv6TestPacket(IPPROTO_ICMP, 0x96, 16 >> 3, 1, 'C', 16);
+    packets[3] = BuildIpv6TestPacket(IPPROTO_ICMP, 0x96, 0, 1, 'D', 8);
+
+    Packet *r = Defrag(NULL, NULL, packets[0]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[1]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[2]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[3]);
+    FAIL_IF_NULL(r);
+
+    // clang-format off
+    uint8_t expected[] = {
+	'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+	'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B',
+	'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B',
+	'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+	'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+    };
+    // clang-format on
+
+    if (memcmp(expected, GET_PKT_DATA(r) + 40, sizeof(expected)) != 0) {
+        printf("Expected:\n");
+        PrintRawDataFp(stdout, expected, sizeof(expected));
+        printf("Got:\n");
+        PrintRawDataFp(stdout, GET_PKT_DATA(r) + 40, GET_PKT_LEN(r) - 40);
+        FAIL;
+    }
+
+    DefragDestroy();
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void DefragRegisterTests(void)
@@ -2553,5 +2683,8 @@ void DefragRegisterTests(void)
     UtRegisterTest("DefragTestBadProto", DefragTestBadProto);
 
     UtRegisterTest("DefragTestJeremyLinux", DefragTestJeremyLinux);
+
+    UtRegisterTest("DefragBsdFragmentAfterNoMfIpv4Test", DefragBsdFragmentAfterNoMfIpv4Test);
+    UtRegisterTest("DefragBsdFragmentAfterNoMfIpv6Test", DefragBsdFragmentAfterNoMfIpv6Test);
 #endif /* UNITTESTS */
 }
