@@ -29,7 +29,6 @@
 
 /* include pattern matchers */
 #include "util-mpm-ac.h"
-#include "util-mpm-ac-bs.h"
 #include "util-mpm-ac-ks.h"
 #include "util-mpm-hs.h"
 #include "util-hashlist.h"
@@ -229,7 +228,6 @@ void MpmTableSetup(void)
     mpm_default_matcher = DEFAULT_MPM;
 
     MpmACRegister();
-    MpmACBSRegister();
     MpmACTileRegister();
 #ifdef BUILD_HYPERSCAN
     #ifdef HAVE_HS_VALID_PLATFORM
