@@ -797,6 +797,7 @@ typedef struct SigFileLoaderStat_ {
     int total_files;
     int good_sigs_total;
     int bad_sigs_total;
+    int skipped_sigs_total;
 } SigFileLoaderStat;
 
 typedef struct DetectEngineThreadKeywordCtxItem_ {
@@ -924,6 +925,9 @@ typedef struct DetectEngineCtx_ {
     const char *sigerror;
     bool sigerror_silent;
     bool sigerror_ok;
+
+    /** The rule errored out due to missing requirements. */
+    bool sigerror_requires;
 
     bool filedata_config_initialized;
 
