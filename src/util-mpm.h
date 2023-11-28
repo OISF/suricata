@@ -34,7 +34,6 @@ enum {
 
     /* aho-corasick */
     MPM_AC,
-    MPM_AC_BS,
     MPM_AC_KS,
     MPM_HS,
     /* table size */
