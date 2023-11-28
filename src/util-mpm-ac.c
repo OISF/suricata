@@ -930,7 +930,7 @@ void SCACDestroyCtx(MpmCtx *mpm_ctx)
  * \param buf            Buffer to be searched.
  * \param buflen         Buffer length.
  *
- * \retval matches Match count.
+ * \retval matches Match count: counts unique matches per pattern.
  */
 uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     PrefilterRuleStore *pmq, const uint8_t *buf, uint32_t buflen)
@@ -975,8 +975,8 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         } else {
                             bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
                             PrefilterAddSids(pmq, pat->sids, pat->sids_size);
+                            matches++;
                         }
-                        matches++;
                     } else {
                         const SCACPatternList *pat = &pid_pat_list[pids[k]];
                         const int offset = i - pat->patlen + 1;
@@ -989,8 +989,8 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         } else {
                             bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
                             PrefilterAddSids(pmq, pat->sids, pat->sids_size);
+                            matches++;
                         }
-                        matches++;
                     }
                     //loop1:
                     //;
@@ -1026,8 +1026,8 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         } else {
                             bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
                             PrefilterAddSids(pmq, pat->sids, pat->sids_size);
+                            matches++;
                         }
-                        matches++;
                     } else {
                         const SCACPatternList *pat = &pid_pat_list[pids[k]];
                         const int offset = i - pat->patlen + 1;
@@ -1040,8 +1040,8 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         } else {
                             bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
                             PrefilterAddSids(pmq, pat->sids, pat->sids_size);
+                            matches++;
                         }
-                        matches++;
                     }
                     //loop1:
                     //;
@@ -1343,7 +1343,6 @@ static int SCACTest06(void)
 
 static int SCACTest07(void)
 {
-    int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
     PrefilterRuleStore pmq;
@@ -1366,22 +1365,18 @@ static int SCACTest07(void)
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
                      30, 0, 0, 5, 0, 0);
     PmqSetup(&pmq);
-    /* total matches: 135 */
+    /* total matches: 135: unique matches: 6 */
 
     SCACPreparePatterns(&mpm_ctx);
 
     const char *buf = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                (uint8_t *)buf, strlen(buf));
-
-    if (cnt == 135)
-        result = 1;
-    else
-        printf("135 != %" PRIu32 " ",cnt);
+    FAIL_IF_NOT(cnt == 6);
 
     SCACDestroyCtx(&mpm_ctx);
     PmqFree(&pmq);
-    return result;
+    PASS;
 }
 
 static int SCACTest08(void)
