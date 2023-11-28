@@ -53,6 +53,9 @@
 struct SCSigOrderFunc_;
 struct SCSigSignatureWrapper_;
 
+/* Forward declarations for structures from Rust. */
+typedef struct SCDetectRequiresStatus SCDetectRequiresStatus;
+
 enum SignatureType {
     SIG_TYPE_NOT_SET = 0,
     SIG_TYPE_IPONLY,      // rule is handled by IPONLY engine
@@ -797,6 +800,7 @@ typedef struct SigFileLoaderStat_ {
     int total_files;
     int good_sigs_total;
     int bad_sigs_total;
+    int skipped_sigs_total;
 } SigFileLoaderStat;
 
 typedef struct DetectEngineThreadKeywordCtxItem_ {
@@ -925,6 +929,9 @@ typedef struct DetectEngineCtx_ {
     bool sigerror_silent;
     bool sigerror_ok;
 
+    /** The rule errored out due to missing requirements. */
+    bool sigerror_requires;
+
     bool filedata_config_initialized;
 
     /* specify the configuration for mpm context factory */
@@ -1032,6 +1039,9 @@ typedef struct DetectEngineCtx_ {
 
     /* path to the tenant yaml for this engine */
     char *tenant_path;
+
+    /* Track rule requirements for reporting after loading rules. */
+    SCDetectRequiresStatus *requirements;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
