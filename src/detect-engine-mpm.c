@@ -854,6 +854,9 @@ uint8_t PatternMatchDefaultMatcher(void)
 #endif
             if (strcmp("auto", mpm_algo) == 0) {
                 goto done;
+            } else if (strcmp("ac-bs", mpm_algo) == 0) {
+                SCLogWarning("mpm-algo \"ac-bs\" has been removed. See ticket #6586.");
+                goto done;
             }
             for (uint8_t u = 0; u < MPM_TABLE_SIZE; u++) {
                 if (mpm_table[u].name == NULL)
