@@ -276,6 +276,7 @@ noinst_HEADERS = \
 	detect-rawbytes.h \
 	detect-reference.h \
 	detect-replace.h \
+	detect-requires.h \
 	detect-rev.h \
 	detect-rfb-name.h \
 	detect-rfb-secresult.h \
@@ -888,6 +889,7 @@ libsuricata_c_a_SOURCES = \
 	detect-rawbytes.c \
 	detect-reference.c \
 	detect-replace.c \
+	detect-requires.c \
 	detect-rev.c \
 	detect-rfb-name.c \
 	detect-rfb-secresult.c \
