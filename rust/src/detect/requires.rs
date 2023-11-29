@@ -237,10 +237,10 @@ fn check_requires(
         }
     }
 
-    #[allow(clippy::never_loop)]
-    for _feature in &requires.features {
-        // TODO: Any feature is a missing feature for now.
-        return Err(RequiresError::MissingFeature);
+    for feature in &requires.features {
+        if !crate::feature::requires(feature) {
+            return Err(RequiresError::MissingFeature);
+        }
     }
 
     Ok(())
@@ -474,5 +474,10 @@ mod test {
             check_requires(&requires, &suricata_version),
             Err(RequiresError::MissingFeature)
         );
+
+        // Require feature foobar, but this time we have the feature.
+        let suricata_version = SuricataVersion::new(8, 0, 0);
+        let requires = parse_requires("feature true_foobar").unwrap().1;
+        assert_eq!(check_requires(&requires, &suricata_version), Ok(()));
     }
 }
