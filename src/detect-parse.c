@@ -900,10 +900,11 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     }
     optname = optstr;
 
-    if (requires) {
-        if (strcmp(optname, "requires")) {
-            goto finish;
-        }
+    /* Check for options that are only to be processed during the
+     * first "requires" pass. */
+    bool requires_only = strcmp(optname, "requires") == 0 || strcmp(optname, "sid") == 0;
+    if ((requires && !requires_only) || (!requires && requires_only)) {
+        goto finish;
     }
 
     /* Call option parsing */
@@ -2137,10 +2138,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             AppLayerHtpNeedFileInspection();
         }
     }
-    if (s->id == 0) {
-        SCLogError("Signature missing required value \"sid\".");
-        SCReturnInt(0);
-    }
+
     SCReturnInt(1);
 }
 
@@ -2178,6 +2176,12 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
         de_ctx->sigerror_requires = true;
         goto error;
     } else if (ret < 0) {
+        goto error;
+    }
+
+    /* Check for a SID before continuuing. */
+    if (sig->id == 0) {
+        SCLogError("Signature missing required value \"sid\".");
         goto error;
     }
 
