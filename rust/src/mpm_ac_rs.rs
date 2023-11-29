@@ -83,7 +83,8 @@ pub unsafe extern "C" fn rs_mpm_acrs_add_pattern(state: &mut AhoCorasickStateBui
 }
 
 pub struct AhoCorasickState {
-    pattern_cnt: u32,
+    _pattern_cnt: u32,
+    pat_bitarray_size: u32,
     ac: AhoCorasick,
     pattern_data: Vec<AhoCorasickPatternData>,
     has_ci: bool,
@@ -97,7 +98,9 @@ impl AhoCorasickState {
             .ascii_case_insensitive(builder.has_ci)
             .build(&builder.patterns)
             .unwrap();
-        Self { ac, has_ci: builder.has_ci, pattern_cnt: builder.patterns.len() as u32, pattern_data: builder.pattern_data.clone() }
+        Self { ac, has_ci: builder.has_ci, _pattern_cnt: builder.patterns.len() as u32, 
+            pat_bitarray_size: (builder.patterns.len() as u32 / 8) + 1,
+            pattern_data: builder.pattern_data.clone() }
     }
 }
 
@@ -121,12 +124,12 @@ pub unsafe extern "C" fn rs_mpm_acrs_search(state: &AhoCorasickState, data: *con
 {
     let haystack = build_slice!(data, data_len as usize);
     let mut match_cnt : u32 = 0;
-    // array of bools for patterns we found
-    let mut matches = vec![0u8; (state.pattern_cnt as usize / 8) + 1];
+    // track unique matches using a bitarray
+    let mut bitarray = vec![0u8; state.pat_bitarray_size as usize];
     for mat in state.ac.find_overlapping_iter(haystack) {
         let pat_id = mat.pattern().as_u32();
         /* bail if we found this pattern before */
-        if matches[(pat_id / 8) as usize] & (1 << (pat_id % 8) as usize) != 0 {
+        if bitarray[(pat_id / 8) as usize] & (1 << (pat_id % 8) as usize) != 0 {
             SCLogDebug!("pattern {:?} already found", pat_id);
             continue;
         }
@@ -149,7 +152,7 @@ pub unsafe extern "C" fn rs_mpm_acrs_search(state: &AhoCorasickState, data: *con
             SCLogDebug!("pattern {:?} failed: after depth", pat_id);
             continue;
         }
-        matches[(pat_id / 8) as usize] |= 1 << (pat_id % 8) as usize;
+        bitarray[(pat_id / 8) as usize] |= 1 << (pat_id % 8) as usize;
         SCLogDebug!("match! {:?}: {:?}", pat_id, pattern);
         cb(cbdata, pattern.sids.as_ptr(), pattern.sids.len() as u32);
         match_cnt += 1;
