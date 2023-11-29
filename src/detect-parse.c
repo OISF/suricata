@@ -840,7 +840,8 @@ int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
     return -1;
 }
 
-static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, char *output, size_t output_size)
+static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, char *output,
+        size_t output_size, bool requires)
 {
     SigTableElmt *st = NULL;
     char *optname = NULL;
@@ -893,6 +894,12 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         }
     }
     optname = optstr;
+
+    if (requires) {
+        if (strcmp(optname, "requires")) {
+            goto finish;
+        }
+    }
 
     /* Call option parsing */
     st = SigTableGet(optname);
@@ -1036,6 +1043,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     }
     s->init_data->negated = false;
 
+finish:
     if (strlen(optend) > 0) {
         strlcpy(output, optend, output_size);
         return 1;
@@ -1321,9 +1329,11 @@ static inline int SigParseList(char **input, char *output,
 /**
  *  \internal
  *  \brief split a signature string into a few blocks for further parsing
+ *
+ *  \param scan_only just scan, don't validate
  */
-static int SigParseBasics(DetectEngineCtx *de_ctx,
-        Signature *s, const char *sigstr, SignatureParser *parser, uint8_t addrs_direction)
+static int SigParseBasics(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr,
+        SignatureParser *parser, uint8_t addrs_direction, bool scan_only)
 {
     char *index, dup[DETECT_MAX_RULE_SIZE];
 
@@ -1367,6 +1377,10 @@ static int SigParseBasics(DetectEngineCtx *de_ctx,
         }
     }
     strlcpy(parser->opts, index, sizeof(parser->opts));
+
+    if (scan_only) {
+        return 0;
+    }
 
     /* Parse Action */
     if (SigParseAction(s, parser->action) < 0)
@@ -1429,12 +1443,13 @@ static inline bool CheckAscii(const char *str)
  *  \param s memory structure to store the signature in
  *  \param sigstr the raw signature as a null terminated string
  *  \param addrs_direction direction (for bi-directional sigs)
+ *  \param require only scan rule for requires
  *
  *  \param -1 parse error
  *  \param 0 ok
  */
-static int SigParse(DetectEngineCtx *de_ctx, Signature *s,
-        const char *sigstr, uint8_t addrs_direction, SignatureParser *parser)
+static int SigParse(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr,
+        uint8_t addrs_direction, SignatureParser *parser, bool requires)
 {
     SCEnter();
 
@@ -1448,12 +1463,7 @@ static int SigParse(DetectEngineCtx *de_ctx, Signature *s,
         SCReturnInt(-1);
     }
 
-    s->sig_str = SCStrdup(sigstr);
-    if (unlikely(s->sig_str == NULL)) {
-        SCReturnInt(-1);
-    }
-
-    int ret = SigParseBasics(de_ctx, s, sigstr, parser, addrs_direction);
+    int ret = SigParseBasics(de_ctx, s, sigstr, parser, addrs_direction, requires);
     if (ret < 0) {
         SCLogDebug("SigParseBasics failed");
         SCReturnInt(-1);
@@ -1465,21 +1475,27 @@ static int SigParse(DetectEngineCtx *de_ctx, Signature *s,
         char input[buffer_size];
         char output[buffer_size];
         memset(input, 0x00, buffer_size);
-        memcpy(input, parser->opts, strlen(parser->opts)+1);
+        memcpy(input, parser->opts, strlen(parser->opts) + 1);
 
         /* loop the option parsing. Each run processes one option
          * and returns the rest of the option string through the
          * output variable. */
         do {
             memset(output, 0x00, buffer_size);
-            ret = SigParseOptions(de_ctx, s, input, output, buffer_size);
+            ret = SigParseOptions(de_ctx, s, input, output, buffer_size, requires);
             if (ret == 1) {
                 memcpy(input, output, buffer_size);
             }
 
         } while (ret == 1);
+
+        if (ret < 0) {
+            /* Suricata didn't meet the rule requirements, skip. */
+            goto end;
+        }
     }
 
+end:
     DetectIPProtoRemoveAllSMs(de_ctx, s);
 
     SCReturnInt(ret);
@@ -2141,17 +2157,33 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     if (sig == NULL)
         goto error;
 
+    sig->sig_str = SCStrdup(sigstr);
+    if (unlikely(sig->sig_str == NULL)) {
+        goto error;
+    }
+
     /* default gid to 1 */
     sig->gid = 1;
 
-    int ret = SigParse(de_ctx, sig, sigstr, dir, &parser);
+    /* We do a first parse of the rule in a requires, or scan-only
+     * mode. Syntactic errors will be picked up here, but the only
+     * part of the rule that is validated completely is the "requires"
+     * keyword. */
+    int ret = SigParse(de_ctx, sig, sigstr, dir, &parser, true);
     if (ret == -4) {
         /* Rule requirements not met. */
         de_ctx->sigerror_silent = true;
         de_ctx->sigerror_ok = true;
         de_ctx->sigerror_requires = true;
         goto error;
-    } else if (ret == -3) {
+    } else if (ret < 0) {
+        goto error;
+    }
+
+    /* Now completely parse the rule. */
+    ret = SigParse(de_ctx, sig, sigstr, dir, &parser, false);
+    BUG_ON(ret == -4);
+    if (ret == -3) {
         de_ctx->sigerror_silent = true;
         de_ctx->sigerror_ok = true;
         goto error;
