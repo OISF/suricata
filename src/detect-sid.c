@@ -67,7 +67,7 @@ static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *si
         SCLogError("sid value 0 is invalid");
         goto error;
     }
-    if (s->id > 0) {
+    if (s->id > 0 && s->id != id) {
         SCLogError("duplicated 'sid' keyword detected");
         goto error;
     }
