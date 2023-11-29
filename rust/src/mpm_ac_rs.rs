@@ -159,3 +159,82 @@ pub unsafe extern "C" fn rs_mpm_acrs_search(state: &AhoCorasickState, data: *con
     }
     match_cnt
 }
+
+use aho_corasick::{ automaton::Automaton, dfa::DFA, Input };
+
+pub struct AhoCorasickDFAState {
+    _pattern_cnt: u32,
+    pat_bitarray_size: u32,
+    dfa: DFA,
+    pattern_data: Vec<AhoCorasickPatternData>,
+    has_ci: bool,
+}
+
+impl AhoCorasickDFAState {
+    /// build the AC state from the builder
+    fn prepare(builder: &AhoCorasickStateBuilder) -> Self {
+        let dfa = DFA::builder()
+            .ascii_case_insensitive(builder.has_ci)
+            .build(&builder.patterns)
+            .unwrap();
+        Self { dfa, has_ci: builder.has_ci, _pattern_cnt: builder.patterns.len() as u32, 
+            pat_bitarray_size: (builder.patterns.len() as u32 / 8) + 1,
+            pattern_data: builder.pattern_data.clone() }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_mpm_acrs_dfa_prepare_builder(builder: &AhoCorasickStateBuilder) -> *mut std::os::raw::c_void {
+    let state = AhoCorasickDFAState::prepare(builder);
+    let boxed = Box::new(state);
+    return Box::into_raw(boxed) as *mut _;
+}
+#[no_mangle]
+pub unsafe extern "C" fn rs_mpm_acrs_dfa_state_free(state: *mut std::os::raw::c_void) {
+    let mut _state = Box::from_raw(state as *mut AhoCorasickDFAState);
+}
+
+/// Search for the patterns. Returns number of matches.
+/// Per pattern found sids are only appended once.
+#[no_mangle]
+pub unsafe extern "C" fn rs_mpm_acrs_dfa_search(state: &AhoCorasickDFAState, data: *const u8, data_len: u32,
+    cb: unsafe extern "C" fn(*mut std::os::raw::c_void, *const u32, u32),
+    cbdata: *mut std::os::raw::c_void) -> u32
+{
+    let haystack = build_slice!(data, data_len as usize);
+    let mut match_cnt : u32 = 0;
+    // track unique matches using a bitarray
+    let mut bitarray = vec![0u8; state.pat_bitarray_size as usize];
+    for mat in state.dfa.try_find_overlapping_iter(Input::new(haystack)).unwrap() {
+        let pat_id = mat.pattern().as_u32();
+        /* bail if we found this pattern before */
+        if bitarray[(pat_id / 8) as usize] & (1 << (pat_id % 8) as usize) != 0 {
+            SCLogDebug!("pattern {:?} already found", pat_id);
+            continue;
+        }
+
+        let pattern = &state.pattern_data[mat.pattern()];
+        if state.has_ci && !pattern.ci {
+            let found = &haystack[mat.start()..mat.end()];
+            if found != pattern.pat {
+                SCLogDebug!("pattern {:?} failed: not an exact match", pat_id);
+                continue;
+            }
+        }
+
+        /* enforce offset and depth */
+        if pattern.offset as usize > mat.start() {
+            SCLogDebug!("pattern {:?} failed: found before offset", pat_id);
+            continue;
+        }
+        if pattern.depth != 0 && mat.end() > pattern.depth as usize {
+            SCLogDebug!("pattern {:?} failed: after depth", pat_id);
+            continue;
+        }
+        bitarray[(pat_id / 8) as usize] |= 1 << (pat_id % 8) as usize;
+        SCLogDebug!("match! {:?}: {:?}", pat_id, pattern);
+        cb(cbdata, pattern.sids.as_ptr(), pattern.sids.len() as u32);
+        match_cnt += 1;
+    }
+    match_cnt
+}

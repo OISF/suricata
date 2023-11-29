@@ -78,7 +78,7 @@ static int SCACRSPreparePatterns(MpmCtx *mpm_ctx)
     SCFree(mpm_ctx->init_hash);
     mpm_ctx->init_hash = NULL;
 
-    mpm_ctx->ctx = rs_mpm_acrs_prepare_builder(builder);
+    mpm_ctx->ctx = rs_mpm_acrs_dfa_prepare_builder(builder);
     rs_mpm_acrs_free_builder(builder);
     SCLogDebug("mpm_ctx->ctx %p", mpm_ctx->ctx);
     return 0;
@@ -122,7 +122,7 @@ static void SCACRSDestroyCtx(MpmCtx *mpm_ctx)
         mpm_ctx->init_hash = NULL;
     }
     if (mpm_ctx->ctx) {
-        rs_mpm_acrs_state_free(mpm_ctx->ctx);
+        rs_mpm_acrs_dfa_state_free(mpm_ctx->ctx);
         mpm_ctx->ctx = NULL;
     }
 }
@@ -147,7 +147,7 @@ static void SCACRSSearchAddSids(void *pmqv, const uint32_t *sids, uint32_t size)
 static uint32_t SCACRSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         PrefilterRuleStore *pmq, const uint8_t *buf, uint32_t buflen)
 {
-    uint32_t r = rs_mpm_acrs_search(mpm_ctx->ctx, buf, buflen, SCACRSSearchAddSids, pmq);
+    uint32_t r = rs_mpm_acrs_dfa_search(mpm_ctx->ctx, buf, buflen, SCACRSSearchAddSids, pmq);
     return r;
 }
 
