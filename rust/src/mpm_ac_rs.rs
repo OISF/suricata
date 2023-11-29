@@ -94,6 +94,7 @@ impl AhoCorasickState {
     /// build the AC state from the builder
     fn prepare(builder: &AhoCorasickStateBuilder) -> Self {
         let ac = AhoCorasick::builder()
+            .prefilter(false)
             .kind(Some(AhoCorasickKind::DFA))
             .ascii_case_insensitive(builder.has_ci)
             .build(&builder.patterns)
@@ -174,6 +175,7 @@ impl AhoCorasickDFAState {
     /// build the AC state from the builder
     fn prepare(builder: &AhoCorasickStateBuilder) -> Self {
         let dfa = DFA::builder()
+            .prefilter(false)
             .ascii_case_insensitive(builder.has_ci)
             .build(&builder.patterns)
             .unwrap();
