@@ -197,7 +197,7 @@ Documentation Style
 For documenting *code*, please follow Rust documentation and/or Doxygen
 guidelines, according to what your contribution is using (Rust or C).
 
-If you are writing or updating *documentation pages*, please:
+When writing or updating *documentation pages*, please:
 
 * wrap up lines at 79 (80 at most) characters;
 * when adding diagrams or images, we prefer alternatives that can be generated
@@ -205,6 +205,68 @@ If you are writing or updating *documentation pages*, please:
 * bear in mind that our documentation is published on `Read the Docs <https:/
   /docs.suricata.io/en/latest/#suricata-user-guide>`_ and can also be
   built to pdf, so it is important that it looks good in such formats.
+
+Rule examples
+-------------
+
+.. role:: example-rule-action
+.. role:: example-rule-header
+.. role:: example-rule-options
+.. role:: example-rule-emphasis
+
+For rule documentation, we have a special container::
+
+    example-rule
+
+This will not only format the rule in case differently, it also allows
+highlighting specific elements in a signature, as their names indicate:
+
+    - example-rule-action
+    - example-rule-header
+    - example-rule-options
+    - example-rule-emphasis
+
+When using these, indicate the portion to be highlighted by surrounding it with
+` . Before using them, one has to invoke the specific role, like so::
+
+    .. role:: example-rule-role
+
+It is only necessary to invoke the role once per document. One can see these
+being invoked in our introduction to the rule language (see `Rules intro <https://raw.githubusercontent.com/OISF/suricata/master/doc/userguide/rules/intro.rst>`_).
+
+A rule example like::
+
+    .. container:: example-rule
+
+    :example-rule-action:`alert` :example-rule-header:`http $HOME_NET any ->
+    $EXTERNAL_NET any` :example-rule-options:`(msg:"HTTP GET Request Containing
+    Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri;
+    content:"rule"; fast_pattern; classtype:bad-unknown; sid:123; rev:1;)`
+
+Results in:
+
+.. container:: example-rule
+
+    :example-rule-action:`alert` :example-rule-header:`http $HOME_NET any ->
+    $EXTERNAL_NET any`  :example-rule-options:`(msg:"HTTP GET Request Containing
+    Rule in URI"; flow:established,to_server; http.method; content:"GET"; http.uri;
+    content:"rule"; fast_pattern; classtype:bad-unknown; sid:123; rev:1;)`
+
+Example - emphasis::
+
+    .. container:: example-rule
+
+    alert ssh any any -> any any (msg:"match SSH protocol version";
+    :example-rule-emphasis:`ssh.proto;` content:"2.0"; sid:1000010;)
+
+Renders as:
+
+.. container:: example-rule
+
+    alert ssh any any -> any any (msg:"match SSH protocol version";
+    :example-rule-emphasis:`ssh.proto;` content:"2.0"; sid:1000010;)
+
+
 
 
 Commit History matters
