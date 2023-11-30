@@ -74,6 +74,8 @@ jobs:
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
       - run: ./configure
+      - run: cargo fmt --check
+        working-directory: rust
       - run: cargo clippy --all-features --fix --allow-no-vcs
         working-directory: rust
       - run: |
