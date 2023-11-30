@@ -183,11 +183,11 @@ impl MQTTState {
     }
 
     fn new_tx(&mut self, msg: MQTTMessage, toclient: bool) -> MQTTTransaction {
-	let direction = if toclient {
-	    Direction::ToClient
-	} else {
-	    Direction::ToServer
-	};
+        let direction = if toclient {
+            Direction::ToClient
+        } else {
+            Direction::ToServer
+        };
         let mut tx = MQTTTransaction::new(msg, direction);
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
@@ -608,7 +608,11 @@ impl MQTTState {
     }
 
     fn set_event_notx(&mut self, event: MQTTEvent, toclient: bool) {
-        let mut tx = MQTTTransaction::new_empty(if toclient { Direction::ToClient } else { Direction::ToServer });
+        let mut tx = MQTTTransaction::new_empty(if toclient {
+            Direction::ToClient
+        } else {
+            Direction::ToServer
+        });
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
         if toclient {

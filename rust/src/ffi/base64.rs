@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-use std::os::raw::c_uchar;
 use libc::c_ulong;
+use std::os::raw::c_uchar;
 
 #[repr(C)]
 #[allow(non_camel_case_types)]

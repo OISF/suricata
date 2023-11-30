@@ -22,7 +22,7 @@ use super::{
     parser::{quic_pkt_num, QuicData, QuicHeader, QuicType},
 };
 use crate::applayer::{self, *};
-use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP, Direction};
+use crate::core::{AppProto, Direction, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
 use std::collections::VecDeque;
 use std::ffi::CString;
 use tls_parser::TlsExtensionType;
@@ -57,7 +57,11 @@ impl QuicTransaction {
         header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
         extv: Vec<QuicTlsExtension>, ja3: Option<String>, client: bool,
     ) -> Self {
-	let direction = if client { Direction::ToServer } else { Direction::ToClient };
+        let direction = if client {
+            Direction::ToServer
+        } else {
+            Direction::ToClient
+        };
         let cyu = Cyu::generate(&header, &data.frames);
         QuicTransaction {
             tx_id: 0,
@@ -73,7 +77,11 @@ impl QuicTransaction {
     }
 
     fn new_empty(client: bool, header: QuicHeader) -> Self {
-	let direction = if client { Direction::ToServer } else { Direction::ToClient };
+        let direction = if client {
+            Direction::ToServer
+        } else {
+            Direction::ToClient
+        };
         QuicTransaction {
             tx_id: 0,
             header,

@@ -125,10 +125,7 @@ fn parse_i32_number(input: &str) -> IResult<&str, i32> {
 pub(super) fn asn1_parse_rule(input: &str) -> IResult<&str, DetectAsn1Data> {
     // If nothing to parse, return
     if input.is_empty() {
-        return Err(Err::Error(make_error(
-            input,
-            ErrorKind::Eof,
-        )));
+        return Err(Err::Error(make_error(input, ErrorKind::Eof)));
     }
 
     // Rule parsing functions
@@ -196,10 +193,7 @@ pub(super) fn asn1_parse_rule(input: &str) -> IResult<&str, DetectAsn1Data> {
         } else if let Some((_, v)) = relative_offset {
             data.relative_offset = Some(v);
         } else {
-            return Err(Err::Error(make_error(
-                rest,
-                ErrorKind::Verify,
-            )));
+            return Err(Err::Error(make_error(rest, ErrorKind::Verify)));
         }
 
         rest = new_rest;

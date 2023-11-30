@@ -151,7 +151,7 @@ impl Default for PgsqlState {
         Self::new()
     }
 }
-    
+
 impl PgsqlState {
     pub fn new() -> Self {
         Self {
@@ -556,7 +556,6 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_ts(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
-
         let slice: &[u8] = build_slice!(input, input_len as usize);
         if probe_ts(slice) {
             return ALPROTO_PGSQL;
@@ -571,7 +570,6 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
-
         let slice: &[u8] = build_slice!(input, input_len as usize);
 
         if parser::parse_ssl_response(slice).is_ok() {
@@ -630,7 +628,6 @@ pub unsafe extern "C" fn rs_pgsql_parse_request(
             return AppLayerResult::err();
         }
     }
-
 
     let state_safe: &mut PgsqlState = cast_pointer!(state, PgsqlState);
 

@@ -223,9 +223,18 @@ mod test {
             SCSha256Update(hasher, bytes.as_ptr(), bytes.len() as u32);
             SCSha256Update(hasher, bytes.as_ptr(), bytes.len() as u32);
             let hex = [0_u8; SC_SHA256_HEX_LEN + 1];
-            SCSha256FinalizeToHex(hasher, hex.as_ptr() as *mut c_char, (SC_SHA256_HEX_LEN + 1) as u32);
-            let string = std::ffi::CStr::from_ptr(hex.as_ptr() as *mut c_char).to_str().unwrap();
-            assert_eq!(string, "22a48051594c1949deed7040850c1f0f8764537f5191be56732d16a54c1d8153");
+            SCSha256FinalizeToHex(
+                hasher,
+                hex.as_ptr() as *mut c_char,
+                (SC_SHA256_HEX_LEN + 1) as u32,
+            );
+            let string = std::ffi::CStr::from_ptr(hex.as_ptr() as *mut c_char)
+                .to_str()
+                .unwrap();
+            assert_eq!(
+                string,
+                "22a48051594c1949deed7040850c1f0f8764537f5191be56732d16a54c1d8153"
+            );
         }
     }
 
@@ -243,10 +252,15 @@ mod test {
             SCMd5Update(hasher, bytes.as_ptr(), bytes.len() as u32);
             SCMd5Update(hasher, bytes.as_ptr(), bytes.len() as u32);
             let hex = [0_u8; SC_MD5_HEX_LEN + 1];
-            SCMd5FinalizeToHex(hasher, hex.as_ptr() as *mut c_char, (SC_MD5_HEX_LEN + 1) as u32);
-            let string = std::ffi::CStr::from_ptr(hex.as_ptr() as *mut c_char).to_str().unwrap();
+            SCMd5FinalizeToHex(
+                hasher,
+                hex.as_ptr() as *mut c_char,
+                (SC_MD5_HEX_LEN + 1) as u32,
+            );
+            let string = std::ffi::CStr::from_ptr(hex.as_ptr() as *mut c_char)
+                .to_str()
+                .unwrap();
             assert_eq!(string, "5216ddcc58e8dade5256075e77f642da");
         }
     }
-
 }

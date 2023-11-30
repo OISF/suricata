@@ -375,7 +375,9 @@ impl RdpState {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern "C" fn rs_rdp_state_new(
+    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+) -> *mut std::os::raw::c_void {
     let state = RdpState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
@@ -432,8 +434,7 @@ fn probe_tls_handshake(input: &[u8]) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn rs_rdp_parse_ts(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
     let buf = stream_slice.as_slice();
@@ -444,8 +445,7 @@ pub unsafe extern "C" fn rs_rdp_parse_ts(
 #[no_mangle]
 pub unsafe extern "C" fn rs_rdp_parse_tc(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
     let buf = stream_slice.as_slice();

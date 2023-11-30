@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
- //! Module for building JSON documents.
+//! Module for building JSON documents.
 
 #![allow(clippy::missing_safety_doc)]
 

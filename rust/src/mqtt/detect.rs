@@ -410,28 +410,31 @@ pub extern "C" fn rs_mqtt_tx_unsuback_has_reason_code(tx: &MQTTTransaction, code
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::core::Direction;
     use crate::mqtt::mqtt::MQTTTransaction;
     use crate::mqtt::mqtt_message::*;
     use crate::mqtt::parser::FixedHeader;
-    use crate::core::Direction;
     use std;
 
     #[test]
     fn test_multi_unsubscribe() {
-        let mut t = MQTTTransaction::new(MQTTMessage {
-            header: FixedHeader {
-                message_type: MQTTTypeCode::UNSUBSCRIBE,
-                dup_flag: false,
-                qos_level: 0,
-                retain: false,
-                remaining_length: 0,
+        let mut t = MQTTTransaction::new(
+            MQTTMessage {
+                header: FixedHeader {
+                    message_type: MQTTTypeCode::UNSUBSCRIBE,
+                    dup_flag: false,
+                    qos_level: 0,
+                    retain: false,
+                    remaining_length: 0,
+                },
+                op: MQTTOperation::UNSUBSCRIBE(MQTTUnsubscribeData {
+                    message_id: 1,
+                    topics: vec!["foo".to_string(), "baar".to_string()],
+                    properties: None,
+                }),
             },
-            op: MQTTOperation::UNSUBSCRIBE(MQTTUnsubscribeData {
-                message_id: 1,
-                topics: vec!["foo".to_string(), "baar".to_string()],
-                properties: None,
-            }),
-        }, Direction::ToServer);
+            Direction::ToServer,
+        );
         t.msg.push(MQTTMessage {
             header: FixedHeader {
                 message_type: MQTTTypeCode::UNSUBSCRIBE,
@@ -470,29 +473,32 @@ mod test {
 
     #[test]
     fn test_multi_subscribe() {
-        let mut t = MQTTTransaction::new(MQTTMessage {
-            header: FixedHeader {
-                message_type: MQTTTypeCode::SUBSCRIBE,
-                dup_flag: false,
-                qos_level: 0,
-                retain: false,
-                remaining_length: 0,
+        let mut t = MQTTTransaction::new(
+            MQTTMessage {
+                header: FixedHeader {
+                    message_type: MQTTTypeCode::SUBSCRIBE,
+                    dup_flag: false,
+                    qos_level: 0,
+                    retain: false,
+                    remaining_length: 0,
+                },
+                op: MQTTOperation::SUBSCRIBE(MQTTSubscribeData {
+                    message_id: 1,
+                    topics: vec![
+                        MQTTSubscribeTopicData {
+                            topic_name: "foo".to_string(),
+                            qos: 0,
+                        },
+                        MQTTSubscribeTopicData {
+                            topic_name: "baar".to_string(),
+                            qos: 1,
+                        },
+                    ],
+                    properties: None,
+                }),
             },
-            op: MQTTOperation::SUBSCRIBE(MQTTSubscribeData {
-                message_id: 1,
-                topics: vec![
-                    MQTTSubscribeTopicData {
-                        topic_name: "foo".to_string(),
-                        qos: 0,
-                    },
-                    MQTTSubscribeTopicData {
-                        topic_name: "baar".to_string(),
-                        qos: 1,
-                    },
-                ],
-                properties: None,
-            }),
-        }, Direction::ToServer);
+            Direction::ToServer,
+        );
         t.msg.push(MQTTMessage {
             header: FixedHeader {
                 message_type: MQTTTypeCode::SUBSCRIBE,

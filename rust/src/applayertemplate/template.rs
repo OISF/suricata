@@ -114,7 +114,9 @@ impl TemplateState {
     }
 
     fn find_request(&mut self) -> Option<&mut TemplateTransaction> {
-        self.transactions.iter_mut().find(|tx| tx.response.is_none())
+        self.transactions
+            .iter_mut()
+            .find(|tx| tx.response.is_none())
     }
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
@@ -188,7 +190,7 @@ impl TemplateState {
                 Ok((rem, response)) => {
                     start = rem;
 
-                    if let Some(tx) =  self.find_request() {
+                    if let Some(tx) = self.find_request() {
                         tx.response = Some(response);
                         SCLogNotice!("Found response for request:");
                         SCLogNotice!("- Request: {:?}", tx.request);

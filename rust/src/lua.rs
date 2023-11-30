@@ -30,7 +30,7 @@ type LuaInteger = i32;
 /// The Rust place holder for lua_State.
 pub enum CLuaState {}
 
-extern {
+extern "C" {
     fn lua_createtable(lua: *mut CLuaState, narr: c_int, nrec: c_int);
     fn lua_settable(lua: *mut CLuaState, idx: c_long);
     fn lua_pushlstring(lua: *mut CLuaState, s: *const c_char, len: usize);
@@ -42,7 +42,6 @@ pub struct LuaState {
 }
 
 impl LuaState {
-
     pub fn newtable(&self) {
         unsafe {
             lua_createtable(self.lua, 0, 0);

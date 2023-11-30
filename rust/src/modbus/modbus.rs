@@ -303,8 +303,7 @@ pub unsafe extern "C" fn rs_modbus_state_tx_free(state: *mut std::os::raw::c_voi
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_parse_request(
     _flow: *const core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let buf = stream_slice.as_slice();
     if buf.is_empty() {
@@ -322,8 +321,7 @@ pub unsafe extern "C" fn rs_modbus_parse_request(
 #[no_mangle]
 pub unsafe extern "C" fn rs_modbus_parse_response(
     _flow: *const core::Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let buf = stream_slice.as_slice();
     if buf.is_empty() {
@@ -410,7 +408,12 @@ pub unsafe extern "C" fn rs_modbus_register_parser() {
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
-    if AppLayerProtoDetectConfProtoDetectionEnabledDefault(ip_proto_str.as_ptr(), parser.name, false) != 0 {
+    if AppLayerProtoDetectConfProtoDetectionEnabledDefault(
+        ip_proto_str.as_ptr(),
+        parser.name,
+        false,
+    ) != 0
+    {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_MODBUS = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {

@@ -19,7 +19,7 @@ use crate::applayer::{self, *};
 use crate::bittorrent_dht::parser::{
     parse_bittorrent_dht_packet, BitTorrentDHTError, BitTorrentDHTRequest, BitTorrentDHTResponse,
 };
-use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_UDP, Direction};
+use crate::core::{AppProto, Direction, Flow, ALPROTO_UNKNOWN, IPPROTO_UDP};
 use std::ffi::CString;
 use std::os::raw::c_char;
 
@@ -47,10 +47,10 @@ pub struct BitTorrentDHTTransaction {
 
 impl BitTorrentDHTTransaction {
     pub fn new(direction: Direction) -> Self {
-	Self {
-	    tx_data: AppLayerTxData::for_direction(direction),
-	    ..Default::default()
-	}
+        Self {
+            tx_data: AppLayerTxData::for_direction(direction),
+            ..Default::default()
+        }
     }
 
     /// Set an event on the transaction
@@ -169,8 +169,13 @@ pub unsafe extern "C" fn rs_bittorrent_dht_parse_ts(
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     return rs_bittorrent_dht_parse(
-        _flow, state, _pstate, stream_slice,
-        _data, crate::core::Direction::ToServer);
+        _flow,
+        state,
+        _pstate,
+        stream_slice,
+        _data,
+        crate::core::Direction::ToServer,
+    );
 }
 
 #[no_mangle]
@@ -179,8 +184,13 @@ pub unsafe extern "C" fn rs_bittorrent_dht_parse_tc(
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     return rs_bittorrent_dht_parse(
-        _flow, state, _pstate, stream_slice,
-        _data, crate::core::Direction::ToClient);
+        _flow,
+        state,
+        _pstate,
+        stream_slice,
+        _data,
+        crate::core::Direction::ToClient,
+    );
 }
 
 #[no_mangle]

@@ -103,7 +103,6 @@ impl DetectKrb5TicketEncryptionList {
     }
 }
 
-
 // Suppress large enum variant lint as the LIST is very large compared
 // to the boolean variant.
 #[derive(Debug)]

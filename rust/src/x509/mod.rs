@@ -24,8 +24,8 @@ use nom7::Err;
 use std;
 use std::os::raw::c_char;
 use x509_parser::prelude::*;
-mod time;
 mod log;
+mod time;
 
 #[repr(u32)]
 pub enum X509DecodeError {
@@ -53,9 +53,7 @@ pub struct X509(X509Certificate<'static>);
 /// input must be a valid buffer of at least input_len bytes
 #[no_mangle]
 pub unsafe extern "C" fn rs_x509_decode(
-    input: *const u8,
-    input_len: u32,
-    err_code: *mut u32,
+    input: *const u8, input_len: u32, err_code: *mut u32,
 ) -> *mut X509 {
     let slice = std::slice::from_raw_parts(input, input_len as usize);
     let res = X509Certificate::from_der(slice);
@@ -108,9 +106,7 @@ pub unsafe extern "C" fn rs_x509_get_serial(ptr: *const X509) -> *mut c_char {
 /// ptr must be a valid object obtained using `rs_x509_decode`
 #[no_mangle]
 pub unsafe extern "C" fn rs_x509_get_validity(
-    ptr: *const X509,
-    not_before: *mut i64,
-    not_after: *mut i64,
+    ptr: *const X509, not_before: *mut i64, not_after: *mut i64,
 ) -> i32 {
     if ptr.is_null() {
         return -1;

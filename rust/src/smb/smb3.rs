@@ -19,11 +19,11 @@ use nom7::bytes::streaming::{tag, take};
 use nom7::number::streaming::{le_u16, le_u32, le_u64};
 use nom7::IResult;
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb3TransformRecord<'a> {
     pub session_id: u64,
     pub enc_algo: u16,
-    pub enc_data: &'a[u8],
+    pub enc_data: &'a [u8],
 }
 
 pub fn parse_smb3_transform_record(i: &[u8]) -> IResult<&[u8], Smb3TransformRecord> {
@@ -46,8 +46,8 @@ pub fn parse_smb3_transform_record(i: &[u8]) -> IResult<&[u8], Smb3TransformReco
 #[cfg(test)]
 mod tests {
     use super::*;
-	#[test]
-	fn test_parse_smb3_transform_record() {
+    #[test]
+    fn test_parse_smb3_transform_record() {
         // https://raw.githubusercontent.com/bro/bro/master/testing/btest/Traces/smb/smb3.pcap
         let data = hex::decode("fd534d42188d39cea4b1e3f640aff5d0b1569852c0bd665516dbb4b499507f000000000069000000000001003d00009400480000d9f8a66572b40c621bea6f5922a412a8eb2e3cc2af9ce26a277e75898cb523b9eb49ef660a6a1a09368fadd6a58e893e08eb3b7c068bdb74b6cd38e9ed1a2559cefb2ebc2172fd86c08a1a636eb851f20bf53a242f4cfaf7ab44e77291073ad492d6297c3d3a67757c").unwrap();
         let result = parse_smb3_transform_record(&data).unwrap();

@@ -21,7 +21,7 @@ use super::rdp::{RdpTransaction, RdpTransactionItem};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::rdp::parser::*;
 use crate::rdp::windows;
-use x509_parser::prelude::{X509Certificate, FromDer};
+use x509_parser::prelude::{FromDer, X509Certificate};
 
 #[no_mangle]
 pub extern "C" fn rs_rdp_to_json(tx: &mut RdpTransaction, js: &mut JsonBuilder) -> bool {
