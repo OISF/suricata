@@ -94,6 +94,14 @@ fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonErro
         }) => {
             js.set_string_from_bytes(req.to_str(), payload)?;
         }
+        PgsqlFEMessage::CancelRequest(CancelRequestMessage {
+            pid,
+            backend_key,
+        }) => {
+            js.set_string("message", "cancel_request");
+            js.set_uint("pid", (*pid).into())?;
+            js.set_uint("backend_key", (*backend_key).into())?;
+        }
         PgsqlFEMessage::Terminate(TerminationMessage {
             identifier: _,
             length: _,
