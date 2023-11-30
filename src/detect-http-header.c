@@ -191,6 +191,9 @@ static uint8_t DetectEngineInspectBufferHttpHeader(DetectEngineCtx *de_ctx,
         uint8_t *rawdata = GetBufferForTX(txv, det_ctx, f, flags, &rawdata_len);
         if (rawdata_len == 0) {
             SCLogDebug("no data");
+            if (engine->match_on_null && eof) {
+                return DETECT_ENGINE_INSPECT_SIG_MATCH;
+            }
             goto end;
         }
         /* setup buffer and apply transforms */
