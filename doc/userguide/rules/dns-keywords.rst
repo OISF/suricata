@@ -56,6 +56,39 @@ Match on DNS requests where the **opcode** is not between 7 and 15:
 
   dns.opcode:!7-15;
 
+dns.rcode
+----------
+
+This keyword matches on the **rcode** found in the DNS header flags.
+It uses a 8-bit unsigned integer as value.
+
+Syntax
+~~~~~~
+
+::
+
+   dns.rcode:[!]<number>
+   dns.rcode:[!]<number1>-<number2>
+
+Examples
+~~~~~~~~
+
+Match on DNS requests and responses with **rcode** 4::
+
+  dns.rcode:4;
+
+Match on DNS requests where the **rcode** is NOT 0::
+
+  dns.rcode:!0;
+
+Match on DNS requests where the **rcode** is between 7 and 15, exclusively:
+
+  dns.rcode:7-15;
+
+Match on DNS requests where the **rcode** is not between 7 and 15:
+
+  dns.rcode:!7-15;
+
 dns.query
 ---------
 

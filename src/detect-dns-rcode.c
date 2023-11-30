@@ -21,6 +21,7 @@
 #include "detect-engine.h"
 #include "detect-dns-rcode.h"
 #include "rust.h"
+#include "detect-engine-uint.h"
 
 static int dns_rcode_list_id = 0;
 
@@ -34,7 +35,7 @@ static int DetectDnsRcodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         SCReturnInt(-1);
     }
 
-    void *detect = rs_detect_dns_rcode_parse(str);
+    void *detect = DetectU8Parse(str);
     if (detect == NULL) {
         SCLogError("failed to parse dns.rcode: %s", str);
         SCReturnInt(-1);
@@ -53,7 +54,7 @@ static void DetectDnsRcodeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCEnter();
     if (ptr != NULL) {
-        rs_dns_detect_rcode_free(ptr);
+        rs_detect_u8_free(ptr);
     }
     SCReturn;
 }
