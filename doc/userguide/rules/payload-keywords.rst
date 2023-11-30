@@ -274,6 +274,27 @@ You can also use the negation (!) before isdataat.
 
 .. image:: payload-keywords/isdataat1.png
 
+absent
+------
+
+The keyword ``absent`` checks that a sticky buffer does not exist.
+It can be used without any argument to match only on absent buffer :
+
+Example of ``absent`` in a rule:
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"HTTP request without referer";  http.referer; absent; sid:1; rev:1;)
+
+
+It can take an argument "or_else" to match on absent buffer or on what comes next such as negated content, for instance :
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"HTTP request without referer";  http.referer; absent: or_else; content: !"abc"; sid:1; rev:1;)
+
+For files (ie ``file.data``), absent means there are no files in the transaction.
+
 bsize
 -----
 
