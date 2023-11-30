@@ -17,7 +17,7 @@
 
 use nom7::branch::alt;
 use nom7::bytes::complete::{is_a, tag, tag_no_case, take_while};
-use nom7::character::complete::{digit1, hex_digit1};
+use nom7::character::complete::{char, digit1, hex_digit1};
 use nom7::combinator::{all_consuming, map_opt, opt, value, verify};
 use nom7::error::{make_error, ErrorKind};
 use nom7::Err;
@@ -35,6 +35,7 @@ pub enum DetectUintMode {
     DetectUintModeGte,
     DetectUintModeRange,
     DetectUintModeNe,
+    DetectUintModeNegRg,
 }
 
 #[derive(Debug)]
@@ -124,6 +125,7 @@ pub fn detect_parse_uint_start_equal<T: DetectIntType>(
 pub fn detect_parse_uint_start_interval<T: DetectIntType>(
     i: &str,
 ) -> IResult<&str, DetectUintData<T>> {
+    let (i, neg) = opt(char('!'))(i)?;
     let (i, arg1) = detect_parse_uint_value(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, _) = alt((tag("-"), tag("<>")))(i)?;
@@ -131,12 +133,17 @@ pub fn detect_parse_uint_start_interval<T: DetectIntType>(
     let (i, arg2) = verify(detect_parse_uint_value, |x| {
         x > &arg1 && *x - arg1 > T::one()
     })(i)?;
+    let mode = if neg.is_some() {
+        DetectUintMode::DetectUintModeNegRg
+    } else {
+        DetectUintMode::DetectUintModeRange
+    };
     Ok((
         i,
         DetectUintData {
             arg1,
             arg2,
-            mode: DetectUintMode::DetectUintModeRange,
+            mode,
         },
     ))
 }
@@ -144,6 +151,7 @@ pub fn detect_parse_uint_start_interval<T: DetectIntType>(
 fn detect_parse_uint_start_interval_inclusive<T: DetectIntType>(
     i: &str,
 ) -> IResult<&str, DetectUintData<T>> {
+    let (i, neg) = opt(char('!'))(i)?;
     let (i, arg1) = verify(detect_parse_uint_value::<T>, |x| {
         *x > T::min_value()
     })(i)?;
@@ -153,12 +161,17 @@ fn detect_parse_uint_start_interval_inclusive<T: DetectIntType>(
     let (i, arg2) = verify(detect_parse_uint_value::<T>, |x| {
         *x > arg1 && *x < T::max_value()
     })(i)?;
+    let mode = if neg.is_some() {
+        DetectUintMode::DetectUintModeNegRg
+    } else {
+        DetectUintMode::DetectUintModeRange
+    };
     Ok((
         i,
         DetectUintData {
             arg1: arg1 - T::one(),
             arg2: arg2 + T::one(),
-            mode: DetectUintMode::DetectUintModeRange,
+            mode,
         },
     ))
 }
@@ -252,6 +265,11 @@ pub fn detect_match_uint<T: DetectIntType>(x: &DetectUintData<T>, val: T) -> boo
         }
         DetectUintMode::DetectUintModeRange => {
             if val > x.arg1 && val < x.arg2 {
+                return true;
+            }
+        }
+        DetectUintMode::DetectUintModeNegRg => {
+            if val <= x.arg1 || val >= x.arg2 {
                 return true;
             }
         }
@@ -445,6 +463,24 @@ mod tests {
         match detect_parse_uint::<u8>("0xff") {
             Ok((_, val)) => {
                 assert_eq!(val.arg1, 255);
+            }
+            Err(_) => {
+                assert!(false);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_uint_negated_range() {
+        match detect_parse_uint::<u8>("!1-6") {
+            Ok((_, val)) => {
+                assert_eq!(val.arg1, 1);
+                assert_eq!(val.arg2, 6);
+                assert_eq!(val.mode, DetectUintMode::DetectUintModeNegRg);
+                assert!(detect_match_uint(&val, 1));
+                assert!(!detect_match_uint(&val, 2));
+                assert!(!detect_match_uint(&val, 5));
+                assert!(detect_match_uint(&val, 6));
             }
             Err(_) => {
                 assert!(false);
