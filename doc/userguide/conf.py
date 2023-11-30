@@ -137,20 +137,15 @@ if not on_rtd:
         html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
     except:
         html_theme = 'default'
-    def setup(app):
-        if hasattr(app, 'add_css_file'):
-            app.add_css_file('css/suricata.css')
-        else:
-            app.add_stylesheet('css/suricata.css')
 else:
     html_theme = 'sphinx_rtd_theme'
-    html_context = {
-        'css_files': [
-            'https://media.readthedocs.org/css/sphinx_rtd_theme.css',
-            'https://media.readthedocs.org/css/readthedocs-doc-embed.css',
-            '_static/css/suricata.css',
-        ],
-    }
+
+# Add in our own stylesheet.
+def setup(app):
+    if hasattr(app, 'add_css_file'):
+        app.add_css_file('css/suricata.css')
+    else:
+        app.add_stylesheet('css/suricata.css')
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
