@@ -760,6 +760,77 @@ bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineTh
         return false;
 }
 
+bool DetectContentInspectionMatchOnAbsentBuffer(const SigMatchData *smd)
+{
+    // we will match on NULL buffers if all smd are negated
+    bool match_on_null = true;
+    while (1) {
+        DetectContentData *cd;
+        DetectPcreData *pe;
+        DetectIsdataatData *ida;
+        DetectBytetestData *btd;
+        switch (smd->type) {
+            case DETECT_CONTENT:
+                cd = (DetectContentData *)smd->ctx;
+                if ((cd->flags & DETECT_CONTENT_NEGATED) == 0) {
+                    match_on_null = false;
+                }
+                break;
+            case DETECT_PCRE:
+                pe = (DetectPcreData *)smd->ctx;
+                if ((pe->flags & DETECT_PCRE_NEGATE) == 0) {
+                    match_on_null = false;
+                }
+                break;
+            case DETECT_ISDATAAT:
+                ida = (DetectIsdataatData *)smd->ctx;
+                if ((ida->flags & ISDATAAT_NEGATED) == 0) {
+                    match_on_null = false;
+                }
+                break;
+            case DETECT_BYTETEST:
+                btd = (DetectBytetestData *)smd->ctx;
+                if (!btd->neg_op) {
+                    match_on_null = false;
+                }
+                break;
+            case DETECT_BSIZE:
+                // bsize 0 indicates a present empty buffer
+                // fallthrough
+            case DETECT_AL_URILEN:
+                // fallthrough
+            case DETECT_BASE64_DECODE:
+                // fallthrough
+            case DETECT_ASN1:
+                // fallthrough
+            case DETECT_LUA:
+                // fallthrough
+            case DETECT_DATASET:
+                // fallthrough
+            case DETECT_DATAREP:
+                // fallthrough
+            case DETECT_BYTEMATH:
+                // fallthrough
+            case DETECT_BYTE_EXTRACT:
+                // fallthrough
+            case DETECT_BYTEJUMP:
+                // no negation, no match
+                match_on_null = false;
+                break;
+            default:
+                // unreachable as list is meant to be exhaustive
+                SCLogDebug("sm->type %u", smd->type);
+                DEBUG_VALIDATE_BUG_ON(1);
+        }
+        if (smd->is_last || !match_on_null) {
+            break;
+        }
+        // smd does not get reused after this loop
+        smd++;
+    }
+    return match_on_null;
+}
+
 #ifdef UNITTESTS
 #include "tests/detect-engine-content-inspection.c"
 #endif
