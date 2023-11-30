@@ -16,82 +16,15 @@
  */
 
 use super::dns::DNSTransaction;
-use crate::core::*;
-use std::ffi::CStr;
-use std::os::raw::{c_char, c_void};
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct DetectDnsOpcode {
-    negate: bool,
-    opcode: u8,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct DetectDnsRcode {
-    negate: bool,
-    rcode: u8,
-}
-
-/// Parse a DNS opcode argument returning the code and if it is to be
-/// negated or not.
-///
-/// For now only an indication that an error occurred is returned, not
-/// the details of the error.
-fn parse_opcode(opcode: &str) -> Result<DetectDnsOpcode, ()> {
-    let mut negated = false;
-    for (i, c) in opcode.chars().enumerate() {
-        match c {
-            ' ' | '\t' => {
-                continue;
-            }
-            '!' => {
-                negated = true;
-            }
-            _ => {
-                let code: u8 = opcode[i..].parse().map_err(|_| ())?;
-                return Ok(DetectDnsOpcode {
-                    negate: negated,
-                    opcode: code,
-                });
-            }
-        }
-    }
-    Err(())
-}
-
-/// Parse a DNS rcode argument returning the code and if it is to be
-/// negated or not.
-///
-/// For now only an indication that an error occurred is returned, not
-/// the details of the error.
-fn parse_rcode(rcode: &str) -> Result<DetectDnsRcode, ()> {
-    let mut negated = false;
-    for (i, c) in rcode.chars().enumerate() {
-        match c {
-            ' ' | '\t' => {
-                continue;
-            }
-            '!' => {
-                negated = true;
-            }
-            _ => {
-                let code: u8 = rcode[i..].parse().map_err(|_| ())?;
-                return Ok(DetectDnsRcode {
-                    negate: negated,
-                    rcode: code,
-                });
-            }
-        }
-    }
-    Err(())
-}
+use crate::core::Direction;
+use crate::detect::uint::{detect_match_uint, DetectUintData};
 
 /// Perform the DNS opcode match.
 ///
 /// 1 will be returned on match, otherwise 0 will be returned.
 #[no_mangle]
 pub extern "C" fn rs_dns_opcode_match(
-    tx: &mut DNSTransaction, detect: &mut DetectDnsOpcode, flags: u8,
+    tx: &mut DNSTransaction, detect: &mut DetectUintData<u8>, flags: u8,
 ) -> u8 {
     let header_flags = if flags & Direction::ToServer as u8 != 0 {
         if let Some(request) = &tx.request {
@@ -109,96 +42,12 @@ pub extern "C" fn rs_dns_opcode_match(
         // Not to server or to client??
         return 0;
     };
+    let opcode = ((header_flags >> 11) & 0xf) as u8;
 
-    match_opcode(detect, header_flags).into()
-}
-
-/// Perform the DNS rcode match.
-///
-/// 1 will be returned on match, otherwise 0 will be returned.
-#[no_mangle]
-pub extern "C" fn rs_dns_rcode_match(
-    tx: &mut DNSTransaction, detect: &mut DetectDnsRcode, flags: u8,
-) -> u8 {
-    let header_flags = if flags & Direction::ToServer as u8 != 0 {
-        if let Some(request) = &tx.request {
-            request.header.flags
-        } else {
-            return 0;
-        }
-    } else if flags & Direction::ToClient as u8 != 0 {
-        if let Some(response) = &tx.response {
-            response.header.flags
-        } else {
-            return 0;
-        }
-    } else {
-        // Not to server or to client??
-        return 0;
-    };
-
-    match_rcode(detect, header_flags).into()
-}
-
-fn match_opcode(detect: &DetectDnsOpcode, flags: u16) -> bool {
-    let opcode = ((flags >> 11) & 0xf) as u8;
-    if detect.negate {
-        detect.opcode != opcode
-    } else {
-        detect.opcode == opcode
+    if detect_match_uint(detect, opcode) {
+        return 1;
     }
-}
-
-fn match_rcode(detect: &DetectDnsRcode, flags: u16) -> bool {
-    let rcode = (flags & 0xf) as u8;
-    if detect.negate {
-        detect.rcode != rcode
-    } else {
-        detect.rcode == rcode
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_detect_dns_opcode_parse(carg: *const c_char) -> *mut c_void {
-    if carg.is_null() {
-        return std::ptr::null_mut();
-    }
-    let arg = match CStr::from_ptr(carg).to_str() {
-        Ok(arg) => arg,
-        _ => {
-            return std::ptr::null_mut();
-        }
-    };
-
-    match parse_opcode(arg) {
-        Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
-        Err(_) => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_detect_dns_rcode_parse(carg: *const c_char) -> *mut c_void {
-    if carg.is_null() {
-        return std::ptr::null_mut();
-    }
-    let arg = match CStr::from_ptr(carg).to_str() {
-        Ok(arg) => arg,
-        _ => {
-            return std::ptr::null_mut();
-        }
-    };
-
-    match parse_rcode(arg) {
-        Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
-        Err(_) => std::ptr::null_mut(),
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rs_dns_detect_opcode_free(ptr: *mut c_void) {
-    if !ptr.is_null() {
-        std::mem::drop(Box::from_raw(ptr as *mut DetectDnsOpcode));
-    }
+    return 0;
 }
 
 #[no_mangle]
@@ -211,146 +60,76 @@ pub unsafe extern "C" fn rs_dns_detect_rcode_free(ptr: *mut c_void) {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::detect::uint::{detect_parse_uint, DetectUintMode};
 
     #[test]
     fn parse_opcode_good() {
         assert_eq!(
-            parse_opcode("1"),
-            Ok(DetectDnsOpcode {
-                negate: false,
-                opcode: 1
-            })
+            detect_parse_uint::<u8>("1").unwrap().1,
+            DetectUintData {
+                mode: DetectUintMode::DetectUintModeEqual,
+                arg1: 1,
+                arg2: 0,
+            }
         );
         assert_eq!(
-            parse_opcode("123"),
-            Ok(DetectDnsOpcode {
-                negate: false,
-                opcode: 123
-            })
+            detect_parse_uint::<u8>("123").unwrap().1,
+            DetectUintData {
+                mode: DetectUintMode::DetectUintModeEqual,
+                arg1: 123,
+                arg2: 0,
+            }
         );
         assert_eq!(
-            parse_opcode("!123"),
-            Ok(DetectDnsOpcode {
-                negate: true,
-                opcode: 123
-            })
+            detect_parse_uint::<u8>("!123").unwrap().1,
+            DetectUintData {
+                mode: DetectUintMode::DetectUintModeNe,
+                arg1: 123,
+                arg2: 0,
+            }
         );
-        assert_eq!(
-            parse_opcode("!123"),
-            Ok(DetectDnsOpcode {
-                negate: true,
-                opcode: 123
-            })
-        );
-        assert_eq!(parse_opcode(""), Err(()));
-        assert_eq!(parse_opcode("!"), Err(()));
-        assert_eq!(parse_opcode("!   "), Err(()));
-        assert_eq!(parse_opcode("!asdf"), Err(()));
-    }
-
-    #[test]
-    fn parse_rcode_good() {
-        assert_eq!(
-            parse_rcode("1"),
-            Ok(DetectDnsRcode {
-                negate: false,
-                rcode: 1
-            })
-        );
-        assert_eq!(
-            parse_rcode("123"),
-            Ok(DetectDnsRcode {
-                negate: false,
-                rcode: 123
-            })
-        );
-        assert_eq!(
-            parse_rcode("!123"),
-            Ok(DetectDnsRcode {
-                negate: true,
-                rcode: 123
-            })
-        );
-        assert_eq!(
-            parse_rcode("!123"),
-            Ok(DetectDnsRcode {
-                negate: true,
-                rcode: 123
-            })
-        );
-        assert_eq!(parse_rcode(""), Err(()));
-        assert_eq!(parse_rcode("!"), Err(()));
-        assert_eq!(parse_rcode("!   "), Err(()));
-        assert_eq!(parse_rcode("!asdf"), Err(()));
+        assert!(detect_parse_uint::<u8>("").is_err());
+        assert!(detect_parse_uint::<u8>("!").is_err());
+        assert!(detect_parse_uint::<u8>("!   ").is_err());
+        assert!(detect_parse_uint::<u8>("!asdf").is_err());
     }
 
     #[test]
     fn test_match_opcode() {
-        assert!(match_opcode(
-            &DetectDnsOpcode {
-                negate: false,
-                opcode: 0,
+        assert!(detect_match_uint(
+            &DetectUintData {
+                mode: DetectUintMode::DetectUintModeEqual,
+                arg1: 0,
+                arg2: 0,
             },
             0b0000_0000_0000_0000,
         ));
 
-        assert!(!match_opcode(
-            &DetectDnsOpcode {
-                negate: true,
-                opcode: 0,
+        assert!(!detect_match_uint(
+            &DetectUintData {
+                mode: DetectUintMode::DetectUintModeNe,
+                arg1: 0,
+                arg2: 0,
             },
             0b0000_0000_0000_0000,
         ));
 
-        assert!(match_opcode(
-            &DetectDnsOpcode {
-                negate: false,
-                opcode: 4,
+        assert!(detect_match_uint(
+            &DetectUintData {
+                mode: DetectUintMode::DetectUintModeEqual,
+                arg1: 4,
+                arg2: 0,
             },
-            0b0010_0000_0000_0000,
+            ((0b0010_0000_0000_0000 >> 11) & 0xf) as u8,
         ));
 
-        assert!(!match_opcode(
-            &DetectDnsOpcode {
-                negate: true,
-                opcode: 4,
+        assert!(!detect_match_uint(
+            &DetectUintData {
+                mode: DetectUintMode::DetectUintModeNe,
+                arg1: 4,
+                arg2: 0,
             },
-            0b0010_0000_0000_0000,
-        ));
-    }
-
-    #[test]
-    fn test_match_rcode() {
-        assert!(match_rcode(
-            &DetectDnsRcode {
-                negate: false,
-                rcode: 0,
-            },
-            0b0000_0000_0000_0000,
-        ));
-
-        assert!(!match_rcode(
-            &DetectDnsRcode {
-                negate: true,
-                rcode: 0,
-            },
-            0b0000_0000_0000_0000,
-        ));
-
-        assert!(match_rcode(
-            &DetectDnsRcode {
-                negate: false,
-                rcode: 4,
-            },
-            0b0000_0000_0000_0100,
-        ));
-
-        assert!(!match_rcode(
-            &DetectDnsRcode {
-                negate: true,
-                rcode: 4,
-            },
-            0b0000_0000_0000_0100,
+            ((0b0010_0000_0000_0000 >> 11) & 0xf) as u8,
         ));
     }
 }

@@ -19,6 +19,7 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-uint.h"
 #include "detect-dns-opcode.h"
 #include "rust.h"
 
@@ -35,7 +36,7 @@ static int DetectDnsOpcodeSetup(DetectEngineCtx *de_ctx, Signature *s,
         return -1;
     }
 
-    void *detect = rs_detect_dns_opcode_parse(str);
+    void *detect = DetectU8Parse(str);
     if (detect == NULL) {
         SCLogError("failed to parse dns.opcode: %s", str);
         return -1;
@@ -57,7 +58,7 @@ static void DetectDnsOpcodeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCEnter();
     if (ptr != NULL) {
-        rs_dns_detect_opcode_free(ptr);
+        rs_detect_u8_free(ptr);
     }
     SCReturn;
 }

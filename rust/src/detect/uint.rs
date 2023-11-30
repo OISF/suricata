@@ -37,7 +37,7 @@ pub enum DetectUintMode {
     DetectUintModeNe,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[repr(C)]
 pub struct DetectUintData<T> {
     pub arg1: T,
