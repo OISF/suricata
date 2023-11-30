@@ -89,6 +89,9 @@ generated if the used version of Firefox is not 3.6.13.
 .. note:: The following characters must be escaped inside the content:
              ``;`` ``\`` ``"``
 
+A negated content on an absent buffer will match.
+`http.referer; content:!"example";` will match on a request without any referer.
+
 nocase
 ------
 
@@ -271,6 +274,7 @@ of the payload. The second example illustrates a signature searching
 for byte 50 after the last match.
 
 You can also use the negation (!) before isdataat.
+A negated isdataat on an absent buffer will match any value.
 
 .. image:: payload-keywords/isdataat1.png
 
@@ -289,6 +293,8 @@ the bsize value will be compared using the relational operator. Ranges are exclu
 If one or more ``content`` keywords precedes ``bsize``, each occurrence of ``content``
 will be inspected and an error will be raised if the content length and the bsize
 value prevent a match.
+
+bsize will not match if a sticky buffer is absent.
 
 Format::
 
@@ -442,6 +448,7 @@ Example::
   alert tcp any any -> any any (msg:"Byte_Test Example - Compare to String"; \
  	 content:"foobar"; byte_test:4,=,1337,1,relative,string,dec;)
 
+A negated operation will match on absent buffers.
 
 byte_math
 ---------
@@ -721,6 +728,12 @@ Example of pcre in a signature:
 .. container:: example-rule
 
     drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; :example-rule-emphasis:`pcre:"/NICK .*USA.*[0-9]{3,}/i";` reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
+
+You can also use the negation (!) before pcre::
+
+  pcre:!"/example/";
+
+A negated pcre on an absent buffer will always match.
 
 There are a few qualities of pcre which can be modified:
 

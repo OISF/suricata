@@ -57,6 +57,8 @@ Major changes
   Instead, both the SDP parser and logger depend on being invoked by another parser (or logger).
 - ARP decoder and logger have been introduced.
   Since ARP can be quite verbose and produce many events, the logger is disabled by default.
+- Negated content matches on absent buffers.
+  `http.referer; content:!"example";` will match on a request without any referer.
 
 Upgrading 6.0 to 7.0
 --------------------
