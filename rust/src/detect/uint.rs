@@ -17,7 +17,7 @@
 
 use nom7::branch::alt;
 use nom7::bytes::complete::{is_a, tag, tag_no_case, take_while};
-use nom7::character::complete::digit1;
+use nom7::character::complete::{char, digit1};
 use nom7::combinator::{all_consuming, map_opt, opt, value, verify};
 use nom7::error::{make_error, ErrorKind};
 use nom7::Err;
@@ -35,6 +35,7 @@ pub enum DetectUintMode {
     DetectUintModeGte,
     DetectUintModeRange,
     DetectUintModeNe,
+    DetectUintModeNegRg,
 }
 
 #[derive(Debug, PartialEq)]
@@ -107,6 +108,7 @@ pub fn detect_parse_uint_start_equal<T: DetectIntType>(
 pub fn detect_parse_uint_start_interval<T: DetectIntType>(
     i: &str,
 ) -> IResult<&str, DetectUintData<T>> {
+    let (i, neg) = opt(char('!'))(i)?;
     let (i, arg1) = map_opt(digit1, |s: &str| s.parse::<T>().ok())(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, _) = alt((tag("-"), tag("<>")))(i)?;
@@ -114,12 +116,17 @@ pub fn detect_parse_uint_start_interval<T: DetectIntType>(
     let (i, arg2) = verify(map_opt(digit1, |s: &str| s.parse::<T>().ok()), |x| {
         x > &arg1 && *x - arg1 > T::one()
     })(i)?;
+    let mode = if neg.is_some() {
+        DetectUintMode::DetectUintModeNegRg
+    } else {
+        DetectUintMode::DetectUintModeRange
+    };
     Ok((
         i,
         DetectUintData {
             arg1,
             arg2,
-            mode: DetectUintMode::DetectUintModeRange,
+            mode,
         },
     ))
 }
@@ -127,6 +134,7 @@ pub fn detect_parse_uint_start_interval<T: DetectIntType>(
 fn detect_parse_uint_start_interval_inclusive<T: DetectIntType>(
     i: &str,
 ) -> IResult<&str, DetectUintData<T>> {
+    let (i, neg) = opt(char('!'))(i)?;
     let (i, arg1) = verify(map_opt(digit1, |s: &str| s.parse::<T>().ok()), |x| {
         *x > T::min_value()
     })(i)?;
@@ -136,12 +144,17 @@ fn detect_parse_uint_start_interval_inclusive<T: DetectIntType>(
     let (i, arg2) = verify(map_opt(digit1, |s: &str| s.parse::<T>().ok()), |x| {
         *x > arg1 && *x < T::max_value()
     })(i)?;
+        let mode = if neg.is_some() {
+        DetectUintMode::DetectUintModeNegRg
+    } else {
+        DetectUintMode::DetectUintModeRange
+    };
     Ok((
         i,
         DetectUintData {
             arg1: arg1 - T::one(),
             arg2: arg2 + T::one(),
-            mode: DetectUintMode::DetectUintModeRange,
+            mode,
         },
     ))
 }
@@ -235,6 +248,11 @@ pub fn detect_match_uint<T: DetectIntType>(x: &DetectUintData<T>, val: T) -> boo
         }
         DetectUintMode::DetectUintModeRange => {
             if val > x.arg1 && val < x.arg2 {
+                return true;
+            }
+        }
+        DetectUintMode::DetectUintModeNegRg => {
+            if val <= x.arg1 || val >= x.arg2 {
                 return true;
             }
         }
