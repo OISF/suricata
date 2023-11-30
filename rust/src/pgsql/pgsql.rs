@@ -117,6 +117,7 @@ pub enum PgsqlStateProgress {
     DataRowReceived,
     CommandCompletedReceived,
     ErrorMessageReceived,
+    CancelRequestReceived,
     ConnectionTerminated,
     #[cfg(test)]
     UnknownState,
@@ -151,7 +152,7 @@ impl Default for PgsqlState {
         Self::new()
     }
 }
-    
+
 impl PgsqlState {
     pub fn new() -> Self {
         Self {
@@ -280,6 +281,7 @@ impl PgsqlState {
 
                 // Important to keep in mind that: "In simple Query mode, the format of retrieved values is always text, except when the given command is a FETCH from a cursor declared with the BINARY option. In that case, the retrieved values are in binary format. The format codes given in the RowDescription message tell which format is being used." (from pgsql official documentation)
             }
+            PgsqlFEMessage::CancelRequest(_) => Some(PgsqlStateProgress::CancelRequestReceived),
             PgsqlFEMessage::Terminate(_) => {
                 SCLogDebug!("Match: Terminate message");
                 Some(PgsqlStateProgress::ConnectionTerminated)

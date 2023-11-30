@@ -34,6 +34,7 @@ use nom7::{Err, IResult};
 pub const PGSQL_LENGTH_FIELD: u32 = 4;
 
 pub const PGSQL_DUMMY_PROTO_MAJOR: u16 = 1234; // 0x04d2
+pub const PGSQL_DUMMY_PROTO_CANCEL_REQUEST: u16 = 5678; // 0x162e
 pub const PGSQL_DUMMY_PROTO_MINOR_SSL: u16 = 5679; //0x162f
 pub const _PGSQL_DUMMY_PROTO_MINOR_GSSAPI: u16 = 5680; // 0x1630
 
@@ -316,6 +317,12 @@ pub struct TerminationMessage {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub struct CancelRequestMessage {
+    pub pid: u32,
+    pub backend_key: u32,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum PgsqlFEMessage {
     SSLRequest(DummyStartupPacket),
     StartupMessage(StartupPacket),
@@ -323,6 +330,7 @@ pub enum PgsqlFEMessage {
     SASLInitialResponse(SASLInitialResponsePacket),
     SASLResponse(RegularPacket),
     SimpleQuery(RegularPacket),
+    CancelRequest(CancelRequestMessage),
     Terminate(TerminationMessage),
 }
 
@@ -335,6 +343,7 @@ impl PgsqlFEMessage {
             PgsqlFEMessage::SASLInitialResponse(_) => "sasl_initial_response",
             PgsqlFEMessage::SASLResponse(_) => "sasl_response",
             PgsqlFEMessage::SimpleQuery(_) => "simple_query",
+            PgsqlFEMessage::CancelRequest(_) => "cancel_request",
             PgsqlFEMessage::Terminate(_) => "termination_message",
         }
     }
@@ -609,16 +618,20 @@ pub fn pgsql_parse_startup_packet(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage> {
             },
             PGSQL_DUMMY_PROTO_MAJOR => {
                 let (b, proto_major) = be_u16(b)?;
-                let (b, proto_minor) = all_consuming(be_u16)(b)?;
-                let _message = match proto_minor {
-                    PGSQL_DUMMY_PROTO_MINOR_SSL => (len, proto_major, proto_minor),
+                let (b, proto_minor) = be_u16(b)?;
+                let (b, message) = match proto_minor {
+                    PGSQL_DUMMY_PROTO_CANCEL_REQUEST => {
+                        parse_cancel_request(b)?
+                    },
+                    PGSQL_DUMMY_PROTO_MINOR_SSL => (b, PgsqlFEMessage::SSLRequest(DummyStartupPacket{
+                        length: len,
+                        proto_major,
+                        proto_minor
+                    })),
                     _ => return Err(Err::Error(make_error(b, ErrorKind::Switch))),
                 };
 
-                (b, PgsqlFEMessage::SSLRequest(DummyStartupPacket{
-                    length: len,
-                    proto_major,
-                    proto_minor}))
+                (b, message)
             }
             _ => return Err(Err::Error(make_error(b, ErrorKind::Switch))),
         };
@@ -661,6 +674,15 @@ fn parse_simple_query(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage> {
         identifier,
         length,
         payload: query.to_vec(),
+    })))
+}
+
+fn parse_cancel_request(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage> {
+    let (i, pid) = be_u32(i)?;
+    let (i, backend_key) = be_u32(i)?;
+    Ok((i, PgsqlFEMessage::CancelRequest(CancelRequestMessage {
+        pid,
+        backend_key,
     })))
 }
 
@@ -1251,8 +1273,36 @@ mod tests {
         let result = parse_request(&buf[0..3]);
         assert!(result.is_err());
 
-        // TODO add other messages
     }
+
+    #[test]
+    fn test_cancel_request_message() {
+        // A cancel request message
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x10, // length: 16 (fixed)
+            0x04, 0xd2, 0x16, 0x2e, // 1234.5678 - identifies a cancel request
+            0x00, 0x00, 0x76, 0x31, // PID: 30257
+            0x23, 0x84, 0xf7, 0x2d]; // Backend key: 595916589
+        let result = parse_cancel_request(buf);
+        assert!(result.is_ok());
+
+        let result = parse_cancel_request(&buf[0..3]);
+        assert!(result.is_err());
+
+        let result = pgsql_parse_startup_packet(buf);
+        assert!(result.is_ok());
+
+        let fail_result = pgsql_parse_startup_packet(&buf[0..3]);
+        assert!(fail_result.is_err());
+
+        let result = parse_request(buf);
+        assert!(result.is_ok());
+
+        let fail_result = parse_request(&buf[0..3]);
+        assert!(fail_result.is_err());
+    }
+
+
 
     #[test]
     fn test_parse_error_response_code() {
