@@ -666,6 +666,7 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     new_engine->sm_list = t->sm_list;
     new_engine->sm_list_base = t->sm_list_base;
     new_engine->smd = smd;
+    new_engine->match_on_null = DetectContentInspectionMatchOnAbsentBuffer(smd);
     new_engine->progress = t->progress;
     new_engine->v2 = t->v2;
     SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p", new_engine->sm_list, new_engine->v2.Callback,
@@ -2172,6 +2173,9 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
     const InspectionBuffer *buffer = engine->v2.GetData(det_ctx, transforms,
             f, flags, txv, list_id);
     if (unlikely(buffer == NULL)) {
+        if (eof && engine->match_on_null) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
         return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH :
                      DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
@@ -2233,6 +2237,14 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
         }
         local_id++;
     } while (1);
+    if (local_id == 0) {
+        // That means we did not get even one buffer value from the multi-buffer
+        const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) >
+                          engine->progress);
+        if (eof && engine->match_on_null) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
+    }
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 

@@ -244,7 +244,15 @@ static uint8_t DetectEngineInspectFilename(DetectEngineCtx *de_ctx, DetectEngine
 
     AppLayerGetFileState files = AppLayerParserGetTxFiles(f, txv, flags);
     FileContainer *ffc = files.fc;
-    if (ffc == NULL) {
+    if (ffc == NULL || ffc->head == NULL) {
+        const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) >
+                          engine->progress);
+        if (eof && engine->match_on_null) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
+        if (ffc != NULL) {
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+        }
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
     }
 
