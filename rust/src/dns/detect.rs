@@ -81,6 +81,22 @@ mod test {
                 arg2: 0,
             }
         );
+        assert_eq!(
+            detect_parse_uint::<u8>("7-15").unwrap().1,
+            DetectUintData {
+                mode: DetectUintMode::DetectUintModeRange,
+                arg1: 7,
+                arg2: 15,
+            }
+        );
+        assert_eq!(
+            detect_parse_uint::<u8>("!1-6").unwrap().1,
+            DetectUintData {
+                mode: DetectUintMode::DetectUintModeNegRg,
+                arg1: 1,
+                arg2: 6,
+            }
+        );
         assert!(detect_parse_uint::<u8>("").is_err());
         assert!(detect_parse_uint::<u8>("!").is_err());
         assert!(detect_parse_uint::<u8>("!   ").is_err());
