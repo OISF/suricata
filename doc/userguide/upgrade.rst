@@ -38,6 +38,11 @@ Upgrading 7.0 to 8.0
 --------------------
 .. note:: ``stats.whitelist`` has been renamed to ``stats.score`` in ``eve.json``
 
+Major changes
+~~~~~~~~~~~~~
+- Negated content matches on absent buffers.
+  `http.referer; content:!"example";` will match on a request without any referer.
+
 Upgrading 6.0 to 7.0
 --------------------
 
