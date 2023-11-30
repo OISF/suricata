@@ -382,6 +382,13 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                     prev_offset);
         } while(1);
 
+    } else if (smd->type == DETECT_ABSENT) {
+        const DetectAbsentData *id = (DetectAbsentData *)smd->ctx;
+        if (!id->or_else) {
+            // we match only on absent buffer
+            goto no_match;
+        }
+        goto match;
     } else if (smd->type == DETECT_ISDATAAT) {
         SCLogDebug("inspecting isdataat");
 
@@ -646,8 +653,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             goto match;
         }
         goto no_match_discontinue;
-    }
-    else if (smd->type == DETECT_LUA) {
+    } else if (smd->type == DETECT_LUA) {
         SCLogDebug("lua starting");
 
         if (DetectLuaMatchBuffer(det_ctx, s, smd, buffer, buffer_len,
@@ -756,6 +762,24 @@ bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineTh
         return true;
     else
         return false;
+}
+
+bool DetectContentInspectionMatchOnAbsentBuffer(const SigMatchData *smd)
+{
+    // we will match on NULL buffers there is one absent
+    bool absent_data = false;
+    while (1) {
+        if (smd->type == DETECT_ABSENT) {
+            absent_data = true;
+            break;
+        }
+        if (smd->is_last) {
+            break;
+        }
+        // smd does not get reused after this loop
+        smd++;
+    }
+    return absent_data;
 }
 
 #ifdef UNITTESTS
