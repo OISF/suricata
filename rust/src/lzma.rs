@@ -57,7 +57,7 @@ impl From<std::io::Error> for LzmaStatus {
 
 /// Use the lzma algorithm to decompress a chunk of data.
 #[no_mangle]
-pub unsafe extern "C" fn lzma_decompress(
+pub unsafe extern fn lzma_decompress(
     input: *const u8, input_len: &mut usize, output: *mut u8, output_len: &mut usize,
     memlimit: usize,
 ) -> LzmaStatus {

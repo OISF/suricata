@@ -17,26 +17,24 @@
 
 //! Module for retrieving configuration details.
 
-use std::os::raw::c_char;
-use std::os::raw::c_void;
-use std::os::raw::c_int;
-use std::ffi::{CString, CStr};
-use std::ptr;
-use std::str;
 use nom7::{
     character::complete::{multispace0, not_line_ending},
-    sequence::{preceded, tuple},
-    number::complete::double,
     combinator::verify,
+    number::complete::double,
+    sequence::{preceded, tuple},
     IResult,
 };
+use std::ffi::{CStr, CString};
+use std::os::raw::c_char;
+use std::os::raw::c_int;
+use std::os::raw::c_void;
+use std::ptr;
+use std::str;
 
 extern {
     fn ConfGet(key: *const c_char, res: *mut *const c_char) -> i8;
-    fn ConfGetChildValue(conf: *const c_void, key: *const c_char,
-                         vptr: *mut *const c_char) -> i8;
-    fn ConfGetChildValueBool(conf: *const c_void, key: *const c_char,
-                             vptr: *mut c_int) -> i8;
+    fn ConfGetChildValue(conf: *const c_void, key: *const c_char, vptr: *mut *const c_char) -> i8;
+    fn ConfGetChildValueBool(conf: *const c_void, key: *const c_char, vptr: *mut c_int) -> i8;
     fn ConfGetNode(key: *const c_char) -> *const c_void;
 }
 
@@ -71,9 +69,7 @@ pub fn conf_get(key: &str) -> Option<&str> {
         return None;
     }
 
-    let value = str::from_utf8(unsafe{
-        CStr::from_ptr(vptr).to_bytes()
-    }).unwrap();
+    let value = str::from_utf8(unsafe { CStr::from_ptr(vptr).to_bytes() }).unwrap();
 
     return Some(value);
 }
@@ -85,8 +81,8 @@ pub fn conf_get_bool(key: &str) -> bool {
         match val {
             "1" | "yes" | "true" | "on" => {
                 return true;
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 
@@ -100,9 +96,8 @@ pub struct ConfNode {
 }
 
 impl ConfNode {
-
     pub fn wrap(conf: *const c_void) -> Self {
-        return Self { conf }
+        return Self { conf };
     }
 
     pub fn get_child_value(&self, key: &str) -> Option<&str> {
@@ -110,9 +105,7 @@ impl ConfNode {
 
         unsafe {
             let s = CString::new(key).unwrap();
-            if ConfGetChildValue(self.conf,
-                                 s.as_ptr(),
-                                 &mut vptr) != 1 {
+            if ConfGetChildValue(self.conf, s.as_ptr(), &mut vptr) != 1 {
                 return None;
             }
         }
@@ -121,9 +114,7 @@ impl ConfNode {
             return None;
         }
 
-        let value = str::from_utf8(unsafe{
-            CStr::from_ptr(vptr).to_bytes()
-        }).unwrap();
+        let value = str::from_utf8(unsafe { CStr::from_ptr(vptr).to_bytes() }).unwrap();
 
         return Some(value);
     }
@@ -133,9 +124,7 @@ impl ConfNode {
 
         unsafe {
             let s = CString::new(key).unwrap();
-            if ConfGetChildValueBool(self.conf,
-                                     s.as_ptr(),
-                                     &mut vptr) != 1 {
+            if ConfGetChildValueBool(self.conf, s.as_ptr(), &mut vptr) != 1 {
                 return false;
             }
         }
@@ -145,13 +134,12 @@ impl ConfNode {
         }
         return false;
     }
-
 }
 
-const BYTE: u64       = 1;
-const KILOBYTE: u64   = 1024;
-const MEGABYTE: u64   = 1_048_576;
-const GIGABYTE: u64   = 1_073_741_824;
+const BYTE: u64 = 1;
+const KILOBYTE: u64 = 1024;
+const MEGABYTE: u64 = 1_048_576;
+const GIGABYTE: u64 = 1_073_741_824;
 
 /// Helper function to retrieve memory unit from a string slice
 ///
@@ -163,11 +151,11 @@ const GIGABYTE: u64   = 1_073_741_824;
 fn get_memunit(unit: &str) -> u64 {
     let unit = &unit.to_lowercase()[..];
     match unit {
-        "b"     => { BYTE }
-        "kb"    => { KILOBYTE }
-        "mb"    => { MEGABYTE }
-        "gb"    => { GIGABYTE }
-        _       => { 0 }
+        "b" => BYTE,
+        "kb" => KILOBYTE,
+        "mb" => MEGABYTE,
+        "gb" => GIGABYTE,
+        _ => 0,
     }
 }
 
@@ -184,8 +172,10 @@ pub fn get_memval(arg: &str) -> Result<u64, &'static str> {
     let arg = arg.trim();
     let val: f64;
     let mut unit: &str;
-    let mut parser = tuple((preceded(multispace0, double),
-                        preceded(multispace0, verify(not_line_ending, |c: &str| c.len() < 3))));
+    let mut parser = tuple((
+        preceded(multispace0, double),
+        preceded(multispace0, verify(not_line_ending, |c: &str| c.len() < 3)),
+    ));
     let r: IResult<&str, (f64, &str)> = parser(arg);
     if let Ok(r) = r {
         val = (r.1).0;
@@ -211,7 +201,7 @@ mod tests {
     #[test]
     fn test_memval_nospace() {
         let s = "10";
-        let res = 10 ;
+        let res = 10;
         assert_eq!(Ok(10), get_memval(s));
 
         let s = "10kb";
@@ -233,7 +223,7 @@ mod tests {
     #[test]
     fn test_memval_space_start() {
         let s = " 10";
-        let res = 10 ;
+        let res = 10;
         assert_eq!(Ok(res), get_memval(s));
 
         let s = " 10Kb";
@@ -252,7 +242,7 @@ mod tests {
     #[test]
     fn test_memval_space_end() {
         let s = " 10                  ";
-        let res = 10 ;
+        let res = 10;
         assert_eq!(Ok(res), get_memval(s));
 
         let s = "10Kb    ";
@@ -271,7 +261,7 @@ mod tests {
     #[test]
     fn test_memval_space_in_bw() {
         let s = " 10                  ";
-        let res = 10 ;
+        let res = 10;
         assert_eq!(Ok(res), get_memval(s));
 
         let s = "10 Kb    ";

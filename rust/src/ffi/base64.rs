@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-use std::os::raw::c_uchar;
 use libc::c_ulong;
+use std::os::raw::c_uchar;
 
 #[repr(C)]
 #[allow(non_camel_case_types)]
@@ -35,7 +35,7 @@ pub enum Base64ReturnCode {
 /// from Base64EncodeBufferSize for the input_len, and this length must be provided
 /// in the output_len variable.
 #[no_mangle]
-pub unsafe extern "C" fn Base64Encode(
+pub unsafe extern fn Base64Encode(
     input: *const u8, input_len: c_ulong, output: *mut c_uchar, output_len: *mut c_ulong,
 ) -> Base64ReturnCode {
     if input.is_null() || output.is_null() || output_len.is_null() {
@@ -57,6 +57,6 @@ pub unsafe extern "C" fn Base64Encode(
 /// required output bytes are 4 * ceil(input_len / 3) and an additional byte for
 /// storing the NULL pointer.
 #[no_mangle]
-pub extern "C" fn Base64EncodeBufferSize(len: c_ulong) -> c_ulong {
+pub extern fn Base64EncodeBufferSize(len: c_ulong) -> c_ulong {
     (4 * ((len) + 2) / 3) + 1
 }

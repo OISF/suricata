@@ -87,7 +87,7 @@ pub fn ftp_pasv_response(i: &[u8]) -> IResult<&[u8], u16> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ftp_active_port(input: *const u8, len: u32) -> u16 {
+pub unsafe extern fn rs_ftp_active_port(input: *const u8, len: u32) -> u16 {
     let buf = build_slice!(input, len as usize);
     match ftp_active_port(buf) {
         Ok((_, dport)) => {
@@ -104,7 +104,7 @@ pub unsafe extern "C" fn rs_ftp_active_port(input: *const u8, len: u32) -> u16 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ftp_pasv_response(input: *const u8, len: u32) -> u16 {
+pub unsafe extern fn rs_ftp_pasv_response(input: *const u8, len: u32) -> u16 {
     let buf = std::slice::from_raw_parts(input, len as usize);
     match ftp_pasv_response(buf) {
         Ok((_, dport)) => {
@@ -146,7 +146,7 @@ pub fn ftp_active_eprt(i: &[u8]) -> IResult<&[u8], u16> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ftp_active_eprt(input: *const u8, len: u32) -> u16 {
+pub unsafe extern fn rs_ftp_active_eprt(input: *const u8, len: u32) -> u16 {
     let buf = build_slice!(input, len as usize);
     match ftp_active_eprt(buf) {
         Ok((_, dport)) => {
@@ -162,7 +162,7 @@ pub unsafe extern "C" fn rs_ftp_active_eprt(input: *const u8, len: u32) -> u16 {
     return 0;
 }
 #[no_mangle]
-pub unsafe extern "C" fn rs_ftp_epsv_response(input: *const u8, len: u32) -> u16 {
+pub unsafe extern fn rs_ftp_epsv_response(input: *const u8, len: u32) -> u16 {
     let buf = std::slice::from_raw_parts(input, len as usize);
     match ftp_epsv_response(buf) {
         Ok((_, dport)) => {

@@ -68,9 +68,16 @@ impl NFSState {
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                    filetracker_newchunk(&mut tdf.file_tracker,
-                            &file_name, w.data, w.offset,
-                            w.write_len, fill_bytes as u8, is_last, &r.hdr.xid);
+                    filetracker_newchunk(
+                        &mut tdf.file_tracker,
+                        &file_name,
+                        w.data,
+                        w.offset,
+                        w.write_len,
+                        fill_bytes as u8,
+                        is_last,
+                        &r.hdr.xid,
+                    );
                     tdf.chunk_count += 1;
                     if is_last {
                         tdf.file_last_xid = r.hdr.xid;
@@ -85,9 +92,16 @@ impl NFSState {
         if !found {
             let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
             if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                filetracker_newchunk(&mut tdf.file_tracker,
-                        &file_name, w.data, w.offset,
-                        w.write_len, fill_bytes as u8, is_last, &r.hdr.xid);
+                filetracker_newchunk(
+                    &mut tdf.file_tracker,
+                    &file_name,
+                    w.data,
+                    w.offset,
+                    w.write_len,
+                    fill_bytes as u8,
+                    is_last,
+                    &r.hdr.xid,
+                );
                 tx.procedure = NFSPROC4_WRITE;
                 tx.xid = r.hdr.xid;
                 tx.is_first = true;
@@ -102,7 +116,7 @@ impl NFSState {
         }
         self.ts_chunk_xid = r.hdr.xid;
         debug_validate_bug_on!(w.data.len() as u32 > w.write_len);
-        self.ts_chunk_left = w.write_len - w.data.len()  as u32;
+        self.ts_chunk_left = w.write_len - w.data.len() as u32;
     }
 
     fn close_v4<'b>(&mut self, r: &RpcPacket<'b>, fh: &'b [u8]) {
@@ -125,8 +139,7 @@ impl NFSState {
     }
 
     fn new_tx_v4(
-        &mut self, r: &RpcPacket, xidmap: &NFSRequestXidMap, procedure: u32,
-        _aux_opcodes: &[u32],
+        &mut self, r: &RpcPacket, xidmap: &NFSRequestXidMap, procedure: u32, _aux_opcodes: &[u32],
     ) {
         let mut tx = self.new_tx();
         tx.xid = r.hdr.xid;
@@ -319,7 +332,7 @@ impl NFSState {
             match *c {
                 Nfs4ResponseContent::ReadDir(_s, Some(ref rd)) => {
                     SCLogDebug!("READDIRv4: status {} eof {}", _s, rd.eof);
-                    
+
                     #[allow(clippy::manual_flatten)]
                     for d in &rd.listing {
                         if let Some(_d) = d {
@@ -382,9 +395,7 @@ impl NFSState {
         }
     }
 
-    pub fn process_reply_record_v4(
-        &mut self, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap,
-    ) {
+    pub fn process_reply_record_v4(&mut self, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap) {
         if xidmap.procedure == NFSPROC4_COMPOUND {
             let mut data = r.prog_data;
 

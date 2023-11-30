@@ -78,7 +78,7 @@ pub fn detect_parse_stream_size(i: &str) -> IResult<&str, DetectStreamSizeData> 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_stream_size_parse(
+pub unsafe extern fn rs_detect_stream_size_parse(
     ustr: *const std::os::raw::c_char,
 ) -> *mut DetectStreamSizeData {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
@@ -92,7 +92,7 @@ pub unsafe extern "C" fn rs_detect_stream_size_parse(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_stream_size_free(ctx: &mut DetectStreamSizeData) {
+pub unsafe extern fn rs_detect_stream_size_free(ctx: &mut DetectStreamSizeData) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
 }
