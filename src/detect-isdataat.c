@@ -35,6 +35,7 @@
 
 #include "detect-isdataat.h"
 #include "detect-content.h"
+#include "detect-bytetest.h"
 #include "detect-uricontent.h"
 #include "detect-engine-build.h"
 
@@ -56,10 +57,96 @@ static DetectParseRegex parse_regex;
 int DetectIsdataatSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectIsdataatRegisterTests(void);
+static void DetectAbsentRegisterTests(void);
 #endif
 void DetectIsdataatFree(DetectEngineCtx *, void *);
 
 static int DetectEndsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr);
+
+static void DetectAbsentFree(DetectEngineCtx *de_ctx, void *ptr)
+{
+    SCFree(ptr);
+}
+
+static int DetectAbsentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
+{
+    if (s->init_data->list == DETECT_SM_LIST_NOTSET) {
+        SCLogError("no buffer for absent keyword");
+        return -1;
+    }
+
+    if (DetectBufferGetActiveList(de_ctx, s) == -1)
+        return -1;
+
+    bool or_else;
+    if (optstr == NULL) {
+        or_else = false;
+    } else if (strcmp(optstr, "or_else") == 0) {
+        or_else = true;
+    } else {
+        SCLogError("unhandled value for absent keyword: %s", optstr);
+        return -1;
+    }
+    if (s->init_data->curbuf == NULL || s->init_data->list != (int)s->init_data->curbuf->id) {
+        SCLogError("unspected buffer for absent keyword");
+        return -1;
+    }
+    const DetectBufferType *b = DetectEngineBufferTypeGetById(de_ctx, s->init_data->list);
+    if (!b || b->frame) {
+        SCLogError("absent does not work with frames");
+        return -1;
+    }
+    if (s->init_data->curbuf->tail != NULL) {
+        SCLogError("absent must come first right after buffer");
+        return -1;
+    }
+    DetectAbsentData *dad = SCMalloc(sizeof(DetectAbsentData));
+    if (unlikely(dad == NULL))
+        return -1;
+
+    dad->or_else = or_else;
+
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ABSENT, (SigMatchCtx *)dad, s->init_data->list) ==
+            NULL) {
+        DetectAbsentFree(de_ctx, dad);
+        return -1;
+    }
+    return 0;
+}
+
+bool DetectAbsentValidateContentCallback(Signature *s, const SignatureInitDataBuffer *b)
+{
+    bool has_other = false;
+    bool only_absent = false;
+    bool has_absent = false;
+    for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_ABSENT) {
+            has_absent = true;
+            const DetectAbsentData *dad = (const DetectAbsentData *)sm->ctx;
+            if (!dad->or_else) {
+                only_absent = true;
+            }
+        } else {
+            has_other = true;
+            if (sm->type == DETECT_CONTENT) {
+                const DetectContentData *cd = (DetectContentData *)sm->ctx;
+                if ((cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
+                    SCLogError("signature can't have absent and fast_pattern on the same buffer");
+                    return false;
+                }
+            }
+        }
+    }
+
+    if (only_absent && has_other) {
+        SCLogError("signature can't have a buffer only absent and tested otherwise");
+        return false;
+    } else if (has_absent && !only_absent && !has_other) {
+        SCLogError("signature with absent: or_else expects something else to test on");
+        return false;
+    }
+    return true;
+}
 
 /**
  * \brief Registration function for isdataat: keyword
@@ -81,6 +168,16 @@ void DetectIsdataatRegister(void)
     sigmatch_table[DETECT_ENDS_WITH].url = "/rules/payload-keywords.html#endswith";
     sigmatch_table[DETECT_ENDS_WITH].Setup = DetectEndsWithSetup;
     sigmatch_table[DETECT_ENDS_WITH].flags = SIGMATCH_NOOPT;
+
+    sigmatch_table[DETECT_ABSENT].name = "absent";
+    sigmatch_table[DETECT_ABSENT].desc = "test if the buffer is absent";
+    sigmatch_table[DETECT_ABSENT].url = "/rules/payload-keywords.html#absent";
+    sigmatch_table[DETECT_ABSENT].Setup = DetectAbsentSetup;
+    sigmatch_table[DETECT_ABSENT].Free = DetectAbsentFree;
+    sigmatch_table[DETECT_ABSENT].flags = SIGMATCH_OPTIONAL_OPT;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_ABSENT].RegisterTests = DetectAbsentRegisterTests;
+#endif
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
@@ -583,5 +680,42 @@ void DetectIsdataatRegisterTests(void)
     UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01);
     UtRegisterTest("DetectIsdataatTestPacket02", DetectIsdataatTestPacket02);
     UtRegisterTest("DetectIsdataatTestPacket03", DetectIsdataatTestPacket03);
+}
+
+static int DetectAbsentTestParse01(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF(de_ctx == NULL);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"invalid absent only with negated content\"; http.user_agent; "
+            "absent; content:!\"one\"; sid:2;)");
+    FAIL_IF(s != NULL);
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                      "(msg:\"invalid absent\"; http.user_agent; "
+                                      "content:!\"one\"; absent; sid:2;)");
+    FAIL_IF(s != NULL);
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                      "(msg:\"invalid absent\"; http.user_agent; "
+                                      "content:\"one\"; absent: or_else; sid:2;)");
+    FAIL_IF(s != NULL);
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                      "(msg:\"absent without sticky buffer\"; "
+                                      "content:!\"one\"; absent: or_else; sid:2;)");
+    FAIL_IF(s != NULL);
+    s = DetectEngineAppendSig(de_ctx,
+            "alert websocket any any -> any any "
+            "(msg:\"absent with frame\"; "
+            "frame: websocket.pdu; absent: or_else; content:!\"one\"; sid:2;)");
+    FAIL_IF(s != NULL);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+void DetectAbsentRegisterTests(void)
+{
+    UtRegisterTest("DetectAbsentTestParse01", DetectAbsentTestParse01);
 }
 #endif
