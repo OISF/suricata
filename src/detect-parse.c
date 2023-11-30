@@ -35,6 +35,7 @@
 
 #include "detect-content.h"
 #include "detect-bsize.h"
+#include "detect-isdataat.h"
 #include "detect-pcre.h"
 #include "detect-uricontent.h"
 #include "detect-reference.h"
@@ -1980,6 +1981,9 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
 
         if (!DetectBsizeValidateContentCallback(s, b)) {
+            SCReturnInt(0);
+        }
+        if (!DetectAbsentValidateContentCallback(s, b)) {
             SCReturnInt(0);
         }
     }
