@@ -2192,6 +2192,12 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
     const InspectionBuffer *buffer = engine->v2.GetData(det_ctx, transforms,
             f, flags, txv, list_id);
     if (unlikely(buffer == NULL)) {
+        if (eof && engine->smd->type == DETECT_CONTENT) {
+            DetectContentData *cd = (DetectContentData *)engine->smd->ctx;
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                return DETECT_ENGINE_INSPECT_SIG_MATCH;
+            }
+        }
         return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH :
                      DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
