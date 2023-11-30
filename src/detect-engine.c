@@ -56,6 +56,9 @@
 #include "detect-fast-pattern.h"
 #include "detect-byte-extract.h"
 #include "detect-content.h"
+#include "detect-pcre.h"
+#include "detect-isdataat.h"
+#include "detect-bytetest.h"
 #include "detect-uricontent.h"
 #include "detect-tcphdr.h"
 #include "detect-engine-threshold.h"
@@ -2192,6 +2195,65 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
     const InspectionBuffer *buffer = engine->v2.GetData(det_ctx, transforms,
             f, flags, txv, list_id);
     if (unlikely(buffer == NULL)) {
+        if (eof) {
+            DetectContentData *cd;
+            DetectPcreData *pe;
+            DetectIsdataatData *ida;
+            DetectBytetestData *btd;
+            switch (engine->smd->type) {
+                case DETECT_CONTENT:
+                    cd = (DetectContentData *)engine->smd->ctx;
+                    if (cd->flags & DETECT_CONTENT_NEGATED) {
+                        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+                    }
+                    break;
+                case DETECT_PCRE:
+                    pe = (DetectPcreData *)engine->smd->ctx;
+                    if (pe->flags & DETECT_PCRE_NEGATE) {
+                        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+                    }
+                    break;
+                case DETECT_ISDATAAT:
+                    ida = (DetectIsdataatData *)engine->smd->ctx;
+                    if (ida->flags & ISDATAAT_NEGATED) {
+                        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+                    }
+                    break;
+                case DETECT_BYTETEST:
+                    btd = (DetectBytetestData *)engine->smd->ctx;
+                    if (btd->neg_op) {
+                        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+                    }
+                    break;
+                case DETECT_BSIZE:
+                    // bsize 0 indicates a present empty buffer
+                    break;
+                case DETECT_AL_URILEN:
+                    // urilen behaves like generic bsize
+                    break;
+                case DETECT_BASE64_DECODE:
+                    // fallthrough
+                case DETECT_ASN1:
+                    // fallthrough
+                case DETECT_LUA:
+                    // fallthrough
+                case DETECT_DATASET:
+                    // fallthrough
+                case DETECT_DATAREP:
+                    // fallthrough
+                case DETECT_BYTEMATH:
+                    // fallthrough
+                case DETECT_BYTE_EXTRACT:
+                    // fallthrough
+                case DETECT_BYTEJUMP:
+                    // no negation, no match
+                    break;
+                default:
+                    // unreachable as list is meant to be exhaustive
+                    SCLogDebug("sm->type %u", engine->smd->type);
+                    DEBUG_VALIDATE_BUG_ON(1);
+            }
+        }
         return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH :
                      DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
