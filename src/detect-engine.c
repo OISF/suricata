@@ -56,6 +56,7 @@
 #include "detect-fast-pattern.h"
 #include "detect-byte-extract.h"
 #include "detect-content.h"
+#include "detect-pcre.h"
 #include "detect-uricontent.h"
 #include "detect-tcphdr.h"
 #include "detect-engine-threshold.h"
@@ -2192,6 +2193,24 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
     const InspectionBuffer *buffer = engine->v2.GetData(det_ctx, transforms,
             f, flags, txv, list_id);
     if (unlikely(buffer == NULL)) {
+        if (eof) {
+            DetectContentData *cd;
+            DetectPcreData *pe;
+            switch (engine->smd->type) {
+                case DETECT_CONTENT:
+                    cd = (DetectContentData *)engine->smd->ctx;
+                    if (cd->flags & DETECT_CONTENT_NEGATED) {
+                        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+                    }
+                    break;
+                case DETECT_PCRE:
+                    pe = (DetectPcreData *)engine->smd->ctx;
+                    if (pe->flags & DETECT_PCRE_NEGATE) {
+                        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+                    }
+                    break;
+            }
+        }
         return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH :
                      DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
