@@ -1627,6 +1627,15 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
     const SigGroupHead *const sgh = scratch->sgh;
     const AppProto alproto = f->alproto;
 
+    /* for TCP, limit inspection to pseudo packets or real packet that did
+     * an app-layer update. */
+    if (p->proto == IPPROTO_TCP && !PKT_IS_PSEUDOPKT(p) &&
+            ((PKT_IS_TOSERVER(p) && (f->flags & FLOW_TS_APP_UPDATED) == 0) ||
+                    (PKT_IS_TOCLIENT(p) && (f->flags & FLOW_TC_APP_UPDATED) == 0))) {
+        SCLogDebug("pcap_cnt %" PRIu64 ": %s: skip frame inspection for TCP w/o APP UPDATE",
+                p->pcap_cnt, PKT_IS_TOSERVER(p) ? "toserver" : "toclient");
+        return;
+    }
     FramesContainer *frames_container = AppLayerFramesGetContainer(f);
     if (frames_container == NULL) {
         return;
