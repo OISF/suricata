@@ -56,6 +56,9 @@
 #include "detect-fast-pattern.h"
 #include "detect-byte-extract.h"
 #include "detect-content.h"
+#include "detect-pcre.h"
+#include "detect-isdataat.h"
+#include "detect-bytetest.h"
 #include "detect-uricontent.h"
 #include "detect-tcphdr.h"
 #include "detect-engine-threshold.h"
@@ -696,6 +699,75 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     new_engine->sm_list = t->sm_list;
     new_engine->sm_list_base = t->sm_list_base;
     new_engine->smd = smd;
+    if (t->v2.Callback == DetectEngineInspectBufferGeneric) {
+        // we will match on NULL buffers if all smd are negated
+        bool match_on_null = true;
+        while (1) {
+            DetectContentData *cd;
+            DetectPcreData *pe;
+            DetectIsdataatData *ida;
+            DetectBytetestData *btd;
+            switch (smd->type) {
+                case DETECT_CONTENT:
+                    cd = (DetectContentData *)smd->ctx;
+                    if ((cd->flags & DETECT_CONTENT_NEGATED) == 0) {
+                        match_on_null = false;
+                    }
+                    break;
+                case DETECT_PCRE:
+                    pe = (DetectPcreData *)smd->ctx;
+                    if ((pe->flags & DETECT_PCRE_NEGATE) == 0) {
+                        match_on_null = false;
+                    }
+                    break;
+                case DETECT_ISDATAAT:
+                    ida = (DetectIsdataatData *)smd->ctx;
+                    if ((ida->flags & ISDATAAT_NEGATED) == 0) {
+                        match_on_null = false;
+                    }
+                    break;
+                case DETECT_BYTETEST:
+                    btd = (DetectBytetestData *)smd->ctx;
+                    if (!btd->neg_op) {
+                        match_on_null = false;
+                    }
+                    break;
+                case DETECT_BSIZE:
+                    // bsize 0 indicates a present empty buffer
+                    // fallthrough
+                case DETECT_AL_URILEN:
+                    // fallthrough
+                case DETECT_BASE64_DECODE:
+                    // fallthrough
+                case DETECT_ASN1:
+                    // fallthrough
+                case DETECT_LUA:
+                    // fallthrough
+                case DETECT_DATASET:
+                    // fallthrough
+                case DETECT_DATAREP:
+                    // fallthrough
+                case DETECT_BYTEMATH:
+                    // fallthrough
+                case DETECT_BYTE_EXTRACT:
+                    // fallthrough
+                case DETECT_BYTEJUMP:
+                    // no negation, no match
+                    match_on_null = false;
+                    break;
+                default:
+                    // unreachable as list is meant to be exhaustive
+                    SCLogDebug("sm->type %u", smd->type);
+                    DEBUG_VALIDATE_BUG_ON(1);
+            }
+            if (smd->is_last || !match_on_null) {
+                break;
+            }
+            // smd does not get reused after this loop
+            smd++;
+        }
+        new_engine->match_on_null = match_on_null;
+    }
     new_engine->progress = t->progress;
     new_engine->v2 = t->v2;
     SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p", new_engine->sm_list, new_engine->v2.Callback,
@@ -2192,6 +2264,9 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
     const InspectionBuffer *buffer = engine->v2.GetData(det_ctx, transforms,
             f, flags, txv, list_id);
     if (unlikely(buffer == NULL)) {
+        if (eof && engine->match_on_null) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
         return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH :
                      DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
