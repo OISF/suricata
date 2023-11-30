@@ -35,6 +35,7 @@
 
 #include "detect-isdataat.h"
 #include "detect-content.h"
+#include "detect-bytetest.h"
 #include "detect-uricontent.h"
 #include "detect-engine-build.h"
 
@@ -61,6 +62,97 @@ void DetectIsdataatFree(DetectEngineCtx *, void *);
 
 static int DetectEndsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr);
 
+static void DetectAbsentFree(DetectEngineCtx *de_ctx, void *ptr)
+{
+    SCFree(ptr);
+}
+
+static int DetectAbsentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
+{
+    if (s->init_data->list == DETECT_SM_LIST_NOTSET) {
+        SCLogError("no buffer for absent keyword");
+        return -1;
+    }
+
+    if (DetectBufferGetActiveList(de_ctx, s) == -1)
+        return -1;
+
+    bool or_else = false;
+    if (strcmp(optstr, "or_else") == 0) {
+        or_else = true;
+    } else if (strcmp(optstr, "only") != 0) {
+        SCLogError("unhandled value for absent keyword: %s", optstr);
+        return -1;
+    }
+    DetectAbsentData *dad = SCMalloc(sizeof(DetectAbsentData));
+    if (unlikely(dad == NULL))
+        return -1;
+
+    dad->or_else = or_else;
+
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_ABSENT, (SigMatchCtx *)dad, s->init_data->list) ==
+            NULL) {
+        DetectAbsentFree(de_ctx, dad);
+        return -1;
+    }
+    return 0;
+}
+
+bool DetectAbsentValidateContentCallback(Signature *s, const SignatureInitDataBuffer *b)
+{
+    bool has_other = false;
+    bool only_absent = false;
+    bool has_absent = false;
+    for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_ABSENT) {
+            has_absent = true;
+            const DetectAbsentData *dad = (const DetectAbsentData *)sm->ctx;
+            if (!dad->or_else) {
+                only_absent = true;
+            }
+        } else {
+            has_other = true;
+            if (sm->type == DETECT_CONTENT) {
+                const DetectContentData *cd = (DetectContentData *)sm->ctx;
+                if (has_absent && (cd->flags & DETECT_CONTENT_NEGATED) == 0) {
+                    SCLogError("signature can't have a buffer both absent and with content");
+                    return false;
+                }
+            } else if (sm->type == DETECT_PCRE) {
+                const DetectPcreData *cd = (DetectPcreData *)sm->ctx;
+                if (has_absent && (cd->flags & DETECT_PCRE_NEGATE) == 0) {
+                    SCLogError("signature can't have a buffer both absent and with pcre content");
+                    return false;
+                }
+            } else if (sm->type == DETECT_ISDATAAT) {
+                const DetectIsdataatData *cd = (DetectIsdataatData *)sm->ctx;
+                if (has_absent && (cd->flags & ISDATAAT_NEGATED) == 0) {
+                    SCLogError("signature can't have a buffer both absent and with pcre content");
+                    return false;
+                }
+            } else if (sm->type == DETECT_BYTETEST) {
+                const DetectBytetestData *cd = (DetectBytetestData *)sm->ctx;
+                if (has_absent && !cd->neg_op) {
+                    SCLogError("signature can't have a buffer both absent and with pcre content");
+                    return false;
+                }
+            } else if (has_absent) {
+                SCLogError("signature can't have a buffer absent with unhandled keyword");
+                return false;
+            }
+        }
+    }
+
+    if (only_absent && has_other) {
+        SCLogError("signature can't have a buffer both absent and tested otherwise");
+        return false;
+    } else if (has_absent && !only_absent && !has_other) {
+        SCLogError("signature with absent: or_else expects something else to test on");
+        return false;
+    }
+    return true;
+}
+
 /**
  * \brief Registration function for isdataat: keyword
  */
@@ -81,6 +173,12 @@ void DetectIsdataatRegister(void)
     sigmatch_table[DETECT_ENDS_WITH].url = "/rules/payload-keywords.html#endswith";
     sigmatch_table[DETECT_ENDS_WITH].Setup = DetectEndsWithSetup;
     sigmatch_table[DETECT_ENDS_WITH].flags = SIGMATCH_NOOPT;
+
+    sigmatch_table[DETECT_ABSENT].name = "absent";
+    sigmatch_table[DETECT_ABSENT].desc = "test if the buffer is absent";
+    sigmatch_table[DETECT_ABSENT].url = "/rules/payload-keywords.html#absent";
+    sigmatch_table[DETECT_ABSENT].Setup = DetectAbsentSetup;
+    sigmatch_table[DETECT_ABSENT].Free = DetectAbsentFree;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
