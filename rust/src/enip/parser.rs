@@ -287,6 +287,8 @@ pub fn parse_cip_reqresp_multiple(
             packet_list.push(packet);
             size_list.push(start[offset_list[j] as usize..].len() - rem2.len());
             rem = rem2;
+        } else {
+            return Err(nom7::Err::Error(make_error(i, ErrorKind::LengthValue)));
         }
     }
     Ok((
