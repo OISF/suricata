@@ -18,7 +18,6 @@
 #ifndef __UTIL_LUA_DNP3_OBJECTS_H__
 #define __UTIL_LUA_DNP3_OBJECTS_H__
 
-void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
-    DNP3Point *item);
+void DNP3PushPoint(lua_State *luastate, DNP3Object *object, DNP3Point *item);
 
 #endif /* ! __UTIL_LUA_DNP3_OBJECTS_H__ */
