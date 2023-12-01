@@ -58,6 +58,7 @@ typedef struct DetectDNP3_ {
  * Indicator names to value mappings (Snort compatible).
  */
 DNP3Mapping DNP3IndicatorsMap[] = {
+// clang-format off
     {"device_restart",        0x8000},
     {"device_trouble",        0x4000},
     {"local_control",         0x2000},
@@ -77,12 +78,14 @@ DNP3Mapping DNP3IndicatorsMap[] = {
     {"no_func_code_support",  0x0001},
 
     {NULL, 0},
+// clang-format on
 };
 
 /**
  * Application function code name to code mappings (Snort compatible).
  */
 DNP3Mapping DNP3FunctionNameMap[] = {
+// clang-format off
     {"confirm",              0},
     {"read",                 1},
     {"write",                2},
@@ -120,6 +123,7 @@ DNP3Mapping DNP3FunctionNameMap[] = {
     {"response",             129},
     {"unsolicited_response", 130},
     {"authenticate_resp",    131}
+// clang-format on
 };
 
 #ifdef UNITTESTS
