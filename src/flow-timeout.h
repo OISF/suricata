@@ -24,8 +24,11 @@
 #ifndef __FLOW_TIMEOUT_H__
 #define __FLOW_TIMEOUT_H__
 
+#include "stream-tcp-private.h"
+
 void FlowForceReassemblyForFlow(Flow *f);
 int FlowForceReassemblyNeedReassembly(Flow *f);
 void FlowForceReassembly(void);
+Packet *FlowForceReassemblyPseudoPacketGet(int direction, Flow *f, const TcpSession *ssn);
 
 #endif /* __FLOW_TIMEOUT_H__ */
