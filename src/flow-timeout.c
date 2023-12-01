@@ -76,10 +76,8 @@
  *                  packets need to force reassembly, in which case we just
  *                  set dummy ack/seq values.
  */
-static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
-                                                           int direction,
-                                                           Flow *f,
-                                                           TcpSession *ssn)
+static inline Packet *FlowForceReassemblyPseudoPacketSetup(
+        Packet *p, int direction, Flow *f, const TcpSession *ssn)
 {
     const int orig_dir = direction;
     p->tenant_id = f->tenant_id;
@@ -265,12 +263,7 @@ error:
     return NULL;
 }
 
-Packet *FlowForceReassemblyPseudoPacketGet(int direction,
-                                                         Flow *f,
-                                                         TcpSession *ssn);
-Packet *FlowForceReassemblyPseudoPacketGet(int direction,
-                                                         Flow *f,
-                                                         TcpSession *ssn)
+Packet *FlowForceReassemblyPseudoPacketGet(int direction, Flow *f, const TcpSession *ssn)
 {
     PacketPoolWait();
     Packet *p = PacketPoolGetPacket();
