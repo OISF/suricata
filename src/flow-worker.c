@@ -96,8 +96,8 @@ typedef struct FlowWorkerThreadData_ {
 
 } FlowWorkerThreadData;
 
-static void FlowWorkerFlowTimeout(ThreadVars *tv, Packet *p, FlowWorkerThreadData *fw, void *detect_thread);
-Packet *FlowForceReassemblyPseudoPacketGet(int direction, Flow *f, TcpSession *ssn);
+static void FlowWorkerFlowTimeout(
+        ThreadVars *tv, Packet *p, FlowWorkerThreadData *fw, void *detect_thread);
 
 /**
  * \internal
