@@ -58,6 +58,7 @@ src/*.orig
 src/*.plist/*
 src/TAGS
 src/suricata
+src/**/*.dirstamp
 stamp-h1
 src/build-info.h
 test.sh
