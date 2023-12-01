@@ -17,7 +17,7 @@
 
 use nom7::branch::alt;
 use nom7::bytes::complete::{is_a, tag, tag_no_case, take_while};
-use nom7::character::complete::digit1;
+use nom7::character::complete::{digit1, hex_digit1};
 use nom7::combinator::{all_consuming, map_opt, opt, value, verify};
 use nom7::error::{make_error, ErrorKind};
 use nom7::Err;
@@ -73,8 +73,25 @@ pub fn detect_parse_uint_unit(i: &str) -> IResult<&str, u64> {
     return Ok((i, unit));
 }
 
+pub fn detect_parse_uint_value_hex<T: DetectIntType>(i: &str) -> IResult<&str, T> {
+    let (i, _) = tag("0x")(i)?;
+    let (i, arg1s) = hex_digit1(i)?;
+    match T::from_str_radix(arg1s, 16) {
+        Ok(arg1) => Ok((i, arg1)),
+        _ => Err(Err::Error(make_error(i, ErrorKind::Verify))),
+    }
+}
+
+pub fn detect_parse_uint_value<T: DetectIntType>(i: &str) -> IResult<&str, T> {
+    let (i, arg1) = alt((
+        detect_parse_uint_value_hex,
+        map_opt(digit1, |s: &str| s.parse::<T>().ok()),
+    ))(i)?;
+    Ok((i, arg1))
+}
+
 pub fn detect_parse_uint_with_unit<T: DetectIntType>(i: &str) -> IResult<&str, T> {
-    let (i, arg1) = map_opt(digit1, |s: &str| s.parse::<T>().ok())(i)?;
+    let (i, arg1) = detect_parse_uint_value::<T>(i)?;
     let (i, unit) = opt(detect_parse_uint_unit)(i)?;
     if arg1 >= T::one() {
         if let Some(u) = unit {
@@ -107,11 +124,11 @@ pub fn detect_parse_uint_start_equal<T: DetectIntType>(
 pub fn detect_parse_uint_start_interval<T: DetectIntType>(
     i: &str,
 ) -> IResult<&str, DetectUintData<T>> {
-    let (i, arg1) = map_opt(digit1, |s: &str| s.parse::<T>().ok())(i)?;
+    let (i, arg1) = detect_parse_uint_value(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, _) = alt((tag("-"), tag("<>")))(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
-    let (i, arg2) = verify(map_opt(digit1, |s: &str| s.parse::<T>().ok()), |x| {
+    let (i, arg2) = verify(detect_parse_uint_value, |x| {
         x > &arg1 && *x - arg1 > T::one()
     })(i)?;
     Ok((
@@ -127,13 +144,13 @@ pub fn detect_parse_uint_start_interval<T: DetectIntType>(
 fn detect_parse_uint_start_interval_inclusive<T: DetectIntType>(
     i: &str,
 ) -> IResult<&str, DetectUintData<T>> {
-    let (i, arg1) = verify(map_opt(digit1, |s: &str| s.parse::<T>().ok()), |x| {
+    let (i, arg1) = verify(detect_parse_uint_value::<T>, |x| {
         *x > T::min_value()
     })(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, _) = alt((tag("-"), tag("<>")))(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
-    let (i, arg2) = verify(map_opt(digit1, |s: &str| s.parse::<T>().ok()), |x| {
+    let (i, arg2) = verify(detect_parse_uint_value::<T>, |x| {
         *x > arg1 && *x < T::max_value()
     })(i)?;
     Ok((
@@ -162,7 +179,7 @@ pub fn detect_parse_uint_mode(i: &str) -> IResult<&str, DetectUintMode> {
 fn detect_parse_uint_start_symbol<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintData<T>> {
     let (i, mode) = detect_parse_uint_mode(i)?;
     let (i, _) = opt(is_a(" "))(i)?;
-    let (i, arg1) = map_opt(digit1, |s: &str| s.parse::<T>().ok())(i)?;
+    let (i, arg1) = detect_parse_uint_value(i)?;
 
     match mode {
         DetectUintMode::DetectUintModeNe => {}
@@ -406,6 +423,18 @@ pub unsafe extern "C" fn rs_detect_u16_free(ctx: &mut DetectUintData<u16>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_parse_uint_hex() {
+        match detect_parse_uint::<u64>("0x100") {
+            Ok((_, val)) => {
+                assert_eq!(val.arg1, 0x100);
+            }
+            Err(_) => {
+                assert!(false);
+            }
+        }
+    }
 
     #[test]
     fn test_parse_uint_unit() {
