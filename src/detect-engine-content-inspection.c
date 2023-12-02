@@ -714,6 +714,25 @@ bool DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCt
         return false;
 }
 
+/** \brief wrapper around DetectEngineContentInspectionInternal to return true/false only
+ *
+ *  \param smd sigmatches to evaluate
+ */
+bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd, Packet *p, Flow *f, const InspectionBuffer *b,
+        const enum DetectContentInspectionType inspection_mode)
+{
+    det_ctx->buffer_offset = 0;
+    det_ctx->inspection_recursion_counter = 0;
+
+    int r = DetectEngineContentInspectionInternal(de_ctx, det_ctx, s, smd, p, f, b->inspect,
+            b->inspect_len, b->inspect_offset, b->flags, inspection_mode);
+    if (r == 1)
+        return true;
+    else
+        return false;
+}
+
 #ifdef UNITTESTS
 #include "tests/detect-engine-content-inspection.c"
 #endif
