@@ -1283,10 +1283,11 @@ host-mode: auto
 # or trigger some modifications of the engine. Set enabled to yes
 # to activate the feature. In auto mode, the feature will only be
 # activated in live capture mode. You can use the filename variable to set
-# the file name of the socket.
+# the file name of the socket. The default socket filename is
+# suricata-command.socket
 unix-command:
   enabled: auto
-  #filename: custom.socket
+  #filename: suricata-command.socket
 
 # Magic file. The extension .mgc is added to the value here.
 #magic-file: /usr/share/file/magic
