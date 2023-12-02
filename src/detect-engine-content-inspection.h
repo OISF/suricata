@@ -28,7 +28,7 @@
 /** indication to content engine what type of data
  *  we're inspecting
  */
-enum {
+enum DetectContentInspectionType {
     DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD = 0, /* enables 'replace' logic */
     DETECT_ENGINE_CONTENT_INSPECTION_MODE_HEADER,
     DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM,
@@ -50,12 +50,13 @@ enum {
 int DetectEngineContentInspectionInternal(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd, Packet *p, Flow *f, const uint8_t *buffer,
         const uint32_t buffer_len, const uint32_t stream_start_offset, const uint8_t flags,
-        const uint8_t inspection_mode);
+        const enum DetectContentInspectionType inspection_mode);
+
 /* implicit "public" just returns true match, false no match */
 bool DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd, Packet *p, Flow *f, const uint8_t *buffer,
         const uint32_t buffer_len, const uint32_t stream_start_offset, const uint8_t flags,
-        const uint8_t inspection_mode);
+        const enum DetectContentInspectionType inspection_mode);
 
 void DetectEngineContentInspectionRegisterTests(void);
 
