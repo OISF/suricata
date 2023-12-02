@@ -119,6 +119,7 @@ SCEnumCharMap tls_decoder_event_table[] = {
     { "CERTIFICATE_INVALID_ISSUER", TLS_DECODER_EVENT_CERTIFICATE_INVALID_ISSUER },
     { "CERTIFICATE_INVALID_VALIDITY", TLS_DECODER_EVENT_CERTIFICATE_INVALID_VALIDITY },
     { "ERROR_MESSAGE_ENCOUNTERED", TLS_DECODER_EVENT_ERROR_MSG_ENCOUNTERED },
+    { "DUPLICATE_HANDSHAKE_MESSAGE", TLS_DECODER_EVENT_DUPLICATE_HANDSHAKE_MESSAGE },
     /* used as a generic error event */
     { "INVALID_SSL_RECORD", TLS_DECODER_EVENT_INVALID_SSL_RECORD },
     { NULL, -1 },
@@ -1498,6 +1499,16 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
 
     switch (ssl_state->curr_connp->handshake_type) {
         case SSLV3_HS_CLIENT_HELLO:
+            if (ssl_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
+                SSLSetEvent(ssl_state, TLS_DECODER_EVENT_DUPLICATE_HANDSHAKE_MESSAGE);
+                if (ssl_state->client_connp.ja3_str) {
+                    Ja3BufferFree(&ssl_state->client_connp.ja3_str);
+                }
+                if (ssl_state->client_connp.ja3_hash) {
+                    SCFree(ssl_state->client_connp.ja3_hash);
+                    ssl_state->client_connp.ja3_hash = NULL;
+                }
+            }
             ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_HELLO;
 
             rc = TLSDecodeHandshakeHello(ssl_state, input, input_len);
@@ -1506,6 +1517,16 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
             break;
 
         case SSLV3_HS_SERVER_HELLO:
+            if (ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) {
+                SSLSetEvent(ssl_state, TLS_DECODER_EVENT_DUPLICATE_HANDSHAKE_MESSAGE);
+                if (ssl_state->server_connp.ja3_str) {
+                    Ja3BufferFree(&ssl_state->server_connp.ja3_str);
+                }
+                if (ssl_state->server_connp.ja3_hash) {
+                    SCFree(ssl_state->server_connp.ja3_hash);
+                    ssl_state->server_connp.ja3_hash = NULL;
+                }
+            }
             ssl_state->current_flags = SSL_AL_FLAG_STATE_SERVER_HELLO;
 
             DEBUG_VALIDATE_BUG_ON(ssl_state->curr_connp->message_length != input_len);
