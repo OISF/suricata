@@ -58,6 +58,11 @@ bool DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCt
         const uint32_t buffer_len, const uint32_t stream_start_offset, const uint8_t flags,
         const enum DetectContentInspectionType inspection_mode);
 
+/* entry for inspection buffers */
+bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd, Packet *p, Flow *f, const InspectionBuffer *b,
+        const enum DetectContentInspectionType inspection_mode);
+
 void DetectEngineContentInspectionRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_CONTENT_INSPECTION_H__ */
