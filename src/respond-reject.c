@@ -69,7 +69,7 @@ static TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data)
         return TM_ECODE_OK;
     }
 
-    if (IS_TUNNEL_PKT(p)) {
+    if (PacketIsTunnel(p)) {
         return TM_ECODE_OK;
     }
 
