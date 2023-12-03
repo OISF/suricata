@@ -44,8 +44,8 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-ike.h"
-#include "output-json-ike.h"
+#include "app-layer/ike/parser.h"
+#include "app-layer/ike/logger.h"
 
 #include "rust.h"
 

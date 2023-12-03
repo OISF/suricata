@@ -43,11 +43,11 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "detect-ike-spi.h"
+#include "app-layer/ike/detect-spi.h"
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "app-layer-ike.h"
+#include "app-layer/ike/parser.h"
 #include "rust-bindings.h"
 
 #define KEYWORD_NAME_INITIATOR "ike.init_spi"
