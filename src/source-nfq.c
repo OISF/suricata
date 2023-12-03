@@ -439,7 +439,7 @@ static int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
     p->ReleasePacket = NFQReleasePacket;
     p->nfq_v.ifi  = nfq_get_indev(tb);
     p->nfq_v.ifo  = nfq_get_outdev(tb);
-    p->nfq_v.verdicted = 0;
+    p->nfq_v.verdicted = false;
 
 #ifdef NFQ_GET_PAYLOAD_SIGNED
     ret = nfq_get_payload(tb, &pktdata);
@@ -1082,7 +1082,7 @@ TmEcode NFQSetVerdict(Packet *p)
     /* we could also have a direct pointer but we need to have a ref count in this case */
     NFQQueueVars *t = g_nfq_q + p->nfq_v.nfq_index;
 
-    p->nfq_v.verdicted = 1;
+    p->nfq_v.verdicted = true;
 
     /* can't verdict a "fake" packet */
     if (PKT_IS_PSEUDOPKT(p)) {
