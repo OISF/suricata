@@ -407,6 +407,12 @@ enum PacketDropReason {
     PKT_DROP_REASON_MAX,
 };
 
+enum PacketTunnelType {
+    PacketTunnelNone,
+    PacketTunnelRoot,
+    PacketTunnelChild,
+};
+
 /* forward declaration since Packet struct definition requires this */
 struct PacketQueue_;
 
@@ -471,6 +477,9 @@ typedef struct Packet_
     /* raw hash value for looking up the flow, will need to modulated to the
      * hash size still */
     uint32_t flow_hash;
+
+    /* tunnel type: none, root or child */
+    enum PacketTunnelType ttype;
 
     SCTime_t ts;
 
@@ -618,7 +627,7 @@ typedef struct Packet_
     /* enum PacketDropReason::PKT_DROP_REASON_* as uint8_t for compactness */
     uint8_t drop_reason;
 
-    /* has tunnel been verdicted? */
+    /** has verdict on this tunneled packet been issued? */
     bool tunnel_verdicted;
 
     /* tunnel/encapsulation handling */
@@ -649,8 +658,8 @@ typedef struct Packet_
         /** lock to protect access to:
          *  - tunnel_rtv_cnt
          *  - tunnel_tpr_cnt
-         *  - nfq_v.mark
-         *  - flags
+         *  - tunnel_verdicted
+         *  - nfq_v.mark (if p->ttype != PacketTunnelNone)
          */
         SCSpinlock tunnel_lock;
     } persistent;
@@ -799,13 +808,14 @@ static inline void TUNNEL_INCR_PKT_TPR(Packet *p)
 #define TUNNEL_PKT_RTV(p) ((p)->root ? (p)->root->tunnel_rtv_cnt : (p)->tunnel_rtv_cnt)
 #define TUNNEL_PKT_TPR(p) ((p)->root ? (p)->root->tunnel_tpr_cnt : (p)->tunnel_tpr_cnt)
 
-#define IS_TUNNEL_PKT(p)            (((p)->flags & PKT_TUNNEL))
-#define SET_TUNNEL_PKT(p)           ((p)->flags |= PKT_TUNNEL)
-#define UNSET_TUNNEL_PKT(p)         ((p)->flags &= ~PKT_TUNNEL)
-#define IS_TUNNEL_ROOT_PKT(p)       (IS_TUNNEL_PKT(p) && (p)->root == NULL)
-
-#define IS_TUNNEL_PKT_VERDICTED(p)  (p)->tunnel_verdicted
-#define SET_TUNNEL_PKT_VERDICTED(p) (p)->tunnel_verdicted = true
+static inline bool PacketTunnelIsVerdicted(const Packet *p)
+{
+    return p->tunnel_verdicted;
+}
+static inline void PacketTunnelSetVerdicted(Packet *p)
+{
+    p->tunnel_verdicted = true;
+}
 
 enum DecodeTunnelProto {
     DECODE_TUNNEL_ETHERNET,
@@ -1017,8 +1027,7 @@ void DecodeUnregisterCounters(void);
                    depth reached. */
 #define PKT_STREAM_NOPCAPLOG BIT_U32(12)
 
-#define PKT_TUNNEL           BIT_U32(13)
-// vacancy
+// vacancy 2x
 
 /** Packet checksum is not computed (TX packet for example) */
 #define PKT_IGNORE_CHECKSUM BIT_U32(15)
@@ -1094,6 +1103,26 @@ static inline void DecodeSetNoPacketInspectionFlag(Packet *p)
     p->flags |= PKT_NOPACKET_INSPECTION;
 }
 
+static inline bool PacketIsTunnelRoot(const Packet *p)
+{
+    return (p->ttype == PacketTunnelRoot);
+}
+
+static inline bool PacketIsTunnelChild(const Packet *p)
+{
+    return (p->ttype == PacketTunnelChild);
+}
+
+static inline bool PacketIsTunnel(const Packet *p)
+{
+    return (p->ttype != PacketTunnelNone);
+}
+
+static inline bool PacketIsNotTunnel(const Packet *p)
+{
+    return (p->ttype == PacketTunnelNone);
+}
+
 /** \brief return true if *this* packet needs to trigger a verdict.
  *
  *  If we have the root packet, and we have none outstanding,
@@ -1113,10 +1142,11 @@ static inline bool VerdictTunnelPacket(Packet *p)
     SCLogDebug("tunnel: outstanding %u", outstanding);
 
     /* if there are packets outstanding, we won't verdict this one */
-    if (IS_TUNNEL_ROOT_PKT(p) && !IS_TUNNEL_PKT_VERDICTED(p) && !outstanding) {
+    if (PacketIsTunnelRoot(p) && !PacketTunnelIsVerdicted(p) && !outstanding) {
         // verdict
         SCLogDebug("root %p: verdict", p);
-    } else if (!IS_TUNNEL_ROOT_PKT(p) && outstanding == 1 && p->root && IS_TUNNEL_PKT_VERDICTED(p->root)) {
+    } else if (PacketIsTunnelChild(p) && outstanding == 1 && p->root &&
+               PacketTunnelIsVerdicted(p->root)) {
         // verdict
         SCLogDebug("tunnel %p: verdict", p);
     } else {

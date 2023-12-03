@@ -614,9 +614,8 @@ TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data)
     }
 
     /* This came from NFQ.
-     *  if this is a tunnel packet we check if we are ready to verdict
-     * already. */
-    if (IS_TUNNEL_PKT(p)) {
+     * If this is a tunnel packet we check if we are ready to verdict already. */
+    if (PacketIsTunnel(p)) {
         bool verdict = VerdictTunnelPacket(p);
 
         /* don't verdict if we are not ready */
@@ -628,7 +627,7 @@ TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data)
         /* no tunnel, verdict normally */
         SCLogDebug("Setting verdict on non-tunnel");
         retval = IPFWSetVerdict(tv, ptv, p);
-    } /* IS_TUNNEL_PKT end */
+    }
 
     SCReturnInt(retval);
 }

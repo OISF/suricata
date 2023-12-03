@@ -1125,7 +1125,7 @@ void SCProfilingAddPacket(Packet *p)
             pd->tot += delta;
             pd->cnt ++;
 
-            if (IS_TUNNEL_PKT(p)) {
+            if (PacketIsTunnel(p)) {
                 pd = &packet_profile_data4[256];
 
                 if (pd->min == 0 || delta < pd->min) {
@@ -1161,7 +1161,7 @@ void SCProfilingAddPacket(Packet *p)
             pd->tot += delta;
             pd->cnt ++;
 
-            if (IS_TUNNEL_PKT(p)) {
+            if (PacketIsTunnel(p)) {
                 pd = &packet_profile_data6[256];
 
                 if (pd->min == 0 || delta < pd->min) {

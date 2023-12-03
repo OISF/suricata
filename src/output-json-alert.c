@@ -562,7 +562,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         /* alert */
         AlertJsonHeader(json_output_ctx, p, pa, jb, json_output_ctx->flags, &addr, xff_buffer);
 
-        if (IS_TUNNEL_PKT(p)) {
+        if (PacketIsTunnel(p)) {
             AlertJsonTunnel(p, jb);
         }
 
