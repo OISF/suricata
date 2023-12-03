@@ -310,7 +310,7 @@ static int PfringBypassCallback(Packet *p)
     }
 
     /* Bypassing tunneled packets is currently not supported */
-    if (IS_TUNNEL_PKT(p)) {
+    if (PacketIsTunnel(p)) {
         return 0;
     }
 

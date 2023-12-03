@@ -496,7 +496,7 @@ static void NFQReleasePacket(Packet *p)
  */
 static int NFQBypassCallback(Packet *p)
 {
-    if (IS_TUNNEL_PKT(p)) {
+    if (PacketIsTunnel(p)) {
         /* real tunnels may have multiple flows inside them, so bypass can't
          * work for those. Rebuilt packets from IP fragments are fine. */
         if (p->flags & PKT_REBUILT_FRAGMENT) {
@@ -1186,7 +1186,7 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data)
 {
     /* if this is a tunnel packet we check if we are ready to verdict
      * already. */
-    if (IS_TUNNEL_PKT(p)) {
+    if (p->ttype != PacketTunnelNone) {
         SCLogDebug("tunnel pkt: %p/%p %s", p, p->root, p->root ? "upper layer" : "root");
         bool verdict = VerdictTunnelPacket(p);
         /* don't verdict if we are not ready */

@@ -103,6 +103,7 @@ void PacketReinit(Packet *p)
     p->vlan_id[0] = 0;
     p->vlan_id[1] = 0;
     p->vlan_idx = 0;
+    p->ttype = PacketTunnelNone;
     SCTIME_INIT(p->ts);
     p->datalink = 0;
     p->drop_reason = 0;

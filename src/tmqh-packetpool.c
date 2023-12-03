@@ -337,7 +337,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     SCEnter();
     SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, BOOL2STR(p->pool == NULL));
 
-    if (IS_TUNNEL_PKT(p)) {
+    if (PacketIsTunnel(p)) {
         SCLogDebug("Packet %p is a tunnel packet: %s",
             p,p->root ? "upper layer" : "tunnel root");
 
@@ -345,9 +345,9 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         SCSpinlock *lock = p->root ? &p->root->persistent.tunnel_lock : &p->persistent.tunnel_lock;
         SCSpinLock(lock);
 
-        if (IS_TUNNEL_ROOT_PKT(p)) {
+        if (PacketIsTunnelRoot(p)) {
             SCLogDebug("IS_TUNNEL_ROOT_PKT == TRUE");
-            CaptureStatsUpdate(t, p);
+            CaptureStatsUpdate(t, p); // TODO move out of lock
 
             const uint16_t outstanding = TUNNEL_PKT_TPR(p) - TUNNEL_PKT_RTV(p);
             SCLogDebug("root pkt: outstanding %u", outstanding);
@@ -366,7 +366,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                  * packets, return this to the pool. It's still referenced
                  * by the tunnel packets, and we will return it
                  * when we handle them */
-                SET_TUNNEL_PKT_VERDICTED(p);
+                PacketTunnelSetVerdicted(p);
 
                 PACKET_PROFILING_END(p);
                 SCSpinUnlock(lock);
@@ -381,9 +381,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
             /* all tunnel packets are processed except us. Root already
              * processed. So return tunnel pkt and root packet to the
              * pool. */
-            if (outstanding == 0 &&
-                    p->root && IS_TUNNEL_PKT_VERDICTED(p->root))
-            {
+            if (outstanding == 0 && p->root && PacketTunnelIsVerdicted(p->root)) {
                 SCLogDebug("root verdicted == true && no outstanding");
 
                 /* handle freeing the root as well*/
@@ -398,8 +396,8 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                  * so get rid of the tunnel pkt only */
 
                 SCLogDebug("NOT IS_TUNNEL_PKT_VERDICTED (%s) || "
-                        "outstanding > 0 (%u)",
-                        (p->root && IS_TUNNEL_PKT_VERDICTED(p->root)) ? "true" : "false",
+                           "outstanding > 0 (%u)",
+                        (p->root && PacketTunnelIsVerdicted(p->root)) ? "true" : "false",
                         outstanding);
 
                 /* fall through */
@@ -414,8 +412,8 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     }
 
     SCLogDebug("[packet %p][%s] %s", p,
-            IS_TUNNEL_PKT(p) ? IS_TUNNEL_ROOT_PKT(p) ? "tunnel::root" : "tunnel::leaf"
-                             : "no tunnel",
+            PacketIsTunnel(p) ? PacketIsTunnelRoot(p) ? "tunnel::root" : "tunnel::leaf"
+                              : "no tunnel",
             (p->action & ACTION_DROP) ? "DROP" : "no drop");
 
     /* we're done with the tunnel root now as well */

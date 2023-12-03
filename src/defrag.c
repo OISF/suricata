@@ -873,10 +873,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             r = Defrag4Reassemble(tv, tracker, p);
             if (r != NULL && tv != NULL && dtv != NULL) {
                 StatsIncr(tv, dtv->counter_defrag_ipv4_reassembled);
-                if (DecodeIPV4(tv, dtv, r, (void *)r->ip4h,
-                               IPV4_GET_IPLEN(r)) != TM_ECODE_OK) {
-
-                    UNSET_TUNNEL_PKT(r);
+                if (DecodeIPV4(tv, dtv, r, (void *)r->ip4h, IPV4_GET_IPLEN(r)) != TM_ECODE_OK) {
                     r->root = NULL;
                     TmqhOutputPacketpool(tv, r);
                     r = NULL;
@@ -890,10 +887,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             if (r != NULL && tv != NULL && dtv != NULL) {
                 StatsIncr(tv, dtv->counter_defrag_ipv6_reassembled);
                 if (DecodeIPV6(tv, dtv, r, (uint8_t *)r->ip6h,
-                               IPV6_GET_PLEN(r) + IPV6_HEADER_LEN)
-                               != TM_ECODE_OK) {
-
-                    UNSET_TUNNEL_PKT(r);
+                            IPV6_GET_PLEN(r) + IPV6_HEADER_LEN) != TM_ECODE_OK) {
                     r->root = NULL;
                     TmqhOutputPacketpool(tv, r);
                     r = NULL;

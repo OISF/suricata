@@ -769,7 +769,7 @@ static TmEcode WinDivertVerdictHelper(ThreadVars *tv, Packet *p)
 
     /* we can't verdict tunnel packets without ensuring all encapsulated
      * packets are verdicted */
-    if (IS_TUNNEL_PKT(p)) {
+    if (PacketIsTunnel(p)) {
         bool finalVerdict = VerdictTunnelPacket(p);
         if (!finalVerdict) {
             SCReturnInt(TM_ECODE_OK);

@@ -335,13 +335,15 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     p->livedev = parent->livedev;
 
     /* set the root ptr to the lowest layer */
-    if (parent->root != NULL)
+    if (parent->root != NULL) {
         p->root = parent->root;
-    else
+        BUG_ON(parent->ttype != PacketTunnelChild);
+    } else {
         p->root = parent;
-
+        parent->ttype = PacketTunnelRoot;
+    }
     /* tell new packet it's part of a tunnel */
-    SET_TUNNEL_PKT(p);
+    p->ttype = PacketTunnelChild;
 
     ret = DecodeTunnel(tv, dtv, p, GET_PKT_DATA(p),
                        GET_PKT_LEN(p), proto);
@@ -351,18 +353,15 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     {
         /* Not a (valid) tunnel packet */
         SCLogDebug("tunnel packet is invalid");
-
         p->root = NULL;
-        UNSET_TUNNEL_PKT(p);
         TmqhOutputPacketpool(tv, p);
         SCReturnPtr(NULL, "Packet");
     }
 
-
-    /* tell parent packet it's part of a tunnel */
-    SET_TUNNEL_PKT(parent);
-
-    /* increment tunnel packet refcnt in the root packet */
+    /* Update tunnel settings in parent */
+    if (parent->root == NULL) {
+        parent->ttype = PacketTunnelRoot;
+    }
     TUNNEL_INCR_PKT_TPR(p);
 
     /* disable payload (not packet) inspection on the parent, as the payload
@@ -397,10 +396,15 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
     }
 
     /* set the root ptr to the lowest layer */
-    if (parent->root != NULL)
+    if (parent->root != NULL) {
         p->root = parent->root;
-    else
+        BUG_ON(parent->ttype != PacketTunnelChild);
+    } else {
         p->root = parent;
+        // we set parent->ttype later
+    }
+    /* tell new packet it's part of a tunnel */
+    p->ttype = PacketTunnelChild;
 
     /* copy packet and set length, proto */
     if (pkt && len) {
@@ -410,8 +414,6 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
     p->ts = parent->ts;
     p->datalink = DLT_RAW;
     p->tenant_id = parent->tenant_id;
-    /* tell new packet it's part of a tunnel */
-    SET_TUNNEL_PKT(p);
     memcpy(&p->vlan_id[0], &parent->vlan_id[0], sizeof(p->vlan_id));
     p->vlan_idx = parent->vlan_idx;
     p->livedev = parent->livedev;
@@ -426,7 +428,8 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
 void PacketDefragPktSetupParent(Packet *parent)
 {
     /* tell parent packet it's part of a tunnel */
-    SET_TUNNEL_PKT(parent);
+    if (parent->ttype == PacketTunnelNone)
+        parent->ttype = PacketTunnelRoot;
 
     /* increment tunnel packet refcnt in the root packet */
     TUNNEL_INCR_PKT_TPR(parent);
