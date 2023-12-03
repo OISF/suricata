@@ -295,7 +295,6 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     }
     PKT_SET_SRC(rp, PKT_SRC_DEFRAG);
     rp->flags |= PKT_REBUILT_FRAGMENT;
-    rp->recursion_level = p->recursion_level;
 
     int fragmentable_offset = 0;
     int fragmentable_len = 0;
@@ -433,6 +432,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
         goto error_remove_tracker;
     }
     PKT_SET_SRC(rp, PKT_SRC_DEFRAG);
+    rp->flags |= PKT_REBUILT_FRAGMENT;
 
     int unfragmentable_len = 0;
     int fragmentable_offset = 0;
