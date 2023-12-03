@@ -75,7 +75,7 @@
 #include "output-json-rfb.h"
 #include "output-json-mqtt.h"
 #include "app-layer/ike/logger.h"
-#include "output-json-modbus.h"
+#include "app-layer/modbus/logger.h"
 #include "output-json-frame.h"
 #include "output-json-quic.h"
 

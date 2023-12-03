@@ -17,7 +17,6 @@
 
 #include "suricata-common.h"
 #include "detect.h"
-#include "pkt-var.h"
 #include "conf.h"
 #include "threads.h"
 #include "threadvars.h"
@@ -30,7 +29,7 @@
 #include "output-json.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "output-json-modbus.h"
+#include "app-layer/modbus/logger.h"
 #include "rust.h"
 
 typedef struct LogModbusFileCtx_ {
