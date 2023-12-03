@@ -618,7 +618,7 @@ static void StreamTcpSegmentAddPacketData(
         return;
     }
 
-    if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
+    if (PacketIsTunnelChild(p)) {
         Packet *rp = p->root;
         StreamTcpSegmentAddPacketDataDo(seg, rp, p);
     } else {

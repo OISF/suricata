@@ -228,7 +228,7 @@ static int DetectMarkPacket(DetectEngineThreadCtx *det_ctx, Packet *p,
 #ifdef NFQ
     const DetectMarkData *nf_data = (const DetectMarkData *)ctx;
     if (nf_data->mask) {
-        if (!(IS_TUNNEL_PKT(p))) {
+        if (PacketIsNotTunnel(p)) {
             /* coverity[missing_lock] */
             p->nfq_v.mark = (nf_data->mark & nf_data->mask)
                 | (p->nfq_v.mark & ~(nf_data->mask));

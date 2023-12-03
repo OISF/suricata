@@ -2194,7 +2194,7 @@ static int AFPBypassCallback(Packet *p)
     /* Bypassing tunneled packets is currently not supported
      * because we can't discard the inner packet only due to
      * primitive parsing in eBPF */
-    if (IS_TUNNEL_PKT(p)) {
+    if (PacketIsTunnel(p)) {
         return 0;
     }
     if (PKT_IS_IPV4(p)) {
@@ -2349,7 +2349,7 @@ static int AFPXDPBypassCallback(Packet *p)
     /* Bypassing tunneled packets is currently not supported
      * because we can't discard the inner packet only due to
      * primitive parsing in eBPF */
-    if (IS_TUNNEL_PKT(p)) {
+    if (PacketIsTunnel(p)) {
         return 0;
     }
     if (PKT_IS_IPV4(p)) {
