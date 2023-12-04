@@ -46,7 +46,7 @@ noinst_HEADERS = \
 	app-layer-register.h \
 	app-layer-rfb.h \
 	app-layer-sip.h \
-	app-layer-smb.h \
+	app-layer/smb/parser.h \
 	app-layer/smtp/parser.h \
 	app-layer-snmp.h \
 	app-layer-ssh.h \
@@ -292,8 +292,8 @@ noinst_HEADERS = \
 	detect-sip-stat-code.h \
 	detect-sip-stat-msg.h \
 	detect-sip-uri.h \
-	detect-smb-ntlmssp.h \
-	detect-smb-share.h \
+	app-layer/smb/detect-ntlmssp.h \
+	app-layer/smb/detect-share.h \
 	detect-snmp-community.h \
 	detect-snmp-pdu_type.h \
 	detect-snmp-usm.h \
@@ -424,7 +424,7 @@ noinst_HEADERS = \
 	output-json-rdp.h \
 	output-json-rfb.h \
 	output-json-sip.h \
-	output-json-smb.h \
+	app-layer/smb/logger.h \
 	app-layer/smtp/logger.h \
 	output-json-snmp.h \
 	output-json-ssh.h \
@@ -662,7 +662,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-register.c \
 	app-layer-rfb.c \
 	app-layer-sip.c \
-	app-layer-smb.c \
+	app-layer/smb/parser.c \
 	app-layer/smtp/parser.c \
 	app-layer-snmp.c \
 	app-layer-ssh.c \
@@ -905,8 +905,8 @@ libsuricata_c_a_SOURCES = \
 	detect-sip-stat-code.c \
 	detect-sip-stat-msg.c \
 	detect-sip-uri.c \
-	detect-smb-ntlmssp.c \
-	detect-smb-share.c \
+	app-layer/smb/detect-ntlmssp.c \
+	app-layer/smb/detect-share.c \
 	detect-snmp-community.c \
 	detect-snmp-pdu_type.c \
 	detect-snmp-usm.c \
@@ -1036,7 +1036,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-rdp.c \
 	output-json-rfb.c \
 	output-json-sip.c \
-	output-json-smb.c \
+	app-layer/smb/logger.c \
 	app-layer/smtp/logger.c \
 	output-json-snmp.c \
 	output-json-ssh.c \

@@ -21,7 +21,7 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#include "detect-smb-ntlmssp.h"
+#include "app-layer/smb/detect-ntlmssp.h"
 #include "suricata-common.h"
 #include "suricata.h"
 #include "detect.h"
@@ -75,7 +75,7 @@
 
 #include "detect-config.h"
 
-#include "detect-smb-share.h"
+#include "app-layer/smb/detect-share.h"
 
 #include "detect-base64-decode.h"
 #include "detect-base64-data.h"
