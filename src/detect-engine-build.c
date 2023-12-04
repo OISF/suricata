@@ -1176,8 +1176,10 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         /* IP Only rules are handled separately */
         if (s->type == SIG_TYPE_IPONLY)
             goto next;
+        /* Protocol does not match the Signature protocol and is neither IP or pkthdr */
         if (!(s->proto.proto[ipproto / 8] & (1<<(ipproto % 8)) || (s->proto.flags & DETECT_PROTO_ANY)))
             goto next;
+        /* Direction does not match Signature direction */
         if (direction == SIG_FLAG_TOSERVER) {
             if (!(s->flags & SIG_FLAG_TOSERVER))
                 goto next;
@@ -1185,14 +1187,6 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             if (!(s->flags & SIG_FLAG_TOCLIENT))
                 goto next;
         }
-
-        DetectPort *p = NULL;
-        if (direction == SIG_FLAG_TOSERVER)
-            p = s->dp;
-        else if (direction == SIG_FLAG_TOCLIENT)
-            p = s->sp;
-        else
-            BUG_ON(1);
 
         /* see if we want to exclude directionless sigs that really care only for
          * to_server syn scans/floods */
@@ -1205,6 +1199,14 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                     s->id, s->dp->port, s->dp->port2);
             goto next;
         }
+
+        DetectPort *p = NULL;
+        if (direction == SIG_FLAG_TOSERVER)
+            p = s->dp;
+        else if (direction == SIG_FLAG_TOCLIENT)
+            p = s->sp;
+        else
+            BUG_ON(1);
 
         int wl = s->init_data->score;
         while (p) {
