@@ -34,7 +34,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-ike.h"
+#include "app-layer/ike/parser.h"
 #include "rust.h"
 
 void RegisterIKEParsers(void)
