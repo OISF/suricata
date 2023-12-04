@@ -272,7 +272,7 @@
 #include "detect-ssl-state.h"
 #include "app-layer/modbus/detect.h"
 #include "detect-cipservice.h"
-#include "detect-dnp3.h"
+#include "app-layer/dnp3/detect.h"
 #include "app-layer/ike/detect-exch-type.h"
 #include "app-layer/ike/detect-spi.h"
 #include "app-layer/ike/detect-vendor.h"

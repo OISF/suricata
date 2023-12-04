@@ -37,8 +37,8 @@
 #include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
 
-#include "app-layer-dnp3.h"
-#include "app-layer-dnp3-objects.h"
+#include "app-layer/dnp3/parser.h"
+#include "app-layer/dnp3/parser-objects.h"
 
 /* Default number of unreplied requests to be considered a flood. */
 #define DNP3_DEFAULT_REQ_FLOOD_COUNT 500

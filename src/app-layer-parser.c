@@ -48,7 +48,7 @@
 #include "app-layer-ssh.h"
 #include "app-layer/modbus/parser.h"
 #include "app-layer-enip.h"
-#include "app-layer-dnp3.h"
+#include "app-layer/dnp3/parser.h"
 #include "app-layer-nfs-tcp.h"
 #include "app-layer-nfs-udp.h"
 #include "app-layer-ntp.h"

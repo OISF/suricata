@@ -84,7 +84,7 @@
 #include "output-json-rdp.h"
 #include "output-json-http2.h"
 #include "output-lua.h"
-#include "output-json-dnp3.h"
+#include "app-layer/dnp3/logger.h"
 #include "output-json-metadata.h"
 #include "output-json-dcerpc.h"
 #include "output-json-frame.h"

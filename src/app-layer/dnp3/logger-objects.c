@@ -24,9 +24,9 @@
 
 #include "suricata-common.h"
 
-#include "app-layer-dnp3.h"
-#include "app-layer-dnp3-objects.h"
-#include "output-json-dnp3-objects.h"
+#include "app-layer/dnp3/parser.h"
+#include "app-layer/dnp3/parser-objects.h"
+#include "app-layer/dnp3/logger-objects.h"
 #include "output-json.h"
 
 // clang-format off
