@@ -89,7 +89,9 @@ int DecodeESP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
 /** \test Successful decoding */
 static int DecodeESPTest01(void)
 {
+    // clang-format off
     uint8_t raw_esp[] = { 0x00, 0x00, 0x00, 0x7b, 0x00, 0x00, 0x00, 0x08 };
+    // clang-format on
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
@@ -116,7 +118,9 @@ static int DecodeESPTest01(void)
 /** \test Successful decoding, with payload data */
 static int DecodeESPTest02(void)
 {
+    // clang-format off
     uint8_t raw_esp[] = { 0x00, 0x00, 0x00, 0x7b, 0x00, 0x00, 0x00, 0x08, 0xFF, 0xFF };
+    // clang-format on
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
@@ -144,7 +148,9 @@ static int DecodeESPTest02(void)
 /** \test Failure decoding, not enough data */
 static int DecodeESPTest03(void)
 {
+    // clang-format off
     uint8_t raw_esp[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    // clang-format on
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
@@ -169,7 +175,9 @@ static int DecodeESPTest03(void)
 /** \test Failure decoding, no data */
 static int DecodeESPTest04(void)
 {
+    // clang-format off
     uint8_t raw_esp[] = {};
+    // clang-format on
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);

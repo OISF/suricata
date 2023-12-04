@@ -140,9 +140,11 @@ end:
 static int DecodeMPLSTestHeaderTooSmall(void)
 {
     /* A packet that is too small to have a complete MPLS header. */
+    // clang-format off
     uint8_t pkt[] = {
         0x00, 0x00, 0x11
     };
+    // clang-format on
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
@@ -167,28 +169,36 @@ static int DecodeMPLSTestPacketTooSmall(void)
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
+    // clang-format off
     uint8_t pkt0[] = { 0x00, 0x01, 0x51, 0xff };
+    // clang-format on
     DecodeMPLS(&tv, &dtv, p, pkt0, sizeof(pkt0));
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, MPLS_PKT_TOO_SMALL));
     PacketFree(p);
 
     p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
+    // clang-format off
     uint8_t pkt1[] = { 0x00, 0x01, 0x51, 0xff, 0x45 };
+    // clang-format on
     DecodeMPLS(&tv, &dtv, p, pkt1, sizeof(pkt1));
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, MPLS_PKT_TOO_SMALL));
     PacketFree(p);
 
     p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
+    // clang-format off
     uint8_t pkt2[] = { 0x00, 0x01, 0x51, 0xff, 0x45, 0x01 };
+    // clang-format on
     DecodeMPLS(&tv, &dtv, p, pkt2, sizeof(pkt2));
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, MPLS_PKT_TOO_SMALL));
     PacketFree(p);
 
     p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
+    // clang-format off
     uint8_t pkt3[] = { 0x00, 0x01, 0x51, 0xff, 0x45, 0x01, 0x02 };
+    // clang-format on
     DecodeMPLS(&tv, &dtv, p, pkt3, sizeof(pkt3));
     FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, MPLS_PKT_TOO_SMALL));
     PacketFree(p);
@@ -197,7 +207,9 @@ static int DecodeMPLSTestPacketTooSmall(void)
     // than required.
     p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
+    // clang-format off
     uint8_t pkt4[] = { 0x00, 0x01, 0x51, 0xff, 0x45, 0x01, 0x02, 0x03 };
+    // clang-format on
     DecodeMPLS(&tv, &dtv, p, pkt4, sizeof(pkt4));
     FAIL_IF(ENGINE_ISSET_EVENT(p, MPLS_PKT_TOO_SMALL));
     PacketFree(p);
@@ -207,6 +219,7 @@ static int DecodeMPLSTestPacketTooSmall(void)
 
 static int DecodeMPLSTestBadLabelRouterAlert(void)
 {
+    // clang-format off
     uint8_t pkt[] = {
         0x00, 0x00, 0x11, 0xff, 0x45, 0x00, 0x00, 0x64,
         0x00, 0x0a, 0x00, 0x00, 0xff, 0x01, 0xa5, 0x6a,
@@ -222,6 +235,7 @@ static int DecodeMPLSTestBadLabelRouterAlert(void)
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd
     };
+    // clang-format on
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
@@ -240,6 +254,7 @@ static int DecodeMPLSTestBadLabelRouterAlert(void)
 
 static int DecodeMPLSTestBadLabelImplicitNull(void)
 {
+    // clang-format off
     uint8_t pkt[] = {
         0x00, 0x00, 0x31, 0xff, 0x45, 0x00, 0x00, 0x64,
         0x00, 0x0a, 0x00, 0x00, 0xff, 0x01, 0xa5, 0x6a,
@@ -255,6 +270,7 @@ static int DecodeMPLSTestBadLabelImplicitNull(void)
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd
     };
+    // clang-format on
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
@@ -272,6 +288,7 @@ static int DecodeMPLSTestBadLabelImplicitNull(void)
 
 static int DecodeMPLSTestBadLabelReserved(void)
 {
+    // clang-format off
     uint8_t pkt[] = {
         0x00, 0x00, 0x51, 0xff, 0x45, 0x00, 0x00, 0x64,
         0x00, 0x0a, 0x00, 0x00, 0xff, 0x01, 0xa5, 0x6a,
@@ -287,6 +304,7 @@ static int DecodeMPLSTestBadLabelReserved(void)
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd
     };
+    // clang-format on
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
@@ -307,6 +325,7 @@ static int DecodeMPLSTestUnknownPayloadType(void)
     /* Valid label: 21.
      * Unknown payload type: 1.
      */
+    // clang-format off
     uint8_t pkt[] = {
         0x00, 0x01, 0x51, 0xff, 0x15, 0x00, 0x00, 0x64,
         0x00, 0x0a, 0x00, 0x00, 0xff, 0x01, 0xa5, 0x6a,
@@ -322,6 +341,7 @@ static int DecodeMPLSTestUnknownPayloadType(void)
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd
     };
+    // clang-format on
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);

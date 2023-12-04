@@ -1938,7 +1938,9 @@ static int AppLayerParserTest01(void)
     AppLayerParserBackupParserTable();
 
     Flow *f = NULL;
+    // clang-format off
     uint8_t testbuf[] = { 0x11 };
+    // clang-format on
     uint32_t testlen = sizeof(testbuf);
     TcpSession ssn;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1983,7 +1985,9 @@ static int AppLayerParserTest02(void)
     AppLayerParserBackupParserTable();
 
     Flow *f = NULL;
+    // clang-format off
     uint8_t testbuf[] = { 0x11 };
+    // clang-format on
     uint32_t testlen = sizeof(testbuf);
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 

@@ -654,6 +654,7 @@ void RegisterENIPTCPParsers(void)
 #include "flow-util.h"
 #include "stream-tcp.h"
 
+// clang-format off
 static uint8_t listIdentity[] = {/* List ID */    0x63, 0x00,
                                  /* Length */     0x00, 0x00,
                                  /* Session */    0x00, 0x00, 0x00, 0x00,
@@ -661,6 +662,7 @@ static uint8_t listIdentity[] = {/* List ID */    0x63, 0x00,
                                  /*  Delay*/      0x00,
                                  /* Context */    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                  /* Quantity of coils */ 0x00, 0x00, 0x00, 0x00, 0x00};
+// clang-format on
 
 /**
  * \brief Test if ENIP Packet matches signature

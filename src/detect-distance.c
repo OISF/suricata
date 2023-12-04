@@ -192,7 +192,9 @@ static int DetectDistanceTest01(void)
  */
 static int DetectDistanceTestPacket01 (void)
 {
+    // clang-format off
     uint8_t buf[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    // clang-format on
     uint16_t buflen = sizeof(buf);
     Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 

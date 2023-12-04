@@ -2592,7 +2592,9 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(ssn->data_first_seen_dir != 0);
 
     /* partial request */
+    // clang-format off
     uint8_t request1[] = { 0x47, 0x45, };
+    // clang-format on
     p->tcph->th_ack = htonl(1);
     p->tcph->th_seq = htonl(1);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
@@ -2639,6 +2641,7 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* complete partial request */
+    // clang-format off
     uint8_t request2[] = {
         0x54, 0x20, 0x2f, 0x69, 0x6e, 0x64,
         0x65, 0x78, 0x2e, 0x68, 0x74, 0x6d, 0x6c, 0x20,
@@ -2651,6 +2654,7 @@ static int StreamTcpReassembleTest39 (void)
         0x63, 0x68, 0x2f, 0x32, 0x2e, 0x33, 0x0d, 0x0a,
         0x41, 0x63, 0x63, 0x65, 0x70, 0x74, 0x3a, 0x20,
         0x2a, 0x2f, 0x2a, 0x0d, 0x0a, 0x0d, 0x0a };
+    // clang-format on
     p->tcph->th_ack = htonl(1);
     p->tcph->th_seq = htonl(3);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
@@ -2675,6 +2679,7 @@ static int StreamTcpReassembleTest39 (void)
     FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* response - request ack */
+    // clang-format off
     uint8_t response[] = {
         0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x31,
         0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d,
@@ -2717,6 +2722,7 @@ static int StreamTcpReassembleTest39 (void)
         0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
         0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
         0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
+    // clang-format on
     p->tcph->th_ack = htonl(88);
     p->tcph->th_seq = htonl(1);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
@@ -3315,7 +3321,9 @@ static int StreamTcpReassembleInlineTest01(void)
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
 
+    // clang-format off
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
+    // clang-format on
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     if (p == NULL) {
         printf("couldn't get a packet: ");
@@ -3365,7 +3373,9 @@ static int StreamTcpReassembleInlineTest02(void)
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
 
+    // clang-format off
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
+    // clang-format on
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     if (p == NULL) {
         printf("couldn't get a packet: ");
@@ -3423,7 +3433,9 @@ static int StreamTcpReassembleInlineTest03(void)
 
     stream_config.reassembly_toserver_chunk_size = 15;
 
+    // clang-format off
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
+    // clang-format on
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     if (p == NULL) {
         printf("couldn't get a packet: ");
@@ -3484,7 +3496,9 @@ static int StreamTcpReassembleInlineTest04(void)
 
     stream_config.reassembly_toserver_chunk_size = 16;
 
+    // clang-format off
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
+    // clang-format on
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     if (p == NULL) {
         printf("couldn't get a packet: ");
@@ -3544,7 +3558,9 @@ static int StreamTcpReassembleInlineTest08(void)
     stream_config.reassembly_toserver_chunk_size = 15;
     f.protoctx = &ssn;
 
+    // clang-format off
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
+    // clang-format on
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     FAIL_IF(p == NULL);
     p->tcph->th_seq = htonl(12);
@@ -3594,7 +3610,9 @@ static int StreamTcpReassembleInlineTest09(void)
 
     stream_config.reassembly_toserver_chunk_size = 20;
 
+    // clang-format off
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
+    // clang-format on
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     if (p == NULL) {
         printf("couldn't get a packet: ");
@@ -3744,7 +3762,9 @@ static int StreamTcpReassembleInsertTest01(void)
     ssn.client.os_policy = OS_POLICY_LAST;
     FLOW_INITIALIZE(&f);
 
+    // clang-format off
     uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
+    // clang-format on
     Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     FAIL_IF(p == NULL);
     p->tcph->th_seq = htonl(12);

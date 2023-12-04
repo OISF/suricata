@@ -621,7 +621,9 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 /** \test IPV4 with no options. */
 static int DecodeIPV4OptionsNONETest01(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = { };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -637,9 +639,11 @@ static int DecodeIPV4OptionsNONETest01(void)
 /** \test IPV4 with EOL option. */
 static int DecodeIPV4OptionsEOLTest01(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_EOL, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
     IPV4Options opts;
@@ -653,9 +657,11 @@ static int DecodeIPV4OptionsEOLTest01(void)
 /** \test IPV4 with NOP option. */
 static int DecodeIPV4OptionsNOPTest01(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_NOP, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
     IPV4Options opts;
@@ -669,6 +675,7 @@ static int DecodeIPV4OptionsNOPTest01(void)
 /** \test IPV4 with RR option. */
 static int DecodeIPV4OptionsRRTest01(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_RR, 0x27, 0x08, 0xc0, 0xa8, 0x2a, 0x64, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -676,6 +683,7 @@ static int DecodeIPV4OptionsRRTest01(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -691,6 +699,7 @@ static int DecodeIPV4OptionsRRTest01(void)
 /** \test IPV4 with RR option (len too large). */
 static int DecodeIPV4OptionsRRTest02(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_RR, 0xff, 0x08, 0xc0, 0xa8, 0x2a, 0x64, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -698,6 +707,7 @@ static int DecodeIPV4OptionsRRTest02(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -713,6 +723,7 @@ static int DecodeIPV4OptionsRRTest02(void)
 /** \test IPV4 with RR option (ptr too large). */
 static int DecodeIPV4OptionsRRTest03(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_RR, 0x27, 0xff, 0xc0, 0xa8, 0x2a, 0x64, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -720,6 +731,7 @@ static int DecodeIPV4OptionsRRTest03(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -735,6 +747,7 @@ static int DecodeIPV4OptionsRRTest03(void)
 /** \test IPV4 with RR option (ptr not in 4 byte increment). */
 static int DecodeIPV4OptionsRRTest04(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_RR, 0x27, 0x05, 0xc0, 0xa8, 0x2a, 0x64, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -742,6 +755,7 @@ static int DecodeIPV4OptionsRRTest04(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -757,9 +771,11 @@ static int DecodeIPV4OptionsRRTest04(void)
 /** \test IPV4 with QS option. */
 static int DecodeIPV4OptionsQSTest01(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_QS, 0x08, 0x0d, 0x00, 0xbe, 0xef, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -775,9 +791,11 @@ static int DecodeIPV4OptionsQSTest01(void)
 /** \test IPV4 with QS option (len too small) */
 static int DecodeIPV4OptionsQSTest02(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_QS, 0x07, 0x0d, 0x00, 0xbe, 0xef, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -793,6 +811,7 @@ static int DecodeIPV4OptionsQSTest02(void)
 /** \test IPV4 with TS option. */
 static int DecodeIPV4OptionsTSTest01(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_TS, 0x24, 0x0d, 0x01, 0x0a, 0x0a, 0x0a, 0x69,
         0x04, 0xce, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -800,6 +819,7 @@ static int DecodeIPV4OptionsTSTest01(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -815,6 +835,7 @@ static int DecodeIPV4OptionsTSTest01(void)
 /** \test IPV4 with TS option (ptr too small). */
 static int DecodeIPV4OptionsTSTest02(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_TS, 0x24, 0x04, 0x01, 0x0a, 0x0a, 0x0a, 0x69,
         0x04, 0xce, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -822,6 +843,7 @@ static int DecodeIPV4OptionsTSTest02(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -837,6 +859,7 @@ static int DecodeIPV4OptionsTSTest02(void)
 /** \test IPV4 with TS option (ptr too large). */
 static int DecodeIPV4OptionsTSTest03(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_TS, 0x24, 0xff, 0x01, 0x0a, 0x0a, 0x0a, 0x69,
         0x04, 0xce, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -844,6 +867,7 @@ static int DecodeIPV4OptionsTSTest03(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -859,6 +883,7 @@ static int DecodeIPV4OptionsTSTest03(void)
 /** \test IPV4 with TS option (ptr not valid). */
 static int DecodeIPV4OptionsTSTest04(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_TS, 0x24, 0x0a, 0x01, 0x0a, 0x0a, 0x0a, 0x69,
         0x04, 0xce, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -866,6 +891,7 @@ static int DecodeIPV4OptionsTSTest04(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -881,10 +907,12 @@ static int DecodeIPV4OptionsTSTest04(void)
 /** \test IPV4 with SEC option. */
 static int DecodeIPV4OptionsSECTest01(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_SEC, 0x0b, 0xf1, 0x35, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -900,8 +928,10 @@ static int DecodeIPV4OptionsSECTest01(void)
 /** \test IPV4 with SEC option (invalid length). */
 static int DecodeIPV4OptionsSECTest02(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = { IPV4_OPT_SEC, 0x02, 0xf1, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00 };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -917,8 +947,10 @@ static int DecodeIPV4OptionsSECTest02(void)
 /** \test IPV4 with ESEC option. */
 static int DecodeIPV4OptionsESECTest01(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = { IPV4_OPT_ESEC, 0x0b, 0xf1, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -934,8 +966,10 @@ static int DecodeIPV4OptionsESECTest01(void)
 /** \test IPV4 with ESEC option (invalid length). */
 static int DecodeIPV4OptionsESECTest02(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = { IPV4_OPT_ESEC, 0x02, 0xf1, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -951,6 +985,7 @@ static int DecodeIPV4OptionsESECTest02(void)
 /** \test IPV4 with LSRR option. */
 static int DecodeIPV4OptionsLSRRTest01(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_LSRR, 0x27, 0x08, 0xc0, 0xa8, 0x2a, 0x64, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -958,6 +993,7 @@ static int DecodeIPV4OptionsLSRRTest01(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -973,6 +1009,7 @@ static int DecodeIPV4OptionsLSRRTest01(void)
 /** \test IPV4 with LSRR option (len too large). */
 static int DecodeIPV4OptionsLSRRTest02(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_LSRR, 0xff, 0x08, 0xc0, 0xa8, 0x2a, 0x64, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -980,6 +1017,7 @@ static int DecodeIPV4OptionsLSRRTest02(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -995,6 +1033,7 @@ static int DecodeIPV4OptionsLSRRTest02(void)
 /** \test IPV4 with LSRR option (ptr too large). */
 static int DecodeIPV4OptionsLSRRTest03(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_LSRR, 0x27, 0xff, 0xc0, 0xa8, 0x2a, 0x64, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1002,6 +1041,7 @@ static int DecodeIPV4OptionsLSRRTest03(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -1017,6 +1057,7 @@ static int DecodeIPV4OptionsLSRRTest03(void)
 /** \test IPV4 with LSRR option (ptr not in 4 byte increment). */
 static int DecodeIPV4OptionsLSRRTest04(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_LSRR, 0x27, 0x05, 0xc0, 0xa8, 0x2a, 0x64, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1024,6 +1065,7 @@ static int DecodeIPV4OptionsLSRRTest04(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -1039,11 +1081,13 @@ static int DecodeIPV4OptionsLSRRTest04(void)
 /** \test IPV4 with CIPSO option. */
 static int DecodeIPV4OptionsCIPSOTest01(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_CIPSO, 0x18, 0x00, 0x00, 0x00, 0x05, 0x05, 0x12,
         0x00, 0x03, 0x00, 0xef, 0x00, 0xef, 0x00, 0x06,
         0x00, 0x04, 0x00, 0x02, 0x00, 0x02, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -1059,9 +1103,11 @@ static int DecodeIPV4OptionsCIPSOTest01(void)
 /** \test IPV4 with SID option. */
 static int DecodeIPV4OptionsSIDTest01(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_SID, 0x04, 0xbe, 0xef, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -1077,9 +1123,11 @@ static int DecodeIPV4OptionsSIDTest01(void)
 /** \test IPV4 with SID option (len invalid. */
 static int DecodeIPV4OptionsSIDTest02(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_SID, 0x05, 0xbe, 0xef, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -1095,6 +1143,7 @@ static int DecodeIPV4OptionsSIDTest02(void)
 /** \test IPV4 with SSRR option. */
 static int DecodeIPV4OptionsSSRRTest01(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_SSRR, 0x27, 0x08, 0xc0, 0xa8, 0x2a, 0x64, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1102,6 +1151,7 @@ static int DecodeIPV4OptionsSSRRTest01(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -1117,6 +1167,7 @@ static int DecodeIPV4OptionsSSRRTest01(void)
 /** \test IPV4 with SSRR option (len too large). */
 static int DecodeIPV4OptionsSSRRTest02(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_SSRR, 0xff, 0x08, 0xc0, 0xa8, 0x2a, 0x64, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1124,6 +1175,7 @@ static int DecodeIPV4OptionsSSRRTest02(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -1139,6 +1191,7 @@ static int DecodeIPV4OptionsSSRRTest02(void)
 /** \test IPV4 with SSRR option (ptr too large). */
 static int DecodeIPV4OptionsSSRRTest03(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_SSRR, 0x27, 0xff, 0xc0, 0xa8, 0x2a, 0x64, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1146,6 +1199,7 @@ static int DecodeIPV4OptionsSSRRTest03(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -1161,6 +1215,7 @@ static int DecodeIPV4OptionsSSRRTest03(void)
 /** \test IPV4 with SSRR option (ptr not in 4 byte increment). */
 static int DecodeIPV4OptionsSSRRTest04(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_SSRR, 0x27, 0x05, 0xc0, 0xa8, 0x2a, 0x64, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1168,6 +1223,7 @@ static int DecodeIPV4OptionsSSRRTest04(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -1183,9 +1239,11 @@ static int DecodeIPV4OptionsSSRRTest04(void)
 /** \test IPV4 with RTRALT option. */
 static int DecodeIPV4OptionsRTRALTTest01(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_RTRALT, 0x04, 0xbe, 0xef, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -1201,9 +1259,11 @@ static int DecodeIPV4OptionsRTRALTTest01(void)
 /** \test IPV4 with RTRALT option (len invalid. */
 static int DecodeIPV4OptionsRTRALTTest02(void)
 {
+    // clang-format off
     uint8_t raw_opts[] = {
         IPV4_OPT_RTRALT, 0x05, 0xbe, 0xef, 0x00, 0x00, 0x00, 0x00
     };
+    // clang-format on
     Packet *p = PacketGetFromAlloc();
     FAIL_IF(unlikely(p == NULL));
 
@@ -1220,10 +1280,12 @@ static int IPV4CalculateValidChecksumtest01(void)
 {
     uint16_t csum = 0;
 
+    // clang-format off
     uint8_t raw_ipv4[] = {
         0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00,
         0x40, 0x01, 0xb7, 0x52, 0xc0, 0xa8, 0x01, 0x03,
         0xc0, 0xa8, 0x01, 0x03};
+    // clang-format on
 
     csum = *( ((uint16_t *)raw_ipv4) + 5);
 
@@ -1235,10 +1297,12 @@ static int IPV4CalculateInvalidChecksumtest02(void)
 {
     uint16_t csum = 0;
 
+    // clang-format off
     uint8_t raw_ipv4[] = {
         0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00,
         0x40, 0x01, 0xb7, 0x52, 0xc0, 0xa8, 0x01, 0x03,
         0xc0, 0xa8, 0x01, 0x07};
+    // clang-format on
 
     csum = *( ((uint16_t *)raw_ipv4) + 5);
 
@@ -1251,6 +1315,7 @@ static int IPV4CalculateInvalidChecksumtest02(void)
  */
 static int DecodeIPV4DefragTest01(void)
 {
+    // clang-format off
     uint8_t pkt1[] = {
         0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
         0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
@@ -1259,6 +1324,8 @@ static int DecodeIPV4DefragTest01(void)
         0xe1, 0x0c, 0x6e, 0x12, 0x01, 0xbd, 0x5b, 0xa3,
         0x81, 0x5e
     };
+    // clang-format on
+    // clang-format off
     uint8_t pkt2[] = {
         0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
         0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
@@ -1267,6 +1334,8 @@ static int DecodeIPV4DefragTest01(void)
         0xe1, 0x0c, 0xac, 0xb0, 0xae, 0x8a, 0x50, 0x10,
         0x80, 0x00
     };
+    // clang-format on
+    // clang-format off
     uint8_t pkt3[] = {
         0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
         0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
@@ -1274,6 +1343,8 @@ static int DecodeIPV4DefragTest01(void)
         0xba, 0xca, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
         0xe1, 0x0c, 0xb1, 0xa3, 0x00, 0x00
     };
+    // clang-format on
+    // clang-format off
     uint8_t tunnel_pkt[] = {
         0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
         0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
@@ -1283,6 +1354,7 @@ static int DecodeIPV4DefragTest01(void)
         0x81, 0x5e, 0xac, 0xb0, 0xae, 0x8a, 0x50, 0x10,
         0x80, 0x00, 0xb1, 0xa3, 0x00, 0x00
     };
+    // clang-format on
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -1373,6 +1445,7 @@ end:
  */
 static int DecodeIPV4DefragTest02(void)
 {
+    // clang-format off
     uint8_t pkt1[] = {
         0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
         0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
@@ -1384,6 +1457,8 @@ static int DecodeIPV4DefragTest02(void)
         0x81, 0x5e, 0xac, 0xb0, 0xae, 0x8a, 0x50, 0x10,
         0x80, 0x00,
     };
+    // clang-format on
+    // clang-format off
     uint8_t pkt2[] = {
         0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
         0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
@@ -1395,6 +1470,8 @@ static int DecodeIPV4DefragTest02(void)
         0xac, 0xb0, 0xae, 0x8a, 0x50, 0x10, 0x80, 0x00,
         0xb1, 0xa3, 0x00, 0x10, 0x01, 0x02, 0x03, 0x04
     };
+    // clang-format on
+    // clang-format off
     uint8_t pkt3[] = {
         0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
         0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
@@ -1404,7 +1481,9 @@ static int DecodeIPV4DefragTest02(void)
         /* final frag */
         0xb1, 0xa3,
     };
+    // clang-format on
 
+    // clang-format off
     uint8_t tunnel_pkt[] = {
         0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
         0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
@@ -1418,6 +1497,7 @@ static int DecodeIPV4DefragTest02(void)
         0xb1, 0xa3, 0x00, 0x10, 0x01, 0x02, 0x03, 0x04,
         0xb1, 0xa3,
     };
+    // clang-format on
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -1502,6 +1582,7 @@ end:
  */
 static int DecodeIPV4DefragTest03(void)
 {
+    // clang-format off
     uint8_t pkt[] = {
         0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
         0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
@@ -1511,6 +1592,8 @@ static int DecodeIPV4DefragTest03(void)
         0x81, 0x5d, 0x00, 0x00, 0x00, 0x00, 0x50, 0x02,
         0x80, 0x00, 0x0c, 0xee, 0x00, 0x00
     };
+    // clang-format on
+    // clang-format off
     uint8_t pkt1[] = {
         0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
         0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
@@ -1519,6 +1602,8 @@ static int DecodeIPV4DefragTest03(void)
         0xe1, 0x0c, 0x6e, 0x12, 0x01, 0xbd, 0x5b, 0xa3,
         0x81, 0x5e
     };
+    // clang-format on
+    // clang-format off
     uint8_t pkt2[] = {
         0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
         0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
@@ -1527,6 +1612,8 @@ static int DecodeIPV4DefragTest03(void)
         0xe1, 0x0c, 0xac, 0xb0, 0xae, 0x8a, 0x50, 0x10,
         0x80, 0x00
     };
+    // clang-format on
+    // clang-format off
     uint8_t pkt3[] = {
         0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
         0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
@@ -1534,6 +1621,8 @@ static int DecodeIPV4DefragTest03(void)
         0xba, 0xca, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
         0xe1, 0x0c, 0xb1, 0xa3, 0x00, 0x00
     };
+    // clang-format on
+    // clang-format off
     uint8_t tunnel_pkt[] = {
         0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
         0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
@@ -1543,6 +1632,7 @@ static int DecodeIPV4DefragTest03(void)
         0x81, 0x5e, 0xac, 0xb0, 0xae, 0x8a, 0x50, 0x10,
         0x80, 0x00, 0xb1, 0xa3, 0x00, 0x00
     };
+    // clang-format on
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -1656,6 +1746,7 @@ end:
  */
 static int DecodeEthernetTestIPv4Opt(void)
 {
+    // clang-format off
     uint8_t raw_eth[] = {
         0xae, 0x71, 0x00, 0x00, 0x00, 0x4b, 0x06, 0x90, 0x61, 0x02, 0x00, 0xcd, 0x88, 0x64, 0x11, 0x00,
         0x15, 0x00, 0x80, 0x64, 0x00, 0x21, 0x4c, 0x00, 0x00, 0x30, 0x42, 0xd6, 0xff, 0xff, 0xbd, 0x2f,
@@ -1663,6 +1754,7 @@ static int DecodeEthernetTestIPv4Opt(void)
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
         0x01, 0x44, 0x05, 0x22, 0x02, 0x01
     };
+    // clang-format on
 
     DefragInit();
 

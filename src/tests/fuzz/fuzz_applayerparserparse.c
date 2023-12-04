@@ -33,7 +33,9 @@ AppLayerParserThreadCtx *alp_tctx = NULL;
  * source port (uint16_t)
  * destination port (uint16_t) */
 
+// clang-format off
 const uint8_t separator[] = {0x01, 0xD5, 0xCA, 0x7A};
+// clang-format on
 SCInstance surifuzz;
 AppProto forceLayer = 0;
 SC_ATOMIC_EXTERN(unsigned int, engine_stage);
