@@ -22,7 +22,7 @@
 #include "output.h"
 #include "output-json.h"
 #include "app-layer-parser.h"
-#include "output-json-modbus.h"
+#include "app-layer/modbus/logger.h"
 #include "rust.h"
 
 typedef struct LogModbusFileCtx_ {

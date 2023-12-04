@@ -54,7 +54,7 @@
 #include "log-httplog.h"
 #include "output-json-http.h"
 #include "output-json-dns.h"
-#include "output-json-modbus.h"
+#include "app-layer/modbus/logger.h"
 #include "log-tlslog.h"
 #include "log-tlsstore.h"
 #include "output-json-tls.h"
