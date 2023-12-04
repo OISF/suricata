@@ -22,7 +22,7 @@
 #include "detect.h"
 #include "detect-engine-state.h" //DetectEngineState
 
-#include "app-layer-krb5.h" //KRB5State, KRB5Transaction
+#include "app-layer/krb5/parser.h" //KRB5State, KRB5Transaction
 #include "app-layer/ike/parser.h"  //IKEState, IKETransaction
 #include "app-layer/ntp/parser.h"  //NTPState, NTPTransaction
 #include "app-layer-snmp.h" //SNMPState, SNMPTransaction

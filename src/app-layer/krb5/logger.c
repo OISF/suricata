@@ -43,8 +43,8 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-krb5.h"
-#include "output-json-krb5.h"
+#include "app-layer/krb5/parser.h"
+#include "app-layer/krb5/logger.h"
 
 #include "rust.h"
 
