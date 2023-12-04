@@ -93,15 +93,13 @@ typedef struct SCRadixTree_ {
     void (*Free)(void *);
 } SCRadixTree;
 
-SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*), void (*PrintData)(void*));
+SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void *), void (*PrintData)(void *));
 void SCRadixReleaseRadixTree(SCRadixTree *);
 
 SCRadixNode *SCRadixAddKeyIPV4(uint8_t *, SCRadixTree *, void *);
 SCRadixNode *SCRadixAddKeyIPV6(uint8_t *, SCRadixTree *, void *);
-SCRadixNode *SCRadixAddKeyIPV4Netblock(uint8_t *, SCRadixTree *, void *,
-                                       uint8_t);
-SCRadixNode *SCRadixAddKeyIPV6Netblock(uint8_t *, SCRadixTree *, void *,
-                                       uint8_t);
+SCRadixNode *SCRadixAddKeyIPV4Netblock(uint8_t *, SCRadixTree *, void *, uint8_t);
+SCRadixNode *SCRadixAddKeyIPV6Netblock(uint8_t *, SCRadixTree *, void *, uint8_t);
 bool SCRadixAddKeyIPV4String(const char *, SCRadixTree *, void *);
 bool SCRadixAddKeyIPV6String(const char *, SCRadixTree *, void *);
 
@@ -120,7 +118,7 @@ SCRadixNode *SCRadixFindKeyIPV6Netblock(uint8_t *, SCRadixTree *, uint8_t, void 
 SCRadixNode *SCRadixFindKeyIPV6BestMatch(uint8_t *, SCRadixTree *, void **);
 
 void SCRadixPrintTree(SCRadixTree *);
-void SCRadixPrintNodeInfo(SCRadixNode *, int,  void (*PrintData)(void*));
+void SCRadixPrintNodeInfo(SCRadixNode *, int, void (*PrintData)(void *));
 
 void SCRadixRegisterTests(void);
 

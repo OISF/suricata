@@ -46,16 +46,16 @@
 #include "rust.h"
 
 #define MQTT_LOG_PASSWORDS BIT_U32(0)
-#define MQTT_DEFAULTS (MQTT_LOG_PASSWORDS)
+#define MQTT_DEFAULTS      (MQTT_LOG_PASSWORDS)
 
 typedef struct LogMQTTFileCtx_ {
-    uint32_t    flags;
+    uint32_t flags;
     OutputJsonCtx *eve_ctx;
 } LogMQTTFileCtx;
 
 typedef struct LogMQTTLogThread_ {
     LogMQTTFileCtx *mqttlog_ctx;
-    uint32_t        count;
+    uint32_t count;
     OutputJsonThreadCtx *ctx;
 } LogMQTTLogThread;
 
@@ -64,13 +64,13 @@ bool JsonMQTTAddMetadata(void *vtx, JsonBuilder *js)
     return rs_mqtt_logger_log(vtx, MQTT_DEFAULTS, js);
 }
 
-static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonMQTTLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     LogMQTTLogThread *thread = thread_data;
     enum OutputJsonLogDirection dir;
 
-    if (rs_mqtt_tx_is_toclient((MQTTTransaction*) tx)) {
+    if (rs_mqtt_tx_is_toclient((MQTTTransaction *)tx)) {
         dir = LOG_DIR_FLOW_TOCLIENT;
     } else {
         dir = LOG_DIR_FLOW_TOSERVER;
@@ -115,8 +115,7 @@ static void JsonMQTTLogParseConfig(ConfNode *conf, LogMQTTFileCtx *mqttlog_ctx)
     }
 }
 
-static OutputInitResult OutputMQTTLogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult OutputMQTTLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;

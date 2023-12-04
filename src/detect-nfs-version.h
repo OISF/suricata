@@ -25,6 +25,6 @@
 #define __DETECT_NFS_VERSION_H__
 
 /* prototypes */
-void DetectNfsVersionRegister (void);
+void DetectNfsVersionRegister(void);
 
 #endif /* __DETECT_NFS_VERSION_H__ */

@@ -25,6 +25,6 @@
 #define __DETECT_TRANSFORM_STRIPWHITESPACE_H__
 
 /* prototypes */
-void DetectTransformStripWhitespaceRegister (void);
+void DetectTransformStripWhitespaceRegister(void);
 
 #endif /* __DETECT_TRANSFORM_STRIPWHITESPACE_H__ */

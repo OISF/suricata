@@ -47,11 +47,11 @@ typedef struct Frame {
     uint8_t flags; /**< frame flags: FRAME_FLAG_* */
     uint8_t event_cnt;
     // TODO one event per frame enough?
-    uint8_t events[4];  /**< per frame store for events */
-    uint64_t offset;    /**< offset from the start of the stream */
+    uint8_t events[4]; /**< per frame store for events */
+    uint64_t offset;   /**< offset from the start of the stream */
     int64_t len;
     int64_t id;
-    uint64_t tx_id; /**< tx_id to match this frame. UINT64T_MAX if not used. */
+    uint64_t tx_id;            /**< tx_id to match this frame. UINT64T_MAX if not used. */
     uint64_t inspect_progress; /**< inspection tracker relative to the start of the frame */
 } Frame;
 
@@ -59,7 +59,7 @@ typedef struct Frame {
 
 typedef struct Frames {
     uint16_t cnt;
-    uint16_t dyn_size;     /**< size in elements of `dframes` */
+    uint16_t dyn_size; /**< size in elements of `dframes` */
     uint32_t left_edge_rel;
     uint64_t base_id;
     Frame sframes[FRAMES_STATIC_CNT]; /**< static frames */

@@ -33,4 +33,3 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuil
 void EveAddVerdict(JsonBuilder *jb, const Packet *p);
 
 #endif /* __OUTPUT_JSON_ALERT_H__ */
-

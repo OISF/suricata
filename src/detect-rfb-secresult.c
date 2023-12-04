@@ -37,11 +37,9 @@ static DetectParseRegex parse_regex;
 
 static int rfb_secresult_id = 0;
 
-static int DetectRfbSecresultMatch(DetectEngineThreadCtx *det_ctx,
-                                   Flow *f, uint8_t flags, void *state,
-                                   void *txv, const Signature *s,
-                                   const SigMatchCtx *ctx);
-static int DetectRfbSecresultSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectRfbSecresultMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectRfbSecresultSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void RfbSecresultRegisterTests(void);
 #endif
@@ -54,14 +52,14 @@ typedef struct DetectRfbSecresultData_ {
 /**
  * \brief Registration function for rfb.secresult: keyword
  */
-void DetectRfbSecresultRegister (void)
+void DetectRfbSecresultRegister(void)
 {
     sigmatch_table[DETECT_AL_RFB_SECRESULT].name = "rfb.secresult";
     sigmatch_table[DETECT_AL_RFB_SECRESULT].desc = "match RFB security result";
     sigmatch_table[DETECT_AL_RFB_SECRESULT].url = "/rules/rfb-keywords.html#rfb-secresult";
     sigmatch_table[DETECT_AL_RFB_SECRESULT].AppLayerTxMatch = DetectRfbSecresultMatch;
     sigmatch_table[DETECT_AL_RFB_SECRESULT].Setup = DetectRfbSecresultSetup;
-    sigmatch_table[DETECT_AL_RFB_SECRESULT].Free  = DetectRfbSecresultFree;
+    sigmatch_table[DETECT_AL_RFB_SECRESULT].Free = DetectRfbSecresultFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_RFB_SECRESULT].RegisterTests = RfbSecresultRegisterTests;
 #endif
@@ -73,12 +71,7 @@ void DetectRfbSecresultRegister (void)
     rfb_secresult_id = DetectBufferTypeGetByName("rfb.secresult");
 }
 
-enum {
-    RFB_SECRESULT_OK = 0,
-    RFB_SECRESULT_FAIL,
-    RFB_SECRESULT_TOOMANY,
-    RFB_SECRESULT_UNKNOWN
-};
+enum { RFB_SECRESULT_OK = 0, RFB_SECRESULT_FAIL, RFB_SECRESULT_TOOMANY, RFB_SECRESULT_UNKNOWN };
 
 /**
  * \struct DetectRfbSecresult_
@@ -89,10 +82,22 @@ struct DetectRfbSecresult_ {
     const char *result;
     uint16_t code;
 } results[] = {
-    { "ok", RFB_SECRESULT_OK, },
-    { "fail", RFB_SECRESULT_FAIL, },
-    { "toomany", RFB_SECRESULT_TOOMANY, },
-    { "unknown", RFB_SECRESULT_UNKNOWN, },
+    {
+            "ok",
+            RFB_SECRESULT_OK,
+    },
+    {
+            "fail",
+            RFB_SECRESULT_FAIL,
+    },
+    {
+            "toomany",
+            RFB_SECRESULT_TOOMANY,
+    },
+    {
+            "unknown",
+            RFB_SECRESULT_UNKNOWN,
+    },
     { NULL, 0 },
 };
 
@@ -111,10 +116,8 @@ struct DetectRfbSecresult_ {
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectRfbSecresultMatch(DetectEngineThreadCtx *det_ctx,
-                                   Flow *f, uint8_t flags, void *state,
-                                   void *txv, const Signature *s,
-                                   const SigMatchCtx *ctx)
+static int DetectRfbSecresultMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectRfbSecresultData *de = (const DetectRfbSecresultData *)ctx;
     uint32_t resultcode;
@@ -154,7 +157,7 @@ static int DetectRfbSecresultMatch(DetectEngineThreadCtx *det_ctx,
  * \retval de pointer to DetectRfbSecresultData on success
  * \retval NULL on failure
  */
-static DetectRfbSecresultData *DetectRfbSecresultParse (const char *rawstr)
+static DetectRfbSecresultData *DetectRfbSecresultParse(const char *rawstr)
 {
     int i;
     DetectRfbSecresultData *de = NULL;
@@ -167,14 +170,14 @@ static DetectRfbSecresultData *DetectRfbSecresultParse (const char *rawstr)
         goto error;
     }
 
-    for(i = 0; results[i].result != NULL; i++)  {
-        if((strcasecmp(results[i].result,rawstr)) == 0) {
+    for (i = 0; results[i].result != NULL; i++) {
+        if ((strcasecmp(results[i].result, rawstr)) == 0) {
             found = 1;
             break;
         }
     }
 
-    if(found == 0) {
+    if (found == 0) {
         SCLogError("unknown secresult value %s", rawstr);
         goto error;
     }
@@ -192,7 +195,8 @@ error:
     if (match) {
         pcre2_match_data_free(match);
     }
-    if (de) SCFree(de);
+    if (de)
+        SCFree(de);
     return NULL;
 }
 
@@ -207,7 +211,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectRfbSecresultSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectRfbSecresultSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectRfbSecresultData *de = NULL;
 
@@ -240,7 +244,8 @@ error:
 void DetectRfbSecresultFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
     DetectRfbSecresultData *de = (DetectRfbSecresultData *)de_ptr;
-    if(de) SCFree(de);
+    if (de)
+        SCFree(de);
 }
 
 /*
@@ -251,7 +256,7 @@ void DetectRfbSecresultFree(DetectEngineCtx *de_ctx, void *de_ptr)
 /**
  * \test RfbSecresultTestParse01 is a test for a valid secresult value
  */
-static int RfbSecresultTestParse01 (void)
+static int RfbSecresultTestParse01(void)
 {
     DetectRfbSecresultData *de = DetectRfbSecresultParse("fail");
 
@@ -265,7 +270,7 @@ static int RfbSecresultTestParse01 (void)
 /**
  * \test RfbSecresultTestParse02 is a test for an invalid secresult value
  */
-static int RfbSecresultTestParse02 (void)
+static int RfbSecresultTestParse02(void)
 {
     DetectRfbSecresultData *de = DetectRfbSecresultParse("invalidopt");
 

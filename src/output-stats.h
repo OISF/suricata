@@ -37,10 +37,10 @@ typedef struct StatsRecord_ {
 } StatsRecord;
 
 typedef struct StatsTable_ {
-    StatsRecord *stats;     /**< array of global stats, indexed by counters gid */
-    StatsRecord *tstats;    /**< array of arrays with per thread stats */
-    uint32_t nstats;        /**< size in records of 'stats' */
-    uint32_t ntstats;       /**< number of threads for which tstats stores stats */
+    StatsRecord *stats;  /**< array of global stats, indexed by counters gid */
+    StatsRecord *tstats; /**< array of arrays with per thread stats */
+    uint32_t nstats;     /**< size in records of 'stats' */
+    uint32_t ntstats;    /**< number of threads for which tstats stores stats */
     time_t start_time;
     struct timeval ts;
 } StatsTable;
@@ -49,11 +49,11 @@ TmEcode OutputStatsLog(ThreadVars *tv, void *thread_data, StatsTable *st);
 
 typedef int (*StatsLogger)(ThreadVars *, void *thread_data, const StatsTable *);
 
-int OutputRegisterStatsLogger(const char *name, StatsLogger LogFunc,
-    OutputCtx *, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
+int OutputRegisterStatsLogger(const char *name, StatsLogger LogFunc, OutputCtx *,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
-void TmModuleStatsLoggerRegister (void);
+void TmModuleStatsLoggerRegister(void);
 
 int OutputStatsLoggersRegistered(void);
 

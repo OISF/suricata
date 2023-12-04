@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -69,8 +68,8 @@ static void DetectHttpStatCodeRegisterTests(void);
 #endif
 static int g_http_stat_code_buffer_id = 0;
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id);
@@ -78,25 +77,28 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
 /**
  * \brief Registration function for keyword: http_stat_code
  */
-void DetectHttpStatCodeRegister (void)
+void DetectHttpStatCodeRegister(void)
 {
     /* http_stat_code content modifier */
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].name = "http_stat_code";
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].desc = "content modifier to match only on HTTP stat-code-buffer";
+    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].desc =
+            "content modifier to match only on HTTP stat-code-buffer";
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].url = "/rules/http-keywords.html#http-stat-code";
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].Setup = DetectHttpStatCodeSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].RegisterTests = DetectHttpStatCodeRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].flags |=
+            SIGMATCH_NOOPT | SIGMATCH_INFO_CONTENT_MODIFIER;
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].alternative = DETECT_HTTP_STAT_CODE;
 
     /* http.stat_code content modifier */
     sigmatch_table[DETECT_HTTP_STAT_CODE].name = "http.stat_code";
-    sigmatch_table[DETECT_HTTP_STAT_CODE].desc = "sticky buffer to match only on HTTP stat-code-buffer";
+    sigmatch_table[DETECT_HTTP_STAT_CODE].desc =
+            "sticky buffer to match only on HTTP stat-code-buffer";
     sigmatch_table[DETECT_HTTP_STAT_CODE].url = "/rules/http-keywords.html#http-stat-code";
     sigmatch_table[DETECT_HTTP_STAT_CODE].Setup = DetectHttpStatCodeSetupSticky;
-    sigmatch_table[DETECT_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_stat_code", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_LINE, DetectEngineInspectBufferGeneric, GetData);
@@ -110,8 +112,7 @@ void DetectHttpStatCodeRegister (void)
     DetectAppLayerMpmRegister2("http_stat_code", SIG_FLAG_TOCLIENT, 4, PrefilterGenericMpmRegister,
             GetData2, ALPROTO_HTTP2, HTTP2StateDataServer);
 
-    DetectBufferTypeSetDescriptionByName("http_stat_code",
-            "http response status code");
+    DetectBufferTypeSetDescriptionByName("http_stat_code", "http response status code");
 
     g_http_stat_code_buffer_id = DetectBufferTypeGetByName("http_stat_code");
 }
@@ -152,8 +153,8 @@ static int DetectHttpStatCodeSetupSticky(DetectEngineCtx *de_ctx, Signature *s, 
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     SCEnter();
 

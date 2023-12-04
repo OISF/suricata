@@ -73,17 +73,17 @@ int LLVMFuzzerInitialize(int *argc, char ***argv)
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    Flow * f;
+    Flow *f;
     TcpSession ssn;
-    const uint8_t * albuffer;
-    uint8_t * alnext;
+    const uint8_t *albuffer;
+    uint8_t *alnext;
     size_t alsize;
     // used to find under and overflows
     // otherwise overflows do not fail as they read the next packet
-    uint8_t * isolatedBuffer;
+    uint8_t *isolatedBuffer;
 
     if (alp_tctx == NULL) {
-        //Redirects logs to /dev/null
+        // Redirects logs to /dev/null
         setenv("SC_LOG_OP_IFACE", "file", 0);
         setenv("SC_LOG_FILE", "/dev/null", 0);
 
@@ -91,7 +91,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         run_mode = RUNMODE_PCAP_FILE;
         GlobalsInitPreConfig();
 
-        //redirect logs to /tmp
+        // redirect logs to /tmp
         ConfigSetLogDirectory("/tmp/");
         // disables checksums validation for fuzzing
         if (ConfYamlLoadString(configNoChecksum, strlen(configNoChecksum)) != 0) {
@@ -110,7 +110,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (data[0] >= ALPROTO_MAX) {
         return 0;
     }
-    //no UTHBuildFlow to have storage
+    // no UTHBuildFlow to have storage
     f = FlowAlloc();
     if (f == NULL) {
         return 0;
@@ -160,7 +160,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                 goto bail;
             }
             memcpy(isolatedBuffer, albuffer, alnext - albuffer);
-            (void) AppLayerParserParse(NULL, alp_tctx, f, f->alproto, flags, isolatedBuffer, alnext - albuffer);
+            (void)AppLayerParserParse(
+                    NULL, alp_tctx, f, f->alproto, flags, isolatedBuffer, alnext - albuffer);
             free(isolatedBuffer);
             if (FlowChangeProto(f)) {
                 // exits if a protocol change is requested
@@ -169,11 +170,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             }
             flags &= ~(STREAM_START);
             if (f->alparser &&
-                   (((flags & STREAM_TOSERVER) != 0 &&
-                     AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TS)) ||
-                    ((flags & STREAM_TOCLIENT) != 0 &&
-                     AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TC)))) {
-                //no final chunk
+                    (((flags & STREAM_TOSERVER) != 0 &&
+                             AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TS)) ||
+                            ((flags & STREAM_TOCLIENT) != 0 &&
+                                    AppLayerParserStateIssetFlag(
+                                            f->alparser, APP_LAYER_PARSER_EOF_TC)))) {
+                // no final chunk
                 alsize = 0;
                 break;
             }
@@ -187,7 +189,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         }
         alnext = memmem(albuffer, alsize, separator, 4);
     }
-    if (alsize > 0 ) {
+    if (alsize > 0) {
         if (flip) {
             flags |= STREAM_TOCLIENT;
             flags &= ~(STREAM_TOSERVER);
@@ -203,7 +205,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             goto bail;
         }
         memcpy(isolatedBuffer, albuffer, alsize);
-        (void) AppLayerParserParse(NULL, alp_tctx, f, f->alproto, flags, isolatedBuffer, alsize);
+        (void)AppLayerParserParse(NULL, alp_tctx, f, f->alproto, flags, isolatedBuffer, alsize);
         free(isolatedBuffer);
     }
 

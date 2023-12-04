@@ -47,19 +47,17 @@
 #include "app-layer-nfs-tcp.h"
 #include "rust.h"
 
-
-static int DetectNfsVersionSetup (DetectEngineCtx *, Signature *s, const char *str);
+static int DetectNfsVersionSetup(DetectEngineCtx *, Signature *s, const char *str);
 static void DetectNfsVersionFree(DetectEngineCtx *de_ctx, void *);
 static int g_nfs_request_buffer_id = 0;
 
-static int DetectNfsVersionMatch (DetectEngineThreadCtx *, Flow *,
-                                   uint8_t, void *, void *, const Signature *,
-                                   const SigMatchCtx *);
+static int DetectNfsVersionMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
+        const Signature *, const SigMatchCtx *);
 
 /**
  * \brief Registration function for nfs_procedure keyword.
  */
-void DetectNfsVersionRegister (void)
+void DetectNfsVersionRegister(void)
 {
     sigmatch_table[DETECT_AL_NFS_VERSION].name = "nfs.version";
     sigmatch_table[DETECT_AL_NFS_VERSION].alias = "nfs_version";
@@ -93,10 +91,8 @@ void DetectNfsVersionRegister (void)
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectNfsVersionMatch (DetectEngineThreadCtx *det_ctx,
-                                   Flow *f, uint8_t flags, void *state,
-                                   void *txv, const Signature *s,
-                                   const SigMatchCtx *ctx)
+static int DetectNfsVersionMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -123,8 +119,6 @@ static DetectU32Data *DetectNfsVersionParse(const char *rawstr)
     return rs_detect_u32_parse_inclusive(rawstr);
 }
 
-
-
 /**
  * \brief Function to add the parsed tls validity field into the current signature.
  *
@@ -136,8 +130,7 @@ static DetectU32Data *DetectNfsVersionParse(const char *rawstr)
  * \retval 0 on Success.
  * \retval -1 on Failure.
  */
-static int DetectNfsVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
-                                   const char *rawstr)
+static int DetectNfsVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     SCLogDebug("\'%s\'", rawstr);
 

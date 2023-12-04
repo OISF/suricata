@@ -51,13 +51,13 @@ void SCHSInitCtx(MpmCtx *);
 void SCHSInitThreadCtx(MpmCtx *, MpmThreadCtx *);
 void SCHSDestroyCtx(MpmCtx *);
 void SCHSDestroyThreadCtx(MpmCtx *, MpmThreadCtx *);
-int SCHSAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
-                     uint32_t, SigIntId, uint8_t);
-int SCHSAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
-                     uint32_t, SigIntId, uint8_t);
+int SCHSAddPatternCI(
+        MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
+int SCHSAddPatternCS(
+        MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
 int SCHSPreparePatterns(MpmCtx *mpm_ctx);
-uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-                    PrefilterRuleStore *pmq, const uint8_t *buf, const uint32_t buflen);
+uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PrefilterRuleStore *pmq,
+        const uint8_t *buf, const uint32_t buflen);
 void SCHSPrintInfo(MpmCtx *mpm_ctx);
 void SCHSPrintSearchStats(MpmThreadCtx *mpm_thread_ctx);
 void SCHSRegisterTests(void);
@@ -143,10 +143,8 @@ static inline uint32_t SCHSInitHashRaw(uint8_t *pat, uint16_t patlen)
  *
  * \retval hash A 32 bit unsigned hash.
  */
-static inline SCHSPattern *SCHSInitHashLookup(SCHSCtx *ctx, uint8_t *pat,
-                                              uint16_t patlen, uint16_t offset,
-                                              uint16_t depth, char flags,
-                                              uint32_t pid)
+static inline SCHSPattern *SCHSInitHashLookup(SCHSCtx *ctx, uint8_t *pat, uint16_t patlen,
+        uint16_t offset, uint16_t depth, char flags, uint32_t pid)
 {
     uint32_t hash = SCHSInitHashRaw(pat, patlen);
 
@@ -266,9 +264,8 @@ static inline int SCHSInitHashAdd(SCHSCtx *ctx, SCHSPattern *p)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int SCHSAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                          uint16_t offset, uint16_t depth, uint32_t pid,
-                          SigIntId sid, uint8_t flags)
+static int SCHSAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset,
+        uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     SCHSCtx *ctx = (SCHSCtx *)mpm_ctx->ctx;
 
@@ -285,8 +282,7 @@ static int SCHSAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
     }
 
     /* check if we have already inserted this pattern */
-    SCHSPattern *p =
-        SCHSInitHashLookup(ctx, pat, patlen, offset, depth, flags, pid);
+    SCHSPattern *p = SCHSInitHashLookup(ctx, pat, patlen, offset, depth, flags, pid);
     if (p == NULL) {
         SCLogDebug("Allocing new pattern");
 
@@ -470,9 +466,9 @@ static uint32_t SCHSPatternHash(const SCHSPattern *p, uint32_t hash)
 
 static char SCHSPatternCompare(const SCHSPattern *p1, const SCHSPattern *p2)
 {
-    if ((p1->len != p2->len) || (p1->flags != p2->flags) ||
-        (p1->id != p2->id) || (p1->offset != p2->offset) ||
-        (p1->depth != p2->depth) || (p1->sids_size != p2->sids_size)) {
+    if ((p1->len != p2->len) || (p1->flags != p2->flags) || (p1->id != p2->id) ||
+            (p1->offset != p2->offset) || (p1->depth != p2->depth) ||
+            (p1->sids_size != p2->sids_size)) {
         return 0;
     }
 
@@ -480,8 +476,7 @@ static char SCHSPatternCompare(const SCHSPattern *p1, const SCHSPattern *p2)
         return 0;
     }
 
-    if (SCMemcmp(p1->sids, p2->sids, p1->sids_size * sizeof(p1->sids[0])) !=
-        0) {
+    if (SCMemcmp(p1->sids, p2->sids, p1->sids_size * sizeof(p1->sids[0])) != 0) {
         return 0;
     }
 
@@ -502,8 +497,7 @@ static uint32_t PatternDatabaseHash(HashTable *ht, void *data, uint16_t len)
     return hash;
 }
 
-static char PatternDatabaseCompare(void *data1, uint16_t len1, void *data2,
-                                   uint16_t len2)
+static char PatternDatabaseCompare(void *data1, uint16_t len1, void *data2, uint16_t len2)
 {
     const PatternDatabase *pd1 = data1;
     const PatternDatabase *pd2 = data2;
@@ -618,9 +612,8 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
 
     /* Init global pattern database hash if necessary. */
     if (g_db_table == NULL) {
-        g_db_table = HashTableInit(INIT_DB_HASH_SIZE, PatternDatabaseHash,
-                                   PatternDatabaseCompare,
-                                   PatternDatabaseTableFree);
+        g_db_table = HashTableInit(INIT_DB_HASH_SIZE, PatternDatabaseHash, PatternDatabaseCompare,
+                PatternDatabaseTableFree);
         if (g_db_table == NULL) {
             SCMutexUnlock(&g_db_table_mutex);
             goto error;
@@ -632,10 +625,8 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
     PatternDatabase *pd_cached = HashTableLookup(g_db_table, pd, 1);
 
     if (pd_cached != NULL) {
-        SCLogDebug("Reusing cached database %p with %" PRIu32
-                   " patterns (ref_cnt=%" PRIu32 ")",
-                   pd_cached->hs_db, pd_cached->pattern_cnt,
-                   pd_cached->ref_cnt);
+        SCLogDebug("Reusing cached database %p with %" PRIu32 " patterns (ref_cnt=%" PRIu32 ")",
+                pd_cached->hs_db, pd_cached->pattern_cnt, pd_cached->ref_cnt);
         pd_cached->ref_cnt++;
         ctx->pattern_db = pd_cached;
         SCMutexUnlock(&g_db_table_mutex);
@@ -677,10 +668,9 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
 
     BUG_ON(mpm_ctx->pattern_cnt == 0);
 
-    err = hs_compile_ext_multi((const char *const *)cd->expressions, cd->flags,
-                               cd->ids, (const hs_expr_ext_t *const *)cd->ext,
-                               cd->pattern_cnt, HS_MODE_BLOCK, NULL, &pd->hs_db,
-                               &compile_err);
+    err = hs_compile_ext_multi((const char *const *)cd->expressions, cd->flags, cd->ids,
+            (const hs_expr_ext_t *const *)cd->ext, cd->pattern_cnt, HS_MODE_BLOCK, NULL, &pd->hs_db,
+            &compile_err);
 
     if (err != HS_SUCCESS) {
         SCLogError("failed to compile hyperscan database");
@@ -713,8 +703,8 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += ctx->hs_db_size;
 
-    SCLogDebug("Built %" PRIu32 " patterns into a database of size %" PRIuMAX
-               " bytes", mpm_ctx->pattern_cnt, (uintmax_t)ctx->hs_db_size);
+    SCLogDebug("Built %" PRIu32 " patterns into a database of size %" PRIuMAX " bytes",
+            mpm_ctx->pattern_cnt, (uintmax_t)ctx->hs_db_size);
 
     /* Cache this database globally for later. */
     pd->ref_cnt = 1;
@@ -768,8 +758,7 @@ void SCHSInitThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
         return;
     }
 
-    hs_error_t err = hs_clone_scratch(g_scratch_proto,
-                                      (hs_scratch_t **)&ctx->scratch);
+    hs_error_t err = hs_clone_scratch(g_scratch_proto, (hs_scratch_t **)&ctx->scratch);
 
     SCMutexUnlock(&g_scratch_proto_mutex);
 
@@ -882,18 +871,16 @@ typedef struct SCHSCallbackCtx_ {
 } SCHSCallbackCtx;
 
 /* Hyperscan MPM match event handler */
-static int SCHSMatchEvent(unsigned int id, unsigned long long from,
-                          unsigned long long to, unsigned int flags,
-                          void *ctx)
+static int SCHSMatchEvent(unsigned int id, unsigned long long from, unsigned long long to,
+        unsigned int flags, void *ctx)
 {
     SCHSCallbackCtx *cctx = ctx;
     PrefilterRuleStore *pmq = cctx->pmq;
     const PatternDatabase *pd = cctx->ctx->pattern_db;
     const SCHSPattern *pat = pd->parray[id];
 
-    SCLogDebug("Hyperscan Match %" PRIu32 ": id=%" PRIu32 " @ %" PRIuMAX
-               " (pat id=%" PRIu32 ")",
-               cctx->match_count, (uint32_t)id, (uintmax_t)to, pat->id);
+    SCLogDebug("Hyperscan Match %" PRIu32 ": id=%" PRIu32 " @ %" PRIuMAX " (pat id=%" PRIu32 ")",
+            cctx->match_count, (uint32_t)id, (uintmax_t)to, pat->id);
 
     PrefilterAddSids(pmq, pat->sids, pat->sids_size);
 
@@ -913,8 +900,8 @@ static int SCHSMatchEvent(unsigned int id, unsigned long long from,
  *
  * \retval matches Match count.
  */
-uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-                    PrefilterRuleStore *pmq, const uint8_t *buf, const uint32_t buflen)
+uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PrefilterRuleStore *pmq,
+        const uint8_t *buf, const uint32_t buflen)
 {
     uint32_t ret = 0;
     SCHSCtx *ctx = (SCHSCtx *)mpm_ctx->ctx;
@@ -925,15 +912,15 @@ uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         return 0;
     }
 
-    SCHSCallbackCtx cctx = {.ctx = ctx, .pmq = pmq, .match_count = 0};
+    SCHSCallbackCtx cctx = { .ctx = ctx, .pmq = pmq, .match_count = 0 };
 
     /* scratch should have been cloned from g_scratch_proto at thread init. */
     hs_scratch_t *scratch = hs_thread_ctx->scratch;
     BUG_ON(pd->hs_db == NULL);
     BUG_ON(scratch == NULL);
 
-    hs_error_t err = hs_scan(pd->hs_db, (const char *)buf, buflen, 0, scratch,
-                             SCHSMatchEvent, &cctx);
+    hs_error_t err =
+            hs_scan(pd->hs_db, (const char *)buf, buflen, 0, scratch, SCHSMatchEvent, &cctx);
     if (err != HS_SUCCESS) {
         /* An error value (other than HS_SCAN_TERMINATED) from hs_scan()
          * indicates that it was passed an invalid database or scratch region,
@@ -964,9 +951,8 @@ uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SCHSAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                     uint16_t offset, uint16_t depth, uint32_t pid,
-                     SigIntId sid, uint8_t flags)
+int SCHSAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset,
+        uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     flags |= MPM_PATTERN_FLAG_NOCASE;
     return SCHSAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
@@ -989,9 +975,8 @@ int SCHSAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SCHSAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                     uint16_t offset, uint16_t depth, uint32_t pid,
-                     SigIntId sid, uint8_t flags)
+int SCHSAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset,
+        uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     return SCHSAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
 }
@@ -1024,8 +1009,7 @@ void SCHSPrintInfo(MpmCtx *mpm_ctx)
             printf("HS Database Info: %s\n", db_info);
             SCFree(db_info);
         }
-        printf("HS Database Size: %" PRIuMAX " bytes\n",
-               (uintmax_t)ctx->hs_db_size);
+        printf("HS Database Size: %" PRIuMAX " bytes\n", (uintmax_t)ctx->hs_db_size);
     }
 
     printf("\n");
@@ -1104,8 +1088,7 @@ static int SCHSTest01(void)
 
     const char *buf = "abcdefghjiklmnopqrstuvwxyz";
 
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 1)
         result = 1;
@@ -1137,8 +1120,7 @@ static int SCHSTest02(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghjiklmnopqrstuvwxyz";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 0)
         result = 1;
@@ -1174,8 +1156,7 @@ static int SCHSTest03(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghjiklmnopqrstuvwxyz";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 3)
         result = 1;
@@ -1208,8 +1189,7 @@ static int SCHSTest04(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghjiklmnopqrstuvwxyz";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 1)
         result = 1;
@@ -1242,8 +1222,7 @@ static int SCHSTest05(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghjiklmnopqrstuvwxyz";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 3)
         result = 1;
@@ -1274,8 +1253,7 @@ static int SCHSTest06(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcd";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 1)
         result = 1;
@@ -1310,16 +1288,14 @@ static int SCHSTest07(void)
     /* 21 */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0, 0);
     /* 1 */
-    MpmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30,
-                    0, 0, 5, 0, 0);
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 30, 0, 0, 5, 0, 0);
     PmqSetup(&pmq);
 
     SCHSPreparePatterns(&mpm_ctx);
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 6)
         result = 1;
@@ -1350,8 +1326,7 @@ static int SCHSTest08(void)
     SCHSPreparePatterns(&mpm_ctx);
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
-    uint32_t cnt =
-        SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)"a", 1);
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)"a", 1);
 
     if (cnt == 0)
         result = 1;
@@ -1382,8 +1357,7 @@ static int SCHSTest09(void)
     SCHSPreparePatterns(&mpm_ctx);
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
-    uint32_t cnt =
-        SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)"ab", 2);
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)"ab", 2);
 
     if (cnt == 1)
         result = 1;
@@ -1415,12 +1389,11 @@ static int SCHSTest10(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "01234567890123456789012345678901234567890123456789"
-                "01234567890123456789012345678901234567890123456789"
-                "abcdefgh"
-                "01234567890123456789012345678901234567890123456789"
-                "01234567890123456789012345678901234567890123456789";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+                      "01234567890123456789012345678901234567890123456789"
+                      "abcdefgh"
+                      "01234567890123456789012345678901234567890123456789"
+                      "01234567890123456789012345678901234567890123456789";
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 1)
         result = 1;
@@ -1462,17 +1435,13 @@ static int SCHSTest11(void)
     result = 1;
 
     const char *buf = "he";
-    result &= (SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                          strlen(buf)) == 1);
+    result &= (SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf)) == 1);
     buf = "she";
-    result &= (SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                          strlen(buf)) == 2);
+    result &= (SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf)) == 2);
     buf = "his";
-    result &= (SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                          strlen(buf)) == 1);
+    result &= (SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf)) == 1);
     buf = "hers";
-    result &= (SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                          strlen(buf)) == 2);
+    result &= (SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf)) == 2);
 
 end:
     SCHSDestroyCtx(&mpm_ctx);
@@ -1502,8 +1471,7 @@ static int SCHSTest12(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghijklmnopqrstuvwxyz";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 2)
         result = 1;
@@ -1536,8 +1504,7 @@ static int SCHSTest13(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghijklmnopqrstuvwxyzABCD";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 1)
         result = 1;
@@ -1570,8 +1537,7 @@ static int SCHSTest14(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghijklmnopqrstuvwxyzABCDE";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 1)
         result = 1;
@@ -1604,8 +1570,7 @@ static int SCHSTest15(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghijklmnopqrstuvwxyzABCDEF";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 1)
         result = 1;
@@ -1638,8 +1603,7 @@ static int SCHSTest16(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghijklmnopqrstuvwxyzABC";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 1)
         result = 1;
@@ -1672,8 +1636,7 @@ static int SCHSTest17(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghijklmnopqrstuvwxyzAB";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 1)
         result = 1;
@@ -1711,13 +1674,12 @@ static int SCHSTest18(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcde"
-                "fghij"
-                "klmno"
-                "pqrst"
-                "uvwxy"
-                "z";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+                      "fghij"
+                      "klmno"
+                      "pqrst"
+                      "uvwxy"
+                      "z";
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 1)
         result = 1;
@@ -1750,8 +1712,7 @@ static int SCHSTest19(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 1)
         result = 1;
@@ -1790,14 +1751,13 @@ static int SCHSTest20(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "AAAAA"
-                "AAAAA"
-                "AAAAA"
-                "AAAAA"
-                "AAAAA"
-                "AAAAA"
-                "AA";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+                      "AAAAA"
+                      "AAAAA"
+                      "AAAAA"
+                      "AAAAA"
+                      "AAAAA"
+                      "AA";
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 1)
         result = 1;
@@ -1828,8 +1788,7 @@ static int SCHSTest21(void)
     SCHSPreparePatterns(&mpm_ctx);
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
-    uint32_t cnt =
-        SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)"AA", 2);
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)"AA", 2);
 
     if (cnt == 1)
         result = 1;
@@ -1863,8 +1822,7 @@ static int SCHSTest22(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "abcdefghijklmnopqrstuvwxyz";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 2)
         result = 1;
@@ -1895,8 +1853,7 @@ static int SCHSTest23(void)
     SCHSPreparePatterns(&mpm_ctx);
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
-    uint32_t cnt =
-        SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)"aa", 2);
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)"aa", 2);
 
     if (cnt == 0)
         result = 1;
@@ -1927,8 +1884,7 @@ static int SCHSTest24(void)
     SCHSPreparePatterns(&mpm_ctx);
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
-    uint32_t cnt =
-        SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)"aa", 2);
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)"aa", 2);
 
     if (cnt == 1)
         result = 1;
@@ -1961,8 +1917,7 @@ static int SCHSTest25(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 3)
         result = 1;
@@ -1994,8 +1949,7 @@ static int SCHSTest26(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "works";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 1)
         result = 1;
@@ -2027,8 +1981,7 @@ static int SCHSTest27(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "tone";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 0)
         result = 1;
@@ -2060,8 +2013,7 @@ static int SCHSTest28(void)
     SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     const char *buf = "tONE";
-    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
-                              strlen(buf));
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
 
     if (cnt == 0)
         result = 1;
@@ -2093,15 +2045,14 @@ static int SCHSTest29(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(
-        de_ctx, "alert tcp any any -> any any "
-                "(content:\"onetwothreefourfivesixseveneightnine\"; sid:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any any "
+                            "(content:\"onetwothreefourfivesixseveneightnine\"; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    de_ctx->sig_list->next =
-        SigInit(de_ctx, "alert tcp any any -> any any "
-                        "(content:\"onetwothreefourfivesixseveneightnine\"; "
-                        "fast_pattern:3,3; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                                             "(content:\"onetwothreefourfivesixseveneightnine\"; "
+                                             "fast_pattern:3,3; sid:2;)");
     if (de_ctx->sig_list->next == NULL)
         goto end;
 

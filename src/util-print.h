@@ -21,39 +21,35 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-
-
 #ifndef __UTIL_PRINT_H__
 #define __UTIL_PRINT_H__
 
-#define PrintBufferData(buf, buf_offset_ptr, buf_size, ...) do {         \
-        int cw = snprintf((buf) + *(buf_offset_ptr),                    \
-                          (buf_size) - *(buf_offset_ptr),                \
-                          __VA_ARGS__);                                 \
-        if (cw >= 0) {                                                  \
-            if ( (*(buf_offset_ptr) + cw) >= buf_size) {                \
-                SCLogDebug("Truncating data write since it exceeded buffer " \
-                           "limit of - %"PRIu32"\n", buf_size);         \
-                *(buf_offset_ptr) = buf_size - 1;                       \
-            } else {                                                    \
-                *(buf_offset_ptr) += cw;                                \
-            }                                                           \
-        }                                                               \
+#define PrintBufferData(buf, buf_offset_ptr, buf_size, ...)                                        \
+    do {                                                                                           \
+        int cw = snprintf((buf) + *(buf_offset_ptr), (buf_size) - *(buf_offset_ptr), __VA_ARGS__); \
+        if (cw >= 0) {                                                                             \
+            if ((*(buf_offset_ptr) + cw) >= buf_size) {                                            \
+                SCLogDebug("Truncating data write since it exceeded buffer "                       \
+                           "limit of - %" PRIu32 "\n",                                             \
+                        buf_size);                                                                 \
+                *(buf_offset_ptr) = buf_size - 1;                                                  \
+            } else {                                                                               \
+                *(buf_offset_ptr) += cw;                                                           \
+            }                                                                                      \
+        }                                                                                          \
     } while (0)
 
-void PrintBufferRawLineHex(char *, int *,int, const uint8_t *, uint32_t);
+void PrintBufferRawLineHex(char *, int *, int, const uint8_t *, uint32_t);
 void PrintRawUriFp(FILE *, uint8_t *, uint32_t);
-void PrintRawUriBuf(char *, uint32_t *, uint32_t,
-                    uint8_t *, uint32_t);
+void PrintRawUriBuf(char *, uint32_t *, uint32_t, uint8_t *, uint32_t);
 void PrintRawJsonFp(FILE *, uint8_t *, uint32_t);
 void PrintRawDataFp(FILE *, const uint8_t *, uint32_t);
 void PrintRawDataToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32_t dst_buf_size,
-                          const uint8_t *src_buf, uint32_t src_buf_len);
+        const uint8_t *src_buf, uint32_t src_buf_len);
 void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32_t dst_buf_size,
-                          const uint8_t *src_buf, const uint32_t src_buf_len);
-void PrintRawLineHexBuf(char *, uint32_t, const uint8_t *, uint32_t );
-const char *PrintInet(int , const void *, char *, socklen_t);
+        const uint8_t *src_buf, const uint32_t src_buf_len);
+void PrintRawLineHexBuf(char *, uint32_t, const uint8_t *, uint32_t);
+const char *PrintInet(int, const void *, char *, socklen_t);
 void PrintHexString(char *str, size_t size, uint8_t *buf, size_t buf_len);
 
 #endif /* __UTIL_PRINT_H__ */
-

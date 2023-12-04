@@ -36,7 +36,6 @@
 
 #include "stream-tcp.h"
 
-
 /* Need to get the DEvents[] array */
 
 #include "detect-engine-event.h"
@@ -46,12 +45,12 @@
 
 static DetectParseRegex parse_regex;
 
-static int DetectEngineEventMatch (DetectEngineThreadCtx *,
-        Packet *, const Signature *, const SigMatchCtx *);
-static int DetectEngineEventSetup (DetectEngineCtx *, Signature *, const char *);
-static int DetectDecodeEventSetup (DetectEngineCtx *, Signature *, const char *);
-static int DetectStreamEventSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectEngineEventFree (DetectEngineCtx *, void *);
+static int DetectEngineEventMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectEngineEventSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectDecodeEventSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectStreamEventSetup(DetectEngineCtx *, Signature *, const char *);
+static void DetectEngineEventFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 void EngineEventRegisterTests(void);
 #endif
@@ -59,12 +58,12 @@ void EngineEventRegisterTests(void);
 /**
  * \brief Registration function for decode-event: keyword
  */
-void DetectEngineEventRegister (void)
+void DetectEngineEventRegister(void)
 {
     sigmatch_table[DETECT_ENGINE_EVENT].name = "engine-event";
     sigmatch_table[DETECT_ENGINE_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_ENGINE_EVENT].Setup = DetectEngineEventSetup;
-    sigmatch_table[DETECT_ENGINE_EVENT].Free  = DetectEngineEventFree;
+    sigmatch_table[DETECT_ENGINE_EVENT].Free = DetectEngineEventFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_ENGINE_EVENT].RegisterTests = EngineEventRegisterTests;
 #endif
@@ -72,19 +71,20 @@ void DetectEngineEventRegister (void)
     sigmatch_table[DETECT_DECODE_EVENT].name = "decode-event";
     sigmatch_table[DETECT_DECODE_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_DECODE_EVENT].Setup = DetectDecodeEventSetup;
-    sigmatch_table[DETECT_DECODE_EVENT].Free  = DetectEngineEventFree;
+    sigmatch_table[DETECT_DECODE_EVENT].Free = DetectEngineEventFree;
     sigmatch_table[DETECT_DECODE_EVENT].flags |= SIGMATCH_DEONLY_COMPAT;
 
     sigmatch_table[DETECT_STREAM_EVENT].name = "stream-event";
     sigmatch_table[DETECT_STREAM_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_STREAM_EVENT].Setup = DetectStreamEventSetup;
-    sigmatch_table[DETECT_STREAM_EVENT].Free  = DetectEngineEventFree;
+    sigmatch_table[DETECT_STREAM_EVENT].Free = DetectEngineEventFree;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
- * \brief This function is used to match decoder event flags set on a packet with those passed via decode-event:
+ * \brief This function is used to match decoder event flags set on a packet with those passed via
+ * decode-event:
  *
  * \param t pointer to thread vars
  * \param det_ctx pointer to the pattern matcher thread
@@ -95,8 +95,8 @@ void DetectEngineEventRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectEngineEventMatch (DetectEngineThreadCtx *det_ctx,
-        Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectEngineEventMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -126,7 +126,7 @@ static bool OutdatedEvent(const char *raw)
  * \retval de pointer to DetectFlowData on success
  * \retval NULL on failure
  */
-static DetectEngineEventData *DetectEngineEventParse (const char *rawstr)
+static DetectEngineEventData *DetectEngineEventParse(const char *rawstr)
 {
     int i;
     DetectEngineEventData *de = NULL;
@@ -150,7 +150,7 @@ static DetectEngineEventData *DetectEngineEventParse (const char *rawstr)
     }
 
     for (i = 0; DEvents[i].event_name != NULL; i++) {
-        if (strcasecmp(DEvents[i].event_name,copy_str) == 0) {
+        if (strcasecmp(DEvents[i].event_name, copy_str) == 0) {
             found = 1;
             break;
         }
@@ -219,10 +219,9 @@ static int DetectEngineEventSetupDo(
     return 0;
 }
 
-
-static int DetectEngineEventSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectEngineEventSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    return DetectEngineEventSetupDo (de_ctx, s, rawstr, DETECT_ENGINE_EVENT);
+    return DetectEngineEventSetupDo(de_ctx, s, rawstr, DETECT_ENGINE_EVENT);
 }
 
 /**
@@ -237,12 +236,11 @@ static void DetectEngineEventFree(DetectEngineCtx *de_ctx, void *ptr)
         SCFree(de);
 }
 
-
 /**
  * \brief this function Setup the 'decode-event' keyword by setting the correct
  * signature type
-*/
-static int DetectDecodeEventSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+ */
+static int DetectDecodeEventSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     char drawstr[64] = "decoder.";
 
@@ -254,8 +252,8 @@ static int DetectDecodeEventSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 
 /**
  * \brief this function Setup the 'stream-event' keyword by resolving the alias
-*/
-static int DetectStreamEventSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+ */
+static int DetectStreamEventSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     char srawstr[64] = "stream.";
 
@@ -279,7 +277,7 @@ static int DetectStreamEventSetup (DetectEngineCtx *de_ctx, Signature *s, const 
 /**
  * \test EngineEventTestParse01 is a test for a  valid decode-event value
  */
-static int EngineEventTestParse01 (void)
+static int EngineEventTestParse01(void)
 {
     DetectEngineEventData *de = DetectEngineEventParse("decoder.ipv4.pkt_too_small");
 
@@ -290,11 +288,10 @@ static int EngineEventTestParse01 (void)
     PASS;
 }
 
-
 /**
  * \test EngineEventTestParse02 is a test for a  valid upper + lower case decode-event value
  */
-static int EngineEventTestParse02 (void)
+static int EngineEventTestParse02(void)
 {
     DetectEngineEventData *de = DetectEngineEventParse("decoder.PPP.pkt_too_small");
 
@@ -308,7 +305,7 @@ static int EngineEventTestParse02 (void)
 /**
  * \test EngineEventTestParse03 is a test for a  valid upper case decode-event value
  */
-static int EngineEventTestParse03 (void)
+static int EngineEventTestParse03(void)
 {
     DetectEngineEventData *de = DetectEngineEventParse("decoder.IPV6.PKT_TOO_SMALL");
 
@@ -322,7 +319,7 @@ static int EngineEventTestParse03 (void)
 /**
  * \test EngineEventTestParse04 is a test for an  invalid upper case decode-event value
  */
-static int EngineEventTestParse04 (void)
+static int EngineEventTestParse04(void)
 {
     DetectEngineEventData *de = DetectEngineEventParse("decoder.IPV6.INVALID_EVENT");
 
@@ -336,7 +333,7 @@ static int EngineEventTestParse04 (void)
 /**
  * \test EngineEventTestParse05 is a test for an  invalid char into the decode-event value
  */
-static int EngineEventTestParse05 (void)
+static int EngineEventTestParse05(void)
 {
     DetectEngineEventData *de = DetectEngineEventParse("decoder.IPV-6,INVALID_CHAR");
 
@@ -350,7 +347,7 @@ static int EngineEventTestParse05 (void)
 /**
  * \test EngineEventTestParse06 is a test for match function with valid decode-event value
  */
-static int EngineEventTestParse06 (void)
+static int EngineEventTestParse06(void)
 {
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
@@ -359,7 +356,7 @@ static int EngineEventTestParse06 (void)
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    ENGINE_SET_EVENT(p,PPP_PKT_TOO_SMALL);
+    ENGINE_SET_EVENT(p, PPP_PKT_TOO_SMALL);
 
     DetectEngineEventData *de = DetectEngineEventParse("decoder.ppp.pkt_too_small");
     FAIL_IF_NULL(de);

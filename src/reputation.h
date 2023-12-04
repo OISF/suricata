@@ -30,7 +30,7 @@
 #include "util-radix-tree.h"
 
 #define SREP_MAX_CATS 60
-#define SREP_MAX_VAL 127
+#define SREP_MAX_VAL  127
 
 typedef struct SRepCIDRTree_ {
     SCRadixTree *srepIPV4_tree[SREP_MAX_CATS];

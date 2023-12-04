@@ -71,8 +71,8 @@ bool EveNFSAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb)
     return false;
 }
 
-static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonNFSLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     NFSTransaction *nfstx = tx;
     OutputJsonThreadCtx *thread = thread_data;
@@ -99,8 +99,7 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     return TM_ECODE_OK;
 }
 
-static OutputInitResult NFSLogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult NFSLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_NFS);
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_NFS);

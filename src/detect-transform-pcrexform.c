@@ -36,27 +36,24 @@ typedef struct DetectTransformPcrexformData {
     pcre2_match_context *context;
 } DetectTransformPcrexformData;
 
-static int DetectTransformPcrexformSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTransformPcrexformSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTransformPcrexformFree(DetectEngineCtx *, void *);
 static void DetectTransformPcrexform(InspectionBuffer *buffer, void *options);
 #ifdef UNITTESTS
-void DetectTransformPcrexformRegisterTests (void);
+void DetectTransformPcrexformRegisterTests(void);
 #endif
 
 void DetectTransformPcrexformRegister(void)
 {
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].name = "pcrexform";
-    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].desc =
-        "modify buffer via PCRE before inspection";
+    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].desc = "modify buffer via PCRE before inspection";
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].url = "/rules/transforms.html#pcre-xform";
-    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].Transform =
-        DetectTransformPcrexform;
-    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].Free =
-        DetectTransformPcrexformFree;
-    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].Setup =
-        DetectTransformPcrexformSetup;
+    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].Transform = DetectTransformPcrexform;
+    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].Free = DetectTransformPcrexformFree;
+    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].Setup = DetectTransformPcrexformSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].RegisterTests = DetectTransformPcrexformRegisterTests;
+    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].RegisterTests =
+            DetectTransformPcrexformRegisterTests;
 #endif
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].flags |= SIGMATCH_QUOTES_MANDATORY;
 }
@@ -64,7 +61,7 @@ void DetectTransformPcrexformRegister(void)
 static void DetectTransformPcrexformFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     if (ptr != NULL) {
-        DetectTransformPcrexformData *pxd = (DetectTransformPcrexformData *) ptr;
+        DetectTransformPcrexformData *pxd = (DetectTransformPcrexformData *)ptr;
         pcre2_match_context_free(pxd->context);
         pcre2_code_free(pxd->regex);
         SCFree(pxd);
@@ -80,7 +77,8 @@ static void DetectTransformPcrexformFree(DetectEngineCtx *de_ctx, void *ptr)
  *  \retval 0 ok
  *  \retval -1 failure
  */
-static int DetectTransformPcrexformSetup (DetectEngineCtx *de_ctx, Signature *s, const char *regexstr)
+static int DetectTransformPcrexformSetup(
+        DetectEngineCtx *de_ctx, Signature *s, const char *regexstr)
 {
     SCEnter();
 

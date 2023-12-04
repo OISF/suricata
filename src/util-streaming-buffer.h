@@ -55,7 +55,6 @@
  * +-----------+-----------+
  */
 
-
 #ifndef __UTIL_STREAMING_BUFFER_H__
 #define __UTIL_STREAMING_BUFFER_H__
 
@@ -108,7 +107,7 @@ StreamingBufferBlock *SBB_RB_FIND_INCLUSIVE(struct SBB *head, StreamingBufferBlo
 
 typedef struct StreamingBuffer_ {
     StreamingBufferRegion region;
-    struct SBB sbb_tree;    /**< red black tree of Stream Buffer Blocks */
+    struct SBB sbb_tree;        /**< red black tree of Stream Buffer Blocks */
     StreamingBufferBlock *head; /**< head, should always be the same as RB_MIN */
     uint32_t sbb_size;          /**< data size covered by sbbs */
     uint16_t regions;
@@ -168,35 +167,28 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cf
         StreamingBufferSegment *seg, const uint8_t *data, uint32_t data_len,
         uint64_t offset) WARN_UNUSED;
 
-void StreamingBufferSegmentGetData(const StreamingBuffer *sb,
-                                   const StreamingBufferSegment *seg,
-                                   const uint8_t **data, uint32_t *data_len);
+void StreamingBufferSegmentGetData(const StreamingBuffer *sb, const StreamingBufferSegment *seg,
+        const uint8_t **data, uint32_t *data_len);
 
-void StreamingBufferSBBGetData(const StreamingBuffer *sb,
-                               const StreamingBufferBlock *sbb,
-                               const uint8_t **data, uint32_t *data_len);
+void StreamingBufferSBBGetData(const StreamingBuffer *sb, const StreamingBufferBlock *sbb,
+        const uint8_t **data, uint32_t *data_len);
 
-void StreamingBufferSBBGetDataAtOffset(const StreamingBuffer *sb,
-                                       const StreamingBufferBlock *sbb,
-                                       const uint8_t **data, uint32_t *data_len,
-                                       uint64_t offset);
+void StreamingBufferSBBGetDataAtOffset(const StreamingBuffer *sb, const StreamingBufferBlock *sbb,
+        const uint8_t **data, uint32_t *data_len, uint64_t offset);
 
 int StreamingBufferSegmentCompareRawData(const StreamingBuffer *sb,
-                                         const StreamingBufferSegment *seg,
-                                         const uint8_t *rawdata, uint32_t rawdata_len);
-int StreamingBufferCompareRawData(const StreamingBuffer *sb,
-                                  const uint8_t *rawdata, uint32_t rawdata_len);
+        const StreamingBufferSegment *seg, const uint8_t *rawdata, uint32_t rawdata_len);
+int StreamingBufferCompareRawData(
+        const StreamingBuffer *sb, const uint8_t *rawdata, uint32_t rawdata_len);
 
-int StreamingBufferGetData(const StreamingBuffer *sb,
-        const uint8_t **data, uint32_t *data_len,
+int StreamingBufferGetData(const StreamingBuffer *sb, const uint8_t **data, uint32_t *data_len,
         uint64_t *stream_offset);
 
-int StreamingBufferGetDataAtOffset (const StreamingBuffer *sb,
-        const uint8_t **data, uint32_t *data_len,
-        uint64_t offset);
+int StreamingBufferGetDataAtOffset(
+        const StreamingBuffer *sb, const uint8_t **data, uint32_t *data_len, uint64_t offset);
 
-int StreamingBufferSegmentIsBeforeWindow(const StreamingBuffer *sb,
-                                         const StreamingBufferSegment *seg);
+int StreamingBufferSegmentIsBeforeWindow(
+        const StreamingBuffer *sb, const StreamingBufferSegment *seg);
 
 void StreamingBufferRegisterTests(void);
 

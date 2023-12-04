@@ -61,8 +61,7 @@ static SCFPSupportSMList *g_fp_support_smlist_list = NULL;
  * \retval 1 If supported.
  * \retval 0 If not.
  */
-int FastPatternSupportEnabledForSigMatchList(const DetectEngineCtx *de_ctx,
-        const int list_id)
+int FastPatternSupportEnabledForSigMatchList(const DetectEngineCtx *de_ctx, const int list_id)
 {
     if (de_ctx->fp_support_smlist_list == NULL) {
         return 0;
@@ -185,11 +184,12 @@ void DetectEngineFreeFastPatternList(DetectEngineCtx *de_ctx)
 void DetectFastPatternRegister(void)
 {
     sigmatch_table[DETECT_FAST_PATTERN].name = "fast_pattern";
-    sigmatch_table[DETECT_FAST_PATTERN].desc = "force using preceding content in the multi pattern matcher";
+    sigmatch_table[DETECT_FAST_PATTERN].desc =
+            "force using preceding content in the multi pattern matcher";
     sigmatch_table[DETECT_FAST_PATTERN].url = "/rules/prefilter-keywords.html#fast-pattern";
     sigmatch_table[DETECT_FAST_PATTERN].Match = NULL;
     sigmatch_table[DETECT_FAST_PATTERN].Setup = DetectFastPatternSetup;
-    sigmatch_table[DETECT_FAST_PATTERN].Free  = NULL;
+    sigmatch_table[DETECT_FAST_PATTERN].Free = NULL;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FAST_PATTERN].RegisterTests = DetectFastPatternRegisterTests;
 #endif
@@ -240,10 +240,8 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
     cd = (DetectContentData *)pm->ctx;
     if ((cd->flags & DETECT_CONTENT_NEGATED) &&
-        ((cd->flags & DETECT_CONTENT_DISTANCE) ||
-         (cd->flags & DETECT_CONTENT_WITHIN) ||
-         (cd->flags & DETECT_CONTENT_OFFSET) ||
-         (cd->flags & DETECT_CONTENT_DEPTH))) {
+            ((cd->flags & DETECT_CONTENT_DISTANCE) || (cd->flags & DETECT_CONTENT_WITHIN) ||
+                    (cd->flags & DETECT_CONTENT_OFFSET) || (cd->flags & DETECT_CONTENT_DEPTH))) {
 
         /* we can't have any of these if we are having "only" */
         SCLogError("fast_pattern; cannot be "
@@ -251,13 +249,12 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
         goto error;
     }
 
-    if (arg == NULL|| strcmp(arg, "") == 0) {
+    if (arg == NULL || strcmp(arg, "") == 0) {
         if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
             SCLogError("can't use multiple fast_pattern "
                        "options for the same content");
             goto error;
-        }
-        else { /*allow only one content to have fast_pattern modifier*/
+        } else { /*allow only one content to have fast_pattern modifier*/
             for (uint32_t list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
                 SigMatch *sm = NULL;
                 for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
@@ -280,11 +277,9 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     int ret = DetectParsePcreExec(&parse_regex, &match, arg, 0, 0);
     /* fast pattern only */
     if (ret == 2) {
-        if ((cd->flags & DETECT_CONTENT_NEGATED) ||
-            (cd->flags & DETECT_CONTENT_DISTANCE) ||
-            (cd->flags & DETECT_CONTENT_WITHIN) ||
-            (cd->flags & DETECT_CONTENT_OFFSET) ||
-            (cd->flags & DETECT_CONTENT_DEPTH)) {
+        if ((cd->flags & DETECT_CONTENT_NEGATED) || (cd->flags & DETECT_CONTENT_DISTANCE) ||
+                (cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_OFFSET) ||
+                (cd->flags & DETECT_CONTENT_DEPTH)) {
 
             /* we can't have any of these if we are having "only" */
             SCLogError("fast_pattern: only; cannot be "
@@ -304,8 +299,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
             goto error;
         }
         uint16_t offset;
-        if (StringParseUint16(&offset, 10, 0,
-                              (const char *)arg_substr) < 0) {
+        if (StringParseUint16(&offset, 10, 0, (const char *)arg_substr) < 0) {
             SCLogError("Invalid fast pattern offset:"
                        " \"%s\"",
                     arg_substr);
@@ -320,8 +314,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
             goto error;
         }
         uint16_t length;
-        if (StringParseUint16(&length, 10, 0,
-                              (const char *)arg_substr) < 0) {
+        if (StringParseUint16(&length, 10, 0, (const char *)arg_substr) < 0) {
             SCLogError("Invalid value for fast "
                        "pattern: \"%s\"",
                     arg_substr);
@@ -356,10 +349,10 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     pcre2_match_data_free(match);
     return 0;
 
- error:
-     if (match) {
-         pcre2_match_data_free(match);
-     }
+error:
+    if (match) {
+        pcre2_match_data_free(match);
+    }
     return -1;
 }
 

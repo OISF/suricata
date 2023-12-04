@@ -73,8 +73,8 @@ void SCProfilingSghsGlobalInit(void)
                 const char *log_dir;
                 log_dir = ConfigGetLogDirectory();
 
-                snprintf(profiling_file_name, sizeof(profiling_file_name),
-                        "%s/%s", log_dir, filename);
+                snprintf(profiling_file_name, sizeof(profiling_file_name), "%s/%s", log_dir,
+                        filename);
 
                 const char *v = ConfNodeLookupChildValue(conf, "append");
                 if (v == NULL || ConfValIsTrue(v)) {
@@ -135,15 +135,15 @@ static void DoDumpJSON(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *n
             json_object_set_new(jsm, "avgmpms", json_real(avgmpms));
             json_object_set_new(jsm, "mpm_match_cnt_max", json_integer(d->mpm_match_cnt_max));
             json_object_set_new(jsm, "avgsigs", json_real(avgsigs));
-            json_object_set_new(jsm, "post_prefilter_sigs_max", json_integer(d->post_prefilter_sigs_max));
+            json_object_set_new(
+                    jsm, "post_prefilter_sigs_max", json_integer(d->post_prefilter_sigs_max));
             json_array_append_new(jsa, jsm);
         }
     }
     json_object_set_new(js, "rule_groups", jsa);
 
-    char *js_s = json_dumps(js,
-            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
-            JSON_ESCAPE_SLASH);
+    char *js_s = json_dumps(
+            js, JSON_PRESERVE_ORDER | JSON_COMPACT | JSON_ENSURE_ASCII | JSON_ESCAPE_SLASH);
     if (likely(js_s != NULL)) {
         fprintf(fp, "%s", js_s);
         free(js_s);
@@ -162,20 +162,24 @@ static void DoDump(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *name)
     tms = SCLocalTime(tval.tv_sec, &local_tm);
 
     fprintf(fp, "  ----------------------------------------------"
-            "------------------------------------------------------"
-            "----------------------------\n");
-    fprintf(fp, "  Date: %" PRId32 "/%" PRId32 "/%04d -- "
-            "%02d:%02d:%02d\n", tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900,
-            tms->tm_hour,tms->tm_min, tms->tm_sec);
+                "------------------------------------------------------"
+                "----------------------------\n");
+    fprintf(fp,
+            "  Date: %" PRId32 "/%" PRId32 "/%04d -- "
+            "%02d:%02d:%02d\n",
+            tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
+            tms->tm_sec);
 
     fprintf(fp, "  ----------------------------------------------"
-            "------------------------------------------------------"
-            "----------------------------\n");
+                "------------------------------------------------------"
+                "----------------------------\n");
     fprintf(fp, "  Stats for: %s %u\n", name, rules_ctx->cnt);
     fprintf(fp, "  ----------------------------------------------"
-            "------------------------------------------------------"
-            "----------------------------\n");
-    fprintf(fp, "  %-16s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n", "Sgh", "Checks", "Non-MPM(gen)", "Non-Mpm(syn)", "MPM Matches", "MPM Match Max", "Post-Filter", "Post-Filter Max");
+                "------------------------------------------------------"
+                "----------------------------\n");
+    fprintf(fp, "  %-16s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n", "Sgh", "Checks",
+            "Non-MPM(gen)", "Non-Mpm(syn)", "MPM Matches", "MPM Match Max", "Post-Filter",
+            "Post-Filter Max");
     fprintf(fp, "  ---------------- "
                 "--------------- "
                 "--------------- "
@@ -184,7 +188,7 @@ static void DoDump(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *name)
                 "--------------- "
                 "--------------- "
                 "--------------- "
-        "\n");
+                "\n");
     for (i = 0; i < rules_ctx->cnt; i++) {
         SCProfileSghData *d = &rules_ctx->data[i];
         if (d == NULL || d->checks == 0)
@@ -201,21 +205,15 @@ static void DoDump(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *name)
         }
 
         fprintf(fp,
-            "  %-16u %-15"PRIu64" %-15"PRIu64" %-15"PRIu64" %-15.2f %-15"PRIu64" %-15.2f %-15"PRIu64"\n",
-            i,
-            d->checks,
-            d->non_mpm_generic,
-            d->non_mpm_syn,
-            avgmpms,
-            d->mpm_match_cnt_max,
-            avgsigs,
-            d->post_prefilter_sigs_max);
+                "  %-16u %-15" PRIu64 " %-15" PRIu64 " %-15" PRIu64 " %-15.2f %-15" PRIu64
+                " %-15.2f %-15" PRIu64 "\n",
+                i, d->checks, d->non_mpm_generic, d->non_mpm_syn, avgmpms, d->mpm_match_cnt_max,
+                avgsigs, d->post_prefilter_sigs_max);
     }
-    fprintf(fp,"\n");
+    fprintf(fp, "\n");
 }
 
-static void
-SCProfilingSghDump(DetectEngineCtx *de_ctx)
+static void SCProfilingSghDump(DetectEngineCtx *de_ctx)
 {
     FILE *fp;
 
@@ -232,7 +230,7 @@ SCProfilingSghDump(DetectEngineCtx *de_ctx)
             return;
         }
     } else {
-       fp = stdout;
+        fp = stdout;
     }
 
     if (profiling_rulegroup_json) {
@@ -254,10 +252,10 @@ SCProfilingSghDump(DetectEngineCtx *de_ctx)
  * \param ticks Number of CPU ticks for this rule.
  * \param match Did the rule match?
  */
-void
-SCProfilingSghUpdateCounter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh)
+void SCProfilingSghUpdateCounter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh)
 {
-    if (det_ctx != NULL && det_ctx->sgh_perf_data != NULL && sgh->id < det_ctx->de_ctx->sgh_array_cnt) {
+    if (det_ctx != NULL && det_ctx->sgh_perf_data != NULL &&
+            sgh->id < det_ctx->de_ctx->sgh_array_cnt) {
         SCProfileSghData *p = &det_ctx->sgh_perf_data[sgh->id];
         p->checks++;
 
@@ -323,8 +321,8 @@ void SCProfilingSghThreadSetup(SCProfileSghDetectCtx *ctx, DetectEngineThreadCtx
 static void SCProfilingSghThreadMerge(DetectEngineCtx *de_ctx, const DetectEngineThreadCtx *det_ctx)
 {
     if (de_ctx == NULL || de_ctx->profile_sgh_ctx == NULL ||
-        de_ctx->profile_sgh_ctx->data == NULL || det_ctx == NULL ||
-        det_ctx->sgh_perf_data == NULL)
+            de_ctx->profile_sgh_ctx->data == NULL || det_ctx == NULL ||
+            det_ctx->sgh_perf_data == NULL)
         return;
 
 #define ADD(name) de_ctx->profile_sgh_ctx->data[i].name += det_ctx->sgh_perf_data[i].name
@@ -336,10 +334,14 @@ static void SCProfilingSghThreadMerge(DetectEngineCtx *de_ctx, const DetectEngin
         ADD(post_prefilter_sigs_total);
         ADD(mpm_match_cnt_total);
 
-        if (det_ctx->sgh_perf_data[i].mpm_match_cnt_max > de_ctx->profile_sgh_ctx->data[i].mpm_match_cnt_max)
-            de_ctx->profile_sgh_ctx->data[i].mpm_match_cnt_max = det_ctx->sgh_perf_data[i].mpm_match_cnt_max;
-        if (det_ctx->sgh_perf_data[i].post_prefilter_sigs_max > de_ctx->profile_sgh_ctx->data[i].post_prefilter_sigs_max)
-            de_ctx->profile_sgh_ctx->data[i].post_prefilter_sigs_max = det_ctx->sgh_perf_data[i].post_prefilter_sigs_max;
+        if (det_ctx->sgh_perf_data[i].mpm_match_cnt_max >
+                de_ctx->profile_sgh_ctx->data[i].mpm_match_cnt_max)
+            de_ctx->profile_sgh_ctx->data[i].mpm_match_cnt_max =
+                    det_ctx->sgh_perf_data[i].mpm_match_cnt_max;
+        if (det_ctx->sgh_perf_data[i].post_prefilter_sigs_max >
+                de_ctx->profile_sgh_ctx->data[i].post_prefilter_sigs_max)
+            de_ctx->profile_sgh_ctx->data[i].post_prefilter_sigs_max =
+                    det_ctx->sgh_perf_data[i].post_prefilter_sigs_max;
     }
 #undef ADD
 }
@@ -362,8 +364,7 @@ void SCProfilingSghThreadCleanup(DetectEngineThreadCtx *det_ctx)
  *
  * \param de_ctx The active DetectEngineCtx, used to get at the loaded rules.
  */
-void
-SCProfilingSghInitCounters(DetectEngineCtx *de_ctx)
+void SCProfilingSghInitCounters(DetectEngineCtx *de_ctx)
 {
     if (profiling_sghs_enabled == 0)
         return;
@@ -376,7 +377,7 @@ SCProfilingSghInitCounters(DetectEngineCtx *de_ctx)
 
     de_ctx->profile_sgh_ctx->cnt = de_ctx->sgh_array_cnt;
 
-    SCLogPerf("Registered %"PRIu32" rulegroup profiling counters.", de_ctx->sgh_array_cnt);
+    SCLogPerf("Registered %" PRIu32 " rulegroup profiling counters.", de_ctx->sgh_array_cnt);
 }
 
 #endif /* PROFILING */

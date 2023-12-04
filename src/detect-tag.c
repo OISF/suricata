@@ -51,12 +51,14 @@
 SC_ATOMIC_EXTERN(unsigned int, num_tags);
 
 /* format: tag: <type>, <count>, <metric>, [direction]; */
-#define PARSE_REGEX  "^\\s*(host|session)\\s*(,\\s*(\\d+)\\s*,\\s*(packets|bytes|seconds)\\s*(,\\s*(src|dst))?\\s*)?$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*(host|session)\\s*(,\\s*(\\d+)\\s*,\\s*(packets|bytes|seconds)\\s*(,\\s*(src|dst))?\\s*" \
+    ")?$"
 
 static DetectParseRegex parse_regex;
 
-static int DetectTagMatch(DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
+static int DetectTagMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectTagSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTagRegisterTests(void);
@@ -71,7 +73,7 @@ void DetectTagRegister(void)
     sigmatch_table[DETECT_TAG].name = "tag";
     sigmatch_table[DETECT_TAG].Match = DetectTagMatch;
     sigmatch_table[DETECT_TAG].Setup = DetectTagSetup;
-    sigmatch_table[DETECT_TAG].Free  = DetectTagDataFree;
+    sigmatch_table[DETECT_TAG].Free = DetectTagDataFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TAG].RegisterTests = DetectTagRegisterTests;
 #endif
@@ -91,8 +93,8 @@ void DetectTagRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTagMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectTagMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectTagData *td = (const DetectTagData *)ctx;
     DetectTagDataEntry tde;
@@ -114,7 +116,7 @@ static int DetectTagMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
             else if (td->direction == DETECT_TAG_DIR_DST)
                 tde.flags |= TAG_ENTRY_FLAG_DIR_DST;
 
-            SCLogDebug("Tagging Host with sid %"PRIu32":%"PRIu32"", s->id, s->gid);
+            SCLogDebug("Tagging Host with sid %" PRIu32 ":%" PRIu32 "", s->id, s->gid);
             TagHashAddTag(&tde, p);
             break;
         case DETECT_TAG_TYPE_SESSION:
@@ -127,8 +129,8 @@ static int DetectTagMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
                 tde.metric = td->metric;
                 tde.count = td->count;
 
-                SCLogDebug("Adding to or updating flow; first_ts %u count %u",
-                    tde.first_ts, tde.count);
+                SCLogDebug("Adding to or updating flow; first_ts %u count %u", tde.first_ts,
+                        tde.count);
                 TagFlowAdd(p, &tde);
             } else {
                 SCLogDebug("No flow to append the session tag");
@@ -197,8 +199,7 @@ static DetectTagData *DetectTagParse(const char *tagstr)
         }
 
         /* count */
-        if (StringParseUint32(&td.count, 10, strlen(str_ptr),
-                    str_ptr) <= 0) {
+        if (StringParseUint32(&td.count, 10, strlen(str_ptr), str_ptr) <= 0) {
             SCLogError("Invalid argument for count. Must be a value in the range of 0 to %" PRIu32
                        " (%s)",
                     UINT32_MAX, tagstr);
@@ -326,7 +327,6 @@ static void DetectTagDataEntryFree(void *ptr)
     }
 }
 
-
 /**
  * \brief this function will free all the entries of a list
  *        DetectTagDataEntry
@@ -341,7 +341,7 @@ void DetectTagDataListFree(void *ptr)
         while (entry != NULL) {
             DetectTagDataEntry *next_entry = entry->next;
             DetectTagDataEntryFree(entry);
-            (void) SC_ATOMIC_SUB(num_tags, 1);
+            (void)SC_ATOMIC_SUB(num_tags, 1);
             entry = next_entry;
         }
     }
@@ -369,9 +369,8 @@ static int DetectTagTestParse01(void)
     int result = 0;
     DetectTagData *td = NULL;
     td = DetectTagParse("session, 123, packets");
-    if (td != NULL && td->type == DETECT_TAG_TYPE_SESSION
-        && td->count == 123
-        && td->metric == DETECT_TAG_METRIC_PACKET) {
+    if (td != NULL && td->type == DETECT_TAG_TYPE_SESSION && td->count == 123 &&
+            td->metric == DETECT_TAG_METRIC_PACKET) {
         DetectTagDataFree(NULL, td);
         result = 1;
     }
@@ -387,11 +386,9 @@ static int DetectTagTestParse02(void)
     int result = 0;
     DetectTagData *td = NULL;
     td = DetectTagParse("host, 200, bytes, src");
-    if (td != NULL && td->type == DETECT_TAG_TYPE_HOST
-        && td->count == 200
-        && td->metric == DETECT_TAG_METRIC_BYTES
-        && td->direction == DETECT_TAG_DIR_SRC) {
-            result = 1;
+    if (td != NULL && td->type == DETECT_TAG_TYPE_HOST && td->count == 200 &&
+            td->metric == DETECT_TAG_METRIC_BYTES && td->direction == DETECT_TAG_DIR_SRC) {
+        result = 1;
         DetectTagDataFree(NULL, td);
     }
 
@@ -406,11 +403,9 @@ static int DetectTagTestParse03(void)
     int result = 0;
     DetectTagData *td = NULL;
     td = DetectTagParse("host, 200, bytes, dst");
-    if (td != NULL && td->type == DETECT_TAG_TYPE_HOST
-        && td->count == 200
-        && td->metric == DETECT_TAG_METRIC_BYTES
-        && td->direction == DETECT_TAG_DIR_DST) {
-            result = 1;
+    if (td != NULL && td->type == DETECT_TAG_TYPE_HOST && td->count == 200 &&
+            td->metric == DETECT_TAG_METRIC_BYTES && td->direction == DETECT_TAG_DIR_DST) {
+        result = 1;
         DetectTagDataFree(NULL, td);
     }
 
@@ -425,10 +420,9 @@ static int DetectTagTestParse04(void)
     int result = 0;
     DetectTagData *td = NULL;
     td = DetectTagParse("session");
-    if (td != NULL && td->type == DETECT_TAG_TYPE_SESSION
-        && td->count == DETECT_TAG_MAX_PKTS
-        && td->metric == DETECT_TAG_METRIC_PACKET) {
-            result = 1;
+    if (td != NULL && td->type == DETECT_TAG_TYPE_SESSION && td->count == DETECT_TAG_MAX_PKTS &&
+            td->metric == DETECT_TAG_METRIC_PACKET) {
+        result = 1;
         DetectTagDataFree(NULL, td);
     }
 
@@ -443,11 +437,9 @@ static int DetectTagTestParse05(void)
     int result = 0;
     DetectTagData *td = NULL;
     td = DetectTagParse("host");
-    if (td != NULL && td->type == DETECT_TAG_TYPE_HOST
-        && td->count == DETECT_TAG_MAX_PKTS
-        && td->metric == DETECT_TAG_METRIC_PACKET
-        && td->direction == DETECT_TAG_DIR_DST) {
-            result = 1;
+    if (td != NULL && td->type == DETECT_TAG_TYPE_HOST && td->count == DETECT_TAG_MAX_PKTS &&
+            td->metric == DETECT_TAG_METRIC_PACKET && td->direction == DETECT_TAG_DIR_DST) {
+        result = 1;
         DetectTagDataFree(NULL, td);
     }
 

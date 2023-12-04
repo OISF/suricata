@@ -34,12 +34,12 @@
 #include "detect-engine-mpm.h"
 #include "detect-msg.h"
 
-static int DetectMsgSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectMsgSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectMsgRegisterTests(void);
 #endif
 
-void DetectMsgRegister (void)
+void DetectMsgRegister(void)
 {
     sigmatch_table[DETECT_MSG].name = "msg";
     sigmatch_table[DETECT_MSG].desc = "information about the rule and the possible alert";
@@ -53,7 +53,7 @@ void DetectMsgRegister (void)
     sigmatch_table[DETECT_MSG].flags = SIGMATCH_QUOTES_MANDATORY;
 }
 
-static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, const char *msgstr)
+static int DetectMsgSetup(DetectEngineCtx *de_ctx, Signature *s, const char *msgstr)
 {
     size_t slen = strlen(msgstr);
     if (slen == 0)
@@ -70,29 +70,24 @@ static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ms
 
         /* it doesn't matter if we need to escape or not we remove the extra "\" to mimic snort */
         for (i = 0, x = 0; i < slen; i++) {
-            //printf("str[%02u]: %c\n", i, str[i]);
-            if(!escape && str[i] == '\\') {
+            // printf("str[%02u]: %c\n", i, str[i]);
+            if (!escape && str[i] == '\\') {
                 escape = 1;
             } else if (escape) {
-                if (str[i] != ':' &&
-                        str[i] != ';' &&
-                        str[i] != '\\' &&
-                        str[i] != '\"')
-                {
-                    SCLogDebug("character \"%c\" does not need to be escaped but is" ,str[i]);
+                if (str[i] != ':' && str[i] != ';' && str[i] != '\\' && str[i] != '\"') {
+                    SCLogDebug("character \"%c\" does not need to be escaped but is", str[i]);
                 }
                 escape = 0;
                 converted = 1;
 
                 str[x] = str[i];
                 x++;
-            }else{
+            } else {
                 str[x] = str[i];
                 x++;
             }
-
         }
-#if 0 //def DEBUG
+#if 0 // def DEBUG
         if (SCLogDebugEnabled()) {
             for (i = 0; i < x; i++) {
                 printf("%c", str[i]);

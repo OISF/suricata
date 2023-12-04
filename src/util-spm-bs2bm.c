@@ -107,7 +107,7 @@ uint8_t *Bs2Bm(const uint8_t *haystack, uint32_t haystack_len, const uint8_t *ne
         if (needle_len == 1)
             return (uint8_t *)haystack;
 
-        for (h = haystack+1, n++; nmax - n <= hmax - haystack; h++, n++) {
+        for (h = haystack + 1, n++; nmax - n <= hmax - haystack; h++, n++) {
             if (*h != *n) {
                 if (badchars[*h] == 1) {
                     /* skip it! */
@@ -116,7 +116,7 @@ uint8_t *Bs2Bm(const uint8_t *haystack, uint32_t haystack_len, const uint8_t *ne
                 break;
             }
             /* if we run out of needle we fully matched */
-            if (n == nmax - 1 ) {
+            if (n == nmax - 1) {
                 return (uint8_t *)haystack;
             }
         }
@@ -157,7 +157,7 @@ uint8_t *Bs2BmNocase(const uint8_t *haystack, uint32_t haystack_len, const uint8
         if (needle_len == 1)
             return (uint8_t *)haystack;
 
-        for (h = haystack+1, n++; nmax - n <= hmax - haystack; h++, n++) {
+        for (h = haystack + 1, n++; nmax - n <= hmax - haystack; h++, n++) {
             if (u8_tolower(*h) != u8_tolower(*n)) {
                 if (badchars[u8_tolower(*h)] == 1) {
                     /* skip it! */

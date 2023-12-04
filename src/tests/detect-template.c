@@ -27,7 +27,7 @@
  * \test test keyword parsing
  */
 
-static int DetectTemplateParseTest01 (void)
+static int DetectTemplateParseTest01(void)
 {
     DetectTemplateData *templated = DetectTemplateParse("1,10");
     FAIL_IF_NULL(templated);
@@ -40,12 +40,13 @@ static int DetectTemplateParseTest01 (void)
  * \test test signature parsing
  */
 
-static int DetectTemplateSignatureTest01 (void)
+static int DetectTemplateSignatureTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (template:1,10; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (template:1,10; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -58,6 +59,5 @@ static int DetectTemplateSignatureTest01 (void)
 void DetectTemplateRegisterTests(void)
 {
     UtRegisterTest("DetectTemplateParseTest01", DetectTemplateParseTest01);
-    UtRegisterTest("DetectTemplateSignatureTest01",
-                   DetectTemplateSignatureTest01);
+    UtRegisterTest("DetectTemplateSignatureTest01", DetectTemplateSignatureTest01);
 }

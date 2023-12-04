@@ -35,25 +35,23 @@
 
 static int mqtt_qos_id = 0;
 
-static int DetectMQTTQosMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state,
-                               void *txv, const Signature *s,
-                               const SigMatchCtx *ctx);
-static int DetectMQTTQosSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectMQTTQosMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectMQTTQosSetup(DetectEngineCtx *, Signature *, const char *);
 void MQTTQosRegisterTests(void);
 void DetectMQTTQosFree(DetectEngineCtx *de_ctx, void *);
 
 /**
  * \brief Registration function for mqtt.qos: keyword
  */
-void DetectMQTTQosRegister (void)
+void DetectMQTTQosRegister(void)
 {
     sigmatch_table[DETECT_AL_MQTT_QOS].name = "mqtt.qos";
     sigmatch_table[DETECT_AL_MQTT_QOS].desc = "match MQTT fixed header QOS level";
     sigmatch_table[DETECT_AL_MQTT_QOS].url = "/rules/mqtt-keywords.html#mqtt-qos";
     sigmatch_table[DETECT_AL_MQTT_QOS].AppLayerTxMatch = DetectMQTTQosMatch;
     sigmatch_table[DETECT_AL_MQTT_QOS].Setup = DetectMQTTQosSetup;
-    sigmatch_table[DETECT_AL_MQTT_QOS].Free  = DetectMQTTQosFree;
+    sigmatch_table[DETECT_AL_MQTT_QOS].Free = DetectMQTTQosFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_MQTT_QOS].RegisterTests = MQTTQosRegisterTests;
 #endif
@@ -79,10 +77,8 @@ void DetectMQTTQosRegister (void)
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectMQTTQosMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state,
-                               void *txv, const Signature *s,
-                               const SigMatchCtx *ctx)
+static int DetectMQTTQosMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     const uint8_t *de = (const uint8_t *)ctx;
 
@@ -179,7 +175,7 @@ void DetectMQTTQosFree(DetectEngineCtx *de_ctx, void *de_ptr)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTQosTestParse01 (void)
+static int MQTTQosTestParse01(void)
 {
     uint8_t *de = NULL;
 
@@ -212,7 +208,7 @@ static int MQTTQosTestParse01 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTQosTestParse02 (void)
+static int MQTTQosTestParse02(void)
 {
     uint8_t *de = NULL;
     de = DetectMQTTQosParse("3");
@@ -230,7 +226,7 @@ static int MQTTQosTestParse02 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTQosTestParse03 (void)
+static int MQTTQosTestParse03(void)
 {
     uint8_t *de = NULL;
     de = DetectMQTTQosParse("12");
@@ -241,7 +237,6 @@ static int MQTTQosTestParse03 (void)
 
     PASS;
 }
-
 
 #endif /* UNITTESTS */
 

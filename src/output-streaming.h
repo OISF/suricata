@@ -26,12 +26,11 @@
 #ifndef __OUTPUT_STREAMING_H__
 #define __OUTPUT_STREAMING_H__
 
-
-#define OUTPUT_STREAMING_FLAG_OPEN          0x01
-#define OUTPUT_STREAMING_FLAG_CLOSE         0x02
-#define OUTPUT_STREAMING_FLAG_TOSERVER      0x04
-#define OUTPUT_STREAMING_FLAG_TOCLIENT      0x08
-#define OUTPUT_STREAMING_FLAG_TRANSACTION   0x10
+#define OUTPUT_STREAMING_FLAG_OPEN        0x01
+#define OUTPUT_STREAMING_FLAG_CLOSE       0x02
+#define OUTPUT_STREAMING_FLAG_TOSERVER    0x04
+#define OUTPUT_STREAMING_FLAG_TOCLIENT    0x08
+#define OUTPUT_STREAMING_FLAG_TRANSACTION 0x10
 
 enum OutputStreamingType {
     STREAMING_TCP_DATA,
@@ -39,16 +38,14 @@ enum OutputStreamingType {
 };
 
 /** streaming logger function pointer type */
-typedef int (*StreamingLogger)(ThreadVars *, void *thread_data,
-        const Flow *f, const uint8_t *data, uint32_t data_len,
-        uint64_t tx_id, uint8_t flags);
+typedef int (*StreamingLogger)(ThreadVars *, void *thread_data, const Flow *f, const uint8_t *data,
+        uint32_t data_len, uint64_t tx_id, uint8_t flags);
 
-int OutputRegisterStreamingLogger(LoggerId id, const char *name,
-    StreamingLogger LogFunc, OutputCtx *, enum OutputStreamingType,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
+int OutputRegisterStreamingLogger(LoggerId id, const char *name, StreamingLogger LogFunc,
+        OutputCtx *, enum OutputStreamingType, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit, ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
-void OutputStreamingLoggerRegister (void);
+void OutputStreamingLoggerRegister(void);
 
 void OutputStreamingShutdown(void);
 

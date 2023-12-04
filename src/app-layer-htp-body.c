@@ -45,8 +45,7 @@ extern StreamingBufferConfig htp_sbcfg;
  * \retval 0 ok
  * \retval -1 error
  */
-int HtpBodyAppendChunk(const HTPCfgDir *hcfg, HtpBody *body,
-                       const uint8_t *data, uint32_t len)
+int HtpBodyAppendChunk(const HTPCfgDir *hcfg, HtpBody *body, const uint8_t *data, uint32_t len)
 {
     SCEnter();
 
@@ -93,7 +92,7 @@ int HtpBodyAppendChunk(const HTPCfgDir *hcfg, HtpBody *body,
  */
 void HtpBodyPrint(HtpBody *body)
 {
-    if (SCLogDebugEnabled()||1) {
+    if (SCLogDebugEnabled() || 1) {
         SCEnter();
 
         if (body->first == NULL)
@@ -106,8 +105,8 @@ void HtpBodyPrint(HtpBody *body)
             const uint8_t *data = NULL;
             uint32_t data_len = 0;
             StreamingBufferSegmentGetData(body->sb, &cur->sbseg, &data, &data_len);
-            SCLogDebug("Body %p; data %p, len %"PRIu32, body, data, data_len);
-            printf("Body %p; data %p, len %"PRIu32"\n", body, data, data_len);
+            SCLogDebug("Body %p; data %p, len %" PRIu32, body, data, data_len);
+            printf("Body %p; data %p, len %" PRIu32 "\n", body, data, data_len);
             PrintRawDataFp(stdout, data, data_len);
         }
         SCLogDebug("--- End body chunks at %p ---", body);
@@ -184,7 +183,7 @@ void HtpBodyPrune(HtpState *state, HtpBody *body, int direction)
         left_edge -= window;
 
     if (left_edge) {
-        SCLogDebug("sliding body to offset %"PRIu64, left_edge);
+        SCLogDebug("sliding body to offset %" PRIu64, left_edge);
         StreamingBufferSlideToOffset(body->sb, &htp_sbcfg, left_edge);
     }
 

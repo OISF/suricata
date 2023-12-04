@@ -66,13 +66,13 @@ typedef struct SCMd5 SCMd5;
 #define FILEDATA_CONTENT_INSPECT_WINDOW   4096
 
 typedef enum FileState_ {
-    FILE_STATE_NONE = 0,    /**< no state */
-    FILE_STATE_OPENED,      /**< flow file is opened */
-    FILE_STATE_CLOSED,      /**< flow file is completed,
-                                     there will be no more data. */
-    FILE_STATE_TRUNCATED,   /**< flow file is not complete, but
-                                     there will be no more data. */
-    FILE_STATE_ERROR,       /**< file is in an error state */
+    FILE_STATE_NONE = 0,  /**< no state */
+    FILE_STATE_OPENED,    /**< flow file is opened */
+    FILE_STATE_CLOSED,    /**< flow file is completed,
+                                   there will be no more data. */
+    FILE_STATE_TRUNCATED, /**< flow file is not complete, but
+                                   there will be no more data. */
+    FILE_STATE_ERROR,     /**< file is in an error state */
     FILE_STATE_MAX
 } FileState;
 
@@ -81,10 +81,10 @@ typedef struct File_ {
     uint16_t name_len;
     FileState state;
     StreamingBuffer *sb;
-    uint32_t file_track_id;         /**< id used by protocol parser */
-    uint32_t file_store_id;         /**< id used in store file name file.<id> */
-    int fd;                         /**< file descriptor for filestore, not
-                                        open if equal to -1 */
+    uint32_t file_track_id; /**< id used by protocol parser */
+    uint32_t file_store_id; /**< id used in store file name file.<id> */
+    int fd;                 /**< file descriptor for filestore, not
+                                open if equal to -1 */
     uint8_t *name;
 #ifdef HAVE_MAGIC
     char *magic;
@@ -96,8 +96,8 @@ typedef struct File_ {
     uint8_t sha1[SC_SHA1_LEN];
     SCSha256 *sha256_ctx;
     uint8_t sha256[SC_SHA256_LEN];
-    uint64_t content_inspected;     /**< used in pruning if FILE_USE_DETECT
-                                     *   flag is set */
+    uint64_t content_inspected; /**< used in pruning if FILE_USE_DETECT
+                                 *   flag is set */
     uint64_t content_stored;
     uint64_t size;
     uint32_t inspect_window;
@@ -142,9 +142,9 @@ void FileContainerAdd(FileContainer *, File *);
  *  It's the responsibility of the API user to make sure this tracker is
  *  properly updated.
  */
-int FileOpenFileWithId(FileContainer *, const StreamingBufferConfig *,
-        uint32_t track_id, const uint8_t *name, uint16_t name_len,
-        const uint8_t *data, uint32_t data_len, uint16_t flags);
+int FileOpenFileWithId(FileContainer *, const StreamingBufferConfig *, uint32_t track_id,
+        const uint8_t *name, uint16_t name_len, const uint8_t *data, uint32_t data_len,
+        uint16_t flags);
 
 /**
  *  \brief Close a File

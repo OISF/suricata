@@ -108,7 +108,7 @@ static uint32_t HostHashRowTimeout(HostHashRow *hb, Host *h, SCTime_t ts)
             h->hnext = NULL;
             h->hprev = NULL;
 
-            HostClearMemory (h);
+            HostClearMemory(h);
 
             /* no one is referring to this host, use_cnt 0, removed from hash
              * so we can unlock it and move it back to the spare queue. */
@@ -160,4 +160,3 @@ uint32_t HostTimeoutHash(SCTime_t ts)
 
     return cnt;
 }
-

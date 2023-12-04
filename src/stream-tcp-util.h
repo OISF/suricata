@@ -38,11 +38,13 @@ void StreamTcpUTClearSession(TcpSession *);
 void StreamTcpUTSetupStream(TcpStream *, uint32_t isn);
 void StreamTcpUTClearStream(TcpStream *);
 
-int StreamTcpUTAddSegmentWithByte(ThreadVars *, TcpReassemblyThreadCtx *, TcpStream *, uint32_t, uint8_t, uint16_t);
-int StreamTcpUTAddSegmentWithPayload(ThreadVars *, TcpReassemblyThreadCtx *, TcpStream *, uint32_t, uint8_t *, uint16_t);
-int StreamTcpUTAddPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn, TcpStream *stream, uint32_t seq, uint8_t *payload, uint16_t len);
+int StreamTcpUTAddSegmentWithByte(
+        ThreadVars *, TcpReassemblyThreadCtx *, TcpStream *, uint32_t, uint8_t, uint16_t);
+int StreamTcpUTAddSegmentWithPayload(
+        ThreadVars *, TcpReassemblyThreadCtx *, TcpStream *, uint32_t, uint8_t *, uint16_t);
+int StreamTcpUTAddPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn,
+        TcpStream *stream, uint32_t seq, uint8_t *payload, uint16_t len);
 
 void StreamTcpUtilRegisterTests(void);
 
 #endif /* __STREAM_TCP_UTIL_H__ */
-

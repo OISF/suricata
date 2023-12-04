@@ -31,4 +31,3 @@ void CIDRGetIPv6(int cidr, struct in6_addr *in6);
 void UtilCIDRTests(void);
 
 #endif /* __UTIL_NETMASK_H__ */
-

@@ -65,7 +65,9 @@
 #include "flow-util.h"
 
 /** convert enum to string */
-#define CASE_CODE(E)  case E: return #E
+#define CASE_CODE(E)                                                                               \
+    case E:                                                                                        \
+        return #E
 
 static inline int StateIsValid(uint16_t alproto, void *alstate)
 {
@@ -101,15 +103,13 @@ static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIn
 
     for (; tx_store != NULL; tx_store = tx_store->next) {
         SCLogDebug("tx_store %p", tx_store);
-        for (store_cnt = 0;
-             store_cnt < DE_STATE_CHUNK_SIZE && state_cnt < dir_state->cnt;
-             store_cnt++, state_cnt++)
-        {
+        for (store_cnt = 0; store_cnt < DE_STATE_CHUNK_SIZE && state_cnt < dir_state->cnt;
+                store_cnt++, state_cnt++) {
             DeStateStoreItem *item = &tx_store->store[store_cnt];
             if (item->sid == num) {
-                SCLogDebug("sid %u already in state: %p %p %p %u %u, direction %s",
-                            num, state, dir_state, tx_store, state_cnt,
-                            store_cnt, direction & STREAM_TOSERVER ? "toserver" : "toclient");
+                SCLogDebug("sid %u already in state: %p %p %p %u %u, direction %s", num, state,
+                        dir_state, tx_store, state_cnt, store_cnt,
+                        direction & STREAM_TOSERVER ? "toserver" : "toclient");
                 return 1;
             }
         }
@@ -118,8 +118,8 @@ static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIn
 }
 #endif
 
-static void DeStateSignatureAppend(DetectEngineState *state,
-        const Signature *s, uint32_t inspect_flags, uint8_t direction)
+static void DeStateSignatureAppend(
+        DetectEngineState *state, const Signature *s, uint32_t inspect_flags, uint8_t direction)
 {
     SCEnter();
 
@@ -188,14 +188,16 @@ void DetectEngineStateFree(DetectEngineState *state)
     return;
 }
 
-static void StoreFileNoMatchCnt(DetectEngineState *de_state, uint16_t file_no_match, uint8_t direction)
+static void StoreFileNoMatchCnt(
+        DetectEngineState *de_state, uint16_t file_no_match, uint8_t direction)
 {
     de_state->dir_state[(direction & STREAM_TOSERVER) ? 0 : 1].filestore_cnt += file_no_match;
 
     return;
 }
 
-static bool StoreFilestoreSigsCantMatch(const SigGroupHead *sgh, const DetectEngineState *de_state, uint8_t direction)
+static bool StoreFilestoreSigsCantMatch(
+        const SigGroupHead *sgh, const DetectEngineState *de_state, uint8_t direction)
 {
     if (de_state->dir_state[(direction & STREAM_TOSERVER) ? 0 : 1].filestore_cnt ==
             sgh->filestore_cnt)
@@ -207,7 +209,7 @@ static bool StoreFilestoreSigsCantMatch(const SigGroupHead *sgh, const DetectEng
 static void StoreStateTxHandleFiles(const SigGroupHead *sgh, Flow *f, DetectEngineState *destate,
         const uint8_t flow_flags, void *tx, const uint64_t tx_id, const uint16_t file_no_match)
 {
-    SCLogDebug("tx %"PRIu64", file_no_match %u", tx_id, file_no_match);
+    SCLogDebug("tx %" PRIu64 ", file_no_match %u", tx_id, file_no_match);
     StoreFileNoMatchCnt(destate, file_no_match, flow_flags);
     if (StoreFilestoreSigsCantMatch(sgh, destate, flow_flags)) {
         SCLogDebug("filestore sigs can't match");
@@ -218,11 +220,8 @@ static void StoreStateTxHandleFiles(const SigGroupHead *sgh, Flow *f, DetectEngi
     }
 }
 
-void DetectRunStoreStateTx(
-        const SigGroupHead *sgh,
-        Flow *f, void *tx, uint64_t tx_id,
-        const Signature *s,
-        uint32_t inspect_flags, uint8_t flow_flags,
+void DetectRunStoreStateTx(const SigGroupHead *sgh, Flow *f, void *tx, uint64_t tx_id,
+        const Signature *s, uint32_t inspect_flags, uint8_t flow_flags,
         const uint16_t file_no_match)
 {
     AppLayerTxData *tx_data = AppLayerParserGetTxData(f->proto, f->alproto, tx);
@@ -235,12 +234,12 @@ void DetectRunStoreStateTx(
         tx_data->de_state = DetectEngineStateAlloc();
         if (tx_data->de_state == NULL)
             return;
-        SCLogDebug("destate created for %"PRIu64, tx_id);
+        SCLogDebug("destate created for %" PRIu64, tx_id);
     }
     DeStateSignatureAppend(tx_data->de_state, s, inspect_flags, flow_flags);
     StoreStateTxHandleFiles(sgh, f, tx_data->de_state, flow_flags, tx, tx_id, file_no_match);
 
-    SCLogDebug("Stored for TX %"PRIu64, tx_id);
+    SCLogDebug("Stored for TX %" PRIu64, tx_id);
 }
 
 static inline void ResetTxState(DetectEngineState *s)
@@ -278,7 +277,7 @@ void DetectEngineStateResetTxs(Flow *f)
 
     uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
 
-    for ( ; inspect_tx_id < total_txs; inspect_tx_id++) {
+    for (; inspect_tx_id < total_txs; inspect_tx_id++) {
         void *inspect_tx = AppLayerParserGetTx(f->proto, f->alproto, alstate, inspect_tx_id);
         if (inspect_tx != NULL) {
             AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, inspect_tx);
@@ -297,12 +296,9 @@ void DetectEngineStateResetTxs(Flow *f)
 
 static int DeStateTest01(void)
 {
-    SCLogDebug("sizeof(DetectEngineState)\t\t%"PRIuMAX,
-            (uintmax_t)sizeof(DetectEngineState));
-    SCLogDebug("sizeof(DeStateStore)\t\t\t%"PRIuMAX,
-            (uintmax_t)sizeof(DeStateStore));
-    SCLogDebug("sizeof(DeStateStoreItem)\t\t%"PRIuMAX"",
-            (uintmax_t)sizeof(DeStateStoreItem));
+    SCLogDebug("sizeof(DetectEngineState)\t\t%" PRIuMAX, (uintmax_t)sizeof(DetectEngineState));
+    SCLogDebug("sizeof(DeStateStore)\t\t\t%" PRIuMAX, (uintmax_t)sizeof(DeStateStore));
+    SCLogDebug("sizeof(DeStateStoreItem)\t\t%" PRIuMAX "", (uintmax_t)sizeof(DeStateStoreItem));
 
     return 1;
 }
@@ -449,9 +445,11 @@ static int DeStateTest03(void)
 
     FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head == NULL);
     FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[0].sid != 11);
-    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[0].flags & BIT_U32(DE_STATE_FLAG_BASE));
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[0].flags &
+            BIT_U32(DE_STATE_FLAG_BASE));
     FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[1].sid != 22);
-    FAIL_IF(!(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[1].flags & BIT_U32(DE_STATE_FLAG_BASE)));
+    FAIL_IF(!(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[1].flags &
+              BIT_U32(DE_STATE_FLAG_BASE)));
 
     DetectEngineStateFree(state);
     PASS;
@@ -490,7 +488,7 @@ static int DeStateSigTest01(void)
     f.alproto = ALPROTO_HTTP1;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -500,7 +498,9 @@ static int DeStateSigTest01(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (content:\"POST\"; http_method; content:\"dummy\"; http_cookie; sid:1; rev:1;)");
+    Signature *s = de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any any (content:\"POST\"; http_method; "
+                            "content:\"dummy\"; http_cookie; sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -574,7 +574,7 @@ static int DeStateSigTest02(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -586,9 +586,14 @@ static int DeStateSigTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:to_server; content:\"POST\"; http_method; content:\"/\"; http_uri; content:\"Mozilla\"; http_header; content:\"dummy\"; http_cookie; content:\"body\"; nocase; http_client_body; sid:1; rev:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (flow:to_server; content:\"POST\"; http_method; "
+            "content:\"/\"; http_uri; content:\"Mozilla\"; http_header; content:\"dummy\"; "
+            "http_cookie; content:\"body\"; nocase; http_client_body; sid:1; rev:1;)");
     FAIL_IF_NULL(s);
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:to_server; content:\"GET\"; http_method; content:\"Firefox\"; http_header; content:\"dummy2\"; http_cookie; sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (flow:to_server; content:\"GET\"; http_method; "
+            "content:\"Firefox\"; http_header; content:\"dummy2\"; http_cookie; sid:2; rev:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -656,11 +661,13 @@ static int DeStateSigTest03(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 215\r\n"
                          "\r\n"
                          "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n"
                          "filecontent\r\n"
@@ -682,7 +689,9 @@ static int DeStateSigTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (flow:to_server; content:\"POST\"; http_method; content:\"upload.cgi\"; http_uri; filestore; sid:1; rev:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (flow:to_server; content:\"POST\"; http_method; "
+            "content:\"upload.cgi\"; http_uri; filestore; sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -698,7 +707,7 @@ static int DeStateSigTest03(void)
     FAIL_IF_NULL(p);
 
     p->flow = f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -740,11 +749,13 @@ static int DeStateSigTest04(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 215\r\n"
                          "\r\n"
                          "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n"
                          "filecontent\r\n"
@@ -763,7 +774,9 @@ static int DeStateSigTest04(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"GET\"; http_method; content:\"upload.cgi\"; http_uri; filestore; sid:1; rev:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (content:\"GET\"; http_method; "
+            "content:\"upload.cgi\"; http_uri; filestore; sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -779,7 +792,7 @@ static int DeStateSigTest04(void)
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
     p->flow = f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -818,11 +831,13 @@ static int DeStateSigTest05(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 215\r\n"
                          "\r\n"
                          "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n"
                          "filecontent\r\n"
@@ -842,7 +857,9 @@ static int DeStateSigTest05(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"GET\"; http_method; content:\"upload.cgi\"; http_uri; filename:\"nomatch\"; sid:1; rev:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (content:\"GET\"; http_method; "
+            "content:\"upload.cgi\"; http_uri; filename:\"nomatch\"; sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -857,7 +874,7 @@ static int DeStateSigTest05(void)
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
     p->flow = f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -900,11 +917,13 @@ static int DeStateSigTest06(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 215\r\n"
                          "\r\n"
                          "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n"
                          "filecontent\r\n"
@@ -924,7 +943,9 @@ static int DeStateSigTest06(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"POST\"; http_method; content:\"upload.cgi\"; http_uri; filename:\"nomatch\"; filestore; sid:1; rev:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (content:\"POST\"; http_method; content:\"upload.cgi\"; "
+            "http_uri; filename:\"nomatch\"; filestore; sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -940,7 +961,7 @@ static int DeStateSigTest06(void)
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
     p->flow = f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -981,11 +1002,13 @@ static int DeStateSigTest07(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 215\r\n"
                          "\r\n"
                          "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n";
 
@@ -1007,7 +1030,9 @@ static int DeStateSigTest07(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"GET\"; http_method; content:\"upload.cgi\"; http_uri; filestore; sid:1; rev:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (content:\"GET\"; http_method; "
+            "content:\"upload.cgi\"; http_uri; filestore; sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -1022,7 +1047,7 @@ static int DeStateSigTest07(void)
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
     p->flow = f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -1069,11 +1094,13 @@ static int DeStateSigTest08(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 440\r\n"
                          "\r\n"
                          "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"AAAApicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"AAAApicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n";
 
@@ -1084,7 +1111,8 @@ static int DeStateSigTest08(void)
                          "-----------------------------277531038314945\r\n";
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
 
-    uint8_t httpbuf4[] = "Content-Disposition: form-data; name=\"uploadfile_1\"; filename=\"BBBBpicture2.jpg\"\r\n"
+    uint8_t httpbuf4[] = "Content-Disposition: form-data; name=\"uploadfile_1\"; "
+                         "filename=\"BBBBpicture2.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n"
                          "filecontent2\r\n"
@@ -1105,7 +1133,9 @@ static int DeStateSigTest08(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"POST\"; http_method; content:\"upload.cgi\"; http_uri; filename:\"BBBBpicture\"; filestore; sid:1; rev:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (content:\"POST\"; http_method; content:\"upload.cgi\"; "
+            "http_uri; filename:\"BBBBpicture\"; filestore; sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -1120,7 +1150,7 @@ static int DeStateSigTest08(void)
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
     p->flow = f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -1197,11 +1227,13 @@ static int DeStateSigTest09(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 440\r\n"
                          "\r\n"
                          "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n";
 
@@ -1212,7 +1244,8 @@ static int DeStateSigTest09(void)
                          "-----------------------------277531038314945\r\n";
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
 
-    uint8_t httpbuf4[] = "Content-Disposition: form-data; name=\"uploadfile_1\"; filename=\"somepicture2.jpg\"\r\n"
+    uint8_t httpbuf4[] = "Content-Disposition: form-data; name=\"uploadfile_1\"; "
+                         "filename=\"somepicture2.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n"
                          "filecontent2\r\n"
@@ -1233,7 +1266,9 @@ static int DeStateSigTest09(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"POST\"; http_method; content:\"upload.cgi\"; http_uri; filename:\"somepicture\"; filestore; sid:1; rev:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (content:\"POST\"; http_method; content:\"upload.cgi\"; "
+            "http_uri; filename:\"somepicture\"; filestore; sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -1248,7 +1283,7 @@ static int DeStateSigTest09(void)
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
     p->flow = f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -1323,11 +1358,13 @@ static int DeStateSigTest10(void)
 {
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
-                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Type: multipart/form-data; "
+                         "boundary=---------------------------277531038314945\r\n"
                          "Content-Length: 440\r\n"
                          "\r\n"
                          "-----------------------------277531038314945\r\n"
-                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; "
+                         "filename=\"somepicture1.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n";
 
@@ -1338,7 +1375,8 @@ static int DeStateSigTest10(void)
                          "-----------------------------277531038314945\r\n";
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
 
-    uint8_t httpbuf4[] = "Content-Disposition: form-data; name=\"uploadfile_1\"; filename=\"somepicture2.jpg\"\r\n"
+    uint8_t httpbuf4[] = "Content-Disposition: form-data; name=\"uploadfile_1\"; "
+                         "filename=\"somepicture2.jpg\"\r\n"
                          "Content-Type: image/jpeg\r\n"
                          "\r\n"
                          "filecontent2\r\n"
@@ -1359,7 +1397,8 @@ static int DeStateSigTest10(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (filename:\"somepicture\"; filestore; sid:1; rev:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (filename:\"somepicture\"; filestore; sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -1374,7 +1413,7 @@ static int DeStateSigTest10(void)
     Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     FAIL_IF_NULL(p);
     p->flow = f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 

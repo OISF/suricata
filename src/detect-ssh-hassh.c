@@ -48,20 +48,18 @@
 #include "detect-ssh-hassh.h"
 #include "rust.h"
 
-
-#define KEYWORD_NAME "ssh.hassh"
+#define KEYWORD_NAME  "ssh.hassh"
 #define KEYWORD_ALIAS "ssh-hassh"
-#define KEYWORD_DOC "ssh-keywords.html#hassh"
-#define BUFFER_NAME "ssh.hassh"
-#define BUFFER_DESC "Ssh Client Fingerprinting For Ssh Clients "
+#define KEYWORD_DOC   "ssh-keywords.html#hassh"
+#define BUFFER_NAME   "ssh.hassh"
+#define BUFFER_DESC   "Ssh Client Fingerprinting For Ssh Clients "
 static int g_ssh_hassh_buffer_id = 0;
 
-
 static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
-    
+
     SCEnter();
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
@@ -102,7 +100,7 @@ static int DetectSshHasshSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SSH) < 0)
         return -1;
-        
+
     /* try to enable Hassh */
     rs_ssh_enable_hassh();
 
@@ -115,12 +113,9 @@ static int DetectSshHasshSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     }
 
     return 0;
-
 }
 
-
-static bool DetectSshHasshHashValidateCallback(const Signature *s,
-                                              const char **sigerror)
+static bool DetectSshHasshHashValidateCallback(const Signature *s, const char **sigerror)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         if (s->init_data->buffers[x].id != (uint32_t)g_ssh_hassh_buffer_id)
@@ -160,8 +155,7 @@ static bool DetectSshHasshHashValidateCallback(const Signature *s,
     return true;
 }
 
-static void DetectSshHasshHashSetupCallback(const DetectEngineCtx *de_ctx,
-                                          Signature *s)
+static void DetectSshHasshHashSetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         if (s->init_data->buffers[x].id != (uint32_t)g_ssh_hassh_buffer_id)
@@ -190,7 +184,7 @@ static void DetectSshHasshHashSetupCallback(const DetectEngineCtx *de_ctx,
 /**
  * \brief Registration function for hassh keyword.
  */
-void DetectSshHasshRegister(void) 
+void DetectSshHasshRegister(void)
 {
     sigmatch_table[DETECT_AL_SSH_HASSH].name = KEYWORD_NAME;
     sigmatch_table[DETECT_AL_SSH_HASSH].alias = KEYWORD_ALIAS;
@@ -199,13 +193,10 @@ void DetectSshHasshRegister(void)
     sigmatch_table[DETECT_AL_SSH_HASSH].Setup = DetectSshHasshSetup;
     sigmatch_table[DETECT_AL_SSH_HASSH].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
-
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, 
-            PrefilterGenericMpmRegister, GetSshData, 
-            ALPROTO_SSH, SshStateBannerDone),
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, 
-            SIG_FLAG_TOSERVER, SshStateBannerDone, 
-            DetectEngineInspectBufferGeneric, GetSshData);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetSshData, ALPROTO_SSH, SshStateBannerDone),
+            DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, SIG_FLAG_TOSERVER,
+                    SshStateBannerDone, DetectEngineInspectBufferGeneric, GetSshData);
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_ssh_hassh_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
@@ -213,4 +204,3 @@ void DetectSshHasshRegister(void)
     DetectBufferTypeRegisterSetupCallback(BUFFER_NAME, DetectSshHasshHashSetupCallback);
     DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectSshHasshHashValidateCallback);
 }
-

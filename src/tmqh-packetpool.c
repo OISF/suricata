@@ -52,7 +52,7 @@ static inline PktPool *GetThreadPacketPool(void)
  * \brief TmqhPacketpoolRegister
  * \initonly
  */
-void TmqhPacketpoolRegister (void)
+void TmqhPacketpoolRegister(void)
 {
     tmqh_table[TMQH_PACKETPOOL].name = "packetpool";
     tmqh_table[TMQH_PACKETPOOL].InHandler = TmqhInputPacketpool;
@@ -91,7 +91,7 @@ void PacketPoolWait(void)
         UpdateReturnThreshold(my_pool);
     }
 
-    while(PacketPoolIsEmpty(my_pool))
+    while (PacketPoolIsEmpty(my_pool))
         cc_barrier();
 }
 
@@ -275,8 +275,7 @@ void PacketPoolInit(void)
     SC_ATOMIC_SET(my_pool->return_stack.return_threshold, 32);
 
     /* pre allocate packets */
-    SCLogDebug("preallocating packets... packet size %" PRIuMAX "",
-               (uintmax_t)SIZE_OF_PACKET);
+    SCLogDebug("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)SIZE_OF_PACKET);
     int i = 0;
     for (i = 0; i < max_pending_packets; i++) {
         Packet *p = PacketGetFromAlloc();
@@ -286,7 +285,7 @@ void PacketPoolInit(void)
         PacketPoolStorePacket(p);
     }
 
-    //SCLogInfo("preallocated %"PRIiMAX" packets. Total memory %"PRIuMAX"",
+    // SCLogInfo("preallocated %"PRIiMAX" packets. Total memory %"PRIuMAX"",
     //        max_pending_packets, (uintmax_t)(max_pending_packets*SIZE_OF_PACKET));
 }
 
@@ -338,8 +337,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, BOOL2STR(p->pool == NULL));
 
     if (IS_TUNNEL_PKT(p)) {
-        SCLogDebug("Packet %p is a tunnel packet: %s",
-            p,p->root ? "upper layer" : "tunnel root");
+        SCLogDebug("Packet %p is a tunnel packet: %s", p, p->root ? "upper layer" : "tunnel root");
 
         /* get a lock to access root packet fields */
         SCSpinlock *lock = p->root ? &p->root->persistent.tunnel_lock : &p->persistent.tunnel_lock;
@@ -353,15 +351,16 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
             SCLogDebug("root pkt: outstanding %u", outstanding);
             if (outstanding == 0) {
                 SCLogDebug("no tunnel packets outstanding, no more tunnel "
-                        "packet(s) depending on this root");
+                           "packet(s) depending on this root");
                 /* if this packet is the root and there are no
                  * more tunnel packets to consider
                  *
                  * return it to the pool */
             } else {
                 SCLogDebug("tunnel root Packet %p: outstanding > 0, so "
-                        "packets are still depending on this root, setting "
-                        "SET_TUNNEL_PKT_VERDICTED", p);
+                           "packets are still depending on this root, setting "
+                           "SET_TUNNEL_PKT_VERDICTED",
+                        p);
                 /* if this is the root and there are more tunnel
                  * packets, return this to the pool. It's still referenced
                  * by the tunnel packets, and we will return it
@@ -381,14 +380,13 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
             /* all tunnel packets are processed except us. Root already
              * processed. So return tunnel pkt and root packet to the
              * pool. */
-            if (outstanding == 0 &&
-                    p->root && IS_TUNNEL_PKT_VERDICTED(p->root))
-            {
+            if (outstanding == 0 && p->root && IS_TUNNEL_PKT_VERDICTED(p->root)) {
                 SCLogDebug("root verdicted == true && no outstanding");
 
                 /* handle freeing the root as well*/
                 SCLogDebug("setting proot = 1 for root pkt, p->root %p "
-                        "(tunnel packet %p)", p->root, p);
+                           "(tunnel packet %p)",
+                        p->root, p);
                 proot = true;
 
                 /* fall through */
@@ -398,7 +396,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                  * so get rid of the tunnel pkt only */
 
                 SCLogDebug("NOT IS_TUNNEL_PKT_VERDICTED (%s) || "
-                        "outstanding > 0 (%u)",
+                           "outstanding > 0 (%u)",
                         (p->root && IS_TUNNEL_PKT_VERDICTED(p->root)) ? "true" : "false",
                         outstanding);
 
@@ -500,6 +498,6 @@ void PacketPoolPostRunmodes(void)
     if (max_pending_return_packets >= RESERVED_PACKETS)
         max_pending_return_packets -= RESERVED_PACKETS;
 
-    SCLogDebug("detect threads %u, max packets %u, max_pending_return_packets %u",
-            threads, packets, max_pending_return_packets);
+    SCLogDebug("detect threads %u, max packets %u, max_pending_return_packets %u", threads, packets,
+            max_pending_return_packets);
 }

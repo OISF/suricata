@@ -40,50 +40,44 @@
 #include "util-profiling.h"
 
 #ifdef UNITTESTS
-void DetectHTTP2frameTypeRegisterTests (void);
-void DetectHTTP2errorCodeRegisterTests (void);
-void DetectHTTP2priorityRegisterTests (void);
-void DetectHTTP2windowRegisterTests (void);
-void DetectHTTP2settingsRegisterTests (void);
-void DetectHTTP2sizeUpdateRegisterTests (void);
+void DetectHTTP2frameTypeRegisterTests(void);
+void DetectHTTP2errorCodeRegisterTests(void);
+void DetectHTTP2priorityRegisterTests(void);
+void DetectHTTP2windowRegisterTests(void);
+void DetectHTTP2settingsRegisterTests(void);
+void DetectHTTP2sizeUpdateRegisterTests(void);
 #endif
 
 /* prototypes */
-static int DetectHTTP2frametypeMatch(DetectEngineThreadCtx *det_ctx,
-                                     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-                                     const SigMatchCtx *ctx);
-static int DetectHTTP2frametypeSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2frametypeFree (DetectEngineCtx *, void *);
+static int DetectHTTP2frametypeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectHTTP2frametypeSetup(DetectEngineCtx *, Signature *, const char *);
+void DetectHTTP2frametypeFree(DetectEngineCtx *, void *);
 
-static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx,
-                                     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-                                     const SigMatchCtx *ctx);
-static int DetectHTTP2errorcodeSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2errorcodeFree (DetectEngineCtx *, void *);
+static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectHTTP2errorcodeSetup(DetectEngineCtx *, Signature *, const char *);
+void DetectHTTP2errorcodeFree(DetectEngineCtx *, void *);
 
-static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx,
-                                     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-                                     const SigMatchCtx *ctx);
-static int DetectHTTP2prioritySetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2priorityFree (DetectEngineCtx *, void *);
+static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectHTTP2prioritySetup(DetectEngineCtx *, Signature *, const char *);
+void DetectHTTP2priorityFree(DetectEngineCtx *, void *);
 
-static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
-                                     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-                                     const SigMatchCtx *ctx);
-static int DetectHTTP2windowSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2windowFree (DetectEngineCtx *, void *);
+static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectHTTP2windowSetup(DetectEngineCtx *, Signature *, const char *);
+void DetectHTTP2windowFree(DetectEngineCtx *, void *);
 
-static int DetectHTTP2sizeUpdateMatch(DetectEngineThreadCtx *det_ctx,
-                                     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-                                     const SigMatchCtx *ctx);
-static int DetectHTTP2sizeUpdateSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2sizeUpdateFree (DetectEngineCtx *, void *);
+static int DetectHTTP2sizeUpdateMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectHTTP2sizeUpdateSetup(DetectEngineCtx *, Signature *, const char *);
+void DetectHTTP2sizeUpdateFree(DetectEngineCtx *, void *);
 
-static int DetectHTTP2settingsMatch(DetectEngineThreadCtx *det_ctx,
-                                     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-                                     const SigMatchCtx *ctx);
-static int DetectHTTP2settingsSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectHTTP2settingsFree (DetectEngineCtx *, void *);
+static int DetectHTTP2settingsMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectHTTP2settingsSetup(DetectEngineCtx *, Signature *, const char *);
+void DetectHTTP2settingsFree(DetectEngineCtx *, void *);
 
 static int DetectHTTP2headerNameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg);
 static int PrefilterMpmHttp2HeaderNameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
@@ -93,7 +87,7 @@ static uint8_t DetectEngineInspectHttp2HeaderName(DetectEngineCtx *de_ctx,
         const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 #ifdef UNITTESTS
-void DetectHTTP2RegisterTests (void);
+void DetectHTTP2RegisterTests(void);
 #endif
 
 static int g_http2_match_buffer_id = 0;
@@ -150,7 +144,8 @@ void DetectHttp2Register(void)
 #endif
 
     sigmatch_table[DETECT_HTTP2_SIZEUPDATE].name = "http2.size_update";
-    sigmatch_table[DETECT_HTTP2_SIZEUPDATE].desc = "match on HTTP2 dynamic headers table size update";
+    sigmatch_table[DETECT_HTTP2_SIZEUPDATE].desc =
+            "match on HTTP2 dynamic headers table size update";
     sigmatch_table[DETECT_HTTP2_SIZEUPDATE].url = "/rules/http2-keywords.html#sizeupdate";
     sigmatch_table[DETECT_HTTP2_SIZEUPDATE].Match = NULL;
     sigmatch_table[DETECT_HTTP2_SIZEUPDATE].AppLayerTxMatch = DetectHTTP2sizeUpdateMatch;
@@ -161,7 +156,8 @@ void DetectHttp2Register(void)
 #endif
 
     sigmatch_table[DETECT_HTTP2_SETTINGS].name = "http2.settings";
-    sigmatch_table[DETECT_HTTP2_SETTINGS].desc = "match on HTTP2 settings identifier and value fields";
+    sigmatch_table[DETECT_HTTP2_SETTINGS].desc =
+            "match on HTTP2 settings identifier and value fields";
     sigmatch_table[DETECT_HTTP2_SETTINGS].url = "/rules/http2-keywords.html#settings";
     sigmatch_table[DETECT_HTTP2_SETTINGS].Match = NULL;
     sigmatch_table[DETECT_HTTP2_SETTINGS].AppLayerTxMatch = DetectHTTP2settingsMatch;
@@ -172,26 +168,22 @@ void DetectHttp2Register(void)
 #endif
 
     sigmatch_table[DETECT_HTTP2_HEADERNAME].name = "http2.header_name";
-    sigmatch_table[DETECT_HTTP2_HEADERNAME].desc = "sticky buffer to match on one HTTP2 header name";
+    sigmatch_table[DETECT_HTTP2_HEADERNAME].desc =
+            "sticky buffer to match on one HTTP2 header name";
     sigmatch_table[DETECT_HTTP2_HEADERNAME].url = "/rules/http2-keywords.html#header_name";
     sigmatch_table[DETECT_HTTP2_HEADERNAME].Setup = DetectHTTP2headerNameSetup;
     sigmatch_table[DETECT_HTTP2_HEADERNAME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMpmRegister2("http2_header_name", SIG_FLAG_TOCLIENT, 2,
-                               PrefilterMpmHttp2HeaderNameRegister, NULL,
-                               ALPROTO_HTTP2, HTTP2StateOpen);
-    DetectAppLayerInspectEngineRegister2("http2_header_name",
-                                         ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, HTTP2StateOpen,
-                                         DetectEngineInspectHttp2HeaderName, NULL);
+            PrefilterMpmHttp2HeaderNameRegister, NULL, ALPROTO_HTTP2, HTTP2StateOpen);
+    DetectAppLayerInspectEngineRegister2("http2_header_name", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2StateOpen, DetectEngineInspectHttp2HeaderName, NULL);
     DetectAppLayerMpmRegister2("http2_header_name", SIG_FLAG_TOSERVER, 2,
-                               PrefilterMpmHttp2HeaderNameRegister, NULL,
-                               ALPROTO_HTTP2, HTTP2StateOpen);
-    DetectAppLayerInspectEngineRegister2("http2_header_name",
-                                         ALPROTO_HTTP2, SIG_FLAG_TOSERVER, HTTP2StateOpen,
-                                         DetectEngineInspectHttp2HeaderName, NULL);
+            PrefilterMpmHttp2HeaderNameRegister, NULL, ALPROTO_HTTP2, HTTP2StateOpen);
+    DetectAppLayerInspectEngineRegister2("http2_header_name", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2StateOpen, DetectEngineInspectHttp2HeaderName, NULL);
     DetectBufferTypeSupportsMultiInstance("http2_header_name");
-    DetectBufferTypeSetDescriptionByName("http2_header_name",
-                                         "HTTP2 header name");
+    DetectBufferTypeSetDescriptionByName("http2_header_name", "HTTP2 header name");
     g_http2_header_name_buffer_id = DetectBufferTypeGetByName("http2_header_name");
 
     DetectAppLayerInspectEngineRegister2(
@@ -204,14 +196,14 @@ void DetectHttp2Register(void)
 }
 
 /**
- * \brief This function is used to match HTTP2 frame type rule option on a transaction with those passed via http2.frametype:
+ * \brief This function is used to match HTTP2 frame type rule option on a transaction with those
+ * passed via http2.frametype:
  *
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectHTTP2frametypeMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-                               const SigMatchCtx *ctx)
+static int DetectHTTP2frametypeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 
 {
     uint8_t *detect = (uint8_t *)ctx;
@@ -246,7 +238,7 @@ static int DetectHTTP2FuncParseFrameType(const char *str, uint8_t *ft)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectHTTP2frametypeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectHTTP2frametypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     uint8_t frame_type;
 
@@ -283,20 +275,20 @@ void DetectHTTP2frametypeFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 /**
- * \brief This function is used to match HTTP2 error code rule option on a transaction with those passed via http2.errorcode:
+ * \brief This function is used to match HTTP2 error code rule option on a transaction with those
+ * passed via http2.errorcode:
  *
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-                               const SigMatchCtx *ctx)
+static int DetectHTTP2errorcodeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 
 {
     uint32_t *detect = (uint32_t *)ctx;
 
     return rs_http2_tx_has_errorcode(txv, flags, *detect);
-    //TODOask handle negation rules
+    // TODOask handle negation rules
 }
 
 static int DetectHTTP2FuncParseErrorCode(const char *str, uint32_t *ec)
@@ -326,7 +318,7 @@ static int DetectHTTP2FuncParseErrorCode(const char *str, uint32_t *ec)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectHTTP2errorcodeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectHTTP2errorcodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     uint32_t error_code;
 
@@ -363,14 +355,14 @@ void DetectHTTP2errorcodeFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 /**
- * \brief This function is used to match HTTP2 error code rule option on a transaction with those passed via http2.priority:
+ * \brief This function is used to match HTTP2 error code rule option on a transaction with those
+ * passed via http2.priority:
  *
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-                               const SigMatchCtx *ctx)
+static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 
 {
     uint32_t nb = 0;
@@ -396,7 +388,7 @@ static int DetectHTTP2priorityMatch(DetectEngineThreadCtx *det_ctx,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectHTTP2prioritySetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectHTTP2prioritySetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
@@ -425,14 +417,14 @@ void DetectHTTP2priorityFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 /**
- * \brief This function is used to match HTTP2 window rule option on a transaction with those passed via http2.window:
+ * \brief This function is used to match HTTP2 window rule option on a transaction with those passed
+ * via http2.window:
  *
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-                               const SigMatchCtx *ctx)
+static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 
 {
     uint32_t nb = 0;
@@ -458,7 +450,7 @@ static int DetectHTTP2windowMatch(DetectEngineThreadCtx *det_ctx,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectHTTP2windowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectHTTP2windowSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
@@ -487,21 +479,22 @@ void DetectHTTP2windowFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 /**
- * \brief This function is used to match HTTP2 size update rule option on a transaction with those passed via http2.size_update:
+ * \brief This function is used to match HTTP2 size update rule option on a transaction with those
+ * passed via http2.size_update:
  *
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectHTTP2sizeUpdateMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-                               const SigMatchCtx *ctx)
+static int DetectHTTP2sizeUpdateMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 
 {
     return rs_http2_detect_sizeupdatectx_match(ctx, txv, flags);
 }
 
 /**
- * \brief this function is used to attach the parsed http2.size_update data into the current signature
+ * \brief this function is used to attach the parsed http2.size_update data into the current
+ * signature
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
@@ -510,7 +503,7 @@ static int DetectHTTP2sizeUpdateMatch(DetectEngineThreadCtx *det_ctx,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectHTTP2sizeUpdateSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectHTTP2sizeUpdateSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
@@ -539,14 +532,14 @@ void DetectHTTP2sizeUpdateFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 /**
- * \brief This function is used to match HTTP2 error code rule option on a transaction with those passed via http2.settings:
+ * \brief This function is used to match HTTP2 error code rule option on a transaction with those
+ * passed via http2.settings:
  *
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectHTTP2settingsMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-                               const SigMatchCtx *ctx)
+static int DetectHTTP2settingsMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 
 {
     return rs_http2_detect_settingsctx_match(ctx, txv, flags);
@@ -562,7 +555,7 @@ static int DetectHTTP2settingsMatch(DetectEngineThreadCtx *det_ctx,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectHTTP2settingsSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectHTTP2settingsSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     if (DetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
         return -1;
@@ -647,7 +640,7 @@ static void PrefilterTxHttp2HName(DetectEngineThreadCtx *det_ctx, const void *pe
 
     uint32_t local_id = 0;
 
-    while(1) {
+    while (1) {
         // loop until we get a NULL
 
         struct MpmListIdDataArgs cbdata = { local_id, txv };
@@ -669,7 +662,7 @@ static void PrefilterTxHttp2HName(DetectEngineThreadCtx *det_ctx, const void *pe
 static int PrefilterMpmHttp2HeaderNameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
 {
-    //TODOask use PrefilterMpmListId elsewhere
+    // TODOask use PrefilterMpmListId elsewhere
     PrefilterMpmListId *pectx = SCCalloc(1, sizeof(*pectx));
     if (pectx == NULL)
         return -1;
@@ -677,9 +670,8 @@ static int PrefilterMpmHttp2HeaderNameRegister(DetectEngineCtx *de_ctx, SigGroup
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttp2HName,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-            pectx, PrefilterMpmHttp2HNameFree, mpm_reg->name);
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttp2HName, mpm_reg->app_v2.alproto,
+            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmHttp2HNameFree, mpm_reg->name);
 }
 
 static uint8_t DetectEngineInspectHttp2HeaderName(DetectEngineCtx *de_ctx,
@@ -694,8 +686,11 @@ static uint8_t DetectEngineInspectHttp2HeaderName(DetectEngineCtx *de_ctx,
     }
 
     while (1) {
-        //TODOask use MpmListIdDataArgs elsewhere
-        struct MpmListIdDataArgs cbdata = { local_id, txv, };
+        // TODOask use MpmListIdDataArgs elsewhere
+        struct MpmListIdDataArgs cbdata = {
+            local_id,
+            txv,
+        };
         InspectionBuffer *buffer =
                 GetHttp2HNameData(det_ctx, flags, transforms, f, &cbdata, engine->sm_list);
 

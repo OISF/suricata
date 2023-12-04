@@ -41,21 +41,21 @@
 #include "util-misc.h"
 #include "util-path.h"
 
-#define PARSE_REGEX         "([a-z]+)(?:,\\s*([\\-_A-z0-9\\s\\.]+)){1,4}"
+#define PARSE_REGEX "([a-z]+)(?:,\\s*([\\-_A-z0-9\\s\\.]+)){1,4}"
 static DetectParseRegex parse_regex;
 
-int DetectDatarepMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectDatarepSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectDatarepFree (DetectEngineCtx *, void *);
+int DetectDatarepMatch(
+        ThreadVars *, DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectDatarepSetup(DetectEngineCtx *, Signature *, const char *);
+void DetectDatarepFree(DetectEngineCtx *, void *);
 
-void DetectDatarepRegister (void)
+void DetectDatarepRegister(void)
 {
     sigmatch_table[DETECT_DATAREP].name = "datarep";
     sigmatch_table[DETECT_DATAREP].desc = "operate on datasets (experimental)";
     sigmatch_table[DETECT_DATAREP].url = "/rules/dataset-keywords.html#datarep";
     sigmatch_table[DETECT_DATAREP].Setup = DetectDatarepSetup;
-    sigmatch_table[DETECT_DATAREP].Free  = DetectDatarepFree;
+    sigmatch_table[DETECT_DATAREP].Free = DetectDatarepFree;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
@@ -65,9 +65,8 @@ void DetectDatarepRegister (void)
     0 no match
     -1 can't match
  */
-int DetectDatarepBufferMatch(DetectEngineThreadCtx *det_ctx,
-    const DetectDatarepData *sd,
-    const uint8_t *data, const uint32_t data_len)
+int DetectDatarepBufferMatch(DetectEngineThreadCtx *det_ctx, const DetectDatarepData *sd,
+        const uint8_t *data, const uint32_t data_len)
 {
     if (data == NULL || data_len == 0)
         return 0;
@@ -101,7 +100,7 @@ static int DetectDatarepParse(const char *str, char *cmd, int cmd_len, char *nam
     bool name_set = false;
     bool value_set = false;
 
-    char copy[strlen(str)+1];
+    char copy[strlen(str) + 1];
     strlcpy(copy, str, sizeof(copy));
     char *xsaveptr = NULL;
     char *key = strtok_r(copy, ",", &xsaveptr);
@@ -241,8 +240,7 @@ static void GetDirName(const char *in, char *out, size_t outs)
     return;
 }
 
-static int SetupLoadPath(const DetectEngineCtx *de_ctx,
-        char *load, size_t load_size)
+static int SetupLoadPath(const DetectEngineCtx *de_ctx, char *load, size_t load_size)
 {
     SCLogDebug("load %s", load);
 
@@ -290,7 +288,7 @@ static int SetupLoadPath(const DetectEngineCtx *de_ctx,
     return 0;
 }
 
-static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectDatarepSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     char cmd_str[16] = "", name[64] = "";
     enum DatasetTypes type = DATASET_TYPE_NOTSET;
@@ -321,11 +319,11 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     }
 
     enum DetectDatarepOp op;
-    if (strcmp(cmd_str,">") == 0) {
+    if (strcmp(cmd_str, ">") == 0) {
         op = DATAREP_OP_GT;
-    } else if (strcmp(cmd_str,"<") == 0) {
+    } else if (strcmp(cmd_str, "<") == 0) {
         op = DATAREP_OP_LT;
-    } else if (strcmp(cmd_str,"==") == 0) {
+    } else if (strcmp(cmd_str, "==") == 0) {
         op = DATAREP_OP_EQ;
     } else {
         SCLogError("datarep operation \"%s\" is not supported.", cmd_str);
@@ -346,8 +344,7 @@ static int DetectDatarepSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     cd->op = op;
     cd->rep.value = value;
 
-    SCLogDebug("cmd %s, name %s",
-        cmd_str, strlen(name) ? name : "(none)");
+    SCLogDebug("cmd %s, name %s", cmd_str, strlen(name) ? name : "(none)");
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -363,7 +360,7 @@ error:
     return -1;
 }
 
-void DetectDatarepFree (DetectEngineCtx *de_ctx, void *ptr)
+void DetectDatarepFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectDatarepData *fd = (DetectDatarepData *)ptr;
 

@@ -22,8 +22,8 @@
  */
 
 #ifndef _DETECT_TCPMSS_H
-#define	_DETECT_TCPMSS_H
+#define _DETECT_TCPMSS_H
 
 void DetectTcpmssRegister(void);
 
-#endif	/* _DETECT_TCPMSS_H */
+#endif /* _DETECT_TCPMSS_H */

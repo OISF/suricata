@@ -37,20 +37,20 @@
 #include "util-debug.h"
 #include "util-var-name.h"
 
-#define PARSE_REGEX         "(.*),(.*)"
+#define PARSE_REGEX "(.*),(.*)"
 static DetectParseRegex parse_regex;
 
-static int DetectPktvarMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectPktvarSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectPktvarMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectPktvarSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectPktvarFree(DetectEngineCtx *, void *data);
 
-void DetectPktvarRegister (void)
+void DetectPktvarRegister(void)
 {
     sigmatch_table[DETECT_PKTVAR].name = "pktvar";
     sigmatch_table[DETECT_PKTVAR].Match = DetectPktvarMatch;
     sigmatch_table[DETECT_PKTVAR].Setup = DetectPktvarSetup;
-    sigmatch_table[DETECT_PKTVAR].Free  = DetectPktvarFree;
+    sigmatch_table[DETECT_PKTVAR].Free = DetectPktvarFree;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
@@ -61,8 +61,8 @@ void DetectPktvarRegister (void)
  *        -1: error
  */
 
-static int DetectPktvarMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectPktvarMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;
     const DetectPktvarData *pd = (const DetectPktvarData *)ctx;
@@ -87,7 +87,7 @@ static void DetectPktvarFree(DetectEngineCtx *de_ctx, void *ptr)
     }
 }
 
-static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectPktvarSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     char *varname = NULL, *varcontent = NULL;
     int res = 0;
@@ -122,8 +122,7 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     char *parse_content;
     if (strlen(varcontent) >= 2 && varcontent[0] == '"' &&
-            varcontent[strlen(varcontent) - 1] == '"')
-    {
+            varcontent[strlen(varcontent) - 1] == '"') {
         parse_content = varcontent + 1;
         varcontent[strlen(varcontent) - 1] = '\0';
     } else {

@@ -52,7 +52,7 @@
 static JsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
 {
     char timebuf[64];
-    char srcip[46] = {0}, dstip[46] = {0};
+    char srcip[46] = { 0 }, dstip[46] = { 0 };
     Port sp, dp;
 
     JsonBuilder *js = jb_new_object();
@@ -125,7 +125,7 @@ static JsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
 
     /* tuple */
     jb_set_string(js, "src_ip", srcip);
-    switch(f->proto) {
+    switch (f->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
@@ -135,7 +135,7 @@ static JsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
             break;
     }
     jb_set_string(js, "dest_ip", dstip);
-    switch(f->proto) {
+    switch (f->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
@@ -149,7 +149,7 @@ static JsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
         jb_set_string(js, "proto", known_proto[f->proto]);
     } else {
         char proto[4];
-        snprintf(proto, sizeof(proto), "%"PRIu8"", f->proto);
+        snprintf(proto, sizeof(proto), "%" PRIu8 "", f->proto);
         jb_set_string(js, "proto", proto);
     }
 
@@ -161,7 +161,6 @@ static JsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
             if (dir == 1) {
                 type = f->icmp_d.type;
                 code = f->icmp_d.code;
-
             }
             jb_set_uint(js, "icmp_type", type);
             jb_set_uint(js, "icmp_code", code);
@@ -177,8 +176,7 @@ static JsonBuilder *CreateEveHeaderFromNetFlow(const Flow *f, int dir)
 /* JSON format logging */
 static void NetFlowLogEveToServer(JsonBuilder *js, Flow *f)
 {
-    jb_set_string(js, "app_proto",
-            AppProtoToString(f->alproto_ts ? f->alproto_ts : f->alproto));
+    jb_set_string(js, "app_proto", AppProtoToString(f->alproto_ts ? f->alproto_ts : f->alproto));
 
     jb_open_object(js, "netflow");
 
@@ -209,8 +207,7 @@ static void NetFlowLogEveToServer(JsonBuilder *js, Flow *f)
         TcpSession *ssn = f->protoctx;
 
         char hexflags[3];
-        snprintf(hexflags, sizeof(hexflags), "%02x",
-                ssn ? ssn->client.tcp_flags : 0);
+        snprintf(hexflags, sizeof(hexflags), "%02x", ssn ? ssn->client.tcp_flags : 0);
         jb_set_string(js, "tcp_flags", hexflags);
 
         EveTcpFlags(ssn ? ssn->client.tcp_flags : 0, js);
@@ -221,8 +218,7 @@ static void NetFlowLogEveToServer(JsonBuilder *js, Flow *f)
 
 static void NetFlowLogEveToClient(JsonBuilder *js, Flow *f)
 {
-    jb_set_string(js, "app_proto",
-            AppProtoToString(f->alproto_tc ? f->alproto_tc : f->alproto));
+    jb_set_string(js, "app_proto", AppProtoToString(f->alproto_tc ? f->alproto_tc : f->alproto));
 
     jb_open_object(js, "netflow");
 
@@ -256,8 +252,7 @@ static void NetFlowLogEveToClient(JsonBuilder *js, Flow *f)
         TcpSession *ssn = f->protoctx;
 
         char hexflags[3];
-        snprintf(hexflags, sizeof(hexflags), "%02x",
-                ssn ? ssn->server.tcp_flags : 0);
+        snprintf(hexflags, sizeof(hexflags), "%02x", ssn ? ssn->server.tcp_flags : 0);
         jb_set_string(js, "tcp_flags", hexflags);
 
         EveTcpFlags(ssn ? ssn->server.tcp_flags : 0, js);

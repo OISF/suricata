@@ -64,7 +64,7 @@ static int g_http_uri_buffer_id = 0;
 /**
  * \brief Registration function for uricontent: keyword
  */
-void DetectUricontentRegister (void)
+void DetectUricontentRegister(void)
 {
     sigmatch_table[DETECT_URICONTENT].name = "uricontent";
     sigmatch_table[DETECT_URICONTENT].desc = "legacy keyword to match on the request URI buffer";
@@ -72,7 +72,8 @@ void DetectUricontentRegister (void)
     sigmatch_table[DETECT_URICONTENT].Match = NULL;
     sigmatch_table[DETECT_URICONTENT].Setup = DetectUricontentSetup;
     sigmatch_table[DETECT_URICONTENT].Free = DetectUricontentFree;
-    sigmatch_table[DETECT_URICONTENT].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
+    sigmatch_table[DETECT_URICONTENT].flags =
+            (SIGMATCH_QUOTES_MANDATORY | SIGMATCH_HANDLE_NEGATION);
     sigmatch_table[DETECT_URICONTENT].alternative = DETECT_HTTP_URI;
 
     g_http_uri_buffer_id = DetectBufferTypeRegister("http_uri");

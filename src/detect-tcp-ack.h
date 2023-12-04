@@ -28,7 +28,7 @@
  * \brief ack data
  */
 typedef struct DetectAckData_ {
-    uint32_t ack;                    /**< ack to match */
+    uint32_t ack; /**< ack to match */
 } DetectAckData;
 
 /**

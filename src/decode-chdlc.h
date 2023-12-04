@@ -24,7 +24,7 @@
 #ifndef __DECODE_CHDLC_H__
 #define __DECODE_CHDLC_H__
 
-#define CHDLC_HEADER_LEN           4
+#define CHDLC_HEADER_LEN 4
 
 typedef struct CHDLCHdr_ {
     uint8_t address;

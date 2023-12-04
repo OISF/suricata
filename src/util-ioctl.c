@@ -71,7 +71,6 @@ static int GetIfaceMaxHWHeaderLength(const char *dev)
     return 8 + SLL_HEADER_LEN;
 }
 
-
 /**
  * \brief output the link MTU
  *
@@ -255,7 +254,6 @@ int SetIfaceCaps(const char *ifname, int caps)
 }
 #endif
 
-
 #if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
 static int GetEthtoolValue(const char *dev, int cmd, uint32_t *value)
 {
@@ -270,7 +268,7 @@ static int GetEthtoolValue(const char *dev, int cmd, uint32_t *value)
     (void)strlcpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
 
     ethv.cmd = cmd;
-    ifr.ifr_data = (void *) &ethv;
+    ifr.ifr_data = (void *)&ethv;
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
         SCLogWarning("%s: failed to get SIOCETHTOOL ioctl: %s", dev, strerror(errno));
         close(fd);
@@ -296,7 +294,7 @@ static int SetEthtoolValue(const char *dev, int cmd, uint32_t value)
 
     ethv.cmd = cmd;
     ethv.data = value;
-    ifr.ifr_data = (void *) &ethv;
+    ifr.ifr_data = (void *)&ethv;
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
         SCLogWarning("%s: failed to set SIOCETHTOOL ioctl: %s", dev, strerror(errno));
         close(fd);
@@ -526,14 +524,14 @@ static int GetIfaceOffloadingBSD(const char *ifname)
         ret = 1;
     }
 #ifdef IFCAP_TOE
-    if (if_caps & (IFCAP_TSO|IFCAP_TOE|IFCAP_LRO)) {
+    if (if_caps & (IFCAP_TSO | IFCAP_TOE | IFCAP_LRO)) {
         SCLogWarning("%s: TSO, TOE or LRO activated can lead to capture problems. Run: ifconfig %s "
                      "-tso -toe -lro",
                 ifname, ifname);
         ret = 1;
     }
 #else
-    if (if_caps & (IFCAP_TSO|IFCAP_LRO)) {
+    if (if_caps & (IFCAP_TSO | IFCAP_LRO)) {
         SCLogWarning(
                 "%s: TSO or LRO activated can lead to capture problems. Run: ifconfig %s -tso -lro",
                 ifname, ifname);
@@ -581,14 +579,14 @@ static int DisableIfaceOffloadingBSD(LiveDevice *ldev)
     }
 #endif
 #ifdef IFCAP_TOE
-    if (if_caps & (IFCAP_TSO|IFCAP_TOE|IFCAP_LRO)) {
+    if (if_caps & (IFCAP_TSO | IFCAP_TOE | IFCAP_LRO)) {
         SCLogPerf("%s: disabling tso|toe|lro offloading", ifname);
-        set_caps &= ~(IFCAP_TSO|IFCAP_LRO);
+        set_caps &= ~(IFCAP_TSO | IFCAP_LRO);
     }
 #else
-    if (if_caps & (IFCAP_TSO|IFCAP_LRO)) {
+    if (if_caps & (IFCAP_TSO | IFCAP_LRO)) {
         SCLogPerf("%s: disabling tso|lro offloading", ifname);
-        set_caps &= ~(IFCAP_TSO|IFCAP_LRO);
+        set_caps &= ~(IFCAP_TSO | IFCAP_LRO);
     }
 #endif
     if (set_caps != if_caps) {
@@ -690,7 +688,6 @@ int DisableIfaceOffloading(LiveDevice *dev, int csum, int other)
 #else
     return 0;
 #endif
-
 }
 
 void RestoreIfaceOffloading(LiveDevice *dev)
@@ -721,7 +718,7 @@ int GetIfaceRSSQueuesNum(const char *dev)
     }
 
     nfccmd.cmd = ETHTOOL_GRXRINGS;
-    ifr.ifr_data = (void*) &nfccmd;
+    ifr.ifr_data = (void *)&nfccmd;
 
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
         if (errno != ENOTSUP) {

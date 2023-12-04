@@ -97,7 +97,10 @@ static uint8_t DetectEngineInspectKrb5CName(DetectEngineCtx *de_ctx, DetectEngin
     }
 
     while (1) {
-        struct Krb5PrincipalNameDataArgs cbdata = { local_id, txv, };
+        struct Krb5PrincipalNameDataArgs cbdata = {
+            local_id,
+            txv,
+        };
         InspectionBuffer *buffer =
                 GetKrb5CNameData(det_ctx, transforms, f, &cbdata, engine->sm_list);
         if (buffer == NULL || buffer->inspect == NULL)
@@ -140,7 +143,7 @@ static void PrefilterTxKrb5CName(DetectEngineThreadCtx *det_ctx, const void *pec
 
     uint32_t local_id = 0;
 
-    while(1) {
+    while (1) {
         // loop until we get a NULL
 
         struct Krb5PrincipalNameDataArgs cbdata = { local_id, txv };
@@ -173,9 +176,8 @@ static int PrefilterMpmKrb5CNameRegister(DetectEngineCtx *de_ctx, SigGroupHead *
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxKrb5CName,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-            pectx, PrefilterMpmKrb5NameFree, mpm_reg->name);
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxKrb5CName, mpm_reg->app_v2.alproto,
+            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmKrb5NameFree, mpm_reg->name);
 }
 
 void DetectKrb5CNameRegister(void)
@@ -184,19 +186,16 @@ void DetectKrb5CNameRegister(void)
     sigmatch_table[DETECT_AL_KRB5_CNAME].alias = "krb5_cname";
     sigmatch_table[DETECT_AL_KRB5_CNAME].url = "/rules/kerberos-keywords.html#krb5-cname";
     sigmatch_table[DETECT_AL_KRB5_CNAME].Setup = DetectKrb5CNameSetup;
-    sigmatch_table[DETECT_AL_KRB5_CNAME].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_AL_KRB5_CNAME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
     sigmatch_table[DETECT_AL_KRB5_CNAME].desc = "sticky buffer to match on Kerberos 5 client name";
 
-    DetectAppLayerMpmRegister2("krb5_cname", SIG_FLAG_TOCLIENT, 2,
-            PrefilterMpmKrb5CNameRegister, NULL,
-            ALPROTO_KRB5, 1);
+    DetectAppLayerMpmRegister2("krb5_cname", SIG_FLAG_TOCLIENT, 2, PrefilterMpmKrb5CNameRegister,
+            NULL, ALPROTO_KRB5, 1);
 
-    DetectAppLayerInspectEngineRegister2("krb5_cname",
-            ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectKrb5CName, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "krb5_cname", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectKrb5CName, NULL);
 
-    DetectBufferTypeSetDescriptionByName("krb5_cname",
-            "Kerberos 5 ticket client name");
+    DetectBufferTypeSetDescriptionByName("krb5_cname", "Kerberos 5 ticket client name");
 
     g_krb5_cname_buffer_id = DetectBufferTypeGetByName("krb5_cname");
 

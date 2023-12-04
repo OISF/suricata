@@ -68,17 +68,17 @@
 
 /* the name of our binary */
 #define PROG_NAME "Suricata"
-#define PROG_VER PACKAGE_VERSION
+#define PROG_VER  PACKAGE_VERSION
 
 /* workaround SPlint error (don't know __gnuc_va_list) */
 #ifdef S_SPLINT_S
-#  include <err.h>
-#  define CONFIG_DIR "/etc/suricata"
+#include <err.h>
+#define CONFIG_DIR "/etc/suricata"
 #endif
 
 #define DEFAULT_CONF_FILE CONFIG_DIR "/suricata.yaml"
 
-#define DEFAULT_PID_DIR LOCAL_STATE_DIR "/run/"
+#define DEFAULT_PID_DIR      LOCAL_STATE_DIR "/run/"
 #define DEFAULT_PID_BASENAME "suricata.pid"
 #define DEFAULT_PID_FILENAME DEFAULT_PID_DIR DEFAULT_PID_BASENAME
 
@@ -86,16 +86,13 @@
 const char *GetDocURL(void);
 
 /* runtime engine control flags */
-#define SURICATA_STOP    (1 << 0)   /**< gracefully stop the engine: process all
-                                     outstanding packets first */
-#define SURICATA_DONE    (1 << 2)   /**< packets capture ended */
+#define SURICATA_STOP                                                                              \
+    (1 << 0)                   /**< gracefully stop the engine: process all                        \
+                                outstanding packets first */
+#define SURICATA_DONE (1 << 2) /**< packets capture ended */
 
 /* Engine stage/status*/
-enum {
-    SURICATA_INIT = 0,
-    SURICATA_RUNTIME,
-    SURICATA_DEINIT
-};
+enum { SURICATA_INIT = 0, SURICATA_RUNTIME, SURICATA_DEINIT };
 
 /* Engine is acting as */
 enum EngineMode {
@@ -165,7 +162,6 @@ typedef struct SCInstance_ {
     const char *capture_plugin_args;
 } SCInstance;
 
-
 /* memset to zeros, and mutex init! */
 void GlobalsInitPreConfig(void);
 
@@ -204,4 +200,3 @@ void RegisterAllModules(void);
 const char *GetProgramVersion(void);
 
 #endif /* __SURICATA_H__ */
-

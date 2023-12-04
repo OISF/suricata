@@ -32,10 +32,10 @@
 #define DETECT_BYTE_EXTRACT_FLAG_ENDIAN     0x10
 
 /* endian value to be used.  Would be stored in DetectByteParseData->endian */
-#define DETECT_BYTE_EXTRACT_ENDIAN_NONE    0
-#define DETECT_BYTE_EXTRACT_ENDIAN_BIG     1
-#define DETECT_BYTE_EXTRACT_ENDIAN_LITTLE  2
-#define DETECT_BYTE_EXTRACT_ENDIAN_DCE     3
+#define DETECT_BYTE_EXTRACT_ENDIAN_NONE   0
+#define DETECT_BYTE_EXTRACT_ENDIAN_BIG    1
+#define DETECT_BYTE_EXTRACT_ENDIAN_LITTLE 2
+#define DETECT_BYTE_EXTRACT_ENDIAN_DCE    3
 
 /**
  * \brief Holds data related to byte_extract keyword.

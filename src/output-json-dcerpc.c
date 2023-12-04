@@ -23,9 +23,8 @@
 #include "output-json-dcerpc.h"
 #include "rust.h"
 
-
-static int JsonDCERPCLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonDCERPCLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *state, void *tx, uint64_t tx_id)
 {
     OutputJsonThreadCtx *thread = thread_data;
 

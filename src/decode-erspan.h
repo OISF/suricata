@@ -25,7 +25,6 @@
 #ifndef __DECODE_ERSPAN_H__
 #define __DECODE_ERSPAN_H__
 
-
 typedef struct ErspanHdr_ {
     uint16_t ver_vlan;
     uint16_t flags_spanid;

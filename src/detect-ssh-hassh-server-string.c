@@ -47,20 +47,18 @@
 #include "detect-ssh-hassh-server-string.h"
 #include "rust.h"
 
-
-#define KEYWORD_NAME "ssh.hassh.server.string"
+#define KEYWORD_NAME  "ssh.hassh.server.string"
 #define KEYWORD_ALIAS "ssh-hassh-server-string"
-#define KEYWORD_DOC "ssh-keywords.html#ssh.hassh.server.string"
-#define BUFFER_NAME "ssh.hassh.server.string"
-#define BUFFER_DESC "Ssh Client Key Exchange methods For ssh Servers"
+#define KEYWORD_DOC   "ssh-keywords.html#ssh.hassh.server.string"
+#define BUFFER_NAME   "ssh.hassh.server.string"
+#define BUFFER_DESC   "Ssh Client Key Exchange methods For ssh Servers"
 static int g_ssh_hassh_server_string_buffer_id = 0;
 
-
 static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
-    
+
     SCEnter();
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
@@ -101,7 +99,7 @@ static int DetectSshHasshServerStringSetup(DetectEngineCtx *de_ctx, Signature *s
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SSH) < 0)
         return -1;
-     
+
     /* try to enable Hassh */
     rs_ssh_enable_hassh();
 
@@ -114,28 +112,25 @@ static int DetectSshHasshServerStringSetup(DetectEngineCtx *de_ctx, Signature *s
     }
 
     return 0;
-
 }
 
 /**
  * \brief Registration function for hasshServer.string keyword.
  */
-void DetectSshHasshServerStringRegister(void) 
+void DetectSshHasshServerStringRegister(void)
 {
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER_STRING].name = KEYWORD_NAME;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER_STRING].alias = KEYWORD_ALIAS;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER_STRING].desc = BUFFER_NAME " sticky buffer";
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER_STRING].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER_STRING].Setup = DetectSshHasshServerStringSetup;
-    sigmatch_table[DETECT_AL_SSH_HASSH_SERVER_STRING].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_SSH_HASSH_SERVER_STRING].flags |=
+            SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
-
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, 
-            PrefilterGenericMpmRegister, GetSshData,
-            ALPROTO_SSH, SshStateBannerDone);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, 
-            SIG_FLAG_TOCLIENT, SshStateBannerDone, 
-            DetectEngineInspectBufferGeneric, GetSshData);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetSshData, ALPROTO_SSH, SshStateBannerDone);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, SIG_FLAG_TOCLIENT,
+            SshStateBannerDone, DetectEngineInspectBufferGeneric, GetSshData);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 

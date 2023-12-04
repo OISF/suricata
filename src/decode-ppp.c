@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -41,8 +40,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len)
+int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
@@ -58,14 +56,13 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     p->ppph = (PPPHdr *)pkt;
 
-    SCLogDebug("p %p pkt %p PPP protocol %04x Len: %" PRIu32 "",
-        p, pkt, SCNtohs(p->ppph->protocol), len);
+    SCLogDebug("p %p pkt %p PPP protocol %04x Len: %" PRIu32 "", p, pkt, SCNtohs(p->ppph->protocol),
+            len);
 
-    switch (SCNtohs(p->ppph->protocol))
-    {
+    switch (SCNtohs(p->ppph->protocol)) {
         case PPP_VJ_UCOMP:
             if (unlikely(len < (PPP_HEADER_LEN + IPV4_HEADER_LEN))) {
-                ENGINE_SET_INVALID_EVENT(p,PPPVJU_PKT_TOO_SMALL);
+                ENGINE_SET_INVALID_EVENT(p, PPPVJU_PKT_TOO_SMALL);
                 p->ppph = NULL;
                 return TM_ECODE_FAILED;
             }
@@ -83,7 +80,7 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
         case PPP_IP:
             if (unlikely(len < (PPP_HEADER_LEN + IPV4_HEADER_LEN))) {
-                ENGINE_SET_INVALID_EVENT(p,PPPIPV4_PKT_TOO_SMALL);
+                ENGINE_SET_INVALID_EVENT(p, PPPIPV4_PKT_TOO_SMALL);
                 p->ppph = NULL;
                 return TM_ECODE_FAILED;
             }
@@ -96,7 +93,7 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             /* PPP IPv6 was not tested */
         case PPP_IPV6:
             if (unlikely(len < (PPP_HEADER_LEN + IPV6_HEADER_LEN))) {
-                ENGINE_SET_INVALID_EVENT(p,PPPIPV6_PKT_TOO_SMALL);
+                ENGINE_SET_INVALID_EVENT(p, PPPIPV6_PKT_TOO_SMALL);
                 p->ppph = NULL;
                 return TM_ECODE_FAILED;
             }
@@ -134,15 +131,14 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case PPP_PAP:
         case PPP_LQM:
         case PPP_CHAP:
-            ENGINE_SET_EVENT(p,PPP_UNSUP_PROTO);
+            ENGINE_SET_EVENT(p, PPP_UNSUP_PROTO);
             return TM_ECODE_OK;
 
         default:
-            SCLogDebug("unknown PPP protocol: %" PRIx32 "",SCNtohs(p->ppph->protocol));
+            SCLogDebug("unknown PPP protocol: %" PRIx32 "", SCNtohs(p->ppph->protocol));
             ENGINE_SET_INVALID_EVENT(p, PPP_WRONG_TYPE);
             return TM_ECODE_OK;
     }
-
 }
 
 /* TESTS BELOW */
@@ -152,7 +148,7 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
  *  Decode malformed ip layer PPP packet
  *  Expected test value: 1
  */
-static int DecodePPPtest01 (void)
+static int DecodePPPtest01(void)
 {
     // clang-format off
     uint8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0x21, 0x45, 0xc0, 0x00 };
@@ -170,7 +166,7 @@ static int DecodePPPtest01 (void)
 
     /* Function my returns here with expected value */
 
-    if(ENGINE_ISSET_EVENT(p,PPPIPV4_PKT_TOO_SMALL))  {
+    if (ENGINE_ISSET_EVENT(p, PPPIPV4_PKT_TOO_SMALL)) {
         SCFree(p);
         return 1;
     }
@@ -183,7 +179,7 @@ static int DecodePPPtest01 (void)
  *  Decode malformed ppp layer packet
  *  Expected test value: 1
  */
-static int DecodePPPtest02 (void)
+static int DecodePPPtest02(void)
 {
     // clang-format off
     uint8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0xff, 0x45, 0xc0, 0x00, 0x2c, 0x4d,
@@ -205,7 +201,7 @@ static int DecodePPPtest02 (void)
 
     /* Function must returns here */
 
-    if(ENGINE_ISSET_EVENT(p,PPP_WRONG_TYPE))  {
+    if (ENGINE_ISSET_EVENT(p, PPP_WRONG_TYPE)) {
         SCFree(p);
         return 1;
     }
@@ -220,7 +216,7 @@ static int DecodePPPtest02 (void)
  *  \retval 0 Test failed
  *  \retval 1 Test succeeded
  */
-static int DecodePPPtest03 (void)
+static int DecodePPPtest03(void)
 {
     // clang-format off
     uint8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0x21, 0x45, 0xc0, 0x00, 0x2c, 0x4d,
@@ -244,27 +240,27 @@ static int DecodePPPtest03 (void)
 
     FlowShutdown();
 
-    if(p->ppph == NULL) {
+    if (p->ppph == NULL) {
         SCFree(p);
         return 0;
     }
 
-    if(ENGINE_ISSET_EVENT(p,PPP_PKT_TOO_SMALL))  {
+    if (ENGINE_ISSET_EVENT(p, PPP_PKT_TOO_SMALL)) {
         SCFree(p);
         return 0;
     }
 
-    if(ENGINE_ISSET_EVENT(p,PPPIPV4_PKT_TOO_SMALL))  {
+    if (ENGINE_ISSET_EVENT(p, PPPIPV4_PKT_TOO_SMALL)) {
         SCFree(p);
         return 0;
     }
 
-    if(ENGINE_ISSET_EVENT(p,PPP_WRONG_TYPE))  {
+    if (ENGINE_ISSET_EVENT(p, PPP_WRONG_TYPE)) {
         SCFree(p);
         return 0;
     }
 
-    if (!(ENGINE_ISSET_EVENT(p,IPV4_TRUNC_PKT))) {
+    if (!(ENGINE_ISSET_EVENT(p, IPV4_TRUNC_PKT))) {
         SCFree(p);
         return 0;
     }
@@ -274,13 +270,12 @@ static int DecodePPPtest03 (void)
     return 1;
 }
 
-
 /*  DecodePPPtest04
  *  Check if ppp header is null
  *  Expected test value: 1
  */
 
-static int DecodePPPtest04 (void)
+static int DecodePPPtest04(void)
 {
     // clang-format off
     uint8_t raw_ppp[] = { 0xff, 0x03, 0x00, 0x21, 0x45, 0xc0, 0x00, 0x2c, 0x4d,
@@ -304,12 +299,12 @@ static int DecodePPPtest04 (void)
 
     FlowShutdown();
 
-    if(p->ppph == NULL) {
+    if (p->ppph == NULL) {
         SCFree(p);
         return 0;
     }
 
-    if (!(ENGINE_ISSET_EVENT(p,IPV4_TRUNC_PKT))) {
+    if (!(ENGINE_ISSET_EVENT(p, IPV4_TRUNC_PKT))) {
         SCFree(p);
         return 0;
     }

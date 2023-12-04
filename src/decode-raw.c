@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -39,8 +38,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len)
+int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
@@ -51,8 +49,6 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         ENGINE_SET_INVALID_EVENT(p, IPV4_PKT_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
-
-
 
     if (IP_GET_RAW_VER(pkt) == 4) {
         if (unlikely(GET_PKT_LEN(p) > USHRT_MAX)) {
@@ -68,7 +64,7 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), (uint16_t)(GET_PKT_LEN(p)));
     } else {
         SCLogDebug("Unknown ip version %d", IP_GET_RAW_VER(pkt));
-        ENGINE_SET_EVENT(p,IPRAW_INVALID_IPV);
+        ENGINE_SET_EVENT(p, IPRAW_INVALID_IPV);
     }
     return TM_ECODE_OK;
 }
@@ -81,7 +77,7 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
  *  \brief Valid Raw packet
  *  \retval 0 Expected test value
  */
-static int DecodeRawTest01 (void)
+static int DecodeRawTest01(void)
 {
 
     /* IPV6/TCP/no eth header */
@@ -105,11 +101,11 @@ static int DecodeRawTest01 (void)
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
     if (PacketCopyData(p, raw_ip, sizeof(raw_ip)) == -1) {
-    SCFree(p);
-    return 0;
+        SCFree(p);
+        return 0;
     }
 
     FlowInitConfig(FLOW_QUIET);
@@ -126,13 +122,12 @@ static int DecodeRawTest01 (void)
     FlowShutdown();
     SCFree(p);
     return 1;
-
 }
 /** DecodeRawtest02
  *  \brief Valid Raw packet
  *  \retval 0 Expected test value
  */
-static int DecodeRawTest02 (void)
+static int DecodeRawTest02(void)
 {
 
     /* IPV4/TCP/no eth header */
@@ -153,11 +148,11 @@ static int DecodeRawTest02 (void)
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
     if (PacketCopyData(p, raw_ip, sizeof(raw_ip)) == -1) {
-    SCFree(p);
-    return 0;
+        SCFree(p);
+        return 0;
     }
 
     FlowInitConfig(FLOW_QUIET);
@@ -180,7 +175,7 @@ static int DecodeRawTest02 (void)
  *  \brief Valid Raw packet
  *  \retval 0 Expected test value
  */
-static int DecodeRawTest03 (void)
+static int DecodeRawTest03(void)
 {
 
     /* IPV13 */
@@ -203,7 +198,7 @@ static int DecodeRawTest03 (void)
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
     if (PacketCopyData(p, raw_ip, sizeof(raw_ip)) == -1) {
         SCFree(p);
@@ -213,7 +208,7 @@ static int DecodeRawTest03 (void)
     FlowInitConfig(FLOW_QUIET);
 
     DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p));
-    if (!ENGINE_ISSET_EVENT(p,IPRAW_INVALID_IPV)) {
+    if (!ENGINE_ISSET_EVENT(p, IPRAW_INVALID_IPV)) {
         printf("expected IPRAW_INVALID_IPV to be set but it wasn't: ");
         FlowShutdown();
         SCFree(p);

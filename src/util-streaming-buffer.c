@@ -59,8 +59,7 @@ static void *CallocFunc(const size_t nm, const size_t sz)
 #define CALLOC(cfg, n, s) (cfg)->Calloc ? (cfg)->Calloc((n), (s)) : CallocFunc((n), (s))
 #define REALLOC(cfg, ptr, orig_s, s)                                                               \
     (cfg)->Realloc ? (cfg)->Realloc((ptr), (orig_s), (s)) : ReallocFunc((ptr), (s))
-#define FREE(cfg, ptr, s) \
-    (cfg)->Free ? (cfg)->Free((ptr), (s)) : SCFree((ptr))
+#define FREE(cfg, ptr, s) (cfg)->Free ? (cfg)->Free((ptr), (s)) : SCFree((ptr))
 
 static void SBBFree(StreamingBuffer *sb, const StreamingBufferConfig *cfg);
 
@@ -75,7 +74,7 @@ int SBBCompare(struct StreamingBufferBlock *a, struct StreamingBufferBlock *b)
     else if (a->offset < b->offset)
         SCReturnInt(-1);
     else {
-        if (a->len == 0 || b->len == 0 || a->len ==  b->len)
+        if (a->len == 0 || b->len == 0 || a->len == b->len)
             SCReturnInt(0);
         else if (a->len > b->len)
             SCReturnInt(1);
@@ -86,15 +85,16 @@ int SBBCompare(struct StreamingBufferBlock *a, struct StreamingBufferBlock *b)
 
 /* inclusive compare function that also considers the right edge,
  * not just the offset. */
-static inline int InclusiveCompare(StreamingBufferBlock *lookup, StreamingBufferBlock *intree) {
+static inline int InclusiveCompare(StreamingBufferBlock *lookup, StreamingBufferBlock *intree)
+{
     const uint64_t lre = lookup->offset + lookup->len;
     const uint64_t tre = intree->offset + intree->len;
-    if (lre <= intree->offset)   // entirely before
+    if (lre <= intree->offset) // entirely before
         return -1;
     else if (lookup->offset < tre && lre <= tre) // (some) overlap
         return 0;
     else
-        return 1;   // entirely after
+        return 1; // entirely after
 }
 
 StreamingBufferBlock *SBB_RB_FIND_INCLUSIVE(struct SBB *head, StreamingBufferBlock *elm)
@@ -304,7 +304,8 @@ void StreamingBufferFree(StreamingBuffer *sb, const StreamingBufferConfig *cfg)
 static void SBBPrintList(StreamingBuffer *sb)
 {
     StreamingBufferBlock *sbb = NULL;
-    RB_FOREACH(sbb, SBB, &sb->sbb_tree) {
+    RB_FOREACH(sbb, SBB, &sb->sbb_tree)
+    {
         SCLogDebug("sbb: offset %" PRIu64 ", len %u", sbb->offset, sbb->len);
         StreamingBufferBlock *next = SBB_RB_NEXT(sbb);
         if (next) {
@@ -392,7 +393,7 @@ static inline void ConsolidateFwd(StreamingBuffer *sb, const StreamingBufferConf
 {
     uint64_t sa_re = sa->offset + sa->len;
     StreamingBufferBlock *tr, *s = sa;
-    RB_FOREACH_FROM(tr, SBB, s) {
+    RB_FOREACH_FROM (tr, SBB, s) {
         if (sa == tr)
             continue;
 
@@ -454,7 +455,7 @@ static inline void ConsolidateFwd(StreamingBuffer *sb, const StreamingBufferConf
                 sa: [       ]
                 tr:         [       ]
             */
-        } else if (sa->offset < tr->offset && // starts before
+        } else if (sa->offset < tr->offset &&            // starts before
                    sa_re >= tr->offset && sa_re < tr_re) // ends inside
         {
             // merge. sb->sbb_size includes both so we need to adjust that too.
@@ -487,7 +488,7 @@ static inline void ConsolidateBackward(StreamingBuffer *sb, const StreamingBuffe
 {
     uint64_t sa_re = sa->offset + sa->len;
     StreamingBufferBlock *tr, *s = sa;
-    RB_FOREACH_REVERSE_FROM(tr, SBB, s) {
+    RB_FOREACH_REVERSE_FROM (tr, SBB, s) {
         if (sa == tr)
             continue;
         const uint64_t tr_re = tr->offset + tr->len;
@@ -627,7 +628,7 @@ static int SBBUpdate(StreamingBuffer *sb, const StreamingBufferConfig *cfg,
 static void SBBFree(StreamingBuffer *sb, const StreamingBufferConfig *cfg)
 {
     StreamingBufferBlock *sbb = NULL, *safe = NULL;
-    RB_FOREACH_SAFE(sbb, SBB, &sb->sbb_tree, safe) {
+    RB_FOREACH_SAFE (sbb, SBB, &sb->sbb_tree, safe) {
         SBB_RB_REMOVE(&sb->sbb_tree, sbb);
         sb->sbb_size -= sbb->len;
         FREE(cfg, sbb, sizeof(StreamingBufferBlock));
@@ -639,7 +640,7 @@ static void SBBPrune(StreamingBuffer *sb, const StreamingBufferConfig *cfg)
 {
     SCLogDebug("pruning %p to %" PRIu64, sb, sb->region.stream_offset);
     StreamingBufferBlock *sbb = NULL, *safe = NULL;
-    RB_FOREACH_SAFE(sbb, SBB, &sb->sbb_tree, safe) {
+    RB_FOREACH_SAFE (sbb, SBB, &sb->sbb_tree, safe) {
         /* completely beyond window, we're done */
         if (sbb->offset >= sb->region.stream_offset) {
             sb->head = sbb;
@@ -660,7 +661,7 @@ static void SBBPrune(StreamingBuffer *sb, const StreamingBufferConfig *cfg)
             uint32_t shrink_by = sb->region.stream_offset - sbb->offset;
             DEBUG_VALIDATE_BUG_ON(shrink_by > sbb->len);
             if (sbb->len >= shrink_by) {
-                sbb->len -=  shrink_by;
+                sbb->len -= shrink_by;
                 sbb->offset += shrink_by;
                 sb->sbb_size -= shrink_by;
                 SCLogDebug("shrunk by %u", shrink_by);
@@ -1587,8 +1588,8 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, const StreamingBufferConfig *cf
     return SC_OK;
 }
 
-int StreamingBufferSegmentIsBeforeWindow(const StreamingBuffer *sb,
-                                         const StreamingBufferSegment *seg)
+int StreamingBufferSegmentIsBeforeWindow(
+        const StreamingBuffer *sb, const StreamingBufferSegment *seg)
 {
     if (seg->stream_offset < sb->region.stream_offset) {
         if (seg->stream_offset + seg->segment_len <= sb->region.stream_offset) {
@@ -1619,9 +1620,8 @@ static inline const StreamingBufferRegion *GetRegionForOffset(
 }
 
 /** \brief get the data for one SBB */
-void StreamingBufferSBBGetData(const StreamingBuffer *sb,
-                               const StreamingBufferBlock *sbb,
-                               const uint8_t **data, uint32_t *data_len)
+void StreamingBufferSBBGetData(const StreamingBuffer *sb, const StreamingBufferBlock *sbb,
+        const uint8_t **data, uint32_t *data_len)
 {
     const StreamingBufferRegion *region = GetRegionForOffset(sb, sbb->offset);
     SCLogDebug("first find our region (offset %" PRIu64 ") -> %p", sbb->offset, region);
@@ -1656,10 +1656,8 @@ void StreamingBufferSBBGetData(const StreamingBuffer *sb,
 }
 
 /** \brief get the data for one SBB */
-void StreamingBufferSBBGetDataAtOffset(const StreamingBuffer *sb,
-                                       const StreamingBufferBlock *sbb,
-                                       const uint8_t **data, uint32_t *data_len,
-                                       uint64_t offset)
+void StreamingBufferSBBGetDataAtOffset(const StreamingBuffer *sb, const StreamingBufferBlock *sbb,
+        const uint8_t **data, uint32_t *data_len, uint64_t offset)
 {
     /* validate that we are looking for a offset within the sbb */
     DEBUG_VALIDATE_BUG_ON(!(offset >= sbb->offset && offset < (sbb->offset + sbb->len)));
@@ -1698,9 +1696,8 @@ void StreamingBufferSBBGetDataAtOffset(const StreamingBuffer *sb,
     return;
 }
 
-void StreamingBufferSegmentGetData(const StreamingBuffer *sb,
-                                   const StreamingBufferSegment *seg,
-                                   const uint8_t **data, uint32_t *data_len)
+void StreamingBufferSegmentGetData(const StreamingBuffer *sb, const StreamingBufferSegment *seg,
+        const uint8_t **data, uint32_t *data_len)
 {
     const StreamingBufferRegion *region = GetRegionForOffset(sb, seg->stream_offset);
     if (region) {
@@ -1733,23 +1730,19 @@ void StreamingBufferSegmentGetData(const StreamingBuffer *sb,
  *  \retval 0 data is different
  */
 int StreamingBufferSegmentCompareRawData(const StreamingBuffer *sb,
-                                         const StreamingBufferSegment *seg,
-                                         const uint8_t *rawdata, uint32_t rawdata_len)
+        const StreamingBufferSegment *seg, const uint8_t *rawdata, uint32_t rawdata_len)
 {
     const uint8_t *segdata = NULL;
     uint32_t segdata_len = 0;
     StreamingBufferSegmentGetData(sb, seg, &segdata, &segdata_len);
-    if (segdata && segdata_len &&
-        segdata_len == rawdata_len &&
-        memcmp(segdata, rawdata, segdata_len) == 0)
-    {
+    if (segdata && segdata_len && segdata_len == rawdata_len &&
+            memcmp(segdata, rawdata, segdata_len) == 0) {
         return 1;
     }
     return 0;
 }
 
-int StreamingBufferGetData(const StreamingBuffer *sb,
-        const uint8_t **data, uint32_t *data_len,
+int StreamingBufferGetData(const StreamingBuffer *sb, const uint8_t **data, uint32_t *data_len,
         uint64_t *stream_offset)
 {
     if (sb != NULL && sb->region.buf != NULL) {
@@ -1765,9 +1758,8 @@ int StreamingBufferGetData(const StreamingBuffer *sb,
     }
 }
 
-int StreamingBufferGetDataAtOffset (const StreamingBuffer *sb,
-        const uint8_t **data, uint32_t *data_len,
-        uint64_t offset)
+int StreamingBufferGetDataAtOffset(
+        const StreamingBuffer *sb, const uint8_t **data, uint32_t *data_len, uint64_t offset)
 {
     const StreamingBufferRegion *region = GetRegionForOffset(sb, offset);
     if (region != NULL && region->buf != NULL && offset >= region->stream_offset &&
@@ -1787,25 +1779,22 @@ int StreamingBufferGetDataAtOffset (const StreamingBuffer *sb,
  *  \retval 1 data is the same
  *  \retval 0 data is different
  */
-int StreamingBufferCompareRawData(const StreamingBuffer *sb,
-                                  const uint8_t *rawdata, uint32_t rawdata_len)
+int StreamingBufferCompareRawData(
+        const StreamingBuffer *sb, const uint8_t *rawdata, uint32_t rawdata_len)
 {
     const uint8_t *sbdata = NULL;
     uint32_t sbdata_len = 0;
     uint64_t offset = 0;
     StreamingBufferGetData(sb, &sbdata, &sbdata_len, &offset);
-    if (offset == 0 &&
-        sbdata && sbdata_len &&
-        sbdata_len == rawdata_len &&
-        memcmp(sbdata, rawdata, sbdata_len) == 0)
-    {
+    if (offset == 0 && sbdata && sbdata_len && sbdata_len == rawdata_len &&
+            memcmp(sbdata, rawdata, sbdata_len) == 0) {
         return 1;
     }
     SCLogDebug("sbdata_len %u, offset %" PRIu64, sbdata_len, offset);
     printf("got:\n");
-    PrintRawDataFp(stdout, sbdata,sbdata_len);
+    PrintRawDataFp(stdout, sbdata, sbdata_len);
     printf("wanted:\n");
-    PrintRawDataFp(stdout, rawdata,rawdata_len);
+    PrintRawDataFp(stdout, rawdata, rawdata_len);
     return 0;
 }
 
@@ -1839,8 +1828,8 @@ static int StreamingBufferTest02(void)
     FAIL_IF(sb->region.buf_offset != 16);
     FAIL_IF(seg1.stream_offset != 0);
     FAIL_IF(seg2.stream_offset != 8);
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg1));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg2));
     Dump(sb);
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
@@ -1856,9 +1845,9 @@ static int StreamingBufferTest02(void)
     FAIL_IF(sb->region.stream_offset != 6);
     FAIL_IF(sb->region.buf_offset != 16);
     FAIL_IF(seg3.stream_offset != 16);
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg3));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg1));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg2));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg3));
     Dump(sb);
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
@@ -1867,9 +1856,9 @@ static int StreamingBufferTest02(void)
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSlideToOffset(sb, &cfg, 12);
-    FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg3));
+    FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb, &seg1));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg2));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg3));
     Dump(sb);
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
@@ -1895,8 +1884,8 @@ static int StreamingBufferTest03(void)
     FAIL_IF(sb->region.buf_offset != 8);
     FAIL_IF(seg1.stream_offset != 0);
     FAIL_IF(seg2.stream_offset != 14);
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg1));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg2));
     Dump(sb);
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
@@ -1909,9 +1898,9 @@ static int StreamingBufferTest03(void)
     FAIL_IF(sb->region.stream_offset != 0);
     FAIL_IF(sb->region.buf_offset != 22);
     FAIL_IF(seg3.stream_offset != 8);
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg3));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg1));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg2));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg3));
     Dump(sb);
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
@@ -1921,9 +1910,9 @@ static int StreamingBufferTest03(void)
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
     StreamingBufferSlideToOffset(sb, &cfg, 10);
-    FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg3));
+    FAIL_IF(!StreamingBufferSegmentIsBeforeWindow(sb, &seg1));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg2));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg3));
     Dump(sb);
     DumpSegment(sb, &seg1);
     DumpSegment(sb, &seg2);
@@ -1951,8 +1940,8 @@ static int StreamingBufferTest04(void)
     FAIL_IF(sb->region.buf_offset != 8);
     FAIL_IF(seg1.stream_offset != 0);
     FAIL_IF(seg2.stream_offset != 14);
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg1));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg2));
     FAIL_IF(RB_EMPTY(&sb->sbb_tree));
     StreamingBufferBlock *sbb1 = RB_MIN(SBB, &sb->sbb_tree);
     FAIL_IF(sbb1 != sb->head);
@@ -1974,9 +1963,9 @@ static int StreamingBufferTest04(void)
     FAIL_IF(sb->region.stream_offset != 0);
     FAIL_IF(sb->region.buf_offset != 22);
     FAIL_IF(seg3.stream_offset != 8);
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg3));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg1));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg2));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg3));
     sbb1 = RB_MIN(SBB, &sb->sbb_tree);
     FAIL_IF_NULL(sbb1);
     FAIL_IF(sbb1 != sb->head);
@@ -1998,10 +1987,10 @@ static int StreamingBufferTest04(void)
     FAIL_IF(sb->region.buf_offset != 22);
     FAIL_IF(sb->region.buf_size != 128);
     FAIL_IF(seg4.stream_offset != 124);
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg1));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg2));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg3));
-    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb,&seg4));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg1));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg2));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg3));
+    FAIL_IF(StreamingBufferSegmentIsBeforeWindow(sb, &seg4));
     sbb1 = RB_MIN(SBB, &sb->sbb_tree);
     FAIL_IF_NULL(sbb1);
     FAIL_IF(sbb1 != sb->head);
@@ -2017,10 +2006,10 @@ static int StreamingBufferTest04(void)
     FAIL_IF_NOT(sb->sbb_size == 25);
     FAIL_IF_NOT(sb->head == RB_MIN(SBB, &sb->sbb_tree));
 
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,&seg1,(const uint8_t *)"ABCDEFGH", 8));
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,&seg2,(const uint8_t *)"01234567", 8));
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,&seg3,(const uint8_t *)"QWERTY", 6));
-    FAIL_IF(!StreamingBufferSegmentCompareRawData(sb,&seg4,(const uint8_t *)"XYZ", 3));
+    FAIL_IF(!StreamingBufferSegmentCompareRawData(sb, &seg1, (const uint8_t *)"ABCDEFGH", 8));
+    FAIL_IF(!StreamingBufferSegmentCompareRawData(sb, &seg2, (const uint8_t *)"01234567", 8));
+    FAIL_IF(!StreamingBufferSegmentCompareRawData(sb, &seg3, (const uint8_t *)"QWERTY", 6));
+    FAIL_IF(!StreamingBufferSegmentCompareRawData(sb, &seg4, (const uint8_t *)"XYZ", 3));
 
     StreamingBufferFree(sb, &cfg);
     PASS;

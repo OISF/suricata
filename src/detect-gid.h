@@ -26,11 +26,10 @@
 #ifndef __DETECT_GID_H__
 #define __DETECT_GID_H__
 
-
 /**
  * Registration function for gid: keyword
  */
 
-void DetectGidRegister (void);
+void DetectGidRegister(void);
 
 #endif /*__DETECT_GID_H__ */

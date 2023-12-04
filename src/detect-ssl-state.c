@@ -56,8 +56,7 @@ static DetectParseRegex parse_regex1;
 #define PARSE_REGEX2 "^(?:\\s*[|,]\\s*(!?)([_a-zA-Z0-9]+))(.*)$"
 static DetectParseRegex parse_regex2;
 
-static int DetectSslStateMatch(DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *, void *,
+static int DetectSslStateMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 static int DetectSslStateSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
@@ -77,7 +76,7 @@ void DetectSslStateRegister(void)
     sigmatch_table[DETECT_AL_SSL_STATE].url = "/rules/tls-keywords.html#ssl-state";
     sigmatch_table[DETECT_AL_SSL_STATE].AppLayerTxMatch = DetectSslStateMatch;
     sigmatch_table[DETECT_AL_SSL_STATE].Setup = DetectSslStateSetup;
-    sigmatch_table[DETECT_AL_SSL_STATE].Free  = DetectSslStateFree;
+    sigmatch_table[DETECT_AL_SSL_STATE].Free = DetectSslStateFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_SSL_STATE].RegisterTests = DetectSslStateRegisterTests;
 #endif
@@ -86,8 +85,7 @@ void DetectSslStateRegister(void)
 
     g_tls_generic_list_id = DetectBufferTypeRegister("tls_generic");
 
-    DetectBufferTypeSetDescriptionByName("tls_generic",
-            "generic ssl/tls inspection");
+    DetectBufferTypeSetDescriptionByName("tls_generic", "generic ssl/tls inspection");
 
     DetectAppLayerInspectEngineRegister2(
             "tls_generic", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
@@ -109,9 +107,8 @@ void DetectSslStateRegister(void)
  * \retval 1 Match.
  * \retval 0 No match.
  */
-static int DetectSslStateMatch(DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *alstate, void *txv,
-        const Signature *s, const SigMatchCtx *m)
+static int DetectSslStateMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *alstate, void *txv, const Signature *s, const SigMatchCtx *m)
 {
     const DetectSslStateData *ssd = (const DetectSslStateData *)m;
     SSLState *ssl_state = (SSLState *)alstate;
@@ -273,7 +270,7 @@ static DetectSslStateData *DetectSslStateParse(const char *arg)
         pcre2_match_data_free(match2);
     }
 
-    if ( (ssd = SCMalloc(sizeof(DetectSslStateData))) == NULL) {
+    if ((ssd = SCMalloc(sizeof(DetectSslStateData))) == NULL) {
         goto error;
     }
     ssd->flags = flags;
@@ -289,7 +286,7 @@ error:
     return NULL;
 }
 
- /**
+/**
  * \internal
  * \brief Setup function for ssl_state keyword.
  *

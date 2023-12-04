@@ -30,7 +30,7 @@
 #include "util-debug.h"
 #include "util-print.h"
 
-IPPairQueue *IPPairQueueInit (IPPairQueue *q)
+IPPairQueue *IPPairQueueInit(IPPairQueue *q)
 {
     if (q != NULL) {
         memset(q, 0, sizeof(IPPairQueue));
@@ -55,7 +55,7 @@ IPPairQueue *IPPairQueueNew(void)
  *
  *  \param q the ippair queue to destroy
  */
-void IPPairQueueDestroy (IPPairQueue *q)
+void IPPairQueueDestroy(IPPairQueue *q)
 {
     HQLOCK_DESTROY(q);
 }
@@ -66,7 +66,7 @@ void IPPairQueueDestroy (IPPairQueue *q)
  *  \param q queue
  *  \param h ippair
  */
-void IPPairEnqueue (IPPairQueue *q, IPPair *h)
+void IPPairEnqueue(IPPairQueue *q, IPPair *h)
 {
 #ifdef DEBUG
     BUG_ON(q == NULL || h == NULL);
@@ -79,7 +79,7 @@ void IPPairEnqueue (IPPairQueue *q, IPPair *h)
         h->lnext = q->top;
         q->top->lprev = h;
         q->top = h;
-    /* only ippair */
+        /* only ippair */
     } else {
         q->top = h;
         q->bot = h;
@@ -99,7 +99,7 @@ void IPPairEnqueue (IPPairQueue *q, IPPair *h)
  *
  *  \retval h ippair or NULL if empty list.
  */
-IPPair *IPPairDequeue (IPPairQueue *q)
+IPPair *IPPairDequeue(IPPairQueue *q)
 {
     HQLOCK_LOCK(q);
 
@@ -113,7 +113,7 @@ IPPair *IPPairDequeue (IPPairQueue *q)
     if (q->bot->lprev != NULL) {
         q->bot = q->bot->lprev;
         q->bot->lnext = NULL;
-    /* just the one we remove, so now empty */
+        /* just the one we remove, so now empty */
     } else {
         q->top = NULL;
         q->bot = NULL;

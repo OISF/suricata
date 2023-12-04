@@ -73,8 +73,7 @@ typedef struct JsonStatsLogThread_ {
     MemBuffer *buffer;
 } JsonStatsLogThread;
 
-static json_t *EngineStats2Json(const DetectEngineCtx *de_ctx,
-                                const OutputEngineInfo output)
+static json_t *EngineStats2Json(const DetectEngineCtx *de_ctx, const OutputEngineInfo output)
 {
     char timebuf[64];
     const SigFileLoaderStat *sig_stat = NULL;
@@ -91,13 +90,9 @@ static json_t *EngineStats2Json(const DetectEngineCtx *de_ctx,
     }
 
     sig_stat = &de_ctx->sig_stat;
-    if ((output == OUTPUT_ENGINE_RULESET || output == OUTPUT_ENGINE_ALL) &&
-        sig_stat != NULL)
-    {
-        json_object_set_new(jdata, "rules_loaded",
-                            json_integer(sig_stat->good_sigs_total));
-        json_object_set_new(jdata, "rules_failed",
-                            json_integer(sig_stat->bad_sigs_total));
+    if ((output == OUTPUT_ENGINE_RULESET || output == OUTPUT_ENGINE_ALL) && sig_stat != NULL) {
+        json_object_set_new(jdata, "rules_loaded", json_integer(sig_stat->good_sigs_total));
+        json_object_set_new(jdata, "rules_failed", json_integer(sig_stat->bad_sigs_total));
     }
 
     return jdata;
@@ -119,7 +114,7 @@ static TmEcode OutputEngineStats2Json(json_t **jdata, const OutputEngineInfo out
         goto err2;
     }
 
-    while(list) {
+    while (list) {
         js_tenant = json_object();
         if (js_tenant == NULL) {
             goto err3;
@@ -156,11 +151,13 @@ err1:
     return TM_ECODE_FAILED;
 }
 
-TmEcode OutputEngineStatsReloadTime(json_t **jdata) {
+TmEcode OutputEngineStatsReloadTime(json_t **jdata)
+{
     return OutputEngineStats2Json(jdata, OUTPUT_ENGINE_LAST_RELOAD);
 }
 
-TmEcode OutputEngineStatsRuleset(json_t **jdata) {
+TmEcode OutputEngineStatsRuleset(json_t **jdata)
+{
     return OutputEngineStats2Json(jdata, OUTPUT_ENGINE_RULESET);
 }
 
@@ -181,7 +178,7 @@ static json_t *OutputStats2Json(json_t *js, const char *key)
     strlcpy(s, key, predot_len);
 
     iter = json_object_iter_at(js, s);
-    const char *s2 = strchr(dot+1, '.');
+    const char *s2 = strchr(dot + 1, '.');
 
     json_t *value = json_object_iter_value(iter);
     if (value == NULL) {
@@ -198,7 +195,7 @@ static json_t *OutputStats2Json(json_t *js, const char *key)
         json_object_set_new(js, s, value);
     }
     if (s2 != NULL) {
-        return OutputStats2Json(value, &key[dot-key+1]);
+        return OutputStats2Json(value, &key[dot - key + 1]);
     }
     return value;
 }
@@ -219,8 +216,7 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
 
     /* Uptime, in seconds. */
     double up_time_d = difftime(tval.tv_sec, st->start_time);
-    json_object_set_new(js_stats, "uptime",
-        json_integer((int)up_time_d));
+    json_object_set_new(js_stats, "uptime", json_integer((int)up_time_d));
 
     uint32_t u = 0;
     if (flags & JSON_STATS_TOTALS) {
@@ -246,7 +242,7 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
                     char deltaname[strlen(stat_name) + strlen(delta_suffix) + 1];
                     snprintf(deltaname, sizeof(deltaname), "%s%s", stat_name, delta_suffix);
                     json_object_set_new(js_type, deltaname,
-                        json_integer(st->stats[u].value - st->stats[u].pvalue));
+                            json_integer(st->stats[u].value - st->stats[u].pvalue));
                 }
             }
         }
@@ -287,7 +283,7 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
                         char deltaname[strlen(stat_name) + strlen(delta_suffix) + 1];
                         snprintf(deltaname, sizeof(deltaname), "%s%s", stat_name, delta_suffix);
                         json_object_set_new(js_type, deltaname,
-                            json_integer(st->tstats[u].value - st->tstats[u].pvalue));
+                                json_integer(st->tstats[u].value - st->tstats[u].pvalue));
                     }
                 }
             }
@@ -338,8 +334,7 @@ static TmEcode JsonStatsLogThreadInit(ThreadVars *t, const void *initdata, void 
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
 
-    if(initdata == NULL)
-    {
+    if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogStats.  \"initdata\" argument NULL");
         goto error_exit;
     }
@@ -407,8 +402,7 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
     if (unlikely(stats_ctx == NULL))
         return result;
 
-    if (stats_decoder_events &&
-            strcmp(stats_decoder_events_prefix, "decoder") == 0) {
+    if (stats_decoder_events && strcmp(stats_decoder_events_prefix, "decoder") == 0) {
         SCLogWarning("eve.stats will not display "
                      "all decoder events correctly. See ticket #2225. Set a prefix in "
                      "stats.decoder-events-prefix.");
@@ -464,9 +458,10 @@ static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_
     return result;
 }
 
-void JsonStatsLogRegister(void) {
+void JsonStatsLogRegister(void)
+{
     /* register as child of eve-log */
-    OutputRegisterStatsSubModule(LOGGER_JSON_STATS, "eve-log", MODULE_NAME,
-        "eve-log.stats", OutputStatsLogInitSub, JsonStatsLogger,
-        JsonStatsLogThreadInit, JsonStatsLogThreadDeinit, NULL);
+    OutputRegisterStatsSubModule(LOGGER_JSON_STATS, "eve-log", MODULE_NAME, "eve-log.stats",
+            OutputStatsLogInitSub, JsonStatsLogger, JsonStatsLogThreadInit,
+            JsonStatsLogThreadDeinit, NULL);
 }

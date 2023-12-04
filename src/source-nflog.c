@@ -46,13 +46,13 @@
 
 TmEcode NoNFLOGSupportExit(ThreadVars *, const void *, void **);
 
-void TmModuleReceiveNFLOGRegister (void)
+void TmModuleReceiveNFLOGRegister(void)
 {
     tmm_modules[TMM_RECEIVENFLOG].name = "ReceiveNFLOG";
     tmm_modules[TMM_RECEIVENFLOG].ThreadInit = NoNFLOGSupportExit;
 }
 
-void TmModuleDecodeNFLOGRegister (void)
+void TmModuleDecodeNFLOGRegister(void)
 {
     tmm_modules[TMM_DECODENFLOG].name = "DecodeNFLOG";
     tmm_modules[TMM_DECODENFLOG].ThreadInit = NoNFLOGSupportExit;
@@ -113,7 +113,7 @@ typedef struct NFLOGThreadVars_ {
 /**
  * \brief Registration function for ReceiveNFLOG
  */
-void TmModuleReceiveNFLOGRegister (void)
+void TmModuleReceiveNFLOGRegister(void)
 {
     tmm_modules[TMM_RECEIVENFLOG].name = "ReceiveNFLOG";
     tmm_modules[TMM_RECEIVENFLOG].ThreadInit = ReceiveNFLOGThreadInit;
@@ -128,7 +128,7 @@ void TmModuleReceiveNFLOGRegister (void)
 /**
  * \brief Registration function for DecodeNFLOG
  */
-void TmModuleDecodeNFLOGRegister (void)
+void TmModuleDecodeNFLOGRegister(void)
 {
     tmm_modules[TMM_DECODENFLOG].name = "DecodeNFLOG";
     tmm_modules[TMM_DECODENFLOG].ThreadInit = DecodeNFLOGThreadInit;
@@ -142,10 +142,10 @@ void TmModuleDecodeNFLOGRegister (void)
  * \brief NFLOG callback function
  * This function setup a packet from a nflog message
  */
-static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
-                         struct nflog_data *nfa, void *data)
+static int NFLOGCallback(
+        struct nflog_g_handle *gh, struct nfgenmsg *msg, struct nflog_data *nfa, void *data)
 {
-    NFLOGThreadVars *ntv = (NFLOGThreadVars *) data;
+    NFLOGThreadVars *ntv = (NFLOGThreadVars *)data;
     struct nfulnl_msg_packet_hdr *ph;
     char *payload;
     int ret;
@@ -192,7 +192,7 @@ static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
     ntv->pkts++;
     ntv->bytes += GET_PKT_LEN(p);
 #endif
-    (void) SC_ATOMIC_ADD(ntv->livedev->pkts, 1);
+    (void)SC_ATOMIC_ADD(ntv->livedev->pkts, 1);
 
     if (TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p) != TM_ECODE_OK) {
         return -1;
@@ -274,18 +274,14 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
     }
 
     if (nflog_set_qthresh(ntv->gh, ntv->qthreshold) >= 0)
-        SCLogDebug("NFLOG netlink queue threshold has been set to %d",
-                    ntv->qthreshold);
+        SCLogDebug("NFLOG netlink queue threshold has been set to %d", ntv->qthreshold);
     else
-        SCLogDebug("NFLOG netlink queue threshold can't be set to %d",
-                    ntv->qthreshold);
+        SCLogDebug("NFLOG netlink queue threshold can't be set to %d", ntv->qthreshold);
 
     if (nflog_set_timeout(ntv->gh, ntv->qtimeout) >= 0)
-        SCLogDebug("NFLOG netlink queue timeout has been set to %d",
-                    ntv->qtimeout);
+        SCLogDebug("NFLOG netlink queue timeout has been set to %d", ntv->qtimeout);
     else
-        SCLogDebug("NFLOG netlink queue timeout can't be set to %d",
-                    ntv->qtimeout);
+        SCLogDebug("NFLOG netlink queue timeout can't be set to %d", ntv->qtimeout);
 
     ntv->livedev = LiveGetDevice(nflconfig->numgroup);
     if (ntv->livedev == NULL) {
@@ -308,10 +304,8 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data
     }
 
 #ifdef PACKET_STATISTICS
-    ntv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",
-                                                       ntv->tv);
-    ntv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops",
-                                                     ntv->tv);
+    ntv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets", ntv->tv);
+    ntv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops", ntv->tv);
 #endif
 
     char *active_runmode = RunmodeGetActive();
@@ -403,7 +397,6 @@ static int NFLOGSetnlbufsiz(void *data, unsigned int size)
                  "`buffer-size` and `max-size` in nflog configuration",
             ntv->nlbufsiz);
     return 0;
-
 }
 
 /**
@@ -425,7 +418,7 @@ TmEcode ReceiveNFLOGLoop(ThreadVars *tv, void *data, void *slot)
     int rv, fd;
     int ret = -1;
 
-    ntv->slot = ((TmSlot *) slot)->slot_next;
+    ntv->slot = ((TmSlot *)slot)->slot_next;
 
     fd = nflog_fd(ntv->h);
     if (fd < 0) {
@@ -486,10 +479,8 @@ void ReceiveNFLOGThreadExitStats(ThreadVars *tv, void *data)
     SCEnter();
     NFLOGThreadVars *ntv = (NFLOGThreadVars *)data;
 
-    SCLogNotice("(%s) Pkts %" PRIu32 ", Bytes %" PRIu64 "",
-                 tv->name, ntv->pkts, ntv->bytes);
+    SCLogNotice("(%s) Pkts %" PRIu32 ", Bytes %" PRIu64 "", tv->name, ntv->pkts, ntv->bytes);
 }
-
 
 /**
  * \brief Decode IPv4/v6 packets.
@@ -515,7 +506,7 @@ TmEcode DecodeNFLOG(ThreadVars *tv, Packet *p, void *data)
         }
         SCLogDebug("IPv4 packet");
         DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
-    } else if(IPV6_GET_RAW_VER(ip6h) == 6) {
+    } else if (IPV6_GET_RAW_VER(ip6h) == 6) {
         if (unlikely(GET_PKT_LEN(p) > USHRT_MAX)) {
             return TM_ECODE_FAILED;
         }

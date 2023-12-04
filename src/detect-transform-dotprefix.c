@@ -37,7 +37,7 @@
 #include "util-memrchr.h"
 #include "util-memcpy.h"
 
-static int DetectTransformDotPrefixSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTransformDotPrefixSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTransformDotPrefixRegisterTests(void);
 #endif
@@ -46,15 +46,13 @@ static void TransformDotPrefix(InspectionBuffer *buffer, void *options);
 void DetectTransformDotPrefixRegister(void)
 {
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].name = "dotprefix";
-    sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].desc =
-        "modify buffer to extract the dotprefix";
-    sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].url =
-        "/rules/transforms.html#dotprefix";
+    sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].desc = "modify buffer to extract the dotprefix";
+    sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].url = "/rules/transforms.html#dotprefix";
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].Transform = TransformDotPrefix;
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].Setup = DetectTransformDotPrefixSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].RegisterTests =
-        DetectTransformDotPrefixRegisterTests;
+            DetectTransformDotPrefixRegisterTests;
 #endif
     sigmatch_table[DETECT_TRANSFORM_DOTPREFIX].flags |= SIGMATCH_NOOPT;
 }
@@ -68,7 +66,7 @@ void DetectTransformDotPrefixRegister(void)
  *  \retval 0 ok
  *  \retval -1 failure
  */
-static int DetectTransformDotPrefixSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+static int DetectTransformDotPrefixSetup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_DOTPREFIX, NULL);
@@ -88,7 +86,8 @@ static int DetectTransformDotPrefixSetup (DetectEngineCtx *de_ctx, Signature *s,
  * 5. google.com --> match
  *
  * To match on the dotprefix only:
- * Rule: "alert dns any any -> any any (dns_query; dotprefix; content:".google.com"; endswith; sid:1;)"
+ * Rule: "alert dns any any -> any any (dns_query; dotprefix; content:".google.com"; endswith;
+ * sid:1;)"
  *
  * 1. hello.google.com --> match
  * 2. hey.agoogle.com --> no match
@@ -161,7 +160,8 @@ static int DetectTransformDotPrefixTest02(void)
 
 static int DetectTransformDotPrefixTest03(void)
 {
-    const char rule[] = "alert dns any any -> any any (dns.query; dotprefix; content:\".google.com\"; sid:1;)";
+    const char rule[] =
+            "alert dns any any -> any any (dns.query; dotprefix; content:\".google.com\"; sid:1;)";
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&th_v, 0, sizeof(th_v));

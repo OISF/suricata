@@ -28,4 +28,3 @@ void AlertFastLogRegister(void);
 OutputInitResult AlertFastLogInitCtx(ConfNode *);
 
 #endif /* __ALERT_FASTLOG_H__ */
-

@@ -63,7 +63,8 @@ static int g_modbus_buffer_id = 0;
  *
  * \param ptr pointer to DetectModbus
  */
-static void DetectModbusFree(DetectEngineCtx *de_ctx, void *ptr) {
+static void DetectModbusFree(DetectEngineCtx *de_ctx, void *ptr)
+{
     SCEnter();
     if (ptr != NULL) {
         rs_modbus_free(ptr);

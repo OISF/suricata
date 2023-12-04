@@ -41,8 +41,8 @@
 #include "output-json-dnp3-objects.h"
 
 typedef struct LogDNP3FileCtx_ {
-    uint32_t    flags;
-    uint8_t     include_object_data;
+    uint32_t flags;
+    uint8_t include_object_data;
     OutputJsonCtx *eve_ctx;
 } LogDNP3FileCtx;
 
@@ -94,7 +94,7 @@ static void JsonDNP3LogObjectItems(JsonBuilder *js, DNP3Object *object)
 {
     DNP3Point *item;
 
-    TAILQ_FOREACH(item, object->points, next) {
+    TAILQ_FOREACH (item, object->points, next) {
         jb_start_object(js);
 
         jb_set_uint(js, "prefix", item->prefix);
@@ -118,13 +118,13 @@ static void JsonDNP3LogObjects(JsonBuilder *js, DNP3ObjectList *objects)
 {
     DNP3Object *object;
 
-    TAILQ_FOREACH(object, objects, next) {
+    TAILQ_FOREACH (object, objects, next) {
         jb_start_object(js);
         jb_set_uint(js, "group", object->group);
         jb_set_uint(js, "variation", object->variation);
         jb_set_uint(js, "qualifier", object->qualifier);
         jb_set_uint(js, "prefix_code", object->prefix_code);
-        jb_set_uint(js, "range_code",  object->range_code);
+        jb_set_uint(js, "range_code", object->range_code);
         jb_set_uint(js, "start", object->start);
         jb_set_uint(js, "stop", object->stop);
         jb_set_uint(js, "count", object->count);
@@ -230,8 +230,8 @@ bool AlertJsonDnp3(void *vtx, JsonBuilder *js)
     return logged;
 }
 
-static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
+static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *state, void *vtx, uint64_t tx_id)
 {
     SCEnter();
     LogDNP3LogThread *thread = (LogDNP3LogThread *)thread_data;
@@ -251,8 +251,8 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
     SCReturnInt(TM_ECODE_OK);
 }
 
-static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
+static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *state, void *vtx, uint64_t tx_id)
 {
     SCEnter();
     LogDNP3LogThread *thread = (LogDNP3LogThread *)thread_data;
@@ -322,7 +322,6 @@ static OutputInitResult OutputDNP3LogInitSub(ConfNode *conf, OutputCtx *parent_c
     result.ok = true;
     return result;
 }
-
 
 static TmEcode JsonDNP3LogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {

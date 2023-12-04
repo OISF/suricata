@@ -28,6 +28,6 @@ void RegisterTFTPParsers(void);
 
 /** Opaque Rust types. */
 typedef struct TFTPState_ TFTPState;
-typedef struct TFTPTransaction_  TFTPTransaction;
+typedef struct TFTPTransaction_ TFTPTransaction;
 
 #endif /* __APP_LAYER_TFTP_H__ */

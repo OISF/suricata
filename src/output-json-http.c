@@ -54,8 +54,8 @@
 #include "util-byte.h"
 
 typedef struct LogHttpFileCtx_ {
-    uint32_t flags; /** Store mode */
-    uint64_t fields;/** Store fields */
+    uint32_t flags;  /** Store mode */
+    uint64_t fields; /** Store fields */
     HttpXFFCfg *xff_cfg;
     HttpXFFCfg *parent_xff_cfg;
     OutputJsonCtx *eve_ctx;
@@ -67,13 +67,13 @@ typedef struct JsonHttpLogThread_ {
     OutputJsonThreadCtx *ctx;
 } JsonHttpLogThread;
 
-#define MAX_SIZE_HEADER_NAME 256
+#define MAX_SIZE_HEADER_NAME  256
 #define MAX_SIZE_HEADER_VALUE 2048
 
-#define LOG_HTTP_DEFAULT 0
-#define LOG_HTTP_EXTENDED 1
-#define LOG_HTTP_REQUEST 2 /* request field */
-#define LOG_HTTP_ARRAY 4 /* require array handling */
+#define LOG_HTTP_DEFAULT     0
+#define LOG_HTTP_EXTENDED    1
+#define LOG_HTTP_REQUEST     2 /* request field */
+#define LOG_HTTP_ARRAY       4 /* require array handling */
 #define LOG_HTTP_REQ_HEADERS 8
 #define LOG_HTTP_RES_HEADERS 16
 
@@ -239,7 +239,8 @@ static void EveHttpLogJSONBasic(JsonBuilder *js, htp_tx_t *tx)
         if (h_content_type != NULL) {
             const size_t size = bstr_len(h_content_type->value) * 2 + 1;
             char string[size];
-            BytesToStringBuffer(bstr_ptr(h_content_type->value), bstr_len(h_content_type->value), string, size);
+            BytesToStringBuffer(
+                    bstr_ptr(h_content_type->value), bstr_len(h_content_type->value), string, size);
             char *p = strchr(string, ';');
             if (p != NULL)
                 *p = '\0';
@@ -311,10 +312,10 @@ static void EveHttpLogJSONExtended(JsonBuilder *js, htp_tx_t *tx)
 static void EveHttpLogJSONHeaders(
         JsonBuilder *js, uint32_t direction, htp_tx_t *tx, LogHttpFileCtx *http_ctx)
 {
-    htp_table_t * headers = direction & LOG_HTTP_REQ_HEADERS ?
-        tx->request_headers : tx->response_headers;
-    char name[MAX_SIZE_HEADER_NAME] = {0};
-    char value[MAX_SIZE_HEADER_VALUE] = {0};
+    htp_table_t *headers =
+            direction & LOG_HTTP_REQ_HEADERS ? tx->request_headers : tx->response_headers;
+    char name[MAX_SIZE_HEADER_NAME] = { 0 };
+    char value[MAX_SIZE_HEADER_VALUE] = { 0 };
     size_t n = htp_table_size(headers);
     JsonBuilderMark mark = { 0, 0, 0 };
     jb_get_mark(js, &mark);
@@ -344,13 +345,14 @@ static void EveHttpLogJSONHeaders(
         }
         array_empty = false;
         jb_start_object(js);
-        size_t size_name = bstr_len(h->name) < MAX_SIZE_HEADER_NAME - 1 ?
-            bstr_len(h->name) : MAX_SIZE_HEADER_NAME - 1;
+        size_t size_name = bstr_len(h->name) < MAX_SIZE_HEADER_NAME - 1 ? bstr_len(h->name)
+                                                                        : MAX_SIZE_HEADER_NAME - 1;
         memcpy(name, bstr_ptr(h->name), size_name);
         name[size_name] = '\0';
         jb_set_string(js, "name", name);
-        size_t size_value = bstr_len(h->value) < MAX_SIZE_HEADER_VALUE - 1 ?
-            bstr_len(h->value) : MAX_SIZE_HEADER_VALUE - 1;
+        size_t size_value = bstr_len(h->value) < MAX_SIZE_HEADER_VALUE - 1
+                                    ? bstr_len(h->value)
+                                    : MAX_SIZE_HEADER_VALUE - 1;
         memcpy(value, bstr_ptr(h->value), size_value);
         value[size_value] = '\0';
         jb_set_string(js, "value", value);
@@ -372,15 +374,13 @@ static void BodyPrintableBuffer(JsonBuilder *js, HtpBody *body, const char *key)
         uint32_t body_data_len;
         uint64_t body_offset;
 
-        if (StreamingBufferGetData(body->sb, &body_data,
-                                   &body_data_len, &body_offset) == 0) {
+        if (StreamingBufferGetData(body->sb, &body_data, &body_data_len, &body_offset) == 0) {
             return;
         }
 
         uint8_t printable_buf[body_data_len + 1];
-        PrintStringsToBuffer(printable_buf, &offset,
-                             sizeof(printable_buf),
-                             body_data, body_data_len);
+        PrintStringsToBuffer(
+                printable_buf, &offset, sizeof(printable_buf), body_data, body_data_len);
         if (offset > 0) {
             jb_set_string(js, key, (char *)printable_buf);
         }
@@ -409,8 +409,7 @@ static void BodyBase64Buffer(JsonBuilder *js, HtpBody *body, const char *key)
         uint32_t body_data_len;
         uint64_t body_offset;
 
-        if (StreamingBufferGetData(body->sb, &body_data,
-                                   &body_data_len, &body_offset) == 0) {
+        if (StreamingBufferGetData(body->sb, &body_data, &body_data_len, &body_offset) == 0) {
             return;
         }
 
@@ -450,7 +449,8 @@ static void EveHttpLogJSON(JsonHttpLogThread *aft, JsonBuilder *js, htp_tx_t *tx
     jb_close(js);
 }
 
-static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
@@ -465,8 +465,8 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     SCLogDebug("got a HTTP request and now logging !!");
 
     EveHttpLogJSON(jhl, js, tx, tx_id);
-    HttpXFFCfg *xff_cfg = jhl->httplog_ctx->xff_cfg != NULL ?
-        jhl->httplog_ctx->xff_cfg : jhl->httplog_ctx->parent_xff_cfg;
+    HttpXFFCfg *xff_cfg = jhl->httplog_ctx->xff_cfg != NULL ? jhl->httplog_ctx->xff_cfg
+                                                            : jhl->httplog_ctx->parent_xff_cfg;
 
     /* xff header */
     if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
@@ -478,8 +478,7 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
         if (have_xff_ip) {
             if (xff_cfg->flags & XFF_EXTRADATA) {
                 jb_set_string(js, "xff", buffer);
-            }
-            else if (xff_cfg->flags & XFF_OVERWRITE) {
+            } else if (xff_cfg->flags & XFF_OVERWRITE) {
                 if (p->flowflags & FLOW_PKT_TOCLIENT) {
                     jb_set_string(js, "dest_ip", buffer);
                 } else {
@@ -606,14 +605,13 @@ static TmEcode JsonHttpLogThreadInit(ThreadVars *t, const void *initdata, void *
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
 
-    if(initdata == NULL)
-    {
+    if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogHTTP.  \"initdata\" argument NULL");
         goto error_exit;
     }
 
     /* Use the Output Context (file pointer and mutex) */
-    aft->httplog_ctx = ((OutputCtx *)initdata)->data; //TODO
+    aft->httplog_ctx = ((OutputCtx *)initdata)->data; // TODO
 
     aft->ctx = CreateEveThreadCtx(t, aft->httplog_ctx->eve_ctx);
     if (!aft->ctx) {
@@ -644,7 +642,7 @@ static TmEcode JsonHttpLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void JsonHttpLogRegister (void)
+void JsonHttpLogRegister(void)
 {
     /* register as child of eve-log */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonHttpLog", "eve-log.http",

@@ -30,7 +30,7 @@
 #ifndef __UTIL_POOL_H__
 #define __UTIL_POOL_H__
 
-#define POOL_BUCKET_PREALLOCATED    (1 << 0)
+#define POOL_BUCKET_PREALLOCATED (1 << 0)
 
 /* pool bucket structure */
 typedef struct PoolBucket_ {
@@ -43,8 +43,8 @@ typedef struct PoolBucket_ {
 typedef struct Pool_ {
     uint32_t max_buckets;
     uint32_t preallocated;
-    uint32_t allocated;         /**< counter of data elements, both currently in
-                                 *   the pool and outside of it (outstanding) */
+    uint32_t allocated; /**< counter of data elements, both currently in
+                         *   the pool and outside of it (outstanding) */
 
     uint32_t alloc_stack_size;
 
@@ -64,15 +64,16 @@ typedef struct Pool_ {
     void (*Free)(void *);
 
     uint32_t elt_size;
-    uint32_t outstanding;       /**< counter of data items 'in use'. Pretty much
-                                 *   the diff between PoolGet and PoolReturn */
+    uint32_t outstanding; /**< counter of data items 'in use'. Pretty much
+                           *   the diff between PoolGet and PoolReturn */
 #ifdef DEBUG
-    uint32_t max_outstanding;   /**< max value of outstanding we saw */
+    uint32_t max_outstanding; /**< max value of outstanding we saw */
 #endif
 } Pool;
 
 /* prototypes */
-Pool* PoolInit(uint32_t, uint32_t, uint32_t, void *(*Alloc)(void), int (*Init)(void *, void *), void *, void (*Cleanup)(void *), void (*Free)(void *));
+Pool *PoolInit(uint32_t, uint32_t, uint32_t, void *(*Alloc)(void), int (*Init)(void *, void *),
+        void *, void (*Cleanup)(void *), void (*Free)(void *));
 void PoolFree(Pool *);
 void PoolPrint(Pool *);
 void PoolPrintSaturation(Pool *p);

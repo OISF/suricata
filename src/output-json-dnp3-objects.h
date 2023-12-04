@@ -20,7 +20,6 @@
 
 #include "rust-bindings.h"
 
-void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
-    DNP3Point *item);
+void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object, DNP3Point *item);
 
 #endif /* __OUTPUT_JSON_DNP3_OBJECTS_H__ */

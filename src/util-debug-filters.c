@@ -47,7 +47,7 @@ SCLogFGFilterFile *sc_log_fg_filters[SC_LOG_FILTER_MAX] = { NULL, NULL };
  * \brief Mutex for accessing the fine-grained filters sc_log_fg_filters
  */
 static SCMutex sc_log_fg_filters_m[SC_LOG_FILTER_MAX] = { SCMUTEX_INITIALIZER,
-                                                          SCMUTEX_INITIALIZER };
+    SCMUTEX_INITIALIZER };
 
 /**
  * \brief Holds the function-dependent filters
@@ -81,8 +81,7 @@ static SCMutex sc_log_fd_filters_tl_m = SCMUTEX_INITIALIZER;
  * \retval  0 on successfully adding the filter;
  * \retval -1 on failure
  */
-static int SCLogAddFGFilter(const char *file, const char *function,
-                                   int line, int listtype)
+static int SCLogAddFGFilter(const char *file, const char *function, int line, int listtype)
 {
     SCLogFGFilterFile *fgf_file = NULL;
     SCLogFGFilterFile *prev_fgf_file = NULL;
@@ -98,7 +97,7 @@ static int SCLogAddFGFilter(const char *file, const char *function,
     if (sc_log_module_initialized != 1) {
         printf("Logging module not initialized.  Call SCLogInitLogModule() "
                "first before using the debug API\n");
-        return -1 ;
+        return -1;
     }
 
     if (file == NULL && function == NULL && line < 0) {
@@ -159,7 +158,7 @@ static int SCLogAddFGFilter(const char *file, const char *function,
     found = 0;
     fgf_line = fgf_func->line;
     prev_fgf_line = fgf_line;
-    while(fgf_line != NULL) {
+    while (fgf_line != NULL) {
         prev_fgf_line = fgf_line;
         if (line == fgf_line->line) {
             found = 1;
@@ -174,7 +173,7 @@ static int SCLogAddFGFilter(const char *file, const char *function,
         goto done;
     }
 
- done:
+done:
     SCMutexUnlock(&sc_log_fg_filters_m[listtype]);
     sc_log_fg_filters_present = 1;
 
@@ -197,8 +196,7 @@ static int SCLogAddFGFilter(const char *file, const char *function,
  * \retval  0 on no match
  * \retval -1 on failure
  */
-static int SCLogMatchFGFilter(const char *file, const char *function, int line,
-                              int listtype)
+static int SCLogMatchFGFilter(const char *file, const char *function, int line, int listtype)
 {
     SCLogFGFilterFile *fgf_file = NULL;
     SCLogFGFilterFunc *fgf_func = NULL;
@@ -220,10 +218,10 @@ static int SCLogMatchFGFilter(const char *file, const char *function, int line,
         return 1;
     }
 
-    while(fgf_file != NULL) {
+    while (fgf_file != NULL) {
         match = 1;
 
-        match &= (fgf_file->file != NULL)? !strcmp(file, fgf_file->file): 1;
+        match &= (fgf_file->file != NULL) ? !strcmp(file, fgf_file->file) : 1;
 
         if (match == 0) {
             fgf_file = fgf_file->next;
@@ -234,7 +232,7 @@ static int SCLogMatchFGFilter(const char *file, const char *function, int line,
         while (fgf_func != NULL) {
             match = 1;
 
-            match &= (fgf_func->func != NULL)? !strcmp(function, fgf_func->func): 1;
+            match &= (fgf_func->func != NULL) ? !strcmp(function, fgf_func->func) : 1;
 
             if (match == 0) {
                 fgf_func = fgf_func->next;
@@ -245,7 +243,7 @@ static int SCLogMatchFGFilter(const char *file, const char *function, int line,
             while (fgf_line != NULL) {
                 match = 1;
 
-                match &= (fgf_line->line != -1)? (line == fgf_line->line): 1;
+                match &= (fgf_line->line != -1) ? (line == fgf_line->line) : 1;
 
                 if (match == 1)
                     break;
@@ -376,7 +374,7 @@ void SCLogReleaseFGFilters(void)
             while (fgf_func != NULL) {
 
                 fgf_line = fgf_func->line;
-                while(fgf_line != NULL) {
+                while (fgf_line != NULL) {
                     temp = fgf_line;
                     fgf_line = fgf_line->next;
                     SCFree(temp);
@@ -437,7 +435,7 @@ int SCLogPrintFGFilters(void)
             while (fgf_func != NULL) {
 
                 fgf_line = fgf_func->line;
-                while(fgf_line != NULL) {
+                while (fgf_line != NULL) {
 #ifdef DEBUG
                     printf("%s - ", fgf_file->file);
                     printf("%s - ", fgf_func->func);
@@ -459,8 +457,6 @@ int SCLogPrintFGFilters(void)
 
     return count;
 }
-
-
 
 /* --------------------------------------------------|--------------------------
  * -------------------------- Code for the FD Filter |--------------------------
@@ -536,7 +532,7 @@ int SCLogCheckFDFilterEntry(const char *function)
     SCLogFDFilterThreadList *thread_list = NULL;
     SCLogFDFilterThreadList *thread_list_temp = NULL;
 
-    //pid_t self = syscall(SYS_gettid);
+    // pid_t self = syscall(SYS_gettid);
     pthread_t self = pthread_self();
 
     if (sc_log_module_initialized != 1) {
@@ -608,7 +604,7 @@ void SCLogCheckFDFilterExit(const char *function)
 
     SCLogFDFilterThreadList *thread_list = NULL;
 
-    //pid_t self = syscall(SYS_gettid);
+    // pid_t self = syscall(SYS_gettid);
     pthread_t self = pthread_self();
 
     if (sc_log_module_initialized != 1) {
@@ -698,7 +694,7 @@ int SCLogAddFDFilter(const char *function)
         exit(EXIT_FAILURE);
     }
 
-    if ( (temp->func = SCStrdup(function)) == NULL) {
+    if ((temp->func = SCStrdup(function)) == NULL) {
         printf("Error Allocating memory (SCStrdup)\n");
         exit(EXIT_FAILURE);
     }
@@ -736,7 +732,7 @@ void SCLogReleaseFDFilters(void)
 
     sc_log_fd_filters = NULL;
 
-    SCMutexUnlock( &sc_log_fd_filters_m );
+    SCMutexUnlock(&sc_log_fd_filters_m);
 
     return;
 }
@@ -757,7 +753,7 @@ int SCLogRemoveFDFilter(const char *function)
     if (sc_log_module_initialized != 1) {
         printf("Logging module not initialized.  Call SCLogInitLogModule() "
                "first before using the debug API\n");
-        return -1 ;
+        return -1;
     }
 
     if (function == NULL) {
@@ -853,10 +849,8 @@ int SCLogPrintFDFilters(void)
  * \param listtype The filter listtype.  Can be either a blacklist or whitelist
  *                 filter listtype(SC_LOG_FILTER_BL or SC_LOG_FILTER_WL)
  */
-void SCLogAddToFGFFileList(SCLogFGFilterFile *fgf_file,
-                                         const char *file,
-                                         const char *function, int line,
-                                         int listtype)
+void SCLogAddToFGFFileList(
+        SCLogFGFilterFile *fgf_file, const char *file, const char *function, int line, int listtype)
 {
     SCLogFGFilterFile *fgf_file_temp = NULL;
     SCLogFGFilterFunc *fgf_func_temp = NULL;
@@ -866,7 +860,7 @@ void SCLogAddToFGFFileList(SCLogFGFilterFile *fgf_file,
         FatalError("Fatal error encountered in SCLogAddToFGFFileList. Exiting...");
     }
 
-    if ( file != NULL && (fgf_file_temp->file = SCStrdup(file)) == NULL) {
+    if (file != NULL && (fgf_file_temp->file = SCStrdup(file)) == NULL) {
         printf("Error Allocating memory\n");
         exit(EXIT_FAILURE);
     }
@@ -875,7 +869,7 @@ void SCLogAddToFGFFileList(SCLogFGFilterFile *fgf_file,
         FatalError("Fatal error encountered in SCLogAddToFGFFileList. Exiting...");
     }
 
-    if ( function != NULL && (fgf_func_temp->func = SCStrdup(function)) == NULL) {
+    if (function != NULL && (fgf_func_temp->func = SCStrdup(function)) == NULL) {
         printf("Error Allocating memory\n");
         exit(EXIT_FAILURE);
     }
@@ -913,9 +907,8 @@ void SCLogAddToFGFFileList(SCLogFGFilterFile *fgf_file,
  * \param function Function_name of the filter
  * \param line     Line number of the filter
  */
-void SCLogAddToFGFFuncList(SCLogFGFilterFile *fgf_file,
-                                         SCLogFGFilterFunc *fgf_func,
-                                         const char *function, int line)
+void SCLogAddToFGFFuncList(
+        SCLogFGFilterFile *fgf_file, SCLogFGFilterFunc *fgf_func, const char *function, int line)
 {
     SCLogFGFilterFunc *fgf_func_temp = NULL;
     SCLogFGFilterLine *fgf_line_temp = NULL;
@@ -924,7 +917,7 @@ void SCLogAddToFGFFuncList(SCLogFGFilterFile *fgf_file,
         FatalError("Fatal error encountered in SCLogAddToFGFFuncList. Exiting...");
     }
 
-    if ( function != NULL && (fgf_func_temp->func = SCStrdup(function)) == NULL) {
+    if (function != NULL && (fgf_func_temp->func = SCStrdup(function)) == NULL) {
         printf("Error Allocating memory\n");
         exit(EXIT_FAILURE);
     }
@@ -959,9 +952,7 @@ void SCLogAddToFGFFuncList(SCLogFGFilterFile *fgf_file,
  *                 added
  * \param line     Line number of the filter
  */
-void SCLogAddToFGFLineList(SCLogFGFilterFunc *fgf_func,
-                                         SCLogFGFilterLine *fgf_line,
-                                         int line)
+void SCLogAddToFGFLineList(SCLogFGFilterFunc *fgf_func, SCLogFGFilterLine *fgf_line, int line)
 {
     SCLogFGFilterLine *fgf_line_temp = NULL;
 
@@ -995,4 +986,3 @@ void SCLogReleaseFDFilter(SCLogFDFilter *fdf)
 
     return;
 }
-

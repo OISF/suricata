@@ -31,9 +31,9 @@
 /** flow logger function pointer type */
 typedef int (*FlowLogger)(ThreadVars *, void *thread_data, Flow *f);
 
-int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc,
-    OutputCtx *, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
+int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, OutputCtx *,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void OutputFlowShutdown(void);
 

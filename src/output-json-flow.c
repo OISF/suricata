@@ -54,7 +54,7 @@
 static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 {
     char timebuf[64];
-    char srcip[46] = {0}, dstip[46] = {0};
+    char srcip[46] = { 0 }, dstip[46] = { 0 };
     Port sp, dp;
 
     JsonBuilder *jb = jb_new_object();
@@ -121,7 +121,7 @@ static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
 
     /* tuple */
     jb_set_string(jb, "src_ip", srcip);
-    switch(f->proto) {
+    switch (f->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
@@ -131,7 +131,7 @@ static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
             break;
     }
     jb_set_string(jb, "dest_ip", dstip);
-    switch(f->proto) {
+    switch (f->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
@@ -145,7 +145,7 @@ static JsonBuilder *CreateEveHeaderFromFlow(const Flow *f)
         jb_set_string(jb, "proto", known_proto[f->proto]);
     } else {
         char proto[4];
-        snprintf(proto, sizeof(proto), "%"PRIu8"", f->proto);
+        snprintf(proto, sizeof(proto), "%" PRIu8 "", f->proto);
         jb_set_string(jb, "proto", proto);
     }
 
@@ -181,10 +181,8 @@ void EveAddAppProto(Flow *f, JsonBuilder *js)
         jb_set_string(js, "app_proto_orig", AppProtoToString(f->alproto_orig));
     }
     if (f->alproto_expect != f->alproto && f->alproto_expect != ALPROTO_UNKNOWN) {
-        jb_set_string(js, "app_proto_expected",
-                AppProtoToString(f->alproto_expect));
+        jb_set_string(js, "app_proto_expected", AppProtoToString(f->alproto_expect));
     }
-
 }
 
 void EveAddFlow(Flow *f, JsonBuilder *js)
@@ -290,16 +288,13 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, JsonBuilder *jb, Flow *f)
         TcpSession *ssn = f->protoctx;
 
         char hexflags[3];
-        snprintf(hexflags, sizeof(hexflags), "%02x",
-                ssn ? ssn->tcp_packet_flags : 0);
+        snprintf(hexflags, sizeof(hexflags), "%02x", ssn ? ssn->tcp_packet_flags : 0);
         jb_set_string(jb, "tcp_flags", hexflags);
 
-        snprintf(hexflags, sizeof(hexflags), "%02x",
-                ssn ? ssn->client.tcp_flags : 0);
+        snprintf(hexflags, sizeof(hexflags), "%02x", ssn ? ssn->client.tcp_flags : 0);
         jb_set_string(jb, "tcp_flags_ts", hexflags);
 
-        snprintf(hexflags, sizeof(hexflags), "%02x",
-                ssn ? ssn->server.tcp_flags : 0);
+        snprintf(hexflags, sizeof(hexflags), "%02x", ssn ? ssn->server.tcp_flags : 0);
         jb_set_string(jb, "tcp_flags_tc", hexflags);
 
         EveTcpFlags(ssn ? ssn->tcp_packet_flags : 0, jb);
@@ -345,7 +340,7 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     SCReturnInt(TM_ECODE_OK);
 }
 
-void JsonFlowLogRegister (void)
+void JsonFlowLogRegister(void)
 {
     /* register as child of eve-log */
     OutputRegisterFlowSubModule(LOGGER_JSON_FLOW, "eve-log", "JsonFlowLog", "eve-log.flow",

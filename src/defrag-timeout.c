@@ -143,4 +143,3 @@ uint32_t DefragTimeoutHash(SCTime_t ts)
 
     return cnt;
 }
-

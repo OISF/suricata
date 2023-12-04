@@ -25,6 +25,6 @@
 #define __DETECT_TRANSFORM_MD5_H__
 
 /* prototypes */
-void DetectTransformMd5Register (void);
+void DetectTransformMd5Register(void);
 
 #endif /* __DETECT_TRANSFORM_MD5_H__ */

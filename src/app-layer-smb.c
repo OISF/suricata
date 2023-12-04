@@ -34,7 +34,6 @@
 #include "app-layer-smb.h"
 #include "util-misc.h"
 
-
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 static SuricataFileContext sfc = { &sbcfg };
 
@@ -75,45 +74,45 @@ static int SMBParserTxCleanupTest(void)
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_SMB;
 
-    char req_str[] ="\x00\x00\x00\x79\xfe\x53\x4d\x42\x40\x00\x01\x00\x00\x00\x00\x00" \
-                     "\x05\x00\xe0\x1e\x10\x00\x00\x00\x00\x00\x00\x00\x0b\x00\x00\x00" \
-                     "\x00\x00\x00\x00\x00\x00\x00\x00\x10\x72\xd2\x9f\x36\xc2\x08\x14" \
-                     "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
-                     "\x00\x00\x00\x00\x39\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00" \
-                     "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x00\x00\x00" \
-                     "\x00\x00\x00\x00\x07\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00" \
+    char req_str[] = "\x00\x00\x00\x79\xfe\x53\x4d\x42\x40\x00\x01\x00\x00\x00\x00\x00"
+                     "\x05\x00\xe0\x1e\x10\x00\x00\x00\x00\x00\x00\x00\x0b\x00\x00\x00"
+                     "\x00\x00\x00\x00\x00\x00\x00\x00\x10\x72\xd2\x9f\x36\xc2\x08\x14"
+                     "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+                     "\x00\x00\x00\x00\x39\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"
+                     "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x00\x00\x00"
+                     "\x00\x00\x00\x00\x07\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00"
                      "\x78\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
     req_str[28] = 0x01;
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOSERVER | STREAM_START, (uint8_t *)req_str, sizeof(req_str));
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOSERVER | STREAM_START,
+            (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
     req_str[28]++;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
     req_str[28]++;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
     req_str[28]++;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
     req_str[28]++;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
     req_str[28]++;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
     req_str[28]++;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
     req_str[28]++;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOSERVER, (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
     req_str[28]++;
 
@@ -124,44 +123,44 @@ static int SMBParserTxCleanupTest(void)
     FAIL_IF_NOT(ret[2] == 0); // log_id
     FAIL_IF_NOT(ret[3] == 0); // min_id
 
-    char resp_str[] = "\x00\x00\x00\x98\xfe\x53\x4d\x42\x40\x00\x01\x00\x00\x00\x00\x00" \
-                       "\x05\x00\x21\x00\x11\x00\x00\x00\x00\x00\x00\x00\x0b\x00\x00\x00" \
-                       "\x00\x00\x00\x00\x00\x00\x00\x00\x10\x72\xd2\x9f\x36\xc2\x08\x14" \
-                       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
-                       "\x00\x00\x00\x00\x59\x00\x00\x00\x01\x00\x00\x00\x48\x38\x40\xb3" \
-                       "\x0f\xa8\xd3\x01\x84\x9a\x2b\x46\xf7\xa8\xd3\x01\x48\x38\x40\xb3" \
-                       "\x0f\xa8\xd3\x01\x48\x38\x40\xb3\x0f\xa8\xd3\x01\x00\x00\x00\x00" \
-                       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x00\x00" \
-                       "\x00\x00\x00\x00\x9e\x8f\xb8\x91\x00\x00\x00\x00\x01\x5b\x11\xbb" \
-                       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+    char resp_str[] = "\x00\x00\x00\x98\xfe\x53\x4d\x42\x40\x00\x01\x00\x00\x00\x00\x00"
+                      "\x05\x00\x21\x00\x11\x00\x00\x00\x00\x00\x00\x00\x0b\x00\x00\x00"
+                      "\x00\x00\x00\x00\x00\x00\x00\x00\x10\x72\xd2\x9f\x36\xc2\x08\x14"
+                      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+                      "\x00\x00\x00\x00\x59\x00\x00\x00\x01\x00\x00\x00\x48\x38\x40\xb3"
+                      "\x0f\xa8\xd3\x01\x84\x9a\x2b\x46\xf7\xa8\xd3\x01\x48\x38\x40\xb3"
+                      "\x0f\xa8\xd3\x01\x48\x38\x40\xb3\x0f\xa8\xd3\x01\x00\x00\x00\x00"
+                      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x00\x00"
+                      "\x00\x00\x00\x00\x9e\x8f\xb8\x91\x00\x00\x00\x00\x01\x5b\x11\xbb"
+                      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
 
     resp_str[28] = 0x01;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOCLIENT | STREAM_START, (uint8_t *)resp_str, sizeof(resp_str));
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOCLIENT | STREAM_START,
+            (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
     resp_str[28] = 0x04;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
     resp_str[28] = 0x05;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
     resp_str[28] = 0x06;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
     resp_str[28] = 0x08;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
     resp_str[28] = 0x02;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
     resp_str[28] = 0x07;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
     AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT);
 
@@ -172,8 +171,8 @@ static int SMBParserTxCleanupTest(void)
     FAIL_IF_NOT(ret[3] == 2); // min_id
 
     resp_str[28] = 0x03;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOCLIENT, (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
     AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT);
 
@@ -184,8 +183,8 @@ static int SMBParserTxCleanupTest(void)
     FAIL_IF_NOT(ret[3] == 8); // min_id
 
     req_str[28] = 0x09;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOSERVER | STREAM_EOF, (uint8_t *)req_str, sizeof(req_str));
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOSERVER | STREAM_EOF,
+            (uint8_t *)req_str, sizeof(req_str));
     FAIL_IF_NOT(r == 0);
     AppLayerParserTransactionsCleanup(f, STREAM_TOSERVER);
 
@@ -196,8 +195,8 @@ static int SMBParserTxCleanupTest(void)
     FAIL_IF_NOT(ret[3] == 8); // min_id
 
     resp_str[28] = 0x09;
-    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB,
-                                STREAM_TOCLIENT | STREAM_EOF, (uint8_t *)resp_str, sizeof(resp_str));
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMB, STREAM_TOCLIENT | STREAM_EOF,
+            (uint8_t *)resp_str, sizeof(resp_str));
     FAIL_IF_NOT(r == 0);
     AppLayerParserTransactionsCleanup(f, STREAM_TOCLIENT);
 

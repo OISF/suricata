@@ -52,13 +52,13 @@
 
 #ifndef OS_WIN32
 
-#define MODULE_NAME                             "AlertSyslog"
+#define MODULE_NAME "AlertSyslog"
 
 static int alert_syslog_level = DEFAULT_ALERT_SYSLOG_LEVEL;
 
 typedef struct AlertSyslogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx* file_ctx;
+    LogFileCtx *file_ctx;
 } AlertSyslogThread;
 
 /**
@@ -119,7 +119,7 @@ static OutputInitResult AlertSyslogInitCtx(ConfNode *conf)
     /* if null we just pass that to openlog, which will then
      * figure it out by itself. */
 
-    openlog(ident, LOG_PID|LOG_NDELAY, facility);
+    openlog(ident, LOG_PID | LOG_NDELAY, facility);
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -148,9 +148,9 @@ static OutputInitResult AlertSyslogInitCtx(ConfNode *conf)
  */
 static TmEcode AlertSyslogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    if(initdata == NULL) {
+    if (initdata == NULL) {
         SCLogDebug("Error getting context for AlertSyslog. \"initdata\" "
-                "argument NULL");
+                   "argument NULL");
         return TM_ECODE_FAILED;
     }
 
@@ -232,11 +232,12 @@ static TmEcode AlertSyslogIPv4(ThreadVars *tv, const Packet *p, void *data)
             action = "[wDrop] ";
         }
 
-        syslog(alert_syslog_level, "%s[%" PRIu32 ":%" PRIu32 ":%"
-                PRIu32 "] %s [Classification: %s] [Priority: %"PRIu32"]"
-                " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", action, pa->s->gid,
-                pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
-                protoptr,  srcip, p->sp, dstip, p->dp);
+        syslog(alert_syslog_level,
+                "%s[%" PRIu32 ":%" PRIu32 ":%" PRIu32
+                "] %s [Classification: %s] [Priority: %" PRIu32 "]"
+                " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "",
+                action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg,
+                pa->s->prio, protoptr, srcip, p->sp, dstip, p->dp);
     }
     SCMutexUnlock(&ast->file_ctx->fp_mutex);
 
@@ -289,13 +290,12 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
             action = "[wDrop] ";
         }
 
-        syslog(alert_syslog_level, "%s[%" PRIu32 ":%" PRIu32 ":%"
+        syslog(alert_syslog_level,
+                "%s[%" PRIu32 ":%" PRIu32 ":%"
                 "" PRIu32 "] %s [Classification: %s] [Priority: %"
                 "" PRIu32 "] {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "",
                 action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg,
-                pa->s->prio, protoptr, srcip, p->sp,
-                dstip, p->dp);
-
+                pa->s->prio, protoptr, srcip, p->sp, dstip, p->dp);
     }
     SCMutexUnlock(&ast->file_ctx->fp_mutex);
 
@@ -339,17 +339,19 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *da
             action = "[wDrop] ";
         }
 
-        snprintf(temp_buf_hdr, sizeof(temp_buf_hdr), "%s[%" PRIu32 ":%" PRIu32
-                ":%" PRIu32 "] %s [Classification: %s] [Priority: %" PRIu32
-                "] [**] [Raw pkt: ", action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg,
-                pa->s->class_msg, pa->s->prio);
+        snprintf(temp_buf_hdr, sizeof(temp_buf_hdr),
+                "%s[%" PRIu32 ":%" PRIu32 ":%" PRIu32
+                "] %s [Classification: %s] [Priority: %" PRIu32 "] [**] [Raw pkt: ",
+                action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg,
+                pa->s->prio);
         strlcpy(alert, temp_buf_hdr, sizeof(alert));
 
-        PrintRawLineHexBuf(temp_buf_pkt, sizeof(temp_buf_pkt), GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
+        PrintRawLineHexBuf(temp_buf_pkt, sizeof(temp_buf_pkt), GET_PKT_DATA(p),
+                GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
         strlcat(alert, temp_buf_pkt, sizeof(alert));
 
         if (p->pcap_cnt != 0) {
-            snprintf(temp_buf_tail, sizeof(temp_buf_tail), "] [pcap file packet: %"PRIu64"]",
+            snprintf(temp_buf_tail, sizeof(temp_buf_tail), "] [pcap file packet: %" PRIu64 "]",
                     p->pcap_cnt);
         } else {
             temp_buf_tail[0] = ']';
@@ -385,11 +387,11 @@ static int AlertSyslogLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 #endif /* !OS_WIN32 */
 
 /** \brief   Function to register the AlertSyslog module */
-void AlertSyslogRegister (void)
+void AlertSyslogRegister(void)
 {
 #ifndef OS_WIN32
-    OutputRegisterPacketModule(LOGGER_ALERT_SYSLOG, MODULE_NAME, "syslog",
-        AlertSyslogInitCtx, AlertSyslogLogger, AlertSyslogCondition,
-        AlertSyslogThreadInit, AlertSyslogThreadDeinit, NULL);
+    OutputRegisterPacketModule(LOGGER_ALERT_SYSLOG, MODULE_NAME, "syslog", AlertSyslogInitCtx,
+            AlertSyslogLogger, AlertSyslogCondition, AlertSyslogThreadInit, AlertSyslogThreadDeinit,
+            NULL);
 #endif /* !OS_WIN32 */
 }

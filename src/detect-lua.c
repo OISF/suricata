@@ -65,7 +65,7 @@
 
 #ifndef HAVE_LUA
 
-static int DetectLuaSetupNoSupport (DetectEngineCtx *a, Signature *b, const char *c)
+static int DetectLuaSetupNoSupport(DetectEngineCtx *a, Signature *b, const char *c)
 {
     SCLogError("no Lua support built in, needed for lua/luajit keyword");
     return -1;
@@ -81,10 +81,10 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].desc = "support for lua scripting";
     sigmatch_table[DETECT_LUA].url = "/rules/rule-lua-scripting.html";
     sigmatch_table[DETECT_LUA].Setup = DetectLuaSetupNoSupport;
-    sigmatch_table[DETECT_LUA].Free  = NULL;
+    sigmatch_table[DETECT_LUA].Free = NULL;
     sigmatch_table[DETECT_LUA].flags = SIGMATCH_NOT_BUILT;
 
-	SCLogDebug("registering lua rule option");
+    SCLogDebug("registering lua rule option");
     return;
 }
 
@@ -92,13 +92,11 @@ void DetectLuaRegister(void)
 
 #include "util-lua.h"
 
-static int DetectLuaMatch (DetectEngineThreadCtx *,
-        Packet *, const Signature *, const SigMatchCtx *);
-static int DetectLuaAppTxMatch (DetectEngineThreadCtx *det_ctx,
-                                Flow *f, uint8_t flags,
-                                void *state, void *txv, const Signature *s,
-                                const SigMatchCtx *ctx);
-static int DetectLuaSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectLuaMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectLuaAppTxMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectLuaSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectLuaRegisterTests(void);
 #endif
@@ -117,7 +115,7 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].Match = DetectLuaMatch;
     sigmatch_table[DETECT_LUA].AppLayerTxMatch = DetectLuaAppTxMatch;
     sigmatch_table[DETECT_LUA].Setup = DetectLuaSetup;
-    sigmatch_table[DETECT_LUA].Free  = DetectLuaFree;
+    sigmatch_table[DETECT_LUA].Free = DetectLuaFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_LUA].RegisterTests = DetectLuaRegisterTests;
 #endif
@@ -202,9 +200,8 @@ void LuaDumpStack(lua_State *state)
 }
 #endif
 
-int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        const uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
+int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, const Signature *s,
+        const SigMatchData *smd, const uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
         Flow *f)
 {
     SCEnter();
@@ -217,7 +214,8 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
     if (lua == NULL)
         SCReturnInt(0);
 
-    DetectLuaThreadData *tlua = (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
+    DetectLuaThreadData *tlua =
+            (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
     if (tlua == NULL)
         SCReturnInt(0);
 
@@ -227,11 +225,11 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
     lua_getglobal(tlua->luastate, "match");
     lua_newtable(tlua->luastate); /* stack at -1 */
 
-    lua_pushliteral (tlua->luastate, "offset"); /* stack at -2 */
-    lua_pushnumber (tlua->luastate, (int)(offset + 1));
+    lua_pushliteral(tlua->luastate, "offset"); /* stack at -2 */
+    lua_pushnumber(tlua->luastate, (int)(offset + 1));
     lua_settable(tlua->luastate, -3);
 
-    lua_pushstring (tlua->luastate, lua->buffername); /* stack at -2 */
+    lua_pushstring(tlua->luastate, lua->buffername); /* stack at -2 */
     LuaPushStringBuffer(tlua->luastate, (const uint8_t *)buffer, (size_t)buffer_len);
     lua_settable(tlua->luastate, -3);
 
@@ -251,7 +249,7 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
             if (script_ret == 1.0)
                 ret = 1;
 
-        /* script returns a table */
+            /* script returns a table */
         } else if (lua_type(tlua->luastate, 1) == LUA_TTABLE) {
             lua_pushnil(tlua->luastate);
             const char *k, *v;
@@ -272,8 +270,7 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
                                    "for \"retval\" from LUA return table: '%s'",
                                 v);
                         ret = 0;
-                    }
-                    else if (val == 1) {
+                    } else if (val == 1) {
                         ret = 1;
                     }
                 } else {
@@ -315,8 +312,8 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
-        Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectLuaMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
     int ret = 0;
@@ -324,7 +321,8 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
     if (lua == NULL)
         SCReturnInt(0);
 
-    DetectLuaThreadData *tlua = (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
+    DetectLuaThreadData *tlua =
+            (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
     if (tlua == NULL)
         SCReturnInt(0);
 
@@ -357,32 +355,33 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
 
     if ((tlua->flags & DATATYPE_PAYLOAD) && p->payload_len) {
         lua_pushliteral(tlua->luastate, "payload"); /* stack at -2 */
-        LuaPushStringBuffer (tlua->luastate, (const uint8_t *)p->payload, (size_t)p->payload_len); /* stack at -3 */
+        LuaPushStringBuffer(tlua->luastate, (const uint8_t *)p->payload,
+                (size_t)p->payload_len); /* stack at -3 */
         lua_settable(tlua->luastate, -3);
     }
     if ((tlua->flags & DATATYPE_PACKET) && GET_PKT_LEN(p)) {
         lua_pushliteral(tlua->luastate, "packet"); /* stack at -2 */
-        LuaPushStringBuffer (tlua->luastate, (const uint8_t *)GET_PKT_DATA(p), (size_t)GET_PKT_LEN(p)); /* stack at -3 */
+        LuaPushStringBuffer(tlua->luastate, (const uint8_t *)GET_PKT_DATA(p),
+                (size_t)GET_PKT_LEN(p)); /* stack at -3 */
         lua_settable(tlua->luastate, -3);
     }
     if (tlua->alproto == ALPROTO_HTTP1) {
         HtpState *htp_state = p->flow->alstate;
         if (htp_state != NULL && htp_state->connp != NULL) {
             htp_tx_t *tx = NULL;
-            uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser,
-                                                                 STREAM_TOSERVER);
-            uint64_t total_txs= AppLayerParserGetTxCnt(p->flow, htp_state);
-            for ( ; idx < total_txs; idx++) {
+            uint64_t idx =
+                    AppLayerParserGetTransactionInspectId(p->flow->alparser, STREAM_TOSERVER);
+            uint64_t total_txs = AppLayerParserGetTxCnt(p->flow, htp_state);
+            for (; idx < total_txs; idx++) {
                 tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, idx);
                 if (tx == NULL)
                     continue;
 
                 if ((tlua->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
-                    bstr_len(tx->request_line) > 0) {
+                        bstr_len(tx->request_line) > 0) {
                     lua_pushliteral(tlua->luastate, "http.request_line"); /* stack at -2 */
-                    LuaPushStringBuffer(tlua->luastate,
-                                     (const uint8_t *)bstr_ptr(tx->request_line),
-                                     bstr_len(tx->request_line));
+                    LuaPushStringBuffer(tlua->luastate, (const uint8_t *)bstr_ptr(tx->request_line),
+                            bstr_len(tx->request_line));
                     lua_settable(tlua->luastate, -3);
                 }
             }
@@ -406,7 +405,7 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
             if (script_ret == 1.0)
                 ret = 1;
 
-        /* script returns a table */
+            /* script returns a table */
         } else if (lua_type(tlua->luastate, 1) == LUA_TTABLE) {
             lua_pushnil(tlua->luastate);
             const char *k, *v;
@@ -422,14 +421,12 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
 
                 if (strcmp(k, "retval") == 0) {
                     int val;
-                    if (StringParseInt32(&val, 10, 0,
-                                         (const char *)v) < 0) {
+                    if (StringParseInt32(&val, 10, 0, (const char *)v) < 0) {
                         SCLogError("Invalid value "
                                    "for \"retval\" from LUA return table: '%s'",
                                 v);
                         ret = 0;
-                    }
-                    else if (val == 1) {
+                    } else if (val == 1) {
                         ret = 1;
                     }
                 } else {
@@ -455,9 +452,8 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
     SCReturnInt(ret);
 }
 
-static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectLuaAppMatchCommon(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
     int ret = 0;
@@ -465,7 +461,8 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
     if (lua == NULL)
         SCReturnInt(0);
 
-    DetectLuaThreadData *tlua = (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
+    DetectLuaThreadData *tlua =
+            (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
     if (tlua == NULL)
         SCReturnInt(0);
 
@@ -488,11 +485,10 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
             tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, det_ctx->tx_id);
             if (tx != NULL) {
                 if ((tlua->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
-                    bstr_len(tx->request_line) > 0) {
+                        bstr_len(tx->request_line) > 0) {
                     lua_pushliteral(tlua->luastate, "http.request_line"); /* stack at -2 */
-                    LuaPushStringBuffer(tlua->luastate,
-                                     (const uint8_t *)bstr_ptr(tx->request_line),
-                                     bstr_len(tx->request_line));
+                    LuaPushStringBuffer(tlua->luastate, (const uint8_t *)bstr_ptr(tx->request_line),
+                            bstr_len(tx->request_line));
                     lua_settable(tlua->luastate, -3);
                 }
             }
@@ -516,7 +512,7 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
             if (script_ret == 1.0)
                 ret = 1;
 
-        /* script returns a table */
+            /* script returns a table */
         } else if (lua_type(tlua->luastate, 1) == LUA_TTABLE) {
             lua_pushnil(tlua->luastate);
             const char *k, *v;
@@ -532,14 +528,12 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
 
                 if (strcmp(k, "retval") == 0) {
                     int val;
-                    if (StringParseInt32(&val, 10, 0,
-                                         (const char *)v) < 0) {
+                    if (StringParseInt32(&val, 10, 0, (const char *)v) < 0) {
                         SCLogError("Invalid value "
                                    "for \"retval\" from LUA return table: '%s'",
                                 v);
                         ret = 0;
-                    }
-                    else if (val == 1) {
+                    } else if (val == 1) {
                         ret = 1;
                     }
                 } else {
@@ -576,10 +570,8 @@ static int DetectLuaAppMatchCommon (DetectEngineThreadCtx *det_ctx,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectLuaAppTxMatch (DetectEngineThreadCtx *det_ctx,
-                                Flow *f, uint8_t flags,
-                                void *state, void *txv, const Signature *s,
-                                const SigMatchCtx *ctx)
+static int DetectLuaAppTxMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     return DetectLuaAppMatchCommon(det_ctx, f, flags, state, s, ctx);
 }
@@ -675,7 +667,7 @@ static void DetectLuaThreadFree(void *ctx)
  * \retval lua pointer to DetectLuaData on success
  * \retval NULL on failure
  */
-static DetectLuaData *DetectLuaParse (DetectEngineCtx *de_ctx, const char *str)
+static DetectLuaData *DetectLuaParse(DetectEngineCtx *de_ctx, const char *str)
 {
     DetectLuaData *lua = NULL;
 
@@ -750,7 +742,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
     }
 
     lua_pushliteral(luastate, "script_api_ver"); /* stack at -2 */
-    lua_pushnumber (luastate, 1); /* stack at -3 */
+    lua_pushnumber(luastate, 1);                 /* stack at -3 */
     lua_settable(luastate, -3);
 
     if (lua_pcall(luastate, 1, 1, 0) != 0) {
@@ -1007,7 +999,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectLuaSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectLuaData *lua = NULL;
 
@@ -1028,9 +1020,8 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
         goto error;
     }
 
-    lua->thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "lua",
-            DetectLuaThreadInit, (void *)lua,
-            DetectLuaThreadFree, 0);
+    lua->thread_ctx_id = DetectRegisterThreadCtxFuncs(
+            de_ctx, "lua", DetectLuaThreadInit, (void *)lua, DetectLuaThreadFree, 0);
     if (lua->thread_ctx_id == -1)
         goto error;
 
@@ -1070,14 +1061,14 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
         } else if (lua->flags & DATATYPE_HTTP_URI_RAW) {
             list = DetectBufferTypeGetByName("http_raw_uri");
         } else if (lua->flags & DATATYPE_HTTP_REQUEST_COOKIE ||
-                 lua->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
-        {
+                   lua->flags & DATATYPE_HTTP_RESPONSE_COOKIE) {
             list = DetectBufferTypeGetByName("http_cookie");
         } else if (lua->flags & DATATYPE_HTTP_REQUEST_UA) {
             list = DetectBufferTypeGetByName("http_user_agent");
-        } else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS|DATATYPE_HTTP_RESPONSE_HEADERS)) {
+        } else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS | DATATYPE_HTTP_RESPONSE_HEADERS)) {
             list = DetectBufferTypeGetByName("http_header");
-        } else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS_RAW|DATATYPE_HTTP_RESPONSE_HEADERS_RAW)) {
+        } else if (lua->flags &
+                   (DATATYPE_HTTP_REQUEST_HEADERS_RAW | DATATYPE_HTTP_RESPONSE_HEADERS_RAW)) {
             list = DetectBufferTypeGetByName("http_raw_header");
         } else {
             list = DetectBufferTypeGetByName("http_request_line");
@@ -1177,41 +1168,38 @@ static int LuaMatchTest01(void)
 {
     ConfSetFinal("security.lua.allow-rules", "true");
 
-    const char script[] =
-        "function init (args)\n"
-        "   local needs = {}\n"
-        "   needs[\"http.request_headers\"] = tostring(true)\n"
-        "   needs[\"flowvar\"] = {\"cnt\"}\n"
-        "   return needs\n"
-        "end\n"
-        "\n"
-        "function match(args)\n"
-        "   a = ScFlowvarGet(0)\n"
-        "   if a then\n"
-        "       a = tostring(tonumber(a)+1)\n"
-        "       print (a)\n"
-        "       ScFlowvarSet(0, a, #a)\n"
-        "   else\n"
-        "       a = tostring(1)\n"
-        "       print (a)\n"
-        "       ScFlowvarSet(0, a, #a)\n"
-        "   end\n"
-        "   \n"
-        "   print (\"pre check: \" .. (a))\n"
-        "   if tonumber(a) == 2 then\n"
-        "       print \"match\"\n"
-        "       return 1\n"
-        "   end\n"
-        "   return 0\n"
-        "end\n"
-        "return 0\n";
+    const char script[] = "function init (args)\n"
+                          "   local needs = {}\n"
+                          "   needs[\"http.request_headers\"] = tostring(true)\n"
+                          "   needs[\"flowvar\"] = {\"cnt\"}\n"
+                          "   return needs\n"
+                          "end\n"
+                          "\n"
+                          "function match(args)\n"
+                          "   a = ScFlowvarGet(0)\n"
+                          "   if a then\n"
+                          "       a = tostring(tonumber(a)+1)\n"
+                          "       print (a)\n"
+                          "       ScFlowvarSet(0, a, #a)\n"
+                          "   else\n"
+                          "       a = tostring(1)\n"
+                          "       print (a)\n"
+                          "       ScFlowvarSet(0, a, #a)\n"
+                          "   end\n"
+                          "   \n"
+                          "   print (\"pre check: \" .. (a))\n"
+                          "   if tonumber(a) == 2 then\n"
+                          "       print \"match\"\n"
+                          "       return 1\n"
+                          "   end\n"
+                          "   return 0\n"
+                          "end\n"
+                          "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -1239,11 +1227,11 @@ static int LuaMatchTest01(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -1986,12 +1974,10 @@ static int LuaMatchTest04a(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -2019,12 +2005,12 @@ static int LuaMatchTest04a(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -2097,12 +2083,10 @@ static int LuaMatchTest05(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -2130,12 +2114,12 @@ static int LuaMatchTest05(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -2208,12 +2192,10 @@ static int LuaMatchTest05a(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -2241,12 +2223,12 @@ static int LuaMatchTest05a(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -2324,12 +2306,10 @@ static int LuaMatchTest06(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -2357,12 +2337,12 @@ static int LuaMatchTest06(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -2440,12 +2420,10 @@ static int LuaMatchTest06a(void)
                           "end\n"
                           "return 0\n";
     char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
-    uint8_t httpbuf1[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.emergingthreats.net\r\n\r\n";
-    uint8_t httpbuf2[] =
-        "POST / HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.emergingthreats.net\r\n\r\n";
+    uint8_t httpbuf2[] = "POST / HTTP/1.1\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -2473,12 +2451,12 @@ static int LuaMatchTest06a(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 

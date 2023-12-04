@@ -41,7 +41,7 @@ PktVar *PktVarGet(Packet *p, uint32_t id)
 {
     PktVar *pv = p->pktvar;
 
-    for (;pv != NULL; pv = pv->next) {
+    for (; pv != NULL; pv = pv->next) {
         if (pv->id == id)
             return pv;
     }
@@ -68,7 +68,7 @@ int PktVarAddKeyValue(Packet *p, uint8_t *key, uint16_t ksize, uint8_t *value, u
     if (p->pktvar == NULL)
         p->pktvar = pv;
     else {
-        while(tpv) {
+        while (tpv) {
             if (tpv->next == NULL) {
                 tpv->next = pv;
                 return 0;
@@ -97,7 +97,7 @@ int PktVarAdd(Packet *p, uint32_t id, uint8_t *value, uint16_t size)
     if (p->pktvar == NULL)
         p->pktvar = pv;
     else {
-        while(tpv) {
+        while (tpv) {
             if (tpv->next == NULL) {
                 tpv->next = pv;
                 return 0;

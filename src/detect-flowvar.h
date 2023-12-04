@@ -35,13 +35,12 @@ typedef struct DetectFlowvarData_ {
 } DetectFlowvarData;
 
 /* prototypes */
-void DetectFlowvarRegister (void);
+void DetectFlowvarRegister(void);
 
 int DetectFlowvarPostMatchSetup(DetectEngineCtx *de_ctx, Signature *s, uint32_t idx);
-int DetectVarStoreMatch(DetectEngineThreadCtx *,
-        uint32_t, uint8_t *, uint16_t, int);
-int DetectVarStoreMatchKeyValue(DetectEngineThreadCtx *,
-        uint8_t *, uint16_t, uint8_t *, uint16_t, int);
+int DetectVarStoreMatch(DetectEngineThreadCtx *, uint32_t, uint8_t *, uint16_t, int);
+int DetectVarStoreMatchKeyValue(
+        DetectEngineThreadCtx *, uint8_t *, uint16_t, uint8_t *, uint16_t, int);
 
 /* For use only by DetectFlowvarProcessList() */
 void DetectVarProcessListInternal(DetectVarList *fs, Flow *f, Packet *p);

@@ -42,8 +42,8 @@
 
 static DetectParseRegex parse_regex;
 
-static int DetectIcmpSeqMatch(DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
+static int DetectIcmpSeqMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectIcmpSeqSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectIcmpSeqRegisterTests(void);
@@ -55,7 +55,7 @@ static bool PrefilterIcmpSeqIsPrefilterable(const Signature *s);
 /**
  * \brief Registration function for icmp_seq
  */
-void DetectIcmpSeqRegister (void)
+void DetectIcmpSeqRegister(void)
 {
     sigmatch_table[DETECT_ICMP_SEQ].name = "icmp_seq";
     sigmatch_table[DETECT_ICMP_SEQ].desc = "check for a ICMP sequence number";
@@ -80,7 +80,7 @@ static inline bool GetIcmpSeq(Packet *p, uint16_t *seq)
         return false;
 
     if (PKT_IS_ICMPV4(p)) {
-        switch (ICMPV4_GET_TYPE(p)){
+        switch (ICMPV4_GET_TYPE(p)) {
             case ICMP_ECHOREPLY:
             case ICMP_ECHO:
             case ICMP_TIMESTAMP:
@@ -89,9 +89,9 @@ static inline bool GetIcmpSeq(Packet *p, uint16_t *seq)
             case ICMP_INFO_REPLY:
             case ICMP_ADDRESS:
             case ICMP_ADDRESSREPLY:
-                SCLogDebug("ICMPV4_GET_SEQ(p) %"PRIu16" (network byte order), "
-                        "%"PRIu16" (host byte order)", ICMPV4_GET_SEQ(p),
-                        SCNtohs(ICMPV4_GET_SEQ(p)));
+                SCLogDebug("ICMPV4_GET_SEQ(p) %" PRIu16 " (network byte order), "
+                           "%" PRIu16 " (host byte order)",
+                        ICMPV4_GET_SEQ(p), SCNtohs(ICMPV4_GET_SEQ(p)));
 
                 seqn = ICMPV4_GET_SEQ(p);
                 break;
@@ -104,9 +104,9 @@ static inline bool GetIcmpSeq(Packet *p, uint16_t *seq)
         switch (ICMPV6_GET_TYPE(p)) {
             case ICMP6_ECHO_REQUEST:
             case ICMP6_ECHO_REPLY:
-                SCLogDebug("ICMPV6_GET_SEQ(p) %"PRIu16" (network byte order), "
-                        "%"PRIu16" (host byte order)", ICMPV6_GET_SEQ(p),
-                        SCNtohs(ICMPV6_GET_SEQ(p)));
+                SCLogDebug("ICMPV6_GET_SEQ(p) %" PRIu16 " (network byte order), "
+                           "%" PRIu16 " (host byte order)",
+                        ICMPV6_GET_SEQ(p), SCNtohs(ICMPV6_GET_SEQ(p)));
 
                 seqn = ICMPV6_GET_SEQ(p);
                 break;
@@ -134,8 +134,8 @@ static inline bool GetIcmpSeq(Packet *p, uint16_t *seq)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectIcmpSeqMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectIcmpSeqMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     uint16_t seqn;
 
@@ -158,10 +158,10 @@ static int DetectIcmpSeqMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval iseq pointer to DetectIcmpSeqData on success
  * \retval NULL on failure
  */
-static DetectIcmpSeqData *DetectIcmpSeqParse (DetectEngineCtx *de_ctx, const char *icmpseqstr)
+static DetectIcmpSeqData *DetectIcmpSeqParse(DetectEngineCtx *de_ctx, const char *icmpseqstr)
 {
     DetectIcmpSeqData *iseq = NULL;
-    char *substr[3] = {NULL, NULL, NULL};
+    char *substr[3] = { NULL, NULL, NULL };
     int res = 0;
     size_t pcre2_len;
     int i;
@@ -180,7 +180,7 @@ static DetectIcmpSeqData *DetectIcmpSeqParse (DetectEngineCtx *de_ctx, const cha
             SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
         }
-        substr[i-1] = (char *)str_ptr;
+        substr[i - 1] = (char *)str_ptr;
     }
 
     iseq = SCMalloc(sizeof(DetectIcmpSeqData));
@@ -226,9 +226,9 @@ error:
         if (substr[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)substr[i]);
     }
-    if (iseq != NULL) DetectIcmpSeqFree(de_ctx, iseq);
+    if (iseq != NULL)
+        DetectIcmpSeqFree(de_ctx, iseq);
     return NULL;
-
 }
 
 /**
@@ -241,12 +241,13 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, const char *icmpseqstr)
+static int DetectIcmpSeqSetup(DetectEngineCtx *de_ctx, Signature *s, const char *icmpseqstr)
 {
     DetectIcmpSeqData *iseq = NULL;
 
     iseq = DetectIcmpSeqParse(de_ctx, icmpseqstr);
-    if (iseq == NULL) goto error;
+    if (iseq == NULL)
+        goto error;
 
     if (SigMatchAppendSMToList(
                 de_ctx, s, DETECT_ICMP_SEQ, (SigMatchCtx *)iseq, DETECT_SM_LIST_MATCH) == NULL) {
@@ -259,7 +260,6 @@ error:
     if (iseq != NULL)
         DetectIcmpSeqFree(de_ctx, iseq);
     return -1;
-
 }
 
 /**
@@ -267,7 +267,7 @@ error:
  *
  * \param ptr pointer to DetectIcmpSeqData
  */
-void DetectIcmpSeqFree (DetectEngineCtx *de_ctx, void *ptr)
+void DetectIcmpSeqFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectIcmpSeqData *iseq = (DetectIcmpSeqData *)ptr;
     SCFree(iseq);
@@ -275,8 +275,8 @@ void DetectIcmpSeqFree (DetectEngineCtx *de_ctx, void *ptr)
 
 /* prefilter code */
 
-static void
-PrefilterPacketIcmpSeqMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketIcmpSeqMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
@@ -285,22 +285,19 @@ PrefilterPacketIcmpSeqMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const voi
     if (!GetIcmpSeq(p, &seqn))
         return;
 
-    if (seqn == ctx->v1.u16[0])
-    {
+    if (seqn == ctx->v1.u16[0]) {
         SCLogDebug("packet matches ICMP SEQ %u", ctx->v1.u16[0]);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
 }
 
-static void
-PrefilterPacketIcmpSeqSet(PrefilterPacketHeaderValue *v, void *smctx)
+static void PrefilterPacketIcmpSeqSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
     const DetectIcmpSeqData *a = smctx;
     v->u16[0] = a->seq;
 }
 
-static bool
-PrefilterPacketIcmpSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
+static bool PrefilterPacketIcmpSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectIcmpSeqData *a = smctx;
     if (v.u16[0] == a->seq)
@@ -310,16 +307,14 @@ PrefilterPacketIcmpSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupIcmpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMP_SEQ,
-        PrefilterPacketIcmpSeqSet,
-        PrefilterPacketIcmpSeqCompare,
-        PrefilterPacketIcmpSeqMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMP_SEQ, PrefilterPacketIcmpSeqSet,
+            PrefilterPacketIcmpSeqCompare, PrefilterPacketIcmpSeqMatch);
 }
 
 static bool PrefilterIcmpSeqIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ICMP_SEQ:
                 return true;
@@ -336,7 +331,7 @@ static bool PrefilterIcmpSeqIsPrefilterable(const Signature *s)
 /**
  * \test DetectIcmpSeqParseTest01 is a test for setting a valid icmp_seq value
  */
-static int DetectIcmpSeqParseTest01 (void)
+static int DetectIcmpSeqParseTest01(void)
 {
     DetectIcmpSeqData *iseq = NULL;
     iseq = DetectIcmpSeqParse(NULL, "300");
@@ -350,7 +345,7 @@ static int DetectIcmpSeqParseTest01 (void)
  * \test DetectIcmpSeqParseTest02 is a test for setting a valid icmp_seq value
  *       with spaces all around
  */
-static int DetectIcmpSeqParseTest02 (void)
+static int DetectIcmpSeqParseTest02(void)
 {
     DetectIcmpSeqData *iseq = NULL;
     iseq = DetectIcmpSeqParse(NULL, "  300  ");
@@ -363,14 +358,14 @@ static int DetectIcmpSeqParseTest02 (void)
 /**
  * \test DetectIcmpSeqParseTest03 is a test for setting an invalid icmp_seq value
  */
-static int DetectIcmpSeqParseTest03 (void)
+static int DetectIcmpSeqParseTest03(void)
 {
     DetectIcmpSeqData *iseq = DetectIcmpSeqParse(NULL, "badc");
     FAIL_IF_NOT_NULL(iseq);
     PASS;
 }
 
-static void DetectIcmpSeqRegisterTests (void)
+static void DetectIcmpSeqRegisterTests(void)
 {
     UtRegisterTest("DetectIcmpSeqParseTest01", DetectIcmpSeqParseTest01);
     UtRegisterTest("DetectIcmpSeqParseTest02", DetectIcmpSeqParseTest02);

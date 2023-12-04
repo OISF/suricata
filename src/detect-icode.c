@@ -43,8 +43,8 @@
  *\brief Regex for parsing our icode options
  */
 
-static int DetectICodeMatch(DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
+static int DetectICodeMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectICodeSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectICodeRegisterTests(void);
@@ -57,7 +57,7 @@ static bool PrefilterICodeIsPrefilterable(const Signature *s);
 /**
  * \brief Registration function for icode: keyword
  */
-void DetectICodeRegister (void)
+void DetectICodeRegister(void)
 {
     sigmatch_table[DETECT_ICODE].name = "icode";
     sigmatch_table[DETECT_ICODE].desc = "match on specific ICMP id-value";
@@ -84,8 +84,8 @@ void DetectICodeRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectICodeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectICodeMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     if (PKT_IS_PSEUDOPKT(p))
         return 0;
@@ -120,7 +120,8 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
     DetectU8Data *icd = NULL;
 
     icd = DetectU8Parse(icodestr);
-    if (icd == NULL) goto error;
+    if (icd == NULL)
+        goto error;
 
     if (SigMatchAppendSMToList(de_ctx, s, DETECT_ICODE, (SigMatchCtx *)icd, DETECT_SM_LIST_MATCH) ==
             NULL) {
@@ -148,8 +149,7 @@ void DetectICodeFree(DetectEngineCtx *de_ctx, void *ptr)
 
 /* prefilter code */
 
-static void PrefilterPacketICodeMatch(DetectEngineThreadCtx *det_ctx,
-        Packet *p, const void *pectx)
+static void PrefilterPacketICodeMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     if (PKT_IS_PSEUDOPKT(p)) {
         SCReturn;
@@ -181,7 +181,7 @@ static int PrefilterSetupICode(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 static bool PrefilterICodeIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ICODE:
                 return true;

@@ -96,7 +96,7 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
         return;
     }
     ConfNode *plugin = NULL;
-    TAILQ_FOREACH(plugin, &conf->head, next) {
+    TAILQ_FOREACH (plugin, &conf->head, next) {
         struct stat statbuf;
         if (stat(plugin->val, &statbuf) == -1) {
             SCLogError("Bad plugin path: %s: %s", plugin->val, strerror(errno));
@@ -128,8 +128,7 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
         if (capture == NULL) {
             FatalError("No capture plugin found with name %s", capture_plugin_name);
         }
-        capture->Init(capture_plugin_args, RUNMODE_PLUGIN, TMM_RECEIVEPLUGIN,
-                TMM_DECODEPLUGIN);
+        capture->Init(capture_plugin_args, RUNMODE_PLUGIN, TMM_RECEIVEPLUGIN, TMM_DECODEPLUGIN);
     }
 }
 
@@ -186,7 +185,7 @@ bool SCRegisterEveFileType(SCEveFileType *plugin)
 SCEveFileType *SCPluginFindFileType(const char *name)
 {
     SCEveFileType *plugin = NULL;
-    TAILQ_FOREACH(plugin, &output_types, entries) {
+    TAILQ_FOREACH (plugin, &output_types, entries) {
         if (strcmp(name, plugin->name) == 0) {
             return plugin;
         }
@@ -204,7 +203,7 @@ int SCPluginRegisterCapture(SCCapturePlugin *plugin)
 SCCapturePlugin *SCPluginFindCaptureByName(const char *name)
 {
     SCCapturePlugin *plugin = NULL;
-    TAILQ_FOREACH(plugin, &capture_plugins, entries) {
+    TAILQ_FOREACH (plugin, &capture_plugins, entries) {
         if (strcmp(name, plugin->name) == 0) {
             return plugin;
         }

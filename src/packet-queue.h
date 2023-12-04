@@ -57,15 +57,13 @@ typedef struct PacketQueue_ {
     SCCondT cond_q;
 } PacketQueue;
 
-
 void PacketEnqueueNoLock(PacketQueueNoLock *qnl, struct Packet_ *p);
-void PacketEnqueue (PacketQueue *, struct Packet_ *);
+void PacketEnqueue(PacketQueue *, struct Packet_ *);
 
-struct Packet_ *PacketDequeueNoLock (PacketQueueNoLock *qnl);
-struct Packet_ *PacketDequeue (PacketQueue *);
+struct Packet_ *PacketDequeueNoLock(PacketQueueNoLock *qnl);
+struct Packet_ *PacketDequeue(PacketQueue *);
 
 PacketQueue *PacketQueueAlloc(void);
 void PacketQueueFree(PacketQueue *);
 
 #endif /* __PACKET_QUEUE_H__ */
-

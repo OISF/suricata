@@ -44,9 +44,9 @@ int PageSupportsRWX(void)
 {
     int retval = 1;
     void *ptr;
-    ptr = mmap(0, getpagesize(), PROT_READ|PROT_WRITE, MAP_ANON|MAP_SHARED, -1, 0);
+    ptr = mmap(0, getpagesize(), PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
     if (ptr != MAP_FAILED) {
-        if (mprotect(ptr, getpagesize(), PROT_READ|PROT_WRITE|PROT_EXEC) == -1) {
+        if (mprotect(ptr, getpagesize(), PROT_READ | PROT_WRITE | PROT_EXEC) == -1) {
             SCLogConfig("RWX pages denied by OS");
             retval = 0;
         }
@@ -55,4 +55,3 @@ int PageSupportsRWX(void)
     return retval;
 }
 #endif /* HAVE_PAGESUPPORTSRWX_AS_MACRO */
-

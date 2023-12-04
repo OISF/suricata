@@ -56,19 +56,17 @@ static int DetectTemplateBufferTest(void)
     FAIL_IF_NULL(de_ctx);
 
     /* This rule should match. */
-    s = DetectEngineAppendSig(de_ctx,
-        "alert tcp any any -> any any ("
-        "msg:\"TEMPLATE Test Rule\"; "
-        "template_buffer; content:\"World!\"; "
-        "sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any ("
+                                      "msg:\"TEMPLATE Test Rule\"; "
+                                      "template_buffer; content:\"World!\"; "
+                                      "sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
     /* This rule should not match. */
-    s = DetectEngineAppendSig(de_ctx,
-        "alert tcp any any -> any any ("
-        "msg:\"TEMPLATE Test Rule\"; "
-        "template_buffer; content:\"W0rld!\"; "
-        "sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any ("
+                                      "msg:\"TEMPLATE Test Rule\"; "
+                                      "template_buffer; content:\"W0rld!\"; "
+                                      "sid:2; rev:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -77,8 +75,8 @@ static int DetectTemplateBufferTest(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
     FAIL_IF_NULL(det_ctx);
 
-    AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TEMPLATE,
-                        STREAM_TOSERVER, request, sizeof(request));
+    AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_TEMPLATE, STREAM_TOSERVER, request, sizeof(request));
 
     /* Check that we have app-layer state. */
     FAIL_IF_NULL(f.alstate);

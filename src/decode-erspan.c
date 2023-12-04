@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -61,8 +60,8 @@ void DecodeERSPANConfig(void)
 /**
  * \brief ERSPAN Type I
  */
-int DecodeERSPANTypeI(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                      const uint8_t *pkt, uint32_t len)
+int DecodeERSPANTypeI(
+        ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     StatsIncr(tv, dtv->counter_erspan);
 
@@ -79,7 +78,7 @@ int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
     StatsIncr(tv, dtv->counter_erspan);
 
     if (len < sizeof(ErspanHdr)) {
-        ENGINE_SET_EVENT(p,ERSPAN_HEADER_TOO_SMALL);
+        ENGINE_SET_EVENT(p, ERSPAN_HEADER_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
     if (!PacketIncreaseCheckLayers(p)) {
@@ -94,13 +93,13 @@ int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
 
     /* only v1 is tested at this time */
     if (version != 1) {
-        ENGINE_SET_EVENT(p,ERSPAN_UNSUPPORTED_VERSION);
+        ENGINE_SET_EVENT(p, ERSPAN_UNSUPPORTED_VERSION);
         return TM_ECODE_FAILED;
     }
 
     if (vlan_id > 0) {
         if (p->vlan_idx > VLAN_MAX_LAYER_IDX) {
-            ENGINE_SET_EVENT(p,ERSPAN_TOO_MANY_VLAN_LAYERS);
+            ENGINE_SET_EVENT(p, ERSPAN_TOO_MANY_VLAN_LAYERS);
             return TM_ECODE_FAILED;
         }
         p->vlan_id[p->vlan_idx] = vlan_id;

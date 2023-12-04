@@ -44,7 +44,8 @@
  *  Regex (by Brian Rectanus)
  *  flags: [!+*](SAPRFU120)[,SAPRFU12]
  */
-#define PARSE_REGEX "^\\s*(?:([\\+\\*!]))?\\s*([SAPRFU120CE\\+\\*!]+)(?:\\s*,\\s*([SAPRFU12CE]+))?\\s*$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*(?:([\\+\\*!]))?\\s*([SAPRFU120CE\\+\\*!]+)(?:\\s*,\\s*([SAPRFU12CE]+))?\\s*$"
 
 /**
  * Flags args[0] *(3) +(2) !(1)
@@ -57,9 +58,9 @@
 
 static DetectParseRegex parse_regex;
 
-static int DetectFlagsMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectFlagsSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectFlagsMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectFlagsSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectFlagsFree(DetectEngineCtx *, void *);
 
 static bool PrefilterTcpFlagsIsPrefilterable(const Signature *s);
@@ -72,7 +73,7 @@ static void FlagsRegisterTests(void);
  * \brief Registration function for flags: keyword
  */
 
-void DetectFlagsRegister (void)
+void DetectFlagsRegister(void)
 {
     sigmatch_table[DETECT_FLAGS].name = "tcp.flags";
     sigmatch_table[DETECT_FLAGS].alias = "flags";
@@ -80,7 +81,7 @@ void DetectFlagsRegister (void)
     sigmatch_table[DETECT_FLAGS].url = "/rules/header-keywords.html#tcp-flags";
     sigmatch_table[DETECT_FLAGS].Match = DetectFlagsMatch;
     sigmatch_table[DETECT_FLAGS].Setup = DetectFlagsSetup;
-    sigmatch_table[DETECT_FLAGS].Free  = DetectFlagsFree;
+    sigmatch_table[DETECT_FLAGS].Free = DetectFlagsFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FLAGS].RegisterTests = FlagsRegisterTests;
 #endif
@@ -90,11 +91,11 @@ void DetectFlagsRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
-static inline int FlagsMatch(const uint8_t pflags, const uint8_t modifier,
-                             const uint8_t dflags, const uint8_t iflags)
+static inline int FlagsMatch(
+        const uint8_t pflags, const uint8_t modifier, const uint8_t dflags, const uint8_t iflags)
 {
     if (!dflags && pflags) {
-        if(modifier == MODIFIER_NOT) {
+        if (modifier == MODIFIER_NOT) {
             SCReturnInt(1);
         }
 
@@ -123,7 +124,7 @@ static inline int FlagsMatch(const uint8_t pflags, const uint8_t modifier,
             SCReturnInt(0);
 
         default:
-            SCLogDebug("flags %"PRIu8" and de->flags %"PRIu8"", flags, dflags);
+            SCLogDebug("flags %" PRIu8 " and de->flags %" PRIu8 "", flags, dflags);
             if (flags == dflags) {
                 SCReturnInt(1);
             }
@@ -145,8 +146,8 @@ static inline int FlagsMatch(const uint8_t pflags, const uint8_t modifier,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFlagsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectFlagsMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -169,7 +170,7 @@ static int DetectFlagsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval de pointer to DetectFlagsData on success
  * \retval NULL on failure
  */
-static DetectFlagsData *DetectFlagsParse (const char *rawstr)
+static DetectFlagsData *DetectFlagsParse(const char *rawstr)
 {
     SCEnter();
 
@@ -451,7 +452,7 @@ static DetectFlagsData *DetectFlagsParse (const char *rawstr)
     }
 
     pcre2_match_data_free(match);
-    SCLogDebug("found %"PRId32" ignore %"PRId32"", found, ignore);
+    SCLogDebug("found %" PRId32 " ignore %" PRId32 "", found, ignore);
     SCReturnPtr(de, "DetectFlagsData");
 
 error:
@@ -476,7 +477,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFlagsSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectFlagsSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectFlagsData *de = NULL;
 
@@ -507,16 +508,16 @@ error:
 static void DetectFlagsFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
     DetectFlagsData *de = (DetectFlagsData *)de_ptr;
-    if(de) SCFree(de);
+    if (de)
+        SCFree(de);
 }
 
 int DetectFlagsSignatureNeedsSynPackets(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
-            case DETECT_FLAGS:
-            {
+            case DETECT_FLAGS: {
                 const DetectFlagsData *fl = (const DetectFlagsData *)sm->ctx;
 
                 if (!(fl->modifier == MODIFIER_NOT) && (fl->flags & TH_SYN)) {
@@ -532,10 +533,9 @@ int DetectFlagsSignatureNeedsSynPackets(const Signature *s)
 int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
-            case DETECT_FLAGS:
-            {
+            case DETECT_FLAGS: {
                 const DetectFlagsData *fl = (const DetectFlagsData *)sm->ctx;
 
                 if (!(fl->modifier == MODIFIER_NOT) && (fl->flags == TH_SYN)) {
@@ -548,8 +548,7 @@ int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s)
     return 0;
 }
 
-static void
-PrefilterPacketFlagsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketFlagsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     if (!(PKT_IS_TCP(p)) || PKT_IS_PSEUDOPKT(p)) {
         SCReturn;
@@ -560,15 +559,13 @@ PrefilterPacketFlagsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void 
         return;
 
     const uint8_t flags = p->tcph->th_flags;
-    if (FlagsMatch(flags, ctx->v1.u8[0], ctx->v1.u8[1], ctx->v1.u8[2]))
-    {
+    if (FlagsMatch(flags, ctx->v1.u8[0], ctx->v1.u8[1], ctx->v1.u8[2])) {
         SCLogDebug("packet matches TCP flags %02x", ctx->v1.u8[1]);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
 }
 
-static void
-PrefilterPacketFlagsSet(PrefilterPacketHeaderValue *v, void *smctx)
+static void PrefilterPacketFlagsSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
     const DetectFlagsData *a = smctx;
     v->u8[0] = a->modifier;
@@ -577,30 +574,24 @@ PrefilterPacketFlagsSet(PrefilterPacketHeaderValue *v, void *smctx)
     SCLogDebug("v->u8[0] = %02x", v->u8[0]);
 }
 
-static bool
-PrefilterPacketFlagsCompare(PrefilterPacketHeaderValue v, void *smctx)
+static bool PrefilterPacketFlagsCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectFlagsData *a = smctx;
-    if (v.u8[0] == a->modifier &&
-        v.u8[1] == a->flags &&
-        v.u8[2] == a->ignored_flags)
+    if (v.u8[0] == a->modifier && v.u8[1] == a->flags && v.u8[2] == a->ignored_flags)
         return true;
     return false;
 }
 
 static int PrefilterSetupTcpFlags(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLAGS,
-            PrefilterPacketFlagsSet,
-            PrefilterPacketFlagsCompare,
-            PrefilterPacketFlagsMatch);
-
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLAGS, PrefilterPacketFlagsSet,
+            PrefilterPacketFlagsCompare, PrefilterPacketFlagsMatch);
 }
 
 static bool PrefilterTcpFlagsIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_FLAGS:
                 return true;
@@ -620,7 +611,7 @@ static bool PrefilterTcpFlagsIsPrefilterable(const Signature *s)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse01 (void)
+static int FlagsTestParse01(void)
 {
     DetectFlagsData *de = DetectFlagsParse("S");
     FAIL_IF_NULL(de);
@@ -635,7 +626,7 @@ static int FlagsTestParse01 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse02 (void)
+static int FlagsTestParse02(void)
 {
     DetectFlagsData *de = NULL;
     de = DetectFlagsParse("G");
@@ -653,7 +644,7 @@ static int FlagsTestParse02 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse03 (void)
+static int FlagsTestParse03(void)
 {
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -671,11 +662,11 @@ static int FlagsTestParse03 (void)
 
     p->ip4h = &ipv4h;
     p->tcph = &tcph;
-    p->tcph->th_flags = TH_ACK|TH_PUSH|TH_SYN|TH_RST;
+    p->tcph->th_flags = TH_ACK | TH_PUSH | TH_SYN | TH_RST;
 
     de = DetectFlagsParse("AP+");
 
-    if (de == NULL || (de->flags != (TH_ACK|TH_PUSH)) )
+    if (de == NULL || (de->flags != (TH_ACK | TH_PUSH)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -687,16 +678,20 @@ static int FlagsTestParse03 (void)
 
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
-    if(ret) {
-        if (de) SCFree(de);
-        if (sm) SCFree(sm);
+    if (ret) {
+        if (de)
+            SCFree(de);
+        if (sm)
+            SCFree(sm);
         SCFree(p);
         return 1;
     }
 
 error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    if (de)
+        SCFree(de);
+    if (sm)
+        SCFree(sm);
     SCFree(p);
     return 0;
 }
@@ -707,7 +702,7 @@ error:
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse04 (void)
+static int FlagsTestParse04(void)
 {
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -741,17 +736,21 @@ static int FlagsTestParse04 (void)
 
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
-    if(ret) {
-        if (de) SCFree(de);
-        if (sm) SCFree(sm);
+    if (ret) {
+        if (de)
+            SCFree(de);
+        if (sm)
+            SCFree(sm);
         SCFree(p);
         return 0;
     }
 
     /* Error expected. */
 error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    if (de)
+        SCFree(de);
+    if (sm)
+        SCFree(sm);
     SCFree(p);
     return 1;
 }
@@ -762,7 +761,7 @@ error:
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse05 (void)
+static int FlagsTestParse05(void)
 {
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -780,11 +779,12 @@ static int FlagsTestParse05 (void)
 
     p->ip4h = &ipv4h;
     p->tcph = &tcph;
-    p->tcph->th_flags = TH_ACK|TH_PUSH|TH_SYN|TH_RST;
+    p->tcph->th_flags = TH_ACK | TH_PUSH | TH_SYN | TH_RST;
 
     de = DetectFlagsParse("+AP,SR");
 
-    if (de == NULL || (de->modifier != MODIFIER_PLUS) || (de->flags != (TH_ACK|TH_PUSH)) || (de->ignored_flags != (TH_SYN|TH_RST)))
+    if (de == NULL || (de->modifier != MODIFIER_PLUS) || (de->flags != (TH_ACK | TH_PUSH)) ||
+            (de->ignored_flags != (TH_SYN | TH_RST)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -796,17 +796,21 @@ static int FlagsTestParse05 (void)
 
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
-    if(ret) {
-        if (de) SCFree(de);
-        if (sm) SCFree(sm);
+    if (ret) {
+        if (de)
+            SCFree(de);
+        if (sm)
+            SCFree(sm);
         SCFree(p);
         return 0;
     }
 
     /* Error expected. */
 error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    if (de)
+        SCFree(de);
+    if (sm)
+        SCFree(sm);
     SCFree(p);
     return 1;
 }
@@ -817,7 +821,7 @@ error:
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse06 (void)
+static int FlagsTestParse06(void)
 {
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -835,11 +839,12 @@ static int FlagsTestParse06 (void)
 
     p->ip4h = &ipv4h;
     p->tcph = &tcph;
-    p->tcph->th_flags = TH_ACK|TH_PUSH|TH_SYN|TH_RST;
+    p->tcph->th_flags = TH_ACK | TH_PUSH | TH_SYN | TH_RST;
 
     de = DetectFlagsParse("+AP,UR");
 
-    if (de == NULL || (de->modifier != MODIFIER_PLUS) || (de->flags != (TH_ACK|TH_PUSH)) || ((0xff - de->ignored_flags) != (TH_URG|TH_RST)))
+    if (de == NULL || (de->modifier != MODIFIER_PLUS) || (de->flags != (TH_ACK | TH_PUSH)) ||
+            ((0xff - de->ignored_flags) != (TH_URG | TH_RST)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -851,16 +856,20 @@ static int FlagsTestParse06 (void)
 
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
-    if(ret) {
-        if (de) SCFree(de);
-        if (sm) SCFree(sm);
+    if (ret) {
+        if (de)
+            SCFree(de);
+        if (sm)
+            SCFree(sm);
         SCFree(p);
         return 1;
     }
 
 error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    if (de)
+        SCFree(de);
+    if (sm)
+        SCFree(sm);
     SCFree(p);
     return 0;
 }
@@ -871,7 +880,7 @@ error:
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse07 (void)
+static int FlagsTestParse07(void)
 {
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -889,11 +898,11 @@ static int FlagsTestParse07 (void)
 
     p->ip4h = &ipv4h;
     p->tcph = &tcph;
-    p->tcph->th_flags = TH_SYN|TH_RST;
+    p->tcph->th_flags = TH_SYN | TH_RST;
 
     de = DetectFlagsParse("*AP");
 
-    if (de == NULL || (de->modifier != MODIFIER_ANY) || (de->flags != (TH_ACK|TH_PUSH)))
+    if (de == NULL || (de->modifier != MODIFIER_ANY) || (de->flags != (TH_ACK | TH_PUSH)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -905,17 +914,21 @@ static int FlagsTestParse07 (void)
 
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
-    if(ret) {
-        if (de) SCFree(de);
-        if (sm) SCFree(sm);
+    if (ret) {
+        if (de)
+            SCFree(de);
+        if (sm)
+            SCFree(sm);
         SCFree(p);
         return 0;
     }
 
     /* Error expected. */
 error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    if (de)
+        SCFree(de);
+    if (sm)
+        SCFree(sm);
     SCFree(p);
     return 1;
 }
@@ -926,7 +939,7 @@ error:
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse08 (void)
+static int FlagsTestParse08(void)
 {
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -944,11 +957,11 @@ static int FlagsTestParse08 (void)
 
     p->ip4h = &ipv4h;
     p->tcph = &tcph;
-    p->tcph->th_flags = TH_SYN|TH_RST;
+    p->tcph->th_flags = TH_SYN | TH_RST;
 
     de = DetectFlagsParse("*SA");
 
-    if (de == NULL || (de->modifier != MODIFIER_ANY) || (de->flags != (TH_ACK|TH_SYN)))
+    if (de == NULL || (de->modifier != MODIFIER_ANY) || (de->flags != (TH_ACK | TH_SYN)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -960,16 +973,20 @@ static int FlagsTestParse08 (void)
 
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
-    if(ret) {
-        if (de) SCFree(de);
-        if (sm) SCFree(sm);
+    if (ret) {
+        if (de)
+            SCFree(de);
+        if (sm)
+            SCFree(sm);
         SCFree(p);
         return 1;
     }
 
 error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    if (de)
+        SCFree(de);
+    if (sm)
+        SCFree(sm);
     SCFree(p);
     return 0;
 }
@@ -980,7 +997,7 @@ error:
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse09 (void)
+static int FlagsTestParse09(void)
 {
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -998,11 +1015,11 @@ static int FlagsTestParse09 (void)
 
     p->ip4h = &ipv4h;
     p->tcph = &tcph;
-    p->tcph->th_flags = TH_SYN|TH_RST;
+    p->tcph->th_flags = TH_SYN | TH_RST;
 
     de = DetectFlagsParse("!PA");
 
-    if (de == NULL || (de->modifier != MODIFIER_NOT) || (de->flags != (TH_ACK|TH_PUSH)))
+    if (de == NULL || (de->modifier != MODIFIER_NOT) || (de->flags != (TH_ACK | TH_PUSH)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -1014,16 +1031,20 @@ static int FlagsTestParse09 (void)
 
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
-    if(ret) {
-        if (de) SCFree(de);
-        if (sm) SCFree(sm);
+    if (ret) {
+        if (de)
+            SCFree(de);
+        if (sm)
+            SCFree(sm);
         SCFree(p);
         return 1;
     }
 
 error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    if (de)
+        SCFree(de);
+    if (sm)
+        SCFree(sm);
     SCFree(p);
     return 0;
 }
@@ -1034,7 +1055,7 @@ error:
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse10 (void)
+static int FlagsTestParse10(void)
 {
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -1052,11 +1073,11 @@ static int FlagsTestParse10 (void)
 
     p->ip4h = &ipv4h;
     p->tcph = &tcph;
-    p->tcph->th_flags = TH_SYN|TH_RST;
+    p->tcph->th_flags = TH_SYN | TH_RST;
 
     de = DetectFlagsParse("!AP");
 
-    if (de == NULL || (de->modifier != MODIFIER_NOT) || (de->flags != (TH_ACK|TH_PUSH)))
+    if (de == NULL || (de->modifier != MODIFIER_NOT) || (de->flags != (TH_ACK | TH_PUSH)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -1068,16 +1089,20 @@ static int FlagsTestParse10 (void)
 
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
-    if(ret) {
-        if (de) SCFree(de);
-        if (sm) SCFree(sm);
+    if (ret) {
+        if (de)
+            SCFree(de);
+        if (sm)
+            SCFree(sm);
         SCFree(p);
         return 1;
     }
 
 error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    if (de)
+        SCFree(de);
+    if (sm)
+        SCFree(sm);
     SCFree(p);
     return 0;
 }
@@ -1088,7 +1113,7 @@ error:
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse11 (void)
+static int FlagsTestParse11(void)
 {
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -1106,11 +1131,12 @@ static int FlagsTestParse11 (void)
 
     p->ip4h = &ipv4h;
     p->tcph = &tcph;
-    p->tcph->th_flags = TH_SYN|TH_RST|TH_URG;
+    p->tcph->th_flags = TH_SYN | TH_RST | TH_URG;
 
     de = DetectFlagsParse("*AP,SR");
 
-    if (de == NULL || (de->modifier != MODIFIER_ANY) || (de->flags != (TH_ACK|TH_PUSH)) || ((0xff - de->ignored_flags) != (TH_SYN|TH_RST)))
+    if (de == NULL || (de->modifier != MODIFIER_ANY) || (de->flags != (TH_ACK | TH_PUSH)) ||
+            ((0xff - de->ignored_flags) != (TH_SYN | TH_RST)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -1122,17 +1148,21 @@ static int FlagsTestParse11 (void)
 
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
-    if(ret) {
-        if (de) SCFree(de);
-        if (sm) SCFree(sm);
+    if (ret) {
+        if (de)
+            SCFree(de);
+        if (sm)
+            SCFree(sm);
         SCFree(p);
         return 0;
     }
 
     /* Expected. */
 error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    if (de)
+        SCFree(de);
+    if (sm)
+        SCFree(sm);
     SCFree(p);
     return 1;
 }
@@ -1143,7 +1173,7 @@ error:
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse12 (void)
+static int FlagsTestParse12(void)
 {
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -1179,17 +1209,21 @@ static int FlagsTestParse12 (void)
 
     ret = DetectFlagsMatch(NULL, p, NULL, sm->ctx);
 
-    if(ret) {
-        if (de) SCFree(de);
-        if (sm) SCFree(sm);
+    if (ret) {
+        if (de)
+            SCFree(de);
+        if (sm)
+            SCFree(sm);
         SCFree(p);
         return 0;
     }
 
     /* Expected. */
 error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    if (de)
+        SCFree(de);
+    if (sm)
+        SCFree(sm);
     SCFree(p);
     return 1;
 }
@@ -1200,7 +1234,7 @@ error:
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int FlagsTestParse13 (void)
+static int FlagsTestParse13(void)
 {
     DetectFlagsData *de = NULL;
     de = DetectFlagsParse("+S*");
@@ -1221,7 +1255,7 @@ static int FlagsTestParse13 (void)
 static int FlagsTestParse14(void)
 {
     DetectFlagsData *de = DetectFlagsParse("CE");
-    if (de != NULL && (de->flags == (TH_CWR | TH_ECN)) ) {
+    if (de != NULL && (de->flags == (TH_CWR | TH_ECN))) {
         DetectFlagsFree(NULL, de);
         return 1;
     }
@@ -1251,7 +1285,7 @@ static int FlagsTestParse15(void)
 
     de = DetectFlagsParse("EC+");
 
-    if (de == NULL || (de->flags != (TH_ECN | TH_CWR)) )
+    if (de == NULL || (de->flags != (TH_ECN | TH_CWR)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -1303,7 +1337,7 @@ static int FlagsTestParse16(void)
 
     de = DetectFlagsParse("EC*");
 
-    if (de == NULL || (de->flags != (TH_ECN | TH_CWR)) )
+    if (de == NULL || (de->flags != (TH_ECN | TH_CWR)))
         goto error;
 
     sm = SigMatchAlloc();
@@ -1358,7 +1392,7 @@ static int FlagsTestParse17(void)
 
     de = DetectFlagsParse("EC+");
 
-    if (de == NULL || (de->flags != (TH_ECN | TH_CWR)) )
+    if (de == NULL || (de->flags != (TH_ECN | TH_CWR)))
         goto error;
 
     sm = SigMatchAlloc();

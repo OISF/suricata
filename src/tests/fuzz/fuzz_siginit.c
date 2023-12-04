@@ -4,7 +4,6 @@
  * fuzz target for SigInit
  */
 
-
 #include "suricata-common.h"
 #include "util-reference-config.h"
 #include "util-classification-config.h"
@@ -21,7 +20,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (de_ctx == NULL) {
         setenv("SC_LOG_OP_IFACE", "file", 0);
         setenv("SC_LOG_FILE", "/dev/null", 0);
-        //global init
+        // global init
         InitGlobal();
         run_mode = RUNMODE_UNITTEST;
         MpmTableSetup();
@@ -41,10 +40,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         de_ctx->rule_file = (char *)"fuzzer";
     }
 
-    char * buffer = malloc(size+1);
+    char *buffer = malloc(size + 1);
     if (buffer) {
         memcpy(buffer, data, size);
-        //null terminate string
+        // null terminate string
         buffer[size] = 0;
         Signature *s = SigInit(de_ctx, buffer);
         free(buffer);

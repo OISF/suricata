@@ -32,22 +32,20 @@
 #include "app-layer-parser.h"
 #include "rust.h"
 
-
-static int DetectSNMPVersionSetup (DetectEngineCtx *, Signature *s, const char *str);
+static int DetectSNMPVersionSetup(DetectEngineCtx *, Signature *s, const char *str);
 static void DetectSNMPVersionFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void DetectSNMPVersionRegisterTests(void);
 #endif
 static int g_snmp_version_buffer_id = 0;
 
-static int DetectSNMPVersionMatch (DetectEngineThreadCtx *, Flow *,
-                                   uint8_t, void *, void *, const Signature *,
-                                   const SigMatchCtx *);
+static int DetectSNMPVersionMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
+        const Signature *, const SigMatchCtx *);
 
 /**
  * \brief Registration function for snmp.procedure keyword.
  */
-void DetectSNMPVersionRegister (void)
+void DetectSNMPVersionRegister(void)
 {
     sigmatch_table[DETECT_AL_SNMP_VERSION].name = "snmp.version";
     sigmatch_table[DETECT_AL_SNMP_VERSION].desc = "match SNMP version";
@@ -85,10 +83,8 @@ void DetectSNMPVersionRegister (void)
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectSNMPVersionMatch (DetectEngineThreadCtx *det_ctx,
-                                   Flow *f, uint8_t flags, void *state,
-                                   void *txv, const Signature *s,
-                                   const SigMatchCtx *ctx)
+static int DetectSNMPVersionMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -115,8 +111,6 @@ static DetectU32Data *DetectSNMPVersionParse(const char *rawstr)
     return DetectU32Parse(rawstr);
 }
 
-
-
 /**
  * \brief Function to add the parsed snmp version field into the current signature.
  *
@@ -128,8 +122,7 @@ static DetectU32Data *DetectSNMPVersionParse(const char *rawstr)
  * \retval 0 on Success.
  * \retval -1 on Failure.
  */
-static int DetectSNMPVersionSetup (DetectEngineCtx *de_ctx, Signature *s,
-                                   const char *rawstr)
+static int DetectSNMPVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectU32Data *dd = NULL;
 
@@ -167,7 +160,6 @@ static void DetectSNMPVersionFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     rs_detect_u32_free(ptr);
 }
-
 
 #ifdef UNITTESTS
 #include "tests/detect-snmp-version.c"

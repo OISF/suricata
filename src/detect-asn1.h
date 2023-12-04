@@ -24,6 +24,6 @@
 #define __DETECT_ASN1_H__
 
 /* prototypes */
-void DetectAsn1Register (void);
+void DetectAsn1Register(void);
 
 #endif /* __DETECT_ASN1_H__ */

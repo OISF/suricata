@@ -85,7 +85,7 @@ static int g_droplog_flows_start = 1;
  *
  * \return return TM_ECODE_OK on success
  */
-static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
+static int DropLogJSON(JsonDropLogThread *aft, const Packet *p)
 {
     JsonDropOutputCtx *drop_ctx = aft->drop_ctx;
 
@@ -132,7 +132,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
                 jb_set_bool(js, "rst", TCP_ISSET_FLAG_RST(p) ? true : false);
                 jb_set_bool(js, "urg", TCP_ISSET_FLAG_URG(p) ? true : false);
                 jb_set_bool(js, "fin", TCP_ISSET_FLAG_FIN(p) ? true : false);
-                jb_set_uint(js, "tcpres",  TCP_GET_RAW_X2(p->tcph));
+                jb_set_uint(js, "tcpres", TCP_GET_RAW_X2(p->tcph));
                 jb_set_uint(js, "tcpurgp", TCP_GET_URG_POINTER(p));
             }
             break;
@@ -145,7 +145,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             if (PKT_IS_ICMPV4(p)) {
                 jb_set_uint(js, "icmp_id", ICMPV4_GET_ID(p));
                 jb_set_uint(js, "icmp_seq", ICMPV4_GET_SEQ(p));
-            } else if(PKT_IS_ICMPV6(p)) {
+            } else if (PKT_IS_ICMPV6(p)) {
                 jb_set_uint(js, "icmp_id", ICMPV6_GET_ID(p));
                 jb_set_uint(js, "icmp_seq", ICMPV6_GET_SEQ(p));
             }
@@ -171,9 +171,8 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             if (unlikely(pa->s == NULL)) {
                 continue;
             }
-            if ((pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) ||
-               ((pa->action & ACTION_DROP) && EngineModeIsIPS()))
-            {
+            if ((pa->action & (ACTION_REJECT | ACTION_REJECT_DST | ACTION_REJECT_BOTH)) ||
+                    ((pa->action & ACTION_DROP) && EngineModeIsIPS())) {
                 AlertJsonHeader(NULL, p, pa, js, 0, &addr, NULL);
                 logged = 1;
                 break;
@@ -199,8 +198,7 @@ static TmEcode JsonDropLogThreadInit(ThreadVars *t, const void *initdata, void *
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
 
-    if(initdata == NULL)
-    {
+    if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogDrop.  \"initdata\" argument NULL");
         goto error_exit;
     }
@@ -384,10 +382,9 @@ static bool JsonDropLogCondition(ThreadVars *tv, void *data, const Packet *p)
     return true;
 }
 
-void JsonDropLogRegister (void)
+void JsonDropLogRegister(void)
 {
-    OutputRegisterPacketSubModule(LOGGER_JSON_DROP, "eve-log", MODULE_NAME,
-        "eve-log.drop", JsonDropLogInitCtxSub, JsonDropLogger,
-        JsonDropLogCondition, JsonDropLogThreadInit, JsonDropLogThreadDeinit,
-        NULL);
+    OutputRegisterPacketSubModule(LOGGER_JSON_DROP, "eve-log", MODULE_NAME, "eve-log.drop",
+            JsonDropLogInitCtxSub, JsonDropLogger, JsonDropLogCondition, JsonDropLogThreadInit,
+            JsonDropLogThreadDeinit, NULL);
 }

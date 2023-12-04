@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -61,8 +60,8 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, const uint8_t *pkt, uint16_
         return -1;
     }
 
-    SET_UDP_SRC_PORT(p,&p->sp);
-    SET_UDP_DST_PORT(p,&p->dp);
+    SET_UDP_SRC_PORT(p, &p->sp);
+    SET_UDP_DST_PORT(p, &p->dp);
 
     p->payload = (uint8_t *)pkt + UDP_HEADER_LEN;
     p->payload_len = UDP_GET_LEN(p) - UDP_HEADER_LEN;
@@ -72,18 +71,17 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, const uint8_t *pkt, uint16_
     return 0;
 }
 
-int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint16_t len)
+int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint16_t len)
 {
     StatsIncr(tv, dtv->counter_udp);
 
-    if (unlikely(DecodeUDPPacket(tv, p, pkt,len) < 0)) {
+    if (unlikely(DecodeUDPPacket(tv, p, pkt, len) < 0)) {
         CLEAR_UDP_PACKET(p);
         return TM_ECODE_FAILED;
     }
 
     SCLogDebug("UDP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 "",
-        UDP_GET_SRC_PORT(p), UDP_GET_DST_PORT(p), UDP_HEADER_LEN, p->payload_len);
+            UDP_GET_SRC_PORT(p), UDP_GET_DST_PORT(p), UDP_HEADER_LEN, p->payload_len);
 
     if (DecodeTeredoEnabledForPort(p->sp, p->dp) &&
             likely(DecodeTeredo(tv, dtv, p, p->payload, p->payload_len) == TM_ECODE_OK)) {
@@ -141,10 +139,9 @@ static int UDPV4CalculateValidChecksumtest01(void)
         0x67, 0x6c, 0x65, 0xc0, 0x26};
     // clang-format on
 
-    csum = *( ((uint16_t *)raw_udp) + 3);
+    csum = *(((uint16_t *)raw_udp) + 3);
 
-    FAIL_IF(UDPV4Checksum((uint16_t *) raw_ipshdr,
-            (uint16_t *)raw_udp, sizeof(raw_udp), csum) != 0);
+    FAIL_IF(UDPV4Checksum((uint16_t *)raw_ipshdr, (uint16_t *)raw_udp, sizeof(raw_udp), csum) != 0);
     PASS;
 }
 
@@ -172,10 +169,9 @@ static int UDPV4CalculateInvalidChecksumtest02(void)
         0x67, 0x6c, 0x65, 0xc0, 0x27};
     // clang-format on
 
-    csum = *( ((uint16_t *)raw_udp) + 3);
+    csum = *(((uint16_t *)raw_udp) + 3);
 
-    FAIL_IF(UDPV4Checksum((uint16_t *) raw_ipshdr,
-            (uint16_t *)raw_udp, sizeof(raw_udp), csum) == 0);
+    FAIL_IF(UDPV4Checksum((uint16_t *)raw_ipshdr, (uint16_t *)raw_udp, sizeof(raw_udp), csum) == 0);
     PASS;
 }
 
@@ -197,10 +193,10 @@ static int UDPV6CalculateValidChecksumtest03(void)
         0x09, 0x00};
     // clang-format on
 
-    csum = *( ((uint16_t *)(raw_ipv6 + 60)));
+    csum = *(((uint16_t *)(raw_ipv6 + 60)));
 
-    FAIL_IF(UDPV6Checksum((uint16_t *)(raw_ipv6 + 14 + 8),
-            (uint16_t *)(raw_ipv6 + 54), 20, csum) != 0);
+    FAIL_IF(UDPV6Checksum((uint16_t *)(raw_ipv6 + 14 + 8), (uint16_t *)(raw_ipv6 + 54), 20, csum) !=
+            0);
     PASS;
 }
 
@@ -222,10 +218,10 @@ static int UDPV6CalculateInvalidChecksumtest04(void)
         0x09, 0x01};
     // clang-format on
 
-    csum = *( ((uint16_t *)(raw_ipv6 + 60)));
+    csum = *(((uint16_t *)(raw_ipv6 + 60)));
 
-    FAIL_IF(UDPV6Checksum((uint16_t *)(raw_ipv6 + 14 + 8),
-            (uint16_t *)(raw_ipv6 + 54), 20, csum) == 0);
+    FAIL_IF(UDPV6Checksum((uint16_t *)(raw_ipv6 + 14 + 8), (uint16_t *)(raw_ipv6 + 54), 20, csum) ==
+            0);
     PASS;
 }
 #endif /* UNITTESTS */
@@ -233,14 +229,10 @@ static int UDPV6CalculateInvalidChecksumtest04(void)
 void DecodeUDPV4RegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("UDPV4CalculateValidChecksumtest01",
-                   UDPV4CalculateValidChecksumtest01);
-    UtRegisterTest("UDPV4CalculateInvalidChecksumtest02",
-                   UDPV4CalculateInvalidChecksumtest02);
-    UtRegisterTest("UDPV6CalculateValidChecksumtest03",
-                   UDPV6CalculateValidChecksumtest03);
-    UtRegisterTest("UDPV6CalculateInvalidChecksumtest04",
-                   UDPV6CalculateInvalidChecksumtest04);
+    UtRegisterTest("UDPV4CalculateValidChecksumtest01", UDPV4CalculateValidChecksumtest01);
+    UtRegisterTest("UDPV4CalculateInvalidChecksumtest02", UDPV4CalculateInvalidChecksumtest02);
+    UtRegisterTest("UDPV6CalculateValidChecksumtest03", UDPV6CalculateValidChecksumtest03);
+    UtRegisterTest("UDPV6CalculateInvalidChecksumtest04", UDPV6CalculateInvalidChecksumtest04);
 #endif /* UNITTESTS */
 }
 /**

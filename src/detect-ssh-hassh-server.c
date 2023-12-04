@@ -48,20 +48,18 @@
 #include "detect-ssh-hassh-server.h"
 #include "rust.h"
 
-
-#define KEYWORD_NAME "ssh.hassh.server"
+#define KEYWORD_NAME  "ssh.hassh.server"
 #define KEYWORD_ALIAS "ssh-hassh-server"
-#define KEYWORD_DOC "ssh-keywords.html#ssh.hassh.server"
-#define BUFFER_NAME "ssh.hassh.server"
-#define BUFFER_DESC "Ssh Client Fingerprinting For Ssh Servers"
+#define KEYWORD_DOC   "ssh-keywords.html#ssh.hassh.server"
+#define BUFFER_NAME   "ssh.hassh.server"
+#define BUFFER_DESC   "Ssh Client Fingerprinting For Ssh Servers"
 static int g_ssh_hassh_buffer_id = 0;
 
-
 static InspectionBuffer *GetSshData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
-    
+
     SCEnter();
 
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
@@ -102,7 +100,7 @@ static int DetectSshHasshServerSetup(DetectEngineCtx *de_ctx, Signature *s, cons
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SSH) < 0)
         return -1;
-            
+
     /* try to enable Hassh */
     rs_ssh_enable_hassh();
 
@@ -115,7 +113,6 @@ static int DetectSshHasshServerSetup(DetectEngineCtx *de_ctx, Signature *s, cons
     }
 
     return 0;
-
 }
 
 static bool DetectSshHasshServerHashValidateCallback(const Signature *s, const char **sigerror)
@@ -158,8 +155,7 @@ static bool DetectSshHasshServerHashValidateCallback(const Signature *s, const c
     return true;
 }
 
-static void DetectSshHasshServerHashSetupCallback(const DetectEngineCtx *de_ctx,
-                                          Signature *s)
+static void DetectSshHasshServerHashSetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         if (s->init_data->buffers[x].id != (uint32_t)g_ssh_hassh_buffer_id)
@@ -188,21 +184,20 @@ static void DetectSshHasshServerHashSetupCallback(const DetectEngineCtx *de_ctx,
 /**
  * \brief Registration function for hasshServer keyword.
  */
-void DetectSshHasshServerRegister(void) 
+void DetectSshHasshServerRegister(void)
 {
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].name = KEYWORD_NAME;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].alias = KEYWORD_ALIAS;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].desc = BUFFER_NAME " sticky buffer";
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].Setup = DetectSshHasshServerSetup;
-    sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].flags |= SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_SSH_HASSH_SERVER].flags |=
+            SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, 
-            PrefilterGenericMpmRegister, GetSshData, 
-            ALPROTO_SSH, SshStateBannerDone);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, 
-            SIG_FLAG_TOCLIENT, SshStateBannerDone, 
-            DetectEngineInspectBufferGeneric, GetSshData);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetSshData, ALPROTO_SSH, SshStateBannerDone);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SSH, SIG_FLAG_TOCLIENT,
+            SshStateBannerDone, DetectEngineInspectBufferGeneric, GetSshData);
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_ssh_hassh_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);

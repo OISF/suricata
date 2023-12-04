@@ -36,11 +36,10 @@ typedef struct DetectDatasetData_ {
     uint8_t cmd;
 } DetectDatasetData;
 
-int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
-    const DetectDatasetData *sd,
-    const uint8_t *data, const uint32_t data_len);
+int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx, const DetectDatasetData *sd,
+        const uint8_t *data, const uint32_t data_len);
 
 /* prototypes */
-void DetectDatasetRegister (void);
+void DetectDatasetRegister(void);
 
 #endif /* __DETECT_DATASET_H__ */

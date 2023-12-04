@@ -46,7 +46,7 @@
 static FlowBit *FlowBitGet(Flow *f, uint32_t idx)
 {
     GenericVar *gv = f->flowvar;
-    for ( ; gv != NULL; gv = gv->next) {
+    for (; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_FLOWBITS && gv->idx == idx) {
             return (FlowBit *)gv;
         }
@@ -133,10 +133,9 @@ void FlowBitFree(FlowBit *fb)
     SCFree(fb);
 }
 
-
 /* TESTS */
 #ifdef UNITTESTS
-static int FlowBitTest01 (void)
+static int FlowBitTest01(void)
 {
     Flow f;
     memset(&f, 0, sizeof(Flow));
@@ -150,7 +149,7 @@ static int FlowBitTest01 (void)
     PASS;
 }
 
-static int FlowBitTest02 (void)
+static int FlowBitTest02(void)
 {
     Flow f;
     memset(&f, 0, sizeof(Flow));
@@ -162,14 +161,14 @@ static int FlowBitTest02 (void)
     PASS;
 }
 
-static int FlowBitTest03 (void)
+static int FlowBitTest03(void)
 {
     Flow f;
     memset(&f, 0, sizeof(Flow));
 
     FlowBitAdd(&f, 0);
 
-    FlowBit *fb = FlowBitGet(&f,0);
+    FlowBit *fb = FlowBitGet(&f, 0);
     FAIL_IF_NULL(fb);
 
     FlowBitRemove(&f, 0);
@@ -181,7 +180,7 @@ static int FlowBitTest03 (void)
     PASS;
 }
 
-static int FlowBitTest04 (void)
+static int FlowBitTest04(void)
 {
     Flow f;
     memset(&f, 0, sizeof(Flow));
@@ -198,7 +197,7 @@ static int FlowBitTest04 (void)
     PASS;
 }
 
-static int FlowBitTest05 (void)
+static int FlowBitTest05(void)
 {
     Flow f;
     memset(&f, 0, sizeof(Flow));
@@ -215,7 +214,7 @@ static int FlowBitTest05 (void)
     PASS;
 }
 
-static int FlowBitTest06 (void)
+static int FlowBitTest06(void)
 {
     Flow f;
     memset(&f, 0, sizeof(Flow));
@@ -232,7 +231,7 @@ static int FlowBitTest06 (void)
     PASS;
 }
 
-static int FlowBitTest07 (void)
+static int FlowBitTest07(void)
 {
     Flow f;
     memset(&f, 0, sizeof(Flow));
@@ -249,7 +248,7 @@ static int FlowBitTest07 (void)
     PASS;
 }
 
-static int FlowBitTest08 (void)
+static int FlowBitTest08(void)
 {
     Flow f;
     memset(&f, 0, sizeof(Flow));
@@ -259,10 +258,10 @@ static int FlowBitTest08 (void)
     FlowBitAdd(&f, 2);
     FlowBitAdd(&f, 3);
 
-    FlowBit *fb = FlowBitGet(&f,0);
+    FlowBit *fb = FlowBitGet(&f, 0);
     FAIL_IF_NULL(fb);
 
-    FlowBitRemove(&f,0);
+    FlowBitRemove(&f, 0);
 
     fb = FlowBitGet(&f, 0);
     FAIL_IF_NOT_NULL(fb);
@@ -271,7 +270,7 @@ static int FlowBitTest08 (void)
     PASS;
 }
 
-static int FlowBitTest09 (void)
+static int FlowBitTest09(void)
 {
     Flow f;
     memset(&f, 0, sizeof(Flow));
@@ -281,10 +280,10 @@ static int FlowBitTest09 (void)
     FlowBitAdd(&f, 2);
     FlowBitAdd(&f, 3);
 
-    FlowBit *fb = FlowBitGet(&f,1);
+    FlowBit *fb = FlowBitGet(&f, 1);
     FAIL_IF_NULL(fb);
 
-    FlowBitRemove(&f,1);
+    FlowBitRemove(&f, 1);
 
     fb = FlowBitGet(&f, 1);
     FAIL_IF_NOT_NULL(fb);
@@ -293,7 +292,7 @@ static int FlowBitTest09 (void)
     PASS;
 }
 
-static int FlowBitTest10 (void)
+static int FlowBitTest10(void)
 {
     Flow f;
     memset(&f, 0, sizeof(Flow));
@@ -303,10 +302,10 @@ static int FlowBitTest10 (void)
     FlowBitAdd(&f, 2);
     FlowBitAdd(&f, 3);
 
-    FlowBit *fb = FlowBitGet(&f,2);
+    FlowBit *fb = FlowBitGet(&f, 2);
     FAIL_IF_NULL(fb);
 
-    FlowBitRemove(&f,2);
+    FlowBitRemove(&f, 2);
 
     fb = FlowBitGet(&f, 2);
     FAIL_IF_NOT_NULL(fb);
@@ -315,7 +314,7 @@ static int FlowBitTest10 (void)
     PASS;
 }
 
-static int FlowBitTest11 (void)
+static int FlowBitTest11(void)
 {
     Flow f;
     memset(&f, 0, sizeof(Flow));
@@ -325,10 +324,10 @@ static int FlowBitTest11 (void)
     FlowBitAdd(&f, 2);
     FlowBitAdd(&f, 3);
 
-    FlowBit *fb = FlowBitGet(&f,3);
+    FlowBit *fb = FlowBitGet(&f, 3);
     FAIL_IF_NULL(fb);
 
-    FlowBitRemove(&f,3);
+    FlowBitRemove(&f, 3);
 
     fb = FlowBitGet(&f, 3);
     FAIL_IF_NOT_NULL(fb);
@@ -355,4 +354,3 @@ void FlowBitRegisterTests(void)
     UtRegisterTest("FlowBitTest11", FlowBitTest11);
 #endif /* UNITTESTS */
 }
-

@@ -52,35 +52,35 @@
 #include "output-json.h"
 #include "output-json-email-common.h"
 
-#define LOG_EMAIL_DEFAULT       0
-#define LOG_EMAIL_EXTENDED      (1<<0)
-#define LOG_EMAIL_ARRAY         (1<<1) /* require array handling */
-#define LOG_EMAIL_COMMA         (1<<2) /* require array handling */
-#define LOG_EMAIL_BODY_MD5      (1<<3)
-#define LOG_EMAIL_SUBJECT_MD5   (1<<4)
+#define LOG_EMAIL_DEFAULT     0
+#define LOG_EMAIL_EXTENDED    (1 << 0)
+#define LOG_EMAIL_ARRAY       (1 << 1) /* require array handling */
+#define LOG_EMAIL_COMMA       (1 << 2) /* require array handling */
+#define LOG_EMAIL_BODY_MD5    (1 << 3)
+#define LOG_EMAIL_SUBJECT_MD5 (1 << 4)
 
 struct {
     const char *config_field;
     const char *email_field;
     uint32_t flags;
-} email_fields[] =  {
+} email_fields[] = {
     { "reply_to", "reply-to", LOG_EMAIL_DEFAULT },
-    { "bcc", "bcc", LOG_EMAIL_COMMA|LOG_EMAIL_EXTENDED },
+    { "bcc", "bcc", LOG_EMAIL_COMMA | LOG_EMAIL_EXTENDED },
     { "message_id", "message-id", LOG_EMAIL_EXTENDED },
     { "subject", "subject", LOG_EMAIL_EXTENDED },
     { "x_mailer", "x-mailer", LOG_EMAIL_EXTENDED },
     { "user_agent", "user-agent", LOG_EMAIL_EXTENDED },
     { "received", "received", LOG_EMAIL_ARRAY },
     { "x_originating_ip", "x-originating-ip", LOG_EMAIL_DEFAULT },
-    { "in_reply_to",  "in-reply-to", LOG_EMAIL_DEFAULT },
-    { "references",  "references", LOG_EMAIL_DEFAULT },
-    { "importance",  "importance", LOG_EMAIL_DEFAULT },
-    { "priority",  "priority", LOG_EMAIL_DEFAULT },
-    { "sensitivity",  "sensitivity", LOG_EMAIL_DEFAULT },
-    { "organization",  "organization", LOG_EMAIL_DEFAULT },
-    { "content_md5",  "content-md5", LOG_EMAIL_DEFAULT },
+    { "in_reply_to", "in-reply-to", LOG_EMAIL_DEFAULT },
+    { "references", "references", LOG_EMAIL_DEFAULT },
+    { "importance", "importance", LOG_EMAIL_DEFAULT },
+    { "priority", "priority", LOG_EMAIL_DEFAULT },
+    { "sensitivity", "sensitivity", LOG_EMAIL_DEFAULT },
+    { "organization", "organization", LOG_EMAIL_DEFAULT },
+    { "content_md5", "content-md5", LOG_EMAIL_DEFAULT },
     { "date", "date", LOG_EMAIL_DEFAULT },
-    { NULL, NULL, LOG_EMAIL_DEFAULT},
+    { NULL, NULL, LOG_EMAIL_DEFAULT },
 };
 
 static inline char *SkipWhiteSpaceTill(char *p, char *savep)
@@ -155,7 +155,8 @@ static int JsonEmailAddToJsonArray(const uint8_t *val, size_t len, void *data)
     return 1;
 }
 
-static void EveEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, JsonBuilder *js, SMTPTransaction *tx)
+static void EveEmailLogJSONCustom(
+        OutputJsonEmailCtx *email_ctx, JsonBuilder *js, SMTPTransaction *tx)
 {
     int f = 0;
     JsonBuilderMark mark = { 0, 0, 0 };
@@ -165,15 +166,15 @@ static void EveEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, JsonBuilder *js
         return;
     }
 
-    while(email_fields[f].config_field) {
-        if (((email_ctx->fields & (1ULL<<f)) != 0)
-              ||
-              ((email_ctx->flags & LOG_EMAIL_EXTENDED) && (email_fields[f].flags & LOG_EMAIL_EXTENDED))
-           ) {
+    while (email_fields[f].config_field) {
+        if (((email_ctx->fields & (1ULL << f)) != 0) ||
+                ((email_ctx->flags & LOG_EMAIL_EXTENDED) &&
+                        (email_fields[f].flags & LOG_EMAIL_EXTENDED))) {
             if (email_fields[f].flags & LOG_EMAIL_ARRAY) {
                 jb_get_mark(js, &mark);
                 jb_open_array(js, email_fields[f].config_field);
-                int found = MimeDecFindFieldsForEach(entity, email_fields[f].email_field, JsonEmailAddToJsonArray, js);
+                int found = MimeDecFindFieldsForEach(
+                        entity, email_fields[f].email_field, JsonEmailAddToJsonArray, js);
                 if (found > 0) {
                     jb_close(js);
                 } else {
@@ -193,22 +194,21 @@ static void EveEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, JsonBuilder *js
             } else {
                 field = MimeDecFindField(entity, email_fields[f].email_field);
                 if (field != NULL) {
-                    char *s = BytesToString((uint8_t *)field->value,
-                            (size_t)field->value_len);
+                    char *s = BytesToString((uint8_t *)field->value, (size_t)field->value_len);
                     if (likely(s != NULL)) {
                         jb_set_string(js, email_fields[f].config_field, s);
                         SCFree(s);
                     }
                 }
             }
-
         }
         f++;
     }
 }
 
 /* JSON format logging */
-static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_id, JsonBuilder *sjs)
+static bool EveEmailLogJsonData(
+        const Flow *f, void *state, void *vtx, uint64_t tx_id, JsonBuilder *sjs)
 {
     SMTPState *smtp_state;
     MimeDecParseState *mime_state;
@@ -228,7 +228,8 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
             SMTPTransaction *tx = vtx;
             mime_state = tx->mime_state;
             entity = tx->msg_tail;
-            SCLogDebug("lets go mime_state %p, entity %p, state_flag %u", mime_state, entity, mime_state ? mime_state->state_flag : 0);
+            SCLogDebug("lets go mime_state %p, entity %p, state_flag %u", mime_state, entity,
+                    mime_state ? mime_state->state_flag : 0);
             break;
         default:
             /* don't know how we got here */
@@ -246,11 +247,10 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
         /* From: */
         field = MimeDecFindField(entity, "from");
         if (field != NULL) {
-            char *s = BytesToString((uint8_t *)field->value,
-                                    (size_t)field->value_len);
+            char *s = BytesToString((uint8_t *)field->value, (size_t)field->value_len);
             if (likely(s != NULL)) {
-                //printf("From: \"%s\"\n", s);
-                char * sp = SkipWhiteSpaceTill(s, s + strlen(s));
+                // printf("From: \"%s\"\n", s);
+                char *sp = SkipWhiteSpaceTill(s, s + strlen(s));
                 jb_set_string(sjs, "from", sp);
                 SCFree(s);
             }
@@ -280,7 +280,8 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
             }
         }
 
-        if (mime_state->stack == NULL || mime_state->stack->top == NULL || mime_state->stack->top->data == NULL) {
+        if (mime_state->stack == NULL || mime_state->stack->top == NULL ||
+                mime_state->stack->top->data == NULL) {
             SCReturnBool(false);
         }
 
@@ -295,8 +296,7 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
             bool has_ipv4_url = false;
             bool has_exe_url = false;
             for (url = entity->url_list; url != NULL; url = url->next) {
-                char *s = BytesToString((uint8_t *)url->url,
-                                        (size_t)url->url_len);
+                char *s = BytesToString((uint8_t *)url->url, (size_t)url->url_len);
                 if (s != NULL) {
                     jb_append_string(js_url, s);
                     if (url->url_flags & URL_IS_EXE)
@@ -316,8 +316,7 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
         for (entity = entity->child; entity != NULL; entity = entity->next) {
             if (entity->ctnt_flags & CTNT_IS_ATTACHMENT) {
 
-                char *s = BytesToString((uint8_t *)entity->filename,
-                                        (size_t)entity->filename_len);
+                char *s = BytesToString((uint8_t *)entity->filename, (size_t)entity->filename_len);
                 jb_append_string(js_attach, s);
                 SCFree(s);
                 attach_cnt += 1;
@@ -325,8 +324,7 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
             if (entity->url_list != NULL) {
                 MimeDecUrl *url;
                 for (url = entity->url_list; url != NULL; url = url->next) {
-                    char *s = BytesToString((uint8_t *)url->url,
-                                            (size_t)url->url_len);
+                    char *s = BytesToString((uint8_t *)url->url, (size_t)url->url_len);
                     if (s != NULL) {
                         jb_append_string(js_url, s);
                         SCFree(s);
@@ -352,10 +350,11 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
 }
 
 /* JSON format logging */
-TmEcode EveEmailLogJson(JsonEmailLogThread *aft, JsonBuilder *js, const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
+TmEcode EveEmailLogJson(JsonEmailLogThread *aft, JsonBuilder *js, const Packet *p, Flow *f,
+        void *state, void *vtx, uint64_t tx_id)
 {
     OutputJsonEmailCtx *email_ctx = aft->emaillog_ctx;
-    SMTPTransaction *tx = (SMTPTransaction *) vtx;
+    SMTPTransaction *tx = (SMTPTransaction *)vtx;
     JsonBuilderMark mark = { 0, 0, 0 };
 
     jb_get_mark(js, &mark);
@@ -400,7 +399,7 @@ void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx)
             }
         }
 
-        email_ctx->fields  = 0;
+        email_ctx->fields = 0;
         ConfNode *custom;
         if ((custom = ConfNodeLookupChild(conf, "custom")) != NULL) {
             ConfNode *field;
@@ -417,7 +416,7 @@ void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx)
             }
         }
 
-        email_ctx->flags  = 0;
+        email_ctx->flags = 0;
         ConfNode *md5_conf;
         if ((md5_conf = ConfNodeLookupChild(conf, "md5")) != NULL) {
             ConfNode *field;

@@ -32,14 +32,13 @@
 
 #include "detect-template2.h"
 
-
 /* prototypes */
-static int DetectTemplate2Match (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectTemplate2Setup (DetectEngineCtx *, Signature *, const char *);
-void DetectTemplate2Free (DetectEngineCtx *, void *);
+static int DetectTemplate2Match(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectTemplate2Setup(DetectEngineCtx *, Signature *, const char *);
+void DetectTemplate2Free(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
-void DetectTemplate2RegisterTests (void);
+void DetectTemplate2RegisterTests(void);
 #endif
 static int PrefilterSetupTemplate2(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterTemplate2IsPrefilterable(const Signature *s);
@@ -74,8 +73,8 @@ void DetectTemplate2Register(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTemplate2Match (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectTemplate2Match(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
 
     if (PKT_IS_PSEUDOPKT(p))
@@ -106,7 +105,7 @@ static int DetectTemplate2Match (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTemplate2Setup (DetectEngineCtx *de_ctx, Signature *s, const char *template2str)
+static int DetectTemplate2Setup(DetectEngineCtx *de_ctx, Signature *s, const char *template2str)
 {
     DetectU8Data *template2d = DetectU8Parse(template2str);
     if (template2d == NULL)
@@ -134,15 +133,15 @@ void DetectTemplate2Free(DetectEngineCtx *de_ctx, void *ptr)
 
 /* prefilter code */
 
-static void
-PrefilterPacketTemplate2Match(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketTemplate2Match(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     if (PKT_IS_PSEUDOPKT(p)) {
         SCReturn;
     }
 
     uint8_t ptemplate2;
-/* TODO update */
+    /* TODO update */
     if (PKT_IS_IPV4(p)) {
         ptemplate2 = IPV4_GET_IPTTL(p);
     } else if (PKT_IS_IPV6(p)) {
@@ -179,7 +178,7 @@ static int PrefilterSetupTemplate2(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 static bool PrefilterTemplate2IsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_TEMPLATE2:
                 return true;

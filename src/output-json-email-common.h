@@ -25,8 +25,8 @@
 #define __OUTPUT_JSON_EMAIL_COMMON_H__
 
 typedef struct OutputJsonEmailCtx_ {
-    uint32_t flags; /** Store mode */
-    uint64_t fields;/** Store fields */
+    uint32_t flags;  /** Store mode */
+    uint64_t fields; /** Store fields */
     OutputJsonCtx *eve_ctx;
 } OutputJsonEmailCtx;
 
@@ -35,7 +35,8 @@ typedef struct JsonEmailLogThread_ {
     OutputJsonThreadCtx *ctx;
 } JsonEmailLogThread;
 
-TmEcode EveEmailLogJson(JsonEmailLogThread *aft, JsonBuilder *js, const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id);
+TmEcode EveEmailLogJson(JsonEmailLogThread *aft, JsonBuilder *js, const Packet *p, Flow *f,
+        void *state, void *vtx, uint64_t tx_id);
 bool EveEmailAddMetadata(const Flow *f, uint32_t tx_id, JsonBuilder *js);
 
 void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx);

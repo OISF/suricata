@@ -38,27 +38,27 @@
 #define INDICATE_STATUS    0x0072
 #define CANCEL             0x0073
 
-//Common Packet Format Types
-#define NULL_ADDR               0x0000
-#define CONNECTION_BASED        0x00a1
-#define CONNECTED_DATA_ITEM     0x00b1
-#define UNCONNECTED_DATA_ITEM   0x00b2
-#define SEQUENCE_ADDR_ITEM      0xB002
+// Common Packet Format Types
+#define NULL_ADDR             0x0000
+#define CONNECTION_BASED      0x00a1
+#define CONNECTED_DATA_ITEM   0x00b1
+#define UNCONNECTED_DATA_ITEM 0x00b2
+#define SEQUENCE_ADDR_ITEM    0xB002
 
-//status codes
-#define SUCCESS               0x0000
-#define INVALID_CMD           0x0001
-#define NO_RESOURCES          0x0002
-#define INCORRECT_DATA        0x0003
-#define INVALID_SESSION       0x0064
-#define INVALID_LENGTH        0x0065
-#define UNSUPPORTED_PROT_REV  0x0069
-//Found in wireshark
-#define ENCAP_HEADER_ERROR    0x006A
+// status codes
+#define SUCCESS              0x0000
+#define INVALID_CMD          0x0001
+#define NO_RESOURCES         0x0002
+#define INCORRECT_DATA       0x0003
+#define INVALID_SESSION      0x0064
+#define INVALID_LENGTH       0x0065
+#define UNSUPPORTED_PROT_REV 0x0069
+// Found in wireshark
+#define ENCAP_HEADER_ERROR 0x006A
 
-#define MAX_CIP_SERVICE     127
-#define MAX_CIP_CLASS       65535
-#define MAX_CIP_ATTRIBUTE   65535
+#define MAX_CIP_SERVICE   127
+#define MAX_CIP_CLASS     65535
+#define MAX_CIP_ATTRIBUTE 65535
 
 // CIP service codes
 #define CIP_RESERVED        0x00
@@ -79,19 +79,18 @@
 #define CIP_CHANGE_START    0x4f
 #define CIP_GET_STATUS      0x50
 
-//PATH sizing codes
-#define PATH_CLASS_8BIT         0x20
-#define PATH_CLASS_16BIT        0x21
-#define PATH_INSTANCE_8BIT      0x24
-#define PATH_INSTANCE_16BIT     0x25
-#define PATH_ATTR_8BIT          0x30
-#define PATH_ATTR_16BIT         0x31 //possible value
+// PATH sizing codes
+#define PATH_CLASS_8BIT     0x20
+#define PATH_CLASS_16BIT    0x21
+#define PATH_INSTANCE_8BIT  0x24
+#define PATH_INSTANCE_16BIT 0x25
+#define PATH_ATTR_8BIT      0x30
+#define PATH_ATTR_16BIT     0x31 // possible value
 
 /**
  * ENIP encapsulation header
  */
-typedef struct ENIPEncapHdr_
-{
+typedef struct ENIPEncapHdr_ {
     uint64_t context;
     uint32_t session;
     uint32_t status;
@@ -103,8 +102,7 @@ typedef struct ENIPEncapHdr_
 /**
  * ENIP encapsulation data header
  */
-typedef struct ENIPEncapDataHdr_
-{
+typedef struct ENIPEncapDataHdr_ {
     uint32_t interface_handle;
     uint16_t timeout;
     uint16_t item_count;
@@ -123,8 +121,7 @@ typedef struct ENIPEncapAddressItem_ {
 /**
  * ENIP encapsulation data item
  */
-typedef struct ENIPEncapDataItem_
-{
+typedef struct ENIPEncapDataItem_ {
     uint16_t type;
     uint16_t length;
     uint16_t sequence_count;
@@ -133,8 +130,7 @@ typedef struct ENIPEncapDataItem_
 /**
  * CIP Request Header
  */
-typedef struct CIPReqHdr_
-{
+typedef struct CIPReqHdr_ {
     uint8_t service;
     uint8_t path_size;
 } CIPReqHdr;
@@ -142,63 +138,55 @@ typedef struct CIPReqHdr_
 /**
  * CIP Response Header
  */
-typedef struct CIPRespHdr_
-{
+typedef struct CIPRespHdr_ {
     uint8_t service;
     uint8_t pad;
     uint8_t status;
     uint8_t status_size;
 } CIPRespHdr;
 
-typedef struct SegmentEntry_
-{
-    uint16_t segment;   /**< segment type */
-    uint16_t value;     /**< segment value (class or attribute) */
+typedef struct SegmentEntry_ {
+    uint16_t segment; /**< segment type */
+    uint16_t value;   /**< segment value (class or attribute) */
 
     TAILQ_ENTRY(SegmentEntry_) next;
 } SegmentEntry;
 
-typedef struct AttributeEntry_
-{
+typedef struct AttributeEntry_ {
     uint16_t attribute; /**< segment class */
 
     TAILQ_ENTRY(AttributeEntry_) next;
 } AttributeEntry;
 
-typedef struct CIPServiceEntry_
-{
-    uint8_t service;                            /**< cip service */
+typedef struct CIPServiceEntry_ {
+    uint8_t service; /**< cip service */
     uint8_t direction;
-    union
-    {
-        struct
-        {
-            uint8_t path_size;                  /**< cip path size */
-            uint16_t path_offset;               /**< offset to cip path */
+    union {
+        struct {
+            uint8_t path_size;    /**< cip path size */
+            uint16_t path_offset; /**< offset to cip path */
         } request;
-        struct
-        {
+        struct {
             uint16_t status;
         } response;
     };
 
-    TAILQ_HEAD(, SegmentEntry_) segment_list;   /**< list for CIP segment */
-    TAILQ_HEAD(, AttributeEntry_) attrib_list;  /**< list for CIP segment */
+    TAILQ_HEAD(, SegmentEntry_) segment_list;  /**< list for CIP segment */
+    TAILQ_HEAD(, AttributeEntry_) attrib_list; /**< list for CIP segment */
 
     TAILQ_ENTRY(CIPServiceEntry_) next;
 } CIPServiceEntry;
 
-typedef struct ENIPTransaction_
-{
+typedef struct ENIPTransaction_ {
     struct ENIPState_ *enip;
-    uint64_t tx_num;                            /**< internal: id */
-    uint16_t tx_id;                             /**< transaction id */
+    uint64_t tx_num; /**< internal: id */
+    uint16_t tx_id;  /**< transaction id */
     uint16_t service_count;
 
-    ENIPEncapHdr header;                        /**< encapsulation header */
-    ENIPEncapDataHdr encap_data_header;         /**< encapsulation data header */
-    ENIPEncapAddressItem encap_addr_item;       /**< encapsulated address item */
-    ENIPEncapDataItem encap_data_item;          /**< encapsulated data item */
+    ENIPEncapHdr header;                  /**< encapsulation header */
+    ENIPEncapDataHdr encap_data_header;   /**< encapsulation data header */
+    ENIPEncapAddressItem encap_addr_item; /**< encapsulated address item */
+    ENIPEncapDataItem encap_data_item;    /**< encapsulated data item */
 
     TAILQ_HEAD(, CIPServiceEntry_) service_list; /**< list for CIP  */
 
@@ -207,8 +195,7 @@ typedef struct ENIPTransaction_
 } ENIPTransaction;
 
 /** \brief Per flow ENIP state container */
-typedef struct ENIPState_
-{
+typedef struct ENIPState_ {
     AppLayerStateData state_data;
     TAILQ_HEAD(, ENIPTransaction_) tx_list; /**< transaction list */
     ENIPTransaction *curr;                  /**< ptr to current tx */
@@ -225,21 +212,20 @@ typedef struct ENIPState_
     uint8_t *buffer;
 } ENIPState;
 
-int DecodeENIPPDU(const uint8_t *input, uint32_t input_len,
-        ENIPTransaction *enip_data);
-int DecodeCommonPacketFormatPDU(const uint8_t *input, uint32_t input_len,
-        ENIPTransaction *enip_data, uint16_t offset);
-int DecodeCIPPDU(const uint8_t *input, uint32_t input_len,
-        ENIPTransaction *enip_data, uint16_t offset);
-int DecodeCIPRequestPDU(const uint8_t *input, uint32_t input_len,
-        ENIPTransaction *enip_data, uint16_t offset);
-int DecodeCIPResponsePDU(const uint8_t *input, uint32_t input_len,
-        ENIPTransaction *enip_data, uint16_t offset);
-int DecodeCIPRequestPathPDU(const uint8_t *input, uint32_t input_len,
-        CIPServiceEntry *node, uint16_t offset);
-int DecodeCIPRequestMSPPDU(const uint8_t *input, uint32_t input_len,
-        ENIPTransaction *enip_data, uint16_t offset);
-int DecodeCIPResponseMSPPDU(const uint8_t *input, uint32_t input_len,
-        ENIPTransaction *enip_data, uint16_t offset);
+int DecodeENIPPDU(const uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data);
+int DecodeCommonPacketFormatPDU(
+        const uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data, uint16_t offset);
+int DecodeCIPPDU(
+        const uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data, uint16_t offset);
+int DecodeCIPRequestPDU(
+        const uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data, uint16_t offset);
+int DecodeCIPResponsePDU(
+        const uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data, uint16_t offset);
+int DecodeCIPRequestPathPDU(
+        const uint8_t *input, uint32_t input_len, CIPServiceEntry *node, uint16_t offset);
+int DecodeCIPRequestMSPPDU(
+        const uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data, uint16_t offset);
+int DecodeCIPResponseMSPPDU(
+        const uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data, uint16_t offset);
 
 #endif /* __APP_LAYER_ENIP_COMMON_H__ */

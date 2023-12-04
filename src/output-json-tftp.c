@@ -48,8 +48,8 @@
 
 #include "rust.h"
 
-static int JsonTFTPLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonTFTPLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     OutputJsonThreadCtx *thread = thread_data;
 
@@ -72,8 +72,7 @@ error:
     return TM_ECODE_FAILED;
 }
 
-static OutputInitResult OutputTFTPLogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult OutputTFTPLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_TFTP);
     return OutputJsonLogInitSub(conf, parent_ctx);

@@ -87,7 +87,7 @@ typedef struct SMTPTransaction_ {
     uint8_t *mail_from;
     uint16_t mail_from_len;
 
-    TAILQ_HEAD(, SMTPString_) rcpt_to_list;  /**< rcpt to string list */
+    TAILQ_HEAD(, SMTPString_) rcpt_to_list; /**< rcpt to string list */
 
     FileContainer files_ts;
 
@@ -110,7 +110,7 @@ typedef struct SMTPConfig {
 typedef struct SMTPState_ {
     AppLayerStateData state_data;
     SMTPTransaction *curr_tx;
-    TAILQ_HEAD(, SMTPTransaction_) tx_list;  /**< transaction list */
+    TAILQ_HEAD(, SMTPTransaction_) tx_list; /**< transaction list */
     uint64_t tx_cnt;
     uint64_t toserver_data_count;
     uint64_t toserver_last_data_stamp;

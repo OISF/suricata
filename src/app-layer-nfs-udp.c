@@ -52,10 +52,8 @@ enum {
 };
 
 SCEnumCharMap nfs_udp_decoder_event_table[] = {
-    {"EMPTY_MESSAGE", NFS_DECODER_EVENT_EMPTY_MESSAGE},
-    { NULL, 0 }
+    { "EMPTY_MESSAGE", NFS_DECODER_EVENT_EMPTY_MESSAGE }, { NULL, 0 }
 };
-
 
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 static SuricataFileContext sfc = { &sbcfg };
@@ -66,8 +64,7 @@ void RegisterNFSUDPParsers(void)
     rs_nfs_udp_register_parser();
 
 #ifdef UNITTESTS
-    AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_NFS,
-        NFSUDPParserRegisterTests);
+    AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_NFS, NFSUDPParserRegisterTests);
 #endif
 }
 

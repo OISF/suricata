@@ -26,6 +26,6 @@
 #define __DETECT_FILESHA256_H__
 
 /* prototypes */
-void DetectFileSha256Register (void);
+void DetectFileSha256Register(void);
 
 #endif /* __DETECT_FILESHA256_H__ */
