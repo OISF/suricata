@@ -26,7 +26,7 @@
 #include "app-layer/ike/parser.h"  //IKEState, IKETransaction
 #include "app-layer/ntp/parser.h"  //NTPState, NTPTransaction
 #include "app-layer-snmp.h" //SNMPState, SNMPTransaction
-#include "app-layer-tftp.h" //TFTPState, TFTPTransaction
+#include "app-layer/tftp/parser.h" //TFTPState, TFTPTransaction
 
 #include "util-debug.h"
 #include "util-file.h"

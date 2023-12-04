@@ -52,7 +52,7 @@
 #include "app-layer/nfs/parser-tcp.h"
 #include "app-layer/nfs/parser-udp.h"
 #include "app-layer/ntp/parser.h"
-#include "app-layer-tftp.h"
+#include "app-layer/tftp/parser.h"
 #include "app-layer/ike/parser.h"
 #include "app-layer-krb5.h"
 #include "app-layer-sip.h"
