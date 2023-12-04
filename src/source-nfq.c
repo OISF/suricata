@@ -947,8 +947,6 @@ void *NFQGetThread(int number)
 
 /**
  * \brief NFQ function to get a packet from the kernel
- *
- * \note separate functions for Linux and Win32 for readability.
  */
 static void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv)
 {
