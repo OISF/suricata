@@ -41,6 +41,7 @@ typedef struct NFQPacketVars_
     int id; /* this nfq packets id */
     uint16_t nfq_index; /* index in NFQ array */
     bool verdicted;
+    bool mark_modified;
 
     uint32_t mark;
     uint32_t ifi;

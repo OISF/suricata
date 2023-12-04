@@ -142,7 +142,7 @@ static TmEcode DecodeNFQ(ThreadVars *, Packet *, void *);
 static TmEcode DecodeNFQThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data);
 
-static TmEcode NFQSetVerdict(Packet *p);
+static TmEcode NFQSetVerdict(Packet *p, const uint32_t mark_value, const bool mark_modified);
 static void NFQReleasePacket(Packet *p);
 
 typedef enum NFQMode_ {
@@ -324,7 +324,8 @@ static void NFQVerdictCacheFlush(NFQQueueVars *t)
 #endif
 }
 
-static int NFQVerdictCacheAdd(NFQQueueVars *t, Packet *p, uint32_t verdict)
+static int NFQVerdictCacheAdd(NFQQueueVars *t, Packet *p, const uint32_t verdict,
+        const uint32_t mark_value, const bool mark_modified)
 {
 #ifdef HAVE_NFQ_SET_VERDICT_BATCH
     if (t->verdict_cache.maxlen == 0)
@@ -333,13 +334,13 @@ static int NFQVerdictCacheAdd(NFQQueueVars *t, Packet *p, uint32_t verdict)
     if (p->flags & PKT_STREAM_MODIFIED || verdict == NF_DROP)
         goto flush;
 
-    if (p->flags & PKT_MARK_MODIFIED) {
+    if (mark_modified) {
         if (!t->verdict_cache.mark_valid) {
             if (t->verdict_cache.len)
                 goto flush;
             t->verdict_cache.mark_valid = 1;
-            t->verdict_cache.mark = p->nfq_v.mark;
-        } else if (t->verdict_cache.mark != p->nfq_v.mark) {
+            t->verdict_cache.mark = mark_value;
+        } else if (t->verdict_cache.mark != mark_value) {
             goto flush;
         }
     } else if (t->verdict_cache.mark_valid) {
@@ -439,6 +440,7 @@ static int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
     p->ReleasePacket = NFQReleasePacket;
     p->nfq_v.ifi  = nfq_get_indev(tb);
     p->nfq_v.ifo  = nfq_get_outdev(tb);
+    /* coverity[missing_lock] */
     p->nfq_v.verdicted = false;
 
 #ifdef NFQ_GET_PAYLOAD_SIGNED
@@ -481,9 +483,28 @@ static int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
 
 static void NFQReleasePacket(Packet *p)
 {
-    if (unlikely(!p->nfq_v.verdicted)) {
-        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_NFQ_ERROR);
-        NFQSetVerdict(p);
+    if (PacketIsNotTunnel(p)) {
+        if (unlikely(!p->nfq_v.verdicted)) {
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_NFQ_ERROR);
+            /* coverity[missing_lock] */
+            NFQSetVerdict(p, p->nfq_v.mark, p->nfq_v.mark_modified);
+            /* coverity[missing_lock] */
+            p->nfq_v.verdicted = true;
+        }
+    } else {
+        Packet *root_p = p->root ? p->root : p;
+        SCSpinlock *lock = &root_p->persistent.tunnel_lock;
+        SCSpinLock(lock);
+        const bool verdicted = p->nfq_v.verdicted;
+        // taken from root packet
+        const bool mark_modified = root_p->nfq_v.mark_modified;
+        const uint32_t mark_value = root_p->nfq_v.mark;
+        root_p->nfq_v.verdicted = true;
+        SCSpinUnlock(lock);
+        if (!verdicted) {
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_NFQ_ERROR);
+            NFQSetVerdict(p, mark_value, mark_modified);
+        }
     }
     PacketFreeOrRelease(p);
 }
@@ -504,7 +525,7 @@ static int NFQBypassCallback(Packet *p)
             SCSpinLock(&tp->persistent.tunnel_lock);
             tp->nfq_v.mark = (nfq_config.bypass_mark & nfq_config.bypass_mask)
                 | (tp->nfq_v.mark & ~nfq_config.bypass_mask);
-            tp->flags |= PKT_MARK_MODIFIED;
+            tp->nfq_v.mark_modified = true;
             SCSpinUnlock(&tp->persistent.tunnel_lock);
             return 1;
         }
@@ -513,7 +534,8 @@ static int NFQBypassCallback(Packet *p)
         /* coverity[missing_lock] */
         p->nfq_v.mark = (nfq_config.bypass_mark & nfq_config.bypass_mask)
                         | (p->nfq_v.mark & ~nfq_config.bypass_mask);
-        p->flags |= PKT_MARK_MODIFIED;
+        /* coverity[missing_lock] */
+        p->nfq_v.mark_modified = true;
     }
 
     return 1;
@@ -1073,14 +1095,13 @@ static inline void UpdateCounters(NFQQueueVars *t, const Packet *p)
 
 /** \internal
  *  \brief NFQ verdict function
+ *  \param p Packet to work with. Will be the tunnel root packet in case of tunnel.
  */
-static TmEcode NFQSetVerdict(Packet *p)
+static TmEcode NFQSetVerdict(Packet *p, const uint32_t mark_value, const bool mark_modified)
 {
     int iter = 0;
     /* we could also have a direct pointer but we need to have a ref count in this case */
     NFQQueueVars *t = g_nfq_q + p->nfq_v.nfq_index;
-
-    p->nfq_v.verdicted = true;
 
     /* can't verdict a "fake" packet */
     if (PKT_IS_PSEUDOPKT(p)) {
@@ -1101,7 +1122,7 @@ static TmEcode NFQSetVerdict(Packet *p)
     UpdateCounters(t, p);
 #endif /* COUNTERS */
 
-    int ret = NFQVerdictCacheAdd(t, p, verdict);
+    int ret = NFQVerdictCacheAdd(t, p, verdict, mark_value, mark_modified);
     if (ret == 0) {
         NFQMutexUnlock(t);
         return TM_ECODE_OK;
@@ -1112,26 +1133,21 @@ static TmEcode NFQSetVerdict(Packet *p)
             default:
             case NFQ_ACCEPT_MODE:
             case NFQ_ROUTE_MODE:
-                if (p->flags & PKT_MARK_MODIFIED) {
+                if (mark_modified) {
 #ifdef HAVE_NFQ_SET_VERDICT2
                     if (p->flags & PKT_STREAM_MODIFIED) {
-                        ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
-                                p->nfq_v.mark,
+                        ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict, mark_value,
                                 GET_PKT_LEN(p), GET_PKT_DATA(p));
                     } else {
-                        ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
-                                p->nfq_v.mark,
-                                0, NULL);
+                        ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict, mark_value, 0, NULL);
                     }
 #else /* fall back to old function */
                     if (p->flags & PKT_STREAM_MODIFIED) {
-                        ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
-                                htonl(p->nfq_v.mark),
+                        ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict, htonl(mark_value),
                                 GET_PKT_LEN(p), GET_PKT_DATA(p));
                     } else {
-                        ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
-                                htonl(p->nfq_v.mark),
-                                0, NULL);
+                        ret = nfq_set_verdict_mark(
+                                t->qh, p->nfq_v.id, verdict, htonl(mark_value), 0, NULL);
                     }
 #endif /* HAVE_NFQ_SET_VERDICT2 */
                 } else {
@@ -1141,28 +1157,29 @@ static TmEcode NFQSetVerdict(Packet *p)
                     } else {
                         ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
                     }
-
                 }
                 break;
             case NFQ_REPEAT_MODE:
 #ifdef HAVE_NFQ_SET_VERDICT2
                 if (p->flags & PKT_STREAM_MODIFIED) {
                     ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
-                            (nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask),
+                            (nfq_config.mark & nfq_config.mask) | (mark_value & ~nfq_config.mask),
                             GET_PKT_LEN(p), GET_PKT_DATA(p));
                 } else {
                     ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
-                            (nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask),
+                            (nfq_config.mark & nfq_config.mask) | (mark_value & ~nfq_config.mask),
                             0, NULL);
                 }
 #else /* fall back to old function */
                 if (p->flags & PKT_STREAM_MODIFIED) {
                     ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
-                            htonl((nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask)),
+                            htonl((nfq_config.mark & nfq_config.mask) |
+                                    (mark_value & ~nfq_config.mask)),
                             GET_PKT_LEN(p), GET_PKT_DATA(p));
                 } else {
                     ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
-                            htonl((nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask)),
+                            htonl((nfq_config.mark & nfq_config.mask) |
+                                    (mark_value & ~nfq_config.mask)),
                             0, NULL);
                 }
 #endif /* HAVE_NFQ_SET_VERDICT2 */
@@ -1186,19 +1203,33 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data)
 {
     /* if this is a tunnel packet we check if we are ready to verdict
      * already. */
-    if (p->ttype != PacketTunnelNone) {
+    if (PacketIsTunnel(p)) {
+        Packet *root_p = p->root ? p->root : p;
+
         SCLogDebug("tunnel pkt: %p/%p %s", p, p->root, p->root ? "upper layer" : "root");
-        bool verdict = VerdictTunnelPacket(p);
+
+        SCSpinlock *lock = &root_p->persistent.tunnel_lock;
+        SCSpinLock(lock);
+        const bool do_verdict = VerdictTunnelPacketInternal(p);
+        // taken from root packet
+        const bool mark_modified = root_p->nfq_v.mark_modified;
+        const uint32_t mark_value = root_p->nfq_v.mark;
+        root_p->nfq_v.verdicted = do_verdict;
+        SCSpinUnlock(lock);
         /* don't verdict if we are not ready */
-        if (verdict == true) {
-            int ret = NFQSetVerdict(p->root ? p->root : p);
+        if (do_verdict == true) {
+            int ret = NFQSetVerdict(root_p, mark_value, mark_modified);
             if (ret != TM_ECODE_OK) {
                 return ret;
             }
         }
     } else {
         /* no tunnel, verdict normally */
-        int ret = NFQSetVerdict(p);
+
+        /* coverity[missing_lock] */
+        p->nfq_v.verdicted = true;
+
+        int ret = NFQSetVerdict(p, p->nfq_v.mark, p->nfq_v.mark_modified);
         if (ret != TM_ECODE_OK) {
             return ret;
         }
