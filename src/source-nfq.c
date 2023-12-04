@@ -1073,10 +1073,10 @@ static inline void UpdateCounters(NFQQueueVars *t, const Packet *p)
 }
 #endif /* COUNTERS */
 
-/**
- * \brief NFQ verdict function
+/** \internal
+ *  \brief NFQ verdict function
  */
-TmEcode NFQSetVerdict(Packet *p)
+static TmEcode NFQSetVerdict(Packet *p)
 {
     int iter = 0;
     /* we could also have a direct pointer but we need to have a ref count in this case */
