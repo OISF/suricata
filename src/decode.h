@@ -1123,6 +1123,26 @@ static inline bool PacketIsNotTunnel(const Packet *p)
     return (p->ttype == PacketTunnelNone);
 }
 
+static inline bool VerdictTunnelPacketInternal(const Packet *p)
+{
+    const uint16_t outstanding = TUNNEL_PKT_TPR(p) - TUNNEL_PKT_RTV(p);
+    SCLogDebug("tunnel: outstanding %u", outstanding);
+
+    /* if there are packets outstanding, we won't verdict this one */
+    if (PacketIsTunnelRoot(p) && !PacketTunnelIsVerdicted(p) && !outstanding) {
+        SCLogDebug("root %p: verdict", p);
+        return true;
+
+    } else if (PacketIsTunnelChild(p) && outstanding == 1 && p->root &&
+               PacketTunnelIsVerdicted(p->root)) {
+        SCLogDebug("tunnel %p: verdict", p);
+        return true;
+
+    } else {
+        return false;
+    }
+}
+
 /** \brief return true if *this* packet needs to trigger a verdict.
  *
  *  If we have the root packet, and we have none outstanding,
@@ -1135,23 +1155,10 @@ static inline bool PacketIsNotTunnel(const Packet *p)
  */
 static inline bool VerdictTunnelPacket(Packet *p)
 {
-    bool verdict = true;
+    bool verdict;
     SCSpinlock *lock = p->root ? &p->root->persistent.tunnel_lock : &p->persistent.tunnel_lock;
     SCSpinLock(lock);
-    const uint16_t outstanding = TUNNEL_PKT_TPR(p) - TUNNEL_PKT_RTV(p);
-    SCLogDebug("tunnel: outstanding %u", outstanding);
-
-    /* if there are packets outstanding, we won't verdict this one */
-    if (PacketIsTunnelRoot(p) && !PacketTunnelIsVerdicted(p) && !outstanding) {
-        // verdict
-        SCLogDebug("root %p: verdict", p);
-    } else if (PacketIsTunnelChild(p) && outstanding == 1 && p->root &&
-               PacketTunnelIsVerdicted(p->root)) {
-        // verdict
-        SCLogDebug("tunnel %p: verdict", p);
-    } else {
-        verdict = false;
-    }
+    verdict = VerdictTunnelPacketInternal(p);
     SCSpinUnlock(lock);
     return verdict;
 }
