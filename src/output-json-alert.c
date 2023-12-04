@@ -71,7 +71,7 @@
 #include "app-layer/nfs/logger.h"
 #include "app-layer/smb/logger.h"
 #include "output-json-flow.h"
-#include "output-json-sip.h"
+#include "app-layer/sip/logger.h"
 #include "output-json-rfb.h"
 #include "output-json-mqtt.h"
 #include "app-layer/ike/logger.h"

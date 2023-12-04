@@ -76,7 +76,7 @@
 #include "output-json-quic.h"
 #include "output-json-dhcp.h"
 #include "output-json-snmp.h"
-#include "output-json-sip.h"
+#include "app-layer/sip/logger.h"
 #include "output-json-rfb.h"
 #include "output-json-mqtt.h"
 #include "output-json-pgsql.h"
