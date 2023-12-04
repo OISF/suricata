@@ -48,7 +48,7 @@
 #include "util-lua-tls.h"
 #include "util-lua-ssh.h"
 #include "util-lua-hassh.h"
-#include "util-lua-smtp.h"
+#include "app-layer/smtp/lua.h"
 
 #define MODULE_NAME "LuaLog"
 

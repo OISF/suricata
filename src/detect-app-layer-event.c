@@ -28,7 +28,7 @@
 #include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "app-layer-smtp.h"
+#include "app-layer/smtp/parser.h"
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"

@@ -40,7 +40,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
-#include "app-layer-smtp.h"
+#include "app-layer/smtp/parser.h"
 
 #include "flow.h"
 #include "flow-var.h"
