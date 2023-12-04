@@ -68,7 +68,7 @@
 #include "rust.h"
 #include "app-layer/smtp/logger.h"
 #include "output-json-email-common.h"
-#include "output-json-nfs.h"
+#include "app-layer/nfs/logger.h"
 #include "output-json-smb.h"
 #include "output-json-flow.h"
 #include "output-json-sip.h"

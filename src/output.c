@@ -65,7 +65,7 @@
 #include "output-json-stats.h"
 #include "log-tcp-data.h"
 #include "log-stats.h"
-#include "output-json-nfs.h"
+#include "app-layer/nfs/logger.h"
 #include "output-json-ftp.h"
 // for misplaced EveFTPDataAddMetadata
 #include "app-layer-ftp.h"

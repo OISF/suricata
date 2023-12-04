@@ -43,7 +43,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "output-json-nfs.h"
+#include "app-layer/nfs/logger.h"
 
 #include "rust.h"
 
