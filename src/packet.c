@@ -157,6 +157,7 @@ void PacketReinit(Packet *p)
     AppLayerDecoderEventsResetEvents(p->app_layer_events);
     p->next = NULL;
     p->prev = NULL;
+    p->tunnel_verdicted = false;
     p->root = NULL;
     p->livedev = NULL;
     PACKET_RESET_CHECKSUMS(p);
