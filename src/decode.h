@@ -618,6 +618,9 @@ typedef struct Packet_
     /* enum PacketDropReason::PKT_DROP_REASON_* as uint8_t for compactness */
     uint8_t drop_reason;
 
+    /* has tunnel been verdicted? */
+    bool tunnel_verdicted;
+
     /* tunnel/encapsulation handling */
     struct Packet_ *root; /* in case of tunnel this is a ptr
                            * to the 'real' packet, the one we
@@ -801,8 +804,8 @@ static inline void TUNNEL_INCR_PKT_TPR(Packet *p)
 #define UNSET_TUNNEL_PKT(p)         ((p)->flags &= ~PKT_TUNNEL)
 #define IS_TUNNEL_ROOT_PKT(p)       (IS_TUNNEL_PKT(p) && (p)->root == NULL)
 
-#define IS_TUNNEL_PKT_VERDICTED(p)  (((p)->flags & PKT_TUNNEL_VERDICTED))
-#define SET_TUNNEL_PKT_VERDICTED(p) ((p)->flags |= PKT_TUNNEL_VERDICTED)
+#define IS_TUNNEL_PKT_VERDICTED(p)  (p)->tunnel_verdicted
+#define SET_TUNNEL_PKT_VERDICTED(p) (p)->tunnel_verdicted = true
 
 enum DecodeTunnelProto {
     DECODE_TUNNEL_ETHERNET,
@@ -1015,7 +1018,7 @@ void DecodeUnregisterCounters(void);
 #define PKT_STREAM_NOPCAPLOG BIT_U32(12)
 
 #define PKT_TUNNEL           BIT_U32(13)
-#define PKT_TUNNEL_VERDICTED BIT_U32(14)
+// vacancy
 
 /** Packet checksum is not computed (TX packet for example) */
 #define PKT_IGNORE_CHECKSUM BIT_U32(15)
