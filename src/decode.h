@@ -1021,8 +1021,9 @@ void DecodeUnregisterCounters(void);
 /** Packet is modified by the stream engine, we need to recalc the csum and       \
                    reinject/replace */
 #define PKT_STREAM_MODIFIED BIT_U32(10)
-/** Packet mark is modified */
-#define PKT_MARK_MODIFIED BIT_U32(11)
+
+// vacancy
+
 /** Exclude packet from pcap logging as it's part of a stream that has reassembly \
                    depth reached. */
 #define PKT_STREAM_NOPCAPLOG BIT_U32(12)
