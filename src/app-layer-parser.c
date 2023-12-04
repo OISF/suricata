@@ -57,7 +57,7 @@
 #include "app-layer-krb5.h"
 #include "app-layer/sip/parser.h"
 #include "app-layer-rfb.h"
-#include "app-layer-mqtt.h"
+#include "app-layer/mqtt/parser.h"
 #include "app-layer-snmp.h"
 #include "app-layer-quic.h"
 #include "app-layer-rdp.h"

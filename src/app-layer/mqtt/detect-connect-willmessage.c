@@ -19,7 +19,7 @@
  *
  * \author Sascha Steinbiss <sascha@steinbiss.name>
  *
- * Implements the mqtt.connect.clientid sticky buffer
+ * Implements the mqtt.connect.willmessage sticky buffer
  */
 
 #include "suricata-common.h"
@@ -28,16 +28,16 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
-#include "detect-mqtt-connect-clientid.h"
+#include "app-layer/mqtt/detect-connect-willmessage.h"
 #include "rust.h"
 
-#define KEYWORD_NAME "mqtt.connect.clientid"
-#define KEYWORD_DOC  "mqtt-keywords.html#mqtt-connect-clientid"
-#define BUFFER_NAME  "mqtt.connect.clientid"
-#define BUFFER_DESC  "MQTT CONNECT client ID"
+#define KEYWORD_NAME "mqtt.connect.willmessage"
+#define KEYWORD_DOC  "mqtt-keywords.html#mqtt-connect-willmessage"
+#define BUFFER_NAME  "mqtt.connect.willmessage"
+#define BUFFER_DESC  "MQTT CONNECT will message"
 static int g_buffer_id = 0;
 
-static int DetectMQTTConnectClientIDSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+static int DetectMQTTConnectWillMessageSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     if (DetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
         return -1;
@@ -57,7 +57,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
 
-        if (rs_mqtt_tx_get_connect_clientid(txv, &b, &b_len) != 1)
+        if (rs_mqtt_tx_get_connect_willmessage(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -68,15 +68,15 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-void DetectMQTTConnectClientIDRegister(void)
+void DetectMQTTConnectWillMessageRegister(void)
 {
-    /* mqtt.connect.clientid sticky buffer */
-    sigmatch_table[DETECT_AL_MQTT_CONNECT_CLIENTID].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_MQTT_CONNECT_CLIENTID].desc =
-            "sticky buffer to match on the MQTT CONNECT client ID";
-    sigmatch_table[DETECT_AL_MQTT_CONNECT_CLIENTID].url = "/rules/" KEYWORD_DOC;
-    sigmatch_table[DETECT_AL_MQTT_CONNECT_CLIENTID].Setup = DetectMQTTConnectClientIDSetup;
-    sigmatch_table[DETECT_AL_MQTT_CONNECT_CLIENTID].flags |= SIGMATCH_NOOPT;
+    /* mqtt.connect.willmessage sticky buffer */
+    sigmatch_table[DETECT_AL_MQTT_CONNECT_WILLMESSAGE].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_AL_MQTT_CONNECT_WILLMESSAGE].desc =
+            "sticky buffer to match on the MQTT CONNECT will message";
+    sigmatch_table[DETECT_AL_MQTT_CONNECT_WILLMESSAGE].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_AL_MQTT_CONNECT_WILLMESSAGE].Setup = DetectMQTTConnectWillMessageSetup;
+    sigmatch_table[DETECT_AL_MQTT_CONNECT_WILLMESSAGE].flags |= SIGMATCH_NOOPT;
 
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_MQTT, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);

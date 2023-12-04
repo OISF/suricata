@@ -31,7 +31,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-mqtt.h"
+#include "app-layer/mqtt/parser.h"
 #include "rust.h"
 
 void RegisterMQTTParsers(void)
