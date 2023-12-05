@@ -21,9 +21,7 @@ use super::dhcp::{
 use super::parser::DHCPOptionWrapper;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_tx_get_leasetime(
-    tx: &mut DHCPTransaction, leasetime: *mut u64,
-) -> u8 {
+pub unsafe extern fn rs_dhcp_tx_get_leasetime(tx: &mut DHCPTransaction, leasetime: *mut u64) -> u8 {
     for option in &tx.message.options {
         if option.code == DHCP_OPT_ADDRESS_TIME {
             if let DHCPOptionWrapper::TimeValue(ref time_value) = option.option {
@@ -36,9 +34,7 @@ pub unsafe extern "C" fn rs_dhcp_tx_get_leasetime(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_tx_get_rebinding_time(
-    tx: &mut DHCPTransaction, res: *mut u64,
-) -> u8 {
+pub unsafe extern fn rs_dhcp_tx_get_rebinding_time(tx: &mut DHCPTransaction, res: *mut u64) -> u8 {
     for option in &tx.message.options {
         if option.code == DHCP_OPT_REBINDING_TIME {
             if let DHCPOptionWrapper::TimeValue(ref time_value) = option.option {
@@ -51,9 +47,7 @@ pub unsafe extern "C" fn rs_dhcp_tx_get_rebinding_time(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dhcp_tx_get_renewal_time(
-    tx: &mut DHCPTransaction, res: *mut u64,
-) -> u8 {
+pub unsafe extern fn rs_dhcp_tx_get_renewal_time(tx: &mut DHCPTransaction, res: *mut u64) -> u8 {
     for option in &tx.message.options {
         if option.code == DHCP_OPT_RENEWAL_TIME {
             if let DHCPOptionWrapper::TimeValue(ref time_value) = option.option {

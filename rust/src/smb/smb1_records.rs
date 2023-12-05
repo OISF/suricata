@@ -22,9 +22,9 @@ use crate::smb::smb_records::*;
 use nom7::bytes::streaming::{tag, take};
 use nom7::combinator::{complete, cond, peek, rest, verify};
 use nom7::error::{make_error, ErrorKind};
-use nom7::Err;
 use nom7::multi::many1;
-use nom7::number::streaming::{le_u8, le_u16, le_u32, le_u64};
+use nom7::number::streaming::{le_u16, le_u32, le_u64, le_u8};
+use nom7::Err;
 use nom7::IResult;
 
 pub const SMB1_HEADER_SIZE: usize = 32;
@@ -32,14 +32,17 @@ pub const SMB1_HEADER_SIZE: usize = 32;
 // SMB_FLAGS_REPLY in Microsoft docs.
 const SMB1_FLAGS_RESPONSE: u8 = 0x80;
 
-fn smb_get_unicode_string_with_offset(i: &[u8], offset: usize) -> IResult<&[u8], Vec<u8>, SmbError>
-{
+fn smb_get_unicode_string_with_offset(
+    i: &[u8], offset: usize,
+) -> IResult<&[u8], Vec<u8>, SmbError> {
     let (i, _) = cond(offset % 2 == 1, take(1_usize))(i)?;
     smb_get_unicode_string(i)
 }
 
 /// take a string, unicode or ascii based on record
-pub fn smb1_get_string<'a>(i: &'a[u8], r: &SmbRecord, offset: usize) -> IResult<&'a[u8], Vec<u8>, SmbError> {
+pub fn smb1_get_string<'a>(
+    i: &'a [u8], r: &SmbRecord, offset: usize,
+) -> IResult<&'a [u8], Vec<u8>, SmbError> {
     if r.has_unicode_support() {
         smb_get_unicode_string_with_offset(i, offset)
     } else {
@@ -47,8 +50,7 @@ pub fn smb1_get_string<'a>(i: &'a[u8], r: &SmbRecord, offset: usize) -> IResult<
     }
 }
 
-
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbParamBlockAndXHeader {
     pub wct: u8,
     pub andx_command: u8,
@@ -68,12 +70,12 @@ pub fn smb1_parse_andx_header(i: &[u8]) -> IResult<&[u8], SmbParamBlockAndXHeade
     Ok((i, hdr))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb1WriteRequestRecord<'a> {
     pub offset: u64,
     pub len: u32,
-    pub fid: &'a[u8],
-    pub data: &'a[u8],
+    pub fid: &'a [u8],
+    pub data: &'a [u8],
 }
 
 pub fn parse_smb1_write_request_record(i: &[u8]) -> IResult<&[u8], Smb1WriteRequestRecord> {
@@ -90,12 +92,14 @@ pub fn parse_smb1_write_request_record(i: &[u8]) -> IResult<&[u8], Smb1WriteRequ
         offset: offset as u64,
         len: data_len as u32,
         fid,
-        data:file_data,
+        data: file_data,
     };
     Ok((i, record))
 }
 
-pub fn parse_smb1_write_andx_request_record(i : &[u8], andx_offset: usize) -> IResult<&[u8], Smb1WriteRequestRecord> {
+pub fn parse_smb1_write_andx_request_record(
+    i: &[u8], andx_offset: usize,
+) -> IResult<&[u8], Smb1WriteRequestRecord> {
     let origin_i = i;
     let ax = andx_offset as u16;
     let (i, wct) = le_u8(i)?;
@@ -109,14 +113,14 @@ pub fn parse_smb1_write_andx_request_record(i : &[u8], andx_offset: usize) -> IR
     let (i, _remaining) = le_u16(i)?;
     let (i, data_len_high) = le_u16(i)?;
     let (i, data_len_low) = le_u16(i)?;
-    let data_len = ((data_len_high as u32) << 16)|(data_len_low as u32);
+    let data_len = ((data_len_high as u32) << 16) | (data_len_low as u32);
     let (i, data_offset) = le_u16(i)?;
-    if data_offset < 0x3c || data_offset < ax{
+    if data_offset < 0x3c || data_offset < ax {
         return Err(Err::Error(make_error(i, ErrorKind::LengthValue)));
     }
     let (i, high_offset) = cond(wct == 14, le_u32)(i)?;
     let (_i, _bcc) = le_u16(i)?;
-    let (i, _padding_data) = take(data_offset-ax)(origin_i)?;
+    let (i, _padding_data) = take(data_offset - ax)(origin_i)?;
     let (i, file_data) = take(std::cmp::min(data_len, i.len() as u32))(i)?;
 
     let record = Smb1WriteRequestRecord {
@@ -128,7 +132,9 @@ pub fn parse_smb1_write_andx_request_record(i : &[u8], andx_offset: usize) -> IR
     Ok((i, record))
 }
 
-pub fn parse_smb1_write_and_close_request_record(i: &[u8]) -> IResult<&[u8], Smb1WriteRequestRecord> {
+pub fn parse_smb1_write_and_close_request_record(
+    i: &[u8],
+) -> IResult<&[u8], Smb1WriteRequestRecord> {
     let (i, _wct) = le_u8(i)?;
     let (i, fid) = take(2_usize)(i)?;
     let (i, count) = le_u16(i)?;
@@ -146,25 +152,27 @@ pub fn parse_smb1_write_and_close_request_record(i: &[u8]) -> IResult<&[u8], Smb
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb1NegotiateProtocolResponseRecord<'a> {
     pub dialect_idx: u16,
-    pub server_guid: &'a[u8],
+    pub server_guid: &'a [u8],
 }
 
-pub fn parse_smb1_negotiate_protocol_response_record_error(i: &[u8])
-    -> IResult<&[u8], Smb1NegotiateProtocolResponseRecord> {
-     let (i, _wct) = le_u8(i)?;
-     let (i, _bcc) = le_u16(i)?;
-     let record = Smb1NegotiateProtocolResponseRecord {
-         dialect_idx: 0,
-         server_guid: &[],
-     };
-     Ok((i, record))
+pub fn parse_smb1_negotiate_protocol_response_record_error(
+    i: &[u8],
+) -> IResult<&[u8], Smb1NegotiateProtocolResponseRecord> {
+    let (i, _wct) = le_u8(i)?;
+    let (i, _bcc) = le_u16(i)?;
+    let record = Smb1NegotiateProtocolResponseRecord {
+        dialect_idx: 0,
+        server_guid: &[],
+    };
+    Ok((i, record))
 }
 
-pub fn parse_smb1_negotiate_protocol_response_record_ok(i: &[u8])
-    -> IResult<&[u8], Smb1NegotiateProtocolResponseRecord> {
+pub fn parse_smb1_negotiate_protocol_response_record_ok(
+    i: &[u8],
+) -> IResult<&[u8], Smb1NegotiateProtocolResponseRecord> {
     let (i, _wct) = le_u8(i)?;
     let (i, dialect_idx) = le_u16(i)?;
     let (i, _sec_mode) = le_u8(i)?;
@@ -182,8 +190,9 @@ pub fn parse_smb1_negotiate_protocol_response_record_ok(i: &[u8])
     Ok((i, record))
 }
 
-pub fn parse_smb1_negotiate_protocol_response_record(i: &[u8])
-    -> IResult<&[u8], Smb1NegotiateProtocolResponseRecord> {
+pub fn parse_smb1_negotiate_protocol_response_record(
+    i: &[u8],
+) -> IResult<&[u8], Smb1NegotiateProtocolResponseRecord> {
     let (i, wct) = peek(le_u8)(i)?;
     match wct {
         0 => parse_smb1_negotiate_protocol_response_record_error(i),
@@ -191,13 +200,14 @@ pub fn parse_smb1_negotiate_protocol_response_record(i: &[u8])
     }
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb1NegotiateProtocolRecord<'a> {
     pub dialects: Vec<&'a [u8]>,
 }
 
-pub fn parse_smb1_negotiate_protocol_record(i: &[u8])
-    -> IResult<&[u8], Smb1NegotiateProtocolRecord> {
+pub fn parse_smb1_negotiate_protocol_record(
+    i: &[u8],
+) -> IResult<&[u8], Smb1NegotiateProtocolRecord> {
     let (i, _wtc) = le_u8(i)?;
     let (i, _bcc) = le_u16(i)?;
     // dialects is a list of [1 byte buffer format][string][0 terminator]
@@ -206,15 +216,15 @@ pub fn parse_smb1_negotiate_protocol_record(i: &[u8])
     Ok((i, record))
 }
 
-
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Smb1ResponseRecordTreeConnectAndX<'a> {
-    pub service: &'a[u8],
-    pub nativefs: &'a[u8],
+    pub service: &'a [u8],
+    pub nativefs: &'a [u8],
 }
 
-pub fn parse_smb_connect_tree_andx_response_record(i: &[u8])
-    -> IResult<&[u8], Smb1ResponseRecordTreeConnectAndX> {
+pub fn parse_smb_connect_tree_andx_response_record(
+    i: &[u8],
+) -> IResult<&[u8], Smb1ResponseRecordTreeConnectAndX> {
     let (i, wct) = le_u8(i)?;
     let (i, _andx_command) = le_u8(i)?;
     let (i, _) = take(1_usize)(i)?; // reserved
@@ -224,35 +234,30 @@ pub fn parse_smb_connect_tree_andx_response_record(i: &[u8])
     let (i, _bcc) = le_u16(i)?;
     let (i, service) = take_until_and_consume(b"\x00")(i)?;
     let (i, nativefs) = take_until_and_consume(b"\x00")(i)?;
-    let record = Smb1ResponseRecordTreeConnectAndX {
-        service,
-        nativefs
-    };
+    let record = Smb1ResponseRecordTreeConnectAndX { service, nativefs };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbRecordTreeConnectAndX<'a> {
     pub path: Vec<u8>,
-    pub service: &'a[u8],
+    pub service: &'a [u8],
 }
 
-pub fn parse_smb_connect_tree_andx_record<'a>(i: &'a[u8], r: &SmbRecord)
-   -> IResult<&'a[u8], SmbRecordTreeConnectAndX<'a>, SmbError> {
-   let (i, _skip1) = take(7_usize)(i)?;
-   let (i, pwlen) = le_u16(i)?;
-   let (i, _bcc) = le_u16(i)?;
-   let (i, _pw) = take(pwlen)(i)?;
-   let (i, path) = smb1_get_string(i, r, 11 + pwlen as usize)?;
-   let (i, service) = take_until_and_consume(b"\x00")(i)?;
-   let record = SmbRecordTreeConnectAndX {
-       path,
-       service
-   };
-   Ok((i, record))
+pub fn parse_smb_connect_tree_andx_record<'a>(
+    i: &'a [u8], r: &SmbRecord,
+) -> IResult<&'a [u8], SmbRecordTreeConnectAndX<'a>, SmbError> {
+    let (i, _skip1) = take(7_usize)(i)?;
+    let (i, pwlen) = le_u16(i)?;
+    let (i, _bcc) = le_u16(i)?;
+    let (i, _pw) = take(pwlen)(i)?;
+    let (i, path) = smb1_get_string(i, r, 11 + pwlen as usize)?;
+    let (i, service) = take_until_and_consume(b"\x00")(i)?;
+    let record = SmbRecordTreeConnectAndX { path, service };
+    Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbRecordTransRequest<'a> {
     pub params: SmbRecordTransRequestParams,
     pub pipe: Option<SmbPipeProtocolRecord<'a>>,
@@ -260,26 +265,23 @@ pub struct SmbRecordTransRequest<'a> {
     pub data: SmbRecordTransRequestData<'a>,
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbPipeProtocolRecord<'a> {
     pub function: u16,
-    pub fid: &'a[u8],
+    pub fid: &'a [u8],
 }
 
-pub fn parse_smb_trans_request_record_pipe(i: &[u8])
-    -> IResult<&[u8], SmbPipeProtocolRecord, SmbError> {
+pub fn parse_smb_trans_request_record_pipe(
+    i: &[u8],
+) -> IResult<&[u8], SmbPipeProtocolRecord, SmbError> {
     let (i, fun) = le_u16(i)?;
     let (i, fid) = take(2_usize)(i)?;
-    let record = SmbPipeProtocolRecord {
-        function: fun,
-        fid
-    };
+    let record = SmbPipeProtocolRecord { function: fun, fid };
     Ok((i, record))
 }
 
-
-#[derive(Debug,PartialEq, Eq)]
-pub struct SmbRecordTransRequestParams<> {
+#[derive(Debug, PartialEq, Eq)]
+pub struct SmbRecordTransRequestParams {
     pub max_data_cnt: u16,
     param_cnt: u16,
     param_offset: u16,
@@ -288,47 +290,49 @@ pub struct SmbRecordTransRequestParams<> {
     bcc: u16,
 }
 
-pub fn parse_smb_trans_request_record_params(i: &[u8])
-    -> IResult<&[u8], (SmbRecordTransRequestParams, Option<SmbPipeProtocolRecord>), SmbError>
-{
-   let (i, wct) = le_u8(i)?;
-   let (i, _total_param_cnt) = le_u16(i)?;
-   let (i, _total_data_count) = le_u16(i)?;
-   let (i, _max_param_cnt) = le_u16(i)?;
-   let (i, max_data_cnt) = le_u16(i)?;
-   let (i, _max_setup_cnt) = le_u8(i)?;
-   let (i, _) = take(1_usize)(i)?; // reserved
-   let (i, _) = take(2_usize)(i)?; // flags
-   let (i, _timeout) = le_u32(i)?;
-   let (i, _) = take(2_usize)(i)?; // reserved
-   let (i, param_cnt) = le_u16(i)?;
-   let (i, param_offset) = le_u16(i)?;
-   let (i, data_cnt) = le_u16(i)?;
-   let (i, data_offset) = le_u16(i)?;
-   let (i, setup_cnt) = le_u8(i)?;
-   let (i, _) = take(1_usize)(i)?; // reserved
-   let (i, pipe) = cond(wct == 16 && setup_cnt == 2 && data_cnt > 0, parse_smb_trans_request_record_pipe)(i)?;
-   let (i, bcc) = le_u16(i)?;
-   let params = SmbRecordTransRequestParams {
-            max_data_cnt,
-            param_cnt,
-            param_offset,
-            data_cnt,
-            data_offset,
-            bcc
-        };
-   Ok((i, (params, pipe)))
+pub fn parse_smb_trans_request_record_params(
+    i: &[u8],
+) -> IResult<&[u8], (SmbRecordTransRequestParams, Option<SmbPipeProtocolRecord>), SmbError> {
+    let (i, wct) = le_u8(i)?;
+    let (i, _total_param_cnt) = le_u16(i)?;
+    let (i, _total_data_count) = le_u16(i)?;
+    let (i, _max_param_cnt) = le_u16(i)?;
+    let (i, max_data_cnt) = le_u16(i)?;
+    let (i, _max_setup_cnt) = le_u8(i)?;
+    let (i, _) = take(1_usize)(i)?; // reserved
+    let (i, _) = take(2_usize)(i)?; // flags
+    let (i, _timeout) = le_u32(i)?;
+    let (i, _) = take(2_usize)(i)?; // reserved
+    let (i, param_cnt) = le_u16(i)?;
+    let (i, param_offset) = le_u16(i)?;
+    let (i, data_cnt) = le_u16(i)?;
+    let (i, data_offset) = le_u16(i)?;
+    let (i, setup_cnt) = le_u8(i)?;
+    let (i, _) = take(1_usize)(i)?; // reserved
+    let (i, pipe) = cond(
+        wct == 16 && setup_cnt == 2 && data_cnt > 0,
+        parse_smb_trans_request_record_pipe,
+    )(i)?;
+    let (i, bcc) = le_u16(i)?;
+    let params = SmbRecordTransRequestParams {
+        max_data_cnt,
+        param_cnt,
+        param_offset,
+        data_cnt,
+        data_offset,
+        bcc,
+    };
+    Ok((i, (params, pipe)))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbRecordTransRequestData<'a> {
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
-pub fn parse_smb_trans_request_record_data(i: &[u8],
-        pad1: usize, param_cnt: u16, pad2: usize, data_len: u16)
-    -> IResult<&[u8], SmbRecordTransRequestData, SmbError>
-{
+pub fn parse_smb_trans_request_record_data(
+    i: &[u8], pad1: usize, param_cnt: u16, pad2: usize, data_len: u16,
+) -> IResult<&[u8], SmbRecordTransRequestData, SmbError> {
     let (i, _) = take(pad1)(i)?;
     let (i, _) = take(param_cnt)(i)?;
     let (i, _) = take(pad2)(i)?;
@@ -337,9 +341,9 @@ pub fn parse_smb_trans_request_record_data(i: &[u8],
     Ok((i, req))
 }
 
-pub fn parse_smb_trans_request_record<'a>(i: &'a[u8], r: &SmbRecord)
-    -> IResult<&'a[u8], SmbRecordTransRequest<'a>, SmbError>
-{
+pub fn parse_smb_trans_request_record<'a>(
+    i: &'a [u8], r: &SmbRecord,
+) -> IResult<&'a [u8], SmbRecordTransRequest<'a>, SmbError> {
     let (rem, (params, pipe)) = parse_smb_trans_request_record_params(i)?;
     let mut offset = 32 + (i.len() - rem.len()); // init with SMB header
     SCLogDebug!("params {:?}: offset {}", params, offset);
@@ -350,8 +354,7 @@ pub fn parse_smb_trans_request_record<'a>(i: &'a[u8], r: &SmbRecord)
 
     // spec says pad to 4 bytes, but traffic shows this doesn't
     // always happen.
-    let pad1 = if offset == params.param_offset as usize ||
-                  offset == params.data_offset as usize {
+    let pad1 = if offset == params.param_offset as usize || offset == params.data_offset as usize {
         0
     } else {
         offset % 4
@@ -370,68 +373,76 @@ pub fn parse_smb_trans_request_record<'a>(i: &'a[u8], r: &SmbRecord)
         };
         SCLogDebug!("pad2 {}", pad2);
 
-        let d = match parse_smb_trans_request_record_data(rem2,
-                pad1, params.param_cnt, pad2, params.data_cnt) {
+        let d = match parse_smb_trans_request_record_data(
+            rem2,
+            pad1,
+            params.param_cnt,
+            pad2,
+            params.data_cnt,
+        ) {
             Ok((_, rd)) => rd,
-            Err(e) => { return Err(e); }
+            Err(e) => {
+                return Err(e);
+            }
         };
         SCLogDebug!("d {:?}", d);
         d
     } else {
-        SmbRecordTransRequestData { data: &[], } // no data
+        SmbRecordTransRequestData { data: &[] } // no data
     };
 
     let res = SmbRecordTransRequest {
-        params, pipe, txname: n, data: recdata,
+        params,
+        pipe,
+        txname: n,
+        data: recdata,
     };
     Ok((rem, res))
 }
 
-
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbRecordTransResponse<'a> {
     pub data_cnt: u16,
     pub bcc: u16,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 pub fn parse_smb_trans_response_error_record(i: &[u8]) -> IResult<&[u8], SmbRecordTransResponse> {
-   let (i, _wct) = le_u8(i)?;
-   let (i, bcc) = le_u16(i)?;
-   let resp = SmbRecordTransResponse {
-       data_cnt: 0,
-       bcc,
-       data: &[],
-   };
-   Ok((i, resp))
+    let (i, _wct) = le_u8(i)?;
+    let (i, bcc) = le_u16(i)?;
+    let resp = SmbRecordTransResponse {
+        data_cnt: 0,
+        bcc,
+        data: &[],
+    };
+    Ok((i, resp))
 }
 
 pub fn parse_smb_trans_response_regular_record(i: &[u8]) -> IResult<&[u8], SmbRecordTransResponse> {
-   let (i, wct) = le_u8(i)?;
-   let (i, _total_param_cnt) = le_u16(i)?;
-   let (i, _total_data_count) = le_u16(i)?;
-   let (i, _) = take(2_usize)(i)?; // reserved
-   let (i, _param_cnt) = le_u16(i)?;
-   let (i, _param_offset) = le_u16(i)?;
-   let (i, _param_displacement) = le_u16(i)?;
-   let (i, data_cnt) = le_u16(i)?;
-   let (i, data_offset) = le_u16(i)?;
-   let (i, _data_displacement) = le_u16(i)?;
-   let (i, _setup_cnt) = le_u8(i)?;
-   let (i, _) = take(1_usize)(i)?; // reserved
-   let (i, bcc) = le_u16(i)?;
-   let (i, _) = take(1_usize)(i)?; // padding
-   let (i, _padding_evasion) = cond(
-       data_offset > 36+2*(wct as u16),
-       |b| take(data_offset - (36+2*(wct as u16)))(b)
-    )(i)?;
-   let (i, data) = take(data_cnt)(i)?;
-   let resp = SmbRecordTransResponse {
-       data_cnt,
-       bcc,
-       data
-   };
-   Ok((i, resp))
+    let (i, wct) = le_u8(i)?;
+    let (i, _total_param_cnt) = le_u16(i)?;
+    let (i, _total_data_count) = le_u16(i)?;
+    let (i, _) = take(2_usize)(i)?; // reserved
+    let (i, _param_cnt) = le_u16(i)?;
+    let (i, _param_offset) = le_u16(i)?;
+    let (i, _param_displacement) = le_u16(i)?;
+    let (i, data_cnt) = le_u16(i)?;
+    let (i, data_offset) = le_u16(i)?;
+    let (i, _data_displacement) = le_u16(i)?;
+    let (i, _setup_cnt) = le_u8(i)?;
+    let (i, _) = take(1_usize)(i)?; // reserved
+    let (i, bcc) = le_u16(i)?;
+    let (i, _) = take(1_usize)(i)?; // padding
+    let (i, _padding_evasion) = cond(data_offset > 36 + 2 * (wct as u16), |b| {
+        take(data_offset - (36 + 2 * (wct as u16)))(b)
+    })(i)?;
+    let (i, data) = take(data_cnt)(i)?;
+    let resp = SmbRecordTransResponse {
+        data_cnt,
+        bcc,
+        data,
+    };
+    Ok((i, resp))
 }
 
 pub fn parse_smb_trans_response_record(i: &[u8]) -> IResult<&[u8], SmbRecordTransResponse> {
@@ -442,9 +453,9 @@ pub fn parse_smb_trans_response_record(i: &[u8]) -> IResult<&[u8], SmbRecordTran
     }
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbRecordSetupAndX<'a> {
-    pub sec_blob: &'a[u8],
+    pub sec_blob: &'a [u8],
 }
 
 pub fn parse_smb_setup_andx_record(i: &[u8]) -> IResult<&[u8], SmbRecordSetupAndX> {
@@ -457,39 +468,37 @@ pub fn parse_smb_setup_andx_record(i: &[u8]) -> IResult<&[u8], SmbRecordSetupAnd
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbResponseRecordSetupAndX<'a> {
-    pub sec_blob: &'a[u8],
+    pub sec_blob: &'a [u8],
 }
 
 fn response_setup_andx_record(i: &[u8]) -> IResult<&[u8], SmbResponseRecordSetupAndX> {
-   let (i, _skip1) = take(7_usize)(i)?;
-   let (i, sec_blob_len) = le_u16(i)?;
-   let (i, _bcc) = le_u16(i)?;
-   let (i, sec_blob) = take(sec_blob_len)(i)?;
-   let record = SmbResponseRecordSetupAndX { sec_blob };
-   Ok((i, record))
+    let (i, _skip1) = take(7_usize)(i)?;
+    let (i, sec_blob_len) = le_u16(i)?;
+    let (i, _bcc) = le_u16(i)?;
+    let (i, sec_blob) = take(sec_blob_len)(i)?;
+    let record = SmbResponseRecordSetupAndX { sec_blob };
+    Ok((i, record))
 }
 
 fn response_setup_andx_wct3_record(i: &[u8]) -> IResult<&[u8], SmbResponseRecordSetupAndX> {
-   let (i, _skip1) = take(7_usize)(i)?;
-   let (i, _bcc) = le_u16(i)?;
-   let record = SmbResponseRecordSetupAndX {
-        sec_blob: &[],
-   };
-   Ok((i, record))
+    let (i, _skip1) = take(7_usize)(i)?;
+    let (i, _bcc) = le_u16(i)?;
+    let record = SmbResponseRecordSetupAndX { sec_blob: &[] };
+    Ok((i, record))
 }
 
 fn response_setup_andx_error_record(i: &[u8]) -> IResult<&[u8], SmbResponseRecordSetupAndX> {
-   let (i, _wct) = le_u8(i)?;
-   let (i, _bcc) = le_u16(i)?;
-   let record = SmbResponseRecordSetupAndX {
-        sec_blob: &[],
-   };
-   Ok((i, record))
+    let (i, _wct) = le_u8(i)?;
+    let (i, _bcc) = le_u16(i)?;
+    let record = SmbResponseRecordSetupAndX { sec_blob: &[] };
+    Ok((i, record))
 }
 
-pub fn parse_smb_response_setup_andx_record(i: &[u8]) -> IResult<&[u8], SmbResponseRecordSetupAndX> {
+pub fn parse_smb_response_setup_andx_record(
+    i: &[u8],
+) -> IResult<&[u8], SmbResponseRecordSetupAndX> {
     let (i, wct) = peek(le_u8)(i)?;
     match wct {
         0 => response_setup_andx_error_record(i),
@@ -498,9 +507,9 @@ pub fn parse_smb_response_setup_andx_record(i: &[u8]) -> IResult<&[u8], SmbRespo
     }
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbRequestReadAndXRecord<'a> {
-    pub fid: &'a[u8],
+    pub fid: &'a [u8],
     pub size: u64,
     pub offset: u64,
 }
@@ -516,19 +525,21 @@ pub fn parse_smb_read_andx_request_record(i: &[u8]) -> IResult<&[u8], SmbRequest
     let (i, _) = take(2_usize)(i)?;
     let (i, max_count_high) = le_u32(i)?;
     let (i, _) = take(2_usize)(i)?;
-    let (i, high_offset) = cond(wct == 12,le_u32)(i)?; // only from wct ==12?
+    let (i, high_offset) = cond(wct == 12, le_u32)(i)?; // only from wct ==12?
     let record = SmbRequestReadAndXRecord {
         fid,
-        size: (((max_count_high as u64) << 16)|max_count_low as u64),
-        offset: high_offset.map(|ho| (ho as u64) << 32 | offset as u64).unwrap_or(0),
+        size: (((max_count_high as u64) << 16) | max_count_low as u64),
+        offset: high_offset
+            .map(|ho| (ho as u64) << 32 | offset as u64)
+            .unwrap_or(0),
     };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbResponseReadAndXRecord<'a> {
     pub len: u32,
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 pub fn parse_smb_read_andx_response_record(i: &[u8]) -> IResult<&[u8], SmbResponseReadAndXRecord> {
@@ -542,30 +553,28 @@ pub fn parse_smb_read_andx_response_record(i: &[u8]) -> IResult<&[u8], SmbRespon
     let (i, data_len_high) = le_u32(i)?;
     let (i, _) = take(6_usize)(i)?; // reserved
     let (i, bcc) = le_u16(i)?;
-    let (i, _padding) = cond(
-        bcc > data_len_low,
-        |b| take(bcc - data_len_low)(b)
-    )(i)?; // TODO figure out how this works with data_len_high
-    let (i, _padding_evasion) = cond(
-        data_offset > 36+2*(wct as u16),
-        |b| take(data_offset - (36+2*(wct as u16)))(b)
-    )(i)?;
+    let (i, _padding) = cond(bcc > data_len_low, |b| take(bcc - data_len_low)(b))(i)?; // TODO figure out how this works with data_len_high
+    let (i, _padding_evasion) = cond(data_offset > 36 + 2 * (wct as u16), |b| {
+        take(data_offset - (36 + 2 * (wct as u16)))(b)
+    })(i)?;
     let (i, file_data) = rest(i)?;
 
     let record = SmbResponseReadAndXRecord {
-        len: ((data_len_high << 16)|data_len_low as u32),
+        len: ((data_len_high << 16) | data_len_low as u32),
         data: file_data,
-   };
+    };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbRequestRenameRecord {
     pub oldname: Vec<u8>,
     pub newname: Vec<u8>,
 }
 
-pub fn parse_smb_rename_request_record(i: &[u8]) -> IResult<&[u8], SmbRequestRenameRecord, SmbError> {
+pub fn parse_smb_rename_request_record(
+    i: &[u8],
+) -> IResult<&[u8], SmbRequestRenameRecord, SmbError> {
     let (i, _wct) = le_u8(i)?;
     let (i, _search_attr) = le_u16(i)?;
     let (i, _bcc) = le_u16(i)?;
@@ -573,23 +582,20 @@ pub fn parse_smb_rename_request_record(i: &[u8]) -> IResult<&[u8], SmbRequestRen
     let (i, oldname) = smb_get_unicode_string(i)?;
     let (i, _newtype) = le_u8(i)?;
     let (i, newname) = smb_get_unicode_string_with_offset(i, 1)?; // HACK if we assume oldname is a series of utf16 chars offset would be 1
-    let record = SmbRequestRenameRecord {
-        oldname,
-        newname
-    };
+    let record = SmbRequestRenameRecord { oldname, newname };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
-pub struct SmbRequestCreateAndXRecord<> {
+#[derive(Debug, PartialEq, Eq)]
+pub struct SmbRequestCreateAndXRecord {
     pub disposition: u32,
     pub create_options: u32,
     pub file_name: Vec<u8>,
 }
 
-pub fn parse_smb_create_andx_request_record<'a>(i: &'a[u8], r: &SmbRecord)
-    -> IResult<&'a[u8], SmbRequestCreateAndXRecord<>, SmbError>
-{
+pub fn parse_smb_create_andx_request_record<'a>(
+    i: &'a [u8], r: &SmbRecord,
+) -> IResult<&'a [u8], SmbRequestCreateAndXRecord, SmbError> {
     let (i, _skip1) = take(6_usize)(i)?;
     let (i, file_name_len) = le_u16(i)?;
     let (i, _skip3) = take(28_usize)(i)?;
@@ -597,10 +603,9 @@ pub fn parse_smb_create_andx_request_record<'a>(i: &'a[u8], r: &SmbRecord)
     let (i, create_options) = le_u32(i)?;
     let (i, _skip2) = take(5_usize)(i)?;
     let (i, bcc) = le_u16(i)?;
-    let (i, file_name) = cond(
-        bcc >= file_name_len,
-        |b| smb1_get_string(b, r, (bcc - file_name_len) as usize)
-    )(i)?;
+    let (i, file_name) = cond(bcc >= file_name_len, |b| {
+        smb1_get_string(b, r, (bcc - file_name_len) as usize)
+    })(i)?;
     let (i, _skip3) = rest(i)?;
     let record = SmbRequestCreateAndXRecord {
         disposition,
@@ -610,13 +615,14 @@ pub fn parse_smb_create_andx_request_record<'a>(i: &'a[u8], r: &SmbRecord)
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
-pub struct Trans2RecordParamSetFileInfoDisposition<> {
+#[derive(Debug, PartialEq, Eq)]
+pub struct Trans2RecordParamSetFileInfoDisposition {
     pub delete: bool,
 }
 
-pub fn parse_trans2_request_data_set_file_info_disposition(i: &[u8])
-    -> IResult<&[u8], Trans2RecordParamSetFileInfoDisposition> {
+pub fn parse_trans2_request_data_set_file_info_disposition(
+    i: &[u8],
+) -> IResult<&[u8], Trans2RecordParamSetFileInfoDisposition> {
     let (i, delete) = le_u8(i)?;
     let record = Trans2RecordParamSetFileInfoDisposition {
         delete: delete & 1 == 1,
@@ -624,45 +630,51 @@ pub fn parse_trans2_request_data_set_file_info_disposition(i: &[u8])
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Trans2RecordParamSetFileInfo<'a> {
-    pub fid: &'a[u8],
+    pub fid: &'a [u8],
     pub loi: u16,
 }
 
-pub fn parse_trans2_request_params_set_file_info(i: &[u8]) -> IResult<&[u8], Trans2RecordParamSetFileInfo> {
+pub fn parse_trans2_request_params_set_file_info(
+    i: &[u8],
+) -> IResult<&[u8], Trans2RecordParamSetFileInfo> {
     let (i, fid) = take(2_usize)(i)?;
     let (i, loi) = le_u16(i)?;
     let record = Trans2RecordParamSetFileInfo { fid, loi };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Trans2RecordParamSetFileInfoRename<'a> {
     pub replace: bool,
-    pub newname: &'a[u8],
+    pub newname: &'a [u8],
 }
 
-pub fn parse_trans2_request_data_set_file_info_rename(i: &[u8]) -> IResult<&[u8], Trans2RecordParamSetFileInfoRename> {
+pub fn parse_trans2_request_data_set_file_info_rename(
+    i: &[u8],
+) -> IResult<&[u8], Trans2RecordParamSetFileInfoRename> {
     let (i, replace) = le_u8(i)?;
     let (i, _reserved) = take(3_usize)(i)?;
     let (i, _root_dir) = take(4_usize)(i)?;
     let (i, newname_len) = le_u32(i)?;
     let (i, newname) = take(newname_len)(i)?;
     let record = Trans2RecordParamSetFileInfoRename {
-        replace: replace==1,
+        replace: replace == 1,
         newname,
     };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
-pub struct Trans2RecordParamSetPathInfo<> {
+#[derive(Debug, PartialEq, Eq)]
+pub struct Trans2RecordParamSetPathInfo {
     pub loi: u16,
     pub oldname: Vec<u8>,
 }
 
-pub fn parse_trans2_request_params_set_path_info(i: &[u8]) -> IResult<&[u8], Trans2RecordParamSetPathInfo, SmbError> {
+pub fn parse_trans2_request_params_set_path_info(
+    i: &[u8],
+) -> IResult<&[u8], Trans2RecordParamSetPathInfo, SmbError> {
     let (i, loi) = le_u16(i)?;
     let (i, _reserved) = take(4_usize)(i)?;
     let (i, oldname) = smb_get_unicode_string(i)?;
@@ -670,30 +682,32 @@ pub fn parse_trans2_request_params_set_path_info(i: &[u8]) -> IResult<&[u8], Tra
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Trans2RecordParamSetPathInfoRename<'a> {
     pub replace: bool,
-    pub newname: &'a[u8],
+    pub newname: &'a [u8],
 }
 
-pub fn parse_trans2_request_data_set_path_info_rename(i: &[u8]) -> IResult<&[u8], Trans2RecordParamSetPathInfoRename> {
+pub fn parse_trans2_request_data_set_path_info_rename(
+    i: &[u8],
+) -> IResult<&[u8], Trans2RecordParamSetPathInfoRename> {
     let (i, replace) = le_u8(i)?;
     let (i, _reserved) = take(3_usize)(i)?;
     let (i, _root_dir) = take(4_usize)(i)?;
     let (i, newname_len) = le_u32(i)?;
     let (i, newname) = take(newname_len)(i)?;
     let record = Trans2RecordParamSetPathInfoRename {
-        replace: replace==1,
-        newname
+        replace: replace == 1,
+        newname,
     };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbRequestTrans2Record<'a> {
     pub subcmd: u16,
-    pub setup_blob: &'a[u8],
-    pub data_blob: &'a[u8],
+    pub setup_blob: &'a [u8],
+    pub data_blob: &'a [u8],
 }
 
 pub fn parse_smb_trans2_request_record(i: &[u8]) -> IResult<&[u8], SmbRequestTrans2Record> {
@@ -718,23 +732,22 @@ pub fn parse_smb_trans2_request_record(i: &[u8]) -> IResult<&[u8], SmbRequestTra
     //TODO test and use param_offset
     let (i, _padding) = take(3_usize)(i)?;
     let (i, setup_blob) = take(param_cnt)(i)?;
-    let (i, _padding2) = cond(
-        data_offset > param_offset + param_cnt,
-        |b| take(data_offset - param_offset - param_cnt)(b)
-    )(i)?;
+    let (i, _padding2) = cond(data_offset > param_offset + param_cnt, |b| {
+        take(data_offset - param_offset - param_cnt)(b)
+    })(i)?;
     let (i, data_blob) = take(data_cnt)(i)?;
 
     let record = SmbRequestTrans2Record {
         subcmd,
         setup_blob,
-        data_blob
+        data_blob,
     };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbResponseCreateAndXRecord<'a> {
-    pub fid: &'a[u8],
+    pub fid: &'a [u8],
     pub create_ts: SMBFiletime,
     pub last_access_ts: SMBFiletime,
     pub last_write_ts: SMBFiletime,
@@ -742,7 +755,9 @@ pub struct SmbResponseCreateAndXRecord<'a> {
     pub file_size: u64,
 }
 
-pub fn parse_smb_create_andx_response_record(i: &[u8]) -> IResult<&[u8], SmbResponseCreateAndXRecord> {
+pub fn parse_smb_create_andx_response_record(
+    i: &[u8],
+) -> IResult<&[u8], SmbResponseCreateAndXRecord> {
     let (i, wct) = le_u8(i)?;
     let (i, _andx_command) = le_u8(i)?;
     let (i, _) = take(1_usize)(i)?; // reserved
@@ -773,22 +788,20 @@ pub fn parse_smb_create_andx_response_record(i: &[u8]) -> IResult<&[u8], SmbResp
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbRequestCloseRecord<'a> {
-    pub fid: &'a[u8],
+    pub fid: &'a [u8],
 }
 
 pub fn parse_smb1_close_request_record(i: &[u8]) -> IResult<&[u8], SmbRequestCloseRecord> {
     let (i, _) = take(1_usize)(i)?;
     let (i, fid) = take(2_usize)(i)?;
-    let record = SmbRequestCloseRecord {
-        fid,
-    };
+    let record = SmbRequestCloseRecord { fid };
     Ok((i, record))
 }
 
-#[derive(Debug,PartialEq, Eq)]
-pub struct SmbVersion<> {
+#[derive(Debug, PartialEq, Eq)]
+pub struct SmbVersion {
     pub version: u8,
 }
 
@@ -799,7 +812,7 @@ pub fn parse_smb_version(i: &[u8]) -> IResult<&[u8], SmbVersion> {
     Ok((i, version))
 }
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SmbRecord<'a> {
     pub command: u8,
     pub is_dos_error: bool,
@@ -814,7 +827,7 @@ pub struct SmbRecord<'a> {
     pub process_id: u32,
     pub ssn_id: u32,
 
-    pub data: &'a[u8],
+    pub data: &'a [u8],
 }
 
 impl<'a> SmbRecord<'a> {
@@ -853,7 +866,7 @@ pub fn parse_smb_record(i: &[u8]) -> IResult<&[u8], SmbRecord> {
         nt_status,
         flags,
         flags2,
-        is_dos_error: (flags2 & 0x4000_u16 == 0),// && nt_status != 0),
+        is_dos_error: (flags2 & 0x4000_u16 == 0), // && nt_status != 0),
         tree_id,
         user_id,
         multiplex_id,
@@ -870,7 +883,7 @@ pub fn parse_smb_record(i: &[u8]) -> IResult<&[u8], SmbRecord> {
 fn test_parse_smb1_write_andx_request_record_origin() {
     let data = hex::decode("0eff000000014000000000ff00000008001400000014003f000000000014004142434445464748494a4b4c4d4e4f5051520a0a").unwrap();
     let result = parse_smb1_write_andx_request_record(&data, SMB1_HEADER_SIZE);
-	assert!(result.is_ok());
+    assert!(result.is_ok());
     let record = result.unwrap().1;
     assert_eq!(record.offset, 0);
     assert_eq!(record.len, 20);

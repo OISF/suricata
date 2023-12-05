@@ -15,19 +15,21 @@
  * 02110-1301, USA.
  */
 
-use std::str;
-use std::string::String;
-use uuid;
+use crate::dcerpc::dcerpc::*;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use crate::smb::funcs::*;
 use crate::smb::smb::*;
 use crate::smb::smb1::*;
 use crate::smb::smb2::*;
-use crate::dcerpc::dcerpc::*;
-use crate::smb::funcs::*;
 use crate::smb::smb_status::*;
+use std::str;
+use std::string::String;
+use uuid;
 
 #[cfg(not(feature = "debug"))]
-fn debug_add_progress(_js: &mut JsonBuilder, _tx: &SMBTransaction) -> Result<(), JsonError> { Ok(()) }
+fn debug_add_progress(_js: &mut JsonBuilder, _tx: &SMBTransaction) -> Result<(), JsonError> {
+    Ok(())
+}
 
 #[cfg(feature = "debug")]
 fn debug_add_progress(jsb: &mut JsonBuilder, tx: &SMBTransaction) -> Result<(), JsonError> {
@@ -65,8 +67,9 @@ fn guid_to_string(guid: &Vec<u8>) -> String {
     }
 }
 
-fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransaction) -> Result<(), JsonError>
-{
+fn smb_common_header(
+    jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransaction,
+) -> Result<(), JsonError> {
     jsb.set_uint("id", tx.id)?;
 
     if state.dialect != 0 {
@@ -75,7 +78,7 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
     } else {
         let dialect = match state.dialect_vec {
             Some(ref d) => str::from_utf8(d).unwrap_or("invalid"),
-            None        => "unknown",
+            None => "unknown",
         };
         jsb.set_string("dialect", dialect)?;
     }
@@ -86,14 +89,14 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             if ok {
                 jsb.set_string("command", &smb1_command_string(cmd))?;
             }
-        },
+        }
         2 => {
             let (ok, cmd) = tx.vercmd.get_smb2_cmd();
             if ok {
                 jsb.set_string("command", &smb2_command_string(cmd))?;
             }
-        },
-        _ => { },
+        }
+        _ => {}
     }
 
     match tx.vercmd.get_ntstatus() {
@@ -104,38 +107,38 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                 None => {
                     let status_str = format!("{}", ntstatus);
                     jsb.set_string("status", &status_str)?
-                },
+                }
             };
             let status_hex = format!("0x{:x}", ntstatus);
             jsb.set_string("status_code", &status_hex)?;
-        },
+        }
         (false, _) => {
             #[allow(clippy::single_match)]
             match tx.vercmd.get_dos_error() {
                 (true, errclass, errcode) => {
                     match errclass {
-                        1 => { // DOSERR
+                        1 => {
+                            // DOSERR
                             let status = smb_dos_error_string(errcode);
                             jsb.set_string("status", &status)?;
-                        },
-                        2 => { // SRVERR
+                        }
+                        2 => {
+                            // SRVERR
                             let status = smb_srv_error_string(errcode);
                             jsb.set_string("status", &status)?;
                         }
                         _ => {
                             let s = format!("UNKNOWN_{:02x}_{:04x}", errclass, errcode);
                             jsb.set_string("status", &s)?;
-                        },
+                        }
                     }
                     let status_hex = format!("0x{:04x}", errcode);
                     jsb.set_string("status_code", &status_hex)?;
-                },
-                (_, _, _) => {
-                },
+                }
+                (_, _, _) => {}
             }
-        },
+        }
     }
-
 
     jsb.set_uint("session_id", tx.hdr.ssn_id)?;
     jsb.set_uint("tree_id", tx.hdr.tree_id as u64)?;
@@ -189,10 +192,10 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                 jsb.set_string("native_lm", &lm)?;
                 jsb.close()?;
             }
-        },
+        }
         Some(SMBTransactionTypeData::CREATE(ref x)) => {
             let mut name_raw = x.filename.to_vec();
-            name_raw.retain(|&i|i != 0x00);
+            name_raw.retain(|&i| i != 0x00);
             if !name_raw.is_empty() {
                 let name = String::from_utf8_lossy(&name_raw);
                 if x.directory {
@@ -205,13 +208,27 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                 jsb.set_string("filename", "<share_root>")?;
             }
             match x.disposition {
-                0 => { jsb.set_string("disposition", "FILE_SUPERSEDE")?; },
-                1 => { jsb.set_string("disposition", "FILE_OPEN")?; },
-                2 => { jsb.set_string("disposition", "FILE_CREATE")?; },
-                3 => { jsb.set_string("disposition", "FILE_OPEN_IF")?; },
-                4 => { jsb.set_string("disposition", "FILE_OVERWRITE")?; },
-                5 => { jsb.set_string("disposition", "FILE_OVERWRITE_IF")?; },
-                _ => { jsb.set_string("disposition", "UNKNOWN")?; },
+                0 => {
+                    jsb.set_string("disposition", "FILE_SUPERSEDE")?;
+                }
+                1 => {
+                    jsb.set_string("disposition", "FILE_OPEN")?;
+                }
+                2 => {
+                    jsb.set_string("disposition", "FILE_CREATE")?;
+                }
+                3 => {
+                    jsb.set_string("disposition", "FILE_OPEN_IF")?;
+                }
+                4 => {
+                    jsb.set_string("disposition", "FILE_OVERWRITE")?;
+                }
+                5 => {
+                    jsb.set_string("disposition", "FILE_OVERWRITE_IF")?;
+                }
+                _ => {
+                    jsb.set_string("disposition", "UNKNOWN")?;
+                }
             }
             if x.delete_on_close {
                 jsb.set_string("access", "delete on close")?;
@@ -228,7 +245,7 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
 
             let gs = fuid_to_string(&x.guid);
             jsb.set_string("fuid", &gs)?;
-        },
+        }
         Some(SMBTransactionTypeData::NEGOTIATE(ref x)) => {
             if x.smb_ver == 1 {
                 jsb.open_array("client_dialects")?;
@@ -258,7 +275,7 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             if state.max_write_size > 0 {
                 jsb.set_uint("max_write_size", state.max_write_size.into())?;
             }
-        },
+        }
         Some(SMBTransactionTypeData::TREECONNECT(ref x)) => {
             let share_name = String::from_utf8_lossy(&x.share_name);
             if x.is_pipe {
@@ -284,13 +301,21 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             // share type only for SMB2
             } else {
                 match x.share_type {
-                    1 => { jsb.set_string("share_type", "FILE")?; },
-                    2 => { jsb.set_string("share_type", "PIPE")?; },
-                    3 => { jsb.set_string("share_type", "PRINT")?; },
-                    _ => { jsb.set_string("share_type", "UNKNOWN")?; },
+                    1 => {
+                        jsb.set_string("share_type", "FILE")?;
+                    }
+                    2 => {
+                        jsb.set_string("share_type", "PIPE")?;
+                    }
+                    3 => {
+                        jsb.set_string("share_type", "PRINT")?;
+                    }
+                    _ => {
+                        jsb.set_string("share_type", "UNKNOWN")?;
+                    }
                 }
             }
-        },
+        }
         Some(SMBTransactionTypeData::FILE(ref x)) => {
             let file_name = String::from_utf8_lossy(&x.file_name);
             jsb.set_string("filename", &file_name)?;
@@ -298,7 +323,7 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             jsb.set_string("share", &share_name)?;
             let gs = fuid_to_string(&x.fuid);
             jsb.set_string("fuid", &gs)?;
-        },
+        }
         Some(SMBTransactionTypeData::RENAME(ref x)) => {
             if tx.vercmd.get_version() == 2 {
                 jsb.open_object("set_info")?;
@@ -315,7 +340,7 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             jsb.close()?;
             let gs = fuid_to_string(&x.fuid);
             jsb.set_string("fuid", &gs)?;
-        },
+        }
         Some(SMBTransactionTypeData::DCERPC(ref x)) => {
             jsb.open_object("dcerpc")?;
             if x.req_set {
@@ -350,7 +375,9 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                                 for i in ifaces {
                                     jsb.start_object()?;
                                     let ifstr = uuid::Uuid::from_slice(&i.uuid);
-                                    let ifstr = ifstr.map(|ifstr| ifstr.to_hyphenated().to_string()).unwrap();
+                                    let ifstr = ifstr
+                                        .map(|ifstr| ifstr.to_hyphenated().to_string())
+                                        .unwrap();
                                     jsb.set_string("uuid", &ifstr)?;
                                     let vstr = format!("{}.{}", i.ver, i.ver_min);
                                     jsb.set_string("version", &vstr)?;
@@ -359,18 +386,20 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                                 jsb.close()?;
                             }
                         }
-                    },
+                    }
                     DCERPC_TYPE_BIND => {
                         if let Some(ref ifaces) = state.dcerpc_ifaces {
                             jsb.open_array("interfaces")?;
                             for i in ifaces {
                                 jsb.start_object()?;
                                 let ifstr = uuid::Uuid::from_slice(&i.uuid);
-                                let ifstr = ifstr.map(|ifstr| ifstr.to_hyphenated().to_string()).unwrap();
+                                let ifstr = ifstr
+                                    .map(|ifstr| ifstr.to_hyphenated().to_string())
+                                    .unwrap();
                                 jsb.set_string("uuid", &ifstr)?;
                                 let vstr = format!("{}.{}", i.ver, i.ver_min);
                                 jsb.set_string("version", &vstr)?;
-                                
+
                                 if i.acked {
                                     jsb.set_uint("ack_result", i.ack_result as u64)?;
                                     jsb.set_uint("ack_reason", i.ack_reason as u64)?;
@@ -379,8 +408,8 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                             }
                             jsb.close()?;
                         }
-                    },
-                    _ => {},
+                    }
+                    _ => {}
                 }
             }
             if x.res_set {
@@ -391,9 +420,9 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
                         jsb.set_uint("frag_cnt", x.frag_cnt_tc as u64)?;
                         jsb.set_uint("stub_data_size", x.stub_data_tc.len() as u64)?;
                         jsb.close()?;
-                    },
+                    }
                     // we don't handle BINDACK w/o BIND
-                    _ => {},
+                    _ => {}
                 }
             }
             jsb.set_uint("call_id", x.call_id as u64)?;
@@ -401,10 +430,10 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
         }
         Some(SMBTransactionTypeData::IOCTL(ref x)) => {
             jsb.set_string("function", &fsctl_func_to_string(x.func))?;
-        },
+        }
         Some(SMBTransactionTypeData::SETFILEPATHINFO(ref x)) => {
             let mut name_raw = x.filename.to_vec();
-            name_raw.retain(|&i|i != 0x00);
+            name_raw.retain(|&i| i != 0x00);
             if !name_raw.is_empty() {
                 let name = String::from_utf8_lossy(&name_raw);
                 jsb.set_string("filename", &name)?;
@@ -421,38 +450,40 @@ fn smb_common_header(jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransactio
             match x.subcmd {
                 8 => {
                     jsb.set_string("subcmd", "SET_FILE_INFO")?;
-                },
+                }
                 6 => {
                     jsb.set_string("subcmd", "SET_PATH_INFO")?;
-                },
-                _ => { },
+                }
+                _ => {}
             }
 
             #[allow(clippy::single_match)]
             match x.loi {
-                1013 => { // Set Disposition Information
+                1013 => {
+                    // Set Disposition Information
                     jsb.set_string("level_of_interest", "Set Disposition Information")?;
-                },
-                _ => { },
+                }
+                _ => {}
             }
 
             let gs = fuid_to_string(&x.fid);
             jsb.set_string("fuid", &gs)?;
-        },
-        _ => {  },
+        }
+        _ => {}
     }
     return Ok(());
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_log_json_request(jsb: &mut JsonBuilder, state: &mut SMBState, tx: &mut SMBTransaction) -> bool
-{
+pub extern fn rs_smb_log_json_request(
+    jsb: &mut JsonBuilder, state: &mut SMBState, tx: &mut SMBTransaction,
+) -> bool {
     smb_common_header(jsb, state, tx).is_ok()
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_log_json_response(jsb: &mut JsonBuilder, state: &mut SMBState, tx: &mut SMBTransaction) -> bool
-{
+pub extern fn rs_smb_log_json_response(
+    jsb: &mut JsonBuilder, state: &mut SMBState, tx: &mut SMBTransaction,
+) -> bool {
     smb_common_header(jsb, state, tx).is_ok()
 }
-

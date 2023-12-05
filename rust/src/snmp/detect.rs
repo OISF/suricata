@@ -20,23 +20,23 @@
 use crate::snmp::snmp::SNMPTransaction;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_snmp_tx_get_version(tx: &mut SNMPTransaction, version: *mut u32) {
+pub unsafe extern fn rs_snmp_tx_get_version(tx: &mut SNMPTransaction, version: *mut u32) {
     debug_assert!(tx.version != 0, "SNMP version is 0");
     *version = tx.version;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_snmp_tx_get_community(
+pub unsafe extern fn rs_snmp_tx_get_community(
     tx: &mut SNMPTransaction, buf: *mut *const u8, len: *mut u32,
 ) {
-    if let Some(ref c) =  tx.community {
+    if let Some(ref c) = tx.community {
         *buf = c.as_ptr();
         *len = c.len() as u32;
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_snmp_tx_get_pdu_type(tx: &mut SNMPTransaction, pdu_type: *mut u32) {
+pub unsafe extern fn rs_snmp_tx_get_pdu_type(tx: &mut SNMPTransaction, pdu_type: *mut u32) {
     match tx.info {
         Some(ref info) => {
             *pdu_type = info.pdu_type.0;
@@ -48,10 +48,10 @@ pub unsafe extern "C" fn rs_snmp_tx_get_pdu_type(tx: &mut SNMPTransaction, pdu_t
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_snmp_tx_get_usm(
+pub unsafe extern fn rs_snmp_tx_get_usm(
     tx: &mut SNMPTransaction, buf: *mut *const u8, len: *mut u32,
 ) {
-    if let Some(ref c) =  tx.usm {
+    if let Some(ref c) = tx.usm {
         *buf = c.as_ptr();
         *len = c.len() as u32;
     }

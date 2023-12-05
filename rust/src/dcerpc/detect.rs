@@ -203,7 +203,7 @@ fn parse_opnum_data(arg: &str) -> Result<DCEOpnumData, ()> {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_iface_match(
+pub extern fn rs_dcerpc_iface_match(
     tx: &mut DCERPCTransaction, state: &mut DCERPCState, if_data: &mut DCEIfaceData,
 ) -> u8 {
     let first_req_seen = tx.get_first_req_seen();
@@ -227,7 +227,7 @@ pub extern "C" fn rs_dcerpc_iface_match(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_iface_parse(carg: *const c_char) -> *mut c_void {
+pub unsafe extern fn rs_dcerpc_iface_parse(carg: *const c_char) -> *mut c_void {
     if carg.is_null() {
         return std::ptr::null_mut();
     }
@@ -245,14 +245,14 @@ pub unsafe extern "C" fn rs_dcerpc_iface_parse(carg: *const c_char) -> *mut c_vo
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_iface_free(ptr: *mut c_void) {
+pub unsafe extern fn rs_dcerpc_iface_free(ptr: *mut c_void) {
     if !ptr.is_null() {
         std::mem::drop(Box::from_raw(ptr as *mut DCEIfaceData));
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_opnum_match(
+pub unsafe extern fn rs_dcerpc_opnum_match(
     tx: &mut DCERPCTransaction, opnum_data: &mut DCEOpnumData,
 ) -> u8 {
     let first_req_seen = tx.get_first_req_seen();
@@ -274,7 +274,7 @@ pub unsafe extern "C" fn rs_dcerpc_opnum_match(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_opnum_parse(carg: *const c_char) -> *mut c_void {
+pub unsafe extern fn rs_dcerpc_opnum_parse(carg: *const c_char) -> *mut c_void {
     if carg.is_null() {
         return std::ptr::null_mut();
     }
@@ -292,7 +292,7 @@ pub unsafe extern "C" fn rs_dcerpc_opnum_parse(carg: *const c_char) -> *mut c_vo
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_opnum_free(ptr: *mut c_void) {
+pub unsafe extern fn rs_dcerpc_opnum_free(ptr: *mut c_void) {
     if !ptr.is_null() {
         std::mem::drop(Box::from_raw(ptr as *mut DCEOpnumData));
     }
