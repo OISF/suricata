@@ -61,7 +61,7 @@
 #include "output-json-email-common.h"
 #include "output-json-nfs.h"
 #include "output-json-smb.h"
-#include "output-json-http2.h"
+#include "app-layer/http2/logger.h"
 
 #include "app-layer/http/parser.h"
 #include "app-layer/http/parser-xff.h"
