@@ -81,8 +81,7 @@ static void SCRadixDeAllocSCRadixUserData(SCRadixUserData *user_data)
  * \param list Pointer to the SCRadixUserData list head, to which "new" has to
  *             be appended.
  */
-static void SCRadixAppendToSCRadixUserDataList(SCRadixUserData *new,
-                                               SCRadixUserData **list)
+static void SCRadixAppendToSCRadixUserDataList(SCRadixUserData *new, SCRadixUserData **list)
 {
     SCRadixUserData *temp = NULL;
     SCRadixUserData *prev = NULL;
@@ -125,9 +124,8 @@ static void SCRadixAppendToSCRadixUserDataList(SCRadixUserData *new,
  *
  * \retval prefix The newly created prefix instance on success; NULL on failure
  */
-static SCRadixPrefix *SCRadixCreatePrefix(uint8_t *key_stream,
-                                          uint16_t key_bitlen, void *user,
-                                          uint8_t netmask)
+static SCRadixPrefix *SCRadixCreatePrefix(
+        uint8_t *key_stream, uint16_t key_bitlen, void *user, uint8_t netmask)
 {
     SCRadixPrefix *prefix = NULL;
 
@@ -177,16 +175,14 @@ error:
  * \param user    The pointer to the user data corresponding to the above
  *                netmask.
  */
-static void SCRadixAddNetmaskUserDataToPrefix(SCRadixPrefix *prefix,
-                                              uint8_t netmask,
-                                              void *user)
+static void SCRadixAddNetmaskUserDataToPrefix(SCRadixPrefix *prefix, uint8_t netmask, void *user)
 {
     if (prefix == NULL || user == NULL) {
         FatalError("prefix or user NULL");
     }
 
-    SCRadixAppendToSCRadixUserDataList(SCRadixAllocSCRadixUserData(netmask, user),
-                                       &prefix->user_data);
+    SCRadixAppendToSCRadixUserDataList(
+            SCRadixAllocSCRadixUserData(netmask, user), &prefix->user_data);
 
     return;
 }
@@ -199,8 +195,7 @@ static void SCRadixAddNetmaskUserDataToPrefix(SCRadixPrefix *prefix,
  *                has to be removed.
  * \param netmask The netmask value (cidr) whose user_data has to be deleted.
  */
-static void SCRadixRemoveNetmaskUserDataFromPrefix(SCRadixPrefix *prefix,
-                                                   uint8_t netmask)
+static void SCRadixRemoveNetmaskUserDataFromPrefix(SCRadixPrefix *prefix, uint8_t netmask)
 {
     SCRadixUserData *temp = NULL, *prev = NULL;
 
@@ -252,7 +247,7 @@ static int SCRadixPrefixContainNetmask(SCRadixPrefix *prefix, uint8_t netmask)
         user_data = user_data->next;
     }
 
- no_match:
+no_match:
     return 0;
 }
 
@@ -414,7 +409,7 @@ static void SCRadixReleaseNode(SCRadixNode *node, SCRadixTree *tree)
  *
  * \initonly (all radix trees should be created at init)
  */
-SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void*), void (*PrintData)(void*))
+SCRadixTree *SCRadixCreateRadixTree(void (*Free)(void *), void (*PrintData)(void *))
 {
     SCRadixTree *tree = NULL;
 
@@ -509,8 +504,7 @@ static SCRadixNode *SCRadixAddKeyInternal(uint8_t *key_stream, uint8_t key_bitle
     /* the very first element in the radix tree */
     if (tree->head == NULL) {
         SCRadixPrefix *prefix = NULL;
-        if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
-                        netmask)) == NULL) {
+        if ((prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user, netmask)) == NULL) {
             SCLogError("Error creating prefix");
             sc_errno = SC_EINVAL;
             return NULL;
@@ -539,8 +533,7 @@ static SCRadixNode *SCRadixAddKeyInternal(uint8_t *key_stream, uint8_t key_bitle
          * chopping the incoming search ip key using the netmask values added
          * into the tree and then verify for a match */
         node->netmask_cnt++;
-        if ( (ptmp = SCRealloc(node->netmasks, (node->netmask_cnt *
-                                                        sizeof(uint8_t)))) == NULL) {
+        if ((ptmp = SCRealloc(node->netmasks, (node->netmask_cnt * sizeof(uint8_t)))) == NULL) {
             SCFree(node->netmasks);
             node->netmasks = NULL;
             SCLogError("Fatal error encountered in SCRadixAddKey. Mem not allocated");
@@ -570,8 +563,7 @@ static SCRadixNode *SCRadixAddKeyInternal(uint8_t *key_stream, uint8_t key_bitle
                 break;
             node = node->right;
         } else {
-            if (SC_RADIX_BITTEST(stream[node->bit >> 3],
-                                 (0x80 >> (node->bit % 8))) ) {
+            if (SC_RADIX_BITTEST(stream[node->bit >> 3], (0x80 >> (node->bit % 8)))) {
                 if (node->right == NULL)
                     break;
                 node = node->right;
@@ -591,7 +583,7 @@ static SCRadixNode *SCRadixAddKeyInternal(uint8_t *key_stream, uint8_t key_bitle
     DEBUG_VALIDATE_BUG_ON(bottom_node->prefix == NULL);
 
     /* get the first bit position where the ips differ */
-    check_bit = (node->bit < bitlen)? node->bit: bitlen;
+    check_bit = (node->bit < bitlen) ? node->bit : bitlen;
     for (i = 0; (i * 8) < check_bit; i++) {
         int temp;
         if ((temp = (stream[i] ^ bottom_node->prefix->stream[i])) == 0) {
@@ -657,7 +649,8 @@ static SCRadixNode *SCRadixAddKeyInternal(uint8_t *key_stream, uint8_t key_bitle
                  * it indicates we are adding an exact host ip into the radix
                  * tree, in which case we don't need to add the netmask value
                  * into the tree */
-                if (netmask == 255 || (netmask == 32 && bitlen == 32) || (netmask == 128 && bitlen == 128))
+                if (netmask == 255 || (netmask == 32 && bitlen == 32) ||
+                        (netmask == 128 && bitlen == 128))
                     return node;
 
                 /* looks like we have a netmask which is != 32 or 128, in which
@@ -672,8 +665,8 @@ static SCRadixNode *SCRadixAddKeyInternal(uint8_t *key_stream, uint8_t key_bitle
                 node->netmask_cnt++;
                 new_node = node;
 
-                if ( (ptmp = SCRealloc(node->netmasks, (node->netmask_cnt *
-                                                                sizeof(uint8_t)))) == NULL) {
+                if ((ptmp = SCRealloc(node->netmasks, (node->netmask_cnt * sizeof(uint8_t)))) ==
+                        NULL) {
                     SCFree(node->netmasks);
                     node->netmasks = NULL;
                     SCLogError("Fatal error encountered in SCRadixAddKey. Mem not allocated...");
@@ -700,16 +693,14 @@ static SCRadixNode *SCRadixAddKeyInternal(uint8_t *key_stream, uint8_t key_bitle
                 }
             }
         } else {
-            node->prefix = SCRadixCreatePrefix(key_stream, key_bitlen,
-                                               user, 255);
+            node->prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user, 255);
         }
         return node;
     }
 
     /* create the leaf node for the new key */
     SCRadixPrefix *prefix = NULL;
-    if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
-                    netmask)) == NULL) {
+    if ((prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user, netmask)) == NULL) {
         SCLogError("Error creating prefix");
         sc_errno = SC_EINVAL;
         return NULL;
@@ -723,8 +714,8 @@ static SCRadixNode *SCRadixAddKeyInternal(uint8_t *key_stream, uint8_t key_bitle
      * node with a single child and stick it in.  We need the if only in the
      * case of variable length keys */
     if (differ_bit == bitlen) {
-        if (SC_RADIX_BITTEST(bottom_node->prefix->stream[differ_bit >> 3],
-                             (0x80 >> (differ_bit % 8))) ) {
+        if (SC_RADIX_BITTEST(
+                    bottom_node->prefix->stream[differ_bit >> 3], (0x80 >> (differ_bit % 8)))) {
             new_node->right = node;
         } else {
             new_node->left = node;
@@ -756,8 +747,8 @@ static SCRadixNode *SCRadixAddKeyInternal(uint8_t *key_stream, uint8_t key_bitle
             }
 
             if (i < node->netmask_cnt) {
-                if ( (inter_node->netmasks = SCMalloc((node->netmask_cnt - i) *
-                                sizeof(uint8_t))) == NULL) {
+                if ((inter_node->netmasks = SCMalloc((node->netmask_cnt - i) * sizeof(uint8_t))) ==
+                        NULL) {
                     SCLogError("Fatal error encountered in SCRadixAddKey. Mem not allocated...");
                     SCRadixReleaseNode(inter_node, tree);
                     SCRadixReleaseNode(new_node, tree);
@@ -773,8 +764,7 @@ static SCRadixNode *SCRadixAddKeyInternal(uint8_t *key_stream, uint8_t key_bitle
             }
         }
 
-        if (SC_RADIX_BITTEST(stream[differ_bit >> 3],
-                             (0x80 >> (differ_bit % 8))) ) {
+        if (SC_RADIX_BITTEST(stream[differ_bit >> 3], (0x80 >> (differ_bit % 8)))) {
             inter_node->left = node;
             inter_node->right = new_node;
         } else {
@@ -803,8 +793,7 @@ static SCRadixNode *SCRadixAddKeyInternal(uint8_t *key_stream, uint8_t key_bitle
         }
 
         node->netmask_cnt++;
-        if ( (ptmp = SCRealloc(node->netmasks, (node->netmask_cnt *
-                                                        sizeof(uint8_t)))) == NULL) {
+        if ((ptmp = SCRealloc(node->netmasks, (node->netmask_cnt * sizeof(uint8_t)))) == NULL) {
             SCFree(node->netmasks);
             node->netmasks = NULL;
             FatalError("Fatal error encountered in SCRadixAddKey. Exiting...");
@@ -855,8 +844,7 @@ static SCRadixNode *SCRadixAddKey(
  *
  * \retval node Pointer to the newly created node
  */
-SCRadixNode *SCRadixAddKeyIPV4(uint8_t *key_stream, SCRadixTree *tree,
-                               void *user)
+SCRadixNode *SCRadixAddKeyIPV4(uint8_t *key_stream, SCRadixTree *tree, void *user)
 {
     SCRadixNode *node = SCRadixAddKey(key_stream, 32, tree, user, 32);
 
@@ -874,8 +862,7 @@ SCRadixNode *SCRadixAddKeyIPV4(uint8_t *key_stream, SCRadixTree *tree,
  *
  * \retval node Pointer to the newly created node
  */
-SCRadixNode *SCRadixAddKeyIPV6(uint8_t *key_stream, SCRadixTree *tree,
-                               void *user)
+SCRadixNode *SCRadixAddKeyIPV6(uint8_t *key_stream, SCRadixTree *tree, void *user)
 {
     SCRadixNode *node = SCRadixAddKey(key_stream, 128, tree, user, 128);
 
@@ -937,8 +924,8 @@ static void SCRadixValidateIPv6Key(uint8_t *key, const uint8_t netmask)
  *
  * \retval node Pointer to the newly created node
  */
-SCRadixNode *SCRadixAddKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
-                                       void *user, uint8_t netmask)
+SCRadixNode *SCRadixAddKeyIPV4Netblock(
+        uint8_t *key_stream, SCRadixTree *tree, void *user, uint8_t netmask)
 {
 #if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
     SCRadixValidateIPv4Key(key_stream, netmask);
@@ -960,8 +947,8 @@ SCRadixNode *SCRadixAddKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
  *
  * \retval node Pointer to the newly created node
  */
-SCRadixNode *SCRadixAddKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
-                                       void *user, uint8_t netmask)
+SCRadixNode *SCRadixAddKeyIPV6Netblock(
+        uint8_t *key_stream, SCRadixTree *tree, void *user, uint8_t netmask)
 {
 #if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
     SCRadixValidateIPv6Key(key_stream, netmask);
@@ -1141,9 +1128,8 @@ static void SCRadixTransferNetmasksBWNodes(SCRadixNode *dest, SCRadixNode *src)
     if (src->netmasks == NULL)
         return;
 
-    if ( (ptmp = SCRealloc(dest->netmasks,
-                           (src->netmask_cnt + dest->netmask_cnt) *
-                           sizeof(uint8_t))) == NULL) {
+    if ((ptmp = SCRealloc(dest->netmasks,
+                 (src->netmask_cnt + dest->netmask_cnt) * sizeof(uint8_t))) == NULL) {
         SCFree(dest->netmasks);
         dest->netmasks = NULL;
         return;
@@ -1197,7 +1183,7 @@ static void SCRadixRemoveNetblockEntry(SCRadixNode *node, uint8_t netmask)
         return;
     }
 
-    for ( ; i < node->netmask_cnt - 1; i++)
+    for (; i < node->netmask_cnt - 1; i++)
         node->netmasks[i] = node->netmasks[i + 1];
 
     node->netmask_cnt--;
@@ -1227,8 +1213,8 @@ static void SCRadixRemoveNetblockEntry(SCRadixNode *node, uint8_t netmask)
  * \param tree       Pointer to the Radix tree from which the key has to be
  *                   removed
  */
-static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
-                             SCRadixTree *tree, uint8_t netmask)
+static void SCRadixRemoveKey(
+        uint8_t *key_stream, uint16_t key_bitlen, SCRadixTree *tree, uint8_t netmask)
 {
     SCRadixNode *node = tree->head;
     SCRadixNode *parent = NULL;
@@ -1242,12 +1228,11 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
     if (node == NULL)
         return;
 
-    if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, NULL, 255)) == NULL)
+    if ((prefix = SCRadixCreatePrefix(key_stream, key_bitlen, NULL, 255)) == NULL)
         return;
 
     while (node->bit < prefix->bitlen) {
-        if (SC_RADIX_BITTEST(prefix->stream[node->bit >> 3],
-                             (0x80 >> (node->bit % 8))) ) {
+        if (SC_RADIX_BITTEST(prefix->stream[node->bit >> 3], (0x80 >> (node->bit % 8)))) {
             node = node->right;
         } else {
             node = node->left;
@@ -1269,10 +1254,11 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
         mask = UINT_MAX << (8 - prefix->bitlen % 8);
 
         if (prefix->bitlen % 8 == 0 ||
-            (node->prefix->stream[i] & mask) == (prefix->stream[i] & mask)) {
+                (node->prefix->stream[i] & mask) == (prefix->stream[i] & mask)) {
             if (!SCRadixPrefixContainNetmask(node->prefix, netmask)) {
                 SCLogDebug("The ip key exists in the Radix Tree, but this(%d) "
-                           "netblock entry doesn't exist", netmask);
+                           "netblock entry doesn't exist",
+                        netmask);
                 SCRadixReleasePrefix(prefix, tree);
                 return;
             }
@@ -1363,8 +1349,7 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
  * \param tree       Pointer to the Radix tree from which the key has to be
  *                   removed
  */
-void SCRadixRemoveKeyGeneric(uint8_t *key_stream, uint16_t key_bitlen,
-                             SCRadixTree *tree)
+void SCRadixRemoveKeyGeneric(uint8_t *key_stream, uint16_t key_bitlen, SCRadixTree *tree)
 {
     SCRadixRemoveKey(key_stream, key_bitlen, tree, 255);
     return;
@@ -1378,8 +1363,7 @@ void SCRadixRemoveKeyGeneric(uint8_t *key_stream, uint16_t key_bitlen,
  * \param tree       Pointer to the Radix tree from which the key has to be
  *                   removed
  */
-void SCRadixRemoveKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
-                                  uint8_t netmask)
+void SCRadixRemoveKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree, uint8_t netmask)
 {
 #if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
     SCRadixValidateIPv4Key(key_stream, netmask);
@@ -1412,8 +1396,7 @@ void SCRadixRemoveKeyIPV4(uint8_t *key_stream, SCRadixTree *tree)
  * \param tree       Pointer to the Radix tree from which the key has to be
  *                   removed
  */
-void SCRadixRemoveKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
-                                  uint8_t netmask)
+void SCRadixRemoveKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree, uint8_t netmask)
 {
 #if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
     SCRadixValidateIPv6Key(key_stream, netmask);
@@ -1467,8 +1450,8 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(
         bytes = key_bitlen / 8;
         for (i = 0; i < bytes; i++) {
             mask = UINT_MAX;
-            if ( ((i + 1) * 8) > netmask_node->netmasks[j]) {
-                if ( ((i + 1) * 8 - netmask_node->netmasks[j]) < 8)
+            if (((i + 1) * 8) > netmask_node->netmasks[j]) {
+                if (((i + 1) * 8 - netmask_node->netmasks[j]) < 8)
                     mask = UINT_MAX << ((i + 1) * 8 - netmask_node->netmasks[j]);
                 else
                     mask = 0;
@@ -1477,8 +1460,7 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(
         }
 
         while (node->bit < key_bitlen) {
-            if (SC_RADIX_BITTEST(key_stream[node->bit >> 3],
-                                 (0x80 >> (node->bit % 8))) ) {
+            if (SC_RADIX_BITTEST(key_stream[node->bit >> 3], (0x80 >> (node->bit % 8)))) {
                 node = node->right;
             } else {
                 node = node->left;
@@ -1495,7 +1477,7 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(
             mask = UINT_MAX << (8 - key_bitlen % 8);
 
             if (key_bitlen % 8 == 0 ||
-                (node->prefix->stream[bytes] & mask) == (key_stream[bytes] & mask)) {
+                    (node->prefix->stream[bytes] & mask) == (key_stream[bytes] & mask)) {
                 if (SCRadixPrefixContainNetmaskAndSetUserData(
                             node->prefix, netmask_node->netmasks[j], false, user_data_result))
                     return node;
@@ -1531,8 +1513,7 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint8_t key_bitlen, uint
     memcpy(tmp_stream, key_stream, key_bitlen / 8);
 
     while (node->bit < key_bitlen) {
-        if (SC_RADIX_BITTEST(tmp_stream[node->bit >> 3],
-                             (0x80 >> (node->bit % 8))) ) {
+        if (SC_RADIX_BITTEST(tmp_stream[node->bit >> 3], (0x80 >> (node->bit % 8)))) {
             node = node->right;
         } else {
             node = node->left;
@@ -1552,7 +1533,7 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint8_t key_bitlen, uint
         mask = UINT_MAX << (8 - key_bitlen % 8);
 
         if (key_bitlen % 8 == 0 ||
-            (node->prefix->stream[bytes] & mask) == (tmp_stream[bytes] & mask)) {
+                (node->prefix->stream[bytes] & mask) == (tmp_stream[bytes] & mask)) {
             if (SCRadixPrefixContainNetmaskAndSetUserData(
                         node->prefix, netmask, true, user_data_result)) {
                 return node;
@@ -1576,7 +1557,8 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint8_t key_bitlen, uint
  *                   an IPV4 address
  * \param tree       Pointer to the Radix tree instance
  */
-SCRadixNode *SCRadixFindKeyIPV4ExactMatch(uint8_t *key_stream, SCRadixTree *tree, void **user_data_result)
+SCRadixNode *SCRadixFindKeyIPV4ExactMatch(
+        uint8_t *key_stream, SCRadixTree *tree, void **user_data_result)
 {
     return SCRadixFindKey(key_stream, 32, 32, tree, true, user_data_result);
 }
@@ -1588,7 +1570,8 @@ SCRadixNode *SCRadixFindKeyIPV4ExactMatch(uint8_t *key_stream, SCRadixTree *tree
  *                   an IPV4 address
  * \param tree       Pointer to the Radix tree instance
  */
-SCRadixNode *SCRadixFindKeyIPV4BestMatch(uint8_t *key_stream, SCRadixTree *tree, void **user_data_result)
+SCRadixNode *SCRadixFindKeyIPV4BestMatch(
+        uint8_t *key_stream, SCRadixTree *tree, void **user_data_result)
 {
     return SCRadixFindKey(key_stream, 32, 32, tree, false, user_data_result);
 }
@@ -1600,8 +1583,8 @@ SCRadixNode *SCRadixFindKeyIPV4BestMatch(uint8_t *key_stream, SCRadixTree *tree,
  *                   an IPV4  netblock address
  * \param tree       Pointer to the Radix tree instance
  */
-SCRadixNode *SCRadixFindKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
-                                        uint8_t netmask, void **user_data_result)
+SCRadixNode *SCRadixFindKeyIPV4Netblock(
+        uint8_t *key_stream, SCRadixTree *tree, uint8_t netmask, void **user_data_result)
 {
 #if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
     SCRadixValidateIPv4Key(key_stream, netmask);
@@ -1617,8 +1600,8 @@ SCRadixNode *SCRadixFindKeyIPV4Netblock(uint8_t *key_stream, SCRadixTree *tree,
  *                   an IPV6  netblock address
  * \param tree       Pointer to the Radix tree instance
  */
-SCRadixNode *SCRadixFindKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
-                                        uint8_t netmask, void **user_data_result)
+SCRadixNode *SCRadixFindKeyIPV6Netblock(
+        uint8_t *key_stream, SCRadixTree *tree, uint8_t netmask, void **user_data_result)
 {
 #if defined(DEBUG_VALIDATION) || defined(UNITTESTS)
     SCRadixValidateIPv6Key(key_stream, netmask);
@@ -1634,7 +1617,8 @@ SCRadixNode *SCRadixFindKeyIPV6Netblock(uint8_t *key_stream, SCRadixTree *tree,
  *                   an IPV6 address
  * \param tree       Pointer to the Radix tree instance
  */
-SCRadixNode *SCRadixFindKeyIPV6ExactMatch(uint8_t *key_stream, SCRadixTree *tree, void **user_data_result)
+SCRadixNode *SCRadixFindKeyIPV6ExactMatch(
+        uint8_t *key_stream, SCRadixTree *tree, void **user_data_result)
 {
     return SCRadixFindKey(key_stream, 128, 128, tree, true, user_data_result);
 }
@@ -1646,7 +1630,8 @@ SCRadixNode *SCRadixFindKeyIPV6ExactMatch(uint8_t *key_stream, SCRadixTree *tree
  *                   an IPV6 address
  * \param tree       Pointer to the Radix tree instance
  */
-SCRadixNode *SCRadixFindKeyIPV6BestMatch(uint8_t *key_stream, SCRadixTree *tree, void **user_data_result)
+SCRadixNode *SCRadixFindKeyIPV6BestMatch(
+        uint8_t *key_stream, SCRadixTree *tree, void **user_data_result)
 {
     return SCRadixFindKey(key_stream, 128, 128, tree, false, user_data_result);
 }
@@ -1657,7 +1642,7 @@ SCRadixNode *SCRadixFindKeyIPV6BestMatch(uint8_t *key_stream, SCRadixTree *tree,
  * \param node  Pointer to the Radix node whose information has to be printed
  * \param level Used for indentation purposes
  */
-void SCRadixPrintNodeInfo(SCRadixNode *node, int level,  void (*PrintData)(void*))
+void SCRadixPrintNodeInfo(SCRadixNode *node, int level, void (*PrintData)(void *))
 {
     int i = 0;
 
@@ -1709,7 +1694,7 @@ void SCRadixPrintNodeInfo(SCRadixNode *node, int level,  void (*PrintData)(void*
  * \param node  Pointer to the node that is the root of the subtree to be printed
  * \param level Used for indentation purposes
  */
-static void SCRadixPrintRadixSubtree(SCRadixNode *node, int level, void (*PrintData)(void*))
+static void SCRadixPrintRadixSubtree(SCRadixNode *node, int level, void (*PrintData)(void *))
 {
     if (node != NULL) {
         SCRadixPrintNodeInfo(node, level, PrintData);
@@ -1984,26 +1969,22 @@ static int SCRadixTestIPV6Insertion07(void)
 
     /* add the keys */
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
@@ -2011,75 +1992,63 @@ static int SCRadixTestIPV6Insertion07(void)
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:1251:7422:1112:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:1251:7422:1112:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     /* test the existence of keys */
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABC2:ABCD:DBCA:1245:2342:1111:2212",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABC2:ABCD:DBCA:1245:2342:1111:2212", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF5:5346:1251:7422:1112:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF5:5346:1251:7422:1112:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:1251:7422:1112:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:1251:7422:1112:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
@@ -2098,26 +2067,22 @@ static int SCRadixTestIPV6Removal08(void)
 
     /* add the keys */
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
@@ -2125,200 +2090,168 @@ static int SCRadixTestIPV6Removal08(void)
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:1251:7422:1112:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:1251:7422:1112:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     /* test the existence of keys */
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "8888:0BF1:5346:BDEA:6422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "8888:0BF1:5346:BDEA:6422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2006:0BF1:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2006:0BF1:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     /* test for existence */
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:1251:7422:1112:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:1251:7422:1112:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:DDDD:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:DDDD:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     /* remove keys */
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixRemoveKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixRemoveKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree);
 
     /* test for existence */
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     /* remove keys */
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixRemoveKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixRemoveKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixRemoveKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixRemoveKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree);
 
     /* test for existence */
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
@@ -3044,120 +2977,100 @@ static int SCRadixTestIPV6NetblockInsertion13(void)
 
     /* add the keys */
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DB00:0000:0000:0000:0000",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DB00:0000:0000:0000:0000", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, NULL, 56);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBAA:1245:2342:1145:6241",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBAA:1245:2342:1145:6241", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     /* test the existence of keys */
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABC2:ABCD:DBCA:1245:2342:1111:2212",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABC2:ABCD:DBCA:1245:2342:1111:2212", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF5:5346:1251:7422:1112:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF5:5346:1251:7422:1112:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBCA:1245:2342:1111:2212", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBAA:1245:2342:1146:6241",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBAA:1245:2342:1146:6241", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBAA:1245:2342:1356:1241",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBAA:1245:2342:1356:1241", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DAAA:1245:2342:1146:6241",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DAAA:1245:2342:1146:6241", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
-
 
     SCRadixReleaseRadixTree(tree);
 
@@ -3175,88 +3088,74 @@ static int SCRadixTestIPV6NetblockInsertion14(void)
 
     /* add the keys */
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2003:0BF1:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "BD15:9791:5346:6223:AADB:8713:9882:2432", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "1111:A21B:6221:BDEA:BBBA::DBAA:9861", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "4444:0BF7:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "5555:0BF1:ABCD:ADEA:7922:ABCD:9124:2375", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DB00:0000:0000:0000:0000",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DB00:0000:0000:0000:0000", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, NULL, 56);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBAA:1245:2342:1145:6241",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBAA:1245:2342:1145:6241", &servaddr.sin6_addr) <= 0)
         return 0;
     SCRadixAddKeyIPV6((uint8_t *)&servaddr.sin6_addr, tree, NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
     if (inet_pton(AF_INET6, "::", &servaddr.sin6_addr) <= 0)
         return 0;
-    node = SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, NULL,
-                                     0);
+    node = SCRadixAddKeyIPV6Netblock((uint8_t *)&servaddr.sin6_addr, tree, NULL, 0);
 
     /* test the existence of keys */
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2004:0BF1:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2004:0BF1:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == NULL);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2004:0BF1:5346:BDEA:7422:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2004:0BF1:5346:BDEA:7422:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == node);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2004:0BF1:5346:B116:2362:8713:9124:2315",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2004:0BF1:5346:B116:2362:8713:9124:2315", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == node);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "2004:0B23:3252:BDEA:7422:8713:9124:2341",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "2004:0B23:3252:BDEA:7422:8713:9124:2341", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) == node);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBAA:1245:2342:1145:6241",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBAA:1245:2342:1145:6241", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL &&
                SCRadixFindKeyIPV6ExactMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != node);
 
     memset(&servaddr, 0, sizeof(servaddr));
-    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBAA:1245:2342:1145:6241",
-                  &servaddr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, "DBCA:ABCD:ABCD:DBAA:1245:2342:1145:6241", &servaddr.sin6_addr) <= 0)
         return 0;
     result &= (SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != NULL &&
                SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, NULL) != node);
@@ -3290,7 +3189,8 @@ static int SCRadixTestIPV4NetBlocksAndBestSearch15(void)
         SCRadixAddKeyIPV4String(str, tree, user);
 
         void *user_data = NULL;
-        SCRadixNode *node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
+        SCRadixNode *node =
+                SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
         FAIL_IF_NULL(node);
         FAIL_IF_NULL(user_data);
         FAIL_IF(*((uint32_t *)user_data) != i);
@@ -3324,7 +3224,8 @@ static int SCRadixTestIPV4NetBlocksAndBestSearch16(void)
         SCRadixAddKeyIPV4String(str, tree, user);
 
         void *user_data = NULL;
-        SCRadixNode *node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
+        SCRadixNode *node =
+                SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
         FAIL_IF_NULL(node);
         FAIL_IF_NULL(user_data);
         FAIL_IF(*((uint32_t *)user_data) != i);
@@ -3357,7 +3258,8 @@ static int SCRadixTestIPV4NetBlocksAndBestSearch17(void)
         SCRadixAddKeyIPV4String(str, tree, user);
 
         void *user_data = NULL;
-        SCRadixNode *node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
+        SCRadixNode *node =
+                SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
         FAIL_IF_NULL(node);
         FAIL_IF_NULL(user_data);
         FAIL_IF(*((uint32_t *)user_data) != i);
@@ -3390,7 +3292,8 @@ static int SCRadixTestIPV4NetBlocksAndBestSearch18(void)
         SCRadixAddKeyIPV4String(str, tree, user);
 
         void *user_data = NULL;
-        SCRadixNode *node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
+        SCRadixNode *node =
+                SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
         FAIL_IF_NULL(node);
         FAIL_IF_NULL(user_data);
         FAIL_IF(*((uint32_t *)user_data) != i);
@@ -3422,7 +3325,8 @@ static int SCRadixTestIPV4NetBlocksAndBestSearch19(void)
     memset(&servaddr, 0, sizeof(servaddr));
     FAIL_IF(inet_pton(AF_INET, "192.168.1.15", &servaddr.sin_addr) <= 0);
     void *user_data = NULL;
-    SCRadixNode *node = SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
+    SCRadixNode *node =
+            SCRadixFindKeyIPV4BestMatch((uint8_t *)&servaddr.sin_addr, tree, &user_data);
     FAIL_IF_NULL(node);
     FAIL_IF_NULL(user_data);
     FAIL_IF(*((uint32_t *)user_data) != 100);
@@ -3525,7 +3429,8 @@ static int SCRadixTestIPV6NetBlocksAndBestSearch20(void)
         SCRadixAddKeyIPV6String(str, tree, user);
 
         void *user_data = NULL;
-        SCRadixNode *node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
+        SCRadixNode *node =
+                SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
         FAIL_IF_NULL(node);
         FAIL_IF_NULL(user_data);
         FAIL_IF(*((uint32_t *)user_data) != i);
@@ -3558,7 +3463,8 @@ static int SCRadixTestIPV6NetBlocksAndBestSearch21(void)
         SCRadixAddKeyIPV6String(str, tree, user);
 
         void *user_data = NULL;
-        SCRadixNode *node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
+        SCRadixNode *node =
+                SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
         FAIL_IF_NULL(node);
         FAIL_IF_NULL(user_data);
         FAIL_IF(*((uint32_t *)user_data) != i);
@@ -3591,7 +3497,8 @@ static int SCRadixTestIPV6NetBlocksAndBestSearch22(void)
         SCRadixAddKeyIPV6String(str, tree, user);
 
         void *user_data = NULL;
-        SCRadixNode *node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
+        SCRadixNode *node =
+                SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
         FAIL_IF_NULL(node);
         FAIL_IF_NULL(user_data);
         FAIL_IF(*((uint32_t *)user_data) != i);
@@ -3624,7 +3531,8 @@ static int SCRadixTestIPV6NetBlocksAndBestSearch23(void)
         SCRadixAddKeyIPV6String(str, tree, user);
 
         void *user_data = NULL;
-        SCRadixNode *node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
+        SCRadixNode *node =
+                SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
         FAIL_IF_NULL(node);
         FAIL_IF_NULL(user_data);
         FAIL_IF(*((uint32_t *)user_data) != i);
@@ -3653,7 +3561,8 @@ static int SCRadixTestIPV6NetBlocksAndBestSearch24(void)
 
     memset(&servaddr, 0, sizeof(servaddr));
     FAIL_IF(inet_pton(AF_INET6, "ABCD::1", &servaddr.sin6_addr) <= 0);
-    SCRadixNode *node = SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
+    SCRadixNode *node =
+            SCRadixFindKeyIPV6BestMatch((uint8_t *)&servaddr.sin6_addr, tree, &user_data);
     FAIL_IF_NULL(node);
     FAIL_IF_NULL(user_data);
     FAIL_IF(*((uint32_t *)user_data) != 100);
@@ -3807,45 +3716,37 @@ void SCRadixRegisterTests(void)
     UtRegisterTest("SCRadixTestIPV4Removal04", SCRadixTestIPV4Removal04);
     UtRegisterTest("SCRadixTestIPV6Insertion07", SCRadixTestIPV6Insertion07);
     UtRegisterTest("SCRadixTestIPV6Removal08", SCRadixTestIPV6Removal08);
-    UtRegisterTest("SCRadixTestIPV4NetblockInsertion09",
-                   SCRadixTestIPV4NetblockInsertion09);
+    UtRegisterTest("SCRadixTestIPV4NetblockInsertion09", SCRadixTestIPV4NetblockInsertion09);
     UtRegisterTest("SCRadixTestIPV4Bug5066", SCRadixTestIPV4Bug5066);
     UtRegisterTest("SCRadixTestIPV4Bug5066v2", SCRadixTestIPV4Bug5066v2);
     UtRegisterTest("SCRadixTestIPV6Bug5066", SCRadixTestIPV6Bug5066);
-    UtRegisterTest("SCRadixTestIPV4NetblockInsertion10",
-                   SCRadixTestIPV4NetblockInsertion10);
-    UtRegisterTest("SCRadixTestIPV4NetblockInsertion11",
-                   SCRadixTestIPV4NetblockInsertion11);
-    UtRegisterTest("SCRadixTestIPV4NetblockInsertion12",
-                   SCRadixTestIPV4NetblockInsertion12);
-    UtRegisterTest("SCRadixTestIPV6NetblockInsertion13",
-                   SCRadixTestIPV6NetblockInsertion13);
-    UtRegisterTest("SCRadixTestIPV6NetblockInsertion14",
-                   SCRadixTestIPV6NetblockInsertion14);
-    UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch15",
-                   SCRadixTestIPV4NetBlocksAndBestSearch15);
-    UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch16",
-                   SCRadixTestIPV4NetBlocksAndBestSearch16);
-    UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch17",
-                   SCRadixTestIPV4NetBlocksAndBestSearch17);
-    UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch18",
-                   SCRadixTestIPV4NetBlocksAndBestSearch18);
-    UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch19",
-                   SCRadixTestIPV4NetBlocksAndBestSearch19);
-    UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch20",
-                   SCRadixTestIPV6NetBlocksAndBestSearch20);
-    UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch21",
-                   SCRadixTestIPV6NetBlocksAndBestSearch21);
-    UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch22",
-                   SCRadixTestIPV6NetBlocksAndBestSearch22);
-    UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch23",
-                   SCRadixTestIPV6NetBlocksAndBestSearch23);
-    UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch24",
-                   SCRadixTestIPV6NetBlocksAndBestSearch24);
-    UtRegisterTest("SCRadixTestIPV4NetblockInsertion25",
-                   SCRadixTestIPV4NetblockInsertion25);
-    UtRegisterTest("SCRadixTestIPV4NetblockInsertion26",
-                   SCRadixTestIPV4NetblockInsertion26);
+    UtRegisterTest("SCRadixTestIPV4NetblockInsertion10", SCRadixTestIPV4NetblockInsertion10);
+    UtRegisterTest("SCRadixTestIPV4NetblockInsertion11", SCRadixTestIPV4NetblockInsertion11);
+    UtRegisterTest("SCRadixTestIPV4NetblockInsertion12", SCRadixTestIPV4NetblockInsertion12);
+    UtRegisterTest("SCRadixTestIPV6NetblockInsertion13", SCRadixTestIPV6NetblockInsertion13);
+    UtRegisterTest("SCRadixTestIPV6NetblockInsertion14", SCRadixTestIPV6NetblockInsertion14);
+    UtRegisterTest(
+            "SCRadixTestIPV4NetBlocksAndBestSearch15", SCRadixTestIPV4NetBlocksAndBestSearch15);
+    UtRegisterTest(
+            "SCRadixTestIPV4NetBlocksAndBestSearch16", SCRadixTestIPV4NetBlocksAndBestSearch16);
+    UtRegisterTest(
+            "SCRadixTestIPV4NetBlocksAndBestSearch17", SCRadixTestIPV4NetBlocksAndBestSearch17);
+    UtRegisterTest(
+            "SCRadixTestIPV4NetBlocksAndBestSearch18", SCRadixTestIPV4NetBlocksAndBestSearch18);
+    UtRegisterTest(
+            "SCRadixTestIPV4NetBlocksAndBestSearch19", SCRadixTestIPV4NetBlocksAndBestSearch19);
+    UtRegisterTest(
+            "SCRadixTestIPV6NetBlocksAndBestSearch20", SCRadixTestIPV6NetBlocksAndBestSearch20);
+    UtRegisterTest(
+            "SCRadixTestIPV6NetBlocksAndBestSearch21", SCRadixTestIPV6NetBlocksAndBestSearch21);
+    UtRegisterTest(
+            "SCRadixTestIPV6NetBlocksAndBestSearch22", SCRadixTestIPV6NetBlocksAndBestSearch22);
+    UtRegisterTest(
+            "SCRadixTestIPV6NetBlocksAndBestSearch23", SCRadixTestIPV6NetBlocksAndBestSearch23);
+    UtRegisterTest(
+            "SCRadixTestIPV6NetBlocksAndBestSearch24", SCRadixTestIPV6NetBlocksAndBestSearch24);
+    UtRegisterTest("SCRadixTestIPV4NetblockInsertion25", SCRadixTestIPV4NetblockInsertion25);
+    UtRegisterTest("SCRadixTestIPV4NetblockInsertion26", SCRadixTestIPV4NetblockInsertion26);
 #endif
 
     return;

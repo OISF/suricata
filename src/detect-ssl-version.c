@@ -50,9 +50,7 @@
 #include "stream-tcp.h"
 #include "app-layer-ssl.h"
 
-
-static int DetectSslVersionMatch(DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *, void *,
+static int DetectSslVersionMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 static int DetectSslVersionSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
@@ -71,7 +69,7 @@ void DetectSslVersionRegister(void)
     sigmatch_table[DETECT_AL_SSL_VERSION].url = "/rules/tls-keywords.html#ssl-version";
     sigmatch_table[DETECT_AL_SSL_VERSION].AppLayerTxMatch = DetectSslVersionMatch;
     sigmatch_table[DETECT_AL_SSL_VERSION].Setup = DetectSslVersionSetup;
-    sigmatch_table[DETECT_AL_SSL_VERSION].Free  = DetectSslVersionFree;
+    sigmatch_table[DETECT_AL_SSL_VERSION].Free = DetectSslVersionFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_SSL_VERSION].RegisterTests = DetectSslVersionRegisterTests;
 #endif
@@ -90,9 +88,8 @@ void DetectSslVersionRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectSslVersionMatch(DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, void *txv,
-        const Signature *s, const SigMatchCtx *m)
+static int DetectSslVersionMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
@@ -108,12 +105,10 @@ static int DetectSslVersionMatch(DetectEngineThreadCtx *det_ctx,
     }
 
     if (flags & STREAM_TOCLIENT) {
-        SCLogDebug("server (toclient) version is 0x%02X",
-                   app_state->server_connp.version);
+        SCLogDebug("server (toclient) version is 0x%02X", app_state->server_connp.version);
         ver = app_state->server_connp.version;
     } else if (flags & STREAM_TOSERVER) {
-        SCLogDebug("client (toserver) version is 0x%02X",
-                   app_state->client_connp.version);
+        SCLogDebug("client (toserver) version is 0x%02X", app_state->client_connp.version);
         ver = app_state->client_connp.version;
     }
 
@@ -273,7 +268,6 @@ error:
     if (ssl != NULL)
         DetectSslVersionFree(de_ctx, ssl);
     return NULL;
-
 }
 
 /**
@@ -287,7 +281,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectSslVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectSslVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectSslVersionData *ssl = NULL;
 

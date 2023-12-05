@@ -24,12 +24,11 @@
 #ifndef __SOURCE_PCAP_FILE_H__
 #define __SOURCE_PCAP_FILE_H__
 
-void TmModuleReceivePcapFileRegister (void);
-void TmModuleDecodePcapFileRegister (void);
+void TmModuleReceivePcapFileRegister(void);
+void TmModuleDecodePcapFileRegister(void);
 
 void PcapIncreaseInvalidChecksum(void);
 
 void PcapFileGlobalInit(void);
 
 #endif /* __SOURCE_PCAP_FILE_H__ */
-

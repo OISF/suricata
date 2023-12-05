@@ -47,6 +47,6 @@ typedef struct DetectXbitsData_ {
 } DetectXbitsData;
 
 /* prototypes */
-void DetectXbitsRegister (void);
+void DetectXbitsRegister(void);
 
 #endif /* __DETECT_XBITS_H__ */

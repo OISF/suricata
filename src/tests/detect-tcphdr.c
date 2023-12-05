@@ -25,13 +25,13 @@
 
 #include "../util-unittest.h"
 
-static int DetectTcphdrParseTest01 (void)
+static int DetectTcphdrParseTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-            "alert tcp any any -> any any (tcp.hdr; content:\"A\"; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert tcp any any -> any any (tcp.hdr; content:\"A\"; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);

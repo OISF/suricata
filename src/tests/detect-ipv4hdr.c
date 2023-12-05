@@ -25,13 +25,13 @@
 
 #include "../util-unittest.h"
 
-static int DetectIpv4hdrParseTest01 (void)
+static int DetectIpv4hdrParseTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (ipv4.hdr; content:\"A\"; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (ipv4.hdr; content:\"A\"; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);

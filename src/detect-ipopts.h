@@ -24,7 +24,6 @@
 #ifndef __DETECT_IPOPTS_H__
 #define __DETECT_IPOPTS_H__
 
-
 /**
  * \struct DetectIpOptsData_
  * DetectIpOptsData_ is used to store ipopts: input value
@@ -43,9 +42,8 @@ typedef struct DetectIpOptsData_ {
  * Registration function for ipopts: keyword
  */
 
-void DetectIpOptsRegister (void);
+void DetectIpOptsRegister(void);
 
 const char *IpOptsFlagToString(uint16_t flag);
 
 #endif /*__DETECT_IPOPTS_H__ */
-

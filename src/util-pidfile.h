@@ -30,4 +30,3 @@ void SCPidfileRemove(const char *);
 int SCPidfileTestRunning(const char *pid_filename);
 
 #endif /* __UTIL_PID_H__ */
-

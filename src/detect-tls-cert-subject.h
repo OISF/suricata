@@ -24,7 +24,6 @@
 #ifndef __DETECT_TLS_SUBJECT_H__
 #define __DETECT_TLS_SUBJECT_H__
 
-
 void DetectTlsSubjectRegister(void);
 
 #endif /* __DETECT_TLS_SUBJECT_H__ */

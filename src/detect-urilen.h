@@ -22,11 +22,10 @@
  */
 
 #ifndef _DETECT_URILEN_H
-#define	_DETECT_URILEN_H
+#define _DETECT_URILEN_H
 
 bool DetectUrilenValidateContent(const Signature *s, int list, const char **);
 void DetectUrilenApplyToContent(Signature *s, int list);
 void DetectUrilenRegister(void);
 
-#endif	/* _DETECT_URILEN_H */
-
+#endif /* _DETECT_URILEN_H */

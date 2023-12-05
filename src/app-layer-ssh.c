@@ -58,14 +58,12 @@
 
 static int SSHRegisterPatternsForProtocolDetection(void)
 {
-    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SSH,
-                                               "SSH-", 4, 0, STREAM_TOSERVER) < 0)
-    {
+    if (AppLayerProtoDetectPMRegisterPatternCI(
+                IPPROTO_TCP, ALPROTO_SSH, "SSH-", 4, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SSH,
-                                               "SSH-", 4, 0, STREAM_TOCLIENT) < 0)
-    {
+    if (AppLayerProtoDetectPMRegisterPatternCI(
+                IPPROTO_TCP, ALPROTO_SSH, "SSH-", 4, 0, STREAM_TOCLIENT) < 0) {
         return -1;
     }
     return 0;
@@ -108,7 +106,6 @@ void RegisterSSHParsers(void)
     SCLogDebug("Registering Rust SSH parser.");
     rs_ssh_register_parser();
 
-
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SSH, SSHParserRegisterTests);
 #endif
@@ -120,7 +117,9 @@ void RegisterSSHParsers(void)
 #include "stream-tcp-util.h"
 #include "util-unittest-helper.h"
 
-static int SSHParserTestUtilCheck(const char *protoexp, const char *softexp, void *tx, uint8_t flags) {
+static int SSHParserTestUtilCheck(
+        const char *protoexp, const char *softexp, void *tx, uint8_t flags)
+{
     const uint8_t *protocol = NULL;
     uint32_t p_len = 0;
     const uint8_t *software = NULL;
@@ -179,8 +178,8 @@ static int SSHParserTest01(void)
 
     StreamTcpInitConfig(true);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
-                                STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -192,8 +191,8 @@ static int SSHParserTest01(void)
         goto end;
     }
 
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone ) {
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if (rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -230,8 +229,8 @@ static int SSHParserTest02(void)
 
     StreamTcpInitConfig(true);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
-                                STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -242,9 +241,9 @@ static int SSHParserTest02(void)
         printf("no ssh state: ");
         goto end;
     }
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone ) {
+    if (rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -280,8 +279,8 @@ static int SSHParserTest03(void)
 
     StreamTcpInitConfig(true);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
-                                STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
     if (r == 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected != 0: ", r);
         goto end;
@@ -292,9 +291,9 @@ static int SSHParserTest03(void)
         printf("no ssh state: ");
         goto end;
     }
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) == SshStateBannerDone ) {
+    if (rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) == SshStateBannerDone) {
         printf("Client version string parsed? It's not a valid string: ");
         goto end;
     }
@@ -332,8 +331,8 @@ static int SSHParserTest04(void)
 
     StreamTcpInitConfig(true);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
-                                STREAM_TOCLIENT | STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT | STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -344,9 +343,9 @@ static int SSHParserTest04(void)
         printf("no ssh state: ");
         goto end;
     }
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone ) {
+    if (rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -382,8 +381,8 @@ static int SSHParserTest05(void)
 
     StreamTcpInitConfig(true);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
-                                STREAM_TOCLIENT | STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT | STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -394,9 +393,9 @@ static int SSHParserTest05(void)
         printf("no ssh state: ");
         goto end;
     }
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone ) {
+    if (rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -431,8 +430,8 @@ static int SSHParserTest06(void)
 
     StreamTcpInitConfig(true);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
-                                STREAM_TOCLIENT | STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT | STREAM_EOF, sshbuf, sshlen);
     if (r == 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected != 0: ", r);
         goto end;
@@ -444,9 +443,9 @@ static int SSHParserTest06(void)
         printf("no ssh state: ");
         goto end;
     }
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
 
-    if ( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) == SshStateBannerDone ) {
+    if (rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) == SshStateBannerDone) {
         printf("Client version string parsed? It's not a valid string: ");
         goto end;
     }
@@ -456,7 +455,6 @@ static int SSHParserTest06(void)
         goto end;
     if (rs_ssh_tx_get_software(tx, &dummy, &dummy_len, STREAM_TOCLIENT) != 0)
         goto end;
-
 
     result = 1;
 end:
@@ -477,7 +475,7 @@ static int SSHParserTest07(void)
     Flow *f = NULL;
     Packet *p = NULL;
 
-    char sshbufs[2][MAX_SSH_TEST_SIZE] = {"SSH-2.", "0-MySSHClient-0.5.1\r\n"};
+    char sshbufs[2][MAX_SSH_TEST_SIZE] = { "SSH-2.", "0-MySSHClient-0.5.1\r\n" };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -499,16 +497,18 @@ static int SSHParserTest07(void)
     p->flow = f;
 
     uint32_t seq = 2;
-    for (int i=0; i<2; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, seq, (uint8_t *) sshbufs[i], strlen(sshbufs[i])) == -1);
+    for (int i = 0; i < 2; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, seq,
+                        (uint8_t *)sshbufs[i], strlen(sshbufs[i])) == -1);
         seq += strlen(sshbufs[i]);
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone );
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
@@ -528,7 +528,7 @@ static int SSHParserTest08(void)
     Flow *f = NULL;
     Packet *p = NULL;
 
-    char sshbufs[3][MAX_SSH_TEST_SIZE] = {"SSH-", "2.", "0-MySSHClient-0.5.1\r\n"};
+    char sshbufs[3][MAX_SSH_TEST_SIZE] = { "SSH-", "2.", "0-MySSHClient-0.5.1\r\n" };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -550,16 +550,18 @@ static int SSHParserTest08(void)
     p->flow = f;
 
     uint32_t seq = 2;
-    for (int i=0; i<3; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, seq, (uint8_t *) sshbufs[i], strlen(sshbufs[i])) == -1);
+    for (int i = 0; i < 3; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, seq,
+                        (uint8_t *)sshbufs[i], strlen(sshbufs[i])) == -1);
         seq += strlen(sshbufs[i]);
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone );
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_alstate_progress(tx, STREAM_TOSERVER) != SshStateBannerDone);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
@@ -578,7 +580,7 @@ static int SSHParserTest09(void)
     Flow *f = NULL;
     Packet *p = NULL;
 
-    char sshbufs[2][MAX_SSH_TEST_SIZE] = {"SSH-2.", "0-MySSHClient-0.5.1\r\n"};
+    char sshbufs[2][MAX_SSH_TEST_SIZE] = { "SSH-2.", "0-MySSHClient-0.5.1\r\n" };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -600,16 +602,18 @@ static int SSHParserTest09(void)
     p->flow = f;
 
     uint32_t seq = 2;
-    for (int i=0; i<2; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq, (uint8_t *) sshbufs[i], strlen(sshbufs[i])) == -1);
+    for (int i = 0; i < 2; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq,
+                        (uint8_t *)sshbufs[i], strlen(sshbufs[i])) == -1);
         seq += strlen(sshbufs[i]);
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone );
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT));
 
@@ -629,7 +633,7 @@ static int SSHParserTest10(void)
     Flow *f = NULL;
     Packet *p = NULL;
 
-    char sshbufs[3][MAX_SSH_TEST_SIZE] = {"SSH-", "2.", "0-MySSHClient-0.5.1\r\n"};
+    char sshbufs[3][MAX_SSH_TEST_SIZE] = { "SSH-", "2.", "0-MySSHClient-0.5.1\r\n" };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -651,16 +655,18 @@ static int SSHParserTest10(void)
     p->flow = f;
 
     uint32_t seq = 2;
-    for (int i=0; i<3; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq, (uint8_t *) sshbufs[i], strlen(sshbufs[i])) == -1);
+    for (int i = 0; i < 3; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq,
+                        (uint8_t *)sshbufs[i], strlen(sshbufs[i])) == -1);
         seq += strlen(sshbufs[i]);
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone );
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_alstate_progress(tx, STREAM_TOCLIENT) != SshStateBannerDone);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT));
 
@@ -678,7 +684,7 @@ static int SSHParserTest11(void)
     Flow f;
     uint8_t sshbuf1[] = "SSH-2.0-MySSHClient-0.5.1\r\n";
     uint32_t sshlen1 = sizeof(sshbuf1) - 1;
-    uint8_t sshbuf2[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00};
+    uint8_t sshbuf2[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00 };
     uint32_t sshlen2 = sizeof(sshbuf2);
     TcpSession ssn;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -691,14 +697,12 @@ static int SSHParserTest11(void)
 
     StreamTcpInitConfig(true);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
-                                STREAM_TOSERVER, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
-                            sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -709,8 +713,8 @@ static int SSHParserTest11(void)
         printf("no ssh state: ");
         goto end;
     }
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished ) {
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if (rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -733,9 +737,9 @@ static int SSHParserTest12(void)
     Flow f;
     uint8_t sshbuf1[] = "SSH-2.0-MySSHClient-0.5.1\r\n";
     uint32_t sshlen1 = sizeof(sshbuf1) - 1;
-    uint8_t sshbuf2[] = { 0x00, 0x00, 0x00, 0x03,0x01, 17, 0x00};
+    uint8_t sshbuf2[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 17, 0x00 };
     uint32_t sshlen2 = sizeof(sshbuf2);
-    uint8_t sshbuf3[] = { 0x00, 0x00, 0x00, 0x03,0x01, 21, 0x00};
+    uint8_t sshbuf3[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00 };
     uint32_t sshlen3 = sizeof(sshbuf3);
     TcpSession ssn;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -748,20 +752,17 @@ static int SSHParserTest12(void)
 
     StreamTcpInitConfig(true);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
-                                STREAM_TOSERVER, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
-                            sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
-                            sshbuf3, sshlen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -772,8 +773,8 @@ static int SSHParserTest12(void)
         printf("no ssh state: ");
         goto end;
     }
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished ) {
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if (rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -799,11 +800,11 @@ static int SSHParserTest13(void)
     Packet *p = NULL;
 
     uint8_t sshbuf1[] = "SSH-2.0-MySSHClient-0.5.1\r\n";
-    uint8_t sshbuf2[] = { 0x00, 0x00, 0x00, 0x02, 0x01, 17};
-    uint8_t sshbuf3[] = { 0x00, 0x00, 0x00, 0x02, 0x01, 21};
+    uint8_t sshbuf2[] = { 0x00, 0x00, 0x00, 0x02, 0x01, 17 };
+    uint8_t sshbuf3[] = { 0x00, 0x00, 0x00, 0x02, 0x01, 21 };
 
-    uint8_t* sshbufs[3] = {sshbuf1, sshbuf2, sshbuf3};
-    uint32_t sshlens[3] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2), sizeof(sshbuf3)};
+    uint8_t *sshbufs[3] = { sshbuf1, sshbuf2, sshbuf3 };
+    uint32_t sshlens[3] = { sizeof(sshbuf1) - 1, sizeof(sshbuf2), sizeof(sshbuf3) };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -825,16 +826,18 @@ static int SSHParserTest13(void)
     p->flow = f;
 
     uint32_t seq = 2;
-    for (int i=0; i<3; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, seq, sshbufs[i], sshlens[i]) == -1);
+    for (int i = 0; i < 3; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                        &tv, ra_ctx, &ssn.client, seq, sshbufs[i], sshlens[i]) == -1);
         seq += sshlens[i];
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished );
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
@@ -855,14 +858,15 @@ static int SSHParserTest14(void)
     Packet *p = NULL;
 
     uint8_t sshbuf1[] = "SSH-2.0-MySSHClient-0.5.1\r\n";
-    uint8_t sshbuf2[] = { 0x00, 0x00, 0x00, 0x10, 0x01, 17, 0x00};
-    uint8_t sshbuf3[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
-    uint8_t sshbuf4[] = { 0x09, 0x10, 0x11, 0x12, 0x13, 0x00};
+    uint8_t sshbuf2[] = { 0x00, 0x00, 0x00, 0x10, 0x01, 17, 0x00 };
+    uint8_t sshbuf3[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
+    uint8_t sshbuf4[] = { 0x09, 0x10, 0x11, 0x12, 0x13, 0x00 };
     /* first byte of this record in sshbuf4 */
-    uint8_t sshbuf5[] = { 0x00, 0x00, 0x02, 0x01, 21};
+    uint8_t sshbuf5[] = { 0x00, 0x00, 0x02, 0x01, 21 };
 
-    uint8_t* sshbufs[5] = {sshbuf1, sshbuf2, sshbuf3, sshbuf4, sshbuf5};
-    uint32_t sshlens[5] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2), sizeof(sshbuf3), sizeof(sshbuf4), sizeof(sshbuf5)};
+    uint8_t *sshbufs[5] = { sshbuf1, sshbuf2, sshbuf3, sshbuf4, sshbuf5 };
+    uint32_t sshlens[5] = { sizeof(sshbuf1) - 1, sizeof(sshbuf2), sizeof(sshbuf3), sizeof(sshbuf4),
+        sizeof(sshbuf5) };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -884,16 +888,18 @@ static int SSHParserTest14(void)
     p->flow = f;
 
     uint32_t seq = 2;
-    for (int i=0; i<5; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, seq, sshbufs[i], sshlens[i]) == -1);
+    for (int i = 0; i < 5; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                        &tv, ra_ctx, &ssn.client, seq, sshbufs[i], sshlens[i]) == -1);
         seq += sshlens[i];
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished );
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
@@ -914,13 +920,14 @@ static int SSHParserTest15(void)
     Packet *p = NULL;
 
     uint8_t sshbuf1[] = "SSH-2.0-MySSHClient-0.5.1\r\n";
-    uint8_t sshbuf2[] = { 0x00, 0x00, 0x00, 0x10, 0x01, 17, 0x00};
-    uint8_t sshbuf3[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
-    uint8_t sshbuf4[] = { 0x09, 0x10, 0x11, 0x12, 0x13, 0x00};
-    uint8_t sshbuf5[] = { 0x00, 0x00, 0x02, 0x01, 20, 0x00, 0x00, 0x00, 0x02, 0x01, 21};
+    uint8_t sshbuf2[] = { 0x00, 0x00, 0x00, 0x10, 0x01, 17, 0x00 };
+    uint8_t sshbuf3[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
+    uint8_t sshbuf4[] = { 0x09, 0x10, 0x11, 0x12, 0x13, 0x00 };
+    uint8_t sshbuf5[] = { 0x00, 0x00, 0x02, 0x01, 20, 0x00, 0x00, 0x00, 0x02, 0x01, 21 };
 
-    uint8_t* sshbufs[5] = {sshbuf1, sshbuf2, sshbuf3, sshbuf4, sshbuf5};
-    uint32_t sshlens[5] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2), sizeof(sshbuf3), sizeof(sshbuf4), sizeof(sshbuf5)};
+    uint8_t *sshbufs[5] = { sshbuf1, sshbuf2, sshbuf3, sshbuf4, sshbuf5 };
+    uint32_t sshlens[5] = { sizeof(sshbuf1) - 1, sizeof(sshbuf2), sizeof(sshbuf3), sizeof(sshbuf4),
+        sizeof(sshbuf5) };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -942,16 +949,18 @@ static int SSHParserTest15(void)
     p->flow = f;
 
     uint32_t seq = 2;
-    for (int i=0; i<5; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, seq, sshbufs[i], sshlens[i]) == -1);
+    for (int i = 0; i < 5; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                        &tv, ra_ctx, &ssn.client, seq, sshbufs[i], sshlens[i]) == -1);
         seq += sshlens[i];
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished );
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateFinished);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
@@ -973,10 +982,10 @@ static int SSHParserTest16(void)
 
     uint8_t sshbuf1[] = "SSH-";
     uint8_t sshbuf2[] = "2.0-MySSHClient-0.5.1\r\n";
-    uint8_t sshbuf3[] = { 0x00, 0x00, 0x00, 0x03,0x01, 21, 0x00};
+    uint8_t sshbuf3[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00 };
 
-    uint8_t* sshbufs[3] = {sshbuf1, sshbuf2, sshbuf3};
-    uint32_t sshlens[3] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3)};
+    uint8_t *sshbufs[3] = { sshbuf1, sshbuf2, sshbuf3 };
+    uint32_t sshlens[3] = { sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -998,16 +1007,18 @@ static int SSHParserTest16(void)
     p->flow = f;
 
     uint32_t seq = 2;
-    for (int i=0; i<3; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
+    for (int i = 0; i < 3; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                        &tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
         seq += sshlens[i];
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished );
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT));
 
@@ -1029,11 +1040,12 @@ static int SSHParserTest17(void)
 
     uint8_t sshbuf1[] = "SSH-";
     uint8_t sshbuf2[] = "2.0-MySSHClient-0.5.1\r\n";
-    uint8_t sshbuf3[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 17, 0x00};
-    uint8_t sshbuf4[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00};
+    uint8_t sshbuf3[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 17, 0x00 };
+    uint8_t sshbuf4[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00 };
 
-    uint8_t* sshbufs[4] = {sshbuf1, sshbuf2, sshbuf3, sshbuf4};
-    uint32_t sshlens[4] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3), sizeof(sshbuf4)};
+    uint8_t *sshbufs[4] = { sshbuf1, sshbuf2, sshbuf3, sshbuf4 };
+    uint32_t sshlens[4] = { sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3),
+        sizeof(sshbuf4) };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -1055,16 +1067,18 @@ static int SSHParserTest17(void)
     p->flow = f;
 
     uint32_t seq = 2;
-    for (int i=0; i<4; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
+    for (int i = 0; i < 4; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                        &tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
         seq += sshlens[i];
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished );
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT));
 
@@ -1090,7 +1104,6 @@ static int SSHParserTest18(void)
     uint8_t server2[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00 };
     uint8_t sshbuf3[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00 };
 
-
     memset(&tv, 0x00, sizeof(tv));
 
     StreamTcpUTInit(&ra_ctx);
@@ -1099,9 +1112,10 @@ static int SSHParserTest18(void)
     StreamTcpUTSetupStream(&ssn.server, 1);
     StreamTcpUTSetupStream(&ssn.client, 1);
 
-    uint8_t* sshbufs[5] = {server1, sshbuf1, sshbuf2, server2, sshbuf3};
-    uint32_t sshlens[5] = {sizeof(server1) - 1, sizeof(sshbuf1) - 1, sizeof(sshbuf2) -1, sizeof(server2) - 1, sizeof(sshbuf3)};
-    bool sshdirs[5] = {true, false, false, true, false};
+    uint8_t *sshbufs[5] = { server1, sshbuf1, sshbuf2, server2, sshbuf3 };
+    uint32_t sshlens[5] = { sizeof(server1) - 1, sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1,
+        sizeof(server2) - 1, sizeof(sshbuf3) };
+    bool sshdirs[5] = { true, false, false, true, false };
 
     f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1234, 2222);
     FAIL_IF_NULL(f);
@@ -1116,22 +1130,26 @@ static int SSHParserTest18(void)
 
     uint32_t seqcli = 2;
     uint32_t seqsrv = 2;
-    for (int i=0; i<5; i++) {
+    for (int i = 0; i < 5; i++) {
         if (sshdirs[i]) {
-            FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seqsrv, sshbufs[i], sshlens[i]) == -1);
+            FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                            &tv, ra_ctx, &ssn.server, seqsrv, sshbufs[i], sshlens[i]) == -1);
             seqsrv += sshlens[i];
-            FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn,  &ssn.server, p, UPDATE_DIR_PACKET) < 0);
+            FAIL_IF(StreamTcpReassembleAppLayer(
+                            &tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
         } else {
-            FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx,  &ssn.client, seqcli, sshbufs[i], sshlens[i]) == -1);
+            FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                            &tv, ra_ctx, &ssn.client, seqcli, sshbufs[i], sshlens[i]) == -1);
             seqcli += sshlens[i];
-            FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) < 0);
+            FAIL_IF(StreamTcpReassembleAppLayer(
+                            &tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) < 0);
         }
     }
 
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished );
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished);
 
     FAIL_IF(!(AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_NO_INSPECTION)));
 
@@ -1154,19 +1172,20 @@ static int SSHParserTest19(void)
     uint8_t sshbuf1[] = "SSH-";
     uint8_t sshbuf2[] = "2.0-";
     uint8_t sshbuf3[] = "abcdefghijklmnopqrstuvwxyz"
-                        "abcdefghijklmnopqrstuvwxyz"//60
+                        "abcdefghijklmnopqrstuvwxyz" // 60
                         "abcdefghijklmnopqrstuvwxyz"
-                        "abcdefghijklmnopqrstuvwxyz"//112
+                        "abcdefghijklmnopqrstuvwxyz" // 112
                         "abcdefghijklmnopqrstuvwxyz"
-                        "abcdefghijklmnopqrstuvwxyz"//164
+                        "abcdefghijklmnopqrstuvwxyz" // 164
                         "abcdefghijklmnopqrstuvwxyz"
-                        "abcdefghijklmnopqrstuvwxyz"//216
-                        "abcdefghijklmnopqrstuvwxyz"//242
-                        "abcdefghijkl\r";//255
-    uint8_t sshbuf4[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00};
+                        "abcdefghijklmnopqrstuvwxyz" // 216
+                        "abcdefghijklmnopqrstuvwxyz" // 242
+                        "abcdefghijkl\r";            // 255
+    uint8_t sshbuf4[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00 };
 
-    uint8_t* sshbufs[4] = {sshbuf1, sshbuf2, sshbuf3, sshbuf4};
-    uint32_t sshlens[4] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1, sizeof(sshbuf4)};
+    uint8_t *sshbufs[4] = { sshbuf1, sshbuf2, sshbuf3, sshbuf4 };
+    uint32_t sshlens[4] = { sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1,
+        sizeof(sshbuf4) };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -1188,16 +1207,18 @@ static int SSHParserTest19(void)
     p->flow = f;
 
     uint32_t seq = 2;
-    for (int i=0; i<4; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
+    for (int i = 0; i < 4; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                        &tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
         seq += sshlens[i];
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished );
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished);
 
     sshbuf3[sizeof(sshbuf3) - 2] = 0;
     FAIL_IF(SSHParserTestUtilCheck("2.0", (char *)sshbuf3, tx, STREAM_TOCLIENT));
@@ -1222,22 +1243,23 @@ static int SSHParserTest20(void)
     uint8_t sshbuf1[] = "SSH-";
     uint8_t sshbuf2[] = "2.0-";
     uint8_t sshbuf3[] = "abcdefghijklmnopqrstuvwxyz"
-                        "abcdefghijklmnopqrstuvwxyz"//60
+                        "abcdefghijklmnopqrstuvwxyz" // 60
                         "abcdefghijklmnopqrstuvwxyz"
-                        "abcdefghijklmnopqrstuvwxyz"//112
+                        "abcdefghijklmnopqrstuvwxyz" // 112
                         "abcdefghijklmnopqrstuvwxyz"
-                        "abcdefghijklmnopqrstuvwxyz"//164
+                        "abcdefghijklmnopqrstuvwxyz" // 164
                         "abcdefghijklmnopqrstuvwxyz"
-                        "abcdefghijklmnopqrstuvwxyz"//216
-                        "abcdefghijklmnopqrstuvwxyz"//242
-                        "abcdefghijklm\r";//256
+                        "abcdefghijklmnopqrstuvwxyz" // 216
+                        "abcdefghijklmnopqrstuvwxyz" // 242
+                        "abcdefghijklm\r";           // 256
     // clang-format off
     uint8_t sshbuf4[] = {'a','b','c','d','e','f', '\r',
                          0x00, 0x00, 0x00, 0x06, 0x01, 21, 0x00, 0x00, 0x00};
     // clang-format on
 
-    uint8_t* sshbufs[4] = {sshbuf1, sshbuf2, sshbuf3, sshbuf4};
-    uint32_t sshlens[4] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1, sizeof(sshbuf4) - 1};
+    uint8_t *sshbufs[4] = { sshbuf1, sshbuf2, sshbuf3, sshbuf4 };
+    uint32_t sshlens[4] = { sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1,
+        sizeof(sshbuf4) - 1 };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -1259,16 +1281,18 @@ static int SSHParserTest20(void)
     p->flow = f;
 
     uint32_t seq = 2;
-    for (int i=0; i<4; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
+    for (int i = 0; i < 4; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                        &tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
         seq += sshlens[i];
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished );
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", NULL, tx, STREAM_TOCLIENT));
 
@@ -1292,21 +1316,22 @@ static int SSHParserTest21(void)
     uint8_t sshbuf1[] = "SSH-";
     uint8_t sshbuf2[] = "2.0-";
     uint8_t sshbuf3[] = "abcdefghijklmnopqrstuvwxyz"
-                        "abcdefghijklmnopqrstuvwxyz"//60
+                        "abcdefghijklmnopqrstuvwxyz" // 60
                         "abcdefghijklmnopqrstuvwxyz"
-                        "abcdefghijklmnopqrstuvwxyz"//112
+                        "abcdefghijklmnopqrstuvwxyz" // 112
                         "abcdefghijklmnopqrstuvwxyz"
-                        "abcdefghijklmnopqrstuvwxyz"//164
+                        "abcdefghijklmnopqrstuvwxyz" // 164
                         "abcdefghijklmnopqrstuvwxyz"
-                        "abcdefghijklmnopqrstuvwxyz"//216
-                        "abcdefghijklmnopqrstuvwxy";//241
+                        "abcdefghijklmnopqrstuvwxyz" // 216
+                        "abcdefghijklmnopqrstuvwxy"; // 241
     // clang-format off
     uint8_t sshbuf4[] = {'l','i','b','s','s','h', '\r',
                          0x00, 0x00, 0x00, 0x06, 0x01, 21, 0x00, 0x00, 0x00};
     // clang-format on
 
-    uint8_t* sshbufs[4] = {sshbuf1, sshbuf2, sshbuf3, sshbuf4};
-    uint32_t sshlens[4] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1, sizeof(sshbuf4)};
+    uint8_t *sshbufs[4] = { sshbuf1, sshbuf2, sshbuf3, sshbuf4 };
+    uint32_t sshlens[4] = { sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1,
+        sizeof(sshbuf4) };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -1328,16 +1353,18 @@ static int SSHParserTest21(void)
     p->flow = f;
 
     uint32_t seq = 2;
-    for (int i=0; i<4; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
+    for (int i = 0; i < 4; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                        &tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
         seq += sshlens[i];
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished );
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", NULL, tx, STREAM_TOCLIENT));
 
@@ -1402,48 +1429,49 @@ static int SSHParserTest22(void)
         };
     // clang-format on
 
+    uint8_t *sshbufs[3] = { sshbuf1, sshbuf2, sshbuf3 };
+    uint32_t sshlens[3] = { sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1 };
 
-        uint8_t* sshbufs[3] = {sshbuf1, sshbuf2, sshbuf3};
-        uint32_t sshlens[3] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1};
+    memset(&tv, 0x00, sizeof(tv));
 
-        memset(&tv, 0x00, sizeof(tv));
+    StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
+    StreamTcpUTSetupSession(&ssn);
+    StreamTcpUTSetupStream(&ssn.server, 1);
+    StreamTcpUTSetupStream(&ssn.client, 1);
 
-        StreamTcpUTInit(&ra_ctx);
-        StreamTcpUTInitInline();
-        StreamTcpUTSetupSession(&ssn);
-        StreamTcpUTSetupStream(&ssn.server, 1);
-        StreamTcpUTSetupStream(&ssn.client, 1);
+    f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1234, 2222);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_SSH;
 
-        f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1234, 2222);
-        FAIL_IF_NULL(f);
-        f->protoctx = &ssn;
-        f->proto = IPPROTO_TCP;
-        f->alproto = ALPROTO_SSH;
+    p = PacketGetFromAlloc();
+    FAIL_IF(unlikely(p == NULL));
+    p->proto = IPPROTO_TCP;
+    p->flow = f;
 
-        p = PacketGetFromAlloc();
-        FAIL_IF(unlikely(p == NULL));
-        p->proto = IPPROTO_TCP;
-        p->flow = f;
+    uint32_t seq = 2;
+    for (int i = 0; i < 3; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                        &tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
+        seq += sshlens[i];
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) <
+                0);
+    }
 
-        uint32_t seq = 2;
-        for (int i=0; i<3; i++) {
-            FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
-            seq += sshlens[i];
-            FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
-        }
+    void *ssh_state = f->alstate;
+    FAIL_IF_NULL(ssh_state);
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished);
 
-        void *ssh_state = f->alstate;
-        FAIL_IF_NULL(ssh_state);
-        void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-        FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOCLIENT) != SshStateFinished );
+    FAIL_IF(SSHParserTestUtilCheck("2.0", "libssh", tx, STREAM_TOCLIENT));
 
-        FAIL_IF(SSHParserTestUtilCheck("2.0", "libssh", tx, STREAM_TOCLIENT));
-
-        UTHFreePacket(p);
-        StreamTcpUTClearSession(&ssn);
-        StreamTcpUTDeinit(ra_ctx);
-        UTHFreeFlow(f);
-        PASS;
+    UTHFreePacket(p);
+    StreamTcpUTClearSession(&ssn);
+    StreamTcpUTDeinit(ra_ctx);
+    UTHFreeFlow(f);
+    PASS;
 }
 
 /** \test Send a version string in one chunk (client version str). */
@@ -1464,8 +1492,8 @@ static int SSHParserTest23(void)
 
     StreamTcpInitConfig(true);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
-                                STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
     if (r == 0) {
         printf("toclient chunk 1 returned 0 expected non null: ");
         goto end;
@@ -1498,8 +1526,8 @@ static int SSHParserTest24(void)
 
     StreamTcpInitConfig(true);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
-                                STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1510,8 +1538,8 @@ static int SSHParserTest24(void)
         printf("no ssh state: ");
         goto end;
     }
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    if ( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateBannerDone ) {
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    if (rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) != SshStateBannerDone) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1545,17 +1573,17 @@ static int SSHParserTest25(void)
 
     StreamTcpInitConfig(true);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
-                                STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
     FAIL_IF(r != -1);
 
     void *ssh_state = f.alstate;
     FAIL_IF_NULL(ssh_state);
-    void * tx = rs_ssh_state_get_tx(ssh_state, 0);
-    FAIL_IF( rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) == SshStateBannerDone );
+    void *tx = rs_ssh_state_get_tx(ssh_state, 0);
+    FAIL_IF(rs_ssh_tx_get_flags(tx, STREAM_TOSERVER) == SshStateBannerDone);
     const uint8_t *dummy = NULL;
     uint32_t dummy_len = 0;
-    FAIL_IF (rs_ssh_tx_get_software(tx, &dummy, &dummy_len, STREAM_TOCLIENT) != 0);
+    FAIL_IF(rs_ssh_tx_get_software(tx, &dummy, &dummy_len, STREAM_TOCLIENT) != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
@@ -1595,4 +1623,3 @@ void SSHParserRegisterTests(void)
     UtRegisterTest("SSHParserTest25", SSHParserTest25);
 #endif /* UNITTESTS */
 }
-

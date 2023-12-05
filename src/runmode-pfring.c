@@ -113,7 +113,7 @@ static void *OldParsePfringConfig(const char *iface)
     pfconf->DerefFunc = PfringDerefConfig;
     pfconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
     SC_ATOMIC_INIT(pfconf->ref);
-    (void) SC_ATOMIC_ADD(pfconf->ref, 1);
+    (void)SC_ATOMIC_ADD(pfconf->ref, 1);
 
     /* Find initial node */
     if (ConfGet("pfring.threads", &threadsstr) != 1) {
@@ -133,12 +133,11 @@ static void *OldParsePfringConfig(const char *iface)
     }
 
     SC_ATOMIC_RESET(pfconf->ref);
-    (void) SC_ATOMIC_ADD(pfconf->ref, pfconf->threads);
+    (void)SC_ATOMIC_ADD(pfconf->ref, pfconf->threads);
 
     if (strncmp(pfconf->iface, "zc", 2) == 0) {
         SCLogInfo("%s: ZC interface detected, not setting cluster-id", pfconf->iface);
-    }
-    else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
+    } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
         SCLogInfo("DNA interface detected, not setting cluster-id");
     } else if (ConfGet("pfring.cluster-id", &tmpclusterid) != 1) {
         SCLogError("Could not get cluster-id from config");
@@ -217,7 +216,7 @@ static void *ParsePfringConfig(const char *iface)
     pfconf->ctype = (cluster_type)default_ctype;
     pfconf->DerefFunc = PfringDerefConfig;
     SC_ATOMIC_INIT(pfconf->ref);
-    (void) SC_ATOMIC_ADD(pfconf->ref, 1);
+    (void)SC_ATOMIC_ADD(pfconf->ref, 1);
 
     /* Find initial node */
     pf_ring_node = ConfGetNode("pfring");
@@ -234,7 +233,7 @@ static void *ParsePfringConfig(const char *iface)
         SCLogInfo("Unable to find pfring config for "
                   "interface %s, using default value or 1.0 "
                   "configuration system. ",
-                  iface);
+                iface);
         return pfconf;
     }
 
@@ -254,7 +253,8 @@ static void *ParsePfringConfig(const char *iface)
             } else {
                 pfconf->threads = GetIfaceRSSQueuesNum(iface);
                 if (pfconf->threads > 0) {
-                    SCLogPerf("%d RSS queues, so using %u threads", pfconf->threads, pfconf->threads);
+                    SCLogPerf(
+                            "%d RSS queues, so using %u threads", pfconf->threads, pfconf->threads);
                 }
             }
         } else {
@@ -274,7 +274,7 @@ static void *ParsePfringConfig(const char *iface)
     }
 
     SC_ATOMIC_RESET(pfconf->ref);
-    (void) SC_ATOMIC_ADD(pfconf->ref, pfconf->threads);
+    (void)SC_ATOMIC_ADD(pfconf->ref, pfconf->threads);
 
     /* command line value has precedence */
     if (ConfGet("pfring.cluster-id", &tmpclusterid) == 1) {
@@ -285,8 +285,7 @@ static void *ParsePfringConfig(const char *iface)
             pfconf->cluster_id = 1;
         }
         pfconf->flags |= PFRING_CONF_FLAGS_CLUSTER;
-        SCLogDebug("Going to use command-line provided cluster-id %" PRId32,
-                   pfconf->cluster_id);
+        SCLogDebug("Going to use command-line provided cluster-id %" PRId32, pfconf->cluster_id);
     } else {
 
         if (strncmp(pfconf->iface, "zc", 2) == 0) {
@@ -295,7 +294,8 @@ static void *ParsePfringConfig(const char *iface)
         } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
             SCLogInfo("%s: DNA interface detected, not setting cluster-id for PF_RING",
                     pfconf->iface);
-        } else if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
+        } else if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) !=
+                   1) {
             SCLogError("Could not get cluster-id from config");
         } else {
             if (StringParseInt32(&pfconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
@@ -325,7 +325,8 @@ static void *ParsePfringConfig(const char *iface)
         } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
             SCLogInfo("%s: DNA interface detected, not setting cluster type for PF_RING",
                     pfconf->iface);
-        } else if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
+        } else if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) !=
+                   1) {
             SCLogError("Could not get cluster-type from config");
         } else {
             getctype = 1;
@@ -416,7 +417,7 @@ static int PfringConfLevel(void)
 
 static int GetDevAndParser(const char **live_dev, ConfigIfaceParserFunc *parser)
 {
-     ConfGet("pfring.live-interface", live_dev);
+    ConfGet("pfring.live-interface", live_dev);
 
     /* determine which config type we have */
     if (PfringConfLevel() > PFRING_CONF_V1) {
@@ -486,11 +487,8 @@ int RunModeIdsPfringSingle(void)
         FatalError("Unable to get parser and interface params");
     }
 
-    ret = RunModeSetLiveCaptureSingle(tparser,
-                              PfringConfigGetThreadsCount,
-                              "ReceivePfring",
-                              "DecodePfring", thread_name_single,
-                              live_dev);
+    ret = RunModeSetLiveCaptureSingle(tparser, PfringConfigGetThreadsCount, "ReceivePfring",
+            "DecodePfring", thread_name_single, live_dev);
     if (ret != 0) {
         FatalError("Runmode start failed");
     }

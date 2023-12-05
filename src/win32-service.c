@@ -46,7 +46,8 @@ int main(int argc, char **argv);
 int SCRunningAsService(void)
 {
     HANDLE h = INVALID_HANDLE_VALUE;
-    if ((h = CreateFile("CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0)) == INVALID_HANDLE_VALUE) {
+    if ((h = CreateFile("CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                 NULL, OPEN_EXISTING, 0, 0)) == INVALID_HANDLE_VALUE) {
         SCLogInfo("Running as service: yes");
         return 1;
     }
@@ -60,15 +61,8 @@ int SCRunningAsService(void)
  */
 static void SCAtExitHandler(void)
 {
-    SERVICE_STATUS status = {
-        SERVICE_WIN32,
-        SERVICE_STOPPED,
-        SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN,
-        NO_ERROR,
-        NO_ERROR,
-        0,
-        0
-    };
+    SERVICE_STATUS status = { SERVICE_WIN32, SERVICE_STOPPED,
+        SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN, NO_ERROR, NO_ERROR, 0, 0 };
 
     SCLogInfo("Exit handler called.");
 
@@ -86,18 +80,12 @@ static void SCAtExitHandler(void)
 static DWORD WINAPI SCServiceCtrlHandlerEx(DWORD code, DWORD etype, LPVOID edata, LPVOID context)
 {
     if (code == SERVICE_CONTROL_SHUTDOWN || code == SERVICE_CONTROL_STOP) {
-        SERVICE_STATUS status = {
-            SERVICE_WIN32,
-            SERVICE_STOP_PENDING,
-            SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN,
-            NO_ERROR,
-            NO_ERROR,
-            0,
-            0
-        };
+        SERVICE_STATUS status = { SERVICE_WIN32, SERVICE_STOP_PENDING,
+            SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN, NO_ERROR, NO_ERROR, 0, 0 };
 
         SCLogInfo("Service control handler called with %s control code.",
-                ((code == SERVICE_CONTROL_SHUTDOWN) ? ("SERVICE_CONTROL_SHUTDOWN") : ("SERVICE_CONTROL_STOP")));
+                ((code == SERVICE_CONTROL_SHUTDOWN) ? ("SERVICE_CONTROL_SHUTDOWN")
+                                                    : ("SERVICE_CONTROL_STOP")));
 
         /* mark service as stop pending */
         if (!SetServiceStatus(service_status_handle, &status)) {
@@ -118,19 +106,13 @@ static DWORD WINAPI SCServiceCtrlHandlerEx(DWORD code, DWORD etype, LPVOID edata
 /**
  * \brief Service main function
  */
-static void WINAPI SCServiceMain(uint32_t argc, char** argv)
+static void WINAPI SCServiceMain(uint32_t argc, char **argv)
 {
-    SERVICE_STATUS status = {
-        SERVICE_WIN32,
-        SERVICE_RUNNING,
-        SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN,
-        NO_ERROR,
-        NO_ERROR,
-        0,
-        0
-    };
+    SERVICE_STATUS status = { SERVICE_WIN32, SERVICE_RUNNING,
+        SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN, NO_ERROR, NO_ERROR, 0, 0 };
 
-    if ((service_status_handle = RegisterServiceCtrlHandlerEx((char *)PROG_NAME, SCServiceCtrlHandlerEx, NULL)) == (SERVICE_STATUS_HANDLE)0) {
+    if ((service_status_handle = RegisterServiceCtrlHandlerEx(
+                 (char *)PROG_NAME, SCServiceCtrlHandlerEx, NULL)) == (SERVICE_STATUS_HANDLE)0) {
         SCLogError("Can't register service control handler: %d", (int)GetLastError());
         return;
     }
@@ -172,9 +154,8 @@ static void WINAPI SCServiceMain(uint32_t argc, char** argv)
  */
 int SCServiceInit(int argc, char **argv)
 {
-    SERVICE_TABLE_ENTRY	DispatchTable[]	= {
-        {(char *)PROG_NAME, (LPSERVICE_MAIN_FUNCTION) SCServiceMain},
-        {NULL, NULL}
+    SERVICE_TABLE_ENTRY DispatchTable[] = {
+        { (char *)PROG_NAME, (LPSERVICE_MAIN_FUNCTION)SCServiceMain }, { NULL, NULL }
     };
 
     /* continue with suricata initialization */
@@ -219,14 +200,15 @@ int SCServiceInstall(int argc, char **argv)
     do {
         memset(path, 0, sizeof(path));
 
-        if (GetModuleFileName(NULL, path, MAX_PATH) == 0 ){
+        if (GetModuleFileName(NULL, path, MAX_PATH) == 0) {
             SCLogError("Can't get path to service binary: %d", (int)GetLastError());
             break;
         }
 
         /* skip name of binary itself */
         for (i = 1; i < argc; i++) {
-            if ((strlen(argv[i]) <= strlen("--service-install")) && (strncmp("--service-install", argv[i], strlen(argv[i])) == 0)) {
+            if ((strlen(argv[i]) <= strlen("--service-install")) &&
+                    (strncmp("--service-install", argv[i], strlen(argv[i])) == 0)) {
                 continue;
             }
             strlcat(path, " ", sizeof(path) - strlen(path) - 1);
@@ -238,20 +220,9 @@ int SCServiceInstall(int argc, char **argv)
             break;
         }
 
-        service = CreateService(
-                scm,
-                PROG_NAME,
-                PROG_NAME,
-                SERVICE_ALL_ACCESS,
-                SERVICE_WIN32_OWN_PROCESS,
-                SERVICE_DEMAND_START,
-                SERVICE_ERROR_NORMAL,
-                path,
-                NULL,
-                NULL,
-                NULL,
-                NULL,
-                NULL);
+        service = CreateService(scm, PROG_NAME, PROG_NAME, SERVICE_ALL_ACCESS,
+                SERVICE_WIN32_OWN_PROCESS, SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL, path, NULL,
+                NULL, NULL, NULL, NULL);
 
         if (service == NULL) {
             SCLogError("Can't create service: %d", (int)GetLastError());
@@ -260,7 +231,7 @@ int SCServiceInstall(int argc, char **argv)
 
         ret = 0;
 
-    } while(0);
+    } while (0);
 
     if (service) {
         CloseServiceHandle(service);
@@ -314,7 +285,7 @@ int SCServiceRemove(int argc, char **argv)
 
         ret = 0;
 
-    } while(0);
+    } while (0);
 
     if (service) {
         CloseServiceHandle(service);
@@ -344,14 +315,15 @@ int SCServiceChangeParams(int argc, char **argv)
     do {
         memset(path, 0, sizeof(path));
 
-        if (GetModuleFileName(NULL, path, MAX_PATH) == 0 ){
+        if (GetModuleFileName(NULL, path, MAX_PATH) == 0) {
             SCLogError("Can't get path to service binary: %d", (int)GetLastError());
             break;
         }
 
         /* skip name of binary itself */
         for (i = 1; i < argc; i++) {
-            if ((strlen(argv[i]) <= strlen("--service-change-params")) && (strncmp("--service-change-params", argv[i], strlen(argv[i])) == 0)) {
+            if ((strlen(argv[i]) <= strlen("--service-change-params")) &&
+                    (strncmp("--service-change-params", argv[i], strlen(argv[i])) == 0)) {
                 continue;
             }
             strlcat(path, " ", sizeof(path) - strlen(path) - 1);
@@ -368,26 +340,15 @@ int SCServiceChangeParams(int argc, char **argv)
             break;
         }
 
-        if (!ChangeServiceConfig(
-                    service,
-                    SERVICE_WIN32_OWN_PROCESS,
-                    SERVICE_DEMAND_START,
-                    SERVICE_ERROR_NORMAL,
-                    path,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL,
-                    PROG_NAME))
-        {
+        if (!ChangeServiceConfig(service, SERVICE_WIN32_OWN_PROCESS, SERVICE_DEMAND_START,
+                    SERVICE_ERROR_NORMAL, path, NULL, NULL, NULL, NULL, NULL, PROG_NAME)) {
             SCLogError("Can't change service configuration: %d", (int)GetLastError());
             break;
         }
 
         ret = 0;
 
-    } while(0);
+    } while (0);
 
     return ret;
 }

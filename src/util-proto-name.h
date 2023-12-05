@@ -22,7 +22,7 @@
  */
 
 #ifndef __UTIL_PROTO_NAME_H__
-#define	__UTIL_PROTO_NAME_H__
+#define __UTIL_PROTO_NAME_H__
 
 /** Lookup array to hold the information related to known protocol
  *  values
@@ -38,5 +38,4 @@ void SCProtoNameRelease(void);
 void SCProtoNameRegisterTests(void);
 #endif
 
-#endif	/* __UTIL_PROTO_NAME_H__ */
-
+#endif /* __UTIL_PROTO_NAME_H__ */

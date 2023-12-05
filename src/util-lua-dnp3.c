@@ -34,10 +34,11 @@
 /**
  * \brief Helper macro to push key and integer value onto a table.
  */
-#define LUA_PUSHT_INT(l, k, v) do {             \
-        lua_pushliteral(luastate, k);           \
-        lua_pushinteger(luastate, v);           \
-        lua_settable(luastate, -3);             \
+#define LUA_PUSHT_INT(l, k, v)                                                                     \
+    do {                                                                                           \
+        lua_pushliteral(luastate, k);                                                              \
+        lua_pushinteger(luastate, v);                                                              \
+        lua_settable(luastate, -3);                                                                \
     } while (0);
 
 static void DNP3PushPoints(lua_State *luastate, DNP3Object *object)
@@ -45,7 +46,7 @@ static void DNP3PushPoints(lua_State *luastate, DNP3Object *object)
     DNP3Point *point;
     int i = 1;
 
-    TAILQ_FOREACH(point, object->points, next) {
+    TAILQ_FOREACH (point, object->points, next) {
         lua_pushinteger(luastate, i++);
         lua_newtable(luastate);
 
@@ -64,7 +65,7 @@ static void DNP3PushObjects(lua_State *luastate, DNP3ObjectList *objects)
     DNP3Object *object = NULL;
     int i = 1;
 
-    TAILQ_FOREACH(object, objects, next) {
+    TAILQ_FOREACH (object, objects, next) {
         lua_pushinteger(luastate, i++);
         lua_newtable(luastate);
 
@@ -94,8 +95,7 @@ static void DNP3PushLinkHeader(lua_State *luastate, DNP3LinkHeader *header)
     LUA_PUSHT_INT(luastate, "crc", header->crc);
 }
 
-static void DNP3PushApplicationHeader(lua_State *luastate,
-    DNP3ApplicationHeader *header)
+static void DNP3PushApplicationHeader(lua_State *luastate, DNP3ApplicationHeader *header)
 {
     LUA_PUSHT_INT(luastate, "control", header->control);
     LUA_PUSHT_INT(luastate, "function_code", header->function_code);

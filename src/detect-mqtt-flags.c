@@ -37,11 +37,9 @@ static DetectParseRegex parse_regex;
 
 static int mqtt_flags_id = 0;
 
-static int DetectMQTTFlagsMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state,
-                               void *txv, const Signature *s,
-                               const SigMatchCtx *ctx);
-static int DetectMQTTFlagsSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectMQTTFlagsMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectMQTTFlagsSetup(DetectEngineCtx *, Signature *, const char *);
 void MQTTFlagsRegisterTests(void);
 void DetectMQTTFlagsFree(DetectEngineCtx *de_ctx, void *);
 
@@ -52,14 +50,14 @@ typedef struct DetectMQTTFlagsData_ {
 /**
  * \brief Registration function for mqtt.flags: keyword
  */
-void DetectMQTTFlagsRegister (void)
+void DetectMQTTFlagsRegister(void)
 {
     sigmatch_table[DETECT_AL_MQTT_FLAGS].name = "mqtt.flags";
     sigmatch_table[DETECT_AL_MQTT_FLAGS].desc = "match MQTT fixed header flags";
     sigmatch_table[DETECT_AL_MQTT_FLAGS].url = "/rules/mqtt-keywords.html#mqtt-flags";
     sigmatch_table[DETECT_AL_MQTT_FLAGS].AppLayerTxMatch = DetectMQTTFlagsMatch;
     sigmatch_table[DETECT_AL_MQTT_FLAGS].Setup = DetectMQTTFlagsSetup;
-    sigmatch_table[DETECT_AL_MQTT_FLAGS].Free  = DetectMQTTFlagsFree;
+    sigmatch_table[DETECT_AL_MQTT_FLAGS].Free = DetectMQTTFlagsFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_MQTT_FLAGS].RegisterTests = MQTTFlagsRegisterTests;
 #endif
@@ -87,10 +85,8 @@ void DetectMQTTFlagsRegister (void)
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectMQTTFlagsMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state,
-                               void *txv, const Signature *s,
-                               const SigMatchCtx *ctx)
+static int DetectMQTTFlagsMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectMQTTFlagsData *de = (const DetectMQTTFlagsData *)ctx;
 
@@ -129,7 +125,7 @@ static DetectMQTTFlagsData *DetectMQTTFlagsParse(const char *rawstr)
 
     de->retain = de->dup = MQTT_DONT_CARE;
 
-    char copy[strlen(rawstr)+1];
+    char copy[strlen(rawstr) + 1];
     strlcpy(copy, rawstr, sizeof(copy));
     char *xsaveptr = NULL;
 
@@ -144,21 +140,21 @@ static DetectMQTTFlagsData *DetectMQTTFlagsParse(const char *rawstr)
             /* flags have a minimum length */
             SCLogError("malformed flag value: %s", flagv);
             goto error;
-        }  else {
+        } else {
             int offset = 0;
             MQTTFlagState fs_to_set = MQTT_MUST_BE_SET;
             if (flagv[0] == '!') {
                 /* negated flag */
-                offset = 1;  /* skip negation operator during comparison */
+                offset = 1; /* skip negation operator during comparison */
                 fs_to_set = MQTT_CANT_BE_SET;
             }
-            if (strcmp(flagv+offset, "dup") == 0) {
+            if (strcmp(flagv + offset, "dup") == 0) {
                 if (de->dup != MQTT_DONT_CARE) {
                     SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->dup = fs_to_set;
-            } else if (strcmp(flagv+offset, "retain") == 0) {
+            } else if (strcmp(flagv + offset, "retain") == 0) {
                 if (de->retain != MQTT_DONT_CARE) {
                     SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
@@ -242,7 +238,7 @@ void DetectMQTTFlagsFree(DetectEngineCtx *de_ctx, void *de_ptr)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTFlagsTestParse01 (void)
+static int MQTTFlagsTestParse01(void)
 {
     DetectMQTTFlagsData *de = NULL;
 
@@ -271,7 +267,7 @@ static int MQTTFlagsTestParse01 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTFlagsTestParse02 (void)
+static int MQTTFlagsTestParse02(void)
 {
     DetectMQTTFlagsData *de = NULL;
     de = DetectMQTTFlagsParse("retain,!dup");
@@ -287,7 +283,7 @@ static int MQTTFlagsTestParse02 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTFlagsTestParse03 (void)
+static int MQTTFlagsTestParse03(void)
 {
     DetectMQTTFlagsData *de = NULL;
     de = DetectMQTTFlagsParse("ref");
@@ -305,7 +301,7 @@ static int MQTTFlagsTestParse03 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTFlagsTestParse04 (void)
+static int MQTTFlagsTestParse04(void)
 {
     DetectMQTTFlagsData *de = NULL;
     de = DetectMQTTFlagsParse("dup,!");
@@ -323,7 +319,7 @@ static int MQTTFlagsTestParse04 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTFlagsTestParse05 (void)
+static int MQTTFlagsTestParse05(void)
 {
     DetectMQTTFlagsData *de = NULL;
     de = DetectMQTTFlagsParse("dup,!dup");
@@ -340,7 +336,6 @@ static int MQTTFlagsTestParse05 (void)
 
     PASS;
 }
-
 
 #endif /* UNITTESTS */
 

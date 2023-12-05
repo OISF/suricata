@@ -63,11 +63,11 @@ int IPPairHasBits(IPPair *ippair)
 }
 
 /** \retval 1 ippair timed out wrt xbits
-  * \retval 0 ippair still has active (non-expired) xbits */
+ * \retval 0 ippair still has active (non-expired) xbits */
 int IPPairBitsTimedoutCheck(IPPair *h, SCTime_t ts)
 {
     GenericVar *gv = IPPairGetStorageById(h, g_ippair_bit_storage_id);
-    for ( ; gv != NULL; gv = gv->next) {
+    for (; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_XBITS) {
             XBit *xb = (XBit *)gv;
             if (xb->expire > (uint32_t)SCTIME_SECS(ts))
@@ -81,7 +81,7 @@ int IPPairBitsTimedoutCheck(IPPair *h, SCTime_t ts)
 static XBit *IPPairBitGet(IPPair *h, uint32_t idx)
 {
     GenericVar *gv = IPPairGetStorageById(h, g_ippair_bit_storage_id);
-    for ( ; gv != NULL; gv = gv->next) {
+    for (; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_XBITS && gv->idx == idx) {
             return (XBit *)gv;
         }
@@ -183,10 +183,9 @@ int IPPairBitIsnotset(IPPair *h, uint32_t idx, uint32_t ts)
     return 0;
 }
 
-
 /* TESTS */
 #ifdef UNITTESTS
-static int IPPairBitTest01 (void)
+static int IPPairBitTest01(void)
 {
     int ret = 0;
 
@@ -197,7 +196,7 @@ static int IPPairBitTest01 (void)
 
     IPPairBitAdd(h, 0, 0);
 
-    XBit *fb = IPPairBitGet(h,0);
+    XBit *fb = IPPairBitGet(h, 0);
     if (fb != NULL)
         ret = 1;
 
@@ -207,7 +206,7 @@ end:
     return ret;
 }
 
-static int IPPairBitTest02 (void)
+static int IPPairBitTest02(void)
 {
     int ret = 0;
 
@@ -216,7 +215,7 @@ static int IPPairBitTest02 (void)
     if (h == NULL)
         goto end;
 
-    XBit *fb = IPPairBitGet(h,0);
+    XBit *fb = IPPairBitGet(h, 0);
     if (fb == NULL)
         ret = 1;
 
@@ -226,7 +225,7 @@ end:
     return ret;
 }
 
-static int IPPairBitTest03 (void)
+static int IPPairBitTest03(void)
 {
     int ret = 0;
 
@@ -237,7 +236,7 @@ static int IPPairBitTest03 (void)
 
     IPPairBitAdd(h, 0, 30);
 
-    XBit *fb = IPPairBitGet(h,0);
+    XBit *fb = IPPairBitGet(h, 0);
     if (fb == NULL) {
         printf("fb == NULL although it was just added: ");
         goto end;
@@ -245,7 +244,7 @@ static int IPPairBitTest03 (void)
 
     IPPairBitRemove(h, 0);
 
-    fb = IPPairBitGet(h,0);
+    fb = IPPairBitGet(h, 0);
     if (fb != NULL) {
         printf("fb != NULL although it was just removed: ");
         goto end;
@@ -259,7 +258,7 @@ end:
     return ret;
 }
 
-static int IPPairBitTest04 (void)
+static int IPPairBitTest04(void)
 {
     int ret = 0;
 
@@ -268,12 +267,12 @@ static int IPPairBitTest04 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,30);
-    IPPairBitAdd(h, 1,30);
-    IPPairBitAdd(h, 2,30);
-    IPPairBitAdd(h, 3,30);
+    IPPairBitAdd(h, 0, 30);
+    IPPairBitAdd(h, 1, 30);
+    IPPairBitAdd(h, 2, 30);
+    IPPairBitAdd(h, 3, 30);
 
-    XBit *fb = IPPairBitGet(h,0);
+    XBit *fb = IPPairBitGet(h, 0);
     if (fb != NULL)
         ret = 1;
 
@@ -283,7 +282,7 @@ end:
     return ret;
 }
 
-static int IPPairBitTest05 (void)
+static int IPPairBitTest05(void)
 {
     int ret = 0;
 
@@ -292,12 +291,12 @@ static int IPPairBitTest05 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,90);
-    IPPairBitAdd(h, 1,90);
-    IPPairBitAdd(h, 2,90);
-    IPPairBitAdd(h, 3,90);
+    IPPairBitAdd(h, 0, 90);
+    IPPairBitAdd(h, 1, 90);
+    IPPairBitAdd(h, 2, 90);
+    IPPairBitAdd(h, 3, 90);
 
-    XBit *fb = IPPairBitGet(h,1);
+    XBit *fb = IPPairBitGet(h, 1);
     if (fb != NULL)
         ret = 1;
 
@@ -307,7 +306,7 @@ end:
     return ret;
 }
 
-static int IPPairBitTest06 (void)
+static int IPPairBitTest06(void)
 {
     int ret = 0;
 
@@ -316,12 +315,12 @@ static int IPPairBitTest06 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,90);
-    IPPairBitAdd(h, 1,90);
-    IPPairBitAdd(h, 2,90);
-    IPPairBitAdd(h, 3,90);
+    IPPairBitAdd(h, 0, 90);
+    IPPairBitAdd(h, 1, 90);
+    IPPairBitAdd(h, 2, 90);
+    IPPairBitAdd(h, 3, 90);
 
-    XBit *fb = IPPairBitGet(h,2);
+    XBit *fb = IPPairBitGet(h, 2);
     if (fb != NULL)
         ret = 1;
 
@@ -331,7 +330,7 @@ end:
     return ret;
 }
 
-static int IPPairBitTest07 (void)
+static int IPPairBitTest07(void)
 {
     int ret = 0;
 
@@ -340,12 +339,12 @@ static int IPPairBitTest07 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,90);
-    IPPairBitAdd(h, 1,90);
-    IPPairBitAdd(h, 2,90);
-    IPPairBitAdd(h, 3,90);
+    IPPairBitAdd(h, 0, 90);
+    IPPairBitAdd(h, 1, 90);
+    IPPairBitAdd(h, 2, 90);
+    IPPairBitAdd(h, 3, 90);
 
-    XBit *fb = IPPairBitGet(h,3);
+    XBit *fb = IPPairBitGet(h, 3);
     if (fb != NULL)
         ret = 1;
 
@@ -355,7 +354,7 @@ end:
     return ret;
 }
 
-static int IPPairBitTest08 (void)
+static int IPPairBitTest08(void)
 {
     int ret = 0;
 
@@ -364,18 +363,18 @@ static int IPPairBitTest08 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,90);
-    IPPairBitAdd(h, 1,90);
-    IPPairBitAdd(h, 2,90);
-    IPPairBitAdd(h, 3,90);
+    IPPairBitAdd(h, 0, 90);
+    IPPairBitAdd(h, 1, 90);
+    IPPairBitAdd(h, 2, 90);
+    IPPairBitAdd(h, 3, 90);
 
-    XBit *fb = IPPairBitGet(h,0);
+    XBit *fb = IPPairBitGet(h, 0);
     if (fb == NULL)
         goto end;
 
-    IPPairBitRemove(h,0);
+    IPPairBitRemove(h, 0);
 
-    fb = IPPairBitGet(h,0);
+    fb = IPPairBitGet(h, 0);
     if (fb != NULL) {
         printf("fb != NULL even though it was removed: ");
         goto end;
@@ -388,7 +387,7 @@ end:
     return ret;
 }
 
-static int IPPairBitTest09 (void)
+static int IPPairBitTest09(void)
 {
     int ret = 0;
 
@@ -397,18 +396,18 @@ static int IPPairBitTest09 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,90);
-    IPPairBitAdd(h, 1,90);
-    IPPairBitAdd(h, 2,90);
-    IPPairBitAdd(h, 3,90);
+    IPPairBitAdd(h, 0, 90);
+    IPPairBitAdd(h, 1, 90);
+    IPPairBitAdd(h, 2, 90);
+    IPPairBitAdd(h, 3, 90);
 
-    XBit *fb = IPPairBitGet(h,1);
+    XBit *fb = IPPairBitGet(h, 1);
     if (fb == NULL)
         goto end;
 
-    IPPairBitRemove(h,1);
+    IPPairBitRemove(h, 1);
 
-    fb = IPPairBitGet(h,1);
+    fb = IPPairBitGet(h, 1);
     if (fb != NULL) {
         printf("fb != NULL even though it was removed: ");
         goto end;
@@ -421,7 +420,7 @@ end:
     return ret;
 }
 
-static int IPPairBitTest10 (void)
+static int IPPairBitTest10(void)
 {
     int ret = 0;
 
@@ -430,18 +429,18 @@ static int IPPairBitTest10 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,90);
-    IPPairBitAdd(h, 1,90);
-    IPPairBitAdd(h, 2,90);
-    IPPairBitAdd(h, 3,90);
+    IPPairBitAdd(h, 0, 90);
+    IPPairBitAdd(h, 1, 90);
+    IPPairBitAdd(h, 2, 90);
+    IPPairBitAdd(h, 3, 90);
 
-    XBit *fb = IPPairBitGet(h,2);
+    XBit *fb = IPPairBitGet(h, 2);
     if (fb == NULL)
         goto end;
 
-    IPPairBitRemove(h,2);
+    IPPairBitRemove(h, 2);
 
-    fb = IPPairBitGet(h,2);
+    fb = IPPairBitGet(h, 2);
     if (fb != NULL) {
         printf("fb != NULL even though it was removed: ");
         goto end;
@@ -454,7 +453,7 @@ end:
     return ret;
 }
 
-static int IPPairBitTest11 (void)
+static int IPPairBitTest11(void)
 {
     int ret = 0;
 
@@ -463,18 +462,18 @@ static int IPPairBitTest11 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0,90);
-    IPPairBitAdd(h, 1,90);
-    IPPairBitAdd(h, 2,90);
-    IPPairBitAdd(h, 3,90);
+    IPPairBitAdd(h, 0, 90);
+    IPPairBitAdd(h, 1, 90);
+    IPPairBitAdd(h, 2, 90);
+    IPPairBitAdd(h, 3, 90);
 
-    XBit *fb = IPPairBitGet(h,3);
+    XBit *fb = IPPairBitGet(h, 3);
     if (fb == NULL)
         goto end;
 
-    IPPairBitRemove(h,3);
+    IPPairBitRemove(h, 3);
 
-    fb = IPPairBitGet(h,3);
+    fb = IPPairBitGet(h, 3);
     if (fb != NULL) {
         printf("fb != NULL even though it was removed: ");
         goto end;

@@ -25,7 +25,6 @@
 #define __DETECT_NOCASE_H__
 
 /* prototypes */
-void DetectNocaseRegister (void);
+void DetectNocaseRegister(void);
 
 #endif /* __DETECT_NOCASE_H__ */
-

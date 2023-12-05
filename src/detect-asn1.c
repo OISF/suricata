@@ -36,9 +36,9 @@
 #include "util-byte.h"
 #include "util-debug.h"
 
-static int DetectAsn1Match(DetectEngineThreadCtx *, Packet *,
-                     const Signature *, const SigMatchCtx *);
-static int DetectAsn1Setup (DetectEngineCtx *, Signature *, const char *);
+static int DetectAsn1Match(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectAsn1Setup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectAsn1RegisterTests(void);
 #endif
@@ -52,7 +52,7 @@ void DetectAsn1Register(void)
     sigmatch_table[DETECT_ASN1].name = "asn1";
     sigmatch_table[DETECT_ASN1].Match = DetectAsn1Match;
     sigmatch_table[DETECT_ASN1].Setup = DetectAsn1Setup;
-    sigmatch_table[DETECT_ASN1].Free  = DetectAsn1Free;
+    sigmatch_table[DETECT_ASN1].Free = DetectAsn1Free;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_ASN1].RegisterTests = DetectAsn1RegisterTests;
 #endif
@@ -70,8 +70,8 @@ void DetectAsn1Register(void)
  * \retval 1 match
  * \retval 0 no match
  */
-static int DetectAsn1Match(DetectEngineThreadCtx *det_ctx, Packet *p,
-                    const Signature *s, const SigMatchCtx *ctx)
+static int DetectAsn1Match(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     uint8_t ret = 0;
 
@@ -155,42 +155,140 @@ static void DetectAsn1Free(DetectEngineCtx *de_ctx, void *ptr)
  */
 static int DetectAsn1TestReal01(void)
 {
-    uint8_t *buf = (uint8_t *) "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
-                   "P""\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
-                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
-                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
-                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
-                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111"
-                   "\x31\x1F\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05"
-                   "Jones""\xA0\x0A\x43\x08""19590717"
-                   "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01""P"
-                   "\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
-                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
-                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
-                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
-                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111""\x31\x1F"
-                   "\x61\x11\x1A\x05""Pablo""\x1A\x01""B""\x1A\x05""Jones"
-                   "\xA0\x0A\x43\x08""19590717";
+    uint8_t *buf = (uint8_t *)"\x60\x81\x85\x61\x10\x1A\x04"
+                              "John"
+                              "\x1A\x01"
+                              "P"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA0\x0A\x1A\x08"
+                              "Director"
+                              "\x42\x01\x33\xA1\x0A\x43\x08"
+                              "19710917"
+                              "\xA2\x12\x61\x10\x1A\x04"
+                              "Mary"
+                              "\x1A\x01"
+                              "T"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA3\x42\x31\x1F\x61\x11\x1A\x05"
+                              "Ralph"
+                              "\x1A\x01"
+                              "T"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA0\x0A\x43\x08"
+                              "19571111"
+                              "\x31\x1F\x61\x11\x1A\x05"
+                              "Susan"
+                              "\x1A\x01"
+                              "B"
+                              "\x1A\x05"
+                              "Jones"
+                              "\xA0\x0A\x43\x08"
+                              "19590717"
+                              "\x60\x81\x85\x61\x10\x1A\x04"
+                              "John"
+                              "\x1A\x01"
+                              "P"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA0\x0A\x1A\x08"
+                              "Director"
+                              "\x42\x01\x33\xA1\x0A\x43\x08"
+                              "19710917"
+                              "\xA2\x12\x61\x10\x1A\x04"
+                              "Mary"
+                              "\x1A\x01"
+                              "T"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA3\x42\x31\x1F\x61\x11\x1A\x05"
+                              "Ralph"
+                              "\x1A\x01"
+                              "T"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA0\x0A\x43\x08"
+                              "19571111"
+                              "\x31\x1F"
+                              "\x61\x11\x1A\x05"
+                              "Pablo"
+                              "\x1A\x01"
+                              "B"
+                              "\x1A\x05"
+                              "Jones"
+                              "\xA0\x0A\x43\x08"
+                              "19590717";
 
     uint16_t buflen = strlen((char *)buf) - 1;
 
     /* Check the start with AA (this is to test the relative_offset keyword) */
-    uint8_t *buf2 = (uint8_t *) "AA\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
-                   "P""\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
-                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
-                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
-                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
-                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111"
-                   "\x31\x1F\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05"
-                   "Jones""\xA0\x0A\x43\x08""19590717"
-                   "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01""P"
-                   "\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
-                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
-                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
-                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
-                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111""\x31\x1F"
-                   "\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05""Jones"
-                   "\xA0\x0A\x43\x08""19590717";
+    uint8_t *buf2 = (uint8_t *)"AA\x60\x81\x85\x61\x10\x1A\x04"
+                               "John"
+                               "\x1A\x01"
+                               "P"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA0\x0A\x1A\x08"
+                               "Director"
+                               "\x42\x01\x33\xA1\x0A\x43\x08"
+                               "19710917"
+                               "\xA2\x12\x61\x10\x1A\x04"
+                               "Mary"
+                               "\x1A\x01"
+                               "T"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA3\x42\x31\x1F\x61\x11\x1A\x05"
+                               "Ralph"
+                               "\x1A\x01"
+                               "T"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA0\x0A\x43\x08"
+                               "19571111"
+                               "\x31\x1F\x61\x11\x1A\x05"
+                               "Susan"
+                               "\x1A\x01"
+                               "B"
+                               "\x1A\x05"
+                               "Jones"
+                               "\xA0\x0A\x43\x08"
+                               "19590717"
+                               "\x60\x81\x85\x61\x10\x1A\x04"
+                               "John"
+                               "\x1A\x01"
+                               "P"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA0\x0A\x1A\x08"
+                               "Director"
+                               "\x42\x01\x33\xA1\x0A\x43\x08"
+                               "19710917"
+                               "\xA2\x12\x61\x10\x1A\x04"
+                               "Mary"
+                               "\x1A\x01"
+                               "T"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA3\x42\x31\x1F\x61\x11\x1A\x05"
+                               "Ralph"
+                               "\x1A\x01"
+                               "T"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA0\x0A\x43\x08"
+                               "19571111"
+                               "\x31\x1F"
+                               "\x61\x11\x1A\x05"
+                               "Susan"
+                               "\x1A\x01"
+                               "B"
+                               "\x1A\x05"
+                               "Jones"
+                               "\xA0\x0A\x43\x08"
+                               "19590717";
 
     uint16_t buflen2 = strlen((char *)buf2) - 1;
 
@@ -202,21 +300,21 @@ static int DetectAsn1TestReal01(void)
     FAIL_IF_NULL(p[1]);
 
     const char *sigs[3];
-    sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; "
-             "content:\"Pablo\"; asn1:absolute_offset 0, "
-             "oversize_length 130; sid:1;)";
-    sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; "
-             "content:\"AA\"; asn1:relative_offset 0, "
-             "oversize_length 130; sid:2;)";
-    sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; "
-             "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
+    sigs[0] = "alert ip any any -> any any (msg:\"Testing id 1\"; "
+              "content:\"Pablo\"; asn1:absolute_offset 0, "
+              "oversize_length 130; sid:1;)";
+    sigs[1] = "alert ip any any -> any any (msg:\"Testing id 2\"; "
+              "content:\"AA\"; asn1:relative_offset 0, "
+              "oversize_length 130; sid:2;)";
+    sigs[2] = "alert ip any any -> any any (msg:\"Testing id 3\"; "
+              "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
 
-    uint32_t sid[3] = {1, 2, 3};
-    uint32_t results[2][3] = {
-                              /* packet 0 match sid 1 */
-                              {1, 0, 0},
-                              /* packet 1 match sid 2 */
-                              {0, 1, 0}};
+    uint32_t sid[3] = { 1, 2, 3 };
+    uint32_t results[2][3] = { /* packet 0 match sid 1 */
+        { 1, 0, 0 },
+        /* packet 1 match sid 2 */
+        { 0, 1, 0 }
+    };
     /* None of the packets should match sid 3 */
     FAIL_IF_NOT(UTHGenericTest(p, 2, sigs, sid, (uint32_t *)results, 3) == 1);
 
@@ -230,42 +328,140 @@ static int DetectAsn1TestReal01(void)
 static int DetectAsn1TestReal02(void)
 {
     int result = 0;
-    uint8_t *buf = (uint8_t *) "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
-                   "P""\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
-                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
-                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
-                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
-                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111"
-                   "\x31\x1F\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05"
-                   "Jones""\xA0\x0A\x43\x08""19590717"
-                   "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01""P"
-                   "\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
-                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
-                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
-                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
-                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111""\x31\x1F"
-                   "\x61\x11\x1A\x05""Pablo""\x1A\x01""B""\x1A\x05""Jones"
-                   "\xA0\x0A\x43\x08""19590717";
+    uint8_t *buf = (uint8_t *)"\x60\x81\x85\x61\x10\x1A\x04"
+                              "John"
+                              "\x1A\x01"
+                              "P"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA0\x0A\x1A\x08"
+                              "Director"
+                              "\x42\x01\x33\xA1\x0A\x43\x08"
+                              "19710917"
+                              "\xA2\x12\x61\x10\x1A\x04"
+                              "Mary"
+                              "\x1A\x01"
+                              "T"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA3\x42\x31\x1F\x61\x11\x1A\x05"
+                              "Ralph"
+                              "\x1A\x01"
+                              "T"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA0\x0A\x43\x08"
+                              "19571111"
+                              "\x31\x1F\x61\x11\x1A\x05"
+                              "Susan"
+                              "\x1A\x01"
+                              "B"
+                              "\x1A\x05"
+                              "Jones"
+                              "\xA0\x0A\x43\x08"
+                              "19590717"
+                              "\x60\x81\x85\x61\x10\x1A\x04"
+                              "John"
+                              "\x1A\x01"
+                              "P"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA0\x0A\x1A\x08"
+                              "Director"
+                              "\x42\x01\x33\xA1\x0A\x43\x08"
+                              "19710917"
+                              "\xA2\x12\x61\x10\x1A\x04"
+                              "Mary"
+                              "\x1A\x01"
+                              "T"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA3\x42\x31\x1F\x61\x11\x1A\x05"
+                              "Ralph"
+                              "\x1A\x01"
+                              "T"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA0\x0A\x43\x08"
+                              "19571111"
+                              "\x31\x1F"
+                              "\x61\x11\x1A\x05"
+                              "Pablo"
+                              "\x1A\x01"
+                              "B"
+                              "\x1A\x05"
+                              "Jones"
+                              "\xA0\x0A\x43\x08"
+                              "19590717";
 
     uint16_t buflen = strlen((char *)buf) - 1;
 
     /* Check the start with AA (this is to test the relative_offset keyword) */
-    uint8_t *buf2 = (uint8_t *) "AA\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
-                   "P""\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
-                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
-                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
-                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
-                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111"
-                   "\x31\x1F\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05"
-                   "Jones""\xA0\x0A\x43\x08""19590717"
-                   "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01""P"
-                   "\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
-                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
-                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
-                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
-                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111""\x31\x1F"
-                   "\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05""Jones"
-                   "\xA0\x0A\x43\x08""19590717";
+    uint8_t *buf2 = (uint8_t *)"AA\x60\x81\x85\x61\x10\x1A\x04"
+                               "John"
+                               "\x1A\x01"
+                               "P"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA0\x0A\x1A\x08"
+                               "Director"
+                               "\x42\x01\x33\xA1\x0A\x43\x08"
+                               "19710917"
+                               "\xA2\x12\x61\x10\x1A\x04"
+                               "Mary"
+                               "\x1A\x01"
+                               "T"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA3\x42\x31\x1F\x61\x11\x1A\x05"
+                               "Ralph"
+                               "\x1A\x01"
+                               "T"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA0\x0A\x43\x08"
+                               "19571111"
+                               "\x31\x1F\x61\x11\x1A\x05"
+                               "Susan"
+                               "\x1A\x01"
+                               "B"
+                               "\x1A\x05"
+                               "Jones"
+                               "\xA0\x0A\x43\x08"
+                               "19590717"
+                               "\x60\x81\x85\x61\x10\x1A\x04"
+                               "John"
+                               "\x1A\x01"
+                               "P"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA0\x0A\x1A\x08"
+                               "Director"
+                               "\x42\x01\x33\xA1\x0A\x43\x08"
+                               "19710917"
+                               "\xA2\x12\x61\x10\x1A\x04"
+                               "Mary"
+                               "\x1A\x01"
+                               "T"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA3\x42\x31\x1F\x61\x11\x1A\x05"
+                               "Ralph"
+                               "\x1A\x01"
+                               "T"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA0\x0A\x43\x08"
+                               "19571111"
+                               "\x31\x1F"
+                               "\x61\x11\x1A\x05"
+                               "Susan"
+                               "\x1A\x01"
+                               "B"
+                               "\x1A\x05"
+                               "Jones"
+                               "\xA0\x0A\x43\x08"
+                               "19590717";
 
     uint16_t buflen2 = strlen((char *)buf2) - 1;
 
@@ -278,23 +474,21 @@ static int DetectAsn1TestReal02(void)
         goto end;
 
     const char *sigs[3];
-    sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; "
-             "content:\"Pablo\"; asn1:absolute_offset 0, "
-             "oversize_length 140; sid:1;)";
-    sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; "
-             "content:\"AA\"; asn1:relative_offset 0, "
-             "oversize_length 140; sid:2;)";
-    sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; "
-             "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
+    sigs[0] = "alert ip any any -> any any (msg:\"Testing id 1\"; "
+              "content:\"Pablo\"; asn1:absolute_offset 0, "
+              "oversize_length 140; sid:1;)";
+    sigs[1] = "alert ip any any -> any any (msg:\"Testing id 2\"; "
+              "content:\"AA\"; asn1:relative_offset 0, "
+              "oversize_length 140; sid:2;)";
+    sigs[2] = "alert ip any any -> any any (msg:\"Testing id 3\"; "
+              "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
 
-    uint32_t sid[3] = {1, 2, 3};
+    uint32_t sid[3] = { 1, 2, 3 };
 
-    uint32_t results[2][3] = {
-                              {0, 0, 0},
-                              {0, 0, 0}};
+    uint32_t results[2][3] = { { 0, 0, 0 }, { 0, 0, 0 } };
     /* None of the packets should match */
 
-    result = UTHGenericTest(p, 2, sigs, sid, (uint32_t *) results, 3);
+    result = UTHGenericTest(p, 2, sigs, sid, (uint32_t *)results, 3);
 
     UTHFreePackets(p, 2);
 end:
@@ -318,13 +512,13 @@ static int DetectAsn1TestReal03(void)
 
     /* Fill the content of the number */
     uint16_t i = 4;
-    for (; i < 257;i++)
+    for (; i < 257; i++)
         buf[i] = '\x05';
 
     uint16_t buflen = 261;
 
     /* Check the start with AA (this is to test the relative_offset keyword) */
-    uint8_t *buf2 = (uint8_t *) "AA\x03\x01\xFF";
+    uint8_t *buf2 = (uint8_t *)"AA\x03\x01\xFF";
 
     uint16_t buflen2 = 5;
 
@@ -337,23 +531,22 @@ static int DetectAsn1TestReal03(void)
         goto end;
 
     const char *sigs[3];
-            /* This should match the first packet */
-    sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; "
-             "asn1:absolute_offset 0, double_overflow; sid:1;)";
-            /* This should match the second packet */
-    sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; "
-             "asn1:relative_offset 2, bitstring_overflow,"
-             "oversize_length 140; sid:2;)";
-            /* This should match no packet */
-    sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; "
-             "asn1: oversize_length 2000; sid:3;)";
+    /* This should match the first packet */
+    sigs[0] = "alert ip any any -> any any (msg:\"Testing id 1\"; "
+              "asn1:absolute_offset 0, double_overflow; sid:1;)";
+    /* This should match the second packet */
+    sigs[1] = "alert ip any any -> any any (msg:\"Testing id 2\"; "
+              "asn1:relative_offset 2, bitstring_overflow,"
+              "oversize_length 140; sid:2;)";
+    /* This should match no packet */
+    sigs[2] = "alert ip any any -> any any (msg:\"Testing id 3\"; "
+              "asn1: oversize_length 2000; sid:3;)";
 
-    uint32_t sid[3] = {1, 2, 3};
+    uint32_t sid[3] = { 1, 2, 3 };
 
-    uint32_t results[2][3] = {{1, 0, 0},
-                              {0, 1, 0}};
+    uint32_t results[2][3] = { { 1, 0, 0 }, { 0, 1, 0 } };
 
-    result = UTHGenericTest(p, 2, sigs, sid, (uint32_t *) results, 3);
+    result = UTHGenericTest(p, 2, sigs, sid, (uint32_t *)results, 3);
 
     UTHFreePackets(p, 2);
 end:
@@ -368,42 +561,140 @@ end:
 static int DetectAsn1TestReal04(void)
 {
     int result = 0;
-    uint8_t *buf = (uint8_t *) "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
-                   "P""\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
-                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
-                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
-                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
-                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111"
-                   "\x31\x1F\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05"
-                   "Jones""\xA0\x0A\x43\x08""19590717"
-                   "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01""P"
-                   "\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
-                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
-                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
-                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
-                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111""\x31\x1F"
-                   "\x61\x11\x1A\x05""Pablo""\x1A\x01""B""\x1A\x05""Jones"
-                   "\xA0\x0A\x43\x08""19590717";
+    uint8_t *buf = (uint8_t *)"\x60\x81\x85\x61\x10\x1A\x04"
+                              "John"
+                              "\x1A\x01"
+                              "P"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA0\x0A\x1A\x08"
+                              "Director"
+                              "\x42\x01\x33\xA1\x0A\x43\x08"
+                              "19710917"
+                              "\xA2\x12\x61\x10\x1A\x04"
+                              "Mary"
+                              "\x1A\x01"
+                              "T"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA3\x42\x31\x1F\x61\x11\x1A\x05"
+                              "Ralph"
+                              "\x1A\x01"
+                              "T"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA0\x0A\x43\x08"
+                              "19571111"
+                              "\x31\x1F\x61\x11\x1A\x05"
+                              "Susan"
+                              "\x1A\x01"
+                              "B"
+                              "\x1A\x05"
+                              "Jones"
+                              "\xA0\x0A\x43\x08"
+                              "19590717"
+                              "\x60\x81\x85\x61\x10\x1A\x04"
+                              "John"
+                              "\x1A\x01"
+                              "P"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA0\x0A\x1A\x08"
+                              "Director"
+                              "\x42\x01\x33\xA1\x0A\x43\x08"
+                              "19710917"
+                              "\xA2\x12\x61\x10\x1A\x04"
+                              "Mary"
+                              "\x1A\x01"
+                              "T"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA3\x42\x31\x1F\x61\x11\x1A\x05"
+                              "Ralph"
+                              "\x1A\x01"
+                              "T"
+                              "\x1A\x05"
+                              "Smith"
+                              "\xA0\x0A\x43\x08"
+                              "19571111"
+                              "\x31\x1F"
+                              "\x61\x11\x1A\x05"
+                              "Pablo"
+                              "\x1A\x01"
+                              "B"
+                              "\x1A\x05"
+                              "Jones"
+                              "\xA0\x0A\x43\x08"
+                              "19590717";
 
     uint16_t buflen = strlen((char *)buf) - 1;
 
     /* Check the start with AA (this is to test the relative_offset keyword) */
-    uint8_t *buf2 = (uint8_t *) "AA\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
-                   "P""\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
-                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
-                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
-                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
-                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111"
-                   "\x31\x1F\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05"
-                   "Jones""\xA0\x0A\x43\x08""19590717"
-                   "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01""P"
-                   "\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
-                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
-                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
-                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
-                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111""\x31\x1F"
-                   "\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05""Jones"
-                   "\xA0\x0A\x43\x08""19590717";
+    uint8_t *buf2 = (uint8_t *)"AA\x60\x81\x85\x61\x10\x1A\x04"
+                               "John"
+                               "\x1A\x01"
+                               "P"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA0\x0A\x1A\x08"
+                               "Director"
+                               "\x42\x01\x33\xA1\x0A\x43\x08"
+                               "19710917"
+                               "\xA2\x12\x61\x10\x1A\x04"
+                               "Mary"
+                               "\x1A\x01"
+                               "T"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA3\x42\x31\x1F\x61\x11\x1A\x05"
+                               "Ralph"
+                               "\x1A\x01"
+                               "T"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA0\x0A\x43\x08"
+                               "19571111"
+                               "\x31\x1F\x61\x11\x1A\x05"
+                               "Susan"
+                               "\x1A\x01"
+                               "B"
+                               "\x1A\x05"
+                               "Jones"
+                               "\xA0\x0A\x43\x08"
+                               "19590717"
+                               "\x60\x81\x85\x61\x10\x1A\x04"
+                               "John"
+                               "\x1A\x01"
+                               "P"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA0\x0A\x1A\x08"
+                               "Director"
+                               "\x42\x01\x33\xA1\x0A\x43\x08"
+                               "19710917"
+                               "\xA2\x12\x61\x10\x1A\x04"
+                               "Mary"
+                               "\x1A\x01"
+                               "T"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA3\x42\x31\x1F\x61\x11\x1A\x05"
+                               "Ralph"
+                               "\x1A\x01"
+                               "T"
+                               "\x1A\x05"
+                               "Smith"
+                               "\xA0\x0A\x43\x08"
+                               "19571111"
+                               "\x31\x1F"
+                               "\x61\x11\x1A\x05"
+                               "Susan"
+                               "\x1A\x01"
+                               "B"
+                               "\x1A\x05"
+                               "Jones"
+                               "\xA0\x0A\x43\x08"
+                               "19590717";
 
     uint16_t buflen2 = strlen((char *)buf2) - 1;
 
@@ -416,23 +707,21 @@ static int DetectAsn1TestReal04(void)
         goto end;
 
     const char *sigs[3];
-    sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; "
-             "content:\"Pablo\"; asn1:absolute_offset 0, "
-             "oversize_length 140; sid:1;)";
-    sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; "
-             "content:\"John\"; asn1:relative_offset -11, "
-             "oversize_length 140; sid:2;)";
-    sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; "
-             "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
+    sigs[0] = "alert ip any any -> any any (msg:\"Testing id 1\"; "
+              "content:\"Pablo\"; asn1:absolute_offset 0, "
+              "oversize_length 140; sid:1;)";
+    sigs[1] = "alert ip any any -> any any (msg:\"Testing id 2\"; "
+              "content:\"John\"; asn1:relative_offset -11, "
+              "oversize_length 140; sid:2;)";
+    sigs[2] = "alert ip any any -> any any (msg:\"Testing id 3\"; "
+              "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
 
-    uint32_t sid[3] = {1, 2, 3};
+    uint32_t sid[3] = { 1, 2, 3 };
 
-    uint32_t results[2][3] = {
-                              {0, 0, 0},
-                              {0, 0, 0}};
+    uint32_t results[2][3] = { { 0, 0, 0 }, { 0, 0, 0 } };
     /* None of the packets should match */
 
-    result = UTHGenericTest(p, 2, sigs, sid, (uint32_t *) results, 3);
+    result = UTHGenericTest(p, 2, sigs, sid, (uint32_t *)results, 3);
 
     UTHFreePackets(p, 2);
 end:

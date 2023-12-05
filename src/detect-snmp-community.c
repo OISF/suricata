@@ -36,12 +36,10 @@
 #include "app-layer-parser.h"
 #include "rust.h"
 
-static int DetectSNMPCommunitySetup(DetectEngineCtx *, Signature *,
-    const char *);
+static int DetectSNMPCommunitySetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-       const DetectEngineTransforms *transforms,
-       Flow *f, const uint8_t flow_flags,
-       void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id);
 #ifdef UNITTESTS
 static void DetectSNMPCommunityRegisterTests(void);
 #endif
@@ -51,35 +49,31 @@ void DetectSNMPCommunityRegister(void)
 {
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].name = "snmp.community";
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].desc =
-        "SNMP content modifier to match on the SNMP community";
-    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].Setup =
-        DetectSNMPCommunitySetup;
+            "SNMP content modifier to match on the SNMP community";
+    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].Setup = DetectSNMPCommunitySetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].RegisterTests = DetectSNMPCommunityRegisterTests;
 #endif
     sigmatch_table[DETECT_AL_SNMP_COMMUNITY].url = "/rules/snmp-keywords.html#snmp-community";
 
-    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_AL_SNMP_COMMUNITY].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     /* register inspect engines */
-    DetectAppLayerInspectEngineRegister2("snmp.community",
-            ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister2("snmp.community", ALPROTO_SNMP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
-    DetectAppLayerMpmRegister2("snmp.community", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_SNMP, 0);
-    DetectAppLayerInspectEngineRegister2("snmp.community",
-            ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerMpmRegister2("snmp.community", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_SNMP, 0);
+    DetectAppLayerInspectEngineRegister2("snmp.community", ALPROTO_SNMP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectBufferGeneric, GetData);
-    DetectAppLayerMpmRegister2("snmp.community", SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_SNMP, 0);
+    DetectAppLayerMpmRegister2("snmp.community", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_SNMP, 0);
 
     DetectBufferTypeSetDescriptionByName("snmp.community", "SNMP Community identifier");
 
     g_snmp_rust_id = DetectBufferTypeGetByName("snmp.community");
 }
 
-static int DetectSNMPCommunitySetup(DetectEngineCtx *de_ctx, Signature *s,
-    const char *str)
+static int DetectSNMPCommunitySetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     if (DetectBufferSetActiveList(de_ctx, s, g_snmp_rust_id) < 0)
         return -1;
@@ -91,8 +85,8 @@ static int DetectSNMPCommunitySetup(DetectEngineCtx *de_ctx, Signature *s,
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {

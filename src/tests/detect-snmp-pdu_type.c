@@ -24,7 +24,7 @@
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int SNMPValidityTestParse01 (void)
+static int SNMPValidityTestParse01(void)
 {
     DetectSNMPPduTypeData *dd = NULL;
     dd = DetectSNMPPduTypeParse("2");

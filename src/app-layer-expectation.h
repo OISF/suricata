@@ -27,8 +27,8 @@
 #include "flow-storage.h"
 
 void AppLayerExpectationSetup(void);
-int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst,
-                              AppProto alproto, void *data);
+int AppLayerExpectationCreate(
+        Flow *f, int direction, Port src, Port dst, AppProto alproto, void *data);
 AppProto AppLayerExpectationHandle(Flow *f, uint8_t flags);
 FlowStorageId AppLayerExpectationGetFlowId(void);
 

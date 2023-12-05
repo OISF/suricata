@@ -24,13 +24,11 @@
 #ifndef __DETECT_ENGINE_EVENT_H__
 #define __DETECT_ENGINE_EVENT_H__
 
-
 typedef struct DetectEngineEventData_ {
     uint8_t event;
 } DetectEngineEventData;
 
 /* prototypes */
-void DetectEngineEventRegister (void);
+void DetectEngineEventRegister(void);
 
 #endif /*__DETECT_ENGINE_EVENT_H__ */
-

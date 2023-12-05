@@ -76,15 +76,15 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p);
 
 void AlertFastLogRegister(void)
 {
-    OutputRegisterPacketModule(LOGGER_ALERT_FAST, MODULE_NAME, "fast",
-        AlertFastLogInitCtx, AlertFastLogger, AlertFastLogCondition,
-        AlertFastLogThreadInit, AlertFastLogThreadDeinit, NULL);
+    OutputRegisterPacketModule(LOGGER_ALERT_FAST, MODULE_NAME, "fast", AlertFastLogInitCtx,
+            AlertFastLogger, AlertFastLogCondition, AlertFastLogThreadInit,
+            AlertFastLogThreadDeinit, NULL);
     AlertFastLogRegisterTests();
 }
 
 typedef struct AlertFastLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx* file_ctx;
+    LogFileCtx *file_ctx;
 } AlertFastLogThread;
 
 static bool AlertFastLogCondition(ThreadVars *tv, void *thread_data, const Packet *p)
@@ -92,8 +92,7 @@ static bool AlertFastLogCondition(ThreadVars *tv, void *thread_data, const Packe
     return (p->alerts.cnt > 0);
 }
 
-static inline void AlertFastLogOutputAlert(AlertFastLogThread *aft, char *buffer,
-                                           int alert_size)
+static inline void AlertFastLogOutputAlert(AlertFastLogThread *aft, char *buffer, int alert_size)
 {
     /* Output the alert string and count alerts. Only need to lock here. */
     aft->file_ctx->Write(buffer, alert_size, aft->file_ctx);
@@ -158,22 +157,24 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
         int size = 0;
         if (likely(decoder_event == 0)) {
             PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
-                            "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
-                            PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
-                            " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "\n", timebuf, action,
-                            pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
-                            protoptr, srcip, src_port_or_icmp, dstip, dst_port_or_icmp);
+                    "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32
+                    "] %s [**] [Classification: %s] [Priority: %" PRIu32 "]"
+                    " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
+                    timebuf, action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg,
+                    pa->s->class_msg, pa->s->prio, protoptr, srcip, src_port_or_icmp, dstip,
+                    dst_port_or_icmp);
         } else {
-            PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
-                            "%s  %s[**] [%" PRIu32 ":%" PRIu32
-                            ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: "
-                            "%" PRIu32 "] [**] [Raw pkt: ", timebuf, action, pa->s->gid,
-                            pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio);
-            PrintBufferRawLineHex(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
-                                  GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
+            PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
+                    "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32
+                    "] %s [**] [Classification: %s] [Priority: "
+                    "%" PRIu32 "] [**] [Raw pkt: ",
+                    timebuf, action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg,
+                    pa->s->class_msg, pa->s->prio);
+            PrintBufferRawLineHex(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, GET_PKT_DATA(p),
+                    GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
             if (p->pcap_cnt != 0) {
-                PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, 
-                                "] [pcap file packet: %"PRIu64"]\n", p->pcap_cnt);
+                PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE,
+                        "] [pcap file packet: %" PRIu64 "]\n", p->pcap_cnt);
             } else {
                 PrintBufferData(alert_buffer, &size, MAX_FASTLOG_ALERT_SIZE, "]\n");
             }
@@ -191,8 +192,7 @@ TmEcode AlertFastLogThreadInit(ThreadVars *t, const void *initdata, void **data)
     AlertFastLogThread *aft = SCCalloc(1, sizeof(AlertFastLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    if(initdata == NULL)
-    {
+    if (initdata == NULL) {
         SCLogDebug("Error getting context for AlertFastLog.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
@@ -264,8 +264,8 @@ static void AlertFastLogDeInitCtx(OutputCtx *output_ctx)
 
 static int AlertFastLogTest01(void)
 {
-    uint8_t *buf = (uint8_t *) "GET /one/ HTTP/1.1\r\n"
-        "Host: one.example.org\r\n";
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.1\r\n"
+                              "Host: one.example.org\r\n";
 
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
@@ -284,8 +284,8 @@ static int AlertFastLogTest01(void)
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"FastLog test\"; content:\"GET\"; "
-            "Classtype:unknown; sid:1;)");
+                                       "(msg:\"FastLog test\"; content:\"GET\"; "
+                                       "Classtype:unknown; sid:1;)");
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -305,8 +305,8 @@ static int AlertFastLogTest01(void)
 
 static int AlertFastLogTest02(void)
 {
-    uint8_t *buf = (uint8_t *) "GET /one/ HTTP/1.1\r\n"
-        "Host: one.example.org\r\n";
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.1\r\n"
+                              "Host: one.example.org\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
@@ -325,8 +325,8 @@ static int AlertFastLogTest02(void)
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"FastLog test\"; content:\"GET\"; "
-            "Classtype:unknown; sid:1;)");
+                                       "(msg:\"FastLog test\"; content:\"GET\"; "
+                                       "Classtype:unknown; sid:1;)");
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -358,5 +358,4 @@ void AlertFastLogRegisterTests(void)
     UtRegisterTest("AlertFastLogTest02", AlertFastLogTest02);
 
 #endif /* UNITTESTS */
-
 }

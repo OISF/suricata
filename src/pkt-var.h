@@ -30,4 +30,3 @@ PktVar *PktVarGet(Packet *, uint32_t id);
 void PktVarFree(PktVar *);
 
 #endif /* __PKT_VAR_H__ */
-

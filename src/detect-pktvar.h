@@ -32,7 +32,6 @@ typedef struct DetectPktvarData_ {
 } DetectPktvarData;
 
 /* prototypes */
-void DetectPktvarRegister (void);
+void DetectPktvarRegister(void);
 
 #endif /* __DETECT_PKTVAR_H__ */
-

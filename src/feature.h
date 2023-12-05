@@ -25,7 +25,7 @@
 #define __FEATURE_H__
 
 /* Provided feature names */
-#define FEATURE_OUTPUT_FILESTORE    "output::file-store"
+#define FEATURE_OUTPUT_FILESTORE "output::file-store"
 
 void ProvidesFeature(const char *);
 bool RequiresFeature(const char *);

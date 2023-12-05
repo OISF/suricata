@@ -28,9 +28,9 @@
 #include "datasets-reputation.h"
 
 enum DetectDatarepOp {
-    DATAREP_OP_GT,  /* rep is greater than requested */
-    DATAREP_OP_LT,  /* rep is smaller than requested */
-    DATAREP_OP_EQ,  /* rep is smaller than requested */
+    DATAREP_OP_GT, /* rep is greater than requested */
+    DATAREP_OP_LT, /* rep is smaller than requested */
+    DATAREP_OP_EQ, /* rep is smaller than requested */
 };
 
 typedef struct DetectDatarepData_ {
@@ -40,11 +40,10 @@ typedef struct DetectDatarepData_ {
     DataRepType rep;
 } DetectDatarepData;
 
-int DetectDatarepBufferMatch(DetectEngineThreadCtx *det_ctx,
-    const DetectDatarepData *sd,
-    const uint8_t *data, const uint32_t data_len);
+int DetectDatarepBufferMatch(DetectEngineThreadCtx *det_ctx, const DetectDatarepData *sd,
+        const uint8_t *data, const uint32_t data_len);
 
 /* prototypes */
-void DetectDatarepRegister (void);
+void DetectDatarepRegister(void);
 
 #endif /* __DETECT_DATAREP_H__ */

@@ -41,11 +41,11 @@ static int ThreadMacrosTest01Mutex(void)
     int r = 0;
     r |= SCMutexInit(&mut, NULL);
     r |= SCMutexLock(&mut);
-    r |= (SCMutexTrylock(&mut) == EBUSY)? 0 : 1;
+    r |= (SCMutexTrylock(&mut) == EBUSY) ? 0 : 1;
     r |= SCMutexUnlock(&mut);
     r |= SCMutexDestroy(&mut);
 
-    return (r == 0)? 1 : 0;
+    return (r == 0) ? 1 : 0;
 }
 
 /**
@@ -70,14 +70,14 @@ static int ThreadMacrosTest02Spinlocks(void)
     r |= SCSpinInit(&mut, 0);
     r |= SCSpinLock(&mut);
 #ifndef __OpenBSD__
-    r |= (SCSpinTrylock(&mut) == EBUSY)? 0 : 1;
+    r |= (SCSpinTrylock(&mut) == EBUSY) ? 0 : 1;
 #else
-    r |= (SCSpinTrylock(&mut) == EDEADLK)? 0 : 1;
+    r |= (SCSpinTrylock(&mut) == EDEADLK) ? 0 : 1;
 #endif
     r |= SCSpinUnlock(&mut);
     r |= SCSpinDestroy(&mut);
 
-    return (r == 0)? 1 : 0;
+    return (r == 0) ? 1 : 0;
 }
 
 /**
@@ -91,15 +91,15 @@ static int ThreadMacrosTest03RWLocks(void)
     r |= SCRWLockWRLock(&rwl_write);
 /* OS X/macOS 10.10 (Yosemite) and newer return EDEADLK. Older versions
  * and other tested OS's return EBUSY. */
-#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__>=101000
-    r |= (SCRWLockTryWRLock(&rwl_write) == EDEADLK)? 0 : 1;
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 101000
+    r |= (SCRWLockTryWRLock(&rwl_write) == EDEADLK) ? 0 : 1;
 #else
-    r |= (SCRWLockTryWRLock(&rwl_write) == EBUSY)? 0 : 1;
+    r |= (SCRWLockTryWRLock(&rwl_write) == EBUSY) ? 0 : 1;
 #endif
     r |= SCRWLockUnlock(&rwl_write);
     r |= SCRWLockDestroy(&rwl_write);
 
-    return (r == 0)? 1 : 0;
+    return (r == 0) ? 1 : 0;
 }
 
 /**
@@ -111,11 +111,11 @@ static int ThreadMacrosTest04RWLocks(void)
     int r = 0;
     r |= SCRWLockInit(&rwl_read, NULL);
     r |= SCRWLockRDLock(&rwl_read);
-    r |= (SCRWLockTryWRLock(&rwl_read) == EBUSY)? 0 : 1;
+    r |= (SCRWLockTryWRLock(&rwl_read) == EBUSY) ? 0 : 1;
     r |= SCRWLockUnlock(&rwl_read);
     r |= SCRWLockDestroy(&rwl_read);
 
-    return (r == 0)? 1 : 0;
+    return (r == 0) ? 1 : 0;
 }
 
 #if 0 // broken on OSX

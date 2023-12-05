@@ -25,6 +25,6 @@
 #define __DETECT_TRANSFORM_SHA1_H__
 
 /* prototypes */
-void DetectTransformSha1Register (void);
+void DetectTransformSha1Register(void);
 
 #endif /* __DETECT_TRANSFORM_SHA1_H__ */

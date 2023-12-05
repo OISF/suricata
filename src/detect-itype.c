@@ -39,9 +39,8 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 
-
-static int DetectITypeMatch(DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
+static int DetectITypeMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectITypeSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectITypeRegisterTests(void);
@@ -54,7 +53,7 @@ static bool PrefilterITypeIsPrefilterable(const Signature *s);
 /**
  * \brief Registration function for itype: keyword
  */
-void DetectITypeRegister (void)
+void DetectITypeRegister(void)
 {
     sigmatch_table[DETECT_ITYPE].name = "itype";
     sigmatch_table[DETECT_ITYPE].desc = "match on a specific ICMP type";
@@ -81,8 +80,8 @@ void DetectITypeRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectITypeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectITypeMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     if (PKT_IS_PSEUDOPKT(p))
         return 0;
@@ -131,7 +130,8 @@ static int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *i
     DetectU8Data *itd = NULL;
 
     itd = DetectITypeParse(de_ctx, itypestr);
-    if (itd == NULL) goto error;
+    if (itd == NULL)
+        goto error;
 
     if (SigMatchAppendSMToList(de_ctx, s, DETECT_ITYPE, (SigMatchCtx *)itd, DETECT_SM_LIST_MATCH) ==
             NULL) {
@@ -164,8 +164,7 @@ void DetectITypeFree(DetectEngineCtx *de_ctx, void *ptr)
  * for each ICMP type. Each array element has the list of signatures
  * that need to be inspected. */
 
-static void PrefilterPacketITypeMatch(DetectEngineThreadCtx *det_ctx,
-        Packet *p, const void *pectx)
+static void PrefilterPacketITypeMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     if (PKT_IS_PSEUDOPKT(p)) {
         SCReturn;
@@ -197,7 +196,7 @@ static int PrefilterSetupIType(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 static bool PrefilterITypeIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ITYPE:
                 return true;

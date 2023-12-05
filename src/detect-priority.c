@@ -38,7 +38,7 @@
 
 static DetectParseRegex parse_regex;
 
-static int DetectPrioritySetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectPrioritySetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void PriorityRegisterTests(void);
 #endif
@@ -46,7 +46,7 @@ static void PriorityRegisterTests(void);
 /**
  * \brief Registers the handler functions for the "priority" keyword
  */
-void DetectPriorityRegister (void)
+void DetectPriorityRegister(void)
 {
     sigmatch_table[DETECT_PRIORITY].name = "priority";
     sigmatch_table[DETECT_PRIORITY].desc = "rules with a higher priority will be examined first";
@@ -58,7 +58,7 @@ void DetectPriorityRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
-static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectPrioritySetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     char copy_str[128] = "";
     size_t pcre2len;
@@ -112,7 +112,7 @@ static int DetectPriorityTest01(void)
     FAIL_IF_NULL(de_ctx);
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Priority test\"; priority:2; sid:1;)");
+                                       "(msg:\"Priority test\"; priority:2; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     FAIL_IF_NOT(de_ctx->sig_list->prio == 2);
@@ -127,43 +127,43 @@ static int DetectPriorityTest02(void)
     FAIL_IF_NULL(de_ctx);
 
     Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:1; sid:1;)");
+                                                   "(msg:\"Priority test\"; priority:1; sid:1;)");
     FAIL_IF_NULL(sig);
     FAIL_IF_NOT(sig->prio == 1);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:boo; sid:2;)");
+                                        "(msg:\"Priority test\"; priority:boo; sid:2;)");
     FAIL_IF_NOT_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:10boo; sid:3;)");
+                                        "(msg:\"Priority test\"; priority:10boo; sid:3;)");
     FAIL_IF_NOT_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:b10oo; sid:4;)");
+                                        "(msg:\"Priority test\"; priority:b10oo; sid:4;)");
     FAIL_IF_NOT_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:boo10; sid:5;)");
+                                        "(msg:\"Priority test\"; priority:boo10; sid:5;)");
     FAIL_IF_NOT_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:-1; sid:6;)");
+                                        "(msg:\"Priority test\"; priority:-1; sid:6;)");
     FAIL_IF_NOT_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; sid:7;)");
+                                        "(msg:\"Priority test\"; sid:7;)");
     FAIL_IF_NULL(sig);
     FAIL_IF_NOT(sig->prio == 3);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:5; priority:4; sid:8;)");
+                                        "(msg:\"Priority test\"; priority:5; priority:4; sid:8;)");
     FAIL_IF_NULL(sig);
     FAIL_IF_NOT(sig->prio == 4);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:5; priority:4; "
-                  "priority:1; sid:9;)");
+                                        "(msg:\"Priority test\"; priority:5; priority:4; "
+                                        "priority:1; sid:9;)");
     FAIL_IF_NULL(sig);
     FAIL_IF_NOT(sig->prio == 1);
 

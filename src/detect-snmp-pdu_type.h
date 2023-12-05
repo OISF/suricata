@@ -24,7 +24,6 @@
 #ifndef __DETECT_SNMP_PDU_TYPE_H__
 #define __DETECT_SNMP_PDU_TYPE_H__
 
-
 void DetectSNMPPduTypeRegister(void);
 
 #endif /* __DETECT_SNMP_PDU_TYPE_H__ */

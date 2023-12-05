@@ -25,6 +25,6 @@
 #define __DETECT_FILENAME_H__
 
 /* prototypes */
-void DetectFilenameRegister (void);
+void DetectFilenameRegister(void);
 
 #endif /* __DETECT_FILENAME_H__ */

@@ -18,8 +18,8 @@
 #ifndef __DECODE_TEREDO_H__
 #define __DECODE_TEREDO_H__
 
-int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                 const uint8_t *pkt, uint16_t len);
+int DecodeTeredo(
+        ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint16_t len);
 void DecodeTeredoConfig(void);
 bool DecodeTeredoEnabledForPort(const uint16_t sp, const uint16_t dp);
 

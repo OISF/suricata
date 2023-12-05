@@ -35,9 +35,9 @@
 #include "util-validate.h"
 
 /* prototypes */
-static int DetectICMPv6hdrSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectICMPv6hdrSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-void DetectICMPv6hdrRegisterTests (void);
+void DetectICMPv6hdrRegisterTests(void);
 #endif
 
 static int g_icmpv6hdr_buffer_id = 0;
@@ -66,8 +66,7 @@ void DetectICMPv6hdrRegister(void)
 
     DetectPktMpmRegister("icmpv6.hdr", 2, PrefilterGenericMpmPktRegister, GetData);
 
-    DetectPktInspectEngineRegister("icmpv6.hdr", GetData,
-            DetectEngineInspectPktBufferGeneric);
+    DetectPktInspectEngineRegister("icmpv6.hdr", GetData, DetectEngineInspectPktBufferGeneric);
 
     return;
 }
@@ -82,7 +81,7 @@ void DetectICMPv6hdrRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectICMPv6hdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
+static int DetectICMPv6hdrSetup(DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
     // ICMPv6 comes only with IPv6
     s->proto.flags |= DETECT_PROTO_IPV6;
@@ -110,10 +109,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
         if (((uint8_t *)p->icmpv6h + (ptrdiff_t)hlen) >
-                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
-        {
-            SCLogDebug("data out of range: %p > %p",
-                    ((uint8_t *)p->icmpv6h + (ptrdiff_t)hlen),
+                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p))) {
+            SCLogDebug("data out of range: %p > %p", ((uint8_t *)p->icmpv6h + (ptrdiff_t)hlen),
                     ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)));
             SCReturnPtr(NULL, "InspectionBuffer");
         }

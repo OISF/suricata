@@ -65,8 +65,7 @@ static bool DetectSipUriValidateCallback(const Signature *s, const char **sigerr
     return DetectUrilenValidateContent(s, g_buffer_id, sigerror);
 }
 
-static void DetectSipUriSetupCallback(const DetectEngineCtx *de_ctx,
-                                       Signature *s)
+static void DetectSipUriSetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
 {
     SCLogDebug("callback invoked by %u", s->id);
     DetectUrilenApplyToContent(s, g_buffer_id);
@@ -84,8 +83,8 @@ static int DetectSipUriSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -112,21 +111,17 @@ void DetectSipUriRegister(void)
     sigmatch_table[DETECT_AL_SIP_URI].Setup = DetectSipUriSetup;
     sigmatch_table[DETECT_AL_SIP_URI].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SIP,
-            SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SIP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_SIP,
-            1);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_SIP, 1);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
-    DetectBufferTypeRegisterSetupCallback(BUFFER_NAME,
-            DetectSipUriSetupCallback);
+    DetectBufferTypeRegisterSetupCallback(BUFFER_NAME, DetectSipUriSetupCallback);
 
-    DetectBufferTypeRegisterValidateCallback(BUFFER_NAME,
-            DetectSipUriValidateCallback);
+    DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectSipUriValidateCallback);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 

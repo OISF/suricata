@@ -35,7 +35,7 @@
 /* Create a filestore specific PATH_MAX that is less than the system
  * PATH_MAX to prevent newer gcc truncation warnings with snprint. */
 #define SHA256_STRING_LEN    (SC_SHA256_LEN * 2)
-#define LEAF_DIR_MAX_LEN 4
+#define LEAF_DIR_MAX_LEN     4
 #define FILESTORE_PREFIX_MAX (PATH_MAX - SHA256_STRING_LEN - LEAF_DIR_MAX_LEN)
 
 /* The default log directory, relative to the default log
@@ -104,8 +104,7 @@ static uint32_t FileGetMaxOpenFiles(void)
  * \param src_filename Filename to use as timestamp source.
  * \param filename Filename to apply timestamps to.
  */
-static void OutputFilestoreUpdateFileTime(const char *src_filename,
-        const char *filename)
+static void OutputFilestoreUpdateFileTime(const char *src_filename, const char *filename)
 {
     struct stat sb;
     if (stat(src_filename, &sb) != 0) {
@@ -117,8 +116,7 @@ static void OutputFilestoreUpdateFileTime(const char *src_filename,
         .modtime = sb.st_mtime,
     };
     if (utime(filename, &utimbuf) != 0) {
-        SCLogDebug("Failed to update file timestamps: %s: %s", filename,
-                strerror(errno));
+        SCLogDebug("Failed to update file timestamps: %s: %s", filename, strerror(errno));
     }
 }
 
@@ -129,16 +127,14 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv, const OutputFilestoreLo
     /* Stringify the SHA256 which will be used in the final
      * filename. */
     char sha256string[(SC_SHA256_LEN * 2) + 1];
-    PrintHexString(sha256string, sizeof(sha256string), ff->sha256,
-            sizeof(ff->sha256));
+    PrintHexString(sha256string, sizeof(sha256string), ff->sha256, sizeof(ff->sha256));
 
     char tmp_filename[PATH_MAX] = "";
-    snprintf(tmp_filename, sizeof(tmp_filename), "%s/file.%u", ctx->tmpdir,
-            ff->file_store_id);
+    snprintf(tmp_filename, sizeof(tmp_filename), "%s/file.%u", ctx->tmpdir, ff->file_store_id);
 
     char final_filename[PATH_MAX] = "";
-    snprintf(final_filename, sizeof(final_filename), "%s/%c%c/%s",
-            ctx->prefix, sha256string[0], sha256string[1], sha256string);
+    snprintf(final_filename, sizeof(final_filename), "%s/%c%c/%s", ctx->prefix, sha256string[0],
+            sha256string[1], sha256string);
 
     if (SCPathExists(final_filename)) {
         OutputFilestoreUpdateFileTime(tmp_filename, final_filename);
@@ -195,13 +191,11 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
     SCLogDebug("ff %p, data %p, data_len %u", ff, data, data_len);
 
     char base_filename[PATH_MAX] = "";
-    snprintf(base_filename, sizeof(base_filename), "%s/file.%u",
-            ctx->tmpdir, ff->file_store_id);
+    snprintf(base_filename, sizeof(base_filename), "%s/file.%u", ctx->tmpdir, ff->file_store_id);
     snprintf(filename, sizeof(filename), "%s", base_filename);
 
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
-        file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY,
-                0644);
+        file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
         if (file_fd == -1) {
             StatsIncr(tv, aft->fs_error_counter);
             SCLogWarning("Filestore (v2) failed to create %s: %s", filename, strerror(errno));
@@ -217,7 +211,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
             }
             ff->fd = -1;
         }
-    /* we can get called with a NULL ffd when we need to close */
+        /* we can get called with a NULL ffd when we need to close */
     } else if (data != NULL) {
         if (ff->fd == -1) {
             file_fd = open(filename, O_APPEND | O_NOFOLLOW | O_WRONLY);
@@ -260,8 +254,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
     return 0;
 }
 
-static TmEcode OutputFilestoreLogThreadInit(ThreadVars *t, const void *initdata,
-        void **data)
+static TmEcode OutputFilestoreLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     OutputFilestoreLogThread *aft = SCCalloc(1, sizeof(OutputFilestoreLogThread));
     if (unlikely(aft == NULL))
@@ -276,8 +269,7 @@ static TmEcode OutputFilestoreLogThreadInit(ThreadVars *t, const void *initdata,
     OutputFilestoreCtx *ctx = ((OutputCtx *)initdata)->data;
     aft->ctx = ctx;
 
-    aft->counter_max_hits =
-        StatsRegisterCounter("file_store.open_files_max_hit", t);
+    aft->counter_max_hits = StatsRegisterCounter("file_store.open_files_max_hit", t);
 
     /* File system type errors (open, write, rename) will only be
      * logged once. But this stat will be incremented for every
@@ -407,8 +399,7 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
     }
 
     strlcpy(ctx->prefix, log_directory, sizeof(ctx->prefix));
-    int written = snprintf(ctx->tmpdir, sizeof(ctx->tmpdir) - 1, "%s/tmp",
-            log_directory);
+    int written = snprintf(ctx->tmpdir, sizeof(ctx->tmpdir) - 1, "%s/tmp", log_directory);
     if (written == sizeof(ctx->tmpdir)) {
         SCLogError("File-store output directory overflow.");
         SCFree(ctx);
@@ -429,15 +420,13 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
     output_ctx->data = ctx;
     output_ctx->DeInit = OutputFilestoreLogDeInitCtx;
 
-    const char *write_fileinfo = ConfNodeLookupChildValue(conf,
-            "write-fileinfo");
+    const char *write_fileinfo = ConfNodeLookupChildValue(conf, "write-fileinfo");
     if (write_fileinfo != NULL && ConfValIsTrue(write_fileinfo)) {
         SCLogConfig("Filestore (v2) will output fileinfo records.");
         ctx->fileinfo = true;
     }
 
-    const char *force_filestore = ConfNodeLookupChildValue(conf,
-            "force-filestore");
+    const char *force_filestore = ConfNodeLookupChildValue(conf, "force-filestore");
     if (force_filestore != NULL && ConfValIsTrue(force_filestore)) {
         FileForceFilestoreEnable();
         SCLogInfo("forcing filestore of all files");
@@ -456,12 +445,10 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
 
     ProvidesFeature(FEATURE_OUTPUT_FILESTORE);
 
-    const char *stream_depth_str = ConfNodeLookupChildValue(conf,
-            "stream-depth");
+    const char *stream_depth_str = ConfNodeLookupChildValue(conf, "stream-depth");
     if (stream_depth_str != NULL && strcmp(stream_depth_str, "no")) {
         uint32_t stream_depth = 0;
-        if (ParseSizeStringU32(stream_depth_str,
-                               &stream_depth) < 0) {
+        if (ParseSizeStringU32(stream_depth_str, &stream_depth) < 0) {
             SCLogError("Error parsing "
                        "file-store.stream-depth "
                        "from conf file - %s.  Killing engine",
@@ -480,12 +467,10 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
         }
     }
 
-    const char *file_count_str = ConfNodeLookupChildValue(conf,
-            "max-open-files");
+    const char *file_count_str = ConfNodeLookupChildValue(conf, "max-open-files");
     if (file_count_str != NULL) {
         uint32_t file_count = 0;
-        if (ParseSizeStringU32(file_count_str,
-                               &file_count) < 0) {
+        if (ParseSizeStringU32(file_count_str, &file_count) < 0) {
             SCLogError("Error parsing "
                        "file-store.max-open-files "
                        "from conf file - %s.  Killing engine",
@@ -495,7 +480,8 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
             if (file_count != 0) {
                 FileSetMaxOpenFiles(file_count);
                 SCLogConfig("Filestore (v2) will keep a max of %d "
-                        "simultaneously open files", file_count);
+                            "simultaneously open files",
+                        file_count);
             }
         }
     }
@@ -508,9 +494,8 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
 void OutputFilestoreRegister(void)
 {
     OutputRegisterFiledataModule(LOGGER_FILE_STORE, MODULE_NAME, "file-store",
-            OutputFilestoreLogInitCtx, OutputFilestoreLogger,
-            OutputFilestoreLogThreadInit, OutputFilestoreLogThreadDeinit,
-            NULL);
+            OutputFilestoreLogInitCtx, OutputFilestoreLogger, OutputFilestoreLogThreadInit,
+            OutputFilestoreLogThreadDeinit, NULL);
 
     SC_ATOMIC_INIT(filestore_open_file_cnt);
     SC_ATOMIC_SET(filestore_open_file_cnt, 0);

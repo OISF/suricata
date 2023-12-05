@@ -40,8 +40,7 @@
 
 TmEcode NoErfDagSupportExit(ThreadVars *, const void *, void **);
 
-void
-TmModuleReceiveErfDagRegister(void)
+void TmModuleReceiveErfDagRegister(void)
 {
     tmm_modules[TMM_RECEIVEERFDAG].name = "ReceiveErfDag";
     tmm_modules[TMM_RECEIVEERFDAG].ThreadInit = NoErfDagSupportExit;
@@ -52,8 +51,7 @@ TmModuleReceiveErfDagRegister(void)
     tmm_modules[TMM_RECEIVEERFDAG].flags = TM_FLAG_RECEIVE_TM;
 }
 
-void
-TmModuleDecodeErfDagRegister(void)
+void TmModuleDecodeErfDagRegister(void)
 {
     tmm_modules[TMM_DECODEERFDAG].name = "DecodeErfDag";
     tmm_modules[TMM_DECODEERFDAG].ThreadInit = NoErfDagSupportExit;
@@ -64,8 +62,7 @@ TmModuleDecodeErfDagRegister(void)
     tmm_modules[TMM_DECODEERFDAG].flags = TM_FLAG_DECODE_TM;
 }
 
-TmEcode
-NoErfDagSupportExit(ThreadVars *tv, const void *initdata, void **data)
+TmEcode NoErfDagSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCLogError("Error creating thread %s: you do not have support for DAG cards "
                "enabled please recompile with --enable-dag",
@@ -78,13 +75,13 @@ NoErfDagSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #include <dagapi.h>
 
 /* Minimum amount of data to read from the DAG at a time. */
-#define MINDATA 32768
+#define MINDATA        32768
 
 /* Maximum time (us) to wait for MINDATA to be read. */
-#define MAXWAIT 20000
+#define MAXWAIT        20000
 
 /* Poll interval in microseconds. */
-#define POLL_INTERVAL 1000;
+#define POLL_INTERVAL  1000;
 
 /* Number of bytes per loop to process before fetching more data. */
 #define BYTES_PER_LOOP (4 * 1024 * 1024) /* 4 MB */
@@ -99,7 +96,7 @@ typedef struct ErfDagThreadVars_ {
     int dagstream;
     char dagname[DAGNAME_BUFSIZE];
 
-    struct timeval maxwait, poll;   /* Could possibly be made static */
+    struct timeval maxwait, poll; /* Could possibly be made static */
 
     LiveDevice *livedev;
 
@@ -114,8 +111,8 @@ typedef struct ErfDagThreadVars_ {
 
 } ErfDagThreadVars;
 
-static inline TmEcode ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top,
-    uint32_t *pkts_read);
+static inline TmEcode ProcessErfDagRecords(
+        ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read);
 static inline TmEcode ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec);
 TmEcode ReceiveErfDagLoop(ThreadVars *, void *data, void *slot);
 TmEcode ReceiveErfDagThreadInit(ThreadVars *, void *, void **);
@@ -129,16 +126,14 @@ void ReceiveErfDagCloseStream(int dagfd, int stream);
 /**
  * \brief Register the ERF file receiver (reader) module.
  */
-void
-TmModuleReceiveErfDagRegister(void)
+void TmModuleReceiveErfDagRegister(void)
 {
     tmm_modules[TMM_RECEIVEERFDAG].name = "ReceiveErfDag";
     tmm_modules[TMM_RECEIVEERFDAG].ThreadInit = ReceiveErfDagThreadInit;
     tmm_modules[TMM_RECEIVEERFDAG].Func = NULL;
     tmm_modules[TMM_RECEIVEERFDAG].PktAcqLoop = ReceiveErfDagLoop;
     tmm_modules[TMM_RECEIVEERFDAG].PktAcqBreakLoop = NULL;
-    tmm_modules[TMM_RECEIVEERFDAG].ThreadExitPrintStats =
-        ReceiveErfDagThreadExitStats;
+    tmm_modules[TMM_RECEIVEERFDAG].ThreadExitPrintStats = ReceiveErfDagThreadExitStats;
     tmm_modules[TMM_RECEIVEERFDAG].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEERFDAG].cap_flags = 0;
     tmm_modules[TMM_RECEIVEERFDAG].flags = TM_FLAG_RECEIVE_TM;
@@ -147,8 +142,7 @@ TmModuleReceiveErfDagRegister(void)
 /**
  * \brief Register the ERF file decoder module.
  */
-void
-TmModuleDecodeErfDagRegister(void)
+void TmModuleDecodeErfDagRegister(void)
 {
     tmm_modules[TMM_DECODEERFDAG].name = "DecodeErfDag";
     tmm_modules[TMM_DECODEERFDAG].ThreadInit = DecodeErfDagThreadInit;
@@ -175,8 +169,7 @@ TmModuleDecodeErfDagRegister(void)
  * \param data      data pointer gets populated with
  *
  */
-TmEcode
-ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     SCEnter();
     int stream_count = 0;
@@ -194,8 +187,7 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
     /* dag_parse_name will return a DAG device name and stream number
      * to open for this thread.
      */
-    if (dag_parse_name(initdata, ewtn->dagname, DAGNAME_BUFSIZE,
-            &ewtn->dagstream) < 0) {
+    if (dag_parse_name(initdata, ewtn->dagname, DAGNAME_BUFSIZE, &ewtn->dagstream) < 0) {
         SCLogError("Failed to parse DAG interface: %s", (char *)initdata);
         SCFree(ewtn);
         exit(EXIT_FAILURE);
@@ -208,8 +200,7 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    SCLogInfo("Opening DAG: %s on stream: %d for processing",
-        ewtn->dagname, ewtn->dagstream);
+    SCLogInfo("Opening DAG: %s on stream: %d for processing", ewtn->dagname, ewtn->dagstream);
 
     if ((ewtn->dagfd = dag_open(ewtn->dagname)) < 0) {
         SCLogError("Failed to open DAG: %s", ewtn->dagname);
@@ -262,8 +253,7 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    SCLogInfo("Attached and started stream: %d on DAG: %s",
-        ewtn->dagstream, ewtn->dagname);
+    SCLogInfo("Attached and started stream: %d on DAG: %s", ewtn->dagstream, ewtn->dagname);
 
     /*
      * Initialise DAG Polling parameters.
@@ -276,8 +266,8 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
     /* 32kB minimum data to return -- we still restrict the number of
      * pkts that are processed to a maximum of dag_max_read_packets.
      */
-    if (dag_set_stream_poll(ewtn->dagfd, ewtn->dagstream, MINDATA,
-            &(ewtn->maxwait), &(ewtn->poll)) < 0) {
+    if (dag_set_stream_poll(
+                ewtn->dagfd, ewtn->dagstream, MINDATA, &(ewtn->maxwait), &(ewtn->poll)) < 0) {
         SCLogError("Failed to set poll parameters for stream: %d, DAG: %s", ewtn->dagstream,
                 ewtn->dagname);
         SCFree(ewtn);
@@ -292,8 +282,8 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     DatalinkSetGlobalType(LINKTYPE_ETHERNET);
 
-    SCLogInfo("Starting processing packets from stream: %d on DAG: %s",
-        ewtn->dagstream, ewtn->dagname);
+    SCLogInfo("Starting processing packets from stream: %d on DAG: %s", ewtn->dagstream,
+            ewtn->dagname);
 
     SCReturnInt(TM_ECODE_OK);
 }
@@ -308,15 +298,14 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
  * \retval TM_ECODE_OK on success
  * \retval TM_ECODE_FAILED on failure
  */
-TmEcode
-ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
+TmEcode ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
 {
     SCEnter();
 
     ErfDagThreadVars *dtv = (ErfDagThreadVars *)data;
     uint32_t diff = 0;
-    int      err;
-    uint8_t  *top = NULL;
+    int err;
+    uint8_t *top = NULL;
     uint32_t pkts_read = 0;
     TmSlot *s = (TmSlot *)slot;
 
@@ -365,8 +354,8 @@ ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
 
         StatsSyncCountersIfSignalled(tv);
 
-        SCLogDebug("Read %d records from stream: %d, DAG: %s",
-            pkts_read, dtv->dagstream, dtv->dagname);
+        SCLogDebug("Read %d records from stream: %d, DAG: %s", pkts_read, dtv->dagstream,
+                dtv->dagname);
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -378,8 +367,8 @@ ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
  * This function takes a pointer to buffer read from the DAG interface
  * and processes it individual records.
  */
-static inline TmEcode
-ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
+static inline TmEcode ProcessErfDagRecords(
+        ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
 {
     SCEnter();
 
@@ -393,14 +382,14 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
     *pkts_read = 0;
 
     while (((top - ewtn->btm) >= dag_record_size) &&
-        ((processed + dag_record_size) < BYTES_PER_LOOP)) {
+            ((processed + dag_record_size) < BYTES_PER_LOOP)) {
 
         /* Make sure we have at least one packet in the packet pool,
          * to prevent us from alloc'ing packets at line rate. */
         PacketPoolWait();
 
         prec = (char *)ewtn->btm;
-        dr = (dag_record_t*)prec;
+        dr = (dag_record_t *)prec;
         rlen = SCNtohs(dr->rlen);
         hdr_type = dr->type;
 
@@ -415,24 +404,24 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
 
         /* Only support ethernet at this time. */
         switch (hdr_type & 0x7f) {
-        case ERF_TYPE_PAD:
-        case ERF_TYPE_META:
-            /* Skip. */
-            continue;
-        case ERF_TYPE_DSM_COLOR_ETH:
-        case ERF_TYPE_COLOR_ETH:
-        case ERF_TYPE_COLOR_HASH_ETH:
-            /* In these types the color value overwrites the lctr
-             * (drop count). */
-            break;
-        case ERF_TYPE_ETH:
-            if (dr->lctr) {
-                StatsAddUI64(ewtn->tv, ewtn->drops, SCNtohs(dr->lctr));
-            }
-            break;
-        default:
-            SCLogError("Processing of DAG record type: %d not implemented.", dr->type);
-            SCReturnInt(TM_ECODE_FAILED);
+            case ERF_TYPE_PAD:
+            case ERF_TYPE_META:
+                /* Skip. */
+                continue;
+            case ERF_TYPE_DSM_COLOR_ETH:
+            case ERF_TYPE_COLOR_ETH:
+            case ERF_TYPE_COLOR_HASH_ETH:
+                /* In these types the color value overwrites the lctr
+                 * (drop count). */
+                break;
+            case ERF_TYPE_ETH:
+                if (dr->lctr) {
+                    StatsAddUI64(ewtn->tv, ewtn->drops, SCNtohs(dr->lctr));
+                }
+                break;
+            default:
+                SCLogError("Processing of DAG record type: %d not implemented.", dr->type);
+                SCReturnInt(TM_ECODE_FAILED);
         }
 
         err = ProcessErfDagRecord(ewtn, prec);
@@ -451,8 +440,7 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
  * \param   prec pointer to a DAG record.
  * \param
  */
-static inline TmEcode
-ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
+static inline TmEcode ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
 {
     SCEnter();
 
@@ -460,7 +448,7 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
     int rlen = 0;
     int hdr_num = 0;
     char hdr_type = 0;
-    dag_record_t  *dr = (dag_record_t*)prec;
+    dag_record_t *dr = (dag_record_t *)prec;
     erf_payload_t *pload;
     Packet *p;
 
@@ -534,22 +522,16 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
  * \param tv Pointer to ThreadVars.
  * \param data Pointer to data, ErfFileThreadVars.
  */
-void
-ReceiveErfDagThreadExitStats(ThreadVars *tv, void *data)
+void ReceiveErfDagThreadExitStats(ThreadVars *tv, void *data)
 {
     ErfDagThreadVars *ewtn = (ErfDagThreadVars *)data;
 
-    (void)SC_ATOMIC_SET(ewtn->livedev->pkts,
-        StatsGetLocalCounterValue(tv, ewtn->packets));
-    (void)SC_ATOMIC_SET(ewtn->livedev->drop,
-        StatsGetLocalCounterValue(tv, ewtn->drops));
+    (void)SC_ATOMIC_SET(ewtn->livedev->pkts, StatsGetLocalCounterValue(tv, ewtn->packets));
+    (void)SC_ATOMIC_SET(ewtn->livedev->drop, StatsGetLocalCounterValue(tv, ewtn->drops));
 
-    SCLogInfo("Stream: %d; Bytes: %"PRIu64"; Packets: %"PRIu64
-        "; Drops: %"PRIu64,
-        ewtn->dagstream,
-        ewtn->bytes,
-        StatsGetLocalCounterValue(tv, ewtn->packets),
-        StatsGetLocalCounterValue(tv, ewtn->drops));
+    SCLogInfo("Stream: %d; Bytes: %" PRIu64 "; Packets: %" PRIu64 "; Drops: %" PRIu64,
+            ewtn->dagstream, ewtn->bytes, StatsGetLocalCounterValue(tv, ewtn->packets),
+            StatsGetLocalCounterValue(tv, ewtn->drops));
 }
 
 /**
@@ -557,8 +539,7 @@ ReceiveErfDagThreadExitStats(ThreadVars *tv, void *data)
  * \param   tv pointer to ThreadVars
  * \param   data pointer that gets cast into PcapThreadVars for ptv
  */
-TmEcode
-ReceiveErfDagThreadDeinit(ThreadVars *tv, void *data)
+TmEcode ReceiveErfDagThreadDeinit(ThreadVars *tv, void *data)
 {
     SCEnter();
 
@@ -569,8 +550,7 @@ ReceiveErfDagThreadDeinit(ThreadVars *tv, void *data)
     SCReturnInt(TM_ECODE_OK);
 }
 
-void
-ReceiveErfDagCloseStream(int dagfd, int stream)
+void ReceiveErfDagCloseStream(int dagfd, int stream)
 {
     dag_stop_stream(dagfd, stream);
     dag_detach_stream(dagfd, stream);
@@ -589,8 +569,7 @@ ReceiveErfDagCloseStream(int dagfd, int stream)
  * \param p pointer to the current packet
  * \param data pointer that gets cast into PcapThreadVars for ptv
  */
-TmEcode
-DecodeErfDag(ThreadVars *tv, Packet *p, void *data)
+TmEcode DecodeErfDag(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
@@ -600,8 +579,8 @@ DecodeErfDag(ThreadVars *tv, Packet *p, void *data)
     /* update counters */
     DecodeUpdatePacketCounters(tv, dtv, p);
 
-        /* call the decoder */
-    switch(p->datalink) {
+    /* call the decoder */
+    switch (p->datalink) {
         case LINKTYPE_ETHERNET:
             DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
             break;
@@ -616,8 +595,7 @@ DecodeErfDag(ThreadVars *tv, Packet *p, void *data)
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode
-DecodeErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode DecodeErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     SCEnter();
     DecodeThreadVars *dtv = NULL;
@@ -634,8 +612,7 @@ DecodeErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode
-DecodeErfDagThreadDeinit(ThreadVars *tv, void *data)
+TmEcode DecodeErfDagThreadDeinit(ThreadVars *tv, void *data)
 {
     if (data != NULL)
         DecodeThreadVarsFree(tv, data);

@@ -18,7 +18,6 @@
 #ifndef __DETECT_DCE_IFACE_H__
 #define __DETECT_DCE_IFACE_H__
 
-
 void DetectDceIfaceRegister(void);
 
 #endif /* __DETECT_DCE_IFACE_H__ */

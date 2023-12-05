@@ -30,7 +30,7 @@
 #include "util-debug.h"
 #include "util-print.h"
 
-HostQueue *HostQueueInit (HostQueue *q)
+HostQueue *HostQueueInit(HostQueue *q)
 {
     if (q != NULL) {
         memset(q, 0, sizeof(HostQueue));
@@ -55,7 +55,7 @@ HostQueue *HostQueueNew(void)
  *
  *  \param q the host queue to destroy
  */
-void HostQueueDestroy (HostQueue *q)
+void HostQueueDestroy(HostQueue *q)
 {
     HQLOCK_DESTROY(q);
 }
@@ -66,7 +66,7 @@ void HostQueueDestroy (HostQueue *q)
  *  \param q queue
  *  \param h host
  */
-void HostEnqueue (HostQueue *q, Host *h)
+void HostEnqueue(HostQueue *q, Host *h)
 {
 #ifdef DEBUG
     BUG_ON(q == NULL || h == NULL);
@@ -79,7 +79,7 @@ void HostEnqueue (HostQueue *q, Host *h)
         h->lnext = q->top;
         q->top->lprev = h;
         q->top = h;
-    /* only host */
+        /* only host */
     } else {
         q->top = h;
         q->bot = h;
@@ -99,7 +99,7 @@ void HostEnqueue (HostQueue *q, Host *h)
  *
  *  \retval h host or NULL if empty list.
  */
-Host *HostDequeue (HostQueue *q)
+Host *HostDequeue(HostQueue *q)
 {
     HQLOCK_LOCK(q);
 
@@ -113,7 +113,7 @@ Host *HostDequeue (HostQueue *q)
     if (q->bot->lprev != NULL) {
         q->bot = q->bot->lprev;
         q->bot->lnext = NULL;
-    /* just the one we remove, so now empty */
+        /* just the one we remove, so now empty */
     } else {
         q->top = NULL;
         q->bot = NULL;
@@ -140,4 +140,3 @@ uint32_t HostQueueLen(HostQueue *q)
     HQLOCK_UNLOCK(q);
     return len;
 }
-

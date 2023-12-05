@@ -56,18 +56,18 @@ static void DetectDistanceRegisterTests(void);
 void DetectDistanceRegister(void)
 {
     sigmatch_table[DETECT_DISTANCE].name = "distance";
-    sigmatch_table[DETECT_DISTANCE].desc = "indicates a relation between this content keyword and the content preceding it";
+    sigmatch_table[DETECT_DISTANCE].desc =
+            "indicates a relation between this content keyword and the content preceding it";
     sigmatch_table[DETECT_DISTANCE].url = "/rules/payload-keywords.html#distance";
     sigmatch_table[DETECT_DISTANCE].Match = NULL;
     sigmatch_table[DETECT_DISTANCE].Setup = DetectDistanceSetup;
-    sigmatch_table[DETECT_DISTANCE].Free  = NULL;
+    sigmatch_table[DETECT_DISTANCE].Free = NULL;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_DISTANCE].RegisterTests = DetectDistanceRegisterTests;
 #endif
 }
 
-static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
-        const char *distancestr)
+static int DetectDistanceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *distancestr)
 {
     const char *str = distancestr;
 
@@ -125,8 +125,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     }
     cd->flags |= DETECT_CONTENT_DISTANCE;
 
-    SigMatch *prev_pm = DetectGetLastSMByListPtr(s, pm->prev,
-            DETECT_CONTENT, DETECT_PCRE, -1);
+    SigMatch *prev_pm = DetectGetLastSMByListPtr(s, pm->prev, DETECT_CONTENT, DETECT_PCRE, -1);
     if (prev_pm == NULL) {
         return 0;
     }
@@ -190,7 +189,7 @@ static int DetectDistanceTest01(void)
  * distance works, if the previous keyword is byte_jump and content
  * (bug 163)
  */
-static int DetectDistanceTestPacket01 (void)
+static int DetectDistanceTestPacket01(void)
 {
     uint8_t buf[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 };
     uint16_t buflen = sizeof(buf);
@@ -198,8 +197,8 @@ static int DetectDistanceTestPacket01 (void)
 
     FAIL_IF_NULL(p);
     char sig[] = "alert tcp any any -> any any (msg:\"suricata test\"; "
-                    "byte_jump:1,2; content:\"|00|\"; "
-                    "within:1; distance:2; sid:98711212; rev:1;)";
+                 "byte_jump:1,2; content:\"|00|\"; "
+                 "within:1; distance:2; sid:98711212; rev:1;)";
 
     p->flowflags = FLOW_PKT_ESTABLISHED | FLOW_PKT_TOCLIENT;
     FAIL_IF_NOT(UTHPacketMatchSig(p, sig));
@@ -211,8 +210,7 @@ static int DetectDistanceTestPacket01 (void)
 
 static void DetectDistanceRegisterTests(void)
 {
-    UtRegisterTest("DetectDistanceTest01 -- distance / within mix",
-                   DetectDistanceTest01);
+    UtRegisterTest("DetectDistanceTest01 -- distance / within mix", DetectDistanceTest01);
     UtRegisterTest("DetectDistanceTestPacket01", DetectDistanceTestPacket01);
 }
 #endif /* UNITTESTS */

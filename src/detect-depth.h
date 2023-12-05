@@ -25,7 +25,6 @@
 #define __DETECT_DEPTH_H__
 
 /* prototypes */
-void DetectDepthRegister (void);
+void DetectDepthRegister(void);
 
 #endif /* __DETECT_DEPTH_H__ */
-

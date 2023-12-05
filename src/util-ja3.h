@@ -50,4 +50,3 @@ InspectionBuffer *Ja3DetectGetString(DetectEngineThreadCtx *det_ctx,
         const int list_id);
 
 #endif /* __UTIL_JA3_H__ */
-

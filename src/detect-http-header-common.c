@@ -78,14 +78,13 @@ void HttpHeaderThreadDataFree(void *data)
     SCFree(hdrnames);
 }
 
-int HttpHeaderExpandBuffer(HttpHeaderThreadData *td,
-        HttpHeaderBuffer *buf, uint32_t size)
+int HttpHeaderExpandBuffer(HttpHeaderThreadData *td, HttpHeaderBuffer *buf, uint32_t size)
 {
     size_t extra = td->size_step;
     while ((buf->size + extra) < (size + buf->len)) {
         extra += td->size_step;
     }
-    SCLogDebug("adding %"PRIuMAX" to the buffer", (uintmax_t)extra);
+    SCLogDebug("adding %" PRIuMAX " to the buffer", (uintmax_t)extra);
 
     uint8_t *new_buffer = SCRealloc(buf->buffer, buf->size + extra);
     if (unlikely(new_buffer == NULL)) {
@@ -102,8 +101,7 @@ HttpHeaderBuffer *HttpHeaderGetBufferSpace(DetectEngineThreadCtx *det_ctx, Flow 
 {
     *ret_hdr_td = NULL;
 
-    HttpHeaderThreadData *hdr_td =
-        DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, keyword_id);
+    HttpHeaderThreadData *hdr_td = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, keyword_id);
     if (hdr_td == NULL)
         return NULL;
     *ret_hdr_td = hdr_td;

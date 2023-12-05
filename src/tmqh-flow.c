@@ -85,9 +85,9 @@ void TmqhFlowRegister(void)
 
 void TmqhFlowPrintAutofpHandler(void)
 {
-#define PRINT_IF_FUNC(f, msg)                       \
-    if (tmqh_table[TMQH_FLOW].OutHandler == (f))    \
-        SCLogConfig("AutoFP mode using \"%s\" flow load balancer", (msg))
+#define PRINT_IF_FUNC(f, msg)                                                                      \
+    if (tmqh_table[TMQH_FLOW].OutHandler == (f))                                                   \
+    SCLogConfig("AutoFP mode using \"%s\" flow load balancer", (msg))
 
     PRINT_IF_FUNC(TmqhOutputFlowHash, "Hash");
     PRINT_IF_FUNC(TmqhOutputFlowIPPair, "IPPair");
@@ -183,16 +183,16 @@ void *TmqhOutputFlowSetupCtx(const char *queue_str)
 
     /* parse the comma separated string */
     do {
-        char *comma = strchr(tstr,',');
+        char *comma = strchr(tstr, ',');
         if (comma != NULL) {
             *comma = '\0';
             char *qname = tstr;
-            int r = StoreQueueId(ctx,qname);
+            int r = StoreQueueId(ctx, qname);
             if (r < 0)
                 goto error;
         } else {
             char *qname = tstr;
-            int r = StoreQueueId(ctx,qname);
+            int r = StoreQueueId(ctx, qname);
             if (r < 0)
                 goto error;
         }
@@ -213,8 +213,7 @@ void TmqhOutputFlowFreeCtx(void *ctx)
 {
     TmqhFlowCtx *fctx = (TmqhFlowCtx *)ctx;
 
-    SCLogPerf("AutoFP - Total flow handler queues - %" PRIu16,
-              fctx->size);
+    SCLogPerf("AutoFP - Total flow handler queues - %" PRIu16, fctx->size);
     SCFree(fctx->queues);
     SCFree(fctx);
 
@@ -406,12 +405,9 @@ static int TmqhOutputFlowSetupCtxTest03(void)
 void TmqhFlowRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("TmqhOutputFlowSetupCtxTest01",
-                   TmqhOutputFlowSetupCtxTest01);
-    UtRegisterTest("TmqhOutputFlowSetupCtxTest02",
-                   TmqhOutputFlowSetupCtxTest02);
-    UtRegisterTest("TmqhOutputFlowSetupCtxTest03",
-                   TmqhOutputFlowSetupCtxTest03);
+    UtRegisterTest("TmqhOutputFlowSetupCtxTest01", TmqhOutputFlowSetupCtxTest01);
+    UtRegisterTest("TmqhOutputFlowSetupCtxTest02", TmqhOutputFlowSetupCtxTest02);
+    UtRegisterTest("TmqhOutputFlowSetupCtxTest03", TmqhOutputFlowSetupCtxTest03);
 #endif
 
     return;

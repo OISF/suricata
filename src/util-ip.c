@@ -88,8 +88,7 @@ bool IPv6AddressStringIsValid(const char *str)
     uint32_t len = strlen(str);
     uint32_t i = 0;
     for (i = 0; i < len && str[i] != 0; i++) {
-        if (!(str[i] == '.' || str[i] == ':' ||
-            isxdigit(str[i])))
+        if (!(str[i] == '.' || str[i] == ':' || isxdigit(str[i])))
             return false;
 
         if (str[i] == ':') {
@@ -134,7 +133,7 @@ struct in_addr *ValidateIPV4Address(const char *addr_str)
     if (!IPv4AddressStringIsValid(addr_str))
         return NULL;
 
-    if ( (addr = SCMalloc(sizeof(struct in_addr))) == NULL) {
+    if ((addr = SCMalloc(sizeof(struct in_addr))) == NULL) {
         FatalError("Fatal error encountered in ValidateIPV4Address. Exiting...");
     }
 
@@ -163,7 +162,7 @@ struct in6_addr *ValidateIPV6Address(const char *addr_str)
     if (!IPv6AddressStringIsValid(addr_str))
         return NULL;
 
-    if ( (addr = SCMalloc(sizeof(struct in6_addr))) == NULL) {
+    if ((addr = SCMalloc(sizeof(struct in6_addr))) == NULL) {
         FatalError("Fatal error encountered in ValidateIPV6Address. Exiting...");
     }
 
@@ -192,8 +191,8 @@ void MaskIPNetblock(uint8_t *stream, int netmask, int key_bitlen)
 
     for (i = 0; i < bytes; i++) {
         mask = UINT_MAX;
-        if ( ((i + 1) * 8) > netmask) {
-            if ( ((i + 1) * 8 - netmask) < 8)
+        if (((i + 1) * 8) > netmask) {
+            if (((i + 1) * 8 - netmask) < 8)
                 mask = UINT_MAX << ((i + 1) * 8 - netmask);
             else
                 mask = 0;

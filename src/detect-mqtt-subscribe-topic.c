@@ -101,7 +101,10 @@ static uint8_t DetectEngineInspectMQTTSubscribeTopic(DetectEngineCtx *de_ctx,
     }
 
     while ((subscribe_topic_match_limit == 0) || local_id < subscribe_topic_match_limit) {
-        struct MQTTSubscribeTopicGetDataArgs cbdata = { local_id, txv, };
+        struct MQTTSubscribeTopicGetDataArgs cbdata = {
+            local_id,
+            txv,
+        };
         InspectionBuffer *buffer =
                 MQTTSubscribeTopicGetData(det_ctx, transforms, f, &cbdata, engine->sm_list);
         if (buffer == NULL || buffer->inspect == NULL)
@@ -176,18 +179,20 @@ static int PrefilterMpmMQTTSubscribeTopicRegister(DetectEngineCtx *de_ctx, SigGr
     pectx->transforms = &mpm_reg->transforms;
 
     return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxMQTTSubscribeTopic,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-            pectx, PrefilterMpmMQTTSubscribeTopicFree, mpm_reg->pname);
+            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress, pectx,
+            PrefilterMpmMQTTSubscribeTopicFree, mpm_reg->pname);
 }
 
 /**
  * \brief Registration function for keyword: mqtt.subscribe.topic
  */
-void DetectMQTTSubscribeTopicRegister (void)
+void DetectMQTTSubscribeTopicRegister(void)
 {
     sigmatch_table[DETECT_AL_MQTT_SUBSCRIBE_TOPIC].name = "mqtt.subscribe.topic";
-    sigmatch_table[DETECT_AL_MQTT_SUBSCRIBE_TOPIC].desc = "sticky buffer to match MQTT SUBSCRIBE topic";
-    sigmatch_table[DETECT_AL_MQTT_SUBSCRIBE_TOPIC].url = "/rules/mqtt-keywords.html#mqtt-subscribe-topic";
+    sigmatch_table[DETECT_AL_MQTT_SUBSCRIBE_TOPIC].desc =
+            "sticky buffer to match MQTT SUBSCRIBE topic";
+    sigmatch_table[DETECT_AL_MQTT_SUBSCRIBE_TOPIC].url =
+            "/rules/mqtt-keywords.html#mqtt-subscribe-topic";
     sigmatch_table[DETECT_AL_MQTT_SUBSCRIBE_TOPIC].Setup = DetectMQTTSubscribeTopicSetup;
     sigmatch_table[DETECT_AL_MQTT_SUBSCRIBE_TOPIC].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_MQTT_SUBSCRIBE_TOPIC].flags |= SIGMATCH_INFO_STICKY_BUFFER;
@@ -204,15 +209,12 @@ void DetectMQTTSubscribeTopicRegister (void)
     }
 
     DetectAppLayerMpmRegister2("mqtt.subscribe.topic", SIG_FLAG_TOSERVER, 1,
-            PrefilterMpmMQTTSubscribeTopicRegister, NULL,
-            ALPROTO_MQTT, 1);
+            PrefilterMpmMQTTSubscribeTopicRegister, NULL, ALPROTO_MQTT, 1);
 
-    DetectAppLayerInspectEngineRegister2("mqtt.subscribe.topic",
-            ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
+    DetectAppLayerInspectEngineRegister2("mqtt.subscribe.topic", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectMQTTSubscribeTopic, NULL);
 
-    DetectBufferTypeSetDescriptionByName("mqtt.subscribe.topic",
-            "subscribe topic query");
+    DetectBufferTypeSetDescriptionByName("mqtt.subscribe.topic", "subscribe topic query");
 
     g_mqtt_subscribe_topic_buffer_id = DetectBufferTypeGetByName("mqtt.subscribe.topic");
 

@@ -92,7 +92,7 @@ static bool JsonMetadataLogCondition(ThreadVars *tv, void *data, const Packet *p
     return p->pktvar != NULL;
 }
 
-void JsonMetadataLogRegister (void)
+void JsonMetadataLogRegister(void)
 {
     OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME, "eve-log.metadata",
             OutputJsonLogInitSub, JsonMetadataLogger, JsonMetadataLogCondition, JsonLogThreadInit,

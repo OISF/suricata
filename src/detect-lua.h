@@ -34,9 +34,9 @@ typedef struct DetectLuaThreadData {
     int alproto;
 } DetectLuaThreadData;
 
-#define DETECT_LUAJIT_MAX_FLOWVARS  15
-#define DETECT_LUAJIT_MAX_FLOWINTS  15
-#define DETECT_LUAJIT_MAX_BYTEVARS  15
+#define DETECT_LUAJIT_MAX_FLOWVARS 15
+#define DETECT_LUAJIT_MAX_FLOWINTS 15
+#define DETECT_LUAJIT_MAX_BYTEVARS 15
 
 typedef struct DetectLuaData {
     int thread_ctx_id;
@@ -59,10 +59,9 @@ typedef struct DetectLuaData {
 #endif /* HAVE_LUA */
 
 /* prototypes */
-void DetectLuaRegister (void);
-int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        const uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
+void DetectLuaRegister(void);
+int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, const Signature *s,
+        const SigMatchData *smd, const uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
         Flow *f);
 
 void DetectLuaPostSetup(Signature *s);

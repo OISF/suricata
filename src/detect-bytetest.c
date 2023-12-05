@@ -44,7 +44,6 @@
 #include "util-debug.h"
 #include "detect-pcre.h"
 
-
 /**
  * \brief Regex for parsing our options
  */
@@ -54,36 +53,39 @@
  * 4th and 5th (test value, offset) are combined
  */
 #define VALID_KW "relative|big|little|string|oct|dec|hex|dce|bitmask"
-#define PARSE_REGEX  "^\\s*" \
-                     "([^\\s,]+)\\s*,\\s*" \
-                     "(\\!?\\s*[^\\s,]*)" \
-                     "\\s*,\\s*([^\\s,]+\\s*,\\s*[^\\s,]+)" \
-                     "(?:\\s*,\\s*((?:"VALID_KW")\\s+[^\\s,]+|["VALID_KW"]+))?" \
-                     "(?:\\s*,\\s*((?:"VALID_KW")\\s+[^\\s,]+|["VALID_KW"]+))?" \
-                     "(?:\\s*,\\s*((?:"VALID_KW")\\s+[^\\s,]+|["VALID_KW"]+))?" \
-                     "(?:\\s*,\\s*((?:"VALID_KW")\\s+[^\\s,]+|["VALID_KW"]+))?" \
-                     "(?:\\s*,\\s*((?:"VALID_KW")\\s+[^\\s,]+|["VALID_KW"]+))?" \
-                     "(?:\\s*,\\s*((?:"VALID_KW")\\s+[^\\s,]+|["VALID_KW"]+))?" \
-                     "\\s*$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*"                                                                                        \
+    "([^\\s,]+)\\s*,\\s*"                                                                          \
+    "(\\!?\\s*[^\\s,]*)"                                                                           \
+    "\\s*,\\s*([^\\s,]+\\s*,\\s*[^\\s,]+)"                                                         \
+    "(?:\\s*,\\s*((?:" VALID_KW ")\\s+[^\\s,]+|[" VALID_KW "]+))?"                                 \
+    "(?:\\s*,\\s*((?:" VALID_KW ")\\s+[^\\s,]+|[" VALID_KW "]+))?"                                 \
+    "(?:\\s*,\\s*((?:" VALID_KW ")\\s+[^\\s,]+|[" VALID_KW "]+))?"                                 \
+    "(?:\\s*,\\s*((?:" VALID_KW ")\\s+[^\\s,]+|[" VALID_KW "]+))?"                                 \
+    "(?:\\s*,\\s*((?:" VALID_KW ")\\s+[^\\s,]+|[" VALID_KW "]+))?"                                 \
+    "(?:\\s*,\\s*((?:" VALID_KW ")\\s+[^\\s,]+|[" VALID_KW "]+))?"                                 \
+    "\\s*$"
 
 static DetectParseRegex parse_regex;
 
-static int DetectBytetestMatch(DetectEngineThreadCtx *det_ctx,
-                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
+static int DetectBytetestMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr);
 static void DetectBytetestFree(DetectEngineCtx *, void *ptr);
 #ifdef UNITTESTS
 static void DetectBytetestRegisterTests(void);
 #endif
 
-void DetectBytetestRegister (void)
+void DetectBytetestRegister(void)
 {
     sigmatch_table[DETECT_BYTETEST].name = "byte_test";
-    sigmatch_table[DETECT_BYTETEST].desc = "extract <num of bytes> and perform an operation selected with <operator> against the value in <test value> at a particular <offset>";
+    sigmatch_table[DETECT_BYTETEST].desc =
+            "extract <num of bytes> and perform an operation selected with <operator> against the "
+            "value in <test value> at a particular <offset>";
     sigmatch_table[DETECT_BYTETEST].url = "/rules/payload-keywords.html#byte-test";
     sigmatch_table[DETECT_BYTETEST].Match = DetectBytetestMatch;
     sigmatch_table[DETECT_BYTETEST].Setup = DetectBytetestSetup;
-    sigmatch_table[DETECT_BYTETEST].Free  = DetectBytetestFree;
+    sigmatch_table[DETECT_BYTETEST].Free = DetectBytetestFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_BYTETEST].RegisterTests = DetectBytetestRegisterTests;
 #endif
@@ -183,8 +185,9 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
      * the packet from that point.
      */
     if (flags & DETECT_BYTETEST_RELATIVE) {
-        SCLogDebug("relative, working with det_ctx->buffer_offset %"PRIu32", "
-                   "data->offset %"PRIi32"", det_ctx->buffer_offset, data->offset);
+        SCLogDebug("relative, working with det_ctx->buffer_offset %" PRIu32 ", "
+                   "data->offset %" PRIi32 "",
+                det_ctx->buffer_offset, data->offset);
 
         ptr = payload + det_ctx->buffer_offset;
         len = payload_len - det_ctx->buffer_offset;
@@ -196,9 +199,8 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         if (ptr == NULL || len <= 0) {
             SCReturnInt(0);
         }
-    }
-    else {
-        SCLogDebug("absolute, data->offset %"PRIi32"", data->offset);
+    } else {
+        SCLogDebug("absolute, data->offset %" PRIi32 "", data->offset);
 
         ptr = payload + offset;
         len = payload_len - offset;
@@ -231,12 +233,10 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
             }
         }
 
-        SCLogDebug("comparing base %d string 0x%" PRIx64 " %s%u 0x%" PRIx64,
-               data->base, val, (neg ? "!" : ""), data->op, data->value);
-    }
-    else {
-        int endianness = (flags & DETECT_BYTETEST_LITTLE) ?
-                          BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
+        SCLogDebug("comparing base %d string 0x%" PRIx64 " %s%u 0x%" PRIx64, data->base, val,
+                (neg ? "!" : ""), data->op, data->value);
+    } else {
+        int endianness = (flags & DETECT_BYTETEST_LITTLE) ? BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, (uint16_t)nbytes, ptr);
         if (extbytes != nbytes) {
             SCLogDebug("error extracting %d bytes "
@@ -245,8 +245,8 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
             SCReturnInt(-1);
         }
 
-        SCLogDebug("comparing numeric 0x%" PRIx64 " %s%u 0x%" PRIx64,
-               val, (neg ? "!" : ""), data->op, data->value);
+        SCLogDebug("comparing numeric 0x%" PRIx64 " %s%u 0x%" PRIx64, val, (neg ? "!" : ""),
+                data->op, data->value);
     }
 
     /* apply bitmask, if any and then right-shift 1 bit for each trailing 0 in
@@ -304,17 +304,16 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 
     /* A successful match depends on negation */
     if ((!neg && match) || (neg && !match)) {
-        SCLogDebug("MATCH [bt] extracted value is %"PRIu64, val);
+        SCLogDebug("MATCH [bt] extracted value is %" PRIu64, val);
         SCReturnInt(1);
     }
 
     SCLogDebug("NO MATCH");
     SCReturnInt(0);
-
 }
 
-static int DetectBytetestMatch(DetectEngineThreadCtx *det_ctx,
-                        Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectBytetestMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     return DetectBytetestDoMatch(det_ctx, s, ctx, p->payload, p->payload_len,
             ((DetectBytetestData *)ctx)->flags, 0, 0, 0);
@@ -324,11 +323,8 @@ static DetectBytetestData *DetectBytetestParse(
         const char *optstr, char **value, char **offset, char **nbytes_str)
 {
     DetectBytetestData *data = NULL;
-    char *args[9] = {
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL
-    };
-    char *test_value =  NULL;
+    char *args[9] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+    char *test_value = NULL;
     char *data_offset = NULL;
     int res = 0;
     size_t pcre2_len;
@@ -355,8 +351,8 @@ static DetectBytetestData *DetectBytetestParse(
         }
         /* args[2] is comma separated test value, offset */
         if (i == 2) {
-            test_value = (char *) str_ptr;
-            data_offset = SCStrdup((char *) str_ptr);
+            test_value = (char *)str_ptr;
+            data_offset = SCStrdup((char *)str_ptr);
             if (data_offset == NULL) {
                 goto error;
             }
@@ -410,14 +406,14 @@ static DetectBytetestData *DetectBytetestParse(
         if (args[1][op_offset] == '!') {
             data->neg_op = true;
             op_ptr = &args[1][1];
-            while (isspace((char)*op_ptr) || (*op_ptr == ',')) op_ptr++;
+            while (isspace((char)*op_ptr) || (*op_ptr == ','))
+                op_ptr++;
             op_offset = op_ptr - &args[1][0];
         } else {
             data->neg_op = false;
         }
         op_ptr = args[1] + op_offset;
-        if ((strcmp("=", op_ptr) == 0) || (data->neg_op
-                && strcmp("", op_ptr) == 0)) {
+        if ((strcmp("=", op_ptr) == 0) || (data->neg_op && strcmp("", op_ptr) == 0)) {
             data->op |= DETECT_BYTETEST_OP_EQ;
         } else if (strcmp("<", op_ptr) == 0) {
             data->op |= DETECT_BYTETEST_OP_LT;
@@ -444,7 +440,8 @@ static DetectBytetestData *DetectBytetestParse(
          * and data_offset (SCStrdup), respectively; e.g., test_value,offset
          */
         char *end_ptr = test_value;
-        while (!(isspace((unsigned char)*end_ptr) || (*end_ptr == ','))) end_ptr++;
+        while (!(isspace((unsigned char)*end_ptr) || (*end_ptr == ',')))
+            end_ptr++;
         *end_ptr = '\0';
 
         if (test_value[0] != '-' && isalpha((unsigned char)test_value[0])) {
@@ -468,14 +465,16 @@ static DetectBytetestData *DetectBytetestParse(
     /* Offset -- note that this *also* contains test_value, offset so parse accordingly */
     if (data_offset) {
         char *end_ptr = data_offset;
-        while (!(isspace((unsigned char)*end_ptr) || (*end_ptr == ','))) end_ptr++;
+        while (!(isspace((unsigned char)*end_ptr) || (*end_ptr == ',')))
+            end_ptr++;
         str_ptr = ++end_ptr;
-        while (isspace((unsigned char)*str_ptr) || (*str_ptr == ',')) str_ptr++;
+        while (isspace((unsigned char)*str_ptr) || (*str_ptr == ','))
+            str_ptr++;
         end_ptr = (char *)str_ptr;
         while (!(isspace((unsigned char)*end_ptr) || (*end_ptr == ',')) && (*end_ptr != '\0'))
             end_ptr++;
         memmove(data_offset, str_ptr, end_ptr - str_ptr);
-        data_offset[end_ptr-str_ptr] = '\0';
+        data_offset[end_ptr - str_ptr] = '\0';
         if (data_offset[0] != '-' && isalpha((unsigned char)data_offset[0])) {
             if (data_offset == NULL) {
                 SCLogError("byte_test supplied with "
@@ -538,7 +537,8 @@ static DetectBytetestData *DetectBytetestParse(
     }
 
     if (bitmask_index != -1 && data->flags & DETECT_BYTETEST_BITMASK) {
-        if (ByteExtractStringUint32(&data->bitmask, 0, 0, args[bitmask_index]+strlen("bitmask")) <= 0) {
+        if (ByteExtractStringUint32(
+                    &data->bitmask, 0, 0, args[bitmask_index] + strlen("bitmask")) <= 0) {
             SCLogError("Malformed bitmask value: %s", args[bitmask_index] + strlen("bitmask"));
             goto error;
         }
@@ -548,32 +548,35 @@ static DetectBytetestData *DetectBytetestParse(
         data->bitmask_shift_count = 0;
         if (data->bitmask) {
             uint32_t bmask = data->bitmask;
-            while (!(bmask & 0x1)){
+            while (!(bmask & 0x1)) {
                 bmask = bmask >> 1;
                 data->bitmask_shift_count++;
             }
         }
     }
 
-    for (i = 0; i < (ret - 1); i++){
+    for (i = 0; i < (ret - 1); i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
-    if (data_offset) SCFree(data_offset);
+    if (data_offset)
+        SCFree(data_offset);
     if (test_value)
         pcre2_substring_free((PCRE2_UCHAR8 *)test_value);
     pcre2_match_data_free(match);
     return data;
 
 error:
-    for (i = 0; i < (ret - 1); i++){
+    for (i = 0; i < (ret - 1); i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
-    if (data_offset) SCFree(data_offset);
+    if (data_offset)
+        SCFree(data_offset);
     if (test_value)
         pcre2_substring_free((PCRE2_UCHAR8 *)test_value);
-    if (data) SCFree(data);
+    if (data)
+        SCFree(data);
     if (match) {
         pcre2_match_data_free(match);
     }
@@ -605,10 +608,8 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     } else if (data->flags & DETECT_BYTETEST_DCE) {
         if (data->flags & DETECT_BYTETEST_RELATIVE) {
-            prev_pm = DetectGetLastSMFromLists(s,
-                DETECT_CONTENT, DETECT_PCRE,
-                DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-                DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
+            prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, DETECT_BYTETEST,
+                    DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT, DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
             if (prev_pm == NULL) {
                 sm_list = DETECT_SM_LIST_PMATCH;
             } else {
@@ -624,10 +625,8 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
             goto error;
 
     } else if (data->flags & DETECT_BYTETEST_RELATIVE) {
-        prev_pm = DetectGetLastSMFromLists(s,
-                DETECT_CONTENT, DETECT_PCRE,
-                DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-                DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
+        prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, DETECT_BYTETEST,
+                DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT, DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
         if (prev_pm == NULL) {
             sm_list = DETECT_SM_LIST_PMATCH;
         } else {
@@ -641,12 +640,10 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     }
 
     if (data->flags & DETECT_BYTETEST_DCE) {
-        if ((data->flags & DETECT_BYTETEST_STRING) ||
-            (data->flags & DETECT_BYTETEST_LITTLE) ||
-            (data->flags & DETECT_BYTETEST_BIG) ||
-            (data->base == DETECT_BYTETEST_BASE_DEC) ||
-            (data->base == DETECT_BYTETEST_BASE_HEX) ||
-            (data->base == DETECT_BYTETEST_BASE_OCT) ) {
+        if ((data->flags & DETECT_BYTETEST_STRING) || (data->flags & DETECT_BYTETEST_LITTLE) ||
+                (data->flags & DETECT_BYTETEST_BIG) || (data->base == DETECT_BYTETEST_BASE_DEC) ||
+                (data->base == DETECT_BYTETEST_BASE_HEX) ||
+                (data->base == DETECT_BYTETEST_BASE_OCT)) {
             SCLogError("Invalid option. "
                        "A byte_test keyword with dce holds other invalid modifiers.");
             goto error;
@@ -712,10 +709,10 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
     }
 
- okay:
+okay:
     ret = 0;
     return ret;
- error:
+error:
     if (offset)
         SCFree(offset);
     if (value)
@@ -739,7 +736,6 @@ static void DetectBytetestFree(DetectEngineCtx *de_ctx, void *ptr)
     DetectBytetestData *data = (DetectBytetestData *)ptr;
     SCFree(data);
 }
-
 
 /* UNITTESTS */
 #ifdef UNITTESTS
@@ -1090,11 +1086,11 @@ static int DetectBytetestTestParse20(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing bytetest_body\"; "
-                               "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                               "dce_stub_data; "
-                               "content:\"one\"; distance:0; "
-                               "byte_test:1,=,1,6,relative,dce; sid:1;)");
+                                       "(msg:\"Testing bytetest_body\"; "
+                                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                                       "dce_stub_data; "
+                                       "content:\"one\"; distance:0; "
+                                       "byte_test:1,=,1,6,relative,dce; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     s = de_ctx->sig_list;
@@ -1113,11 +1109,11 @@ static int DetectBytetestTestParse20(void)
     FAIL_IF(bd->neg_op);
 
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytetest_body\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; distance:0; "
-                      "byte_test:1,=,1,6,relative,dce; sid:1;)");
+                              "(msg:\"Testing bytetest_body\"; "
+                              "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                              "dce_stub_data; "
+                              "content:\"one\"; distance:0; "
+                              "byte_test:1,=,1,6,relative,dce; sid:1;)");
     FAIL_IF_NULL(s->next);
 
     s = s->next;
@@ -1135,11 +1131,11 @@ static int DetectBytetestTestParse20(void)
     FAIL_IF(bd->neg_op);
 
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytetest_body\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; distance:0; "
-                      "byte_test:1,=,1,6,relative; sid:1;)");
+                              "(msg:\"Testing bytetest_body\"; "
+                              "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                              "dce_stub_data; "
+                              "content:\"one\"; distance:0; "
+                              "byte_test:1,=,1,6,relative; sid:1;)");
     FAIL_IF_NULL(s->next);
 
     s = s->next;
@@ -1175,69 +1171,69 @@ static int DetectBytetestTestParse21(void)
 
     de_ctx->flags |= DE_QUIET;
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,string,dce; sid:1;)");
+                        "(msg:\"Testing bytetest_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "content:\"one\"; byte_test:1,=,1,6,string,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,big,dce; sid:1;)");
+                        "(msg:\"Testing bytetest_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "content:\"one\"; byte_test:1,=,1,6,big,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,little,dce; sid:1;)");
+                        "(msg:\"Testing bytetest_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "content:\"one\"; byte_test:1,=,1,6,little,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,hex,dce; sid:1;)");
+                        "(msg:\"Testing bytetest_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "content:\"one\"; byte_test:1,=,1,6,hex,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,dec,dce; sid:1;)");
+                        "(msg:\"Testing bytetest_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "content:\"one\"; byte_test:1,=,1,6,dec,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,oct,dce; sid:1;)");
+                        "(msg:\"Testing bytetest_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "content:\"one\"; byte_test:1,=,1,6,oct,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,string,hex,dce; sid:1;)");
+                        "(msg:\"Testing bytetest_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "content:\"one\"; byte_test:1,=,1,6,string,hex,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,big,string,hex,dce; sid:1;)");
+                        "(msg:\"Testing bytetest_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "content:\"one\"; byte_test:1,=,1,6,big,string,hex,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,big,string,oct,dce; sid:1;)");
+                        "(msg:\"Testing bytetest_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "content:\"one\"; byte_test:1,=,1,6,big,string,oct,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,little,string,hex,dce; sid:1;)");
+                        "(msg:\"Testing bytetest_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "content:\"one\"; byte_test:1,=,1,6,little,string,hex,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,big,string,dec,dce; sid:1;)");
+                        "(msg:\"Testing bytetest_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "content:\"one\"; byte_test:1,=,1,6,big,string,dec,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     SigGroupCleanup(de_ctx);
@@ -1261,7 +1257,7 @@ static int DetectBytetestTestParse22(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(file_data; byte_test:1,=,1,6,relative; sid:1;)");
+                                       "(file_data; byte_test:1,=,1,6,relative; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     s = de_ctx->sig_list;

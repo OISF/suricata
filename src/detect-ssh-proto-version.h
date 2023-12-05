@@ -34,7 +34,6 @@ typedef struct DetectSshVersionData_ {
 } DetectSshVersionData;
 
 /* prototypes */
-void DetectSshVersionRegister (void);
+void DetectSshVersionRegister(void);
 
 #endif /* __DETECT_SSH_VERSION_H__ */
-

@@ -51,7 +51,8 @@ static void DetectClasstypeRegisterTests(void);
 void DetectClasstypeRegister(void)
 {
     sigmatch_table[DETECT_CLASSTYPE].name = "classtype";
-    sigmatch_table[DETECT_CLASSTYPE].desc = "information about the classification of rules and alerts";
+    sigmatch_table[DETECT_CLASSTYPE].desc =
+            "information about the classification of rules and alerts";
     sigmatch_table[DETECT_CLASSTYPE].url = "/rules/meta.html#classtype";
     sigmatch_table[DETECT_CLASSTYPE].Setup = DetectClasstypeSetup;
 #ifdef UNITTESTS
@@ -163,8 +164,7 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
         }
 
         char str[256];
-        snprintf(str, sizeof(str),
-                "config classification: %s,Unknown Classtype,%d\n",
+        snprintf(str, sizeof(str), "config classification: %s,Unknown Classtype,%d\n",
                 parsed_ct_name, DETECT_DEFAULT_PRIO);
 
         if (SCClassConfAddClasstype(de_ctx, str, 0) < 0)
@@ -215,8 +215,8 @@ static int DetectClasstypeTest01(void)
     FAIL_IF_NULL(fd);
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
     Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Classtype test\"; "
-                               "Classtype:not_available; sid:1;)");
+                                                 "(msg:\"Classtype test\"; "
+                                                 "Classtype:not_available; sid:1;)");
     FAIL_IF_NULL(s);
     FAIL_IF_NOT(s->prio == 3);
 
@@ -239,29 +239,29 @@ static int DetectClasstypeTest02(void)
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
     Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(Classtype:bad-unknown; sid:1;)");
+                                                   "(Classtype:bad-unknown; sid:1;)");
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(Classtype:not-there; sid:2;)");
+                                        "(Classtype:not-there; sid:2;)");
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(Classtype:Bad-UnkNown; sid:3;)");
+                                        "(Classtype:Bad-UnkNown; sid:3;)");
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(Classtype:nothing-wrong; sid:4;)");
+                                        "(Classtype:nothing-wrong; sid:4;)");
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(Classtype:attempted_dos; Classtype:bad-unknown; sid:5;)");
+                                        "(Classtype:attempted_dos; Classtype:bad-unknown; sid:5;)");
     FAIL_IF_NULL(sig);
     FAIL_IF_NOT(sig->prio == 2);
 
     /* duplicate test */
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(Classtype:nothing-wrong; Classtype:Bad-UnkNown; sid:6;)");
+                                        "(Classtype:nothing-wrong; Classtype:Bad-UnkNown; sid:6;)");
     FAIL_IF_NULL(sig);
     FAIL_IF_NOT(sig->prio == 2);
 
@@ -282,24 +282,26 @@ static int DetectClasstypeTest03(void)
     FAIL_IF_NULL(fd);
     SCClassConfLoadClassificationConfigFile(de_ctx, fd);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Classtype test\"; Classtype:bad-unknown; priority:1; sid:1;)");
+    Signature *sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
+            "(msg:\"Classtype test\"; Classtype:bad-unknown; priority:1; sid:1;)");
     FAIL_IF_NULL(sig);
     FAIL_IF_NOT(sig->prio == 1);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Classtype test\"; Classtype:unKnoWn; "
-                  "priority:3; sid:2;)");
+                                        "(msg:\"Classtype test\"; Classtype:unKnoWn; "
+                                        "priority:3; sid:2;)");
     FAIL_IF_NULL(sig);
     FAIL_IF_NOT(sig->prio == 3);
 
     sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
-                  "Classtype:nothing-wrong; priority:1; sid:3;)");
+                                        "Classtype:nothing-wrong; priority:1; sid:3;)");
     FAIL_IF_NOT(sig->prio == 1);
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Classtype test\"; Classtype:bad-unknown; Classtype:undefined; "
-                  "priority:5; sid:4;)");
+    sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
+            "(msg:\"Classtype test\"; Classtype:bad-unknown; Classtype:undefined; "
+            "priority:5; sid:4;)");
     FAIL_IF_NULL(sig);
     FAIL_IF_NOT(sig->prio == 5);
 

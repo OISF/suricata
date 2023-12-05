@@ -35,8 +35,8 @@
 #include "util-misc.h"
 #include "util-print.h"
 
-#define SWF_ZLIB_MIN_VERSION    0x06
-#define SWF_LZMA_MIN_VERSION    0x0D
+#define SWF_ZLIB_MIN_VERSION 0x06
+#define SWF_LZMA_MIN_VERSION 0x0D
 
 int FileIsSwfFile(const uint8_t *buffer, uint32_t buffer_len)
 {
@@ -68,12 +68,9 @@ int FileIsSwfFile(const uint8_t *buffer, uint32_t buffer_len)
  * \retval 1 if decompression works
  * \retval 0 an error occurred, and event set
  */
-int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
-                         DetectEngineThreadCtx *det_ctx,
-                         InspectionBuffer *out_buffer,
-                         int swf_type,
-                         uint32_t decompress_depth,
-                         uint32_t compress_depth)
+int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len, DetectEngineThreadCtx *det_ctx,
+        InspectionBuffer *out_buffer, int swf_type, uint32_t decompress_depth,
+        uint32_t compress_depth)
 {
     int r = 0;
 
@@ -105,15 +102,11 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
 
     /* get swf version */
     uint8_t swf_version = FileGetSwfVersion(buffer, buffer_len);
-    if (compression_type == FILE_SWF_ZLIB_COMPRESSION &&
-        swf_version < SWF_ZLIB_MIN_VERSION)
-    {
+    if (compression_type == FILE_SWF_ZLIB_COMPRESSION && swf_version < SWF_ZLIB_MIN_VERSION) {
         DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_INVALID_SWF_VERSION);
         return 0;
     }
-    if (compression_type == FILE_SWF_LZMA_COMPRESSION &&
-        swf_version < SWF_LZMA_MIN_VERSION)
-    {
+    if (compression_type == FILE_SWF_LZMA_COMPRESSION && swf_version < SWF_LZMA_MIN_VERSION) {
         DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_INVALID_SWF_VERSION);
         return 0;
     }
@@ -125,7 +118,8 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
     }
 
     /* if decompress_depth is 0, keep the flash file length */
-    uint32_t decompressed_data_len = (decompress_depth == 0) ? decompressed_swf_len : decompress_depth;
+    uint32_t decompressed_data_len =
+            (decompress_depth == 0) ? decompressed_swf_len : decompress_depth;
     decompressed_data_len += 8;
 
     /* make sure the inspection buffer has enough space */
@@ -149,20 +143,17 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
     memset(out_buffer->buf + 8, 0, decompressed_data_len - 8);
 
     if ((swf_type == HTTP_SWF_COMPRESSION_ZLIB || swf_type == HTTP_SWF_COMPRESSION_BOTH) &&
-            compression_type == FILE_SWF_ZLIB_COMPRESSION)
-    {
+            compression_type == FILE_SWF_ZLIB_COMPRESSION) {
         /* the first 8 bytes represents the fws header, see 'FWS format' above.
          * data will start from 8th bytes
          */
-        r = FileSwfZlibDecompression(det_ctx,
-                                     (uint8_t *)buffer + offset, compressed_data_len,
-                                     out_buffer->buf + 8, out_buffer->len - 8);
+        r = FileSwfZlibDecompression(det_ctx, (uint8_t *)buffer + offset, compressed_data_len,
+                out_buffer->buf + 8, out_buffer->len - 8);
         if (r == 0)
             goto error;
 
     } else if ((swf_type == HTTP_SWF_COMPRESSION_LZMA || swf_type == HTTP_SWF_COMPRESSION_BOTH) &&
-               compression_type == FILE_SWF_LZMA_COMPRESSION)
-    {
+               compression_type == FILE_SWF_LZMA_COMPRESSION) {
         /* we need to setup the lzma header */
         /*
          * | 5 bytes         | 8 bytes             | n bytes         |
@@ -180,9 +171,8 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
         /* the first 8 bytes represents the fws header, see 'FWS format' above.
          * data will start from 8th bytes
          */
-        r = FileSwfLzmaDecompression(det_ctx,
-                                     compressed_data, compressed_data_len,
-                                     out_buffer->buf + 8, out_buffer->len - 8);
+        r = FileSwfLzmaDecompression(det_ctx, compressed_data, compressed_data_len,
+                out_buffer->buf + 8, out_buffer->len - 8);
         if (r == 0)
             goto error;
     } else {

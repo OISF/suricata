@@ -47,17 +47,14 @@ typedef struct PrefilterStore_ {
     uint32_t id;
 } PrefilterStore;
 
-void Prefilter(DetectEngineThreadCtx *, const SigGroupHead *, Packet *p,
-        const uint8_t flags);
+void Prefilter(DetectEngineThreadCtx *, const SigGroupHead *, Packet *p, const uint8_t flags);
 
 int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
-        void *pectx, void (*FreeFunc)(void *pectx),
-        const char *name);
+        void *pectx, void (*FreeFunc)(void *pectx), const char *name);
 int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
-        void *pectx, void (*FreeFunc)(void *pectx),
-        const char *name);
+        void *pectx, void (*FreeFunc)(void *pectx), const char *name);
 int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         PrefilterTxFn PrefilterTxFunc, const AppProto alproto, const int tx_min_progress,
         void *pectx, void (*FreeFunc)(void *pectx), const char *name);
@@ -65,13 +62,8 @@ int PrefilterAppendFrameEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         PrefilterFrameFn PrefilterFrameFunc, AppProto alproto, uint8_t frame_type, void *pectx,
         void (*FreeFunc)(void *pectx), const char *name);
 
-void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
-        const SigGroupHead *sgh,
-        Packet *p,
-        const uint8_t ipproto,
-        const uint8_t flow_flags,
-        const AppProto alproto,
-        void *alstate,
+void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,
+        const uint8_t ipproto, const uint8_t flow_flags, const AppProto alproto, void *alstate,
         DetectTransaction *tx);
 
 void PrefilterFreeEnginesList(PrefilterEngineList *list);

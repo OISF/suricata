@@ -31,6 +31,6 @@ typedef struct SCEnumCharMap_ {
 
 int SCMapEnumNameToValue(const char *, SCEnumCharMap *);
 
-const char * SCMapEnumValueToName(int, SCEnumCharMap *);
+const char *SCMapEnumValueToName(int, SCEnumCharMap *);
 
 #endif /* __UTIL_ENUM_H__ */

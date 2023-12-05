@@ -27,7 +27,7 @@
 #include "datasets-sha256.h"
 #include "util-thash.h"
 #include "util-print.h"
-#include "util-base64.h"    // decode base64
+#include "util-base64.h" // decode base64
 
 int Sha256StrSet(void *dst, void *src)
 {

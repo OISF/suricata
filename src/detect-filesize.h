@@ -22,8 +22,8 @@
  */
 
 #ifndef __DETECT_FILESIZE_H__
-#define	__DETECT_FILESIZE_H__
+#define __DETECT_FILESIZE_H__
 
 void DetectFilesizeRegister(void);
 
-#endif	/* _DETECT_URILEN_H */
+#endif /* _DETECT_URILEN_H */

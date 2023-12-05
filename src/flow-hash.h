@@ -31,9 +31,9 @@
 #define FBLOCK_MUTEX
 
 #ifdef FBLOCK_SPIN
-    #ifdef FBLOCK_MUTEX
-        #error Cannot enable both FBLOCK_SPIN and FBLOCK_MUTEX
-    #endif
+#ifdef FBLOCK_MUTEX
+#error Cannot enable both FBLOCK_SPIN and FBLOCK_MUTEX
+#endif
 #endif
 
 /* flow hash bucket -- the hash is basically an array of these buckets.
@@ -51,7 +51,7 @@ typedef struct FlowBucket_ {
 #elif defined FBLOCK_SPIN
     SCSpinlock s;
 #else
-    #error Enable FBLOCK_SPIN or FBLOCK_MUTEX
+#error Enable FBLOCK_SPIN or FBLOCK_MUTEX
 #endif
     /** timestamp in seconds of the earliest possible moment a flow
      *  will time out in this row. Set by the flow manager. Cleared
@@ -62,19 +62,19 @@ typedef struct FlowBucket_ {
 } __attribute__((aligned(CLS))) FlowBucket;
 
 #ifdef FBLOCK_SPIN
-    #define FBLOCK_INIT(fb) SCSpinInit(&(fb)->s, 0)
-    #define FBLOCK_DESTROY(fb) SCSpinDestroy(&(fb)->s)
-    #define FBLOCK_LOCK(fb) SCSpinLock(&(fb)->s)
-    #define FBLOCK_TRYLOCK(fb) SCSpinTrylock(&(fb)->s)
-    #define FBLOCK_UNLOCK(fb) SCSpinUnlock(&(fb)->s)
+#define FBLOCK_INIT(fb)    SCSpinInit(&(fb)->s, 0)
+#define FBLOCK_DESTROY(fb) SCSpinDestroy(&(fb)->s)
+#define FBLOCK_LOCK(fb)    SCSpinLock(&(fb)->s)
+#define FBLOCK_TRYLOCK(fb) SCSpinTrylock(&(fb)->s)
+#define FBLOCK_UNLOCK(fb)  SCSpinUnlock(&(fb)->s)
 #elif defined FBLOCK_MUTEX
-    #define FBLOCK_INIT(fb) SCMutexInit(&(fb)->m, NULL)
-    #define FBLOCK_DESTROY(fb) SCMutexDestroy(&(fb)->m)
-    #define FBLOCK_LOCK(fb) SCMutexLock(&(fb)->m)
-    #define FBLOCK_TRYLOCK(fb) SCMutexTrylock(&(fb)->m)
-    #define FBLOCK_UNLOCK(fb) SCMutexUnlock(&(fb)->m)
+#define FBLOCK_INIT(fb)    SCMutexInit(&(fb)->m, NULL)
+#define FBLOCK_DESTROY(fb) SCMutexDestroy(&(fb)->m)
+#define FBLOCK_LOCK(fb)    SCMutexLock(&(fb)->m)
+#define FBLOCK_TRYLOCK(fb) SCMutexTrylock(&(fb)->m)
+#define FBLOCK_UNLOCK(fb)  SCMutexUnlock(&(fb)->m)
 #else
-    #error Enable FBLOCK_SPIN or FBLOCK_MUTEX
+#error Enable FBLOCK_SPIN or FBLOCK_MUTEX
 #endif
 
 /* prototypes */
@@ -103,4 +103,3 @@ static inline void RemoveFromHash(Flow *f, Flow *prev_f)
 }
 
 #endif /* __FLOW_HASH_H__ */
-

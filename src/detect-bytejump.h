@@ -25,30 +25,30 @@
 #define __DETECT_BYTEJUMP_H__
 
 /** Bytejump Base */
-#define DETECT_BYTEJUMP_BASE_UNSET  0 /**< Unset type value string (automatic)*/
-#define DETECT_BYTEJUMP_BASE_OCT    8 /**< "oct" type value string */
+#define DETECT_BYTEJUMP_BASE_UNSET 0 /**< Unset type value string (automatic)*/
+#define DETECT_BYTEJUMP_BASE_OCT   8 /**< "oct" type value string */
 #define DETECT_BYTEJUMP_BASE_DEC   10 /**< "dec" type value string */
 #define DETECT_BYTEJUMP_BASE_HEX   16 /**< "hex" type value string */
 
 /** Bytejump Flags */
-#define DETECT_BYTEJUMP_BEGIN     BIT_U16(0) /**< "from_beginning" jump */
-#define DETECT_BYTEJUMP_LITTLE    BIT_U16(1) /**< "little" endian value */
-#define DETECT_BYTEJUMP_BIG       BIT_U16(2) /**< "big" endian value */
-#define DETECT_BYTEJUMP_STRING    BIT_U16(3) /**< "string" value */
-#define DETECT_BYTEJUMP_RELATIVE  BIT_U16(4) /**< "relative" offset */
-#define DETECT_BYTEJUMP_ALIGN     BIT_U16(5) /**< "align" offset */
-#define DETECT_BYTEJUMP_DCE       BIT_U16(6) /**< "dce" enabled */
-#define DETECT_BYTEJUMP_OFFSET_BE BIT_U16(7) /**< "byte extract" enabled */
-#define DETECT_BYTEJUMP_END       BIT_U16(8) /**< "from_end" jump */
+#define DETECT_BYTEJUMP_BEGIN      BIT_U16(0) /**< "from_beginning" jump */
+#define DETECT_BYTEJUMP_LITTLE     BIT_U16(1) /**< "little" endian value */
+#define DETECT_BYTEJUMP_BIG        BIT_U16(2) /**< "big" endian value */
+#define DETECT_BYTEJUMP_STRING     BIT_U16(3) /**< "string" value */
+#define DETECT_BYTEJUMP_RELATIVE   BIT_U16(4) /**< "relative" offset */
+#define DETECT_BYTEJUMP_ALIGN      BIT_U16(5) /**< "align" offset */
+#define DETECT_BYTEJUMP_DCE        BIT_U16(6) /**< "dce" enabled */
+#define DETECT_BYTEJUMP_OFFSET_BE  BIT_U16(7) /**< "byte extract" enabled */
+#define DETECT_BYTEJUMP_END        BIT_U16(8) /**< "from_end" jump */
 #define DETECT_BYTEJUMP_NBYTES_VAR BIT_U16(9) /**< nbytes string*/
 
 typedef struct DetectBytejumpData_ {
-    uint8_t nbytes;                   /**< Number of bytes to compare */
-    uint8_t base;                     /**< String value base (oct|dec|hex) */
-    uint16_t flags;                   /**< Flags (big|little|relative|string) */
-    int32_t offset;                   /**< Offset in payload to extract value */
-    int32_t post_offset;              /**< Offset to adjust post-jump */
-    uint16_t multiplier;              /**< Multiplier for nbytes (multiplier n)*/
+    uint8_t nbytes;      /**< Number of bytes to compare */
+    uint8_t base;        /**< String value base (oct|dec|hex) */
+    uint16_t flags;      /**< Flags (big|little|relative|string) */
+    int32_t offset;      /**< Offset in payload to extract value */
+    int32_t post_offset; /**< Offset to adjust post-jump */
+    uint16_t multiplier; /**< Multiplier for nbytes (multiplier n)*/
 } DetectBytejumpData;
 
 /* prototypes */
@@ -58,7 +58,7 @@ typedef struct DetectBytejumpData_ {
  *
  * \todo add support for no_stream and stream_only
  */
-void DetectBytejumpRegister (void);
+void DetectBytejumpRegister(void);
 
 /**
  * This function is used to match byte_jump
@@ -75,4 +75,3 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *, const Signature *, const Sig
         const uint8_t *, uint32_t, uint16_t, int32_t, int32_t);
 
 #endif /* __DETECT_BYTEJUMP_H__ */
-

@@ -32,7 +32,7 @@
 
 #include "detect-filesha1.h"
 
-static int DetectFileSha1Setup (DetectEngineCtx *, Signature *, const char *);
+static int DetectFileSha1Setup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectFileSha1RegisterTests(void);
 #endif
@@ -48,7 +48,7 @@ void DetectFileSha1Register(void)
     sigmatch_table[DETECT_FILESHA1].url = "/rules/file-keywords.html#filesha1";
     sigmatch_table[DETECT_FILESHA1].FileMatch = DetectFileHashMatch;
     sigmatch_table[DETECT_FILESHA1].Setup = DetectFileSha1Setup;
-    sigmatch_table[DETECT_FILESHA1].Free  = DetectFileHashFree;
+    sigmatch_table[DETECT_FILESHA1].Free = DetectFileHashFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FILESHA1].RegisterTests = DetectFileSha1RegisterTests;
 #endif
@@ -66,7 +66,7 @@ void DetectFileSha1Register(void)
  * \param s pointer to the Current Signature
  * \param str pointer to the user provided "filesha1" option
  */
-static int DetectFileSha1Setup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectFileSha1Setup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     return DetectFileHashSetup(de_ctx, s, str, DETECT_FILESHA1, g_file_match_list_id);
 }

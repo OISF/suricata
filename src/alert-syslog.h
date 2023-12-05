@@ -30,4 +30,3 @@
 void AlertSyslogRegister(void);
 
 #endif /* __ALERT_SYSLOG_H__ */
-

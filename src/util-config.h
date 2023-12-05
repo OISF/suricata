@@ -33,19 +33,19 @@ enum ConfigSubsys {
 };
 
 enum ConfigType {
-    CONFIG_TYPE_TX = 0,     /* transaction logging */
-    CONFIG_TYPE_FLOW,       /* flow logging */
-    CONFIG_TYPE_ALERT,      /* alert logging */
-    CONFIG_TYPE_ANOMALY,    /* anomaly logging */
-    CONFIG_TYPE_FILE,       /* file logging */
-    CONFIG_TYPE_PCAP,       /* pcap logging */
-    CONFIG_TYPE_DROP,       /* drop logging */
+    CONFIG_TYPE_TX = 0,  /* transaction logging */
+    CONFIG_TYPE_FLOW,    /* flow logging */
+    CONFIG_TYPE_ALERT,   /* alert logging */
+    CONFIG_TYPE_ANOMALY, /* anomaly logging */
+    CONFIG_TYPE_FILE,    /* file logging */
+    CONFIG_TYPE_PCAP,    /* pcap logging */
+    CONFIG_TYPE_DROP,    /* drop logging */
 #define CONFIG_TYPE_DEFAULT CONFIG_TYPE_TX
 };
 
 enum ConfigScope {
-    CONFIG_SCOPE_TX = 0,    /* per transaction */
-    CONFIG_SCOPE_FLOW,      /* per flow */
+    CONFIG_SCOPE_TX = 0, /* per transaction */
+    CONFIG_SCOPE_FLOW,   /* per flow */
 #define CONFIG_SCOPE_DEFAULT CONFIG_SCOPE_TX
 };
 

@@ -25,14 +25,14 @@
 #include "queue.h"
 #include "util-storage.h"
 
-#define OFFLOAD_FLAG_SG     (1<<0)
-#define OFFLOAD_FLAG_TSO    (1<<1)
-#define OFFLOAD_FLAG_GSO    (1<<2)
-#define OFFLOAD_FLAG_GRO    (1<<3)
-#define OFFLOAD_FLAG_LRO    (1<<4)
-#define OFFLOAD_FLAG_RXCSUM (1<<5)
-#define OFFLOAD_FLAG_TXCSUM (1<<6)
-#define OFFLOAD_FLAG_TOE    (1<<7)
+#define OFFLOAD_FLAG_SG     (1 << 0)
+#define OFFLOAD_FLAG_TSO    (1 << 1)
+#define OFFLOAD_FLAG_GSO    (1 << 2)
+#define OFFLOAD_FLAG_GRO    (1 << 3)
+#define OFFLOAD_FLAG_LRO    (1 << 4)
+#define OFFLOAD_FLAG_RXCSUM (1 << 5)
+#define OFFLOAD_FLAG_TXCSUM (1 << 6)
+#define OFFLOAD_FLAG_TOE    (1 << 7)
 
 void LiveSetOffloadDisable(void);
 void LiveSetOffloadWarn(void);
@@ -48,7 +48,7 @@ typedef struct {
 
 /** storage for live device names */
 typedef struct LiveDevice_ {
-    char *dev;  /**< the device (e.g. "eth0") */
+    char *dev; /**< the device (e.g. "eth0") */
     char dev_short[MAX_DEVNAME + 1];
     int mtu; /* MTU of the device */
     bool tenant_id_set;
@@ -61,8 +61,8 @@ typedef struct LiveDevice_ {
     SC_ATOMIC_DECLARE(uint64_t, invalid_checksums);
     TAILQ_ENTRY(LiveDevice_) next;
 
-    uint32_t tenant_id;     /**< tenant id in multi-tenancy */
-    uint32_t offload_orig;  /**< original offload settings to restore @exit */
+    uint32_t tenant_id;    /**< tenant id in multi-tenancy */
+    uint32_t offload_orig; /**< original offload settings to restore @exit */
 #ifdef HAVE_DPDK
     // DPDK resources that needs to be cleaned after workers are stopped and devices closed
     DPDKDeviceResources dpdk_vars;
@@ -72,7 +72,7 @@ typedef struct LiveDevice_ {
 } LiveDevice;
 
 typedef struct LiveDeviceName_ {
-    char *dev;  /**< the device (e.g. "eth0") */
+    char *dev; /**< the device (e.g. "eth0") */
     TAILQ_ENTRY(LiveDeviceName_) next;
 } LiveDeviceName;
 

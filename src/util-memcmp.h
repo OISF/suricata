@@ -39,8 +39,7 @@ static inline int SCMemcmpLowercase(const void *, const void *, size_t);
 
 void MemcmpRegisterTests(void);
 
-static inline int
-MemcmpLowercase(const void *s1, const void *s2, size_t n)
+static inline int MemcmpLowercase(const void *s1, const void *s2, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
         if (((uint8_t *)s1)[i] != u8_tolower(((uint8_t *)s2)[i]))
@@ -81,7 +80,23 @@ static inline int SCMemcmp(const void *s1, const void *s2, size_t n)
 
 /* Range of values of uppercase characters. We only use the first 2 bytes. */
 static char scmemcmp_uppercase[16] __attribute__((aligned(16))) = {
-    'A', 'Z', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, };
+    'A',
+    'Z',
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+};
 
 /** \brief compare two buffers in a case insensitive way
  *  \param s1 buffer already in lowercase
@@ -92,7 +107,7 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t n)
     /* counter for how far we already matched in the buffer */
     size_t m = 0;
     int r = 0;
-    __m128i ucase = _mm_load_si128((const __m128i *) scmemcmp_uppercase);
+    __m128i ucase = _mm_load_si128((const __m128i *)scmemcmp_uppercase);
     __m128i uplow = _mm_set1_epi8(0x20);
 
     do {
@@ -126,7 +141,7 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t n)
 
 #elif defined(__SSE4_1__)
 #include <smmintrin.h>
-#define SCMEMCMP_BYTES  16
+#define SCMEMCMP_BYTES 16
 
 static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
 {
@@ -153,8 +168,8 @@ static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
     return 0;
 }
 
-#define UPPER_LOW   0x40 /* "A" - 1 */
-#define UPPER_HIGH  0x5B /* "Z" + 1 */
+#define UPPER_LOW  0x40 /* "A" - 1 */
+#define UPPER_HIGH 0x5B /* "Z" + 1 */
 
 static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
 {
@@ -172,8 +187,8 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
         }
 
         /* unaligned loading of the bytes to compare */
-        b1 = _mm_loadu_si128((const __m128i *) s1);
-        b2 = _mm_loadu_si128((const __m128i *) s2);
+        b1 = _mm_loadu_si128((const __m128i *)s1);
+        b2 = _mm_loadu_si128((const __m128i *)s2);
 
         /* mark all chars bigger than upper1 */
         mask1 = _mm_cmpgt_epi8(b2, upper1);
@@ -203,7 +218,7 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
 
 #elif defined(__SSE3__)
 #include <pmmintrin.h> /* for SSE3 */
-#define SCMEMCMP_BYTES  16
+#define SCMEMCMP_BYTES 16
 
 static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
 {
@@ -216,8 +231,8 @@ static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
         }
 
         /* unaligned loads */
-        b1 = _mm_loadu_si128((const __m128i *) s1);
-        b2 = _mm_loadu_si128((const __m128i *) s2);
+        b1 = _mm_loadu_si128((const __m128i *)s1);
+        b2 = _mm_loadu_si128((const __m128i *)s2);
         c = _mm_cmpeq_epi8(b1, b2);
 
         if (_mm_movemask_epi8(c) != 0x0000FFFF) {
@@ -244,7 +259,7 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
     /* setup registers for upper to lower conversion */
     upper1 = _mm_set1_epi8(UPPER_LOW);
     upper2 = _mm_set1_epi8(UPPER_HIGH);
-    delta  = _mm_set1_epi8(UPPER_DELTA);
+    delta = _mm_set1_epi8(UPPER_DELTA);
 
     do {
         if (likely(len - offset < SCMEMCMP_BYTES)) {
@@ -252,8 +267,8 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
         }
 
         /* unaligned loading of the bytes to compare */
-        b1 = _mm_loadu_si128((const __m128i *) s1);
-        b2 = _mm_loadu_si128((const __m128i *) s2);
+        b1 = _mm_loadu_si128((const __m128i *)s1);
+        b2 = _mm_loadu_si128((const __m128i *)s2);
 
         /* mark all chars bigger than upper1 */
         mask1 = _mm_cmpgt_epi8(b2, upper1);
@@ -287,9 +302,7 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
 /* No SIMD support, fall back to plain memcmp and a home grown lowercase one */
 
 /* wrapper around memcmp to match the retvals of the SIMD implementations */
-#define SCMemcmp(a,b,c) ({ \
-    memcmp((a), (b), (c)) ? 1 : 0; \
-})
+#define SCMemcmp(a, b, c) ({ memcmp((a), (b), (c)) ? 1 : 0; })
 
 static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
 {
@@ -309,4 +322,3 @@ static inline int SCBufferCmp(const void *s1, size_t len1, const void *s2, size_
 }
 
 #endif /* __UTIL_MEMCMP_H__ */
-

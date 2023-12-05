@@ -25,6 +25,6 @@
 #define __DETECT_TRANSFORM_URLDECODE_H__
 
 /* prototypes */
-void DetectTransformUrlDecodeRegister (void);
+void DetectTransformUrlDecodeRegister(void);
 
 #endif /* __DETECT_TRANSFORM_URLDECODE_H__ */

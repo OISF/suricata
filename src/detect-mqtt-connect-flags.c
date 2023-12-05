@@ -37,33 +37,28 @@ static DetectParseRegex parse_regex;
 
 static int mqtt_connect_flags_id = 0;
 
-static int DetectMQTTConnectFlagsMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state,
-                               void *txv, const Signature *s,
-                               const SigMatchCtx *ctx);
-static int DetectMQTTConnectFlagsSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectMQTTConnectFlagsMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectMQTTConnectFlagsSetup(DetectEngineCtx *, Signature *, const char *);
 void MQTTConnectFlagsRegisterTests(void);
 void DetectMQTTConnectFlagsFree(DetectEngineCtx *de_ctx, void *);
 
 typedef struct DetectMQTTConnectFlagsData_ {
-    MQTTFlagState username,
-                  password,
-                  will,
-                  will_retain,
-                  clean_session;
+    MQTTFlagState username, password, will, will_retain, clean_session;
 } DetectMQTTConnectFlagsData;
 
 /**
  * \brief Registration function for mqtt.connect.flags: keyword
  */
-void DetectMQTTConnectFlagsRegister (void)
+void DetectMQTTConnectFlagsRegister(void)
 {
     sigmatch_table[DETECT_AL_MQTT_CONNECT_FLAGS].name = "mqtt.connect.flags";
     sigmatch_table[DETECT_AL_MQTT_CONNECT_FLAGS].desc = "match MQTT CONNECT variable header flags";
-    sigmatch_table[DETECT_AL_MQTT_CONNECT_FLAGS].url = "/rules/mqtt-keywords.html#mqtt-connect-flags";
+    sigmatch_table[DETECT_AL_MQTT_CONNECT_FLAGS].url =
+            "/rules/mqtt-keywords.html#mqtt-connect-flags";
     sigmatch_table[DETECT_AL_MQTT_CONNECT_FLAGS].AppLayerTxMatch = DetectMQTTConnectFlagsMatch;
     sigmatch_table[DETECT_AL_MQTT_CONNECT_FLAGS].Setup = DetectMQTTConnectFlagsSetup;
-    sigmatch_table[DETECT_AL_MQTT_CONNECT_FLAGS].Free  = DetectMQTTConnectFlagsFree;
+    sigmatch_table[DETECT_AL_MQTT_CONNECT_FLAGS].Free = DetectMQTTConnectFlagsFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_MQTT_CONNECT_FLAGS].RegisterTests = MQTTConnectFlagsRegisterTests;
 #endif
@@ -91,19 +86,17 @@ void DetectMQTTConnectFlagsRegister (void)
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectMQTTConnectFlagsMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state,
-                               void *txv, const Signature *s,
-                               const SigMatchCtx *ctx)
+static int DetectMQTTConnectFlagsMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectMQTTConnectFlagsData *de = (const DetectMQTTConnectFlagsData *)ctx;
 
     if (!de)
         return 0;
 
-    return rs_mqtt_tx_has_connect_flags(txv, de->username, de->password, de->will,
-                                        de->will_retain, de->clean_session);
-   }
+    return rs_mqtt_tx_has_connect_flags(
+            txv, de->username, de->password, de->will, de->will_retain, de->clean_session);
+}
 
 /**
  * \internal
@@ -142,39 +135,39 @@ static DetectMQTTConnectFlagsData *DetectMQTTConnectFlagsParse(const char *rawst
         if (strlen(flagv) < 2) {
             SCLogError("malformed flag value: %s", flagv);
             goto error;
-        }  else {
+        } else {
             int offset = 0;
             MQTTFlagState fs_to_set = MQTT_MUST_BE_SET;
             if (flagv[0] == '!') {
                 /* negated flag */
-                offset = 1;  /* skip negation operator during comparison */
+                offset = 1; /* skip negation operator during comparison */
                 fs_to_set = MQTT_CANT_BE_SET;
             }
-            if (strcmp(flagv+offset, "username") == 0) {
+            if (strcmp(flagv + offset, "username") == 0) {
                 if (de->username != MQTT_DONT_CARE) {
                     SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->username = fs_to_set;
-            } else if (strcmp(flagv+offset, "password") == 0) {
+            } else if (strcmp(flagv + offset, "password") == 0) {
                 if (de->password != MQTT_DONT_CARE) {
                     SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->password = fs_to_set;
-            } else if (strcmp(flagv+offset, "will") == 0) {
+            } else if (strcmp(flagv + offset, "will") == 0) {
                 if (de->will != MQTT_DONT_CARE) {
                     SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->will = fs_to_set;
-            } else if (strcmp(flagv+offset, "will_retain") == 0) {
+            } else if (strcmp(flagv + offset, "will_retain") == 0) {
                 if (de->will_retain != MQTT_DONT_CARE) {
                     SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
                 }
                 de->will_retain = fs_to_set;
-            } else if (strcmp(flagv+offset, "clean_session") == 0) {
+            } else if (strcmp(flagv + offset, "clean_session") == 0) {
                 if (de->clean_session != MQTT_DONT_CARE) {
                     SCLogError("duplicate flag definition: %s", flagv);
                     goto error;
@@ -258,7 +251,7 @@ void DetectMQTTConnectFlagsFree(DetectEngineCtx *de_ctx, void *de_ptr)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTConnectFlagsTestParse01 (void)
+static int MQTTConnectFlagsTestParse01(void)
 {
     DetectMQTTConnectFlagsData *de = NULL;
     de = DetectMQTTConnectFlagsParse("username");
@@ -286,7 +279,7 @@ static int MQTTConnectFlagsTestParse01 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTConnectFlagsTestParse02 (void)
+static int MQTTConnectFlagsTestParse02(void)
 {
     DetectMQTTConnectFlagsData *de = NULL;
     de = DetectMQTTConnectFlagsParse("foobar");
@@ -304,7 +297,7 @@ static int MQTTConnectFlagsTestParse02 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTConnectFlagsTestParse03 (void)
+static int MQTTConnectFlagsTestParse03(void)
 {
     DetectMQTTConnectFlagsData *de = NULL;
     de = DetectMQTTConnectFlagsParse("will,!");
@@ -322,7 +315,7 @@ static int MQTTConnectFlagsTestParse03 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTConnectFlagsTestParse04 (void)
+static int MQTTConnectFlagsTestParse04(void)
 {
     DetectMQTTConnectFlagsData *de = NULL;
     de = DetectMQTTConnectFlagsParse("");
@@ -340,7 +333,7 @@ static int MQTTConnectFlagsTestParse04 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTConnectFlagsTestParse05 (void)
+static int MQTTConnectFlagsTestParse05(void)
 {
     DetectMQTTConnectFlagsData *de = NULL;
     de = DetectMQTTConnectFlagsParse("username, username");
@@ -366,7 +359,6 @@ static int MQTTConnectFlagsTestParse05 (void)
 
     PASS;
 }
-
 
 #endif /* UNITTESTS */
 

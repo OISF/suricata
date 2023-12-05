@@ -33,6 +33,6 @@ const char *ProfileFlowWorkerIdToString(enum ProfileFlowWorkerId fwi);
 void FlowWorkerReplaceDetectCtx(void *flow_worker, void *detect_ctx);
 void *FlowWorkerGetDetectCtxPtr(void *flow_worker);
 
-void TmModuleFlowWorkerRegister (void);
+void TmModuleFlowWorkerRegister(void);
 
 #endif /* __FLOW_WORKER_H__ */

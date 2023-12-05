@@ -30,8 +30,7 @@
 #include "stream-tcp-private.h"
 
 /** Supported OS list and default OS policy is BSD */
-enum
-{
+enum {
     OS_POLICY_NONE = 1,
     OS_POLICY_BSD,
     OS_POLICY_BSD_RIGHT,
@@ -82,7 +81,7 @@ typedef struct TcpReassemblyThreadCtx_ {
     uint16_t counter_tcp_reass_data_overlap_fail;
 } TcpReassemblyThreadCtx;
 
-#define OS_POLICY_DEFAULT   OS_POLICY_BSD
+#define OS_POLICY_DEFAULT OS_POLICY_BSD
 
 void StreamTcpReassembleInitMemuse(void);
 int StreamTcpReassembleHandleSegment(
@@ -93,9 +92,8 @@ void *StreamTcpReassembleRealloc(void *optr, size_t orig_size, size_t size);
 void StreamTcpReassembleRegisterTests(void);
 TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv);
 void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *);
-int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-                                 TcpSession *ssn, TcpStream *stream,
-                                 Packet *p, enum StreamUpdateDir dir);
+int StreamTcpReassembleAppLayer(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn,
+        TcpStream *stream, Packet *p, enum StreamUpdateDir dir);
 
 void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
 
@@ -107,7 +105,8 @@ void StreamTcpSetOSPolicy(TcpStream *, Packet *);
 
 int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         TcpSession *ssn, TcpStream *stream, Packet *p);
-int StreamTcpReassembleInsertSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpStream *, TcpSegment *, Packet *, uint32_t pkt_seq, uint8_t *pkt_data, uint16_t pkt_datalen);
+int StreamTcpReassembleInsertSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpStream *,
+        TcpSegment *, Packet *, uint32_t pkt_seq, uint8_t *pkt_data, uint16_t pkt_datalen);
 TcpSegment *StreamTcpGetSegment(ThreadVars *, TcpReassemblyThreadCtx *);
 
 void StreamTcpReturnStreamSegments(TcpStream *);
@@ -129,7 +128,7 @@ void StreamTcpDisableAppLayer(Flow *f);
 int StreamTcpAppLayerIsDisabled(Flow *f);
 
 #ifdef UNITTESTS
-int StreamTcpCheckStreamContents(uint8_t *, uint16_t , TcpStream *);
+int StreamTcpCheckStreamContents(uint8_t *, uint16_t, TcpStream *);
 #endif
 
 bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p);
@@ -157,4 +156,3 @@ static inline bool STREAM_LASTACK_GT_BASESEQ(const TcpStream *stream)
 uint32_t StreamDataAvailableForProtoDetect(TcpStream *stream);
 
 #endif /* __STREAM_TCP_REASSEMBLE_H__ */
-

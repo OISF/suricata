@@ -61,14 +61,14 @@ static int ParseXFFString(char *input, char *output, int output_size)
         if (end == NULL) // malformed, not closed
             return 0;
 
-        if (end != input+(len - 1)) {
+        if (end != input + (len - 1)) {
             SCLogDebug("data after closing bracket");
             // if we ever want to parse the port, we can do it here
         }
 
         /* done, lets wrap up */
-        input++;        // skip past [
-        *end = '\0';    // overwrite ], ignore anything after
+        input++;     // skip past [
+        *end = '\0'; // overwrite ], ignore anything after
 
     } else {
         /* lets see if the xff string ends in a port */
@@ -98,9 +98,7 @@ static int ParseXFFString(char *input, char *output, int output_size)
 
     /** Sanity check on extracted IP for IPv4 and IPv6 */
     uint32_t ip[4];
-    if (inet_pton(AF_INET,  input, ip) == 1 ||
-        inet_pton(AF_INET6, input, ip) == 1)
-    {
+    if (inet_pton(AF_INET, input, ip) == 1 || inet_pton(AF_INET6, input, ip) == 1) {
         strlcpy(output, input, output_size);
         return 1; // OK
     }
@@ -113,8 +111,8 @@ static int ParseXFFString(char *input, char *output, int output_size)
  * \retval 1 if the IP has been found and returned in dstbuf
  * \retval 0 if the IP has not being found or error
  */
-int HttpXFFGetIPFromTx(const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg,
-        char *dstbuf, int dstbuflen)
+int HttpXFFGetIPFromTx(
+        const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen)
 {
     uint8_t xff_chain[XFF_CHAIN_MAXLEN];
     HtpState *htp_state = NULL;
@@ -148,7 +146,7 @@ int HttpXFFGetIPFromTx(const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg,
             bstr_len(h_xff->value) < XFF_CHAIN_MAXLEN) {
 
         memcpy(xff_chain, bstr_ptr(h_xff->value), bstr_len(h_xff->value));
-        xff_chain[bstr_len(h_xff->value)]=0;
+        xff_chain[bstr_len(h_xff->value)] = 0;
 
         if (xff_cfg->flags & XFF_REVERSE) {
             /** Get the last IP address from the chain */
@@ -158,8 +156,7 @@ int HttpXFFGetIPFromTx(const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg,
             } else {
                 p_xff++;
             }
-        }
-        else {
+        } else {
             /** Get the first IP address from the chain */
             p_xff = memchr(xff_chain, ',', bstr_len(h_xff->value));
             if (p_xff != NULL) {
@@ -219,8 +216,7 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
         } else {
             if (xff_mode == NULL) {
                 SCLogWarning("The XFF mode hasn't been defined, falling back to extra-data mode");
-            }
-            else if (strcasecmp(xff_mode, "extra-data") != 0) {
+            } else if (strcasecmp(xff_mode, "extra-data") != 0) {
                 SCLogWarning(
                         "The XFF mode %s is invalid, falling back to extra-data mode", xff_mode);
             }
@@ -235,8 +231,7 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
             if (xff_deployment == NULL) {
                 SCLogWarning("The XFF deployment hasn't been defined, falling back to reverse "
                              "proxy deployment");
-            }
-            else if (strcasecmp(xff_deployment, "reverse") != 0) {
+            } else if (strcasecmp(xff_deployment, "reverse") != 0) {
                 SCLogWarning("The XFF mode %s is invalid, falling back to reverse proxy deployment",
                         xff_deployment);
             }
@@ -246,20 +241,19 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
         const char *xff_header = ConfNodeLookupChildValue(xff_node, "header");
 
         if (xff_header != NULL) {
-            result->header = (char *) xff_header;
+            result->header = (char *)xff_header;
         } else {
             SCLogWarning("The XFF header hasn't been defined, using the default %s", XFF_DEFAULT);
             result->header = XFF_DEFAULT;
         }
-    }
-    else {
+    } else {
         result->flags = XFF_DISABLED;
     }
 }
 
-
 #ifdef UNITTESTS
-static int XFFTest01(void) {
+static int XFFTest01(void)
+{
     char input[] = "1.2.3.4:5678";
     char output[16];
     int r = ParseXFFString(input, output, sizeof(output));
@@ -267,7 +261,8 @@ static int XFFTest01(void) {
     PASS;
 }
 
-static int XFFTest02(void) {
+static int XFFTest02(void)
+{
     char input[] = "[12::34]:1234"; // thanks chort!
     char output[16];
     int r = ParseXFFString(input, output, sizeof(output));
@@ -275,7 +270,8 @@ static int XFFTest02(void) {
     PASS;
 }
 
-static int XFFTest03(void) {
+static int XFFTest03(void)
+{
     char input[] = "[2a03:2880:1010:3f02:face:b00c:0:2]:80"; // thanks chort!
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
@@ -283,7 +279,8 @@ static int XFFTest03(void) {
     PASS;
 }
 
-static int XFFTest04(void) {
+static int XFFTest04(void)
+{
     char input[] = "[2a03:2880:1010:3f02:face:b00c:0:2]"; // thanks chort!
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
@@ -291,7 +288,8 @@ static int XFFTest04(void) {
     PASS;
 }
 
-static int XFFTest05(void) {
+static int XFFTest05(void)
+{
     char input[] = "[::ffff:1.2.3.4]:1234"; // thanks double-p
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
@@ -299,7 +297,8 @@ static int XFFTest05(void) {
     PASS;
 }
 
-static int XFFTest06(void) {
+static int XFFTest06(void)
+{
     char input[] = "12::34";
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
@@ -307,7 +306,8 @@ static int XFFTest06(void) {
     PASS;
 }
 
-static int XFFTest07(void) {
+static int XFFTest07(void)
+{
     char input[] = "1.2.3.4";
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
@@ -315,7 +315,8 @@ static int XFFTest07(void) {
     PASS;
 }
 
-static int XFFTest08(void) {
+static int XFFTest08(void)
+{
     char input[] = "[1.2.3.4:1234";
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
@@ -323,7 +324,8 @@ static int XFFTest08(void) {
     PASS;
 }
 
-static int XFFTest09(void) {
+static int XFFTest09(void)
+{
     char input[] = "999.999.999.999:1234";
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));

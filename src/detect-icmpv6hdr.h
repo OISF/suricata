@@ -26,4 +26,4 @@
 
 void DetectICMPv6hdrRegister(void);
 
-#endif	/* _DETECT_ICMPV6HDR_H */
+#endif /* _DETECT_ICMPV6HDR_H */

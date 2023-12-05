@@ -271,8 +271,7 @@ int ConfSetFromString(const char *input, int final)
         if (!ConfSetFinal(name, val)) {
             goto done;
         }
-    }
-    else {
+    } else {
         if (!ConfSet(name, val)) {
             goto done;
         }
@@ -338,8 +337,7 @@ int ConfGet(const char *name, const char **vptr)
     if (node == NULL) {
         SCLogDebug("failed to lookup configuration parameter '%s'", name);
         return 0;
-    }
-    else {
+    } else {
         *vptr = node->val;
         return 1;
     }
@@ -352,8 +350,7 @@ int ConfGetChildValue(const ConfNode *base, const char *name, const char **vptr)
     if (node == NULL) {
         SCLogDebug("failed to lookup configuration parameter '%s'", name);
         return 0;
-    }
-    else {
+    } else {
         if (node->val == NULL)
             return 0;
         *vptr = node->val;
@@ -361,8 +358,7 @@ int ConfGetChildValue(const ConfNode *base, const char *name, const char **vptr)
     }
 }
 
-ConfNode *ConfGetChildWithDefault(const ConfNode *base, const ConfNode *dflt,
-    const char *name)
+ConfNode *ConfGetChildWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name)
 {
     ConfNode *node = ConfNodeLookupChild(base, name);
     if (node != NULL)
@@ -375,8 +371,8 @@ ConfNode *ConfGetChildWithDefault(const ConfNode *base, const ConfNode *dflt,
     return NULL;
 }
 
-int ConfGetChildValueWithDefault(const ConfNode *base, const ConfNode *dflt,
-    const char *name, const char **vptr)
+int ConfGetChildValueWithDefault(
+        const ConfNode *base, const ConfNode *dflt, const char *name, const char **vptr)
 {
     int ret = ConfGetChildValue(base, name, vptr);
     /* Get 'default' value */
@@ -456,11 +452,10 @@ int ConfGetChildValueInt(const ConfNode *base, const char *name, intmax_t *val)
 
     *val = tmpint;
     return 1;
-
 }
 
-int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt,
-    const char *name, intmax_t *val)
+int ConfGetChildValueIntWithDefault(
+        const ConfNode *base, const ConfNode *dflt, const char *name, intmax_t *val)
 {
     int ret = ConfGetChildValueInt(base, name, val);
     /* Get 'default' value */
@@ -511,8 +506,8 @@ int ConfGetChildValueBool(const ConfNode *base, const char *name, int *val)
     return 1;
 }
 
-int ConfGetChildValueBoolWithDefault(const ConfNode *base, const ConfNode *dflt,
-    const char *name, int *val)
+int ConfGetChildValueBoolWithDefault(
+        const ConfNode *base, const ConfNode *dflt, const char *name, int *val)
 {
     int ret = ConfGetChildValueBool(base, name, val);
     /* Get 'default' value */
@@ -521,7 +516,6 @@ int ConfGetChildValueBoolWithDefault(const ConfNode *base, const ConfNode *dflt,
     }
     return ret;
 }
-
 
 /**
  * \brief Check if a value is true.
@@ -536,7 +530,7 @@ int ConfGetChildValueBoolWithDefault(const ConfNode *base, const ConfNode *dflt,
  */
 int ConfValIsTrue(const char *val)
 {
-    const char *trues[] = {"1", "yes", "true", "on"};
+    const char *trues[] = { "1", "yes", "true", "on" };
     size_t u;
 
     for (u = 0; u < sizeof(trues) / sizeof(trues[0]); u++) {
@@ -561,7 +555,7 @@ int ConfValIsTrue(const char *val)
  */
 int ConfValIsFalse(const char *val)
 {
-    const char *falses[] = {"0", "no", "false", "off"};
+    const char *falses[] = { "0", "no", "false", "off" };
     size_t u;
 
     for (u = 0; u < sizeof(falses) / sizeof(falses[0]); u++) {
@@ -702,7 +696,7 @@ void ConfDeInit(void)
 
 static char *ConfPrintNameArray(char **name_arr, int level)
 {
-    static char name[128*128];
+    static char name[128 * 128];
     int i;
 
     name[0] = '\0';
@@ -726,18 +720,15 @@ void ConfNodeDump(const ConfNode *node, const char *prefix)
     static int level = -1;
 
     level++;
-    TAILQ_FOREACH(child, &node->head, next) {
+    TAILQ_FOREACH (child, &node->head, next) {
         name[level] = SCStrdup(child->name);
         if (unlikely(name[level] == NULL)) {
             continue;
         }
         if (prefix == NULL) {
-            printf("%s = %s\n", ConfPrintNameArray(name, level),
-                child->val);
-        }
-        else {
-            printf("%s.%s = %s\n", prefix,
-                ConfPrintNameArray(name, level), child->val);
+            printf("%s = %s\n", ConfPrintNameArray(name, level), child->val);
+        } else {
+            printf("%s.%s = %s\n", prefix, ConfPrintNameArray(name, level), child->val);
         }
         ConfNodeDump(child, prefix);
         SCFree(name[level]);
@@ -791,7 +782,7 @@ ConfNode *ConfNodeLookupChild(const ConfNode *node, const char *name)
         return NULL;
     }
 
-    TAILQ_FOREACH(child, &node->head, next) {
+    TAILQ_FOREACH (child, &node->head, next) {
         if (child->name != NULL && strcmp(child->name, name) == 0)
             return child;
     }
@@ -828,15 +819,14 @@ const char *ConfNodeLookupChildValue(const ConfNode *node, const char *name)
  * \return the ConfNode matching or NULL
  */
 
-ConfNode *ConfNodeLookupKeyValue(const ConfNode *base, const char *key,
-    const char *value)
+ConfNode *ConfNodeLookupKeyValue(const ConfNode *base, const char *key, const char *value)
 {
     ConfNode *child;
 
-    TAILQ_FOREACH(child, &base->head, next) {
+    TAILQ_FOREACH (child, &base->head, next) {
         if (!strncmp(child->val, key, strlen(child->val))) {
             ConfNode *subchild;
-            TAILQ_FOREACH(subchild, &child->head, next) {
+            TAILQ_FOREACH (subchild, &child->head, next) {
                 if ((!strcmp(subchild->name, key)) && (!strcmp(subchild->val, value))) {
                     return child;
                 }
@@ -879,8 +869,7 @@ char *ConfLoadCompleteIncludePath(const char *file)
     if (PathIsRelative(file)) {
         if (ConfGet("include-path", &defaultpath) == 1) {
             SCLogDebug("Default path: %s", defaultpath);
-            size_t path_len = sizeof(char) * (strlen(defaultpath) +
-                          strlen(file) + 2);
+            size_t path_len = sizeof(char) * (strlen(defaultpath) + strlen(file) + 2);
             path = SCMalloc(path_len);
             if (unlikely(path == NULL))
                 return NULL;
@@ -888,7 +877,7 @@ char *ConfLoadCompleteIncludePath(const char *file)
             if (path[strlen(path) - 1] != '/')
                 strlcat(path, "/", path_len);
             strlcat(path, file, path_len);
-       } else {
+        } else {
             path = SCStrdup(file);
             if (unlikely(path == NULL))
                 return NULL;
@@ -1115,16 +1104,22 @@ static int ConfTestGetBool(void)
     char name[] = "some-bool";
     const char *trues[] = {
         "1",
-        "on", "ON",
-        "yes", "YeS",
-        "true", "TRUE",
+        "on",
+        "ON",
+        "yes",
+        "YeS",
+        "true",
+        "TRUE",
     };
     const char *falses[] = {
         "0",
         "something",
-        "off", "OFF",
-        "false", "FalSE",
-        "no", "NO",
+        "off",
+        "OFF",
+        "false",
+        "FalSE",
+        "no",
+        "NO",
     };
     int val;
     size_t u;
@@ -1152,7 +1147,7 @@ static int ConfNodeLookupChildTest(void)
     ConfNode *parent = ConfNodeNew();
     ConfNode *child;
 
-    for (u = 0; u < sizeof(test_vals)/sizeof(test_vals[0]); u++) {
+    for (u = 0; u < sizeof(test_vals) / sizeof(test_vals[0]); u++) {
         child = ConfNodeNew();
         child->name = SCStrdup(test_vals[u]);
         child->val = SCStrdup(test_vals[u]);
@@ -1195,7 +1190,7 @@ static int ConfNodeLookupChildValueTest(void)
     ConfNode *child;
     const char *value;
 
-    for (u = 0; u < sizeof(test_vals)/sizeof(test_vals[0]); u++) {
+    for (u = 0; u < sizeof(test_vals) / sizeof(test_vals[0]); u++) {
         child = ConfNodeNew();
         child->name = SCStrdup(test_vals[u]);
         child->val = SCStrdup(test_vals[u]);
@@ -1224,7 +1219,7 @@ static int ConfNodeLookupChildValueTest(void)
 
 static int ConfGetChildValueWithDefaultTest(void)
 {
-    const char  *val = "";
+    const char *val = "";
     ConfCreateContextBackup();
     ConfInit();
     ConfSet("af-packet.0.interface", "eth0");
@@ -1499,15 +1494,11 @@ void ConfRegisterTests(void)
     UtRegisterTest("ConfTestGetInt", ConfTestGetInt);
     UtRegisterTest("ConfTestGetBool", ConfTestGetBool);
     UtRegisterTest("ConfNodeLookupChildTest", ConfNodeLookupChildTest);
-    UtRegisterTest("ConfNodeLookupChildValueTest",
-                   ConfNodeLookupChildValueTest);
+    UtRegisterTest("ConfNodeLookupChildValueTest", ConfNodeLookupChildValueTest);
     UtRegisterTest("ConfNodeRemoveTest", ConfNodeRemoveTest);
-    UtRegisterTest("ConfGetChildValueWithDefaultTest",
-                   ConfGetChildValueWithDefaultTest);
-    UtRegisterTest("ConfGetChildValueIntWithDefaultTest",
-                   ConfGetChildValueIntWithDefaultTest);
-    UtRegisterTest("ConfGetChildValueBoolWithDefaultTest",
-                   ConfGetChildValueBoolWithDefaultTest);
+    UtRegisterTest("ConfGetChildValueWithDefaultTest", ConfGetChildValueWithDefaultTest);
+    UtRegisterTest("ConfGetChildValueIntWithDefaultTest", ConfGetChildValueIntWithDefaultTest);
+    UtRegisterTest("ConfGetChildValueBoolWithDefaultTest", ConfGetChildValueBoolWithDefaultTest);
     UtRegisterTest("ConfGetNodeOrCreateTest", ConfGetNodeOrCreateTest);
     UtRegisterTest("ConfNodePruneTest", ConfNodePruneTest);
     UtRegisterTest("ConfNodeIsSequenceTest", ConfNodeIsSequenceTest);

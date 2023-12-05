@@ -31,13 +31,14 @@
 
 #ifdef CAPTURE_OFFLOAD_MANAGER
 
-#define FLOW_BYPASS_DELAY       10
+#define FLOW_BYPASS_DELAY 10
 
 #ifndef TIMEVAL_TO_TIMESPEC
-#define TIMEVAL_TO_TIMESPEC(tv, ts) {                               \
-    (ts)->tv_sec = (tv)->tv_sec;                                    \
-    (ts)->tv_nsec = (tv)->tv_usec * 1000;                           \
-}
+#define TIMEVAL_TO_TIMESPEC(tv, ts)                                                                \
+    {                                                                                              \
+        (ts)->tv_sec = (tv)->tv_sec;                                                               \
+        (ts)->tv_nsec = (tv)->tv_usec * 1000;                                                      \
+    }
 #endif
 
 typedef struct BypassedFlowManagerThreadData_ {
@@ -46,7 +47,7 @@ typedef struct BypassedFlowManagerThreadData_ {
     uint16_t flow_bypassed_bytes;
 } BypassedFlowManagerThreadData;
 
-#define BYPASSFUNCMAX   4
+#define BYPASSFUNCMAX 4
 
 typedef struct BypassedCheckFuncItem_ {
     BypassedCheckFunc Func;
@@ -70,7 +71,7 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
     int tcount = 0;
     int i;
     BypassedFlowManagerThreadData *ftd = thread_data;
-    struct timespec curtime = {0, 0};
+    struct timespec curtime = { 0, 0 };
 
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -99,10 +100,11 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
         TIMEVAL_TO_TIMESPEC(&tv, &curtime);
 
         for (i = 0; i < g_bypassed_func_max_index; i++) {
-            struct flows_stats bypassstats = { 0, 0, 0};
+            struct flows_stats bypassstats = { 0, 0, 0 };
             if (bypassedfunclist[i].Func == NULL)
                 continue;
-            tcount = bypassedfunclist[i].Func(th_v, &bypassstats, &curtime, bypassedfunclist[i].data);
+            tcount = bypassedfunclist[i].Func(
+                    th_v, &bypassstats, &curtime, bypassedfunclist[i].data);
             if (tcount) {
                 StatsAddUI64(th_v, ftd->flow_bypassed_cnt_clo, (uint64_t)bypassstats.count);
             }
@@ -148,9 +150,8 @@ static TmEcode BypassedFlowManagerThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-int BypassedFlowManagerRegisterCheckFunc(BypassedCheckFunc CheckFunc,
-                                         BypassedCheckFuncInit CheckFuncInit,
-                                         void *data)
+int BypassedFlowManagerRegisterCheckFunc(
+        BypassedCheckFunc CheckFunc, BypassedCheckFuncInit CheckFuncInit, void *data)
 {
     if (g_bypassed_func_max_index < BYPASSFUNCMAX) {
         bypassedfunclist[g_bypassed_func_max_index].Func = CheckFunc;
@@ -163,8 +164,7 @@ int BypassedFlowManagerRegisterCheckFunc(BypassedCheckFunc CheckFunc,
     return 0;
 }
 
-int BypassedFlowManagerRegisterUpdateFunc(BypassedUpdateFunc UpdateFunc,
-                                          void *data)
+int BypassedFlowManagerRegisterUpdateFunc(BypassedUpdateFunc UpdateFunc, void *data)
 {
     if (!UpdateFunc) {
         return -1;
@@ -186,8 +186,7 @@ void BypassedFlowManagerThreadSpawn(void)
 #ifdef CAPTURE_OFFLOAD_MANAGER
 
     ThreadVars *tv_flowmgr = NULL;
-    tv_flowmgr = TmThreadCreateMgmtThreadByName(thread_name_flow_bypass,
-            "BypassedFlowManager", 0);
+    tv_flowmgr = TmThreadCreateMgmtThreadByName(thread_name_flow_bypass, "BypassedFlowManager", 0);
     BUG_ON(tv_flowmgr == NULL);
 
     if (tv_flowmgr == NULL) {
@@ -212,7 +211,7 @@ void BypassedFlowUpdate(Flow *f, Packet *p)
 #endif
 }
 
-void TmModuleBypassedFlowManagerRegister (void)
+void TmModuleBypassedFlowManagerRegister(void)
 {
 #ifdef CAPTURE_OFFLOAD_MANAGER
     tmm_modules[TMM_BYPASSEDFLOWMANAGER].name = "BypassedFlowManager";
@@ -224,4 +223,3 @@ void TmModuleBypassedFlowManagerRegister (void)
     SCLogDebug("%s registered", tmm_modules[TMM_BYPASSEDFLOWMANAGER].name);
 #endif
 }
-

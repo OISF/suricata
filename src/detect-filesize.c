@@ -43,14 +43,13 @@
 #include "flow-util.h"
 #include "stream-tcp.h"
 
-
 /*prototypes*/
-static int DetectFilesizeMatch (DetectEngineThreadCtx *det_ctx, Flow *f,
-        uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m);
-static int DetectFilesizeSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectFilesizeFree (DetectEngineCtx *, void *);
+static int DetectFilesizeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, File *file,
+        const Signature *s, const SigMatchCtx *m);
+static int DetectFilesizeSetup(DetectEngineCtx *, Signature *, const char *);
+static void DetectFilesizeFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
-static void DetectFilesizeRegisterTests (void);
+static void DetectFilesizeRegisterTests(void);
 #endif
 static int g_file_match_list_id = 0;
 
@@ -61,7 +60,8 @@ static int g_file_match_list_id = 0;
 void DetectFilesizeRegister(void)
 {
     sigmatch_table[DETECT_FILESIZE].name = "filesize";
-    sigmatch_table[DETECT_FILESIZE].desc = "match on the size of the file as it is being transferred";
+    sigmatch_table[DETECT_FILESIZE].desc =
+            "match on the size of the file as it is being transferred";
     sigmatch_table[DETECT_FILESIZE].url = "/rules/file-keywords.html#filesize";
     sigmatch_table[DETECT_FILESIZE].FileMatch = DetectFilesizeMatch;
     sigmatch_table[DETECT_FILESIZE].Setup = DetectFilesizeSetup;
@@ -87,8 +87,8 @@ void DetectFilesizeRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFilesizeMatch (DetectEngineThreadCtx *det_ctx, Flow *f,
-        uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
+static int DetectFilesizeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, File *file,
+        const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
@@ -119,7 +119,7 @@ static int DetectFilesizeMatch (DetectEngineThreadCtx *det_ctx, Flow *f,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFilesizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectFilesizeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
     DetectU64Data *fsd = NULL;
@@ -133,7 +133,7 @@ static int DetectFilesizeSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
         goto error;
     }
 
-    s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_SIZE);
+    s->file_flags |= (FILE_SIG_NEED_FILE | FILE_SIG_NEED_SIZE);
     SCReturnInt(0);
 
 error:

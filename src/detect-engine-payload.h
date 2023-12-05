@@ -24,16 +24,13 @@
 #ifndef __DETECT_ENGINE_PAYLOAD_H__
 #define __DETECT_ENGINE_PAYLOAD_H__
 
-int PrefilterPktPayloadRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx);
-int PrefilterPktStreamRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterPktPayloadRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterPktStreamRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 uint8_t DetectEngineInspectPacketPayload(
         DetectEngineCtx *, DetectEngineThreadCtx *, const Signature *, Flow *, Packet *);
-int DetectEngineInspectStreamPayload(DetectEngineCtx *,
-        DetectEngineThreadCtx *, const Signature *, Flow *,
-        Packet *);
+int DetectEngineInspectStreamPayload(
+        DetectEngineCtx *, DetectEngineThreadCtx *, const Signature *, Flow *, Packet *);
 uint8_t DetectEngineInspectStream(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
@@ -41,4 +38,3 @@ uint8_t DetectEngineInspectStream(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 void PayloadRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_PAYLOAD_H__ */
-

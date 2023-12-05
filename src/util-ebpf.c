@@ -31,7 +31,7 @@
  */
 
 #define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
-#define SC_PCAP_DONT_INCLUDE_PCAP_H 1
+#define SC_PCAP_DONT_INCLUDE_PCAP_H  1
 
 #include "suricata-common.h"
 #include "flow-bypass.h"
@@ -59,14 +59,14 @@
 
 #define BPF_MAP_MAX_COUNT 16
 
-#define BYPASSED_FLOW_TIMEOUT   60
+#define BYPASSED_FLOW_TIMEOUT 60
 
 static LiveDevStorageId g_livedev_storage_id = { .id = -1 };
 static FlowStorageId g_flow_storage_id = { .id = -1 };
 
 struct bpf_map_item {
     char iface[IFNAMSIZ];
-    char * name;
+    char *name;
     int fd;
     uint8_t to_unlink;
 };
@@ -85,14 +85,12 @@ static void BpfMapsInfoFree(void *bpf)
 {
     struct bpf_maps_info *bpfinfo = (struct bpf_maps_info *)bpf;
     int i;
-    for (i = 0; i < bpfinfo->last; i ++) {
+    for (i = 0; i < bpfinfo->last; i++) {
         if (bpfinfo->array[i].name) {
             if (bpfinfo->array[i].to_unlink) {
                 char pinnedpath[PATH_MAX];
-                int ret = snprintf(pinnedpath, sizeof(pinnedpath),
-                        "/sys/fs/bpf/suricata-%s-%s",
-                        bpfinfo->array[i].iface,
-                        bpfinfo->array[i].name);
+                int ret = snprintf(pinnedpath, sizeof(pinnedpath), "/sys/fs/bpf/suricata-%s-%s",
+                        bpfinfo->array[i].iface, bpfinfo->array[i].name);
                 if (ret > 0) {
                     /* Unlink the pinned entry */
                     ret = unlink(pinnedpath);
@@ -172,10 +170,7 @@ int EBPFGetMapFDByName(const char *iface, const char *name)
 static int EBPFLoadPinnedMapsFile(LiveDevice *livedev, const char *file)
 {
     char pinnedpath[1024];
-    snprintf(pinnedpath, sizeof(pinnedpath),
-            "/sys/fs/bpf/suricata-%s-%s",
-            livedev->dev,
-            file);
+    snprintf(pinnedpath, sizeof(pinnedpath), "/sys/fs/bpf/suricata-%s-%s", livedev->dev, file);
 
     return bpf_obj_get(pinnedpath);
 }
@@ -296,8 +291,8 @@ alloc_error:
  * \param val a pointer to an integer that will be the file desc
  * \return -1 in case of error, 0 in case of success, 1 if pinned maps is loaded
  */
-int EBPFLoadFile(const char *iface, const char *path, const char * section,
-                 int *val, struct ebpf_timeout_config *config)
+int EBPFLoadFile(const char *iface, const char *path, const char *section, int *val,
+        struct ebpf_timeout_config *config)
 {
     int err, pfd;
     bool found = false;
@@ -319,14 +314,14 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         }
     }
 
-    if (! path) {
+    if (!path) {
         SCLogError("No file defined to load eBPF from");
         return -1;
     }
 
     /* Sending the eBPF code to the kernel requires a large amount of
      * locked memory so we set it to unlimited to avoid a ENOPERM error */
-    struct rlimit r = {RLIM_INFINITY, RLIM_INFINITY};
+    struct rlimit r = { RLIM_INFINITY, RLIM_INFINITY };
     if (setrlimit(RLIMIT_MEMLOCK, &r) != 0) {
         SCLogError("Unable to lock memory: %s (%d)", strerror(errno), errno);
         return -1;
@@ -337,24 +332,26 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
     long error = libbpf_get_error(bpfobj);
     if (error) {
         char err_buf[128];
-        libbpf_strerror(error, err_buf,
-                        sizeof(err_buf));
+        libbpf_strerror(error, err_buf, sizeof(err_buf));
         SCLogError("Unable to load eBPF objects in '%s': %s", path, err_buf);
         return -1;
     }
 
     if (config->flags & EBPF_XDP_HW_MODE) {
         unsigned int ifindex = if_nametoindex(iface);
-        bpf_object__for_each_program(bpfprog, bpfobj) {
+        bpf_object__for_each_program(bpfprog, bpfobj)
+        {
             bpf_program__set_ifindex(bpfprog, ifindex);
         }
-        bpf_map__for_each(map, bpfobj) {
+        bpf_map__for_each(map, bpfobj)
+        {
             bpf_map__set_ifindex(map, ifindex);
         }
     }
 
     /* Let's check that our section is here */
-    bpf_object__for_each_program(bpfprog, bpfobj) {
+    bpf_object__for_each_program(bpfprog, bpfobj)
+    {
 #ifdef HAVE_BPF_PROGRAM__SECTION_NAME
         const char *title = bpf_program__section_name(bpfprog);
 #else
@@ -409,7 +406,8 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
     }
 
     /* Store the maps in bpf_maps_info:: */
-    bpf_map__for_each(map, bpfobj) {
+    bpf_map__for_each(map, bpfobj)
+    {
         if (bpf_map_data->last == BPF_MAP_MAX_COUNT) {
             SCLogError("Too many BPF maps in eBPF files");
             break;
@@ -417,8 +415,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         SCLogDebug("Got a map '%s' with fd '%d'", bpf_map__name(map), bpf_map__fd(map));
         bpf_map_data->array[bpf_map_data->last].fd = bpf_map__fd(map);
         bpf_map_data->array[bpf_map_data->last].name = SCStrdup(bpf_map__name(map));
-        snprintf(bpf_map_data->array[bpf_map_data->last].iface, IFNAMSIZ,
-                 "%s", iface);
+        snprintf(bpf_map_data->array[bpf_map_data->last].iface, IFNAMSIZ, "%s", iface);
         if (!bpf_map_data->array[bpf_map_data->last].name) {
             SCLogError("Unable to duplicate map name");
             BpfMapsInfoFree(bpf_map_data);
@@ -501,9 +498,8 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
  * \return false (this create function never returns true)
  */
 static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, LiveDevice *dev, void *key,
-                                 size_t skey, FlowKey *flow_key, struct timespec *ctime,
-                                 uint64_t pkts_cnt, uint64_t bytes_cnt,
-                                 int mapfd, int cpus_count)
+        size_t skey, FlowKey *flow_key, struct timespec *ctime, uint64_t pkts_cnt,
+        uint64_t bytes_cnt, int mapfd, int cpus_count)
 {
     Flow *f = NULL;
     uint32_t hash = FlowKeyGetHash(flow_key);
@@ -551,7 +547,7 @@ static bool EBPFCreateFlowForKey(struct flows_stats *flowstats, LiveDevice *dev,
             return false;
         }
     } else {
-        EBPFBypassData *eb = (EBPFBypassData *) fc->bypass_data;
+        EBPFBypassData *eb = (EBPFBypassData *)fc->bypass_data;
         if (eb == NULL) {
             FLOWLOCK_UNLOCK(f);
             return false;
@@ -597,9 +593,8 @@ void EBPFBypassFree(void *data)
  * \return true if entries have activity, false if not
  */
 
-static bool EBPFBypassCheckHalfFlow(Flow *f, FlowBypassInfo *fc,
-                                    EBPFBypassData *eb, void *key,
-                                    int index)
+static bool EBPFBypassCheckHalfFlow(
+        Flow *f, FlowBypassInfo *fc, EBPFBypassData *eb, void *key, int index)
 {
     int i;
     uint64_t pkts_cnt = 0;
@@ -615,8 +610,7 @@ static bool EBPFBypassCheckHalfFlow(Flow *f, FlowBypassInfo *fc,
     }
     for (i = 0; i < eb->cpus_count; i++) {
         /* let's start accumulating value so we can compute the counters */
-        SCLogDebug("%d: Adding pkts %lu bytes %lu", i,
-                BPF_PERCPU(values_array, i).packets,
+        SCLogDebug("%d: Adding pkts %lu bytes %lu", i, BPF_PERCPU(values_array, i).packets,
                 BPF_PERCPU(values_array, i).bytes);
         pkts_cnt += BPF_PERCPU(values_array, i).packets;
         bytes_cnt += BPF_PERCPU(values_array, i).bytes;
@@ -668,10 +662,9 @@ bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
     return false;
 }
 
-typedef bool (*OpFlowForKey)(struct flows_stats * flowstats, LiveDevice*dev, void *key,
-                            size_t skey, FlowKey *flow_key, struct timespec *ctime,
-                            uint64_t pkts_cnt, uint64_t bytes_cnt,
-                            int mapfd, int cpus_count);
+typedef bool (*OpFlowForKey)(struct flows_stats *flowstats, LiveDevice *dev, void *key, size_t skey,
+        FlowKey *flow_key, struct timespec *ctime, uint64_t pkts_cnt, uint64_t bytes_cnt, int mapfd,
+        int cpus_count);
 
 /**
  * Bypassed flows iterator for IPv4
@@ -680,12 +673,9 @@ typedef bool (*OpFlowForKey)(struct flows_stats * flowstats, LiveDevice*dev, voi
  * running a callback function on each flow.
  */
 static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char *name,
-                                  struct timespec *ctime,
-                                  struct ebpf_timeout_config *tcfg,
-                                  OpFlowForKey EBPFOpFlowForKey
-                                  )
+        struct timespec *ctime, struct ebpf_timeout_config *tcfg, OpFlowForKey EBPFOpFlowForKey)
 {
-    struct flows_stats flowstats = { 0, 0, 0};
+    struct flows_stats flowstats = { 0, 0, 0 };
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
     if (mapfd == -1)
         return -1;
@@ -721,9 +711,8 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
         }
         for (i = 0; i < tcfg->cpus_count; i++) {
             /* let's start accumulating value so we can compute the counters */
-            SCLogDebug("%d: Adding pkts %lu bytes %lu", i,
-                       BPF_PERCPU(values_array, i).packets,
-                       BPF_PERCPU(values_array, i).bytes);
+            SCLogDebug("%d: Adding pkts %lu bytes %lu", i, BPF_PERCPU(values_array, i).packets,
+                    BPF_PERCPU(values_array, i).bytes);
             pkts_cnt += BPF_PERCPU(values_array, i).packets;
             bytes_cnt += BPF_PERCPU(values_array, i).bytes;
         }
@@ -759,9 +748,8 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
         }
         flow_key.recursion_level = 0;
         flow_key.livedev_id = dev->id;
-        dead_flow = EBPFOpFlowForKey(&flowstats, dev, &next_key, sizeof(next_key), &flow_key,
-                                     ctime, pkts_cnt, bytes_cnt,
-                                     mapfd, tcfg->cpus_count);
+        dead_flow = EBPFOpFlowForKey(&flowstats, dev, &next_key, sizeof(next_key), &flow_key, ctime,
+                pkts_cnt, bytes_cnt, mapfd, tcfg->cpus_count);
         if (dead_flow) {
             found = 1;
         }
@@ -790,14 +778,10 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
  * This function iterates on all the flows of the IPv4 table
  * running a callback function on each flow.
  */
-static int EBPFForEachFlowV6Table(ThreadVars *th_v,
-                                  LiveDevice *dev, const char *name,
-                                  struct timespec *ctime,
-                                  struct ebpf_timeout_config *tcfg,
-                                  OpFlowForKey EBPFOpFlowForKey
-                                  )
+static int EBPFForEachFlowV6Table(ThreadVars *th_v, LiveDevice *dev, const char *name,
+        struct timespec *ctime, struct ebpf_timeout_config *tcfg, OpFlowForKey EBPFOpFlowForKey)
 {
-    struct flows_stats flowstats = { 0, 0, 0};
+    struct flows_stats flowstats = { 0, 0, 0 };
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
     if (mapfd == -1)
         return -1;
@@ -832,9 +816,8 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
         }
         for (i = 0; i < tcfg->cpus_count; i++) {
             /* let's start accumulating value so we can compute the counters */
-            SCLogDebug("%d: Adding pkts %lu bytes %lu", i,
-                       BPF_PERCPU(values_array, i).packets,
-                       BPF_PERCPU(values_array, i).bytes);
+            SCLogDebug("%d: Adding pkts %lu bytes %lu", i, BPF_PERCPU(values_array, i).packets,
+                    BPF_PERCPU(values_array, i).bytes);
             pkts_cnt += BPF_PERCPU(values_array, i).packets;
             bytes_cnt += BPF_PERCPU(values_array, i).bytes;
         }
@@ -878,9 +861,8 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
         }
         flow_key.recursion_level = 0;
         flow_key.livedev_id = dev->id;
-        pkts_cnt = EBPFOpFlowForKey(&flowstats, dev, &next_key, sizeof(next_key), &flow_key,
-                                    ctime, pkts_cnt, bytes_cnt,
-                                    mapfd, tcfg->cpus_count);
+        pkts_cnt = EBPFOpFlowForKey(&flowstats, dev, &next_key, sizeof(next_key), &flow_key, ctime,
+                pkts_cnt, bytes_cnt, mapfd, tcfg->cpus_count);
         if (pkts_cnt > 0) {
             found = 1;
         }
@@ -902,18 +884,13 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
     return found;
 }
 
-
 int EBPFCheckBypassedFlowCreate(ThreadVars *th_v, struct timespec *curtime, void *data)
 {
     LiveDevice *ldev = NULL, *ndev;
     struct ebpf_timeout_config *cfg = (struct ebpf_timeout_config *)data;
-    while(LiveDeviceForEach(&ldev, &ndev)) {
-        EBPFForEachFlowV4Table(th_v, ldev, "flow_table_v4",
-                curtime,
-                cfg, EBPFCreateFlowForKey);
-        EBPFForEachFlowV6Table(th_v, ldev, "flow_table_v6",
-                curtime,
-                cfg, EBPFCreateFlowForKey);
+    while (LiveDeviceForEach(&ldev, &ndev)) {
+        EBPFForEachFlowV4Table(th_v, ldev, "flow_table_v4", curtime, cfg, EBPFCreateFlowForKey);
+        EBPFForEachFlowV6Table(th_v, ldev, "flow_table_v6", curtime, cfg, EBPFCreateFlowForKey);
     }
 
     return 0;
@@ -924,7 +901,6 @@ void EBPFRegisterExtension(void)
     g_livedev_storage_id = LiveDevStorageRegister("bpfmap", sizeof(void *), NULL, BpfMapsInfoFree);
     g_flow_storage_id = FlowStorageRegister("bypassedlist", sizeof(void *), NULL, BypassedListFree);
 }
-
 
 #ifdef HAVE_PACKET_XDP
 
@@ -978,15 +954,11 @@ void EBPFBuildCPUSet(ConfNode *node, char *iface)
     }
     g_redirect_iface_cpu_counter = 0;
     if (node == NULL) {
-        bpf_map_update_elem(mapfd, &key0, &g_redirect_iface_cpu_counter,
-                        BPF_ANY);
+        bpf_map_update_elem(mapfd, &key0, &g_redirect_iface_cpu_counter, BPF_ANY);
         return;
     }
-    BuildCpusetWithCallback("xdp-cpu-redirect", node,
-            EBPFRedirectMapAddCPU,
-            iface);
-    bpf_map_update_elem(mapfd, &key0, &g_redirect_iface_cpu_counter,
-                        BPF_ANY);
+    BuildCpusetWithCallback("xdp-cpu-redirect", node, EBPFRedirectMapAddCPU, iface);
+    bpf_map_update_elem(mapfd, &key0, &g_redirect_iface_cpu_counter, BPF_ANY);
 }
 
 /**

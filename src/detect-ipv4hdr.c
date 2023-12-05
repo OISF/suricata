@@ -34,9 +34,9 @@
 #include "detect-ipv4hdr.h"
 
 /* prototypes */
-static int DetectIpv4hdrSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectIpv4hdrSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-void DetectIpv4hdrRegisterTests (void);
+void DetectIpv4hdrRegisterTests(void);
 #endif
 
 static int g_ipv4hdr_buffer_id = 0;
@@ -65,8 +65,7 @@ void DetectIpv4hdrRegister(void)
 
     DetectPktMpmRegister("ipv4.hdr", 2, PrefilterGenericMpmPktRegister, GetData);
 
-    DetectPktInspectEngineRegister("ipv4.hdr", GetData,
-            DetectEngineInspectPktBufferGeneric);
+    DetectPktInspectEngineRegister("ipv4.hdr", GetData, DetectEngineInspectPktBufferGeneric);
 
     return;
 }
@@ -81,7 +80,7 @@ void DetectIpv4hdrRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectIpv4hdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
+static int DetectIpv4hdrSetup(DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
     s->proto.flags |= DETECT_PROTO_IPV4; // TODO
 
@@ -106,10 +105,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         }
         uint32_t hlen = IPV4_GET_HLEN(p);
         if (((uint8_t *)p->ip4h + (ptrdiff_t)hlen) >
-                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
-        {
-            SCLogDebug("data out of range: %p > %p",
-                    ((uint8_t *)p->ip4h + (ptrdiff_t)hlen),
+                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p))) {
+            SCLogDebug("data out of range: %p > %p", ((uint8_t *)p->ip4h + (ptrdiff_t)hlen),
                     ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)));
             return NULL;
         }

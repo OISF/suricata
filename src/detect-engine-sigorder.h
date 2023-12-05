@@ -28,7 +28,7 @@
  * \brief Different kinds of helper data that can be used by the signature
  *        ordering module.  Used by the "user" field in SCSigSignatureWrapper
  */
-typedef enum{
+typedef enum {
     SC_RADIX_USER_DATA_FLOWBITS,
     SC_RADIX_USER_DATA_FLOWVAR,
     SC_RADIX_USER_DATA_PKTVAR,

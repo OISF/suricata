@@ -278,12 +278,12 @@ static int DetectTlsSubjectTest02(void)
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
-    p1 = UTHBuildPacketReal(client_hello, sizeof(client_hello), IPPROTO_TCP,
-                            "192.168.1.5", "192.168.1.1", 51251, 443);
-    p2 = UTHBuildPacketReal(server_hello, sizeof(server_hello), IPPROTO_TCP,
-                            "192.168.1.1", "192.168.1.5", 443, 51251);
-    p3 = UTHBuildPacketReal(certificate, sizeof(certificate), IPPROTO_TCP,
-                            "192.168.1.1", "192.168.1.5", 443, 51251);
+    p1 = UTHBuildPacketReal(client_hello, sizeof(client_hello), IPPROTO_TCP, "192.168.1.5",
+            "192.168.1.1", 51251, 443);
+    p2 = UTHBuildPacketReal(server_hello, sizeof(server_hello), IPPROTO_TCP, "192.168.1.1",
+            "192.168.1.5", 443, 51251);
+    p3 = UTHBuildPacketReal(certificate, sizeof(certificate), IPPROTO_TCP, "192.168.1.1",
+            "192.168.1.5", 443, 51251);
 
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
@@ -318,17 +318,16 @@ static int DetectTlsSubjectTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     Signature *s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test tls.cert_subject\"; "
-                              "tls.cert_subject; content:\"google\"; nocase; "
-                              "sid:1;)");
+                                                 "(msg:\"Test tls.cert_subject\"; "
+                                                 "tls.cert_subject; content:\"google\"; nocase; "
+                                                 "sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
-                                STREAM_TOSERVER, client_hello,
-                                sizeof(client_hello));
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, client_hello, sizeof(client_hello));
 
     FAIL_IF(r != 0);
 
@@ -339,8 +338,8 @@ static int DetectTlsSubjectTest02(void)
 
     FAIL_IF(PacketAlertCheck(p1, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
-                            server_hello, sizeof(server_hello));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, server_hello, sizeof(server_hello));
 
     FAIL_IF(r != 0);
 
@@ -348,8 +347,8 @@ static int DetectTlsSubjectTest02(void)
 
     FAIL_IF(PacketAlertCheck(p2, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
-                            certificate, sizeof(certificate));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, certificate, sizeof(certificate));
 
     FAIL_IF(r != 0);
 

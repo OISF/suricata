@@ -34,9 +34,9 @@ typedef int (*PacketLogger)(ThreadVars *, void *thread_data, const Packet *);
  */
 typedef bool (*PacketLogCondition)(ThreadVars *, void *thread_data, const Packet *);
 
-int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
-    PacketLogger LogFunc, PacketLogCondition ConditionFunc, OutputCtx *,
-    ThreadInitFunc, ThreadDeinitFunc, ThreadExitPrintStatsFunc);
+int OutputRegisterPacketLogger(LoggerId logger_id, const char *name, PacketLogger LogFunc,
+        PacketLogCondition ConditionFunc, OutputCtx *, ThreadInitFunc, ThreadDeinitFunc,
+        ThreadExitPrintStatsFunc);
 
 void OutputPacketLoggerRegister(void);
 

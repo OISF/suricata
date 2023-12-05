@@ -41,15 +41,17 @@ TmEcode LogTcpDataLogThreadInit(ThreadVars *, const void *, void **);
 TmEcode LogTcpDataLogThreadDeinit(ThreadVars *, void *);
 static void LogTcpDataLogDeInitCtx(OutputCtx *);
 
-int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags);
+int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data,
+        uint32_t data_len, uint64_t tx_id, uint8_t flags);
 
-void LogTcpDataLogRegister (void) {
-    OutputRegisterStreamingModule(LOGGER_TCP_DATA, MODULE_NAME, "tcp-data",
-        LogTcpDataLogInitCtx, LogTcpDataLogger, STREAMING_TCP_DATA,
-        LogTcpDataLogThreadInit, LogTcpDataLogThreadDeinit, NULL);
+void LogTcpDataLogRegister(void)
+{
+    OutputRegisterStreamingModule(LOGGER_TCP_DATA, MODULE_NAME, "tcp-data", LogTcpDataLogInitCtx,
+            LogTcpDataLogger, STREAMING_TCP_DATA, LogTcpDataLogThreadInit,
+            LogTcpDataLogThreadDeinit, NULL);
     OutputRegisterStreamingModule(LOGGER_TCP_DATA, MODULE_NAME, "http-body-data",
-        LogTcpDataLogInitCtx, LogTcpDataLogger, STREAMING_HTTP_BODIES,
-        LogTcpDataLogThreadInit, LogTcpDataLogThreadDeinit, NULL);
+            LogTcpDataLogInitCtx, LogTcpDataLogger, STREAMING_HTTP_BODIES, LogTcpDataLogThreadInit,
+            LogTcpDataLogThreadDeinit, NULL);
 }
 
 typedef struct LogTcpDataFileCtx_ {
@@ -91,13 +93,11 @@ static int LogTcpDataLoggerDir(ThreadVars *tv, void *thread_data, const Flow *f,
 
         char tx[64] = { 0 };
         if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION) {
-            snprintf(tx, sizeof(tx), "%"PRIu64, tx_id);
+            snprintf(tx, sizeof(tx), "%" PRIu64, tx_id);
         }
 
-        snprintf(name, sizeof(name), "%s/%s/%s_%u-%s_%u-%s-%s.data",
-                td->log_dir,
-                td->type == STREAMING_HTTP_BODIES ? "http" : "tcp",
-                srcip, f->sp, dstip, f->dp, tx,
+        snprintf(name, sizeof(name), "%s/%s/%s_%u-%s_%u-%s-%s.data", td->log_dir,
+                td->type == STREAMING_HTTP_BODIES ? "http" : "tcp", srcip, f->sp, dstip, f->dp, tx,
                 flags & OUTPUT_STREAMING_FLAG_TOSERVER ? "ts" : "tc");
 
         FILE *fp = fopen(name, mode);
@@ -131,16 +131,15 @@ static int LogTcpDataLoggerFile(ThreadVars *tv, void *thread_data, const Flow *f
         }
 
         char name[PATH_MAX];
-        snprintf(name, sizeof(name), "%s_%u-%s_%u-%s:",
-                srcip, f->sp, dstip, f->dp,
+        snprintf(name, sizeof(name), "%s_%u-%s_%u-%s:", srcip, f->sp, dstip, f->dp,
                 flags & OUTPUT_STREAMING_FLAG_TOSERVER ? "ts" : "tc");
 
-        PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                aft->buffer->size, (uint8_t *)name,strlen(name));
+        PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                (uint8_t *)name, strlen(name));
         MemBufferWriteString(aft->buffer, "\n");
 
-        PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset,
-                aft->buffer->size, (uint8_t *)data,data_len);
+        PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                (uint8_t *)data, data_len);
 
         td->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
                 MEMBUFFER_OFFSET(aft->buffer), td->file_ctx);
@@ -148,8 +147,8 @@ static int LogTcpDataLoggerFile(ThreadVars *tv, void *thread_data, const Flow *f
     SCReturnInt(TM_ECODE_OK);
 }
 
-int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f,
-        const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags)
+int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data,
+        uint32_t data_len, uint64_t tx_id, uint8_t flags)
 {
     SCEnter();
     LogTcpDataLogThread *aft = thread_data;
@@ -169,8 +168,7 @@ TmEcode LogTcpDataLogThreadInit(ThreadVars *t, const void *initdata, void **data
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
 
-    if(initdata == NULL)
-    {
+    if (initdata == NULL) {
         SCLogDebug("Error getting context. \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
@@ -183,7 +181,7 @@ TmEcode LogTcpDataLogThreadInit(ThreadVars *t, const void *initdata, void **data
     }
 
     /* Use the Output Context (file pointer and mutex) */
-    aft->tcpdatalog_ctx= ((OutputCtx *)initdata)->data;
+    aft->tcpdatalog_ctx = ((OutputCtx *)initdata)->data;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -216,7 +214,7 @@ OutputInitResult LogTcpDataLogInitCtx(ConfNode *conf)
     strlcpy(filename, DEFAULT_LOG_FILENAME, sizeof(filename));
 
     LogFileCtx *file_ctx = LogFileNewCtx();
-    if(file_ctx == NULL) {
+    if (file_ctx == NULL) {
         SCLogError("couldn't create new file_ctx");
         return result;
     }
@@ -299,7 +297,6 @@ parsererror:
     SCFree(tcpdatalog_ctx);
     SCLogError("Syntax error in custom http log format string.");
     return result;
-
 }
 
 static void LogTcpDataLogDeInitCtx(OutputCtx *output_ctx)

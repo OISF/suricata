@@ -27,13 +27,12 @@
  * \test signature with an invalid pcrexform value.
  */
 
-static int DetectTransformPcrexformParseTest01 (void)
+static int DetectTransformPcrexformParseTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-            "alert tcp any any <> any 1 pcrexform:\"[\";");
+    Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any <> any 1 pcrexform:\"[\";");
     FAIL_IF_NOT_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -44,13 +43,14 @@ static int DetectTransformPcrexformParseTest01 (void)
  * \test signature with a valid pcrexform value.
  */
 
-static int DetectTransformPcrexformParseTest02 (void)
+static int DetectTransformPcrexformParseTest02(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
     Signature *sig = DetectEngineAppendSig(de_ctx,
-            "alert http any any -> any any (msg:\"HTTP with pcrexform\"; http.request_line; pcrexform:\"[a-zA-Z]+\\s+(.*)\\s+HTTP\"; content:\"/z4d4kWk.jpg\"; sid:1;)");
+            "alert http any any -> any any (msg:\"HTTP with pcrexform\"; http.request_line; "
+            "pcrexform:\"[a-zA-Z]+\\s+(.*)\\s+HTTP\"; content:\"/z4d4kWk.jpg\"; sid:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);

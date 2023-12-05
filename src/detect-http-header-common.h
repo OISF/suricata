@@ -26,8 +26,8 @@
 
 typedef struct HttpHeaderBuffer_ {
     uint8_t *buffer;
-    uint32_t size;      /**< buffer size */
-    uint32_t len;       /**< part of buffer in use */
+    uint32_t size; /**< buffer size */
+    uint32_t len;  /**< part of buffer in use */
 } HttpHeaderBuffer;
 
 typedef struct HttpHeaderThreadConfig_ {
@@ -35,8 +35,8 @@ typedef struct HttpHeaderThreadConfig_ {
 } HttpHeaderThreadDataConfig;
 
 typedef struct HttpHeaderThreadData_ {
-    HttpHeaderBuffer buffer;    /**< array of buffers */
-    uint16_t size_step;         /**< increase size of HttpHeaderBuffer::buffer with this */
+    HttpHeaderBuffer buffer; /**< array of buffers */
+    uint16_t size_step;      /**< increase size of HttpHeaderBuffer::buffer with this */
 } HttpHeaderThreadData;
 
 void *HttpHeaderThreadDataInit(void *data);
@@ -45,7 +45,6 @@ void HttpHeaderThreadDataFree(void *data);
 HttpHeaderBuffer *HttpHeaderGetBufferSpace(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
         const int keyword_id, HttpHeaderThreadData **ret_hdr_td);
 
-int HttpHeaderExpandBuffer(HttpHeaderThreadData *td,
-        HttpHeaderBuffer *buf, uint32_t size);
+int HttpHeaderExpandBuffer(HttpHeaderThreadData *td, HttpHeaderBuffer *buf, uint32_t size);
 
 #endif /* __DETECT_HTTP_HEADER_COMMON_H__ */

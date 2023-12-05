@@ -52,8 +52,7 @@ void RegisterMQTTParsers(void)
         rs_mqtt_register_parser(max_msg_len);
     }
 #ifdef UNITTESTS
-    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_MQTT,
-        MQTTParserRegisterTests);
+    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_MQTT, MQTTParserRegisterTests);
 #endif
 }
 

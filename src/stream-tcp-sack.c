@@ -51,7 +51,8 @@ static void StreamTcpSackPrintList(TcpStream *stream)
 {
     SCLogDebug("size %u", stream->sack_size);
     StreamTcpSackRecord *rec = NULL;
-    RB_FOREACH(rec, TCPSACK, &stream->sack_tree) {
+    RB_FOREACH(rec, TCPSACK, &stream->sack_tree)
+    {
         SCLogDebug("- record %8u - %8u", rec->le, rec->re);
     }
 }
@@ -76,10 +77,11 @@ static inline void StreamTcpSackRecordFree(StreamTcpSackRecord *rec)
     StreamTcpDecrMemuse((uint64_t)sizeof(*rec));
 }
 
-static inline void ConsolidateFwd(TcpStream *stream, struct TCPSACK *tree, struct StreamTcpSackRecord *sa)
+static inline void ConsolidateFwd(
+        TcpStream *stream, struct TCPSACK *tree, struct StreamTcpSackRecord *sa)
 {
     struct StreamTcpSackRecord *tr, *s = sa;
-    RB_FOREACH_FROM(tr, TCPSACK, s) {
+    RB_FOREACH_FROM (tr, TCPSACK, s) {
         if (sa == tr)
             continue;
         SCLogDebug("-> (fwd) tr %p %u/%u", tr, tr->le, tr->re);
@@ -96,28 +98,28 @@ static inline void ConsolidateFwd(TcpStream *stream, struct TCPSACK *tree, struc
             SCLogDebug("-> (fwd) tr %p %u/%u REMOVED ECLIPSED2", tr, tr->le, tr->re);
             TCPSACK_RB_REMOVE(tree, tr);
             StreamTcpSackRecordFree(tr);
-        /*
-            sa: [         ]
-            tr: [         ]
-            sa: [         ]
-            tr:    [      ]
-            sa: [         ]
-            tr:    [   ]
-        */
+            /*
+                sa: [         ]
+                tr: [         ]
+                sa: [         ]
+                tr:    [      ]
+                sa: [         ]
+                tr:    [   ]
+            */
         } else if (SEQ_LEQ(sa->le, tr->le) && SEQ_GEQ(sa->re, tr->re)) {
             SCLogDebug("-> (fwd) tr %p %u/%u REMOVED ECLIPSED", tr, tr->le, tr->re);
             stream->sack_size -= (tr->re - tr->le);
             TCPSACK_RB_REMOVE(tree, tr);
             StreamTcpSackRecordFree(tr);
-        /*
-            sa: [         ]
-            tr:      [         ]
-            sa: [       ]
-            tr:         [       ]
-        */
-        } else if (SEQ_LT(sa->le, tr->le) && // starts before
+            /*
+                sa: [         ]
+                tr:      [         ]
+                sa: [       ]
+                tr:         [       ]
+            */
+        } else if (SEQ_LT(sa->le, tr->le) &&                         // starts before
                    SEQ_GEQ(sa->re, tr->le) && SEQ_LT(sa->re, tr->re) // ends inside
-            ) {
+        ) {
             // merge
             stream->sack_size -= (tr->re - tr->le);
             stream->sack_size -= (sa->re - sa->le);
@@ -130,11 +132,11 @@ static inline void ConsolidateFwd(TcpStream *stream, struct TCPSACK *tree, struc
     }
 }
 
-static inline void ConsolidateBackward(TcpStream *stream,
-        struct TCPSACK *tree, struct StreamTcpSackRecord *sa)
+static inline void ConsolidateBackward(
+        TcpStream *stream, struct TCPSACK *tree, struct StreamTcpSackRecord *sa)
 {
     struct StreamTcpSackRecord *tr, *s = sa;
-    RB_FOREACH_REVERSE_FROM(tr, TCPSACK, s) {
+    RB_FOREACH_REVERSE_FROM (tr, TCPSACK, s) {
         if (sa == tr)
             continue;
         SCLogDebug("-> (bwd) tr %p %u/%u", tr, tr->le, tr->re);
@@ -150,26 +152,26 @@ static inline void ConsolidateBackward(TcpStream *stream,
             SCLogDebug("-> (bwd) tr %p %u/%u REMOVED ECLIPSED2", tr, tr->le, tr->re);
             TCPSACK_RB_REMOVE(tree, tr);
             StreamTcpSackRecordFree(tr);
-        /*
-            sa: [         ]
-            tr: [         ]
-            sa:    [      ]
-            tr: [         ]
-            sa:    [   ]
-            tr: [         ]
-        */
+            /*
+                sa: [         ]
+                tr: [         ]
+                sa:    [      ]
+                tr: [         ]
+                sa:    [   ]
+                tr: [         ]
+            */
         } else if (SEQ_LEQ(sa->le, tr->le) && SEQ_GEQ(sa->re, tr->re)) {
             SCLogDebug("-> (bwd) tr %p %u/%u REMOVED ECLIPSED", tr, tr->le, tr->re);
             stream->sack_size -= (tr->re - tr->le);
             TCPSACK_RB_REMOVE(tree, tr);
             StreamTcpSackRecordFree(tr);
-        /*
-            sa:     [   ]
-            tr: [   ]
-            sa:    [    ]
-            tr: [   ]
-        */
-        } else if (SEQ_GT(sa->le, tr->le) && SEQ_GT(sa->re, tr->re) && SEQ_LEQ(sa->le,tr->re)) {
+            /*
+                sa:     [   ]
+                tr: [   ]
+                sa:    [    ]
+                tr: [   ]
+            */
+        } else if (SEQ_GT(sa->le, tr->le) && SEQ_GT(sa->re, tr->re) && SEQ_LEQ(sa->le, tr->re)) {
             // merge
             stream->sack_size -= (tr->re - tr->le);
             stream->sack_size -= (sa->re - sa->le);
@@ -295,8 +297,7 @@ int StreamTcpSackUpdatePacket(TcpStream *stream, Packet *p)
         }
 
         if (SEQ_GT(re, stream->next_win)) {
-            SCLogDebug("record %u:%u beyond next_win %u",
-                    le, re, stream->next_win);
+            SCLogDebug("record %u:%u beyond next_win %u", le, re, stream->next_win);
             goto next;
         }
 
@@ -403,7 +404,7 @@ void StreamTcpSackPruneList(TcpStream *stream)
     SCEnter();
 
     StreamTcpSackRecord *rec = NULL, *safe = NULL;
-    RB_FOREACH_SAFE(rec, TCPSACK, &stream->sack_tree, safe) {
+    RB_FOREACH_SAFE (rec, TCPSACK, &stream->sack_tree, safe) {
         if (SEQ_LT(rec->re, stream->last_ack)) {
             SCLogDebug("removing le %u re %u", rec->le, rec->re);
             stream->sack_size -= (rec->re - rec->le);
@@ -438,7 +439,7 @@ void StreamTcpSackFreeList(TcpStream *stream)
     SCEnter();
 
     StreamTcpSackRecord *rec = NULL, *safe = NULL;
-    RB_FOREACH_SAFE(rec, TCPSACK, &stream->sack_tree, safe) {
+    RB_FOREACH_SAFE (rec, TCPSACK, &stream->sack_tree, safe) {
         stream->sack_size -= (rec->re - rec->le);
         TCPSACK_RB_REMOVE(&stream->sack_tree, rec);
         StreamTcpSackRecordFree(rec);
@@ -446,7 +447,6 @@ void StreamTcpSackFreeList(TcpStream *stream)
 
     SCReturn;
 }
-
 
 #ifdef UNITTESTS
 
@@ -456,7 +456,7 @@ void StreamTcpSackFreeList(TcpStream *stream)
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpSackTest01 (void)
+static int StreamTcpSackTest01(void)
 {
     TcpStream stream;
     memset(&stream, 0, sizeof(stream));
@@ -491,7 +491,7 @@ static int StreamTcpSackTest01 (void)
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpSackTest02 (void)
+static int StreamTcpSackTest02(void)
 {
     TcpStream stream;
     memset(&stream, 0, sizeof(stream));
@@ -520,14 +520,14 @@ static int StreamTcpSackTest02 (void)
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpSackTest03 (void)
+static int StreamTcpSackTest03(void)
 {
     TcpStream stream;
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
     StreamTcpSackInsertRange(&stream, 10, 20);
-    StreamTcpSackInsertRange(&stream,  5, 15);
+    StreamTcpSackInsertRange(&stream, 5, 15);
 #ifdef DEBUG
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
@@ -553,13 +553,13 @@ static int StreamTcpSackTest03 (void)
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpSackTest04 (void)
+static int StreamTcpSackTest04(void)
 {
     TcpStream stream;
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
-    StreamTcpSackInsertRange(&stream, 0,  20);
+    StreamTcpSackInsertRange(&stream, 0, 20);
     StreamTcpSackInsertRange(&stream, 30, 50);
     StreamTcpSackInsertRange(&stream, 10, 25);
 #ifdef DEBUG
@@ -583,13 +583,13 @@ static int StreamTcpSackTest04 (void)
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpSackTest05 (void)
+static int StreamTcpSackTest05(void)
 {
     TcpStream stream;
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
-    StreamTcpSackInsertRange(&stream, 0,  20);
+    StreamTcpSackInsertRange(&stream, 0, 20);
     StreamTcpSackInsertRange(&stream, 30, 50);
     StreamTcpSackInsertRange(&stream, 10, 35);
 #ifdef DEBUG
@@ -613,13 +613,13 @@ static int StreamTcpSackTest05 (void)
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpSackTest06 (void)
+static int StreamTcpSackTest06(void)
 {
     TcpStream stream;
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
-    StreamTcpSackInsertRange(&stream, 0,  9);
+    StreamTcpSackInsertRange(&stream, 0, 9);
     StreamTcpSackInsertRange(&stream, 11, 19);
     StreamTcpSackInsertRange(&stream, 21, 29);
     StreamTcpSackInsertRange(&stream, 31, 39);
@@ -645,13 +645,13 @@ static int StreamTcpSackTest06 (void)
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpSackTest07 (void)
+static int StreamTcpSackTest07(void)
 {
     TcpStream stream;
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
-    StreamTcpSackInsertRange(&stream, 0,  9);
+    StreamTcpSackInsertRange(&stream, 0, 9);
     StreamTcpSackInsertRange(&stream, 11, 19);
     StreamTcpSackInsertRange(&stream, 21, 29);
     StreamTcpSackInsertRange(&stream, 31, 39);
@@ -680,13 +680,13 @@ static int StreamTcpSackTest07 (void)
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpSackTest08 (void)
+static int StreamTcpSackTest08(void)
 {
     TcpStream stream;
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
-    StreamTcpSackInsertRange(&stream, 0,  9);
+    StreamTcpSackInsertRange(&stream, 0, 9);
     StreamTcpSackInsertRange(&stream, 11, 19);
     StreamTcpSackInsertRange(&stream, 21, 29);
     StreamTcpSackInsertRange(&stream, 31, 39);
@@ -715,13 +715,13 @@ static int StreamTcpSackTest08 (void)
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpSackTest09 (void)
+static int StreamTcpSackTest09(void)
 {
     TcpStream stream;
     memset(&stream, 0, sizeof(stream));
     stream.window = 100;
 
-    StreamTcpSackInsertRange(&stream, 0,  9);
+    StreamTcpSackInsertRange(&stream, 0, 9);
     StreamTcpSackInsertRange(&stream, 11, 19);
     StreamTcpSackInsertRange(&stream, 21, 29);
     StreamTcpSackInsertRange(&stream, 31, 39);
@@ -751,7 +751,7 @@ static int StreamTcpSackTest09 (void)
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpSackTest10 (void)
+static int StreamTcpSackTest10(void)
 {
     TcpStream stream;
     memset(&stream, 0, sizeof(stream));
@@ -786,7 +786,7 @@ static int StreamTcpSackTest10 (void)
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpSackTest11 (void)
+static int StreamTcpSackTest11(void)
 {
     TcpStream stream;
     memset(&stream, 0, sizeof(stream));
@@ -821,7 +821,7 @@ static int StreamTcpSackTest11 (void)
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpSackTest12 (void)
+static int StreamTcpSackTest12(void)
 {
     TcpStream stream;
     memset(&stream, 0, sizeof(stream));
@@ -859,14 +859,15 @@ static int StreamTcpSackTest12 (void)
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpSackTest13 (void) {
+static int StreamTcpSackTest13(void)
+{
     TcpStream stream;
     memset(&stream, 0, sizeof(stream));
     stream.last_ack = 10000;
     stream.window = 2000;
 
     for (int i = 0; i < 10; i++) {
-        StreamTcpSackInsertRange(&stream, 100+(20*i), 110+(20*i));
+        StreamTcpSackInsertRange(&stream, 100 + (20 * i), 110 + (20 * i));
     }
 #ifdef DEBUG
     StreamTcpSackPrintList(&stream);
@@ -884,14 +885,15 @@ static int StreamTcpSackTest13 (void) {
  *  \retval On success it returns 1 and on failure 0.
  */
 
-static int StreamTcpSackTest14 (void) {
+static int StreamTcpSackTest14(void)
+{
     TcpStream stream;
     memset(&stream, 0, sizeof(stream));
     stream.last_ack = 1000;
     stream.window = 2000;
 
     for (int i = 0; i < 10; i++) {
-        StreamTcpSackInsertRange(&stream, 4000+(20*i), 4010+(20*i));
+        StreamTcpSackInsertRange(&stream, 4000 + (20 * i), 4010 + (20 * i));
     }
 #ifdef DEBUG
     StreamTcpSackPrintList(&stream);
@@ -905,7 +907,7 @@ static int StreamTcpSackTest14 (void) {
 
 #endif /* UNITTESTS */
 
-void StreamTcpSackRegisterTests (void)
+void StreamTcpSackRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("StreamTcpSackTest01 -- Insertion", StreamTcpSackTest01);
@@ -918,13 +920,9 @@ void StreamTcpSackRegisterTests (void)
     UtRegisterTest("StreamTcpSackTest08 -- Pruning", StreamTcpSackTest08);
     UtRegisterTest("StreamTcpSackTest09 -- Pruning", StreamTcpSackTest09);
     UtRegisterTest("StreamTcpSackTest10 -- Pruning", StreamTcpSackTest10);
-    UtRegisterTest("StreamTcpSackTest11 -- Insertion && Pruning",
-                   StreamTcpSackTest11);
-    UtRegisterTest("StreamTcpSackTest12 -- Insertion && Pruning",
-                   StreamTcpSackTest12);
-    UtRegisterTest("StreamTcpSackTest13 -- Insertion out of window",
-                   StreamTcpSackTest13);
-    UtRegisterTest("StreamTcpSackTest14 -- Insertion out of window",
-                   StreamTcpSackTest14);
+    UtRegisterTest("StreamTcpSackTest11 -- Insertion && Pruning", StreamTcpSackTest11);
+    UtRegisterTest("StreamTcpSackTest12 -- Insertion && Pruning", StreamTcpSackTest12);
+    UtRegisterTest("StreamTcpSackTest13 -- Insertion out of window", StreamTcpSackTest13);
+    UtRegisterTest("StreamTcpSackTest14 -- Insertion out of window", StreamTcpSackTest14);
 #endif
 }

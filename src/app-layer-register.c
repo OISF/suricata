@@ -33,7 +33,7 @@
 
 #include "app-layer-register.h"
 
-static const char * IpProtoToString(int ip_proto);
+static const char *IpProtoToString(int ip_proto);
 
 AppProto AppLayerRegisterProtocolDetection(const struct AppLayerParser *p, int enable_default)
 {
@@ -65,30 +65,24 @@ AppProto AppLayerRegisterProtocolDetection(const struct AppLayerParser *p, int e
     if (RunmodeIsUnittests()) {
 
         SCLogDebug("Unittest mode, registering default configuration.");
-        AppLayerProtoDetectPPRegister(p->ip_proto, p->default_port,
-                alproto, p->min_depth, p->max_depth, STREAM_TOSERVER,
-                p->ProbeTS, p->ProbeTC);
+        AppLayerProtoDetectPPRegister(p->ip_proto, p->default_port, alproto, p->min_depth,
+                p->max_depth, STREAM_TOSERVER, p->ProbeTS, p->ProbeTC);
 
-    }
-    else {
+    } else {
 
-        if (!AppLayerProtoDetectPPParseConfPorts(ip_proto_str, p->ip_proto,
-                    p->name, alproto, p->min_depth, p->max_depth,
-                    p->ProbeTS, p->ProbeTC)) {
+        if (!AppLayerProtoDetectPPParseConfPorts(ip_proto_str, p->ip_proto, p->name, alproto,
+                    p->min_depth, p->max_depth, p->ProbeTS, p->ProbeTC)) {
             if (enable_default != 0) {
                 SCLogDebug("No %s app-layer configuration, enabling %s"
-                        " detection %s detection on port %s.",
+                           " detection %s detection on port %s.",
                         p->name, p->name, ip_proto_str, p->default_port);
-                AppLayerProtoDetectPPRegister(p->ip_proto,
-                        p->default_port, alproto,
-                        p->min_depth, p->max_depth, STREAM_TOSERVER,
-                        p->ProbeTS, p->ProbeTC);
+                AppLayerProtoDetectPPRegister(p->ip_proto, p->default_port, alproto, p->min_depth,
+                        p->max_depth, STREAM_TOSERVER, p->ProbeTS, p->ProbeTC);
             } else {
-                SCLogDebug("No %s app-layer configuration for detection port (%s).",
-                        p->name, ip_proto_str);
+                SCLogDebug("No %s app-layer configuration for detection port (%s).", p->name,
+                        ip_proto_str);
             }
         }
-
     }
 
     return alproto;
@@ -114,58 +108,47 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
 
     /* Register functions for state allocation and freeing. A
      * state is allocated for every new flow. */
-    AppLayerParserRegisterStateFuncs(p->ip_proto, alproto,
-        p->StateAlloc, p->StateFree);
+    AppLayerParserRegisterStateFuncs(p->ip_proto, alproto, p->StateAlloc, p->StateFree);
 
     /* Register request parser for parsing frame from server to server. */
-    AppLayerParserRegisterParser(p->ip_proto, alproto,
-        STREAM_TOSERVER, p->ParseTS);
+    AppLayerParserRegisterParser(p->ip_proto, alproto, STREAM_TOSERVER, p->ParseTS);
 
     /* Register response parser for parsing frames from server to client. */
-    AppLayerParserRegisterParser(p->ip_proto, alproto,
-        STREAM_TOCLIENT, p->ParseTC);
+    AppLayerParserRegisterParser(p->ip_proto, alproto, STREAM_TOCLIENT, p->ParseTC);
 
     /* Register a function to be called by the application layer
      * when a transaction is to be freed. */
-    AppLayerParserRegisterTxFreeFunc(p->ip_proto, alproto,
-        p->StateTransactionFree);
+    AppLayerParserRegisterTxFreeFunc(p->ip_proto, alproto, p->StateTransactionFree);
 
     /* Register a function to return the current transaction count. */
-    AppLayerParserRegisterGetTxCnt(p->ip_proto, alproto,
-        p->StateGetTxCnt);
+    AppLayerParserRegisterGetTxCnt(p->ip_proto, alproto, p->StateGetTxCnt);
 
     /* Transaction handling. */
     AppLayerParserRegisterStateProgressCompletionStatus(alproto, p->complete_ts, p->complete_tc);
 
-    AppLayerParserRegisterGetStateProgressFunc(p->ip_proto, alproto,
-        p->StateGetProgress);
-    AppLayerParserRegisterGetTx(p->ip_proto, alproto,
-        p->StateGetTx);
+    AppLayerParserRegisterGetStateProgressFunc(p->ip_proto, alproto, p->StateGetProgress);
+    AppLayerParserRegisterGetTx(p->ip_proto, alproto, p->StateGetTx);
 
     if (p->StateGetEventInfo) {
-        AppLayerParserRegisterGetEventInfo(p->ip_proto, alproto,
-                p->StateGetEventInfo);
+        AppLayerParserRegisterGetEventInfo(p->ip_proto, alproto, p->StateGetEventInfo);
     }
     if (p->StateGetEventInfoById) {
-        AppLayerParserRegisterGetEventInfoById(p->ip_proto, alproto,
-                p->StateGetEventInfoById);
+        AppLayerParserRegisterGetEventInfoById(p->ip_proto, alproto, p->StateGetEventInfoById);
     }
     if (p->LocalStorageAlloc && p->LocalStorageFree) {
-        AppLayerParserRegisterLocalStorageFunc(p->ip_proto, alproto,
-                p->LocalStorageAlloc, p->LocalStorageFree);
+        AppLayerParserRegisterLocalStorageFunc(
+                p->ip_proto, alproto, p->LocalStorageAlloc, p->LocalStorageFree);
     }
     if (p->GetTxFiles) {
         AppLayerParserRegisterGetTxFilesFunc(p->ip_proto, alproto, p->GetTxFiles);
     }
 
     if (p->GetTxIterator) {
-        AppLayerParserRegisterGetTxIterator(p->ip_proto, alproto,
-                p->GetTxIterator);
+        AppLayerParserRegisterGetTxIterator(p->ip_proto, alproto, p->GetTxIterator);
     }
 
     if (p->GetTxData) {
-        AppLayerParserRegisterTxDataFunc(p->ip_proto, alproto,
-                p->GetTxData);
+        AppLayerParserRegisterTxDataFunc(p->ip_proto, alproto, p->GetTxData);
     }
 
     if (p->GetStateData) {
@@ -173,14 +156,11 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
     }
 
     if (p->ApplyTxConfig) {
-        AppLayerParserRegisterApplyTxConfigFunc(p->ip_proto, alproto,
-                p->ApplyTxConfig);
+        AppLayerParserRegisterApplyTxConfigFunc(p->ip_proto, alproto, p->ApplyTxConfig);
     }
 
     if (p->flags) {
-        AppLayerParserRegisterOptionFlags(p->ip_proto, alproto,
-                p->flags);
-
+        AppLayerParserRegisterOptionFlags(p->ip_proto, alproto, p->flags);
     }
 
     if (p->Truncate) {
@@ -202,7 +182,7 @@ int AppLayerRegisterParserAlias(const char *proto_name, const char *proto_alias)
     return 0;
 }
 
-static const char * IpProtoToString(int ip_proto)
+static const char *IpProtoToString(int ip_proto)
 {
     switch (ip_proto) {
         case IPPROTO_TCP:
@@ -212,5 +192,4 @@ static const char * IpProtoToString(int ip_proto)
         default:
             return NULL;
     };
-
 }

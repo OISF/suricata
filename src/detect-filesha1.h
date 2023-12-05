@@ -26,6 +26,6 @@
 #define __DETECT_FILESHA1_H__
 
 /* prototypes */
-void DetectFileSha1Register (void);
+void DetectFileSha1Register(void);
 
 #endif /* __DETECT_FILESHA1_H__ */

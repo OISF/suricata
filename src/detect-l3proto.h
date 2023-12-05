@@ -28,6 +28,6 @@
 /**
  * \brief Registration function for ip_proto keyword.
  */
-void DetectL3ProtoRegister (void);
+void DetectL3ProtoRegister(void);
 
 #endif /* __DETECT_L3PROTO_H__ */

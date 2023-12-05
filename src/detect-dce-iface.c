@@ -49,13 +49,14 @@
 
 #include "rust.h"
 
-#define PARSE_REGEX "^\\s*([0-9a-zA-Z]{8}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{12})(?:\\s*,\\s*(<|>|=|!)([0-9]{1,5}))?(?:\\s*,\\s*(any_frag))?\\s*$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*([0-9a-zA-Z]{8}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{12})(?:\\s*,"   \
+    "\\s*(<|>|=|!)([0-9]{1,5}))?(?:\\s*,\\s*(any_frag))?\\s*$"
 
 static DetectParseRegex parse_regex;
 
-static int DetectDceIfaceMatchRust(DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, void *txv,
-        const Signature *s, const SigMatchCtx *m);
+static int DetectDceIfaceMatchRust(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *m);
 static int DetectDceIfaceSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectDceIfaceFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
@@ -72,7 +73,7 @@ void DetectDceIfaceRegister(void)
     sigmatch_table[DETECT_DCE_IFACE].alias = "dce_iface";
     sigmatch_table[DETECT_DCE_IFACE].AppLayerTxMatch = DetectDceIfaceMatchRust;
     sigmatch_table[DETECT_DCE_IFACE].Setup = DetectDceIfaceSetup;
-    sigmatch_table[DETECT_DCE_IFACE].Free  = DetectDceIfaceFree;
+    sigmatch_table[DETECT_DCE_IFACE].Free = DetectDceIfaceFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_DCE_IFACE].RegisterTests = DetectDceIfaceRegisterTests;
 #endif
@@ -105,9 +106,8 @@ void DetectDceIfaceRegister(void)
  * \retval 1 On Match.
  * \retval 0 On no match.
  */
-static int DetectDceIfaceMatchRust(DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, void *txv,
-        const Signature *s, const SigMatchCtx *m)
+static int DetectDceIfaceMatchRust(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 

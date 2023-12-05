@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -63,15 +62,15 @@
 #include "detect-http-header.h"
 #include "stream-tcp.h"
 
-#define KEYWORD_NAME "http.header_names"
+#define KEYWORD_NAME        "http.header_names"
 #define KEYWORD_NAME_LEGACY "http_header_names"
-#define KEYWORD_DOC "http-keywords.html#http-header-names"
-#define BUFFER_NAME "http_header_names"
-#define BUFFER_DESC "http header names"
+#define KEYWORD_DOC         "http-keywords.html#http-header-names"
+#define BUFFER_NAME         "http_header_names"
+#define BUFFER_DESC         "http header names"
 static int g_buffer_id = 0;
 static int g_keyword_thread_id = 0;
 
-#define BUFFER_SIZE_STEP    256
+#define BUFFER_SIZE_STEP 256
 static HttpHeaderThreadDataConfig g_td_config = { BUFFER_SIZE_STEP };
 
 static uint8_t *GetBufferForTX(
@@ -112,8 +111,8 @@ static uint8_t *GetBufferForTX(
         if (i + 1 == no_of_headers)
             size += 2;
 
-        SCLogDebug("size %"PRIuMAX" + buf->len %u vs buf->size %u",
-                (uintmax_t)size, buf->len, buf->size);
+        SCLogDebug("size %" PRIuMAX " + buf->len %u vs buf->size %u", (uintmax_t)size, buf->len,
+                buf->size);
         if (size + buf->len > buf->size) {
             if (HttpHeaderExpandBuffer(hdr_td, buf, size) != 0) {
                 return NULL;
@@ -216,7 +215,8 @@ void DetectHttpHeaderNamesRegister(void)
     sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].Setup = DetectHttpHeaderNamesSetup;
 
-    sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].flags |=
+            SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     /* http1 */
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
@@ -240,16 +240,14 @@ void DetectHttpHeaderNamesRegister(void)
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
             HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
 
-    DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
-            BUFFER_DESC);
+    DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 
-    g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs(KEYWORD_NAME,
-            HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
+    g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs(
+            KEYWORD_NAME, HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
 
     SCLogDebug("keyword %s registered. Thread id %d. "
-            "Buffer %s registered. Buffer id %d",
-            KEYWORD_NAME, g_keyword_thread_id,
-            BUFFER_NAME, g_buffer_id);
+               "Buffer %s registered. Buffer id %d",
+            KEYWORD_NAME, g_keyword_thread_id, BUFFER_NAME, g_buffer_id);
 }

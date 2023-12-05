@@ -24,7 +24,6 @@
 #ifndef __DETECT_REFERENCE_H__
 #define __DETECT_REFERENCE_H__
 
-
 /**
  * \brief Signature reference list.
  */

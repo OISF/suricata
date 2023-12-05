@@ -200,7 +200,6 @@ static int FlowStorageTest02(void)
         goto error;
     }
 
-
     FlowClearMemory(f, 0);
     FlowFree(f);
     FlowShutdown();

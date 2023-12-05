@@ -47,8 +47,7 @@
  *
  * \retval New checksum.
  */
-uint16_t
-FixChecksum(uint16_t sum, uint16_t old, uint16_t new)
+uint16_t FixChecksum(uint16_t sum, uint16_t old, uint16_t new)
 {
     uint32_t l;
 

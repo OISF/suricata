@@ -39,7 +39,6 @@
 
 #include "rust.h"
 
-
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 static SuricataFileContext sfc = { &sbcfg };
 

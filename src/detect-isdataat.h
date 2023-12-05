@@ -30,12 +30,11 @@
 #define ISDATAAT_OFFSET_VAR 0x08
 
 typedef struct DetectIsdataatData_ {
-    uint16_t dataat;     /* data offset to match */
-    uint8_t flags; /* isdataat options*/
+    uint16_t dataat; /* data offset to match */
+    uint8_t flags;   /* isdataat options*/
 } DetectIsdataatData;
 
 /* prototypes */
-void DetectIsdataatRegister (void);
+void DetectIsdataatRegister(void);
 
 #endif /* __DETECT_ISDATAAT_H__ */
-
