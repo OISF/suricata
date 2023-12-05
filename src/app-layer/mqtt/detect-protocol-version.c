@@ -28,7 +28,7 @@
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-uint.h"
-#include "detect-mqtt-protocol-version.h"
+#include "app-layer/mqtt/detect-protocol-version.h"
 #include "util-byte.h"
 #include "util-unittest.h"
 

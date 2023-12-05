@@ -22,7 +22,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
@@ -41,8 +41,8 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-mqtt.h"
-#include "output-json-mqtt.h"
+#include "app-layer/mqtt/parser.h"
+#include "app-layer/mqtt/logger.h"
 #include "rust.h"
 
 #define MQTT_LOG_PASSWORDS BIT_U32(0)
