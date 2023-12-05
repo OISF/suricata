@@ -19,7 +19,7 @@
  *
  * \author Sascha Steinbiss <sascha@steinbiss.name>
  *
- * Implements the mqtt.publish.topic sticky buffer
+ * Implements the mqtt.publish.message sticky buffer
  */
 
 #include "suricata-common.h"
@@ -28,16 +28,16 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
-#include "detect-mqtt-publish-topic.h"
+#include "app-layer/mqtt/detect-publish-message.h"
 #include "rust.h"
 
-#define KEYWORD_NAME "mqtt.publish.topic"
-#define KEYWORD_DOC  "mqtt-keywords.html#mqtt-publish-topic"
-#define BUFFER_NAME  "mqtt.publish.topic"
-#define BUFFER_DESC  "MQTT PUBLISH topic"
+#define KEYWORD_NAME "mqtt.publish.message"
+#define KEYWORD_DOC  "mqtt-keywords.html#mqtt-publish-message"
+#define BUFFER_NAME  "mqtt.publish.message"
+#define BUFFER_DESC  "MQTT PUBLISH message"
 static int g_buffer_id = 0;
 
-static int DetectMQTTPublishTopicSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+static int DetectMQTTPublishMessageSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     if (DetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
         return -1;
@@ -57,7 +57,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
 
-        if (rs_mqtt_tx_get_publish_topic(txv, &b, &b_len) != 1)
+        if (rs_mqtt_tx_get_publish_message(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -68,15 +68,15 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-void DetectMQTTPublishTopicRegister(void)
+void DetectMQTTPublishMessageRegister(void)
 {
-    /* mqtt.publish.topic sticky buffer */
-    sigmatch_table[DETECT_AL_MQTT_PUBLISH_TOPIC].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_MQTT_PUBLISH_TOPIC].desc =
-            "sticky buffer to match on the MQTT PUBLISH topic";
-    sigmatch_table[DETECT_AL_MQTT_PUBLISH_TOPIC].url = "/rules/" KEYWORD_DOC;
-    sigmatch_table[DETECT_AL_MQTT_PUBLISH_TOPIC].Setup = DetectMQTTPublishTopicSetup;
-    sigmatch_table[DETECT_AL_MQTT_PUBLISH_TOPIC].flags |= SIGMATCH_NOOPT;
+    /* mqtt.publish.message sticky buffer */
+    sigmatch_table[DETECT_AL_MQTT_PUBLISH_MESSAGE].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_AL_MQTT_PUBLISH_MESSAGE].desc =
+            "sticky buffer to match on the MQTT PUBLISH message";
+    sigmatch_table[DETECT_AL_MQTT_PUBLISH_MESSAGE].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_AL_MQTT_PUBLISH_MESSAGE].Setup = DetectMQTTPublishMessageSetup;
+    sigmatch_table[DETECT_AL_MQTT_PUBLISH_MESSAGE].flags |= SIGMATCH_NOOPT;
 
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_MQTT, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
