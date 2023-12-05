@@ -790,6 +790,7 @@ pub unsafe extern "C" fn rs_dns_parse_request_tcp(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
+    println!("lold");
     let state = cast_pointer!(state, DNSState);
     if stream_slice.is_gap() {
         state.request_gap(stream_slice.gap_size());

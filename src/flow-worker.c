@@ -391,6 +391,15 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
             p->flow->alstate = SCHttp2GetLayeredState(p->flow->alstate);
         }
         // run parsing, detection and logging
+        AppLayerParserParse(tv, NULL, p->flow, p->flow->alproto,
+                            (x->flowflags & FLOW_PKT_TOSERVER) ? STREAM_TOSERVER : STREAM_TOCLIENT, x->payload, x->payload_len);
+        if (detect_thread != NULL) {
+            FLOWWORKER_PROFILING_START(x, PROFILE_FLOWWORKER_DETECT);
+            Detect(tv, x, detect_thread);
+            FLOWWORKER_PROFILING_END(x, PROFILE_FLOWWORKER_DETECT);
+        }
+        OutputLoggerLog(tv, x, fw->output_thread);
+        FramesPrune(x->flow, x);
 
         // switch back to real protocol
         p->flow->alstate = alstate_orig;

@@ -755,7 +755,10 @@ pub fn http2_parse_frame_settings(i: &[u8]) -> IResult<&[u8], Vec<HTTP2FrameSett
 pub fn doh_extract_request(i: &[u8]) -> IResult<&[u8], Vec<u8>> {
     let (i, _) = tag("/dns-query?dns=")(i)?;
     match base64::decode(i) {
-        Ok(dec) => {
+        Ok(mut dec) => {
+            // adds 2 byte tcp header with length
+            dec.insert(0, (dec.len() >> 8) as u8);
+            dec.insert(0, (dec.len() & 0xFF) as u8);
             // i is unused
             return Ok((i, dec));
         }
