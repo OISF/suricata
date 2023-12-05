@@ -6478,7 +6478,8 @@ void StreamTcpSetSessionBypassFlag(TcpSession *ssn)
     ssn->flags |= STREAMTCP_FLAG_BYPASS;
 }
 
-Packet * PacketPseudoFromFlow(Flow *f, TcpSession *ssn, int dir) {
+Packet *PacketPseudoFromFlow(Flow *f, TcpSession *ssn, int dir)
+{
     Packet *np = PacketPoolGetPacket();
     if (np == NULL) {
         return NULL;
@@ -6647,9 +6648,8 @@ error:
  *  \param pq packet queue to store the new pseudo packet in
  *  \param dir 0 ts 1 tc
  */
-static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
-        StreamTcpThread *stt, Packet *parent,
-        TcpSession *ssn, PacketQueueNoLock *pq, int dir)
+static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt,
+        Packet *parent, TcpSession *ssn, PacketQueueNoLock *pq, int dir)
 {
     SCEnter();
     Flow *f = parent->flow;

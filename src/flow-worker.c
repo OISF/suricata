@@ -391,7 +391,8 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
         }
         // run parsing, detection and logging
         AppLayerParserParse(tv, NULL, p->flow, p->flow->alproto,
-                            (x->flowflags & FLOW_PKT_TOSERVER) ? STREAM_TOSERVER : STREAM_TOCLIENT, x->payload, x->payload_len);
+                (x->flowflags & FLOW_PKT_TOSERVER) ? STREAM_TOSERVER : STREAM_TOCLIENT, x->payload,
+                x->payload_len);
         if (detect_thread != NULL) {
             FLOWWORKER_PROFILING_START(x, PROFILE_FLOWWORKER_DETECT);
             Detect(tv, x, detect_thread);

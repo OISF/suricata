@@ -1397,12 +1397,11 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         }
 #endif
         /* invoke the parser */
-        void * storage = NULL;
+        void *storage = NULL;
         if (alp_tctx) {
             storage = alp_tctx->alproto_local_storage[f->protomap][alproto];
         }
-        AppLayerResult res = p->Parser[direction](f, alstate, pstate, stream_slice,
-                storage);
+        AppLayerResult res = p->Parser[direction](f, alstate, pstate, stream_slice, storage);
         if (res.status < 0) {
             AppLayerIncParserErrorCounter(tv, f);
             goto error;
@@ -1447,23 +1446,23 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         if (alproto == ALPROTO_HTTP2) {
             const uint8_t *b = NULL;
             uint32_t b_len = 0;
-            for (uint32_t i = 0; ; i++) {
+            for (uint32_t i = 0;; i++) {
                 if (!SCHttp2GetLayered(alstate, &b, &b_len, i)) {
                     SCHttp2ClearLayered(alstate);
                     break;
                 }
                 Packet *np = PacketPseudoFromFlow(f, f->protoctx, direction);
                 if (np == NULL) {
-                    //TODO log warning
+                    // TODO log warning
                     continue;
                 }
                 PKT_SET_SRC(np, PKT_SRC_APP_LAYER_LAYERED);
-                //TODO np->flags |= PKT_PSEUDO_DETECTLOG_FLUSH;
+                // TODO np->flags |= PKT_PSEUDO_DETECTLOG_FLUSH;
                 np->payload = SCMalloc(b_len);
                 memcpy(np->payload, b, b_len);
                 np->payload_len = b_len;
                 PacketEnqueueNoLock(&tv->decode_pq, np);
-                //TODO StatsIncr(tv, stt->counter_tcp_pseudo);
+                // TODO StatsIncr(tv, stt->counter_tcp_pseudo);
             }
         }
     }
