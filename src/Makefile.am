@@ -47,7 +47,7 @@ noinst_HEADERS = \
 	app-layer/rfb/parser.h \
 	app-layer/sip/parser.h \
 	app-layer/smb/parser.h \
-	app-layer-smtp.h \
+	app-layer/smtp/parser.h \
 	app-layer-snmp.h \
 	app-layer-ssh.h \
 	app-layer-ssl.h \
@@ -425,7 +425,7 @@ noinst_HEADERS = \
 	app-layer/rfb/logger.h \
 	app-layer/sip/logger.h \
 	app-layer/smb/logger.h \
-	output-json-smtp.h \
+	app-layer/smtp/logger.h \
 	output-json-snmp.h \
 	output-json-ssh.h \
 	output-json-stats.h \
@@ -568,7 +568,7 @@ noinst_HEADERS = \
 	util-lua-http.h \
 	util-lua-ja3.h \
 	util-luajit.h \
-	util-lua-smtp.h \
+	app-layer/smtp/lua.h \
 	util-lua-ssh.h \
 	util-lua-tls.h \
 	util-macset.h \
@@ -663,7 +663,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/rfb/parser.c \
 	app-layer/sip/parser.c \
 	app-layer/smb/parser.c \
-	app-layer-smtp.c \
+	app-layer/smtp/parser.c \
 	app-layer-snmp.c \
 	app-layer-ssh.c \
 	app-layer-ssl.c \
@@ -1037,7 +1037,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/rfb/logger.c \
 	app-layer/sip/logger.c \
 	app-layer/smb/logger.c \
-	output-json-smtp.c \
+	app-layer/smtp/logger.c \
 	output-json-snmp.c \
 	output-json-ssh.c \
 	output-json-stats.c \
@@ -1167,7 +1167,7 @@ libsuricata_c_a_SOURCES = \
 	util-lua-http.c \
 	util-lua-ja3.c \
 	util-luajit.c \
-	util-lua-smtp.c \
+	app-layer/smtp/lua.c \
 	util-lua-ssh.c \
 	util-lua-tls.c \
 	util-macset.c \

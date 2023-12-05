@@ -35,7 +35,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "app-layer-smtp.h"
+#include "app-layer/smtp/parser.h"
 
 #include "util-enum.h"
 #include "util-mpm.h"

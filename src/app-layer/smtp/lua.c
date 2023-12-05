@@ -34,7 +34,7 @@
 #include "tm-threads.h"
 #include "output.h"
 
-#include "app-layer-smtp.h"
+#include "app-layer/smtp/parser.h"
 
 #ifdef HAVE_LUA
 
@@ -43,7 +43,7 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
-#include "util-lua-smtp.h"
+#include "app-layer/smtp/lua.h"
 #include "util-file.h"
 
 /*

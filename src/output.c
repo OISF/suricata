@@ -61,7 +61,7 @@
 #include "output-json-ssh.h"
 #include "log-pcap.h"
 #include "output-json-file.h"
-#include "output-json-smtp.h"
+#include "app-layer/smtp/logger.h"
 #include "output-json-stats.h"
 #include "log-tcp-data.h"
 #include "log-stats.h"
