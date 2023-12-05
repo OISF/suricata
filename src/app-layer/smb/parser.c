@@ -31,7 +31,7 @@
 #include "util-unittest.h"
 
 #include "rust.h"
-#include "app-layer-smb.h"
+#include "app-layer/smb/parser.h"
 #include "util-misc.h"
 
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;

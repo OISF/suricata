@@ -70,7 +70,7 @@
 // for misplaced EveFTPDataAddMetadata
 #include "app-layer/ftp/parser.h"
 #include "app-layer/tftp/logger.h"
-#include "output-json-smb.h"
+#include "app-layer/smb/logger.h"
 #include "app-layer/ike/logger.h"
 #include "app-layer/krb5/logger.h"
 #include "app-layer/quic/logger.h"
