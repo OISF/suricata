@@ -33,7 +33,7 @@ noinst_HEADERS = \
 	app-layer/http/parser-xff.h \
 	app-layer/http2/parser.h \
 	app-layer/ike/parser.h \
-	app-layer-krb5.h \
+	app-layer/krb5/parser.h \
 	app-layer-modbus.h \
 	app-layer-quic.h \
 	app-layer-mqtt.h \
@@ -230,11 +230,11 @@ noinst_HEADERS = \
 	detect-ipv6hdr.h \
 	detect-isdataat.h \
 	detect-itype.h \
-	detect-krb5-cname.h \
-	detect-krb5-errcode.h \
-	detect-krb5-msgtype.h \
-	detect-krb5-sname.h \
-	detect-krb5-ticket-encryption.h \
+	app-layer/krb5/detect-cname.h \
+	app-layer/krb5/detect-errcode.h \
+	app-layer/krb5/detect-msgtype.h \
+	app-layer/krb5/detect-sname.h \
+	app-layer/krb5/detect-ticket-encryption.h \
 	detect-l3proto.h \
 	detect-lua-extensions.h \
 	detect-lua.h \
@@ -413,7 +413,7 @@ noinst_HEADERS = \
 	app-layer/http2/logger.h \
 	output-json-http.h \
 	app-layer/ike/logger.h \
-	output-json-krb5.h \
+	app-layer/krb5/logger.h \
 	output-json-metadata.h \
 	output-json-modbus.h \
 	output-json-quic.h \
@@ -649,7 +649,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/http/parser-xff.c \
 	app-layer/http2/parser.c \
 	app-layer/ike/parser.c \
-	app-layer-krb5.c \
+	app-layer/krb5/parser.c \
 	app-layer-modbus.c \
 	app-layer-quic.c \
 	app-layer-mqtt.c \
@@ -843,11 +843,11 @@ libsuricata_c_a_SOURCES = \
 	detect-ipv6hdr.c \
 	detect-isdataat.c \
 	detect-itype.c \
-	detect-krb5-cname.c \
-	detect-krb5-errcode.c \
-	detect-krb5-msgtype.c \
-	detect-krb5-sname.c \
-	detect-krb5-ticket-encryption.c \
+	app-layer/krb5/detect-cname.c \
+	app-layer/krb5/detect-errcode.c \
+	app-layer/krb5/detect-msgtype.c \
+	app-layer/krb5/detect-sname.c \
+	app-layer/krb5/detect-ticket-encryption.c \
 	detect-l3proto.c \
 	detect-lua.c \
 	detect-lua-extensions.c \
@@ -1025,7 +1025,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/http2/logger.c \
 	output-json-http.c \
 	app-layer/ike/logger.c \
-	output-json-krb5.c \
+	app-layer/krb5/logger.c \
 	output-json-metadata.c \
 	output-json-modbus.c \
 	output-json-quic.c \
