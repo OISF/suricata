@@ -1397,8 +1397,12 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         }
 #endif
         /* invoke the parser */
+        void * storage = NULL;
+        if (alp_tctx) {
+            storage = alp_tctx->alproto_local_storage[f->protomap][alproto];
+        }
         AppLayerResult res = p->Parser[direction](f, alstate, pstate, stream_slice,
-                alp_tctx->alproto_local_storage[f->protomap][alproto]);
+                storage);
         if (res.status < 0) {
             AppLayerIncParserErrorCounter(tv, f);
             goto error;
