@@ -21,7 +21,6 @@ autom4te.cache/
 build/*
 compile
 config.guess
-config.h
 config.log
 config.status
 config.sub
