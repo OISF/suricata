@@ -56,7 +56,7 @@
 
 #include "app-layer/http/parser.h"
 #include "stream-tcp.h"
-#include "detect-http-ua.h"
+#include "app-layer/http/detect-ua.h"
 
 static int DetectHttpUASetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

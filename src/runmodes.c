@@ -60,7 +60,7 @@
 #include "alert-fastlog.h"
 #include "alert-debuglog.h"
 
-#include "log-httplog.h"
+#include "app-layer/http/log-httplog.h"
 
 #include "source-pfring.h"
 

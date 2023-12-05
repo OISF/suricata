@@ -24,7 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
@@ -50,7 +50,7 @@
 #include "util-time.h"
 #include "output-json.h"
 #include "output-json-alert.h"
-#include "output-json-http.h"
+#include "app-layer/http/logger.h"
 #include "util-byte.h"
 
 typedef struct LogHttpFileCtx_ {

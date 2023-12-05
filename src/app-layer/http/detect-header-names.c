@@ -42,8 +42,8 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
-#include "detect-http-header-common.h"
-#include "detect-http-header-names.h"
+#include "app-layer/http/detect-header-common.h"
+#include "app-layer/http/detect-header-names.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -59,7 +59,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer/http/parser.h"
-#include "detect-http-header.h"
+#include "app-layer/http/detect-header.h"
 #include "stream-tcp.h"
 
 #define KEYWORD_NAME        "http.header_names"

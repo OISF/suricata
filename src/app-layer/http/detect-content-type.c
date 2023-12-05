@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2019 Open Information Security Foundation
+/* Copyright (C) 2007-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,26 +24,25 @@
 /**
  * \file
  *
- * \author Jeff Lucovsky <jeff@lucovsky.org>
+ * \author Victor Julien <victor@inliniac.net>
  *
- * Implements http.location sticky buffer
- *
- * "Location" is an HTTP response-header field used to redirect the recipient to
- * a location other than the Request-URI for request completion.
+ * Implement http_content_type sticky buffer
  */
 
-#define KEYWORD_NAME     "http.location"
-#define KEYWORD_DOC      "http-keywords.html#http-location"
-#define BUFFER_NAME      "http.location"
-#define BUFFER_DESC      "http location header"
-#define HEADER_NAME      "Location"
-#define KEYWORD_ID       DETECT_AL_HTTP_HEADER_LOCATION
-#define KEYWORD_TOCLIENT 1
+#define KEYWORD_NAME_LEGACY "http_content_type"
+#define KEYWORD_NAME        "http.content_type"
+#define KEYWORD_DOC         "http-keywords.html#http-content-type"
+#define BUFFER_NAME         "http_content_type"
+#define BUFFER_DESC         "http content type header"
+#define HEADER_NAME         "Content-Type"
+#define KEYWORD_ID          DETECT_AL_HTTP_HEADER_CONTENT_TYPE
+#define KEYWORD_TOSERVER    1
+#define KEYWORD_TOCLIENT    1
 
-#include "detect-http-headers-stub.h"
-#include "detect-http-location.h"
+#include "app-layer/http/detect-headers-stub.h"
+#include "app-layer/http/detect-content-type.h"
 
-void RegisterHttpHeadersLocation(void)
+void RegisterHttpHeadersContentType(void)
 {
     DetectHttpHeadersRegisterStub();
 }

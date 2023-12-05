@@ -52,7 +52,7 @@
 #include "app-layer.h"
 
 #include "app-layer/http/parser.h"
-#include "detect-http-uri.h"
+#include "app-layer/http/detect-uri.h"
 #include "stream-tcp.h"
 
 #ifdef UNITTESTS
