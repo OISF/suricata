@@ -26,8 +26,8 @@
 #include "suricata-common.h"
 #include "output/output.h"
 #include "output/output-packet.h"
-#include "util-profiling.h"
-#include "util-validate.h"
+#include "util/profiling.h"
+#include "util/validate.h"
 
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */

@@ -39,9 +39,9 @@
 #include "flow-util.h"
 #include "flow-var.h"
 
-#include "util-debug.h"
-#include "util-spm.h"
-#include "util-print.h"
+#include "util/debug.h"
+#include "util/spm.h"
+#include "util/print.h"
 
 #include "stream-tcp.h"
 
@@ -49,8 +49,8 @@
 #include "app-layer/ssl/parser.h"
 #include "app-layer/tls/detect-cert-issuer.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 static int DetectTlsIssuerSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

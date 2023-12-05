@@ -28,7 +28,7 @@
 #include "app-layer/http/parser-file.h"
 #include "app-layer/http/parser-range.h"
 #include "app-layer-events.h"
-#include "util-validate.h"
+#include "util/validate.h"
 
 extern StreamingBufferConfig htp_sbcfg;
 
@@ -356,7 +356,7 @@ end:
 #ifdef UNITTESTS
 #include "stream-tcp.h"
 #include "app-layer-parser.h"
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 
 static int HTPFileParserTest01(void)
 {

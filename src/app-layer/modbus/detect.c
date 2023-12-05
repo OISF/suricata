@@ -49,8 +49,8 @@
 
 #include "app-layer/modbus/detect.h"
 
-#include "util-debug.h"
-#include "util-byte.h"
+#include "util/debug.h"
+#include "util/byte.h"
 
 #include "stream-tcp.h"
 #include "rust.h"

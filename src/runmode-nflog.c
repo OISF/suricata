@@ -26,15 +26,15 @@
 #include "runmodes.h"
 #include "runmode-nflog.h"
 
-#include "util-debug.h"
-#include "util-device.h"
-#include "util-runmodes.h"
-#include "util-misc.h"
+#include "util/debug.h"
+#include "util/device.h"
+#include "util/runmodes.h"
+#include "util/misc.h"
 
 #include "source-nflog.h"
 
 #ifdef HAVE_NFLOG
-#include "util-time.h"
+#include "util/time.h"
 
 static void NflogDerefConfig(void *data)
 {

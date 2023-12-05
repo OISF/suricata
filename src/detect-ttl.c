@@ -33,8 +33,8 @@
 #include "detect-engine-uint.h"
 
 #include "detect-ttl.h"
-#include "util-debug.h"
-#include "util-byte.h"
+#include "util/debug.h"
+#include "util/byte.h"
 
 /* prototypes */
 static int DetectTtlMatch(

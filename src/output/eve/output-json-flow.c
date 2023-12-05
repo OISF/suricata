@@ -32,18 +32,18 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 
-#include "util-print.h"
-#include "util-unittest.h"
+#include "util/print.h"
+#include "util/unittest.h"
 
-#include "util-debug.h"
+#include "util/debug.h"
 
 #include "output/output.h"
-#include "util-privs.h"
-#include "util-buffer.h"
-#include "util-device.h"
-#include "util-proto-name.h"
-#include "util-logopenfile.h"
-#include "util-time.h"
+#include "util/privs.h"
+#include "util/buffer.h"
+#include "util/device.h"
+#include "util/proto-name.h"
+#include "util/logopenfile.h"
+#include "util/time.h"
 #include "output/eve/output-json.h"
 #include "output/eve/output-json-flow.h"
 

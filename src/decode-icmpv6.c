@@ -33,8 +33,8 @@
 #include "decode-icmpv6.h"
 #include "decode.h"
 #include "flow.h"
-#include "util-print.h"
-#include "util-validate.h"
+#include "util/print.h"
+#include "util/validate.h"
 
 /**
  * \brief Get variables and do some checks of the embedded IPV6 packet
@@ -523,7 +523,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
 
 #ifdef UNITTESTS
 #include "packet.h"
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 
 static int ICMPV6CalculateValidChecksumtest01(void)
 {

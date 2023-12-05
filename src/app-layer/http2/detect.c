@@ -35,9 +35,9 @@
 #include "detect-engine-content-inspection.h"
 
 #include "app-layer/http2/detect.h"
-#include "util-byte.h"
+#include "util/byte.h"
 #include "rust.h"
-#include "util-profiling.h"
+#include "util/profiling.h"
 
 #ifdef UNITTESTS
 void DetectHTTP2frameTypeRegisterTests(void);

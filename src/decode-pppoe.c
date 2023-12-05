@@ -39,9 +39,9 @@
 #include "decode-events.h"
 #include "flow.h"
 
-#include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/validate.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 
 /**
  * \brief Main decoding function for PPPOE Discovery packets

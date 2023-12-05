@@ -32,13 +32,13 @@
 #include "detect-metadata.h"
 #include "detect-engine-register.h"
 
-#include "util-prefilter.h"
-#include "util-mpm.h"
-#include "util-spm.h"
-#include "util-hash.h"
-#include "util-hashlist.h"
-#include "util-radix-tree.h"
-#include "util-file.h"
+#include "util/prefilter.h"
+#include "util/mpm/mpm.h"
+#include "util/spm.h"
+#include "util/hash.h"
+#include "util/hashlist.h"
+#include "util/radix-tree.h"
+#include "util/file.h"
 #include "reputation.h"
 
 #define DETECT_MAX_RULE_SIZE 8192

@@ -31,14 +31,14 @@
 #include "threads.h"
 #include "conf.h"
 
-#include "util-byte.h"
-#include "util-debug.h"
-#include "util-error.h"
-#include "util-ip.h"
-#include "util-path.h"
-#include "util-print.h"
-#include "util-unittest.h"
-#include "util-validate.h"
+#include "util/byte.h"
+#include "util/debug.h"
+#include "util/error.h"
+#include "util/ip.h"
+#include "util/path.h"
+#include "util/print.h"
+#include "util/unittest.h"
+#include "util/validate.h"
 
 /** effective reputation version, atomic as the host
  *  time out code will use it to check if a host's

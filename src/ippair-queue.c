@@ -26,9 +26,9 @@
 #include "suricata-common.h"
 #include "threads.h"
 #include "ippair-queue.h"
-#include "util-error.h"
-#include "util-debug.h"
-#include "util-print.h"
+#include "util/error.h"
+#include "util/debug.h"
+#include "util/print.h"
 
 IPPairQueue *IPPairQueueInit(IPPairQueue *q)
 {

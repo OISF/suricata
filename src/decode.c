@@ -61,11 +61,11 @@
 #include "decode-erspan.h"
 #include "decode-teredo.h"
 
-#include "util-hash.h"
-#include "util-hash-string.h"
-#include "util-print.h"
-#include "util-profiling.h"
-#include "util-validate.h"
+#include "util/hash.h"
+#include "util/hash-string.h"
+#include "util/print.h"
+#include "util/profiling.h"
+#include "util/validate.h"
 #include "action-globals.h"
 
 uint32_t default_packet_size = 0;

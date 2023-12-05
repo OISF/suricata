@@ -40,18 +40,18 @@
 
 #include "stream.h"
 
-#include "util-print.h"
-#include "util-unittest.h"
-#include "util-privs.h"
-#include "util-debug.h"
-#include "util-atomic.h"
-#include "util-file.h"
-#include "util-time.h"
-#include "util-buffer.h"
-#include "util-byte.h"
-#include "util-validate.h"
+#include "util/print.h"
+#include "util/unittest.h"
+#include "util/privs.h"
+#include "util/debug.h"
+#include "util/atomic.h"
+#include "util/file.h"
+#include "util/time.h"
+#include "util/buffer.h"
+#include "util/byte.h"
+#include "util/validate.h"
 
-#include "util-logopenfile.h"
+#include "util/logopenfile.h"
 
 #include "output/output.h"
 #include "output/eve/output-json.h"
@@ -65,7 +65,7 @@
 
 #include "app-layer/http/parser.h"
 #include "app-layer/http/parser-xff.h"
-#include "util-memcmp.h"
+#include "util/memcmp.h"
 #include "stream-tcp-reassemble.h"
 
 typedef struct OutputFileCtx_ {

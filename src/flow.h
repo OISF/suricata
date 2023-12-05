@@ -28,10 +28,10 @@
 typedef struct FlowStorageId FlowStorageId;
 
 #include "decode.h"
-#include "util-time.h"
-#include "util-exception-policy.h"
-#include "util-var.h"
-#include "util-optimize.h"
+#include "util/time.h"
+#include "util/exception-policy.h"
+#include "util/var.h"
+#include "util/optimize.h"
 #include "app-layer-protos.h"
 
 /* Part of the flow structure, so we declare it here.
@@ -337,7 +337,7 @@ typedef unsigned short FlowStateType;
 /** Local Thread ID */
 typedef uint16_t FlowThreadId;
 
-#include "util-storage.h"
+#include "util/storage.h"
 
 /**
  *  \brief Flow data structure.

@@ -43,17 +43,17 @@
 #include "decode-events.h"
 #include "conf.h"
 
-#include "util-spm.h"
-#include "util-unittest.h"
-#include "util-debug.h"
-#include "util-print.h"
-#include "util-pool.h"
-#include "util-byte.h"
-#include "util-ja3.h"
-#include "util-enum.h"
+#include "util/spm.h"
+#include "util/unittest.h"
+#include "util/debug.h"
+#include "util/print.h"
+#include "util/pool.h"
+#include "util/byte.h"
+#include "util/ja3.h"
+#include "util/enum.h"
 #include "flow-util.h"
 #include "flow-private.h"
-#include "util-validate.h"
+#include "util/validate.h"
 
 SCEnumCharMap tls_frame_table[] = {
     {

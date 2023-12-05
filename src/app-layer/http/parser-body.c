@@ -30,8 +30,8 @@
 #include "app-layer/http/parser.h"
 #include "app-layer/http/parser-mem.h"
 #include "app-layer/http/parser-body.h"
-#include "util-streaming-buffer.h"
-#include "util-print.h"
+#include "util/streaming-buffer.h"
+#include "util/print.h"
 
 extern StreamingBufferConfig htp_sbcfg;
 

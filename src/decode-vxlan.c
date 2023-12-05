@@ -36,9 +36,9 @@
 
 #include "flow.h"
 
-#include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/validate.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 
 #define VXLAN_HEADER_LEN sizeof(VXLANHeader)
 

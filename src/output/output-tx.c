@@ -29,8 +29,8 @@
 #include "stream.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "util-profiling.h"
-#include "util-validate.h"
+#include "util/profiling.h"
+#include "util/validate.h"
 
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */

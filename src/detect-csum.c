@@ -31,12 +31,12 @@
 
 #include "detect-csum.h"
 
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 
 #include "pkt-var.h"
 #include "host.h"
-#include "util-profiling.h"
+#include "util/profiling.h"
 #include "detect-engine-build.h"
 
 #define DETECT_CSUM_VALID   "valid"
@@ -834,7 +834,7 @@ static void DetectICMPV6CsumFree(DetectEngineCtx *de_ctx, void *ptr)
 /* ---------------------------------- Unit Tests --------------------------- */
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 #include "detect-engine.h"
 #include "detect-engine-alert.h"
 #include "packet.h"

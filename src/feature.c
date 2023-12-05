@@ -27,8 +27,8 @@
 #include "feature.h"
 #include "threads.h"
 
-#include "util-debug.h"
-#include "util-hashlist.h"
+#include "util/debug.h"
+#include "util/hashlist.h"
 
 typedef struct FeatureEntryType {
     const char *feature;

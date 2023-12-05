@@ -32,8 +32,8 @@
 #include "detect-parse.h"
 #include "detect-transform-strip-whitespace.h"
 
-#include "util-unittest.h"
-#include "util-print.h"
+#include "util/unittest.h"
+#include "util/print.h"
 
 static int DetectTransformStripWhitespaceSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

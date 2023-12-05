@@ -34,9 +34,9 @@
 #include "decode-vlan.h"
 #include "decode-events.h"
 
-#include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/validate.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 
 /**
  * \internal
@@ -124,7 +124,7 @@ int DecodeIEEE8021ah(
 }
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 #include "packet.h"
 
 /** \todo Must GRE+VLAN and Multi-Vlan packets to

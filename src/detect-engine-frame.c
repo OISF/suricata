@@ -36,9 +36,9 @@
 
 #include "stream-tcp.h"
 
-#include "util-profiling.h"
-#include "util-validate.h"
-#include "util-print.h"
+#include "util/profiling.h"
+#include "util/validate.h"
+#include "util/print.h"
 
 struct FrameStreamData {
     // shared between prefilter and inspect

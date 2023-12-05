@@ -30,8 +30,8 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-uint.h"
 #include "app-layer/quic/detect-version.h"
-#include "util-byte.h"
-#include "util-unittest.h"
+#include "util/byte.h"
+#include "util/unittest.h"
 #include "rust.h"
 
 #ifdef UNITTESTS

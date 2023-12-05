@@ -44,8 +44,8 @@
 #include "flow-var.h"
 #include "flow-util.h"
 
-#include "util-debug.h"
-#include "util-profiling.h"
+#include "util/debug.h"
+#include "util/profiling.h"
 
 #include "app-layer.h"
 #include "app-layer-parser.h"

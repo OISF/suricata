@@ -28,7 +28,7 @@
 #include "source-pcap-file-helper.h"
 #include "source-pcap-file-directory-helper.h"
 #include "flow-manager.h"
-#include "util-checksum.h"
+#include "util/checksum.h"
 #include "runmode-unix-socket.h"
 #include "suricata.h"
 

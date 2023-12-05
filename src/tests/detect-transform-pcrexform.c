@@ -21,7 +21,7 @@
 
 #include "../detect-transform-pcrexform.h"
 
-#include "../util-unittest.h"
+#include "../util/unittest.h"
 
 /**
  * \test signature with an invalid pcrexform value.

@@ -44,10 +44,10 @@
 #include "app-layer/http/parser.h"
 #include "app-layer/smtp/parser.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-profiling.h"
-#include "util-validate.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/profiling.h"
+#include "util/validate.h"
 
 /**
  *  \brief Inspect the file inspecting keywords.

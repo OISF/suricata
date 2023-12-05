@@ -31,10 +31,10 @@
 #endif
 #include "app-layer-parser.h" // FileApplyTxFlags
 #include "detect-filemagic.h"
-#include "util-file.h"
-#include "util-magic.h"
-#include "util-profiling.h"
-#include "util-validate.h"
+#include "util/file.h"
+#include "util/magic.h"
+#include "util/profiling.h"
+#include "util/validate.h"
 
 bool g_file_logger_enabled = false;
 

@@ -16,7 +16,7 @@
  */
 
 #include "suricata-common.h"
-#include "util-buffer.h"
+#include "util/buffer.h"
 #include "output/output.h"
 #include "output/eve/output-json.h"
 #include "app-layer-parser.h"

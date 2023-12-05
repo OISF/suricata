@@ -35,9 +35,9 @@
 #include "decode-events.h"
 #include "decode-gre.h"
 
-#include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/validate.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 
 /**
  * \brief Function to decode GRE packets

@@ -28,7 +28,7 @@
 #include "detect-engine-content-inspection.h"
 
 #include "app-layer/dnp3/parser.h"
-#include "util-byte.h"
+#include "util/byte.h"
 
 static int g_dnp3_match_buffer_id = 0;
 static int g_dnp3_data_buffer_id = 0;
@@ -529,8 +529,8 @@ void DetectDNP3Register(void)
 
 #ifdef UNITTESTS
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 #include "app-layer-parser.h"
 #include "flow-util.h"
 #include "stream-tcp.h"

@@ -28,12 +28,12 @@
 #include "stream-tcp-private.h"
 #include "stream-tcp-inline.h"
 
-#include "util-memcmp.h"
-#include "util-print.h"
+#include "util/memcmp.h"
+#include "util/print.h"
 
-#include "util-validate.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/validate.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 /**
  *  \brief Compare the shared data portion of two segments
