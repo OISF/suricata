@@ -26,8 +26,8 @@
 #include "conf.h"
 
 #include "app-layer-parser.h"
-#include "app-layer-htp.h"
-#include "app-layer-htp-xff.h"
+#include "app-layer/http/parser.h"
+#include "app-layer/http/parser-xff.h"
 
 #ifndef HAVE_MEMRCHR
 #include "util-memrchr.h"

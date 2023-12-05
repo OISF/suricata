@@ -25,7 +25,7 @@
 
 #include "suricata-common.h"
 #include "app-layer-protos.h"
-#include "app-layer-htp.h"
+#include "app-layer/http/parser.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-misc.h"

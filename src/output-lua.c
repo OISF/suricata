@@ -30,7 +30,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "output.h"
-#include "app-layer-htp.h"
+#include "app-layer/http/parser.h"
 #include "app-layer.h"
 #include "app-layer-ssl.h"
 #include "app-layer-ssh.h"

@@ -60,7 +60,7 @@
 #include "host-timeout.h"
 #include "defrag-timeout.h"
 #include "ippair-timeout.h"
-#include "app-layer-htp-range.h"
+#include "app-layer/http/parser-range.h"
 
 #include "output-flow.h"
 
