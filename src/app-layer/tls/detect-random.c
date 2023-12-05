@@ -30,7 +30,7 @@
 #include "app-layer.h"
 #include "app-layer/ssl/parser.h"
 #include "detect-engine-prefilter.h"
-#include "detect-tls-random.h"
+#include "app-layer/tls/detect-random.h"
 
 #define DETECT_TLS_RANDOM_TIME_LEN  4
 #define DETECT_TLS_RANDOM_BYTES_LEN 28

@@ -27,7 +27,7 @@
  */
 
 #include "suricata-common.h"
-#include "log-tlsstore.h"
+#include "app-layer/tls/log-tlsstore.h"
 
 #include "decode.h"
 
@@ -35,7 +35,7 @@
 #include "app-layer/ssl/parser.h"
 
 #include "output.h"
-#include "log-tlslog.h"
+#include "app-layer/tls/log-tlslog.h"
 
 #include "util-conf.h"
 #include "util-path.h"

@@ -47,7 +47,7 @@
 #include "app-layer.h"
 #include "app-layer/ssl/parser.h"
 #include "detect-engine-prefilter.h"
-#include "detect-tls-sni.h"
+#include "app-layer/tls/detect-sni.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"

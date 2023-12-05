@@ -23,7 +23,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
@@ -54,7 +54,7 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
-#include "util-lua-tls.h"
+#include "app-layer/tls/lua.h"
 
 static int GetCertNotBefore(lua_State *luastate, const Flow *f, int direction)
 {
