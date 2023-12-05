@@ -147,7 +147,7 @@
 
 #ifdef WINDIVERT
 #include "decode-sll.h"
-#include "win32-syscall.h"
+#include "windows/win32-syscall.h"
 #endif
 
 /*

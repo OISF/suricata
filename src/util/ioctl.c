@@ -47,7 +47,7 @@
 #endif
 
 #ifdef OS_WIN32
-#include "win32-syscall.h"
+#include "windows/win32-syscall.h"
 #endif
 
 /**
