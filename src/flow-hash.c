@@ -47,8 +47,8 @@
 #include "util-hash-lookup3.h"
 
 #include "conf.h"
-#include "output.h"
-#include "output-flow.h"
+#include "output/output.h"
+#include "output/output-flow.h"
 #include "stream-tcp.h"
 #include "util-exception-policy.h"
 

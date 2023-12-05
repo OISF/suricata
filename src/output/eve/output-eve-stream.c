@@ -36,10 +36,10 @@
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
 
-#include "output.h"
-#include "output-json.h"
-#include "output-json-flow.h"
-#include "output-eve-stream.h"
+#include "output/output.h"
+#include "output/eve/output-json.h"
+#include "output/eve/output-json-flow.h"
+#include "output/eve/output-eve-stream.h"
 
 #include "stream-tcp.h"
 

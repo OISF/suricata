@@ -38,7 +38,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
 
-#include "output.h"
+#include "output/output.h"
 #include "alert-syslog.h"
 
 #include "util-classification-config.h"

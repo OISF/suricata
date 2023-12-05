@@ -80,8 +80,8 @@
 #include "app-layer/http/parser.h"
 #include "app-layer/http/parser-range.h"
 
-#include "output.h"
-#include "output-filestore.h"
+#include "output/output.h"
+#include "output/output-filestore.h"
 
 #include "respond-reject.h"
 

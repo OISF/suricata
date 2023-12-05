@@ -37,7 +37,7 @@
 
 #include "util-debug.h"
 
-#include "output.h"
+#include "output/output.h"
 #include "app-layer/smtp/parser.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -47,9 +47,9 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 
-#include "output-json.h"
+#include "output/eve/output-json.h"
 #include "app-layer/smtp/logger.h"
-#include "output-json-email-common.h"
+#include "output/eve/output-json-email-common.h"
 
 static void EveSmtpDataLogger(void *state, void *vtx, JsonBuilder *js)
 {

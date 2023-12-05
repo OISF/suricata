@@ -24,8 +24,8 @@
  */
 
 #include "suricata-common.h"
-#include "output.h"
-#include "output-filedata.h"
+#include "output/output.h"
+#include "output/output-filedata.h"
 #include "app-layer-parser.h"
 #include "detect-filemagic.h"
 #include "conf.h"

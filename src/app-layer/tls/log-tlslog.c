@@ -40,7 +40,7 @@
 
 #include "util-debug.h"
 
-#include "output.h"
+#include "output/output.h"
 #include "app-layer/tls/log-tlslog.h"
 #include "app-layer/ssl/parser.h"
 #include "app-layer.h"

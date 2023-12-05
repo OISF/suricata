@@ -36,8 +36,8 @@
 
 #include "app-layer/dnp3/detect.h"
 
-#include "output.h"
-#include "output-json.h"
+#include "output/output.h"
+#include "output/eve/output-json.h"
 #include "app-layer/dnp3/logger.h"
 #include "app-layer/dnp3/logger-objects.h"
 

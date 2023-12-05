@@ -30,8 +30,8 @@
 #include "suricata.h"
 #include "threadvars.h"
 
-#include "output.h"
-#include "output-json-stats.h"
+#include "output/output.h"
+#include "output/eve/output-json-stats.h"
 
 #include "util-byte.h"
 #include "util-conf.h"

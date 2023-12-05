@@ -53,12 +53,12 @@
 
 #include "util-logopenfile.h"
 
-#include "output.h"
-#include "output-json.h"
-#include "output-json-file.h"
+#include "output/output.h"
+#include "output/eve/output-json.h"
+#include "output/eve/output-json-file.h"
 #include "app-layer/http/logger.h"
 #include "app-layer/smtp/logger.h"
-#include "output-json-email-common.h"
+#include "output/eve/output-json-email-common.h"
 #include "app-layer/nfs/logger.h"
 #include "app-layer/smb/logger.h"
 #include "app-layer/http2/logger.h"

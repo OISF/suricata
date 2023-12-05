@@ -16,14 +16,14 @@
  */
 
 #include "suricata-common.h"
-#include "output-filestore.h"
+#include "output/output-filestore.h"
 
 #include "stream-tcp.h"
 
 #include "feature.h"
 
-#include "output.h"
-#include "output-json-file.h"
+#include "output/output.h"
+#include "output/eve/output-json-file.h"
 
 #include "util-conf.h"
 #include "util-misc.h"

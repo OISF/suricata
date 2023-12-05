@@ -53,7 +53,7 @@
 
 #include "detect-config.h"
 
-#include "output.h"
+#include "output/output.h"
 
 /**
  * \brief Regex for parsing our flow options

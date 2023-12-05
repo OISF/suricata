@@ -26,7 +26,7 @@
 #include "tm-threads.h"
 #include "conf.h"
 #include "runmodes.h"
-#include "output.h"
+#include "output/output.h"
 #include "util-debug.h"
 #include "util-time.h"
 #include "util-cpu.h"

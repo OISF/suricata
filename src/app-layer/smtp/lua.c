@@ -32,7 +32,7 @@
 #include "threads.h"
 #include "threadvars.h"
 #include "tm-threads.h"
-#include "output.h"
+#include "output/output.h"
 
 #include "app-layer/smtp/parser.h"
 

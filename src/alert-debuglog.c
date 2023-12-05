@@ -44,7 +44,7 @@
 #include "util-validate.h"
 #include "util-buffer.h"
 
-#include "output.h"
+#include "output/output.h"
 #include "alert-debuglog.h"
 #include "util-privs.h"
 #include "flow-var.h"
