@@ -41,10 +41,10 @@
 #include <lua.h>
 #include <lualib.h>
 
-#include "util-lua.h"
-#include "util-lua-common.h"
+#include "util/lua.h"
+#include "util/lua-common.h"
 #include "app-layer/smtp/lua.h"
-#include "util-file.h"
+#include "util/file.h"
 
 /*
  * \brief internal function used by SMTPGetMimeField

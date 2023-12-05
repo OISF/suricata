@@ -32,9 +32,9 @@
 #include "flow-var.h"
 #include "app-layer.h"
 
-#include "util-var.h"
-#include "util-debug.h"
-#include "util-macset.h"
+#include "util/var.h"
+#include "util/debug.h"
+#include "util/macset.h"
 #include "flow-storage.h"
 
 #include "detect.h"
@@ -42,7 +42,7 @@
 
 #include "decode-icmpv4.h"
 
-#include "util-validate.h"
+#include "util/validate.h"
 
 /** \brief allocate a flow
  *

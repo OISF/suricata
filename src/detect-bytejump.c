@@ -36,10 +36,10 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
-#include "util-byte.h"
-#include "util-unittest.h"
-#include "util-debug.h"
-#include "util-validate.h"
+#include "util/byte.h"
+#include "util/unittest.h"
+#include "util/debug.h"
+#include "util/validate.h"
 #include "detect-pcre.h"
 #include "detect-engine-build.h"
 
@@ -614,7 +614,7 @@ static void DetectBytejumpFree(DetectEngineCtx *de_ctx, void *ptr)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 static int g_file_data_buffer_id = 0;
 static int g_dce_stub_data_buffer_id = 0;
 

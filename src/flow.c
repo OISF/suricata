@@ -34,8 +34,8 @@
 #include "tm-threads.h"
 #include "runmodes.h"
 
-#include "util-random.h"
-#include "util-time.h"
+#include "util/random.h"
+#include "util/time.h"
 
 #include "flow.h"
 #include "flow-queue.h"
@@ -53,15 +53,15 @@
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-byte.h"
-#include "util-misc.h"
-#include "util-macset.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/byte.h"
+#include "util/misc.h"
+#include "util/macset.h"
 
-#include "util-debug.h"
-#include "util-privs.h"
-#include "util-validate.h"
+#include "util/debug.h"
+#include "util/privs.h"
+#include "util/validate.h"
 
 #include "detect.h"
 #include "detect-engine-state.h"

@@ -61,9 +61,9 @@
 #include "detect-flowvar.h"
 #include "detect-replace.h"
 
-#include "util-validate.h"
-#include "util-detect.h"
-#include "util-profiling.h"
+#include "util/validate.h"
+#include "util/detect.h"
+#include "util/profiling.h"
 
 #include "action-globals.h"
 

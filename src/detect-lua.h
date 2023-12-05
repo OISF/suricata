@@ -26,7 +26,7 @@
 
 #ifdef HAVE_LUA
 
-#include "util-lua.h"
+#include "util/lua.h"
 
 typedef struct DetectLuaThreadData {
     lua_State *luastate;

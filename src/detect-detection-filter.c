@@ -34,10 +34,10 @@
 #include "detect-threshold.h"
 #include "detect-parse.h"
 
-#include "util-byte.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
+#include "util/byte.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/debug.h"
 #include "detect-engine-build.h"
 
 #define TRACK_DST 1
@@ -271,8 +271,8 @@ static void DetectDetectionFilterFree(DetectEngineCtx *de_ctx, void *df_ptr)
 #include "detect-engine-mpm.h"
 #include "detect-engine-threshold.h"
 #include "detect-engine-alert.h"
-#include "util-time.h"
-#include "util-hashlist.h"
+#include "util/time.h"
+#include "util/hashlist.h"
 #include "action-globals.h"
 #include "packet.h"
 

@@ -9,10 +9,10 @@
 #include "app-layer-detect-proto.h"
 #include "flow-util.h"
 #include "app-layer-parser.h"
-#include "util-unittest-helper.h"
-#include "util-byte.h"
+#include "util/unittest-helper.h"
+#include "util/byte.h"
 #include "conf-yaml-loader.h"
-#include "util-conf.h"
+#include "util/conf.h"
 
 #define HEADER_LEN 6
 

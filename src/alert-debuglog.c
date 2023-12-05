@@ -34,25 +34,25 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 
-#include "util-print.h"
+#include "util/print.h"
 
 #include "pkt-var.h"
 
-#include "util-unittest.h"
+#include "util/unittest.h"
 
-#include "util-debug.h"
-#include "util-validate.h"
-#include "util-buffer.h"
+#include "util/debug.h"
+#include "util/validate.h"
+#include "util/buffer.h"
 
 #include "output/output.h"
 #include "alert-debuglog.h"
-#include "util-privs.h"
+#include "util/privs.h"
 #include "flow-var.h"
 #include "flow-bit.h"
-#include "util-var-name.h"
-#include "util-optimize.h"
-#include "util-logopenfile.h"
-#include "util-time.h"
+#include "util/var-name.h"
+#include "util/optimize.h"
+#include "util/logopenfile.h"
+#include "util/time.h"
 
 #include "stream-tcp-reassemble.h"
 

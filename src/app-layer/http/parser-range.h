@@ -20,7 +20,7 @@
 
 #include "suricata-common.h"
 
-#include "util-thash.h"
+#include "util/thash.h"
 #include "rust.h"
 
 void HttpRangeContainersInit(void);

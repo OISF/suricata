@@ -31,20 +31,20 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 
-#include "util-print.h"
-#include "util-unittest.h"
+#include "util/print.h"
+#include "util/unittest.h"
 
-#include "util-debug.h"
+#include "util/debug.h"
 
 #include "output/output.h"
 #include "app-layer/http/parser.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "util-privs.h"
-#include "util-buffer.h"
-#include "util-proto-name.h"
-#include "util-logopenfile.h"
-#include "util-time.h"
+#include "util/privs.h"
+#include "util/buffer.h"
+#include "util/proto-name.h"
+#include "util/logopenfile.h"
+#include "util/time.h"
 
 #ifdef HAVE_LUA
 
@@ -52,8 +52,8 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-#include "util-lua.h"
-#include "util-lua-common.h"
+#include "util/lua.h"
+#include "util/lua-common.h"
 #include "app-layer/http/lua.h"
 
 static int HttpGetRequestHost(lua_State *luastate)

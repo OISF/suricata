@@ -37,14 +37,14 @@
 #include "app-layer-parser.h"
 #include "app-layer/smtp/parser.h"
 
-#include "util-enum.h"
-#include "util-mpm.h"
-#include "util-debug.h"
-#include "util-print.h"
-#include "util-byte.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-memcmp.h"
+#include "util/enum.h"
+#include "util/mpm.h"
+#include "util/debug.h"
+#include "util/print.h"
+#include "util/byte.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/memcmp.h"
 #include "flow-util.h"
 
 #include "detect-engine.h"
@@ -55,9 +55,9 @@
 #include "decode-events.h"
 #include "conf.h"
 
-#include "util-mem.h"
-#include "util-misc.h"
-#include "util-validate.h"
+#include "util/mem.h"
+#include "util/misc.h"
+#include "util/validate.h"
 
 /* content-limit default value */
 #define FILEDATA_CONTENT_LIMIT 100000

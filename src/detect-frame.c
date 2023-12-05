@@ -42,10 +42,10 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-spm.h"
-#include "util-print.h"
+#include "util/debug.h"
+#include "util/unittest.h"
+#include "util/spm.h"
+#include "util/print.h"
 
 static int DetectFrameSetup(DetectEngineCtx *, Signature *, const char *);
 

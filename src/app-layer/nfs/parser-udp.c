@@ -27,13 +27,13 @@
 #include "stream.h"
 #include "conf.h"
 
-#include "util-unittest.h"
+#include "util/unittest.h"
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
 #include "app-layer/nfs/parser-udp.h"
-#include "util-enum.h"
+#include "util/enum.h"
 
 #include "rust.h"
 

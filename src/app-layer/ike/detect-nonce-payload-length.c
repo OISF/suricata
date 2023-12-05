@@ -28,7 +28,7 @@
 #include "detect-engine-content-inspection.h"
 #include "app-layer/ike/detect-nonce-payload-length.h"
 #include "app-layer-parser.h"
-#include "util-byte.h"
+#include "util/byte.h"
 #include "detect-engine-uint.h"
 
 #include "rust-bindings.h"

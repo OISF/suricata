@@ -34,9 +34,9 @@
 #include "decode.h"
 #include "decode-events.h"
 
-#include "util-validate.h"
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/validate.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 
 int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
@@ -70,7 +70,7 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
 }
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 #include "packet.h"
 
 /** DecodeRawtest01

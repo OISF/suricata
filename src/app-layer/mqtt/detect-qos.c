@@ -28,8 +28,8 @@
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
 #include "app-layer/mqtt/detect-qos.h"
-#include "util-byte.h"
-#include "util-unittest.h"
+#include "util/byte.h"
+#include "util/unittest.h"
 
 #include "rust.h"
 

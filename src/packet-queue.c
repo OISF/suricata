@@ -28,9 +28,9 @@
 #include "packet-queue.h"
 #include "threads.h"
 #include "suricata.h"
-#include "util-var.h"
+#include "util/var.h"
 #include "pkt-var.h"
-#include "util-validate.h"
+#include "util/validate.h"
 
 #ifdef DEBUG
 void PacketQueueValidateDebug(PacketQueue *q);

@@ -43,18 +43,18 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
-#include "util-debug.h"
-#include "util-spm.h"
-#include "util-print.h"
-#include "util-ja3.h"
+#include "util/debug.h"
+#include "util/spm.h"
+#include "util/print.h"
+#include "util/ja3.h"
 
 #include "stream-tcp.h"
 
 #include "app-layer.h"
 #include "app-layer/ssl/parser.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 static int DetectTlsJa3HashSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,

@@ -28,11 +28,11 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
-#include "util-unittest.h"
+#include "util/unittest.h"
 
 #include "rust.h"
 #include "app-layer/smb/parser.h"
-#include "util-misc.h"
+#include "util/misc.h"
 
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 static SuricataFileContext sfc = { &sbcfg };
@@ -55,7 +55,7 @@ void RegisterSMBParsers(void)
 
 #ifdef UNITTESTS
 #include "stream-tcp.h"
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 
 /** \test multi transactions and cleanup */
 static int SMBParserTxCleanupTest(void)

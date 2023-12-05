@@ -35,7 +35,7 @@
 #include "decode-events.h"
 #include "decode-template.h"
 
-#include "util-validate.h"
+#include "util/validate.h"
 
 /**
  * \brief Function to decode TEMPLATE packets

@@ -30,7 +30,7 @@
 #include "app-layer/quic/detect-cyu-string.h"
 #include "detect-engine-build.h"
 #include "rust.h"
-#include "util-profiling.h"
+#include "util/profiling.h"
 
 #ifdef UNITTESTS
 static void DetectQuicCyuStringRegisterTests(void);
@@ -200,8 +200,8 @@ void DetectQuicCyuStringRegister(void)
 
 #ifdef UNITTESTS
 #include "app-layer-parser.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 #include "flow-util.h"
 #include "detect-engine-alert.h"
 

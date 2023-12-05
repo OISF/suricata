@@ -41,12 +41,12 @@
 #include "flow-var.h"
 #include "flow-util.h"
 
-#include "util-debug.h"
-#include "util-spm-bm.h"
-#include "util-print.h"
+#include "util/debug.h"
+#include "util/spm-bm.h"
+#include "util/print.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 #include "app-layer.h"
 
@@ -55,17 +55,17 @@
 #include "detect-lua.h"
 
 #include "queue.h"
-#include "util-cpu.h"
+#include "util/cpu.h"
 
 #include "app-layer-parser.h"
 
 #ifdef HAVE_LUA
 
-#include "util-lua.h"
-#include "util-lua-common.h"
+#include "util/lua.h"
+#include "util/lua-common.h"
 #include "app-layer/http/lua.h"
 #include "app-layer/dns/lua.h"
-#include "util-lua-ja3.h"
+#include "util/lua-ja3.h"
 #include "app-layer/tls/lua.h"
 #include "app-layer/ssh/lua.h"
 #include "app-layer/ssh/lua-hassh.h"

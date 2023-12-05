@@ -33,7 +33,7 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-#include "util-lua.h"
+#include "util/lua.h"
 #include "app-layer/dnp3/lua-objects.h"
 
 /**

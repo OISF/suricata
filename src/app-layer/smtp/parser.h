@@ -24,8 +24,8 @@
 #ifndef __APP_LAYER_SMTP_H__
 #define __APP_LAYER_SMTP_H__
 
-#include "util-decode-mime.h"
-#include "util-streaming-buffer.h"
+#include "util/decode-mime.h"
+#include "util/streaming-buffer.h"
 #include "rust.h"
 
 /* Limit till the data would be buffered in current line */

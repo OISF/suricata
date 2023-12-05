@@ -23,7 +23,7 @@
 
 #include "../detect-ipaddr.h"
 
-#include "../util-unittest.h"
+#include "../util/unittest.h"
 
 static int DetectIPAddrParseTest01(void)
 {

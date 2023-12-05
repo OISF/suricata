@@ -23,7 +23,7 @@
 #include "detect-base64-data.h"
 #include "detect-engine-build.h"
 
-#include "util-unittest.h"
+#include "util/unittest.h"
 
 static int DetectBase64DataSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

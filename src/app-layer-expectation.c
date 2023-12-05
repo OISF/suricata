@@ -60,7 +60,7 @@
 
 #include "app-layer-expectation.h"
 
-#include "util-print.h"
+#include "util/print.h"
 
 static IPPairStorageId g_ippair_expectation_id = { .id = -1 };
 static FlowStorageId g_flow_expectation_id = { .id = -1 };

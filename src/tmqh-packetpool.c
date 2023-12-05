@@ -31,8 +31,8 @@
 #include "decode.h"
 #include "tm-modules.h"
 #include "packet.h"
-#include "util-profiling.h"
-#include "util-validate.h"
+#include "util/profiling.h"
+#include "util/validate.h"
 #include "action-globals.h"
 
 extern uint16_t max_pending_packets;

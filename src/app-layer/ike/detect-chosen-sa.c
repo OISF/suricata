@@ -28,8 +28,8 @@
 #include "detect-engine-content-inspection.h"
 #include "app-layer/ike/detect-chosen-sa.h"
 #include "app-layer-parser.h"
-#include "util-byte.h"
-#include "util-unittest.h"
+#include "util/byte.h"
+#include "util/unittest.h"
 
 #include "rust.h"
 

@@ -31,8 +31,8 @@
 #include "detect-parse.h"
 #include "detect-transform-sha256.h"
 
-#include "util-unittest.h"
-#include "util-print.h"
+#include "util/unittest.h"
+#include "util/print.h"
 
 #include "rust.h"
 

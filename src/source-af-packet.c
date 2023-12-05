@@ -44,22 +44,22 @@
 #include "tm-threads.h"
 #include "tm-threads-common.h"
 #include "conf.h"
-#include "util-cpu.h"
-#include "util-datalink.h"
-#include "util-debug.h"
-#include "util-device.h"
-#include "util-ebpf.h"
-#include "util-error.h"
-#include "util-privs.h"
-#include "util-optimize.h"
-#include "util-checksum.h"
-#include "util-ioctl.h"
-#include "util-host-info.h"
+#include "util/cpu.h"
+#include "util/datalink.h"
+#include "util/debug.h"
+#include "util/device.h"
+#include "util/ebpf.h"
+#include "util/error.h"
+#include "util/privs.h"
+#include "util/optimize.h"
+#include "util/checksum.h"
+#include "util/ioctl.h"
+#include "util/host-info.h"
 #include "tmqh-packetpool.h"
 #include "source-af-packet.h"
 #include "runmodes.h"
 #include "flow-storage.h"
-#include "util-validate.h"
+#include "util/validate.h"
 #include "action-globals.h"
 
 #ifdef HAVE_AF_PACKET
@@ -90,7 +90,7 @@ struct bpf_program {
 #include <pcap/pcap.h>
 #endif
 
-#include "util-bpf.h"
+#include "util/bpf.h"
 
 #if HAVE_LINUX_IF_ETHER_H
 #include <linux/if_ether.h>

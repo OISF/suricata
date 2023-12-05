@@ -35,7 +35,7 @@
 #include "decode.h"
 #include "defrag.h"
 #include "flow.h"
-#include "util-print.h"
+#include "util/print.h"
 
 /* Generic validation
  *

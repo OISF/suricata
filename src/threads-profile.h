@@ -27,7 +27,7 @@
 #define __THREADS_PROFILE_H__
 
 // UtilCpuGetTicks
-#include "util-cpu.h"
+#include "util/cpu.h"
 
 #define PROFILING_MAX_LOCKS 64
 

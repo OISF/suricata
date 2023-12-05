@@ -47,12 +47,12 @@
 
 #include "pkt-var.h"
 #include "host.h"
-#include "util-profiling.h"
+#include "util/profiling.h"
 #include "decode.h"
 
 #include "flow.h"
 
-#include "util-rule-vars.h"
+#include "util/rule-vars.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
@@ -61,17 +61,17 @@
 #include "app-layer-parser.h"
 #include "app-layer/http/parser.h"
 
-#include "util-classification-config.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
+#include "util/classification-config.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/debug.h"
 #include "string.h"
 #include "detect-parse.h"
 #include "detect-engine-iponly.h"
 #include "app-layer-detect-proto.h"
 
 #include "action-globals.h"
-#include "util-validate.h"
+#include "util/validate.h"
 
 /* Table with all filehandler registrations */
 DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE];

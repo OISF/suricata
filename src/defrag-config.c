@@ -24,8 +24,8 @@
 
 #include "suricata-common.h"
 #include "defrag-config.h"
-#include "util-misc.h"
-#include "util-radix-tree.h"
+#include "util/misc.h"
+#include "util/radix-tree.h"
 
 static SCRadixTree *defrag_tree = NULL;
 

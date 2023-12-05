@@ -28,7 +28,7 @@
 #include "detect-engine-content-inspection.h"
 #include "app-layer/ike/detect-exch-type.h"
 #include "app-layer-parser.h"
-#include "util-byte.h"
+#include "util/byte.h"
 #include "detect-engine-uint.h"
 
 #include "rust-bindings.h"

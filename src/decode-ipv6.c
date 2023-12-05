@@ -33,8 +33,8 @@
 #include "decode-ipv6.h"
 #include "decode.h"
 #include "defrag.h"
-#include "util-print.h"
-#include "util-validate.h"
+#include "util/print.h"
+#include "util/validate.h"
 
 /**
  * \brief Function to decode IPv4 in IPv6 packets
@@ -637,7 +637,7 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *
 }
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 #include "packet.h"
 
 /**

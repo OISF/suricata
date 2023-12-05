@@ -32,7 +32,7 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-fast-pattern.h"
 #include "detect-icmpv6hdr.h"
-#include "util-validate.h"
+#include "util/validate.h"
 
 /* prototypes */
 static int DetectICMPv6hdrSetup(DetectEngineCtx *, Signature *, const char *);

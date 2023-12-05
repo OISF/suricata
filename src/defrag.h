@@ -25,7 +25,7 @@
 #define __DEFRAG_H__
 
 #include "threads.h"
-#include "util-pool.h"
+#include "util/pool.h"
 #include "threadvars.h"
 #include "decode.h"
 
