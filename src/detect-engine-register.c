@@ -253,7 +253,7 @@
 
 #include "app-layer.h"
 #include "app-layer-protos.h"
-#include "app-layer-htp.h"
+#include "app-layer/http/parser.h"
 #include "app-layer-smtp.h"
 #include "detect-frame.h"
 #include "detect-tls.h"

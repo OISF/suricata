@@ -30,7 +30,7 @@
 #include "output.h"
 #include "rust.h"
 
-#include "app-layer-htp-xff.h"
+#include "app-layer/http/parser-xff.h"
 #include "suricata-plugin.h"
 
 void OutputJsonRegister(void);

@@ -30,7 +30,7 @@
 
 #include "detect-file-hash-common.h"
 
-#include "app-layer-htp.h"
+#include "app-layer/http/parser.h"
 
 /**
  * \brief Read the bytes of a hash from an hexadecimal string

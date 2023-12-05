@@ -18,7 +18,7 @@
 #include "detect-engine-threshold.h"
 #include "host-bit.h"
 #include "ippair-bit.h"
-#include "app-layer-htp.h"
+#include "app-layer/http/parser.h"
 #include "detect-fast-pattern.h"
 #include "util-unittest-helper.h"
 #include "conf-yaml-loader.h"
