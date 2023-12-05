@@ -116,7 +116,7 @@
 #include "detect-flow-age.h"
 #include "detect-flow-pkts.h"
 #include "detect-tcp-window.h"
-#include "detect-ftpbounce.h"
+#include "app-layer/ftp/detect-bounce.h"
 #include "detect-isdataat.h"
 #include "detect-id.h"
 #include "detect-rpc.h"
@@ -234,7 +234,7 @@
 #include "detect-quic-cyu-string.h"
 
 #include "detect-bypass.h"
-#include "detect-ftpdata.h"
+#include "app-layer/ftp/detect-data.h"
 #include "detect-engine-content-inspection.h"
 
 #include "detect-transform-compress-whitespace.h"

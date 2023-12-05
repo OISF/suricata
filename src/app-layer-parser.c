@@ -39,7 +39,7 @@
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
 
-#include "app-layer-ftp.h"
+#include "app-layer/ftp/parser.h"
 #include "app-layer-smtp.h"
 
 #include "app-layer-smb.h"
