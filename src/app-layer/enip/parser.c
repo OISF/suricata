@@ -38,8 +38,8 @@
 #include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "app-layer-enip.h"
-#include "app-layer-enip-common.h"
+#include "app-layer/enip/parser.h"
+#include "app-layer/enip/parser-common.h"
 
 #include "app-layer-detect-proto.h"
 
