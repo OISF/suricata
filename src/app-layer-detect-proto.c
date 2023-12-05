@@ -2421,6 +2421,7 @@ static int AppLayerProtoDetectTest08(void)
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
 
+    // clang-format off
     uint8_t l7data[] = {
         0x00, 0x00, 0x00, 0x85, 0xff, 0x53, 0x4d, 0x42,
         0x72, 0x00, 0x00, 0x00, 0x00, 0x18, 0x53, 0xc8,
@@ -2441,6 +2442,7 @@ static int AppLayerProtoDetectTest08(void)
         0x20, 0x4c, 0x4d, 0x20, 0x30, 0x2e, 0x31, 0x32,
         0x00
     };
+    // clang-format on
     AppProto pm_results[ALPROTO_MAX];
     memset(pm_results, 0, sizeof(pm_results));
     Flow f;
@@ -2480,6 +2482,7 @@ static int AppLayerProtoDetectTest09(void)
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
 
+    // clang-format off
     uint8_t l7data[] = {
         0x00, 0x00, 0x00, 0x66, 0xfe, 0x53, 0x4d, 0x42,
         0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -2496,6 +2499,7 @@ static int AppLayerProtoDetectTest09(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x02, 0x02
     };
+    // clang-format on
     AppProto pm_results[ALPROTO_MAX];
     memset(pm_results, 0, sizeof(pm_results));
     Flow f;
@@ -2535,6 +2539,7 @@ static int AppLayerProtoDetectTest10(void)
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
 
+    // clang-format off
     uint8_t l7data[] = {
         0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
         0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -2546,6 +2551,7 @@ static int AppLayerProtoDetectTest10(void)
         0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
         0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00
     };
+    // clang-format on
     AppProto pm_results[ALPROTO_MAX];
     memset(pm_results, 0, sizeof(pm_results));
     Flow f;

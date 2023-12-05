@@ -1231,8 +1231,10 @@ static int SSHParserTest20(void)
                         "abcdefghijklmnopqrstuvwxyz"//216
                         "abcdefghijklmnopqrstuvwxyz"//242
                         "abcdefghijklm\r";//256
+    // clang-format off
     uint8_t sshbuf4[] = {'a','b','c','d','e','f', '\r',
                          0x00, 0x00, 0x00, 0x06, 0x01, 21, 0x00, 0x00, 0x00};
+    // clang-format on
 
     uint8_t* sshbufs[4] = {sshbuf1, sshbuf2, sshbuf3, sshbuf4};
     uint32_t sshlens[4] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1, sizeof(sshbuf4) - 1};
@@ -1298,8 +1300,10 @@ static int SSHParserTest21(void)
                         "abcdefghijklmnopqrstuvwxyz"
                         "abcdefghijklmnopqrstuvwxyz"//216
                         "abcdefghijklmnopqrstuvwxy";//241
+    // clang-format off
     uint8_t sshbuf4[] = {'l','i','b','s','s','h', '\r',
                          0x00, 0x00, 0x00, 0x06, 0x01, 21, 0x00, 0x00, 0x00};
+    // clang-format on
 
     uint8_t* sshbufs[4] = {sshbuf1, sshbuf2, sshbuf3, sshbuf4};
     uint32_t sshlens[4] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1, sizeof(sshbuf4)};
@@ -1356,6 +1360,7 @@ static int SSHParserTest22(void)
 
     uint8_t sshbuf1[] = "SSH-";
     uint8_t sshbuf2[] = "2.0-";
+    // clang-format off
     uint8_t sshbuf3[] = {
         'l', 'i', 'b', 's', 's', 'h', '\r', //7
 
@@ -1395,6 +1400,7 @@ static int SSHParserTest22(void)
             0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x06, 0x01, 21, 0x00, 0x00, 0x00, 0x00, //300
         };
+    // clang-format on
 
 
         uint8_t* sshbufs[3] = {sshbuf1, sshbuf2, sshbuf3};

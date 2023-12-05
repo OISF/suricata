@@ -755,11 +755,13 @@ static int PayloadTestSig17(void)
 
 static int PayloadTestSig18(void)
 {
+    // clang-format off
     uint8_t buf[] = {
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x35, /* the last byte is 2 */
         0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
         0x0E, 0x0F,
     };
+    // clang-format on
     uint16_t buflen = sizeof(buf);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
@@ -779,11 +781,13 @@ static int PayloadTestSig18(void)
 
 static int PayloadTestSig19(void)
 {
+    // clang-format off
     uint8_t buf[] = {
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x35, /* the last byte is 2 */
         0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
         0x0E, 0x0F,
     };
+    // clang-format on
     uint16_t buflen = sizeof(buf);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
@@ -803,11 +807,13 @@ static int PayloadTestSig19(void)
 
 static int PayloadTestSig20(void)
 {
+    // clang-format off
     uint8_t buf[] = {
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x35, /* the last byte is 2 */
         0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
         0x0E, 0x0F,
     };
+    // clang-format on
     uint16_t buflen = sizeof(buf);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
@@ -827,11 +833,13 @@ static int PayloadTestSig20(void)
 
 static int PayloadTestSig21(void)
 {
+    // clang-format off
     uint8_t buf[] = {
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x36, /* the last byte is 2 */
         0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
         0x0E, 0x0F,
     };
+    // clang-format on
     uint16_t buflen = sizeof(buf);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
@@ -851,11 +859,13 @@ static int PayloadTestSig21(void)
 
 static int PayloadTestSig22(void)
 {
+    // clang-format off
     uint8_t buf[] = {
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x36, /* the last byte is 2 */
         0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
         0x0E, 0x0F,
     };
+    // clang-format on
     uint16_t buflen = sizeof(buf);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
@@ -875,11 +885,13 @@ static int PayloadTestSig22(void)
 
 static int PayloadTestSig23(void)
 {
+    // clang-format off
     uint8_t buf[] = {
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x32, /* the last byte is 2 */
         0x07, 0x08, 0x09, 0x33, 0x0B, 0x0C, 0x0D,
         0x32, 0x0F,
     };
+    // clang-format on
     uint16_t buflen = sizeof(buf);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
@@ -900,11 +912,13 @@ static int PayloadTestSig23(void)
 
 static int PayloadTestSig24(void)
 {
+    // clang-format off
     uint8_t buf[] = {
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x32, /* the last byte is 2 */
         0x07, 0x08, 0x33, 0x0A, 0x0B, 0x0C, 0x0D,
         0x0E, 0x0F,
     };
+    // clang-format on
     uint16_t buflen = sizeof(buf);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
@@ -928,11 +942,13 @@ static int PayloadTestSig24(void)
  */
 static int PayloadTestSig25(void)
 {
+    // clang-format off
     uint8_t buf[] = {
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x35, /* the last byte is 2 */
         0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
         0x0E, 0x0F,
     };
+    // clang-format on
     uint16_t buflen = sizeof(buf);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
@@ -955,11 +971,13 @@ static int PayloadTestSig25(void)
  */
 static int PayloadTestSig26(void)
 {
+    // clang-format off
     uint8_t buf[] = {
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x35, /* the last byte is 2 */
         0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
         0x0E, 0x0F,
     };
+    // clang-format on
     uint16_t buflen = sizeof(buf);
     Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 

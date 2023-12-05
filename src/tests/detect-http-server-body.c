@@ -2275,6 +2275,7 @@ static int DetectEngineHttpServerBodyTest18(void)
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '5', '1', 0x0d, 0x0a,
@@ -2288,6 +2289,7 @@ static int DetectEngineHttpServerBodyTest18(void)
         0x8f, 0x0b, 0x00, 0xb2, 0x7d, 0xac, 0x9b, 0x19,
         0x00, 0x00, 0x00,
     };
+    // clang-format on
     uint32_t http_len2 = sizeof(http_buf2);
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -2405,6 +2407,7 @@ static int DetectEngineHttpServerBodyTest19(void)
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '2', '4', 0x0d, 0x0a,
@@ -2415,6 +2418,7 @@ static int DetectEngineHttpServerBodyTest19(void)
         0x85, 0xcc, 0x3c, 0x20, 0x2b, 0x29, 0xbf, 0x42,
         0x8f, 0x0b, 0x00,
     };
+    // clang-format on
     // 0xb2, 0x7d, 0xac, 0x9b, 0x19, 0x00, 0x00, 0x00,
     uint32_t http_len2 = sizeof(http_buf2);
     int result = 0;
@@ -2533,6 +2537,7 @@ static int DetectEngineHttpServerBodyTest20(void)
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '2', '4', 0x0d, 0x0a,
@@ -2543,6 +2548,7 @@ static int DetectEngineHttpServerBodyTest20(void)
         0x85, 0xcc, 0x3c, 0x20, 0x2b, 0x29, 0xbf, 0x42,
         0x8f, 0x0b, 0x00,
     };
+    // clang-format on
     // 0xb2, 0x7d, 0xac, 0x9b, 0x19, 0x00, 0x00, 0x00,
     uint32_t http_len2 = sizeof(http_buf2);
     int result = 0;
@@ -2660,6 +2666,7 @@ static int DetectEngineHttpServerBodyTest21(void)
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '5', '1', 0x0d, 0x0a,
@@ -2673,6 +2680,7 @@ static int DetectEngineHttpServerBodyTest21(void)
         0x8f, 0x0b, 0x00, 0xb2, 0x7d, 0xac, 0x9b, 0x19,
         0x00, 0x00, 0x00,
     };
+    // clang-format on
     uint32_t http_len2 = sizeof(http_buf2);
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -2790,6 +2798,7 @@ static int DetectEngineHttpServerBodyTest22(void)
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '5', '1', 0x0d, 0x0a,
@@ -2804,6 +2813,7 @@ static int DetectEngineHttpServerBodyTest22(void)
         0x8f, 0x0b, 0x00, 0xb2, 0x7d, 0xac, 0x9b, 0x19,
         0x00, 0x00, 0x00,
     };
+    // clang-format on
     uint32_t http_len2 = sizeof(http_buf2);
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -3856,6 +3866,7 @@ libhtp:\n\
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '8', '0', 0x0d, 0x0a,
@@ -3868,6 +3879,7 @@ libhtp:\n\
         0x0e, 0xc2, 0x8e, 0x50, 0x76, 0x51, 0xc5, 0x54, 0x15, 0x88, 0x73, 0xc3, 0xd0, 0x88, 0x39, 0x81,
         0x98, 0x63, 0x91, 0x93, 0x8a, 0x82, 0x89, 0x60, 0x00, 0xcc, 0xb1, 0x00, 0x01, 0x73, 0xce, 0x39,
     };
+    // clang-format on
     uint32_t http_len2 = sizeof(http_buf2);
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     FAIL_IF_NULL(alp_tctx);
@@ -3983,6 +3995,7 @@ libhtp:\n\
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '8', '0', 0x0d, 0x0a,
@@ -3995,6 +4008,7 @@ libhtp:\n\
         0x0e, 0xc2, 0x8e, 0x50, 0x76, 0x51, 0xc5, 0x54, 0x15, 0x88, 0x73, 0xc3, 0xd0, 0x88, 0x39, 0x81,
         0x98, 0x63, 0x91, 0x93, 0x8a, 0x82, 0x89, 0x60, 0x00, 0xcc, 0xb1, 0x00, 0x01, 0x73, 0xce, 0x39,
     };
+    // clang-format on
     uint32_t http_len2 = sizeof(http_buf2);
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     FAIL_IF_NULL(alp_tctx);
@@ -4110,6 +4124,7 @@ libhtp:\n\
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '8', '0', 0x0d, 0x0a,
@@ -4122,6 +4137,7 @@ libhtp:\n\
         0x0e, 0xc2, 0x8e, 0x50, 0x76, 0x51, 0xc5, 0x54, 0x15, 0x88, 0x73, 0xc3, 0xd0, 0x88, 0x39, 0x81,
         0x98, 0x63, 0x91, 0x93, 0x8a, 0x82, 0x89, 0x60, 0x00, 0xcc, 0xb1, 0x00, 0x01, 0x73, 0xce, 0x39,
     };
+    // clang-format on
     uint32_t http_len2 = sizeof(http_buf2);
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     FAIL_IF_NULL(alp_tctx);
@@ -4237,6 +4253,7 @@ libhtp:\n\
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '8', '0', 0x0d, 0x0a,
@@ -4249,6 +4266,7 @@ libhtp:\n\
         0x0e, 0xc2, 0x8e, 0x50, 0x76, 0x51, 0xc5, 0x54, 0x15, 0x88, 0x73, 0xc3, 0xd0, 0x88, 0x39, 0x81,
         0x98, 0x63, 0x91, 0x93, 0x8a, 0x82, 0x89, 0x60, 0x00, 0xcc, 0xb1, 0x00, 0x01, 0x73, 0xce, 0x39,
     };
+    // clang-format on
     uint32_t http_len2 = sizeof(http_buf2);
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     FAIL_IF_NULL(alp_tctx);
@@ -4364,6 +4382,7 @@ libhtp:\n\
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '8', '0', 0x0d, 0x0a,
@@ -4376,6 +4395,7 @@ libhtp:\n\
         0x0e, 0xc2, 0x8e, 0x50, 0x76, 0x51, 0xc5, 0x54, 0x15, 0x88, 0x73, 0xc3, 0xd0, 0x88, 0x39, 0x81,
         0x98, 0x63, 0x91, 0x93, 0x8a, 0x82, 0x89, 0x60, 0x00, 0xcc, 0xb1, 0x00, 0x01, 0x73, 0xce, 0x39,
     };
+    // clang-format on
     uint32_t http_len2 = sizeof(http_buf2);
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     FAIL_IF_NULL(alp_tctx);
@@ -4491,6 +4511,7 @@ libhtp:\n\
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '1', '0', '3', 0x0d, 0x0a,
@@ -4505,6 +4526,7 @@ libhtp:\n\
         0x0e, 0x76, 0x70, 0xa0, 0xcd, 0x98, 0x2e, 0x76, 0x80, 0xf0, 0xe0, 0x59, 0x56, 0x06, 0x08, 0xe9,
         0xca, 0xeb, 0xa2, 0xc6, 0xdb, 0x5a, 0x86
     };
+    // clang-format on
     uint32_t http_len2 = sizeof(http_buf2);
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     FAIL_IF_NULL(alp_tctx);
@@ -4621,6 +4643,7 @@ libhtp:\n\
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '1', '0', '3', 0x0d, 0x0a,
@@ -4633,6 +4656,7 @@ libhtp:\n\
         0xe1, 0xfc, 0x9e, 0x64, 0xda, 0x6c, 0x11, 0x21, 0x33, 0xed, 0xa0, 0x0e, 0x76, 0x70, 0xa0, 0xcd, 0x98, 0x2e, 0x76, 0x80, 0xf0, 0xe0, 0x59,
         0x56, 0x06, 0x08, 0xe9, 0xca, 0xeb, 0xa2, 0xc6, 0xdb, 0x5a, 0x86
     };
+    // clang-format on
     uint32_t http_len2 = sizeof(http_buf2);
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     FAIL_IF_NULL(alp_tctx);
@@ -4748,6 +4772,7 @@ libhtp:\n\
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '1', '0', '3', 0x0d, 0x0a,
@@ -4762,6 +4787,7 @@ libhtp:\n\
         0x0e, 0x76, 0x70, 0xa0, 0xcd, 0x98, 0x2e, 0x76, 0x80, 0xf0, 0xe0, 0x59, 0x56, 0x06, 0x08, 0xe9,
         0xca, 0xeb, 0xa2, 0xc6, 0xdb, 0x5a, 0x86
     };
+    // clang-format on
     uint32_t http_len2 = sizeof(http_buf2);
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     FAIL_IF_NULL(alp_tctx);
@@ -4877,6 +4903,7 @@ libhtp:\n\
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '8', '0', 0x0d, 0x0a,
@@ -4889,6 +4916,7 @@ libhtp:\n\
         0x35, 0x1b, 0x1a, 0x8b, 0x16, 0x4d, 0xdf, 0x05, 0x32, 0xfe, 0xa4, 0x4c, 0x46, 0x49, 0xb7, 0x7b,
         0x6b, 0x75, 0xf9, 0x2b, 0x5c, 0x37, 0x29, 0x0b, 0x91, 0x37, 0x01, 0x37, 0x0e, 0xe9, 0xf2, 0xe1,
     };
+    // clang-format on
     uint32_t http_len2 = sizeof(http_buf2);
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     FAIL_IF_NULL(alp_tctx);
@@ -5004,6 +5032,7 @@ libhtp:\n\
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '8', '0', 0x0d, 0x0a,
@@ -5016,6 +5045,7 @@ libhtp:\n\
         0x35, 0x1b, 0x1a, 0x8b, 0x16, 0x4d, 0xdf, 0x05, 0x32, 0xfe, 0xa4, 0x4c, 0x46, 0x49, 0xb7, 0x7b,
         0x6b, 0x75, 0xf9, 0x2b, 0x5c, 0x37, 0x29, 0x0b, 0x91, 0x37, 0x01, 0x37, 0x0e, 0xe9, 0xf2, 0xe1,
     };
+    // clang-format on
     uint32_t http_len2 = sizeof(http_buf2);
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     FAIL_IF_NULL(alp_tctx);
@@ -5130,6 +5160,7 @@ libhtp:\n\
         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
         "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
+    // clang-format off
     uint8_t http_buf2[] = {
         'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ', '2', '0', '0', 'o', 'k', 0x0d, 0x0a,
         'C', 'o', 'n', 't', 'e', 'n', 't', '-', 'L', 'e', 'n', 'g', 't', 'h', ':', ' ', '8', '0', 0x0d, 0x0a,
@@ -5142,6 +5173,7 @@ libhtp:\n\
         0x0e, 0xc2, 0x8e, 0x50, 0x76, 0x51, 0xc5, 0x54, 0x15, 0x88, 0x73, 0xc3, 0xd0, 0x88, 0x39, 0x81,
         0x98, 0x63, 0x91, 0x93, 0x8a, 0x82, 0x89, 0x60, 0x00, 0xcc, 0xb1, 0x00, 0x01, 0x73, 0xce, 0x39,
     };
+    // clang-format on
     uint32_t http_len2 = sizeof(http_buf2);
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     FAIL_IF_NULL(alp_tctx);

@@ -78,6 +78,7 @@ void RegisterModbusParsers(void)
 #define MODBUS_CONFIG_DEFAULT_STREAM_DEPTH 0
 
 /* Modbus Application Protocol Specification V1.1b3 6.1: Read Coils */
+// clang-format off
 static uint8_t invalidFunctionCode[] = {
     /* Transaction ID */ 0x00, 0x00,
     /* Protocol ID */ 0x00, 0x00,
@@ -85,9 +86,11 @@ static uint8_t invalidFunctionCode[] = {
     /* Unit ID */ 0x00,
     /* Function code */ 0x00
 };
+// clang-format on
 
 /* Modbus Application Protocol Specification V1.1b3 6.1: Read Coils */
 /* Example of a request to read discrete outputs 20-38 */
+// clang-format off
 static uint8_t readCoilsReq[] = {/* Transaction ID */    0x00, 0x00,
                                  /* Protocol ID */       0x00, 0x00,
                                  /* Length */            0x00, 0x06,
@@ -95,7 +98,9 @@ static uint8_t readCoilsReq[] = {/* Transaction ID */    0x00, 0x00,
                                  /* Function code */     0x01,
                                  /* Starting Address */  0x78, 0x90,
                                  /* Quantity of coils */ 0x00, 0x13 };
+// clang-format on
 
+// clang-format off
 static uint8_t readCoilsRsp[] = {/* Transaction ID */    0x00, 0x00,
                                  /* Protocol ID */       0x00, 0x00,
                                  /* Length */            0x00, 0x06,
@@ -103,7 +108,9 @@ static uint8_t readCoilsRsp[] = {/* Transaction ID */    0x00, 0x00,
                                  /* Function code */     0x01,
                                  /* Byte count */        0x03,
                                  /* Coil Status */       0xCD, 0x6B, 0x05 };
+// clang-format on
 
+// clang-format off
 static uint8_t readCoilsErrorRsp[] = {
     /* Transaction ID */ 0x00, 0x00,
     /* Protocol ID */ 0x00, 0x00,
@@ -113,9 +120,11 @@ static uint8_t readCoilsErrorRsp[] = {
     /* Invalid Exception code: should trigger the InvalidExceptionCode ModbusEvent */
     0xFF
 };
+// clang-format on
 
 /* Modbus Application Protocol Specification V1.1b3 6.6: Write Single register */
 /* Example of a request to write register 2 to 00 03 hex */
+// clang-format off
 static uint8_t writeSingleRegisterReq[] = {/* Transaction ID */     0x00, 0x0A,
                                            /* Protocol ID */        0x00, 0x00,
                                            /* Length */             0x00, 0x06,
@@ -123,14 +132,18 @@ static uint8_t writeSingleRegisterReq[] = {/* Transaction ID */     0x00, 0x0A,
                                            /* Function code */      0x06,
                                            /* Register Address */   0x00, 0x01,
                                            /* Register Value */     0x00, 0x03};
+// clang-format on
 
+// clang-format off
 static uint8_t invalidWriteSingleRegisterReq[] = {/* Transaction ID */      0x00, 0x0A,
                                                   /* Protocol ID */         0x00, 0x00,
                                                   /* Length */              0x00, 0x04,
                                                   /* Unit ID */             0x00,
                                                   /* Function code */       0x06,
                                                   /* Register Address */    0x00, 0x01};
+// clang-format on
 
+// clang-format off
 static uint8_t writeSingleRegisterRsp[] = {/* Transaction ID */         0x00, 0x0A,
                                            /* Protocol ID */            0x00, 0x00,
                                            /* Length */                 0x00, 0x06,
@@ -138,9 +151,11 @@ static uint8_t writeSingleRegisterRsp[] = {/* Transaction ID */         0x00, 0x
                                            /* Function code */          0x06,
                                            /* Register Address */       0x00, 0x01,
                                            /* Register Value */         0x00, 0x03};
+// clang-format on
 
 /* Modbus Application Protocol Specification V1.1b3 6.12: Write Multiple registers */
 /* Example of a request to write two registers starting at 2 to 00 0A and 01 02 hex */
+// clang-format off
 static uint8_t writeMultipleRegistersReq[] = {/* Transaction ID */          0x00, 0x0A,
                                               /* Protocol ID */             0x00, 0x00,
                                               /* Length */                  0x00, 0x0B,
@@ -151,7 +166,9 @@ static uint8_t writeMultipleRegistersReq[] = {/* Transaction ID */          0x00
                                               /* Byte count */              0x04,
                                               /* Registers Value */         0x00, 0x0A,
                                                                             0x01, 0x02};
+// clang-format on
 
+// clang-format off
 static uint8_t writeMultipleRegistersRsp[] = {/* Transaction ID */          0x00, 0x0A,
                                               /* Protocol ID */             0x00, 0x00,
                                               /* Length */                  0x00, 0x06,
@@ -159,9 +176,11 @@ static uint8_t writeMultipleRegistersRsp[] = {/* Transaction ID */          0x00
                                               /* Function code */           0x10,
                                               /* Starting Address */        0x00, 0x01,
                                               /* Quantity of Registers */   0x00, 0x02};
+// clang-format on
 
 /* Modbus Application Protocol Specification V1.1b3 6.16: Mask Write Register */
 /* Example of a request to mask write to register 5 */
+// clang-format off
 static uint8_t maskWriteRegisterReq[] = {/* Transaction ID */       0x00, 0x0A,
                                          /* Protocol ID */          0x00, 0x00,
                                          /* Length */               0x00, 0x08,
@@ -170,7 +189,9 @@ static uint8_t maskWriteRegisterReq[] = {/* Transaction ID */       0x00, 0x0A,
                                          /* Reference Address */    0x00, 0x04,
                                          /* And_Mask */             0x00, 0xF2,
                                          /* Or_Mask */              0x00, 0x25};
+// clang-format on
 
+// clang-format off
 static uint8_t invalidMaskWriteRegisterReq[] = {/* Transaction ID */    0x00, 0x0A,
                                                 /* Protocol ID */       0x00, 0x00,
                                                 /* Length */            0x00, 0x06,
@@ -178,7 +199,9 @@ static uint8_t invalidMaskWriteRegisterReq[] = {/* Transaction ID */    0x00, 0x
                                                 /* Function code */     0x16,
                                                 /* Reference Address */ 0x00, 0x04,
                                                 /* And_Mask */          0x00, 0xF2};
+// clang-format on
 
+// clang-format off
 static uint8_t maskWriteRegisterRsp[] = {/* Transaction ID */       0x00, 0x0A,
                                          /* Protocol ID */          0x00, 0x00,
                                          /* Length */               0x00, 0x08,
@@ -187,10 +210,12 @@ static uint8_t maskWriteRegisterRsp[] = {/* Transaction ID */       0x00, 0x0A,
                                          /* Reference Address */    0x00, 0x04,
                                          /* And_Mask */             0x00, 0xF2,
                                          /* Or_Mask */              0x00, 0x25};
+// clang-format on
 
 /* Modbus Application Protocol Specification V1.1b3 6.17: Read/Write Multiple registers */
 /* Example of a request to read six registers starting at register 4, */
 /* and to write three registers starting at register 15 */
+// clang-format off
 static uint8_t readWriteMultipleRegistersReq[] = {/* Transaction ID */          0x12, 0x34,
                                                   /* Protocol ID */             0x00, 0x00,
                                                   /* Length */                  0x00, 0x11,
@@ -204,8 +229,10 @@ static uint8_t readWriteMultipleRegistersReq[] = {/* Transaction ID */          
                                                   /* Write Registers Value */   0x12, 0x34,
                                                                                 0x56, 0x78,
                                                                                 0x9A, 0xBC};
+// clang-format on
 
 /* Mismatch value in Byte count 0x0B instead of 0x0C */
+// clang-format off
 static uint8_t readWriteMultipleRegistersRsp[] = {/* Transaction ID */          0x12, 0x34,
                                                   /* Protocol ID */             0x00, 0x00,
                                                   /* Length */                  0x00, 0x0E,
@@ -218,9 +245,11 @@ static uint8_t readWriteMultipleRegistersRsp[] = {/* Transaction ID */          
                                                                                 0x00, 0x03,
                                                                                 0x00, 0x0D,
                                                                                 0x00};
+// clang-format on
 
 /* Modbus Application Protocol Specification V1.1b3 6.8.1: 04 Force Listen Only Mode */
 /* Example of a request to to remote device to its Listen Only Mode for Modbus Communications. */
+// clang-format off
 static uint8_t forceListenOnlyMode[] = {/* Transaction ID */     0x0A, 0x00,
                                         /* Protocol ID */        0x00, 0x00,
                                         /* Length */             0x00, 0x06,
@@ -228,7 +257,9 @@ static uint8_t forceListenOnlyMode[] = {/* Transaction ID */     0x0A, 0x00,
                                         /* Function code */      0x08,
                                         /* Sub-function code */  0x00, 0x04,
                                         /* Data */               0x00, 0x00};
+// clang-format on
 
+// clang-format off
 static uint8_t invalidProtocolIdReq[] = {/* Transaction ID */    0x00, 0x00,
                                          /* Protocol ID */       0x00, 0x01,
                                          /* Length */            0x00, 0x06,
@@ -236,7 +267,9 @@ static uint8_t invalidProtocolIdReq[] = {/* Transaction ID */    0x00, 0x00,
                                          /* Function code */     0x01,
                                          /* Starting Address */  0x78, 0x90,
                                          /* Quantity of coils */ 0x00, 0x13 };
+// clang-format on
 
+// clang-format off
 static uint8_t invalidLengthWriteMultipleRegistersReq[] = {
                                               /* Transaction ID */          0x00, 0x0A,
                                               /* Protocol ID */             0x00, 0x00,
@@ -248,7 +281,9 @@ static uint8_t invalidLengthWriteMultipleRegistersReq[] = {
                                               /* Byte count */              0x04,
                                               /* Registers Value */         0x00, 0x0A,
                                                                             0x01, 0x02};
+// clang-format on
 
+// clang-format off
 static uint8_t exceededLengthWriteMultipleRegistersReq[] = {
                                               /* Transaction ID */          0x00, 0x0A,
                                               /* Protocol ID */             0x00, 0x00,
@@ -258,13 +293,16 @@ static uint8_t exceededLengthWriteMultipleRegistersReq[] = {
                                               /* Starting Address */        0x00, 0x01,
                                               /* Quantity of Registers */   0x7f, 0xf9,
                                               /* Byte count */              0xff};
+// clang-format on
 
+// clang-format off
 static uint8_t invalidLengthPDUWriteMultipleRegistersReq[] = {
                                               /* Transaction ID */          0x00, 0x0A,
                                               /* Protocol ID */             0x00, 0x00,
                                               /* Length */                  0x00, 0x02,
                                               /* Unit ID */                 0x00,
                                               /* Function code */           0x10};
+// clang-format on
 
 /** \test Send Modbus Read Coils request/response. */
 static int ModbusParserTest01(void) {
