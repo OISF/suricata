@@ -179,34 +179,34 @@ noinst_HEADERS = \
 	detect.h \
 	detect-hostbits.h \
 	app-layer/http2/detect.h \
-	detect-http-accept-enc.h \
-	detect-http-accept.h \
-	detect-http-accept-lang.h \
-	detect-http-client-body.h \
-	detect-http-connection.h \
-	detect-http-content-len.h \
-	detect-http-content-type.h \
-	detect-http-cookie.h \
-	detect-http-header-common.h \
-	detect-http-header.h \
-	detect-http-header-names.h \
-	detect-http-headers.h \
-	detect-http-headers-stub.h \
-	detect-http-host.h \
-	detect-http-location.h \
-	detect-http-method.h \
-	detect-http-protocol.h \
-	detect-http-raw-header.h \
-	detect-http-referer.h \
-	detect-http-request-line.h \
-	detect-http-response-line.h \
-	detect-http-server-body.h \
-	detect-http-server.h \
-	detect-http-start.h \
-	detect-http-stat-code.h \
-	detect-http-stat-msg.h \
-	detect-http-ua.h \
-	detect-http-uri.h \
+	app-layer/http/detect-accept-enc.h \
+	app-layer/http/detect-accept.h \
+	app-layer/http/detect-accept-lang.h \
+	app-layer/http/detect-client-body.h \
+	app-layer/http/detect-connection.h \
+	app-layer/http/detect-content-len.h \
+	app-layer/http/detect-content-type.h \
+	app-layer/http/detect-cookie.h \
+	app-layer/http/detect-header-common.h \
+	app-layer/http/detect-header.h \
+	app-layer/http/detect-header-names.h \
+	app-layer/http/detect-headers.h \
+	app-layer/http/detect-headers-stub.h \
+	app-layer/http/detect-host.h \
+	app-layer/http/detect-location.h \
+	app-layer/http/detect-method.h \
+	app-layer/http/detect-protocol.h \
+	app-layer/http/detect-raw-header.h \
+	app-layer/http/detect-referer.h \
+	app-layer/http/detect-request-line.h \
+	app-layer/http/detect-response-line.h \
+	app-layer/http/detect-server-body.h \
+	app-layer/http/detect-server.h \
+	app-layer/http/detect-start.h \
+	app-layer/http/detect-stat-code.h \
+	app-layer/http/detect-stat-msg.h \
+	app-layer/http/detect-ua.h \
+	app-layer/http/detect-uri.h \
 	detect-icmp-id.h \
 	detect-icmp-seq.h \
 	detect-icmpv4hdr.h \
@@ -382,7 +382,7 @@ noinst_HEADERS = \
 	ippair-storage.h \
 	ippair-timeout.h \
 	log-cf-common.h \
-	log-httplog.h \
+	app-layer/http/log-httplog.h \
 	log-pcap.h \
 	log-stats.h \
 	log-tcp-data.h \
@@ -411,7 +411,7 @@ noinst_HEADERS = \
 	app-layer/ftp/logger.h \
 	output-json.h \
 	app-layer/http2/logger.h \
-	output-json-http.h \
+	app-layer/http/logger.h \
 	app-layer/ike/logger.h \
 	app-layer/krb5/logger.h \
 	output-json-metadata.h \
@@ -565,7 +565,7 @@ noinst_HEADERS = \
 	util-lua-dns.h \
 	util-lua.h \
 	app-layer/ssh/lua-hassh.h \
-	util-lua-http.h \
+	app-layer/http/lua.h \
 	util-lua-ja3.h \
 	util-luajit.h \
 	app-layer/smtp/lua.h \
@@ -793,33 +793,33 @@ libsuricata_c_a_SOURCES = \
 	detect-gid.c \
 	detect-hostbits.c \
 	app-layer/http2/detect.c \
-	detect-http-accept.c \
-	detect-http-accept-enc.c \
-	detect-http-accept-lang.c \
-	detect-http-client-body.c \
-	detect-http-connection.c \
-	detect-http-content-len.c \
-	detect-http-content-type.c \
-	detect-http-cookie.c \
-	detect-http-header.c \
-	detect-http-header-common.c \
-	detect-http-header-names.c \
-	detect-http-headers.c \
-	detect-http-host.c \
-	detect-http-location.c \
-	detect-http-method.c \
-	detect-http-protocol.c \
-	detect-http-raw-header.c \
-	detect-http-referer.c \
-	detect-http-request-line.c \
-	detect-http-response-line.c \
-	detect-http-server-body.c \
-	detect-http-server.c \
-	detect-http-start.c \
-	detect-http-stat-code.c \
-	detect-http-stat-msg.c \
-	detect-http-ua.c \
-	detect-http-uri.c \
+	app-layer/http/detect-accept.c \
+	app-layer/http/detect-accept-enc.c \
+	app-layer/http/detect-accept-lang.c \
+	app-layer/http/detect-client-body.c \
+	app-layer/http/detect-connection.c \
+	app-layer/http/detect-content-len.c \
+	app-layer/http/detect-content-type.c \
+	app-layer/http/detect-cookie.c \
+	app-layer/http/detect-header.c \
+	app-layer/http/detect-header-common.c \
+	app-layer/http/detect-header-names.c \
+	app-layer/http/detect-headers.c \
+	app-layer/http/detect-host.c \
+	app-layer/http/detect-location.c \
+	app-layer/http/detect-method.c \
+	app-layer/http/detect-protocol.c \
+	app-layer/http/detect-raw-header.c \
+	app-layer/http/detect-referer.c \
+	app-layer/http/detect-request-line.c \
+	app-layer/http/detect-response-line.c \
+	app-layer/http/detect-server-body.c \
+	app-layer/http/detect-server.c \
+	app-layer/http/detect-start.c \
+	app-layer/http/detect-stat-code.c \
+	app-layer/http/detect-stat-msg.c \
+	app-layer/http/detect-ua.c \
+	app-layer/http/detect-uri.c \
 	detect-icmp-id.c \
 	detect-icmp-seq.c \
 	detect-icmpv4hdr.c \
@@ -994,7 +994,7 @@ libsuricata_c_a_SOURCES = \
 	ippair-storage.c \
 	ippair-timeout.c \
 	log-cf-common.c \
-	log-httplog.c \
+	app-layer/http/log-httplog.c \
 	log-pcap.c \
 	log-stats.c \
 	log-tcp-data.c \
@@ -1023,7 +1023,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-frame.c \
 	app-layer/ftp/logger.c \
 	app-layer/http2/logger.c \
-	output-json-http.c \
+	app-layer/http/logger.c \
 	app-layer/ike/logger.c \
 	app-layer/krb5/logger.c \
 	output-json-metadata.c \
@@ -1164,7 +1164,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/dnp3/lua-objects.c \
 	util-lua-dns.c \
 	app-layer/ssh/lua-hassh.c \
-	util-lua-http.c \
+	app-layer/http/lua.c \
 	util-lua-ja3.c \
 	util-luajit.c \
 	app-layer/smtp/lua.c \
@@ -1255,16 +1255,16 @@ EXTRA_DIST = \
 	tests/detect-parse.c \
 	tests/stream-tcp-reassemble.c \
 	tests/detect-file-data.c \
-	tests/detect-http-client-body.c \
-	tests/detect-http-cookie.c \
-	tests/detect-http-header.c \
-	tests/detect-http-host.c \
-	tests/detect-http-method.c \
-	tests/detect-http-raw-header.c \
-	tests/detect-http-server-body.c \
-	tests/detect-http-stat-code.c \
-	tests/detect-http-stat-msg.c \
-	tests/detect-http-uri.c \
+	tests/app-layer/http/detect-client-body.c \
+	tests/app-layer/http/detect-cookie.c \
+	tests/app-layer/http/detect-header.c \
+	tests/app-layer/http/detect-host.c \
+	tests/app-layer/http/detect-method.c \
+	tests/app-layer/http/detect-raw-header.c \
+	tests/app-layer/http/detect-server-body.c \
+	tests/app-layer/http/detect-stat-code.c \
+	tests/app-layer/http/detect-stat-msg.c \
+	tests/app-layer/http/detect-uri.c \
 	tests/detect-http-user-agent.c \
 	tests/app-layer/snmp/detect-community.c \
 	tests/app-layer/ssl/detect-state.c \

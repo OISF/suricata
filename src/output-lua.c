@@ -42,7 +42,7 @@
 #include "util-time.h"
 #include "util-lua.h"
 #include "util-lua-common.h"
-#include "util-lua-http.h"
+#include "app-layer/http/lua.h"
 #include "util-lua-dns.h"
 #include "util-lua-ja3.h"
 #include "util-lua-tls.h"

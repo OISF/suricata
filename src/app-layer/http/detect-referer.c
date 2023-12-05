@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2019 Open Information Security Foundation
+/* Copyright (C) 2007-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,26 +24,24 @@
 /**
  * \file
  *
- * \author Jeff Lucovsky <jeff@lucovsky.org>
+ * \author Victor Julien <victor@inliniac.net>
  *
- * Implements http.server sticky buffer
- *
- * "Server" is an HTTP response-header field containing information about the software
- * used by the origin server to handle the request.
+ * Implements support http_referer sticky buffer
  */
 
-#define KEYWORD_NAME     "http.server"
-#define KEYWORD_DOC      "http-keywords.html#http-server"
-#define BUFFER_NAME      "http.server"
-#define BUFFER_DESC      "http server header"
-#define HEADER_NAME      "Server"
-#define KEYWORD_ID       DETECT_AL_HTTP_HEADER_SERVER
-#define KEYWORD_TOCLIENT 1
+#define KEYWORD_NAME_LEGACY "http_referer"
+#define KEYWORD_NAME        "http.referer"
+#define KEYWORD_DOC         "http-keywords.html#http-referer"
+#define BUFFER_NAME         "http_referer"
+#define BUFFER_DESC         "http referer header"
+#define HEADER_NAME         "Referer"
+#define KEYWORD_ID          DETECT_AL_HTTP_HEADER_REFERER
+#define KEYWORD_TOSERVER    1
 
-#include "detect-http-headers-stub.h"
-#include "detect-http-server.h"
+#include "app-layer/http/detect-headers-stub.h"
+#include "app-layer/http/detect-referer.h"
 
-void RegisterHttpHeadersServer(void)
+void RegisterHttpHeadersReferer(void)
 {
     DetectHttpHeadersRegisterStub();
 }

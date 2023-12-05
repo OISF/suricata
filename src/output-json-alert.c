@@ -62,7 +62,7 @@
 #include "output-json-alert.h"
 #include "app-layer/dnp3/logger.h"
 #include "output-json-dns.h"
-#include "output-json-http.h"
+#include "app-layer/http/logger.h"
 #include "output-json-tls.h"
 #include "app-layer/ssh/logger.h"
 #include "rust.h"

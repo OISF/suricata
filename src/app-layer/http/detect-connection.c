@@ -26,23 +26,23 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Implements http_content_len sticky buffer
+ * Implements the http_connection sticky buffer
  */
 
-#define KEYWORD_NAME_LEGACY "http_content_len"
-#define KEYWORD_NAME        "http.content_len"
-#define KEYWORD_DOC         "http-keywords.html#http-content-len"
-#define BUFFER_NAME         "http_content_len"
-#define BUFFER_DESC         "http content length header"
-#define HEADER_NAME         "Content-Length"
-#define KEYWORD_ID          DETECT_AL_HTTP_HEADER_CONTENT_LEN
+#define KEYWORD_NAME_LEGACY "http_connection"
+#define KEYWORD_NAME        "http.connection"
+#define KEYWORD_DOC         "http-keywords.html#http-connection"
+#define BUFFER_NAME         "http_connection"
+#define BUFFER_DESC         "http connection header"
+#define HEADER_NAME         "Connection"
+#define KEYWORD_ID          DETECT_AL_HTTP_HEADER_CONNECTION
 #define KEYWORD_TOSERVER    1
 #define KEYWORD_TOCLIENT    1
 
-#include "detect-http-headers-stub.h"
-#include "detect-http-content-len.h"
+#include "app-layer/http/detect-headers-stub.h"
+#include "app-layer/http/detect-connection.h"
 
-void RegisterHttpHeadersContentLen(void)
+void RegisterHttpHeadersConnection(void)
 {
     DetectHttpHeadersRegisterStub();
 }

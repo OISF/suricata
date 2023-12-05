@@ -51,7 +51,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer/http/parser.h"
-#include "detect-http-server-body.h"
+#include "app-layer/http/detect-server-body.h"
 #include "stream-tcp.h"
 
 static int DetectHttpServerBodySetup(DetectEngineCtx *, Signature *, const char *);

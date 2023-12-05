@@ -57,7 +57,7 @@
 
 #include "app-layer/http/parser.h"
 #include "stream-tcp.h"
-#include "detect-http-response-line.h"
+#include "app-layer/http/detect-response-line.h"
 
 static int DetectHttpResponseLineSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
