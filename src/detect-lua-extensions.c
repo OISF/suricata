@@ -66,7 +66,7 @@
 #include "app-layer/http/lua.h"
 #include "app-layer/dns/lua.h"
 #include "util-lua-ja3.h"
-#include "util-lua-tls.h"
+#include "app-layer/tls/lua.h"
 #include "app-layer/ssh/lua.h"
 #include "app-layer/ssh/lua-hassh.h"
 #include "app-layer/smtp/lua.h"

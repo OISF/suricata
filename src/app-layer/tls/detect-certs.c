@@ -35,7 +35,7 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
-#include "detect-tls-certs.h"
+#include "app-layer/tls/detect-certs.h"
 #include "detect-engine-uint.h"
 
 #include "flow.h"

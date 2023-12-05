@@ -324,20 +324,20 @@ noinst_HEADERS = \
 	detect-template.h \
 	detect-template-rust-buffer.h \
 	detect-threshold.h \
-	detect-tls-cert-fingerprint.h \
-	detect-tls-cert-issuer.h \
-	detect-tls-cert-serial.h \
-	detect-tls-certs.h \
-	detect-tls-cert-subject.h \
-	detect-tls-cert-validity.h \
-	detect-tls.h \
-	detect-tls-ja3-hash.h \
-	detect-tls-ja3s-hash.h \
-	detect-tls-ja3s-string.h \
-	detect-tls-ja3-string.h \
-	detect-tls-sni.h \
-	detect-tls-version.h \
-	detect-tls-random.h \
+	app-layer/tls/detect-cert-fingerprint.h \
+	app-layer/tls/detect-cert-issuer.h \
+	app-layer/tls/detect-cert-serial.h \
+	app-layer/tls/detect-certs.h \
+	app-layer/tls/detect-cert-subject.h \
+	app-layer/tls/detect-cert-validity.h \
+	app-layer/tls/detect.h \
+	app-layer/tls/detect-ja3-hash.h \
+	app-layer/tls/detect-ja3s-hash.h \
+	app-layer/tls/detect-ja3s-string.h \
+	app-layer/tls/detect-ja3-string.h \
+	app-layer/tls/detect-sni.h \
+	app-layer/tls/detect-version.h \
+	app-layer/tls/detect-random.h \
 	detect-tos.h \
 	detect-transform-casechange.h \
 	detect-transform-compress-whitespace.h \
@@ -386,8 +386,8 @@ noinst_HEADERS = \
 	log-pcap.h \
 	log-stats.h \
 	log-tcp-data.h \
-	log-tlslog.h \
-	log-tlsstore.h \
+	app-layer/tls/log-tlslog.h \
+	app-layer/tls/log-tlsstore.h \
 	output-eve-stream.h \
 	output-eve-null.h \
 	output-filedata.h \
@@ -431,7 +431,7 @@ noinst_HEADERS = \
 	output-json-stats.h \
 	output-json-template.h \
 	app-layer/tftp/logger.h \
-	output-json-tls.h \
+	app-layer/tls/logger.h \
 	output-eve-syslog.h \
 	output-lua.h \
 	output-packet.h \
@@ -570,7 +570,7 @@ noinst_HEADERS = \
 	util-luajit.h \
 	app-layer/smtp/lua.h \
 	app-layer/ssh/lua.h \
-	util-lua-tls.h \
+	app-layer/tls/lua.h \
 	util-macset.h \
 	util-magic.h \
 	util-memcmp.h \
@@ -937,20 +937,20 @@ libsuricata_c_a_SOURCES = \
 	detect-template.c \
 	detect-template-rust-buffer.c \
 	detect-threshold.c \
-	detect-tls.c \
-	detect-tls-cert-fingerprint.c \
-	detect-tls-cert-issuer.c \
-	detect-tls-certs.c \
-	detect-tls-cert-serial.c \
-	detect-tls-cert-subject.c \
-	detect-tls-cert-validity.c \
-	detect-tls-ja3-hash.c \
-	detect-tls-ja3s-hash.c \
-	detect-tls-ja3s-string.c \
-	detect-tls-ja3-string.c \
-	detect-tls-sni.c \
-	detect-tls-version.c \
-	detect-tls-random.c \
+	app-layer/tls/detect.c \
+	app-layer/tls/detect-cert-fingerprint.c \
+	app-layer/tls/detect-cert-issuer.c \
+	app-layer/tls/detect-certs.c \
+	app-layer/tls/detect-cert-serial.c \
+	app-layer/tls/detect-cert-subject.c \
+	app-layer/tls/detect-cert-validity.c \
+	app-layer/tls/detect-ja3-hash.c \
+	app-layer/tls/detect-ja3s-hash.c \
+	app-layer/tls/detect-ja3s-string.c \
+	app-layer/tls/detect-ja3-string.c \
+	app-layer/tls/detect-sni.c \
+	app-layer/tls/detect-version.c \
+	app-layer/tls/detect-random.c \
 	detect-tos.c \
 	detect-transform-casechange.c \
 	detect-transform-compress-whitespace.c \
@@ -998,8 +998,8 @@ libsuricata_c_a_SOURCES = \
 	log-pcap.c \
 	log-stats.c \
 	log-tcp-data.c \
-	log-tlslog.c \
-	log-tlsstore.c \
+	app-layer/tls/log-tlslog.c \
+	app-layer/tls/log-tlsstore.c \
 	output.c \
 	output-eve-stream.c \
 	output-file.c \
@@ -1043,7 +1043,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-stats.c \
 	output-json-template.c \
 	app-layer/tftp/logger.c \
-	output-json-tls.c \
+	app-layer/tls/logger.c \
 	output-eve-syslog.c \
 	output-eve-null.c \
 	output-lua.c \
@@ -1169,7 +1169,7 @@ libsuricata_c_a_SOURCES = \
 	util-luajit.c \
 	app-layer/smtp/lua.c \
 	app-layer/ssh/lua.c \
-	util-lua-tls.c \
+	app-layer/tls/lua.c \
 	util-macset.c \
 	util-magic.c \
 	util-mem.c \
@@ -1270,13 +1270,13 @@ EXTRA_DIST = \
 	tests/app-layer/ssl/detect-state.c \
 	tests/app-layer/ssl/detect-version.c \
 	tests/detect-template-buffer.c \
-	tests/detect-tls-cert-fingerprint.c \
-	tests/detect-tls-cert-issuer.c \
-	tests/detect-tls-cert-serial.c \
-	tests/detect-tls-cert-subject.c \
-	tests/detect-tls-cert-validity.c \
-	tests/detect-tls-certs.c \
-	tests/detect-tls-version.c \
+	tests/app-layer/tls/detect-cert-fingerprint.c \
+	tests/app-layer/tls/detect-cert-issuer.c \
+	tests/app-layer/tls/detect-cert-serial.c \
+	tests/app-layer/tls/detect-cert-subject.c \
+	tests/app-layer/tls/detect-cert-validity.c \
+	tests/app-layer/tls/detect-certs.c \
+	tests/app-layer/tls/detect-version.c \
 	tests/detect-ipaddr.c \
 	tests/detect.c \
 	tests/stream-tcp.c

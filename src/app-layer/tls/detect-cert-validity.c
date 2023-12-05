@@ -33,7 +33,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
-#include "detect-tls-cert-validity.h"
+#include "app-layer/tls/detect-cert-validity.h"
 
 #include "flow.h"
 #include "flow-util.h"
