@@ -86,7 +86,7 @@
 #include "output-lua.h"
 #include "app-layer/dnp3/logger.h"
 #include "output-json-metadata.h"
-#include "output-json-dcerpc.h"
+#include "app-layer/dcerpc/logger.h"
 #include "output-json-frame.h"
 #include "app-layer/bittorrent-dht/logger.h"
 #include "output-filestore.h"

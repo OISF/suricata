@@ -398,7 +398,7 @@ noinst_HEADERS = \
 	output-json-alert.h \
 	output-json-anomaly.h \
 	app-layer/bittorrent-dht/logger.h \
-	output-json-dcerpc.h \
+	app-layer/dcerpc/logger.h \
 	output-json-dhcp.h \
 	app-layer/dnp3/logger.h \
 	app-layer/dnp3/logger-objects.h \
@@ -1011,7 +1011,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/bittorrent-dht/logger.c \
 	output-json.c \
 	output-json-common.c \
-	output-json-dcerpc.c \
+	app-layer/dcerpc/logger.c \
 	output-json-dhcp.c \
 	app-layer/dnp3/logger.c \
 	app-layer/dnp3/logger-objects.c \
