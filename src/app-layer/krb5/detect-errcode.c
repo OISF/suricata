@@ -28,9 +28,9 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 
-#include "detect-krb5-msgtype.h"
+#include "app-layer/krb5/detect-errcode.h"
 
-#include "app-layer-krb5.h"
+#include "app-layer/krb5/parser.h"
 #include "rust.h"
 
 /**
@@ -39,46 +39,46 @@
 #define PARSE_REGEX "^\\s*([A-z0-9\\.]+|\"[A-z0-9_\\.]+\")\\s*$"
 static DetectParseRegex parse_regex;
 
-/* Prototypes of functions registered in DetectKrb5MsgTypeRegister below */
-static int DetectKrb5MsgTypeMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
+/* Prototypes of functions registered in DetectKrb5ErrCodeRegister below */
+static int DetectKrb5ErrCodeMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectKrb5MsgTypeSetup(DetectEngineCtx *, Signature *, const char *);
-static void DetectKrb5MsgTypeFree(DetectEngineCtx *, void *);
+static int DetectKrb5ErrCodeSetup(DetectEngineCtx *, Signature *, const char *);
+static void DetectKrb5ErrCodeFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
-static void DetectKrb5MsgTypeRegisterTests(void);
+static void DetectKrb5ErrCodeRegisterTests(void);
 #endif
 
-static int g_krb5_msg_type_list_id = 0;
+static int g_krb5_err_code_list_id = 0;
 
 /**
- * \brief Registration function for krb5_msg_type: keyword
+ * \brief Registration function for krb5_err_code: keyword
  *
  * This function is called once in the 'lifetime' of the engine.
  */
-void DetectKrb5MsgTypeRegister(void)
+void DetectKrb5ErrCodeRegister(void)
 {
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].name = "krb5_msg_type";
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].desc = "match Kerberos 5 message type";
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].url = "/rules/kerberos-keywords.html#krb5-msg-type";
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].Match = NULL;
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].AppLayerTxMatch = DetectKrb5MsgTypeMatch;
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].Setup = DetectKrb5MsgTypeSetup;
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].Free = DetectKrb5MsgTypeFree;
+    sigmatch_table[DETECT_AL_KRB5_ERRCODE].name = "krb5_err_code";
+    sigmatch_table[DETECT_AL_KRB5_ERRCODE].desc = "match Kerberos 5 error code";
+    sigmatch_table[DETECT_AL_KRB5_ERRCODE].url = "/rules/kerberos-keywords.html#krb5-err-code";
+    sigmatch_table[DETECT_AL_KRB5_ERRCODE].Match = NULL;
+    sigmatch_table[DETECT_AL_KRB5_ERRCODE].AppLayerTxMatch = DetectKrb5ErrCodeMatch;
+    sigmatch_table[DETECT_AL_KRB5_ERRCODE].Setup = DetectKrb5ErrCodeSetup;
+    sigmatch_table[DETECT_AL_KRB5_ERRCODE].Free = DetectKrb5ErrCodeFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_KRB5_MSGTYPE].RegisterTests = DetectKrb5MsgTypeRegisterTests;
+    sigmatch_table[DETECT_AL_KRB5_ERRCODE].RegisterTests = DetectKrb5ErrCodeRegisterTests;
 #endif
 
-    DetectAppLayerInspectEngineRegister2("krb5_msg_type", ALPROTO_KRB5, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister2("krb5_err_code", ALPROTO_KRB5, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectGenericList, NULL);
 
-    DetectAppLayerInspectEngineRegister2("krb5_msg_type", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0,
+    DetectAppLayerInspectEngineRegister2("krb5_err_code", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectGenericList, NULL);
 
     /* set up the PCRE for keyword parsing */
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
-    g_krb5_msg_type_list_id = DetectBufferTypeRegister("krb5_msg_type");
-    SCLogDebug("g_krb5_msg_type_list_id %d", g_krb5_msg_type_list_id);
+    g_krb5_err_code_list_id = DetectBufferTypeRegister("krb5_err_code");
+    SCLogDebug("g_krb5_err_code_list_id %d", g_krb5_err_code_list_id);
 }
 
 /**
@@ -92,33 +92,36 @@ void DetectKrb5MsgTypeRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectKrb5MsgTypeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+static int DetectKrb5ErrCodeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
         void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
-    uint32_t msg_type;
-    const DetectKrb5MsgTypeData *dd = (const DetectKrb5MsgTypeData *)ctx;
+    int32_t err_code;
+    int ret;
+    const DetectKrb5ErrCodeData *dd = (const DetectKrb5ErrCodeData *)ctx;
 
     SCEnter();
 
-    rs_krb5_tx_get_msgtype(txv, &msg_type);
+    ret = rs_krb5_tx_get_errcode(txv, &err_code);
+    if (ret != 0)
+        SCReturnInt(0);
 
-    if (dd->msg_type == msg_type)
+    if (dd->err_code == err_code)
         SCReturnInt(1);
 
     SCReturnInt(0);
 }
 
 /**
- * \brief This function is used to parse options passed via krb5_msgtype: keyword
+ * \brief This function is used to parse options passed via krb5_errcode: keyword
  *
- * \param krb5str Pointer to the user provided krb5_msg_type options
+ * \param krb5str Pointer to the user provided krb5_err_code options
  *
  * \retval krb5d pointer to DetectKrb5Data on success
  * \retval NULL on failure
  */
-static DetectKrb5MsgTypeData *DetectKrb5MsgTypeParse(const char *krb5str)
+static DetectKrb5ErrCodeData *DetectKrb5ErrCodeParse(const char *krb5str)
 {
-    DetectKrb5MsgTypeData *krb5d = NULL;
+    DetectKrb5ErrCodeData *krb5d = NULL;
     char arg1[4] = "";
     int res = 0;
     size_t pcre2len;
@@ -137,10 +140,10 @@ static DetectKrb5MsgTypeData *DetectKrb5MsgTypeParse(const char *krb5str)
         goto error;
     }
 
-    krb5d = SCMalloc(sizeof(DetectKrb5MsgTypeData));
+    krb5d = SCMalloc(sizeof(DetectKrb5ErrCodeData));
     if (unlikely(krb5d == NULL))
         goto error;
-    if (StringParseUint8(&krb5d->msg_type, 10, 0, (const char *)arg1) < 0) {
+    if (StringParseInt32(&krb5d->err_code, 10, 0, (const char *)arg1) < 0) {
         goto error;
     }
     pcre2_match_data_free(match);
@@ -156,7 +159,7 @@ error:
 }
 
 /**
- * \brief parse the options from the 'krb5_msg_type' keyword in the rule into
+ * \brief parse the options from the 'krb5_err_code' keyword in the rule into
  *        the Signature data structure.
  *
  * \param de_ctx pointer to the Detection Engine Context
@@ -166,19 +169,19 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectKrb5MsgTypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *krb5str)
+static int DetectKrb5ErrCodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *krb5str)
 {
-    DetectKrb5MsgTypeData *krb5d = NULL;
+    DetectKrb5ErrCodeData *krb5d = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_KRB5) != 0)
         return -1;
 
-    krb5d = DetectKrb5MsgTypeParse(krb5str);
+    krb5d = DetectKrb5ErrCodeParse(krb5str);
     if (krb5d == NULL)
         goto error;
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_KRB5_MSGTYPE, (SigMatchCtx *)krb5d,
-                g_krb5_msg_type_list_id) == NULL) {
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_KRB5_ERRCODE, (SigMatchCtx *)krb5d,
+                g_krb5_err_code_list_id) == NULL) {
         goto error;
     }
 
@@ -186,7 +189,7 @@ static int DetectKrb5MsgTypeSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
 error:
     if (krb5d != NULL)
-        DetectKrb5MsgTypeFree(de_ctx, krb5d);
+        DetectKrb5ErrCodeFree(de_ctx, krb5d);
     return -1;
 }
 
@@ -195,35 +198,34 @@ error:
  *
  * \param ptr pointer to DetectKrb5Data
  */
-static void DetectKrb5MsgTypeFree(DetectEngineCtx *de_ctx, void *ptr)
+static void DetectKrb5ErrCodeFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectKrb5MsgTypeData *krb5d = (DetectKrb5MsgTypeData *)ptr;
+    DetectKrb5ErrCodeData *krb5d = (DetectKrb5ErrCodeData *)ptr;
 
     SCFree(krb5d);
 }
 
 #ifdef UNITTESTS
-
 /**
  * \test description of the test
  */
 
-static int DetectKrb5MsgTypeParseTest01(void)
+static int DetectKrb5ErrCodeParseTest01(void)
 {
-    DetectKrb5MsgTypeData *krb5d = DetectKrb5MsgTypeParse("10");
+    DetectKrb5ErrCodeData *krb5d = DetectKrb5ErrCodeParse("10");
     FAIL_IF_NULL(krb5d);
-    FAIL_IF(!(krb5d->msg_type == 10));
-    DetectKrb5MsgTypeFree(NULL, krb5d);
+    FAIL_IF(!(krb5d->err_code == 10));
+    DetectKrb5ErrCodeFree(NULL, krb5d);
     PASS;
 }
 
-static int DetectKrb5MsgTypeSignatureTest01(void)
+static int DetectKrb5ErrCodeSignatureTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
     Signature *sig = DetectEngineAppendSig(
-            de_ctx, "alert krb5 any any -> any any (krb5_msg_type:10; sid:1; rev:1;)");
+            de_ctx, "alert krb5 any any -> any any (krb5_err_code:10; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -231,11 +233,11 @@ static int DetectKrb5MsgTypeSignatureTest01(void)
 }
 
 /**
- * \brief this function registers unit tests for DetectKrb5MsgType
+ * \brief this function registers unit tests for DetectKrb5ErrCode
  */
-static void DetectKrb5MsgTypeRegisterTests(void)
+static void DetectKrb5ErrCodeRegisterTests(void)
 {
-    UtRegisterTest("DetectKrb5MsgTypeParseTest01", DetectKrb5MsgTypeParseTest01);
-    UtRegisterTest("DetectKrb5MsgTypeSignatureTest01", DetectKrb5MsgTypeSignatureTest01);
+    UtRegisterTest("DetectKrb5ErrCodeParseTest01", DetectKrb5ErrCodeParseTest01);
+    UtRegisterTest("DetectKrb5ErrCodeSignatureTest01", DetectKrb5ErrCodeSignatureTest01);
 }
 #endif /* UNITTESTS */

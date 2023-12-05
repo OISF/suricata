@@ -32,7 +32,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-krb5.h"
+#include "app-layer/krb5/parser.h"
 #include "rust.h"
 
 void RegisterKRB5Parsers(void)
