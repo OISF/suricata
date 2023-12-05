@@ -48,7 +48,7 @@ noinst_HEADERS = \
 	app-layer/sip/parser.h \
 	app-layer/smb/parser.h \
 	app-layer/smtp/parser.h \
-	app-layer-snmp.h \
+	app-layer/snmp/parser.h \
 	app-layer-ssh.h \
 	app-layer-ssl.h \
 	app-layer/tftp/parser.h \
@@ -294,10 +294,10 @@ noinst_HEADERS = \
 	app-layer/sip/detect-uri.h \
 	app-layer/smb/detect-ntlmssp.h \
 	app-layer/smb/detect-share.h \
-	detect-snmp-community.h \
-	detect-snmp-pdu_type.h \
-	detect-snmp-usm.h \
-	detect-snmp-version.h \
+	app-layer/snmp/detect-community.h \
+	app-layer/snmp/detect-pdu_type.h \
+	app-layer/snmp/detect-usm.h \
+	app-layer/snmp/detect-version.h \
 	detect-dhcp-leasetime.h \
 	detect-dhcp-rebinding-time.h \
 	detect-dhcp-renewal-time.h \
@@ -426,7 +426,7 @@ noinst_HEADERS = \
 	app-layer/sip/logger.h \
 	app-layer/smb/logger.h \
 	app-layer/smtp/logger.h \
-	output-json-snmp.h \
+	app-layer/snmp/logger.h \
 	output-json-ssh.h \
 	output-json-stats.h \
 	output-json-template.h \
@@ -664,7 +664,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/sip/parser.c \
 	app-layer/smb/parser.c \
 	app-layer/smtp/parser.c \
-	app-layer-snmp.c \
+	app-layer/snmp/parser.c \
 	app-layer-ssh.c \
 	app-layer-ssl.c \
 	app-layer/tftp/parser.c \
@@ -907,10 +907,10 @@ libsuricata_c_a_SOURCES = \
 	app-layer/sip/detect-uri.c \
 	app-layer/smb/detect-ntlmssp.c \
 	app-layer/smb/detect-share.c \
-	detect-snmp-community.c \
-	detect-snmp-pdu_type.c \
-	detect-snmp-usm.c \
-	detect-snmp-version.c \
+	app-layer/snmp/detect-community.c \
+	app-layer/snmp/detect-pdu_type.c \
+	app-layer/snmp/detect-usm.c \
+	app-layer/snmp/detect-version.c \
 	detect-dhcp-leasetime.c \
 	detect-dhcp-rebinding-time.c \
 	detect-dhcp-renewal-time.c \
@@ -1038,7 +1038,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/sip/logger.c \
 	app-layer/smb/logger.c \
 	app-layer/smtp/logger.c \
-	output-json-snmp.c \
+	app-layer/snmp/logger.c \
 	output-json-ssh.c \
 	output-json-stats.c \
 	output-json-template.c \
@@ -1241,8 +1241,8 @@ EXTRA_DIST = \
 	tests/app-layer/http2/detect.c \
 	tests/detect-icmpv6-mtu.c \
 	tests/detect-icmpv6hdr.c \
-	tests/detect-snmp-pdu_type.c \
-	tests/detect-snmp-version.c \
+	tests/app-layer/snmp/detect-pdu_type.c \
+	tests/app-layer/snmp/detect-version.c \
 	tests/detect-template.c \
 	tests/detect-transform-pcrexform.c \
 	tests/detect-transform-xor.c \
@@ -1266,7 +1266,7 @@ EXTRA_DIST = \
 	tests/detect-http-stat-msg.c \
 	tests/detect-http-uri.c \
 	tests/detect-http-user-agent.c \
-	tests/detect-snmp-community.c \
+	tests/app-layer/snmp/detect-community.c \
 	tests/detect-ssl-state.c \
 	tests/detect-ssl-version.c \
 	tests/detect-template-buffer.c \
