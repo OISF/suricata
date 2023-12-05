@@ -47,7 +47,7 @@
 #include "app-layer/ssl/parser.h"
 #include "app-layer/ssh/parser.h"
 #include "app-layer/modbus/parser.h"
-#include "app-layer-enip.h"
+#include "app-layer/enip/parser.h"
 #include "app-layer/dnp3/parser.h"
 #include "app-layer/nfs/parser-tcp.h"
 #include "app-layer/nfs/parser-udp.h"

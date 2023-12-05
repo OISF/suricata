@@ -17,8 +17,8 @@ noinst_HEADERS = \
 	app-layer-detect-proto.h \
 	app-layer/dnp3/parser.h \
 	app-layer/dnp3/parser-objects.h \
-	app-layer-enip-common.h \
-	app-layer-enip.h \
+	app-layer/enip/parser-common.h \
+	app-layer/enip/parser.h \
 	app-layer-events.h \
 	app-layer-expectation.h \
 	app-layer-frames.h \
@@ -634,8 +634,8 @@ libsuricata_c_a_SOURCES = \
 	app-layer-detect-proto.c \
 	app-layer/dnp3/parser.c \
 	app-layer/dnp3/parser-objects.c \
-	app-layer-enip.c \
-	app-layer-enip-common.c \
+	app-layer/enip/parser.c \
+	app-layer/enip/parser-common.c \
 	app-layer-events.c \
 	app-layer-expectation.c \
 	app-layer/ftp/parser.c \

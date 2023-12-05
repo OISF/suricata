@@ -29,7 +29,7 @@
 #include "detect-engine.h"
 #include "util-byte.h"
 
-#include "app-layer-enip-common.h"
+#include "app-layer/enip/parser-common.h"
 #include "detect-cipservice.h"
 #include "detect-engine-enip.h"
 
