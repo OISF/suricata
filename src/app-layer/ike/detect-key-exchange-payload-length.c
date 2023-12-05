@@ -26,7 +26,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-ike-key-exchange-payload-length.h"
+#include "app-layer/ike/detect-key-exchange-payload-length.h"
 #include "app-layer-parser.h"
 #include "util-byte.h"
 #include "detect-engine-uint.h"

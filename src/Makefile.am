@@ -32,7 +32,7 @@ noinst_HEADERS = \
 	app-layer/http/parser-range.h \
 	app-layer/http/parser-xff.h \
 	app-layer/http2/parser.h \
-	app-layer-ike.h \
+	app-layer/ike/parser.h \
 	app-layer-krb5.h \
 	app-layer-modbus.h \
 	app-layer-quic.h \
@@ -214,14 +214,14 @@ noinst_HEADERS = \
 	detect-icmpv6-mtu.h \
 	detect-icode.h \
 	detect-id.h \
-	detect-ike-exch-type.h \
-	detect-ike-spi.h \
-	detect-ike-vendor.h \
-	detect-ike-chosen-sa.h \
-	detect-ike-key-exchange-payload-length.h \
-	detect-ike-nonce-payload-length.h \
-	detect-ike-nonce-payload.h \
-	detect-ike-key-exchange-payload.h \
+	app-layer/ike/detect-exch-type.h \
+	app-layer/ike/detect-spi.h \
+	app-layer/ike/detect-vendor.h \
+	app-layer/ike/detect-chosen-sa.h \
+	app-layer/ike/detect-key-exchange-payload-length.h \
+	app-layer/ike/detect-nonce-payload-length.h \
+	app-layer/ike/detect-nonce-payload.h \
+	app-layer/ike/detect-key-exchange-payload.h \
 	detect-ipaddr.h \
 	detect-ipopts.h \
 	detect-ipproto.h \
@@ -412,7 +412,7 @@ noinst_HEADERS = \
 	output-json.h \
 	app-layer/http2/logger.h \
 	output-json-http.h \
-	output-json-ike.h \
+	app-layer/ike/logger.h \
 	output-json-krb5.h \
 	output-json-metadata.h \
 	output-json-modbus.h \
@@ -648,7 +648,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/http/parser-range.c \
 	app-layer/http/parser-xff.c \
 	app-layer/http2/parser.c \
-	app-layer-ike.c \
+	app-layer/ike/parser.c \
 	app-layer-krb5.c \
 	app-layer-modbus.c \
 	app-layer-quic.c \
@@ -827,14 +827,14 @@ libsuricata_c_a_SOURCES = \
 	detect-icmpv6-mtu.c \
 	detect-icode.c \
 	detect-id.c \
-	detect-ike-exch-type.c \
-	detect-ike-spi.c \
-	detect-ike-vendor.c \
-	detect-ike-chosen-sa.c \
-	detect-ike-key-exchange-payload-length.c \
-	detect-ike-nonce-payload-length.c \
-	detect-ike-nonce-payload.c \
-	detect-ike-key-exchange-payload.c \
+	app-layer/ike/detect-exch-type.c \
+	app-layer/ike/detect-spi.c \
+	app-layer/ike/detect-vendor.c \
+	app-layer/ike/detect-chosen-sa.c \
+	app-layer/ike/detect-key-exchange-payload-length.c \
+	app-layer/ike/detect-nonce-payload-length.c \
+	app-layer/ike/detect-nonce-payload.c \
+	app-layer/ike/detect-key-exchange-payload.c \
 	detect-ipaddr.c \
 	detect-ipopts.c \
 	detect-ipproto.c \
@@ -1024,7 +1024,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/ftp/logger.c \
 	app-layer/http2/logger.c \
 	output-json-http.c \
-	output-json-ike.c \
+	app-layer/ike/logger.c \
 	output-json-krb5.c \
 	output-json-metadata.c \
 	output-json-modbus.c \
