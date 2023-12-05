@@ -24,7 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
@@ -47,7 +47,7 @@
 #include "util-time.h"
 
 #include "output-json.h"
-#include "output-json-dns.h"
+#include "app-layer/dns/logger.h"
 #include "rust.h"
 
 /* we can do query logging as well, but it's disabled for now as the

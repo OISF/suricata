@@ -121,8 +121,8 @@ noinst_HEADERS = \
 	detect-detection-filter.h \
 	detect-distance.h \
 	app-layer/dnp3/detect.h \
-	detect-dns-opcode.h \
-	detect-dns-query.h \
+	app-layer/dns/detect-opcode.h \
+	app-layer/dns/detect-query.h \
 	detect-dsize.h \
 	detect-engine-address.h \
 	detect-engine-address-ipv4.h \
@@ -402,7 +402,7 @@ noinst_HEADERS = \
 	output-json-dhcp.h \
 	app-layer/dnp3/logger.h \
 	app-layer/dnp3/logger-objects.h \
-	output-json-dns.h \
+	app-layer/dns/logger.h \
 	output-json-drop.h \
 	output-json-email-common.h \
 	output-json-file.h \
@@ -562,7 +562,7 @@ noinst_HEADERS = \
 	util-lua-common.h \
 	app-layer/dnp3/lua.h \
 	app-layer/dnp3/lua-objects.h \
-	util-lua-dns.h \
+	app-layer/dns/lua.h \
 	util-lua.h \
 	app-layer/ssh/lua-hassh.h \
 	app-layer/http/lua.h \
@@ -736,8 +736,8 @@ libsuricata_c_a_SOURCES = \
 	detect-detection-filter.c \
 	detect-distance.c \
 	app-layer/dnp3/detect.c \
-	detect-dns-opcode.c \
-	detect-dns-query.c \
+	app-layer/dns/detect-opcode.c \
+	app-layer/dns/detect-query.c \
 	detect-dsize.c \
 	detect-engine-address.c \
 	detect-engine-address-ipv4.c \
@@ -1015,7 +1015,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-dhcp.c \
 	app-layer/dnp3/logger.c \
 	app-layer/dnp3/logger-objects.c \
-	output-json-dns.c \
+	app-layer/dns/logger.c \
 	output-json-drop.c \
 	output-json-email-common.c \
 	output-json-file.c \
@@ -1162,7 +1162,7 @@ libsuricata_c_a_SOURCES = \
 	util-lua-common.c \
 	app-layer/dnp3/lua.c \
 	app-layer/dnp3/lua-objects.c \
-	util-lua-dns.c \
+	app-layer/dns/lua.c \
 	app-layer/ssh/lua-hassh.c \
 	app-layer/http/lua.c \
 	util-lua-ja3.c \
