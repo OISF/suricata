@@ -39,7 +39,7 @@
 #include "util-debug.h"
 
 #include "app-layer-parser.h"
-#include "app-layer-modbus.h"
+#include "app-layer/modbus/parser.h"
 
 void ModbusParserRegisterTests(void);
 
