@@ -78,8 +78,6 @@ fn log_request(req: &PgsqlFEMessage, flags: u32) -> Result<JsonBuilder, JsonErro
         }) => {
             if flags & PGSQL_LOG_PASSWORDS != 0 {
                 js.set_string_from_bytes("password", payload)?;
-            } else {
-                js.set_string(req.to_str(), "password log disabled")?;
             }
         }
         PgsqlFEMessage::SASLResponse(RegularPacket {
