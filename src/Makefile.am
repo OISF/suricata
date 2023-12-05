@@ -34,7 +34,7 @@ noinst_HEADERS = \
 	app-layer/http2/parser.h \
 	app-layer/ike/parser.h \
 	app-layer/krb5/parser.h \
-	app-layer-modbus.h \
+	app-layer/modbus/parser.h \
 	app-layer-quic.h \
 	app-layer-mqtt.h \
 	app-layer-nfs-tcp.h \
@@ -240,7 +240,7 @@ noinst_HEADERS = \
 	detect-lua.h \
 	detect-mark.h \
 	detect-metadata.h \
-	detect-modbus.h \
+	app-layer/modbus/detect.h \
 	detect-quic-sni.h \
 	detect-quic-ua.h \
 	detect-quic-version.h \
@@ -415,7 +415,7 @@ noinst_HEADERS = \
 	app-layer/ike/logger.h \
 	app-layer/krb5/logger.h \
 	output-json-metadata.h \
-	output-json-modbus.h \
+	app-layer/modbus/logger.h \
 	output-json-quic.h \
 	output-json-mqtt.h \
 	output-json-netflow.h \
@@ -650,7 +650,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/http2/parser.c \
 	app-layer/ike/parser.c \
 	app-layer/krb5/parser.c \
-	app-layer-modbus.c \
+	app-layer/modbus/parser.c \
 	app-layer-quic.c \
 	app-layer-mqtt.c \
 	app-layer-nfs-tcp.c \
@@ -853,7 +853,7 @@ libsuricata_c_a_SOURCES = \
 	detect-lua-extensions.c \
 	detect-mark.c \
 	detect-metadata.c \
-	detect-modbus.c \
+	app-layer/modbus/detect.c \
 	detect-quic-sni.c \
 	detect-quic-ua.c \
 	detect-quic-version.c \
@@ -1027,7 +1027,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/ike/logger.c \
 	app-layer/krb5/logger.c \
 	output-json-metadata.c \
-	output-json-modbus.c \
+	app-layer/modbus/logger.c \
 	output-json-quic.c \
 	output-json-mqtt.c \
 	output-json-netflow.c \
