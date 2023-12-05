@@ -64,7 +64,7 @@
 #include "output-json-dns.h"
 #include "output-json-http.h"
 #include "output-json-tls.h"
-#include "output-json-ssh.h"
+#include "app-layer/ssh/logger.h"
 #include "rust.h"
 #include "app-layer/smtp/logger.h"
 #include "output-json-email-common.h"

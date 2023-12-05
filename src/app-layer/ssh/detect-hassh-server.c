@@ -44,8 +44,8 @@
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-ssh.h"
-#include "detect-ssh-hassh-server.h"
+#include "app-layer/ssh/parser.h"
+#include "app-layer/ssh/detect-hassh-server.h"
 #include "rust.h"
 
 #define KEYWORD_NAME  "ssh.hassh.server"
