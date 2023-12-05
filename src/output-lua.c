@@ -32,7 +32,7 @@
 #include "output.h"
 #include "app-layer/http/parser.h"
 #include "app-layer.h"
-#include "app-layer-ssl.h"
+#include "app-layer/ssl/parser.h"
 #include "app-layer-ssh.h"
 #include "app-layer-parser.h"
 #include "util-privs.h"

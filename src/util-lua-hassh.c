@@ -39,7 +39,7 @@
 #include "output.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-ssl.h"
+#include "app-layer/ssl/parser.h"
 #include "util-privs.h"
 #include "util-buffer.h"
 #include "util-proto-name.h"

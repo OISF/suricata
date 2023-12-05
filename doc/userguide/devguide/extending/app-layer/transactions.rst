@@ -154,7 +154,7 @@ From src/app-layer/ftp/parser.h:
         FTP_STATE_FINISHED,
     };
 
-From src/app-layer-ssl.h:
+From src/app-layer/ssl/parser.h:
 
 .. code-block:: c
 

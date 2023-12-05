@@ -50,7 +50,7 @@ noinst_HEADERS = \
 	app-layer/smtp/parser.h \
 	app-layer/snmp/parser.h \
 	app-layer-ssh.h \
-	app-layer-ssl.h \
+	app-layer/ssl/parser.h \
 	app-layer/tftp/parser.h \
 	autoconf.h \
 	build-info.h \
@@ -309,8 +309,8 @@ noinst_HEADERS = \
 	detect-ssh-proto-version.h \
 	detect-ssh-software.h \
 	detect-ssh-software-version.h \
-	detect-ssl-state.h \
-	detect-ssl-version.h \
+	app-layer/ssl/detect-state.h \
+	app-layer/ssl/detect-version.h \
 	detect-stream_size.h \
 	detect-tag.h \
 	detect-target.h \
@@ -666,7 +666,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/smtp/parser.c \
 	app-layer/snmp/parser.c \
 	app-layer-ssh.c \
-	app-layer-ssl.c \
+	app-layer/ssl/parser.c \
 	app-layer/tftp/parser.c \
 	conf.c \
 	conf-yaml-loader.c \
@@ -922,8 +922,8 @@ libsuricata_c_a_SOURCES = \
 	detect-ssh-proto-version.c \
 	detect-ssh-software.c \
 	detect-ssh-software-version.c \
-	detect-ssl-state.c \
-	detect-ssl-version.c \
+	app-layer/ssl/detect-state.c \
+	app-layer/ssl/detect-version.c \
 	detect-stream_size.c \
 	detect-tag.c \
 	detect-target.c \
@@ -1267,8 +1267,8 @@ EXTRA_DIST = \
 	tests/detect-http-uri.c \
 	tests/detect-http-user-agent.c \
 	tests/app-layer/snmp/detect-community.c \
-	tests/detect-ssl-state.c \
-	tests/detect-ssl-version.c \
+	tests/app-layer/ssl/detect-state.c \
+	tests/app-layer/ssl/detect-version.c \
 	tests/detect-template-buffer.c \
 	tests/detect-tls-cert-fingerprint.c \
 	tests/detect-tls-cert-issuer.c \
