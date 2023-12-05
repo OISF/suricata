@@ -33,7 +33,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-snmp.h"
+#include "app-layer/snmp/parser.h"
 #include "rust.h"
 
 void RegisterSNMPParsers(void)

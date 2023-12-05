@@ -17,7 +17,7 @@
 
 #include "suricata-common.h"
 #include "rust.h"
-#include "detect-snmp-usm.h"
+#include "app-layer/snmp/detect-usm.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
