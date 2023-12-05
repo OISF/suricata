@@ -31,7 +31,7 @@ noinst_HEADERS = \
 	app-layer/http/parser-mem.h \
 	app-layer/http/parser-range.h \
 	app-layer/http/parser-xff.h \
-	app-layer-http2.h \
+	app-layer/http2/parser.h \
 	app-layer-ike.h \
 	app-layer-krb5.h \
 	app-layer-modbus.h \
@@ -178,7 +178,7 @@ noinst_HEADERS = \
 	detect-gid.h \
 	detect.h \
 	detect-hostbits.h \
-	detect-http2.h \
+	app-layer/http2/detect.h \
 	detect-http-accept-enc.h \
 	detect-http-accept.h \
 	detect-http-accept-lang.h \
@@ -410,7 +410,7 @@ noinst_HEADERS = \
 	output-json-frame.h \
 	app-layer/ftp/logger.h \
 	output-json.h \
-	output-json-http2.h \
+	app-layer/http2/logger.h \
 	output-json-http.h \
 	output-json-ike.h \
 	output-json-krb5.h \
@@ -647,7 +647,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/http/parser-mem.c \
 	app-layer/http/parser-range.c \
 	app-layer/http/parser-xff.c \
-	app-layer-http2.c \
+	app-layer/http2/parser.c \
 	app-layer-ike.c \
 	app-layer-krb5.c \
 	app-layer-modbus.c \
@@ -792,7 +792,7 @@ libsuricata_c_a_SOURCES = \
 	detect-geoip.c \
 	detect-gid.c \
 	detect-hostbits.c \
-	detect-http2.c \
+	app-layer/http2/detect.c \
 	detect-http-accept.c \
 	detect-http-accept-enc.c \
 	detect-http-accept-lang.c \
@@ -1022,7 +1022,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-flow.c \
 	output-json-frame.c \
 	app-layer/ftp/logger.c \
-	output-json-http2.c \
+	app-layer/http2/logger.c \
 	output-json-http.c \
 	output-json-ike.c \
 	output-json-krb5.c \
@@ -1238,7 +1238,7 @@ EXTRA_DIST = \
 	tests/detect-udphdr.c \
 	tests/reputation.c \
 	tests/detect-bsize.c \
-	tests/detect-http2.c \
+	tests/app-layer/http2/detect.c \
 	tests/detect-icmpv6-mtu.c \
 	tests/detect-icmpv6hdr.c \
 	tests/detect-snmp-pdu_type.c \
