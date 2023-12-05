@@ -25,6 +25,9 @@ use crate::conf::conf_get;
 use crate::core::*;
 use crate::filecontainer::*;
 use crate::filetracker::*;
+
+use crate::dns::dns::rs_dns_state_new;
+
 use nom7::Err;
 use std;
 use std::collections::VecDeque;
@@ -468,6 +471,7 @@ pub struct HTTP2State {
     progress: HTTP2ConnectionState,
     // layered packets contents for DNS over HTTP2
     layered: Vec<Vec<u8>>,
+    dns_state: Option<*mut std::os::raw::c_void>,
 }
 
 impl State<HTTP2Transaction> for HTTP2State {
@@ -501,6 +505,7 @@ impl HTTP2State {
             transactions: VecDeque::new(),
             progress: HTTP2ConnectionState::Http2StateInit,
             layered: Vec::new(),
+            dns_state: None,
         }
     }
 
@@ -1046,6 +1051,11 @@ impl HTTP2State {
                     }
                     if let Some(doh) = odoh {
                         self.layered.push(doh);
+                        if self.dns_state.is_none() {
+                            unsafe {
+                                self.dns_state = Some(rs_dns_state_new(std::ptr::null_mut(), ALPROTO_HTTP2));
+                            }
+                        }
                     }
                     input = &rem[hlsafe..];
                 }
@@ -1138,6 +1148,16 @@ pub unsafe extern "C" fn SCHttp2ClearLayered(
     s: &mut HTTP2State
 ) {
     s.layered.clear();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2GetLayeredState(
+    s: &HTTP2State
+) -> *mut std::os::raw::c_void {
+    match s.dns_state {
+        Some(d) => d,
+        _ => std::ptr::null_mut(),
+    }
 }
 
 #[no_mangle]

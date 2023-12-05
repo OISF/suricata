@@ -382,6 +382,21 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
     Packet *x;
     while ((x = PacketDequeueNoLock(&tv->decode_pq))) {
         printf("lola %d\n", x->payload_len);
+        // switch flow to new protocol
+        void *alstate_orig = p->flow->alstate;
+        AppProto alproto_orig = p->flow->alproto;
+        // hardcoded logic
+        if (alproto_orig == ALPROTO_HTTP2) {
+            p->flow->alproto = ALPROTO_DNS;
+            p->flow->alstate = SCHttp2GetLayeredState(p->flow->alstate);
+        }
+        // run parsing, detection and logging
+
+        // switch back to real protocol
+        p->flow->alstate = alstate_orig;
+        p->flow->alproto = alproto_orig;
+
+        // releases memory associated to the packet
         SCFree(x->payload);
         FlowDeReference(&x->flow);
         TmqhOutputPacketpool(tv, x);
