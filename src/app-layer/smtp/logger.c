@@ -24,7 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
@@ -38,7 +38,7 @@
 #include "util-debug.h"
 
 #include "output.h"
-#include "app-layer-smtp.h"
+#include "app-layer/smtp/parser.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "util-privs.h"
@@ -48,7 +48,7 @@
 #include "util-time.h"
 
 #include "output-json.h"
-#include "output-json-smtp.h"
+#include "app-layer/smtp/logger.h"
 #include "output-json-email-common.h"
 
 static void EveSmtpDataLogger(void *state, void *vtx, JsonBuilder *js)

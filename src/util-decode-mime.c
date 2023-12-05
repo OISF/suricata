@@ -25,7 +25,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "app-layer-smtp.h"
+#include "app-layer/smtp/parser.h"
 #include "util-decode-mime.h"
 #include "util-ip.h"
 #include "util-spm-bs.h"
