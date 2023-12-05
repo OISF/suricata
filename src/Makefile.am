@@ -298,9 +298,9 @@ noinst_HEADERS = \
 	app-layer/snmp/detect-pdu_type.h \
 	app-layer/snmp/detect-usm.h \
 	app-layer/snmp/detect-version.h \
-	detect-dhcp-leasetime.h \
-	detect-dhcp-rebinding-time.h \
-	detect-dhcp-renewal-time.h \
+	app-layer/dhcp/detect-leasetime.h \
+	app-layer/dhcp/detect-rebinding-time.h \
+	app-layer/dhcp/detect-renewal-time.h \
 	app-layer/ssh/detect-hassh.h \
 	app-layer/ssh/detect-hassh-server.h \
 	app-layer/ssh/detect-hassh-server-string.h \
@@ -399,7 +399,7 @@ noinst_HEADERS = \
 	output-json-anomaly.h \
 	app-layer/bittorrent-dht/logger.h \
 	app-layer/dcerpc/logger.h \
-	output-json-dhcp.h \
+	app-layer/dhcp/logger.h \
 	app-layer/dnp3/logger.h \
 	app-layer/dnp3/logger-objects.h \
 	app-layer/dns/logger.h \
@@ -911,9 +911,9 @@ libsuricata_c_a_SOURCES = \
 	app-layer/snmp/detect-pdu_type.c \
 	app-layer/snmp/detect-usm.c \
 	app-layer/snmp/detect-version.c \
-	detect-dhcp-leasetime.c \
-	detect-dhcp-rebinding-time.c \
-	detect-dhcp-renewal-time.c \
+	app-layer/dhcp/detect-leasetime.c \
+	app-layer/dhcp/detect-rebinding-time.c \
+	app-layer/dhcp/detect-renewal-time.c \
 	app-layer/ssh/detect-hassh.c \
 	app-layer/ssh/detect-hassh-server.c \
 	app-layer/ssh/detect-hassh-server-string.c \
@@ -1012,7 +1012,7 @@ libsuricata_c_a_SOURCES = \
 	output-json.c \
 	output-json-common.c \
 	app-layer/dcerpc/logger.c \
-	output-json-dhcp.c \
+	app-layer/dhcp/logger.c \
 	app-layer/dnp3/logger.c \
 	app-layer/dnp3/logger-objects.c \
 	app-layer/dns/logger.c \
