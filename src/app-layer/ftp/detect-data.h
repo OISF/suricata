@@ -24,7 +24,7 @@
 #ifndef __DETECT_FTPDATA_H__
 #define __DETECT_FTPDATA_H__
 
-#include "app-layer-ftp.h"
+#include "app-layer/ftp/parser.h"
 
 /** Per keyword data. This is set up by the DetectFtpcommandSetup() function.
  *  Each signature will have an instance of DetectFtpcommandData per occurrence

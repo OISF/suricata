@@ -35,7 +35,7 @@
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-ftp.h"
+#include "app-layer/ftp/parser.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-debug.h"
@@ -43,7 +43,7 @@
 #include "flow-var.h"
 #include "flow-util.h"
 #include "threads.h"
-#include "detect-ftpbounce.h"
+#include "app-layer/ftp/detect-bounce.h"
 #include "stream-tcp.h"
 #include "util-byte.h"
 

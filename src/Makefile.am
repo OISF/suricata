@@ -22,7 +22,7 @@ noinst_HEADERS = \
 	app-layer-events.h \
 	app-layer-expectation.h \
 	app-layer-frames.h \
-	app-layer-ftp.h \
+	app-layer/ftp/parser.h \
 	app-layer.h \
 	app-layer-htp-body.h \
 	app-layer-htp-file.h \
@@ -172,8 +172,8 @@ noinst_HEADERS = \
 	detect-fragbits.h \
 	detect-fragoffset.h \
 	detect-frame.h \
-	detect-ftpbounce.h \
-	detect-ftpdata.h \
+	app-layer/ftp/detect-bounce.h \
+	app-layer/ftp/detect-data.h \
 	detect-geoip.h \
 	detect-gid.h \
 	detect.h \
@@ -408,7 +408,7 @@ noinst_HEADERS = \
 	output-json-file.h \
 	output-json-flow.h \
 	output-json-frame.h \
-	output-json-ftp.h \
+	app-layer/ftp/logger.h \
 	output-json.h \
 	output-json-http2.h \
 	output-json-http.h \
@@ -638,7 +638,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-enip-common.c \
 	app-layer-events.c \
 	app-layer-expectation.c \
-	app-layer-ftp.c \
+	app-layer/ftp/parser.c \
 	app-layer-frames.c \
 	app-layer-htp-body.c \
 	app-layer-htp.c \
@@ -787,8 +787,8 @@ libsuricata_c_a_SOURCES = \
 	detect-fragbits.c \
 	detect-fragoffset.c \
 	detect-frame.c \
-	detect-ftpbounce.c \
-	detect-ftpdata.c \
+	app-layer/ftp/detect-bounce.c \
+	app-layer/ftp/detect-data.c \
 	detect-geoip.c \
 	detect-gid.c \
 	detect-hostbits.c \
@@ -1021,7 +1021,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-file.c \
 	output-json-flow.c \
 	output-json-frame.c \
-	output-json-ftp.c \
+	app-layer/ftp/logger.c \
 	output-json-http2.c \
 	output-json-http.c \
 	output-json-ike.c \

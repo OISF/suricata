@@ -144,7 +144,7 @@ Code snippet from: rust/src/ssh/ssh.rs:
         SshStateFinished = 3,
     }
 
-From src/app-layer-ftp.h:
+From src/app-layer/ftp/parser.h:
 
 .. code-block:: c
 
@@ -218,7 +218,7 @@ src/app-layer-dcerpc.c:
 
     AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_DCERPC, 1, 1);
 
-src/app-layer-ftp.c:
+src/app-layer/ftp/parser.c:
 
 .. code-block:: c
 

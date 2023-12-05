@@ -24,7 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
@@ -43,8 +43,8 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-ftp.h"
-#include "output-json-ftp.h"
+#include "app-layer/ftp/parser.h"
+#include "app-layer/ftp/logger.h"
 
 bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
 {
