@@ -241,7 +241,6 @@ impl HTTP2Transaction {
         if doh {
             if let Some(p) = path {
                 if let Ok((_, dns_req)) = parser::doh_extract_request(p) {
-                    println!("lol {:?}", dns_req);
                     unsafe {
                         AppLayerParserStateSetFlag(
                             pstate,
@@ -1132,6 +1131,29 @@ impl HTTP2State {
         //then parse all we can
         return self.parse_frames(input, il, Direction::ToClient, flow, pstate);
     }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2ClearLayered(
+    s: &mut HTTP2State
+) {
+    s.layered.clear();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2GetLayered(
+    s: &HTTP2State, buffer: *mut *const u8, buffer_len: *mut u32, i: u32,
+) -> bool {
+    let i = i as usize;
+    if i < s.layered.len() {
+        *buffer = s.layered[i].as_ptr();
+        *buffer_len = s.layered[i].len() as u32;
+        return true;
+    }
+
+    *buffer = std::ptr::null();
+    *buffer_len = 0;
+    return false;
 }
 
 // C exports.

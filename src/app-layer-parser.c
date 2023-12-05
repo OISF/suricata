@@ -1438,6 +1438,21 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         }
     }
 
+    if (pstate->flags & APP_LAYER_PARSER_LAYERED_PACKET) {
+        // hardcoded logic
+        if (alproto == ALPROTO_HTTP2) {
+            const uint8_t *b = NULL;
+            uint32_t b_len = 0;
+            for (uint32_t i = 0; ; i++) {
+                if (!SCHttp2GetLayered(alstate, &b, &b_len, i)) {
+                    SCHttp2ClearLayered(alstate);
+                    break;
+                }
+                printf("lol %d\n", b_len);
+            }
+        }
+    }
+
     /* set the packets to no inspection and reassembly if required */
     if (pstate->flags & APP_LAYER_PARSER_NO_INSPECTION) {
         AppLayerParserSetEOF(pstate);
