@@ -30,7 +30,7 @@
 #include "detect-engine-prefilter-common.h"
 #include "detect-engine-uint.h"
 
-#include "detect-template2.h"
+#include "app-layer/template/detect-2.h"
 
 /* prototypes */
 static int DetectTemplate2Match(

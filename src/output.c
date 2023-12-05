@@ -80,7 +80,7 @@
 #include "app-layer/rfb/logger.h"
 #include "app-layer/mqtt/logger.h"
 #include "app-layer/pgsql/logger.h"
-#include "output-json-template.h"
+#include "app-layer/template/logger.h"
 #include "app-layer/rdp/logger.h"
 #include "app-layer/http2/logger.h"
 #include "output-lua.h"
