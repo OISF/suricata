@@ -24,7 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
@@ -43,8 +43,8 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-sip.h"
-#include "output-json-sip.h"
+#include "app-layer/sip/parser.h"
+#include "app-layer/sip/logger.h"
 
 #include "rust.h"
 

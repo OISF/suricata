@@ -45,7 +45,7 @@ noinst_HEADERS = \
 	app-layer/rdp/parser.h \
 	app-layer-register.h \
 	app-layer/rfb/parser.h \
-	app-layer-sip.h \
+	app-layer/sip/parser.h \
 	app-layer-smb.h \
 	app-layer-smtp.h \
 	app-layer-snmp.h \
@@ -285,13 +285,13 @@ noinst_HEADERS = \
 	detect-rpc.h \
 	detect-sameip.h \
 	detect-sid.h \
-	detect-sip-method.h \
-	detect-sip-protocol.h \
-	detect-sip-request-line.h \
-	detect-sip-response-line.h \
-	detect-sip-stat-code.h \
-	detect-sip-stat-msg.h \
-	detect-sip-uri.h \
+	app-layer/sip/detect-method.h \
+	app-layer/sip/detect-protocol.h \
+	app-layer/sip/detect-request-line.h \
+	app-layer/sip/detect-response-line.h \
+	app-layer/sip/detect-stat-code.h \
+	app-layer/sip/detect-stat-msg.h \
+	app-layer/sip/detect-uri.h \
 	detect-smb-ntlmssp.h \
 	detect-smb-share.h \
 	detect-snmp-community.h \
@@ -423,7 +423,7 @@ noinst_HEADERS = \
 	output-json-pgsql.h \
 	app-layer/rdp/logger.h \
 	app-layer/rfb/logger.h \
-	output-json-sip.h \
+	app-layer/sip/logger.h \
 	output-json-smb.h \
 	output-json-smtp.h \
 	output-json-snmp.h \
@@ -661,7 +661,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/rdp/parser.c \
 	app-layer-register.c \
 	app-layer/rfb/parser.c \
-	app-layer-sip.c \
+	app-layer/sip/parser.c \
 	app-layer-smb.c \
 	app-layer-smtp.c \
 	app-layer-snmp.c \
@@ -898,13 +898,13 @@ libsuricata_c_a_SOURCES = \
 	detect-rpc.c \
 	detect-sameip.c \
 	detect-sid.c \
-	detect-sip-method.c \
-	detect-sip-protocol.c \
-	detect-sip-request-line.c \
-	detect-sip-response-line.c \
-	detect-sip-stat-code.c \
-	detect-sip-stat-msg.c \
-	detect-sip-uri.c \
+	app-layer/sip/detect-method.c \
+	app-layer/sip/detect-protocol.c \
+	app-layer/sip/detect-request-line.c \
+	app-layer/sip/detect-response-line.c \
+	app-layer/sip/detect-stat-code.c \
+	app-layer/sip/detect-stat-msg.c \
+	app-layer/sip/detect-uri.c \
 	detect-smb-ntlmssp.c \
 	detect-smb-share.c \
 	detect-snmp-community.c \
@@ -1035,7 +1035,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-pgsql.c \
 	app-layer/rdp/logger.c \
 	app-layer/rfb/logger.c \
-	output-json-sip.c \
+	app-layer/sip/logger.c \
 	output-json-smb.c \
 	output-json-smtp.c \
 	output-json-snmp.c \

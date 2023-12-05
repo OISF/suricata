@@ -76,7 +76,7 @@
 #include "app-layer/quic/logger.h"
 #include "output-json-dhcp.h"
 #include "output-json-snmp.h"
-#include "output-json-sip.h"
+#include "app-layer/sip/logger.h"
 #include "app-layer/rfb/logger.h"
 #include "app-layer/mqtt/logger.h"
 #include "output-json-pgsql.h"

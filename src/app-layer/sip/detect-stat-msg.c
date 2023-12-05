@@ -19,7 +19,8 @@
  *
  * \author Giuseppe Longo <giuseppe@glongo.it>
  *
- * Implements the sip.request_line sticky buffer
+ * Implements the sip.stat_msg sticky buffer
+ *
  */
 
 #include "suricata-common.h"
@@ -47,19 +48,19 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "detect-sip-request-line.h"
+#include "app-layer/sip/detect-stat-msg.h"
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "app-layer-sip.h"
+#include "app-layer/sip/parser.h"
 
-#define KEYWORD_NAME "sip.request_line"
-#define KEYWORD_DOC  "sip-keywords.html#sip-request-line"
-#define BUFFER_NAME  "sip.request_line"
-#define BUFFER_DESC  "sip request line"
+#define KEYWORD_NAME "sip.stat_msg"
+#define KEYWORD_DOC  "sip-keywords.html#sip-stat-msg"
+#define BUFFER_NAME  "sip.stat_msg"
+#define BUFFER_DESC  "sip response status message"
 static int g_buffer_id = 0;
 
-static int DetectSipRequestLineSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+static int DetectSipStatMsgSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     if (DetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
         return -1;
@@ -74,12 +75,14 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id)
 {
+    SCEnter();
+
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
 
-        if (rs_sip_tx_get_request_line(txv, &b, &b_len) != 1)
+        if (rs_sip_tx_get_stat_msg(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -87,23 +90,24 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
+
     return buffer;
 }
 
-void DetectSipRequestLineRegister(void)
+void DetectSipStatMsgRegister(void)
 {
-    /* sip.request_line sticky buffer */
-    sigmatch_table[DETECT_AL_SIP_REQUEST_LINE].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_SIP_REQUEST_LINE].desc =
-            "sticky buffer to match on the SIP request line";
-    sigmatch_table[DETECT_AL_SIP_REQUEST_LINE].url = "/rules/" KEYWORD_DOC;
-    sigmatch_table[DETECT_AL_SIP_REQUEST_LINE].Setup = DetectSipRequestLineSetup;
-    sigmatch_table[DETECT_AL_SIP_REQUEST_LINE].flags |= SIGMATCH_NOOPT;
+    /* sip.stat_msg sticky buffer */
+    sigmatch_table[DETECT_AL_SIP_STAT_MSG].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_AL_SIP_STAT_MSG].desc =
+            "sticky buffer to match on the SIP status message";
+    sigmatch_table[DETECT_AL_SIP_STAT_MSG].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_AL_SIP_STAT_MSG].Setup = DetectSipStatMsgSetup;
+    sigmatch_table[DETECT_AL_SIP_STAT_MSG].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SIP, SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SIP, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 3, PrefilterGenericMpmRegister,
             GetData, ALPROTO_SIP, 1);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
