@@ -54,7 +54,7 @@
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "detect-dns-query.h"
+#include "app-layer/dns/detect-query.h"
 
 #include "util-profiling.h"
 #include "util-unittest-helper.h"

@@ -53,7 +53,7 @@
 #include "output-eve-stream.h"
 #include "app-layer/http/log-httplog.h"
 #include "app-layer/http/logger.h"
-#include "output-json-dns.h"
+#include "app-layer/dns/logger.h"
 #include "app-layer/modbus/logger.h"
 #include "log-tlslog.h"
 #include "log-tlsstore.h"
