@@ -43,11 +43,11 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "detect-rfb-name.h"
+#include "app-layer/rfb/detect-name.h"
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "app-layer-rfb.h"
+#include "app-layer/rfb/parser.h"
 #include "rust-bindings.h"
 
 #define KEYWORD_NAME "rfb.name"
