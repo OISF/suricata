@@ -15,55 +15,210 @@ noinst_HEADERS = \
 	alert-fastlog.h \
 	alert-syslog.h \
 	app-layer-detect-proto.h \
-	app-layer/dnp3/parser.h \
-	app-layer/dnp3/parser-objects.h \
-	app-layer/enip/parser-common.h \
-	app-layer/enip/parser.h \
 	app-layer-events.h \
 	app-layer-expectation.h \
 	app-layer-frames.h \
-	app-layer/ftp/parser.h \
+	app-layer-parser.h \
+	app-layer-protos.h \
+	app-layer-register.h \
 	app-layer.h \
+	app-layer/bittorrent-dht/logger.h \
+	app-layer/dcerpc/logger.h \
+	app-layer/dhcp/detect-leasetime.h \
+	app-layer/dhcp/detect-rebinding-time.h \
+	app-layer/dhcp/detect-renewal-time.h \
+	app-layer/dhcp/logger.h \
+	app-layer/dnp3/detect.h \
+	app-layer/dnp3/logger-objects.h \
+	app-layer/dnp3/logger.h \
+	app-layer/dnp3/lua-objects.h \
+	app-layer/dnp3/lua.h \
+	app-layer/dnp3/parser-objects.h \
+	app-layer/dnp3/parser.h \
+	app-layer/dns/detect-opcode.h \
+	app-layer/dns/detect-query.h \
+	app-layer/dns/logger.h \
+	app-layer/dns/lua.h \
+	app-layer/enip/parser-common.h \
+	app-layer/enip/parser.h \
+	app-layer/ftp/detect-bounce.h \
+	app-layer/ftp/detect-data.h \
+	app-layer/ftp/logger.h \
+	app-layer/ftp/parser.h \
+	app-layer/http/detect-accept-enc.h \
+	app-layer/http/detect-accept-lang.h \
+	app-layer/http/detect-accept.h \
+	app-layer/http/detect-client-body.h \
+	app-layer/http/detect-connection.h \
+	app-layer/http/detect-content-len.h \
+	app-layer/http/detect-content-type.h \
+	app-layer/http/detect-cookie.h \
+	app-layer/http/detect-header-common.h \
+	app-layer/http/detect-header-names.h \
+	app-layer/http/detect-header.h \
+	app-layer/http/detect-headers-stub.h \
+	app-layer/http/detect-headers.h \
+	app-layer/http/detect-host.h \
+	app-layer/http/detect-location.h \
+	app-layer/http/detect-method.h \
+	app-layer/http/detect-protocol.h \
+	app-layer/http/detect-raw-header.h \
+	app-layer/http/detect-referer.h \
+	app-layer/http/detect-request-line.h \
+	app-layer/http/detect-response-line.h \
+	app-layer/http/detect-server-body.h \
+	app-layer/http/detect-server.h \
+	app-layer/http/detect-start.h \
+	app-layer/http/detect-stat-code.h \
+	app-layer/http/detect-stat-msg.h \
+	app-layer/http/detect-ua.h \
+	app-layer/http/detect-uri.h \
+	app-layer/http/log-httplog.h \
+	app-layer/http/logger.h \
+	app-layer/http/lua.h \
 	app-layer/http/parser-body.h \
 	app-layer/http/parser-file.h \
-	app-layer/http/parser.h \
 	app-layer/http/parser-libhtp.h \
 	app-layer/http/parser-mem.h \
 	app-layer/http/parser-range.h \
 	app-layer/http/parser-xff.h \
+	app-layer/http/parser.h \
+	app-layer/http2/detect.h \
+	app-layer/http2/logger.h \
 	app-layer/http2/parser.h \
+	app-layer/ike/detect-chosen-sa.h \
+	app-layer/ike/detect-exch-type.h \
+	app-layer/ike/detect-key-exchange-payload-length.h \
+	app-layer/ike/detect-key-exchange-payload.h \
+	app-layer/ike/detect-nonce-payload-length.h \
+	app-layer/ike/detect-nonce-payload.h \
+	app-layer/ike/detect-spi.h \
+	app-layer/ike/detect-vendor.h \
+	app-layer/ike/logger.h \
 	app-layer/ike/parser.h \
+	app-layer/krb5/detect-cname.h \
+	app-layer/krb5/detect-errcode.h \
+	app-layer/krb5/detect-msgtype.h \
+	app-layer/krb5/detect-sname.h \
+	app-layer/krb5/detect-ticket-encryption.h \
+	app-layer/krb5/logger.h \
 	app-layer/krb5/parser.h \
+	app-layer/modbus/detect.h \
+	app-layer/modbus/logger.h \
 	app-layer/modbus/parser.h \
-	app-layer/quic/parser.h \
+	app-layer/mqtt/detect-connack-sessionpresent.h \
+	app-layer/mqtt/detect-connect-clientid.h \
+	app-layer/mqtt/detect-connect-flags.h \
+	app-layer/mqtt/detect-connect-password.h \
+	app-layer/mqtt/detect-connect-protocol-string.h \
+	app-layer/mqtt/detect-connect-username.h \
+	app-layer/mqtt/detect-connect-willmessage.h \
+	app-layer/mqtt/detect-connect-willtopic.h \
+	app-layer/mqtt/detect-flags.h \
+	app-layer/mqtt/detect-protocol-version.h \
+	app-layer/mqtt/detect-publish-message.h \
+	app-layer/mqtt/detect-publish-topic.h \
+	app-layer/mqtt/detect-qos.h \
+	app-layer/mqtt/detect-reason-code.h \
+	app-layer/mqtt/detect-subscribe-topic.h \
+	app-layer/mqtt/detect-type.h \
+	app-layer/mqtt/detect-unsubscribe-topic.h \
+	app-layer/mqtt/logger.h \
 	app-layer/mqtt/parser.h \
+	app-layer/nfs/detect-procedure.h \
+	app-layer/nfs/detect-version.h \
+	app-layer/nfs/logger.h \
 	app-layer/nfs/parser-tcp.h \
 	app-layer/nfs/parser-udp.h \
 	app-layer/ntp/parser.h \
-	app-layer-parser.h \
-	app-layer-protos.h \
+	app-layer/pgsql/logger.h \
+	app-layer/quic/detect-cyu-hash.h \
+	app-layer/quic/detect-cyu-string.h \
+	app-layer/quic/detect-sni.h \
+	app-layer/quic/detect-ua.h \
+	app-layer/quic/detect-version.h \
+	app-layer/quic/logger.h \
+	app-layer/quic/parser.h \
+	app-layer/rdp/logger.h \
 	app-layer/rdp/parser.h \
-	app-layer-register.h \
+	app-layer/rfb/detect-name.h \
+	app-layer/rfb/detect-secresult.h \
+	app-layer/rfb/detect-sectype.h \
+	app-layer/rfb/logger.h \
 	app-layer/rfb/parser.h \
+	app-layer/sip/detect-method.h \
+	app-layer/sip/detect-protocol.h \
+	app-layer/sip/detect-request-line.h \
+	app-layer/sip/detect-response-line.h \
+	app-layer/sip/detect-stat-code.h \
+	app-layer/sip/detect-stat-msg.h \
+	app-layer/sip/detect-uri.h \
+	app-layer/sip/logger.h \
 	app-layer/sip/parser.h \
+	app-layer/smb/detect-ntlmssp.h \
+	app-layer/smb/detect-share.h \
+	app-layer/smb/logger.h \
 	app-layer/smb/parser.h \
+	app-layer/smtp/logger.h \
+	app-layer/smtp/lua.h \
 	app-layer/smtp/parser.h \
+	app-layer/snmp/detect-community.h \
+	app-layer/snmp/detect-pdu_type.h \
+	app-layer/snmp/detect-usm.h \
+	app-layer/snmp/detect-version.h \
+	app-layer/snmp/logger.h \
 	app-layer/snmp/parser.h \
+	app-layer/ssh/detect-hassh-server-string.h \
+	app-layer/ssh/detect-hassh-server.h \
+	app-layer/ssh/detect-hassh-string.h \
+	app-layer/ssh/detect-hassh.h \
+	app-layer/ssh/detect-proto-version.h \
+	app-layer/ssh/detect-proto.h \
+	app-layer/ssh/detect-software-version.h \
+	app-layer/ssh/detect-software.h \
+	app-layer/ssh/logger.h \
+	app-layer/ssh/lua-hassh.h \
+	app-layer/ssh/lua.h \
 	app-layer/ssh/parser.h \
+	app-layer/ssl/detect-state.h \
+	app-layer/ssl/detect-version.h \
 	app-layer/ssl/parser.h \
+	app-layer/template/detect-2.h \
+	app-layer/template/detect-rust-buffer.h \
+	app-layer/template/detect.h \
+	app-layer/template/logger.h \
+	app-layer/tftp/logger.h \
 	app-layer/tftp/parser.h \
+	app-layer/tls/detect-cert-fingerprint.h \
+	app-layer/tls/detect-cert-issuer.h \
+	app-layer/tls/detect-cert-serial.h \
+	app-layer/tls/detect-cert-subject.h \
+	app-layer/tls/detect-cert-validity.h \
+	app-layer/tls/detect-certs.h \
+	app-layer/tls/detect-ja3-hash.h \
+	app-layer/tls/detect-ja3-string.h \
+	app-layer/tls/detect-ja3s-hash.h \
+	app-layer/tls/detect-ja3s-string.h \
+	app-layer/tls/detect-random.h \
+	app-layer/tls/detect-sni.h \
+	app-layer/tls/detect-version.h \
+	app-layer/tls/detect.h \
+	app-layer/tls/log-tlslog.h \
+	app-layer/tls/log-tlsstore.h \
+	app-layer/tls/logger.h \
+	app-layer/tls/lua.h \
 	autoconf.h \
 	build-info.h \
-	conf.h \
 	conf-yaml-loader.h \
+	conf.h \
 	counters.h \
-	datasets.h \
 	datasets-ipv4.h \
 	datasets-ipv6.h \
 	datasets-md5.h \
 	datasets-reputation.h \
 	datasets-sha256.h \
 	datasets-string.h \
+	datasets.h \
 	decode-chdlc.h \
 	decode-erspan.h \
 	decode-esp.h \
@@ -71,7 +226,6 @@ noinst_HEADERS = \
 	decode-events.h \
 	decode-geneve.h \
 	decode-gre.h \
-	decode.h \
 	decode-icmpv4.h \
 	decode-icmpv6.h \
 	decode-ipv4.h \
@@ -90,11 +244,12 @@ noinst_HEADERS = \
 	decode-vlan.h \
 	decode-vntag.h \
 	decode-vxlan.h \
+	decode.h \
 	defrag-config.h \
-	defrag.h \
 	defrag-hash.h \
 	defrag-queue.h \
 	defrag-timeout.h \
+	defrag.h \
 	detect-app-layer-event.h \
 	detect-app-layer-protocol.h \
 	detect-asn1.h \
@@ -120,13 +275,10 @@ noinst_HEADERS = \
 	detect-depth.h \
 	detect-detection-filter.h \
 	detect-distance.h \
-	app-layer/dnp3/detect.h \
-	app-layer/dns/detect-opcode.h \
-	app-layer/dns/detect-query.h \
 	detect-dsize.h \
-	detect-engine-address.h \
 	detect-engine-address-ipv4.h \
 	detect-engine-address-ipv6.h \
+	detect-engine-address.h \
 	detect-engine-alert.h \
 	detect-engine-analyzer.h \
 	detect-engine-build.h \
@@ -136,7 +288,6 @@ noinst_HEADERS = \
 	detect-engine-event.h \
 	detect-engine-file.h \
 	detect-engine-frame.h \
-	detect-engine.h \
 	detect-engine-iponly.h \
 	detect-engine-loader.h \
 	detect-engine-mpm.h \
@@ -153,6 +304,7 @@ noinst_HEADERS = \
 	detect-engine-tag.h \
 	detect-engine-threshold.h \
 	detect-engine-uint.h \
+	detect-engine.h \
 	detect-fast-pattern.h \
 	detect-file-data.h \
 	detect-file-hash-common.h \
@@ -163,65 +315,25 @@ noinst_HEADERS = \
 	detect-filesha256.h \
 	detect-filesize.h \
 	detect-filestore.h \
-	detect-flowbits.h \
-	detect-flow.h \
 	detect-flow-age.h \
 	detect-flow-pkts.h \
+	detect-flow.h \
+	detect-flowbits.h \
 	detect-flowint.h \
 	detect-flowvar.h \
 	detect-fragbits.h \
 	detect-fragoffset.h \
 	detect-frame.h \
-	app-layer/ftp/detect-bounce.h \
-	app-layer/ftp/detect-data.h \
 	detect-geoip.h \
 	detect-gid.h \
-	detect.h \
 	detect-hostbits.h \
-	app-layer/http2/detect.h \
-	app-layer/http/detect-accept-enc.h \
-	app-layer/http/detect-accept.h \
-	app-layer/http/detect-accept-lang.h \
-	app-layer/http/detect-client-body.h \
-	app-layer/http/detect-connection.h \
-	app-layer/http/detect-content-len.h \
-	app-layer/http/detect-content-type.h \
-	app-layer/http/detect-cookie.h \
-	app-layer/http/detect-header-common.h \
-	app-layer/http/detect-header.h \
-	app-layer/http/detect-header-names.h \
-	app-layer/http/detect-headers.h \
-	app-layer/http/detect-headers-stub.h \
-	app-layer/http/detect-host.h \
-	app-layer/http/detect-location.h \
-	app-layer/http/detect-method.h \
-	app-layer/http/detect-protocol.h \
-	app-layer/http/detect-raw-header.h \
-	app-layer/http/detect-referer.h \
-	app-layer/http/detect-request-line.h \
-	app-layer/http/detect-response-line.h \
-	app-layer/http/detect-server-body.h \
-	app-layer/http/detect-server.h \
-	app-layer/http/detect-start.h \
-	app-layer/http/detect-stat-code.h \
-	app-layer/http/detect-stat-msg.h \
-	app-layer/http/detect-ua.h \
-	app-layer/http/detect-uri.h \
 	detect-icmp-id.h \
 	detect-icmp-seq.h \
 	detect-icmpv4hdr.h \
-	detect-icmpv6hdr.h \
 	detect-icmpv6-mtu.h \
+	detect-icmpv6hdr.h \
 	detect-icode.h \
 	detect-id.h \
-	app-layer/ike/detect-exch-type.h \
-	app-layer/ike/detect-spi.h \
-	app-layer/ike/detect-vendor.h \
-	app-layer/ike/detect-chosen-sa.h \
-	app-layer/ike/detect-key-exchange-payload-length.h \
-	app-layer/ike/detect-nonce-payload-length.h \
-	app-layer/ike/detect-nonce-payload.h \
-	app-layer/ike/detect-key-exchange-payload.h \
 	detect-ipaddr.h \
 	detect-ipopts.h \
 	detect-ipproto.h \
@@ -230,42 +342,12 @@ noinst_HEADERS = \
 	detect-ipv6hdr.h \
 	detect-isdataat.h \
 	detect-itype.h \
-	app-layer/krb5/detect-cname.h \
-	app-layer/krb5/detect-errcode.h \
-	app-layer/krb5/detect-msgtype.h \
-	app-layer/krb5/detect-sname.h \
-	app-layer/krb5/detect-ticket-encryption.h \
 	detect-l3proto.h \
 	detect-lua-extensions.h \
 	detect-lua.h \
 	detect-mark.h \
 	detect-metadata.h \
-	app-layer/modbus/detect.h \
-	app-layer/quic/detect-sni.h \
-	app-layer/quic/detect-ua.h \
-	app-layer/quic/detect-version.h \
-	app-layer/quic/detect-cyu-hash.h \
-	app-layer/quic/detect-cyu-string.h \
-	app-layer/mqtt/detect-connack-sessionpresent.h \
-	app-layer/mqtt/detect-connect-clientid.h \
-	app-layer/mqtt/detect-connect-flags.h \
-	app-layer/mqtt/detect-connect-password.h \
-	app-layer/mqtt/detect-connect-protocol-string.h \
-	app-layer/mqtt/detect-connect-username.h \
-	app-layer/mqtt/detect-connect-willmessage.h \
-	app-layer/mqtt/detect-connect-willtopic.h \
-	app-layer/mqtt/detect-flags.h \
-	app-layer/mqtt/detect-protocol-version.h \
-	app-layer/mqtt/detect-publish-message.h \
-	app-layer/mqtt/detect-publish-topic.h \
-	app-layer/mqtt/detect-qos.h \
-	app-layer/mqtt/detect-reason-code.h \
-	app-layer/mqtt/detect-subscribe-topic.h \
-	app-layer/mqtt/detect-type.h \
-	app-layer/mqtt/detect-unsubscribe-topic.h \
 	detect-msg.h \
-	app-layer/nfs/detect-procedure.h \
-	app-layer/nfs/detect-version.h \
 	detect-noalert.h \
 	detect-nocase.h \
 	detect-offset.h \
@@ -279,65 +361,19 @@ noinst_HEADERS = \
 	detect-reference.h \
 	detect-replace.h \
 	detect-rev.h \
-	app-layer/rfb/detect-name.h \
-	app-layer/rfb/detect-secresult.h \
-	app-layer/rfb/detect-sectype.h \
 	detect-rpc.h \
 	detect-sameip.h \
 	detect-sid.h \
-	app-layer/sip/detect-method.h \
-	app-layer/sip/detect-protocol.h \
-	app-layer/sip/detect-request-line.h \
-	app-layer/sip/detect-response-line.h \
-	app-layer/sip/detect-stat-code.h \
-	app-layer/sip/detect-stat-msg.h \
-	app-layer/sip/detect-uri.h \
-	app-layer/smb/detect-ntlmssp.h \
-	app-layer/smb/detect-share.h \
-	app-layer/snmp/detect-community.h \
-	app-layer/snmp/detect-pdu_type.h \
-	app-layer/snmp/detect-usm.h \
-	app-layer/snmp/detect-version.h \
-	app-layer/dhcp/detect-leasetime.h \
-	app-layer/dhcp/detect-rebinding-time.h \
-	app-layer/dhcp/detect-renewal-time.h \
-	app-layer/ssh/detect-hassh.h \
-	app-layer/ssh/detect-hassh-server.h \
-	app-layer/ssh/detect-hassh-server-string.h \
-	app-layer/ssh/detect-hassh-string.h \
-	app-layer/ssh/detect-proto.h \
-	app-layer/ssh/detect-proto-version.h \
-	app-layer/ssh/detect-software.h \
-	app-layer/ssh/detect-software-version.h \
-	app-layer/ssl/detect-state.h \
-	app-layer/ssl/detect-version.h \
 	detect-stream_size.h \
 	detect-tag.h \
 	detect-target.h \
 	detect-tcp-ack.h \
 	detect-tcp-flags.h \
-	detect-tcphdr.h \
-	detect-tcpmss.h \
 	detect-tcp-seq.h \
 	detect-tcp-window.h \
-	app-layer/template/detect-2.h \
-	app-layer/template/detect.h \
-	app-layer/template/detect-rust-buffer.h \
+	detect-tcphdr.h \
+	detect-tcpmss.h \
 	detect-threshold.h \
-	app-layer/tls/detect-cert-fingerprint.h \
-	app-layer/tls/detect-cert-issuer.h \
-	app-layer/tls/detect-cert-serial.h \
-	app-layer/tls/detect-certs.h \
-	app-layer/tls/detect-cert-subject.h \
-	app-layer/tls/detect-cert-validity.h \
-	app-layer/tls/detect.h \
-	app-layer/tls/detect-ja3-hash.h \
-	app-layer/tls/detect-ja3s-hash.h \
-	app-layer/tls/detect-ja3s-string.h \
-	app-layer/tls/detect-ja3-string.h \
-	app-layer/tls/detect-sni.h \
-	app-layer/tls/detect-version.h \
-	app-layer/tls/detect-random.h \
 	detect-tos.h \
 	detect-transform-casechange.h \
 	detect-transform-compress-whitespace.h \
@@ -356,11 +392,11 @@ noinst_HEADERS = \
 	detect-urilen.h \
 	detect-within.h \
 	detect-xbits.h \
+	detect.h \
 	device-storage.h \
 	feature.h \
 	flow-bit.h \
 	flow-bypass.h \
-	flow.h \
 	flow-hash.h \
 	flow-manager.h \
 	flow-private.h \
@@ -371,80 +407,52 @@ noinst_HEADERS = \
 	flow-util.h \
 	flow-var.h \
 	flow-worker.h \
+	flow.h \
 	host-bit.h \
-	host.h \
 	host-queue.h \
 	host-storage.h \
 	host-timeout.h \
+	host.h \
 	ippair-bit.h \
-	ippair.h \
 	ippair-queue.h \
 	ippair-storage.h \
 	ippair-timeout.h \
+	ippair.h \
 	log-cf-common.h \
-	app-layer/http/log-httplog.h \
 	log-pcap.h \
 	log-stats.h \
 	log-tcp-data.h \
-	app-layer/tls/log-tlslog.h \
-	app-layer/tls/log-tlsstore.h \
-	output/eve/output-eve-stream.h \
 	output/eve/output-eve-null.h \
-	output/output-filedata.h \
-	output/output-file.h \
-	output/output-filestore.h \
-	output/output-flow.h \
-	output/output.h \
+	output/eve/output-eve-stream.h \
+	output/eve/output-eve-syslog.h \
 	output/eve/output-json-alert.h \
 	output/eve/output-json-anomaly.h \
-	app-layer/bittorrent-dht/logger.h \
-	app-layer/dcerpc/logger.h \
-	app-layer/dhcp/logger.h \
-	app-layer/dnp3/logger.h \
-	app-layer/dnp3/logger-objects.h \
-	app-layer/dns/logger.h \
 	output/eve/output-json-drop.h \
 	output/eve/output-json-email-common.h \
 	output/eve/output-json-file.h \
 	output/eve/output-json-flow.h \
 	output/eve/output-json-frame.h \
-	app-layer/ftp/logger.h \
-	output/eve/output-json.h \
-	app-layer/http2/logger.h \
-	app-layer/http/logger.h \
-	app-layer/ike/logger.h \
-	app-layer/krb5/logger.h \
 	output/eve/output-json-metadata.h \
-	app-layer/modbus/logger.h \
-	app-layer/quic/logger.h \
-	app-layer/mqtt/logger.h \
 	output/eve/output-json-netflow.h \
-	app-layer/nfs/logger.h \
-	app-layer/pgsql/logger.h \
-	app-layer/rdp/logger.h \
-	app-layer/rfb/logger.h \
-	app-layer/sip/logger.h \
-	app-layer/smb/logger.h \
-	app-layer/smtp/logger.h \
-	app-layer/snmp/logger.h \
-	app-layer/ssh/logger.h \
 	output/eve/output-json-stats.h \
-	app-layer/template/logger.h \
-	app-layer/tftp/logger.h \
-	app-layer/tls/logger.h \
-	output/eve/output-eve-syslog.h \
+	output/eve/output-json.h \
+	output/output-file.h \
+	output/output-filedata.h \
+	output/output-filestore.h \
+	output/output-flow.h \
 	output/output-lua.h \
 	output/output-packet.h \
 	output/output-stats.h \
 	output/output-streaming.h \
 	output/output-tx.h \
-	packet.h \
+	output/output.h \
 	packet-queue.h \
+	packet.h \
 	pkt-var.h \
 	queue.h \
 	reputation.h \
-	respond-reject.h \
 	respond-reject-libnet11.h \
+	respond-reject.h \
 	runmode-af-packet.h \
 	runmode-af-xdp.h \
 	runmode-dpdk.h \
@@ -458,10 +466,10 @@ noinst_HEADERS = \
 	runmode-pcap-file.h \
 	runmode-pcap.h \
 	runmode-pfring.h \
-	runmodes.h \
 	runmode-unittests.h \
 	runmode-unix-socket.h \
 	runmode-windivert.h \
+	runmodes.h \
 	rust-context.h \
 	rust.h \
 	source-af-packet.h \
@@ -473,17 +481,15 @@ noinst_HEADERS = \
 	source-napatech.h \
 	source-netmap.h \
 	source-nflog.h \
-	source-nfq.h \
 	source-nfq-prototypes.h \
+	source-nfq.h \
 	source-pcap-file-directory-helper.h \
-	source-pcap-file.h \
 	source-pcap-file-helper.h \
+	source-pcap-file.h \
 	source-pcap.h \
 	source-pfring.h \
-	source-windivert.h \
 	source-windivert-prototypes.h \
-	stream.h \
-	stream-tcp.h \
+	source-windivert.h \
 	stream-tcp-cache.h \
 	stream-tcp-inline.h \
 	stream-tcp-list.h \
@@ -491,21 +497,23 @@ noinst_HEADERS = \
 	stream-tcp-reassemble.h \
 	stream-tcp-sack.h \
 	stream-tcp-util.h \
+	stream-tcp.h \
+	stream.h \
 	suricata-common.h \
-	suricata.h \
 	suricata-plugin.h \
+	suricata.h \
 	threads-debug.h \
-	threads.h \
 	threads-profile.h \
+	threads.h \
 	threadvars.h \
 	tm-modules.h \
-	tmqh-flow.h \
-	tmqh-packetpool.h \
-	tmqh-simple.h \
 	tm-queuehandlers.h \
 	tm-queues.h \
 	tm-threads-common.h \
 	tm-threads.h \
+	tmqh-flow.h \
+	tmqh-packetpool.h \
+	tmqh-simple.h \
 	tree.h \
 	unix-manager.h \
 	util/action.h \
@@ -532,24 +540,24 @@ noinst_HEADERS = \
 	util/decode-mime.h \
 	util/detect.h \
 	util/device.h \
-	util/dpdk.h \
+	util/dpdk-bonding.h \
 	util/dpdk-i40e.h \
 	util/dpdk-ice.h \
 	util/dpdk-ixgbe.h \
-	util/dpdk-bonding.h \
+	util/dpdk.h \
 	util/ebpf.h \
 	util/enum.h \
 	util/error.h \
 	util/exception-policy.h \
 	util/file-decompression.h \
-	util/file.h \
 	util/file-swf-decompression.h \
+	util/file.h \
 	util/fix_checksum.h \
 	util/fmemopen.h \
-	util/hash.h \
-	util/hashlist.h \
 	util/hash-lookup3.h \
 	util/hash-string.h \
+	util/hash.h \
+	util/hashlist.h \
 	util/host-info.h \
 	util/host-os-info.h \
 	util/hyperscan.h \
@@ -557,44 +565,36 @@ noinst_HEADERS = \
 	util/ip.h \
 	util/ja3.h \
 	util/landlock.h \
-	util/logopenfile.h \
 	util/log-redis.h \
+	util/logopenfile.h \
 	util/lua/lua-common.h \
-	app-layer/dnp3/lua.h \
-	app-layer/dnp3/lua-objects.h \
-	app-layer/dns/lua.h \
-	util/lua/lua.h \
-	app-layer/ssh/lua-hassh.h \
-	app-layer/http/lua.h \
 	util/lua/lua-ja3.h \
+	util/lua/lua.h \
 	util/lua/luajit.h \
-	app-layer/smtp/lua.h \
-	app-layer/ssh/lua.h \
-	app-layer/tls/lua.h \
 	util/macset.h \
 	util/magic.h \
+	util/mem.h \
 	util/memcmp.h \
 	util/memcpy.h \
-	util/mem.h \
 	util/memrchr.h \
 	util/misc.h \
-	util/mpm/mpm-ac.h \
 	util/mpm/mpm-ac-ks.h \
-	util/mpm/mpm.h \
+	util/mpm/mpm-ac.h \
 	util/mpm/mpm-hs.h \
+	util/mpm/mpm.h \
 	util/napatech.h \
 	util/optimize.h \
 	util/pages.h \
 	util/path.h \
 	util/pidfile.h \
 	util/plugin.h \
-	util/pool.h \
 	util/pool-thread.h \
+	util/pool.h \
 	util/prefilter.h \
 	util/print.h \
 	util/privs.h \
-	util/profiling.h \
 	util/profiling-locks.h \
+	util/profiling.h \
 	util/proto-name.h \
 	util/radix-tree.h \
 	util/random.h \
@@ -605,22 +605,22 @@ noinst_HEADERS = \
 	util/running-modes.h \
 	util/signal.h \
 	util/spm-bm.h \
-	util/spm-bs2bm.h \
 	util/spm-bs.h \
-	util/spm.h \
+	util/spm-bs2bm.h \
 	util/spm-hs.h \
+	util/spm.h \
 	util/storage.h \
 	util/streaming-buffer.h \
-	util/syslog.h \
 	util/sysfs.h \
+	util/syslog.h \
 	util/thash.h \
 	util/threshold-config.h \
 	util/time.h \
-	util/unittest.h \
 	util/unittest-helper.h \
+	util/unittest.h \
 	util/validate.h \
-	util/var.h \
 	util/var-name.h \
+	util/var.h \
 	windows/win32-misc.h \
 	windows/win32-service.h \
 	windows/win32-syscall.h \
@@ -630,54 +630,207 @@ libsuricata_c_a_SOURCES = \
 	alert-debuglog.c \
 	alert-fastlog.c \
 	alert-syslog.c \
-	app-layer.c \
 	app-layer-detect-proto.c \
-	app-layer/dnp3/parser.c \
-	app-layer/dnp3/parser-objects.c \
-	app-layer/enip/parser.c \
-	app-layer/enip/parser-common.c \
 	app-layer-events.c \
 	app-layer-expectation.c \
-	app-layer/ftp/parser.c \
 	app-layer-frames.c \
+	app-layer-parser.c \
+	app-layer-protos.c \
+	app-layer-register.c \
+	app-layer.c \
+	app-layer/bittorrent-dht/logger.c \
+	app-layer/dcerpc/logger.c \
+	app-layer/dhcp/detect-leasetime.c \
+	app-layer/dhcp/detect-rebinding-time.c \
+	app-layer/dhcp/detect-renewal-time.c \
+	app-layer/dhcp/logger.c \
+	app-layer/dnp3/detect.c \
+	app-layer/dnp3/logger-objects.c \
+	app-layer/dnp3/logger.c \
+	app-layer/dnp3/lua-objects.c \
+	app-layer/dnp3/lua.c \
+	app-layer/dnp3/parser-objects.c \
+	app-layer/dnp3/parser.c \
+	app-layer/dns/detect-opcode.c \
+	app-layer/dns/detect-query.c \
+	app-layer/dns/logger.c \
+	app-layer/dns/lua.c \
+	app-layer/enip/parser-common.c \
+	app-layer/enip/parser.c \
+	app-layer/ftp/detect-bounce.c \
+	app-layer/ftp/detect-data.c \
+	app-layer/ftp/logger.c \
+	app-layer/ftp/parser.c \
+	app-layer/http/detect-accept-enc.c \
+	app-layer/http/detect-accept-lang.c \
+	app-layer/http/detect-accept.c \
+	app-layer/http/detect-client-body.c \
+	app-layer/http/detect-connection.c \
+	app-layer/http/detect-content-len.c \
+	app-layer/http/detect-content-type.c \
+	app-layer/http/detect-cookie.c \
+	app-layer/http/detect-header-common.c \
+	app-layer/http/detect-header-names.c \
+	app-layer/http/detect-header.c \
+	app-layer/http/detect-headers.c \
+	app-layer/http/detect-host.c \
+	app-layer/http/detect-location.c \
+	app-layer/http/detect-method.c \
+	app-layer/http/detect-protocol.c \
+	app-layer/http/detect-raw-header.c \
+	app-layer/http/detect-referer.c \
+	app-layer/http/detect-request-line.c \
+	app-layer/http/detect-response-line.c \
+	app-layer/http/detect-server-body.c \
+	app-layer/http/detect-server.c \
+	app-layer/http/detect-start.c \
+	app-layer/http/detect-stat-code.c \
+	app-layer/http/detect-stat-msg.c \
+	app-layer/http/detect-ua.c \
+	app-layer/http/detect-uri.c \
+	app-layer/http/log-httplog.c \
+	app-layer/http/logger.c \
+	app-layer/http/lua.c \
 	app-layer/http/parser-body.c \
-	app-layer/http/parser.c \
 	app-layer/http/parser-file.c \
 	app-layer/http/parser-libhtp.c \
 	app-layer/http/parser-mem.c \
 	app-layer/http/parser-range.c \
 	app-layer/http/parser-xff.c \
+	app-layer/http/parser.c \
+	app-layer/http2/detect.c \
+	app-layer/http2/logger.c \
 	app-layer/http2/parser.c \
+	app-layer/ike/detect-chosen-sa.c \
+	app-layer/ike/detect-exch-type.c \
+	app-layer/ike/detect-key-exchange-payload-length.c \
+	app-layer/ike/detect-key-exchange-payload.c \
+	app-layer/ike/detect-nonce-payload-length.c \
+	app-layer/ike/detect-nonce-payload.c \
+	app-layer/ike/detect-spi.c \
+	app-layer/ike/detect-vendor.c \
+	app-layer/ike/logger.c \
 	app-layer/ike/parser.c \
+	app-layer/krb5/detect-cname.c \
+	app-layer/krb5/detect-errcode.c \
+	app-layer/krb5/detect-msgtype.c \
+	app-layer/krb5/detect-sname.c \
+	app-layer/krb5/detect-ticket-encryption.c \
+	app-layer/krb5/logger.c \
 	app-layer/krb5/parser.c \
+	app-layer/modbus/detect.c \
+	app-layer/modbus/logger.c \
 	app-layer/modbus/parser.c \
-	app-layer/quic/parser.c \
+	app-layer/mqtt/detect-connack-sessionpresent.c \
+	app-layer/mqtt/detect-connect-clientid.c \
+	app-layer/mqtt/detect-connect-flags.c \
+	app-layer/mqtt/detect-connect-password.c \
+	app-layer/mqtt/detect-connect-protocol-string.c \
+	app-layer/mqtt/detect-connect-username.c \
+	app-layer/mqtt/detect-connect-willmessage.c \
+	app-layer/mqtt/detect-connect-willtopic.c \
+	app-layer/mqtt/detect-flags.c \
+	app-layer/mqtt/detect-protocol-version.c \
+	app-layer/mqtt/detect-publish-message.c \
+	app-layer/mqtt/detect-publish-topic.c \
+	app-layer/mqtt/detect-qos.c \
+	app-layer/mqtt/detect-reason-code.c \
+	app-layer/mqtt/detect-subscribe-topic.c \
+	app-layer/mqtt/detect-type.c \
+	app-layer/mqtt/detect-unsubscribe-topic.c \
+	app-layer/mqtt/logger.c \
 	app-layer/mqtt/parser.c \
+	app-layer/nfs/detect-procedure.c \
+	app-layer/nfs/detect-version.c \
+	app-layer/nfs/logger.c \
 	app-layer/nfs/parser-tcp.c \
 	app-layer/nfs/parser-udp.c \
 	app-layer/ntp/parser.c \
-	app-layer-parser.c \
-	app-layer-protos.c \
+	app-layer/pgsql/logger.c \
+	app-layer/quic/detect-cyu-hash.c \
+	app-layer/quic/detect-cyu-string.c \
+	app-layer/quic/detect-sni.c \
+	app-layer/quic/detect-ua.c \
+	app-layer/quic/detect-version.c \
+	app-layer/quic/logger.c \
+	app-layer/quic/parser.c \
+	app-layer/rdp/logger.c \
 	app-layer/rdp/parser.c \
-	app-layer-register.c \
+	app-layer/rfb/detect-name.c \
+	app-layer/rfb/detect-secresult.c \
+	app-layer/rfb/detect-sectype.c \
+	app-layer/rfb/logger.c \
 	app-layer/rfb/parser.c \
+	app-layer/sip/detect-method.c \
+	app-layer/sip/detect-protocol.c \
+	app-layer/sip/detect-request-line.c \
+	app-layer/sip/detect-response-line.c \
+	app-layer/sip/detect-stat-code.c \
+	app-layer/sip/detect-stat-msg.c \
+	app-layer/sip/detect-uri.c \
+	app-layer/sip/logger.c \
 	app-layer/sip/parser.c \
+	app-layer/smb/detect-ntlmssp.c \
+	app-layer/smb/detect-share.c \
+	app-layer/smb/logger.c \
 	app-layer/smb/parser.c \
+	app-layer/smtp/logger.c \
+	app-layer/smtp/lua.c \
 	app-layer/smtp/parser.c \
+	app-layer/snmp/detect-community.c \
+	app-layer/snmp/detect-pdu_type.c \
+	app-layer/snmp/detect-usm.c \
+	app-layer/snmp/detect-version.c \
+	app-layer/snmp/logger.c \
 	app-layer/snmp/parser.c \
+	app-layer/ssh/detect-hassh-server-string.c \
+	app-layer/ssh/detect-hassh-server.c \
+	app-layer/ssh/detect-hassh-string.c \
+	app-layer/ssh/detect-hassh.c \
+	app-layer/ssh/detect-proto-version.c \
+	app-layer/ssh/detect-proto.c \
+	app-layer/ssh/detect-software-version.c \
+	app-layer/ssh/detect-software.c \
+	app-layer/ssh/logger.c \
+	app-layer/ssh/lua-hassh.c \
+	app-layer/ssh/lua.c \
 	app-layer/ssh/parser.c \
+	app-layer/ssl/detect-state.c \
+	app-layer/ssl/detect-version.c \
 	app-layer/ssl/parser.c \
+	app-layer/template/detect-2.c \
+	app-layer/template/detect-rust-buffer.c \
+	app-layer/template/detect.c \
+	app-layer/template/logger.c \
+	app-layer/tftp/logger.c \
 	app-layer/tftp/parser.c \
-	conf.c \
+	app-layer/tls/detect-cert-fingerprint.c \
+	app-layer/tls/detect-cert-issuer.c \
+	app-layer/tls/detect-cert-serial.c \
+	app-layer/tls/detect-cert-subject.c \
+	app-layer/tls/detect-cert-validity.c \
+	app-layer/tls/detect-certs.c \
+	app-layer/tls/detect-ja3-hash.c \
+	app-layer/tls/detect-ja3-string.c \
+	app-layer/tls/detect-ja3s-hash.c \
+	app-layer/tls/detect-ja3s-string.c \
+	app-layer/tls/detect-random.c \
+	app-layer/tls/detect-sni.c \
+	app-layer/tls/detect-version.c \
+	app-layer/tls/detect.c \
+	app-layer/tls/log-tlslog.c \
+	app-layer/tls/log-tlsstore.c \
+	app-layer/tls/logger.c \
+	app-layer/tls/lua.c \
 	conf-yaml-loader.c \
+	conf.c \
 	counters.c \
-	datasets.c \
 	datasets-ipv4.c \
 	datasets-ipv6.c \
 	datasets-md5.c \
 	datasets-sha256.c \
 	datasets-string.c \
-	decode.c \
+	datasets.c \
 	decode-chdlc.c \
 	decode-erspan.c \
 	decode-esp.c \
@@ -704,11 +857,12 @@ libsuricata_c_a_SOURCES = \
 	decode-vlan.c \
 	decode-vntag.c \
 	decode-vxlan.c \
-	defrag.c \
+	decode.c \
 	defrag-config.c \
 	defrag-hash.c \
 	defrag-queue.c \
 	defrag-timeout.c \
+	defrag.c \
 	detect-app-layer-event.c \
 	detect-app-layer-protocol.c \
 	detect-asn1.c \
@@ -716,12 +870,11 @@ libsuricata_c_a_SOURCES = \
 	detect-base64-decode.c \
 	detect-bsize.c \
 	detect-bypass.c \
-	detect-byte.c \
 	detect-byte-extract.c \
+	detect-byte.c \
 	detect-bytejump.c \
 	detect-bytemath.c \
 	detect-bytetest.c \
-	detect.c \
 	detect-cipservice.c \
 	detect-classtype.c \
 	detect-config.c \
@@ -735,17 +888,13 @@ libsuricata_c_a_SOURCES = \
 	detect-depth.c \
 	detect-detection-filter.c \
 	detect-distance.c \
-	app-layer/dnp3/detect.c \
-	app-layer/dns/detect-opcode.c \
-	app-layer/dns/detect-query.c \
 	detect-dsize.c \
-	detect-engine-address.c \
 	detect-engine-address-ipv4.c \
 	detect-engine-address-ipv6.c \
+	detect-engine-address.c \
 	detect-engine-alert.c \
 	detect-engine-analyzer.c \
 	detect-engine-build.c \
-	detect-engine.c \
 	detect-engine-content-inspection.c \
 	detect-engine-dcepayload.c \
 	detect-engine-enip.c \
@@ -757,8 +906,8 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-mpm.c \
 	detect-engine-payload.c \
 	detect-engine-port.c \
-	detect-engine-prefilter.c \
 	detect-engine-prefilter-common.c \
+	detect-engine-prefilter.c \
 	detect-engine-profile.c \
 	detect-engine-proto.c \
 	detect-engine-register.c \
@@ -768,6 +917,7 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-tag.c \
 	detect-engine-threshold.c \
 	detect-engine-uint.c \
+	detect-engine.c \
 	detect-fast-pattern.c \
 	detect-file-data.c \
 	detect-file-hash-common.c \
@@ -778,63 +928,25 @@ libsuricata_c_a_SOURCES = \
 	detect-filesha256.c \
 	detect-filesize.c \
 	detect-filestore.c \
-	detect-flowbits.c \
-	detect-flow.c \
 	detect-flow-age.c \
 	detect-flow-pkts.c \
+	detect-flow.c \
+	detect-flowbits.c \
 	detect-flowint.c \
 	detect-flowvar.c \
 	detect-fragbits.c \
 	detect-fragoffset.c \
 	detect-frame.c \
-	app-layer/ftp/detect-bounce.c \
-	app-layer/ftp/detect-data.c \
 	detect-geoip.c \
 	detect-gid.c \
 	detect-hostbits.c \
-	app-layer/http2/detect.c \
-	app-layer/http/detect-accept.c \
-	app-layer/http/detect-accept-enc.c \
-	app-layer/http/detect-accept-lang.c \
-	app-layer/http/detect-client-body.c \
-	app-layer/http/detect-connection.c \
-	app-layer/http/detect-content-len.c \
-	app-layer/http/detect-content-type.c \
-	app-layer/http/detect-cookie.c \
-	app-layer/http/detect-header.c \
-	app-layer/http/detect-header-common.c \
-	app-layer/http/detect-header-names.c \
-	app-layer/http/detect-headers.c \
-	app-layer/http/detect-host.c \
-	app-layer/http/detect-location.c \
-	app-layer/http/detect-method.c \
-	app-layer/http/detect-protocol.c \
-	app-layer/http/detect-raw-header.c \
-	app-layer/http/detect-referer.c \
-	app-layer/http/detect-request-line.c \
-	app-layer/http/detect-response-line.c \
-	app-layer/http/detect-server-body.c \
-	app-layer/http/detect-server.c \
-	app-layer/http/detect-start.c \
-	app-layer/http/detect-stat-code.c \
-	app-layer/http/detect-stat-msg.c \
-	app-layer/http/detect-ua.c \
-	app-layer/http/detect-uri.c \
 	detect-icmp-id.c \
 	detect-icmp-seq.c \
 	detect-icmpv4hdr.c \
-	detect-icmpv6hdr.c \
 	detect-icmpv6-mtu.c \
+	detect-icmpv6hdr.c \
 	detect-icode.c \
 	detect-id.c \
-	app-layer/ike/detect-exch-type.c \
-	app-layer/ike/detect-spi.c \
-	app-layer/ike/detect-vendor.c \
-	app-layer/ike/detect-chosen-sa.c \
-	app-layer/ike/detect-key-exchange-payload-length.c \
-	app-layer/ike/detect-nonce-payload-length.c \
-	app-layer/ike/detect-nonce-payload.c \
-	app-layer/ike/detect-key-exchange-payload.c \
 	detect-ipaddr.c \
 	detect-ipopts.c \
 	detect-ipproto.c \
@@ -843,42 +955,12 @@ libsuricata_c_a_SOURCES = \
 	detect-ipv6hdr.c \
 	detect-isdataat.c \
 	detect-itype.c \
-	app-layer/krb5/detect-cname.c \
-	app-layer/krb5/detect-errcode.c \
-	app-layer/krb5/detect-msgtype.c \
-	app-layer/krb5/detect-sname.c \
-	app-layer/krb5/detect-ticket-encryption.c \
 	detect-l3proto.c \
-	detect-lua.c \
 	detect-lua-extensions.c \
+	detect-lua.c \
 	detect-mark.c \
 	detect-metadata.c \
-	app-layer/modbus/detect.c \
-	app-layer/quic/detect-sni.c \
-	app-layer/quic/detect-ua.c \
-	app-layer/quic/detect-version.c \
-	app-layer/quic/detect-cyu-hash.c \
-	app-layer/quic/detect-cyu-string.c \
-	app-layer/mqtt/detect-connack-sessionpresent.c \
-	app-layer/mqtt/detect-connect-clientid.c \
-	app-layer/mqtt/detect-connect-flags.c \
-	app-layer/mqtt/detect-connect-password.c \
-	app-layer/mqtt/detect-connect-protocol-string.c \
-	app-layer/mqtt/detect-connect-username.c \
-	app-layer/mqtt/detect-connect-willmessage.c \
-	app-layer/mqtt/detect-connect-willtopic.c \
-	app-layer/mqtt/detect-flags.c \
-	app-layer/mqtt/detect-protocol-version.c \
-	app-layer/mqtt/detect-publish-message.c \
-	app-layer/mqtt/detect-publish-topic.c \
-	app-layer/mqtt/detect-qos.c \
-	app-layer/mqtt/detect-reason-code.c \
-	app-layer/mqtt/detect-subscribe-topic.c \
-	app-layer/mqtt/detect-type.c \
-	app-layer/mqtt/detect-unsubscribe-topic.c \
 	detect-msg.c \
-	app-layer/nfs/detect-procedure.c \
-	app-layer/nfs/detect-version.c \
 	detect-noalert.c \
 	detect-nocase.c \
 	detect-offset.c \
@@ -892,65 +974,19 @@ libsuricata_c_a_SOURCES = \
 	detect-reference.c \
 	detect-replace.c \
 	detect-rev.c \
-	app-layer/rfb/detect-name.c \
-	app-layer/rfb/detect-secresult.c \
-	app-layer/rfb/detect-sectype.c \
 	detect-rpc.c \
 	detect-sameip.c \
 	detect-sid.c \
-	app-layer/sip/detect-method.c \
-	app-layer/sip/detect-protocol.c \
-	app-layer/sip/detect-request-line.c \
-	app-layer/sip/detect-response-line.c \
-	app-layer/sip/detect-stat-code.c \
-	app-layer/sip/detect-stat-msg.c \
-	app-layer/sip/detect-uri.c \
-	app-layer/smb/detect-ntlmssp.c \
-	app-layer/smb/detect-share.c \
-	app-layer/snmp/detect-community.c \
-	app-layer/snmp/detect-pdu_type.c \
-	app-layer/snmp/detect-usm.c \
-	app-layer/snmp/detect-version.c \
-	app-layer/dhcp/detect-leasetime.c \
-	app-layer/dhcp/detect-rebinding-time.c \
-	app-layer/dhcp/detect-renewal-time.c \
-	app-layer/ssh/detect-hassh.c \
-	app-layer/ssh/detect-hassh-server.c \
-	app-layer/ssh/detect-hassh-server-string.c \
-	app-layer/ssh/detect-hassh-string.c \
-	app-layer/ssh/detect-proto.c \
-	app-layer/ssh/detect-proto-version.c \
-	app-layer/ssh/detect-software.c \
-	app-layer/ssh/detect-software-version.c \
-	app-layer/ssl/detect-state.c \
-	app-layer/ssl/detect-version.c \
 	detect-stream_size.c \
 	detect-tag.c \
 	detect-target.c \
 	detect-tcp-ack.c \
 	detect-tcp-flags.c \
-	detect-tcphdr.c \
-	detect-tcpmss.c \
 	detect-tcp-seq.c \
 	detect-tcp-window.c \
-	app-layer/template/detect-2.c \
-	app-layer/template/detect.c \
-	app-layer/template/detect-rust-buffer.c \
+	detect-tcphdr.c \
+	detect-tcpmss.c \
 	detect-threshold.c \
-	app-layer/tls/detect.c \
-	app-layer/tls/detect-cert-fingerprint.c \
-	app-layer/tls/detect-cert-issuer.c \
-	app-layer/tls/detect-certs.c \
-	app-layer/tls/detect-cert-serial.c \
-	app-layer/tls/detect-cert-subject.c \
-	app-layer/tls/detect-cert-validity.c \
-	app-layer/tls/detect-ja3-hash.c \
-	app-layer/tls/detect-ja3s-hash.c \
-	app-layer/tls/detect-ja3s-string.c \
-	app-layer/tls/detect-ja3-string.c \
-	app-layer/tls/detect-sni.c \
-	app-layer/tls/detect-version.c \
-	app-layer/tls/detect-random.c \
 	detect-tos.c \
 	detect-transform-casechange.c \
 	detect-transform-compress-whitespace.c \
@@ -969,11 +1005,11 @@ libsuricata_c_a_SOURCES = \
 	detect-urilen.c \
 	detect-within.c \
 	detect-xbits.c \
+	detect.c \
 	device-storage.c \
 	feature.c \
 	flow-bit.c \
 	flow-bypass.c \
-	flow.c \
 	flow-hash.c \
 	flow-manager.c \
 	flow-queue.c \
@@ -983,80 +1019,52 @@ libsuricata_c_a_SOURCES = \
 	flow-util.c \
 	flow-var.c \
 	flow-worker.c \
+	flow.c \
 	host-bit.c \
-	host.c \
 	host-queue.c \
 	host-storage.c \
 	host-timeout.c \
+	host.c \
 	ippair-bit.c \
-	ippair.c \
 	ippair-queue.c \
 	ippair-storage.c \
 	ippair-timeout.c \
+	ippair.c \
 	log-cf-common.c \
-	app-layer/http/log-httplog.c \
 	log-pcap.c \
 	log-stats.c \
 	log-tcp-data.c \
-	app-layer/tls/log-tlslog.c \
-	app-layer/tls/log-tlsstore.c \
-	output/output.c \
+	output/eve/output-eve-null.c \
 	output/eve/output-eve-stream.c \
-	output/output-file.c \
-	output/output-filedata.c \
-	output/output-filestore.c \
-	output/output-flow.c \
+	output/eve/output-eve-syslog.c \
 	output/eve/output-json-alert.c \
 	output/eve/output-json-anomaly.c \
-	app-layer/bittorrent-dht/logger.c \
-	output/eve/output-json.c \
 	output/eve/output-json-common.c \
-	app-layer/dcerpc/logger.c \
-	app-layer/dhcp/logger.c \
-	app-layer/dnp3/logger.c \
-	app-layer/dnp3/logger-objects.c \
-	app-layer/dns/logger.c \
 	output/eve/output-json-drop.c \
 	output/eve/output-json-email-common.c \
 	output/eve/output-json-file.c \
 	output/eve/output-json-flow.c \
 	output/eve/output-json-frame.c \
-	app-layer/ftp/logger.c \
-	app-layer/http2/logger.c \
-	app-layer/http/logger.c \
-	app-layer/ike/logger.c \
-	app-layer/krb5/logger.c \
 	output/eve/output-json-metadata.c \
-	app-layer/modbus/logger.c \
-	app-layer/quic/logger.c \
-	app-layer/mqtt/logger.c \
 	output/eve/output-json-netflow.c \
-	app-layer/nfs/logger.c \
-	app-layer/pgsql/logger.c \
-	app-layer/rdp/logger.c \
-	app-layer/rfb/logger.c \
-	app-layer/sip/logger.c \
-	app-layer/smb/logger.c \
-	app-layer/smtp/logger.c \
-	app-layer/snmp/logger.c \
-	app-layer/ssh/logger.c \
 	output/eve/output-json-stats.c \
-	app-layer/template/logger.c \
-	app-layer/tftp/logger.c \
-	app-layer/tls/logger.c \
-	output/eve/output-eve-syslog.c \
-	output/eve/output-eve-null.c \
+	output/eve/output-json.c \
+	output/output-file.c \
+	output/output-filedata.c \
+	output/output-filestore.c \
+	output/output-flow.c \
 	output/output-lua.c \
 	output/output-packet.c \
 	output/output-stats.c \
 	output/output-streaming.c \
 	output/output-tx.c \
-	packet.c \
+	output/output.c \
 	packet-queue.c \
+	packet.c \
 	pkt-var.c \
 	reputation.c \
-	respond-reject.c \
 	respond-reject-libnet11.c \
+	respond-reject.c \
 	runmode-af-packet.c \
 	runmode-af-xdp.c \
 	runmode-dpdk.c \
@@ -1067,13 +1075,13 @@ libsuricata_c_a_SOURCES = \
 	runmode-netmap.c \
 	runmode-nflog.c \
 	runmode-nfq.c \
-	runmode-pcap.c \
 	runmode-pcap-file.c \
+	runmode-pcap.c \
 	runmode-pfring.c \
-	runmodes.c \
 	runmode-unittests.c \
 	runmode-unix-socket.c \
 	runmode-windivert.c \
+	runmodes.c \
 	rust-context.c \
 	source-af-packet.c \
 	source-af-xdp.c \
@@ -1085,36 +1093,36 @@ libsuricata_c_a_SOURCES = \
 	source-netmap.c \
 	source-nflog.c \
 	source-nfq.c \
-	source-pcap.c \
-	source-pcap-file.c \
 	source-pcap-file-directory-helper.c \
 	source-pcap-file-helper.c \
+	source-pcap-file.c \
+	source-pcap.c \
 	source-pfring.c \
 	source-windivert.c \
-	stream.c \
-	stream-tcp.c \
 	stream-tcp-cache.c \
 	stream-tcp-inline.c \
 	stream-tcp-list.c \
 	stream-tcp-reassemble.c \
 	stream-tcp-sack.c \
 	stream-tcp-util.c \
+	stream-tcp.c \
+	stream.c \
 	suricata.c \
 	threads.c \
 	tm-modules.c \
-	tmqh-flow.c \
-	tmqh-packetpool.c \
-	tmqh-simple.c \
 	tm-queuehandlers.c \
 	tm-queues.c \
 	tm-threads.c \
+	tmqh-flow.c \
+	tmqh-packetpool.c \
+	tmqh-simple.c \
 	unix-manager.c \
 	util/action.c \
 	util/affinity.c \
 	util/atomic.c \
 	util/base64.c \
-	util/bloomfilter.c \
 	util/bloomfilter-counting.c \
+	util/bloomfilter.c \
 	util/bpf.c \
 	util/buffer.c \
 	util/byte.c \
@@ -1126,29 +1134,29 @@ libsuricata_c_a_SOURCES = \
 	util/cpu.c \
 	util/daemon.c \
 	util/datalink.c \
-	util/debug.c \
 	util/debug-filters.c \
+	util/debug.c \
 	util/decode-mime.c \
 	util/detect.c \
 	util/device.c \
-	util/dpdk.c \
+	util/dpdk-bonding.c \
 	util/dpdk-i40e.c \
 	util/dpdk-ice.c \
 	util/dpdk-ixgbe.c \
-	util/dpdk-bonding.c \
+	util/dpdk.c \
 	util/ebpf.c \
 	util/enum.c \
 	util/error.c \
 	util/exception-policy.c \
-	util/file.c \
 	util/file-decompression.c \
 	util/file-swf-decompression.c \
+	util/file.c \
 	util/fix_checksum.c \
 	util/fmemopen.c \
-	util/hash.c \
-	util/hashlist.c \
 	util/hash-lookup3.c \
 	util/hash-string.c \
+	util/hash.c \
+	util/hashlist.c \
 	util/host-info.c \
 	util/host-os-info.c \
 	util/hyperscan.c \
@@ -1156,47 +1164,39 @@ libsuricata_c_a_SOURCES = \
 	util/ip.c \
 	util/ja3.c \
 	util/landlock.c \
-	util/logopenfile.c \
 	util/log-redis.c \
-	util/lua/lua.c \
+	util/logopenfile.c \
 	util/lua/lua-common.c \
-	app-layer/dnp3/lua.c \
-	app-layer/dnp3/lua-objects.c \
-	app-layer/dns/lua.c \
-	app-layer/ssh/lua-hassh.c \
-	app-layer/http/lua.c \
 	util/lua/lua-ja3.c \
+	util/lua/lua.c \
 	util/lua/luajit.c \
-	app-layer/smtp/lua.c \
-	app-layer/ssh/lua.c \
-	app-layer/tls/lua.c \
 	util/macset.c \
 	util/magic.c \
 	util/mem.c \
 	util/memcmp.c \
 	util/memrchr.c \
 	util/misc.c \
-	util/mpm/mpm-ac.c \
-	util/mpm/mpm-ac-ks.c \
 	util/mpm/mpm-ac-ks-small.c \
-	util/mpm/mpm.c \
+	util/mpm/mpm-ac-ks.c \
+	util/mpm/mpm-ac.c \
 	util/mpm/mpm-hs.c \
+	util/mpm/mpm.c \
 	util/napatech.c \
 	util/pages.c \
 	util/path.c \
 	util/pidfile.c \
 	util/plugin.c \
-	util/pool.c \
 	util/pool-thread.c \
+	util/pool.c \
 	util/prefilter.c \
 	util/print.c \
 	util/privs.c \
-	util/profiling.c \
 	util/profiling-keywords.c \
 	util/profiling-locks.c \
 	util/profiling-prefilter.c \
 	util/profiling-rulegroups.c \
 	util/profiling-rules.c \
+	util/profiling.c \
 	util/proto-name.c \
 	util/radix-tree.c \
 	util/random.c \
@@ -1207,53 +1207,33 @@ libsuricata_c_a_SOURCES = \
 	util/running-modes.c \
 	util/signal.c \
 	util/spm-bm.c \
-	util/spm-bs2bm.c \
 	util/spm-bs.c \
-	util/spm.c \
+	util/spm-bs2bm.c \
 	util/spm-hs.c \
+	util/spm.c \
 	util/storage.c \
 	util/streaming-buffer.c \
 	util/strlcatu.c \
 	util/strlcpyu.c \
 	util/strptime.c \
-	util/syslog.c \
 	util/sysfs.c \
+	util/syslog.c \
 	util/thash.c \
 	util/threshold-config.c \
 	util/time.c \
-	util/unittest.c \
 	util/unittest-helper.c \
-	util/var.c \
+	util/unittest.c \
 	util/var-name.c \
+	util/var.c \
 	windows/win32-misc.c \
 	windows/win32-service.c \
 	windows/win32-syscall.c
 
 EXTRA_DIST = \
-	tests/stream-tcp-inline.c \
-	tests/stream-tcp-list.c \
-	tests/detect-ipv4hdr.c \
-	tests/detect-ipv6hdr.c \
-	tests/detect-tcphdr.c \
-	tests/detect-udphdr.c \
-	tests/reputation.c \
-	tests/detect-bsize.c \
-	tests/detect-http2.c \
-	tests/detect-icmpv6-mtu.c \
-	tests/detect-icmpv6hdr.c \
-	tests/detect-snmp-pdu_type.c \
-	tests/detect-snmp-version.c \
-	tests/detect-template.c \
-	tests/detect-transform-pcrexform.c \
-	tests/detect-transform-xor.c \
-	tests/detect-ttl.c \
-	tests/source-pcap.c \
 	tests/app-layer-htp-file.c \
+	tests/detect-bsize.c \
 	tests/detect-engine-alert.c \
 	tests/detect-engine-content-inspection.c \
-	tests/detect-icmpv4hdr.c \
-	tests/detect-parse.c \
-	tests/stream-tcp-reassemble.c \
 	tests/detect-file-data.c \
 	tests/detect-http-client-body.c \
 	tests/detect-http-cookie.c \
@@ -1266,10 +1246,22 @@ EXTRA_DIST = \
 	tests/detect-http-stat-msg.c \
 	tests/detect-http-uri.c \
 	tests/detect-http-user-agent.c \
+	tests/detect-http2.c \
+	tests/detect-icmpv4hdr.c \
+	tests/detect-icmpv6-mtu.c \
+	tests/detect-icmpv6hdr.c \
+	tests/detect-ipaddr.c \
+	tests/detect-ipv4hdr.c \
+	tests/detect-ipv6hdr.c \
+	tests/detect-parse.c \
 	tests/detect-snmp-community.c \
+	tests/detect-snmp-pdu_type.c \
+	tests/detect-snmp-version.c \
 	tests/detect-ssl-state.c \
 	tests/detect-ssl-version.c \
+	tests/detect-tcphdr.c \
 	tests/detect-template-buffer.c \
+	tests/detect-template.c \
 	tests/detect-tls-cert-fingerprint.c \
 	tests/detect-tls-cert-issuer.c \
 	tests/detect-tls-cert-serial.c \
@@ -1277,8 +1269,16 @@ EXTRA_DIST = \
 	tests/detect-tls-cert-validity.c \
 	tests/detect-tls-certs.c \
 	tests/detect-tls-version.c \
-	tests/detect-ipaddr.c \
+	tests/detect-transform-pcrexform.c \
+	tests/detect-transform-xor.c \
+	tests/detect-ttl.c \
+	tests/detect-udphdr.c \
 	tests/detect.c \
+	tests/reputation.c \
+	tests/source-pcap.c \
+	tests/stream-tcp-inline.c \
+	tests/stream-tcp-list.c \
+	tests/stream-tcp-reassemble.c \
 	tests/stream-tcp.c
 
 install-headers:
