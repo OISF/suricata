@@ -147,6 +147,8 @@ pub struct HTTP2Transaction {
     pub escaped: Vec<Vec<u8>>,
     pub req_line: Vec<u8>,
     pub resp_line: Vec<u8>,
+
+    pub doh: Vec<u8>,
 }
 
 impl Transaction for HTTP2Transaction {
@@ -178,6 +180,7 @@ impl HTTP2Transaction {
             escaped: Vec::with_capacity(16),
             req_line: Vec::new(),
             resp_line: Vec::new(),
+            doh: Vec::new(),
         }
     }
 
@@ -205,7 +208,7 @@ impl HTTP2Transaction {
         self.tx_data.set_event(event as u8);
     }
 
-    fn handle_headers(&mut self, blocks: &[parser::HTTP2FrameHeaderBlock], dir: Direction, pstate: *mut std::os::raw::c_void) -> Option<Vec<u8>> {
+    fn handle_headers(&mut self, blocks: &[parser::HTTP2FrameHeaderBlock], dir: Direction) -> Option<Vec<u8>> {
         let mut authority = None;
         let mut path = None;
         let mut doh = false;
@@ -217,6 +220,12 @@ impl HTTP2Transaction {
                 //TODO? faster pattern matching
                 if block.value == b"application/dns-message" {
                     doh = true;
+                }
+            } else if block.name == b"content-type" {
+                if block.value == b"application/dns-message" {
+                    // push original 2-bytes DNS/TCP header
+                    self.doh.push(0);
+                    self.doh.push(0);
                 }
             } else if block.name == b":path" {
                 path = Some(&block.value);
@@ -244,12 +253,6 @@ impl HTTP2Transaction {
         if doh {
             if let Some(p) = path {
                 if let Ok((_, dns_req)) = parser::doh_extract_request(p) {
-                    unsafe {
-                        AppLayerParserStateSetFlag(
-                            pstate,
-                            APP_LAYER_PARSER_LAYERED_PACKET,
-                        );
-                    }
                     return Some(dns_req);
                 }
             }
@@ -263,10 +266,9 @@ impl HTTP2Transaction {
     }
 
     fn decompress<'a>(
-        &'a mut self, input: &'a [u8], dir: Direction, sfcm: &'static SuricataFileContext, over: bool, flow: *const Flow,
+        &'a mut self, input: &'a [u8], output: &'a mut Vec<u8>, dir: Direction, sfcm: &'static SuricataFileContext, over: bool, flow: *const Flow,
     ) -> io::Result<()> {
-        let mut output = Vec::with_capacity(decompression::HTTP2_DECOMPRESSION_CHUNK_SIZE);
-        let decompressed = self.decoder.decompress(input, &mut output, dir)?;
+        let decompressed = self.decoder.decompress(input, output, dir)?;
         let xid: u32 = self.tx_id as u32;
         if dir == Direction::ToClient {
             self.ft_tc.tx_id = self.tx_id - 1;
@@ -325,11 +327,14 @@ impl HTTP2Transaction {
                 &xid,
             );
         };
+        if !self.doh.is_empty() {
+            self.doh.extend_from_slice(decompressed);
+        }
         return Ok(());
     }
 
     fn handle_frame(
-        &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: Direction, pstate: *mut std::os::raw::c_void
+        &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: Direction,
     ) -> Option<Vec<u8>> {
         //handle child_stream_id changes
         let mut r = None;
@@ -342,7 +347,7 @@ impl HTTP2Transaction {
                     }
                     self.state = HTTP2TransactionState::HTTP2StateReserved;
                 }
-                r = self.handle_headers(&hs.blocks, dir, pstate);
+                r = self.handle_headers(&hs.blocks, dir);
             }
             HTTP2FrameTypeData::CONTINUATION(hs) => {
                 if dir == Direction::ToClient
@@ -350,13 +355,13 @@ impl HTTP2Transaction {
                 {
                     self.child_stream_id = 0;
                 }
-                r = self.handle_headers(&hs.blocks, dir, pstate);
+                r = self.handle_headers(&hs.blocks, dir);
             }
             HTTP2FrameTypeData::HEADERS(hs) => {
                 if dir == Direction::ToClient {
                     self.child_stream_id = 0;
                 }
-                r = self.handle_headers(&hs.blocks, dir, pstate);
+                r = self.handle_headers(&hs.blocks, dir);
             }
             HTTP2FrameTypeData::RSTSTREAM(_) => {
                 self.child_stream_id = 0;
@@ -1004,7 +1009,7 @@ impl HTTP2State {
                     );
 
                     let tx = self.find_or_create_tx(&head, &txdata, dir);
-                    let odoh = tx.handle_frame(&head, &txdata, dir, pstate);
+                    let odoh = tx.handle_frame(&head, &txdata, dir);
                     let over = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
                     let ftype = head.ftype;
                     let sid = head.stream_id;
@@ -1036,13 +1041,38 @@ impl HTTP2State {
                                     if padded && !rem.is_empty() && usize::from(rem[0]) < hlsafe{
                                         dinput = &rem[1..hlsafe - usize::from(rem[0])];
                                     }
-                                    if tx_same.decompress(
+                                    let mut output = Vec::with_capacity(decompression::HTTP2_DECOMPRESSION_CHUNK_SIZE);
+                                    match tx_same.decompress(
                                         dinput,
+                                        &mut output,
                                         dir,
                                         sfcm,
                                         over,
-                                        flow).is_err() {
-                                        self.set_event(HTTP2Event::FailedDecompression);
+                                        flow) {
+                                    Ok(_) => {
+                                        if !tx_same.doh.is_empty() {
+                                            if over {
+                                                // fix DNS/TCP header length field
+                                                tx_same.doh[0] = ((tx_same.doh.len() - 2) >> 8) as u8;
+                                                tx_same.doh[1] = ((tx_same.doh.len() - 2) & 0xFF) as u8;
+                                                self.layered.push(tx_same.doh.to_vec());
+                                                if self.dns_state.is_none() {
+                                                    unsafe {
+                                                        self.dns_state = Some(rs_dns_state_new(std::ptr::null_mut(), ALPROTO_HTTP2));
+                                                    }
+                                                }
+                                                unsafe {
+                                                    AppLayerParserStateSetFlag(
+                                                        pstate,
+                                                        APP_LAYER_PARSER_LAYERED_PACKET,
+                                                    );
+                                                }
+                                            }
+                                        }
+                                    }
+                                        _ => {
+                                            self.set_event(HTTP2Event::FailedDecompression);
+                                        }
                                     }
                                 }
                             }
@@ -1051,6 +1081,12 @@ impl HTTP2State {
                     }
                     if let Some(doh) = odoh {
                         self.layered.push(doh);
+                        unsafe {
+                            AppLayerParserStateSetFlag(
+                                pstate,
+                                APP_LAYER_PARSER_LAYERED_PACKET,
+                            );
+                        }
                         if self.dns_state.is_none() {
                             unsafe {
                                 self.dns_state = Some(rs_dns_state_new(std::ptr::null_mut(), ALPROTO_HTTP2));

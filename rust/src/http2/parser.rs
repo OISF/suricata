@@ -757,8 +757,8 @@ pub fn doh_extract_request(i: &[u8]) -> IResult<&[u8], Vec<u8>> {
     match base64::decode(i) {
         Ok(mut dec) => {
             // adds 2 byte tcp header with length
-            dec.insert(0, (dec.len() >> 8) as u8);
             dec.insert(0, (dec.len() & 0xFF) as u8);
+            dec.insert(0, (dec.len() >> 8) as u8);
             // i is unused
             return Ok((i, dec));
         }

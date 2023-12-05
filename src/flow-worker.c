@@ -381,7 +381,6 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
     SCLogDebug("packet %"PRIu64": extra packets %u", p->pcap_cnt, fw->pq.len);
     Packet *x;
     while ((x = PacketDequeueNoLock(&tv->decode_pq))) {
-        printf("lola %d\n", x->payload_len);
         // switch flow to new protocol
         void *alstate_orig = p->flow->alstate;
         AppProto alproto_orig = p->flow->alproto;
