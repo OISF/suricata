@@ -202,7 +202,7 @@ impl HTTP2Transaction {
         self.tx_data.set_event(event as u8);
     }
 
-    fn handle_headers(&mut self, blocks: &[parser::HTTP2FrameHeaderBlock], dir: Direction) {
+    fn handle_headers(&mut self, blocks: &[parser::HTTP2FrameHeaderBlock], dir: Direction, pstate: *mut std::os::raw::c_void) {
         let mut authority = None;
         let mut path = None;
         let mut doh = false;
@@ -242,6 +242,12 @@ impl HTTP2Transaction {
             if let Some(p) = path {
                 if let Ok((_, dns_req)) = parser::doh_extract_request(p) {
                     println!("lol {:?}", dns_req);
+                    unsafe {
+                        AppLayerParserStateSetFlag(
+                            pstate,
+                            APP_LAYER_PARSER_LAYERED_PACKET,
+                        );
+                    }
                 }
             }
         }
@@ -319,7 +325,7 @@ impl HTTP2Transaction {
     }
 
     fn handle_frame(
-        &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: Direction,
+        &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: Direction, pstate: *mut std::os::raw::c_void
     ) {
         //handle child_stream_id changes
         match data {
@@ -331,7 +337,7 @@ impl HTTP2Transaction {
                     }
                     self.state = HTTP2TransactionState::HTTP2StateReserved;
                 }
-                self.handle_headers(&hs.blocks, dir);
+                self.handle_headers(&hs.blocks, dir, pstate);
             }
             HTTP2FrameTypeData::CONTINUATION(hs) => {
                 if dir == Direction::ToClient
@@ -339,13 +345,13 @@ impl HTTP2Transaction {
                 {
                     self.child_stream_id = 0;
                 }
-                self.handle_headers(&hs.blocks, dir);
+                self.handle_headers(&hs.blocks, dir, pstate);
             }
             HTTP2FrameTypeData::HEADERS(hs) => {
                 if dir == Direction::ToClient {
                     self.child_stream_id = 0;
                 }
-                self.handle_headers(&hs.blocks, dir);
+                self.handle_headers(&hs.blocks, dir, pstate);
             }
             HTTP2FrameTypeData::RSTSTREAM(_) => {
                 self.child_stream_id = 0;
@@ -941,6 +947,7 @@ impl HTTP2State {
 
     fn parse_frames(
         &mut self, mut input: &[u8], il: usize, dir: Direction, flow: *const Flow,
+        pstate: *mut std::os::raw::c_void
     ) -> AppLayerResult {
         while !input.is_empty() {
             match parser::http2_parse_frame_header(input) {
@@ -986,7 +993,7 @@ impl HTTP2State {
                     );
 
                     let tx = self.find_or_create_tx(&head, &txdata, dir);
-                    tx.handle_frame(&head, &txdata, dir);
+                    tx.handle_frame(&head, &txdata, dir, pstate);
                     let over = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
                     let ftype = head.ftype;
                     let sid = head.stream_id;
@@ -1049,7 +1056,7 @@ impl HTTP2State {
         return AppLayerResult::ok();
     }
 
-    fn parse_ts(&mut self, mut input: &[u8], flow: *const Flow) -> AppLayerResult {
+    fn parse_ts(&mut self, mut input: &[u8], flow: *const Flow, pstate: *mut std::os::raw::c_void) -> AppLayerResult {
         //very first : skip magic
         let mut magic_consumed = 0;
         if self.progress < HTTP2ConnectionState::Http2StateMagicDone {
@@ -1089,7 +1096,7 @@ impl HTTP2State {
         }
 
         //then parse all we can
-        let r = self.parse_frames(input, il, Direction::ToServer, flow);
+        let r = self.parse_frames(input, il, Direction::ToServer, flow, pstate);
         if r.status == 1 {
             //adds bytes consumed by banner to incomplete result
             return AppLayerResult::incomplete(r.consumed + magic_consumed as u32, r.needed);
@@ -1098,7 +1105,7 @@ impl HTTP2State {
         }
     }
 
-    fn parse_tc(&mut self, mut input: &[u8], flow: *const Flow) -> AppLayerResult {
+    fn parse_tc(&mut self, mut input: &[u8], flow: *const Flow, pstate: *mut std::os::raw::c_void) -> AppLayerResult {
         //first consume frame bytes
         let il = input.len();
         if self.response_frame_size > 0 {
@@ -1113,7 +1120,7 @@ impl HTTP2State {
             }
         }
         //then parse all we can
-        return self.parse_frames(input, il, Direction::ToClient, flow);
+        return self.parse_frames(input, il, Direction::ToClient, flow, pstate);
     }
 }
 
@@ -1191,22 +1198,22 @@ pub unsafe extern "C" fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_parse_ts(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = stream_slice.as_slice();
-    return state.parse_ts(buf, flow);
+    return state.parse_ts(buf, flow, pstate);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_parse_tc(
-    flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, HTTP2State);
     let buf = stream_slice.as_slice();
-    return state.parse_tc(buf, flow);
+    return state.parse_tc(buf, flow, pstate);
 }
 
 #[no_mangle]
