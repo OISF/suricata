@@ -59,7 +59,7 @@
 #include "output-json-http.h"
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
-#include "output-json-nfs.h"
+#include "app-layer/nfs/logger.h"
 #include "output-json-smb.h"
 #include "app-layer/http2/logger.h"
 

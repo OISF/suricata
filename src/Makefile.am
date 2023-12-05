@@ -37,8 +37,8 @@ noinst_HEADERS = \
 	app-layer/modbus/parser.h \
 	app-layer-quic.h \
 	app-layer/mqtt/parser.h \
-	app-layer-nfs-tcp.h \
-	app-layer-nfs-udp.h \
+	app-layer/nfs/parser-tcp.h \
+	app-layer/nfs/parser-udp.h \
 	app-layer-ntp.h \
 	app-layer-parser.h \
 	app-layer-protos.h \
@@ -264,8 +264,8 @@ noinst_HEADERS = \
 	app-layer/mqtt/detect-type.h \
 	app-layer/mqtt/detect-unsubscribe-topic.h \
 	detect-msg.h \
-	detect-nfs-procedure.h \
-	detect-nfs-version.h \
+	app-layer/nfs/detect-procedure.h \
+	app-layer/nfs/detect-version.h \
 	detect-noalert.h \
 	detect-nocase.h \
 	detect-offset.h \
@@ -419,7 +419,7 @@ noinst_HEADERS = \
 	output-json-quic.h \
 	app-layer/mqtt/logger.h \
 	output-json-netflow.h \
-	output-json-nfs.h \
+	app-layer/nfs/logger.h \
 	output-json-pgsql.h \
 	output-json-rdp.h \
 	output-json-rfb.h \
@@ -653,8 +653,8 @@ libsuricata_c_a_SOURCES = \
 	app-layer/modbus/parser.c \
 	app-layer-quic.c \
 	app-layer/mqtt/parser.c \
-	app-layer-nfs-tcp.c \
-	app-layer-nfs-udp.c \
+	app-layer/nfs/parser-tcp.c \
+	app-layer/nfs/parser-udp.c \
 	app-layer-ntp.c \
 	app-layer-parser.c \
 	app-layer-protos.c \
@@ -877,8 +877,8 @@ libsuricata_c_a_SOURCES = \
 	app-layer/mqtt/detect-type.c \
 	app-layer/mqtt/detect-unsubscribe-topic.c \
 	detect-msg.c \
-	detect-nfs-procedure.c \
-	detect-nfs-version.c \
+	app-layer/nfs/detect-procedure.c \
+	app-layer/nfs/detect-version.c \
 	detect-noalert.c \
 	detect-nocase.c \
 	detect-offset.c \
@@ -1031,7 +1031,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-quic.c \
 	app-layer/mqtt/logger.c \
 	output-json-netflow.c \
-	output-json-nfs.c \
+	app-layer/nfs/logger.c \
 	output-json-pgsql.c \
 	output-json-rdp.c \
 	output-json-rfb.c \
