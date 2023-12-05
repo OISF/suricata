@@ -69,7 +69,7 @@
 #include "output-json-ftp.h"
 // for misplaced EveFTPDataAddMetadata
 #include "app-layer-ftp.h"
-#include "output-json-tftp.h"
+#include "app-layer/tftp/logger.h"
 #include "output-json-smb.h"
 #include "output-json-ike.h"
 #include "output-json-krb5.h"

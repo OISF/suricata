@@ -51,7 +51,7 @@ noinst_HEADERS = \
 	app-layer-snmp.h \
 	app-layer-ssh.h \
 	app-layer-ssl.h \
-	app-layer-tftp.h \
+	app-layer/tftp/parser.h \
 	autoconf.h \
 	build-info.h \
 	conf.h \
@@ -430,7 +430,7 @@ noinst_HEADERS = \
 	output-json-ssh.h \
 	output-json-stats.h \
 	output-json-template.h \
-	output-json-tftp.h \
+	app-layer/tftp/logger.h \
 	output-json-tls.h \
 	output-eve-syslog.h \
 	output-lua.h \
@@ -667,7 +667,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-snmp.c \
 	app-layer-ssh.c \
 	app-layer-ssl.c \
-	app-layer-tftp.c \
+	app-layer/tftp/parser.c \
 	conf.c \
 	conf-yaml-loader.c \
 	counters.c \
@@ -1042,7 +1042,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-ssh.c \
 	output-json-stats.c \
 	output-json-template.c \
-	output-json-tftp.c \
+	app-layer/tftp/logger.c \
 	output-json-tls.c \
 	output-eve-syslog.c \
 	output-eve-null.c \
