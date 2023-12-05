@@ -50,9 +50,9 @@
 #include "util-syslog.h"
 #include "util-logopenfile.h"
 
-#include "output.h"
-#include "output-json.h"
-#include "output-json-metadata.h"
+#include "output/output.h"
+#include "output/eve/output-json.h"
+#include "output/eve/output-json-metadata.h"
 
 #include "util-byte.h"
 #include "util-privs.h"

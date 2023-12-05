@@ -40,7 +40,7 @@
 
 #include "util-debug.h"
 #include "app-layer-parser.h"
-#include "output.h"
+#include "output/output.h"
 #include "app-layer/smtp/parser.h"
 #include "app-layer.h"
 #include "util-privs.h"
@@ -49,8 +49,8 @@
 
 #include "util-logopenfile.h"
 
-#include "output-json.h"
-#include "output-json-email-common.h"
+#include "output/eve/output-json.h"
+#include "output/eve/output-json-email-common.h"
 
 #define LOG_EMAIL_DEFAULT     0
 #define LOG_EMAIL_EXTENDED    (1 << 0)

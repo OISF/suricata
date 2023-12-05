@@ -26,7 +26,7 @@
 #include "detect-engine-profile.h"
 
 #ifdef PROFILING
-#include "output-json.h"
+#include "output/eve/output-json.h"
 #include "util-conf.h"
 
 SCMutex g_rule_dump_write_m = SCMUTEX_INITIALIZER;

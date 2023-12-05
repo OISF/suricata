@@ -23,13 +23,13 @@
  */
 
 #include "suricata-common.h"
-#include "output-lua.h"
+#include "output/output-lua.h"
 
 #ifdef HAVE_LUA
 #include "util-print.h"
 #include "util-unittest.h"
 #include "util-debug.h"
-#include "output.h"
+#include "output/output.h"
 #include "app-layer/http/parser.h"
 #include "app-layer.h"
 #include "app-layer/ssl/parser.h"

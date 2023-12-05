@@ -25,8 +25,8 @@
  */
 
 #include "suricata-common.h" /* errno.h, string.h, etc. */
-#include "output.h"          /* DEFAULT_LOG_* */
-#include "output-eve-syslog.h"
+#include "output/output.h"   /* DEFAULT_LOG_* */
+#include "output/eve/output-eve-syslog.h"
 #include "util-syslog.h"
 
 #ifdef OS_WIN32

@@ -28,7 +28,7 @@ likely happen once per transaction, by the time of its completion. In other case
 
 In ``OutputTxLog``, the engine will compare current state with the value defined for the logging to happen, per flow
 direction (``logger->tc_log_progress``, ``logger->ts_log_progress``). If state is less than that value, the engine skips to
-the next logger. Code snippet from: suricata/src/output-tx.c:
+the next logger. Code snippet from: suricata/src/output/output-tx.c:
 
 .. code-block:: c
 

@@ -54,7 +54,7 @@
 #include "flow-storage.h"
 #include "tmqh-packetpool.h"
 #include "app-layer.h"
-#include "output.h"
+#include "output/output.h"
 
 #include "decode-vxlan.h"
 #include "decode-geneve.h"

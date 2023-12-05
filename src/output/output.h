@@ -35,13 +35,13 @@ typedef struct OutputLoggerThreadStore_ {
     struct OutputLoggerThreadStore_ *next;
 } OutputLoggerThreadStore;
 
-#include "output-packet.h"
-#include "output-tx.h"
-#include "output-file.h"
-#include "output-filedata.h"
-#include "output-flow.h"
-#include "output-streaming.h"
-#include "output-stats.h"
+#include "output/output-packet.h"
+#include "output/output-tx.h"
+#include "output/output-file.h"
+#include "output/output-filedata.h"
+#include "output/output-flow.h"
+#include "output/output-streaming.h"
+#include "output/output-stats.h"
 
 typedef struct OutputInitResult_ {
     OutputCtx *ctx;

@@ -41,7 +41,7 @@
 #include "stream-tcp.h"
 #include "app-layer.h"
 #include "detect-engine.h"
-#include "output.h"
+#include "output/output.h"
 #include "app-layer-parser.h"
 #include "app-layer-frames.h"
 

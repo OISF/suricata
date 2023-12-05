@@ -37,15 +37,15 @@
 
 #include "util-debug.h"
 
-#include "output.h"
+#include "output/output.h"
 #include "util-privs.h"
 #include "util-buffer.h"
 #include "util-device.h"
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
-#include "output-json.h"
-#include "output-json-flow.h"
+#include "output/eve/output-json.h"
+#include "output/eve/output-json-flow.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"

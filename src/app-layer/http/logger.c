@@ -37,7 +37,7 @@
 
 #include "util-debug.h"
 
-#include "output.h"
+#include "output/output.h"
 #include "app-layer/http/parser.h"
 #include "app-layer/http/parser-file.h"
 #include "app-layer/http/parser-xff.h"
@@ -48,8 +48,8 @@
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
-#include "output-json.h"
-#include "output-json-alert.h"
+#include "output/eve/output-json.h"
+#include "output/eve/output-json-alert.h"
 #include "app-layer/http/logger.h"
 #include "util-byte.h"
 
