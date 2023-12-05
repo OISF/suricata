@@ -1231,8 +1231,10 @@ static int SSHParserTest20(void)
                         "abcdefghijklmnopqrstuvwxyz"//216
                         "abcdefghijklmnopqrstuvwxyz"//242
                         "abcdefghijklm\r";//256
+    // clang-format off
     uint8_t sshbuf4[] = {'a','b','c','d','e','f', '\r',
                          0x00, 0x00, 0x00, 0x06, 0x01, 21, 0x00, 0x00, 0x00};
+    // clang-format on
 
     uint8_t* sshbufs[4] = {sshbuf1, sshbuf2, sshbuf3, sshbuf4};
     uint32_t sshlens[4] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1, sizeof(sshbuf4) - 1};
@@ -1298,8 +1300,10 @@ static int SSHParserTest21(void)
                         "abcdefghijklmnopqrstuvwxyz"
                         "abcdefghijklmnopqrstuvwxyz"//216
                         "abcdefghijklmnopqrstuvwxy";//241
+    // clang-format off
     uint8_t sshbuf4[] = {'l','i','b','s','s','h', '\r',
                          0x00, 0x00, 0x00, 0x06, 0x01, 21, 0x00, 0x00, 0x00};
+    // clang-format on
 
     uint8_t* sshbufs[4] = {sshbuf1, sshbuf2, sshbuf3, sshbuf4};
     uint32_t sshlens[4] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1, sizeof(sshbuf4)};
@@ -1356,6 +1360,7 @@ static int SSHParserTest22(void)
 
     uint8_t sshbuf1[] = "SSH-";
     uint8_t sshbuf2[] = "2.0-";
+    // clang-format off
     uint8_t sshbuf3[] = {
         'l', 'i', 'b', 's', 's', 'h', '\r', //7
 
@@ -1395,35 +1400,37 @@ static int SSHParserTest22(void)
             0x00, 0x00, 0x00, 0x06, 0x01, 17, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x06, 0x01, 21, 0x00, 0x00, 0x00, 0x00, //300
         };
+    // clang-format on
 
+    uint8_t *sshbufs[3] = { sshbuf1, sshbuf2, sshbuf3 };
+    uint32_t sshlens[3] = { sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1 };
 
-        uint8_t* sshbufs[3] = {sshbuf1, sshbuf2, sshbuf3};
-        uint32_t sshlens[3] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1};
+    memset(&tv, 0x00, sizeof(tv));
 
-        memset(&tv, 0x00, sizeof(tv));
+    StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
+    StreamTcpUTSetupSession(&ssn);
+    StreamTcpUTSetupStream(&ssn.server, 1);
+    StreamTcpUTSetupStream(&ssn.client, 1);
 
-        StreamTcpUTInit(&ra_ctx);
-        StreamTcpUTInitInline();
-        StreamTcpUTSetupSession(&ssn);
-        StreamTcpUTSetupStream(&ssn.server, 1);
-        StreamTcpUTSetupStream(&ssn.client, 1);
+    f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1234, 2222);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_SSH;
 
-        f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1234, 2222);
-        FAIL_IF_NULL(f);
-        f->protoctx = &ssn;
-        f->proto = IPPROTO_TCP;
-        f->alproto = ALPROTO_SSH;
+    p = PacketGetFromAlloc();
+    FAIL_IF(unlikely(p == NULL));
+    p->proto = IPPROTO_TCP;
+    p->flow = f;
 
-        p = PacketGetFromAlloc();
-        FAIL_IF(unlikely(p == NULL));
-        p->proto = IPPROTO_TCP;
-        p->flow = f;
-
-        uint32_t seq = 2;
-        for (int i=0; i<3; i++) {
-            FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
-            seq += sshlens[i];
-            FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
+    uint32_t seq = 2;
+    for (int i = 0; i < 3; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                        &tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
+        seq += sshlens[i];
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) <
+                0);
         }
 
         void *ssh_state = f->alstate;

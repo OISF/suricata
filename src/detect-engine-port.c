@@ -2205,6 +2205,7 @@ static int PortTestMatchRealWrp(const char *sig, uint32_t sid)
      * tcp.sport=47370 tcp.dport=80
      * ip.src=192.168.28.131 ip.dst=192.168.1.1
      */
+    // clang-format off
     uint8_t raw_eth_pkt[] = {
         0x00,0x50,0x56,0xea,0x00,0xbd,0x00,0x0c,
         0x29,0x40,0xc8,0xb5,0x08,0x00,0x45,0x00,
@@ -2261,7 +2262,8 @@ static int PortTestMatchRealWrp(const char *sig, uint32_t sid)
         0x65,0x63,0x74,0x69,0x6f,0x6e,0x3a,0x20,
         0x6b,0x65,0x65,0x70,0x2d,0x61,0x6c,0x69,
         0x76,0x65,0x0d,0x0a,0x0d,0x0a };
-        /* end raw_eth_pkt */
+    // clang-format on
+    /* end raw_eth_pkt */
 
     return PortTestMatchReal(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt),
                              sig, sid);
