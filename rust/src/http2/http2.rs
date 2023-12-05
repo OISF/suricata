@@ -202,7 +202,7 @@ impl HTTP2Transaction {
         self.tx_data.set_event(event as u8);
     }
 
-    fn handle_headers(&mut self, blocks: &[parser::HTTP2FrameHeaderBlock], dir: Direction, pstate: *mut std::os::raw::c_void) {
+    fn handle_headers(&mut self, blocks: &[parser::HTTP2FrameHeaderBlock], dir: Direction, pstate: *mut std::os::raw::c_void) -> Option<Vec<u8>> {
         let mut authority = None;
         let mut path = None;
         let mut doh = false;
@@ -248,9 +248,11 @@ impl HTTP2Transaction {
                             APP_LAYER_PARSER_LAYERED_PACKET,
                         );
                     }
+                    return Some(dns_req);
                 }
             }
         }
+        return None;
     }
 
     pub fn update_file_flags(&mut self, flow_file_flags: u16) {
@@ -326,8 +328,9 @@ impl HTTP2Transaction {
 
     fn handle_frame(
         &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: Direction, pstate: *mut std::os::raw::c_void
-    ) {
+    ) -> Option<Vec<u8>> {
         //handle child_stream_id changes
+        let mut r = None;
         match data {
             HTTP2FrameTypeData::PUSHPROMISE(hs) => {
                 if dir == Direction::ToClient {
@@ -337,7 +340,7 @@ impl HTTP2Transaction {
                     }
                     self.state = HTTP2TransactionState::HTTP2StateReserved;
                 }
-                self.handle_headers(&hs.blocks, dir, pstate);
+                r = self.handle_headers(&hs.blocks, dir, pstate);
             }
             HTTP2FrameTypeData::CONTINUATION(hs) => {
                 if dir == Direction::ToClient
@@ -345,13 +348,13 @@ impl HTTP2Transaction {
                 {
                     self.child_stream_id = 0;
                 }
-                self.handle_headers(&hs.blocks, dir, pstate);
+                r = self.handle_headers(&hs.blocks, dir, pstate);
             }
             HTTP2FrameTypeData::HEADERS(hs) => {
                 if dir == Direction::ToClient {
                     self.child_stream_id = 0;
                 }
-                self.handle_headers(&hs.blocks, dir, pstate);
+                r = self.handle_headers(&hs.blocks, dir, pstate);
             }
             HTTP2FrameTypeData::RSTSTREAM(_) => {
                 self.child_stream_id = 0;
@@ -398,6 +401,7 @@ impl HTTP2Transaction {
             }
             _ => {}
         }
+        return r;
     }
 }
 
@@ -463,6 +467,8 @@ pub struct HTTP2State {
     dynamic_headers_tc: HTTP2DynTable,
     transactions: VecDeque<HTTP2Transaction>,
     progress: HTTP2ConnectionState,
+    // layered packets contents for DNS over HTTP2
+    layered: Vec<Vec<u8>>,
 }
 
 impl State<HTTP2Transaction> for HTTP2State {
@@ -495,6 +501,7 @@ impl HTTP2State {
             dynamic_headers_tc: HTTP2DynTable::new(),
             transactions: VecDeque::new(),
             progress: HTTP2ConnectionState::Http2StateInit,
+            layered: Vec::new(),
         }
     }
 
@@ -993,7 +1000,7 @@ impl HTTP2State {
                     );
 
                     let tx = self.find_or_create_tx(&head, &txdata, dir);
-                    tx.handle_frame(&head, &txdata, dir, pstate);
+                    let odoh = tx.handle_frame(&head, &txdata, dir, pstate);
                     let over = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
                     let ftype = head.ftype;
                     let sid = head.stream_id;
@@ -1037,6 +1044,9 @@ impl HTTP2State {
                             }
                             None => panic!("no SURICATA_HTTP2_FILE_CONFIG"),
                         }
+                    }
+                    if let Some(doh) = odoh {
+                        self.layered.push(doh);
                     }
                     input = &rem[hlsafe..];
                 }
