@@ -32,7 +32,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-ntp.h"
+#include "app-layer/ntp/parser.h"
 #include "rust.h"
 
 void RegisterNTPParsers(void)
