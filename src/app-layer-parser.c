@@ -42,7 +42,7 @@
 #include "app-layer/ftp/parser.h"
 #include "app-layer-smtp.h"
 
-#include "app-layer-smb.h"
+#include "app-layer/smb/parser.h"
 #include "app-layer/http/parser.h"
 #include "app-layer-ssl.h"
 #include "app-layer-ssh.h"
