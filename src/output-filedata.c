@@ -52,10 +52,9 @@ typedef struct OutputFiledataLogger_ {
 
 static OutputFiledataLogger *list = NULL;
 
-int OutputRegisterFiledataLogger(LoggerId id, const char *name,
-    FiledataLogger LogFunc, OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+int OutputRegisterFiledataLogger(LoggerId id, const char *name, FiledataLogger LogFunc,
+        OutputCtx *output_ctx, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     OutputFiledataLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)

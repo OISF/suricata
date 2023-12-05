@@ -28,7 +28,6 @@
  * Registration function for detection_filter: keyword
  */
 
-void DetectDetectionFilterRegister (void);
+void DetectDetectionFilterRegister(void);
 
 #endif /*__DETECT_DETECTION_FILTER_H__ */
-

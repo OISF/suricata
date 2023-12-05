@@ -434,8 +434,7 @@ int SigTableList(const char *keyword)
         }
     } else {
         for (i = 0; i < size; i++) {
-            if ((sigmatch_table[i].name != NULL) &&
-                strcmp(sigmatch_table[i].name, keyword) == 0) {
+            if ((sigmatch_table[i].name != NULL) && strcmp(sigmatch_table[i].name, keyword) == 0) {
                 printf("= %s =\n", sigmatch_table[i].name);
                 if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
                     printf("Not built-in\n");
@@ -726,7 +725,8 @@ void SigTableRegisterTests(void)
             g_ut_covered++;
         } else {
             SCLogDebug("detection plugin %s has no unittest "
-                   "registration function.", sigmatch_table[i].name);
+                       "registration function.",
+                    sigmatch_table[i].name);
 
             if (coverage_unittests)
                 SCLogWarning("detection plugin %s has no unittest "

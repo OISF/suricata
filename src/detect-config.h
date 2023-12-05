@@ -33,6 +33,6 @@ typedef struct DetectConfigData_ {
 } DetectConfigData;
 
 /* prototypes */
-void DetectConfigRegister (void);
+void DetectConfigRegister(void);
 
 #endif /* __DETECT_CONFIG_H__ */

@@ -60,7 +60,7 @@ Flow *FlowAlloc(void)
         return NULL;
     }
 
-    (void) SC_ATOMIC_ADD(flow_memuse, size);
+    (void)SC_ATOMIC_ADD(flow_memuse, size);
 
     f = SCCalloc(1, size);
     if (unlikely(f == NULL)) {
@@ -73,7 +73,6 @@ Flow *FlowAlloc(void)
     return f;
 }
 
-
 /**
  *  \brief cleanup & free the memory of a flow
  *
@@ -85,7 +84,7 @@ void FlowFree(Flow *f)
     SCFree(f);
 
     size_t size = sizeof(Flow) + FlowStorageSize();
-    (void) SC_ATOMIC_SUB(flow_memuse, size);
+    (void)SC_ATOMIC_SUB(flow_memuse, size);
 }
 
 /**
@@ -169,11 +168,11 @@ void FlowInit(Flow *f, const Packet *p)
     }
 
     if (p->tcph != NULL) { /* XXX MACRO */
-        SET_TCP_SRC_PORT(p,&f->sp);
-        SET_TCP_DST_PORT(p,&f->dp);
+        SET_TCP_SRC_PORT(p, &f->sp);
+        SET_TCP_DST_PORT(p, &f->dp);
     } else if (p->udph != NULL) { /* XXX MACRO */
-        SET_UDP_SRC_PORT(p,&f->sp);
-        SET_UDP_DST_PORT(p,&f->dp);
+        SET_UDP_SRC_PORT(p, &f->sp);
+        SET_UDP_DST_PORT(p, &f->dp);
     } else if (p->icmpv4h != NULL) {
         f->icmp_s.type = p->icmp_s.type;
         f->icmp_s.code = p->icmp_s.code;
@@ -183,8 +182,8 @@ void FlowInit(Flow *f, const Packet *p)
         f->icmp_s.code = p->icmp_s.code;
         FlowSetICMPv6CounterPart(f);
     } else if (p->sctph != NULL) { /* XXX MACRO */
-        SET_SCTP_SRC_PORT(p,&f->sp);
-        SET_SCTP_DST_PORT(p,&f->dp);
+        SET_SCTP_SRC_PORT(p, &f->sp);
+        SET_SCTP_DST_PORT(p, &f->dp);
     } else if (p->esph != NULL) {
         f->esp.spi = ESP_GET_SPI(p);
     } else {
@@ -216,7 +215,7 @@ FlowStorageId GetFlowBypassInfoID(void)
 
 static void FlowBypassFree(void *x)
 {
-    FlowBypassInfo *fb = (FlowBypassInfo *) x;
+    FlowBypassInfo *fb = (FlowBypassInfo *)x;
 
     if (fb == NULL)
         return;
@@ -229,8 +228,7 @@ static void FlowBypassFree(void *x)
 
 void RegisterFlowBypassInfo(void)
 {
-    g_bypass_info_id = FlowStorageRegister("bypass_counters", sizeof(void *),
-                                              NULL, FlowBypassFree);
+    g_bypass_info_id = FlowStorageRegister("bypass_counters", sizeof(void *), NULL, FlowBypassFree);
 }
 
 void FlowEndCountersRegister(ThreadVars *t, FlowEndCounters *fec)

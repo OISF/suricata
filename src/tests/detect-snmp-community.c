@@ -67,26 +67,24 @@ static int DetectSNMPCommunityTest(void)
     FAIL_IF_NULL(de_ctx);
 
     /* This rule should match. */
-    s = DetectEngineAppendSig(de_ctx,
-        "alert snmp any any -> any any ("
-        "msg:\"SNMP Test Rule\"; "
-        "snmp.community; content:\"[R0_C@cti!]\"; "
-        "sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert snmp any any -> any any ("
+                                      "msg:\"SNMP Test Rule\"; "
+                                      "snmp.community; content:\"[R0_C@cti!]\"; "
+                                      "sid:1; rev:1;)");
     FAIL_IF_NULL(s);
 
     /* This rule should not match. */
-    s = DetectEngineAppendSig(de_ctx,
-        "alert snmp any any -> any any ("
-        "msg:\"SNMP Test Rule\"; "
-        "snmp.community; content:\"private\"; "
-        "sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert snmp any any -> any any ("
+                                      "msg:\"SNMP Test Rule\"; "
+                                      "snmp.community; content:\"private\"; "
+                                      "sid:2; rev:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SNMP,
-                        STREAM_TOSERVER, request, sizeof(request));
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SNMP, STREAM_TOSERVER, request, sizeof(request));
     FAIL_IF(r != 0);
 
     /* Check that we have app-layer state. */
@@ -110,6 +108,5 @@ static int DetectSNMPCommunityTest(void)
 
 static void DetectSNMPCommunityRegisterTests(void)
 {
-    UtRegisterTest("DetectSNMPCommunityTest",
-        DetectSNMPCommunityTest);
+    UtRegisterTest("DetectSNMPCommunityTest", DetectSNMPCommunityTest);
 }

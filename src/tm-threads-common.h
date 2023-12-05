@@ -81,9 +81,9 @@ typedef enum {
 
 /*Error codes for the thread modules*/
 typedef enum {
-    TM_ECODE_OK = 0,    /**< Thread module exits OK*/
-    TM_ECODE_FAILED,    /**< Thread module exits due to failure*/
-    TM_ECODE_DONE,    /**< Thread module task is finished*/
+    TM_ECODE_OK = 0, /**< Thread module exits OK*/
+    TM_ECODE_FAILED, /**< Thread module exits due to failure*/
+    TM_ECODE_DONE,   /**< Thread module task is finished*/
 } TmEcode;
 
 /* ThreadVars type */
@@ -95,4 +95,3 @@ enum {
 };
 
 #endif /* __TM_THREADS_COMMON_H__ */
-

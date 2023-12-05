@@ -26,8 +26,8 @@
 
 #include "detect.h"
 
-#define REFERENCE_SYSTEM_NAME_MAX   64
-#define REFERENCE_CONTENT_NAME_MAX  1024
+#define REFERENCE_SYSTEM_NAME_MAX  64
+#define REFERENCE_CONTENT_NAME_MAX 1024
 
 /**
  * \brief Holds a reference from the file - reference.config.
@@ -43,8 +43,7 @@ SCRConfReference *SCRConfAllocSCRConfReference(const char *, const char *);
 void SCRConfDeAllocSCRConfReference(SCRConfReference *);
 int SCRConfLoadReferenceConfigFile(DetectEngineCtx *, FILE *);
 void SCRConfDeInitContext(DetectEngineCtx *);
-SCRConfReference *SCRConfGetReference(const char *,
-                                      DetectEngineCtx *);
+SCRConfReference *SCRConfGetReference(const char *, DetectEngineCtx *);
 int SCRConfAddReference(DetectEngineCtx *de_ctx, const char *line);
 void SCRConfRegisterTests(void);
 

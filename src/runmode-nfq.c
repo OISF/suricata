@@ -24,7 +24,6 @@
  * Handling of NFQ runmodes.
  */
 
-
 #include "suricata-common.h"
 #include "tm-threads.h"
 #include "conf.h"
@@ -64,10 +63,7 @@ int RunModeIpsNFQAutoFp(void)
 
     LiveDeviceHasNoStats();
 
-    ret = RunModeSetIPSAutoFp(NFQGetThread,
-            "ReceiveNFQ",
-            "VerdictNFQ",
-            "DecodeNFQ");
+    ret = RunModeSetIPSAutoFp(NFQGetThread, "ReceiveNFQ", "VerdictNFQ", "DecodeNFQ");
 #endif /* NFQ */
     return ret;
 }
@@ -82,10 +78,7 @@ int RunModeIpsNFQWorker(void)
 
     LiveDeviceHasNoStats();
 
-    ret = RunModeSetIPSWorker(NFQGetThread,
-            "ReceiveNFQ",
-            "VerdictNFQ",
-            "DecodeNFQ");
+    ret = RunModeSetIPSWorker(NFQGetThread, "ReceiveNFQ", "VerdictNFQ", "DecodeNFQ");
 #endif /* NFQ */
     return ret;
 }

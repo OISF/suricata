@@ -28,4 +28,3 @@
 void DetectHttpMethodRegister(void);
 
 #endif /* __DETECT_HTTP_METHOD_H__ */
-

@@ -26,4 +26,4 @@
 
 void DetectUdphdrRegister(void);
 
-#endif	/* _DETECT_UDPHDR_H */
+#endif /* _DETECT_UDPHDR_H */

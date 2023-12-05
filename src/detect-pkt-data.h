@@ -25,6 +25,6 @@
 #define __DETECT_PKTDATA_H__
 
 /* prototypes */
-void DetectPktDataRegister (void);
+void DetectPktDataRegister(void);
 
 #endif /* __DETECT_PKTDATA_H__ */

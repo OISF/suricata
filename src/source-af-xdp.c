@@ -969,7 +969,7 @@ static TmEcode DecodeAFXDPThreadDeinit(ThreadVars *tv, void *data)
 }
 
 #endif /* HAVE_AF_XDP */
-/* eof */
-/**
- * @}
- */
+       /* eof */
+       /**
+        * @}
+        */

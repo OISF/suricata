@@ -58,14 +58,13 @@
 /**
  * \brief Regex for parsing the protoversion string
  */
-#define PARSE_REGEX  "^\\s*\"?\\s*([0-9]+([\\.\\-0-9]+)?|2_compat)\\s*\"?\\s*$"
+#define PARSE_REGEX "^\\s*\"?\\s*([0-9]+([\\.\\-0-9]+)?|2_compat)\\s*\"?\\s*$"
 
 static DetectParseRegex parse_regex;
 
-static int DetectSshVersionMatch (DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *, void *,
+static int DetectSshVersionMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectSshVersionSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectSshVersionSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectSshVersionRegisterTests(void);
 #endif
@@ -82,11 +81,12 @@ void DetectSshVersionRegister(void)
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].url = "/rules/ssh-keywords.html#ssh-protoversion";
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].AppLayerTxMatch = DetectSshVersionMatch;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Setup = DetectSshVersionSetup;
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Free  = DetectSshVersionFree;
+    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Free = DetectSshVersionFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].RegisterTests = DetectSshVersionRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].flags = SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_INFO_DEPRECATED;
+    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].flags =
+            SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_INFO_DEPRECATED;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].alternative = DETECT_AL_SSH_PROTOCOL;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
@@ -105,9 +105,8 @@ void DetectSshVersionRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectSshVersionMatch (DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, void *txv,
-        const Signature *s, const SigMatchCtx *m)
+static int DetectSshVersionMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
@@ -133,12 +132,12 @@ static int DetectSshVersionMatch (DetectEngineThreadCtx *det_ctx,
         if (protocol[0] == '2') {
             ret = 1;
         } else if (b_len >= 4) {
-            if (memcmp(protocol, "1.99", 4) == 0)    {
+            if (memcmp(protocol, "1.99", 4) == 0) {
                 ret = 1;
             }
         }
     } else {
-        SCLogDebug("looking for ssh protoversion %s length %"PRIu16"", ssh->ver, ssh->len);
+        SCLogDebug("looking for ssh protoversion %s length %" PRIu16 "", ssh->ver, ssh->len);
         if (b_len == ssh->len) {
             if (memcmp(protocol, ssh->ver, ssh->len) == 0) {
                 ret = 1;
@@ -157,7 +156,7 @@ static int DetectSshVersionMatch (DetectEngineThreadCtx *det_ctx,
  * \retval id_d pointer to DetectSshVersionData on success
  * \retval NULL on failure
  */
-static DetectSshVersionData *DetectSshVersionParse (DetectEngineCtx *de_ctx, const char *str)
+static DetectSshVersionData *DetectSshVersionParse(DetectEngineCtx *de_ctx, const char *str)
 {
     DetectSshVersionData *ssh = NULL;
     int res = 0;
@@ -194,7 +193,7 @@ static DetectSshVersionData *DetectSshVersionParse (DetectEngineCtx *de_ctx, con
             return ssh;
         }
 
-        ssh->ver = (uint8_t *)SCStrdup((char*)str_ptr);
+        ssh->ver = (uint8_t *)SCStrdup((char *)str_ptr);
         if (ssh->ver == NULL) {
             pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
             goto error;
@@ -215,7 +214,6 @@ error:
     if (ssh != NULL)
         DetectSshVersionFree(de_ctx, ssh);
     return NULL;
-
 }
 
 /**
@@ -229,7 +227,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectSshVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectSshVersionData *ssh = NULL;
 
@@ -253,7 +251,6 @@ error:
     if (ssh != NULL)
         DetectSshVersionFree(de_ctx, ssh);
     return -1;
-
 }
 
 /**
@@ -275,7 +272,7 @@ void DetectSshVersionFree(DetectEngineCtx *de_ctx, void *ptr)
  * \test DetectSshVersionTestParse01 is a test to make sure that we parse
  *       a proto version correctly
  */
-static int DetectSshVersionTestParse01 (void)
+static int DetectSshVersionTestParse01(void)
 {
     DetectSshVersionData *ssh = NULL;
     ssh = DetectSshVersionParse(NULL, "1.0");
@@ -290,7 +287,7 @@ static int DetectSshVersionTestParse01 (void)
  * \test DetectSshVersionTestParse02 is a test to make sure that we parse
  *       the proto version (compatible with proto version 2) correctly
  */
-static int DetectSshVersionTestParse02 (void)
+static int DetectSshVersionTestParse02(void)
 {
     DetectSshVersionData *ssh = NULL;
     ssh = DetectSshVersionParse(NULL, "2_compat");
@@ -304,7 +301,7 @@ static int DetectSshVersionTestParse02 (void)
  * \test DetectSshVersionTestParse03 is a test to make sure that we
  *       don't return a ssh_data with an invalid value specified
  */
-static int DetectSshVersionTestParse03 (void)
+static int DetectSshVersionTestParse03(void)
 {
     DetectSshVersionData *ssh = NULL;
     ssh = DetectSshVersionParse(NULL, "2_com");
@@ -319,7 +316,6 @@ static int DetectSshVersionTestParse03 (void)
     PASS;
 }
 
-
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-util.h"
 
@@ -333,12 +329,13 @@ static int DetectSshVersionTestDetect01(void)
     Packet *p = NULL;
 
     uint8_t sshbuf1[] = "SSH-1.";
-    uint8_t sshbuf2[] = "10-PuTTY_2.123" ;
+    uint8_t sshbuf2[] = "10-PuTTY_2.123";
     uint8_t sshbuf3[] = "\n";
     uint8_t sshbuf4[] = "whatever...";
 
-    uint8_t* sshbufs[4] = {sshbuf1, sshbuf2, sshbuf3, sshbuf4};
-    uint32_t sshlens[4] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1, sizeof(sshbuf4) - 1};
+    uint8_t *sshbufs[4] = { sshbuf1, sshbuf2, sshbuf3, sshbuf4 };
+    uint32_t sshlens[4] = { sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1,
+        sizeof(sshbuf4) - 1 };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -369,17 +366,20 @@ static int DetectSshVersionTestDetect01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:1.10; sid:1;)");
+    s = de_ctx->sig_list = SigInit(
+            de_ctx, "alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:1.10; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     uint32_t seq = 2;
-    for (int i=0; i<4; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
+    for (int i = 0; i < 4; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                        &tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
         seq += sshlens[i];
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
@@ -410,12 +410,13 @@ static int DetectSshVersionTestDetect02(void)
     Packet *p = NULL;
 
     uint8_t sshbuf1[] = "SSH-1.99-Pu";
-    uint8_t sshbuf2[] = "TTY_2.123" ;
+    uint8_t sshbuf2[] = "TTY_2.123";
     uint8_t sshbuf3[] = "\n";
     uint8_t sshbuf4[] = "whatever...";
 
-    uint8_t* sshbufs[4] = {sshbuf1, sshbuf2, sshbuf3, sshbuf4};
-    uint32_t sshlens[4] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1, sizeof(sshbuf4) - 1};
+    uint8_t *sshbufs[4] = { sshbuf1, sshbuf2, sshbuf3, sshbuf4 };
+    uint32_t sshlens[4] = { sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1,
+        sizeof(sshbuf4) - 1 };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -446,17 +447,20 @@ static int DetectSshVersionTestDetect02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:2_compat; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+            "alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:2_compat; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     uint32_t seq = 2;
-    for (int i=0; i<4; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
+    for (int i = 0; i < 4; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                        &tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
         seq += sshlens[i];
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
@@ -487,12 +491,13 @@ static int DetectSshVersionTestDetect03(void)
     Packet *p = NULL;
 
     uint8_t sshbuf1[] = "SSH-1.";
-    uint8_t sshbuf2[] = "7-PuTTY_2.123" ;
+    uint8_t sshbuf2[] = "7-PuTTY_2.123";
     uint8_t sshbuf3[] = "\n";
     uint8_t sshbuf4[] = "whatever...";
 
-    uint8_t* sshbufs[4] = {sshbuf1, sshbuf2, sshbuf3, sshbuf4};
-    uint32_t sshlens[4] = {sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1, sizeof(sshbuf4) - 1};
+    uint8_t *sshbufs[4] = { sshbuf1, sshbuf2, sshbuf3, sshbuf4 };
+    uint32_t sshlens[4] = { sizeof(sshbuf1) - 1, sizeof(sshbuf2) - 1, sizeof(sshbuf3) - 1,
+        sizeof(sshbuf4) - 1 };
 
     memset(&tv, 0x00, sizeof(tv));
 
@@ -523,17 +528,20 @@ static int DetectSshVersionTestDetect03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:2_compat; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+            "alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:2_compat; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     uint32_t seq = 2;
-    for (int i=0; i<4; i++) {
-        FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
+    for (int i = 0; i < 4; i++) {
+        FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                        &tv, ra_ctx, &ssn.server, seq, sshbufs[i], sshlens[i]) == -1);
         seq += sshlens[i];
-        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
+        FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) <
+                0);
     }
 
     void *ssh_state = f->alstate;
@@ -562,11 +570,8 @@ static void DetectSshVersionRegisterTests(void)
     UtRegisterTest("DetectSshVersionTestParse01", DetectSshVersionTestParse01);
     UtRegisterTest("DetectSshVersionTestParse02", DetectSshVersionTestParse02);
     UtRegisterTest("DetectSshVersionTestParse03", DetectSshVersionTestParse03);
-    UtRegisterTest("DetectSshVersionTestDetect01",
-                   DetectSshVersionTestDetect01);
-    UtRegisterTest("DetectSshVersionTestDetect02",
-                   DetectSshVersionTestDetect02);
-    UtRegisterTest("DetectSshVersionTestDetect03",
-                   DetectSshVersionTestDetect03);
+    UtRegisterTest("DetectSshVersionTestDetect01", DetectSshVersionTestDetect01);
+    UtRegisterTest("DetectSshVersionTestDetect02", DetectSshVersionTestDetect02);
+    UtRegisterTest("DetectSshVersionTestDetect03", DetectSshVersionTestDetect03);
 }
 #endif /* UNITTESTS */

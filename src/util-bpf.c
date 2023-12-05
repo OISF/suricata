@@ -59,10 +59,8 @@ void SCBPFFree(struct bpf_program *program)
         pcap_freecode(program);
 }
 
-int SCBPFCompile(int snaplen_arg, int linktype_arg, struct bpf_program *program,
-                 const char *buf,
-                 int optimize, uint32_t mask,
-                 char *errbuf, size_t errbuf_len)
+int SCBPFCompile(int snaplen_arg, int linktype_arg, struct bpf_program *program, const char *buf,
+        int optimize, uint32_t mask, char *errbuf, size_t errbuf_len)
 {
     pcap_t *p;
     int ret;

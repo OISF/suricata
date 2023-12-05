@@ -42,9 +42,8 @@ typedef struct DetectMetadataHead {
 } DetectMetadataHead;
 
 /* prototypes */
-void DetectMetadataRegister (void);
+void DetectMetadataRegister(void);
 
 void DetectMetadataFree(DetectMetadata *mdata);
 
 #endif /* __DETECT_METADATA_H__ */
-

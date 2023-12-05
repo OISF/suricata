@@ -216,10 +216,10 @@ void MpmInitCtx(MpmCtx *mpm_ctx, uint8_t matcher)
 /* MPM matcher to use by default, i.e. when "mpm-algo" is set to "auto".
  * If Hyperscan is available, use it. Otherwise, use AC. */
 #ifdef BUILD_HYPERSCAN
-# define DEFAULT_MPM    MPM_HS
-# define DEFAULT_MPM_AC MPM_AC
+#define DEFAULT_MPM    MPM_HS
+#define DEFAULT_MPM_AC MPM_AC
 #else
-# define DEFAULT_MPM    MPM_AC
+#define DEFAULT_MPM MPM_AC
 #endif
 
 void MpmTableSetup(void)
@@ -230,41 +230,36 @@ void MpmTableSetup(void)
     MpmACRegister();
     MpmACTileRegister();
 #ifdef BUILD_HYPERSCAN
-    #ifdef HAVE_HS_VALID_PLATFORM
+#ifdef HAVE_HS_VALID_PLATFORM
     /* Enable runtime check for SSSE3. Do not use Hyperscan MPM matcher if
      * check is not successful. */
-        if (hs_valid_platform() != HS_SUCCESS) {
-            SCLogInfo("SSSE3 support not detected, disabling Hyperscan for "
-                      "MPM");
-            /* Fall back to best Aho-Corasick variant. */
-            mpm_default_matcher = DEFAULT_MPM_AC;
-        } else {
-            MpmHSRegister();
-        }
-    #else
+    if (hs_valid_platform() != HS_SUCCESS) {
+        SCLogInfo("SSSE3 support not detected, disabling Hyperscan for "
+                  "MPM");
+        /* Fall back to best Aho-Corasick variant. */
+        mpm_default_matcher = DEFAULT_MPM_AC;
+    } else {
         MpmHSRegister();
-    #endif /* HAVE_HS_VALID_PLATFORM */
+    }
+#else
+    MpmHSRegister();
+#endif /* HAVE_HS_VALID_PLATFORM */
 #endif /* BUILD_HYPERSCAN */
 }
 
-int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                    uint16_t offset, uint16_t depth,
-                    uint32_t pid, SigIntId sid, uint8_t flags)
+int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset,
+        uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
-    return mpm_table[mpm_ctx->mpm_type].AddPattern(mpm_ctx, pat, patlen,
-                                                   offset, depth,
-                                                   pid, sid, flags);
+    return mpm_table[mpm_ctx->mpm_type].AddPattern(
+            mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
 }
 
-int MpmAddPatternCI(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                    uint16_t offset, uint16_t depth,
-                    uint32_t pid, SigIntId sid, uint8_t flags)
+int MpmAddPatternCI(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset,
+        uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
-    return mpm_table[mpm_ctx->mpm_type].AddPatternNocase(mpm_ctx, pat, patlen,
-                                                         offset, depth,
-                                                         pid, sid, flags);
+    return mpm_table[mpm_ctx->mpm_type].AddPatternNocase(
+            mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
 }
-
 
 /**
  * \internal
@@ -297,10 +292,8 @@ static inline uint32_t MpmInitHashRaw(uint8_t *pat, uint16_t patlen)
  *
  * \retval hash A 32 bit unsigned hash.
  */
-static inline MpmPattern *MpmInitHashLookup(MpmCtx *ctx,
-        uint8_t *pat, uint16_t patlen,
-        uint16_t offset, uint16_t depth,
-        uint8_t flags, uint32_t pid)
+static inline MpmPattern *MpmInitHashLookup(MpmCtx *ctx, uint8_t *pat, uint16_t patlen,
+        uint16_t offset, uint16_t depth, uint8_t flags, uint32_t pid)
 {
     uint32_t hash = MpmInitHashRaw(pat, patlen);
 
@@ -309,15 +302,13 @@ static inline MpmPattern *MpmInitHashLookup(MpmCtx *ctx,
     }
 
     MpmPattern *t = ctx->init_hash[hash];
-    for ( ; t != NULL; t = t->next) {
+    for (; t != NULL; t = t->next) {
         if (!(flags & MPM_PATTERN_CTX_OWNS_ID)) {
             if (t->id == pid)
                 return t;
         } else {
             if (t->len == patlen && t->offset == offset && t->depth == depth &&
-                    memcmp(pat, t->original_pat, patlen) == 0 &&
-                    t->flags == flags)
-            {
+                    memcmp(pat, t->original_pat, patlen) == 0 && t->flags == flags) {
                 return t;
             }
         }
@@ -436,12 +427,11 @@ static inline int MpmInitHashAdd(MpmCtx *ctx, MpmPattern *p)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                            uint16_t offset, uint16_t depth, uint32_t pid,
-                            SigIntId sid, uint8_t flags)
+int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset, uint16_t depth,
+        uint32_t pid, SigIntId sid, uint8_t flags)
 {
-    SCLogDebug("Adding pattern for ctx %p, patlen %"PRIu16" and pid %" PRIu32,
-               mpm_ctx, patlen, pid);
+    SCLogDebug(
+            "Adding pattern for ctx %p, patlen %" PRIu16 " and pid %" PRIu32, mpm_ctx, patlen, pid);
 
     if (patlen == 0) {
         SCLogWarning("pattern length 0");
@@ -452,8 +442,7 @@ int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
         pid = UINT_MAX;
 
     /* check if we have already inserted this pattern */
-    MpmPattern *p = MpmInitHashLookup(mpm_ctx, pat, patlen,
-            offset, depth, flags, pid);
+    MpmPattern *p = MpmInitHashLookup(mpm_ctx, pat, patlen, offset, depth, flags, pid);
     if (p == NULL) {
         SCLogDebug("Allocing new pattern");
 
@@ -565,7 +554,6 @@ error:
     MpmFreePattern(mpm_ctx, p);
     return -1;
 }
-
 
 /************************************Unittests*********************************/
 

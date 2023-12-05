@@ -43,8 +43,8 @@ typedef struct StatsCounter_ {
     uint16_t gid;
 
     /* counter value(s): copies from the 'private' counter */
-    int64_t value;      /**< sum of updates/increments, or 'set' value */
-    uint64_t updates;   /**< number of updates (for avg) */
+    int64_t value;    /**< sum of updates/increments, or 'set' value */
+    uint64_t updates; /**< number of updates (for avg) */
 
     /* when using type STATS_TYPE_Q_FUNC this function is called once
      * to get the counter value, regardless of how many threads there are. */
@@ -139,9 +139,7 @@ void StatsSyncCounters(struct ThreadVars_ *tv);
 void StatsSyncCountersIfSignalled(struct ThreadVars_ *tv);
 
 #ifdef BUILD_UNIX_SOCKET
-TmEcode StatsOutputCounterSocket(json_t *cmd,
-                                 json_t *answer, void *data);
+TmEcode StatsOutputCounterSocket(json_t *cmd, json_t *answer, void *data);
 #endif
 
 #endif /* __COUNTERS_H__ */
-

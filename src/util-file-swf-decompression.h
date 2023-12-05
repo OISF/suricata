@@ -28,15 +28,13 @@
 /* If we don't have the decompressed data len,
  * we use a default value.
  */
-#define MIN_SWF_LEN    2920
+#define MIN_SWF_LEN 2920
 
 uint8_t FileGetSwfVersion(const uint8_t *buffer, const uint32_t buffer_len);
 uint32_t FileGetSwfDecompressedLen(const uint8_t *buffer, uint32_t buffer_len);
-int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx,
-                             uint8_t *compressed_data, uint32_t compressed_data_len,
-                             uint8_t *decompressed_data, uint32_t decompressed_data_len);
-int FileSwfLzmaDecompression(DetectEngineThreadCtx *det_ctx,
-                             uint8_t *compressed_data, uint32_t compressed_data_len,
-                             uint8_t *decompressed_data, uint32_t decompressed_data_len);
+int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx, uint8_t *compressed_data,
+        uint32_t compressed_data_len, uint8_t *decompressed_data, uint32_t decompressed_data_len);
+int FileSwfLzmaDecompression(DetectEngineThreadCtx *det_ctx, uint8_t *compressed_data,
+        uint32_t compressed_data_len, uint8_t *decompressed_data, uint32_t decompressed_data_len);
 
 #endif /* __UTIL_FILE_SWF_DECOMPRESSION_H__ */

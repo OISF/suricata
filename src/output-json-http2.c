@@ -55,14 +55,13 @@ typedef struct OutputHttp2Ctx_ {
     OutputJsonCtx *eve_ctx;
 } OutputHttp2Ctx;
 
-
 typedef struct JsonHttp2LogThread_ {
     OutputHttp2Ctx *http2log_ctx;
     OutputJsonThreadCtx *ctx;
 } JsonHttp2LogThread;
 
-static int JsonHttp2Logger(ThreadVars *tv, void *thread_data, const Packet *p,
-                         Flow *f, void *state, void *txptr, uint64_t tx_id)
+static int JsonHttp2Logger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *txptr, uint64_t tx_id)
 {
     JsonHttp2LogThread *aft = (JsonHttp2LogThread *)thread_data;
 
@@ -90,8 +89,7 @@ static TmEcode JsonHttp2LogThreadInit(ThreadVars *t, const void *initdata, void 
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
 
-    if(initdata == NULL)
-    {
+    if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogHTTP2.  \"initdata\" argument NULL");
         goto error_exit;
     }
@@ -160,7 +158,7 @@ static OutputInitResult OutputHttp2LogInitSub(ConfNode *conf, OutputCtx *parent_
     return result;
 }
 
-void JsonHttp2LogRegister (void)
+void JsonHttp2LogRegister(void)
 {
     /* also register as child of eve-log */
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", MODULE_NAME, "eve-log.http2",

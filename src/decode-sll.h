@@ -24,15 +24,14 @@
 #ifndef __DECODE_SLL_H__
 #define __DECODE_SLL_H__
 
-#define SLL_HEADER_LEN                16
+#define SLL_HEADER_LEN 16
 
 typedef struct SllHdr_ {
-    uint16_t sll_pkttype;      /* packet type */
-    uint16_t sll_hatype;       /* link-layer address type */
-    uint16_t sll_halen;        /* link-layer address length */
-    uint8_t sll_addr[8];       /* link-layer address */
-    uint16_t sll_protocol;     /* protocol */
+    uint16_t sll_pkttype;  /* packet type */
+    uint16_t sll_hatype;   /* link-layer address type */
+    uint16_t sll_halen;    /* link-layer address length */
+    uint8_t sll_addr[8];   /* link-layer address */
+    uint16_t sll_protocol; /* protocol */
 } __attribute__((__packed__)) SllHdr;
 
 #endif /* __DECODE_SLL_H__ */
-

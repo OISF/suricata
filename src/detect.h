@@ -150,7 +150,7 @@ enum {
     ADDRESS_GT,      /**< bigger               [bbb] [aaa] */
 };
 
-#define ADDRESS_FLAG_NOT            0x01 /**< address is negated */
+#define ADDRESS_FLAG_NOT 0x01 /**< address is negated */
 
 /** \brief address structure for use in the detection engine.
  *
@@ -176,10 +176,9 @@ typedef struct DetectAddressHead_ {
     DetectAddress *ipv6_head;
 } DetectAddressHead;
 
-
 typedef struct DetectMatchAddressIPv4_ {
-    uint32_t ip;    /**< address in host order, start of range */
-    uint32_t ip2;   /**< address in host order, end of range */
+    uint32_t ip;  /**< address in host order, start of range */
+    uint32_t ip2; /**< address in host order, end of range */
 } DetectMatchAddressIPv4;
 
 typedef struct DetectMatchAddressIPv6_ {
@@ -203,16 +202,16 @@ enum {
     PORT_GT,      /* bigger               [bbb] [aaa] */
 };
 
-#define PORT_FLAG_ANY           0x01 /**< 'any' special port */
-#define PORT_FLAG_NOT           0x02 /**< negated port */
-#define PORT_SIGGROUPHEAD_COPY  0x04 /**< sgh is a ptr copy */
+#define PORT_FLAG_ANY          0x01 /**< 'any' special port */
+#define PORT_FLAG_NOT          0x02 /**< negated port */
+#define PORT_SIGGROUPHEAD_COPY 0x04 /**< sgh is a ptr copy */
 
 /** \brief Port structure for detection engine */
 typedef struct DetectPort_ {
     uint16_t port;
     uint16_t port2;
 
-    uint8_t flags;  /**< flags for this port */
+    uint8_t flags; /**< flags for this port */
 
     /* signatures that belong in this group
      *
@@ -228,23 +227,23 @@ typedef struct DetectPort_ {
 /* Signature flags */
 /** \note: additions should be added to the rule analyzer as well */
 
-#define SIG_FLAG_SRC_ANY                BIT_U32(0)  /**< source is any */
-#define SIG_FLAG_DST_ANY                BIT_U32(1)  /**< destination is any */
-#define SIG_FLAG_SP_ANY                 BIT_U32(2)  /**< source port is any */
-#define SIG_FLAG_DP_ANY                 BIT_U32(3)  /**< destination port is any */
+#define SIG_FLAG_SRC_ANY BIT_U32(0) /**< source is any */
+#define SIG_FLAG_DST_ANY BIT_U32(1) /**< destination is any */
+#define SIG_FLAG_SP_ANY  BIT_U32(2) /**< source port is any */
+#define SIG_FLAG_DP_ANY  BIT_U32(3) /**< destination port is any */
 
-#define SIG_FLAG_NOALERT                BIT_U32(4)  /**< no alert flag is set */
-#define SIG_FLAG_DSIZE                  BIT_U32(5)  /**< signature has a dsize setting */
-#define SIG_FLAG_APPLAYER               BIT_U32(6) /**< signature applies to app layer instead of packets */
+#define SIG_FLAG_NOALERT  BIT_U32(4) /**< no alert flag is set */
+#define SIG_FLAG_DSIZE    BIT_U32(5) /**< signature has a dsize setting */
+#define SIG_FLAG_APPLAYER BIT_U32(6) /**< signature applies to app layer instead of packets */
 
 // vacancy
 
-#define SIG_FLAG_REQUIRE_PACKET         BIT_U32(9)  /**< signature is requiring packet match */
-#define SIG_FLAG_REQUIRE_STREAM         BIT_U32(10) /**< signature is requiring stream match */
+#define SIG_FLAG_REQUIRE_PACKET BIT_U32(9)  /**< signature is requiring packet match */
+#define SIG_FLAG_REQUIRE_STREAM BIT_U32(10) /**< signature is requiring stream match */
 
-#define SIG_FLAG_MPM_NEG                BIT_U32(11)
+#define SIG_FLAG_MPM_NEG BIT_U32(11)
 
-#define SIG_FLAG_FLUSH                  BIT_U32(12) /**< detection logic needs stream flush notification */
+#define SIG_FLAG_FLUSH BIT_U32(12) /**< detection logic needs stream flush notification */
 
 #define SIG_FLAG_REQUIRE_STREAM_ONLY                                                               \
     BIT_U32(13) /**< signature is requiring stream match. Stream match is not optional, so no      \
@@ -252,52 +251,55 @@ typedef struct DetectPort_ {
 
 // vacancies
 
-#define SIG_FLAG_REQUIRE_FLOWVAR        BIT_U32(17) /**< signature can only match if a flowbit, flowvar or flowint is available. */
+#define SIG_FLAG_REQUIRE_FLOWVAR                                                                   \
+    BIT_U32(17) /**< signature can only match if a flowbit, flowvar or flowint is available. */
 
-#define SIG_FLAG_FILESTORE              BIT_U32(18) /**< signature has filestore keyword */
+#define SIG_FLAG_FILESTORE BIT_U32(18) /**< signature has filestore keyword */
 
-#define SIG_FLAG_TOSERVER               BIT_U32(19)
-#define SIG_FLAG_TOCLIENT               BIT_U32(20)
+#define SIG_FLAG_TOSERVER BIT_U32(19)
+#define SIG_FLAG_TOCLIENT BIT_U32(20)
 
-#define SIG_FLAG_TLSSTORE               BIT_U32(21)
+#define SIG_FLAG_TLSSTORE BIT_U32(21)
 
-#define SIG_FLAG_BYPASS                 BIT_U32(22)
+#define SIG_FLAG_BYPASS BIT_U32(22)
 
-#define SIG_FLAG_PREFILTER              BIT_U32(23) /**< sig is part of a prefilter engine */
+#define SIG_FLAG_PREFILTER BIT_U32(23) /**< sig is part of a prefilter engine */
 
 // vacancy
 
 /** Info for Source and Target identification */
-#define SIG_FLAG_SRC_IS_TARGET          BIT_U32(25)
+#define SIG_FLAG_SRC_IS_TARGET BIT_U32(25)
 /** Info for Source and Target identification */
-#define SIG_FLAG_DEST_IS_TARGET         BIT_U32(26)
+#define SIG_FLAG_DEST_IS_TARGET BIT_U32(26)
 
-#define SIG_FLAG_HAS_TARGET             (SIG_FLAG_DEST_IS_TARGET|SIG_FLAG_SRC_IS_TARGET)
+#define SIG_FLAG_HAS_TARGET (SIG_FLAG_DEST_IS_TARGET | SIG_FLAG_SRC_IS_TARGET)
 
 /* signature init flags */
 // available 0
-#define SIG_FLAG_INIT_PACKET                BIT_U32(1)  /**< signature has matches against a packet (as opposed to app layer) */
-#define SIG_FLAG_INIT_FLOW                  BIT_U32(2)  /**< signature has a flow setting */
-#define SIG_FLAG_INIT_BIDIREC               BIT_U32(3)  /**< signature has bidirectional operator */
+#define SIG_FLAG_INIT_PACKET                                                                       \
+    BIT_U32(1) /**< signature has matches against a packet (as opposed to app layer) */
+#define SIG_FLAG_INIT_FLOW    BIT_U32(2) /**< signature has a flow setting */
+#define SIG_FLAG_INIT_BIDIREC BIT_U32(3) /**< signature has bidirectional operator */
 #define SIG_FLAG_INIT_FIRST_IPPROTO_SEEN                                                           \
     BIT_U32(4) /** < signature has seen the first ip_proto keyword */
-#define SIG_FLAG_INIT_STATE_MATCH           BIT_U32(6)  /**< signature has matches that require stateful inspection */
-#define SIG_FLAG_INIT_NEED_FLUSH            BIT_U32(7)
+#define SIG_FLAG_INIT_STATE_MATCH                                                                  \
+    BIT_U32(6) /**< signature has matches that require stateful inspection */
+#define SIG_FLAG_INIT_NEED_FLUSH BIT_U32(7)
 #define SIG_FLAG_INIT_PRIO_EXPLICIT                                                                \
-    BIT_U32(8) /**< priority is explicitly set by the priority keyword */
-#define SIG_FLAG_INIT_FILEDATA              BIT_U32(9)  /**< signature has filedata keyword */
-#define SIG_FLAG_INIT_JA3                   BIT_U32(10) /**< signature has ja3 keyword */
+    BIT_U32(8)                            /**< priority is explicitly set by the priority keyword */
+#define SIG_FLAG_INIT_FILEDATA BIT_U32(9) /**< signature has filedata keyword */
+#define SIG_FLAG_INIT_JA3      BIT_U32(10) /**< signature has ja3 keyword */
 
 /* signature mask flags */
 /** \note: additions should be added to the rule analyzer as well */
-#define SIG_MASK_REQUIRE_PAYLOAD            BIT_U8(0)
-#define SIG_MASK_REQUIRE_FLOW               BIT_U8(1)
-#define SIG_MASK_REQUIRE_FLAGS_INITDEINIT   BIT_U8(2)    /* SYN, FIN, RST */
-#define SIG_MASK_REQUIRE_FLAGS_UNUSUAL      BIT_U8(3)    /* URG, ECN, CWR */
-#define SIG_MASK_REQUIRE_NO_PAYLOAD         BIT_U8(4)
-#define SIG_MASK_REQUIRE_DCERPC             BIT_U8(5)    /* require either SMB+DCE or raw DCE */
+#define SIG_MASK_REQUIRE_PAYLOAD          BIT_U8(0)
+#define SIG_MASK_REQUIRE_FLOW             BIT_U8(1)
+#define SIG_MASK_REQUIRE_FLAGS_INITDEINIT BIT_U8(2) /* SYN, FIN, RST */
+#define SIG_MASK_REQUIRE_FLAGS_UNUSUAL    BIT_U8(3) /* URG, ECN, CWR */
+#define SIG_MASK_REQUIRE_NO_PAYLOAD       BIT_U8(4)
+#define SIG_MASK_REQUIRE_DCERPC           BIT_U8(5) /* require either SMB+DCE or raw DCE */
 // vacancy
-#define SIG_MASK_REQUIRE_ENGINE_EVENT       BIT_U8(7)
+#define SIG_MASK_REQUIRE_ENGINE_EVENT BIT_U8(7)
 
 /* for now a uint8_t is enough */
 #define SignatureMask uint8_t
@@ -305,17 +307,17 @@ typedef struct DetectPort_ {
 #define DETECT_ENGINE_THREAD_CTX_FRAME_ID_SET         0x0001
 #define DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH 0x0004
 
-#define FILE_SIG_NEED_FILE          0x01
-#define FILE_SIG_NEED_FILENAME      0x02
-#define FILE_SIG_NEED_MAGIC         0x04    /**< need the start of the file */
-#define FILE_SIG_NEED_FILECONTENT   0x08
-#define FILE_SIG_NEED_MD5           0x10
-#define FILE_SIG_NEED_SHA1          0x20
-#define FILE_SIG_NEED_SHA256        0x40
-#define FILE_SIG_NEED_SIZE          0x80
+#define FILE_SIG_NEED_FILE        0x01
+#define FILE_SIG_NEED_FILENAME    0x02
+#define FILE_SIG_NEED_MAGIC       0x04 /**< need the start of the file */
+#define FILE_SIG_NEED_FILECONTENT 0x08
+#define FILE_SIG_NEED_MD5         0x10
+#define FILE_SIG_NEED_SHA1        0x20
+#define FILE_SIG_NEED_SHA256      0x40
+#define FILE_SIG_NEED_SIZE        0x80
 
 /* Detection Engine flags */
-#define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
+#define DE_QUIET 0x01 /**< DE is quiet (esp for unittests) */
 
 typedef struct IPOnlyCIDRItem_ {
     /* address data for this item */
@@ -342,8 +344,8 @@ typedef struct SigMatchCtx_ {
 
 /** \brief a single match condition for a signature */
 typedef struct SigMatch_ {
-    uint16_t type; /**< match type */
-    uint16_t idx; /**< position in the signature */
+    uint16_t type;    /**< match type */
+    uint16_t idx;     /**< position in the signature */
     SigMatchCtx *ctx; /**< plugin specific data */
     struct SigMatch_ *next;
     struct SigMatch_ *prev;
@@ -351,12 +353,12 @@ typedef struct SigMatch_ {
 
 /** \brief Data needed for Match() */
 typedef struct SigMatchData_ {
-    uint16_t type;   /**< match type */
-    uint8_t is_last; /**< Last element of the list */
+    uint16_t type;    /**< match type */
+    uint8_t is_last;  /**< Last element of the list */
     SigMatchCtx *ctx; /**< plugin specific data */
 } SigMatchData;
 
-struct DetectEngineThreadCtx_;// DetectEngineThreadCtx;
+struct DetectEngineThreadCtx_; // DetectEngineThreadCtx;
 
 /* inspection buffer is a simple structure that is passed between prefilter,
  * transformation functions and inspection functions.
@@ -368,15 +370,15 @@ struct DetectEngineThreadCtx_;// DetectEngineThreadCtx;
 typedef struct InspectionBuffer {
     const uint8_t *inspect; /**< active pointer, points either to ::buf or ::orig */
     uint64_t inspect_offset;
-    uint32_t inspect_len;   /**< size of active data. See to ::len or ::orig_len */
+    uint32_t inspect_len; /**< size of active data. See to ::len or ::orig_len */
     bool initialized; /**< is initialized. ::inspect might be NULL if transform lead to 0 size */
-    uint8_t flags;          /**< DETECT_CI_FLAGS_* for use with DetectEngineContentInspection */
+    uint8_t flags;    /**< DETECT_CI_FLAGS_* for use with DetectEngineContentInspection */
 #ifdef DEBUG_VALIDATION
     bool multi;
 #endif
-    uint32_t len;           /**< how much is in use */
+    uint32_t len; /**< how much is in use */
     uint8_t *buf;
-    uint32_t size;          /**< size of the memory allocation */
+    uint32_t size; /**< size of the memory allocation */
 
     uint32_t orig_len;
     const uint8_t *orig;
@@ -390,9 +392,9 @@ typedef struct InspectionBuffer {
 
 typedef struct InspectionBufferMultipleForList {
     InspectionBuffer *inspection_buffers;
-    uint32_t size;      /**< size in number of elements */
-    uint32_t max:31;    /**< max id in use in this run */
-    uint32_t init:1;    /**< first time used this run. Used for clean logic */
+    uint32_t size;     /**< size in number of elements */
+    uint32_t max : 31; /**< max id in use in this run */
+    uint32_t init : 1; /**< first time used this run. Used for clean logic */
 } InspectionBufferMultipleForList;
 
 typedef struct TransformData_ {
@@ -406,11 +408,9 @@ typedef struct DetectEngineTransforms {
 } DetectEngineTransforms;
 
 /** callback for getting the buffer we need to prefilter/inspect */
-typedef InspectionBuffer *(*InspectionBufferGetDataPtr)(
-        struct DetectEngineThreadCtx_ *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *f, const uint8_t flow_flags,
-        void *txv, const int list_id);
+typedef InspectionBuffer *(*InspectionBufferGetDataPtr)(struct DetectEngineThreadCtx_ *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id);
 struct DetectEngineAppInspectionEngine_;
 
 typedef uint8_t (*InspectEngineFuncPtr2)(struct DetectEngineCtx_ *de_ctx,
@@ -421,7 +421,7 @@ typedef uint8_t (*InspectEngineFuncPtr2)(struct DetectEngineCtx_ *de_ctx,
 typedef struct DetectEngineAppInspectionEngine_ {
     AppProto alproto;
     uint8_t dir;
-    uint8_t id;     /**< per sig id used in state keeping */
+    uint8_t id; /**< per sig id used in state keeping */
     bool mpm;
     bool stream;
     uint16_t sm_list;
@@ -460,17 +460,13 @@ struct DetectEnginePktInspectionEngine;
 /**
  *  \param alert_flags[out] for setting PACKET_ALERT_FLAG_*
  */
-typedef int (*InspectionBufferPktInspectFunc)(
-        struct DetectEngineThreadCtx_ *,
-        const struct DetectEnginePktInspectionEngine *engine,
-        const struct Signature_ *s,
-        Packet *p, uint8_t *alert_flags);
+typedef int (*InspectionBufferPktInspectFunc)(struct DetectEngineThreadCtx_ *,
+        const struct DetectEnginePktInspectionEngine *engine, const struct Signature_ *s, Packet *p,
+        uint8_t *alert_flags);
 
 /** callback for getting the buffer we need to prefilter/inspect */
-typedef InspectionBuffer *(*InspectionBufferGetPktDataPtr)(
-        struct DetectEngineThreadCtx_ *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Packet *p, const int list_id);
+typedef InspectionBuffer *(*InspectionBufferGetPktDataPtr)(struct DetectEngineThreadCtx_ *det_ctx,
+        const DetectEngineTransforms *transforms, Packet *p, const int list_id);
 
 typedef struct DetectEnginePktInspectionEngine {
     SigMatchData *smd;
@@ -673,12 +669,12 @@ enum DetectBufferMpmType {
 /** \brief one time registration of keywords at start up */
 typedef struct DetectBufferMpmRegistry_ {
     const char *name;
-    char pname[32];             /**< name used in profiling */
-    int direction;              /**< SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT */
+    char pname[32]; /**< name used in profiling */
+    int direction;  /**< SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT */
     int16_t sm_list;
     int16_t sm_list_base;
     int priority;
-    int id;                     /**< index into this array and result arrays */
+    int id; /**< index into this array and result arrays */
     enum DetectBufferMpmType type;
     int sgh_mpm_context;
 
@@ -727,19 +723,19 @@ typedef struct DetectReplaceList_ {
 } DetectReplaceList;
 
 /** only execute flowvar storage if rule matched */
-#define DETECT_VAR_TYPE_FLOW_POSTMATCH      1
-#define DETECT_VAR_TYPE_PKT_POSTMATCH       2
+#define DETECT_VAR_TYPE_FLOW_POSTMATCH 1
+#define DETECT_VAR_TYPE_PKT_POSTMATCH  2
 
 /** list for flowvar store candidates, to be stored from
  *  post-match function */
 typedef struct DetectVarList_ {
-    uint32_t idx;                       /**< flowvar name idx */
-    uint16_t len;                       /**< data len */
+    uint32_t idx; /**< flowvar name idx */
+    uint16_t len; /**< data len */
     uint16_t key_len;
-    int type;                           /**< type of store candidate POSTMATCH or ALWAYS */
+    int type; /**< type of store candidate POSTMATCH or ALWAYS */
     uint8_t *key;
-    uint8_t *buffer;                    /**< alloc'd buffer, may be freed by
-                                             post-match, post-non-match */
+    uint8_t *buffer; /**< alloc'd buffer, may be freed by
+                          post-match, post-non-match */
     struct DetectVarList_ *next;
 } DetectVarList;
 
@@ -774,8 +770,8 @@ typedef struct DetectEngineLookupFlow_ {
 #include "detect-threshold.h"
 
 /** \brief threshold ctx */
-typedef struct ThresholdCtx_    {
-    SCMutex threshold_table_lock;                   /**< Mutex for hash table */
+typedef struct ThresholdCtx_ {
+    SCMutex threshold_table_lock; /**< Mutex for hash table */
 
     /** to support rate_filter "by_rule" option */
     DetectThresholdEntry **th_entry;
@@ -808,14 +804,12 @@ typedef struct DetectEngineThreadKeywordCtxItem_ {
     const char *name; /* keyword name, for error printing */
 } DetectEngineThreadKeywordCtxItem;
 
-enum DetectEnginePrefilterSetting
-{
-    DETECT_PREFILTER_MPM = 0,   /**< use only mpm / fast_pattern */
-    DETECT_PREFILTER_AUTO = 1,  /**< use mpm + keyword prefilters */
+enum DetectEnginePrefilterSetting {
+    DETECT_PREFILTER_MPM = 0,  /**< use only mpm / fast_pattern */
+    DETECT_PREFILTER_AUTO = 1, /**< use mpm + keyword prefilters */
 };
 
-enum DetectEngineType
-{
+enum DetectEngineType {
     DETECT_ENGINE_TYPE_NORMAL = 0,
     DETECT_ENGINE_TYPE_DD_STUB = 1, /* delayed detect stub: can be reloaded */
     DETECT_ENGINE_TYPE_MT_STUB = 2, /* multi-tenant stub: cannot be reloaded */
@@ -1061,8 +1055,8 @@ typedef struct SignatureNonPrefilterStore_ {
 
 /** array of TX inspect rule candidates */
 typedef struct RuleMatchCandidateTx {
-    SigIntId id;            /**< internal signature id */
-    uint32_t *flags;        /**< inspect flags ptr */
+    SigIntId id;     /**< internal signature id */
+    uint32_t *flags; /**< inspect flags ptr */
     union {
         struct {
             bool stream_stored;
@@ -1071,12 +1065,12 @@ typedef struct RuleMatchCandidateTx {
         uint32_t stream_reset;
     };
 
-    const Signature *s;     /**< ptr to sig */
+    const Signature *s; /**< ptr to sig */
 } RuleMatchCandidateTx;
 
 /**
-  * Detection engine thread data.
-  */
+ * Detection engine thread data.
+ */
 typedef struct DetectEngineThreadCtx_ {
     /** \note multi-tenant hash lookup code from Detect() *depends*
      *        on this being the first member */
@@ -1128,7 +1122,7 @@ typedef struct DetectEngineThreadCtx_ {
 
     struct {
         InspectionBuffer *buffers;
-        uint32_t buffers_size;          /**< in number of elements */
+        uint32_t buffers_size; /**< in number of elements */
         uint32_t to_clear_idx;
         uint32_t *to_clear_queue;
     } inspect;
@@ -1137,7 +1131,7 @@ typedef struct DetectEngineThreadCtx_ {
         /** inspection buffers for more complex case. As we can inspect multiple
          *  buffers in parallel, we need this extra wrapper struct */
         InspectionBufferMultipleForList *buffers;
-        uint32_t buffers_size;                      /**< in number of elements */
+        uint32_t buffers_size; /**< in number of elements */
         uint32_t to_clear_idx;
         uint32_t *to_clear_queue;
     } multi_inspect;
@@ -1252,14 +1246,12 @@ typedef struct SigTableElmt_ {
     int (*Match)(DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 
     /** AppLayer TX match function pointer */
-    int (*AppLayerTxMatch)(DetectEngineThreadCtx *, Flow *,
-            uint8_t flags, void *alstate, void *txv,
+    int (*AppLayerTxMatch)(DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, void *txv,
             const Signature *, const SigMatchCtx *);
 
     /** File match function  pointer */
-    int (*FileMatch)(DetectEngineThreadCtx *,
-        Flow *,                     /**< *LOCKED* flow */
-        uint8_t flags, File *, const Signature *, const SigMatchCtx *);
+    int (*FileMatch)(DetectEngineThreadCtx *, Flow *, /**< *LOCKED* flow */
+            uint8_t flags, File *, const Signature *, const SigMatchCtx *);
 
     /** InspectionBuffer transformation callback */
     void (*Transform)(InspectionBuffer *, void *context);
@@ -1281,8 +1273,8 @@ typedef struct SigTableElmt_ {
     /** better keyword to replace the current one */
     uint16_t alternative;
 
-    const char *name;     /**< keyword name alias */
-    const char *alias;    /**< name alias */
+    const char *name;  /**< keyword name alias */
+    const char *alias; /**< name alias */
     const char *desc;
     const char *url;
 
@@ -1307,14 +1299,14 @@ enum {
     DETECT_EVENT_TOO_MANY_BUFFERS,
 };
 
-#define SIG_GROUP_HEAD_HAVERAWSTREAM    BIT_U32(0)
+#define SIG_GROUP_HEAD_HAVERAWSTREAM BIT_U32(0)
 #ifdef HAVE_MAGIC
-#define SIG_GROUP_HEAD_HAVEFILEMAGIC    BIT_U32(20)
+#define SIG_GROUP_HEAD_HAVEFILEMAGIC BIT_U32(20)
 #endif
-#define SIG_GROUP_HEAD_HAVEFILEMD5      BIT_U32(21)
-#define SIG_GROUP_HEAD_HAVEFILESIZE     BIT_U32(22)
-#define SIG_GROUP_HEAD_HAVEFILESHA1     BIT_U32(23)
-#define SIG_GROUP_HEAD_HAVEFILESHA256   BIT_U32(24)
+#define SIG_GROUP_HEAD_HAVEFILEMD5    BIT_U32(21)
+#define SIG_GROUP_HEAD_HAVEFILESIZE   BIT_U32(22)
+#define SIG_GROUP_HEAD_HAVEFILESHA1   BIT_U32(23)
+#define SIG_GROUP_HEAD_HAVEFILESHA256 BIT_U32(24)
 
 enum MpmBuiltinBuffers {
     MPMB_TCP_PKT_TS,
@@ -1409,11 +1401,11 @@ typedef struct SigGroupHeadInitData_ {
     MpmStore mpm_store[MPMB_MAX];
 
     uint8_t *sig_array; /**< bit array of sig nums (internal id's) */
-    uint32_t sig_size; /**< size in bytes */
+    uint32_t sig_size;  /**< size in bytes */
 
-    uint8_t protos[256];    /**< proto(s) this sgh is for */
-    uint32_t direction;     /**< set to SIG_FLAG_TOSERVER, SIG_FLAG_TOCLIENT or both */
-    int score;              /**< try to make this group a unique one */
+    uint8_t protos[256]; /**< proto(s) this sgh is for */
+    uint32_t direction;  /**< set to SIG_FLAG_TOSERVER, SIG_FLAG_TOCLIENT or both */
+    int score;           /**< try to make this group a unique one */
 
     MpmCtx **app_mpms;
     MpmCtx **pkt_mpms;
@@ -1442,9 +1434,11 @@ typedef struct SigGroupHead_ {
     /* non prefilter list excluding SYN rules */
     uint32_t non_pf_other_store_cnt;
     uint32_t non_pf_syn_store_cnt;
-    SignatureNonPrefilterStore *non_pf_other_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonPrefilterStore)
+    SignatureNonPrefilterStore *non_pf_other_store_array; // size is non_mpm_store_cnt *
+                                                          // sizeof(SignatureNonPrefilterStore)
     /* non mpm list including SYN rules */
-    SignatureNonPrefilterStore *non_pf_syn_store_array; // size is non_mpm_syn_store_cnt * sizeof(SignatureNonPrefilterStore)
+    SignatureNonPrefilterStore *non_pf_syn_store_array; // size is non_mpm_syn_store_cnt *
+                                                        // sizeof(SignatureNonPrefilterStore)
 
     /** the number of signatures in this sgh that have the filestore keyword
      *  set. */
@@ -1463,42 +1457,41 @@ typedef struct SigGroupHead_ {
 } SigGroupHead;
 
 /** sigmatch has no options, so the parser shouldn't expect any */
-#define SIGMATCH_NOOPT                  BIT_U16(0)
+#define SIGMATCH_NOOPT BIT_U16(0)
 /** sigmatch is compatible with a ip only rule */
-#define SIGMATCH_IPONLY_COMPAT          BIT_U16(1)
+#define SIGMATCH_IPONLY_COMPAT BIT_U16(1)
 /** sigmatch is compatible with a decode event only rule */
-#define SIGMATCH_DEONLY_COMPAT          BIT_U16(2)
+#define SIGMATCH_DEONLY_COMPAT BIT_U16(2)
 /**< Flag to indicate that the signature is not built-in */
-#define SIGMATCH_NOT_BUILT              BIT_U16(3)
+#define SIGMATCH_NOT_BUILT BIT_U16(3)
 /** sigmatch may have options, so the parser should be ready to
  *  deal with both cases */
-#define SIGMATCH_OPTIONAL_OPT           BIT_U16(4)
+#define SIGMATCH_OPTIONAL_OPT BIT_U16(4)
 /** input may be wrapped in double quotes. They will be stripped before
  *  input data is passed to keyword parser */
-#define SIGMATCH_QUOTES_OPTIONAL        BIT_U16(5)
+#define SIGMATCH_QUOTES_OPTIONAL BIT_U16(5)
 /** input MUST be wrapped in double quotes. They will be stripped before
  *  input data is passed to keyword parser. Missing double quotes lead to
  *  error and signature invalidation. */
-#define SIGMATCH_QUOTES_MANDATORY       BIT_U16(6)
+#define SIGMATCH_QUOTES_MANDATORY BIT_U16(6)
 /** negation parsing is handled by the rule parser. Signature::init_data::negated
  *  will be set to true or false prior to calling the keyword parser. Exclamation
  *  mark is stripped from the input to the keyword parser. */
-#define SIGMATCH_HANDLE_NEGATION        BIT_U16(7)
+#define SIGMATCH_HANDLE_NEGATION BIT_U16(7)
 /** keyword is a content modifier */
-#define SIGMATCH_INFO_CONTENT_MODIFIER  BIT_U16(8)
+#define SIGMATCH_INFO_CONTENT_MODIFIER BIT_U16(8)
 /** keyword is a sticky buffer */
-#define SIGMATCH_INFO_STICKY_BUFFER     BIT_U16(9)
+#define SIGMATCH_INFO_STICKY_BUFFER BIT_U16(9)
 /** keyword is deprecated: used to suggest an alternative */
-#define SIGMATCH_INFO_DEPRECATED        BIT_U16(10)
+#define SIGMATCH_INFO_DEPRECATED BIT_U16(10)
 /** strict parsing is enabled */
-#define SIGMATCH_STRICT_PARSING         BIT_U16(11)
+#define SIGMATCH_STRICT_PARSING BIT_U16(11)
 
-enum DetectEngineTenantSelectors
-{
-    TENANT_SELECTOR_UNKNOWN = 0,    /**< not set */
-    TENANT_SELECTOR_DIRECT,         /**< method provides direct tenant id */
-    TENANT_SELECTOR_VLAN,           /**< map vlan to tenant id */
-    TENANT_SELECTOR_LIVEDEV,        /**< map livedev to tenant id */
+enum DetectEngineTenantSelectors {
+    TENANT_SELECTOR_UNKNOWN = 0, /**< not set */
+    TENANT_SELECTOR_DIRECT,      /**< method provides direct tenant id */
+    TENANT_SELECTOR_VLAN,        /**< map vlan to tenant id */
+    TENANT_SELECTOR_LIVEDEV,     /**< map livedev to tenant id */
 };
 
 typedef struct DetectEngineTenantMapping_ {
@@ -1544,7 +1537,8 @@ typedef struct DetectEngineMasterCtx_ {
 /* Table with all SigMatch registrations */
 extern SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 
-/** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
+/** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a
+ * signature group */
 
 /* detection api */
 TmEcode Detect(ThreadVars *tv, Packet *p, void *data);
@@ -1558,14 +1552,15 @@ void SigRegisterTests(void);
 void DisableDetectFlowFileFlags(Flow *f);
 char *DetectLoadCompleteSigPath(const DetectEngineCtx *, const char *sig_file);
 int SigLoadSignatures(DetectEngineCtx *, char *, bool);
-void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
-                       DetectEngineThreadCtx *det_ctx, Packet *p);
+void SigMatchSignatures(
+        ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p);
 
 int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s);
 const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx, const Packet *p);
 
 int DetectUnregisterThreadCtxFuncs(DetectEngineCtx *, void *data, const char *name);
-int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int);
+int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *),
+        void *data, void (*FreeFunc)(void *), int);
 void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *, int);
 
 void RuleMatchCandidateTxArrayInit(DetectEngineThreadCtx *det_ctx, uint32_t size);
@@ -1587,6 +1582,4 @@ AppLayerDecoderEvents *DetectEngineGetEvents(DetectEngineThreadCtx *det_ctx);
 
 void DumpPatterns(DetectEngineCtx *de_ctx);
 
-
 #endif /* __DETECT_H__ */
-

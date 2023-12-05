@@ -42,7 +42,7 @@ enum OutputJsonLogDirection {
     LOG_DIR_FLOW_TOSERVER,
 };
 
-#define JSON_ADDR_LEN 46
+#define JSON_ADDR_LEN  46
 #define JSON_PROTO_LEN 16
 
 /* A struct to contain address info for rendering to JSON. */
@@ -56,8 +56,7 @@ typedef struct JsonAddrInfo_ {
 
 extern const JsonAddrInfo json_addr_info_zero;
 
-void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir,
-        JsonAddrInfo *addr);
+void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddrInfo *addr);
 
 /* Suggested output buffer size */
 #define JSON_OUTPUT_BUFFER_SIZE 65535
@@ -110,8 +109,8 @@ OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx);
 TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data);
 TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data);
 
-void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
-        const Packet *p, const Flow *f, JsonBuilder *js);
+void EveAddCommonOptions(
+        const OutputJsonCommonSettings *cfg, const Packet *p, const Flow *f, JsonBuilder *js);
 void EveAddMetadata(const Packet *p, const Flow *f, JsonBuilder *js);
 
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);

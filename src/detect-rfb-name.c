@@ -68,8 +68,8 @@ static int DetectRfbNameSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -91,18 +91,17 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 void DetectRfbNameRegister(void)
 {
     sigmatch_table[DETECT_AL_RFB_NAME].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_RFB_NAME].url = "/rules/" KEYWORD_DOC
-    sigmatch_table[DETECT_AL_RFB_NAME].desc = "sticky buffer to match on the RFB desktop name";
+    sigmatch_table[DETECT_AL_RFB_NAME].url =
+            "/rules/" KEYWORD_DOC sigmatch_table[DETECT_AL_RFB_NAME].desc =
+                    "sticky buffer to match on the RFB desktop name";
     sigmatch_table[DETECT_AL_RFB_NAME].Setup = DetectRfbNameSetup;
-    sigmatch_table[DETECT_AL_RFB_NAME].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_AL_RFB_NAME].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_RFB,
-            SIG_FLAG_TOCLIENT, 1,
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_RFB, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 1,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_RFB,
-            1);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 1, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_RFB, 1);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 

@@ -53,34 +53,29 @@ void GenericVarFree(GenericVar *gv)
     GenericVar *next_gv = gv->next;
 
     switch (gv->type) {
-        case DETECT_FLOWBITS:
-        {
+        case DETECT_FLOWBITS: {
             FlowBit *fb = (FlowBit *)gv;
-            //printf("GenericVarFree: fb %p, removing\n", fb);
+            // printf("GenericVarFree: fb %p, removing\n", fb);
             FlowBitFree(fb);
             break;
         }
-        case DETECT_XBITS:
-        {
+        case DETECT_XBITS: {
             XBit *fb = (XBit *)gv;
-            //printf("GenericVarFree: fb %p, removing\n", fb);
+            // printf("GenericVarFree: fb %p, removing\n", fb);
             XBitFree(fb);
             break;
         }
-        case DETECT_FLOWVAR:
-        {
+        case DETECT_FLOWVAR: {
             FlowVar *fv = (FlowVar *)gv;
             FlowVarFree(fv);
             break;
         }
-        case DETECT_PKTVAR:
-        {
+        case DETECT_PKTVAR: {
             PktVar *pv = (PktVar *)gv;
             PktVarFree(pv);
             break;
         }
-        default:
-        {
+        default: {
             printf("ERROR: GenericVarFree unknown type %" PRIu32 "\n", gv->type);
             break;
         }
@@ -97,7 +92,7 @@ void GenericVarAppend(GenericVar **list, GenericVar *gv)
         *list = gv;
     } else {
         GenericVar *tgv = *list;
-        while(tgv) {
+        while (tgv) {
             if (tgv->next == NULL) {
                 tgv->next = gv;
                 return;
@@ -141,7 +136,7 @@ int AddVariableToResolveList(ResolvedVariablesList *list, const char *var)
         return 0;
     }
 
-    TAILQ_FOREACH(p_item, list, next) {
+    TAILQ_FOREACH (p_item, list, next) {
         if (!strcmp(p_item->var_name, var)) {
             return -1;
         }

@@ -24,7 +24,7 @@
 #define __DETECT_ASN1_H__
 
 /* prototypes */
-void DetectAsn1Register (void);
+void DetectAsn1Register(void);
 
 bool DetectAsn1Match(const SigMatchData *smd, const uint8_t *buffer, const uint32_t buffer_len,
         const uint32_t offset);

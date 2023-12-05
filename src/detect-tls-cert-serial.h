@@ -25,6 +25,6 @@
 #define __DETECT_TLS_CERT_SERIAL_H__
 
 /* prototypes */
-void DetectTlsSerialRegister (void);
+void DetectTlsSerialRegister(void);
 
 #endif /* __DETECT_TLS_CERT_SERIAL_H__ */

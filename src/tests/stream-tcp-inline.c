@@ -28,9 +28,7 @@
 
 static int VALIDATE(TcpStream *stream, uint8_t *data, uint32_t data_len)
 {
-    if (StreamingBufferCompareRawData(&stream->sb,
-                data, data_len) == 0)
-    {
+    if (StreamingBufferCompareRawData(&stream->sb, data, data_len) == 0) {
         SCReturnInt(0);
     }
     SCLogInfo("OK");
@@ -38,25 +36,25 @@ static int VALIDATE(TcpStream *stream, uint8_t *data, uint32_t data_len)
     return 1;
 }
 
-#define INLINE_START(isn)                      \
-    Packet *p;                                  \
-    TcpReassemblyThreadCtx *ra_ctx = NULL;      \
-    TcpSession ssn;                             \
-    ThreadVars tv;                              \
-    memset(&tv, 0, sizeof(tv));                 \
-    \
-    StreamTcpUTInit(&ra_ctx);                   \
-    StreamTcpUTInitInline();                    \
-    \
-    StreamTcpUTSetupSession(&ssn);              \
-    StreamTcpUTSetupStream(&ssn.server, (isn)); \
-    StreamTcpUTSetupStream(&ssn.client, (isn)); \
-    \
+#define INLINE_START(isn)                                                                          \
+    Packet *p;                                                                                     \
+    TcpReassemblyThreadCtx *ra_ctx = NULL;                                                         \
+    TcpSession ssn;                                                                                \
+    ThreadVars tv;                                                                                 \
+    memset(&tv, 0, sizeof(tv));                                                                    \
+                                                                                                   \
+    StreamTcpUTInit(&ra_ctx);                                                                      \
+    StreamTcpUTInitInline();                                                                       \
+                                                                                                   \
+    StreamTcpUTSetupSession(&ssn);                                                                 \
+    StreamTcpUTSetupStream(&ssn.server, (isn));                                                    \
+    StreamTcpUTSetupStream(&ssn.client, (isn));                                                    \
+                                                                                                   \
     TcpStream *stream = &ssn.client;
 
-#define INLINE_END                             \
-    StreamTcpUTClearSession(&ssn);              \
-    StreamTcpUTDeinit(ra_ctx);                  \
+#define INLINE_END                                                                                 \
+    StreamTcpUTClearSession(&ssn);                                                                 \
+    StreamTcpUTDeinit(ra_ctx);                                                                     \
     PASS
 
 #define INLINE_ADD_PAYLOAD(rseq, seg, seglen, packet, packetlen)                                   \

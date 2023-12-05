@@ -56,7 +56,7 @@ void DetectL3ProtoRegister(void)
     sigmatch_table[DETECT_L3PROTO].name = "l3_proto";
     sigmatch_table[DETECT_L3PROTO].Match = NULL;
     sigmatch_table[DETECT_L3PROTO].Setup = DetectL3ProtoSetup;
-    sigmatch_table[DETECT_L3PROTO].Free  = NULL;
+    sigmatch_table[DETECT_L3PROTO].Free = NULL;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_L3PROTO].RegisterTests = DetectL3protoRegisterTests;
 #endif
@@ -81,16 +81,14 @@ static int DetectL3ProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     }
 
     /* authorized value, ip, any, ip4, ipv4, ip6, ipv6 */
-    if (strcasecmp(str,"ipv4") == 0 ||
-            strcasecmp(str,"ip4") == 0 ) {
+    if (strcasecmp(str, "ipv4") == 0 || strcasecmp(str, "ip4") == 0) {
         if (s->proto.flags & DETECT_PROTO_IPV6) {
             SCLogError("Conflicting l3 proto specified");
             goto error;
         }
         s->proto.flags |= DETECT_PROTO_IPV4;
         SCLogDebug("IPv4 protocol detected");
-    } else if (strcasecmp(str,"ipv6") == 0 ||
-            strcasecmp(str,"ip6") == 0 ) {
+    } else if (strcasecmp(str, "ipv6") == 0 || strcasecmp(str, "ip6") == 0) {
         if (s->proto.flags & DETECT_PROTO_IPV6) {
             SCLogError("Conflicting l3 proto specified");
             goto error;

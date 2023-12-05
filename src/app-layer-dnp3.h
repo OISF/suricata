@@ -66,9 +66,9 @@
 #define DNP3_APP_FC_AUTH_REQ_NR            0x21
 
 /* DNP3 application response function codes. */
-#define DNP3_APP_FC_RESPONSE               0x81
-#define DNP3_APP_FC_UNSOLICITED_RESP       0x82
-#define DNP3_APP_FC_AUTH_RESP              0x83
+#define DNP3_APP_FC_RESPONSE         0x81
+#define DNP3_APP_FC_UNSOLICITED_RESP 0x82
+#define DNP3_APP_FC_AUTH_RESP        0x83
 
 /* Extract fields from the link control octet. */
 #define DNP3_LINK_DIR(control) (control & 0x80)
@@ -115,13 +115,13 @@ enum {
  * \brief DNP3 link header.
  */
 typedef struct DNP3LinkHeader_ {
-    uint8_t  start_byte0; /**< First check byte. */
-    uint8_t  start_byte1; /**< Second check byte. */
-    uint8_t  len;         /**< Length of PDU without CRCs. */
-    uint8_t  control;     /**< Control flags. */
-    uint16_t dst;         /**< DNP3 destination address. */
-    uint16_t src;         /**< DNP3 source address. */
-    uint16_t crc;         /**< Link header CRC. */
+    uint8_t start_byte0; /**< First check byte. */
+    uint8_t start_byte1; /**< Second check byte. */
+    uint8_t len;         /**< Length of PDU without CRCs. */
+    uint8_t control;     /**< Control flags. */
+    uint16_t dst;        /**< DNP3 destination address. */
+    uint16_t src;        /**< DNP3 source address. */
+    uint16_t crc;        /**< Link header CRC. */
 } __attribute__((__packed__)) DNP3LinkHeader;
 
 /**
@@ -133,8 +133,8 @@ typedef uint8_t DNP3TransportHeader;
  * \brief DNP3 application header.
  */
 typedef struct DNP3ApplicationHeader_ {
-    uint8_t control;        /**< Control flags. */
-    uint8_t function_code;  /**< Application function code. */
+    uint8_t control;       /**< Control flags. */
+    uint8_t function_code; /**< Application function code. */
 } __attribute__((__packed__)) DNP3ApplicationHeader;
 
 /**
@@ -152,9 +152,9 @@ typedef struct DNP3InternalInd_ {
  */
 typedef struct DNP3Buffer_ {
     uint8_t *buffer;
-    size_t   size;
-    int      len;
-    int      offset;
+    size_t size;
+    int len;
+    int offset;
 } DNP3Buffer;
 
 /**
@@ -173,14 +173,14 @@ typedef struct DNP3ObjHeader_ {
  * of the object.
  */
 typedef struct DNP3Point_ {
-    uint32_t prefix;  /**< Prefix value for point. */
-    uint32_t index;   /**< Index of point. If the object is prefixed
-                       * with an index then this will be that
-                       * value. Otherwise this is the place the point
-                       * was in the list of points (starting at 0). */
-    uint32_t size;    /**< Size of point if the object prefix was a
-                       * size. */
-    void *data;       /**< Data for this point. */
+    uint32_t prefix; /**< Prefix value for point. */
+    uint32_t index;  /**< Index of point. If the object is prefixed
+                      * with an index then this will be that
+                      * value. Otherwise this is the place the point
+                      * was in the list of points (starting at 0). */
+    uint32_t size;   /**< Size of point if the object prefix was a
+                      * size. */
+    void *data;      /**< Data for this point. */
     TAILQ_ENTRY(DNP3Point_) next;
 } DNP3Point;
 
@@ -190,14 +190,14 @@ typedef TAILQ_HEAD(DNP3PointList_, DNP3Point_) DNP3PointList;
  * \brief Struct to hold the list of decoded objects.
  */
 typedef struct DNP3Object_ {
-    uint8_t   group;
-    uint8_t   variation;
-    uint8_t   qualifier;
-    uint8_t   prefix_code;
-    uint8_t   range_code;
-    uint32_t  start;
-    uint32_t  stop;
-    uint32_t  count;
+    uint8_t group;
+    uint8_t variation;
+    uint8_t qualifier;
+    uint8_t prefix_code;
+    uint8_t range_code;
+    uint32_t start;
+    uint32_t stop;
+    uint32_t count;
     DNP3PointList *points; /**< List of points for this object. */
 
     TAILQ_ENTRY(DNP3Object_) next;
@@ -209,7 +209,7 @@ typedef TAILQ_HEAD(DNP3ObjectList_, DNP3Object_) DNP3ObjectList;
  * \brief DNP3 transaction.
  */
 typedef struct DNP3Transaction_ {
-    AppLayerTxData         tx_data;
+    AppLayerTxData tx_data;
 
     uint64_t tx_num; /**< Internal transaction ID. */
     bool is_request; /**< Is this tx a request? */
@@ -238,11 +238,11 @@ TAILQ_HEAD(TxListHead, DNP3Transaction_);
 typedef struct DNP3State_ {
     AppLayerStateData state_data;
     TAILQ_HEAD(, DNP3Transaction_) tx_list;
-    DNP3Transaction *curr;     /**< Current transaction. */
+    DNP3Transaction *curr; /**< Current transaction. */
     uint64_t transaction_max;
     uint16_t events;
-    uint32_t unreplied;        /**< Number of unreplied requests. */
-    uint8_t flooded;           /**< Flag indicating flood. */
+    uint32_t unreplied; /**< Number of unreplied requests. */
+    uint8_t flooded;    /**< Flag indicating flood. */
 
     DNP3Buffer request_buffer;  /**< Request buffer for buffering
                                  * incomplete request PDUs received

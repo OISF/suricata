@@ -25,6 +25,6 @@
 #define __DETECT_TRANSFORM_PCREXFORM_H__
 
 /* prototypes */
-void DetectTransformPcrexformRegister (void);
+void DetectTransformPcrexformRegister(void);
 
 #endif /* __DETECT_TRANSFORM_PCREXFORM_H__ */

@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -47,8 +46,8 @@
 /**
  * \brief Main decoding function for PPPOE Discovery packets
  */
-int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len)
+int DecodePPPOEDiscovery(
+        ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
@@ -62,20 +61,19 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     p->pppoedh = (PPPOEDiscoveryHdr *)pkt;
 
     /* parse the PPPOE code */
-    switch (p->pppoedh->pppoe_code)
-    {
-        case  PPPOE_CODE_PADI:
+    switch (p->pppoedh->pppoe_code) {
+        case PPPOE_CODE_PADI:
             break;
-        case  PPPOE_CODE_PADO:
+        case PPPOE_CODE_PADO:
             break;
-        case  PPPOE_CODE_PADR:
+        case PPPOE_CODE_PADR:
             break;
         case PPPOE_CODE_PADS:
             break;
         case PPPOE_CODE_PADT:
             break;
         default:
-            SCLogDebug("unknown PPPOE code: 0x%0"PRIX8"", p->pppoedh->pppoe_code);
+            SCLogDebug("unknown PPPOE code: 0x%0" PRIX8 "", p->pppoedh->pppoe_code);
             ENGINE_SET_INVALID_EVENT(p, PPPOE_WRONG_CODE);
             return TM_ECODE_OK;
     }
@@ -83,13 +81,12 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     /* parse any tags we have in the packet */
 
     uint32_t tag_length = 0;
-    PPPOEDiscoveryTag* pppoedt = (PPPOEDiscoveryTag*) (p->pppoedh +  PPPOE_DISCOVERY_HEADER_MIN_LEN);
+    PPPOEDiscoveryTag *pppoedt = (PPPOEDiscoveryTag *)(p->pppoedh + PPPOE_DISCOVERY_HEADER_MIN_LEN);
 
     uint32_t pppoe_length = SCNtohs(p->pppoedh->pppoe_length);
-    uint32_t packet_length = len - PPPOE_DISCOVERY_HEADER_MIN_LEN ;
+    uint32_t packet_length = len - PPPOE_DISCOVERY_HEADER_MIN_LEN;
 
-    SCLogDebug("pppoe_length %"PRIu32", packet_length %"PRIu32"",
-        pppoe_length, packet_length);
+    SCLogDebug("pppoe_length %" PRIu32 ", packet_length %" PRIu32 "", pppoe_length, packet_length);
 
     if (pppoe_length > packet_length) {
         SCLogDebug("malformed PPPOE tags");
@@ -97,14 +94,14 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         return TM_ECODE_OK;
     }
 
-    while (pppoedt < (PPPOEDiscoveryTag*) (pkt + (len - sizeof(PPPOEDiscoveryTag))) && pppoe_length >=4 && packet_length >=4)
-    {
+    while (pppoedt < (PPPOEDiscoveryTag *)(pkt + (len - sizeof(PPPOEDiscoveryTag))) &&
+            pppoe_length >= 4 && packet_length >= 4) {
 #ifdef DEBUG
         uint16_t tag_type = SCNtohs(pppoedt->pppoe_tag_type);
 #endif
         tag_length = SCNtohs(pppoedt->pppoe_tag_length);
 
-        SCLogDebug ("PPPoE Tag type %x, length %"PRIu32, tag_type, tag_length);
+        SCLogDebug("PPPoE Tag type %x, length %" PRIu32, tag_type, tag_length);
 
         if (pppoe_length >= (4 + tag_length)) {
             pppoe_length -= (4 + tag_length);
@@ -127,8 +124,8 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 /**
  * \brief Main decoding function for PPPOE Session packets
  */
-int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len)
+int DecodePPPOESession(
+        ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
@@ -141,10 +138,14 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     p->pppoesh = (PPPOESessionHdr *)pkt;
 
-    SCLogDebug("PPPOE VERSION %" PRIu32 " TYPE %" PRIu32 " CODE %" PRIu32 " SESSIONID %" PRIu32 " LENGTH %" PRIu32 "",
-           PPPOE_SESSION_GET_VERSION(p->pppoesh),  PPPOE_SESSION_GET_TYPE(p->pppoesh),  p->pppoesh->pppoe_code,  SCNtohs(p->pppoesh->session_id),  SCNtohs(p->pppoesh->pppoe_length));
+    SCLogDebug("PPPOE VERSION %" PRIu32 " TYPE %" PRIu32 " CODE %" PRIu32 " SESSIONID %" PRIu32
+               " LENGTH %" PRIu32 "",
+            PPPOE_SESSION_GET_VERSION(p->pppoesh), PPPOE_SESSION_GET_TYPE(p->pppoesh),
+            p->pppoesh->pppoe_code, SCNtohs(p->pppoesh->session_id),
+            SCNtohs(p->pppoesh->pppoe_length));
 
-    /* can't use DecodePPP() here because we only get a single 2-byte word to indicate protocol instead of the full PPP header */
+    /* can't use DecodePPP() here because we only get a single 2-byte word to indicate protocol
+     * instead of the full PPP header */
     if (SCNtohs(p->pppoesh->pppoe_length) > 0) {
         /* decode contained PPP packet */
 
@@ -198,7 +199,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             case PPP_PAP:
             case PPP_LQM:
             case PPP_CHAP:
-                ENGINE_SET_EVENT(p,PPP_UNSUP_PROTO);
+                ENGINE_SET_EVENT(p, PPP_UNSUP_PROTO);
                 break;
 
             case PPP_VJ_UCOMP:
@@ -254,7 +255,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
  *  \brief Decode malformed PPPOE packet (too short)
  *  \retval 1 Expected test value
  */
-static int DecodePPPOEtest01 (void)
+static int DecodePPPOEtest01(void)
 {
 
     uint8_t raw_pppoe[] = { 0x11, 0x00, 0x00, 0x00, 0x00 };
@@ -278,7 +279,7 @@ static int DecodePPPOEtest01 (void)
  *  \brief Valid PPPOE packet - check the invalid ICMP type encapsulated is flagged
  *  \retval 0 Expected test value
  */
-static int DecodePPPOEtest02 (void)
+static int DecodePPPOEtest02(void)
 {
 
     // clang-format off
@@ -316,12 +317,11 @@ static int DecodePPPOEtest02 (void)
     PASS;
 }
 
-
 /** DecodePPPOEtest03
  *  \brief Valid example PADO packet PPPOE packet taken from RFC2516
  *  \retval 0 Expected test value
  */
-static int DecodePPPOEtest03 (void)
+static int DecodePPPOEtest03(void)
 {
 
     /* example PADO packet taken from RFC2516 */
@@ -354,7 +354,7 @@ static int DecodePPPOEtest03 (void)
  *  \brief Valid example PPPOE packet taken from RFC2516 - but with wrong PPPOE code
  *  \retval 1 Expected test value
  */
-static int DecodePPPOEtest04 (void)
+static int DecodePPPOEtest04(void)
 {
 
     /* example PADI packet taken from RFC2516, but with wrong code */
@@ -385,7 +385,7 @@ static int DecodePPPOEtest04 (void)
  *  \brief Valid example PADO PPPOE packet taken from RFC2516, but too short for given length
  *  \retval 0 Expected test value
  */
-static int DecodePPPOEtest05 (void)
+static int DecodePPPOEtest05(void)
 {
 
     /* example PADI packet taken from RFC2516 */
@@ -420,7 +420,7 @@ static int DecodePPPOEtest05 (void)
  * should extract the first 4 bits for version and the second 4 bits for type
  *  \retval 1 Expected test value
  */
-static int DecodePPPOEtest06 (void)
+static int DecodePPPOEtest06(void)
 {
 
     PPPOESessionHdr pppoesh;

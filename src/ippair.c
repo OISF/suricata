@@ -50,9 +50,9 @@ IPPairHashRow *ippair_hash;
 /** queue with spare ippairs */
 static IPPairQueue ippair_spare_q;
 IPPairConfig ippair_config;
-SC_ATOMIC_DECLARE(uint64_t,ippair_memuse);
-SC_ATOMIC_DECLARE(uint32_t,ippair_counter);
-SC_ATOMIC_DECLARE(uint32_t,ippair_prune_idx);
+SC_ATOMIC_DECLARE(uint64_t, ippair_memuse);
+SC_ATOMIC_DECLARE(uint32_t, ippair_counter);
+SC_ATOMIC_DECLARE(uint32_t, ippair_prune_idx);
 
 /** size of the ippair object. Maybe updated in IPPairInitConfig to include
  *  the storage APIs additions. */
@@ -103,7 +103,7 @@ uint32_t IPPairSpareQueueGetSize(void)
 void IPPairMoveToSpare(IPPair *h)
 {
     IPPairEnqueue(&ippair_spare_q, h);
-    (void) SC_ATOMIC_SUB(ippair_counter, 1);
+    (void)SC_ATOMIC_SUB(ippair_counter, 1);
 }
 
 IPPair *IPPairAlloc(void)
@@ -112,7 +112,7 @@ IPPair *IPPairAlloc(void)
         return NULL;
     }
 
-    (void) SC_ATOMIC_ADD(ippair_memuse, g_ippair_size);
+    (void)SC_ATOMIC_ADD(ippair_memuse, g_ippair_size);
 
     IPPair *h = SCCalloc(1, g_ippair_size);
     if (unlikely(h == NULL))
@@ -132,7 +132,7 @@ void IPPairFree(IPPair *h)
         IPPairClearMemory(h);
         SCMutexDestroy(&h->m);
         SCFree(h);
-        (void) SC_ATOMIC_SUB(ippair_memuse, g_ippair_size);
+        (void)SC_ATOMIC_SUB(ippair_memuse, g_ippair_size);
     }
 }
 
@@ -159,7 +159,7 @@ void IPPairClearMemory(IPPair *h)
 }
 
 #define IPPAIR_DEFAULT_HASHSIZE 4096
-#define IPPAIR_DEFAULT_MEMCAP 16777216
+#define IPPAIR_DEFAULT_MEMCAP   16777216
 #define IPPAIR_DEFAULT_PREALLOC 1000
 
 /** \brief initialize the configuration
@@ -172,8 +172,8 @@ void IPPairInitConfig(bool quiet)
         g_ippair_size = (uint16_t)(sizeof(IPPair) + IPPairStorageSize());
     }
 
-    memset(&ippair_config,  0, sizeof(ippair_config));
-    //SC_ATOMIC_INIT(flow_flags);
+    memset(&ippair_config, 0, sizeof(ippair_config));
+    // SC_ATOMIC_INIT(flow_flags);
     SC_ATOMIC_INIT(ippair_counter);
     SC_ATOMIC_INIT(ippair_memuse);
     SC_ATOMIC_INIT(ippair_prune_idx);
@@ -181,9 +181,9 @@ void IPPairInitConfig(bool quiet)
     IPPairQueueInit(&ippair_spare_q);
 
     /* set defaults */
-    ippair_config.hash_rand   = (uint32_t)RandomGet();
-    ippair_config.hash_size   = IPPAIR_DEFAULT_HASHSIZE;
-    ippair_config.prealloc    = IPPAIR_DEFAULT_PREALLOC;
+    ippair_config.hash_rand = (uint32_t)RandomGet();
+    ippair_config.hash_size = IPPAIR_DEFAULT_HASHSIZE;
+    ippair_config.prealloc = IPPAIR_DEFAULT_PREALLOC;
     SC_ATOMIC_SET(ippair_config.memcap, IPPAIR_DEFAULT_MEMCAP);
 
     /* Check if we have memcap and hash_size defined at config */
@@ -192,8 +192,7 @@ void IPPairInitConfig(bool quiet)
 
     /** set config values for memcap, prealloc and hash_size */
     uint64_t ippair_memcap;
-    if ((ConfGet("ippair.memcap", &conf_val)) == 1)
-    {
+    if ((ConfGet("ippair.memcap", &conf_val)) == 1) {
         if (ParseSizeStringU64(conf_val, &ippair_memcap) < 0) {
             SCLogError("Error parsing ippair.memcap "
                        "from conf file - %s.  Killing engine",
@@ -203,26 +202,22 @@ void IPPairInitConfig(bool quiet)
             SC_ATOMIC_SET(ippair_config.memcap, ippair_memcap);
         }
     }
-    if ((ConfGet("ippair.hash-size", &conf_val)) == 1)
-    {
-        if (StringParseUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+    if ((ConfGet("ippair.hash-size", &conf_val)) == 1) {
+        if (StringParseUint32(&configval, 10, strlen(conf_val), conf_val) > 0) {
             ippair_config.hash_size = configval;
         }
     }
 
-    if ((ConfGet("ippair.prealloc", &conf_val)) == 1)
-    {
-        if (StringParseUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+    if ((ConfGet("ippair.prealloc", &conf_val)) == 1) {
+        if (StringParseUint32(&configval, 10, strlen(conf_val), conf_val) > 0) {
             ippair_config.prealloc = configval;
         } else {
-            WarnInvalidConfEntry("ippair.prealloc", "%"PRIu32, ippair_config.prealloc);
+            WarnInvalidConfEntry("ippair.prealloc", "%" PRIu32, ippair_config.prealloc);
         }
     }
-    SCLogDebug("IPPair config from suricata.yaml: memcap: %"PRIu64", hash-size: "
-               "%"PRIu32", prealloc: %"PRIu32, SC_ATOMIC_GET(ippair_config.memcap),
-               ippair_config.hash_size, ippair_config.prealloc);
+    SCLogDebug("IPPair config from suricata.yaml: memcap: %" PRIu64 ", hash-size: "
+               "%" PRIu32 ", prealloc: %" PRIu32,
+            SC_ATOMIC_GET(ippair_config.memcap), ippair_config.hash_size, ippair_config.prealloc);
 
     /* alloc hash memory */
     uint64_t hash_size = ippair_config.hash_size * sizeof(IPPairHashRow);
@@ -245,13 +240,13 @@ void IPPairInitConfig(bool quiet)
     for (i = 0; i < ippair_config.hash_size; i++) {
         HRLOCK_INIT(&ippair_hash[i]);
     }
-    (void) SC_ATOMIC_ADD(ippair_memuse, (ippair_config.hash_size * sizeof(IPPairHashRow)));
+    (void)SC_ATOMIC_ADD(ippair_memuse, (ippair_config.hash_size * sizeof(IPPairHashRow)));
 
     if (!quiet) {
-        SCLogConfig("allocated %"PRIu64" bytes of memory for the ippair hash... "
-                  "%" PRIu32 " buckets of size %" PRIuMAX "",
-                  SC_ATOMIC_GET(ippair_memuse), ippair_config.hash_size,
-                  (uintmax_t)sizeof(IPPairHashRow));
+        SCLogConfig("allocated %" PRIu64 " bytes of memory for the ippair hash... "
+                    "%" PRIu32 " buckets of size %" PRIuMAX "",
+                SC_ATOMIC_GET(ippair_memuse), ippair_config.hash_size,
+                (uintmax_t)sizeof(IPPairHashRow));
     }
 
     /* pre allocate ippairs */
@@ -270,13 +265,13 @@ void IPPairInitConfig(bool quiet)
             SCLogError("preallocating ippair failed: %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
-        IPPairEnqueue(&ippair_spare_q,h);
+        IPPairEnqueue(&ippair_spare_q, h);
     }
 
     if (!quiet) {
-        SCLogConfig("preallocated %" PRIu32 " ippairs of size %" PRIu16 "",
-                ippair_spare_q.len, g_ippair_size);
-        SCLogConfig("ippair memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
+        SCLogConfig("preallocated %" PRIu32 " ippairs of size %" PRIu16 "", ippair_spare_q.len,
+                g_ippair_size);
+        SCLogConfig("ippair memory usage: %" PRIu64 " bytes, maximum: %" PRIu64,
                 SC_ATOMIC_GET(ippair_memuse), SC_ATOMIC_GET(ippair_config.memcap));
     }
 
@@ -285,13 +280,13 @@ void IPPairInitConfig(bool quiet)
 
 /** \brief print some ippair stats
  *  \warning Not thread safe */
-void IPPairPrintStats (void)
+void IPPairPrintStats(void)
 {
 #ifdef IPPAIRBITS_STATS
     SCLogPerf("ippairbits added: %" PRIu32 ", removed: %" PRIu32 ", max memory usage: %" PRIu32 "",
-        ippairbits_added, ippairbits_removed, ippairbits_memuse_max);
+            ippairbits_added, ippairbits_removed, ippairbits_memuse_max);
 #endif /* IPPAIRBITS_STATS */
-    SCLogPerf("ippair memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
+    SCLogPerf("ippair memory usage: %" PRIu64 " bytes, maximum: %" PRIu64,
             SC_ATOMIC_GET(ippair_memuse), SC_ATOMIC_GET(ippair_config.memcap));
     return;
 }
@@ -306,7 +301,7 @@ void IPPairShutdown(void)
     IPPairPrintStats();
 
     /* free spare queue */
-    while((h = IPPairDequeue(&ippair_spare_q))) {
+    while ((h = IPPairDequeue(&ippair_spare_q))) {
         BUG_ON(SC_ATOMIC_GET(h->use_cnt) > 0);
         IPPairFree(h);
     }
@@ -326,7 +321,7 @@ void IPPairShutdown(void)
         SCFreeAligned(ippair_hash);
         ippair_hash = NULL;
     }
-    (void) SC_ATOMIC_SUB(ippair_memuse, ippair_config.hash_size * sizeof(IPPairHashRow));
+    (void)SC_ATOMIC_SUB(ippair_memuse, ippair_config.hash_size * sizeof(IPPairHashRow));
     IPPairQueueDestroy(&ippair_spare_q);
     return;
 }
@@ -410,12 +405,12 @@ static uint32_t IPPairGetKey(Address *a, Address *b)
 
     if (a->family == AF_INET) {
         uint32_t addrs[2] = { MIN(a->addr_data32[0], b->addr_data32[0]),
-                              MAX(a->addr_data32[0], b->addr_data32[0]) };
+            MAX(a->addr_data32[0], b->addr_data32[0]) };
         uint32_t hash = hashword(addrs, 2, ippair_config.hash_rand);
         key = hash % ippair_config.hash_size;
     } else if (a->family == AF_INET6) {
         uint32_t addrs[8];
-        if (IPPairHashRawAddressIPv6GtU32(&a->addr_data32[0],&b->addr_data32[0])) {
+        if (IPPairHashRawAddressIPv6GtU32(&a->addr_data32[0], &b->addr_data32[0])) {
             addrs[0] = b->addr_data32[0];
             addrs[1] = b->addr_data32[1];
             addrs[2] = b->addr_data32[2];
@@ -448,7 +443,7 @@ static inline int IPPairCompare(IPPair *p, Address *a, Address *b)
 {
     /* compare in both directions */
     if ((CMP_ADDR(&p->a[0], a) && CMP_ADDR(&p->a[1], b)) ||
-        (CMP_ADDR(&p->a[0], b) && CMP_ADDR(&p->a[1], a)))
+            (CMP_ADDR(&p->a[0], b) && CMP_ADDR(&p->a[1], a)))
         return 1;
     return 0;
 }
@@ -471,12 +466,12 @@ static IPPair *IPPairGetNew(Address *a, Address *b)
         /* If we reached the max memcap, we get a used ippair */
         if (!(IPPAIR_CHECK_MEMCAP(g_ippair_size))) {
             /* declare state of emergency */
-            //if (!(SC_ATOMIC_GET(ippair_flags) & IPPAIR_EMERGENCY)) {
-            //    SC_ATOMIC_OR(ippair_flags, IPPAIR_EMERGENCY);
+            // if (!(SC_ATOMIC_GET(ippair_flags) & IPPAIR_EMERGENCY)) {
+            //     SC_ATOMIC_OR(ippair_flags, IPPAIR_EMERGENCY);
 
-                /* under high load, waking up the flow mgr each time leads
-                 * to high cpu usage. Flows are not timed out much faster if
-                 * we check a 1000 times a second. */
+            /* under high load, waking up the flow mgr each time leads
+             * to high cpu usage. Flows are not timed out much faster if
+             * we check a 1000 times a second. */
             //    FlowWakeupFlowManagerThread();
             //}
 
@@ -488,7 +483,7 @@ static IPPair *IPPairGetNew(Address *a, Address *b)
             /* freed a ippair, but it's unlocked */
         } else {
             /* now see if we can alloc a new ippair */
-            h = IPPairNew(a,b);
+            h = IPPairNew(a, b);
             if (h == NULL) {
                 return NULL;
             }
@@ -501,7 +496,7 @@ static IPPair *IPPairGetNew(Address *a, Address *b)
         /* ippair is initialized (recycled) but *unlocked* */
     }
 
-    (void) SC_ATOMIC_ADD(ippair_counter, 1);
+    (void)SC_ATOMIC_ADD(ippair_counter, 1);
     SCMutexLock(&h->m);
     return h;
 }
@@ -510,12 +505,12 @@ static void IPPairInit(IPPair *h, Address *a, Address *b)
 {
     COPY_ADDRESS(a, &h->a[0]);
     COPY_ADDRESS(b, &h->a[1]);
-    (void) IPPairIncrUsecnt(h);
+    (void)IPPairIncrUsecnt(h);
 }
 
 void IPPairRelease(IPPair *h)
 {
-    (void) IPPairDecrUsecnt(h);
+    (void)IPPairDecrUsecnt(h);
     SCMutexUnlock(&h->m);
 }
 
@@ -537,7 +532,7 @@ void IPPairUnlock(IPPair *h)
  *
  * returns a *LOCKED* ippair or NULL
  */
-IPPair *IPPairGetIPPairFromHash (Address *a, Address *b)
+IPPair *IPPairGetIPPairFromHash(Address *a, Address *b)
 {
     IPPair *h = NULL;
 
@@ -549,7 +544,7 @@ IPPair *IPPairGetIPPairFromHash (Address *a, Address *b)
 
     /* see if the bucket already has a ippair */
     if (hb->head == NULL) {
-        h = IPPairGetNew(a,b);
+        h = IPPairGetNew(a, b);
         if (h == NULL) {
             HRLOCK_UNLOCK(hb);
             return NULL;
@@ -560,7 +555,7 @@ IPPair *IPPairGetIPPairFromHash (Address *a, Address *b)
         hb->tail = h;
 
         /* got one, now lock, initialize and return */
-        IPPairInit(h,a,b);
+        IPPairInit(h, a, b);
 
         HRLOCK_UNLOCK(hb);
         return h;
@@ -578,7 +573,7 @@ IPPair *IPPairGetIPPairFromHash (Address *a, Address *b)
             h = h->hnext;
 
             if (h == NULL) {
-                h = ph->hnext = IPPairGetNew(a,b);
+                h = ph->hnext = IPPairGetNew(a, b);
                 if (h == NULL) {
                     HRLOCK_UNLOCK(hb);
                     return NULL;
@@ -590,7 +585,7 @@ IPPair *IPPairGetIPPairFromHash (Address *a, Address *b)
                 h->hprev = ph;
 
                 /* initialize and return */
-                IPPairInit(h,a,b);
+                IPPairInit(h, a, b);
 
                 HRLOCK_UNLOCK(hb);
                 return h;
@@ -616,7 +611,7 @@ IPPair *IPPairGetIPPairFromHash (Address *a, Address *b)
 
                 /* found our ippair, lock & return */
                 SCMutexLock(&h->m);
-                (void) IPPairIncrUsecnt(h);
+                (void)IPPairIncrUsecnt(h);
                 HRLOCK_UNLOCK(hb);
                 return h;
             }
@@ -625,7 +620,7 @@ IPPair *IPPairGetIPPairFromHash (Address *a, Address *b)
 
     /* lock & return */
     SCMutexLock(&h->m);
-    (void) IPPairIncrUsecnt(h);
+    (void)IPPairIncrUsecnt(h);
     HRLOCK_UNLOCK(hb);
     return h;
 }
@@ -636,7 +631,7 @@ IPPair *IPPairGetIPPairFromHash (Address *a, Address *b)
  *
  *  \retval h *LOCKED* ippair or NULL
  */
-IPPair *IPPairLookupIPPairFromHash (Address *a, Address *b)
+IPPair *IPPairLookupIPPairFromHash(Address *a, Address *b)
 {
     IPPair *h = NULL;
 
@@ -685,7 +680,7 @@ IPPair *IPPairLookupIPPairFromHash (Address *a, Address *b)
 
                 /* found our ippair, lock & return */
                 SCMutexLock(&h->m);
-                (void) IPPairIncrUsecnt(h);
+                (void)IPPairIncrUsecnt(h);
                 HRLOCK_UNLOCK(hb);
                 return h;
             }
@@ -694,7 +689,7 @@ IPPair *IPPairLookupIPPairFromHash (Address *a, Address *b)
 
     /* lock & return */
     SCMutexLock(&h->m);
-    (void) IPPairIncrUsecnt(h);
+    (void)IPPairIncrUsecnt(h);
     HRLOCK_UNLOCK(hb);
     return h;
 }
@@ -757,11 +752,11 @@ static IPPair *IPPairGetUsedIPPair(void)
         h->hprev = NULL;
         HRLOCK_UNLOCK(hb);
 
-        IPPairClearMemory (h);
+        IPPairClearMemory(h);
 
         SCMutexUnlock(&h->m);
 
-        (void) SC_ATOMIC_ADD(ippair_prune_idx, (ippair_config.hash_size - cnt));
+        (void)SC_ATOMIC_ADD(ippair_prune_idx, (ippair_config.hash_size - cnt));
         return h;
     }
 

@@ -99,20 +99,20 @@ default_matcher:
     /* When Suricata is built with Hyperscan support, default to using it for
      * SPM. */
 #ifdef BUILD_HYPERSCAN
-    #ifdef HAVE_HS_VALID_PLATFORM
+#ifdef HAVE_HS_VALID_PLATFORM
     /* Enable runtime check for SSSE3. Do not use Hyperscan SPM matcher if
      * check is not successful. */
-        if (hs_valid_platform() != HS_SUCCESS) {
-            SCLogInfo("SSSE3 support not detected, disabling Hyperscan for "
-                      "SPM");
-            /* Use Boyer-Moore as fallback. */
-            return SPM_BM;
-        } else {
-            return SPM_HS;
-        }
-    #else
+    if (hs_valid_platform() != HS_SUCCESS) {
+        SCLogInfo("SSSE3 support not detected, disabling Hyperscan for "
+                  "SPM");
+        /* Use Boyer-Moore as fallback. */
+        return SPM_BM;
+    } else {
         return SPM_HS;
-    #endif
+    }
+#else
+    return SPM_HS;
+#endif
 #else
     /* Otherwise, default to Boyer-Moore */
     return SPM_BM;
@@ -125,13 +125,13 @@ void SpmTableSetup(void)
 
     SpmBMRegister();
 #ifdef BUILD_HYPERSCAN
-    #ifdef HAVE_HS_VALID_PLATFORM
-        if (hs_valid_platform() == HS_SUCCESS) {
-            SpmHSRegister();
-        }
-    #else
+#ifdef HAVE_HS_VALID_PLATFORM
+    if (hs_valid_platform() == HS_SUCCESS) {
         SpmHSRegister();
-    #endif
+    }
+#else
+    SpmHSRegister();
+#endif
 #endif
 }
 
@@ -171,13 +171,12 @@ void SpmDestroyThreadCtx(SpmThreadCtx *thread_ctx)
 }
 
 SpmCtx *SpmInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
-                   SpmGlobalThreadCtx *global_thread_ctx)
+        SpmGlobalThreadCtx *global_thread_ctx)
 {
     BUG_ON(global_thread_ctx == NULL);
     uint8_t matcher = global_thread_ctx->matcher;
     BUG_ON(spm_table[matcher].InitCtx == NULL);
-    return spm_table[matcher].InitCtx(needle, needle_len, nocase,
-                                      global_thread_ctx);
+    return spm_table[matcher].InitCtx(needle, needle_len, nocase, global_thread_ctx);
 }
 
 void SpmDestroyCtx(SpmCtx *ctx)
@@ -190,8 +189,8 @@ void SpmDestroyCtx(SpmCtx *ctx)
     spm_table[matcher].DestroyCtx(ctx);
 }
 
-uint8_t *SpmScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
-                 const uint8_t *haystack, uint32_t haystack_len)
+uint8_t *SpmScan(
+        const SpmCtx *ctx, SpmThreadCtx *thread_ctx, const uint8_t *haystack, uint32_t haystack_len)
 {
     uint8_t matcher = ctx->matcher;
     return spm_table[matcher].Scan(ctx, thread_ctx, haystack, haystack_len);
@@ -211,8 +210,8 @@ uint8_t *SpmScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *Bs2bmSearch(const uint8_t *text, uint32_t textlen,
-        const uint8_t *needle, uint16_t needlelen)
+uint8_t *Bs2bmSearch(
+        const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen)
 {
     uint8_t badchars[ALPHABET_SIZE];
     Bs2BmBadchars(needle, needlelen, badchars);
@@ -221,15 +220,16 @@ uint8_t *Bs2bmSearch(const uint8_t *text, uint32_t textlen,
 }
 
 /**
- * \brief Search a pattern in the text using the Bs2Bm nocase algorithm (build a bad characters array)
+ * \brief Search a pattern in the text using the Bs2Bm nocase algorithm (build a bad characters
+ * array)
  *
  * \param text Text to search in
  * \param textlen length of the text
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *Bs2bmNocaseSearch(const uint8_t *text, uint32_t textlen,
-        const uint8_t *needle, uint16_t needlelen)
+uint8_t *Bs2bmNocaseSearch(
+        const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen)
 {
     uint8_t badchars[ALPHABET_SIZE];
     Bs2BmBadchars(needle, needlelen, badchars);
@@ -246,8 +246,8 @@ uint8_t *Bs2bmNocaseSearch(const uint8_t *text, uint32_t textlen,
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *BoyerMooreSearch(const uint8_t *text, uint32_t textlen,
-        const uint8_t *needle, uint16_t needlelen)
+uint8_t *BoyerMooreSearch(
+        const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen)
 {
     BmCtx *bm_ctx = BoyerMooreCtxInit(needle, needlelen);
 
@@ -266,8 +266,8 @@ uint8_t *BoyerMooreSearch(const uint8_t *text, uint32_t textlen,
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *BoyerMooreNocaseSearch(const uint8_t *text, uint32_t textlen,
-        uint8_t *needle, uint16_t needlelen)
+uint8_t *BoyerMooreNocaseSearch(
+        const uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen)
 {
     BmCtx *bm_ctx = BoyerMooreNocaseCtxInit(needle, needlelen);
 
@@ -276,7 +276,6 @@ uint8_t *BoyerMooreNocaseSearch(const uint8_t *text, uint32_t textlen,
 
     return ret;
 }
-
 
 #ifdef UNITTESTS
 
@@ -310,7 +309,10 @@ static uint8_t *BasicSearchWrapper(uint8_t *text, uint8_t *needle, int times)
         ret = BasicSearch(text, textlen, needle, needlelen);
     }
 
-    if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
+    if (times > 1) {
+        CLOCK_END;
+        CLOCK_PRINT_SEC;
+    };
     return ret;
 }
 
@@ -323,11 +325,15 @@ static uint8_t *BasicSearchNocaseWrapper(uint8_t *text, uint8_t *needle, int tim
     int i = 0;
 
     CLOCK_INIT;
-    if (times > 1) CLOCK_START;
+    if (times > 1)
+        CLOCK_START;
     for (i = 0; i < times; i++) {
         ret = BasicSearchNocase(text, textlen, needle, needlelen);
     }
-    if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
+    if (times > 1) {
+        CLOCK_END;
+        CLOCK_PRINT_SEC;
+    };
     return ret;
 }
 
@@ -343,11 +349,15 @@ static uint8_t *Bs2bmWrapper(uint8_t *text, uint8_t *needle, int times)
     int i = 0;
 
     CLOCK_INIT;
-    if (times > 1) CLOCK_START;
+    if (times > 1)
+        CLOCK_START;
     for (i = 0; i < times; i++) {
         ret = Bs2Bm(text, textlen, needle, needlelen, badchars);
     }
-    if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
+    if (times > 1) {
+        CLOCK_END;
+        CLOCK_PRINT_SEC;
+    };
     return ret;
 }
 
@@ -363,11 +373,15 @@ static uint8_t *Bs2bmNocaseWrapper(uint8_t *text, uint8_t *needle, int times)
     int i = 0;
 
     CLOCK_INIT;
-    if (times > 1) CLOCK_START;
+    if (times > 1)
+        CLOCK_START;
     for (i = 0; i < times; i++) {
         ret = Bs2BmNocase(text, textlen, needle, needlelen, badchars);
     }
-    if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
+    if (times > 1) {
+        CLOCK_END;
+        CLOCK_PRINT_SEC;
+    };
     return ret;
 }
 
@@ -382,11 +396,15 @@ static uint8_t *BoyerMooreWrapper(uint8_t *text, uint8_t *needle, int times)
     int i = 0;
 
     CLOCK_INIT;
-    if (times > 1) CLOCK_START;
+    if (times > 1)
+        CLOCK_START;
     for (i = 0; i < times; i++) {
         ret = BoyerMoore(needle, needlelen, text, textlen, bm_ctx);
     }
-    if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
+    if (times > 1) {
+        CLOCK_END;
+        CLOCK_PRINT_SEC;
+    };
     BoyerMooreCtxDeInit(bm_ctx);
     return ret;
 }
@@ -408,15 +426,18 @@ static uint8_t *BoyerMooreNocaseWrapper(uint8_t *text, uint8_t *in_needle, int t
     int i = 0;
 
     CLOCK_INIT;
-    if (times > 1) CLOCK_START;
+    if (times > 1)
+        CLOCK_START;
     for (i = 0; i < times; i++) {
         ret = BoyerMooreNocase(needle, needlelen, text, textlen, bm_ctx);
     }
-    if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
+    if (times > 1) {
+        CLOCK_END;
+        CLOCK_PRINT_SEC;
+    };
     BoyerMooreCtxDeInit(bm_ctx);
     free(needle);
     return ret;
-
 }
 
 #ifdef ENABLE_SEARCH_STATS
@@ -436,12 +457,16 @@ static uint8_t *BasicSearchCtxWrapper(uint8_t *text, uint8_t *needle, int times)
     int i = 0;
 
     CLOCK_INIT;
-    if (times > 1) CLOCK_START;
+    if (times > 1)
+        CLOCK_START;
     for (i = 0; i < times; i++) {
         /* This wrapper is a fake, no context needed! */
         ret = BasicSearch(text, textlen, needle, needlelen);
     }
-    if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
+    if (times > 1) {
+        CLOCK_END;
+        CLOCK_PRINT_SEC;
+    };
     return ret;
 }
 
@@ -454,12 +479,16 @@ static uint8_t *BasicSearchNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int 
     int i = 0;
 
     CLOCK_INIT;
-    if (times > 1) CLOCK_START;
+    if (times > 1)
+        CLOCK_START;
     for (i = 0; i < times; i++) {
         /* This wrapper is a fake, no context needed! */
         ret = BasicSearchNocase(text, textlen, needle, needlelen);
     }
-    if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
+    if (times > 1) {
+        CLOCK_END;
+        CLOCK_PRINT_SEC;
+    };
     return ret;
 }
 
@@ -474,13 +503,17 @@ static uint8_t *Bs2bmCtxWrapper(uint8_t *text, uint8_t *needle, int times)
     int i = 0;
 
     CLOCK_INIT;
-    if (times > 1) CLOCK_START;
+    if (times > 1)
+        CLOCK_START;
     for (i = 0; i < times; i++) {
         /* Stats including context building */
         Bs2BmBadchars(needle, needlelen, badchars);
         ret = Bs2Bm(text, textlen, needle, needlelen, badchars);
     }
-    if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
+    if (times > 1) {
+        CLOCK_END;
+        CLOCK_PRINT_SEC;
+    };
     return ret;
 }
 
@@ -495,13 +528,17 @@ static uint8_t *Bs2bmNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times)
     int i = 0;
 
     CLOCK_INIT;
-    if (times > 1) CLOCK_START;
+    if (times > 1)
+        CLOCK_START;
     for (i = 0; i < times; i++) {
         /* Stats including context building */
         Bs2BmBadchars(needle, needlelen, badchars);
         ret = Bs2BmNocase(text, textlen, needle, needlelen, badchars);
     }
-    if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
+    if (times > 1) {
+        CLOCK_END;
+        CLOCK_PRINT_SEC;
+    };
     return ret;
 }
 
@@ -516,12 +553,16 @@ static uint8_t *BoyerMooreCtxWrapper(uint8_t *text, uint8_t *needle, int times)
     int i = 0;
 
     CLOCK_INIT;
-    if (times > 1) CLOCK_START;
+    if (times > 1)
+        CLOCK_START;
     for (i = 0; i < times; i++) {
         /* Stats including context building */
         ret = BoyerMoore(needle, needlelen, text, textlen, bm_ctx);
     }
-    if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
+    if (times > 1) {
+        CLOCK_END;
+        CLOCK_PRINT_SEC;
+    };
     BoyerMooreCtxDeInit(bm_ctx);
 
     return ret;
@@ -536,11 +577,15 @@ static uint8_t *RawCtxWrapper(uint8_t *text, uint8_t *needle, int times)
     int i = 0;
 
     CLOCK_INIT;
-    if (times > 1) CLOCK_START;
+    if (times > 1)
+        CLOCK_START;
     for (i = 0; i < times; i++) {
         ret = SpmSearch(text, textlen, needle, needlelen);
     }
-    if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
+    if (times > 1) {
+        CLOCK_END;
+        CLOCK_PRINT_SEC;
+    };
     return ret;
 }
 
@@ -561,15 +606,18 @@ static uint8_t *BoyerMooreNocaseCtxWrapper(uint8_t *text, uint8_t *in_needle, in
     int i = 0;
 
     CLOCK_INIT;
-    if (times > 1) CLOCK_START;
+    if (times > 1)
+        CLOCK_START;
     for (i = 0; i < times; i++) {
         ret = BoyerMooreNocase(needle, needlelen, text, textlen, bm_ctx);
     }
-    if (times > 1) { CLOCK_END; CLOCK_PRINT_SEC; };
+    if (times > 1) {
+        CLOCK_END;
+        CLOCK_PRINT_SEC;
+    };
     BoyerMooreCtxDeInit(bm_ctx);
     free(needle);
     return ret;
-
 }
 #endif
 
@@ -581,7 +629,7 @@ static int UtilSpmBasicSearchTest01(void)
     uint8_t *needle = (uint8_t *)"oPqRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchWrapper(text, needle, 1);
-    //printf("found: %s\n", found);
+    // printf("found: %s\n", found);
     if (found != NULL)
         return 1;
     else
@@ -596,7 +644,7 @@ static int UtilSpmBasicSearchNocaseTest01(void)
     uint8_t *needle = (uint8_t *)"OpQrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchNocaseWrapper(text, needle, 1);
-    //printf("found: %s\n", found);
+    // printf("found: %s\n", found);
     if (found != NULL)
         return 1;
     else
@@ -611,7 +659,7 @@ static int UtilSpmBs2bmSearchTest01(void)
     uint8_t *needle = (uint8_t *)"oPqRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmWrapper(text, needle, 1);
-    //printf("found: %s\n", found);
+    // printf("found: %s\n", found);
     if (found != NULL)
         return 1;
     else
@@ -626,7 +674,7 @@ static int UtilSpmBs2bmSearchNocaseTest01(void)
     uint8_t *needle = (uint8_t *)"OpQrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmNocaseWrapper(text, needle, 1);
-    //printf("found: %s\n", found);
+    // printf("found: %s\n", found);
     if (found != NULL)
         return 1;
     else
@@ -641,7 +689,7 @@ static int UtilSpmBoyerMooreSearchTest01(void)
     uint8_t *needle = (uint8_t *)"oPqRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreWrapper(text, needle, 1);
-    //printf("found: %s\n", found);
+    // printf("found: %s\n", found);
     if (found != NULL)
         return 1;
     else
@@ -656,7 +704,7 @@ static int UtilSpmBoyerMooreSearchNocaseTest01(void)
     uint8_t *needle = (uint8_t *)"OpQrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreNocaseWrapper(text, needle, 1);
-    //printf("found: %s\n", found);
+    // printf("found: %s\n", found);
     if (found != NULL)
         return 1;
     else
@@ -670,17 +718,18 @@ static int UtilSpmBoyerMooreSearchNocaseTest01(void)
 static int UtilSpmBoyerMooreSearchNocaseTestIssue130(void)
 {
     uint8_t *needle = (uint8_t *)"WWW-Authenticate: ";
-    uint8_t *text = (uint8_t *)"Date: Mon, 23 Feb 2009 13:31:49 GMT"
-                "Server: Apache\r\n"
-                "Www-authenticate: Basic realm=\"Authentification user password\"\r\n"
-                "Vary: accept-language,accept-charset\r\n"
-                "Accept-ranges: bytes\r\n"
-                "Connection: close\r\n"
-                "Content-type: text/html; charset=iso-8859-1\r\n"
-                "Content-language: fr\r\n"
-                "Expires: Mon, 23 Feb 2009 13:31:49 GMT\r\n\r\n";
+    uint8_t *text =
+            (uint8_t *)"Date: Mon, 23 Feb 2009 13:31:49 GMT"
+                       "Server: Apache\r\n"
+                       "Www-authenticate: Basic realm=\"Authentification user password\"\r\n"
+                       "Vary: accept-language,accept-charset\r\n"
+                       "Accept-ranges: bytes\r\n"
+                       "Connection: close\r\n"
+                       "Content-type: text/html; charset=iso-8859-1\r\n"
+                       "Content-language: fr\r\n"
+                       "Expires: Mon, 23 Feb 2009 13:31:49 GMT\r\n\r\n";
     uint8_t *found = BoyerMooreNocaseWrapper(text, needle, 1);
-    //printf("found: %s\n", found);
+    // printf("found: %s\n", found);
     if (found != NULL)
         return 1;
     else
@@ -693,7 +742,7 @@ static int UtilSpmBasicSearchTest02(void)
     uint8_t *needle = (uint8_t *)"oPQRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchWrapper(text, needle, 1);
-    //printf("found: %s\n", found);
+    // printf("found: %s\n", found);
     if (found != NULL)
         return 0;
     else
@@ -705,7 +754,7 @@ static int UtilSpmBasicSearchNocaseTest02(void)
     uint8_t *needle = (uint8_t *)"OpZrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchNocaseWrapper(text, needle, 1);
-    //printf("found: %s\n", found);
+    // printf("found: %s\n", found);
     if (found != NULL)
         return 0;
     else
@@ -717,7 +766,7 @@ static int UtilSpmBs2bmSearchTest02(void)
     uint8_t *needle = (uint8_t *)"oPQRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmWrapper(text, needle, 1);
-    //printf("found: %s\n", found);
+    // printf("found: %s\n", found);
     if (found != NULL)
         return 0;
     else
@@ -729,7 +778,7 @@ static int UtilSpmBs2bmSearchNocaseTest02(void)
     uint8_t *needle = (uint8_t *)"OpZrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmNocaseWrapper(text, needle, 1);
-    //printf("found: %s\n", found);
+    // printf("found: %s\n", found);
     if (found != NULL)
         return 0;
     else
@@ -741,7 +790,7 @@ static int UtilSpmBoyerMooreSearchTest02(void)
     uint8_t *needle = (uint8_t *)"oPQRsT";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreWrapper(text, needle, 1);
-    //printf("found: %s\n", found);
+    // printf("found: %s\n", found);
     if (found != NULL)
         return 0;
     else
@@ -753,7 +802,7 @@ static int UtilSpmBoyerMooreSearchNocaseTest02(void)
     uint8_t *needle = (uint8_t *)"OpZrSt";
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreNocaseWrapper(text, needle, 1);
-    //printf("found: %s\n", found);
+    // printf("found: %s\n", found);
     if (found != NULL)
         return 0;
     else
@@ -766,411 +815,411 @@ static int UtilSpmBoyerMooreSearchNocaseTest02(void)
 static int UtilSpmSearchOffsetsTest01(void)
 {
     const char *text[26][27];
-    text[0][0]="azzzzzzzzzzzzzzzzzzzzzzzzzz";
-    text[0][1]="zazzzzzzzzzzzzzzzzzzzzzzzzz";
-    text[0][2]="zzazzzzzzzzzzzzzzzzzzzzzzzz";
-    text[0][3]="zzzazzzzzzzzzzzzzzzzzzzzzzz";
-    text[0][4]="zzzzazzzzzzzzzzzzzzzzzzzzzz";
-    text[0][5]="zzzzzazzzzzzzzzzzzzzzzzzzzz";
-    text[0][6]="zzzzzzazzzzzzzzzzzzzzzzzzzz";
-    text[0][7]="zzzzzzzazzzzzzzzzzzzzzzzzzz";
-    text[0][8]="zzzzzzzzazzzzzzzzzzzzzzzzzz";
-    text[0][9]="zzzzzzzzzazzzzzzzzzzzzzzzzz";
-    text[0][10]="zzzzzzzzzzazzzzzzzzzzzzzzzz";
-    text[0][11]="zzzzzzzzzzzazzzzzzzzzzzzzzz";
-    text[0][12]="zzzzzzzzzzzzazzzzzzzzzzzzzz";
-    text[0][13]="zzzzzzzzzzzzzazzzzzzzzzzzzz";
-    text[0][14]="zzzzzzzzzzzzzzazzzzzzzzzzzz";
-    text[0][15]="zzzzzzzzzzzzzzzazzzzzzzzzzz";
-    text[0][16]="zzzzzzzzzzzzzzzzazzzzzzzzzz";
-    text[0][17]="zzzzzzzzzzzzzzzzzazzzzzzzzz";
-    text[0][18]="zzzzzzzzzzzzzzzzzzazzzzzzzz";
-    text[0][19]="zzzzzzzzzzzzzzzzzzzazzzzzzz";
-    text[0][20]="zzzzzzzzzzzzzzzzzzzzazzzzzz";
-    text[0][21]="zzzzzzzzzzzzzzzzzzzzzazzzzz";
-    text[0][22]="zzzzzzzzzzzzzzzzzzzzzzazzzz";
-    text[0][23]="zzzzzzzzzzzzzzzzzzzzzzzazzz";
-    text[0][24]="zzzzzzzzzzzzzzzzzzzzzzzzazz";
-    text[0][25]="zzzzzzzzzzzzzzzzzzzzzzzzzaz";
-    text[0][26]="zzzzzzzzzzzzzzzzzzzzzzzzzza";
-    text[1][0]="aBzzzzzzzzzzzzzzzzzzzzzzzzz";
-    text[1][1]="zaBzzzzzzzzzzzzzzzzzzzzzzzz";
-    text[1][2]="zzaBzzzzzzzzzzzzzzzzzzzzzzz";
-    text[1][3]="zzzaBzzzzzzzzzzzzzzzzzzzzzz";
-    text[1][4]="zzzzaBzzzzzzzzzzzzzzzzzzzzz";
-    text[1][5]="zzzzzaBzzzzzzzzzzzzzzzzzzzz";
-    text[1][6]="zzzzzzaBzzzzzzzzzzzzzzzzzzz";
-    text[1][7]="zzzzzzzaBzzzzzzzzzzzzzzzzzz";
-    text[1][8]="zzzzzzzzaBzzzzzzzzzzzzzzzzz";
-    text[1][9]="zzzzzzzzzaBzzzzzzzzzzzzzzzz";
-    text[1][10]="zzzzzzzzzzaBzzzzzzzzzzzzzzz";
-    text[1][11]="zzzzzzzzzzzaBzzzzzzzzzzzzzz";
-    text[1][12]="zzzzzzzzzzzzaBzzzzzzzzzzzzz";
-    text[1][13]="zzzzzzzzzzzzzaBzzzzzzzzzzzz";
-    text[1][14]="zzzzzzzzzzzzzzaBzzzzzzzzzzz";
-    text[1][15]="zzzzzzzzzzzzzzzaBzzzzzzzzzz";
-    text[1][16]="zzzzzzzzzzzzzzzzaBzzzzzzzzz";
-    text[1][17]="zzzzzzzzzzzzzzzzzaBzzzzzzzz";
-    text[1][18]="zzzzzzzzzzzzzzzzzzaBzzzzzzz";
-    text[1][19]="zzzzzzzzzzzzzzzzzzzaBzzzzzz";
-    text[1][20]="zzzzzzzzzzzzzzzzzzzzaBzzzzz";
-    text[1][21]="zzzzzzzzzzzzzzzzzzzzzaBzzzz";
-    text[1][22]="zzzzzzzzzzzzzzzzzzzzzzaBzzz";
-    text[1][23]="zzzzzzzzzzzzzzzzzzzzzzzaBzz";
-    text[1][24]="zzzzzzzzzzzzzzzzzzzzzzzzaBz";
-    text[1][25]="zzzzzzzzzzzzzzzzzzzzzzzzzaB";
-    text[2][0]="aBczzzzzzzzzzzzzzzzzzzzzzzz";
-    text[2][1]="zaBczzzzzzzzzzzzzzzzzzzzzzz";
-    text[2][2]="zzaBczzzzzzzzzzzzzzzzzzzzzz";
-    text[2][3]="zzzaBczzzzzzzzzzzzzzzzzzzzz";
-    text[2][4]="zzzzaBczzzzzzzzzzzzzzzzzzzz";
-    text[2][5]="zzzzzaBczzzzzzzzzzzzzzzzzzz";
-    text[2][6]="zzzzzzaBczzzzzzzzzzzzzzzzzz";
-    text[2][7]="zzzzzzzaBczzzzzzzzzzzzzzzzz";
-    text[2][8]="zzzzzzzzaBczzzzzzzzzzzzzzzz";
-    text[2][9]="zzzzzzzzzaBczzzzzzzzzzzzzzz";
-    text[2][10]="zzzzzzzzzzaBczzzzzzzzzzzzzz";
-    text[2][11]="zzzzzzzzzzzaBczzzzzzzzzzzzz";
-    text[2][12]="zzzzzzzzzzzzaBczzzzzzzzzzzz";
-    text[2][13]="zzzzzzzzzzzzzaBczzzzzzzzzzz";
-    text[2][14]="zzzzzzzzzzzzzzaBczzzzzzzzzz";
-    text[2][15]="zzzzzzzzzzzzzzzaBczzzzzzzzz";
-    text[2][16]="zzzzzzzzzzzzzzzzaBczzzzzzzz";
-    text[2][17]="zzzzzzzzzzzzzzzzzaBczzzzzzz";
-    text[2][18]="zzzzzzzzzzzzzzzzzzaBczzzzzz";
-    text[2][19]="zzzzzzzzzzzzzzzzzzzaBczzzzz";
-    text[2][20]="zzzzzzzzzzzzzzzzzzzzaBczzzz";
-    text[2][21]="zzzzzzzzzzzzzzzzzzzzzaBczzz";
-    text[2][22]="zzzzzzzzzzzzzzzzzzzzzzaBczz";
-    text[2][23]="zzzzzzzzzzzzzzzzzzzzzzzaBcz";
-    text[2][24]="zzzzzzzzzzzzzzzzzzzzzzzzaBc";
-    text[3][0]="aBcDzzzzzzzzzzzzzzzzzzzzzzz";
-    text[3][1]="zaBcDzzzzzzzzzzzzzzzzzzzzzz";
-    text[3][2]="zzaBcDzzzzzzzzzzzzzzzzzzzzz";
-    text[3][3]="zzzaBcDzzzzzzzzzzzzzzzzzzzz";
-    text[3][4]="zzzzaBcDzzzzzzzzzzzzzzzzzzz";
-    text[3][5]="zzzzzaBcDzzzzzzzzzzzzzzzzzz";
-    text[3][6]="zzzzzzaBcDzzzzzzzzzzzzzzzzz";
-    text[3][7]="zzzzzzzaBcDzzzzzzzzzzzzzzzz";
-    text[3][8]="zzzzzzzzaBcDzzzzzzzzzzzzzzz";
-    text[3][9]="zzzzzzzzzaBcDzzzzzzzzzzzzzz";
-    text[3][10]="zzzzzzzzzzaBcDzzzzzzzzzzzzz";
-    text[3][11]="zzzzzzzzzzzaBcDzzzzzzzzzzzz";
-    text[3][12]="zzzzzzzzzzzzaBcDzzzzzzzzzzz";
-    text[3][13]="zzzzzzzzzzzzzaBcDzzzzzzzzzz";
-    text[3][14]="zzzzzzzzzzzzzzaBcDzzzzzzzzz";
-    text[3][15]="zzzzzzzzzzzzzzzaBcDzzzzzzzz";
-    text[3][16]="zzzzzzzzzzzzzzzzaBcDzzzzzzz";
-    text[3][17]="zzzzzzzzzzzzzzzzzaBcDzzzzzz";
-    text[3][18]="zzzzzzzzzzzzzzzzzzaBcDzzzzz";
-    text[3][19]="zzzzzzzzzzzzzzzzzzzaBcDzzzz";
-    text[3][20]="zzzzzzzzzzzzzzzzzzzzaBcDzzz";
-    text[3][21]="zzzzzzzzzzzzzzzzzzzzzaBcDzz";
-    text[3][22]="zzzzzzzzzzzzzzzzzzzzzzaBcDz";
-    text[3][23]="zzzzzzzzzzzzzzzzzzzzzzzaBcD";
-    text[4][0]="aBcDezzzzzzzzzzzzzzzzzzzzzz";
-    text[4][1]="zaBcDezzzzzzzzzzzzzzzzzzzzz";
-    text[4][2]="zzaBcDezzzzzzzzzzzzzzzzzzzz";
-    text[4][3]="zzzaBcDezzzzzzzzzzzzzzzzzzz";
-    text[4][4]="zzzzaBcDezzzzzzzzzzzzzzzzzz";
-    text[4][5]="zzzzzaBcDezzzzzzzzzzzzzzzzz";
-    text[4][6]="zzzzzzaBcDezzzzzzzzzzzzzzzz";
-    text[4][7]="zzzzzzzaBcDezzzzzzzzzzzzzzz";
-    text[4][8]="zzzzzzzzaBcDezzzzzzzzzzzzzz";
-    text[4][9]="zzzzzzzzzaBcDezzzzzzzzzzzzz";
-    text[4][10]="zzzzzzzzzzaBcDezzzzzzzzzzzz";
-    text[4][11]="zzzzzzzzzzzaBcDezzzzzzzzzzz";
-    text[4][12]="zzzzzzzzzzzzaBcDezzzzzzzzzz";
-    text[4][13]="zzzzzzzzzzzzzaBcDezzzzzzzzz";
-    text[4][14]="zzzzzzzzzzzzzzaBcDezzzzzzzz";
-    text[4][15]="zzzzzzzzzzzzzzzaBcDezzzzzzz";
-    text[4][16]="zzzzzzzzzzzzzzzzaBcDezzzzzz";
-    text[4][17]="zzzzzzzzzzzzzzzzzaBcDezzzzz";
-    text[4][18]="zzzzzzzzzzzzzzzzzzaBcDezzzz";
-    text[4][19]="zzzzzzzzzzzzzzzzzzzaBcDezzz";
-    text[4][20]="zzzzzzzzzzzzzzzzzzzzaBcDezz";
-    text[4][21]="zzzzzzzzzzzzzzzzzzzzzaBcDez";
-    text[4][22]="zzzzzzzzzzzzzzzzzzzzzzaBcDe";
-    text[5][0]="aBcDeFzzzzzzzzzzzzzzzzzzzzz";
-    text[5][1]="zaBcDeFzzzzzzzzzzzzzzzzzzzz";
-    text[5][2]="zzaBcDeFzzzzzzzzzzzzzzzzzzz";
-    text[5][3]="zzzaBcDeFzzzzzzzzzzzzzzzzzz";
-    text[5][4]="zzzzaBcDeFzzzzzzzzzzzzzzzzz";
-    text[5][5]="zzzzzaBcDeFzzzzzzzzzzzzzzzz";
-    text[5][6]="zzzzzzaBcDeFzzzzzzzzzzzzzzz";
-    text[5][7]="zzzzzzzaBcDeFzzzzzzzzzzzzzz";
-    text[5][8]="zzzzzzzzaBcDeFzzzzzzzzzzzzz";
-    text[5][9]="zzzzzzzzzaBcDeFzzzzzzzzzzzz";
-    text[5][10]="zzzzzzzzzzaBcDeFzzzzzzzzzzz";
-    text[5][11]="zzzzzzzzzzzaBcDeFzzzzzzzzzz";
-    text[5][12]="zzzzzzzzzzzzaBcDeFzzzzzzzzz";
-    text[5][13]="zzzzzzzzzzzzzaBcDeFzzzzzzzz";
-    text[5][14]="zzzzzzzzzzzzzzaBcDeFzzzzzzz";
-    text[5][15]="zzzzzzzzzzzzzzzaBcDeFzzzzzz";
-    text[5][16]="zzzzzzzzzzzzzzzzaBcDeFzzzzz";
-    text[5][17]="zzzzzzzzzzzzzzzzzaBcDeFzzzz";
-    text[5][18]="zzzzzzzzzzzzzzzzzzaBcDeFzzz";
-    text[5][19]="zzzzzzzzzzzzzzzzzzzaBcDeFzz";
-    text[5][20]="zzzzzzzzzzzzzzzzzzzzaBcDeFz";
-    text[5][21]="zzzzzzzzzzzzzzzzzzzzzaBcDeF";
-    text[6][0]="aBcDeFgzzzzzzzzzzzzzzzzzzzz";
-    text[6][1]="zaBcDeFgzzzzzzzzzzzzzzzzzzz";
-    text[6][2]="zzaBcDeFgzzzzzzzzzzzzzzzzzz";
-    text[6][3]="zzzaBcDeFgzzzzzzzzzzzzzzzzz";
-    text[6][4]="zzzzaBcDeFgzzzzzzzzzzzzzzzz";
-    text[6][5]="zzzzzaBcDeFgzzzzzzzzzzzzzzz";
-    text[6][6]="zzzzzzaBcDeFgzzzzzzzzzzzzzz";
-    text[6][7]="zzzzzzzaBcDeFgzzzzzzzzzzzzz";
-    text[6][8]="zzzzzzzzaBcDeFgzzzzzzzzzzzz";
-    text[6][9]="zzzzzzzzzaBcDeFgzzzzzzzzzzz";
-    text[6][10]="zzzzzzzzzzaBcDeFgzzzzzzzzzz";
-    text[6][11]="zzzzzzzzzzzaBcDeFgzzzzzzzzz";
-    text[6][12]="zzzzzzzzzzzzaBcDeFgzzzzzzzz";
-    text[6][13]="zzzzzzzzzzzzzaBcDeFgzzzzzzz";
-    text[6][14]="zzzzzzzzzzzzzzaBcDeFgzzzzzz";
-    text[6][15]="zzzzzzzzzzzzzzzaBcDeFgzzzzz";
-    text[6][16]="zzzzzzzzzzzzzzzzaBcDeFgzzzz";
-    text[6][17]="zzzzzzzzzzzzzzzzzaBcDeFgzzz";
-    text[6][18]="zzzzzzzzzzzzzzzzzzaBcDeFgzz";
-    text[6][19]="zzzzzzzzzzzzzzzzzzzaBcDeFgz";
-    text[6][20]="zzzzzzzzzzzzzzzzzzzzaBcDeFg";
-    text[7][0]="aBcDeFgHzzzzzzzzzzzzzzzzzzz";
-    text[7][1]="zaBcDeFgHzzzzzzzzzzzzzzzzzz";
-    text[7][2]="zzaBcDeFgHzzzzzzzzzzzzzzzzz";
-    text[7][3]="zzzaBcDeFgHzzzzzzzzzzzzzzzz";
-    text[7][4]="zzzzaBcDeFgHzzzzzzzzzzzzzzz";
-    text[7][5]="zzzzzaBcDeFgHzzzzzzzzzzzzzz";
-    text[7][6]="zzzzzzaBcDeFgHzzzzzzzzzzzzz";
-    text[7][7]="zzzzzzzaBcDeFgHzzzzzzzzzzzz";
-    text[7][8]="zzzzzzzzaBcDeFgHzzzzzzzzzzz";
-    text[7][9]="zzzzzzzzzaBcDeFgHzzzzzzzzzz";
-    text[7][10]="zzzzzzzzzzaBcDeFgHzzzzzzzzz";
-    text[7][11]="zzzzzzzzzzzaBcDeFgHzzzzzzzz";
-    text[7][12]="zzzzzzzzzzzzaBcDeFgHzzzzzzz";
-    text[7][13]="zzzzzzzzzzzzzaBcDeFgHzzzzzz";
-    text[7][14]="zzzzzzzzzzzzzzaBcDeFgHzzzzz";
-    text[7][15]="zzzzzzzzzzzzzzzaBcDeFgHzzzz";
-    text[7][16]="zzzzzzzzzzzzzzzzaBcDeFgHzzz";
-    text[7][17]="zzzzzzzzzzzzzzzzzaBcDeFgHzz";
-    text[7][18]="zzzzzzzzzzzzzzzzzzaBcDeFgHz";
-    text[7][19]="zzzzzzzzzzzzzzzzzzzaBcDeFgH";
-    text[8][0]="aBcDeFgHizzzzzzzzzzzzzzzzzz";
-    text[8][1]="zaBcDeFgHizzzzzzzzzzzzzzzzz";
-    text[8][2]="zzaBcDeFgHizzzzzzzzzzzzzzzz";
-    text[8][3]="zzzaBcDeFgHizzzzzzzzzzzzzzz";
-    text[8][4]="zzzzaBcDeFgHizzzzzzzzzzzzzz";
-    text[8][5]="zzzzzaBcDeFgHizzzzzzzzzzzzz";
-    text[8][6]="zzzzzzaBcDeFgHizzzzzzzzzzzz";
-    text[8][7]="zzzzzzzaBcDeFgHizzzzzzzzzzz";
-    text[8][8]="zzzzzzzzaBcDeFgHizzzzzzzzzz";
-    text[8][9]="zzzzzzzzzaBcDeFgHizzzzzzzzz";
-    text[8][10]="zzzzzzzzzzaBcDeFgHizzzzzzzz";
-    text[8][11]="zzzzzzzzzzzaBcDeFgHizzzzzzz";
-    text[8][12]="zzzzzzzzzzzzaBcDeFgHizzzzzz";
-    text[8][13]="zzzzzzzzzzzzzaBcDeFgHizzzzz";
-    text[8][14]="zzzzzzzzzzzzzzaBcDeFgHizzzz";
-    text[8][15]="zzzzzzzzzzzzzzzaBcDeFgHizzz";
-    text[8][16]="zzzzzzzzzzzzzzzzaBcDeFgHizz";
-    text[8][17]="zzzzzzzzzzzzzzzzzaBcDeFgHiz";
-    text[8][18]="zzzzzzzzzzzzzzzzzzaBcDeFgHi";
-    text[9][0]="aBcDeFgHiJzzzzzzzzzzzzzzzzz";
-    text[9][1]="zaBcDeFgHiJzzzzzzzzzzzzzzzz";
-    text[9][2]="zzaBcDeFgHiJzzzzzzzzzzzzzzz";
-    text[9][3]="zzzaBcDeFgHiJzzzzzzzzzzzzzz";
-    text[9][4]="zzzzaBcDeFgHiJzzzzzzzzzzzzz";
-    text[9][5]="zzzzzaBcDeFgHiJzzzzzzzzzzzz";
-    text[9][6]="zzzzzzaBcDeFgHiJzzzzzzzzzzz";
-    text[9][7]="zzzzzzzaBcDeFgHiJzzzzzzzzzz";
-    text[9][8]="zzzzzzzzaBcDeFgHiJzzzzzzzzz";
-    text[9][9]="zzzzzzzzzaBcDeFgHiJzzzzzzzz";
-    text[9][10]="zzzzzzzzzzaBcDeFgHiJzzzzzzz";
-    text[9][11]="zzzzzzzzzzzaBcDeFgHiJzzzzzz";
-    text[9][12]="zzzzzzzzzzzzaBcDeFgHiJzzzzz";
-    text[9][13]="zzzzzzzzzzzzzaBcDeFgHiJzzzz";
-    text[9][14]="zzzzzzzzzzzzzzaBcDeFgHiJzzz";
-    text[9][15]="zzzzzzzzzzzzzzzaBcDeFgHiJzz";
-    text[9][16]="zzzzzzzzzzzzzzzzaBcDeFgHiJz";
-    text[9][17]="zzzzzzzzzzzzzzzzzaBcDeFgHiJ";
-    text[10][0]="aBcDeFgHiJkzzzzzzzzzzzzzzzz";
-    text[10][1]="zaBcDeFgHiJkzzzzzzzzzzzzzzz";
-    text[10][2]="zzaBcDeFgHiJkzzzzzzzzzzzzzz";
-    text[10][3]="zzzaBcDeFgHiJkzzzzzzzzzzzzz";
-    text[10][4]="zzzzaBcDeFgHiJkzzzzzzzzzzzz";
-    text[10][5]="zzzzzaBcDeFgHiJkzzzzzzzzzzz";
-    text[10][6]="zzzzzzaBcDeFgHiJkzzzzzzzzzz";
-    text[10][7]="zzzzzzzaBcDeFgHiJkzzzzzzzzz";
-    text[10][8]="zzzzzzzzaBcDeFgHiJkzzzzzzzz";
-    text[10][9]="zzzzzzzzzaBcDeFgHiJkzzzzzzz";
-    text[10][10]="zzzzzzzzzzaBcDeFgHiJkzzzzzz";
-    text[10][11]="zzzzzzzzzzzaBcDeFgHiJkzzzzz";
-    text[10][12]="zzzzzzzzzzzzaBcDeFgHiJkzzzz";
-    text[10][13]="zzzzzzzzzzzzzaBcDeFgHiJkzzz";
-    text[10][14]="zzzzzzzzzzzzzzaBcDeFgHiJkzz";
-    text[10][15]="zzzzzzzzzzzzzzzaBcDeFgHiJkz";
-    text[10][16]="zzzzzzzzzzzzzzzzaBcDeFgHiJk";
-    text[11][0]="aBcDeFgHiJkLzzzzzzzzzzzzzzz";
-    text[11][1]="zaBcDeFgHiJkLzzzzzzzzzzzzzz";
-    text[11][2]="zzaBcDeFgHiJkLzzzzzzzzzzzzz";
-    text[11][3]="zzzaBcDeFgHiJkLzzzzzzzzzzzz";
-    text[11][4]="zzzzaBcDeFgHiJkLzzzzzzzzzzz";
-    text[11][5]="zzzzzaBcDeFgHiJkLzzzzzzzzzz";
-    text[11][6]="zzzzzzaBcDeFgHiJkLzzzzzzzzz";
-    text[11][7]="zzzzzzzaBcDeFgHiJkLzzzzzzzz";
-    text[11][8]="zzzzzzzzaBcDeFgHiJkLzzzzzzz";
-    text[11][9]="zzzzzzzzzaBcDeFgHiJkLzzzzzz";
-    text[11][10]="zzzzzzzzzzaBcDeFgHiJkLzzzzz";
-    text[11][11]="zzzzzzzzzzzaBcDeFgHiJkLzzzz";
-    text[11][12]="zzzzzzzzzzzzaBcDeFgHiJkLzzz";
-    text[11][13]="zzzzzzzzzzzzzaBcDeFgHiJkLzz";
-    text[11][14]="zzzzzzzzzzzzzzaBcDeFgHiJkLz";
-    text[11][15]="zzzzzzzzzzzzzzzaBcDeFgHiJkL";
-    text[12][0]="aBcDeFgHiJkLmzzzzzzzzzzzzzz";
-    text[12][1]="zaBcDeFgHiJkLmzzzzzzzzzzzzz";
-    text[12][2]="zzaBcDeFgHiJkLmzzzzzzzzzzzz";
-    text[12][3]="zzzaBcDeFgHiJkLmzzzzzzzzzzz";
-    text[12][4]="zzzzaBcDeFgHiJkLmzzzzzzzzzz";
-    text[12][5]="zzzzzaBcDeFgHiJkLmzzzzzzzzz";
-    text[12][6]="zzzzzzaBcDeFgHiJkLmzzzzzzzz";
-    text[12][7]="zzzzzzzaBcDeFgHiJkLmzzzzzzz";
-    text[12][8]="zzzzzzzzaBcDeFgHiJkLmzzzzzz";
-    text[12][9]="zzzzzzzzzaBcDeFgHiJkLmzzzzz";
-    text[12][10]="zzzzzzzzzzaBcDeFgHiJkLmzzzz";
-    text[12][11]="zzzzzzzzzzzaBcDeFgHiJkLmzzz";
-    text[12][12]="zzzzzzzzzzzzaBcDeFgHiJkLmzz";
-    text[12][13]="zzzzzzzzzzzzzaBcDeFgHiJkLmz";
-    text[12][14]="zzzzzzzzzzzzzzaBcDeFgHiJkLm";
-    text[13][0]="aBcDeFgHiJkLmNzzzzzzzzzzzzz";
-    text[13][1]="zaBcDeFgHiJkLmNzzzzzzzzzzzz";
-    text[13][2]="zzaBcDeFgHiJkLmNzzzzzzzzzzz";
-    text[13][3]="zzzaBcDeFgHiJkLmNzzzzzzzzzz";
-    text[13][4]="zzzzaBcDeFgHiJkLmNzzzzzzzzz";
-    text[13][5]="zzzzzaBcDeFgHiJkLmNzzzzzzzz";
-    text[13][6]="zzzzzzaBcDeFgHiJkLmNzzzzzzz";
-    text[13][7]="zzzzzzzaBcDeFgHiJkLmNzzzzzz";
-    text[13][8]="zzzzzzzzaBcDeFgHiJkLmNzzzzz";
-    text[13][9]="zzzzzzzzzaBcDeFgHiJkLmNzzzz";
-    text[13][10]="zzzzzzzzzzaBcDeFgHiJkLmNzzz";
-    text[13][11]="zzzzzzzzzzzaBcDeFgHiJkLmNzz";
-    text[13][12]="zzzzzzzzzzzzaBcDeFgHiJkLmNz";
-    text[13][13]="zzzzzzzzzzzzzaBcDeFgHiJkLmN";
-    text[14][0]="aBcDeFgHiJkLmNozzzzzzzzzzzz";
-    text[14][1]="zaBcDeFgHiJkLmNozzzzzzzzzzz";
-    text[14][2]="zzaBcDeFgHiJkLmNozzzzzzzzzz";
-    text[14][3]="zzzaBcDeFgHiJkLmNozzzzzzzzz";
-    text[14][4]="zzzzaBcDeFgHiJkLmNozzzzzzzz";
-    text[14][5]="zzzzzaBcDeFgHiJkLmNozzzzzzz";
-    text[14][6]="zzzzzzaBcDeFgHiJkLmNozzzzzz";
-    text[14][7]="zzzzzzzaBcDeFgHiJkLmNozzzzz";
-    text[14][8]="zzzzzzzzaBcDeFgHiJkLmNozzzz";
-    text[14][9]="zzzzzzzzzaBcDeFgHiJkLmNozzz";
-    text[14][10]="zzzzzzzzzzaBcDeFgHiJkLmNozz";
-    text[14][11]="zzzzzzzzzzzaBcDeFgHiJkLmNoz";
-    text[14][12]="zzzzzzzzzzzzaBcDeFgHiJkLmNo";
-    text[15][0]="aBcDeFgHiJkLmNoPzzzzzzzzzzz";
-    text[15][1]="zaBcDeFgHiJkLmNoPzzzzzzzzzz";
-    text[15][2]="zzaBcDeFgHiJkLmNoPzzzzzzzzz";
-    text[15][3]="zzzaBcDeFgHiJkLmNoPzzzzzzzz";
-    text[15][4]="zzzzaBcDeFgHiJkLmNoPzzzzzzz";
-    text[15][5]="zzzzzaBcDeFgHiJkLmNoPzzzzzz";
-    text[15][6]="zzzzzzaBcDeFgHiJkLmNoPzzzzz";
-    text[15][7]="zzzzzzzaBcDeFgHiJkLmNoPzzzz";
-    text[15][8]="zzzzzzzzaBcDeFgHiJkLmNoPzzz";
-    text[15][9]="zzzzzzzzzaBcDeFgHiJkLmNoPzz";
-    text[15][10]="zzzzzzzzzzaBcDeFgHiJkLmNoPz";
-    text[15][11]="zzzzzzzzzzzaBcDeFgHiJkLmNoP";
-    text[16][0]="aBcDeFgHiJkLmNoPqzzzzzzzzzz";
-    text[16][1]="zaBcDeFgHiJkLmNoPqzzzzzzzzz";
-    text[16][2]="zzaBcDeFgHiJkLmNoPqzzzzzzzz";
-    text[16][3]="zzzaBcDeFgHiJkLmNoPqzzzzzzz";
-    text[16][4]="zzzzaBcDeFgHiJkLmNoPqzzzzzz";
-    text[16][5]="zzzzzaBcDeFgHiJkLmNoPqzzzzz";
-    text[16][6]="zzzzzzaBcDeFgHiJkLmNoPqzzzz";
-    text[16][7]="zzzzzzzaBcDeFgHiJkLmNoPqzzz";
-    text[16][8]="zzzzzzzzaBcDeFgHiJkLmNoPqzz";
-    text[16][9]="zzzzzzzzzaBcDeFgHiJkLmNoPqz";
-    text[16][10]="zzzzzzzzzzaBcDeFgHiJkLmNoPq";
-    text[17][0]="aBcDeFgHiJkLmNoPqRzzzzzzzzz";
-    text[17][1]="zaBcDeFgHiJkLmNoPqRzzzzzzzz";
-    text[17][2]="zzaBcDeFgHiJkLmNoPqRzzzzzzz";
-    text[17][3]="zzzaBcDeFgHiJkLmNoPqRzzzzzz";
-    text[17][4]="zzzzaBcDeFgHiJkLmNoPqRzzzzz";
-    text[17][5]="zzzzzaBcDeFgHiJkLmNoPqRzzzz";
-    text[17][6]="zzzzzzaBcDeFgHiJkLmNoPqRzzz";
-    text[17][7]="zzzzzzzaBcDeFgHiJkLmNoPqRzz";
-    text[17][8]="zzzzzzzzaBcDeFgHiJkLmNoPqRz";
-    text[17][9]="zzzzzzzzzaBcDeFgHiJkLmNoPqR";
-    text[18][0]="aBcDeFgHiJkLmNoPqRszzzzzzzz";
-    text[18][1]="zaBcDeFgHiJkLmNoPqRszzzzzzz";
-    text[18][2]="zzaBcDeFgHiJkLmNoPqRszzzzzz";
-    text[18][3]="zzzaBcDeFgHiJkLmNoPqRszzzzz";
-    text[18][4]="zzzzaBcDeFgHiJkLmNoPqRszzzz";
-    text[18][5]="zzzzzaBcDeFgHiJkLmNoPqRszzz";
-    text[18][6]="zzzzzzaBcDeFgHiJkLmNoPqRszz";
-    text[18][7]="zzzzzzzaBcDeFgHiJkLmNoPqRsz";
-    text[18][8]="zzzzzzzzaBcDeFgHiJkLmNoPqRs";
-    text[19][0]="aBcDeFgHiJkLmNoPqRsTzzzzzzz";
-    text[19][1]="zaBcDeFgHiJkLmNoPqRsTzzzzzz";
-    text[19][2]="zzaBcDeFgHiJkLmNoPqRsTzzzzz";
-    text[19][3]="zzzaBcDeFgHiJkLmNoPqRsTzzzz";
-    text[19][4]="zzzzaBcDeFgHiJkLmNoPqRsTzzz";
-    text[19][5]="zzzzzaBcDeFgHiJkLmNoPqRsTzz";
-    text[19][6]="zzzzzzaBcDeFgHiJkLmNoPqRsTz";
-    text[19][7]="zzzzzzzaBcDeFgHiJkLmNoPqRsT";
-    text[20][0]="aBcDeFgHiJkLmNoPqRsTuzzzzzz";
-    text[20][1]="zaBcDeFgHiJkLmNoPqRsTuzzzzz";
-    text[20][2]="zzaBcDeFgHiJkLmNoPqRsTuzzzz";
-    text[20][3]="zzzaBcDeFgHiJkLmNoPqRsTuzzz";
-    text[20][4]="zzzzaBcDeFgHiJkLmNoPqRsTuzz";
-    text[20][5]="zzzzzaBcDeFgHiJkLmNoPqRsTuz";
-    text[20][6]="zzzzzzaBcDeFgHiJkLmNoPqRsTu";
-    text[21][0]="aBcDeFgHiJkLmNoPqRsTuVzzzzz";
-    text[21][1]="zaBcDeFgHiJkLmNoPqRsTuVzzzz";
-    text[21][2]="zzaBcDeFgHiJkLmNoPqRsTuVzzz";
-    text[21][3]="zzzaBcDeFgHiJkLmNoPqRsTuVzz";
-    text[21][4]="zzzzaBcDeFgHiJkLmNoPqRsTuVz";
-    text[21][5]="zzzzzaBcDeFgHiJkLmNoPqRsTuV";
-    text[22][0]="aBcDeFgHiJkLmNoPqRsTuVwzzzz";
-    text[22][1]="zaBcDeFgHiJkLmNoPqRsTuVwzzz";
-    text[22][2]="zzaBcDeFgHiJkLmNoPqRsTuVwzz";
-    text[22][3]="zzzaBcDeFgHiJkLmNoPqRsTuVwz";
-    text[22][4]="zzzzaBcDeFgHiJkLmNoPqRsTuVw";
-    text[23][0]="aBcDeFgHiJkLmNoPqRsTuVwXzzz";
-    text[23][1]="zaBcDeFgHiJkLmNoPqRsTuVwXzz";
-    text[23][2]="zzaBcDeFgHiJkLmNoPqRsTuVwXz";
-    text[23][3]="zzzaBcDeFgHiJkLmNoPqRsTuVwX";
-    text[24][0]="aBcDeFgHiJkLmNoPqRsTuVwXyzz";
-    text[24][1]="zaBcDeFgHiJkLmNoPqRsTuVwXyz";
-    text[24][2]="zzaBcDeFgHiJkLmNoPqRsTuVwXy";
-    text[25][0]="aBcDeFgHiJkLmNoPqRsTuVwXyZz";
-    text[25][1]="zaBcDeFgHiJkLmNoPqRsTuVwXyZ";
+    text[0][0] = "azzzzzzzzzzzzzzzzzzzzzzzzzz";
+    text[0][1] = "zazzzzzzzzzzzzzzzzzzzzzzzzz";
+    text[0][2] = "zzazzzzzzzzzzzzzzzzzzzzzzzz";
+    text[0][3] = "zzzazzzzzzzzzzzzzzzzzzzzzzz";
+    text[0][4] = "zzzzazzzzzzzzzzzzzzzzzzzzzz";
+    text[0][5] = "zzzzzazzzzzzzzzzzzzzzzzzzzz";
+    text[0][6] = "zzzzzzazzzzzzzzzzzzzzzzzzzz";
+    text[0][7] = "zzzzzzzazzzzzzzzzzzzzzzzzzz";
+    text[0][8] = "zzzzzzzzazzzzzzzzzzzzzzzzzz";
+    text[0][9] = "zzzzzzzzzazzzzzzzzzzzzzzzzz";
+    text[0][10] = "zzzzzzzzzzazzzzzzzzzzzzzzzz";
+    text[0][11] = "zzzzzzzzzzzazzzzzzzzzzzzzzz";
+    text[0][12] = "zzzzzzzzzzzzazzzzzzzzzzzzzz";
+    text[0][13] = "zzzzzzzzzzzzzazzzzzzzzzzzzz";
+    text[0][14] = "zzzzzzzzzzzzzzazzzzzzzzzzzz";
+    text[0][15] = "zzzzzzzzzzzzzzzazzzzzzzzzzz";
+    text[0][16] = "zzzzzzzzzzzzzzzzazzzzzzzzzz";
+    text[0][17] = "zzzzzzzzzzzzzzzzzazzzzzzzzz";
+    text[0][18] = "zzzzzzzzzzzzzzzzzzazzzzzzzz";
+    text[0][19] = "zzzzzzzzzzzzzzzzzzzazzzzzzz";
+    text[0][20] = "zzzzzzzzzzzzzzzzzzzzazzzzzz";
+    text[0][21] = "zzzzzzzzzzzzzzzzzzzzzazzzzz";
+    text[0][22] = "zzzzzzzzzzzzzzzzzzzzzzazzzz";
+    text[0][23] = "zzzzzzzzzzzzzzzzzzzzzzzazzz";
+    text[0][24] = "zzzzzzzzzzzzzzzzzzzzzzzzazz";
+    text[0][25] = "zzzzzzzzzzzzzzzzzzzzzzzzzaz";
+    text[0][26] = "zzzzzzzzzzzzzzzzzzzzzzzzzza";
+    text[1][0] = "aBzzzzzzzzzzzzzzzzzzzzzzzzz";
+    text[1][1] = "zaBzzzzzzzzzzzzzzzzzzzzzzzz";
+    text[1][2] = "zzaBzzzzzzzzzzzzzzzzzzzzzzz";
+    text[1][3] = "zzzaBzzzzzzzzzzzzzzzzzzzzzz";
+    text[1][4] = "zzzzaBzzzzzzzzzzzzzzzzzzzzz";
+    text[1][5] = "zzzzzaBzzzzzzzzzzzzzzzzzzzz";
+    text[1][6] = "zzzzzzaBzzzzzzzzzzzzzzzzzzz";
+    text[1][7] = "zzzzzzzaBzzzzzzzzzzzzzzzzzz";
+    text[1][8] = "zzzzzzzzaBzzzzzzzzzzzzzzzzz";
+    text[1][9] = "zzzzzzzzzaBzzzzzzzzzzzzzzzz";
+    text[1][10] = "zzzzzzzzzzaBzzzzzzzzzzzzzzz";
+    text[1][11] = "zzzzzzzzzzzaBzzzzzzzzzzzzzz";
+    text[1][12] = "zzzzzzzzzzzzaBzzzzzzzzzzzzz";
+    text[1][13] = "zzzzzzzzzzzzzaBzzzzzzzzzzzz";
+    text[1][14] = "zzzzzzzzzzzzzzaBzzzzzzzzzzz";
+    text[1][15] = "zzzzzzzzzzzzzzzaBzzzzzzzzzz";
+    text[1][16] = "zzzzzzzzzzzzzzzzaBzzzzzzzzz";
+    text[1][17] = "zzzzzzzzzzzzzzzzzaBzzzzzzzz";
+    text[1][18] = "zzzzzzzzzzzzzzzzzzaBzzzzzzz";
+    text[1][19] = "zzzzzzzzzzzzzzzzzzzaBzzzzzz";
+    text[1][20] = "zzzzzzzzzzzzzzzzzzzzaBzzzzz";
+    text[1][21] = "zzzzzzzzzzzzzzzzzzzzzaBzzzz";
+    text[1][22] = "zzzzzzzzzzzzzzzzzzzzzzaBzzz";
+    text[1][23] = "zzzzzzzzzzzzzzzzzzzzzzzaBzz";
+    text[1][24] = "zzzzzzzzzzzzzzzzzzzzzzzzaBz";
+    text[1][25] = "zzzzzzzzzzzzzzzzzzzzzzzzzaB";
+    text[2][0] = "aBczzzzzzzzzzzzzzzzzzzzzzzz";
+    text[2][1] = "zaBczzzzzzzzzzzzzzzzzzzzzzz";
+    text[2][2] = "zzaBczzzzzzzzzzzzzzzzzzzzzz";
+    text[2][3] = "zzzaBczzzzzzzzzzzzzzzzzzzzz";
+    text[2][4] = "zzzzaBczzzzzzzzzzzzzzzzzzzz";
+    text[2][5] = "zzzzzaBczzzzzzzzzzzzzzzzzzz";
+    text[2][6] = "zzzzzzaBczzzzzzzzzzzzzzzzzz";
+    text[2][7] = "zzzzzzzaBczzzzzzzzzzzzzzzzz";
+    text[2][8] = "zzzzzzzzaBczzzzzzzzzzzzzzzz";
+    text[2][9] = "zzzzzzzzzaBczzzzzzzzzzzzzzz";
+    text[2][10] = "zzzzzzzzzzaBczzzzzzzzzzzzzz";
+    text[2][11] = "zzzzzzzzzzzaBczzzzzzzzzzzzz";
+    text[2][12] = "zzzzzzzzzzzzaBczzzzzzzzzzzz";
+    text[2][13] = "zzzzzzzzzzzzzaBczzzzzzzzzzz";
+    text[2][14] = "zzzzzzzzzzzzzzaBczzzzzzzzzz";
+    text[2][15] = "zzzzzzzzzzzzzzzaBczzzzzzzzz";
+    text[2][16] = "zzzzzzzzzzzzzzzzaBczzzzzzzz";
+    text[2][17] = "zzzzzzzzzzzzzzzzzaBczzzzzzz";
+    text[2][18] = "zzzzzzzzzzzzzzzzzzaBczzzzzz";
+    text[2][19] = "zzzzzzzzzzzzzzzzzzzaBczzzzz";
+    text[2][20] = "zzzzzzzzzzzzzzzzzzzzaBczzzz";
+    text[2][21] = "zzzzzzzzzzzzzzzzzzzzzaBczzz";
+    text[2][22] = "zzzzzzzzzzzzzzzzzzzzzzaBczz";
+    text[2][23] = "zzzzzzzzzzzzzzzzzzzzzzzaBcz";
+    text[2][24] = "zzzzzzzzzzzzzzzzzzzzzzzzaBc";
+    text[3][0] = "aBcDzzzzzzzzzzzzzzzzzzzzzzz";
+    text[3][1] = "zaBcDzzzzzzzzzzzzzzzzzzzzzz";
+    text[3][2] = "zzaBcDzzzzzzzzzzzzzzzzzzzzz";
+    text[3][3] = "zzzaBcDzzzzzzzzzzzzzzzzzzzz";
+    text[3][4] = "zzzzaBcDzzzzzzzzzzzzzzzzzzz";
+    text[3][5] = "zzzzzaBcDzzzzzzzzzzzzzzzzzz";
+    text[3][6] = "zzzzzzaBcDzzzzzzzzzzzzzzzzz";
+    text[3][7] = "zzzzzzzaBcDzzzzzzzzzzzzzzzz";
+    text[3][8] = "zzzzzzzzaBcDzzzzzzzzzzzzzzz";
+    text[3][9] = "zzzzzzzzzaBcDzzzzzzzzzzzzzz";
+    text[3][10] = "zzzzzzzzzzaBcDzzzzzzzzzzzzz";
+    text[3][11] = "zzzzzzzzzzzaBcDzzzzzzzzzzzz";
+    text[3][12] = "zzzzzzzzzzzzaBcDzzzzzzzzzzz";
+    text[3][13] = "zzzzzzzzzzzzzaBcDzzzzzzzzzz";
+    text[3][14] = "zzzzzzzzzzzzzzaBcDzzzzzzzzz";
+    text[3][15] = "zzzzzzzzzzzzzzzaBcDzzzzzzzz";
+    text[3][16] = "zzzzzzzzzzzzzzzzaBcDzzzzzzz";
+    text[3][17] = "zzzzzzzzzzzzzzzzzaBcDzzzzzz";
+    text[3][18] = "zzzzzzzzzzzzzzzzzzaBcDzzzzz";
+    text[3][19] = "zzzzzzzzzzzzzzzzzzzaBcDzzzz";
+    text[3][20] = "zzzzzzzzzzzzzzzzzzzzaBcDzzz";
+    text[3][21] = "zzzzzzzzzzzzzzzzzzzzzaBcDzz";
+    text[3][22] = "zzzzzzzzzzzzzzzzzzzzzzaBcDz";
+    text[3][23] = "zzzzzzzzzzzzzzzzzzzzzzzaBcD";
+    text[4][0] = "aBcDezzzzzzzzzzzzzzzzzzzzzz";
+    text[4][1] = "zaBcDezzzzzzzzzzzzzzzzzzzzz";
+    text[4][2] = "zzaBcDezzzzzzzzzzzzzzzzzzzz";
+    text[4][3] = "zzzaBcDezzzzzzzzzzzzzzzzzzz";
+    text[4][4] = "zzzzaBcDezzzzzzzzzzzzzzzzzz";
+    text[4][5] = "zzzzzaBcDezzzzzzzzzzzzzzzzz";
+    text[4][6] = "zzzzzzaBcDezzzzzzzzzzzzzzzz";
+    text[4][7] = "zzzzzzzaBcDezzzzzzzzzzzzzzz";
+    text[4][8] = "zzzzzzzzaBcDezzzzzzzzzzzzzz";
+    text[4][9] = "zzzzzzzzzaBcDezzzzzzzzzzzzz";
+    text[4][10] = "zzzzzzzzzzaBcDezzzzzzzzzzzz";
+    text[4][11] = "zzzzzzzzzzzaBcDezzzzzzzzzzz";
+    text[4][12] = "zzzzzzzzzzzzaBcDezzzzzzzzzz";
+    text[4][13] = "zzzzzzzzzzzzzaBcDezzzzzzzzz";
+    text[4][14] = "zzzzzzzzzzzzzzaBcDezzzzzzzz";
+    text[4][15] = "zzzzzzzzzzzzzzzaBcDezzzzzzz";
+    text[4][16] = "zzzzzzzzzzzzzzzzaBcDezzzzzz";
+    text[4][17] = "zzzzzzzzzzzzzzzzzaBcDezzzzz";
+    text[4][18] = "zzzzzzzzzzzzzzzzzzaBcDezzzz";
+    text[4][19] = "zzzzzzzzzzzzzzzzzzzaBcDezzz";
+    text[4][20] = "zzzzzzzzzzzzzzzzzzzzaBcDezz";
+    text[4][21] = "zzzzzzzzzzzzzzzzzzzzzaBcDez";
+    text[4][22] = "zzzzzzzzzzzzzzzzzzzzzzaBcDe";
+    text[5][0] = "aBcDeFzzzzzzzzzzzzzzzzzzzzz";
+    text[5][1] = "zaBcDeFzzzzzzzzzzzzzzzzzzzz";
+    text[5][2] = "zzaBcDeFzzzzzzzzzzzzzzzzzzz";
+    text[5][3] = "zzzaBcDeFzzzzzzzzzzzzzzzzzz";
+    text[5][4] = "zzzzaBcDeFzzzzzzzzzzzzzzzzz";
+    text[5][5] = "zzzzzaBcDeFzzzzzzzzzzzzzzzz";
+    text[5][6] = "zzzzzzaBcDeFzzzzzzzzzzzzzzz";
+    text[5][7] = "zzzzzzzaBcDeFzzzzzzzzzzzzzz";
+    text[5][8] = "zzzzzzzzaBcDeFzzzzzzzzzzzzz";
+    text[5][9] = "zzzzzzzzzaBcDeFzzzzzzzzzzzz";
+    text[5][10] = "zzzzzzzzzzaBcDeFzzzzzzzzzzz";
+    text[5][11] = "zzzzzzzzzzzaBcDeFzzzzzzzzzz";
+    text[5][12] = "zzzzzzzzzzzzaBcDeFzzzzzzzzz";
+    text[5][13] = "zzzzzzzzzzzzzaBcDeFzzzzzzzz";
+    text[5][14] = "zzzzzzzzzzzzzzaBcDeFzzzzzzz";
+    text[5][15] = "zzzzzzzzzzzzzzzaBcDeFzzzzzz";
+    text[5][16] = "zzzzzzzzzzzzzzzzaBcDeFzzzzz";
+    text[5][17] = "zzzzzzzzzzzzzzzzzaBcDeFzzzz";
+    text[5][18] = "zzzzzzzzzzzzzzzzzzaBcDeFzzz";
+    text[5][19] = "zzzzzzzzzzzzzzzzzzzaBcDeFzz";
+    text[5][20] = "zzzzzzzzzzzzzzzzzzzzaBcDeFz";
+    text[5][21] = "zzzzzzzzzzzzzzzzzzzzzaBcDeF";
+    text[6][0] = "aBcDeFgzzzzzzzzzzzzzzzzzzzz";
+    text[6][1] = "zaBcDeFgzzzzzzzzzzzzzzzzzzz";
+    text[6][2] = "zzaBcDeFgzzzzzzzzzzzzzzzzzz";
+    text[6][3] = "zzzaBcDeFgzzzzzzzzzzzzzzzzz";
+    text[6][4] = "zzzzaBcDeFgzzzzzzzzzzzzzzzz";
+    text[6][5] = "zzzzzaBcDeFgzzzzzzzzzzzzzzz";
+    text[6][6] = "zzzzzzaBcDeFgzzzzzzzzzzzzzz";
+    text[6][7] = "zzzzzzzaBcDeFgzzzzzzzzzzzzz";
+    text[6][8] = "zzzzzzzzaBcDeFgzzzzzzzzzzzz";
+    text[6][9] = "zzzzzzzzzaBcDeFgzzzzzzzzzzz";
+    text[6][10] = "zzzzzzzzzzaBcDeFgzzzzzzzzzz";
+    text[6][11] = "zzzzzzzzzzzaBcDeFgzzzzzzzzz";
+    text[6][12] = "zzzzzzzzzzzzaBcDeFgzzzzzzzz";
+    text[6][13] = "zzzzzzzzzzzzzaBcDeFgzzzzzzz";
+    text[6][14] = "zzzzzzzzzzzzzzaBcDeFgzzzzzz";
+    text[6][15] = "zzzzzzzzzzzzzzzaBcDeFgzzzzz";
+    text[6][16] = "zzzzzzzzzzzzzzzzaBcDeFgzzzz";
+    text[6][17] = "zzzzzzzzzzzzzzzzzaBcDeFgzzz";
+    text[6][18] = "zzzzzzzzzzzzzzzzzzaBcDeFgzz";
+    text[6][19] = "zzzzzzzzzzzzzzzzzzzaBcDeFgz";
+    text[6][20] = "zzzzzzzzzzzzzzzzzzzzaBcDeFg";
+    text[7][0] = "aBcDeFgHzzzzzzzzzzzzzzzzzzz";
+    text[7][1] = "zaBcDeFgHzzzzzzzzzzzzzzzzzz";
+    text[7][2] = "zzaBcDeFgHzzzzzzzzzzzzzzzzz";
+    text[7][3] = "zzzaBcDeFgHzzzzzzzzzzzzzzzz";
+    text[7][4] = "zzzzaBcDeFgHzzzzzzzzzzzzzzz";
+    text[7][5] = "zzzzzaBcDeFgHzzzzzzzzzzzzzz";
+    text[7][6] = "zzzzzzaBcDeFgHzzzzzzzzzzzzz";
+    text[7][7] = "zzzzzzzaBcDeFgHzzzzzzzzzzzz";
+    text[7][8] = "zzzzzzzzaBcDeFgHzzzzzzzzzzz";
+    text[7][9] = "zzzzzzzzzaBcDeFgHzzzzzzzzzz";
+    text[7][10] = "zzzzzzzzzzaBcDeFgHzzzzzzzzz";
+    text[7][11] = "zzzzzzzzzzzaBcDeFgHzzzzzzzz";
+    text[7][12] = "zzzzzzzzzzzzaBcDeFgHzzzzzzz";
+    text[7][13] = "zzzzzzzzzzzzzaBcDeFgHzzzzzz";
+    text[7][14] = "zzzzzzzzzzzzzzaBcDeFgHzzzzz";
+    text[7][15] = "zzzzzzzzzzzzzzzaBcDeFgHzzzz";
+    text[7][16] = "zzzzzzzzzzzzzzzzaBcDeFgHzzz";
+    text[7][17] = "zzzzzzzzzzzzzzzzzaBcDeFgHzz";
+    text[7][18] = "zzzzzzzzzzzzzzzzzzaBcDeFgHz";
+    text[7][19] = "zzzzzzzzzzzzzzzzzzzaBcDeFgH";
+    text[8][0] = "aBcDeFgHizzzzzzzzzzzzzzzzzz";
+    text[8][1] = "zaBcDeFgHizzzzzzzzzzzzzzzzz";
+    text[8][2] = "zzaBcDeFgHizzzzzzzzzzzzzzzz";
+    text[8][3] = "zzzaBcDeFgHizzzzzzzzzzzzzzz";
+    text[8][4] = "zzzzaBcDeFgHizzzzzzzzzzzzzz";
+    text[8][5] = "zzzzzaBcDeFgHizzzzzzzzzzzzz";
+    text[8][6] = "zzzzzzaBcDeFgHizzzzzzzzzzzz";
+    text[8][7] = "zzzzzzzaBcDeFgHizzzzzzzzzzz";
+    text[8][8] = "zzzzzzzzaBcDeFgHizzzzzzzzzz";
+    text[8][9] = "zzzzzzzzzaBcDeFgHizzzzzzzzz";
+    text[8][10] = "zzzzzzzzzzaBcDeFgHizzzzzzzz";
+    text[8][11] = "zzzzzzzzzzzaBcDeFgHizzzzzzz";
+    text[8][12] = "zzzzzzzzzzzzaBcDeFgHizzzzzz";
+    text[8][13] = "zzzzzzzzzzzzzaBcDeFgHizzzzz";
+    text[8][14] = "zzzzzzzzzzzzzzaBcDeFgHizzzz";
+    text[8][15] = "zzzzzzzzzzzzzzzaBcDeFgHizzz";
+    text[8][16] = "zzzzzzzzzzzzzzzzaBcDeFgHizz";
+    text[8][17] = "zzzzzzzzzzzzzzzzzaBcDeFgHiz";
+    text[8][18] = "zzzzzzzzzzzzzzzzzzaBcDeFgHi";
+    text[9][0] = "aBcDeFgHiJzzzzzzzzzzzzzzzzz";
+    text[9][1] = "zaBcDeFgHiJzzzzzzzzzzzzzzzz";
+    text[9][2] = "zzaBcDeFgHiJzzzzzzzzzzzzzzz";
+    text[9][3] = "zzzaBcDeFgHiJzzzzzzzzzzzzzz";
+    text[9][4] = "zzzzaBcDeFgHiJzzzzzzzzzzzzz";
+    text[9][5] = "zzzzzaBcDeFgHiJzzzzzzzzzzzz";
+    text[9][6] = "zzzzzzaBcDeFgHiJzzzzzzzzzzz";
+    text[9][7] = "zzzzzzzaBcDeFgHiJzzzzzzzzzz";
+    text[9][8] = "zzzzzzzzaBcDeFgHiJzzzzzzzzz";
+    text[9][9] = "zzzzzzzzzaBcDeFgHiJzzzzzzzz";
+    text[9][10] = "zzzzzzzzzzaBcDeFgHiJzzzzzzz";
+    text[9][11] = "zzzzzzzzzzzaBcDeFgHiJzzzzzz";
+    text[9][12] = "zzzzzzzzzzzzaBcDeFgHiJzzzzz";
+    text[9][13] = "zzzzzzzzzzzzzaBcDeFgHiJzzzz";
+    text[9][14] = "zzzzzzzzzzzzzzaBcDeFgHiJzzz";
+    text[9][15] = "zzzzzzzzzzzzzzzaBcDeFgHiJzz";
+    text[9][16] = "zzzzzzzzzzzzzzzzaBcDeFgHiJz";
+    text[9][17] = "zzzzzzzzzzzzzzzzzaBcDeFgHiJ";
+    text[10][0] = "aBcDeFgHiJkzzzzzzzzzzzzzzzz";
+    text[10][1] = "zaBcDeFgHiJkzzzzzzzzzzzzzzz";
+    text[10][2] = "zzaBcDeFgHiJkzzzzzzzzzzzzzz";
+    text[10][3] = "zzzaBcDeFgHiJkzzzzzzzzzzzzz";
+    text[10][4] = "zzzzaBcDeFgHiJkzzzzzzzzzzzz";
+    text[10][5] = "zzzzzaBcDeFgHiJkzzzzzzzzzzz";
+    text[10][6] = "zzzzzzaBcDeFgHiJkzzzzzzzzzz";
+    text[10][7] = "zzzzzzzaBcDeFgHiJkzzzzzzzzz";
+    text[10][8] = "zzzzzzzzaBcDeFgHiJkzzzzzzzz";
+    text[10][9] = "zzzzzzzzzaBcDeFgHiJkzzzzzzz";
+    text[10][10] = "zzzzzzzzzzaBcDeFgHiJkzzzzzz";
+    text[10][11] = "zzzzzzzzzzzaBcDeFgHiJkzzzzz";
+    text[10][12] = "zzzzzzzzzzzzaBcDeFgHiJkzzzz";
+    text[10][13] = "zzzzzzzzzzzzzaBcDeFgHiJkzzz";
+    text[10][14] = "zzzzzzzzzzzzzzaBcDeFgHiJkzz";
+    text[10][15] = "zzzzzzzzzzzzzzzaBcDeFgHiJkz";
+    text[10][16] = "zzzzzzzzzzzzzzzzaBcDeFgHiJk";
+    text[11][0] = "aBcDeFgHiJkLzzzzzzzzzzzzzzz";
+    text[11][1] = "zaBcDeFgHiJkLzzzzzzzzzzzzzz";
+    text[11][2] = "zzaBcDeFgHiJkLzzzzzzzzzzzzz";
+    text[11][3] = "zzzaBcDeFgHiJkLzzzzzzzzzzzz";
+    text[11][4] = "zzzzaBcDeFgHiJkLzzzzzzzzzzz";
+    text[11][5] = "zzzzzaBcDeFgHiJkLzzzzzzzzzz";
+    text[11][6] = "zzzzzzaBcDeFgHiJkLzzzzzzzzz";
+    text[11][7] = "zzzzzzzaBcDeFgHiJkLzzzzzzzz";
+    text[11][8] = "zzzzzzzzaBcDeFgHiJkLzzzzzzz";
+    text[11][9] = "zzzzzzzzzaBcDeFgHiJkLzzzzzz";
+    text[11][10] = "zzzzzzzzzzaBcDeFgHiJkLzzzzz";
+    text[11][11] = "zzzzzzzzzzzaBcDeFgHiJkLzzzz";
+    text[11][12] = "zzzzzzzzzzzzaBcDeFgHiJkLzzz";
+    text[11][13] = "zzzzzzzzzzzzzaBcDeFgHiJkLzz";
+    text[11][14] = "zzzzzzzzzzzzzzaBcDeFgHiJkLz";
+    text[11][15] = "zzzzzzzzzzzzzzzaBcDeFgHiJkL";
+    text[12][0] = "aBcDeFgHiJkLmzzzzzzzzzzzzzz";
+    text[12][1] = "zaBcDeFgHiJkLmzzzzzzzzzzzzz";
+    text[12][2] = "zzaBcDeFgHiJkLmzzzzzzzzzzzz";
+    text[12][3] = "zzzaBcDeFgHiJkLmzzzzzzzzzzz";
+    text[12][4] = "zzzzaBcDeFgHiJkLmzzzzzzzzzz";
+    text[12][5] = "zzzzzaBcDeFgHiJkLmzzzzzzzzz";
+    text[12][6] = "zzzzzzaBcDeFgHiJkLmzzzzzzzz";
+    text[12][7] = "zzzzzzzaBcDeFgHiJkLmzzzzzzz";
+    text[12][8] = "zzzzzzzzaBcDeFgHiJkLmzzzzzz";
+    text[12][9] = "zzzzzzzzzaBcDeFgHiJkLmzzzzz";
+    text[12][10] = "zzzzzzzzzzaBcDeFgHiJkLmzzzz";
+    text[12][11] = "zzzzzzzzzzzaBcDeFgHiJkLmzzz";
+    text[12][12] = "zzzzzzzzzzzzaBcDeFgHiJkLmzz";
+    text[12][13] = "zzzzzzzzzzzzzaBcDeFgHiJkLmz";
+    text[12][14] = "zzzzzzzzzzzzzzaBcDeFgHiJkLm";
+    text[13][0] = "aBcDeFgHiJkLmNzzzzzzzzzzzzz";
+    text[13][1] = "zaBcDeFgHiJkLmNzzzzzzzzzzzz";
+    text[13][2] = "zzaBcDeFgHiJkLmNzzzzzzzzzzz";
+    text[13][3] = "zzzaBcDeFgHiJkLmNzzzzzzzzzz";
+    text[13][4] = "zzzzaBcDeFgHiJkLmNzzzzzzzzz";
+    text[13][5] = "zzzzzaBcDeFgHiJkLmNzzzzzzzz";
+    text[13][6] = "zzzzzzaBcDeFgHiJkLmNzzzzzzz";
+    text[13][7] = "zzzzzzzaBcDeFgHiJkLmNzzzzzz";
+    text[13][8] = "zzzzzzzzaBcDeFgHiJkLmNzzzzz";
+    text[13][9] = "zzzzzzzzzaBcDeFgHiJkLmNzzzz";
+    text[13][10] = "zzzzzzzzzzaBcDeFgHiJkLmNzzz";
+    text[13][11] = "zzzzzzzzzzzaBcDeFgHiJkLmNzz";
+    text[13][12] = "zzzzzzzzzzzzaBcDeFgHiJkLmNz";
+    text[13][13] = "zzzzzzzzzzzzzaBcDeFgHiJkLmN";
+    text[14][0] = "aBcDeFgHiJkLmNozzzzzzzzzzzz";
+    text[14][1] = "zaBcDeFgHiJkLmNozzzzzzzzzzz";
+    text[14][2] = "zzaBcDeFgHiJkLmNozzzzzzzzzz";
+    text[14][3] = "zzzaBcDeFgHiJkLmNozzzzzzzzz";
+    text[14][4] = "zzzzaBcDeFgHiJkLmNozzzzzzzz";
+    text[14][5] = "zzzzzaBcDeFgHiJkLmNozzzzzzz";
+    text[14][6] = "zzzzzzaBcDeFgHiJkLmNozzzzzz";
+    text[14][7] = "zzzzzzzaBcDeFgHiJkLmNozzzzz";
+    text[14][8] = "zzzzzzzzaBcDeFgHiJkLmNozzzz";
+    text[14][9] = "zzzzzzzzzaBcDeFgHiJkLmNozzz";
+    text[14][10] = "zzzzzzzzzzaBcDeFgHiJkLmNozz";
+    text[14][11] = "zzzzzzzzzzzaBcDeFgHiJkLmNoz";
+    text[14][12] = "zzzzzzzzzzzzaBcDeFgHiJkLmNo";
+    text[15][0] = "aBcDeFgHiJkLmNoPzzzzzzzzzzz";
+    text[15][1] = "zaBcDeFgHiJkLmNoPzzzzzzzzzz";
+    text[15][2] = "zzaBcDeFgHiJkLmNoPzzzzzzzzz";
+    text[15][3] = "zzzaBcDeFgHiJkLmNoPzzzzzzzz";
+    text[15][4] = "zzzzaBcDeFgHiJkLmNoPzzzzzzz";
+    text[15][5] = "zzzzzaBcDeFgHiJkLmNoPzzzzzz";
+    text[15][6] = "zzzzzzaBcDeFgHiJkLmNoPzzzzz";
+    text[15][7] = "zzzzzzzaBcDeFgHiJkLmNoPzzzz";
+    text[15][8] = "zzzzzzzzaBcDeFgHiJkLmNoPzzz";
+    text[15][9] = "zzzzzzzzzaBcDeFgHiJkLmNoPzz";
+    text[15][10] = "zzzzzzzzzzaBcDeFgHiJkLmNoPz";
+    text[15][11] = "zzzzzzzzzzzaBcDeFgHiJkLmNoP";
+    text[16][0] = "aBcDeFgHiJkLmNoPqzzzzzzzzzz";
+    text[16][1] = "zaBcDeFgHiJkLmNoPqzzzzzzzzz";
+    text[16][2] = "zzaBcDeFgHiJkLmNoPqzzzzzzzz";
+    text[16][3] = "zzzaBcDeFgHiJkLmNoPqzzzzzzz";
+    text[16][4] = "zzzzaBcDeFgHiJkLmNoPqzzzzzz";
+    text[16][5] = "zzzzzaBcDeFgHiJkLmNoPqzzzzz";
+    text[16][6] = "zzzzzzaBcDeFgHiJkLmNoPqzzzz";
+    text[16][7] = "zzzzzzzaBcDeFgHiJkLmNoPqzzz";
+    text[16][8] = "zzzzzzzzaBcDeFgHiJkLmNoPqzz";
+    text[16][9] = "zzzzzzzzzaBcDeFgHiJkLmNoPqz";
+    text[16][10] = "zzzzzzzzzzaBcDeFgHiJkLmNoPq";
+    text[17][0] = "aBcDeFgHiJkLmNoPqRzzzzzzzzz";
+    text[17][1] = "zaBcDeFgHiJkLmNoPqRzzzzzzzz";
+    text[17][2] = "zzaBcDeFgHiJkLmNoPqRzzzzzzz";
+    text[17][3] = "zzzaBcDeFgHiJkLmNoPqRzzzzzz";
+    text[17][4] = "zzzzaBcDeFgHiJkLmNoPqRzzzzz";
+    text[17][5] = "zzzzzaBcDeFgHiJkLmNoPqRzzzz";
+    text[17][6] = "zzzzzzaBcDeFgHiJkLmNoPqRzzz";
+    text[17][7] = "zzzzzzzaBcDeFgHiJkLmNoPqRzz";
+    text[17][8] = "zzzzzzzzaBcDeFgHiJkLmNoPqRz";
+    text[17][9] = "zzzzzzzzzaBcDeFgHiJkLmNoPqR";
+    text[18][0] = "aBcDeFgHiJkLmNoPqRszzzzzzzz";
+    text[18][1] = "zaBcDeFgHiJkLmNoPqRszzzzzzz";
+    text[18][2] = "zzaBcDeFgHiJkLmNoPqRszzzzzz";
+    text[18][3] = "zzzaBcDeFgHiJkLmNoPqRszzzzz";
+    text[18][4] = "zzzzaBcDeFgHiJkLmNoPqRszzzz";
+    text[18][5] = "zzzzzaBcDeFgHiJkLmNoPqRszzz";
+    text[18][6] = "zzzzzzaBcDeFgHiJkLmNoPqRszz";
+    text[18][7] = "zzzzzzzaBcDeFgHiJkLmNoPqRsz";
+    text[18][8] = "zzzzzzzzaBcDeFgHiJkLmNoPqRs";
+    text[19][0] = "aBcDeFgHiJkLmNoPqRsTzzzzzzz";
+    text[19][1] = "zaBcDeFgHiJkLmNoPqRsTzzzzzz";
+    text[19][2] = "zzaBcDeFgHiJkLmNoPqRsTzzzzz";
+    text[19][3] = "zzzaBcDeFgHiJkLmNoPqRsTzzzz";
+    text[19][4] = "zzzzaBcDeFgHiJkLmNoPqRsTzzz";
+    text[19][5] = "zzzzzaBcDeFgHiJkLmNoPqRsTzz";
+    text[19][6] = "zzzzzzaBcDeFgHiJkLmNoPqRsTz";
+    text[19][7] = "zzzzzzzaBcDeFgHiJkLmNoPqRsT";
+    text[20][0] = "aBcDeFgHiJkLmNoPqRsTuzzzzzz";
+    text[20][1] = "zaBcDeFgHiJkLmNoPqRsTuzzzzz";
+    text[20][2] = "zzaBcDeFgHiJkLmNoPqRsTuzzzz";
+    text[20][3] = "zzzaBcDeFgHiJkLmNoPqRsTuzzz";
+    text[20][4] = "zzzzaBcDeFgHiJkLmNoPqRsTuzz";
+    text[20][5] = "zzzzzaBcDeFgHiJkLmNoPqRsTuz";
+    text[20][6] = "zzzzzzaBcDeFgHiJkLmNoPqRsTu";
+    text[21][0] = "aBcDeFgHiJkLmNoPqRsTuVzzzzz";
+    text[21][1] = "zaBcDeFgHiJkLmNoPqRsTuVzzzz";
+    text[21][2] = "zzaBcDeFgHiJkLmNoPqRsTuVzzz";
+    text[21][3] = "zzzaBcDeFgHiJkLmNoPqRsTuVzz";
+    text[21][4] = "zzzzaBcDeFgHiJkLmNoPqRsTuVz";
+    text[21][5] = "zzzzzaBcDeFgHiJkLmNoPqRsTuV";
+    text[22][0] = "aBcDeFgHiJkLmNoPqRsTuVwzzzz";
+    text[22][1] = "zaBcDeFgHiJkLmNoPqRsTuVwzzz";
+    text[22][2] = "zzaBcDeFgHiJkLmNoPqRsTuVwzz";
+    text[22][3] = "zzzaBcDeFgHiJkLmNoPqRsTuVwz";
+    text[22][4] = "zzzzaBcDeFgHiJkLmNoPqRsTuVw";
+    text[23][0] = "aBcDeFgHiJkLmNoPqRsTuVwXzzz";
+    text[23][1] = "zaBcDeFgHiJkLmNoPqRsTuVwXzz";
+    text[23][2] = "zzaBcDeFgHiJkLmNoPqRsTuVwXz";
+    text[23][3] = "zzzaBcDeFgHiJkLmNoPqRsTuVwX";
+    text[24][0] = "aBcDeFgHiJkLmNoPqRsTuVwXyzz";
+    text[24][1] = "zaBcDeFgHiJkLmNoPqRsTuVwXyz";
+    text[24][2] = "zzaBcDeFgHiJkLmNoPqRsTuVwXy";
+    text[25][0] = "aBcDeFgHiJkLmNoPqRsTuVwXyZz";
+    text[25][1] = "zaBcDeFgHiJkLmNoPqRsTuVwXyZ";
 
     const char *needle[26];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
-    needle[5]="aBcDeF";
-    needle[6]="aBcDeFg";
-    needle[7]="aBcDeFgH";
-    needle[8]="aBcDeFgHi";
-    needle[9]="aBcDeFgHiJ";
-    needle[10]="aBcDeFgHiJk";
-    needle[11]="aBcDeFgHiJkL";
-    needle[12]="aBcDeFgHiJkLm";
-    needle[13]="aBcDeFgHiJkLmN";
-    needle[14]="aBcDeFgHiJkLmNo";
-    needle[15]="aBcDeFgHiJkLmNoP";
-    needle[16]="aBcDeFgHiJkLmNoPq";
-    needle[17]="aBcDeFgHiJkLmNoPqR";
-    needle[18]="aBcDeFgHiJkLmNoPqRs";
-    needle[19]="aBcDeFgHiJkLmNoPqRsT";
-    needle[20]="aBcDeFgHiJkLmNoPqRsTu";
-    needle[21]="aBcDeFgHiJkLmNoPqRsTuV";
-    needle[22]="aBcDeFgHiJkLmNoPqRsTuVw";
-    needle[23]="aBcDeFgHiJkLmNoPqRsTuVwX";
-    needle[24]="aBcDeFgHiJkLmNoPqRsTuVwXy";
-    needle[25]="aBcDeFgHiJkLmNoPqRsTuVwXyZ";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
+    needle[5] = "aBcDeF";
+    needle[6] = "aBcDeFg";
+    needle[7] = "aBcDeFgH";
+    needle[8] = "aBcDeFgHi";
+    needle[9] = "aBcDeFgHiJ";
+    needle[10] = "aBcDeFgHiJk";
+    needle[11] = "aBcDeFgHiJkL";
+    needle[12] = "aBcDeFgHiJkLm";
+    needle[13] = "aBcDeFgHiJkLmN";
+    needle[14] = "aBcDeFgHiJkLmNo";
+    needle[15] = "aBcDeFgHiJkLmNoP";
+    needle[16] = "aBcDeFgHiJkLmNoPq";
+    needle[17] = "aBcDeFgHiJkLmNoPqR";
+    needle[18] = "aBcDeFgHiJkLmNoPqRs";
+    needle[19] = "aBcDeFgHiJkLmNoPqRsT";
+    needle[20] = "aBcDeFgHiJkLmNoPqRsTu";
+    needle[21] = "aBcDeFgHiJkLmNoPqRsTuV";
+    needle[22] = "aBcDeFgHiJkLmNoPqRsTuVw";
+    needle[23] = "aBcDeFgHiJkLmNoPqRsTuVwX";
+    needle[24] = "aBcDeFgHiJkLmNoPqRsTuVwXy";
+    needle[25] = "aBcDeFgHiJkLmNoPqRsTuVwXyZ";
 
     int i, j;
     uint8_t *found = NULL;
@@ -1202,416 +1251,416 @@ static int UtilSpmSearchOffsetsTest01(void)
 static int UtilSpmSearchOffsetsNocaseTest01(void)
 {
     const char *text[26][27];
-    text[0][0]="azzzzzzzzzzzzzzzzzzzzzzzzzz";
-    text[0][1]="zazzzzzzzzzzzzzzzzzzzzzzzzz";
-    text[0][2]="zzazzzzzzzzzzzzzzzzzzzzzzzz";
-    text[0][3]="zzzazzzzzzzzzzzzzzzzzzzzzzz";
-    text[0][4]="zzzzazzzzzzzzzzzzzzzzzzzzzz";
-    text[0][5]="zzzzzazzzzzzzzzzzzzzzzzzzzz";
-    text[0][6]="zzzzzzazzzzzzzzzzzzzzzzzzzz";
-    text[0][7]="zzzzzzzazzzzzzzzzzzzzzzzzzz";
-    text[0][8]="zzzzzzzzazzzzzzzzzzzzzzzzzz";
-    text[0][9]="zzzzzzzzzazzzzzzzzzzzzzzzzz";
-    text[0][10]="zzzzzzzzzzazzzzzzzzzzzzzzzz";
-    text[0][11]="zzzzzzzzzzzazzzzzzzzzzzzzzz";
-    text[0][12]="zzzzzzzzzzzzazzzzzzzzzzzzzz";
-    text[0][13]="zzzzzzzzzzzzzazzzzzzzzzzzzz";
-    text[0][14]="zzzzzzzzzzzzzzazzzzzzzzzzzz";
-    text[0][15]="zzzzzzzzzzzzzzzazzzzzzzzzzz";
-    text[0][16]="zzzzzzzzzzzzzzzzazzzzzzzzzz";
-    text[0][17]="zzzzzzzzzzzzzzzzzazzzzzzzzz";
-    text[0][18]="zzzzzzzzzzzzzzzzzzazzzzzzzz";
-    text[0][19]="zzzzzzzzzzzzzzzzzzzazzzzzzz";
-    text[0][20]="zzzzzzzzzzzzzzzzzzzzazzzzzz";
-    text[0][21]="zzzzzzzzzzzzzzzzzzzzzazzzzz";
-    text[0][22]="zzzzzzzzzzzzzzzzzzzzzzazzzz";
-    text[0][23]="zzzzzzzzzzzzzzzzzzzzzzzazzz";
-    text[0][24]="zzzzzzzzzzzzzzzzzzzzzzzzazz";
-    text[0][25]="zzzzzzzzzzzzzzzzzzzzzzzzzaz";
-    text[0][26]="zzzzzzzzzzzzzzzzzzzzzzzzzza";
-    text[1][0]="aBzzzzzzzzzzzzzzzzzzzzzzzzz";
-    text[1][1]="zaBzzzzzzzzzzzzzzzzzzzzzzzz";
-    text[1][2]="zzaBzzzzzzzzzzzzzzzzzzzzzzz";
-    text[1][3]="zzzaBzzzzzzzzzzzzzzzzzzzzzz";
-    text[1][4]="zzzzaBzzzzzzzzzzzzzzzzzzzzz";
-    text[1][5]="zzzzzaBzzzzzzzzzzzzzzzzzzzz";
-    text[1][6]="zzzzzzaBzzzzzzzzzzzzzzzzzzz";
-    text[1][7]="zzzzzzzaBzzzzzzzzzzzzzzzzzz";
-    text[1][8]="zzzzzzzzaBzzzzzzzzzzzzzzzzz";
-    text[1][9]="zzzzzzzzzaBzzzzzzzzzzzzzzzz";
-    text[1][10]="zzzzzzzzzzaBzzzzzzzzzzzzzzz";
-    text[1][11]="zzzzzzzzzzzaBzzzzzzzzzzzzzz";
-    text[1][12]="zzzzzzzzzzzzaBzzzzzzzzzzzzz";
-    text[1][13]="zzzzzzzzzzzzzaBzzzzzzzzzzzz";
-    text[1][14]="zzzzzzzzzzzzzzaBzzzzzzzzzzz";
-    text[1][15]="zzzzzzzzzzzzzzzaBzzzzzzzzzz";
-    text[1][16]="zzzzzzzzzzzzzzzzaBzzzzzzzzz";
-    text[1][17]="zzzzzzzzzzzzzzzzzaBzzzzzzzz";
-    text[1][18]="zzzzzzzzzzzzzzzzzzaBzzzzzzz";
-    text[1][19]="zzzzzzzzzzzzzzzzzzzaBzzzzzz";
-    text[1][20]="zzzzzzzzzzzzzzzzzzzzaBzzzzz";
-    text[1][21]="zzzzzzzzzzzzzzzzzzzzzaBzzzz";
-    text[1][22]="zzzzzzzzzzzzzzzzzzzzzzaBzzz";
-    text[1][23]="zzzzzzzzzzzzzzzzzzzzzzzaBzz";
-    text[1][24]="zzzzzzzzzzzzzzzzzzzzzzzzaBz";
-    text[1][25]="zzzzzzzzzzzzzzzzzzzzzzzzzaB";
-    text[2][0]="aBczzzzzzzzzzzzzzzzzzzzzzzz";
-    text[2][1]="zaBczzzzzzzzzzzzzzzzzzzzzzz";
-    text[2][2]="zzaBczzzzzzzzzzzzzzzzzzzzzz";
-    text[2][3]="zzzaBczzzzzzzzzzzzzzzzzzzzz";
-    text[2][4]="zzzzaBczzzzzzzzzzzzzzzzzzzz";
-    text[2][5]="zzzzzaBczzzzzzzzzzzzzzzzzzz";
-    text[2][6]="zzzzzzaBczzzzzzzzzzzzzzzzzz";
-    text[2][7]="zzzzzzzaBczzzzzzzzzzzzzzzzz";
-    text[2][8]="zzzzzzzzaBczzzzzzzzzzzzzzzz";
-    text[2][9]="zzzzzzzzzaBczzzzzzzzzzzzzzz";
-    text[2][10]="zzzzzzzzzzaBczzzzzzzzzzzzzz";
-    text[2][11]="zzzzzzzzzzzaBczzzzzzzzzzzzz";
-    text[2][12]="zzzzzzzzzzzzaBczzzzzzzzzzzz";
-    text[2][13]="zzzzzzzzzzzzzaBczzzzzzzzzzz";
-    text[2][14]="zzzzzzzzzzzzzzaBczzzzzzzzzz";
-    text[2][15]="zzzzzzzzzzzzzzzaBczzzzzzzzz";
-    text[2][16]="zzzzzzzzzzzzzzzzaBczzzzzzzz";
-    text[2][17]="zzzzzzzzzzzzzzzzzaBczzzzzzz";
-    text[2][18]="zzzzzzzzzzzzzzzzzzaBczzzzzz";
-    text[2][19]="zzzzzzzzzzzzzzzzzzzaBczzzzz";
-    text[2][20]="zzzzzzzzzzzzzzzzzzzzaBczzzz";
-    text[2][21]="zzzzzzzzzzzzzzzzzzzzzaBczzz";
-    text[2][22]="zzzzzzzzzzzzzzzzzzzzzzaBczz";
-    text[2][23]="zzzzzzzzzzzzzzzzzzzzzzzaBcz";
-    text[2][24]="zzzzzzzzzzzzzzzzzzzzzzzzaBc";
-    text[3][0]="aBcDzzzzzzzzzzzzzzzzzzzzzzz";
-    text[3][1]="zaBcDzzzzzzzzzzzzzzzzzzzzzz";
-    text[3][2]="zzaBcDzzzzzzzzzzzzzzzzzzzzz";
-    text[3][3]="zzzaBcDzzzzzzzzzzzzzzzzzzzz";
-    text[3][4]="zzzzaBcDzzzzzzzzzzzzzzzzzzz";
-    text[3][5]="zzzzzaBcDzzzzzzzzzzzzzzzzzz";
-    text[3][6]="zzzzzzaBcDzzzzzzzzzzzzzzzzz";
-    text[3][7]="zzzzzzzaBcDzzzzzzzzzzzzzzzz";
-    text[3][8]="zzzzzzzzaBcDzzzzzzzzzzzzzzz";
-    text[3][9]="zzzzzzzzzaBcDzzzzzzzzzzzzzz";
-    text[3][10]="zzzzzzzzzzaBcDzzzzzzzzzzzzz";
-    text[3][11]="zzzzzzzzzzzaBcDzzzzzzzzzzzz";
-    text[3][12]="zzzzzzzzzzzzaBcDzzzzzzzzzzz";
-    text[3][13]="zzzzzzzzzzzzzaBcDzzzzzzzzzz";
-    text[3][14]="zzzzzzzzzzzzzzaBcDzzzzzzzzz";
-    text[3][15]="zzzzzzzzzzzzzzzaBcDzzzzzzzz";
-    text[3][16]="zzzzzzzzzzzzzzzzaBcDzzzzzzz";
-    text[3][17]="zzzzzzzzzzzzzzzzzaBcDzzzzzz";
-    text[3][18]="zzzzzzzzzzzzzzzzzzaBcDzzzzz";
-    text[3][19]="zzzzzzzzzzzzzzzzzzzaBcDzzzz";
-    text[3][20]="zzzzzzzzzzzzzzzzzzzzaBcDzzz";
-    text[3][21]="zzzzzzzzzzzzzzzzzzzzzaBcDzz";
-    text[3][22]="zzzzzzzzzzzzzzzzzzzzzzaBcDz";
-    text[3][23]="zzzzzzzzzzzzzzzzzzzzzzzaBcD";
-    text[4][0]="aBcDezzzzzzzzzzzzzzzzzzzzzz";
-    text[4][1]="zaBcDezzzzzzzzzzzzzzzzzzzzz";
-    text[4][2]="zzaBcDezzzzzzzzzzzzzzzzzzzz";
-    text[4][3]="zzzaBcDezzzzzzzzzzzzzzzzzzz";
-    text[4][4]="zzzzaBcDezzzzzzzzzzzzzzzzzz";
-    text[4][5]="zzzzzaBcDezzzzzzzzzzzzzzzzz";
-    text[4][6]="zzzzzzaBcDezzzzzzzzzzzzzzzz";
-    text[4][7]="zzzzzzzaBcDezzzzzzzzzzzzzzz";
-    text[4][8]="zzzzzzzzaBcDezzzzzzzzzzzzzz";
-    text[4][9]="zzzzzzzzzaBcDezzzzzzzzzzzzz";
-    text[4][10]="zzzzzzzzzzaBcDezzzzzzzzzzzz";
-    text[4][11]="zzzzzzzzzzzaBcDezzzzzzzzzzz";
-    text[4][12]="zzzzzzzzzzzzaBcDezzzzzzzzzz";
-    text[4][13]="zzzzzzzzzzzzzaBcDezzzzzzzzz";
-    text[4][14]="zzzzzzzzzzzzzzaBcDezzzzzzzz";
-    text[4][15]="zzzzzzzzzzzzzzzaBcDezzzzzzz";
-    text[4][16]="zzzzzzzzzzzzzzzzaBcDezzzzzz";
-    text[4][17]="zzzzzzzzzzzzzzzzzaBcDezzzzz";
-    text[4][18]="zzzzzzzzzzzzzzzzzzaBcDezzzz";
-    text[4][19]="zzzzzzzzzzzzzzzzzzzaBcDezzz";
-    text[4][20]="zzzzzzzzzzzzzzzzzzzzaBcDezz";
-    text[4][21]="zzzzzzzzzzzzzzzzzzzzzaBcDez";
-    text[4][22]="zzzzzzzzzzzzzzzzzzzzzzaBcDe";
-    text[5][0]="aBcDeFzzzzzzzzzzzzzzzzzzzzz";
-    text[5][1]="zaBcDeFzzzzzzzzzzzzzzzzzzzz";
-    text[5][2]="zzaBcDeFzzzzzzzzzzzzzzzzzzz";
-    text[5][3]="zzzaBcDeFzzzzzzzzzzzzzzzzzz";
-    text[5][4]="zzzzaBcDeFzzzzzzzzzzzzzzzzz";
-    text[5][5]="zzzzzaBcDeFzzzzzzzzzzzzzzzz";
-    text[5][6]="zzzzzzaBcDeFzzzzzzzzzzzzzzz";
-    text[5][7]="zzzzzzzaBcDeFzzzzzzzzzzzzzz";
-    text[5][8]="zzzzzzzzaBcDeFzzzzzzzzzzzzz";
-    text[5][9]="zzzzzzzzzaBcDeFzzzzzzzzzzzz";
-    text[5][10]="zzzzzzzzzzaBcDeFzzzzzzzzzzz";
-    text[5][11]="zzzzzzzzzzzaBcDeFzzzzzzzzzz";
-    text[5][12]="zzzzzzzzzzzzaBcDeFzzzzzzzzz";
-    text[5][13]="zzzzzzzzzzzzzaBcDeFzzzzzzzz";
-    text[5][14]="zzzzzzzzzzzzzzaBcDeFzzzzzzz";
-    text[5][15]="zzzzzzzzzzzzzzzaBcDeFzzzzzz";
-    text[5][16]="zzzzzzzzzzzzzzzzaBcDeFzzzzz";
-    text[5][17]="zzzzzzzzzzzzzzzzzaBcDeFzzzz";
-    text[5][18]="zzzzzzzzzzzzzzzzzzaBcDeFzzz";
-    text[5][19]="zzzzzzzzzzzzzzzzzzzaBcDeFzz";
-    text[5][20]="zzzzzzzzzzzzzzzzzzzzaBcDeFz";
-    text[5][21]="zzzzzzzzzzzzzzzzzzzzzaBcDeF";
-    text[6][0]="aBcDeFgzzzzzzzzzzzzzzzzzzzz";
-    text[6][1]="zaBcDeFgzzzzzzzzzzzzzzzzzzz";
-    text[6][2]="zzaBcDeFgzzzzzzzzzzzzzzzzzz";
-    text[6][3]="zzzaBcDeFgzzzzzzzzzzzzzzzzz";
-    text[6][4]="zzzzaBcDeFgzzzzzzzzzzzzzzzz";
-    text[6][5]="zzzzzaBcDeFgzzzzzzzzzzzzzzz";
-    text[6][6]="zzzzzzaBcDeFgzzzzzzzzzzzzzz";
-    text[6][7]="zzzzzzzaBcDeFgzzzzzzzzzzzzz";
-    text[6][8]="zzzzzzzzaBcDeFgzzzzzzzzzzzz";
-    text[6][9]="zzzzzzzzzaBcDeFgzzzzzzzzzzz";
-    text[6][10]="zzzzzzzzzzaBcDeFgzzzzzzzzzz";
-    text[6][11]="zzzzzzzzzzzaBcDeFgzzzzzzzzz";
-    text[6][12]="zzzzzzzzzzzzaBcDeFgzzzzzzzz";
-    text[6][13]="zzzzzzzzzzzzzaBcDeFgzzzzzzz";
-    text[6][14]="zzzzzzzzzzzzzzaBcDeFgzzzzzz";
-    text[6][15]="zzzzzzzzzzzzzzzaBcDeFgzzzzz";
-    text[6][16]="zzzzzzzzzzzzzzzzaBcDeFgzzzz";
-    text[6][17]="zzzzzzzzzzzzzzzzzaBcDeFgzzz";
-    text[6][18]="zzzzzzzzzzzzzzzzzzaBcDeFgzz";
-    text[6][19]="zzzzzzzzzzzzzzzzzzzaBcDeFgz";
-    text[6][20]="zzzzzzzzzzzzzzzzzzzzaBcDeFg";
-    text[7][0]="aBcDeFgHzzzzzzzzzzzzzzzzzzz";
-    text[7][1]="zaBcDeFgHzzzzzzzzzzzzzzzzzz";
-    text[7][2]="zzaBcDeFgHzzzzzzzzzzzzzzzzz";
-    text[7][3]="zzzaBcDeFgHzzzzzzzzzzzzzzzz";
-    text[7][4]="zzzzaBcDeFgHzzzzzzzzzzzzzzz";
-    text[7][5]="zzzzzaBcDeFgHzzzzzzzzzzzzzz";
-    text[7][6]="zzzzzzaBcDeFgHzzzzzzzzzzzzz";
-    text[7][7]="zzzzzzzaBcDeFgHzzzzzzzzzzzz";
-    text[7][8]="zzzzzzzzaBcDeFgHzzzzzzzzzzz";
-    text[7][9]="zzzzzzzzzaBcDeFgHzzzzzzzzzz";
-    text[7][10]="zzzzzzzzzzaBcDeFgHzzzzzzzzz";
-    text[7][11]="zzzzzzzzzzzaBcDeFgHzzzzzzzz";
-    text[7][12]="zzzzzzzzzzzzaBcDeFgHzzzzzzz";
-    text[7][13]="zzzzzzzzzzzzzaBcDeFgHzzzzzz";
-    text[7][14]="zzzzzzzzzzzzzzaBcDeFgHzzzzz";
-    text[7][15]="zzzzzzzzzzzzzzzaBcDeFgHzzzz";
-    text[7][16]="zzzzzzzzzzzzzzzzaBcDeFgHzzz";
-    text[7][17]="zzzzzzzzzzzzzzzzzaBcDeFgHzz";
-    text[7][18]="zzzzzzzzzzzzzzzzzzaBcDeFgHz";
-    text[7][19]="zzzzzzzzzzzzzzzzzzzaBcDeFgH";
-    text[8][0]="aBcDeFgHizzzzzzzzzzzzzzzzzz";
-    text[8][1]="zaBcDeFgHizzzzzzzzzzzzzzzzz";
-    text[8][2]="zzaBcDeFgHizzzzzzzzzzzzzzzz";
-    text[8][3]="zzzaBcDeFgHizzzzzzzzzzzzzzz";
-    text[8][4]="zzzzaBcDeFgHizzzzzzzzzzzzzz";
-    text[8][5]="zzzzzaBcDeFgHizzzzzzzzzzzzz";
-    text[8][6]="zzzzzzaBcDeFgHizzzzzzzzzzzz";
-    text[8][7]="zzzzzzzaBcDeFgHizzzzzzzzzzz";
-    text[8][8]="zzzzzzzzaBcDeFgHizzzzzzzzzz";
-    text[8][9]="zzzzzzzzzaBcDeFgHizzzzzzzzz";
-    text[8][10]="zzzzzzzzzzaBcDeFgHizzzzzzzz";
-    text[8][11]="zzzzzzzzzzzaBcDeFgHizzzzzzz";
-    text[8][12]="zzzzzzzzzzzzaBcDeFgHizzzzzz";
-    text[8][13]="zzzzzzzzzzzzzaBcDeFgHizzzzz";
-    text[8][14]="zzzzzzzzzzzzzzaBcDeFgHizzzz";
-    text[8][15]="zzzzzzzzzzzzzzzaBcDeFgHizzz";
-    text[8][16]="zzzzzzzzzzzzzzzzaBcDeFgHizz";
-    text[8][17]="zzzzzzzzzzzzzzzzzaBcDeFgHiz";
-    text[8][18]="zzzzzzzzzzzzzzzzzzaBcDeFgHi";
-    text[9][0]="aBcDeFgHiJzzzzzzzzzzzzzzzzz";
-    text[9][1]="zaBcDeFgHiJzzzzzzzzzzzzzzzz";
-    text[9][2]="zzaBcDeFgHiJzzzzzzzzzzzzzzz";
-    text[9][3]="zzzaBcDeFgHiJzzzzzzzzzzzzzz";
-    text[9][4]="zzzzaBcDeFgHiJzzzzzzzzzzzzz";
-    text[9][5]="zzzzzaBcDeFgHiJzzzzzzzzzzzz";
-    text[9][6]="zzzzzzaBcDeFgHiJzzzzzzzzzzz";
-    text[9][7]="zzzzzzzaBcDeFgHiJzzzzzzzzzz";
-    text[9][8]="zzzzzzzzaBcDeFgHiJzzzzzzzzz";
-    text[9][9]="zzzzzzzzzaBcDeFgHiJzzzzzzzz";
-    text[9][10]="zzzzzzzzzzaBcDeFgHiJzzzzzzz";
-    text[9][11]="zzzzzzzzzzzaBcDeFgHiJzzzzzz";
-    text[9][12]="zzzzzzzzzzzzaBcDeFgHiJzzzzz";
-    text[9][13]="zzzzzzzzzzzzzaBcDeFgHiJzzzz";
-    text[9][14]="zzzzzzzzzzzzzzaBcDeFgHiJzzz";
-    text[9][15]="zzzzzzzzzzzzzzzaBcDeFgHiJzz";
-    text[9][16]="zzzzzzzzzzzzzzzzaBcDeFgHiJz";
-    text[9][17]="zzzzzzzzzzzzzzzzzaBcDeFgHiJ";
-    text[10][0]="aBcDeFgHiJkzzzzzzzzzzzzzzzz";
-    text[10][1]="zaBcDeFgHiJkzzzzzzzzzzzzzzz";
-    text[10][2]="zzaBcDeFgHiJkzzzzzzzzzzzzzz";
-    text[10][3]="zzzaBcDeFgHiJkzzzzzzzzzzzzz";
-    text[10][4]="zzzzaBcDeFgHiJkzzzzzzzzzzzz";
-    text[10][5]="zzzzzaBcDeFgHiJkzzzzzzzzzzz";
-    text[10][6]="zzzzzzaBcDeFgHiJkzzzzzzzzzz";
-    text[10][7]="zzzzzzzaBcDeFgHiJkzzzzzzzzz";
-    text[10][8]="zzzzzzzzaBcDeFgHiJkzzzzzzzz";
-    text[10][9]="zzzzzzzzzaBcDeFgHiJkzzzzzzz";
-    text[10][10]="zzzzzzzzzzaBcDeFgHiJkzzzzzz";
-    text[10][11]="zzzzzzzzzzzaBcDeFgHiJkzzzzz";
-    text[10][12]="zzzzzzzzzzzzaBcDeFgHiJkzzzz";
-    text[10][13]="zzzzzzzzzzzzzaBcDeFgHiJkzzz";
-    text[10][14]="zzzzzzzzzzzzzzaBcDeFgHiJkzz";
-    text[10][15]="zzzzzzzzzzzzzzzaBcDeFgHiJkz";
-    text[10][16]="zzzzzzzzzzzzzzzzaBcDeFgHiJk";
-    text[11][0]="aBcDeFgHiJkLzzzzzzzzzzzzzzz";
-    text[11][1]="zaBcDeFgHiJkLzzzzzzzzzzzzzz";
-    text[11][2]="zzaBcDeFgHiJkLzzzzzzzzzzzzz";
-    text[11][3]="zzzaBcDeFgHiJkLzzzzzzzzzzzz";
-    text[11][4]="zzzzaBcDeFgHiJkLzzzzzzzzzzz";
-    text[11][5]="zzzzzaBcDeFgHiJkLzzzzzzzzzz";
-    text[11][6]="zzzzzzaBcDeFgHiJkLzzzzzzzzz";
-    text[11][7]="zzzzzzzaBcDeFgHiJkLzzzzzzzz";
-    text[11][8]="zzzzzzzzaBcDeFgHiJkLzzzzzzz";
-    text[11][9]="zzzzzzzzzaBcDeFgHiJkLzzzzzz";
-    text[11][10]="zzzzzzzzzzaBcDeFgHiJkLzzzzz";
-    text[11][11]="zzzzzzzzzzzaBcDeFgHiJkLzzzz";
-    text[11][12]="zzzzzzzzzzzzaBcDeFgHiJkLzzz";
-    text[11][13]="zzzzzzzzzzzzzaBcDeFgHiJkLzz";
-    text[11][14]="zzzzzzzzzzzzzzaBcDeFgHiJkLz";
-    text[11][15]="zzzzzzzzzzzzzzzaBcDeFgHiJkL";
-    text[12][0]="aBcDeFgHiJkLmzzzzzzzzzzzzzz";
-    text[12][1]="zaBcDeFgHiJkLmzzzzzzzzzzzzz";
-    text[12][2]="zzaBcDeFgHiJkLmzzzzzzzzzzzz";
-    text[12][3]="zzzaBcDeFgHiJkLmzzzzzzzzzzz";
-    text[12][4]="zzzzaBcDeFgHiJkLmzzzzzzzzzz";
-    text[12][5]="zzzzzaBcDeFgHiJkLmzzzzzzzzz";
-    text[12][6]="zzzzzzaBcDeFgHiJkLmzzzzzzzz";
-    text[12][7]="zzzzzzzaBcDeFgHiJkLmzzzzzzz";
-    text[12][8]="zzzzzzzzaBcDeFgHiJkLmzzzzzz";
-    text[12][9]="zzzzzzzzzaBcDeFgHiJkLmzzzzz";
-    text[12][10]="zzzzzzzzzzaBcDeFgHiJkLmzzzz";
-    text[12][11]="zzzzzzzzzzzaBcDeFgHiJkLmzzz";
-    text[12][12]="zzzzzzzzzzzzaBcDeFgHiJkLmzz";
-    text[12][13]="zzzzzzzzzzzzzaBcDeFgHiJkLmz";
-    text[12][14]="zzzzzzzzzzzzzzaBcDeFgHiJkLm";
-    text[13][0]="aBcDeFgHiJkLmNzzzzzzzzzzzzz";
-    text[13][1]="zaBcDeFgHiJkLmNzzzzzzzzzzzz";
-    text[13][2]="zzaBcDeFgHiJkLmNzzzzzzzzzzz";
-    text[13][3]="zzzaBcDeFgHiJkLmNzzzzzzzzzz";
-    text[13][4]="zzzzaBcDeFgHiJkLmNzzzzzzzzz";
-    text[13][5]="zzzzzaBcDeFgHiJkLmNzzzzzzzz";
-    text[13][6]="zzzzzzaBcDeFgHiJkLmNzzzzzzz";
-    text[13][7]="zzzzzzzaBcDeFgHiJkLmNzzzzzz";
-    text[13][8]="zzzzzzzzaBcDeFgHiJkLmNzzzzz";
-    text[13][9]="zzzzzzzzzaBcDeFgHiJkLmNzzzz";
-    text[13][10]="zzzzzzzzzzaBcDeFgHiJkLmNzzz";
-    text[13][11]="zzzzzzzzzzzaBcDeFgHiJkLmNzz";
-    text[13][12]="zzzzzzzzzzzzaBcDeFgHiJkLmNz";
-    text[13][13]="zzzzzzzzzzzzzaBcDeFgHiJkLmN";
-    text[14][0]="aBcDeFgHiJkLmNozzzzzzzzzzzz";
-    text[14][1]="zaBcDeFgHiJkLmNozzzzzzzzzzz";
-    text[14][2]="zzaBcDeFgHiJkLmNozzzzzzzzzz";
-    text[14][3]="zzzaBcDeFgHiJkLmNozzzzzzzzz";
-    text[14][4]="zzzzaBcDeFgHiJkLmNozzzzzzzz";
-    text[14][5]="zzzzzaBcDeFgHiJkLmNozzzzzzz";
-    text[14][6]="zzzzzzaBcDeFgHiJkLmNozzzzzz";
-    text[14][7]="zzzzzzzaBcDeFgHiJkLmNozzzzz";
-    text[14][8]="zzzzzzzzaBcDeFgHiJkLmNozzzz";
-    text[14][9]="zzzzzzzzzaBcDeFgHiJkLmNozzz";
-    text[14][10]="zzzzzzzzzzaBcDeFgHiJkLmNozz";
-    text[14][11]="zzzzzzzzzzzaBcDeFgHiJkLmNoz";
-    text[14][12]="zzzzzzzzzzzzaBcDeFgHiJkLmNo";
-    text[15][0]="aBcDeFgHiJkLmNoPzzzzzzzzzzz";
-    text[15][1]="zaBcDeFgHiJkLmNoPzzzzzzzzzz";
-    text[15][2]="zzaBcDeFgHiJkLmNoPzzzzzzzzz";
-    text[15][3]="zzzaBcDeFgHiJkLmNoPzzzzzzzz";
-    text[15][4]="zzzzaBcDeFgHiJkLmNoPzzzzzzz";
-    text[15][5]="zzzzzaBcDeFgHiJkLmNoPzzzzzz";
-    text[15][6]="zzzzzzaBcDeFgHiJkLmNoPzzzzz";
-    text[15][7]="zzzzzzzaBcDeFgHiJkLmNoPzzzz";
-    text[15][8]="zzzzzzzzaBcDeFgHiJkLmNoPzzz";
-    text[15][9]="zzzzzzzzzaBcDeFgHiJkLmNoPzz";
-    text[15][10]="zzzzzzzzzzaBcDeFgHiJkLmNoPz";
-    text[15][11]="zzzzzzzzzzzaBcDeFgHiJkLmNoP";
-    text[16][0]="aBcDeFgHiJkLmNoPqzzzzzzzzzz";
-    text[16][1]="zaBcDeFgHiJkLmNoPqzzzzzzzzz";
-    text[16][2]="zzaBcDeFgHiJkLmNoPqzzzzzzzz";
-    text[16][3]="zzzaBcDeFgHiJkLmNoPqzzzzzzz";
-    text[16][4]="zzzzaBcDeFgHiJkLmNoPqzzzzzz";
-    text[16][5]="zzzzzaBcDeFgHiJkLmNoPqzzzzz";
-    text[16][6]="zzzzzzaBcDeFgHiJkLmNoPqzzzz";
-    text[16][7]="zzzzzzzaBcDeFgHiJkLmNoPqzzz";
-    text[16][8]="zzzzzzzzaBcDeFgHiJkLmNoPqzz";
-    text[16][9]="zzzzzzzzzaBcDeFgHiJkLmNoPqz";
-    text[16][10]="zzzzzzzzzzaBcDeFgHiJkLmNoPq";
-    text[17][0]="aBcDeFgHiJkLmNoPqRzzzzzzzzz";
-    text[17][1]="zaBcDeFgHiJkLmNoPqRzzzzzzzz";
-    text[17][2]="zzaBcDeFgHiJkLmNoPqRzzzzzzz";
-    text[17][3]="zzzaBcDeFgHiJkLmNoPqRzzzzzz";
-    text[17][4]="zzzzaBcDeFgHiJkLmNoPqRzzzzz";
-    text[17][5]="zzzzzaBcDeFgHiJkLmNoPqRzzzz";
-    text[17][6]="zzzzzzaBcDeFgHiJkLmNoPqRzzz";
-    text[17][7]="zzzzzzzaBcDeFgHiJkLmNoPqRzz";
-    text[17][8]="zzzzzzzzaBcDeFgHiJkLmNoPqRz";
-    text[17][9]="zzzzzzzzzaBcDeFgHiJkLmNoPqR";
-    text[18][0]="aBcDeFgHiJkLmNoPqRszzzzzzzz";
-    text[18][1]="zaBcDeFgHiJkLmNoPqRszzzzzzz";
-    text[18][2]="zzaBcDeFgHiJkLmNoPqRszzzzzz";
-    text[18][3]="zzzaBcDeFgHiJkLmNoPqRszzzzz";
-    text[18][4]="zzzzaBcDeFgHiJkLmNoPqRszzzz";
-    text[18][5]="zzzzzaBcDeFgHiJkLmNoPqRszzz";
-    text[18][6]="zzzzzzaBcDeFgHiJkLmNoPqRszz";
-    text[18][7]="zzzzzzzaBcDeFgHiJkLmNoPqRsz";
-    text[18][8]="zzzzzzzzaBcDeFgHiJkLmNoPqRs";
-    text[19][0]="aBcDeFgHiJkLmNoPqRsTzzzzzzz";
-    text[19][1]="zaBcDeFgHiJkLmNoPqRsTzzzzzz";
-    text[19][2]="zzaBcDeFgHiJkLmNoPqRsTzzzzz";
-    text[19][3]="zzzaBcDeFgHiJkLmNoPqRsTzzzz";
-    text[19][4]="zzzzaBcDeFgHiJkLmNoPqRsTzzz";
-    text[19][5]="zzzzzaBcDeFgHiJkLmNoPqRsTzz";
-    text[19][6]="zzzzzzaBcDeFgHiJkLmNoPqRsTz";
-    text[19][7]="zzzzzzzaBcDeFgHiJkLmNoPqRsT";
-    text[20][0]="aBcDeFgHiJkLmNoPqRsTuzzzzzz";
-    text[20][1]="zaBcDeFgHiJkLmNoPqRsTuzzzzz";
-    text[20][2]="zzaBcDeFgHiJkLmNoPqRsTuzzzz";
-    text[20][3]="zzzaBcDeFgHiJkLmNoPqRsTuzzz";
-    text[20][4]="zzzzaBcDeFgHiJkLmNoPqRsTuzz";
-    text[20][5]="zzzzzaBcDeFgHiJkLmNoPqRsTuz";
-    text[20][6]="zzzzzzaBcDeFgHiJkLmNoPqRsTu";
-    text[21][0]="aBcDeFgHiJkLmNoPqRsTuVzzzzz";
-    text[21][1]="zaBcDeFgHiJkLmNoPqRsTuVzzzz";
-    text[21][2]="zzaBcDeFgHiJkLmNoPqRsTuVzzz";
-    text[21][3]="zzzaBcDeFgHiJkLmNoPqRsTuVzz";
-    text[21][4]="zzzzaBcDeFgHiJkLmNoPqRsTuVz";
-    text[21][5]="zzzzzaBcDeFgHiJkLmNoPqRsTuV";
-    text[22][0]="aBcDeFgHiJkLmNoPqRsTuVwzzzz";
-    text[22][1]="zaBcDeFgHiJkLmNoPqRsTuVwzzz";
-    text[22][2]="zzaBcDeFgHiJkLmNoPqRsTuVwzz";
-    text[22][3]="zzzaBcDeFgHiJkLmNoPqRsTuVwz";
-    text[22][4]="zzzzaBcDeFgHiJkLmNoPqRsTuVw";
-    text[23][0]="aBcDeFgHiJkLmNoPqRsTuVwXzzz";
-    text[23][1]="zaBcDeFgHiJkLmNoPqRsTuVwXzz";
-    text[23][2]="zzaBcDeFgHiJkLmNoPqRsTuVwXz";
-    text[23][3]="zzzaBcDeFgHiJkLmNoPqRsTuVwX";
-    text[24][0]="aBcDeFgHiJkLmNoPqRsTuVwXyzz";
-    text[24][1]="zaBcDeFgHiJkLmNoPqRsTuVwXyz";
-    text[24][2]="zzaBcDeFgHiJkLmNoPqRsTuVwXy";
-    text[25][0]="aBcDeFgHiJkLmNoPqRsTuVwXyZz";
-    text[25][1]="zaBcDeFgHiJkLmNoPqRsTuVwXyZ";
+    text[0][0] = "azzzzzzzzzzzzzzzzzzzzzzzzzz";
+    text[0][1] = "zazzzzzzzzzzzzzzzzzzzzzzzzz";
+    text[0][2] = "zzazzzzzzzzzzzzzzzzzzzzzzzz";
+    text[0][3] = "zzzazzzzzzzzzzzzzzzzzzzzzzz";
+    text[0][4] = "zzzzazzzzzzzzzzzzzzzzzzzzzz";
+    text[0][5] = "zzzzzazzzzzzzzzzzzzzzzzzzzz";
+    text[0][6] = "zzzzzzazzzzzzzzzzzzzzzzzzzz";
+    text[0][7] = "zzzzzzzazzzzzzzzzzzzzzzzzzz";
+    text[0][8] = "zzzzzzzzazzzzzzzzzzzzzzzzzz";
+    text[0][9] = "zzzzzzzzzazzzzzzzzzzzzzzzzz";
+    text[0][10] = "zzzzzzzzzzazzzzzzzzzzzzzzzz";
+    text[0][11] = "zzzzzzzzzzzazzzzzzzzzzzzzzz";
+    text[0][12] = "zzzzzzzzzzzzazzzzzzzzzzzzzz";
+    text[0][13] = "zzzzzzzzzzzzzazzzzzzzzzzzzz";
+    text[0][14] = "zzzzzzzzzzzzzzazzzzzzzzzzzz";
+    text[0][15] = "zzzzzzzzzzzzzzzazzzzzzzzzzz";
+    text[0][16] = "zzzzzzzzzzzzzzzzazzzzzzzzzz";
+    text[0][17] = "zzzzzzzzzzzzzzzzzazzzzzzzzz";
+    text[0][18] = "zzzzzzzzzzzzzzzzzzazzzzzzzz";
+    text[0][19] = "zzzzzzzzzzzzzzzzzzzazzzzzzz";
+    text[0][20] = "zzzzzzzzzzzzzzzzzzzzazzzzzz";
+    text[0][21] = "zzzzzzzzzzzzzzzzzzzzzazzzzz";
+    text[0][22] = "zzzzzzzzzzzzzzzzzzzzzzazzzz";
+    text[0][23] = "zzzzzzzzzzzzzzzzzzzzzzzazzz";
+    text[0][24] = "zzzzzzzzzzzzzzzzzzzzzzzzazz";
+    text[0][25] = "zzzzzzzzzzzzzzzzzzzzzzzzzaz";
+    text[0][26] = "zzzzzzzzzzzzzzzzzzzzzzzzzza";
+    text[1][0] = "aBzzzzzzzzzzzzzzzzzzzzzzzzz";
+    text[1][1] = "zaBzzzzzzzzzzzzzzzzzzzzzzzz";
+    text[1][2] = "zzaBzzzzzzzzzzzzzzzzzzzzzzz";
+    text[1][3] = "zzzaBzzzzzzzzzzzzzzzzzzzzzz";
+    text[1][4] = "zzzzaBzzzzzzzzzzzzzzzzzzzzz";
+    text[1][5] = "zzzzzaBzzzzzzzzzzzzzzzzzzzz";
+    text[1][6] = "zzzzzzaBzzzzzzzzzzzzzzzzzzz";
+    text[1][7] = "zzzzzzzaBzzzzzzzzzzzzzzzzzz";
+    text[1][8] = "zzzzzzzzaBzzzzzzzzzzzzzzzzz";
+    text[1][9] = "zzzzzzzzzaBzzzzzzzzzzzzzzzz";
+    text[1][10] = "zzzzzzzzzzaBzzzzzzzzzzzzzzz";
+    text[1][11] = "zzzzzzzzzzzaBzzzzzzzzzzzzzz";
+    text[1][12] = "zzzzzzzzzzzzaBzzzzzzzzzzzzz";
+    text[1][13] = "zzzzzzzzzzzzzaBzzzzzzzzzzzz";
+    text[1][14] = "zzzzzzzzzzzzzzaBzzzzzzzzzzz";
+    text[1][15] = "zzzzzzzzzzzzzzzaBzzzzzzzzzz";
+    text[1][16] = "zzzzzzzzzzzzzzzzaBzzzzzzzzz";
+    text[1][17] = "zzzzzzzzzzzzzzzzzaBzzzzzzzz";
+    text[1][18] = "zzzzzzzzzzzzzzzzzzaBzzzzzzz";
+    text[1][19] = "zzzzzzzzzzzzzzzzzzzaBzzzzzz";
+    text[1][20] = "zzzzzzzzzzzzzzzzzzzzaBzzzzz";
+    text[1][21] = "zzzzzzzzzzzzzzzzzzzzzaBzzzz";
+    text[1][22] = "zzzzzzzzzzzzzzzzzzzzzzaBzzz";
+    text[1][23] = "zzzzzzzzzzzzzzzzzzzzzzzaBzz";
+    text[1][24] = "zzzzzzzzzzzzzzzzzzzzzzzzaBz";
+    text[1][25] = "zzzzzzzzzzzzzzzzzzzzzzzzzaB";
+    text[2][0] = "aBczzzzzzzzzzzzzzzzzzzzzzzz";
+    text[2][1] = "zaBczzzzzzzzzzzzzzzzzzzzzzz";
+    text[2][2] = "zzaBczzzzzzzzzzzzzzzzzzzzzz";
+    text[2][3] = "zzzaBczzzzzzzzzzzzzzzzzzzzz";
+    text[2][4] = "zzzzaBczzzzzzzzzzzzzzzzzzzz";
+    text[2][5] = "zzzzzaBczzzzzzzzzzzzzzzzzzz";
+    text[2][6] = "zzzzzzaBczzzzzzzzzzzzzzzzzz";
+    text[2][7] = "zzzzzzzaBczzzzzzzzzzzzzzzzz";
+    text[2][8] = "zzzzzzzzaBczzzzzzzzzzzzzzzz";
+    text[2][9] = "zzzzzzzzzaBczzzzzzzzzzzzzzz";
+    text[2][10] = "zzzzzzzzzzaBczzzzzzzzzzzzzz";
+    text[2][11] = "zzzzzzzzzzzaBczzzzzzzzzzzzz";
+    text[2][12] = "zzzzzzzzzzzzaBczzzzzzzzzzzz";
+    text[2][13] = "zzzzzzzzzzzzzaBczzzzzzzzzzz";
+    text[2][14] = "zzzzzzzzzzzzzzaBczzzzzzzzzz";
+    text[2][15] = "zzzzzzzzzzzzzzzaBczzzzzzzzz";
+    text[2][16] = "zzzzzzzzzzzzzzzzaBczzzzzzzz";
+    text[2][17] = "zzzzzzzzzzzzzzzzzaBczzzzzzz";
+    text[2][18] = "zzzzzzzzzzzzzzzzzzaBczzzzzz";
+    text[2][19] = "zzzzzzzzzzzzzzzzzzzaBczzzzz";
+    text[2][20] = "zzzzzzzzzzzzzzzzzzzzaBczzzz";
+    text[2][21] = "zzzzzzzzzzzzzzzzzzzzzaBczzz";
+    text[2][22] = "zzzzzzzzzzzzzzzzzzzzzzaBczz";
+    text[2][23] = "zzzzzzzzzzzzzzzzzzzzzzzaBcz";
+    text[2][24] = "zzzzzzzzzzzzzzzzzzzzzzzzaBc";
+    text[3][0] = "aBcDzzzzzzzzzzzzzzzzzzzzzzz";
+    text[3][1] = "zaBcDzzzzzzzzzzzzzzzzzzzzzz";
+    text[3][2] = "zzaBcDzzzzzzzzzzzzzzzzzzzzz";
+    text[3][3] = "zzzaBcDzzzzzzzzzzzzzzzzzzzz";
+    text[3][4] = "zzzzaBcDzzzzzzzzzzzzzzzzzzz";
+    text[3][5] = "zzzzzaBcDzzzzzzzzzzzzzzzzzz";
+    text[3][6] = "zzzzzzaBcDzzzzzzzzzzzzzzzzz";
+    text[3][7] = "zzzzzzzaBcDzzzzzzzzzzzzzzzz";
+    text[3][8] = "zzzzzzzzaBcDzzzzzzzzzzzzzzz";
+    text[3][9] = "zzzzzzzzzaBcDzzzzzzzzzzzzzz";
+    text[3][10] = "zzzzzzzzzzaBcDzzzzzzzzzzzzz";
+    text[3][11] = "zzzzzzzzzzzaBcDzzzzzzzzzzzz";
+    text[3][12] = "zzzzzzzzzzzzaBcDzzzzzzzzzzz";
+    text[3][13] = "zzzzzzzzzzzzzaBcDzzzzzzzzzz";
+    text[3][14] = "zzzzzzzzzzzzzzaBcDzzzzzzzzz";
+    text[3][15] = "zzzzzzzzzzzzzzzaBcDzzzzzzzz";
+    text[3][16] = "zzzzzzzzzzzzzzzzaBcDzzzzzzz";
+    text[3][17] = "zzzzzzzzzzzzzzzzzaBcDzzzzzz";
+    text[3][18] = "zzzzzzzzzzzzzzzzzzaBcDzzzzz";
+    text[3][19] = "zzzzzzzzzzzzzzzzzzzaBcDzzzz";
+    text[3][20] = "zzzzzzzzzzzzzzzzzzzzaBcDzzz";
+    text[3][21] = "zzzzzzzzzzzzzzzzzzzzzaBcDzz";
+    text[3][22] = "zzzzzzzzzzzzzzzzzzzzzzaBcDz";
+    text[3][23] = "zzzzzzzzzzzzzzzzzzzzzzzaBcD";
+    text[4][0] = "aBcDezzzzzzzzzzzzzzzzzzzzzz";
+    text[4][1] = "zaBcDezzzzzzzzzzzzzzzzzzzzz";
+    text[4][2] = "zzaBcDezzzzzzzzzzzzzzzzzzzz";
+    text[4][3] = "zzzaBcDezzzzzzzzzzzzzzzzzzz";
+    text[4][4] = "zzzzaBcDezzzzzzzzzzzzzzzzzz";
+    text[4][5] = "zzzzzaBcDezzzzzzzzzzzzzzzzz";
+    text[4][6] = "zzzzzzaBcDezzzzzzzzzzzzzzzz";
+    text[4][7] = "zzzzzzzaBcDezzzzzzzzzzzzzzz";
+    text[4][8] = "zzzzzzzzaBcDezzzzzzzzzzzzzz";
+    text[4][9] = "zzzzzzzzzaBcDezzzzzzzzzzzzz";
+    text[4][10] = "zzzzzzzzzzaBcDezzzzzzzzzzzz";
+    text[4][11] = "zzzzzzzzzzzaBcDezzzzzzzzzzz";
+    text[4][12] = "zzzzzzzzzzzzaBcDezzzzzzzzzz";
+    text[4][13] = "zzzzzzzzzzzzzaBcDezzzzzzzzz";
+    text[4][14] = "zzzzzzzzzzzzzzaBcDezzzzzzzz";
+    text[4][15] = "zzzzzzzzzzzzzzzaBcDezzzzzzz";
+    text[4][16] = "zzzzzzzzzzzzzzzzaBcDezzzzzz";
+    text[4][17] = "zzzzzzzzzzzzzzzzzaBcDezzzzz";
+    text[4][18] = "zzzzzzzzzzzzzzzzzzaBcDezzzz";
+    text[4][19] = "zzzzzzzzzzzzzzzzzzzaBcDezzz";
+    text[4][20] = "zzzzzzzzzzzzzzzzzzzzaBcDezz";
+    text[4][21] = "zzzzzzzzzzzzzzzzzzzzzaBcDez";
+    text[4][22] = "zzzzzzzzzzzzzzzzzzzzzzaBcDe";
+    text[5][0] = "aBcDeFzzzzzzzzzzzzzzzzzzzzz";
+    text[5][1] = "zaBcDeFzzzzzzzzzzzzzzzzzzzz";
+    text[5][2] = "zzaBcDeFzzzzzzzzzzzzzzzzzzz";
+    text[5][3] = "zzzaBcDeFzzzzzzzzzzzzzzzzzz";
+    text[5][4] = "zzzzaBcDeFzzzzzzzzzzzzzzzzz";
+    text[5][5] = "zzzzzaBcDeFzzzzzzzzzzzzzzzz";
+    text[5][6] = "zzzzzzaBcDeFzzzzzzzzzzzzzzz";
+    text[5][7] = "zzzzzzzaBcDeFzzzzzzzzzzzzzz";
+    text[5][8] = "zzzzzzzzaBcDeFzzzzzzzzzzzzz";
+    text[5][9] = "zzzzzzzzzaBcDeFzzzzzzzzzzzz";
+    text[5][10] = "zzzzzzzzzzaBcDeFzzzzzzzzzzz";
+    text[5][11] = "zzzzzzzzzzzaBcDeFzzzzzzzzzz";
+    text[5][12] = "zzzzzzzzzzzzaBcDeFzzzzzzzzz";
+    text[5][13] = "zzzzzzzzzzzzzaBcDeFzzzzzzzz";
+    text[5][14] = "zzzzzzzzzzzzzzaBcDeFzzzzzzz";
+    text[5][15] = "zzzzzzzzzzzzzzzaBcDeFzzzzzz";
+    text[5][16] = "zzzzzzzzzzzzzzzzaBcDeFzzzzz";
+    text[5][17] = "zzzzzzzzzzzzzzzzzaBcDeFzzzz";
+    text[5][18] = "zzzzzzzzzzzzzzzzzzaBcDeFzzz";
+    text[5][19] = "zzzzzzzzzzzzzzzzzzzaBcDeFzz";
+    text[5][20] = "zzzzzzzzzzzzzzzzzzzzaBcDeFz";
+    text[5][21] = "zzzzzzzzzzzzzzzzzzzzzaBcDeF";
+    text[6][0] = "aBcDeFgzzzzzzzzzzzzzzzzzzzz";
+    text[6][1] = "zaBcDeFgzzzzzzzzzzzzzzzzzzz";
+    text[6][2] = "zzaBcDeFgzzzzzzzzzzzzzzzzzz";
+    text[6][3] = "zzzaBcDeFgzzzzzzzzzzzzzzzzz";
+    text[6][4] = "zzzzaBcDeFgzzzzzzzzzzzzzzzz";
+    text[6][5] = "zzzzzaBcDeFgzzzzzzzzzzzzzzz";
+    text[6][6] = "zzzzzzaBcDeFgzzzzzzzzzzzzzz";
+    text[6][7] = "zzzzzzzaBcDeFgzzzzzzzzzzzzz";
+    text[6][8] = "zzzzzzzzaBcDeFgzzzzzzzzzzzz";
+    text[6][9] = "zzzzzzzzzaBcDeFgzzzzzzzzzzz";
+    text[6][10] = "zzzzzzzzzzaBcDeFgzzzzzzzzzz";
+    text[6][11] = "zzzzzzzzzzzaBcDeFgzzzzzzzzz";
+    text[6][12] = "zzzzzzzzzzzzaBcDeFgzzzzzzzz";
+    text[6][13] = "zzzzzzzzzzzzzaBcDeFgzzzzzzz";
+    text[6][14] = "zzzzzzzzzzzzzzaBcDeFgzzzzzz";
+    text[6][15] = "zzzzzzzzzzzzzzzaBcDeFgzzzzz";
+    text[6][16] = "zzzzzzzzzzzzzzzzaBcDeFgzzzz";
+    text[6][17] = "zzzzzzzzzzzzzzzzzaBcDeFgzzz";
+    text[6][18] = "zzzzzzzzzzzzzzzzzzaBcDeFgzz";
+    text[6][19] = "zzzzzzzzzzzzzzzzzzzaBcDeFgz";
+    text[6][20] = "zzzzzzzzzzzzzzzzzzzzaBcDeFg";
+    text[7][0] = "aBcDeFgHzzzzzzzzzzzzzzzzzzz";
+    text[7][1] = "zaBcDeFgHzzzzzzzzzzzzzzzzzz";
+    text[7][2] = "zzaBcDeFgHzzzzzzzzzzzzzzzzz";
+    text[7][3] = "zzzaBcDeFgHzzzzzzzzzzzzzzzz";
+    text[7][4] = "zzzzaBcDeFgHzzzzzzzzzzzzzzz";
+    text[7][5] = "zzzzzaBcDeFgHzzzzzzzzzzzzzz";
+    text[7][6] = "zzzzzzaBcDeFgHzzzzzzzzzzzzz";
+    text[7][7] = "zzzzzzzaBcDeFgHzzzzzzzzzzzz";
+    text[7][8] = "zzzzzzzzaBcDeFgHzzzzzzzzzzz";
+    text[7][9] = "zzzzzzzzzaBcDeFgHzzzzzzzzzz";
+    text[7][10] = "zzzzzzzzzzaBcDeFgHzzzzzzzzz";
+    text[7][11] = "zzzzzzzzzzzaBcDeFgHzzzzzzzz";
+    text[7][12] = "zzzzzzzzzzzzaBcDeFgHzzzzzzz";
+    text[7][13] = "zzzzzzzzzzzzzaBcDeFgHzzzzzz";
+    text[7][14] = "zzzzzzzzzzzzzzaBcDeFgHzzzzz";
+    text[7][15] = "zzzzzzzzzzzzzzzaBcDeFgHzzzz";
+    text[7][16] = "zzzzzzzzzzzzzzzzaBcDeFgHzzz";
+    text[7][17] = "zzzzzzzzzzzzzzzzzaBcDeFgHzz";
+    text[7][18] = "zzzzzzzzzzzzzzzzzzaBcDeFgHz";
+    text[7][19] = "zzzzzzzzzzzzzzzzzzzaBcDeFgH";
+    text[8][0] = "aBcDeFgHizzzzzzzzzzzzzzzzzz";
+    text[8][1] = "zaBcDeFgHizzzzzzzzzzzzzzzzz";
+    text[8][2] = "zzaBcDeFgHizzzzzzzzzzzzzzzz";
+    text[8][3] = "zzzaBcDeFgHizzzzzzzzzzzzzzz";
+    text[8][4] = "zzzzaBcDeFgHizzzzzzzzzzzzzz";
+    text[8][5] = "zzzzzaBcDeFgHizzzzzzzzzzzzz";
+    text[8][6] = "zzzzzzaBcDeFgHizzzzzzzzzzzz";
+    text[8][7] = "zzzzzzzaBcDeFgHizzzzzzzzzzz";
+    text[8][8] = "zzzzzzzzaBcDeFgHizzzzzzzzzz";
+    text[8][9] = "zzzzzzzzzaBcDeFgHizzzzzzzzz";
+    text[8][10] = "zzzzzzzzzzaBcDeFgHizzzzzzzz";
+    text[8][11] = "zzzzzzzzzzzaBcDeFgHizzzzzzz";
+    text[8][12] = "zzzzzzzzzzzzaBcDeFgHizzzzzz";
+    text[8][13] = "zzzzzzzzzzzzzaBcDeFgHizzzzz";
+    text[8][14] = "zzzzzzzzzzzzzzaBcDeFgHizzzz";
+    text[8][15] = "zzzzzzzzzzzzzzzaBcDeFgHizzz";
+    text[8][16] = "zzzzzzzzzzzzzzzzaBcDeFgHizz";
+    text[8][17] = "zzzzzzzzzzzzzzzzzaBcDeFgHiz";
+    text[8][18] = "zzzzzzzzzzzzzzzzzzaBcDeFgHi";
+    text[9][0] = "aBcDeFgHiJzzzzzzzzzzzzzzzzz";
+    text[9][1] = "zaBcDeFgHiJzzzzzzzzzzzzzzzz";
+    text[9][2] = "zzaBcDeFgHiJzzzzzzzzzzzzzzz";
+    text[9][3] = "zzzaBcDeFgHiJzzzzzzzzzzzzzz";
+    text[9][4] = "zzzzaBcDeFgHiJzzzzzzzzzzzzz";
+    text[9][5] = "zzzzzaBcDeFgHiJzzzzzzzzzzzz";
+    text[9][6] = "zzzzzzaBcDeFgHiJzzzzzzzzzzz";
+    text[9][7] = "zzzzzzzaBcDeFgHiJzzzzzzzzzz";
+    text[9][8] = "zzzzzzzzaBcDeFgHiJzzzzzzzzz";
+    text[9][9] = "zzzzzzzzzaBcDeFgHiJzzzzzzzz";
+    text[9][10] = "zzzzzzzzzzaBcDeFgHiJzzzzzzz";
+    text[9][11] = "zzzzzzzzzzzaBcDeFgHiJzzzzzz";
+    text[9][12] = "zzzzzzzzzzzzaBcDeFgHiJzzzzz";
+    text[9][13] = "zzzzzzzzzzzzzaBcDeFgHiJzzzz";
+    text[9][14] = "zzzzzzzzzzzzzzaBcDeFgHiJzzz";
+    text[9][15] = "zzzzzzzzzzzzzzzaBcDeFgHiJzz";
+    text[9][16] = "zzzzzzzzzzzzzzzzaBcDeFgHiJz";
+    text[9][17] = "zzzzzzzzzzzzzzzzzaBcDeFgHiJ";
+    text[10][0] = "aBcDeFgHiJkzzzzzzzzzzzzzzzz";
+    text[10][1] = "zaBcDeFgHiJkzzzzzzzzzzzzzzz";
+    text[10][2] = "zzaBcDeFgHiJkzzzzzzzzzzzzzz";
+    text[10][3] = "zzzaBcDeFgHiJkzzzzzzzzzzzzz";
+    text[10][4] = "zzzzaBcDeFgHiJkzzzzzzzzzzzz";
+    text[10][5] = "zzzzzaBcDeFgHiJkzzzzzzzzzzz";
+    text[10][6] = "zzzzzzaBcDeFgHiJkzzzzzzzzzz";
+    text[10][7] = "zzzzzzzaBcDeFgHiJkzzzzzzzzz";
+    text[10][8] = "zzzzzzzzaBcDeFgHiJkzzzzzzzz";
+    text[10][9] = "zzzzzzzzzaBcDeFgHiJkzzzzzzz";
+    text[10][10] = "zzzzzzzzzzaBcDeFgHiJkzzzzzz";
+    text[10][11] = "zzzzzzzzzzzaBcDeFgHiJkzzzzz";
+    text[10][12] = "zzzzzzzzzzzzaBcDeFgHiJkzzzz";
+    text[10][13] = "zzzzzzzzzzzzzaBcDeFgHiJkzzz";
+    text[10][14] = "zzzzzzzzzzzzzzaBcDeFgHiJkzz";
+    text[10][15] = "zzzzzzzzzzzzzzzaBcDeFgHiJkz";
+    text[10][16] = "zzzzzzzzzzzzzzzzaBcDeFgHiJk";
+    text[11][0] = "aBcDeFgHiJkLzzzzzzzzzzzzzzz";
+    text[11][1] = "zaBcDeFgHiJkLzzzzzzzzzzzzzz";
+    text[11][2] = "zzaBcDeFgHiJkLzzzzzzzzzzzzz";
+    text[11][3] = "zzzaBcDeFgHiJkLzzzzzzzzzzzz";
+    text[11][4] = "zzzzaBcDeFgHiJkLzzzzzzzzzzz";
+    text[11][5] = "zzzzzaBcDeFgHiJkLzzzzzzzzzz";
+    text[11][6] = "zzzzzzaBcDeFgHiJkLzzzzzzzzz";
+    text[11][7] = "zzzzzzzaBcDeFgHiJkLzzzzzzzz";
+    text[11][8] = "zzzzzzzzaBcDeFgHiJkLzzzzzzz";
+    text[11][9] = "zzzzzzzzzaBcDeFgHiJkLzzzzzz";
+    text[11][10] = "zzzzzzzzzzaBcDeFgHiJkLzzzzz";
+    text[11][11] = "zzzzzzzzzzzaBcDeFgHiJkLzzzz";
+    text[11][12] = "zzzzzzzzzzzzaBcDeFgHiJkLzzz";
+    text[11][13] = "zzzzzzzzzzzzzaBcDeFgHiJkLzz";
+    text[11][14] = "zzzzzzzzzzzzzzaBcDeFgHiJkLz";
+    text[11][15] = "zzzzzzzzzzzzzzzaBcDeFgHiJkL";
+    text[12][0] = "aBcDeFgHiJkLmzzzzzzzzzzzzzz";
+    text[12][1] = "zaBcDeFgHiJkLmzzzzzzzzzzzzz";
+    text[12][2] = "zzaBcDeFgHiJkLmzzzzzzzzzzzz";
+    text[12][3] = "zzzaBcDeFgHiJkLmzzzzzzzzzzz";
+    text[12][4] = "zzzzaBcDeFgHiJkLmzzzzzzzzzz";
+    text[12][5] = "zzzzzaBcDeFgHiJkLmzzzzzzzzz";
+    text[12][6] = "zzzzzzaBcDeFgHiJkLmzzzzzzzz";
+    text[12][7] = "zzzzzzzaBcDeFgHiJkLmzzzzzzz";
+    text[12][8] = "zzzzzzzzaBcDeFgHiJkLmzzzzzz";
+    text[12][9] = "zzzzzzzzzaBcDeFgHiJkLmzzzzz";
+    text[12][10] = "zzzzzzzzzzaBcDeFgHiJkLmzzzz";
+    text[12][11] = "zzzzzzzzzzzaBcDeFgHiJkLmzzz";
+    text[12][12] = "zzzzzzzzzzzzaBcDeFgHiJkLmzz";
+    text[12][13] = "zzzzzzzzzzzzzaBcDeFgHiJkLmz";
+    text[12][14] = "zzzzzzzzzzzzzzaBcDeFgHiJkLm";
+    text[13][0] = "aBcDeFgHiJkLmNzzzzzzzzzzzzz";
+    text[13][1] = "zaBcDeFgHiJkLmNzzzzzzzzzzzz";
+    text[13][2] = "zzaBcDeFgHiJkLmNzzzzzzzzzzz";
+    text[13][3] = "zzzaBcDeFgHiJkLmNzzzzzzzzzz";
+    text[13][4] = "zzzzaBcDeFgHiJkLmNzzzzzzzzz";
+    text[13][5] = "zzzzzaBcDeFgHiJkLmNzzzzzzzz";
+    text[13][6] = "zzzzzzaBcDeFgHiJkLmNzzzzzzz";
+    text[13][7] = "zzzzzzzaBcDeFgHiJkLmNzzzzzz";
+    text[13][8] = "zzzzzzzzaBcDeFgHiJkLmNzzzzz";
+    text[13][9] = "zzzzzzzzzaBcDeFgHiJkLmNzzzz";
+    text[13][10] = "zzzzzzzzzzaBcDeFgHiJkLmNzzz";
+    text[13][11] = "zzzzzzzzzzzaBcDeFgHiJkLmNzz";
+    text[13][12] = "zzzzzzzzzzzzaBcDeFgHiJkLmNz";
+    text[13][13] = "zzzzzzzzzzzzzaBcDeFgHiJkLmN";
+    text[14][0] = "aBcDeFgHiJkLmNozzzzzzzzzzzz";
+    text[14][1] = "zaBcDeFgHiJkLmNozzzzzzzzzzz";
+    text[14][2] = "zzaBcDeFgHiJkLmNozzzzzzzzzz";
+    text[14][3] = "zzzaBcDeFgHiJkLmNozzzzzzzzz";
+    text[14][4] = "zzzzaBcDeFgHiJkLmNozzzzzzzz";
+    text[14][5] = "zzzzzaBcDeFgHiJkLmNozzzzzzz";
+    text[14][6] = "zzzzzzaBcDeFgHiJkLmNozzzzzz";
+    text[14][7] = "zzzzzzzaBcDeFgHiJkLmNozzzzz";
+    text[14][8] = "zzzzzzzzaBcDeFgHiJkLmNozzzz";
+    text[14][9] = "zzzzzzzzzaBcDeFgHiJkLmNozzz";
+    text[14][10] = "zzzzzzzzzzaBcDeFgHiJkLmNozz";
+    text[14][11] = "zzzzzzzzzzzaBcDeFgHiJkLmNoz";
+    text[14][12] = "zzzzzzzzzzzzaBcDeFgHiJkLmNo";
+    text[15][0] = "aBcDeFgHiJkLmNoPzzzzzzzzzzz";
+    text[15][1] = "zaBcDeFgHiJkLmNoPzzzzzzzzzz";
+    text[15][2] = "zzaBcDeFgHiJkLmNoPzzzzzzzzz";
+    text[15][3] = "zzzaBcDeFgHiJkLmNoPzzzzzzzz";
+    text[15][4] = "zzzzaBcDeFgHiJkLmNoPzzzzzzz";
+    text[15][5] = "zzzzzaBcDeFgHiJkLmNoPzzzzzz";
+    text[15][6] = "zzzzzzaBcDeFgHiJkLmNoPzzzzz";
+    text[15][7] = "zzzzzzzaBcDeFgHiJkLmNoPzzzz";
+    text[15][8] = "zzzzzzzzaBcDeFgHiJkLmNoPzzz";
+    text[15][9] = "zzzzzzzzzaBcDeFgHiJkLmNoPzz";
+    text[15][10] = "zzzzzzzzzzaBcDeFgHiJkLmNoPz";
+    text[15][11] = "zzzzzzzzzzzaBcDeFgHiJkLmNoP";
+    text[16][0] = "aBcDeFgHiJkLmNoPqzzzzzzzzzz";
+    text[16][1] = "zaBcDeFgHiJkLmNoPqzzzzzzzzz";
+    text[16][2] = "zzaBcDeFgHiJkLmNoPqzzzzzzzz";
+    text[16][3] = "zzzaBcDeFgHiJkLmNoPqzzzzzzz";
+    text[16][4] = "zzzzaBcDeFgHiJkLmNoPqzzzzzz";
+    text[16][5] = "zzzzzaBcDeFgHiJkLmNoPqzzzzz";
+    text[16][6] = "zzzzzzaBcDeFgHiJkLmNoPqzzzz";
+    text[16][7] = "zzzzzzzaBcDeFgHiJkLmNoPqzzz";
+    text[16][8] = "zzzzzzzzaBcDeFgHiJkLmNoPqzz";
+    text[16][9] = "zzzzzzzzzaBcDeFgHiJkLmNoPqz";
+    text[16][10] = "zzzzzzzzzzaBcDeFgHiJkLmNoPq";
+    text[17][0] = "aBcDeFgHiJkLmNoPqRzzzzzzzzz";
+    text[17][1] = "zaBcDeFgHiJkLmNoPqRzzzzzzzz";
+    text[17][2] = "zzaBcDeFgHiJkLmNoPqRzzzzzzz";
+    text[17][3] = "zzzaBcDeFgHiJkLmNoPqRzzzzzz";
+    text[17][4] = "zzzzaBcDeFgHiJkLmNoPqRzzzzz";
+    text[17][5] = "zzzzzaBcDeFgHiJkLmNoPqRzzzz";
+    text[17][6] = "zzzzzzaBcDeFgHiJkLmNoPqRzzz";
+    text[17][7] = "zzzzzzzaBcDeFgHiJkLmNoPqRzz";
+    text[17][8] = "zzzzzzzzaBcDeFgHiJkLmNoPqRz";
+    text[17][9] = "zzzzzzzzzaBcDeFgHiJkLmNoPqR";
+    text[18][0] = "aBcDeFgHiJkLmNoPqRszzzzzzzz";
+    text[18][1] = "zaBcDeFgHiJkLmNoPqRszzzzzzz";
+    text[18][2] = "zzaBcDeFgHiJkLmNoPqRszzzzzz";
+    text[18][3] = "zzzaBcDeFgHiJkLmNoPqRszzzzz";
+    text[18][4] = "zzzzaBcDeFgHiJkLmNoPqRszzzz";
+    text[18][5] = "zzzzzaBcDeFgHiJkLmNoPqRszzz";
+    text[18][6] = "zzzzzzaBcDeFgHiJkLmNoPqRszz";
+    text[18][7] = "zzzzzzzaBcDeFgHiJkLmNoPqRsz";
+    text[18][8] = "zzzzzzzzaBcDeFgHiJkLmNoPqRs";
+    text[19][0] = "aBcDeFgHiJkLmNoPqRsTzzzzzzz";
+    text[19][1] = "zaBcDeFgHiJkLmNoPqRsTzzzzzz";
+    text[19][2] = "zzaBcDeFgHiJkLmNoPqRsTzzzzz";
+    text[19][3] = "zzzaBcDeFgHiJkLmNoPqRsTzzzz";
+    text[19][4] = "zzzzaBcDeFgHiJkLmNoPqRsTzzz";
+    text[19][5] = "zzzzzaBcDeFgHiJkLmNoPqRsTzz";
+    text[19][6] = "zzzzzzaBcDeFgHiJkLmNoPqRsTz";
+    text[19][7] = "zzzzzzzaBcDeFgHiJkLmNoPqRsT";
+    text[20][0] = "aBcDeFgHiJkLmNoPqRsTuzzzzzz";
+    text[20][1] = "zaBcDeFgHiJkLmNoPqRsTuzzzzz";
+    text[20][2] = "zzaBcDeFgHiJkLmNoPqRsTuzzzz";
+    text[20][3] = "zzzaBcDeFgHiJkLmNoPqRsTuzzz";
+    text[20][4] = "zzzzaBcDeFgHiJkLmNoPqRsTuzz";
+    text[20][5] = "zzzzzaBcDeFgHiJkLmNoPqRsTuz";
+    text[20][6] = "zzzzzzaBcDeFgHiJkLmNoPqRsTu";
+    text[21][0] = "aBcDeFgHiJkLmNoPqRsTuVzzzzz";
+    text[21][1] = "zaBcDeFgHiJkLmNoPqRsTuVzzzz";
+    text[21][2] = "zzaBcDeFgHiJkLmNoPqRsTuVzzz";
+    text[21][3] = "zzzaBcDeFgHiJkLmNoPqRsTuVzz";
+    text[21][4] = "zzzzaBcDeFgHiJkLmNoPqRsTuVz";
+    text[21][5] = "zzzzzaBcDeFgHiJkLmNoPqRsTuV";
+    text[22][0] = "aBcDeFgHiJkLmNoPqRsTuVwzzzz";
+    text[22][1] = "zaBcDeFgHiJkLmNoPqRsTuVwzzz";
+    text[22][2] = "zzaBcDeFgHiJkLmNoPqRsTuVwzz";
+    text[22][3] = "zzzaBcDeFgHiJkLmNoPqRsTuVwz";
+    text[22][4] = "zzzzaBcDeFgHiJkLmNoPqRsTuVw";
+    text[23][0] = "aBcDeFgHiJkLmNoPqRsTuVwXzzz";
+    text[23][1] = "zaBcDeFgHiJkLmNoPqRsTuVwXzz";
+    text[23][2] = "zzaBcDeFgHiJkLmNoPqRsTuVwXz";
+    text[23][3] = "zzzaBcDeFgHiJkLmNoPqRsTuVwX";
+    text[24][0] = "aBcDeFgHiJkLmNoPqRsTuVwXyzz";
+    text[24][1] = "zaBcDeFgHiJkLmNoPqRsTuVwXyz";
+    text[24][2] = "zzaBcDeFgHiJkLmNoPqRsTuVwXy";
+    text[25][0] = "aBcDeFgHiJkLmNoPqRsTuVwXyZz";
+    text[25][1] = "zaBcDeFgHiJkLmNoPqRsTuVwXyZ";
 
     const char *needle[26];
-    needle[0]="A";
-    needle[1]="Ab";
-    needle[2]="AbC";
-    needle[3]="AbCd";
-    needle[4]="AbCdE";
-    needle[5]="AbCdEf";
-    needle[6]="AbCdEfG";
-    needle[7]="AbCdEfGh";
-    needle[8]="AbCdEfGhI";
-    needle[9]="AbCdEfGhIJ";
-    needle[10]="AbCdEfGhIjK";
-    needle[11]="AbCdEfGhIjKl";
-    needle[12]="AbCdEfGhIjKlM";
-    needle[13]="AbCdEfGhIjKlMn";
-    needle[14]="AbCdEfGhIjKlMnO";
-    needle[15]="AbCdEfGhIjKlMnOp";
-    needle[16]="AbCdEfGhIjKlMnOpQ";
-    needle[17]="AbCdEfGhIjKlMnOpQr";
-    needle[18]="AbCdEfGhIjKlMnOpQrS";
-    needle[19]="AbCdEfGhIjKlMnOpQrSt";
-    needle[20]="AbCdEfGhIjKlMnOpQrStU";
-    needle[21]="AbCdEfGhIjKlMnOpQrStUv";
-    needle[22]="AbCdEfGhIjKlMnOpQrStUvW";
-    needle[23]="AbCdEfGhIjKlMnOpQrStUvWx";
-    needle[24]="AbCdEfGhIjKlMnOpQrStUvWxY";
-    needle[25]="AbCdEfGhIjKlMnOpQrStUvWxYZ";
+    needle[0] = "A";
+    needle[1] = "Ab";
+    needle[2] = "AbC";
+    needle[3] = "AbCd";
+    needle[4] = "AbCdE";
+    needle[5] = "AbCdEf";
+    needle[6] = "AbCdEfG";
+    needle[7] = "AbCdEfGh";
+    needle[8] = "AbCdEfGhI";
+    needle[9] = "AbCdEfGhIJ";
+    needle[10] = "AbCdEfGhIjK";
+    needle[11] = "AbCdEfGhIjKl";
+    needle[12] = "AbCdEfGhIjKlM";
+    needle[13] = "AbCdEfGhIjKlMn";
+    needle[14] = "AbCdEfGhIjKlMnO";
+    needle[15] = "AbCdEfGhIjKlMnOp";
+    needle[16] = "AbCdEfGhIjKlMnOpQ";
+    needle[17] = "AbCdEfGhIjKlMnOpQr";
+    needle[18] = "AbCdEfGhIjKlMnOpQrS";
+    needle[19] = "AbCdEfGhIjKlMnOpQrSt";
+    needle[20] = "AbCdEfGhIjKlMnOpQrStU";
+    needle[21] = "AbCdEfGhIjKlMnOpQrStUv";
+    needle[22] = "AbCdEfGhIjKlMnOpQrStUvW";
+    needle[23] = "AbCdEfGhIjKlMnOpQrStUvWx";
+    needle[24] = "AbCdEfGhIjKlMnOpQrStUvWxY";
+    needle[25] = "AbCdEfGhIjKlMnOpQrStUvWxYZ";
 
     int i, j;
     uint8_t *found = NULL;
     for (i = 0; i < 26; i++) {
-        for (j = 0; j <= (26-i); j++) {
+        for (j = 0; j <= (26 - i); j++) {
             found = BasicSearchNocaseWrapper((uint8_t *)text[i][j], (uint8_t *)needle[i], 1);
             if (found == 0) {
                 printf("Error1 searching for %s in text %s\n", needle[i], text[i][j]);
@@ -1639,58 +1688,107 @@ static int UtilSpmSearchOffsetsNocaseTest01(void)
 static int UtilSpmSearchStatsTest01(void)
 {
     char *text[16];
-    text[0]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzza";
-    text[1]="aaaaaaaaazaaaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaazaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaazaaaaaraaaaazaaaaaaazaaaaaaaaaaaaaazaaaaaaaazaaaaaaaaazaaaaaaaaaaaaB";
-    text[2]="aBaBaBaBaBaBaBaBazaBaBaBaBaBaBazaBaBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBazaBaBaBaBaBaBaBzBaBaBaBaBaBaBzBaBaBaBaBzBaBaBaBaBaBzBaBaBaBaBaBzBaBaBaBaBaBaBaBazaBaBaBaBaBaBaBaBaBaBaBaBazaBaBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBaBaBaBazaBaBaBaBaBaBaBazaBaBaBaBaBc";
-    text[3]="aBcaBcaBcaBcaBczBcaBcaBzaBcaBcaBcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcaBcaBzaBcaBcaBcaBcaBcaBczBcaBcaBcaBcaBcaBzaBcaBcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcaBcaBcaBczBcaBcaBcaBcaBcaBcaBczBcaBcaBcaBcaBzaBcaBcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcaBzaBcaBcaBcazcaBcaBcaBcaBcaBcD";
-    text[4]="aBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDzBcDaBcDaBcDaBcDzBcDaBcDaBczaBcDaBcDaBczaBcDaBcDaBcDaBcDaBzDaBcDaBcDaBcDaBcDaBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDaBcDaBzDaBcDaBcDaBcDaBzDaBcDaBcDaBzDaBcDaBcDaBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDazcDaBcDaBcDaBcDaBcDzBcDaBcDaBcDaBcDaBcDaBcDe";
-    text[5]="aBcDeaBcDeaBcDeazcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDezBcDeaBcDeaBcDzaBcDeaBcDeaBcDeazcDzaBcDeaBcDezBcDeaBzDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBczeaBcDeaBcDeaBzDeaBcDeaBcDezBcDeaBcDzaBcDeaBcDezBcDeaBcDezBcDeaBczeaBcDeaBcDeaBzDeaBcDezBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeF";
-    text[6]="aBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBcDzaBcDzaBcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBczzaBcDeaBcDeaBcDzazcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDeaBczeaBcDeaBcDeaBcDeaBczeaBcDezzzaBcDeFg";
-    text[7]="aBcDeaBczeaBcDzaBcDezBcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBzDzaBcDeaBcDeazcDeaBcDzaBcDeaBczeaBcDeaBcDeaBzDzaBcDeaBcDeaBcDezBcDzaBcDeaBzDeaBcDeaBcDezBcDzaBcDeaBcDeaBzDeaBcDeaBcDeaBzDeaBcDeaBcDezBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBrDeaBcDeaBcDezzzaBcDeFgH";
-    text[8]="aBcDeaBcDeaBczzaBcDeazcDeaBcDezBcDeaBcDzaBcDeaBcDeaBcDeaBczzaBcDeaBcDeaBczeaBcDeaBcDzzBcDeaBcDeaBcDzaBczeaBcDeaBcDzaBcDeaBczeaBcDeaBcDeaBzDeaBcDeaBcDeaBzDeaBcDeaBcDzaBcDeaBcDeazcDeaBcDeaBcDzaBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBczeaBcDeaBzDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHi";
-    text[9]="aBcDeaBcDzaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeazcDeaBcDeaBcDzzBcDeaBcDeaBczeaBcDzaBcDezBcDeaBczeaBcDzaBcDezBcDeaBcDzaBczeaBcDeaBcDzaBcDeazcDeaBcDeaBcDzaBczeaBcDeaBcDzaBzDeaBcDeaBczeaBcDeaBcDzaBcDeaBcDeaBzDeaBcDeaBcDeaBczeaBcDeaBcDeaBcDeaBzDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJ";
-    text[10]="aBcDeaBcDeaBczeaBcDzaBczeaBcDeaBczeaBcDeaBcDzaBcDeaBcDeazcDeaBcDeaBcDeaBzDzaBcDeazcDeaBcDeazcDeaBcDzaBcDeazcDeaBcDeaBczzaBcDeaBcDeaBzDeaBcDeaBcDzaBczeaBcDeaBcDeaBcDeaBczeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDezBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDezBcDeaBcDeaBcDeaBzDeaBcDeaBcDezzzaBcDeFgHiJk";
-    text[11]="aBcDeaBcDeaBcDeaBcDeaBzDeaBcDeaBcDzaBcDzaBcDeaBcDeaBcDeaBcDeazcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDzaBcDzaBcDeaBcDeaBcDeaBcDzzBcDeaBcDeaBcDeaBcDzaBcDzaBcDeaBzDeaBcDeaBcDezBcDeaBcDeazcDeaBcDeaBcDezBcDeaBcDeaBcDeazcDeaBcDeaBzDeaBcDeaBczeaBcDeazcDeaBcDezBcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkL";
-    text[12]="aBcDeaBcDeaBcDeaBcDeaBzDeaBcDeaBzDeaBcDeaBcDezBcDeaBcDeazcDeaBcDeaBcDeazcDeaBcDeaBczeaBcDeaBcDeaBcDezBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkLm";
-    text[13]="aBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkLmN";
-    text[14]="aBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDezzzaBcDeFgHiJkLmNo";
-    text[15]="aBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkLmNoP";
+    text[0] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzza";
+    text[1] = "aaaaaaaaazaaaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaa"
+              "aaaazaaaaaaaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaazaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaaaaaa"
+              "aaazaaaaaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaazaaaaaraaaaazaaaaaaazaaaaaaaaaaaaaazaaaaaa"
+              "aazaaaaaaaaazaaaaaaaaaaaaB";
+    text[2] = "aBaBaBaBaBaBaBaBazaBaBaBaBaBaBazaBaBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBazaBaBaBaBaBaBaBzB"
+              "aBaBaBaBaBaBzBaBaBaBaBzBaBaBaBaBaBzBaBaBaBaBaBzBaBaBaBaBaBaBaBazaBaBaBaBaBaBaBaBaBaB"
+              "aBaBazaBaBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBaBaBaBaz"
+              "aBaBaBaBaBaBaBazaBaBaBaBaBc";
+    text[3] = "aBcaBcaBcaBcaBczBcaBcaBzaBcaBcaBcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcaBcaBzaBcaBcaBcaBc"
+              "aBcaBczBcaBcaBcaBcaBcaBzaBcaBcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcaBcaBcaBczBcaBcaBcaBc"
+              "aBcaBcaBczBcaBcaBcaBcaBzaBcaBcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcaBz"
+              "aBcaBcaBcazcaBcaBcaBcaBcaBcD";
+    text[4] = "aBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDzBcDaBcDaBcDaBcDzBcDaBcDaBczaBcD"
+              "aBcDaBczaBcDaBcDaBcDaBcDaBzDaBcDaBcDaBcDaBcDaBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDaBcDaBzD"
+              "aBcDaBcDaBcDaBzDaBcDaBcDaBzDaBcDaBcDaBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDazcDaBcDaBcDaBcD"
+              "aBcDzBcDaBcDaBcDaBcDaBcDaBcDe";
+    text[5] = "aBcDeaBcDeaBcDeazcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDezBcDeaBcDeaBcDzaBcDeaBcDeaBcDeazcD"
+              "zaBcDeaBcDezBcDeaBzDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBczeaBcDeaBcDeaBzDeaBc"
+              "DeaBcDezBcDeaBcDzaBcDeaBcDezBcDeaBcDezBcDeaBczeaBcDeaBcDeaBzDeaBcDezBcDeaBcDeaBcDeaB"
+              "cDeaBcDeaBcDeaBcDeaBcDezzzaBcDeF";
+    text[6] = "aBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcD"
+              "zaBcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBcDzaBcDzaBcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBc"
+              "zzaBcDeaBcDeaBcDzazcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDeaBczeaB"
+              "cDeaBcDeaBcDeaBczeaBcDezzzaBcDeFg";
+    text[7] = "aBcDeaBczeaBcDzaBcDezBcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBzDzaBcDeaBcDeazcDeaBcDzaBcD"
+              "eaBczeaBcDeaBcDeaBzDzaBcDeaBcDeaBcDezBcDzaBcDeaBzDeaBcDeaBcDezBcDzaBcDeaBcDeaBzDeaBc"
+              "DeaBcDeaBzDeaBcDeaBcDezBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaB"
+              "cDeaBcDeaBrDeaBcDeaBcDezzzaBcDeFgH";
+    text[8] = "aBcDeaBcDeaBczzaBcDeazcDeaBcDezBcDeaBcDzaBcDeaBcDeaBcDeaBczzaBcDeaBcDeaBczeaBcDeaBcD"
+              "zzBcDeaBcDeaBcDzaBczeaBcDeaBcDzaBcDeaBczeaBcDeaBcDeaBzDeaBcDeaBcDeaBzDeaBcDeaBcDzaBc"
+              "DeaBcDeazcDeaBcDeaBcDzaBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBczeaBcDeaB"
+              "zDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHi";
+    text[9] = "aBcDeaBcDzaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeazcDeaBcDeaBcDzzBcDeaBcDeaBczeaBcDzaBcD"
+              "ezBcDeaBczeaBcDzaBcDezBcDeaBcDzaBczeaBcDeaBcDzaBcDeazcDeaBcDeaBcDzaBczeaBcDeaBcDzaBz"
+              "DeaBcDeaBczeaBcDeaBcDzaBcDeaBcDeaBzDeaBcDeaBcDeaBczeaBcDeaBcDeaBcDeaBzDeaBcDeaBcDeaz"
+              "cDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJ";
+    text[10] = "aBcDeaBcDeaBczeaBcDzaBczeaBcDeaBczeaBcDeaBcDzaBcDeaBcDeazcDeaBcDeaBcDeaBzDzaBcDeazc"
+               "DeaBcDeazcDeaBcDzaBcDeazcDeaBcDeaBczzaBcDeaBcDeaBzDeaBcDeaBcDzaBczeaBcDeaBcDeaBcDea"
+               "BczeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDezBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDezBcD"
+               "eaBcDeaBcDeaBzDeaBcDeaBcDezzzaBcDeFgHiJk";
+    text[11] = "aBcDeaBcDeaBcDeaBcDeaBzDeaBcDeaBcDzaBcDzaBcDeaBcDeaBcDeaBcDeazcDeaBcDzaBcDeaBcDeaBc"
+               "DeaBcDzaBcDeaBcDzaBcDzaBcDeaBcDeaBcDeaBcDzzBcDeaBcDeaBcDeaBcDzaBcDzaBcDeaBzDeaBcDea"
+               "BcDezBcDeaBcDeazcDeaBcDeaBcDezBcDeaBcDeaBcDeazcDeaBcDeaBzDeaBcDeaBczeaBcDeazcDeaBcD"
+               "ezBcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkL";
+    text[12] = "aBcDeaBcDeaBcDeaBcDeaBzDeaBcDeaBzDeaBcDeaBcDezBcDeaBcDeazcDeaBcDeaBcDeazcDeaBcDeaBc"
+               "zeaBcDeaBcDeaBcDezBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDea"
+               "BcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcD"
+               "eaBcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkLm";
+    text[13] = "aBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBc"
+               "DzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDea"
+               "BcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcD"
+               "eaBcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkLmN";
+    text[14] = "aBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBc"
+               "DeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDea"
+               "BcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcD"
+               "eaBcDeaBcDzaBcDeaBcDzaBcDezzzaBcDeFgHiJkLmNo";
+    text[15] = "aBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBc"
+               "DeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDea"
+               "BcDzaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcD"
+               "eaBcDzaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkLmNoP";
 
     char *needle[16];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
-    needle[5]="aBcDeF";
-    needle[6]="aBcDeFg";
-    needle[7]="aBcDeFgH";
-    needle[8]="aBcDeFgHi";
-    needle[9]="aBcDeFgHiJ";
-    needle[10]="aBcDeFgHiJk";
-    needle[11]="aBcDeFgHiJkL";
-    needle[12]="aBcDeFgHiJkLm";
-    needle[13]="aBcDeFgHiJkLmN";
-    needle[14]="aBcDeFgHiJkLmNo";
-    needle[15]="aBcDeFgHiJkLmNoP";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
+    needle[5] = "aBcDeF";
+    needle[6] = "aBcDeFg";
+    needle[7] = "aBcDeFgH";
+    needle[8] = "aBcDeFgHi";
+    needle[9] = "aBcDeFgHiJ";
+    needle[10] = "aBcDeFgHiJk";
+    needle[11] = "aBcDeFgHiJkL";
+    needle[12] = "aBcDeFgHiJkLm";
+    needle[13] = "aBcDeFgHiJkLmN";
+    needle[14] = "aBcDeFgHiJkLmNo";
+    needle[15] = "aBcDeFgHiJkLmNoP";
 
     int i;
     uint8_t *found = NULL;
-        printf("\nStats for text of greater length (text with a lot of partial matches, worst case for a basic search):\n");
+    printf("\nStats for text of greater length (text with a lot of partial matches, worst case for "
+           "a basic search):\n");
     for (i = 0; i < 16; i++) {
-        printf("Pattern length %d with BasicSearch:", i+1);
+        printf("Pattern length %d with BasicSearch:", i + 1);
         found = BasicSearchWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with Bs2BmSearch:", i+1);
+        printf("Pattern length %d with Bs2BmSearch:", i + 1);
         found = Bs2bmWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with BoyerMooreSearch:", i+1);
+        printf("Pattern length %d with BoyerMooreSearch:", i + 1);
         found = BoyerMooreWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
@@ -1707,58 +1805,58 @@ static int UtilSpmSearchStatsTest01(void)
 static int UtilSpmSearchStatsTest02(void)
 {
     char *text[16];
-    text[0]="zzzzzzzzzzzzzzzzzza";
-    text[1]="zzzzzzzzzzzzzzzzzzaB";
-    text[2]="zzzzzzzzzzzzzzzzzzaBc";
-    text[3]="zzzzzzzzzzzzzzzzzzaBcD";
-    text[4]="zzzzzzzzzzzzzzzzzzaBcDe";
-    text[5]="zzzzzzzzzzzzzzzzzzzzaBcDeF";
-    text[6]="zzzzzzzzzzzzzzzzzzzzaBcDeFg";
-    text[7]="zzzzzzzzzzzzzzzzzzzzaBcDeFgH";
-    text[8]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHi";
-    text[9]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJ";
-    text[10]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJk";
-    text[11]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkL";
-    text[12]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLm";
-    text[13]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmN";
-    text[14]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNo";
-    text[15]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNoP";
+    text[0] = "zzzzzzzzzzzzzzzzzza";
+    text[1] = "zzzzzzzzzzzzzzzzzzaB";
+    text[2] = "zzzzzzzzzzzzzzzzzzaBc";
+    text[3] = "zzzzzzzzzzzzzzzzzzaBcD";
+    text[4] = "zzzzzzzzzzzzzzzzzzaBcDe";
+    text[5] = "zzzzzzzzzzzzzzzzzzzzaBcDeF";
+    text[6] = "zzzzzzzzzzzzzzzzzzzzaBcDeFg";
+    text[7] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgH";
+    text[8] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHi";
+    text[9] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJ";
+    text[10] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJk";
+    text[11] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkL";
+    text[12] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLm";
+    text[13] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmN";
+    text[14] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNo";
+    text[15] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNoP";
 
     char *needle[16];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
-    needle[5]="aBcDeF";
-    needle[6]="aBcDeFg";
-    needle[7]="aBcDeFgH";
-    needle[8]="aBcDeFgHi";
-    needle[9]="aBcDeFgHiJ";
-    needle[10]="aBcDeFgHiJk";
-    needle[11]="aBcDeFgHiJkL";
-    needle[12]="aBcDeFgHiJkLm";
-    needle[13]="aBcDeFgHiJkLmN";
-    needle[14]="aBcDeFgHiJkLmNo";
-    needle[15]="aBcDeFgHiJkLmNoP";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
+    needle[5] = "aBcDeF";
+    needle[6] = "aBcDeFg";
+    needle[7] = "aBcDeFgH";
+    needle[8] = "aBcDeFgHi";
+    needle[9] = "aBcDeFgHiJ";
+    needle[10] = "aBcDeFgHiJk";
+    needle[11] = "aBcDeFgHiJkL";
+    needle[12] = "aBcDeFgHiJkLm";
+    needle[13] = "aBcDeFgHiJkLmN";
+    needle[14] = "aBcDeFgHiJkLmNo";
+    needle[15] = "aBcDeFgHiJkLmNoP";
 
     int i;
     uint8_t *found = NULL;
-        printf("\nStats for text of lower length:\n");
+    printf("\nStats for text of lower length:\n");
     for (i = 0; i < 16; i++) {
-        printf("Pattern length %d with BasicSearch:", i+1);
+        printf("Pattern length %d with BasicSearch:", i + 1);
         found = BasicSearchWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with Bs2BmSearch:", i+1);
+        printf("Pattern length %d with Bs2BmSearch:", i + 1);
         found = Bs2bmWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with BoyerMooreSearch:", i+1);
+        printf("Pattern length %d with BoyerMooreSearch:", i + 1);
         found = BoyerMooreWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
@@ -1769,62 +1867,61 @@ static int UtilSpmSearchStatsTest02(void)
     return 1;
 }
 
-
 static int UtilSpmSearchStatsTest03(void)
 {
     char *text[16];
-    text[0]="zzzzzza";
-    text[1]="zzzzzzaB";
-    text[2]="zzzzzzaBc";
-    text[3]="zzzzzzaBcD";
-    text[4]="zzzzzzaBcDe";
-    text[5]="zzzzzzzzaBcDeF";
-    text[6]="zzzzzzzzaBcDeFg";
-    text[7]="zzzzzzzzaBcDeFgH";
-    text[8]="zzzzzzzzaBcDeFgHi";
-    text[9]="zzzzzzzzaBcDeFgHiJ";
-    text[10]="zzzzzzzzaBcDeFgHiJk";
-    text[11]="zzzzzzzzaBcDeFgHiJkL";
-    text[12]="zzzzzzzzaBcDeFgHiJkLm";
-    text[13]="zzzzzzzzaBcDeFgHiJkLmN";
-    text[14]="zzzzzzzzaBcDeFgHiJkLmNo";
-    text[15]="zzzzzzzzaBcDeFgHiJkLmNoP";
+    text[0] = "zzzzzza";
+    text[1] = "zzzzzzaB";
+    text[2] = "zzzzzzaBc";
+    text[3] = "zzzzzzaBcD";
+    text[4] = "zzzzzzaBcDe";
+    text[5] = "zzzzzzzzaBcDeF";
+    text[6] = "zzzzzzzzaBcDeFg";
+    text[7] = "zzzzzzzzaBcDeFgH";
+    text[8] = "zzzzzzzzaBcDeFgHi";
+    text[9] = "zzzzzzzzaBcDeFgHiJ";
+    text[10] = "zzzzzzzzaBcDeFgHiJk";
+    text[11] = "zzzzzzzzaBcDeFgHiJkL";
+    text[12] = "zzzzzzzzaBcDeFgHiJkLm";
+    text[13] = "zzzzzzzzaBcDeFgHiJkLmN";
+    text[14] = "zzzzzzzzaBcDeFgHiJkLmNo";
+    text[15] = "zzzzzzzzaBcDeFgHiJkLmNoP";
 
     char *needle[16];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
-    needle[5]="aBcDeF";
-    needle[6]="aBcDeFg";
-    needle[7]="aBcDeFgH";
-    needle[8]="aBcDeFgHi";
-    needle[9]="aBcDeFgHiJ";
-    needle[10]="aBcDeFgHiJk";
-    needle[11]="aBcDeFgHiJkL";
-    needle[12]="aBcDeFgHiJkLm";
-    needle[13]="aBcDeFgHiJkLmN";
-    needle[14]="aBcDeFgHiJkLmNo";
-    needle[15]="aBcDeFgHiJkLmNoP";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
+    needle[5] = "aBcDeF";
+    needle[6] = "aBcDeFg";
+    needle[7] = "aBcDeFgH";
+    needle[8] = "aBcDeFgHi";
+    needle[9] = "aBcDeFgHiJ";
+    needle[10] = "aBcDeFgHiJk";
+    needle[11] = "aBcDeFgHiJkL";
+    needle[12] = "aBcDeFgHiJkLm";
+    needle[13] = "aBcDeFgHiJkLmN";
+    needle[14] = "aBcDeFgHiJkLmNo";
+    needle[15] = "aBcDeFgHiJkLmNoP";
 
     int i;
     uint8_t *found = NULL;
-        printf("\nStats for text of lower length (badcase for):\n");
+    printf("\nStats for text of lower length (badcase for):\n");
     for (i = 0; i < 16; i++) {
-        printf("Pattern length %d with BasicSearch:", i+1);
+        printf("Pattern length %d with BasicSearch:", i + 1);
         found = BasicSearchWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with Bs2BmSearch:", i+1);
+        printf("Pattern length %d with Bs2BmSearch:", i + 1);
         found = Bs2bmWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with BoyerMooreSearch:", i+1);
+        printf("Pattern length %d with BoyerMooreSearch:", i + 1);
         found = BoyerMooreWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
@@ -1841,45 +1938,92 @@ static int UtilSpmSearchStatsTest03(void)
 static int UtilSpmSearchStatsTest04(void)
 {
     char *text[16];
-    text[0]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzza";
-    text[1]="aaaaaaaaazaaaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaazaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaazaaaaaraaaaazaaaaaaazaaaaaaaaaaaaaazaaaaaaaazaaaaaaaaazaaaaaaaaaaaaB";
-    text[2]="aBaBaBaBaBaBaBaBazaBaBaBaBaBaBazaBaBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBazaBaBaBaBaBaBaBzBaBaBaBaBaBaBzBaBaBaBaBzBaBaBaBaBaBzBaBaBaBaBaBzBaBaBaBaBaBaBaBazaBaBaBaBaBaBaBaBaBaBaBaBazaBaBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBaBaBaBazaBaBaBaBaBaBaBazaBaBaBaBaBc";
-    text[3]="aBcaBcaBcaBcaBczBcaBcaBzaBcaBcaBcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcaBcaBzaBcaBcaBcaBcaBcaBczBcaBcaBcaBcaBcaBzaBcaBcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcaBcaBcaBczBcaBcaBcaBcaBcaBcaBczBcaBcaBcaBcaBzaBcaBcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcaBzaBcaBcaBcazcaBcaBcaBcaBcaBcD";
-    text[4]="aBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDzBcDaBcDaBcDaBcDzBcDaBcDaBczaBcDaBcDaBczaBcDaBcDaBcDaBcDaBzDaBcDaBcDaBcDaBcDaBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDaBcDaBzDaBcDaBcDaBcDaBzDaBcDaBcDaBzDaBcDaBcDaBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDazcDaBcDaBcDaBcDaBcDzBcDaBcDaBcDaBcDaBcDaBcDe";
-    text[5]="aBcDeaBcDeaBcDeazcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDezBcDeaBcDeaBcDzaBcDeaBcDeaBcDeazcDzaBcDeaBcDezBcDeaBzDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBczeaBcDeaBcDeaBzDeaBcDeaBcDezBcDeaBcDzaBcDeaBcDezBcDeaBcDezBcDeaBczeaBcDeaBcDeaBzDeaBcDezBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeF";
-    text[6]="aBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBcDzaBcDzaBcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBczzaBcDeaBcDeaBcDzazcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDeaBczeaBcDeaBcDeaBcDeaBczeaBcDezzzaBcDeFg";
-    text[7]="aBcDeaBczeaBcDzaBcDezBcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBzDzaBcDeaBcDeazcDeaBcDzaBcDeaBczeaBcDeaBcDeaBzDzaBcDeaBcDeaBcDezBcDzaBcDeaBzDeaBcDeaBcDezBcDzaBcDeaBcDeaBzDeaBcDeaBcDeaBzDeaBcDeaBcDezBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBrDeaBcDeaBcDezzzaBcDeFgH";
-    text[8]="aBcDeaBcDeaBczzaBcDeazcDeaBcDezBcDeaBcDzaBcDeaBcDeaBcDeaBczzaBcDeaBcDeaBczeaBcDeaBcDzzBcDeaBcDeaBcDzaBczeaBcDeaBcDzaBcDeaBczeaBcDeaBcDeaBzDeaBcDeaBcDeaBzDeaBcDeaBcDzaBcDeaBcDeazcDeaBcDeaBcDzaBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBczeaBcDeaBzDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHi";
-    text[9]="aBcDeaBcDzaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeazcDeaBcDeaBcDzzBcDeaBcDeaBczeaBcDzaBcDezBcDeaBczeaBcDzaBcDezBcDeaBcDzaBczeaBcDeaBcDzaBcDeazcDeaBcDeaBcDzaBczeaBcDeaBcDzaBzDeaBcDeaBczeaBcDeaBcDzaBcDeaBcDeaBzDeaBcDeaBcDeaBczeaBcDeaBcDeaBcDeaBzDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJ";
-    text[10]="aBcDeaBcDeaBczeaBcDzaBczeaBcDeaBczeaBcDeaBcDzaBcDeaBcDeazcDeaBcDeaBcDeaBzDzaBcDeazcDeaBcDeazcDeaBcDzaBcDeazcDeaBcDeaBczzaBcDeaBcDeaBzDeaBcDeaBcDzaBczeaBcDeaBcDeaBcDeaBczeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDezBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDezBcDeaBcDeaBcDeaBzDeaBcDeaBcDezzzaBcDeFgHiJk";
-    text[11]="aBcDeaBcDeaBcDeaBcDeaBzDeaBcDeaBcDzaBcDzaBcDeaBcDeaBcDeaBcDeazcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDzaBcDzaBcDeaBcDeaBcDeaBcDzzBcDeaBcDeaBcDeaBcDzaBcDzaBcDeaBzDeaBcDeaBcDezBcDeaBcDeazcDeaBcDeaBcDezBcDeaBcDeaBcDeazcDeaBcDeaBzDeaBcDeaBczeaBcDeazcDeaBcDezBcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkL";
-    text[12]="aBcDeaBcDeaBcDeaBcDeaBzDeaBcDeaBzDeaBcDeaBcDezBcDeaBcDeazcDeaBcDeaBcDeazcDeaBcDeaBczeaBcDeaBcDeaBcDezBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkLm";
-    text[13]="aBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkLmN";
-    text[14]="aBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDezzzaBcDeFgHiJkLmNo";
-    text[15]="aBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkLmNoP";
-
+    text[0] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzza";
+    text[1] = "aaaaaaaaazaaaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaa"
+              "aaaazaaaaaaaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaazaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaaaaaa"
+              "aaazaaaaaaaaaaaaaaaaazaaaaaaaaazaaaaaaaaaazaaaaaraaaaazaaaaaaazaaaaaaaaaaaaaazaaaaaa"
+              "aazaaaaaaaaazaaaaaaaaaaaaB";
+    text[2] = "aBaBaBaBaBaBaBaBazaBaBaBaBaBaBazaBaBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBazaBaBaBaBaBaBaBzB"
+              "aBaBaBaBaBaBzBaBaBaBaBzBaBaBaBaBaBzBaBaBaBaBaBzBaBaBaBaBaBaBaBazaBaBaBaBaBaBaBaBaBaB"
+              "aBaBazaBaBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBaBaBzBaBaBaBaBaBaBaBaBaBaBaz"
+              "aBaBaBaBaBaBaBazaBaBaBaBaBc";
+    text[3] = "aBcaBcaBcaBcaBczBcaBcaBzaBcaBcaBcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcaBcaBzaBcaBcaBcaBc"
+              "aBcaBczBcaBcaBcaBcaBcaBzaBcaBcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcaBcaBcaBczBcaBcaBcaBc"
+              "aBcaBcaBczBcaBcaBcaBcaBzaBcaBcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcazcaBcaBcaBcaBcaBcaBz"
+              "aBcaBcaBcazcaBcaBcaBcaBcaBcD";
+    text[4] = "aBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDzBcDaBcDaBcDaBcDzBcDaBcDaBczaBcD"
+              "aBcDaBczaBcDaBcDaBcDaBcDaBzDaBcDaBcDaBcDaBcDaBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDaBcDaBzD"
+              "aBcDaBcDaBcDaBzDaBcDaBcDaBzDaBcDaBcDaBcDaBcDaBcDaBczaBcDaBcDaBcDaBcDazcDaBcDaBcDaBcD"
+              "aBcDzBcDaBcDaBcDaBcDaBcDaBcDe";
+    text[5] = "aBcDeaBcDeaBcDeazcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDezBcDeaBcDeaBcDzaBcDeaBcDeaBcDeazcD"
+              "zaBcDeaBcDezBcDeaBzDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBczeaBcDeaBcDeaBzDeaBc"
+              "DeaBcDezBcDeaBcDzaBcDeaBcDezBcDeaBcDezBcDeaBczeaBcDeaBcDeaBzDeaBcDezBcDeaBcDeaBcDeaB"
+              "cDeaBcDeaBcDeaBcDeaBcDezzzaBcDeF";
+    text[6] = "aBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcD"
+              "zaBcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBcDzaBcDzaBcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBc"
+              "zzaBcDeaBcDeaBcDzazcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDeaBczeaB"
+              "cDeaBcDeaBcDeaBczeaBcDezzzaBcDeFg";
+    text[7] = "aBcDeaBczeaBcDzaBcDezBcDeaBcDeaBcDeaBcDzaBzDeaBcDeaBcDeaBzDzaBcDeaBcDeazcDeaBcDzaBcD"
+              "eaBczeaBcDeaBcDeaBzDzaBcDeaBcDeaBcDezBcDzaBcDeaBzDeaBcDeaBcDezBcDzaBcDeaBcDeaBzDeaBc"
+              "DeaBcDeaBzDeaBcDeaBcDezBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaB"
+              "cDeaBcDeaBrDeaBcDeaBcDezzzaBcDeFgH";
+    text[8] = "aBcDeaBcDeaBczzaBcDeazcDeaBcDezBcDeaBcDzaBcDeaBcDeaBcDeaBczzaBcDeaBcDeaBczeaBcDeaBcD"
+              "zzBcDeaBcDeaBcDzaBczeaBcDeaBcDzaBcDeaBczeaBcDeaBcDeaBzDeaBcDeaBcDeaBzDeaBcDeaBcDzaBc"
+              "DeaBcDeazcDeaBcDeaBcDzaBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBcDeazcDeaBcDeaBcDeaBczeaBcDeaB"
+              "zDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHi";
+    text[9] = "aBcDeaBcDzaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeazcDeaBcDeaBcDzzBcDeaBcDeaBczeaBcDzaBcD"
+              "ezBcDeaBczeaBcDzaBcDezBcDeaBcDzaBczeaBcDeaBcDzaBcDeazcDeaBcDeaBcDzaBczeaBcDeaBcDzaBz"
+              "DeaBcDeaBczeaBcDeaBcDzaBcDeaBcDeaBzDeaBcDeaBcDeaBczeaBcDeaBcDeaBcDeaBzDeaBcDeaBcDeaz"
+              "cDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJ";
+    text[10] = "aBcDeaBcDeaBczeaBcDzaBczeaBcDeaBczeaBcDeaBcDzaBcDeaBcDeazcDeaBcDeaBcDeaBzDzaBcDeazc"
+               "DeaBcDeazcDeaBcDzaBcDeazcDeaBcDeaBczzaBcDeaBcDeaBzDeaBcDeaBcDzaBczeaBcDeaBcDeaBcDea"
+               "BczeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDezBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDezBcD"
+               "eaBcDeaBcDeaBzDeaBcDeaBcDezzzaBcDeFgHiJk";
+    text[11] = "aBcDeaBcDeaBcDeaBcDeaBzDeaBcDeaBcDzaBcDzaBcDeaBcDeaBcDeaBcDeazcDeaBcDzaBcDeaBcDeaBc"
+               "DeaBcDzaBcDeaBcDzaBcDzaBcDeaBcDeaBcDeaBcDzzBcDeaBcDeaBcDeaBcDzaBcDzaBcDeaBzDeaBcDea"
+               "BcDezBcDeaBcDeazcDeaBcDeaBcDezBcDeaBcDeaBcDeazcDeaBcDeaBzDeaBcDeaBczeaBcDeazcDeaBcD"
+               "ezBcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkL";
+    text[12] = "aBcDeaBcDeaBcDeaBcDeaBzDeaBcDeaBzDeaBcDeaBcDezBcDeaBcDeazcDeaBcDeaBcDeazcDeaBcDeaBc"
+               "zeaBcDeaBcDeaBcDezBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDea"
+               "BcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcD"
+               "eaBcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkLm";
+    text[13] = "aBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBc"
+               "DzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDea"
+               "BcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcDeaBcD"
+               "eaBcDeaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkLmN";
+    text[14] = "aBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBcDeaBcDeaBcDzaBcDeaBc"
+               "DeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDea"
+               "BcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcD"
+               "eaBcDeaBcDzaBcDeaBcDzaBcDezzzaBcDeFgHiJkLmNo";
+    text[15] = "aBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBc"
+               "DeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDea"
+               "BcDzaBcDeaBcDzaBcDeaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcDeaBcDzaBcD"
+               "eaBcDzaBcDeaBcDeaBcDeaBcDezzzaBcDeFgHiJkLmNoP";
 
     char *needle[16];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
-    needle[5]="aBcDeF";
-    needle[6]="aBcDeFg";
-    needle[7]="aBcDeFgH";
-    needle[8]="aBcDeFgHi";
-    needle[9]="aBcDeFgHiJ";
-    needle[10]="aBcDeFgHiJk";
-    needle[11]="aBcDeFgHiJkL";
-    needle[12]="aBcDeFgHiJkLm";
-    needle[13]="aBcDeFgHiJkLmN";
-    needle[14]="aBcDeFgHiJkLmNo";
-    needle[15]="aBcDeFgHiJkLmNoP";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
+    needle[5] = "aBcDeF";
+    needle[6] = "aBcDeFg";
+    needle[7] = "aBcDeFgH";
+    needle[8] = "aBcDeFgHi";
+    needle[9] = "aBcDeFgHiJ";
+    needle[10] = "aBcDeFgHiJk";
+    needle[11] = "aBcDeFgHiJkL";
+    needle[12] = "aBcDeFgHiJkLm";
+    needle[13] = "aBcDeFgHiJkLmN";
+    needle[14] = "aBcDeFgHiJkLmNo";
+    needle[15] = "aBcDeFgHiJkLmNoP";
 
     int i;
     uint8_t *found = NULL;
-        printf("\nStats for text of greater length:\n");
+    printf("\nStats for text of greater length:\n");
     for (i = 0; i < 16; i++) {
         printf("Pattern length %d with BasicSearch (Building Context):", i + 1);
         found = BasicSearchCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
@@ -1916,58 +2060,58 @@ static int UtilSpmSearchStatsTest04(void)
 static int UtilSpmSearchStatsTest05(void)
 {
     char *text[16];
-    text[0]="zzzzzzzzzzzzzzzzzza";
-    text[1]="zzzzzzzzzzzzzzzzzzaB";
-    text[2]="zzzzzzzzzzzzzzzzzzaBc";
-    text[3]="zzzzzzzzzzzzzzzzzzaBcD";
-    text[4]="zzzzzzzzzzzzzzzzzzaBcDe";
-    text[5]="zzzzzzzzzzzzzzzzzzzzaBcDeF";
-    text[6]="zzzzzzzzzzzzzzzzzzzzaBcDeFg";
-    text[7]="zzzzzzzzzzzzzzzzzzzzaBcDeFgH";
-    text[8]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHi";
-    text[9]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJ";
-    text[10]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJk";
-    text[11]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkL";
-    text[12]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLm";
-    text[13]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmN";
-    text[14]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNo";
-    text[15]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNoP";
+    text[0] = "zzzzzzzzzzzzzzzzzza";
+    text[1] = "zzzzzzzzzzzzzzzzzzaB";
+    text[2] = "zzzzzzzzzzzzzzzzzzaBc";
+    text[3] = "zzzzzzzzzzzzzzzzzzaBcD";
+    text[4] = "zzzzzzzzzzzzzzzzzzaBcDe";
+    text[5] = "zzzzzzzzzzzzzzzzzzzzaBcDeF";
+    text[6] = "zzzzzzzzzzzzzzzzzzzzaBcDeFg";
+    text[7] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgH";
+    text[8] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHi";
+    text[9] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJ";
+    text[10] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJk";
+    text[11] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkL";
+    text[12] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLm";
+    text[13] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmN";
+    text[14] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNo";
+    text[15] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNoP";
 
     char *needle[16];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
-    needle[5]="aBcDeF";
-    needle[6]="aBcDeFg";
-    needle[7]="aBcDeFgH";
-    needle[8]="aBcDeFgHi";
-    needle[9]="aBcDeFgHiJ";
-    needle[10]="aBcDeFgHiJk";
-    needle[11]="aBcDeFgHiJkL";
-    needle[12]="aBcDeFgHiJkLm";
-    needle[13]="aBcDeFgHiJkLmN";
-    needle[14]="aBcDeFgHiJkLmNo";
-    needle[15]="aBcDeFgHiJkLmNoP";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
+    needle[5] = "aBcDeF";
+    needle[6] = "aBcDeFg";
+    needle[7] = "aBcDeFgH";
+    needle[8] = "aBcDeFgHi";
+    needle[9] = "aBcDeFgHiJ";
+    needle[10] = "aBcDeFgHiJk";
+    needle[11] = "aBcDeFgHiJkL";
+    needle[12] = "aBcDeFgHiJkLm";
+    needle[13] = "aBcDeFgHiJkLmN";
+    needle[14] = "aBcDeFgHiJkLmNo";
+    needle[15] = "aBcDeFgHiJkLmNoP";
 
     int i;
     uint8_t *found = NULL;
-        printf("\nStats for text of lower length:\n");
+    printf("\nStats for text of lower length:\n");
     for (i = 0; i < 16; i++) {
-        printf("Pattern length %d with BasicSearch (Building Context):", i+1);
+        printf("Pattern length %d with BasicSearch (Building Context):", i + 1);
         found = BasicSearchCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with Bs2BmSearch (Building Context):", i+1);
+        printf("Pattern length %d with Bs2BmSearch (Building Context):", i + 1);
         found = Bs2bmCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with BoyerMooreSearch (Building Context):", i+1);
+        printf("Pattern length %d with BoyerMooreSearch (Building Context):", i + 1);
         found = BoyerMooreCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
@@ -1978,40 +2122,39 @@ static int UtilSpmSearchStatsTest05(void)
     return 1;
 }
 
-
 static int UtilSpmSearchStatsTest06(void)
 {
     char *text[16];
-    text[0]="zzzzkzzzzzzzkzzzzzza";
-    text[1]="BBBBkBBBBBBBkBBBBBaB";
-    text[2]="BcBckcBcBcBckcBcBcaBc";
-    text[3]="BcDBkDBcDBcDkcDBcDaBcD";
-    text[4]="BcDekcDeBcDekcDezzaBcDe";
+    text[0] = "zzzzkzzzzzzzkzzzzzza";
+    text[1] = "BBBBkBBBBBBBkBBBBBaB";
+    text[2] = "BcBckcBcBcBckcBcBcaBc";
+    text[3] = "BcDBkDBcDBcDkcDBcDaBcD";
+    text[4] = "BcDekcDeBcDekcDezzaBcDe";
 
     char *needle[16];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
 
     int i;
     uint8_t *found = NULL;
-        printf("\nStats for text of lower length (badcase for):\n");
+    printf("\nStats for text of lower length (badcase for):\n");
     for (i = 0; i < 5; i++) {
-        printf("Pattern length %d with BasicSearch (Building Context):", i+1);
+        printf("Pattern length %d with BasicSearch (Building Context):", i + 1);
         found = BasicSearchCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with Bs2BmSearch (Building Context):", i+1);
+        printf("Pattern length %d with Bs2BmSearch (Building Context):", i + 1);
         found = Bs2bmCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with BoyerMooreSearch (Building Context):", i+1);
+        printf("Pattern length %d with BoyerMooreSearch (Building Context):", i + 1);
         found = BoyerMooreCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
@@ -2025,36 +2168,36 @@ static int UtilSpmSearchStatsTest06(void)
 static int UtilSpmSearchStatsTest07(void)
 {
     char *text[16];
-    text[0]="zzzza";
-    text[1]="BBBaB";
-    text[2]="bbaBc";
-    text[3]="aaBcD";
-    text[4]="aBcDe";
+    text[0] = "zzzza";
+    text[1] = "BBBaB";
+    text[2] = "bbaBc";
+    text[3] = "aaBcD";
+    text[4] = "aBcDe";
 
     char *needle[16];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
 
     int i;
     uint8_t *found = NULL;
-        printf("\nStats for text of real lower length (badcase for):\n");
+    printf("\nStats for text of real lower length (badcase for):\n");
     for (i = 0; i < 5; i++) {
-        printf("Pattern length %d with BasicSearch (Building Context):", i+1);
+        printf("Pattern length %d with BasicSearch (Building Context):", i + 1);
         found = BasicSearchCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with Bs2BmSearch (Building Context):", i+1);
+        printf("Pattern length %d with Bs2BmSearch (Building Context):", i + 1);
         found = Bs2bmCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with BoyerMooreSearch (Building Context):", i+1);
+        printf("Pattern length %d with BoyerMooreSearch (Building Context):", i + 1);
         found = BoyerMooreCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
@@ -2071,58 +2214,154 @@ static int UtilSpmSearchStatsTest07(void)
 static int UtilSpmNocaseSearchStatsTest01(void)
 {
     char *text[16];
-    text[0]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzza";
-    text[1]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaB";
-    text[2]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBc";
-    text[3]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcD";
-    text[4]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDe";
-    text[5]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeF";
-    text[6]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFg";
-    text[7]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgH";
-    text[8]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHi";
-    text[9]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJ";
-    text[10]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJk";
-    text[11]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkL";
-    text[12]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLm";
-    text[13]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmN";
-    text[14]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNo";
-    text[15]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNoP";
+    text[0] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzza";
+    text[1] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaB";
+    text[2] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBc";
+    text[3] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcD";
+    text[4] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDe";
+    text[5] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeF";
+    text[6] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFg";
+    text[7] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgH";
+    text[8] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHi";
+    text[9] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJ";
+    text[10] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJk";
+    text[11] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkL";
+    text[12] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLm";
+    text[13] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmN";
+    text[14] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNo";
+    text[15] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+               "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNoP";
 
     char *needle[16];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
-    needle[5]="aBcDeF";
-    needle[6]="aBcDeFg";
-    needle[7]="aBcDeFgH";
-    needle[8]="aBcDeFgHi";
-    needle[9]="aBcDeFgHiJ";
-    needle[10]="aBcDeFgHiJk";
-    needle[11]="aBcDeFgHiJkL";
-    needle[12]="aBcDeFgHiJkLm";
-    needle[13]="aBcDeFgHiJkLmN";
-    needle[14]="aBcDeFgHiJkLmNo";
-    needle[15]="aBcDeFgHiJkLmNoP";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
+    needle[5] = "aBcDeF";
+    needle[6] = "aBcDeFg";
+    needle[7] = "aBcDeFgH";
+    needle[8] = "aBcDeFgHi";
+    needle[9] = "aBcDeFgHiJ";
+    needle[10] = "aBcDeFgHiJk";
+    needle[11] = "aBcDeFgHiJkL";
+    needle[12] = "aBcDeFgHiJkLm";
+    needle[13] = "aBcDeFgHiJkLmN";
+    needle[14] = "aBcDeFgHiJkLmNo";
+    needle[15] = "aBcDeFgHiJkLmNoP";
 
     int i;
     uint8_t *found = NULL;
-        printf("\nStats for text of greater length:\n");
+    printf("\nStats for text of greater length:\n");
     for (i = 0; i < 16; i++) {
-        printf("Pattern length %d with BasicSearch:", i+1);
+        printf("Pattern length %d with BasicSearch:", i + 1);
         found = BasicSearchNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with Bs2BmSearch:", i+1);
+        printf("Pattern length %d with Bs2BmSearch:", i + 1);
         found = Bs2bmNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with BoyerMooreSearch:", i+1);
+        printf("Pattern length %d with BoyerMooreSearch:", i + 1);
         found = BoyerMooreNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
@@ -2136,58 +2375,58 @@ static int UtilSpmNocaseSearchStatsTest01(void)
 static int UtilSpmNocaseSearchStatsTest02(void)
 {
     char *text[16];
-    text[0]="zzzzzzzzzzzzzzzzzza";
-    text[1]="zzzzzzzzzzzzzzzzzzaB";
-    text[2]="zzzzzzzzzzzzzzzzzzaBc";
-    text[3]="zzzzzzzzzzzzzzzzzzaBcD";
-    text[4]="zzzzzzzzzzzzzzzzzzaBcDe";
-    text[5]="zzzzzzzzzzzzzzzzzzzzaBcDeF";
-    text[6]="zzzzzzzzzzzzzzzzzzzzaBcDeFg";
-    text[7]="zzzzzzzzzzzzzzzzzzzzaBcDeFgH";
-    text[8]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHi";
-    text[9]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJ";
-    text[10]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJk";
-    text[11]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkL";
-    text[12]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLm";
-    text[13]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmN";
-    text[14]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNo";
-    text[15]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNoP";
+    text[0] = "zzzzzzzzzzzzzzzzzza";
+    text[1] = "zzzzzzzzzzzzzzzzzzaB";
+    text[2] = "zzzzzzzzzzzzzzzzzzaBc";
+    text[3] = "zzzzzzzzzzzzzzzzzzaBcD";
+    text[4] = "zzzzzzzzzzzzzzzzzzaBcDe";
+    text[5] = "zzzzzzzzzzzzzzzzzzzzaBcDeF";
+    text[6] = "zzzzzzzzzzzzzzzzzzzzaBcDeFg";
+    text[7] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgH";
+    text[8] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHi";
+    text[9] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJ";
+    text[10] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJk";
+    text[11] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkL";
+    text[12] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLm";
+    text[13] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmN";
+    text[14] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNo";
+    text[15] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNoP";
 
     char *needle[16];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
-    needle[5]="aBcDeF";
-    needle[6]="aBcDeFg";
-    needle[7]="aBcDeFgH";
-    needle[8]="aBcDeFgHi";
-    needle[9]="aBcDeFgHiJ";
-    needle[10]="aBcDeFgHiJk";
-    needle[11]="aBcDeFgHiJkL";
-    needle[12]="aBcDeFgHiJkLm";
-    needle[13]="aBcDeFgHiJkLmN";
-    needle[14]="aBcDeFgHiJkLmNo";
-    needle[15]="aBcDeFgHiJkLmNoP";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
+    needle[5] = "aBcDeF";
+    needle[6] = "aBcDeFg";
+    needle[7] = "aBcDeFgH";
+    needle[8] = "aBcDeFgHi";
+    needle[9] = "aBcDeFgHiJ";
+    needle[10] = "aBcDeFgHiJk";
+    needle[11] = "aBcDeFgHiJkL";
+    needle[12] = "aBcDeFgHiJkLm";
+    needle[13] = "aBcDeFgHiJkLmN";
+    needle[14] = "aBcDeFgHiJkLmNo";
+    needle[15] = "aBcDeFgHiJkLmNoP";
 
     int i;
     uint8_t *found = NULL;
-        printf("\nStats for text of lower length:\n");
+    printf("\nStats for text of lower length:\n");
     for (i = 0; i < 16; i++) {
-        printf("Pattern length %d with BasicSearch:", i+1);
+        printf("Pattern length %d with BasicSearch:", i + 1);
         found = BasicSearchNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with Bs2BmSearch:", i+1);
+        printf("Pattern length %d with Bs2BmSearch:", i + 1);
         found = Bs2bmNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with BoyerMooreSearch:", i+1);
+        printf("Pattern length %d with BoyerMooreSearch:", i + 1);
         found = BoyerMooreNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
@@ -2198,40 +2437,39 @@ static int UtilSpmNocaseSearchStatsTest02(void)
     return 1;
 }
 
-
 static int UtilSpmNocaseSearchStatsTest03(void)
 {
     char *text[16];
-    text[0]="zzzzkzzzzzzzkzzzzzza";
-    text[1]="BBBBkBBBBBBBkBBBBBaB";
-    text[2]="BcBckcBcBcBckcBcBcaBc";
-    text[3]="BcDBkDBcDBcDkcDBcDaBcD";
-    text[4]="BcDekcDeBcDekcDezzaBcDe";
+    text[0] = "zzzzkzzzzzzzkzzzzzza";
+    text[1] = "BBBBkBBBBBBBkBBBBBaB";
+    text[2] = "BcBckcBcBcBckcBcBcaBc";
+    text[3] = "BcDBkDBcDBcDkcDBcDaBcD";
+    text[4] = "BcDekcDeBcDekcDezzaBcDe";
 
     char *needle[16];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
 
     int i;
     uint8_t *found = NULL;
-        printf("\nStats for text of lower length (badcase for):\n");
+    printf("\nStats for text of lower length (badcase for):\n");
     for (i = 0; i < 5; i++) {
-        printf("Pattern length %d with BasicSearch:", i+1);
+        printf("Pattern length %d with BasicSearch:", i + 1);
         found = BasicSearchNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with Bs2BmSearch:", i+1);
+        printf("Pattern length %d with Bs2BmSearch:", i + 1);
         found = Bs2bmNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with BoyerMooreSearch:", i+1);
+        printf("Pattern length %d with BoyerMooreSearch:", i + 1);
         found = BoyerMooreNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
@@ -2248,58 +2486,213 @@ static int UtilSpmNocaseSearchStatsTest03(void)
 static int UtilSpmNocaseSearchStatsTest04(void)
 {
     char *text[16];
-    text[0]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzza";
-    text[1]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaB";
-    text[2]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBc";
-    text[3]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcD";
-    text[4]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDe";
-    text[5]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeF";
-    text[6]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFg";
-    text[7]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgH";
-    text[8]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHi";
-    text[9]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJ";
-    text[10]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJk";
-    text[11]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkL";
-    text[12]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLm";
-    text[13]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmN";
-    text[14]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNo";
-    text[15]="zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNoP";
+    text[0] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzza";
+    text[1] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaB";
+    text[2] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBc";
+    text[3] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcD";
+    text[4] = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDe";
+    text[5] =
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeF";
+    text[6] =
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFg";
+    text[7] =
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgH";
+    text[8] =
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHi";
+    text[9] =
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJ";
+    text[10] =
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJk";
+    text[11] =
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkL";
+    text[12] =
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLm";
+    text[13] =
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmN";
+    text[14] =
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNo";
+    text[15] =
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNoP";
 
     char *needle[16];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
-    needle[5]="aBcDeF";
-    needle[6]="aBcDeFg";
-    needle[7]="aBcDeFgH";
-    needle[8]="aBcDeFgHi";
-    needle[9]="aBcDeFgHiJ";
-    needle[10]="aBcDeFgHiJk";
-    needle[11]="aBcDeFgHiJkL";
-    needle[12]="aBcDeFgHiJkLm";
-    needle[13]="aBcDeFgHiJkLmN";
-    needle[14]="aBcDeFgHiJkLmNo";
-    needle[15]="aBcDeFgHiJkLmNoP";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
+    needle[5] = "aBcDeF";
+    needle[6] = "aBcDeFg";
+    needle[7] = "aBcDeFgH";
+    needle[8] = "aBcDeFgHi";
+    needle[9] = "aBcDeFgHiJ";
+    needle[10] = "aBcDeFgHiJk";
+    needle[11] = "aBcDeFgHiJkL";
+    needle[12] = "aBcDeFgHiJkLm";
+    needle[13] = "aBcDeFgHiJkLmN";
+    needle[14] = "aBcDeFgHiJkLmNo";
+    needle[15] = "aBcDeFgHiJkLmNoP";
 
     int i;
     uint8_t *found = NULL;
-        printf("\nStats for text of greater length:\n");
+    printf("\nStats for text of greater length:\n");
     for (i = 0; i < 16; i++) {
-        printf("Pattern length %d with BasicSearch (Building Context):", i+1);
+        printf("Pattern length %d with BasicSearch (Building Context):", i + 1);
         found = BasicSearchNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with Bs2BmSearch (Building Context):", i+1);
+        printf("Pattern length %d with Bs2BmSearch (Building Context):", i + 1);
         found = Bs2bmNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with BoyerMooreSearch (Building Context):", i+1);
+        printf("Pattern length %d with BoyerMooreSearch (Building Context):", i + 1);
         found = BoyerMooreNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
@@ -2313,58 +2706,58 @@ static int UtilSpmNocaseSearchStatsTest04(void)
 static int UtilSpmNocaseSearchStatsTest05(void)
 {
     char *text[16];
-    text[0]="zzzzzzzzzzzzzzzzzza";
-    text[1]="zzzzzzzzzzzzzzzzzzaB";
-    text[2]="zzzzzzzzzzzzzzzzzzaBc";
-    text[3]="zzzzzzzzzzzzzzzzzzaBcD";
-    text[4]="zzzzzzzzzzzzzzzzzzaBcDe";
-    text[5]="zzzzzzzzzzzzzzzzzzzzaBcDeF";
-    text[6]="zzzzzzzzzzzzzzzzzzzzaBcDeFg";
-    text[7]="zzzzzzzzzzzzzzzzzzzzaBcDeFgH";
-    text[8]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHi";
-    text[9]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJ";
-    text[10]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJk";
-    text[11]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkL";
-    text[12]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLm";
-    text[13]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmN";
-    text[14]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNo";
-    text[15]="zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNoP";
+    text[0] = "zzzzzzzzzzzzzzzzzza";
+    text[1] = "zzzzzzzzzzzzzzzzzzaB";
+    text[2] = "zzzzzzzzzzzzzzzzzzaBc";
+    text[3] = "zzzzzzzzzzzzzzzzzzaBcD";
+    text[4] = "zzzzzzzzzzzzzzzzzzaBcDe";
+    text[5] = "zzzzzzzzzzzzzzzzzzzzaBcDeF";
+    text[6] = "zzzzzzzzzzzzzzzzzzzzaBcDeFg";
+    text[7] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgH";
+    text[8] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHi";
+    text[9] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJ";
+    text[10] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJk";
+    text[11] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkL";
+    text[12] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLm";
+    text[13] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmN";
+    text[14] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNo";
+    text[15] = "zzzzzzzzzzzzzzzzzzzzaBcDeFgHiJkLmNoP";
 
     char *needle[16];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
-    needle[5]="aBcDeF";
-    needle[6]="aBcDeFg";
-    needle[7]="aBcDeFgH";
-    needle[8]="aBcDeFgHi";
-    needle[9]="aBcDeFgHiJ";
-    needle[10]="aBcDeFgHiJk";
-    needle[11]="aBcDeFgHiJkL";
-    needle[12]="aBcDeFgHiJkLm";
-    needle[13]="aBcDeFgHiJkLmN";
-    needle[14]="aBcDeFgHiJkLmNo";
-    needle[15]="aBcDeFgHiJkLmNoP";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
+    needle[5] = "aBcDeF";
+    needle[6] = "aBcDeFg";
+    needle[7] = "aBcDeFgH";
+    needle[8] = "aBcDeFgHi";
+    needle[9] = "aBcDeFgHiJ";
+    needle[10] = "aBcDeFgHiJk";
+    needle[11] = "aBcDeFgHiJkL";
+    needle[12] = "aBcDeFgHiJkLm";
+    needle[13] = "aBcDeFgHiJkLmN";
+    needle[14] = "aBcDeFgHiJkLmNo";
+    needle[15] = "aBcDeFgHiJkLmNoP";
 
     int i;
     uint8_t *found = NULL;
-        printf("\nStats for text of lower length:\n");
+    printf("\nStats for text of lower length:\n");
     for (i = 0; i < 16; i++) {
-        printf("Pattern length %d with BasicSearch (Building Context):", i+1);
+        printf("Pattern length %d with BasicSearch (Building Context):", i + 1);
         found = BasicSearchNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with Bs2BmSearch (Building Context):", i+1);
+        printf("Pattern length %d with Bs2BmSearch (Building Context):", i + 1);
         found = Bs2bmNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with BoyerMooreSearch (Building Context):", i+1);
+        printf("Pattern length %d with BoyerMooreSearch (Building Context):", i + 1);
         found = BoyerMooreNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
@@ -2375,40 +2768,39 @@ static int UtilSpmNocaseSearchStatsTest05(void)
     return 1;
 }
 
-
 static int UtilSpmNocaseSearchStatsTest06(void)
 {
     char *text[16];
-    text[0]="zzzzkzzzzzzzkzzzzzza";
-    text[1]="BBBBkBBBBBBBkBBBBBaB";
-    text[2]="BcBckcBcBcBckcBcBcaBc";
-    text[3]="BcDBkDBcDBcDkcDBcDaBcD";
-    text[4]="BcDekcDeBcDekcDezzaBcDe";
+    text[0] = "zzzzkzzzzzzzkzzzzzza";
+    text[1] = "BBBBkBBBBBBBkBBBBBaB";
+    text[2] = "BcBckcBcBcBckcBcBcaBc";
+    text[3] = "BcDBkDBcDBcDkcDBcDaBcD";
+    text[4] = "BcDekcDeBcDekcDezzaBcDe";
 
     char *needle[16];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
 
     int i;
     uint8_t *found = NULL;
-        printf("\nStats for text of lower length (badcase for):\n");
+    printf("\nStats for text of lower length (badcase for):\n");
     for (i = 0; i < 5; i++) {
-        printf("Pattern length %d with BasicSearch (Building Context):", i+1);
+        printf("Pattern length %d with BasicSearch (Building Context):", i + 1);
         found = BasicSearchNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with Bs2BmSearch (Building Context):", i+1);
+        printf("Pattern length %d with Bs2BmSearch (Building Context):", i + 1);
         found = Bs2bmNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with BoyerMooreSearch (Building Context):", i+1);
+        printf("Pattern length %d with BoyerMooreSearch (Building Context):", i + 1);
         found = BoyerMooreNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
@@ -2422,36 +2814,36 @@ static int UtilSpmNocaseSearchStatsTest06(void)
 static int UtilSpmNocaseSearchStatsTest07(void)
 {
     char *text[16];
-    text[0]="zzzza";
-    text[1]="bbbAb";
-    text[2]="bbAbC";
-    text[3]="bAbCd";
-    text[4]="AbCdE";
+    text[0] = "zzzza";
+    text[1] = "bbbAb";
+    text[2] = "bbAbC";
+    text[3] = "bAbCd";
+    text[4] = "AbCdE";
 
     char *needle[16];
-    needle[0]="a";
-    needle[1]="aB";
-    needle[2]="aBc";
-    needle[3]="aBcD";
-    needle[4]="aBcDe";
+    needle[0] = "a";
+    needle[1] = "aB";
+    needle[2] = "aBc";
+    needle[3] = "aBcD";
+    needle[4] = "aBcDe";
 
     int i;
     uint8_t *found = NULL;
-        printf("\nStats for text of real lower length (badcase for):\n");
+    printf("\nStats for text of real lower length (badcase for):\n");
     for (i = 0; i < 5; i++) {
-        printf("Pattern length %d with BasicSearch (Building Context):", i+1);
+        printf("Pattern length %d with BasicSearch (Building Context):", i + 1);
         found = BasicSearchNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with Bs2BmSearch (Building Context):", i+1);
+        printf("Pattern length %d with Bs2BmSearch (Building Context):", i + 1);
         found = Bs2bmNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
             return 0;
         }
-        printf("Pattern length %d with BoyerMooreSearch (Building Context):", i+1);
+        printf("Pattern length %d with BoyerMooreSearch (Building Context):", i + 1);
         found = BoyerMooreNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
@@ -2492,8 +2884,7 @@ static int SpmTestSearch(const SpmTestData *d, uint8_t matcher)
         goto exit;
     }
 
-    ctx = SpmInitCtx((const uint8_t *)d->needle, d->needle_len, d->nocase,
-                     global_thread_ctx);
+    ctx = SpmInitCtx((const uint8_t *)d->needle, d->needle_len, d->nocase, global_thread_ctx);
     if (ctx == NULL) {
         ret = 0;
         goto exit;
@@ -2505,20 +2896,17 @@ static int SpmTestSearch(const SpmTestData *d, uint8_t matcher)
         goto exit;
     }
 
-    found = SpmScan(ctx, thread_ctx, (const uint8_t *)d->haystack,
-                    d->haystack_len);
+    found = SpmScan(ctx, thread_ctx, (const uint8_t *)d->haystack, d->haystack_len);
     if (found == NULL) {
         if (d->match_offset != SPM_NO_MATCH) {
-            printf("  should have matched at %" PRIu32 " but didn't\n",
-                   d->match_offset);
+            printf("  should have matched at %" PRIu32 " but didn't\n", d->match_offset);
             ret = 0;
         }
     } else {
         uint32_t offset = (uint32_t)(found - (const uint8_t *)d->haystack);
         if (offset != d->match_offset) {
-            printf("  should have matched at %" PRIu32
-                   " but matched at %" PRIu32 "\n",
-                   d->match_offset, offset);
+            printf("  should have matched at %" PRIu32 " but matched at %" PRIu32 "\n",
+                    d->match_offset, offset);
             ret = 0;
         }
     }
@@ -2530,7 +2918,8 @@ exit:
     return ret;
 }
 
-static int SpmSearchTest01(void) {
+static int SpmSearchTest01(void)
+{
     SpmTableSetup();
     printf("\n");
 
@@ -2539,35 +2928,35 @@ static int SpmSearchTest01(void) {
 
     static const SpmTestData data[] = {
         /* Some trivial single-character case/nocase tests */
-        {"a", 1, "a", 1, 0, 0},
-        {"a", 1, "A", 1, 1, 0},
-        {"A", 1, "A", 1, 0, 0},
-        {"A", 1, "a", 1, 1, 0},
-        {"a", 1, "A", 1, 0, SPM_NO_MATCH},
-        {"A", 1, "a", 1, 0, SPM_NO_MATCH},
+        { "a", 1, "a", 1, 0, 0 },
+        { "a", 1, "A", 1, 1, 0 },
+        { "A", 1, "A", 1, 0, 0 },
+        { "A", 1, "a", 1, 1, 0 },
+        { "a", 1, "A", 1, 0, SPM_NO_MATCH },
+        { "A", 1, "a", 1, 0, SPM_NO_MATCH },
         /* Nulls and odd characters */
-        {"\x00", 1, "test\x00test", 9, 0, 4},
-        {"\x00", 1, "testtest", 8, 0, SPM_NO_MATCH},
-        {"\n", 1, "new line\n", 9, 0, 8},
-        {"\n", 1, "new line\x00\n", 10, 0, 9},
-        {"\xff", 1, "abcdef\xff", 7, 0, 6},
-        {"\xff", 1, "abcdef\xff", 7, 1, 6},
-        {"$", 1, "dollar$", 7, 0, 6},
-        {"^", 1, "caret^", 6, 0, 5},
+        { "\x00", 1, "test\x00test", 9, 0, 4 },
+        { "\x00", 1, "testtest", 8, 0, SPM_NO_MATCH },
+        { "\n", 1, "new line\n", 9, 0, 8 },
+        { "\n", 1, "new line\x00\n", 10, 0, 9 },
+        { "\xff", 1, "abcdef\xff", 7, 0, 6 },
+        { "\xff", 1, "abcdef\xff", 7, 1, 6 },
+        { "$", 1, "dollar$", 7, 0, 6 },
+        { "^", 1, "caret^", 6, 0, 5 },
         /* Longer literals */
-        {"Suricata", 8, "This is a Suricata test", 23, 0, 10},
-        {"Suricata", 8, "This is a suricata test", 23, 1, 10},
-        {"Suricata", 8, "This is a suriCATA test", 23, 1, 10},
-        {"suricata", 8, "This is a Suricata test", 23, 0, SPM_NO_MATCH},
-        {"Suricata", 8, "This is a Suricat_ test", 23, 0, SPM_NO_MATCH},
-        {"Suricata", 8, "This is a _uricata test", 23, 0, SPM_NO_MATCH},
+        { "Suricata", 8, "This is a Suricata test", 23, 0, 10 },
+        { "Suricata", 8, "This is a suricata test", 23, 1, 10 },
+        { "Suricata", 8, "This is a suriCATA test", 23, 1, 10 },
+        { "suricata", 8, "This is a Suricata test", 23, 0, SPM_NO_MATCH },
+        { "Suricata", 8, "This is a Suricat_ test", 23, 0, SPM_NO_MATCH },
+        { "Suricata", 8, "This is a _uricata test", 23, 0, SPM_NO_MATCH },
         /* First occurrence with the correct case should match */
-        {"foo", 3, "foofoofoo", 9, 0, 0},
-        {"foo", 3, "_foofoofoo", 9, 0, 1},
-        {"FOO", 3, "foofoofoo", 9, 1, 0},
-        {"FOO", 3, "_foofoofoo", 9, 1, 1},
-        {"FOO", 3, "foo Foo FOo fOo foO FOO", 23, 0, 20},
-        {"foo", 3, "Foo FOo fOo foO FOO foo", 23, 0, 20},
+        { "foo", 3, "foofoofoo", 9, 0, 0 },
+        { "foo", 3, "_foofoofoo", 9, 0, 1 },
+        { "FOO", 3, "foofoofoo", 9, 1, 0 },
+        { "FOO", 3, "_foofoofoo", 9, 1, 1 },
+        { "FOO", 3, "foo Foo FOo fOo foO FOO", 23, 0, 20 },
+        { "foo", 3, "Foo FOo fOo foO FOO foo", 23, 0, 20 },
     };
 
     int ret = 1;
@@ -2581,7 +2970,7 @@ static int SpmSearchTest01(void) {
         printf("matcher: %s\n", m->name);
 
         uint32_t i;
-        for (i = 0; i < sizeof(data)/sizeof(data[0]); i++) {
+        for (i = 0; i < sizeof(data) / sizeof(data[0]); i++) {
             const SpmTestData *d = &data[i];
             if (SpmTestSearch(d, matcher) == 0) {
                 printf("  test %" PRIu32 ": fail\n", i);
@@ -2594,22 +2983,38 @@ static int SpmSearchTest01(void) {
     return ret;
 }
 
-static int SpmSearchTest02(void) {
+static int SpmSearchTest02(void)
+{
     SpmTableSetup();
     printf("\n");
 
     /* Test that we can find needles of various lengths at various alignments
      * in the haystack. Note that these are passed to strlen. */
 
-    static const char* needles[] = {
+    static const char *needles[] = {
         /* Single bytes */
-        "a", "b", "c", ":", "/", "\x7f", "\xff",
+        "a",
+        "b",
+        "c",
+        ":",
+        "/",
+        "\x7f",
+        "\xff",
         /* Repeats */
-        "aa", "aaa", "aaaaaaaaaaaaaaaaaaaaaaa",
+        "aa",
+        "aaa",
+        "aaaaaaaaaaaaaaaaaaaaaaa",
         /* Longer literals */
-        "suricata", "meerkat", "aardvark", "raptor", "marmot", "lemming",
+        "suricata",
+        "meerkat",
+        "aardvark",
+        "raptor",
+        "marmot",
+        "lemming",
         /* Mixed case */
-        "Suricata", "CAPS LOCK", "mIxEd cAsE",
+        "Suricata",
+        "CAPS LOCK",
+        "mIxEd cAsE",
     };
 
     int ret = 1;
@@ -2675,37 +3080,28 @@ void UtilSpmSearchRegistertests(void)
 {
     /* Generic tests */
     UtRegisterTest("UtilSpmBasicSearchTest01", UtilSpmBasicSearchTest01);
-    UtRegisterTest("UtilSpmBasicSearchNocaseTest01",
-                   UtilSpmBasicSearchNocaseTest01);
+    UtRegisterTest("UtilSpmBasicSearchNocaseTest01", UtilSpmBasicSearchNocaseTest01);
 
     UtRegisterTest("UtilSpmBs2bmSearchTest01", UtilSpmBs2bmSearchTest01);
-    UtRegisterTest("UtilSpmBs2bmSearchNocaseTest01",
-                   UtilSpmBs2bmSearchNocaseTest01);
+    UtRegisterTest("UtilSpmBs2bmSearchNocaseTest01", UtilSpmBs2bmSearchNocaseTest01);
 
-    UtRegisterTest("UtilSpmBoyerMooreSearchTest01",
-                   UtilSpmBoyerMooreSearchTest01);
-    UtRegisterTest("UtilSpmBoyerMooreSearchNocaseTest01",
-                   UtilSpmBoyerMooreSearchNocaseTest01);
-    UtRegisterTest("UtilSpmBoyerMooreSearchNocaseTestIssue130",
-                   UtilSpmBoyerMooreSearchNocaseTestIssue130);
+    UtRegisterTest("UtilSpmBoyerMooreSearchTest01", UtilSpmBoyerMooreSearchTest01);
+    UtRegisterTest("UtilSpmBoyerMooreSearchNocaseTest01", UtilSpmBoyerMooreSearchNocaseTest01);
+    UtRegisterTest(
+            "UtilSpmBoyerMooreSearchNocaseTestIssue130", UtilSpmBoyerMooreSearchNocaseTestIssue130);
 
     UtRegisterTest("UtilSpmBs2bmSearchTest02", UtilSpmBs2bmSearchTest02);
-    UtRegisterTest("UtilSpmBs2bmSearchNocaseTest02",
-                   UtilSpmBs2bmSearchNocaseTest02);
+    UtRegisterTest("UtilSpmBs2bmSearchNocaseTest02", UtilSpmBs2bmSearchNocaseTest02);
 
     UtRegisterTest("UtilSpmBasicSearchTest02", UtilSpmBasicSearchTest02);
-    UtRegisterTest("UtilSpmBasicSearchNocaseTest02",
-                   UtilSpmBasicSearchNocaseTest02);
+    UtRegisterTest("UtilSpmBasicSearchNocaseTest02", UtilSpmBasicSearchNocaseTest02);
 
-    UtRegisterTest("UtilSpmBoyerMooreSearchTest02",
-                   UtilSpmBoyerMooreSearchTest02);
-    UtRegisterTest("UtilSpmBoyerMooreSearchNocaseTest02",
-                   UtilSpmBoyerMooreSearchNocaseTest02);
+    UtRegisterTest("UtilSpmBoyerMooreSearchTest02", UtilSpmBoyerMooreSearchTest02);
+    UtRegisterTest("UtilSpmBoyerMooreSearchNocaseTest02", UtilSpmBoyerMooreSearchNocaseTest02);
 
     /* test matches at any offset */
     UtRegisterTest("UtilSpmSearchOffsetsTest01", UtilSpmSearchOffsetsTest01);
-    UtRegisterTest("UtilSpmSearchOffsetsNocaseTest01",
-                   UtilSpmSearchOffsetsNocaseTest01);
+    UtRegisterTest("UtilSpmSearchOffsetsNocaseTest01", UtilSpmSearchOffsetsNocaseTest01);
 
     /* new SPM API */
     UtRegisterTest("SpmSearchTest01", SpmSearchTest01);
@@ -2717,12 +3113,9 @@ void UtilSpmSearchRegistertests(void)
     UtRegisterTest("UtilSpmSearchStatsTest02", UtilSpmSearchStatsTest02);
     UtRegisterTest("UtilSpmSearchStatsTest03", UtilSpmSearchStatsTest03);
 
-    UtRegisterTest("UtilSpmNocaseSearchStatsTest01",
-                   UtilSpmNocaseSearchStatsTest01);
-    UtRegisterTest("UtilSpmNocaseSearchStatsTest02",
-                   UtilSpmNocaseSearchStatsTest02);
-    UtRegisterTest("UtilSpmNocaseSearchStatsTest03",
-                   UtilSpmNocaseSearchStatsTest03);
+    UtRegisterTest("UtilSpmNocaseSearchStatsTest01", UtilSpmNocaseSearchStatsTest01);
+    UtRegisterTest("UtilSpmNocaseSearchStatsTest02", UtilSpmNocaseSearchStatsTest02);
+    UtRegisterTest("UtilSpmNocaseSearchStatsTest03", UtilSpmNocaseSearchStatsTest03);
 
     /* Stats building context and searching */
     UtRegisterTest("UtilSpmSearchStatsTest04", UtilSpmSearchStatsTest04);
@@ -2730,14 +3123,10 @@ void UtilSpmSearchRegistertests(void)
     UtRegisterTest("UtilSpmSearchStatsTest06", UtilSpmSearchStatsTest06);
     UtRegisterTest("UtilSpmSearchStatsTest07", UtilSpmSearchStatsTest07);
 
-    UtRegisterTest("UtilSpmNocaseSearchStatsTest04",
-                   UtilSpmNocaseSearchStatsTest04);
-    UtRegisterTest("UtilSpmNocaseSearchStatsTest05",
-                   UtilSpmNocaseSearchStatsTest05);
-    UtRegisterTest("UtilSpmNocaseSearchStatsTest06",
-                   UtilSpmNocaseSearchStatsTest06);
-    UtRegisterTest("UtilSpmNocaseSearchStatsTest07",
-                   UtilSpmNocaseSearchStatsTest07);
+    UtRegisterTest("UtilSpmNocaseSearchStatsTest04", UtilSpmNocaseSearchStatsTest04);
+    UtRegisterTest("UtilSpmNocaseSearchStatsTest05", UtilSpmNocaseSearchStatsTest05);
+    UtRegisterTest("UtilSpmNocaseSearchStatsTest06", UtilSpmNocaseSearchStatsTest06);
+    UtRegisterTest("UtilSpmNocaseSearchStatsTest07", UtilSpmNocaseSearchStatsTest07);
 
 #endif
 }

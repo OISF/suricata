@@ -34,13 +34,13 @@
 #define DAG_TYPE_ETH 2
 
 typedef struct DagFlags_ {
-    uint8_t iface:2;
-    uint8_t vlen:1;
-    uint8_t trunc:1;
-    uint8_t rxerror:1;
-    uint8_t dserror:1;
-    uint8_t reserved:1;
-    uint8_t direction:1;
+    uint8_t iface : 2;
+    uint8_t vlen : 1;
+    uint8_t trunc : 1;
+    uint8_t rxerror : 1;
+    uint8_t dserror : 1;
+    uint8_t reserved : 1;
+    uint8_t direction : 1;
 } DagFlags;
 
 typedef struct DagRecord_ {
@@ -76,16 +76,14 @@ static TmEcode DecodeErfFile(ThreadVars *, Packet *, void *);
 /**
  * \brief Register the ERF file receiver (reader) module.
  */
-void
-TmModuleReceiveErfFileRegister(void)
+void TmModuleReceiveErfFileRegister(void)
 {
     tmm_modules[TMM_RECEIVEERFFILE].name = "ReceiveErfFile";
     tmm_modules[TMM_RECEIVEERFFILE].ThreadInit = ReceiveErfFileThreadInit;
     tmm_modules[TMM_RECEIVEERFFILE].Func = NULL;
     tmm_modules[TMM_RECEIVEERFFILE].PktAcqLoop = ReceiveErfFileLoop;
     tmm_modules[TMM_RECEIVEERFFILE].PktAcqBreakLoop = NULL;
-    tmm_modules[TMM_RECEIVEERFFILE].ThreadExitPrintStats =
-        ReceiveErfFileThreadExitStats;
+    tmm_modules[TMM_RECEIVEERFFILE].ThreadExitPrintStats = ReceiveErfFileThreadExitStats;
     tmm_modules[TMM_RECEIVEERFFILE].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEERFFILE].cap_flags = 0;
     tmm_modules[TMM_RECEIVEERFFILE].flags = TM_FLAG_RECEIVE_TM;
@@ -94,8 +92,7 @@ TmModuleReceiveErfFileRegister(void)
 /**
  * \brief Register the ERF file decoder module.
  */
-void
-TmModuleDecodeErfFileRegister(void)
+void TmModuleDecodeErfFileRegister(void)
 {
     tmm_modules[TMM_DECODEERFFILE].name = "DecodeErfFile";
     tmm_modules[TMM_DECODEERFFILE].ThreadInit = DecodeErfFileThreadInit;
@@ -162,8 +159,7 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
     if (r < 1) {
         if (feof(etv->erf)) {
             SCLogInfo("End of ERF file reached");
-        }
-        else {
+        } else {
             SCLogInfo("Error reading ERF record");
         }
         SCReturnInt(TM_ECODE_FAILED);
@@ -179,8 +175,7 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
     if (r < 1) {
         if (feof(etv->erf)) {
             SCLogInfo("End of ERF file reached");
-        }
-        else {
+        } else {
             SCLogInfo("Error reading ERF record");
         }
         SCReturnInt(TM_ECODE_FAILED);
@@ -217,8 +212,7 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
 /**
  * \brief Initialize the ERF receiver thread.
  */
-TmEcode
-ReceiveErfFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
+TmEcode ReceiveErfFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
 
@@ -253,8 +247,7 @@ ReceiveErfFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
 /**
  * \brief Initialize the ERF decoder thread.
  */
-TmEcode
-DecodeErfFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
+TmEcode DecodeErfFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
     DecodeThreadVars *dtv = NULL;
@@ -283,8 +276,7 @@ TmEcode DecodeErfFileThreadDeinit(ThreadVars *tv, void *data)
  * This function ups the decoder counters and then passes the packet
  * off to the ethernet decoder.
  */
-TmEcode
-DecodeErfFile(ThreadVars *tv, Packet *p, void *data)
+TmEcode DecodeErfFile(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
@@ -307,10 +299,9 @@ DecodeErfFile(ThreadVars *tv, Packet *p, void *data)
  * \param tv Pointer to ThreadVars.
  * \param data Pointer to data, ErfFileThreadVars.
  */
-void
-ReceiveErfFileThreadExitStats(ThreadVars *tv, void *data)
+void ReceiveErfFileThreadExitStats(ThreadVars *tv, void *data)
 {
     ErfFileThreadVars *etv = (ErfFileThreadVars *)data;
 
-    SCLogInfo("Packets: %"PRIu32"; Bytes: %"PRIu64, etv->pkts, etv->bytes);
+    SCLogInfo("Packets: %" PRIu32 "; Bytes: %" PRIu64, etv->pkts, etv->bytes);
 }

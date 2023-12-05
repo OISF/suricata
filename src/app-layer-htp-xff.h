@@ -39,13 +39,14 @@
 #define XFF_MAXLEN 46
 
 typedef struct HttpXFFCfg_ {
-    uint8_t flags; /**< XFF operation mode and deployment */
+    uint8_t flags;      /**< XFF operation mode and deployment */
     const char *header; /**< XFF header name */
 } HttpXFFCfg;
 
 void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result);
 
-int HttpXFFGetIPFromTx(const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen);
+int HttpXFFGetIPFromTx(
+        const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen);
 
 int HttpXFFGetIP(const Flow *f, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen);
 

@@ -32,7 +32,8 @@
 #include "app-layer-rdp.h"
 #include "rust.h"
 
-void RegisterRdpParsers(void) {
+void RegisterRdpParsers(void)
+{
     SCLogDebug("Registering rdp parser");
     rs_rdp_register_parser();
 }

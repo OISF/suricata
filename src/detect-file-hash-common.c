@@ -44,8 +44,8 @@
  * \retval -1 the hexadecimal string is invalid
  * \retval 1 the hexadecimal string was read successfully
  */
-int ReadHashString(uint8_t *hash, const char *string, const char *filename, int line_no,
-        uint16_t expected_len)
+int ReadHashString(
+        uint8_t *hash, const char *string, const char *filename, int line_no, uint16_t expected_len)
 {
     if (strlen(string) != expected_len) {
         SCLogError("%s:%d hash string not %d characters", filename, line_no, expected_len);
@@ -53,10 +53,10 @@ int ReadHashString(uint8_t *hash, const char *string, const char *filename, int 
     }
 
     int i, x;
-    for (x = 0, i = 0; i < expected_len; i+=2, x++) {
+    for (x = 0, i = 0; i < expected_len; i += 2, x++) {
         char buf[3] = { 0, 0, 0 };
         buf[0] = string[i];
-        buf[1] = string[i+1];
+        buf[1] = string[i + 1];
 
         long value = strtol(buf, NULL, 16);
         if (value >= 0 && value <= 255)
@@ -82,8 +82,8 @@ int ReadHashString(uint8_t *hash, const char *string, const char *filename, int 
  * \retval -1 failed to load the hash into the hash table
  * \retval 1 successfully loaded the has into the hash table
  */
-int LoadHashTable(ROHashTable *hash_table, const char *string, const char *filename,
-        int line_no, uint32_t type)
+int LoadHashTable(ROHashTable *hash_table, const char *string, const char *filename, int line_no,
+        uint32_t type)
 {
     /* allocate the maximum size a hash can have (in this case is SHA256, 32 bytes) */
     uint8_t hash[32];
@@ -92,8 +92,7 @@ int LoadHashTable(ROHashTable *hash_table, const char *string, const char *filen
 
     if (type == DETECT_FILEMD5) {
         size = 16;
-    }
-    else if (type == DETECT_FILESHA1) {
+    } else if (type == DETECT_FILESHA1) {
         size = 20;
     }
 
@@ -118,8 +117,7 @@ int LoadHashTable(ROHashTable *hash_table, const char *string, const char *filen
  * \retval 0 didn't find the specified hash
  * \retval 1 the hash matched a stored value
  */
-static int HashMatchHashTable(ROHashTable *hash_table, uint8_t *hash,
-        size_t hash_len)
+static int HashMatchHashTable(ROHashTable *hash_table, uint8_t *hash, size_t hash_len)
 {
     void *ptr = ROHashLookup(hash_table, hash, (uint16_t)hash_len);
     if (ptr == NULL)
@@ -141,8 +139,8 @@ static int HashMatchHashTable(ROHashTable *hash_table, uint8_t *hash,
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectFileHashMatch (DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
+int DetectFileHashMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, File *file,
+        const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
     int ret = 0;
@@ -156,11 +154,9 @@ int DetectFileHashMatch (DetectEngineThreadCtx *det_ctx,
 
     if (s->file_flags & FILE_SIG_NEED_MD5 && file->flags & FILE_MD5) {
         match = HashMatchHashTable(filehash->hash, file->md5, sizeof(file->md5));
-    }
-    else if (s->file_flags & FILE_SIG_NEED_SHA1 && file->flags & FILE_SHA1) {
+    } else if (s->file_flags & FILE_SIG_NEED_SHA1 && file->flags & FILE_SHA1) {
         match = HashMatchHashTable(filehash->hash, file->sha1, sizeof(file->sha1));
-    }
-    else if (s->file_flags & FILE_SIG_NEED_SHA256 && file->flags & FILE_SHA256) {
+    } else if (s->file_flags & FILE_SIG_NEED_SHA256 && file->flags & FILE_SHA256) {
         match = HashMatchHashTable(filehash->hash, file->sha256, sizeof(file->sha256));
     }
 
@@ -169,8 +165,7 @@ int DetectFileHashMatch (DetectEngineThreadCtx *det_ctx,
             ret = 1;
         else
             ret = 0;
-    }
-    else if (match == 0) {
+    } else if (match == 0) {
         if (filehash->negated == 0)
             ret = 0;
         else
@@ -192,8 +187,8 @@ static const char *hexcodes = "ABCDEFabcdef0123456789";
  * \retval hash pointer to DetectFileHashData on success
  * \retval NULL on failure
  */
-static DetectFileHashData *DetectFileHashParse (const DetectEngineCtx *de_ctx,
-        const char *str, uint32_t type)
+static DetectFileHashData *DetectFileHashParse(
+        const DetectEngineCtx *de_ctx, const char *str, uint32_t type)
 {
     DetectFileHashData *filehash = NULL;
     FILE *fp = NULL;
@@ -212,11 +207,9 @@ static DetectFileHashData *DetectFileHashParse (const DetectEngineCtx *de_ctx,
 
     if (type == DETECT_FILEMD5) {
         filehash->hash = ROHashInit(18, 16);
-    }
-    else if (type == DETECT_FILESHA1) {
+    } else if (type == DETECT_FILESHA1) {
         filehash->hash = ROHashInit(18, 20);
-    }
-    else if (type == DETECT_FILESHA256) {
+    } else if (type == DETECT_FILESHA256) {
         filehash->hash = ROHashInit(18, 32);
     }
 
@@ -261,11 +254,12 @@ static DetectFileHashData *DetectFileHashParse (const DetectEngineCtx *de_ctx,
     }
 
     int line_no = 0;
-    while(fgets(line, (int)sizeof(line), fp) != NULL) {
+    while (fgets(line, (int)sizeof(line), fp) != NULL) {
         size_t valid = 0, len = strlen(line);
         line_no++;
 
-        while (strchr(hexcodes, line[valid]) != NULL && valid++ < len);
+        while (strchr(hexcodes, line[valid]) != NULL && valid++ < len)
+            ;
 
         /* lines that do not contain sequentially any valid character are ignored */
         if (valid == 0)
@@ -284,7 +278,8 @@ static DetectFileHashData *DetectFileHashParse (const DetectEngineCtx *de_ctx,
     if (ROHashInitFinalize(filehash->hash) != 1) {
         goto error;
     }
-    SCLogInfo("Hash hash table size %u bytes%s", ROHashMemorySize(filehash->hash), filehash->negated ? ", negated match" : "");
+    SCLogInfo("Hash hash table size %u bytes%s", ROHashMemorySize(filehash->hash),
+            filehash->negated ? ", negated match" : "");
 
     SCFree(rule_filename);
     SCFree(filename);
@@ -292,7 +287,7 @@ static DetectFileHashData *DetectFileHashParse (const DetectEngineCtx *de_ctx,
 
 error:
     if (filehash != NULL)
-        DetectFileHashFree((DetectEngineCtx *) de_ctx, filehash);
+        DetectFileHashFree((DetectEngineCtx *)de_ctx, filehash);
     if (fp != NULL)
         fclose(fp);
     if (filename != NULL)

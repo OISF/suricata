@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -56,15 +55,26 @@
  */
 static int DetectHttpHeaderParserTest01(void)
 {
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (content:\"abc\"; http_header; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (content:\"abc\"; nocase; http_header; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (content:\"abc\"; endswith; http_header; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (content:\"abc\"; startswith; http_header; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (content:\"abc\"; startswith; endswith; http_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (content:\"abc\"; http_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (content:\"abc\"; nocase; http_header; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (content:\"abc\"; endswith; http_header; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (content:\"abc\"; startswith; http_header; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (content:\"abc\"; startswith; "
+                                  "endswith; http_header; sid:1;)",
+            true));
 
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (content:\"abc\"; rawbytes; http_header; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (content:\"abc\"; rawbytes; http_header; sid:1;)",
+            false));
     FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (http_header; sid:1;)", false));
-    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (content:\"abc\"; http_header; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert tls any any -> any any (content:\"abc\"; http_header; sid:1;)", false));
     PASS;
 }
 
@@ -73,16 +83,28 @@ static int DetectHttpHeaderParserTest01(void)
  */
 static int DetectHttpHeaderParserTest02(void)
 {
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; content:\"abc\"; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; content:\"abc\"; nocase; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; content:\"abc\"; endswith; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; content:\"abc\"; startswith; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; content:\"abc\"; startswith; endswith; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; bsize:10; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (http.header; content:\"abc\"; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (http.header; content:\"abc\"; nocase; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (http.header; content:\"abc\"; endswith; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (http.header; content:\"abc\"; startswith; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; content:\"abc\"; "
+                                  "startswith; endswith; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (http.header; bsize:10; sid:1;)", true));
 
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (http.header; content:\"abc\"; rawbytes; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (http.header; content:\"abc\"; rawbytes; sid:1;)",
+            false));
     FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (http.header; sid:1;)", false));
-    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (http.header; content:\"abc\"; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert tls any any -> any any (http.header; content:\"abc\"; sid:1;)", false));
     PASS;
 }
 
@@ -99,14 +121,14 @@ static int DetectHttpHeaderTest06(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 26\r\n"
-        "\r\n"
-        "This is dummy message body\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                         "Gecko/20091221 Firefox/3.5.7\r\n"
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 26\r\n"
+                         "\r\n"
+                         "This is dummy message body\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -124,7 +146,7 @@ static int DetectHttpHeaderTest06(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -135,10 +157,10 @@ static int DetectHttpHeaderTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"Content-Type: text/html\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"Content-Type: text/html\"; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -193,15 +215,14 @@ static int DetectHttpHeaderTest07(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozi";
-    uint8_t http2_buf[] =
-        "lla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\nContent-Type: text/html\r\n"
-        "Content-Length: 67\r\n"
-        "\r\n"
-        "This is dummy message body1";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozi";
+    uint8_t http2_buf[] = "lla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 "
+                          "Firefox/3.5.7\r\nContent-Type: text/html\r\n"
+                          "Content-Length: 67\r\n"
+                          "\r\n"
+                          "This is dummy message body1";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
 
@@ -224,11 +245,11 @@ static int DetectHttpHeaderTest07(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -237,10 +258,10 @@ static int DetectHttpHeaderTest07(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"Mozilla\"; http_header; "
-                               "sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                                 "(msg:\"http header test\"; "
+                                                 "content:\"Mozilla\"; http_header; "
+                                                 "sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -256,7 +277,7 @@ static int DetectHttpHeaderTest07(void)
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF( (PacketAlertCheck(p1, 1)));
+    FAIL_IF((PacketAlertCheck(p1, 1)));
 
     r = AppLayerParserParse(
             NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, http2_buf, http2_len);
@@ -291,14 +312,13 @@ static int DetectHttpHeaderTest08(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n";
-    uint8_t http2_buf[] =
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 67\r\n"
-        "\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n";
+    uint8_t http2_buf[] = "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 67\r\n"
+                          "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -318,11 +338,11 @@ static int DetectHttpHeaderTest08(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -333,10 +353,10 @@ static int DetectHttpHeaderTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"Gecko/20091221 Firefox/3.5.7\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"Gecko/20091221 Firefox/3.5.7\"; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -410,15 +430,14 @@ static int DetectHttpHeaderTest09(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n";
-    uint8_t http2_buf[] =
-        "Content-Type: text/html\r\n"
-        "Content-Length: 67\r\n"
-        "\r\n"
-        "This is dummy body\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n";
+    uint8_t http2_buf[] = "Content-Type: text/html\r\n"
+                          "Content-Length: 67\r\n"
+                          "\r\n"
+                          "This is dummy body\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -438,11 +457,11 @@ static int DetectHttpHeaderTest09(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -454,10 +473,10 @@ static int DetectHttpHeaderTest09(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->mpm_matcher = mpm_default_matcher;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"Firefox/3.5.7|0D 0A|Content\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"Firefox/3.5.7|0D 0A|Content\"; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -531,15 +550,14 @@ static int DetectHttpHeaderTest10(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n";
-    uint8_t http2_buf[] =
-        "Content-Type: text/html\r\n"
-        "Content-Length: 67\r\n"
-        "\r\n"
-        "This is dummy body";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n";
+    uint8_t http2_buf[] = "Content-Type: text/html\r\n"
+                          "Content-Length: 67\r\n"
+                          "\r\n"
+                          "This is dummy body";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -559,11 +577,11 @@ static int DetectHttpHeaderTest10(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -574,10 +592,11 @@ static int DetectHttpHeaderTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"firefox/3.5.7|0D 0A|content\"; nocase; http_header;"
-                               "sid:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert http any any -> any any "
+                            "(msg:\"http header test\"; "
+                            "content:\"firefox/3.5.7|0D 0A|content\"; nocase; http_header;"
+                            "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -650,14 +669,14 @@ static int DetectHttpHeaderTest11(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 26\r\n"
-        "\r\n"
-        "This is dummy message body\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                         "Gecko/20091221 Firefox/3.5.7\r\n"
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 26\r\n"
+                         "\r\n"
+                         "This is dummy message body\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -675,7 +694,7 @@ static int DetectHttpHeaderTest11(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -686,10 +705,10 @@ static int DetectHttpHeaderTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"lalalalala\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:!\"lalalalala\"; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -745,14 +764,14 @@ static int DetectHttpHeaderTest12(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 26\r\n"
-        "\r\n"
-        "This is dummy message body\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                         "Gecko/20091221 Firefox/3.5.7\r\n"
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 26\r\n"
+                         "\r\n"
+                         "This is dummy message body\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -770,7 +789,7 @@ static int DetectHttpHeaderTest12(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -781,10 +800,10 @@ static int DetectHttpHeaderTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"User-Agent: Mozilla/5.0 \"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:!\"User-Agent: Mozilla/5.0 \"; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -840,14 +859,14 @@ static int DetectHttpHeaderTest13(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 100\r\n"
-        "\r\n"
-        "longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                         "Gecko/20091221 Firefox/3.5.7\r\n"
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 100\r\n"
+                         "\r\n"
+                         "longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -866,7 +885,7 @@ static int DetectHttpHeaderTest13(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -877,10 +896,11 @@ static int DetectHttpHeaderTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"Host: www.openinfosecfoundation.org\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert http any any -> any any "
+                            "(msg:\"http header test\"; "
+                            "content:\"Host: www.openinfosecfoundation.org\"; http_header; "
+                            "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -933,11 +953,10 @@ static int DetectHttpHeaderTest28(void)
     DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "POST http://xxx.intranet.local:8000/xxx HTTP/1.1\r\n"
-        "User-Agent: Mozilla/4.0 (Windows XP 5.1) Java/1.6.0_29\r\n"
-        "Host: xxx.intranet.local:8000\r\n"
-        "\r\n";
+    uint8_t http_buf[] = "POST http://xxx.intranet.local:8000/xxx HTTP/1.1\r\n"
+                         "User-Agent: Mozilla/4.0 (Windows XP 5.1) Java/1.6.0_29\r\n"
+                         "Host: xxx.intranet.local:8000\r\n"
+                         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -955,7 +974,7 @@ static int DetectHttpHeaderTest28(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -966,9 +985,9 @@ static int DetectHttpHeaderTest28(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(app-layer-event:http.host_header_ambiguous; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(app-layer-event:http.host_header_ambiguous; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -992,7 +1011,7 @@ static int DetectHttpHeaderTest28(void)
     }
 
     result = 1;
- end:
+end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
@@ -1014,11 +1033,10 @@ static int DetectHttpHeaderTest29(void)
     DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "POST http://xxx.intranet.local:8001/xxx HTTP/1.1\r\n"
-        "User-Agent: Mozilla/4.0 (Windows XP 5.1) Java/1.6.0_29\r\n"
-        "Host: xxx.intranet.local:8000\r\n"
-        "\r\n";
+    uint8_t http_buf[] = "POST http://xxx.intranet.local:8001/xxx HTTP/1.1\r\n"
+                         "User-Agent: Mozilla/4.0 (Windows XP 5.1) Java/1.6.0_29\r\n"
+                         "Host: xxx.intranet.local:8000\r\n"
+                         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1036,7 +1054,7 @@ static int DetectHttpHeaderTest29(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1047,9 +1065,9 @@ static int DetectHttpHeaderTest29(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(app-layer-event:http.host_header_ambiguous; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(app-layer-event:http.host_header_ambiguous; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1073,7 +1091,7 @@ static int DetectHttpHeaderTest29(void)
     }
 
     result = 1;
- end:
+end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
@@ -1095,11 +1113,10 @@ static int DetectHttpHeaderTest30(void)
     DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "POST http://xxx.intranet.local:8000/xxx HTTP/1.1\r\n"
-        "User-Agent: Mozilla/4.0 (Windows XP 5.1) Java/1.6.0_29\r\n"
-        "Host: xyz.intranet.local:8000\r\n"
-        "\r\n";
+    uint8_t http_buf[] = "POST http://xxx.intranet.local:8000/xxx HTTP/1.1\r\n"
+                         "User-Agent: Mozilla/4.0 (Windows XP 5.1) Java/1.6.0_29\r\n"
+                         "Host: xyz.intranet.local:8000\r\n"
+                         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1117,7 +1134,7 @@ static int DetectHttpHeaderTest30(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1128,9 +1145,9 @@ static int DetectHttpHeaderTest30(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(app-layer-event:http.host_header_ambiguous; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(app-layer-event:http.host_header_ambiguous; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1154,7 +1171,7 @@ static int DetectHttpHeaderTest30(void)
     }
 
     result = 1;
- end:
+end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (de_ctx != NULL)
@@ -1172,11 +1189,10 @@ static int DetectHttpHeaderIsdataatParseTest(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx,
-            "alert tcp any any -> any any ("
-            "flow:to_server; "
-            "content:\"one\"; http_header; "
-            "isdataat:!4,relative; sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any ("
+                                                 "flow:to_server; "
+                                                 "content:\"one\"; http_header; "
+                                                 "isdataat:!4,relative; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigMatch *sm = DetectBufferGetLastSigMatch(s, g_http_header_buffer_id);
@@ -1205,9 +1221,8 @@ static int DetectEngineHttpHeaderTest01(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1225,7 +1240,7 @@ static int DetectEngineHttpHeaderTest01(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1236,10 +1251,10 @@ static int DetectEngineHttpHeaderTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"one\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"one\"; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1295,9 +1310,8 @@ static int DetectEngineHttpHeaderTest02(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1315,7 +1329,7 @@ static int DetectEngineHttpHeaderTest02(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1326,10 +1340,10 @@ static int DetectEngineHttpHeaderTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"one\"; depth:15; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"one\"; depth:15; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1385,9 +1399,8 @@ static int DetectEngineHttpHeaderTest03(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1405,7 +1418,7 @@ static int DetectEngineHttpHeaderTest03(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1416,10 +1429,10 @@ static int DetectEngineHttpHeaderTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"one\"; depth:5; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:!\"one\"; depth:5; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1475,9 +1488,8 @@ static int DetectEngineHttpHeaderTest04(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1495,7 +1507,7 @@ static int DetectEngineHttpHeaderTest04(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1506,10 +1518,10 @@ static int DetectEngineHttpHeaderTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"one\"; depth:5; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"one\"; depth:5; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1565,9 +1577,8 @@ static int DetectEngineHttpHeaderTest05(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1585,7 +1596,7 @@ static int DetectEngineHttpHeaderTest05(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1596,10 +1607,10 @@ static int DetectEngineHttpHeaderTest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"one\"; depth:15; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:!\"one\"; depth:15; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1655,9 +1666,8 @@ static int DetectEngineHttpHeaderTest06(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1675,7 +1685,7 @@ static int DetectEngineHttpHeaderTest06(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1686,10 +1696,10 @@ static int DetectEngineHttpHeaderTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"one\"; offset:10; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"one\"; offset:10; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1745,9 +1755,8 @@ static int DetectEngineHttpHeaderTest07(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1765,7 +1774,7 @@ static int DetectEngineHttpHeaderTest07(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1776,10 +1785,10 @@ static int DetectEngineHttpHeaderTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"one\"; offset:15; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:!\"one\"; offset:15; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1835,9 +1844,8 @@ static int DetectEngineHttpHeaderTest08(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1855,7 +1863,7 @@ static int DetectEngineHttpHeaderTest08(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1866,10 +1874,10 @@ static int DetectEngineHttpHeaderTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"one\"; offset:15; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"one\"; offset:15; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1925,9 +1933,8 @@ static int DetectEngineHttpHeaderTest09(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1945,7 +1952,7 @@ static int DetectEngineHttpHeaderTest09(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1956,10 +1963,10 @@ static int DetectEngineHttpHeaderTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"one\"; offset:10; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:!\"one\"; offset:10; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2015,9 +2022,8 @@ static int DetectEngineHttpHeaderTest10(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -2035,7 +2041,7 @@ static int DetectEngineHttpHeaderTest10(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2046,10 +2052,11 @@ static int DetectEngineHttpHeaderTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"one\"; http_header; content:\"three\"; http_header; within:10; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"http header test\"; "
+            "content:\"one\"; http_header; content:\"three\"; http_header; within:10; "
+            "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2105,9 +2112,8 @@ static int DetectEngineHttpHeaderTest11(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -2125,7 +2131,7 @@ static int DetectEngineHttpHeaderTest11(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2136,10 +2142,11 @@ static int DetectEngineHttpHeaderTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"one\"; http_header; content:!\"three\"; http_header; within:5; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"http header test\"; "
+            "content:\"one\"; http_header; content:!\"three\"; http_header; within:5; "
+            "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2195,9 +2202,8 @@ static int DetectEngineHttpHeaderTest12(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -2215,7 +2221,7 @@ static int DetectEngineHttpHeaderTest12(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2226,10 +2232,11 @@ static int DetectEngineHttpHeaderTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"one\"; http_header; content:!\"three\"; http_header; within:10; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"http header test\"; "
+            "content:\"one\"; http_header; content:!\"three\"; http_header; within:10; "
+            "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2285,9 +2292,8 @@ static int DetectEngineHttpHeaderTest13(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -2305,7 +2311,7 @@ static int DetectEngineHttpHeaderTest13(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2316,10 +2322,11 @@ static int DetectEngineHttpHeaderTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"one\"; http_header; content:\"three\"; http_header; within:5; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"http header test\"; "
+            "content:\"one\"; http_header; content:\"three\"; http_header; within:5; "
+            "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2375,9 +2382,8 @@ static int DetectEngineHttpHeaderTest14(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -2395,7 +2401,7 @@ static int DetectEngineHttpHeaderTest14(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2406,10 +2412,11 @@ static int DetectEngineHttpHeaderTest14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"one\"; http_header; content:\"five\"; http_header; distance:7; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"http header test\"; "
+            "content:\"one\"; http_header; content:\"five\"; http_header; distance:7; "
+            "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2465,9 +2472,8 @@ static int DetectEngineHttpHeaderTest15(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -2485,7 +2491,7 @@ static int DetectEngineHttpHeaderTest15(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2496,10 +2502,11 @@ static int DetectEngineHttpHeaderTest15(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"one\"; http_header; content:!\"five\"; http_header; distance:15; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"http header test\"; "
+            "content:\"one\"; http_header; content:!\"five\"; http_header; distance:15; "
+            "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2555,9 +2562,8 @@ static int DetectEngineHttpHeaderTest16(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -2575,7 +2581,7 @@ static int DetectEngineHttpHeaderTest16(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2586,10 +2592,11 @@ static int DetectEngineHttpHeaderTest16(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"one\"; http_header; content:!\"five\"; http_header; distance:7; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"http header test\"; "
+            "content:\"one\"; http_header; content:!\"five\"; http_header; distance:7; "
+            "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2645,9 +2652,8 @@ static int DetectEngineHttpHeaderTest17(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -2665,7 +2671,7 @@ static int DetectEngineHttpHeaderTest17(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2676,10 +2682,11 @@ static int DetectEngineHttpHeaderTest17(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"one\"; http_header; content:\"five\"; http_header; distance:15; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"http header test\"; "
+            "content:\"one\"; http_header; content:\"five\"; http_header; distance:15; "
+            "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2732,12 +2739,10 @@ static int DetectEngineHttpHeaderTest20(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: This_is_dummy_body1";
-    uint8_t http2_buf[] =
-        "This_is_dummy_message_body2\r\n"
-        "\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: This_is_dummy_body1";
+    uint8_t http2_buf[] = "This_is_dummy_message_body2\r\n"
+                          "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -2758,11 +2763,11 @@ static int DetectEngineHttpHeaderTest20(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2773,11 +2778,11 @@ static int DetectEngineHttpHeaderTest20(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "pcre:/body1/H; "
-                               "content:!\"dummy\"; http_header; within:7; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "pcre:/body1/H; "
+                                       "content:!\"dummy\"; http_header; within:7; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2848,12 +2853,10 @@ static int DetectEngineHttpHeaderTest21(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: This_is_dummy_body1";
-    uint8_t http2_buf[] =
-        "This_is_dummy_message_body2\r\n"
-        "\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: This_is_dummy_body1";
+    uint8_t http2_buf[] = "This_is_dummy_message_body2\r\n"
+                          "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -2874,11 +2877,11 @@ static int DetectEngineHttpHeaderTest21(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2889,11 +2892,11 @@ static int DetectEngineHttpHeaderTest21(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "pcre:/body1/H; "
-                               "content:!\"dummy\"; within:7; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "pcre:/body1/H; "
+                                       "content:!\"dummy\"; within:7; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2964,12 +2967,10 @@ static int DetectEngineHttpHeaderTest22(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: This_is_dummy_body1";
-    uint8_t http2_buf[] =
-        "This_is_dummy_message_body2\r\n"
-        "\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: This_is_dummy_body1";
+    uint8_t http2_buf[] = "This_is_dummy_message_body2\r\n"
+                          "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -2990,11 +2991,11 @@ static int DetectEngineHttpHeaderTest22(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -3005,11 +3006,11 @@ static int DetectEngineHttpHeaderTest22(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "pcre:/body1/H; "
-                               "content:!\"dummy\"; distance:3; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "pcre:/body1/H; "
+                                       "content:!\"dummy\"; distance:3; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3080,12 +3081,10 @@ static int DetectEngineHttpHeaderTest23(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: This_is_dummy_body1";
-    uint8_t http2_buf[] =
-        "This_is_dummy_message_body2\r\n"
-        "\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: This_is_dummy_body1";
+    uint8_t http2_buf[] = "This_is_dummy_message_body2\r\n"
+                          "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -3106,11 +3105,11 @@ static int DetectEngineHttpHeaderTest23(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -3121,11 +3120,11 @@ static int DetectEngineHttpHeaderTest23(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "pcre:/body1/H; "
-                               "content:!\"dummy\"; distance:13; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "pcre:/body1/H; "
+                                       "content:!\"dummy\"; distance:13; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3196,12 +3195,10 @@ static int DetectEngineHttpHeaderTest24(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: This_is_dummy_body1";
-    uint8_t http2_buf[] =
-        "This_is_dummy_message_body2\r\n"
-        "\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: This_is_dummy_body1";
+    uint8_t http2_buf[] = "This_is_dummy_message_body2\r\n"
+                          "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -3222,11 +3219,11 @@ static int DetectEngineHttpHeaderTest24(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -3237,11 +3234,11 @@ static int DetectEngineHttpHeaderTest24(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "pcre:/body1/H; "
-                               "content:\"dummy\"; within:15; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "pcre:/body1/H; "
+                                       "content:\"dummy\"; within:15; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3312,12 +3309,10 @@ static int DetectEngineHttpHeaderTest25(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: This_is_dummy_body1";
-    uint8_t http2_buf[] =
-        "This_is_dummy_message_body2\r\n"
-        "\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: This_is_dummy_body1";
+    uint8_t http2_buf[] = "This_is_dummy_message_body2\r\n"
+                          "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -3338,11 +3333,11 @@ static int DetectEngineHttpHeaderTest25(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -3353,11 +3348,11 @@ static int DetectEngineHttpHeaderTest25(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "pcre:/body1/H; "
-                               "content:\"dummy\"; within:10; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "pcre:/body1/H; "
+                                       "content:\"dummy\"; within:10; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3428,12 +3423,10 @@ static int DetectEngineHttpHeaderTest26(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: This_is_dummy_body1";
-    uint8_t http2_buf[] =
-        "This_is_dummy_message_body2\r\n"
-        "\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: This_is_dummy_body1";
+    uint8_t http2_buf[] = "This_is_dummy_message_body2\r\n"
+                          "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -3454,11 +3447,11 @@ static int DetectEngineHttpHeaderTest26(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -3469,11 +3462,11 @@ static int DetectEngineHttpHeaderTest26(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "pcre:/body1/H; "
-                               "content:\"dummy\"; distance:8; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "pcre:/body1/H; "
+                                       "content:\"dummy\"; distance:8; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3544,12 +3537,10 @@ static int DetectEngineHttpHeaderTest27(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: This_is_dummy_body1";
-    uint8_t http2_buf[] =
-        "This_is_dummy_message_body2\r\n"
-        "\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: This_is_dummy_body1";
+    uint8_t http2_buf[] = "This_is_dummy_message_body2\r\n"
+                          "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -3570,11 +3561,11 @@ static int DetectEngineHttpHeaderTest27(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -3585,11 +3576,11 @@ static int DetectEngineHttpHeaderTest27(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "pcre:/body1/H; "
-                               "content:\"dummy\"; distance:14; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "pcre:/body1/H; "
+                                       "content:\"dummy\"; distance:14; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3660,18 +3651,17 @@ static int DetectEngineHttpHeaderTest28(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -3706,10 +3696,10 @@ static int DetectEngineHttpHeaderTest28(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"Content-Length: 6\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"Content-Length: 6\"; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3777,18 +3767,17 @@ static int DetectEngineHttpHeaderTest29(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -3823,10 +3812,10 @@ static int DetectEngineHttpHeaderTest29(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"Content-Length: 7\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"Content-Length: 7\"; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3927,19 +3916,18 @@ static int DetectEngineHttpHeaderTest30(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Set-Cookie: dummycookieset\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Set-Cookie: dummycookieset\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -3974,10 +3962,10 @@ static int DetectEngineHttpHeaderTest30(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"dummycookieset\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"dummycookieset\"; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -4039,8 +4027,8 @@ end:
 }
 
 /** \test reassembly bug where headers with names of length 6 were
-  *       skipped
-  */
+ *       skipped
+ */
 static int DetectEngineHttpHeaderTest31(void)
 {
     TcpSession ssn;
@@ -4050,12 +4038,11 @@ static int DetectEngineHttpHeaderTest31(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Accept: blah\r\n"
-        "Cookie: blah\r\n"
-        "Crazy6: blah\r\n"
-        "SixZix: blah\r\n\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Accept: blah\r\n"
+                          "Cookie: blah\r\n"
+                          "Crazy6: blah\r\n"
+                          "SixZix: blah\r\n\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -4074,7 +4061,7 @@ static int DetectEngineHttpHeaderTest31(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -4085,12 +4072,12 @@ static int DetectEngineHttpHeaderTest31(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(content:\"Accept|3a|\"; http_header; "
-                               "content:!\"Cookie|3a|\"; http_header; "
-                               "content:\"Crazy6|3a|\"; http_header; "
-                               "content:\"SixZix|3a|\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(content:\"Accept|3a|\"; http_header; "
+                                       "content:!\"Cookie|3a|\"; http_header; "
+                                       "content:\"Crazy6|3a|\"; http_header; "
+                                       "content:\"SixZix|3a|\"; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -4146,16 +4133,15 @@ static int DetectEngineHttpHeaderTest32(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "host: boom\r\n"
-        "Transfer-Encoding: chunked\r\n"
-        "\r\n"
-        "13\r\n"
-        "This is dummy body1\r\n"
-        "0\r\n"
-        "Dummy-Header: kaboom\r\n"
-        "\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "host: boom\r\n"
+                          "Transfer-Encoding: chunked\r\n"
+                          "\r\n"
+                          "13\r\n"
+                          "This is dummy body1\r\n"
+                          "0\r\n"
+                          "Dummy-Header: kaboom\r\n"
+                          "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -4174,7 +4160,7 @@ static int DetectEngineHttpHeaderTest32(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -4185,9 +4171,9 @@ static int DetectEngineHttpHeaderTest32(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(content:\"Dummy\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(content:\"Dummy\"; http_header; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -4244,17 +4230,15 @@ static int DetectEngineHttpHeaderTest33(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "host: boom\r\n"
-        "Transfer-Encoding: chunked\r\n"
-        "\r\n"
-        "13\r\n"
-        "This is dummy body1\r\n"
-        "0\r\n";
-    uint8_t http2_buf[] =
-        "Dummy-Header: kaboom\r\n"
-        "\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "host: boom\r\n"
+                          "Transfer-Encoding: chunked\r\n"
+                          "\r\n"
+                          "13\r\n"
+                          "This is dummy body1\r\n"
+                          "0\r\n";
+    uint8_t http2_buf[] = "Dummy-Header: kaboom\r\n"
+                          "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
 
@@ -4276,11 +4260,11 @@ static int DetectEngineHttpHeaderTest33(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -4289,9 +4273,9 @@ static int DetectEngineHttpHeaderTest33(void)
     FAIL_IF(de_ctx == NULL);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(content:\"Dummy\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(content:\"Dummy\"; http_header; "
+                                       "sid:1;)");
     FAIL_IF(de_ctx->sig_list == NULL);
 
     SigGroupBuild(de_ctx);
@@ -4339,19 +4323,16 @@ static int DetectEngineHttpHeaderTest34(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "host: boom\r\n"
-        "Dummy-Header1: blah\r\n"
-        "Transfer-Encoding: chunked\r\n"
-        "\r\n";
-    uint8_t http2_buf[] =
-        "13\r\n"
-        "This is dummy body1\r\n"
-        "0\r\n";
-    uint8_t http3_buf[] =
-        "Dummy-Header2: kaboom\r\n"
-        "\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "host: boom\r\n"
+                          "Dummy-Header1: blah\r\n"
+                          "Transfer-Encoding: chunked\r\n"
+                          "\r\n";
+    uint8_t http2_buf[] = "13\r\n"
+                          "This is dummy body1\r\n"
+                          "0\r\n";
+    uint8_t http3_buf[] = "Dummy-Header2: kaboom\r\n"
+                          "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     uint32_t http3_len = sizeof(http3_buf) - 1;
@@ -4375,17 +4356,17 @@ static int DetectEngineHttpHeaderTest34(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p1->pcap_cnt = 1;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->pcap_cnt = 2;
     p3->flow = &f;
     p3->flowflags |= FLOW_PKT_TOSERVER;
     p3->flowflags |= FLOW_PKT_ESTABLISHED;
-    p3->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p3->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p3->pcap_cnt = 3;
     f.alproto = ALPROTO_HTTP1;
 
@@ -4395,9 +4376,10 @@ static int DetectEngineHttpHeaderTest34(void)
     FAIL_IF(de_ctx == NULL);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(content:\"Dummy\"; http_header; content:\"Header2\"; http_header; within:8; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert http any any -> any any "
+            "(content:\"Dummy\"; http_header; content:\"Header2\"; http_header; within:8; "
+            "sid:1;)");
     FAIL_IF(de_ctx->sig_list == NULL);
 
     SigGroupBuild(de_ctx);
@@ -4452,19 +4434,16 @@ static int DetectEngineHttpHeaderTest35(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "host: boom\r\n"
-        "Dummy-Header1: blah\r\n"
-        "Transfer-Encoding: chunked\r\n"
-        "\r\n";
-    uint8_t http2_buf[] =
-        "13\r\n"
-        "This is dummy body1\r\n"
-        "0\r\n";
-    uint8_t http3_buf[] =
-        "Dummy-Header2: kaboom\r\n"
-        "\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "host: boom\r\n"
+                          "Dummy-Header1: blah\r\n"
+                          "Transfer-Encoding: chunked\r\n"
+                          "\r\n";
+    uint8_t http2_buf[] = "13\r\n"
+                          "This is dummy body1\r\n"
+                          "0\r\n";
+    uint8_t http3_buf[] = "Dummy-Header2: kaboom\r\n"
+                          "\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     uint32_t http3_len = sizeof(http3_buf) - 1;
@@ -4488,17 +4467,17 @@ static int DetectEngineHttpHeaderTest35(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p1->pcap_cnt = 1;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->pcap_cnt = 2;
     p3->flow = &f;
     p3->flowflags |= FLOW_PKT_TOSERVER;
     p3->flowflags |= FLOW_PKT_ESTABLISHED;
-    p3->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p3->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p3->pcap_cnt = 3;
     f.alproto = ALPROTO_HTTP1;
 
@@ -4508,9 +4487,10 @@ static int DetectEngineHttpHeaderTest35(void)
     FAIL_IF(de_ctx == NULL);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(content:\"Dummy\"; http_header; fast_pattern; content:\"Header2\"; http_header; within:8; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(content:\"Dummy\"; http_header; fast_pattern; "
+                                       "content:\"Header2\"; http_header; within:8; "
+                                       "sid:1;)");
     FAIL_IF(de_ctx->sig_list == NULL);
 
     SigGroupBuild(de_ctx);
@@ -4571,79 +4551,45 @@ void DetectHttpHeaderRegisterTests(void)
     UtRegisterTest("DetectHttpHeaderTest29", DetectHttpHeaderTest29);
     UtRegisterTest("DetectHttpHeaderTest30", DetectHttpHeaderTest30);
 
-    UtRegisterTest("DetectHttpHeaderIsdataatParseTest",
-            DetectHttpHeaderIsdataatParseTest);
+    UtRegisterTest("DetectHttpHeaderIsdataatParseTest", DetectHttpHeaderIsdataatParseTest);
 
-    UtRegisterTest("DetectEngineHttpHeaderTest01",
-                   DetectEngineHttpHeaderTest01);
-    UtRegisterTest("DetectEngineHttpHeaderTest02",
-                   DetectEngineHttpHeaderTest02);
-    UtRegisterTest("DetectEngineHttpHeaderTest03",
-                   DetectEngineHttpHeaderTest03);
-    UtRegisterTest("DetectEngineHttpHeaderTest04",
-                   DetectEngineHttpHeaderTest04);
-    UtRegisterTest("DetectEngineHttpHeaderTest05",
-                   DetectEngineHttpHeaderTest05);
-    UtRegisterTest("DetectEngineHttpHeaderTest06",
-                   DetectEngineHttpHeaderTest06);
-    UtRegisterTest("DetectEngineHttpHeaderTest07",
-                   DetectEngineHttpHeaderTest07);
-    UtRegisterTest("DetectEngineHttpHeaderTest08",
-                   DetectEngineHttpHeaderTest08);
-    UtRegisterTest("DetectEngineHttpHeaderTest09",
-                   DetectEngineHttpHeaderTest09);
-    UtRegisterTest("DetectEngineHttpHeaderTest10",
-                   DetectEngineHttpHeaderTest10);
-    UtRegisterTest("DetectEngineHttpHeaderTest11",
-                   DetectEngineHttpHeaderTest11);
-    UtRegisterTest("DetectEngineHttpHeaderTest12",
-                   DetectEngineHttpHeaderTest12);
-    UtRegisterTest("DetectEngineHttpHeaderTest13",
-                   DetectEngineHttpHeaderTest13);
-    UtRegisterTest("DetectEngineHttpHeaderTest14",
-                   DetectEngineHttpHeaderTest14);
-    UtRegisterTest("DetectEngineHttpHeaderTest15",
-                   DetectEngineHttpHeaderTest15);
-    UtRegisterTest("DetectEngineHttpHeaderTest16",
-                   DetectEngineHttpHeaderTest16);
-    UtRegisterTest("DetectEngineHttpHeaderTest17",
-                   DetectEngineHttpHeaderTest17);
-    UtRegisterTest("DetectEngineHttpHeaderTest20",
-                   DetectEngineHttpHeaderTest20);
-    UtRegisterTest("DetectEngineHttpHeaderTest21",
-                   DetectEngineHttpHeaderTest21);
-    UtRegisterTest("DetectEngineHttpHeaderTest22",
-                   DetectEngineHttpHeaderTest22);
-    UtRegisterTest("DetectEngineHttpHeaderTest23",
-                   DetectEngineHttpHeaderTest23);
-    UtRegisterTest("DetectEngineHttpHeaderTest24",
-                   DetectEngineHttpHeaderTest24);
-    UtRegisterTest("DetectEngineHttpHeaderTest25",
-                   DetectEngineHttpHeaderTest25);
-    UtRegisterTest("DetectEngineHttpHeaderTest26",
-                   DetectEngineHttpHeaderTest26);
-    UtRegisterTest("DetectEngineHttpHeaderTest27",
-                   DetectEngineHttpHeaderTest27);
-    UtRegisterTest("DetectEngineHttpHeaderTest28",
-                   DetectEngineHttpHeaderTest28);
-    UtRegisterTest("DetectEngineHttpHeaderTest29",
-                   DetectEngineHttpHeaderTest29);
-    UtRegisterTest("DetectEngineHttpHeaderTest30",
-                   DetectEngineHttpHeaderTest30);
-    UtRegisterTest("DetectEngineHttpHeaderTest31",
-                   DetectEngineHttpHeaderTest31);
+    UtRegisterTest("DetectEngineHttpHeaderTest01", DetectEngineHttpHeaderTest01);
+    UtRegisterTest("DetectEngineHttpHeaderTest02", DetectEngineHttpHeaderTest02);
+    UtRegisterTest("DetectEngineHttpHeaderTest03", DetectEngineHttpHeaderTest03);
+    UtRegisterTest("DetectEngineHttpHeaderTest04", DetectEngineHttpHeaderTest04);
+    UtRegisterTest("DetectEngineHttpHeaderTest05", DetectEngineHttpHeaderTest05);
+    UtRegisterTest("DetectEngineHttpHeaderTest06", DetectEngineHttpHeaderTest06);
+    UtRegisterTest("DetectEngineHttpHeaderTest07", DetectEngineHttpHeaderTest07);
+    UtRegisterTest("DetectEngineHttpHeaderTest08", DetectEngineHttpHeaderTest08);
+    UtRegisterTest("DetectEngineHttpHeaderTest09", DetectEngineHttpHeaderTest09);
+    UtRegisterTest("DetectEngineHttpHeaderTest10", DetectEngineHttpHeaderTest10);
+    UtRegisterTest("DetectEngineHttpHeaderTest11", DetectEngineHttpHeaderTest11);
+    UtRegisterTest("DetectEngineHttpHeaderTest12", DetectEngineHttpHeaderTest12);
+    UtRegisterTest("DetectEngineHttpHeaderTest13", DetectEngineHttpHeaderTest13);
+    UtRegisterTest("DetectEngineHttpHeaderTest14", DetectEngineHttpHeaderTest14);
+    UtRegisterTest("DetectEngineHttpHeaderTest15", DetectEngineHttpHeaderTest15);
+    UtRegisterTest("DetectEngineHttpHeaderTest16", DetectEngineHttpHeaderTest16);
+    UtRegisterTest("DetectEngineHttpHeaderTest17", DetectEngineHttpHeaderTest17);
+    UtRegisterTest("DetectEngineHttpHeaderTest20", DetectEngineHttpHeaderTest20);
+    UtRegisterTest("DetectEngineHttpHeaderTest21", DetectEngineHttpHeaderTest21);
+    UtRegisterTest("DetectEngineHttpHeaderTest22", DetectEngineHttpHeaderTest22);
+    UtRegisterTest("DetectEngineHttpHeaderTest23", DetectEngineHttpHeaderTest23);
+    UtRegisterTest("DetectEngineHttpHeaderTest24", DetectEngineHttpHeaderTest24);
+    UtRegisterTest("DetectEngineHttpHeaderTest25", DetectEngineHttpHeaderTest25);
+    UtRegisterTest("DetectEngineHttpHeaderTest26", DetectEngineHttpHeaderTest26);
+    UtRegisterTest("DetectEngineHttpHeaderTest27", DetectEngineHttpHeaderTest27);
+    UtRegisterTest("DetectEngineHttpHeaderTest28", DetectEngineHttpHeaderTest28);
+    UtRegisterTest("DetectEngineHttpHeaderTest29", DetectEngineHttpHeaderTest29);
+    UtRegisterTest("DetectEngineHttpHeaderTest30", DetectEngineHttpHeaderTest30);
+    UtRegisterTest("DetectEngineHttpHeaderTest31", DetectEngineHttpHeaderTest31);
 #if 0
     UtRegisterTest("DetectEngineHttpHeaderTest30",
                    DetectEngineHttpHeaderTest30, 1);
 #endif
-    UtRegisterTest("DetectEngineHttpHeaderTest32",
-                   DetectEngineHttpHeaderTest32);
-    UtRegisterTest("DetectEngineHttpHeaderTest33 -- Trailer",
-                   DetectEngineHttpHeaderTest33);
-    UtRegisterTest("DetectEngineHttpHeaderTest34 -- Trailer",
-                   DetectEngineHttpHeaderTest34);
-    UtRegisterTest("DetectEngineHttpHeaderTest35 -- Trailer",
-                   DetectEngineHttpHeaderTest35);
+    UtRegisterTest("DetectEngineHttpHeaderTest32", DetectEngineHttpHeaderTest32);
+    UtRegisterTest("DetectEngineHttpHeaderTest33 -- Trailer", DetectEngineHttpHeaderTest33);
+    UtRegisterTest("DetectEngineHttpHeaderTest34 -- Trailer", DetectEngineHttpHeaderTest34);
+    UtRegisterTest("DetectEngineHttpHeaderTest35 -- Trailer", DetectEngineHttpHeaderTest35);
 }
 
 /**

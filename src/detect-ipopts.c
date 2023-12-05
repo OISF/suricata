@@ -42,9 +42,9 @@
 
 static DetectParseRegex parse_regex;
 
-static int DetectIpOptsMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectIpOptsSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectIpOptsMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectIpOptsSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void IpOptsRegisterTests(void);
 #endif
@@ -53,14 +53,14 @@ void DetectIpOptsFree(DetectEngineCtx *, void *);
 /**
  * \brief Registration function for ipopts: keyword
  */
-void DetectIpOptsRegister (void)
+void DetectIpOptsRegister(void)
 {
     sigmatch_table[DETECT_IPOPTS].name = "ipopts";
     sigmatch_table[DETECT_IPOPTS].desc = "check if a specific IP option is set";
     sigmatch_table[DETECT_IPOPTS].url = "/rules/header-keywords.html#ipopts";
     sigmatch_table[DETECT_IPOPTS].Match = DetectIpOptsMatch;
     sigmatch_table[DETECT_IPOPTS].Setup = DetectIpOptsSetup;
-    sigmatch_table[DETECT_IPOPTS].Free  = DetectIpOptsFree;
+    sigmatch_table[DETECT_IPOPTS].Free = DetectIpOptsFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_IPOPTS].RegisterTests = IpOptsRegisterTests;
 #endif
@@ -73,8 +73,8 @@ void DetectIpOptsRegister (void)
  */
 
 struct DetectIpOpts_ {
-    const char *ipopt_name;   /**< ip option name */
-    uint16_t code;   /**< ip option flag value */
+    const char *ipopt_name; /**< ip option name */
+    uint16_t code;          /**< ip option flag value */
 } ipopts[] = {
     {
             "rr",
@@ -165,8 +165,8 @@ const char *IpOptsFlagToString(uint16_t flag)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectIpOptsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectIpOptsMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectIpOptsData *de = (const DetectIpOptsData *)ctx;
 
@@ -189,7 +189,7 @@ static int DetectIpOptsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval de pointer to DetectIpOptsData on success
  * \retval NULL on failure
  */
-static DetectIpOptsData *DetectIpOptsParse (const char *rawstr)
+static DetectIpOptsData *DetectIpOptsParse(const char *rawstr)
 {
     int i;
     DetectIpOptsData *de = NULL;
@@ -202,14 +202,14 @@ static DetectIpOptsData *DetectIpOptsParse (const char *rawstr)
         goto error;
     }
 
-    for(i = 0; ipopts[i].ipopt_name != NULL; i++)  {
-        if((strcasecmp(ipopts[i].ipopt_name,rawstr)) == 0) {
+    for (i = 0; ipopts[i].ipopt_name != NULL; i++) {
+        if ((strcasecmp(ipopts[i].ipopt_name, rawstr)) == 0) {
             found = 1;
             break;
         }
     }
 
-    if(found == 0)
+    if (found == 0)
         goto error;
 
     de = SCMalloc(sizeof(DetectIpOptsData));
@@ -225,7 +225,8 @@ error:
     if (match) {
         pcre2_match_data_free(match);
     }
-    if (de) SCFree(de);
+    if (de)
+        SCFree(de);
     return NULL;
 }
 
@@ -240,7 +241,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectIpOptsSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectIpOptsSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectIpOptsData *de = NULL;
 
@@ -271,7 +272,8 @@ error:
 void DetectIpOptsFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
     DetectIpOptsData *de = (DetectIpOptsData *)de_ptr;
-    if(de) SCFree(de);
+    if (de)
+        SCFree(de);
 }
 
 /*
@@ -282,7 +284,7 @@ void DetectIpOptsFree(DetectEngineCtx *de_ctx, void *de_ptr)
 /**
  * \test IpOptsTestParse01 is a test for a  valid ipopts value
  */
-static int IpOptsTestParse01 (void)
+static int IpOptsTestParse01(void)
 {
     DetectIpOptsData *de = DetectIpOptsParse("lsrr");
 
@@ -296,7 +298,7 @@ static int IpOptsTestParse01 (void)
 /**
  * \test IpOptsTestParse02 is a test for an invalid ipopts value
  */
-static int IpOptsTestParse02 (void)
+static int IpOptsTestParse02(void)
 {
     DetectIpOptsData *de = DetectIpOptsParse("invalidopt");
 
@@ -310,7 +312,7 @@ static int IpOptsTestParse02 (void)
 /**
  * \test IpOptsTestParse03 test the match function on a packet that needs to match
  */
-static int IpOptsTestParse03 (void)
+static int IpOptsTestParse03(void)
 {
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
@@ -344,7 +346,7 @@ static int IpOptsTestParse03 (void)
 /**
  * \test IpOptsTestParse04 test the match function on a packet that needs to not match
  */
-static int IpOptsTestParse04 (void)
+static int IpOptsTestParse04(void)
 {
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);

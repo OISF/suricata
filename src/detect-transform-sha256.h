@@ -25,6 +25,6 @@
 #define __DETECT_TRANSFORM_SHA256_H__
 
 /* prototypes */
-void DetectTransformSha256Register (void);
+void DetectTransformSha256Register(void);
 
 #endif /* __DETECT_TRANSFORM_SHA256_H__ */

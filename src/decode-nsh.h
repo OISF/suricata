@@ -25,7 +25,6 @@
 #ifndef __DECODE_NSH_H__
 #define __DECODE_NSH_H__
 
-
 #define NSH_NEXT_PROTO_UNASSIGNED  0x0
 #define NSH_NEXT_PROTO_IPV4        0x1
 #define NSH_NEXT_PROTO_IPV6        0x2

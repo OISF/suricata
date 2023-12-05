@@ -37,28 +37,29 @@ static int VALIDATE(TcpStream *stream, uint8_t *data, uint32_t data_len)
     return 1;
 }
 
-#define OVERLAP_START(isn, policy)              \
-    TcpReassemblyThreadCtx *ra_ctx = NULL;      \
-    TcpSession ssn;                             \
-    ThreadVars tv;                              \
-    memset(&tv, 0, sizeof(tv));                 \
-                                                \
-    StreamTcpUTInit(&ra_ctx);                   \
-                                                \
-    StreamTcpUTSetupSession(&ssn);              \
-    StreamTcpUTSetupStream(&ssn.server, (isn)); \
-    StreamTcpUTSetupStream(&ssn.client, (isn)); \
-                                                \
-    TcpStream *stream = &ssn.client;            \
+#define OVERLAP_START(isn, policy)                                                                 \
+    TcpReassemblyThreadCtx *ra_ctx = NULL;                                                         \
+    TcpSession ssn;                                                                                \
+    ThreadVars tv;                                                                                 \
+    memset(&tv, 0, sizeof(tv));                                                                    \
+                                                                                                   \
+    StreamTcpUTInit(&ra_ctx);                                                                      \
+                                                                                                   \
+    StreamTcpUTSetupSession(&ssn);                                                                 \
+    StreamTcpUTSetupStream(&ssn.server, (isn));                                                    \
+    StreamTcpUTSetupStream(&ssn.client, (isn));                                                    \
+                                                                                                   \
+    TcpStream *stream = &ssn.client;                                                               \
     stream->os_policy = (policy);
 
-#define OVERLAP_END                             \
-    StreamTcpUTClearSession(&ssn);              \
-    StreamTcpUTDeinit(ra_ctx);                  \
+#define OVERLAP_END                                                                                \
+    StreamTcpUTClearSession(&ssn);                                                                 \
+    StreamTcpUTDeinit(ra_ctx);                                                                     \
     PASS
 
-#define OVERLAP_STEP(rseq, seg, seglen, buf, buflen) \
-    StreamTcpUTAddPayload(&tv, ra_ctx, &ssn, stream, stream->isn + (rseq), (uint8_t *)(seg), (seglen));    \
+#define OVERLAP_STEP(rseq, seg, seglen, buf, buflen)                                               \
+    StreamTcpUTAddPayload(                                                                         \
+            &tv, ra_ctx, &ssn, stream, stream->isn + (rseq), (uint8_t *)(seg), (seglen));          \
     FAIL_IF(!(VALIDATE(stream, (uint8_t *)(buf), (buflen))));
 
 static int OverlapBSD(uint32_t isn)
@@ -105,7 +106,7 @@ static int OverlapBSDBefore(uint32_t isn)
     OVERLAP_STEP(2, "AA", 2, "\0AA\0\0\0\0\0D\0\0EE", 13);
     OVERLAP_STEP(1, "JJJJ", 4, "JJJJ\0\0\0\0D\0\0EE", 13);
     OVERLAP_STEP(8, "LLL", 3, "JJJJ\0\0\0LLL\0EE", 13);
-    OVERLAP_STEP(11,"MMM", 3, "JJJJ\0\0\0LLLMMM", 13);
+    OVERLAP_STEP(11, "MMM", 3, "JJJJ\0\0\0LLLMMM", 13);
 
     OVERLAP_END;
 }
@@ -185,7 +186,7 @@ static int OverlapVISTABefore(uint32_t isn)
     OVERLAP_STEP(2, "AA", 2, "\0AB\0\0\0\0\0D\0\0EE", 13);
     OVERLAP_STEP(1, "JJJJ", 4, "JABJ\0\0\0\0D\0\0EE", 13);
     OVERLAP_STEP(8, "LLL", 3, "JABJ\0\0\0LDL\0EE", 13);
-    OVERLAP_STEP(11,"MMM", 3, "JABJ\0\0\0LDLMEE", 13);
+    OVERLAP_STEP(11, "MMM", 3, "JABJ\0\0\0LDLMEE", 13);
 
     OVERLAP_END;
 }
@@ -263,7 +264,7 @@ static int OverlapLINUXBefore(uint32_t isn)
     OVERLAP_STEP(2, "AA", 2, "\0AA\0\0\0\0\0D\0\0EE", 13);
     OVERLAP_STEP(1, "JJJJ", 4, "JJJJ\0\0\0\0D\0\0EE", 13);
     OVERLAP_STEP(8, "LLL", 3, "JJJJ\0\0\0LLL\0EE", 13);
-    OVERLAP_STEP(11,"MMM", 3, "JJJJ\0\0\0LLLMMM", 13);
+    OVERLAP_STEP(11, "MMM", 3, "JJJJ\0\0\0LLLMMM", 13);
 
     OVERLAP_END;
 }
@@ -341,7 +342,7 @@ static int OverlapLINUXOLDBefore(uint32_t isn)
     OVERLAP_STEP(2, "AA", 2, "\0AA\0\0\0\0\0D\0\0EE", 13);
     OVERLAP_STEP(1, "JJJJ", 4, "JJJJ\0\0\0\0D\0\0EE", 13);
     OVERLAP_STEP(8, "LLL", 3, "JJJJ\0\0\0LLL\0EE", 13);
-    OVERLAP_STEP(11,"MMM", 3, "JJJJ\0\0\0LLLMMM", 13);
+    OVERLAP_STEP(11, "MMM", 3, "JJJJ\0\0\0LLLMMM", 13);
 
     OVERLAP_END;
 }
@@ -418,7 +419,7 @@ static int OverlapSOLARISBefore(uint32_t isn)
     OVERLAP_STEP(2, "AA", 2, "\0AA\0\0\0\0\0D\0\0EE", 13);
     OVERLAP_STEP(1, "JJJJ", 4, "JJJJ\0\0\0\0D\0\0EE", 13);
     OVERLAP_STEP(8, "LLL", 3, "JJJJ\0\0\0LLL\0EE", 13);
-    OVERLAP_STEP(11,"MMM", 3, "JJJJ\0\0\0LLLMMM", 13);
+    OVERLAP_STEP(11, "MMM", 3, "JJJJ\0\0\0LLLMMM", 13);
 
     OVERLAP_END;
 }
@@ -488,7 +489,7 @@ static int OverlapLASTBefore(uint32_t isn)
     OVERLAP_STEP(2, "AA", 2, "\0AA\0\0\0\0\0D\0\0EE", 13);
     OVERLAP_STEP(1, "JJJJ", 4, "JJJJ\0\0\0\0D\0\0EE", 13);
     OVERLAP_STEP(8, "LLL", 3, "JJJJ\0\0\0LLL\0EE", 13);
-    OVERLAP_STEP(11,"MMM", 3, "JJJJ\0\0\0LLLMMM", 13);
+    OVERLAP_STEP(11, "MMM", 3, "JJJJ\0\0\0LLLMMM", 13);
 
     OVERLAP_END;
 }
@@ -548,7 +549,6 @@ static int StreamTcpReassembleTest01(void)
     return 1;
 }
 
-
 /** \test Vista Policy
  */
 static int StreamTcpReassembleTest02(void)
@@ -574,7 +574,6 @@ static int StreamTcpReassembleTest02(void)
     OverlapVISTAAfter(UINT_MAX - 10);
     return 1;
 }
-
 
 /** \test Linux policy
  */
@@ -680,7 +679,7 @@ static int StreamTcpReassembleTest06(void)
     return 1;
 }
 
-static int StreamTcpReassembleTest30 (void)
+static int StreamTcpReassembleTest30(void)
 {
     OVERLAP_START(9, OS_POLICY_BSD);
     OVERLAP_STEP(3, "BBB", 3, "\0\0BBB", 5);
@@ -688,7 +687,7 @@ static int StreamTcpReassembleTest30 (void)
     OVERLAP_END;
 }
 
-static int StreamTcpReassembleTest31 (void)
+static int StreamTcpReassembleTest31(void)
 {
     OVERLAP_START(9, OS_POLICY_BSD);
     OVERLAP_STEP(1, "AA", 2, "AA", 2);
@@ -701,32 +700,25 @@ static int StreamTcpReassembleTest32(void)
     OVERLAP_START(0, OS_POLICY_BSD);
     OVERLAP_STEP(11, "AAAAAAAAAA", 10, "\0\0\0\0\0\0\0\0\0\0AAAAAAAAAA", 20);
     OVERLAP_STEP(21, "BBBBBBBBBB", 10, "\0\0\0\0\0\0\0\0\0\0AAAAAAAAAABBBBBBBBBB", 30);
-    OVERLAP_STEP(41, "CCCCCCCCCC", 10, "\0\0\0\0\0\0\0\0\0\0AAAAAAAAAABBBBBBBBBB\0\0\0\0\0\0\0\0\0\0CCCCCCCCCC", 50);
-    OVERLAP_STEP(6,  "aaaaaaaaaaaaaaaaaaaa", 20, "\0\0\0\0\0aaaaaaaaaaaaaaaaaaaaBBBBB\0\0\0\0\0\0\0\0\0\0CCCCCCCCCC", 50);
-    OVERLAP_STEP(1,  "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 50, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 50);
+    OVERLAP_STEP(41, "CCCCCCCCCC", 10,
+            "\0\0\0\0\0\0\0\0\0\0AAAAAAAAAABBBBBBBBBB\0\0\0\0\0\0\0\0\0\0CCCCCCCCCC", 50);
+    OVERLAP_STEP(6, "aaaaaaaaaaaaaaaaaaaa", 20,
+            "\0\0\0\0\0aaaaaaaaaaaaaaaaaaaaBBBBB\0\0\0\0\0\0\0\0\0\0CCCCCCCCCC", 50);
+    OVERLAP_STEP(1, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 50,
+            "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 50);
     OVERLAP_END;
 }
 
 void StreamTcpListRegisterTests(void)
 {
-    UtRegisterTest("StreamTcpReassembleTest01 -- BSD policy",
-            StreamTcpReassembleTest01);
-    UtRegisterTest("StreamTcpReassembleTest02 -- VISTA policy",
-            StreamTcpReassembleTest02);
-    UtRegisterTest("StreamTcpReassembleTest03 -- LINUX policy",
-            StreamTcpReassembleTest03);
-    UtRegisterTest("StreamTcpReassembleTest04 -- LINUX-OLD policy",
-            StreamTcpReassembleTest04);
-    UtRegisterTest("StreamTcpReassembleTest05 -- SOLARIS policy",
-            StreamTcpReassembleTest05);
-    UtRegisterTest("StreamTcpReassembleTest06 -- LAST policy",
-            StreamTcpReassembleTest06);
+    UtRegisterTest("StreamTcpReassembleTest01 -- BSD policy", StreamTcpReassembleTest01);
+    UtRegisterTest("StreamTcpReassembleTest02 -- VISTA policy", StreamTcpReassembleTest02);
+    UtRegisterTest("StreamTcpReassembleTest03 -- LINUX policy", StreamTcpReassembleTest03);
+    UtRegisterTest("StreamTcpReassembleTest04 -- LINUX-OLD policy", StreamTcpReassembleTest04);
+    UtRegisterTest("StreamTcpReassembleTest05 -- SOLARIS policy", StreamTcpReassembleTest05);
+    UtRegisterTest("StreamTcpReassembleTest06 -- LAST policy", StreamTcpReassembleTest06);
 
-    UtRegisterTest("StreamTcpReassembleTest30",
-            StreamTcpReassembleTest30);
-    UtRegisterTest("StreamTcpReassembleTest31",
-            StreamTcpReassembleTest31);
-    UtRegisterTest("StreamTcpReassembleTest32",
-            StreamTcpReassembleTest32);
-
+    UtRegisterTest("StreamTcpReassembleTest30", StreamTcpReassembleTest30);
+    UtRegisterTest("StreamTcpReassembleTest31", StreamTcpReassembleTest31);
+    UtRegisterTest("StreamTcpReassembleTest32", StreamTcpReassembleTest32);
 }

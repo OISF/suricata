@@ -62,9 +62,7 @@ bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
     jb_set_string(jb, "command", tx->command_descriptor->command_name);
     uint32_t min_length = tx->command_descriptor->command_length + 1; /* command + space */
     if (tx->request_length > min_length) {
-        jb_set_string_from_bytes(jb,
-                "command_data",
-                (const uint8_t *)tx->request + min_length,
+        jb_set_string_from_bytes(jb, "command_data", (const uint8_t *)tx->request + min_length,
                 tx->request_length - min_length - 1);
         if (tx->request_truncated) {
             JB_SET_TRUE(jb, "command_truncated");
@@ -79,7 +77,7 @@ bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
         int resp_cnt = 0;
         FTPString *response;
         bool is_cc_array_open = false;
-        TAILQ_FOREACH(response, &tx->response_list, next) {
+        TAILQ_FOREACH (response, &tx->response_list, next) {
             /* handle multiple lines within the response, \r\n delimited */
             uint8_t *where = response->str;
             uint16_t length = 0;
@@ -95,7 +93,7 @@ bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
             while ((pos = JsonGetNextLineFromBuffer((const char *)where, length)) != UINT16_MAX) {
                 uint16_t offset = 0;
                 /* Try to find a completion code for this line */
-                if (pos >= 3)  {
+                if (pos >= 3) {
                     /* Gather the completion code if present */
                     if (isdigit(where[0]) && isdigit(where[1]) && isdigit(where[2])) {
                         if (!is_cc_array_open) {
@@ -108,7 +106,8 @@ bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
                 }
                 /* move past 3 character completion code */
                 if (pos >= offset) {
-                    jb_append_string_from_bytes(js_resplist, (const uint8_t *)where + offset, pos - offset);
+                    jb_append_string_from_bytes(
+                            js_resplist, (const uint8_t *)where + offset, pos - offset);
                     resp_cnt++;
                 }
 
@@ -132,7 +131,7 @@ bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
     }
 
     if (tx->command_descriptor->command == FTP_COMMAND_PORT ||
-        tx->command_descriptor->command == FTP_COMMAND_EPRT) {
+            tx->command_descriptor->command == FTP_COMMAND_EPRT) {
         if (tx->active) {
             JB_SET_STRING(jb, "mode", "active");
         } else {
@@ -155,9 +154,8 @@ bool EveFTPLogCommand(void *vtx, JsonBuilder *jb)
     return true;
 }
 
-
-static int JsonFTPLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
+static int JsonFTPLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *vtx, uint64_t tx_id)
 {
     SCEnter();
     OutputJsonThreadCtx *thread = thread_data;
@@ -191,8 +189,7 @@ fail:
     return TM_ECODE_FAILED;
 }
 
-static OutputInitResult OutputFTPLogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult OutputFTPLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_FTP);
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_FTPDATA);

@@ -101,7 +101,10 @@ static uint8_t DetectEngineInspectMQTTUnsubscribeTopic(DetectEngineCtx *de_ctx,
     }
 
     while ((unsubscribe_topic_match_limit == 0) || local_id < unsubscribe_topic_match_limit) {
-        struct MQTTUnsubscribeTopicGetDataArgs cbdata = { local_id, txv, };
+        struct MQTTUnsubscribeTopicGetDataArgs cbdata = {
+            local_id,
+            txv,
+        };
         InspectionBuffer *buffer =
                 MQTTUnsubscribeTopicGetData(det_ctx, transforms, f, &cbdata, engine->sm_list);
         if (buffer == NULL || buffer->inspect == NULL)
@@ -176,18 +179,20 @@ static int PrefilterMpmMQTTUnsubscribeTopicRegister(DetectEngineCtx *de_ctx, Sig
     pectx->transforms = &mpm_reg->transforms;
 
     return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxMQTTUnsubscribeTopic,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-            pectx, PrefilterMpmMQTTUnsubscribeTopicFree, mpm_reg->pname);
+            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress, pectx,
+            PrefilterMpmMQTTUnsubscribeTopicFree, mpm_reg->pname);
 }
 
 /**
  * \brief Registration function for keyword: mqtt.unsubscribe.topic
  */
-void DetectMQTTUnsubscribeTopicRegister (void)
+void DetectMQTTUnsubscribeTopicRegister(void)
 {
     sigmatch_table[DETECT_AL_MQTT_UNSUBSCRIBE_TOPIC].name = "mqtt.unsubscribe.topic";
-    sigmatch_table[DETECT_AL_MQTT_UNSUBSCRIBE_TOPIC].desc = "sticky buffer to match MQTT UNSUBSCRIBE topic";
-    sigmatch_table[DETECT_AL_MQTT_UNSUBSCRIBE_TOPIC].url = "/rules/mqtt-keywords.html#mqtt-unsubscribe-topic";
+    sigmatch_table[DETECT_AL_MQTT_UNSUBSCRIBE_TOPIC].desc =
+            "sticky buffer to match MQTT UNSUBSCRIBE topic";
+    sigmatch_table[DETECT_AL_MQTT_UNSUBSCRIBE_TOPIC].url =
+            "/rules/mqtt-keywords.html#mqtt-unsubscribe-topic";
     sigmatch_table[DETECT_AL_MQTT_UNSUBSCRIBE_TOPIC].Setup = DetectMQTTUnsubscribeTopicSetup;
     sigmatch_table[DETECT_AL_MQTT_UNSUBSCRIBE_TOPIC].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_MQTT_UNSUBSCRIBE_TOPIC].flags |= SIGMATCH_INFO_STICKY_BUFFER;
@@ -204,15 +209,12 @@ void DetectMQTTUnsubscribeTopicRegister (void)
     }
 
     DetectAppLayerMpmRegister2("mqtt.unsubscribe.topic", SIG_FLAG_TOSERVER, 1,
-            PrefilterMpmMQTTUnsubscribeTopicRegister, NULL,
-            ALPROTO_MQTT, 1);
+            PrefilterMpmMQTTUnsubscribeTopicRegister, NULL, ALPROTO_MQTT, 1);
 
-    DetectAppLayerInspectEngineRegister2("mqtt.unsubscribe.topic",
-            ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectMQTTUnsubscribeTopic, NULL);
+    DetectAppLayerInspectEngineRegister2("mqtt.unsubscribe.topic", ALPROTO_MQTT, SIG_FLAG_TOSERVER,
+            1, DetectEngineInspectMQTTUnsubscribeTopic, NULL);
 
-    DetectBufferTypeSetDescriptionByName("mqtt.unsubscribe.topic",
-            "unsubscribe topic query");
+    DetectBufferTypeSetDescriptionByName("mqtt.unsubscribe.topic", "unsubscribe topic query");
 
     g_mqtt_unsubscribe_topic_buffer_id = DetectBufferTypeGetByName("mqtt.unsubscribe.topic");
 

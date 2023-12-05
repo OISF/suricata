@@ -25,7 +25,6 @@
 #define __DETECT_NOALERT_H__
 
 /* prototypes */
-void DetectNoalertRegister (void);
+void DetectNoalertRegister(void);
 
 #endif /* __DETECT_NOALERT_H__ */
-

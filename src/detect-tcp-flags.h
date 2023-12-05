@@ -24,7 +24,6 @@
 #ifndef __DETECT_FLAGS_H__
 #define __DETECT_FLAGS_H__
 
-
 /**
  * \struct DetectFlagsData_
  * DetectFlagsData_ is used to store flags: input value
@@ -36,8 +35,8 @@
  */
 
 typedef struct DetectFlagsData_ {
-    uint8_t flags;  /**< TCP flags */
-    uint8_t modifier; /**< !(1) +(2) *(3) modifiers */
+    uint8_t flags;         /**< TCP flags */
+    uint8_t modifier;      /**< !(1) +(2) *(3) modifiers */
     uint8_t ignored_flags; /**< Ignored TCP flags defined by modifier , */
 } DetectFlagsData;
 
@@ -45,7 +44,7 @@ typedef struct DetectFlagsData_ {
  * Registration function for flags: keyword
  */
 
-void DetectFlagsRegister (void);
+void DetectFlagsRegister(void);
 
 int DetectFlagsSignatureNeedsSynPackets(const Signature *s);
 int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s);

@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /** \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
@@ -58,9 +57,8 @@ static int DetectEngineHttpMethodTest01(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -78,7 +76,7 @@ static int DetectEngineHttpMethodTest01(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -89,10 +87,10 @@ static int DetectEngineHttpMethodTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"GET\"; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"GET\"; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -149,9 +147,8 @@ static int DetectEngineHttpMethodTest02(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -169,7 +166,7 @@ static int DetectEngineHttpMethodTest02(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -180,10 +177,10 @@ static int DetectEngineHttpMethodTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; depth:4; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; depth:4; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -240,9 +237,8 @@ static int DetectEngineHttpMethodTest03(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -260,7 +256,7 @@ static int DetectEngineHttpMethodTest03(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -271,10 +267,10 @@ static int DetectEngineHttpMethodTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"ECT\"; depth:4; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:!\"ECT\"; depth:4; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -331,9 +327,8 @@ static int DetectEngineHttpMethodTest04(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -351,7 +346,7 @@ static int DetectEngineHttpMethodTest04(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -362,10 +357,10 @@ static int DetectEngineHttpMethodTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"ECT\"; depth:4; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"ECT\"; depth:4; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -422,9 +417,8 @@ static int DetectEngineHttpMethodTest05(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -442,7 +436,7 @@ static int DetectEngineHttpMethodTest05(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -453,10 +447,10 @@ static int DetectEngineHttpMethodTest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"CON\"; depth:4; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:!\"CON\"; depth:4; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -513,9 +507,8 @@ static int DetectEngineHttpMethodTest06(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -533,7 +526,7 @@ static int DetectEngineHttpMethodTest06(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -544,10 +537,10 @@ static int DetectEngineHttpMethodTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"ECT\"; offset:3; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"ECT\"; offset:3; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -604,9 +597,8 @@ static int DetectEngineHttpMethodTest07(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -624,7 +616,7 @@ static int DetectEngineHttpMethodTest07(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -635,10 +627,10 @@ static int DetectEngineHttpMethodTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"CO\"; offset:3; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:!\"CO\"; offset:3; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -695,9 +687,8 @@ static int DetectEngineHttpMethodTest08(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -715,7 +706,7 @@ static int DetectEngineHttpMethodTest08(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -726,10 +717,10 @@ static int DetectEngineHttpMethodTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"ECT\"; offset:3; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:!\"ECT\"; offset:3; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -786,9 +777,8 @@ static int DetectEngineHttpMethodTest09(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -806,7 +796,7 @@ static int DetectEngineHttpMethodTest09(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -817,10 +807,10 @@ static int DetectEngineHttpMethodTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CON\"; offset:3; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CON\"; offset:3; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -877,9 +867,8 @@ static int DetectEngineHttpMethodTest10(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -897,7 +886,7 @@ static int DetectEngineHttpMethodTest10(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -908,11 +897,11 @@ static int DetectEngineHttpMethodTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_method; "
-                               "content:\"EC\"; within:4; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_method; "
+                                       "content:\"EC\"; within:4; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -969,9 +958,8 @@ static int DetectEngineHttpMethodTest11(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -989,7 +977,7 @@ static int DetectEngineHttpMethodTest11(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1000,11 +988,11 @@ static int DetectEngineHttpMethodTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_method; "
-                               "content:!\"EC\"; within:3; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_method; "
+                                       "content:!\"EC\"; within:3; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1061,9 +1049,8 @@ static int DetectEngineHttpMethodTest12(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1081,7 +1068,7 @@ static int DetectEngineHttpMethodTest12(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1092,11 +1079,11 @@ static int DetectEngineHttpMethodTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_method; "
-                               "content:\"EC\"; within:3; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_method; "
+                                       "content:\"EC\"; within:3; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1153,9 +1140,8 @@ static int DetectEngineHttpMethodTest13(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1173,7 +1159,7 @@ static int DetectEngineHttpMethodTest13(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1184,11 +1170,11 @@ static int DetectEngineHttpMethodTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_method; "
-                               "content:!\"EC\"; within:4; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_method; "
+                                       "content:!\"EC\"; within:4; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1245,9 +1231,8 @@ static int DetectEngineHttpMethodTest14(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1265,7 +1250,7 @@ static int DetectEngineHttpMethodTest14(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1276,11 +1261,11 @@ static int DetectEngineHttpMethodTest14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_method; "
-                               "content:\"EC\"; distance:2; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_method; "
+                                       "content:\"EC\"; distance:2; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1337,9 +1322,8 @@ static int DetectEngineHttpMethodTest15(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1357,7 +1341,7 @@ static int DetectEngineHttpMethodTest15(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1368,11 +1352,11 @@ static int DetectEngineHttpMethodTest15(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_method; "
-                               "content:!\"EC\"; distance:3; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_method; "
+                                       "content:!\"EC\"; distance:3; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1429,9 +1413,8 @@ static int DetectEngineHttpMethodTest16(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1449,7 +1432,7 @@ static int DetectEngineHttpMethodTest16(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1460,11 +1443,11 @@ static int DetectEngineHttpMethodTest16(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_method; "
-                               "content:\"EC\"; distance:3; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_method; "
+                                       "content:\"EC\"; distance:3; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1521,9 +1504,8 @@ static int DetectEngineHttpMethodTest17(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1541,7 +1523,7 @@ static int DetectEngineHttpMethodTest17(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1552,11 +1534,11 @@ static int DetectEngineHttpMethodTest17(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_method; "
-                               "content:!\"EC\"; distance:2; http_method; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_method; "
+                                       "content:!\"EC\"; distance:2; http_method; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1606,15 +1588,14 @@ static int DetectHttpMethodTest01(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "content:\"GET\"; "
-                               "http_method; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(msg:\"Testing http_method\"; "
+                                       "content:\"GET\"; "
+                                       "http_method; sid:1;)");
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
@@ -1622,7 +1603,7 @@ static int DetectHttpMethodTest01(void)
         printf("sig parse failed: ");
     }
 
- end:
+end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -1634,20 +1615,19 @@ static int DetectHttpMethodTest02(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "http_method; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(msg:\"Testing http_method\"; "
+                                       "http_method; sid:1;)");
 
     if (de_ctx->sig_list == NULL) {
         result = 1;
     }
 
- end:
+end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -1659,21 +1639,20 @@ static int DetectHttpMethodTest03(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "content:\"foobar\"; "
-                               "http_method:\"GET\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(msg:\"Testing http_method\"; "
+                                       "content:\"foobar\"; "
+                                       "http_method:\"GET\"; sid:1;)");
 
     if (de_ctx->sig_list == NULL) {
         result = 1;
     }
 
- end:
+end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -1685,22 +1664,21 @@ static int DetectHttpMethodTest04(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "content:\"GET\"; "
-                               "fast_pattern; "
-                               "http_method; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(msg:\"Testing http_method\"; "
+                                       "content:\"GET\"; "
+                                       "fast_pattern; "
+                                       "http_method; sid:1;)");
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
     }
 
- end:
+end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -1712,22 +1690,21 @@ static int DetectHttpMethodTest05(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "content:\"GET\"; "
-                               "rawbytes; "
-                               "http_method; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(msg:\"Testing http_method\"; "
+                                       "content:\"GET\"; "
+                                       "rawbytes; "
+                                       "http_method; sid:1;)");
 
     if (de_ctx->sig_list == NULL) {
         result = 1;
     }
 
- end:
+end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
@@ -1764,7 +1741,7 @@ static int DetectHttpMethodSigTest01(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1776,20 +1753,18 @@ static int DetectHttpMethodSigTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"Testing http_method\"; "
-                                   "content:\"GET\"; "
-                                   "http_method; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                           "(msg:\"Testing http_method\"; "
+                                           "content:\"GET\"; "
+                                           "http_method; sid:1;)");
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,
-                          "alert tcp any any -> any any "
-                          "(msg:\"Testing http_method\"; "
-                          "content:\"POST\"; "
-                          "http_method; sid:2;)");
+    s = s->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                                  "(msg:\"Testing http_method\"; "
+                                  "content:\"POST\"; "
+                                  "http_method; sid:2;)");
     if (s == NULL) {
         goto end;
     }
@@ -1864,7 +1839,7 @@ static int DetectHttpMethodSigTest02(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1876,20 +1851,18 @@ static int DetectHttpMethodSigTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"Testing http_method\"; "
-                                   "content:\"FOO\"; "
-                                   "http_method; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                           "(msg:\"Testing http_method\"; "
+                                           "content:\"FOO\"; "
+                                           "http_method; sid:1;)");
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,
-                          "alert tcp any any -> any any "
-                          "(msg:\"Testing http_method\"; "
-                          "content:\"BAR\"; "
-                          "http_method; sid:2;)");
+    s = s->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                                  "(msg:\"Testing http_method\"; "
+                                  "content:\"BAR\"; "
+                                  "http_method; sid:2;)");
     if (s == NULL) {
         goto end;
     }
@@ -1925,7 +1898,7 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&th_v, (void *) det_ctx);
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
@@ -1964,7 +1937,7 @@ static int DetectHttpMethodSigTest03(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1976,11 +1949,10 @@ static int DetectHttpMethodSigTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"Testing http_method\"; "
-                                   "content:\"GET\"; "
-                                   "http_method; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                           "(msg:\"Testing http_method\"; "
+                                           "content:\"GET\"; "
+                                           "http_method; sid:1;)");
     if (s == NULL) {
         SCLogDebug("Bad signature");
         goto end;
@@ -2053,7 +2025,7 @@ static int DetectHttpMethodSigTest04(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2065,16 +2037,15 @@ static int DetectHttpMethodSigTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,
-            "alert tcp any any -> any any (msg:\"Testing http_method\"; "
-            "content:\"GET\"; http_method; sid:1;)");
+    s = de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Testing http_method\"; "
+                            "content:\"GET\"; http_method; sid:1;)");
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,
-            "alert tcp any any -> any any (msg:\"Testing http_method\"; "
-            "content:!\"GET\"; http_method; sid:2;)");
+    s = s->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Testing http_method\"; "
+                                  "content:!\"GET\"; http_method; sid:2;)");
     if (s == NULL) {
         goto end;
     }
@@ -2112,7 +2083,7 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *) det_ctx);
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     }
     if (de_ctx != NULL) {
         DetectEngineCtxFree(de_ctx);
@@ -2130,10 +2101,9 @@ static int DetectHttpMethodIsdataatParseTest(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx,
-            "alert tcp any any -> any any ("
-            "content:\"one\"; http_method; "
-            "isdataat:!4,relative; sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any ("
+                                                 "content:\"one\"; http_method; "
+                                                 "isdataat:!4,relative; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigMatch *sm = DetectBufferGetLastSigMatch(s, g_http_method_buffer_id);
@@ -2164,42 +2134,24 @@ void DetectHttpMethodRegisterTests(void)
     UtRegisterTest("DetectHttpMethodSigTest03", DetectHttpMethodSigTest03);
     UtRegisterTest("DetectHttpMethodSigTest04", DetectHttpMethodSigTest04);
 
-    UtRegisterTest("DetectHttpMethodIsdataatParseTest",
-            DetectHttpMethodIsdataatParseTest);
-    UtRegisterTest("DetectEngineHttpMethodTest01",
-                   DetectEngineHttpMethodTest01);
-    UtRegisterTest("DetectEngineHttpMethodTest02",
-                   DetectEngineHttpMethodTest02);
-    UtRegisterTest("DetectEngineHttpMethodTest03",
-                   DetectEngineHttpMethodTest03);
-    UtRegisterTest("DetectEngineHttpMethodTest04",
-                   DetectEngineHttpMethodTest04);
-    UtRegisterTest("DetectEngineHttpMethodTest05",
-                   DetectEngineHttpMethodTest05);
-    UtRegisterTest("DetectEngineHttpMethodTest06",
-                   DetectEngineHttpMethodTest06);
-    UtRegisterTest("DetectEngineHttpMethodTest07",
-                   DetectEngineHttpMethodTest07);
-    UtRegisterTest("DetectEngineHttpMethodTest08",
-                   DetectEngineHttpMethodTest08);
-    UtRegisterTest("DetectEngineHttpMethodTest09",
-                   DetectEngineHttpMethodTest09);
-    UtRegisterTest("DetectEngineHttpMethodTest10",
-                   DetectEngineHttpMethodTest10);
-    UtRegisterTest("DetectEngineHttpMethodTest11",
-                   DetectEngineHttpMethodTest11);
-    UtRegisterTest("DetectEngineHttpMethodTest12",
-                   DetectEngineHttpMethodTest12);
-    UtRegisterTest("DetectEngineHttpMethodTest13",
-                   DetectEngineHttpMethodTest13);
-    UtRegisterTest("DetectEngineHttpMethodTest14",
-                   DetectEngineHttpMethodTest14);
-    UtRegisterTest("DetectEngineHttpMethodTest15",
-                   DetectEngineHttpMethodTest15);
-    UtRegisterTest("DetectEngineHttpMethodTest16",
-                   DetectEngineHttpMethodTest16);
-    UtRegisterTest("DetectEngineHttpMethodTest17",
-                   DetectEngineHttpMethodTest17);
+    UtRegisterTest("DetectHttpMethodIsdataatParseTest", DetectHttpMethodIsdataatParseTest);
+    UtRegisterTest("DetectEngineHttpMethodTest01", DetectEngineHttpMethodTest01);
+    UtRegisterTest("DetectEngineHttpMethodTest02", DetectEngineHttpMethodTest02);
+    UtRegisterTest("DetectEngineHttpMethodTest03", DetectEngineHttpMethodTest03);
+    UtRegisterTest("DetectEngineHttpMethodTest04", DetectEngineHttpMethodTest04);
+    UtRegisterTest("DetectEngineHttpMethodTest05", DetectEngineHttpMethodTest05);
+    UtRegisterTest("DetectEngineHttpMethodTest06", DetectEngineHttpMethodTest06);
+    UtRegisterTest("DetectEngineHttpMethodTest07", DetectEngineHttpMethodTest07);
+    UtRegisterTest("DetectEngineHttpMethodTest08", DetectEngineHttpMethodTest08);
+    UtRegisterTest("DetectEngineHttpMethodTest09", DetectEngineHttpMethodTest09);
+    UtRegisterTest("DetectEngineHttpMethodTest10", DetectEngineHttpMethodTest10);
+    UtRegisterTest("DetectEngineHttpMethodTest11", DetectEngineHttpMethodTest11);
+    UtRegisterTest("DetectEngineHttpMethodTest12", DetectEngineHttpMethodTest12);
+    UtRegisterTest("DetectEngineHttpMethodTest13", DetectEngineHttpMethodTest13);
+    UtRegisterTest("DetectEngineHttpMethodTest14", DetectEngineHttpMethodTest14);
+    UtRegisterTest("DetectEngineHttpMethodTest15", DetectEngineHttpMethodTest15);
+    UtRegisterTest("DetectEngineHttpMethodTest16", DetectEngineHttpMethodTest16);
+    UtRegisterTest("DetectEngineHttpMethodTest17", DetectEngineHttpMethodTest17);
 }
 
 /**

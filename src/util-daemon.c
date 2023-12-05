@@ -41,7 +41,7 @@ static volatile sig_atomic_t sigflag = 0;
 /**
  * \brief Signal handler used to take the parent process out of stand-by
  */
-static void SignalHandlerSigusr1 (int signo)
+static void SignalHandlerSigusr1(int signo)
 {
     sigflag = 1;
 }
@@ -51,7 +51,7 @@ static void SignalHandlerSigusr1 (int signo)
  *
  * \param pid pid of the parent process to signal
  */
-static void TellWaitingParent (pid_t pid)
+static void TellWaitingParent(pid_t pid)
 {
     kill(pid, SIGUSR1);
 }
@@ -61,7 +61,7 @@ static void TellWaitingParent (pid_t pid)
  *
  * \param pid pid of the child process to wait
  */
-static void WaitForChild (pid_t pid)
+static void WaitForChild(pid_t pid)
 {
     int status;
     SCLogDebug("Daemon: Parent waiting for child to be ready...");
@@ -82,7 +82,7 @@ static void WaitForChild (pid_t pid)
  * \brief Close stdin, stdout, stderr.Redirect logging info to syslog
  *
  */
-static void SetupLogging (void)
+static void SetupLogging(void)
 {
     /* Redirect stdin, stdout, stderr to /dev/null  */
     int fd = open("/dev/null", O_RDWR);
@@ -98,7 +98,7 @@ static void SetupLogging (void)
  * \brief Daemonize the process
  *
  */
-void Daemonize (void)
+void Daemonize(void)
 {
     pid_t pid, sid;
 
@@ -160,7 +160,6 @@ void Daemonize (void)
     /* Parent exits */
     SCLogDebug("Child is ready, parent exiting");
     exit(EXIT_SUCCESS);
-
 }
 
 #endif /* ifndef OS_WIN32 */
@@ -174,7 +173,7 @@ void Daemonize (void)
  * \retval 1 valid combination
  * \retval 0 invalid combination
  */
-int CheckValidDaemonModes (int daemon, int mode)
+int CheckValidDaemonModes(int daemon, int mode)
 {
     if (daemon) {
         switch (mode) {

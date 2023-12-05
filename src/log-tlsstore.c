@@ -52,8 +52,8 @@ static char logging_dir_not_writable;
 typedef struct LogTlsStoreLogThread_ {
     uint32_t tls_cnt;
 
-    uint8_t*   enc_buf;
-    size_t     enc_buf_len;
+    uint8_t *enc_buf;
+    size_t enc_buf_len;
 } LogTlsStoreLogThread;
 
 static int CreateFileName(const Packet *p, SSLState *state, char *filename, size_t filename_size)
@@ -77,12 +77,12 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
 {
 #define PEMHEADER "-----BEGIN CERTIFICATE-----\n"
 #define PEMFOOTER "-----END CERTIFICATE-----\n"
-    //Logging pem certificate
+    // Logging pem certificate
     char filename[PATH_MAX] = "";
-    FILE* fp = NULL;
-    FILE* fpmeta = NULL;
+    FILE *fp = NULL;
+    FILE *fpmeta = NULL;
     unsigned long pemlen;
-    unsigned char* pembase64ptr = NULL;
+    unsigned char *pembase64ptr = NULL;
     int ret;
     uint8_t *ptmp;
     SSLCertsChain *cert;
@@ -106,10 +106,10 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
         SCReturn;
     }
 
-    TAILQ_FOREACH(cert, &state->server_connp.certs, next) {
+    TAILQ_FOREACH (cert, &state->server_connp.certs, next) {
         pemlen = Base64EncodeBufferSize(cert->cert_len);
         if (pemlen > aft->enc_buf_len) {
-            ptmp = (uint8_t*) SCRealloc(aft->enc_buf, sizeof(uint8_t) * pemlen);
+            ptmp = (uint8_t *)SCRealloc(aft->enc_buf, sizeof(uint8_t) * pemlen);
             if (ptmp == NULL) {
                 SCFree(aft->enc_buf);
                 aft->enc_buf = NULL;
@@ -123,7 +123,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
 
         memset(aft->enc_buf, 0, aft->enc_buf_len);
 
-        ret = Base64Encode((unsigned char*) cert->cert_data, cert->cert_len, aft->enc_buf, &pemlen);
+        ret = Base64Encode((unsigned char *)cert->cert_data, cert->cert_len, aft->enc_buf, &pemlen);
         if (ret != SC_BASE64_OK) {
             SCLogWarning("Invalid return of Base64Encode function");
             goto end_fwrite_fp;
@@ -150,11 +150,11 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
     }
     fclose(fp);
 
-    //Logging certificate informations
+    // Logging certificate informations
     memcpy(filename + (strlen(filename) - 3), "meta", 4);
     fpmeta = fopen(filename, "w");
     if (fpmeta != NULL) {
-        #define PRINT_BUF_LEN 46
+#define PRINT_BUF_LEN 46
         char srcip[PRINT_BUF_LEN], dstip[PRINT_BUF_LEN];
         char timebuf[64];
         Port sp, dp;
@@ -164,7 +164,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
         if (fprintf(fpmeta, "TIME:              %s\n", timebuf) < 0)
             goto end_fwrite_fpmeta;
         if (p->pcap_cnt > 0) {
-            if (fprintf(fpmeta, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt) < 0)
+            if (fprintf(fpmeta, "PCAP PKT NUM:      %" PRIu64 "\n", p->pcap_cnt) < 0)
                 goto end_fwrite_fpmeta;
         }
         if (fprintf(fpmeta, "SRC IP:            %s\n", srcip) < 0)
@@ -180,12 +180,12 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
                 goto end_fwrite_fpmeta;
         }
 
-        if (fprintf(fpmeta, "TLS SUBJECT:       %s\n"
+        if (fprintf(fpmeta,
+                    "TLS SUBJECT:       %s\n"
                     "TLS ISSUERDN:      %s\n"
                     "TLS FINGERPRINT:   %s\n",
-                state->server_connp.cert0_subject,
-                state->server_connp.cert0_issuerdn,
-                state->server_connp.cert0_fingerprint) < 0)
+                    state->server_connp.cert0_subject, state->server_connp.cert0_issuerdn,
+                    state->server_connp.cert0_fingerprint) < 0)
             goto end_fwrite_fpmeta;
 
         fclose(fpmeta);
@@ -255,8 +255,8 @@ dontlog:
     return false;
 }
 
-static int LogTlsStoreLogger(ThreadVars *tv, void *thread_data, const Packet *p,
-                             Flow *f, void *state, void *tx, uint64_t tx_id)
+static int LogTlsStoreLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *state, void *tx, uint64_t tx_id)
 {
     LogTlsStoreLogThread *aft = (LogTlsStoreLogThread *)thread_data;
     int ipproto = (PKT_IS_IPV4(p)) ? AF_INET : AF_INET6;
@@ -290,7 +290,7 @@ static TmEcode LogTlsStoreLogThreadInit(ThreadVars *t, const void *initdata, voi
     if (stat(tls_logfile_base_dir, &stat_buf) != 0) {
         int ret;
         /* coverity[toctou] */
-        ret = SCMkDir(tls_logfile_base_dir, S_IRWXU|S_IXGRP|S_IRGRP);
+        ret = SCMkDir(tls_logfile_base_dir, S_IRWXU | S_IXGRP | S_IRGRP);
         if (ret != 0) {
             int err = errno;
             if (err != EEXIST) {
@@ -299,10 +299,8 @@ static TmEcode LogTlsStoreLogThreadInit(ThreadVars *t, const void *initdata, voi
                 exit(EXIT_FAILURE);
             }
         } else {
-            SCLogInfo("Created certs drop directory %s",
-                    tls_logfile_base_dir);
+            SCLogInfo("Created certs drop directory %s", tls_logfile_base_dir);
         }
-
     }
 
     *data = (void *)aft;
@@ -369,15 +367,13 @@ static OutputInitResult LogTlsStoreLogInitCtx(ConfNode *conf)
     const char *s_base_dir = NULL;
     s_base_dir = ConfNodeLookupChildValue(conf, "certs-log-dir");
     if (s_base_dir == NULL || strlen(s_base_dir) == 0) {
-        strlcpy(tls_logfile_base_dir,
-                s_default_log_dir, sizeof(tls_logfile_base_dir));
+        strlcpy(tls_logfile_base_dir, s_default_log_dir, sizeof(tls_logfile_base_dir));
     } else {
         if (PathIsAbsolute(s_base_dir)) {
-            strlcpy(tls_logfile_base_dir,
-                    s_base_dir, sizeof(tls_logfile_base_dir));
+            strlcpy(tls_logfile_base_dir, s_base_dir, sizeof(tls_logfile_base_dir));
         } else {
-            snprintf(tls_logfile_base_dir, sizeof(tls_logfile_base_dir),
-                    "%s/%s", s_default_log_dir, s_base_dir);
+            snprintf(tls_logfile_base_dir, sizeof(tls_logfile_base_dir), "%s/%s", s_default_log_dir,
+                    s_base_dir);
         }
     }
 
@@ -391,12 +387,11 @@ static OutputInitResult LogTlsStoreLogInitCtx(ConfNode *conf)
     SCReturnCT(result, "OutputInitResult");
 }
 
-void LogTlsStoreRegister (void)
+void LogTlsStoreRegister(void)
 {
-    OutputRegisterTxModuleWithCondition(LOGGER_TLS_STORE, MODULE_NAME,
-        "tls-store", LogTlsStoreLogInitCtx, ALPROTO_TLS, LogTlsStoreLogger,
-        LogTlsStoreCondition, LogTlsStoreLogThreadInit,
-        LogTlsStoreLogThreadDeinit, LogTlsStoreLogExitPrintStats);
+    OutputRegisterTxModuleWithCondition(LOGGER_TLS_STORE, MODULE_NAME, "tls-store",
+            LogTlsStoreLogInitCtx, ALPROTO_TLS, LogTlsStoreLogger, LogTlsStoreCondition,
+            LogTlsStoreLogThreadInit, LogTlsStoreLogThreadDeinit, LogTlsStoreLogExitPrintStats);
 
     SC_ATOMIC_INIT(cert_id);
     SC_ATOMIC_SET(cert_id, 1);

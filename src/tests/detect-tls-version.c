@@ -29,7 +29,7 @@
  * \test DetectTlsVersionTestParse01 is a test to make sure that we parse the "id"
  *       option correctly when given valid id option
  */
-static int DetectTlsVersionTestParse01 (void)
+static int DetectTlsVersionTestParse01(void)
 {
     DetectTlsVersionData *tls = NULL;
     tls = DetectTlsVersionParse(NULL, "1.0");
@@ -44,7 +44,7 @@ static int DetectTlsVersionTestParse01 (void)
  *       option correctly when given an invalid id option
  *       it should return id_d = NULL
  */
-static int DetectTlsVersionTestParse02 (void)
+static int DetectTlsVersionTestParse02(void)
 {
     DetectTlsVersionData *tls = NULL;
     tls = DetectTlsVersionParse(NULL, "2.5");

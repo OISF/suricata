@@ -76,7 +76,7 @@
 #include "suricata-plugin.h"
 
 #define DEFAULT_LOG_FILENAME "eve.json"
-#define MODULE_NAME "OutputJSON"
+#define MODULE_NAME          "OutputJSON"
 
 #define MAX_JSON_SIZE 2048
 
@@ -91,7 +91,7 @@ static size_t traffic_label_prefix_len = 0;
 
 const JsonAddrInfo json_addr_info_zero;
 
-void OutputJsonRegister (void)
+void OutputJsonRegister(void)
 {
     OutputRegisterModule(MODULE_NAME, "eve-log", OutputJsonInitCtx);
 
@@ -106,21 +106,19 @@ void OutputJsonRegister (void)
 
 json_t *SCJsonString(const char *val)
 {
-    if (val == NULL){
+    if (val == NULL) {
         return NULL;
     }
-    json_t * retval = json_string(val);
-    char retbuf[MAX_JSON_SIZE] = {0};
+    json_t *retval = json_string(val);
+    char retbuf[MAX_JSON_SIZE] = { 0 };
     if (retval == NULL) {
         uint32_t u = 0;
         uint32_t offset = 0;
         for (u = 0; u < strlen(val); u++) {
             if (isprint(val[u])) {
-                PrintBufferData(retbuf, &offset, MAX_JSON_SIZE-1, "%c",
-                        val[u]);
+                PrintBufferData(retbuf, &offset, MAX_JSON_SIZE - 1, "%c", val[u]);
             } else {
-                PrintBufferData(retbuf, &offset, MAX_JSON_SIZE-1,
-                        "\\x%02X", val[u]);
+                PrintBufferData(retbuf, &offset, MAX_JSON_SIZE - 1, "\\x%02X", val[u]);
             }
         }
         retbuf[offset] = '\0';
@@ -210,24 +208,20 @@ static void EveAddPacketVars(const Packet *p, JsonBuilder *js_vars)
             if (pv->key != NULL) {
                 uint32_t offset = 0;
                 uint8_t keybuf[pv->key_len + 1];
-                PrintStringsToBuffer(keybuf, &offset,
-                        sizeof(keybuf),
-                        pv->key, pv->key_len);
+                PrintStringsToBuffer(keybuf, &offset, sizeof(keybuf), pv->key, pv->key_len);
                 uint32_t len = pv->value_len;
                 uint8_t printable_buf[len + 1];
                 offset = 0;
-                PrintStringsToBuffer(printable_buf, &offset,
-                        sizeof(printable_buf),
-                        pv->value, pv->value_len);
+                PrintStringsToBuffer(
+                        printable_buf, &offset, sizeof(printable_buf), pv->value, pv->value_len);
                 jb_set_string(js_vars, (char *)keybuf, (char *)printable_buf);
             } else {
                 const char *varname = VarNameStoreLookupById(pv->id, VAR_TYPE_PKT_VAR);
                 uint32_t len = pv->value_len;
                 uint8_t printable_buf[len + 1];
                 uint32_t offset = 0;
-                PrintStringsToBuffer(printable_buf, &offset,
-                        sizeof(printable_buf),
-                        pv->value, pv->value_len);
+                PrintStringsToBuffer(
+                        printable_buf, &offset, sizeof(printable_buf), pv->value, pv->value_len);
                 jb_set_string(js_vars, varname, (char *)printable_buf);
             }
             jb_close(js_vars);
@@ -270,8 +264,7 @@ static void EveAddFlowVars(const Flow *f, JsonBuilder *js_root, JsonBuilder **js
         if (gv->type == DETECT_FLOWVAR || gv->type == DETECT_FLOWINT) {
             FlowVar *fv = (FlowVar *)gv;
             if (fv->datatype == FLOWVAR_TYPE_STR && fv->key == NULL) {
-                const char *varname = VarNameStoreLookupById(fv->idx,
-                        VAR_TYPE_FLOW_VAR);
+                const char *varname = VarNameStoreLookupById(fv->idx, VAR_TYPE_FLOW_VAR);
                 if (varname) {
                     if (js_flowvars == NULL) {
                         js_flowvars = jb_new_array();
@@ -282,8 +275,7 @@ static void EveAddFlowVars(const Flow *f, JsonBuilder *js_root, JsonBuilder **js
                     uint32_t len = fv->data.fv_str.value_len;
                     uint8_t printable_buf[len + 1];
                     uint32_t offset = 0;
-                    PrintStringsToBuffer(printable_buf, &offset,
-                            sizeof(printable_buf),
+                    PrintStringsToBuffer(printable_buf, &offset, sizeof(printable_buf),
                             fv->data.fv_str.value, fv->data.fv_str.value_len);
 
                     jb_start_object(js_flowvars);
@@ -299,23 +291,19 @@ static void EveAddFlowVars(const Flow *f, JsonBuilder *js_root, JsonBuilder **js
 
                 uint8_t keybuf[fv->keylen + 1];
                 uint32_t offset = 0;
-                PrintStringsToBuffer(keybuf, &offset,
-                        sizeof(keybuf),
-                        fv->key, fv->keylen);
+                PrintStringsToBuffer(keybuf, &offset, sizeof(keybuf), fv->key, fv->keylen);
 
                 uint32_t len = fv->data.fv_str.value_len;
                 uint8_t printable_buf[len + 1];
                 offset = 0;
-                PrintStringsToBuffer(printable_buf, &offset,
-                        sizeof(printable_buf),
+                PrintStringsToBuffer(printable_buf, &offset, sizeof(printable_buf),
                         fv->data.fv_str.value, fv->data.fv_str.value_len);
 
                 jb_start_object(js_flowvars);
                 jb_set_string(js_flowvars, (const char *)keybuf, (char *)printable_buf);
                 jb_close(js_flowvars);
             } else if (fv->datatype == FLOWVAR_TYPE_INT) {
-                const char *varname = VarNameStoreLookupById(fv->idx,
-                        VAR_TYPE_FLOW_INT);
+                const char *varname = VarNameStoreLookupById(fv->idx, VAR_TYPE_FLOW_INT);
                 if (varname) {
                     if (js_flowints == NULL) {
                         js_flowints = jb_new_object();
@@ -324,12 +312,10 @@ static void EveAddFlowVars(const Flow *f, JsonBuilder *js_root, JsonBuilder **js
                     }
                     jb_set_uint(js_flowints, varname, fv->data.fv_int.value);
                 }
-
             }
         } else if (gv->type == DETECT_FLOWBITS) {
             FlowBit *fb = (FlowBit *)gv;
-            const char *varname = VarNameStoreLookupById(fb->idx,
-                    VAR_TYPE_FLOW_BIT);
+            const char *varname = VarNameStoreLookupById(fb->idx, VAR_TYPE_FLOW_BIT);
             if (varname) {
                 if (SCStringHasPrefix(varname, TRAFFIC_ID_PREFIX)) {
                     if (js_traffic_id == NULL) {
@@ -416,8 +402,8 @@ void EveAddMetadata(const Packet *p, const Flow *f, JsonBuilder *js)
     }
 }
 
-void EveAddCommonOptions(const OutputJsonCommonSettings *cfg,
-        const Packet *p, const Flow *f, JsonBuilder *js)
+void EveAddCommonOptions(
+        const OutputJsonCommonSettings *cfg, const Packet *p, const Flow *f, JsonBuilder *js)
 {
     if (cfg->include_metadata) {
         EveAddMetadata(p, f, js);
@@ -479,21 +465,17 @@ void EveTcpFlags(const uint8_t flags, JsonBuilder *js)
 
 void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddrInfo *addr)
 {
-    char srcip[46] = {0}, dstip[46] = {0};
+    char srcip[46] = { 0 }, dstip[46] = { 0 };
     Port sp, dp;
 
     switch (dir) {
         case LOG_DIR_PACKET:
             if (PKT_IS_IPV4(p)) {
-                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
-                        srcip, sizeof(srcip));
-                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
-                        dstip, sizeof(dstip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
             } else if (PKT_IS_IPV6(p)) {
-                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
-                        srcip, sizeof(srcip));
-                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
-                        dstip, sizeof(dstip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
             } else {
                 /* Not an IP packet so don't do anything */
                 return;
@@ -505,29 +487,25 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
         case LOG_DIR_FLOW_TOSERVER:
             if ((PKT_IS_TOSERVER(p))) {
                 if (PKT_IS_IPV4(p)) {
-                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
-                            srcip, sizeof(srcip));
-                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
-                            dstip, sizeof(dstip));
+                    PrintInet(
+                            AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+                    PrintInet(
+                            AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
                 } else if (PKT_IS_IPV6(p)) {
-                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
-                            srcip, sizeof(srcip));
-                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
-                            dstip, sizeof(dstip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
                 }
                 sp = p->sp;
                 dp = p->dp;
             } else {
                 if (PKT_IS_IPV4(p)) {
-                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
-                            srcip, sizeof(srcip));
-                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
-                            dstip, sizeof(dstip));
+                    PrintInet(
+                            AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), srcip, sizeof(srcip));
+                    PrintInet(
+                            AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), dstip, sizeof(dstip));
                 } else if (PKT_IS_IPV6(p)) {
-                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
-                            srcip, sizeof(srcip));
-                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
-                            dstip, sizeof(dstip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), dstip, sizeof(dstip));
                 }
                 sp = p->dp;
                 dp = p->sp;
@@ -536,29 +514,25 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
         case LOG_DIR_FLOW_TOCLIENT:
             if ((PKT_IS_TOCLIENT(p))) {
                 if (PKT_IS_IPV4(p)) {
-                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
-                            srcip, sizeof(srcip));
-                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
-                            dstip, sizeof(dstip));
+                    PrintInet(
+                            AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+                    PrintInet(
+                            AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
                 } else if (PKT_IS_IPV6(p)) {
-                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
-                            srcip, sizeof(srcip));
-                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
-                            dstip, sizeof(dstip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
                 }
                 sp = p->sp;
                 dp = p->dp;
             } else {
                 if (PKT_IS_IPV4(p)) {
-                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
-                            srcip, sizeof(srcip));
-                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
-                            dstip, sizeof(dstip));
+                    PrintInet(
+                            AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), srcip, sizeof(srcip));
+                    PrintInet(
+                            AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), dstip, sizeof(dstip));
                 } else if (PKT_IS_IPV6(p)) {
-                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
-                            srcip, sizeof(srcip));
-                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
-                            dstip, sizeof(dstip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), dstip, sizeof(dstip));
                 }
                 sp = p->dp;
                 dp = p->sp;
@@ -592,8 +566,7 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
 
 #define COMMUNITY_ID_BUF_SIZE 64
 
-static bool CalculateCommunityFlowIdv4(const Flow *f,
-        const uint16_t seed, unsigned char *base64buf)
+static bool CalculateCommunityFlowIdv4(const Flow *f, const uint16_t seed, unsigned char *base64buf)
 {
     struct {
         uint16_t seed;
@@ -635,15 +608,14 @@ static bool CalculateCommunityFlowIdv4(const Flow *f,
     if (SCSha1HashBuffer((const uint8_t *)&ipv4, sizeof(ipv4), hash, sizeof(hash)) == 1) {
         strlcpy((char *)base64buf, "1:", COMMUNITY_ID_BUF_SIZE);
         unsigned long out_len = COMMUNITY_ID_BUF_SIZE - 2;
-        if (Base64Encode(hash, sizeof(hash), base64buf+2, &out_len) == SC_BASE64_OK) {
+        if (Base64Encode(hash, sizeof(hash), base64buf + 2, &out_len) == SC_BASE64_OK) {
             return true;
         }
     }
     return false;
 }
 
-static bool CalculateCommunityFlowIdv6(const Flow *f,
-        const uint16_t seed, unsigned char *base64buf)
+static bool CalculateCommunityFlowIdv6(const Flow *f, const uint16_t seed, unsigned char *base64buf)
 {
     struct {
         uint16_t seed;
@@ -684,7 +656,7 @@ static bool CalculateCommunityFlowIdv6(const Flow *f,
     if (SCSha1HashBuffer((const uint8_t *)&ipv6, sizeof(ipv6), hash, sizeof(hash)) == 1) {
         strlcpy((char *)base64buf, "1:", COMMUNITY_ID_BUF_SIZE);
         unsigned long out_len = COMMUNITY_ID_BUF_SIZE - 2;
-        if (Base64Encode(hash, sizeof(hash), base64buf+2, &out_len) == SC_BASE64_OK) {
+        if (Base64Encode(hash, sizeof(hash), base64buf + 2, &out_len) == SC_BASE64_OK) {
             return true;
         }
     }
@@ -717,12 +689,12 @@ void CreateEveFlowId(JsonBuilder *js, const Flow *f)
     }
 }
 
-static inline void JSONFormatAndAddMACAddr(JsonBuilder *js, const char *key,
-                                   uint8_t *val, bool is_array)
+static inline void JSONFormatAndAddMACAddr(
+        JsonBuilder *js, const char *key, uint8_t *val, bool is_array)
 {
     char eth_addr[19];
-    (void) snprintf(eth_addr, 19, "%02x:%02x:%02x:%02x:%02x:%02x",
-                    val[0], val[1], val[2], val[3], val[4], val[5]);
+    (void)snprintf(eth_addr, 19, "%02x:%02x:%02x:%02x:%02x:%02x", val[0], val[1], val[2], val[3],
+            val[4], val[5]);
     if (is_array) {
         jb_append_string(js, eth_addr);
     } else {
@@ -737,7 +709,7 @@ typedef struct JSONMACAddrInfo {
 
 static int MacSetIterateToJSON(uint8_t *val, MacSetSide side, void *data)
 {
-    JSONMACAddrInfo *info = (JSONMACAddrInfo*) data;
+    JSONMACAddrInfo *info = (JSONMACAddrInfo *)data;
     if (side == MAC_SET_DST) {
         JSONFormatAndAddMACAddr(info->dst, NULL, val, true);
     } else {
@@ -902,8 +874,7 @@ int OutputJSONMemBufferCallback(const char *str, size_t size, void *data)
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
 {
     if (file_ctx->sensor_name) {
-        json_object_set_new(js, "host",
-                            json_string(file_ctx->sensor_name));
+        json_object_set_new(js, "host", json_string(file_ctx->sensor_name));
     }
 
     if (file_ctx->is_pcap_offline) {
@@ -914,13 +885,9 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
         MemBufferWriteRaw((*buffer), file_ctx->prefix, file_ctx->prefix_len);
     }
 
-    OutputJSONMemBufferWrapper wrapper = {
-        .buffer = buffer,
-        .expand_by = JSON_OUTPUT_BUFFER_SIZE
-    };
+    OutputJSONMemBufferWrapper wrapper = { .buffer = buffer, .expand_by = JSON_OUTPUT_BUFFER_SIZE };
 
-    int r = json_dump_callback(js, OutputJSONMemBufferCallback, &wrapper,
-            file_ctx->json_flags);
+    int r = json_dump_callback(js, OutputJSONMemBufferCallback, &wrapper, file_ctx->json_flags);
     if (r != 0)
         return TM_ECODE_OK;
 
@@ -1051,8 +1018,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
     if (sensor_name != NULL) {
         SCLogWarning("Found deprecated eve-log setting \"sensor-name\". "
                      "Please set sensor-name globally.");
-    }
-    else {
+    } else {
         (void)ConfGet("sensor-name", &sensor_name);
     }
 
@@ -1099,12 +1065,10 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         }
 
         const char *prefix = ConfNodeLookupChildValue(conf, "prefix");
-        if (prefix != NULL)
-        {
+        if (prefix != NULL) {
             SCLogInfo("Using prefix '%s' for JSON messages", prefix);
             json_ctx->file_ctx->prefix = SCStrdup(prefix);
-            if (json_ctx->file_ctx->prefix == NULL)
-            {
+            if (json_ctx->file_ctx->prefix == NULL) {
                 FatalError("Failed to allocate memory for eve-log.prefix setting.");
             }
             json_ctx->file_ctx->prefix_len = strlen(prefix);
@@ -1159,9 +1123,7 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
         }
         const char *cid_seed = ConfNodeLookupChildValue(conf, "community-id-seed");
         if (cid_seed != NULL) {
-            if (StringParseUint16(&json_ctx->cfg.community_id_seed,
-                        10, 0, cid_seed) < 0)
-            {
+            if (StringParseUint16(&json_ctx->cfg.community_id_seed, 10, 0, cid_seed) < 0) {
                 FatalError("Failed to initialize JSON output, "
                            "invalid community-id-seed: %s",
                         cid_seed);
@@ -1179,9 +1141,8 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 
         const char *pcapfile_s = ConfNodeLookupChildValue(conf, "pcap-file");
         if (pcapfile_s != NULL && ConfValIsTrue(pcapfile_s)) {
-            json_ctx->file_ctx->is_pcap_offline =
-                (RunmodeGetCurrent() == RUNMODE_PCAP_FILE ||
-                 RunmodeGetCurrent() == RUNMODE_UNIX_SOCKET);
+            json_ctx->file_ctx->is_pcap_offline = (RunmodeGetCurrent() == RUNMODE_PCAP_FILE ||
+                                                   RunmodeGetCurrent() == RUNMODE_UNIX_SOCKET);
         }
         json_ctx->file_ctx->type = log_filetype;
     }

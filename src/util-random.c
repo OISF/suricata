@@ -29,7 +29,7 @@
 #include "util-random.h"
 #include "util-debug.h"
 
-#if !(defined(HAVE_WINCRYPT_H) &&  defined(OS_WIN32))
+#if !(defined(HAVE_WINCRYPT_H) && defined(OS_WIN32))
 #if defined(HAVE_CLOCK_GETTIME)
 
 static long int RandomGetClock(void)
@@ -74,11 +74,9 @@ long int RandomGet(void)
         SCLogDebug("CryptAcquireContext error: %" PRIu32, (uint32_t)err);
         if (err == (DWORD)NTE_BAD_KEYSET) {
             /* The key doesn't exist yet, create it */
-            if (!CryptAcquireContext(&p, NULL, NULL, PROV_RSA_FULL,
-                                     CRYPT_NEWKEYSET)) {
+            if (!CryptAcquireContext(&p, NULL, NULL, PROV_RSA_FULL, CRYPT_NEWKEYSET)) {
 
-                SCLogDebug("CryptAcquireContext error: %" PRIu32,
-                           (uint32_t)err);
+                SCLogDebug("CryptAcquireContext error: %" PRIu32, (uint32_t)err);
                 return -1;
             }
         } else {

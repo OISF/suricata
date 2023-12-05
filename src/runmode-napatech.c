@@ -95,7 +95,6 @@ void RunModeNapatechRegister(void)
 #endif
 }
 
-
 #ifdef HAVE_NAPATECH
 
 static int NapatechRegisterDeviceStreams(void)
@@ -154,8 +153,8 @@ static int NapatechRegisterDeviceStreams(void)
                 FatalError("or disable auto-config in the conf file before running.");
             }
         } else {
-            SCLogInfo("Registering Napatech device: %s - active stream%sfound.",
-                    plive_dev_buf, stream_config[inst].is_active ? " " : " NOT ");
+            SCLogInfo("Registering Napatech device: %s - active stream%sfound.", plive_dev_buf,
+                    stream_config[inst].is_active ? " " : " NOT ");
         }
         LiveRegisterDevice(plive_dev_buf);
 
@@ -181,7 +180,7 @@ static void *NapatechConfigParser(const char *device)
         return NULL;
     }
 
-    struct NapatechStreamDevConf *conf = SCCalloc(1, sizeof (struct NapatechStreamDevConf));
+    struct NapatechStreamDevConf *conf = SCCalloc(1, sizeof(struct NapatechStreamDevConf));
     if (unlikely(conf == NULL)) {
         SCLogError("Failed to allocate memory for NAPATECH device name.");
         return NULL;
@@ -194,7 +193,7 @@ static void *NapatechConfigParser(const char *device)
         return NULL;
     }
 
-    return (void *) conf;
+    return (void *)conf;
 }
 
 static int NapatechGetThreadsCount(void *conf __attribute__((unused)))
@@ -221,8 +220,7 @@ static int NapatechInit(int runmode)
         FatalError("Unable to find existing Napatech Streams");
     }
 
-    struct NapatechStreamDevConf *conf =
-                            SCCalloc(1, sizeof (struct NapatechStreamDevConf));
+    struct NapatechStreamDevConf *conf = SCCalloc(1, sizeof(struct NapatechStreamDevConf));
     if (unlikely(conf == NULL)) {
         FatalError("Failed to allocate memory for NAPATECH device.");
     }

@@ -16,10 +16,10 @@
  */
 
 /**
-*  \defgroup netmap Netmap running mode
-*
-*  @{
-*/
+ *  \defgroup netmap Netmap running mode
+ *
+ *  @{
+ */
 
 /**
  * \file
@@ -62,8 +62,8 @@
 #ifndef HAVE_NETMAP
 
 /**
-* \brief this function prints an error message and exits.
-*/
+ * \brief this function prints an error message and exits.
+ */
 static TmEcode NoNetmapSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
     FatalError("Error creating thread %s: Netmap is not enabled. "
@@ -71,7 +71,7 @@ static TmEcode NoNetmapSupportExit(ThreadVars *tv, const void *initdata, void **
             tv->name);
 }
 
-void TmModuleReceiveNetmapRegister (void)
+void TmModuleReceiveNetmapRegister(void)
 {
     tmm_modules[TMM_RECEIVENETMAP].name = "ReceiveNetmap";
     tmm_modules[TMM_RECEIVENETMAP].ThreadInit = NoNetmapSupportExit;
@@ -79,9 +79,9 @@ void TmModuleReceiveNetmapRegister (void)
 }
 
 /**
-* \brief Registration Function for DecodeNetmap.
-*/
-void TmModuleDecodeNetmapRegister (void)
+ * \brief Registration Function for DecodeNetmap.
+ */
+void TmModuleDecodeNetmapRegister(void)
 {
     tmm_modules[TMM_DECODENETMAP].name = "DecodeNetmap";
     tmm_modules[TMM_DECODENETMAP].ThreadInit = NoNetmapSupportExit;
@@ -95,14 +95,14 @@ void TmModuleDecodeNetmapRegister (void)
 #define POLL_TIMEOUT 100
 
 #if defined(__linux__)
-#define POLL_EVENTS (POLLHUP|POLLRDHUP|POLLERR|POLLNVAL)
+#define POLL_EVENTS (POLLHUP | POLLRDHUP | POLLERR | POLLNVAL)
 
 #ifndef IFF_PPROMISC
 #define IFF_PPROMISC IFF_PROMISC
 #endif
 
 #else
-#define POLL_EVENTS (POLLHUP|POLLERR|POLLNVAL)
+#define POLL_EVENTS (POLLHUP | POLLERR | POLLNVAL)
 #endif
 
 enum { NETMAP_FLAG_ZERO_COPY = 1, NETMAP_FLAG_EXCL_RING_ACCESS = 2 };
@@ -111,8 +111,7 @@ enum { NETMAP_FLAG_ZERO_COPY = 1, NETMAP_FLAG_EXCL_RING_ACCESS = 2 };
  * \brief Netmap device instance. Each ring for each device gets its own
  *        device.
  */
-typedef struct NetmapDevice_
-{
+typedef struct NetmapDevice_ {
     struct nmport_d *nmd;
     unsigned int ref;
     SC_ATOMIC_DECLARE(unsigned int, threads_run);
@@ -130,8 +129,7 @@ typedef struct NetmapDevice_
 /**
  * \brief Module thread local variables.
  */
-typedef struct NetmapThreadVars_
-{
+typedef struct NetmapThreadVars_ {
     /* receive interface */
     NetmapDevice *ifsrc;
     /* dst interface for IPS mode */
@@ -283,10 +281,8 @@ static int NetmapOpen(NetmapIfaceSettings *ns, NetmapDevice **pdevice, int verbo
     char base_name[IFNAMSIZ];
     strlcpy(base_name, ns->iface, sizeof(base_name));
     if (strlen(base_name) > 0 &&
-            (base_name[strlen(base_name)-1] == '^' ||
-             base_name[strlen(base_name)-1] == '*'))
-    {
-        base_name[strlen(base_name)-1] = '\0';
+            (base_name[strlen(base_name) - 1] == '^' || base_name[strlen(base_name) - 1] == '*')) {
+        base_name[strlen(base_name) - 1] = '\0';
     }
 
     if (ns->real) {
@@ -305,7 +301,7 @@ static int NetmapOpen(NetmapIfaceSettings *ns, NetmapDevice **pdevice, int verbo
             goto error;
         }
         /* if needed, try to set iface in promisc mode */
-        if (ns->promisc && (if_flags & (IFF_PROMISC|IFF_PPROMISC)) == 0) {
+        if (ns->promisc && (if_flags & (IFF_PROMISC | IFF_PPROMISC)) == 0) {
             if_flags |= IFF_PPROMISC;
             SetIfaceFlags(base_name, if_flags); // TODO reset at exit
             // TODO move to parse config?
@@ -326,7 +322,7 @@ static int NetmapOpen(NetmapIfaceSettings *ns, NetmapDevice **pdevice, int verbo
     /* Search for interface in our already opened list. */
     /* We will find it when opening multiple rings on   */
     /* the device when it exposes multiple RSS queues.  */
-    TAILQ_FOREACH(spdev, &netmap_devlist, next) {
+    TAILQ_FOREACH (spdev, &netmap_devlist, next) {
         SCLogDebug("spdev %s", spdev->ifname);
         if (direction == spdev->direction && strcmp(ns->iface, spdev->ifname) == 0) {
             ring = spdev->ring + 1;
@@ -379,14 +375,15 @@ retry:
 
     char devname[128];
     if (strncmp(ns->iface, "netmap:", 7) == 0) {
-        snprintf(devname, sizeof(devname), "%s}%d%s%s",
-                ns->iface, ring, strlen(optstr) ? "/" : "", optstr);
-    } else if (strlen(ns->iface) > 5 && strncmp(ns->iface, "vale", 4) == 0 && isdigit(ns->iface[4])) {
+        snprintf(devname, sizeof(devname), "%s}%d%s%s", ns->iface, ring, strlen(optstr) ? "/" : "",
+                optstr);
+    } else if (strlen(ns->iface) > 5 && strncmp(ns->iface, "vale", 4) == 0 &&
+               isdigit(ns->iface[4])) {
         snprintf(devname, sizeof(devname), "%s", ns->iface);
     } else if (ring == 0 && ns->threads == 1) {
         /* just a single thread and ring, so don't use ring param */
-        snprintf(devname, sizeof(devname), "netmap:%s%s%s",
-                ns->iface, strlen(optstr) ? "/" : "", optstr);
+        snprintf(devname, sizeof(devname), "netmap:%s%s%s", ns->iface, strlen(optstr) ? "/" : "",
+                optstr);
         SCLogDebug("device with %s-ring enabled (devname): %s", soft ? "SW" : "HW", devname);
     } else {
         /* Going to be using multiple threads and rings */
@@ -486,8 +483,8 @@ static inline void NetmapDumpCounters(NetmapThreadVars *ntv)
 {
     StatsAddUI64(ntv->tv, ntv->capture_kernel_packets, ntv->pkts);
     StatsAddUI64(ntv->tv, ntv->capture_kernel_drops, ntv->drops);
-    (void) SC_ATOMIC_ADD(ntv->livedev->drop, ntv->drops);
-    (void) SC_ATOMIC_ADD(ntv->livedev->pkts, ntv->pkts);
+    (void)SC_ATOMIC_ADD(ntv->livedev->drop, ntv->drops);
+    (void)SC_ATOMIC_ADD(ntv->livedev->pkts, ntv->pkts);
     ntv->drops = 0;
     ntv->pkts = 0;
 }
@@ -548,23 +545,19 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
     }
 
     /* basic counters */
-    ntv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",
-            ntv->tv);
-    ntv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops",
-            ntv->tv);
+    ntv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets", ntv->tv);
+    ntv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops", ntv->tv);
 
     if (aconf->in.bpf_filter) {
         SCLogConfig("%s: using BPF '%s'", ntv->ifsrc->ifname, aconf->in.bpf_filter);
         char errbuf[PCAP_ERRBUF_SIZE];
-        if (SCBPFCompile(default_packet_size,  /* snaplen_arg */
-                    LINKTYPE_ETHERNET,    /* linktype_arg */
-                    &ntv->bpf_prog,       /* program */
-                    aconf->in.bpf_filter, /* const char *buf */
-                    1,                    /* optimize */
-                    PCAP_NETMASK_UNKNOWN,  /* mask */
-                    errbuf,
-                    sizeof(errbuf)) == -1)
-        {
+        if (SCBPFCompile(default_packet_size, /* snaplen_arg */
+                    LINKTYPE_ETHERNET,        /* linktype_arg */
+                    &ntv->bpf_prog,           /* program */
+                    aconf->in.bpf_filter,     /* const char *buf */
+                    1,                        /* optimize */
+                    PCAP_NETMASK_UNKNOWN,     /* mask */
+                    errbuf, sizeof(errbuf)) == -1) {
             SCLogError("%s: failed to compile BPF \"%s\": %s", ntv->ifsrc->ifname,
                     aconf->in.bpf_filter, errbuf);
             goto error_dst;
@@ -666,7 +659,7 @@ static void NetmapReleasePacket(Packet *p)
 static void NetmapProcessPacket(NetmapThreadVars *ntv, const struct nm_pkthdr *ph)
 {
     if (ntv->bpf_prog.bf_len) {
-        struct pcap_pkthdr pkthdr = { {0, 0}, ph->len, ph->len };
+        struct pcap_pkthdr pkthdr = { { 0, 0 }, ph->len, ph->len };
         if (pcap_offline_filter(&ntv->bpf_prog, &pkthdr, ph->buf) == 0) {
             return;
         }
@@ -699,8 +692,7 @@ static void NetmapProcessPacket(NetmapThreadVars *ntv, const struct nm_pkthdr *p
     p->ReleasePacket = NetmapReleasePacket;
     p->netmap_v.ntv = ntv;
 
-    SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)",
-            GET_PKT_LEN(p), p, GET_PKT_DATA(p));
+    SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)", GET_PKT_LEN(p), p, GET_PKT_DATA(p));
 
     (void)TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p);
 }
@@ -803,7 +795,7 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
     // packets)
     TmThreadsSetFlag(tv, THV_RUNNING);
 
-    for(;;) {
+    for (;;) {
         if (unlikely(suricata_ctl_flags != 0)) {
             break;
         }
@@ -990,5 +982,5 @@ void TmModuleDecodeNetmapRegister(void)
 #endif /* HAVE_NETMAP */
 
 /**
-* @}
-*/
+ * @}
+ */

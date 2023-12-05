@@ -62,6 +62,6 @@ size_t strlcpy(char *dst, const char *src, size_t siz)
             ;
     }
 
-    return(s - src - 1); /* count does not include NUL */
+    return (s - src - 1); /* count does not include NUL */
 }
 #endif

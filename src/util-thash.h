@@ -29,57 +29,57 @@
 #include "threads.h"
 
 /** Spinlocks or Mutex for the buckets. */
-//#define HRLOCK_SPIN
+// #define HRLOCK_SPIN
 #define HRLOCK_MUTEX
 
 #ifdef HRLOCK_SPIN
-    #ifdef HRLOCK_MUTEX
-        #error Cannot enable both HRLOCK_SPIN and HRLOCK_MUTEX
-    #endif
+#ifdef HRLOCK_MUTEX
+#error Cannot enable both HRLOCK_SPIN and HRLOCK_MUTEX
+#endif
 #endif
 
 #ifdef HRLOCK_SPIN
-    #define HRLOCK_TYPE SCSpinlock
-    #define HRLOCK_INIT(fb) SCSpinInit(&(fb)->lock, 0)
-    #define HRLOCK_DESTROY(fb) SCSpinDestroy(&(fb)->lock)
-    #define HRLOCK_LOCK(fb) SCSpinLock(&(fb)->lock)
-    #define HRLOCK_TRYLOCK(fb) SCSpinTrylock(&(fb)->lock)
-    #define HRLOCK_UNLOCK(fb) SCSpinUnlock(&(fb)->lock)
+#define HRLOCK_TYPE        SCSpinlock
+#define HRLOCK_INIT(fb)    SCSpinInit(&(fb)->lock, 0)
+#define HRLOCK_DESTROY(fb) SCSpinDestroy(&(fb)->lock)
+#define HRLOCK_LOCK(fb)    SCSpinLock(&(fb)->lock)
+#define HRLOCK_TRYLOCK(fb) SCSpinTrylock(&(fb)->lock)
+#define HRLOCK_UNLOCK(fb)  SCSpinUnlock(&(fb)->lock)
 #elif defined HRLOCK_MUTEX
-    #define HRLOCK_TYPE SCMutex
-    #define HRLOCK_INIT(fb) SCMutexInit(&(fb)->lock, NULL)
-    #define HRLOCK_DESTROY(fb) SCMutexDestroy(&(fb)->lock)
-    #define HRLOCK_LOCK(fb) SCMutexLock(&(fb)->lock)
-    #define HRLOCK_TRYLOCK(fb) SCMutexTrylock(&(fb)->lock)
-    #define HRLOCK_UNLOCK(fb) SCMutexUnlock(&(fb)->lock)
+#define HRLOCK_TYPE        SCMutex
+#define HRLOCK_INIT(fb)    SCMutexInit(&(fb)->lock, NULL)
+#define HRLOCK_DESTROY(fb) SCMutexDestroy(&(fb)->lock)
+#define HRLOCK_LOCK(fb)    SCMutexLock(&(fb)->lock)
+#define HRLOCK_TRYLOCK(fb) SCMutexTrylock(&(fb)->lock)
+#define HRLOCK_UNLOCK(fb)  SCMutexUnlock(&(fb)->lock)
 #else
-    #error Enable HRLOCK_SPIN or HRLOCK_MUTEX
+#error Enable HRLOCK_SPIN or HRLOCK_MUTEX
 #endif
 
 /** Spinlocks or Mutex for the queues. */
-//#define HQLOCK_SPIN
+// #define HQLOCK_SPIN
 #define HQLOCK_MUTEX
 
 #ifdef HQLOCK_SPIN
-    #ifdef HQLOCK_MUTEX
-        #error Cannot enable both HQLOCK_SPIN and HQLOCK_MUTEX
-    #endif
+#ifdef HQLOCK_MUTEX
+#error Cannot enable both HQLOCK_SPIN and HQLOCK_MUTEX
+#endif
 #endif
 
 #ifdef HQLOCK_SPIN
-    #define HQLOCK_INIT(q) SCSpinInit(&(q)->s, 0)
-    #define HQLOCK_DESTROY(q) SCSpinDestroy(&(q)->s)
-    #define HQLOCK_LOCK(q) SCSpinLock(&(q)->s)
-    #define HQLOCK_TRYLOCK(q) SCSpinTrylock(&(q)->s)
-    #define HQLOCK_UNLOCK(q) SCSpinUnlock(&(q)->s)
+#define HQLOCK_INIT(q)    SCSpinInit(&(q)->s, 0)
+#define HQLOCK_DESTROY(q) SCSpinDestroy(&(q)->s)
+#define HQLOCK_LOCK(q)    SCSpinLock(&(q)->s)
+#define HQLOCK_TRYLOCK(q) SCSpinTrylock(&(q)->s)
+#define HQLOCK_UNLOCK(q)  SCSpinUnlock(&(q)->s)
 #elif defined HQLOCK_MUTEX
-    #define HQLOCK_INIT(q) SCMutexInit(&(q)->m, NULL)
-    #define HQLOCK_DESTROY(q) SCMutexDestroy(&(q)->m)
-    #define HQLOCK_LOCK(q) SCMutexLock(&(q)->m)
-    #define HQLOCK_TRYLOCK(q) SCMutexTrylock(&(q)->m)
-    #define HQLOCK_UNLOCK(q) SCMutexUnlock(&(q)->m)
+#define HQLOCK_INIT(q)    SCMutexInit(&(q)->m, NULL)
+#define HQLOCK_DESTROY(q) SCMutexDestroy(&(q)->m)
+#define HQLOCK_LOCK(q)    SCMutexLock(&(q)->m)
+#define HQLOCK_TRYLOCK(q) SCMutexTrylock(&(q)->m)
+#define HQLOCK_UNLOCK(q)  SCMutexUnlock(&(q)->m)
 #else
-    #error Enable HQLOCK_SPIN or HQLOCK_MUTEX
+#error Enable HQLOCK_SPIN or HQLOCK_MUTEX
 #endif
 
 typedef struct THashData_ {
@@ -101,8 +101,7 @@ typedef struct THashHashRow_ {
     THashData *tail;
 } __attribute__((aligned(CLS))) THashHashRow;
 
-typedef struct THashDataQueue_
-{
+typedef struct THashDataQueue_ {
     THashData *top;
     THashData *bot;
     uint32_t len;
@@ -114,7 +113,7 @@ typedef struct THashDataQueue_
 #elif defined HQLOCK_SPIN
     SCSpinlock s;
 #else
-    #error Enable HQLOCK_SPIN or HQLOCK_MUTEX
+#error Enable HQLOCK_SPIN or HQLOCK_MUTEX
 #endif
 } THashDataQueue;
 
@@ -159,13 +158,11 @@ typedef struct THashTableContext_ {
  *  \retval 1 it fits
  *  \retval 0 no fit
  */
-#define THASH_CHECK_MEMCAP(ctx, size) \
+#define THASH_CHECK_MEMCAP(ctx, size)                                                              \
     ((((uint64_t)SC_ATOMIC_GET((ctx)->memuse) + (uint64_t)(size)) <= (ctx)->config.memcap))
 
-#define THashIncrUsecnt(h) \
-    (void)SC_ATOMIC_ADD((h)->use_cnt, 1)
-#define THashDecrUsecnt(h) \
-    (void)SC_ATOMIC_SUB((h)->use_cnt, 1)
+#define THashIncrUsecnt(h) (void)SC_ATOMIC_ADD((h)->use_cnt, 1)
+#define THashDecrUsecnt(h) (void)SC_ATOMIC_SUB((h)->use_cnt, 1)
 
 THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
         int (*DataSet)(void *dst, void *src), void (*DataFree)(void *),
@@ -189,12 +186,12 @@ struct THashDataGetResult {
     bool is_new;
 };
 
-struct THashDataGetResult THashGetFromHash (THashTableContext *ctx, void *data);
-THashData *THashLookupFromHash (THashTableContext *ctx, void *data);
+struct THashDataGetResult THashGetFromHash(THashTableContext *ctx, void *data);
+THashData *THashLookupFromHash(THashTableContext *ctx, void *data);
 THashDataQueue *THashDataQueueNew(void);
 void THashCleanup(THashTableContext *ctx);
 int THashWalk(THashTableContext *, THashFormatFunc, THashOutputFunc, void *);
-int THashRemoveFromHash (THashTableContext *ctx, void *data);
+int THashRemoveFromHash(THashTableContext *ctx, void *data);
 void THashConsolidateMemcap(THashTableContext *ctx);
 void THashDataMoveToSpare(THashTableContext *ctx, THashData *h);
 

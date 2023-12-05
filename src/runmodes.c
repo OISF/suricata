@@ -117,8 +117,7 @@ typedef struct OutputFreeList_ {
 
     TAILQ_ENTRY(OutputFreeList_) entries;
 } OutputFreeList;
-static TAILQ_HEAD(, OutputFreeList_) output_free_list =
-    TAILQ_HEAD_INITIALIZER(output_free_list);
+static TAILQ_HEAD(, OutputFreeList_) output_free_list = TAILQ_HEAD_INITIALIZER(output_free_list);
 
 /**
  * \internal
@@ -206,7 +205,6 @@ static RunMode *RunModeGetCustomMode(enum RunModes runmode, const char *custom_m
     return NULL;
 }
 
-
 /**
  * Return the running mode
  *
@@ -269,29 +267,23 @@ void RunModeListRunmodes(void)
     printf("------------------------------------- Runmodes -------------------"
            "-----------------------\n");
 
-    printf("| %-17s | %-17s | %-10s \n",
-           "RunMode Type", "Custom Mode ", "Description");
+    printf("| %-17s | %-17s | %-10s \n", "RunMode Type", "Custom Mode ", "Description");
     printf("|-----------------------------------------------------------------"
            "-----------------------\n");
     int i = RUNMODE_UNKNOWN + 1;
     int j = 0;
-    for ( ; i < RUNMODE_USER_MAX; i++) {
+    for (; i < RUNMODE_USER_MAX; i++) {
         int mode_displayed = 0;
         for (j = 0; j < runmodes[i].cnt; j++) {
             if (mode_displayed == 1) {
                 printf("|                   ----------------------------------------------"
                        "-----------------------\n");
                 RunMode *runmode = &runmodes[i].runmodes[j];
-                printf("| %-17s | %-17s | %-27s \n",
-                       "",
-                       runmode->name,
-                       runmode->description);
+                printf("| %-17s | %-17s | %-27s \n", "", runmode->name, runmode->description);
             } else {
                 RunMode *runmode = &runmodes[i].runmodes[j];
-                printf("| %-17s | %-17s | %-27s \n",
-                       RunModeTranslateModeToName(runmode->runmode),
-                       runmode->name,
-                       runmode->description);
+                printf("| %-17s | %-17s | %-27s \n", RunModeTranslateModeToName(runmode->runmode),
+                        runmode->name, runmode->description);
             }
             if (mode_displayed == 0)
                 mode_displayed = 1;
@@ -477,8 +469,6 @@ int RunModeNeedsBypassManager(void)
     return g_runmode_needs_bypass;
 }
 
-
-
 /**
  * \brief Registers a new runmode.
  *
@@ -497,8 +487,8 @@ void RunModeRegisterNewRunMode(enum RunModes runmode, const char *name, const ch
                 name);
     }
 
-    void *ptmp = SCRealloc(runmodes[runmode].runmodes,
-                     (runmodes[runmode].cnt + 1) * sizeof(RunMode));
+    void *ptmp =
+            SCRealloc(runmodes[runmode].runmodes, (runmodes[runmode].cnt + 1) * sizeof(RunMode));
     if (ptmp == NULL) {
         SCFree(runmodes[runmode].runmodes);
         runmodes[runmode].runmodes = NULL;
@@ -573,7 +563,7 @@ bool IsRunModeSystem(enum RunModes run_mode_to_check)
 
 bool IsRunModeOffline(enum RunModes run_mode_to_check)
 {
-    switch(run_mode_to_check) {
+    switch (run_mode_to_check) {
         case RUNMODE_CONF_TEST:
         case RUNMODE_PCAP_FILE:
         case RUNMODE_ERF_FILE:
@@ -626,16 +616,14 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
 {
     /* flow logger doesn't run in the packet path */
     if (module->FlowLogFunc) {
-        OutputRegisterFlowLogger(module->name, module->FlowLogFunc,
-            output_ctx, module->ThreadInit, module->ThreadDeinit,
-            module->ThreadExitPrintStats);
+        OutputRegisterFlowLogger(module->name, module->FlowLogFunc, output_ctx, module->ThreadInit,
+                module->ThreadDeinit, module->ThreadExitPrintStats);
         return;
     }
     /* stats logger doesn't run in the packet path */
     if (module->StatsLogFunc) {
-        OutputRegisterStatsLogger(module->name, module->StatsLogFunc,
-            output_ctx,module->ThreadInit, module->ThreadDeinit,
-            module->ThreadExitPrintStats);
+        OutputRegisterStatsLogger(module->name, module->StatsLogFunc, output_ctx,
+                module->ThreadInit, module->ThreadDeinit, module->ThreadExitPrintStats);
         return;
     }
 
@@ -645,16 +633,14 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
 
     if (module->PacketLogFunc) {
         SCLogDebug("%s is a packet logger", module->name);
-        OutputRegisterPacketLogger(module->logger_id, module->name,
-            module->PacketLogFunc, module->PacketConditionFunc, output_ctx,
-            module->ThreadInit, module->ThreadDeinit,
-            module->ThreadExitPrintStats);
+        OutputRegisterPacketLogger(module->logger_id, module->name, module->PacketLogFunc,
+                module->PacketConditionFunc, output_ctx, module->ThreadInit, module->ThreadDeinit,
+                module->ThreadExitPrintStats);
     } else if (module->TxLogFunc) {
         SCLogDebug("%s is a tx logger", module->name);
-        OutputRegisterTxLogger(module->logger_id, module->name, module->alproto,
-                module->TxLogFunc, output_ctx, module->tc_log_progress,
-                module->ts_log_progress, module->TxLogCondition,
-                module->ThreadInit, module->ThreadDeinit,
+        OutputRegisterTxLogger(module->logger_id, module->name, module->alproto, module->TxLogFunc,
+                output_ctx, module->tc_log_progress, module->ts_log_progress,
+                module->TxLogCondition, module->ThreadInit, module->ThreadDeinit,
                 module->ThreadExitPrintStats);
         /* Not used with wild card loggers */
         if (module->alproto != ALPROTO_UNKNOWN) {
@@ -662,22 +648,19 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
         }
     } else if (module->FiledataLogFunc) {
         SCLogDebug("%s is a filedata logger", module->name);
-        OutputRegisterFiledataLogger(module->logger_id, module->name,
-            module->FiledataLogFunc, output_ctx, module->ThreadInit,
-            module->ThreadDeinit, module->ThreadExitPrintStats);
+        OutputRegisterFiledataLogger(module->logger_id, module->name, module->FiledataLogFunc,
+                output_ctx, module->ThreadInit, module->ThreadDeinit, module->ThreadExitPrintStats);
         filedata_logger_count++;
     } else if (module->FileLogFunc) {
         SCLogDebug("%s is a file logger", module->name);
-        OutputRegisterFileLogger(module->logger_id, module->name,
-            module->FileLogFunc, output_ctx, module->ThreadInit,
-            module->ThreadDeinit, module->ThreadExitPrintStats);
+        OutputRegisterFileLogger(module->logger_id, module->name, module->FileLogFunc, output_ctx,
+                module->ThreadInit, module->ThreadDeinit, module->ThreadExitPrintStats);
         file_logger_count++;
     } else if (module->StreamingLogFunc) {
         SCLogDebug("%s is a streaming logger", module->name);
-        OutputRegisterStreamingLogger(module->logger_id, module->name,
-            module->StreamingLogFunc, output_ctx, module->stream_type,
-            module->ThreadInit, module->ThreadDeinit,
-            module->ThreadExitPrintStats);
+        OutputRegisterStreamingLogger(module->logger_id, module->name, module->StreamingLogFunc,
+                output_ctx, module->stream_type, module->ThreadInit, module->ThreadDeinit,
+                module->ThreadExitPrintStats);
     } else {
         SCLogError("Unknown logger type: name=%s", module->name);
     }
@@ -692,7 +675,7 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
     }
 
     ConfNode *type = NULL;
-    TAILQ_FOREACH(type, &types->head, next) {
+    TAILQ_FOREACH (type, &types->head, next) {
         int sub_count = 0;
         char subname[256];
 
@@ -707,8 +690,7 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
 
         ConfNode *sub_output_config = ConfNodeLookupChild(type, type->val);
         if (sub_output_config != NULL) {
-            const char *enabled = ConfNodeLookupChildValue(
-                sub_output_config, "enabled");
+            const char *enabled = ConfNodeLookupChildValue(sub_output_config, "enabled");
             if (enabled != NULL && !ConfValIsTrue(enabled)) {
                 continue;
             }
@@ -716,7 +698,7 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
 
         /* Now setup all registers logger of this name. */
         OutputModule *sub_module;
-        TAILQ_FOREACH(sub_module, &output_modules, entries) {
+        TAILQ_FOREACH (sub_module, &output_modules, entries) {
             if (strcmp(subname, sub_module->conf_name) == 0) {
                 sub_count++;
 
@@ -729,15 +711,13 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
                 }
 
                 /* pass on parent output_ctx */
-                OutputInitResult result =
-                    sub_module->InitSubFunc(sub_output_config, parent_ctx);
+                OutputInitResult result = sub_module->InitSubFunc(sub_output_config, parent_ctx);
                 if (!result.ok || result.ctx == NULL) {
                     FatalError("unable to initialize sub-module %s", subname);
                 }
 
                 AddOutputToFreeList(sub_module, result.ctx);
-                SetupOutput(sub_module->name, sub_module,
-                        result.ctx);
+                SetupOutput(sub_module->name, sub_module, result.ctx);
             }
         }
 
@@ -756,14 +736,14 @@ static void RunModeInitializeLuaOutput(ConfNode *conf, OutputCtx *parent_ctx)
     BUG_ON(lua_module == NULL);
 
     ConfNode *scripts = ConfNodeLookupChild(conf, "scripts");
-    BUG_ON(scripts == NULL); //TODO
+    BUG_ON(scripts == NULL); // TODO
 
     OutputModule *m;
-    TAILQ_FOREACH(m, &parent_ctx->submodules, entries) {
+    TAILQ_FOREACH (m, &parent_ctx->submodules, entries) {
         SCLogDebug("m %p %s:%s", m, m->name, m->conf_name);
 
         ConfNode *script = NULL;
-        TAILQ_FOREACH(script, &scripts->head, next) {
+        TAILQ_FOREACH (script, &scripts->head, next) {
             SCLogDebug("script %s", script->val);
             if (strcmp(script->val, m->conf_name) == 0) {
                 break;
@@ -803,7 +783,7 @@ void RunModeInitializeOutputs(void)
 
     memset(&logger_bits, 0, sizeof(logger_bits));
 
-    TAILQ_FOREACH(output, &outputs->head, next) {
+    TAILQ_FOREACH (output, &outputs->head, next) {
 
         output_config = ConfNodeLookupChild(output, output->val);
         if (output_config == NULL) {
@@ -851,7 +831,7 @@ void RunModeInitializeOutputs(void)
 
         OutputModule *module;
         int count = 0;
-        TAILQ_FOREACH(module, &output_modules, entries) {
+        TAILQ_FOREACH (module, &output_modules, entries) {
             if (strcmp(module->conf_name, output->val) != 0) {
                 continue;
             }
@@ -904,7 +884,7 @@ void RunModeInitializeOutputs(void)
          * to be started using 'tls-log' config as own config */
         SCLogWarning("Please use 'tls-store' in YAML to configure TLS storage");
 
-        TAILQ_FOREACH(output, &outputs->head, next) {
+        TAILQ_FOREACH (output, &outputs->head, next) {
             output_config = ConfNodeLookupChild(output, output->val);
 
             if (strcmp(output->val, "tls-log") == 0) {
@@ -962,15 +942,14 @@ void RunModeInitializeOutputs(void)
                         (g_filedata_logger_enabled);
         SCLogDebug("tcp %d udp %d", tcp, udp);
 
-        SCLogDebug("logger for %s: %s %s", AppProtoToString(a),
-                tcp ? "true" : "false", udp ? "true" : "false");
+        SCLogDebug("logger for %s: %s %s", AppProtoToString(a), tcp ? "true" : "false",
+                udp ? "true" : "false");
 
         SCLogDebug("logger bits for %s: %08x", AppProtoToString(a), logger_bits[a]);
         if (tcp)
             AppLayerParserRegisterLoggerBits(IPPROTO_TCP, a, logger_bits[a]);
         if (udp)
             AppLayerParserRegisterLoggerBits(IPPROTO_UDP, a, logger_bits[a]);
-
     }
     OutputSetupActiveLoggers();
 }

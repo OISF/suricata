@@ -35,29 +35,28 @@
 #include "util-unittest.h"
 #include "util-print.h"
 
-static int DetectTransformStripWhitespaceSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTransformStripWhitespaceSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTransformStripWhitespaceRegisterTests(void);
 #endif
 static void TransformStripWhitespace(InspectionBuffer *buffer, void *options);
-static bool TransformStripWhitespaceValidate(const uint8_t *content, uint16_t content_len, void *options);
+static bool TransformStripWhitespaceValidate(
+        const uint8_t *content, uint16_t content_len, void *options);
 
 void DetectTransformStripWhitespaceRegister(void)
 {
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].name = "strip_whitespace";
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].desc =
-        "modify buffer to strip whitespace before inspection";
+            "modify buffer to strip whitespace before inspection";
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].url =
-        "/rules/transforms.html#strip-whitespace";
-    sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].Transform =
-        TransformStripWhitespace;
+            "/rules/transforms.html#strip-whitespace";
+    sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].Transform = TransformStripWhitespace;
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].TransformValidate =
-        TransformStripWhitespaceValidate;
-    sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].Setup =
-        DetectTransformStripWhitespaceSetup;
+            TransformStripWhitespaceValidate;
+    sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].Setup = DetectTransformStripWhitespaceSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].RegisterTests =
-        DetectTransformStripWhitespaceRegisterTests;
+            DetectTransformStripWhitespaceRegisterTests;
 #endif
     sigmatch_table[DETECT_TRANSFORM_STRIP_WHITESPACE].flags |= SIGMATCH_NOOPT;
 }
@@ -71,7 +70,8 @@ void DetectTransformStripWhitespaceRegister(void)
  *  \retval 0 ok
  *  \retval -1 failure
  */
-static int DetectTransformStripWhitespaceSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+static int DetectTransformStripWhitespaceSetup(
+        DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_STRIP_WHITESPACE, NULL);
@@ -86,8 +86,8 @@ static int DetectTransformStripWhitespaceSetup (DetectEngineCtx *de_ctx, Signatu
  *  \retval false If the string contains spaces
  *  \retval true Otherwise.
  */
-static bool TransformStripWhitespaceValidate(const uint8_t *content,
-        uint16_t content_len, void *options)
+static bool TransformStripWhitespaceValidate(
+        const uint8_t *content, uint16_t content_len, void *options)
 {
     if (content) {
         for (uint32_t i = 0; i < content_len; i++) {
@@ -109,7 +109,7 @@ static void TransformStripWhitespace(InspectionBuffer *buffer, void *options)
     uint8_t output[input_len]; // we can only shrink
     uint8_t *oi = output, *os = output;
 
-    //PrintRawDataFp(stdout, input, input_len);
+    // PrintRawDataFp(stdout, input, input_len);
     for (uint32_t i = 0; i < input_len; i++) {
         if (!isspace(*input)) {
             *oi++ = *input;
@@ -117,7 +117,7 @@ static void TransformStripWhitespace(InspectionBuffer *buffer, void *options)
         input++;
     }
     uint32_t output_size = oi - os;
-    //PrintRawDataFp(stdout, output, output_size);
+    // PrintRawDataFp(stdout, output, output_size);
 
     InspectionBufferCopy(buffer, os, output_size);
 }
@@ -181,7 +181,8 @@ static int DetectTransformStripWhitespaceTest02(void)
 
 static int DetectTransformStripWhitespaceTest03(void)
 {
-    const char rule[] = "alert http any any -> any any (http_request_line; strip_whitespace; content:\"GET/HTTP\"; sid:1;)";
+    const char rule[] = "alert http any any -> any any (http_request_line; strip_whitespace; "
+                        "content:\"GET/HTTP\"; sid:1;)";
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&th_v, 0, sizeof(th_v));
@@ -199,11 +200,8 @@ static int DetectTransformStripWhitespaceTest03(void)
 
 static void DetectTransformStripWhitespaceRegisterTests(void)
 {
-    UtRegisterTest("DetectTransformStripWhitespaceTest01",
-            DetectTransformStripWhitespaceTest01);
-    UtRegisterTest("DetectTransformStripWhitespaceTest02",
-            DetectTransformStripWhitespaceTest02);
-    UtRegisterTest("DetectTransformStripWhitespaceTest03",
-            DetectTransformStripWhitespaceTest03);
+    UtRegisterTest("DetectTransformStripWhitespaceTest01", DetectTransformStripWhitespaceTest01);
+    UtRegisterTest("DetectTransformStripWhitespaceTest02", DetectTransformStripWhitespaceTest02);
+    UtRegisterTest("DetectTransformStripWhitespaceTest03", DetectTransformStripWhitespaceTest03);
 }
 #endif

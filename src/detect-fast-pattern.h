@@ -25,8 +25,7 @@
 #define __DETECT_FAST_PATTERN_H__
 
 void SupportFastPatternForSigMatchList(int list_id, int priority);
-int FastPatternSupportEnabledForSigMatchList(const DetectEngineCtx *de_ctx,
-        const int list_id);
+int FastPatternSupportEnabledForSigMatchList(const DetectEngineCtx *de_ctx, const int list_id);
 
 void SupportFastPatternForSigMatchTypes(void);
 void DetectEngineRegisterFastPatternForId(DetectEngineCtx *de_ctx, int list_id, int priority);
@@ -37,4 +36,3 @@ void DetectEngineFreeFastPatternList(DetectEngineCtx *de_ctx);
 void DetectFastPatternRegister(void);
 
 #endif /* __DETECT_FAST_PATTERN_H__ */
-

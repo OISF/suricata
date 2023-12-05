@@ -31,4 +31,3 @@ void EveHttpLogJSONBodyPrintable(JsonBuilder *js, Flow *f, uint64_t tx_id);
 void EveHttpLogJSONBodyBase64(JsonBuilder *js, Flow *f, uint64_t tx_id);
 
 #endif /* __OUTPUT_JSON_HTTP_H__ */
-

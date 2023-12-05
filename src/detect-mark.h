@@ -28,7 +28,6 @@
 #ifndef __DETECT_MARK_H__
 #define __DETECT_MARK_H__
 
-
 /**
  * \struct DetectMarkData_
  * DetectMarkData_ is used to store nfq_set_mark: input value
@@ -40,14 +39,14 @@
  */
 
 typedef struct DetectMarkData_ {
-    uint32_t mark;  /**< Rule mark */
-    uint32_t mask;  /**< Rule mask */
+    uint32_t mark; /**< Rule mark */
+    uint32_t mask; /**< Rule mask */
 } DetectMarkData;
 
 /**
  * Registration function for nfq_set_mark: keyword
  */
 
-void DetectMarkRegister (void);
+void DetectMarkRegister(void);
 
 #endif /*__DETECT_MARK_H__ */

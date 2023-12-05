@@ -28,18 +28,18 @@
 uint16_t DecodeVLANGetId(const struct Packet_ *, uint8_t layer);
 
 /** Vlan type */
-#define ETHERNET_TYPE_VLAN          0x8100
+#define ETHERNET_TYPE_VLAN 0x8100
 
 /** Vlan macros to access Vlan priority, Vlan CFI and VID */
-#define GET_VLAN_PRIORITY(vlanh)    ((SCNtohs((vlanh)->vlan_cfi) & 0xe000) >> 13)
-#define GET_VLAN_CFI(vlanh)         ((SCNtohs((vlanh)->vlan_cfi) & 0x0100) >> 12)
-#define GET_VLAN_ID(vlanh)          ((uint16_t)(SCNtohs((vlanh)->vlan_cfi) & 0x0FFF))
-#define GET_VLAN_PROTO(vlanh)       ((SCNtohs((vlanh)->protocol)))
+#define GET_VLAN_PRIORITY(vlanh) ((SCNtohs((vlanh)->vlan_cfi) & 0xe000) >> 13)
+#define GET_VLAN_CFI(vlanh)      ((SCNtohs((vlanh)->vlan_cfi) & 0x0100) >> 12)
+#define GET_VLAN_ID(vlanh)       ((uint16_t)(SCNtohs((vlanh)->vlan_cfi) & 0x0FFF))
+#define GET_VLAN_PROTO(vlanh)    ((SCNtohs((vlanh)->protocol)))
 
 /** Vlan header struct */
 typedef struct VLANHdr_ {
     uint16_t vlan_cfi;
-    uint16_t protocol;  /**< protocol field */
+    uint16_t protocol; /**< protocol field */
 } __attribute__((__packed__)) VLANHdr;
 
 /** VLAN header length */
@@ -52,4 +52,3 @@ void DecodeVLANRegisterTests(void);
 #define VLAN_MAX_LAYER_IDX (VLAN_MAX_LAYERS - 1)
 
 #endif /* __DECODE_VLAN_H__ */
-

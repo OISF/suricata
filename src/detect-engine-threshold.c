@@ -84,7 +84,8 @@ void ThresholdInit(void)
     if (host_threshold_id.id == -1) {
         FatalError("Can't initiate host storage for thresholding");
     }
-    ippair_threshold_id = IPPairStorageRegister("threshold", sizeof(void *), NULL, ThresholdListFree);
+    ippair_threshold_id =
+            IPPairStorageRegister("threshold", sizeof(void *), NULL, ThresholdListFree);
     if (ippair_threshold_id.id == -1) {
         FatalError("Can't initiate IP pair storage for thresholding");
     }
@@ -178,8 +179,7 @@ static DetectThresholdEntry *ThresholdTimeoutCheck(DetectThresholdEntry *head, S
         DetectThresholdEntry *tde = tmp;
         if (prev != NULL) {
             prev->next = tmp->next;
-        }
-        else {
+        } else {
             new_head = tmp->next;
         }
         tmp = tde->next;
@@ -191,7 +191,7 @@ static DetectThresholdEntry *ThresholdTimeoutCheck(DetectThresholdEntry *head, S
 
 int ThresholdHostTimeoutCheck(Host *host, SCTime_t ts)
 {
-    DetectThresholdEntry* head = HostGetStorageById(host, host_threshold_id);
+    DetectThresholdEntry *head = HostGetStorageById(host, host_threshold_id);
     DetectThresholdEntry *new_head = ThresholdTimeoutCheck(head, ts);
     if (new_head != head) {
         HostSetStorageById(host, host_threshold_id, new_head);
@@ -201,7 +201,7 @@ int ThresholdHostTimeoutCheck(Host *host, SCTime_t ts)
 
 int ThresholdIPPairTimeoutCheck(IPPair *pair, SCTime_t ts)
 {
-    DetectThresholdEntry* head = IPPairGetStorageById(pair, ippair_threshold_id);
+    DetectThresholdEntry *head = IPPairGetStorageById(pair, ippair_threshold_id);
     DetectThresholdEntry *new_head = ThresholdTimeoutCheck(head, ts);
     if (new_head != head) {
         IPPairSetStorageById(pair, ippair_threshold_id, new_head);
@@ -209,9 +209,8 @@ int ThresholdIPPairTimeoutCheck(IPPair *pair, SCTime_t ts)
     return new_head == NULL;
 }
 
-static DetectThresholdEntry *
-DetectThresholdEntryAlloc(const DetectThresholdData *td, Packet *p,
-                          uint32_t sid, uint32_t gid)
+static DetectThresholdEntry *DetectThresholdEntryAlloc(
+        const DetectThresholdData *td, Packet *p, uint32_t sid, uint32_t gid)
 {
     SCEnter();
 
@@ -228,8 +227,7 @@ DetectThresholdEntryAlloc(const DetectThresholdData *td, Packet *p,
     SCReturnPtr(ste, "DetectThresholdEntry");
 }
 
-static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h,
-        uint32_t sid, uint32_t gid)
+static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h, uint32_t sid, uint32_t gid)
 {
     DetectThresholdEntry *e;
 
@@ -241,8 +239,7 @@ static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h,
     return e;
 }
 
-static DetectThresholdEntry *ThresholdIPPairLookupEntry(IPPair *pair,
-        uint32_t sid, uint32_t gid)
+static DetectThresholdEntry *ThresholdIPPairLookupEntry(IPPair *pair, uint32_t sid, uint32_t gid)
 {
     DetectThresholdEntry *e;
 
@@ -254,8 +251,8 @@ static DetectThresholdEntry *ThresholdIPPairLookupEntry(IPPair *pair,
     return e;
 }
 
-static int ThresholdHandlePacketSuppress(Packet *p,
-        const DetectThresholdData *td, uint32_t sid, uint32_t gid)
+static int ThresholdHandlePacketSuppress(
+        Packet *p, const DetectThresholdData *td, uint32_t sid, uint32_t gid)
 {
     int ret = 0;
     DetectAddress *m = NULL;
@@ -315,22 +312,22 @@ static inline void RateFilterSetAction(Packet *p, PacketAlert *pa, uint8_t new_a
 }
 
 /**
-* \brief Check if the entry reached threshold count limit
-*
-* \param lookup_tsh Current threshold entry
-* \param td Threshold settings
-* \param packet_time used to compare against previous detection and to set timeouts
-*
-* \retval int 1 if threshold reached for this entry
-*
-*/
+ * \brief Check if the entry reached threshold count limit
+ *
+ * \param lookup_tsh Current threshold entry
+ * \param td Threshold settings
+ * \param packet_time used to compare against previous detection and to set timeouts
+ *
+ * \retval int 1 if threshold reached for this entry
+ *
+ */
 static int IsThresholdReached(
         DetectThresholdEntry *lookup_tsh, const DetectThresholdData *td, SCTime_t packet_time)
 {
     int ret = 0;
 
     /* Check if we have a timeout enabled, if so,
-    * we still matching (and enabling the new_action) */
+     * we still matching (and enabling the new_action) */
     if (lookup_tsh->tv_timeout != 0) {
         if ((SCTIME_SECS(packet_time) - lookup_tsh->tv_timeout) > td->timeout) {
             /* Ok, we are done, timeout reached */
@@ -340,15 +337,14 @@ static int IsThresholdReached(
             ret = 1;
         } /* else - if ((packet_time - lookup_tsh->tv_timeout) > td->timeout) */
 
-    }
-    else {
+    } else {
         /* Update the matching state with the timeout interval */
         SCTime_t entry = SCTIME_ADD_SECS(lookup_tsh->tv1, td->seconds);
         if (SCTIME_CMP_LTE(packet_time, entry)) {
             lookup_tsh->current_count++;
             if (lookup_tsh->current_count > td->count) {
                 /* Then we must enable the new action by setting a
-                * timeout */
+                 * timeout */
                 lookup_tsh->tv_timeout = SCTIME_SECS(packet_time);
                 ret = 1;
             }
@@ -392,17 +388,16 @@ static void AddEntryToIPPairStorage(IPPair *pair, DetectThresholdEntry *e, SCTim
  *  for this rule, then it will be returned in new_tsh.
  */
 static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
-        DetectThresholdEntry **new_tsh, const DetectThresholdData *td,
-        uint32_t sid, uint32_t gid, PacketAlert *pa)
+        DetectThresholdEntry **new_tsh, const DetectThresholdData *td, uint32_t sid, uint32_t gid,
+        PacketAlert *pa)
 {
     int ret = 0;
 
-    switch(td->type)   {
-        case TYPE_LIMIT:
-        {
+    switch (td->type) {
+        case TYPE_LIMIT: {
             SCLogDebug("limit");
 
-            if (lookup_tsh != NULL)  {
+            if (lookup_tsh != NULL) {
                 SCTime_t entry = SCTIME_ADD_SECS(lookup_tsh->tv1, td->seconds);
                 if (SCTIME_CMP_LTE(p->ts, entry)) {
                     lookup_tsh->current_count++;
@@ -425,11 +420,10 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
             }
             break;
         }
-        case TYPE_THRESHOLD:
-        {
+        case TYPE_THRESHOLD: {
             SCLogDebug("threshold");
 
-            if (lookup_tsh != NULL)  {
+            if (lookup_tsh != NULL) {
                 SCTime_t entry = SCTIME_ADD_SECS(lookup_tsh->tv1, td->seconds);
                 if (SCTIME_CMP_LTE(p->ts, entry)) {
                     lookup_tsh->current_count++;
@@ -443,7 +437,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
                     lookup_tsh->current_count = 1;
                 }
             } else {
-                if (td->count == 1)  {
+                if (td->count == 1) {
                     ret = 1;
                 } else {
                     *new_tsh = DetectThresholdEntryAlloc(td, p, sid, gid);
@@ -451,8 +445,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
             }
             break;
         }
-        case TYPE_BOTH:
-        {
+        case TYPE_BOTH: {
             SCLogDebug("both");
 
             if (lookup_tsh != NULL) {
@@ -482,15 +475,14 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
 
                 /* for the first match we return 1 to
                  * indicate we should alert */
-                if (td->count == 1)  {
+                if (td->count == 1) {
                     ret = 1;
                 }
             }
             break;
         }
         /* detection_filter */
-        case TYPE_DETECTION:
-        {
+        case TYPE_DETECTION: {
             SCLogDebug("detection_filter");
 
             if (lookup_tsh != NULL) {
@@ -512,8 +504,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
             break;
         }
         /* rate_filter */
-        case TYPE_RATE:
-        {
+        case TYPE_RATE: {
             SCLogDebug("rate_filter");
             ret = 1;
             if (lookup_tsh && IsThresholdReached(lookup_tsh, td, p->ts)) {
@@ -531,7 +522,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
 }
 
 static int ThresholdHandlePacketIPPair(IPPair *pair, Packet *p, const DetectThresholdData *td,
-    uint32_t sid, uint32_t gid, PacketAlert *pa)
+        uint32_t sid, uint32_t gid, PacketAlert *pa)
 {
     int ret = 0;
 
@@ -572,7 +563,7 @@ static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p,
 {
     int ret = 0;
 
-    DetectThresholdEntry* lookup_tsh = (DetectThresholdEntry *)de_ctx->ths_ctx.th_entry[s->num];
+    DetectThresholdEntry *lookup_tsh = (DetectThresholdEntry *)de_ctx->ths_ctx.th_entry[s->num];
     SCLogDebug("by_rule lookup_tsh %p num %u", lookup_tsh, s->num);
 
     DetectThresholdEntry *new_tsh = NULL;
@@ -610,17 +601,17 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     }
 
     if (td->type == TYPE_SUPPRESS) {
-        ret = ThresholdHandlePacketSuppress(p,td,s->id,s->gid);
+        ret = ThresholdHandlePacketSuppress(p, td, s->id, s->gid);
     } else if (td->track == TRACK_SRC) {
         Host *src = HostGetHostFromHash(&p->src);
         if (src) {
-            ret = ThresholdHandlePacketHost(src,p,td,s->id,s->gid,pa);
+            ret = ThresholdHandlePacketHost(src, p, td, s->id, s->gid, pa);
             HostRelease(src);
         }
     } else if (td->track == TRACK_DST) {
         Host *dst = HostGetHostFromHash(&p->dst);
         if (dst) {
-            ret = ThresholdHandlePacketHost(dst,p,td,s->id,s->gid,pa);
+            ret = ThresholdHandlePacketHost(dst, p, td, s->id, s->gid, pa);
             HostRelease(dst);
         }
     } else if (td->track == TRACK_BOTH) {
@@ -631,7 +622,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         }
     } else if (td->track == TRACK_RULE) {
         SCMutexLock(&de_ctx->ths_ctx.threshold_table_lock);
-        ret = ThresholdHandlePacketRule(de_ctx,p,td,s,pa);
+        ret = ThresholdHandlePacketRule(de_ctx, p, td, s, pa);
         SCMutexUnlock(&de_ctx->ths_ctx.threshold_table_lock);
     }
 

@@ -39,31 +39,32 @@
 #include <htp/htp.h>
 
 /* default request body limit */
-#define HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT           4096U
-#define HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT          4096U
-#define HTP_CONFIG_DEFAULT_REQUEST_INSPECT_MIN_SIZE     32768U
-#define HTP_CONFIG_DEFAULT_REQUEST_INSPECT_WINDOW       4096U
-#define HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_MIN_SIZE    32768U
-#define HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_WINDOW      4096U
-#define HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT             9000U
-#define HTP_CONFIG_DEFAULT_FIELD_LIMIT_HARD             18000U
+#define HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT        4096U
+#define HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT       4096U
+#define HTP_CONFIG_DEFAULT_REQUEST_INSPECT_MIN_SIZE  32768U
+#define HTP_CONFIG_DEFAULT_REQUEST_INSPECT_WINDOW    4096U
+#define HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_MIN_SIZE 32768U
+#define HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_WINDOW   4096U
+#define HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT          9000U
+#define HTP_CONFIG_DEFAULT_FIELD_LIMIT_HARD          18000U
 
 #define HTP_CONFIG_DEFAULT_LZMA_LAYERS 0U
 /* default libhtp lzma limit, taken from libhtp. */
-#define HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT                1048576U
-#define HTP_CONFIG_DEFAULT_COMPRESSION_BOMB_LIMIT       1048576U
+#define HTP_CONFIG_DEFAULT_LZMA_MEMLIMIT          1048576U
+#define HTP_CONFIG_DEFAULT_COMPRESSION_BOMB_LIMIT 1048576U
 // 100000 usec is 0.1 sec
 #define HTP_CONFIG_DEFAULT_COMPRESSION_TIME_LIMIT 100000
 
-#define HTP_CONFIG_DEFAULT_RANDOMIZE                    1
-#define HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE              10
+#define HTP_CONFIG_DEFAULT_RANDOMIZE       1
+#define HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE 10
 
 /** a boundary should be smaller in size */
-#define HTP_BOUNDARY_MAX                            200U
+#define HTP_BOUNDARY_MAX 200U
 
 // 0x0001 not used
-#define HTP_FLAG_STATE_CLOSED_TS    0x0002    /**< Flag to indicate that HTTP
-                                             connection is closed */
+#define HTP_FLAG_STATE_CLOSED_TS                                                                   \
+    0x0002 /**< Flag to indicate that HTTP                                                         \
+          connection is closed */
 #define HTP_FLAG_STATE_CLOSED_TC                                                                   \
     0x0004 /**< Flag to indicate that HTTP                                                         \
           connection is closed */
@@ -154,18 +155,18 @@ typedef struct HTPCfgDir_ {
 
 /** Need a linked list in order to keep track of these */
 typedef struct HTPCfgRec_ {
-    htp_cfg_t           *cfg;
-    struct HTPCfgRec_   *next;
+    htp_cfg_t *cfg;
+    struct HTPCfgRec_ *next;
 
     /** max size of the client body we inspect */
-    int                 randomize;
-    int                 randomize_range;
-    int                 http_body_inline;
+    int randomize;
+    int randomize_range;
+    int http_body_inline;
 
-    int                 swf_decompression_enabled;
-    HtpSwfCompressType  swf_compression_type;
-    uint32_t            swf_decompress_depth;
-    uint32_t            swf_compress_depth;
+    int swf_decompression_enabled;
+    HtpSwfCompressType swf_compression_type;
+    uint32_t swf_decompress_depth;
+    uint32_t swf_compress_depth;
 
     HTPCfgDir request;
     HTPCfgDir response;
@@ -196,13 +197,13 @@ typedef struct HtpBody_ {
     uint64_t body_inspected;
 } HtpBody;
 
-#define HTP_BOUNDARY_SET        BIT_U8(1)    /**< We have a boundary string */
-#define HTP_FILENAME_SET        BIT_U8(3)    /**< filename is registered in the flow */
-#define HTP_DONTSTORE           BIT_U8(4)    /**< not storing this file */
-#define HTP_STREAM_DEPTH_SET    BIT_U8(5)    /**< stream-depth is set */
+#define HTP_BOUNDARY_SET     BIT_U8(1) /**< We have a boundary string */
+#define HTP_FILENAME_SET     BIT_U8(3) /**< filename is registered in the flow */
+#define HTP_DONTSTORE        BIT_U8(4) /**< not storing this file */
+#define HTP_STREAM_DEPTH_SET BIT_U8(5) /**< stream-depth is set */
 
 /** Now the Body Chunks will be stored per transaction, at
-  * the tx user data */
+ * the tx user data */
 typedef struct HtpTxUserData_ {
     /* Body of the request (if any) */
     uint8_t request_body_init;
@@ -245,7 +246,7 @@ typedef struct HtpState_ {
     htp_connp_t *connp;
     /* Connection structure for each connection */
     htp_conn_t *conn;
-    Flow *f;                /**< Needed to retrieve the original flow when using HTPLib callbacks */
+    Flow *f; /**< Needed to retrieve the original flow when using HTPLib callbacks */
     uint64_t transaction_cnt;
     const struct HTPCfgRec_ *cfg;
     uint16_t flags;
@@ -261,14 +262,14 @@ typedef struct HtpState_ {
 } HtpState;
 
 /** part of the engine needs the request body (e.g. http_client_body keyword) */
-#define HTP_REQUIRE_REQUEST_BODY        (1 << 0)
+#define HTP_REQUIRE_REQUEST_BODY (1 << 0)
 /** part of the engine needs the request body multipart header (e.g. filename
  *  and / or fileext keywords) */
-#define HTP_REQUIRE_REQUEST_MULTIPART   (1 << 1)
+#define HTP_REQUIRE_REQUEST_MULTIPART (1 << 1)
 /** part of the engine needs the request file (e.g. log-file module) */
-#define HTP_REQUIRE_REQUEST_FILE        (1 << 2)
+#define HTP_REQUIRE_REQUEST_FILE (1 << 2)
 /** part of the engine needs the request body (e.g. file_data keyword) */
-#define HTP_REQUIRE_RESPONSE_BODY       (1 << 3)
+#define HTP_REQUIRE_RESPONSE_BODY (1 << 3)
 
 SC_ATOMIC_EXTERN(uint32_t, htp_config_flags);
 
@@ -290,7 +291,7 @@ void HtpConfigRestoreBackup(void);
 
 void *HtpGetTxForH2(void *);
 
-#endif	/* __APP_LAYER_HTP_H__ */
+#endif /* __APP_LAYER_HTP_H__ */
 
 /**
  * @}

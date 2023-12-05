@@ -30,4 +30,3 @@ uint32_t HostGetSpareCount(void);
 uint32_t HostGetActiveCount(void);
 
 #endif
-

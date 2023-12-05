@@ -27,12 +27,11 @@
 #include "decode.h"
 
 int ReCalculateChecksum(Packet *p);
-int ChecksumAutoModeCheck(uint64_t thread_count,
-        uint64_t iface_count, uint64_t iface_fail);
+int ChecksumAutoModeCheck(uint64_t thread_count, uint64_t iface_count, uint64_t iface_fail);
 
 /* constant linked with detection of interface with
  * invalid checksums */
-#define CHECKSUM_SAMPLE_COUNT 1000ULL
+#define CHECKSUM_SAMPLE_COUNT  1000ULL
 #define CHECKSUM_INVALID_RATIO 10
 
 #endif

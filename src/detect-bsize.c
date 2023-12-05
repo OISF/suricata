@@ -38,11 +38,11 @@
 #include "util-misc.h"
 
 /*prototypes*/
-static int DetectBsizeSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectBsizeFree (DetectEngineCtx *, void *);
+static int DetectBsizeSetup(DetectEngineCtx *, Signature *, const char *);
+static void DetectBsizeFree(DetectEngineCtx *, void *);
 static int SigParseGetMaxBsize(DetectU64Data *bsz);
 #ifdef UNITTESTS
-static void DetectBsizeRegisterTests (void);
+static void DetectBsizeRegisterTests(void);
 #endif
 
 bool DetectBsizeValidateContentCallback(Signature *s, const SignatureInitDataBuffer *b)
@@ -196,7 +196,7 @@ static int SigParseGetMaxBsize(DetectU64Data *bsz)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectBsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *sizestr)
+static int DetectBsizeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *sizestr)
 {
     SCEnter();
 

@@ -25,7 +25,7 @@
 #define __DETECT_FILEDATA_H__
 
 /* prototypes */
-void DetectFiledataRegister (void);
+void DetectFiledataRegister(void);
 
 typedef struct PrefilterMpmFiledata {
     int list_id;

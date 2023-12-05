@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -65,9 +64,8 @@ static void DetectHttpHHRegisterTests(void);
 static bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror);
 static int DetectHttpHostSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *_f, const uint8_t _flow_flags,
-        void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id);
@@ -75,8 +73,8 @@ static int DetectHttpHRHSetup(DetectEngineCtx *, Signature *, const char *);
 static int g_http_raw_host_buffer_id = 0;
 static int DetectHttpHostRawSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id);
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id);
 static InspectionBuffer *GetRawData2(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id);
@@ -90,12 +88,13 @@ void DetectHttpHHRegister(void)
     /* http_host content modifier */
     sigmatch_table[DETECT_AL_HTTP_HOST].name = "http_host";
     sigmatch_table[DETECT_AL_HTTP_HOST].desc = "content modifier to match on the HTTP hostname";
-    sigmatch_table[DETECT_AL_HTTP_HOST].url = "/rules/http-keywords.html#http-host-and-http-raw-host";
+    sigmatch_table[DETECT_AL_HTTP_HOST].url =
+            "/rules/http-keywords.html#http-host-and-http-raw-host";
     sigmatch_table[DETECT_AL_HTTP_HOST].Setup = DetectHttpHHSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_HOST].RegisterTests = DetectHttpHHRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_CONTENT_MODIFIER;
     sigmatch_table[DETECT_AL_HTTP_HOST].alternative = DETECT_HTTP_HOST;
 
     /* http.host sticky buffer */
@@ -103,7 +102,7 @@ void DetectHttpHHRegister(void)
     sigmatch_table[DETECT_HTTP_HOST].desc = "sticky buffer to match on the HTTP Host buffer";
     sigmatch_table[DETECT_HTTP_HOST].url = "/rules/http-keywords.html#http-host-and-http-raw-host";
     sigmatch_table[DETECT_HTTP_HOST].Setup = DetectHttpHostSetup;
-    sigmatch_table[DETECT_HTTP_HOST].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP_HOST].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_host", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_HEADERS, DetectEngineInspectBufferGeneric, GetData);
@@ -117,28 +116,31 @@ void DetectHttpHHRegister(void)
     DetectAppLayerMpmRegister2("http_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData2, ALPROTO_HTTP2, HTTP2StateDataClient);
 
-    DetectBufferTypeRegisterValidateCallback("http_host",
-            DetectHttpHostValidateCallback);
+    DetectBufferTypeRegisterValidateCallback("http_host", DetectHttpHostValidateCallback);
 
-    DetectBufferTypeSetDescriptionByName("http_host",
-            "http host");
+    DetectBufferTypeSetDescriptionByName("http_host", "http host");
 
     g_http_host_buffer_id = DetectBufferTypeGetByName("http_host");
 
     /* http_raw_host content modifier */
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].name = "http_raw_host";
-    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].desc = "content modifier to match on the HTTP host header or the raw hostname from the HTTP uri";
-    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].url = "/rules/http-keywords.html#http-host-and-http-raw-host";
+    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].desc = "content modifier to match on the HTTP host "
+                                                   "header or the raw hostname from the HTTP uri";
+    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].url =
+            "/rules/http-keywords.html#http-host-and-http-raw-host";
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].Setup = DetectHttpHRHSetup;
-    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_CONTENT_MODIFIER;
+    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].flags |=
+            SIGMATCH_NOOPT | SIGMATCH_INFO_CONTENT_MODIFIER;
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].alternative = DETECT_HTTP_HOST_RAW;
 
     /* http.host sticky buffer */
     sigmatch_table[DETECT_HTTP_HOST_RAW].name = "http.host.raw";
-    sigmatch_table[DETECT_HTTP_HOST_RAW].desc = "sticky buffer to match on the HTTP host header or the raw hostname from the HTTP uri";
-    sigmatch_table[DETECT_HTTP_HOST_RAW].url = "/rules/http-keywords.html#http-host-and-http-raw-host";
+    sigmatch_table[DETECT_HTTP_HOST_RAW].desc =
+            "sticky buffer to match on the HTTP host header or the raw hostname from the HTTP uri";
+    sigmatch_table[DETECT_HTTP_HOST_RAW].url =
+            "/rules/http-keywords.html#http-host-and-http-raw-host";
     sigmatch_table[DETECT_HTTP_HOST_RAW].Setup = DetectHttpHostRawSetupSticky;
-    sigmatch_table[DETECT_HTTP_HOST_RAW].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_HTTP_HOST_RAW].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister2("http_raw_host", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_HEADERS, DetectEngineInspectBufferGeneric, GetRawData);
@@ -152,8 +154,7 @@ void DetectHttpHHRegister(void)
     DetectAppLayerMpmRegister2("http_raw_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetRawData2, ALPROTO_HTTP2, HTTP2StateDataClient);
 
-    DetectBufferTypeSetDescriptionByName("http_raw_host",
-            "http raw host header");
+    DetectBufferTypeSetDescriptionByName("http_raw_host", "http raw host header");
 
     g_http_raw_host_buffer_id = DetectBufferTypeGetByName("http_raw_host");
 }
@@ -235,8 +236,8 @@ static int DetectHttpHostSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -335,8 +336,8 @@ static int DetectHttpHostRawSetupSticky(DetectEngineCtx *de_ctx, Signature *s, c
 }
 
 static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -349,8 +350,7 @@ static InspectionBuffer *GetRawData(DetectEngineThreadCtx *det_ctx,
             if (tx->request_headers == NULL)
                 return NULL;
 
-            htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
-                    "Host");
+            htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers, "Host");
             if (h == NULL || h->value == NULL)
                 return NULL;
 

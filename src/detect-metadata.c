@@ -36,19 +36,19 @@
 #include "rust.h"
 #include "util-validate.h"
 
-static int DetectMetadataSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectMetadataSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectMetadataRegisterTests(void);
 #endif
 
-void DetectMetadataRegister (void)
+void DetectMetadataRegister(void)
 {
     sigmatch_table[DETECT_METADATA].name = "metadata";
     sigmatch_table[DETECT_METADATA].desc = "used for logging";
     sigmatch_table[DETECT_METADATA].url = "/rules/meta.html#metadata";
     sigmatch_table[DETECT_METADATA].Match = NULL;
     sigmatch_table[DETECT_METADATA].Setup = DetectMetadataSetup;
-    sigmatch_table[DETECT_METADATA].Free  = NULL;
+    sigmatch_table[DETECT_METADATA].Free = NULL;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_METADATA].RegisterTests = DetectMetadataRegisterTests;
 #endif
@@ -68,10 +68,11 @@ void DetectMetadataFree(DetectMetadata *mdata)
 
 int DetectMetadataHashInit(DetectEngineCtx *de_ctx)
 {
-    if (! DetectEngineMustParseMetadata())
+    if (!DetectEngineMustParseMetadata())
         return 0;
 
-    de_ctx->metadata_table = HashTableInit(4096, StringHashFunc, StringHashCompareFunc, StringHashFreeFunc);
+    de_ctx->metadata_table =
+            HashTableInit(4096, StringHashFunc, StringHashCompareFunc, StringHashFreeFunc);
     if (de_ctx->metadata_table == NULL)
         return -1;
     return 0;
@@ -159,7 +160,7 @@ static char *CraftPreformattedJSON(const DetectMetadata *head)
     jb_close(js);
     /* we have a complete json builder. Now store it as a C string */
     const size_t len = jb_len(js);
-#define MD_STR "\"metadata\":"
+#define MD_STR     "\"metadata\":"
 #define MD_STR_LEN (sizeof(MD_STR) - 1)
     char *str = SCMalloc(len + MD_STR_LEN + 1);
     if (str == NULL) {
@@ -181,7 +182,7 @@ static char *CraftPreformattedJSON(const DetectMetadata *head)
 static int DetectMetadataParse(DetectEngineCtx *de_ctx, Signature *s, const char *metadatastr)
 {
     DetectMetadata *head = s->metadata ? s->metadata->list : NULL;
-    char copy[strlen(metadatastr)+1];
+    char copy[strlen(metadatastr) + 1];
     strlcpy(copy, metadatastr, sizeof(copy));
     char *xsaveptr = NULL;
     char *key = strtok_r(copy, ",", &xsaveptr);
@@ -235,7 +236,7 @@ static int DetectMetadataParse(DetectEngineCtx *de_ctx, Signature *s, const char
         if (s->metadata == NULL) {
             s->metadata = SCCalloc(1, sizeof(*s->metadata));
             if (s->metadata == NULL) {
-                for (DetectMetadata *m = head; m != NULL; ) {
+                for (DetectMetadata *m = head; m != NULL;) {
                     DetectMetadata *next_m = m->next;
                     DetectMetadataFree(m);
                     m = next_m;
@@ -267,11 +268,10 @@ static int DetectMetadataParseTest01(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-                                           "alert tcp any any -> any any "
-                                           "(metadata: toto 1; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                                   "(metadata: toto 1; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
-    FAIL_IF(sig->metadata); 
+    FAIL_IF(sig->metadata);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
@@ -282,25 +282,24 @@ static int DetectMetadataParseTest02(void)
     DetectEngineSetParseMetadata();
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-                                           "alert tcp any any -> any any "
-                                           "(metadata: toto 1; "
-                                           "metadata: titi 2, jaivu gros_minet;"
-                                           "sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                                   "(metadata: toto 1; "
+                                                   "metadata: titi 2, jaivu gros_minet;"
+                                                   "sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
-    FAIL_IF_NULL(sig->metadata); 
-    FAIL_IF_NULL(sig->metadata->list); 
-    FAIL_IF_NULL(sig->metadata->list->key); 
+    FAIL_IF_NULL(sig->metadata);
+    FAIL_IF_NULL(sig->metadata->list);
+    FAIL_IF_NULL(sig->metadata->list->key);
     FAIL_IF(strcmp("jaivu", sig->metadata->list->key));
     FAIL_IF(strcmp("gros_minet", sig->metadata->list->value));
-    FAIL_IF_NULL(sig->metadata->list->next); 
+    FAIL_IF_NULL(sig->metadata->list->next);
     DetectMetadata *dm = sig->metadata->list->next;
     FAIL_IF(strcmp("titi", dm->key));
     dm = dm->next;
     FAIL_IF_NULL(dm);
     FAIL_IF(strcmp("toto", dm->key));
-    FAIL_IF_NOT(strcmp(sig->metadata->json_str,
-        "\"metadata\":{\"jaivu\":[\"gros_minet\"],\"titi\":[\"2\"],\"toto\":[\"1\"]}") == 0);
+    FAIL_IF_NOT(strcmp(sig->metadata->json_str, "\"metadata\":{\"jaivu\":[\"gros_minet\"],\"titi\":"
+                                                "[\"2\"],\"toto\":[\"1\"]}") == 0);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }

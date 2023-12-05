@@ -40,7 +40,7 @@ typedef struct DetectDNP3_ {
     union {
         struct {
             /* Function code for function code detection. */
-            uint8_t  function_code;
+            uint8_t function_code;
         };
         struct {
             /* Internal indicator flags for IIN detection. */
@@ -48,8 +48,8 @@ typedef struct DetectDNP3_ {
         };
         struct {
             /* Object info for object detection. */
-            uint8_t  obj_group;
-            uint8_t  obj_variation;
+            uint8_t obj_group;
+            uint8_t obj_variation;
         };
     };
 } DetectDNP3;
@@ -58,69 +58,42 @@ typedef struct DetectDNP3_ {
  * Indicator names to value mappings (Snort compatible).
  */
 DNP3Mapping DNP3IndicatorsMap[] = {
-    {"device_restart",        0x8000},
-    {"device_trouble",        0x4000},
-    {"local_control",         0x2000},
-    {"need_time",             0x1000},
-    {"class_3_events",        0x0800},
-    {"class_2_events",        0x0400},
-    {"class_1_events",        0x0200},
-    {"all_stations",          0x0100},
+    { "device_restart", 0x8000 },
+    { "device_trouble", 0x4000 },
+    { "local_control", 0x2000 },
+    { "need_time", 0x1000 },
+    { "class_3_events", 0x0800 },
+    { "class_2_events", 0x0400 },
+    { "class_1_events", 0x0200 },
+    { "all_stations", 0x0100 },
 
-    {"reserved_1",            0x0080},
-    {"reserved_2",            0x0040},
-    {"config_corrupt",        0x0020},
-    {"already_executing",     0x0010},
-    {"event_buffer_overflow", 0x0008},
-    {"parameter_error",       0x0004},
-    {"object_unknown",        0x0002},
-    {"no_func_code_support",  0x0001},
+    { "reserved_1", 0x0080 },
+    { "reserved_2", 0x0040 },
+    { "config_corrupt", 0x0020 },
+    { "already_executing", 0x0010 },
+    { "event_buffer_overflow", 0x0008 },
+    { "parameter_error", 0x0004 },
+    { "object_unknown", 0x0002 },
+    { "no_func_code_support", 0x0001 },
 
-    {NULL, 0},
+    { NULL, 0 },
 };
 
 /**
  * Application function code name to code mappings (Snort compatible).
  */
-DNP3Mapping DNP3FunctionNameMap[] = {
-    {"confirm",              0},
-    {"read",                 1},
-    {"write",                2},
-    {"select",               3},
-    {"operate",              4},
-    {"direct_operate",       5},
-    {"direct_operate_nr",    6},
-    {"immed_freeze",         7},
-    {"immed_freeze_nr",      8},
-    {"freeze_clear",         9},
-    {"freeze_clear_nr",      10},
-    {"freeze_at_time",       11},
-    {"freeze_at_time_nr",    12},
-    {"cold_restart",         13},
-    {"warm_restart",         14},
-    {"initialize_data",      15},
-    {"initialize_appl",      16},
-    {"start_appl",           17},
-    {"stop_appl",            18},
-    {"save_config",          19},
-    {"enable_unsolicited",   20},
-    {"disable_unsolicited",  21},
-    {"assign_class",         22},
-    {"delay_measure",        23},
-    {"record_current_time",  24},
-    {"open_file",            25},
-    {"close_file",           26},
-    {"delete_file",          27},
-    {"get_file_info",        28},
-    {"authenticate_file",    29},
-    {"abort_file",           30},
-    {"activate_config",      31},
-    {"authenticate_req",     32},
-    {"authenticate_err",     33},
-    {"response",             129},
-    {"unsolicited_response", 130},
-    {"authenticate_resp",    131}
-};
+DNP3Mapping DNP3FunctionNameMap[] = { { "confirm", 0 }, { "read", 1 }, { "write", 2 },
+    { "select", 3 }, { "operate", 4 }, { "direct_operate", 5 }, { "direct_operate_nr", 6 },
+    { "immed_freeze", 7 }, { "immed_freeze_nr", 8 }, { "freeze_clear", 9 },
+    { "freeze_clear_nr", 10 }, { "freeze_at_time", 11 }, { "freeze_at_time_nr", 12 },
+    { "cold_restart", 13 }, { "warm_restart", 14 }, { "initialize_data", 15 },
+    { "initialize_appl", 16 }, { "start_appl", 17 }, { "stop_appl", 18 }, { "save_config", 19 },
+    { "enable_unsolicited", 20 }, { "disable_unsolicited", 21 }, { "assign_class", 22 },
+    { "delay_measure", 23 }, { "record_current_time", 24 }, { "open_file", 25 },
+    { "close_file", 26 }, { "delete_file", 27 }, { "get_file_info", 28 },
+    { "authenticate_file", 29 }, { "abort_file", 30 }, { "activate_config", 31 },
+    { "authenticate_req", 32 }, { "authenticate_err", 33 }, { "response", 129 },
+    { "unsolicited_response", 130 }, { "authenticate_resp", 131 } };
 
 #ifdef UNITTESTS
 static void DetectDNP3FuncRegisterTests(void);
@@ -146,9 +119,8 @@ static char *TrimString(char *str)
 }
 
 static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *_f, const uint8_t flow_flags,
-        void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     SCLogDebug("list_id %d", list_id);
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
@@ -190,8 +162,7 @@ static int DetectDNP3FuncParseFunctionCode(const char *str, uint8_t *fc)
     }
 
     /* Lookup by name. */
-    for (size_t i = 0;
-            i < sizeof(DNP3FunctionNameMap) / sizeof(DNP3Mapping); i++) {
+    for (size_t i = 0; i < sizeof(DNP3FunctionNameMap) / sizeof(DNP3Mapping); i++) {
         if (strcasecmp(str, DNP3FunctionNameMap[i].name) == 0) {
             *fc = (uint8_t)(DNP3FunctionNameMap[i].value);
             return 1;
@@ -388,9 +359,8 @@ static void DetectDNP3Free(DetectEngineCtx *de_ctx, void *ptr)
     SCReturn;
 }
 
-static int DetectDNP3FuncMatch(DetectEngineThreadCtx *det_ctx,
-    Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-    const SigMatchCtx *ctx)
+static int DetectDNP3FuncMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     DNP3Transaction *tx = (DNP3Transaction *)txv;
     DetectDNP3 *detect = (DetectDNP3 *)ctx;
@@ -405,9 +375,8 @@ static int DetectDNP3FuncMatch(DetectEngineThreadCtx *det_ctx,
     return match;
 }
 
-static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx,
-    Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-    const SigMatchCtx *ctx)
+static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     DNP3Transaction *tx = (DNP3Transaction *)txv;
     DetectDNP3 *detect = (DetectDNP3 *)ctx;
@@ -421,9 +390,8 @@ static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx,
 
     if (objects != NULL) {
         DNP3Object *object;
-        TAILQ_FOREACH(object, objects, next) {
-            if (object->group == detect->obj_group &&
-                object->variation == detect->obj_variation) {
+        TAILQ_FOREACH (object, objects, next) {
+            if (object->group == detect->obj_group && object->variation == detect->obj_variation) {
                 return 1;
             }
         }
@@ -432,9 +400,8 @@ static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx,
     return 0;
 }
 
-static int DetectDNP3IndMatch(DetectEngineThreadCtx *det_ctx,
-    Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
-    const SigMatchCtx *ctx)
+static int DetectDNP3IndMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     DNP3Transaction *tx = (DNP3Transaction *)txv;
     DetectDNP3 *detect = (DetectDNP3 *)ctx;
@@ -453,17 +420,17 @@ static void DetectDNP3FuncRegister(void)
 {
     SCEnter();
 
-    sigmatch_table[DETECT_AL_DNP3FUNC].name          = "dnp3_func";
-    sigmatch_table[DETECT_AL_DNP3FUNC].alias         = "dnp3.func";
-    sigmatch_table[DETECT_AL_DNP3FUNC].desc          = "match on the application function code found in DNP3 request and responses";
-    sigmatch_table[DETECT_AL_DNP3FUNC].url           = "/rules/dnp3-keywords.html#dnp3-func";
-    sigmatch_table[DETECT_AL_DNP3FUNC].Match         = NULL;
+    sigmatch_table[DETECT_AL_DNP3FUNC].name = "dnp3_func";
+    sigmatch_table[DETECT_AL_DNP3FUNC].alias = "dnp3.func";
+    sigmatch_table[DETECT_AL_DNP3FUNC].desc =
+            "match on the application function code found in DNP3 request and responses";
+    sigmatch_table[DETECT_AL_DNP3FUNC].url = "/rules/dnp3-keywords.html#dnp3-func";
+    sigmatch_table[DETECT_AL_DNP3FUNC].Match = NULL;
     sigmatch_table[DETECT_AL_DNP3FUNC].AppLayerTxMatch = DetectDNP3FuncMatch;
-    sigmatch_table[DETECT_AL_DNP3FUNC].Setup         = DetectDNP3FuncSetup;
-    sigmatch_table[DETECT_AL_DNP3FUNC].Free          = DetectDNP3Free;
+    sigmatch_table[DETECT_AL_DNP3FUNC].Setup = DetectDNP3FuncSetup;
+    sigmatch_table[DETECT_AL_DNP3FUNC].Free = DetectDNP3Free;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_DNP3FUNC].RegisterTests =
-        DetectDNP3FuncRegisterTests;
+    sigmatch_table[DETECT_AL_DNP3FUNC].RegisterTests = DetectDNP3FuncRegisterTests;
 #endif
     SCReturn;
 }
@@ -472,17 +439,17 @@ static void DetectDNP3IndRegister(void)
 {
     SCEnter();
 
-    sigmatch_table[DETECT_AL_DNP3IND].name          = "dnp3_ind";
-    sigmatch_table[DETECT_AL_DNP3IND].alias         = "dnp3.ind";
-    sigmatch_table[DETECT_AL_DNP3IND].desc          = "match on the DNP3 internal indicator flags in the response application header";
-    sigmatch_table[DETECT_AL_DNP3IND].url           = "/rules/dnp3-keywords.html#dnp3-ind";
-    sigmatch_table[DETECT_AL_DNP3IND].Match         = NULL;
+    sigmatch_table[DETECT_AL_DNP3IND].name = "dnp3_ind";
+    sigmatch_table[DETECT_AL_DNP3IND].alias = "dnp3.ind";
+    sigmatch_table[DETECT_AL_DNP3IND].desc =
+            "match on the DNP3 internal indicator flags in the response application header";
+    sigmatch_table[DETECT_AL_DNP3IND].url = "/rules/dnp3-keywords.html#dnp3-ind";
+    sigmatch_table[DETECT_AL_DNP3IND].Match = NULL;
     sigmatch_table[DETECT_AL_DNP3IND].AppLayerTxMatch = DetectDNP3IndMatch;
-    sigmatch_table[DETECT_AL_DNP3IND].Setup         = DetectDNP3IndSetup;
-    sigmatch_table[DETECT_AL_DNP3IND].Free          = DetectDNP3Free;
+    sigmatch_table[DETECT_AL_DNP3IND].Setup = DetectDNP3IndSetup;
+    sigmatch_table[DETECT_AL_DNP3IND].Free = DetectDNP3Free;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_DNP3IND].RegisterTests =
-        DetectDNP3IndRegisterTests;
+    sigmatch_table[DETECT_AL_DNP3IND].RegisterTests = DetectDNP3IndRegisterTests;
 #endif
     SCReturn;
 }
@@ -491,17 +458,16 @@ static void DetectDNP3ObjRegister(void)
 {
     SCEnter();
 
-    sigmatch_table[DETECT_AL_DNP3OBJ].name          = "dnp3_obj";
-    sigmatch_table[DETECT_AL_DNP3OBJ].alias         = "dnp3.obj";
-    sigmatch_table[DETECT_AL_DNP3OBJ].desc          = "match on the DNP3 application data objects";
-    sigmatch_table[DETECT_AL_DNP3OBJ].url           = "/rules/dnp3-keywords.html#dnp3-obj";
-    sigmatch_table[DETECT_AL_DNP3OBJ].Match         = NULL;
+    sigmatch_table[DETECT_AL_DNP3OBJ].name = "dnp3_obj";
+    sigmatch_table[DETECT_AL_DNP3OBJ].alias = "dnp3.obj";
+    sigmatch_table[DETECT_AL_DNP3OBJ].desc = "match on the DNP3 application data objects";
+    sigmatch_table[DETECT_AL_DNP3OBJ].url = "/rules/dnp3-keywords.html#dnp3-obj";
+    sigmatch_table[DETECT_AL_DNP3OBJ].Match = NULL;
     sigmatch_table[DETECT_AL_DNP3OBJ].AppLayerTxMatch = DetectDNP3ObjMatch;
-    sigmatch_table[DETECT_AL_DNP3OBJ].Setup         = DetectDNP3ObjSetup;
-    sigmatch_table[DETECT_AL_DNP3OBJ].Free          = DetectDNP3Free;
+    sigmatch_table[DETECT_AL_DNP3OBJ].Setup = DetectDNP3ObjSetup;
+    sigmatch_table[DETECT_AL_DNP3OBJ].Free = DetectDNP3Free;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_DNP3OBJ].RegisterTests =
-        DetectDNP3ObjRegisterTests;
+    sigmatch_table[DETECT_AL_DNP3OBJ].RegisterTests = DetectDNP3ObjRegisterTests;
 #endif
     SCReturn;
 }
@@ -522,28 +488,23 @@ static void DetectDNP3DataRegister(void)
 {
     SCEnter();
 
-    sigmatch_table[DETECT_AL_DNP3DATA].name          = "dnp3.data";
-    sigmatch_table[DETECT_AL_DNP3DATA].alias         = "dnp3_data";
-    sigmatch_table[DETECT_AL_DNP3DATA].desc          = "make the following content options to match on the re-assembled application buffer";
-    sigmatch_table[DETECT_AL_DNP3DATA].url           = "/rules/dnp3-keywords.html#dnp3-data";
-    sigmatch_table[DETECT_AL_DNP3DATA].Setup         = DetectDNP3DataSetup;
-    sigmatch_table[DETECT_AL_DNP3DATA].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_AL_DNP3DATA].name = "dnp3.data";
+    sigmatch_table[DETECT_AL_DNP3DATA].alias = "dnp3_data";
+    sigmatch_table[DETECT_AL_DNP3DATA].desc =
+            "make the following content options to match on the re-assembled application buffer";
+    sigmatch_table[DETECT_AL_DNP3DATA].url = "/rules/dnp3-keywords.html#dnp3-data";
+    sigmatch_table[DETECT_AL_DNP3DATA].Setup = DetectDNP3DataSetup;
+    sigmatch_table[DETECT_AL_DNP3DATA].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("dnp3_data",
-            ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectBufferGeneric,
-            GetDNP3Data);
-    DetectAppLayerMpmRegister2("dnp3_data", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetDNP3Data,
-            ALPROTO_DNP3, 0);
+    DetectAppLayerInspectEngineRegister2("dnp3_data", ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectBufferGeneric, GetDNP3Data);
+    DetectAppLayerMpmRegister2("dnp3_data", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetDNP3Data, ALPROTO_DNP3, 0);
 
-    DetectAppLayerInspectEngineRegister2("dnp3_data",
-            ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0,
-            DetectEngineInspectBufferGeneric,
-            GetDNP3Data);
-    DetectAppLayerMpmRegister2("dnp3_data", SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister, GetDNP3Data,
-            ALPROTO_DNP3, 0);
+    DetectAppLayerInspectEngineRegister2("dnp3_data", ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0,
+            DetectEngineInspectBufferGeneric, GetDNP3Data);
+    DetectAppLayerMpmRegister2("dnp3_data", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetDNP3Data, ALPROTO_DNP3, 0);
 
     g_dnp3_data_buffer_id = DetectBufferTypeGetByName("dnp3_data");
     SCReturn;
@@ -564,7 +525,6 @@ void DetectDNP3Register(void)
             "dnp3", ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
 
     g_dnp3_match_buffer_id = DetectBufferTypeRegister("dnp3");
-
 }
 
 #ifdef UNITTESTS
@@ -711,17 +671,14 @@ static int DetectDNP3ObjParseTest(void)
 
 static void DetectDNP3FuncRegisterTests(void)
 {
-    UtRegisterTest("DetectDNP3FuncParseFunctionCodeTest",
-                   DetectDNP3FuncParseFunctionCodeTest);
+    UtRegisterTest("DetectDNP3FuncParseFunctionCodeTest", DetectDNP3FuncParseFunctionCodeTest);
     UtRegisterTest("DetectDNP3FuncTest01", DetectDNP3FuncTest01);
 }
 
 static void DetectDNP3IndRegisterTests(void)
 {
-    UtRegisterTest("DetectDNP3IndTestParseAsInteger",
-                   DetectDNP3IndTestParseAsInteger);
-    UtRegisterTest("DetectDNP3IndTestParseByName",
-                   DetectDNP3IndTestParseByName);
+    UtRegisterTest("DetectDNP3IndTestParseAsInteger", DetectDNP3IndTestParseAsInteger);
+    UtRegisterTest("DetectDNP3IndTestParseByName", DetectDNP3IndTestParseByName);
 }
 
 static void DetectDNP3ObjRegisterTests(void)

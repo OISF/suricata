@@ -43,7 +43,7 @@ static void DefragPolicyAddHostInfo(char *host_ip_range, uint64_t timeout)
 {
     uint64_t *user_data = NULL;
 
-    if ( (user_data = SCMalloc(sizeof(uint64_t))) == NULL) {
+    if ((user_data = SCMalloc(sizeof(uint64_t))) == NULL) {
         FatalError("Error allocating memory. Exiting");
     }
 
@@ -108,7 +108,7 @@ static void DefragParseParameters(ConfNode *n)
     ConfNode *si;
     uint64_t timeout = 0;
 
-    TAILQ_FOREACH(si, &n->head, next) {
+    TAILQ_FOREACH (si, &n->head, next) {
         if (strcasecmp("timeout", si->name) == 0) {
             SCLogDebug("timeout value  %s", si->val);
             if (ParseSizeStringU64(si->val, &timeout) < 0) {
@@ -118,7 +118,7 @@ static void DefragParseParameters(ConfNode *n)
         }
         if (strcasecmp("address", si->name) == 0) {
             ConfNode *pval;
-            TAILQ_FOREACH(pval, &si->head, next) {
+            TAILQ_FOREACH (pval, &si->head, next) {
                 DefragPolicyAddHostInfo(pval->val, timeout);
             }
         }
@@ -149,10 +149,10 @@ void DefragPolicyLoadFromConfig(void)
     SCLogDebug("configuring host config %p", server_config);
     ConfNode *sc;
 
-    TAILQ_FOREACH(sc, &server_config->head, next) {
+    TAILQ_FOREACH (sc, &server_config->head, next) {
         ConfNode *p = NULL;
 
-        TAILQ_FOREACH(p, &sc->head, next) {
+        TAILQ_FOREACH (p, &sc->head, next) {
             SCLogDebug("parsing configuration for %s", p->name);
             DefragParseParameters(p);
         }

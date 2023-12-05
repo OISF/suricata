@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /** \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
@@ -69,7 +68,7 @@ static int DetectEngineHttpUATest(
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -432,12 +431,11 @@ static int DetectHttpUATest06(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: This is dummy message body\r\n"
-        "Content-Type: text/html\r\n"
-        "\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: This is dummy message body\r\n"
+                         "Content-Type: text/html\r\n"
+                         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -505,12 +503,10 @@ static int DetectHttpUATest07(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: This is dummy message";
-    uint8_t http2_buf[] =
-        "body1\r\n\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: This is dummy message";
+    uint8_t http2_buf[] = "body1\r\n\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -530,11 +526,11 @@ static int DetectHttpUATest07(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -593,12 +589,10 @@ static int DetectHttpUATest08(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: This is dummy mess";
-    uint8_t http2_buf[] =
-        "age body\r\n\r\n";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: This is dummy mess";
+    uint8_t http2_buf[] = "age body\r\n\r\n";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -618,11 +612,11 @@ static int DetectHttpUATest08(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -681,16 +675,14 @@ static int DetectHttpUATest09(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: This is dummy body1";
-    uint8_t http2_buf[] =
-        "This is dummy message body2\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: This is dummy body1";
+    uint8_t http2_buf[] = "This is dummy message body2\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -710,11 +702,11 @@ static int DetectHttpUATest09(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -772,16 +764,14 @@ static int DetectHttpUATest10(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: This is dummy bodY1";
-    uint8_t http2_buf[] =
-        "This is dummy message body2\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy bodY1";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: This is dummy bodY1";
+    uint8_t http2_buf[] = "This is dummy message body2\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy bodY1";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -801,11 +791,11 @@ static int DetectHttpUATest10(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -861,12 +851,11 @@ static int DetectHttpUATest11(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: This is dummy message body\r\n"
-        "Content-Type: text/html\r\n"
-        "\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: This is dummy message body\r\n"
+                         "Content-Type: text/html\r\n"
+                         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -884,7 +873,7 @@ static int DetectHttpUATest11(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -931,11 +920,10 @@ static int DetectHttpUATest12(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: This is dummy body\r\n"
-        "\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: This is dummy body\r\n"
+                         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -953,7 +941,7 @@ static int DetectHttpUATest12(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1000,12 +988,11 @@ static int DetectHttpUATest13(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend\r\n"
-        "Content-Type: text/html\r\n"
-        "\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend\r\n"
+                         "Content-Type: text/html\r\n"
+                         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -1023,7 +1010,7 @@ static int DetectHttpUATest13(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1099,7 +1086,7 @@ static int DetectHttpUATest14(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1108,9 +1095,13 @@ static int DetectHttpUATest14(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"POST\"; http_method; content:\"dummy1\"; http_cookie; content:\"Body one\"; http_user_agent; sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (content:\"POST\"; http_method; content:\"dummy1\"; "
+            "http_cookie; content:\"Body one\"; http_user_agent; sid:1; rev:1;)");
     FAIL_IF_NULL(s);
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"dummy2\"; http_cookie; content:\"Body two\"; http_user_agent; sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"dummy2\"; "
+            "http_cookie; content:\"Body two\"; http_user_agent; sid:2; rev:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);

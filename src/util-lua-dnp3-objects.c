@@ -39,8 +39,7 @@
 /**
  * \brief Push an object point item onto the stack.
  */
-void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
-    DNP3Point *point)
+void DNP3PushPoint(lua_State *luastate, DNP3Object *object, DNP3Point *point)
 {
     switch (DNP3_OBJECT_CODE(object->group, object->variation)) {
         case DNP3_OBJECT_CODE(1, 1): {
@@ -2938,15 +2937,13 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->status_code);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "filename");
-            LuaPushStringBuffer(luastate, (uint8_t *)data->filename,
-                strlen(data->filename));
+            LuaPushStringBuffer(luastate, (uint8_t *)data->filename, strlen(data->filename));
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "data_size");
             lua_pushinteger(luastate, data->data_size);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "data");
-            LuaPushStringBuffer(luastate, (uint8_t *)data->data,
-                strlen(data->data));
+            LuaPushStringBuffer(luastate, (uint8_t *)data->data, strlen(data->data));
             lua_settable(luastate, -3);
             break;
         }
@@ -2968,12 +2965,10 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->authentication_key);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "username");
-            LuaPushStringBuffer(luastate, (uint8_t *)data->username,
-                strlen(data->username));
+            LuaPushStringBuffer(luastate, (uint8_t *)data->username, strlen(data->username));
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "password");
-            LuaPushStringBuffer(luastate, (uint8_t *)data->password,
-                strlen(data->password));
+            LuaPushStringBuffer(luastate, (uint8_t *)data->password, strlen(data->password));
             lua_settable(luastate, -3);
             break;
         }
@@ -3007,8 +3002,7 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->request_id);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "filename");
-            LuaPushStringBuffer(luastate, (uint8_t *)data->filename,
-                strlen(data->filename));
+            LuaPushStringBuffer(luastate, (uint8_t *)data->filename, strlen(data->filename));
             lua_settable(luastate, -3);
             break;
         }
@@ -3030,8 +3024,8 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->status_code);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "optional_text");
-            LuaPushStringBuffer(luastate, (uint8_t *)data->optional_text,
-                strlen(data->optional_text));
+            LuaPushStringBuffer(
+                    luastate, (uint8_t *)data->optional_text, strlen(data->optional_text));
             lua_settable(luastate, -3);
             break;
         }
@@ -3044,8 +3038,7 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->block_number);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "file_data");
-            LuaPushStringBuffer(luastate, (uint8_t *)data->file_data,
-                strlen(data->file_data));
+            LuaPushStringBuffer(luastate, (uint8_t *)data->file_data, strlen(data->file_data));
             lua_settable(luastate, -3);
             break;
         }
@@ -3061,8 +3054,8 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->status_code);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "optional_text");
-            LuaPushStringBuffer(luastate, (uint8_t *)data->optional_text,
-                strlen(data->optional_text));
+            LuaPushStringBuffer(
+                    luastate, (uint8_t *)data->optional_text, strlen(data->optional_text));
             lua_settable(luastate, -3);
             break;
         }
@@ -3090,8 +3083,7 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->request_id);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "filename");
-            LuaPushStringBuffer(luastate, (uint8_t *)data->filename,
-                strlen(data->filename));
+            LuaPushStringBuffer(luastate, (uint8_t *)data->filename, strlen(data->filename));
             lua_settable(luastate, -3);
             break;
         }
@@ -3099,7 +3091,7 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             DNP3ObjectG70V8 *data = point->data;
             lua_pushliteral(luastate, "file_specification");
             LuaPushStringBuffer(luastate, (uint8_t *)data->file_specification,
-                strlen(data->file_specification));
+                    strlen(data->file_specification));
             lua_settable(luastate, -3);
             break;
         }
@@ -3129,8 +3121,7 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
         case DNP3_OBJECT_CODE(83, 1): {
             DNP3ObjectG83V1 *data = point->data;
             lua_pushliteral(luastate, "vendor_code");
-            LuaPushStringBuffer(luastate, (uint8_t *)data->vendor_code,
-                strlen(data->vendor_code));
+            LuaPushStringBuffer(luastate, (uint8_t *)data->vendor_code, strlen(data->vendor_code));
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "object_id");
             lua_pushinteger(luastate, data->object_id);
@@ -3139,8 +3130,7 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->length);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "data_objects");
-            lua_pushlstring(luastate, (const char *)data->data_objects,
-                data->length);
+            lua_pushlstring(luastate, (const char *)data->data_objects, data->length);
             lua_settable(luastate, -3);
             break;
         }
@@ -3194,8 +3184,7 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->reason);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "challenge_data");
-            lua_pushlstring(luastate, (const char *)data->challenge_data,
-                data->challenge_data_len);
+            lua_pushlstring(luastate, (const char *)data->challenge_data, data->challenge_data_len);
             lua_settable(luastate, -3);
             break;
         }
@@ -3208,8 +3197,7 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->usr);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "mac_value");
-            lua_pushlstring(luastate, (const char *)data->mac_value,
-                data->mac_value_len);
+            lua_pushlstring(luastate, (const char *)data->mac_value, data->mac_value_len);
             lua_settable(luastate, -3);
             break;
         }
@@ -3251,12 +3239,10 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->challenge_data_len);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "challenge_data");
-            lua_pushlstring(luastate, (const char *)data->challenge_data,
-                data->challenge_data_len);
+            lua_pushlstring(luastate, (const char *)data->challenge_data, data->challenge_data_len);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "mac_value");
-            lua_pushlstring(luastate, (const char *)data->mac_value,
-                data->mac_value_len);
+            lua_pushlstring(luastate, (const char *)data->mac_value, data->mac_value_len);
             lua_settable(luastate, -3);
             break;
         }
@@ -3269,8 +3255,8 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->usr);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "wrapped_key_data");
-            lua_pushlstring(luastate, (const char *)data->wrapped_key_data,
-                data->wrapped_key_data_len);
+            lua_pushlstring(
+                    luastate, (const char *)data->wrapped_key_data, data->wrapped_key_data_len);
             lua_settable(luastate, -3);
             break;
         }
@@ -3292,8 +3278,7 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->time_of_error);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "error_text");
-            LuaPushStringBuffer(luastate, (uint8_t *)data->error_text,
-                strlen(data->error_text));
+            LuaPushStringBuffer(luastate, (uint8_t *)data->error_text, strlen(data->error_text));
             lua_settable(luastate, -3);
             break;
         }
@@ -3306,16 +3291,14 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->certificate_type);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "certificate");
-            lua_pushlstring(luastate, (const char *)data->certificate,
-                data->certificate_len);
+            lua_pushlstring(luastate, (const char *)data->certificate, data->certificate_len);
             lua_settable(luastate, -3);
             break;
         }
         case DNP3_OBJECT_CODE(120, 9): {
             DNP3ObjectG120V9 *data = point->data;
             lua_pushliteral(luastate, "mac_value");
-            lua_pushlstring(luastate, (const char *)data->mac_value,
-                data->mac_value_len);
+            lua_pushlstring(luastate, (const char *)data->mac_value, data->mac_value_len);
             lua_settable(luastate, -3);
             break;
         }
@@ -3346,16 +3329,15 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->certification_data_len);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "username");
-            LuaPushStringBuffer(luastate, (uint8_t *)data->username,
-                strlen(data->username));
+            LuaPushStringBuffer(luastate, (uint8_t *)data->username, strlen(data->username));
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "user_public_key");
-            lua_pushlstring(luastate, (const char *)data->user_public_key,
-                data->user_public_key_len);
+            lua_pushlstring(
+                    luastate, (const char *)data->user_public_key, data->user_public_key_len);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "certification_data");
-            lua_pushlstring(luastate, (const char *)data->certification_data,
-                data->certification_data_len);
+            lua_pushlstring(
+                    luastate, (const char *)data->certification_data, data->certification_data_len);
             lua_settable(luastate, -3);
             break;
         }
@@ -3371,12 +3353,11 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->master_challenge_data_len);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "username");
-            LuaPushStringBuffer(luastate, (uint8_t *)data->username,
-                strlen(data->username));
+            LuaPushStringBuffer(luastate, (uint8_t *)data->username, strlen(data->username));
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "master_challenge_data");
             lua_pushlstring(luastate, (const char *)data->master_challenge_data,
-                data->master_challenge_data_len);
+                    data->master_challenge_data_len);
             lua_settable(luastate, -3);
             break;
         }
@@ -3392,8 +3373,7 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushinteger(luastate, data->challenge_data_len);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "challenge_data");
-            lua_pushlstring(luastate, (const char *)data->challenge_data,
-                data->challenge_data_len);
+            lua_pushlstring(luastate, (const char *)data->challenge_data, data->challenge_data_len);
             lua_settable(luastate, -3);
             break;
         }
@@ -3410,23 +3390,22 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "encrypted_update_key_data");
             lua_pushlstring(luastate, (const char *)data->encrypted_update_key_data,
-                data->encrypted_update_key_len);
+                    data->encrypted_update_key_len);
             lua_settable(luastate, -3);
             break;
         }
         case DNP3_OBJECT_CODE(120, 14): {
             DNP3ObjectG120V14 *data = point->data;
             lua_pushliteral(luastate, "digital_signature");
-            lua_pushlstring(luastate, (const char *)data->digital_signature,
-                data->digital_signature_len);
+            lua_pushlstring(
+                    luastate, (const char *)data->digital_signature, data->digital_signature_len);
             lua_settable(luastate, -3);
             break;
         }
         case DNP3_OBJECT_CODE(120, 15): {
             DNP3ObjectG120V15 *data = point->data;
             lua_pushliteral(luastate, "mac");
-            lua_pushlstring(luastate, (const char *)data->mac,
-                data->mac_len);
+            lua_pushlstring(luastate, (const char *)data->mac, data->mac_len);
             lua_settable(luastate, -3);
             break;
         }

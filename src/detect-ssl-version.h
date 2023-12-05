@@ -23,9 +23,9 @@
  */
 
 #ifndef DETECT_SSL_VERSION_H
-#define	DETECT_SSL_VERSION_H
+#define DETECT_SSL_VERSION_H
 
-#define DETECT_SSL_VERSION_NEGATED   0x01
+#define DETECT_SSL_VERSION_NEGATED 0x01
 
 enum {
     SSLv2 = 0,
@@ -49,6 +49,6 @@ typedef struct DetectSslVersionData_ {
 } DetectSslVersionData;
 
 /* prototypes */
-void DetectSslVersionRegister (void);
+void DetectSslVersionRegister(void);
 
-#endif	/* DETECT_SSL_VERSION_H */
+#endif /* DETECT_SSL_VERSION_H */

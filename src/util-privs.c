@@ -63,29 +63,23 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
         case RUNMODE_PCAP_DEV:
         case RUNMODE_AFP_DEV:
         case RUNMODE_AFXDP_DEV:
-            capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
-                    CAP_NET_RAW,            /* needed for pcap live mode */
-                    CAP_SYS_NICE,
-                    CAP_NET_ADMIN,
-                    -1);
+            capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE | CAPNG_PERMITTED,
+                    CAP_NET_RAW, /* needed for pcap live mode */
+                    CAP_SYS_NICE, CAP_NET_ADMIN, -1);
             break;
         case RUNMODE_PFRING:
-            capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
-                    CAP_NET_ADMIN, CAP_NET_RAW, CAP_SYS_NICE,
-                    -1);
+            capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE | CAPNG_PERMITTED, CAP_NET_ADMIN, CAP_NET_RAW,
+                    CAP_SYS_NICE, -1);
             break;
         case RUNMODE_NFLOG:
         case RUNMODE_NFQ:
-            capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
-                    CAP_NET_ADMIN,          /* needed for nflog and nfqueue inline mode */
-                    CAP_SYS_NICE,
-                    -1);
+            capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE | CAPNG_PERMITTED,
+                    CAP_NET_ADMIN, /* needed for nflog and nfqueue inline mode */
+                    CAP_SYS_NICE, -1);
             break;
     }
 
-    if (capng_change_id(userid, groupid, CAPNG_DROP_SUPP_GRP |
-            CAPNG_CLEAR_BOUNDING) < 0)
-    {
+    if (capng_change_id(userid, groupid, CAPNG_DROP_SUPP_GRP | CAPNG_CLEAR_BOUNDING) < 0) {
         FatalError("capng_change_id for main thread"
                    " failed");
     }
@@ -164,9 +158,9 @@ void SCGetUserID(const char *user_name, const char *group_name, uint32_t *uid, u
             FatalError("invalid user id value: '%s'", user_name);
         }
         pw = getpwuid(userid);
-       if (pw == NULL) {
-           FatalError("unable to get the user ID, "
-                      "check if user exist!!");
+        if (pw == NULL) {
+            FatalError("unable to get the user ID, "
+                       "check if user exist!!");
         }
     } else {
         pw = getpwnam(user_name);

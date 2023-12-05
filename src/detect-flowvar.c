@@ -41,28 +41,27 @@
 #include "util-debug.h"
 #include "util-print.h"
 
-#define PARSE_REGEX         "(.*),(.*)"
+#define PARSE_REGEX "(.*),(.*)"
 static DetectParseRegex parse_regex;
 
-int DetectFlowvarMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectFlowvarSetup (DetectEngineCtx *, Signature *, const char *);
-static int DetectFlowvarPostMatch(DetectEngineThreadCtx *det_ctx,
-        Packet *p, const Signature *s, const SigMatchCtx *ctx);
+int DetectFlowvarMatch(DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectFlowvarSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectFlowvarPostMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static void DetectFlowvarDataFree(DetectEngineCtx *, void *ptr);
 
-void DetectFlowvarRegister (void)
+void DetectFlowvarRegister(void)
 {
     sigmatch_table[DETECT_FLOWVAR].name = "flowvar";
     sigmatch_table[DETECT_FLOWVAR].Match = DetectFlowvarMatch;
     sigmatch_table[DETECT_FLOWVAR].Setup = DetectFlowvarSetup;
-    sigmatch_table[DETECT_FLOWVAR].Free  = DetectFlowvarDataFree;
+    sigmatch_table[DETECT_FLOWVAR].Free = DetectFlowvarDataFree;
 
     /* post-match for flowvar storage */
     sigmatch_table[DETECT_FLOWVAR_POSTMATCH].name = "__flowvar__postmatch__";
     sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Match = DetectFlowvarPostMatch;
     sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Setup = NULL;
-    sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Free  = DetectFlowvarDataFree;
+    sigmatch_table[DETECT_FLOWVAR_POSTMATCH].Free = DetectFlowvarDataFree;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
@@ -96,17 +95,16 @@ static void DetectFlowvarDataFree(DetectEngineCtx *de_ctx, void *ptr)
  *        -1: error
  */
 
-int DetectFlowvarMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+int DetectFlowvarMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;
     DetectFlowvarData *fd = (DetectFlowvarData *)ctx;
 
     FlowVar *fv = FlowVarGet(p->flow, fd->idx);
     if (fv != NULL) {
-        uint8_t *ptr = SpmSearch(fv->data.fv_str.value,
-                                 fv->data.fv_str.value_len,
-                                 fd->content, fd->content_len);
+        uint8_t *ptr = SpmSearch(
+                fv->data.fv_str.value, fv->data.fv_str.value_len, fd->content, fd->content_len);
         if (ptr != NULL)
             ret = 1;
     }
@@ -114,7 +112,7 @@ int DetectFlowvarMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     return ret;
 }
 
-static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectFlowvarSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectFlowvarData *fd = NULL;
     char varname[64], varcontent[64];
@@ -154,8 +152,8 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char
     if (strlen(varcontent) >= 2) {
         if (varcontent[0] == '"')
             varcontent_index++;
-        if (varcontent[strlen(varcontent)-1] == '"')
-            varcontent[strlen(varcontent)-1] = '\0';
+        if (varcontent[strlen(varcontent) - 1] == '"')
+            varcontent[strlen(varcontent) - 1] = '\0';
     }
     SCLogDebug("varcontent %s", &varcontent[varcontent_index]);
 
@@ -200,8 +198,7 @@ error:
 }
 
 /** \brief Store flowvar in det_ctx so we can exec it post-match */
-int DetectVarStoreMatchKeyValue(DetectEngineThreadCtx *det_ctx,
-        uint8_t *key, uint16_t key_len,
+int DetectVarStoreMatchKeyValue(DetectEngineThreadCtx *det_ctx, uint8_t *key, uint16_t key_len,
         uint8_t *buffer, uint16_t len, int type)
 {
     DetectVarList *fs = SCCalloc(1, sizeof(*fs));
@@ -220,14 +217,13 @@ int DetectVarStoreMatchKeyValue(DetectEngineThreadCtx *det_ctx,
 }
 
 /** \brief Store flowvar in det_ctx so we can exec it post-match */
-int DetectVarStoreMatch(DetectEngineThreadCtx *det_ctx,
-        uint32_t idx,
-        uint8_t *buffer, uint16_t len, int type)
+int DetectVarStoreMatch(
+        DetectEngineThreadCtx *det_ctx, uint32_t idx, uint8_t *buffer, uint16_t len, int type)
 {
     DetectVarList *fs = det_ctx->varlist;
 
     /* first check if we have had a previous match for this idx */
-    for ( ; fs != NULL; fs = fs->next) {
+    for (; fs != NULL; fs = fs->next) {
         if (fs->idx == idx) {
             /* we're replacing the older store */
             SCFree(fs->buffer);
@@ -285,8 +281,7 @@ error:
  *  \retval 1 or -1 in case of error
  */
 static int DetectFlowvarPostMatch(
-        DetectEngineThreadCtx *det_ctx,
-        Packet *p, const Signature *s, const SigMatchCtx *ctx)
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     DetectVarList *fs, *prev;
     const DetectFlowvarData *fd;
@@ -301,7 +296,7 @@ static int DetectFlowvarPostMatch(
     while (fs != NULL) {
         if (fd->idx == 0 || fd->idx == fs->idx) {
             SCLogDebug("adding to the flow %u:", fs->idx);
-            //PrintRawDataFp(stdout, fs->buffer, fs->len);
+            // PrintRawDataFp(stdout, fs->buffer, fs->len);
 
             if (fs->type == DETECT_VAR_TYPE_FLOW_POSTMATCH && p && p->flow) {
                 FlowVarAddIdValue(p->flow, fs->idx, fs->buffer, fs->len);
@@ -309,9 +304,8 @@ static int DetectFlowvarPostMatch(
                  * the flowvar code. */
             } else if (fs->type == DETECT_VAR_TYPE_PKT_POSTMATCH && fs->key && p) {
                 /* pkt key/value */
-                if (PktVarAddKeyValue(p, (uint8_t *)fs->key, fs->key_len,
-                                         (uint8_t *)fs->buffer, fs->len) == -1)
-                {
+                if (PktVarAddKeyValue(p, (uint8_t *)fs->key, fs->key_len, (uint8_t *)fs->buffer,
+                            fs->len) == -1) {
                     SCFree(fs->key);
                     SCFree(fs->buffer);
                     /* the rest of fs is freed below */

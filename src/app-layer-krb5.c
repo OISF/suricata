@@ -40,8 +40,7 @@ void RegisterKRB5Parsers(void)
     rs_register_krb5_parser();
 
 #ifdef UNITTESTS
-    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_KRB5,
-        KRB5ParserRegisterTests);
+    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_KRB5, KRB5ParserRegisterTests);
 #endif
 }
 

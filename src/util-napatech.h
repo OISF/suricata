@@ -26,8 +26,7 @@
 #ifdef HAVE_NAPATECH
 #include <nt.h>
 
-typedef struct NapatechPacketVars_
-{
+typedef struct NapatechPacketVars_ {
     uint64_t stream_id;
     NtNetBuf_t nt_packet_buf;
     NtNetStreamRx_t rx_stream;
@@ -39,15 +38,13 @@ typedef struct NapatechPacketVars_
 #endif
 } NapatechPacketVars;
 
-typedef struct NapatechStreamConfig_
-{
+typedef struct NapatechStreamConfig_ {
     uint8_t stream_id;
     bool is_active;
     bool initialized;
 } NapatechStreamConfig;
 
-typedef struct NapatechCurrentStats_
-{
+typedef struct NapatechCurrentStats_ {
     uint64_t current_packets;
     uint64_t current_bytes;
     uint64_t current_drop_packets;
@@ -55,10 +52,10 @@ typedef struct NapatechCurrentStats_
 } NapatechCurrentStats;
 
 #define MAX_HOSTBUFFER 4
-#define MAX_STREAMS 256
-#define MAX_PORTS 80
-#define MAX_ADAPTERS 8
-#define HB_HIGHWATER 2048 //1982
+#define MAX_STREAMS    256
+#define MAX_PORTS      80
+#define MAX_ADAPTERS   8
+#define HB_HIGHWATER   2048 // 1982
 
 extern void NapatechStartStats(void);
 
@@ -85,13 +82,13 @@ extern void NapatechStartStats(void);
 
 // #define ENABLE_NT_DEBUG
 #ifdef ENABLE_NT_DEBUG
-    void NapatechPrintIP(uint32_t address);
+void NapatechPrintIP(uint32_t address);
 
-    #define NAPATECH_DEBUG(...) printf(__VA_ARGS__)
-    #define NAPATECH_PRINTIP(a) NapatechPrintIP(uint32_t address)
+#define NAPATECH_DEBUG(...) printf(__VA_ARGS__)
+#define NAPATECH_PRINTIP(a) NapatechPrintIP(uint32_t address)
 #else
-    #define NAPATECH_DEBUG(...)
-    #define NAPATECH_PRINTIP(a)
+#define NAPATECH_DEBUG(...)
+#define NAPATECH_PRINTIP(a)
 #endif
 
 NapatechCurrentStats NapatechGetCurrentStats(uint16_t id);
@@ -103,16 +100,15 @@ uint32_t NapatechDeleteFilters(void);
 #ifdef NAPATECH_ENABLE_BYPASS
 
 /* */
-#define NAPATECH_KEYTYPE_IPV4 3
+#define NAPATECH_KEYTYPE_IPV4      3
 #define NAPATECH_KEYTYPE_IPV4_SPAN 4
-#define NAPATECH_KEYTYPE_IPV6 5
+#define NAPATECH_KEYTYPE_IPV6      5
 #define NAPATECH_KEYTYPE_IPV6_SPAN 6
-#define NAPATECH_FLOWTYPE_DROP 7
-#define NAPATECH_FLOWTYPE_PASS 8
+#define NAPATECH_FLOWTYPE_DROP     7
+#define NAPATECH_FLOWTYPE_PASS     8
 
 int NapatechVerifyBypassSupport(void);
 int NapatechGetNumAdapters(void);
-
 
 int NapatechIsBypassSupported(void);
 

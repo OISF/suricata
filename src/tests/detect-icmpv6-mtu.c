@@ -27,18 +27,17 @@
  * \test signature with a valid icmpv6.mtu value.
  */
 
-static int DetectICMPv6mtuParseTest01 (void)
+static int DetectICMPv6mtuParseTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (icmpv6.mtu:<1280; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (icmpv6.mtu:<1280; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
-
 }
 
 /**

@@ -31,19 +31,21 @@
 /* type: 1, 2 or 4 for 8, 16, or 32 bit counters
  *
  */
-BloomFilterCounting *BloomFilterCountingInit(uint32_t size, uint8_t type, uint8_t iter, uint32_t (*Hash)(const void *, uint16_t, uint8_t, uint32_t)) {
+BloomFilterCounting *BloomFilterCountingInit(uint32_t size, uint8_t type, uint8_t iter,
+        uint32_t (*Hash)(const void *, uint16_t, uint8_t, uint32_t))
+{
     BloomFilterCounting *bf = NULL;
 
     if (iter == 0)
         goto error;
 
     if (Hash == NULL || size == 0) {
-        //printf("ERROR: BloomFilterCountingInit no Hash function\n");
+        // printf("ERROR: BloomFilterCountingInit no Hash function\n");
         goto error;
     }
 
     if (type != 1 && type != 2 && type != 4) {
-        //printf("ERROR: BloomFilterCountingInit only 1, 2 and 4 bytes are supported\n");
+        // printf("ERROR: BloomFilterCountingInit only 1, 2 and 4 bytes are supported\n");
         goto error;
     }
 
@@ -218,22 +220,25 @@ int BloomFilterCountingTest(BloomFilterCounting *bf, const void *data, uint16_t 
 #ifdef UNITTESTS
 static uint32_t BloomHash(const void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size)
 {
-     uint8_t *d = (uint8_t *)data;
-     uint32_t i;
-     uint32_t hash = 0;
+    uint8_t *d = (uint8_t *)data;
+    uint32_t i;
+    uint32_t hash = 0;
 
-     for (i = 0; i < datalen; i++) {
-         if (i == 0)      hash += (((uint32_t)*d++));
-         else if (i == 1) hash += (((uint32_t)*d++) * datalen);
-         else             hash *= (((uint32_t)*d++) * i);
-     }
+    for (i = 0; i < datalen; i++) {
+        if (i == 0)
+            hash += (((uint32_t)*d++));
+        else if (i == 1)
+            hash += (((uint32_t)*d++) * datalen);
+        else
+            hash *= (((uint32_t)*d++) * i);
+    }
 
-     hash *= (iter + datalen);
-     hash %= hash_size;
-     return hash;
+    hash *= (iter + datalen);
+    hash %= hash_size;
+    return hash;
 }
 
-static int BloomFilterCountingTestInit01 (void)
+static int BloomFilterCountingTestInit01(void)
 {
     BloomFilterCounting *bf = BloomFilterCountingInit(1024, 4, 4, BloomHash);
     if (bf == NULL)
@@ -244,7 +249,7 @@ static int BloomFilterCountingTestInit01 (void)
 }
 
 /* no hash function, so it should fail */
-static int BloomFilterCountingTestInit02 (void)
+static int BloomFilterCountingTestInit02(void)
 {
     BloomFilterCounting *bf = BloomFilterCountingInit(1024, 4, 4, NULL);
     if (bf == NULL)
@@ -254,7 +259,7 @@ static int BloomFilterCountingTestInit02 (void)
     return 0;
 }
 
-static int BloomFilterCountingTestInit03 (void)
+static int BloomFilterCountingTestInit03(void)
 {
     int result = 0;
     BloomFilterCounting *bf = BloomFilterCountingInit(1024, 4, 4, BloomHash);
@@ -268,7 +273,7 @@ static int BloomFilterCountingTestInit03 (void)
     return result;
 }
 
-static int BloomFilterCountingTestInit04 (void)
+static int BloomFilterCountingTestInit04(void)
 {
     BloomFilterCounting *bf = BloomFilterCountingInit(1024, 0, 4, BloomHash);
     if (bf == NULL)
@@ -278,7 +283,7 @@ static int BloomFilterCountingTestInit04 (void)
     return 0;
 }
 
-static int BloomFilterCountingTestInit05 (void)
+static int BloomFilterCountingTestInit05(void)
 {
     BloomFilterCounting *bf = BloomFilterCountingInit(0, 4, 4, BloomHash);
     if (bf == NULL)
@@ -288,7 +293,7 @@ static int BloomFilterCountingTestInit05 (void)
     return 0;
 }
 
-static int BloomFilterCountingTestInit06 (void)
+static int BloomFilterCountingTestInit06(void)
 {
     BloomFilterCounting *bf = BloomFilterCountingInit(32, 3, 4, BloomHash);
     if (bf == NULL)
@@ -298,7 +303,7 @@ static int BloomFilterCountingTestInit06 (void)
     return 0;
 }
 
-static int BloomFilterCountingTestAdd01 (void)
+static int BloomFilterCountingTestAdd01(void)
 {
     int result = 0;
     BloomFilterCounting *bf = BloomFilterCountingInit(1024, 4, 4, BloomHash);
@@ -312,11 +317,12 @@ static int BloomFilterCountingTestAdd01 (void)
     /* all is good! */
     result = 1;
 end:
-    if (bf != NULL) BloomFilterCountingFree(bf);
+    if (bf != NULL)
+        BloomFilterCountingFree(bf);
     return result;
 }
 
-static int BloomFilterCountingTestAdd02 (void)
+static int BloomFilterCountingTestAdd02(void)
 {
     int result = 0;
     BloomFilterCounting *bf = BloomFilterCountingInit(1024, 4, 4, BloomHash);
@@ -330,11 +336,12 @@ static int BloomFilterCountingTestAdd02 (void)
     /* all is good! */
     result = 1;
 end:
-    if (bf != NULL) BloomFilterCountingFree(bf);
+    if (bf != NULL)
+        BloomFilterCountingFree(bf);
     return result;
 }
 
-static int BloomFilterCountingTestFull01 (void)
+static int BloomFilterCountingTestFull01(void)
 {
     int result = 0;
     BloomFilterCounting *bf = BloomFilterCountingInit(32, 4, 4, BloomHash);
@@ -369,7 +376,7 @@ end:
     return result;
 }
 
-static int BloomFilterCountingTestFull02 (void)
+static int BloomFilterCountingTestFull02(void)
 {
     int result = 0;
     BloomFilterCounting *bf = BloomFilterCountingInit(32, 4, 4, BloomHash);
@@ -383,7 +390,8 @@ static int BloomFilterCountingTestFull02 (void)
     /* all is good! */
     result = 1;
 end:
-    if (bf != NULL) BloomFilterCountingFree(bf);
+    if (bf != NULL)
+        BloomFilterCountingFree(bf);
     return result;
 }
 #endif
@@ -391,28 +399,17 @@ end:
 void BloomFilterCountingRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("BloomFilterCountingTestInit01",
-                   BloomFilterCountingTestInit01);
-    UtRegisterTest("BloomFilterCountingTestInit02",
-                   BloomFilterCountingTestInit02);
-    UtRegisterTest("BloomFilterCountingTestInit03",
-                   BloomFilterCountingTestInit03);
-    UtRegisterTest("BloomFilterCountingTestInit04",
-                   BloomFilterCountingTestInit04);
-    UtRegisterTest("BloomFilterCountingTestInit05",
-                   BloomFilterCountingTestInit05);
-    UtRegisterTest("BloomFilterCountingTestInit06",
-                   BloomFilterCountingTestInit06);
+    UtRegisterTest("BloomFilterCountingTestInit01", BloomFilterCountingTestInit01);
+    UtRegisterTest("BloomFilterCountingTestInit02", BloomFilterCountingTestInit02);
+    UtRegisterTest("BloomFilterCountingTestInit03", BloomFilterCountingTestInit03);
+    UtRegisterTest("BloomFilterCountingTestInit04", BloomFilterCountingTestInit04);
+    UtRegisterTest("BloomFilterCountingTestInit05", BloomFilterCountingTestInit05);
+    UtRegisterTest("BloomFilterCountingTestInit06", BloomFilterCountingTestInit06);
 
-    UtRegisterTest("BloomFilterCountingTestAdd01",
-                   BloomFilterCountingTestAdd01);
-    UtRegisterTest("BloomFilterCountingTestAdd02",
-                   BloomFilterCountingTestAdd02);
+    UtRegisterTest("BloomFilterCountingTestAdd01", BloomFilterCountingTestAdd01);
+    UtRegisterTest("BloomFilterCountingTestAdd02", BloomFilterCountingTestAdd02);
 
-    UtRegisterTest("BloomFilterCountingTestFull01",
-                   BloomFilterCountingTestFull01);
-    UtRegisterTest("BloomFilterCountingTestFull02",
-                   BloomFilterCountingTestFull02);
+    UtRegisterTest("BloomFilterCountingTestFull01", BloomFilterCountingTestFull01);
+    UtRegisterTest("BloomFilterCountingTestFull02", BloomFilterCountingTestFull02);
 #endif
 }
-

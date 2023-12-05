@@ -29,31 +29,31 @@
 #include "util-exception-policy.h"
 
 /** Spinlocks or Mutex for the flow buckets. */
-//#define DRLOCK_SPIN
+// #define DRLOCK_SPIN
 #define DRLOCK_MUTEX
 
 #ifdef DRLOCK_SPIN
-    #ifdef DRLOCK_MUTEX
-        #error Cannot enable both DRLOCK_SPIN and DRLOCK_MUTEX
-    #endif
+#ifdef DRLOCK_MUTEX
+#error Cannot enable both DRLOCK_SPIN and DRLOCK_MUTEX
+#endif
 #endif
 
 #ifdef DRLOCK_SPIN
-    #define DRLOCK_TYPE SCSpinlock
-    #define DRLOCK_INIT(fb) SCSpinInit(&(fb)->lock, 0)
-    #define DRLOCK_DESTROY(fb) SCSpinDestroy(&(fb)->lock)
-    #define DRLOCK_LOCK(fb) SCSpinLock(&(fb)->lock)
-    #define DRLOCK_TRYLOCK(fb) SCSpinTrylock(&(fb)->lock)
-    #define DRLOCK_UNLOCK(fb) SCSpinUnlock(&(fb)->lock)
+#define DRLOCK_TYPE        SCSpinlock
+#define DRLOCK_INIT(fb)    SCSpinInit(&(fb)->lock, 0)
+#define DRLOCK_DESTROY(fb) SCSpinDestroy(&(fb)->lock)
+#define DRLOCK_LOCK(fb)    SCSpinLock(&(fb)->lock)
+#define DRLOCK_TRYLOCK(fb) SCSpinTrylock(&(fb)->lock)
+#define DRLOCK_UNLOCK(fb)  SCSpinUnlock(&(fb)->lock)
 #elif defined DRLOCK_MUTEX
-    #define DRLOCK_TYPE SCMutex
-    #define DRLOCK_INIT(fb) SCMutexInit(&(fb)->lock, NULL)
-    #define DRLOCK_DESTROY(fb) SCMutexDestroy(&(fb)->lock)
-    #define DRLOCK_LOCK(fb) SCMutexLock(&(fb)->lock)
-    #define DRLOCK_TRYLOCK(fb) SCMutexTrylock(&(fb)->lock)
-    #define DRLOCK_UNLOCK(fb) SCMutexUnlock(&(fb)->lock)
+#define DRLOCK_TYPE        SCMutex
+#define DRLOCK_INIT(fb)    SCMutexInit(&(fb)->lock, NULL)
+#define DRLOCK_DESTROY(fb) SCMutexDestroy(&(fb)->lock)
+#define DRLOCK_LOCK(fb)    SCMutexLock(&(fb)->lock)
+#define DRLOCK_TRYLOCK(fb) SCMutexTrylock(&(fb)->lock)
+#define DRLOCK_UNLOCK(fb)  SCMutexUnlock(&(fb)->lock)
 #else
-    #error Enable DRLOCK_SPIN or DRLOCK_MUTEX
+#error Enable DRLOCK_SPIN or DRLOCK_MUTEX
 #endif
 
 typedef struct DefragTrackerHashRow_ {
@@ -80,19 +80,20 @@ typedef struct DefragConfig_ {
  *  \retval 1 it fits
  *  \retval 0 no fit
  */
-#define DEFRAG_CHECK_MEMCAP(size) \
-    ((((uint64_t)SC_ATOMIC_GET(defrag_memuse) + (uint64_t)(size)) <= SC_ATOMIC_GET(defrag_config.memcap)))
+#define DEFRAG_CHECK_MEMCAP(size)                                                                  \
+    ((((uint64_t)SC_ATOMIC_GET(defrag_memuse) + (uint64_t)(size)) <=                               \
+            SC_ATOMIC_GET(defrag_config.memcap)))
 
 extern DefragConfig defrag_config;
-SC_ATOMIC_EXTERN(uint64_t,defrag_memuse);
-SC_ATOMIC_EXTERN(unsigned int,defragtracker_counter);
-SC_ATOMIC_EXTERN(unsigned int,defragtracker_prune_idx);
+SC_ATOMIC_EXTERN(uint64_t, defrag_memuse);
+SC_ATOMIC_EXTERN(unsigned int, defragtracker_counter);
+SC_ATOMIC_EXTERN(unsigned int, defragtracker_prune_idx);
 
 void DefragInitConfig(bool quiet);
 void DefragHashShutdown(void);
 
-DefragTracker *DefragLookupTrackerFromHash (Packet *);
-DefragTracker *DefragGetTrackerFromHash (Packet *);
+DefragTracker *DefragLookupTrackerFromHash(Packet *);
+DefragTracker *DefragGetTrackerFromHash(Packet *);
 void DefragTrackerRelease(DefragTracker *);
 void DefragTrackerClearMemory(DefragTracker *);
 void DefragTrackerMoveToSpare(DefragTracker *);
@@ -103,4 +104,3 @@ uint64_t DefragTrackerGetMemcap(void);
 uint64_t DefragTrackerGetMemuse(void);
 
 #endif /* __DEFRAG_HASH_H__ */
-

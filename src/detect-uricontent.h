@@ -26,6 +26,6 @@
 #define __DETECT_URICONTENT_H__
 
 /* prototypes */
-void DetectUricontentRegister (void);
+void DetectUricontentRegister(void);
 
 #endif /* __DETECT_URICONTENT_H__ */

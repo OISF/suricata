@@ -22,8 +22,8 @@
  * Struct for mapping symbolic names to values.
  */
 typedef struct DNP3Mapping_ {
-    const char     *name;
-    uint16_t  value;
+    const char *name;
+    uint16_t value;
 } DNP3Mapping;
 
 /* Map of internal indicators to value for external use. */

@@ -38,7 +38,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -151,8 +150,7 @@ void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
     }
 }
 
-void PacketUpdateEngineEventCounters(ThreadVars *tv,
-        DecodeThreadVars *dtv, Packet *p)
+void PacketUpdateEngineEventCounters(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
     for (uint8_t i = 0; i < p->events.cnt; i++) {
         const uint8_t e = p->events.events[i];
@@ -223,7 +221,7 @@ Packet *PacketGetFromQueueOrAlloc(void)
 
 inline int PacketCallocExtPkt(Packet *p, int datalen)
 {
-    if (! p->ext_pkt) {
+    if (!p->ext_pkt) {
         p->ext_pkt = SCCalloc(1, datalen);
         if (unlikely(p->ext_pkt == NULL)) {
             SET_PKT_LEN(p, 0);
@@ -256,7 +254,7 @@ inline int PacketCopyDataOffset(Packet *p, uint32_t offset, const uint8_t *data,
     }
 
     /* Do we have already an packet with allocated data */
-    if (! p->ext_pkt) {
+    if (!p->ext_pkt) {
         uint32_t newsize = offset + datalen;
         // check overflow
         if (newsize < offset)
@@ -306,7 +304,7 @@ inline int PacketCopyData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
  *  \retval p the pseudo packet or NULL if out of memory
  */
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
-                             const uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto)
+        const uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto)
 {
     int ret;
 
@@ -343,12 +341,10 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     /* tell new packet it's part of a tunnel */
     SET_TUNNEL_PKT(p);
 
-    ret = DecodeTunnel(tv, dtv, p, GET_PKT_DATA(p),
-                       GET_PKT_LEN(p), proto);
+    ret = DecodeTunnel(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), proto);
 
     if (unlikely(ret != TM_ECODE_OK) ||
-            (proto == DECODE_TUNNEL_IPV6_TEREDO && (p->flags & PKT_IS_INVALID)))
-    {
+            (proto == DECODE_TUNNEL_IPV6_TEREDO && (p->flags & PKT_IS_INVALID))) {
         /* Not a (valid) tunnel packet */
         SCLogDebug("tunnel packet is invalid");
 
@@ -357,7 +353,6 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
         TmqhOutputPacketpool(tv, p);
         SCReturnPtr(NULL, "Packet");
     }
-
 
     /* tell parent packet it's part of a tunnel */
     SET_TUNNEL_PKT(parent);
@@ -450,8 +445,7 @@ void PacketBypassCallback(Packet *p)
      * if we have failed to do it once */
     if (p->flow) {
         int state = p->flow->flow_state;
-        if ((state == FLOW_STATE_LOCAL_BYPASSED) ||
-                (state == FLOW_STATE_CAPTURE_BYPASSED)) {
+        if ((state == FLOW_STATE_LOCAL_BYPASSED) || (state == FLOW_STATE_CAPTURE_BYPASSED)) {
             return;
         }
 
@@ -586,17 +580,15 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
 
     dtv->counter_flow_spare_sync_avg = StatsRegisterAvgCounter("flow.wrk.spare_sync_avg", tv);
     dtv->counter_flow_spare_sync = StatsRegisterCounter("flow.wrk.spare_sync", tv);
-    dtv->counter_flow_spare_sync_incomplete = StatsRegisterCounter("flow.wrk.spare_sync_incomplete", tv);
+    dtv->counter_flow_spare_sync_incomplete =
+            StatsRegisterCounter("flow.wrk.spare_sync_incomplete", tv);
     dtv->counter_flow_spare_sync_empty = StatsRegisterCounter("flow.wrk.spare_sync_empty", tv);
 
-    dtv->counter_defrag_ipv4_fragments =
-        StatsRegisterCounter("defrag.ipv4.fragments", tv);
+    dtv->counter_defrag_ipv4_fragments = StatsRegisterCounter("defrag.ipv4.fragments", tv);
     dtv->counter_defrag_ipv4_reassembled = StatsRegisterCounter("defrag.ipv4.reassembled", tv);
-    dtv->counter_defrag_ipv6_fragments =
-        StatsRegisterCounter("defrag.ipv6.fragments", tv);
+    dtv->counter_defrag_ipv6_fragments = StatsRegisterCounter("defrag.ipv6.fragments", tv);
     dtv->counter_defrag_ipv6_reassembled = StatsRegisterCounter("defrag.ipv6.reassembled", tv);
-    dtv->counter_defrag_max_hit =
-        StatsRegisterCounter("defrag.max_frag_hits", tv);
+    dtv->counter_defrag_max_hit = StatsRegisterCounter("defrag.max_frag_hits", tv);
 
     for (int i = 0; i < DECODE_EVENT_MAX; i++) {
         BUG_ON(i != (int)DEvents[i].code);
@@ -606,14 +598,11 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
         else if (i > DECODE_EVENT_PACKET_MAX && !stats_stream_events)
             continue;
 
-        if (i < DECODE_EVENT_PACKET_MAX &&
-                strncmp(DEvents[i].event_name, "decoder.", 8) == 0)
-        {
+        if (i < DECODE_EVENT_PACKET_MAX && strncmp(DEvents[i].event_name, "decoder.", 8) == 0) {
             SCMutexLock(&g_counter_table_mutex);
             if (g_counter_table == NULL) {
-                g_counter_table = HashTableInit(256, StringHashFunc,
-                        StringHashCompareFunc,
-                        StringHashFreeFunc);
+                g_counter_table = HashTableInit(
+                        256, StringHashFunc, StringHashCompareFunc, StringHashFreeFunc);
                 if (g_counter_table == NULL) {
                     FatalError("decoder counter hash "
                                "table init failed");
@@ -623,8 +612,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
             char name[256];
             char *dot = strchr(DEvents[i].event_name, '.');
             BUG_ON(!dot);
-            snprintf(name, sizeof(name), "%s.%s",
-                    stats_decoder_events_prefix, dot+1);
+            snprintf(name, sizeof(name), "%s.%s", stats_decoder_events_prefix, dot + 1);
 
             const char *found = HashTableLookup(g_counter_table, name, 0);
             if (!found) {
@@ -638,24 +626,21 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
                                "table name add failed");
                 found = add;
             }
-            dtv->counter_engine_events[i] = StatsRegisterCounter(
-                    found, tv);
+            dtv->counter_engine_events[i] = StatsRegisterCounter(found, tv);
 
             SCMutexUnlock(&g_counter_table_mutex);
         } else {
-            dtv->counter_engine_events[i] = StatsRegisterCounter(
-                    DEvents[i].event_name, tv);
+            dtv->counter_engine_events[i] = StatsRegisterCounter(DEvents[i].event_name, tv);
         }
     }
 
     return;
 }
 
-void DecodeUpdatePacketCounters(ThreadVars *tv,
-                                const DecodeThreadVars *dtv, const Packet *p)
+void DecodeUpdatePacketCounters(ThreadVars *tv, const DecodeThreadVars *dtv, const Packet *p)
 {
     StatsIncr(tv, dtv->counter_pkts);
-    //StatsIncr(tv, dtv->counter_pkts_per_sec);
+    // StatsIncr(tv, dtv->counter_pkts_per_sec);
     StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
     StatsAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
     StatsSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
@@ -674,8 +659,7 @@ void AddressDebugPrint(Address *a)
         return;
 
     switch (a->family) {
-        case AF_INET:
-        {
+        case AF_INET: {
             char s[16];
             PrintInet(AF_INET, (const void *)&a->addr_data32[0], s, sizeof(s));
             SCLogDebug("%s", s);
@@ -730,7 +714,7 @@ inline int PacketSetData(Packet *p, const uint8_t *pktdata, uint32_t pktlen)
         return -1;
     }
     // ext_pkt cannot be const (because we sometimes copy)
-    p->ext_pkt = (uint8_t *) pktdata;
+    p->ext_pkt = (uint8_t *)pktdata;
     p->flags |= PKT_ZERO_COPY;
 
     return 0;

@@ -33,28 +33,28 @@
 
 ThreadsAffinityType thread_affinity[MAX_CPU_SET] = {
     {
-        .name = "receive-cpu-set",
-        .mode_flag = EXCLUSIVE_AFFINITY,
-        .prio = PRIO_MEDIUM,
-        .lcpu = 0,
+            .name = "receive-cpu-set",
+            .mode_flag = EXCLUSIVE_AFFINITY,
+            .prio = PRIO_MEDIUM,
+            .lcpu = 0,
     },
     {
-        .name = "worker-cpu-set",
-        .mode_flag = EXCLUSIVE_AFFINITY,
-        .prio = PRIO_MEDIUM,
-        .lcpu = 0,
+            .name = "worker-cpu-set",
+            .mode_flag = EXCLUSIVE_AFFINITY,
+            .prio = PRIO_MEDIUM,
+            .lcpu = 0,
     },
     {
-        .name = "verdict-cpu-set",
-        .mode_flag = BALANCED_AFFINITY,
-        .prio = PRIO_MEDIUM,
-        .lcpu = 0,
+            .name = "verdict-cpu-set",
+            .mode_flag = BALANCED_AFFINITY,
+            .prio = PRIO_MEDIUM,
+            .lcpu = 0,
     },
     {
-        .name = "management-cpu-set",
-        .mode_flag = BALANCED_AFFINITY,
-        .prio = PRIO_MEDIUM,
-        .lcpu = 0,
+            .name = "management-cpu-set",
+            .mode_flag = BALANCED_AFFINITY,
+            .prio = PRIO_MEDIUM,
+            .lcpu = 0,
     },
 
 };
@@ -65,7 +65,7 @@ int thread_affinity_init_done = 0;
  * \brief find affinity by its name
  * \retval a pointer to the affinity or NULL if not found
  */
-ThreadsAffinityType * GetAffinityTypeFromName(const char *name)
+ThreadsAffinityType *GetAffinityTypeFromName(const char *name)
 {
     int i;
     for (i = 0; i < MAX_CPU_SET; i++) {
@@ -95,14 +95,13 @@ static void AffinitySetupInit(void)
     return;
 }
 
-void BuildCpusetWithCallback(const char *name, ConfNode *node,
-                             void (*Callback)(int i, void * data),
-                             void *data)
+void BuildCpusetWithCallback(
+        const char *name, ConfNode *node, void (*Callback)(int i, void *data), void *data)
 {
     ConfNode *lnode;
-    TAILQ_FOREACH(lnode, &node->head, next) {
+    TAILQ_FOREACH (lnode, &node->head, next) {
         int i;
-        long int a,b;
+        long int a, b;
         int stop = 0;
         int max = UtilCpuGetNumProcessorsOnline() - 1;
         if (!strcmp(lnode->val, "all")) {
@@ -139,7 +138,7 @@ void BuildCpusetWithCallback(const char *name, ConfNode *node,
             }
             b = a;
         }
-        for (i = a; i<= b; i++) {
+        for (i = a; i <= b; i++) {
             Callback(i, data);
         }
         if (stop)
@@ -154,7 +153,7 @@ static void AffinityCallback(int i, void *data)
 
 static void BuildCpuset(const char *name, ConfNode *node, cpu_set_t *cpu)
 {
-    BuildCpusetWithCallback(name, node, AffinityCallback, (void *) cpu);
+    BuildCpusetWithCallback(name, node, AffinityCallback, (void *)cpu);
 }
 #endif /* OS_WIN32 and __OpenBSD__ */
 
@@ -179,11 +178,11 @@ void AffinitySetupLoadFromConfig(void)
         return;
     }
 
-    TAILQ_FOREACH(affinity, &root->head, next) {
+    TAILQ_FOREACH (affinity, &root->head, next) {
         if (strcmp(affinity->val, "decode-cpu-set") == 0 ||
-            strcmp(affinity->val, "stream-cpu-set") == 0 ||
-            strcmp(affinity->val, "reject-cpu-set") == 0 ||
-            strcmp(affinity->val, "output-cpu-set") == 0) {
+                strcmp(affinity->val, "stream-cpu-set") == 0 ||
+                strcmp(affinity->val, "reject-cpu-set") == 0 ||
+                strcmp(affinity->val, "output-cpu-set") == 0) {
             continue;
         }
 
@@ -245,8 +244,7 @@ void AffinitySetupLoadFromConfig(void)
                 } else {
                     FatalError("unknown cpu_affinity prio");
                 }
-                SCLogConfig("Using default prio '%s' for set '%s'",
-                        node->val, setname);
+                SCLogConfig("Using default prio '%s' for set '%s'", node->val, setname);
             }
         }
 
@@ -268,7 +266,7 @@ void AffinitySetupLoadFromConfig(void)
                            "count: '%s'",
                         node->val);
             }
-            if (! taf->nb_threads) {
+            if (!taf->nb_threads) {
                 FatalError("bad value for threads count");
             }
         }

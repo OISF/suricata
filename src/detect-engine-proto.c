@@ -82,18 +82,15 @@ int DetectProtoParse(DetectProto *dp, const char *str)
     } else if (strcasecmp(str, "sctp") == 0) {
         dp->proto[IPPROTO_SCTP / 8] |= 1 << (IPPROTO_SCTP % 8);
         SCLogDebug("SCTP protocol detected");
-    } else if (strcasecmp(str,"ipv4") == 0 ||
-               strcasecmp(str,"ip4") == 0 ) {
+    } else if (strcasecmp(str, "ipv4") == 0 || strcasecmp(str, "ip4") == 0) {
         dp->flags |= (DETECT_PROTO_IPV4 | DETECT_PROTO_ANY);
         memset(dp->proto, 0xff, sizeof(dp->proto));
         SCLogDebug("IPv4 protocol detected");
-    } else if (strcasecmp(str,"ipv6") == 0 ||
-               strcasecmp(str,"ip6") == 0 ) {
+    } else if (strcasecmp(str, "ipv6") == 0 || strcasecmp(str, "ip6") == 0) {
         dp->flags |= (DETECT_PROTO_IPV6 | DETECT_PROTO_ANY);
         memset(dp->proto, 0xff, sizeof(dp->proto));
         SCLogDebug("IPv6 protocol detected");
-    } else if (strcasecmp(str,"ip") == 0 ||
-               strcasecmp(str,"pkthdr") == 0) {
+    } else if (strcasecmp(str, "ip") == 0 || strcasecmp(str, "pkthdr") == 0) {
         /* Proto "ip" is treated as an "any" */
         dp->flags |= DETECT_PROTO_ANY;
         memset(dp->proto, 0xff, sizeof(dp->proto));
@@ -137,7 +134,7 @@ int DetectProtoContainsProto(const DetectProto *dp, int proto)
     if (dp->flags & DETECT_PROTO_ANY)
         return 1;
 
-    if (dp->proto[proto / 8] & (1<<(proto % 8)))
+    if (dp->proto[proto / 8] & (1 << (proto % 8)))
         return 1;
 
     return 0;
@@ -153,8 +150,8 @@ int DetectProtoContainsProto(const DetectProto *dp, int proto)
  * \brief this function is used to initialize the detection engine context and
  *        setup the signature with passed values.
  */
-static int DetectProtoInitTest(DetectEngineCtx **de_ctx, Signature **sig,
-                               DetectProto *dp, const char *str)
+static int DetectProtoInitTest(
+        DetectEngineCtx **de_ctx, Signature **sig, DetectProto *dp, const char *str)
 {
     char fullstr[1024];
     int result = 0;
@@ -162,9 +159,10 @@ static int DetectProtoInitTest(DetectEngineCtx **de_ctx, Signature **sig,
     *de_ctx = NULL;
     *sig = NULL;
 
-    if (snprintf(fullstr, 1024, "alert %s any any -> any any (msg:\"DetectProto"
-            " test\"; sid:1;)", str) >= 1024)
-    {
+    if (snprintf(fullstr, 1024,
+                "alert %s any any -> any any (msg:\"DetectProto"
+                " test\"; sid:1;)",
+                str) >= 1024) {
         goto end;
     }
 
@@ -195,10 +193,10 @@ end:
  * \test ProtoTestParse01 is a test to make sure that we parse the
  *  protocol correctly, when given valid proto option.
  */
-static int ProtoTestParse01 (void)
+static int ProtoTestParse01(void)
 {
     DetectProto dp;
-    memset(&dp,0,sizeof(DetectProto));
+    memset(&dp, 0, sizeof(DetectProto));
 
     int r = DetectProtoParse(&dp, "6");
 
@@ -210,10 +208,10 @@ static int ProtoTestParse01 (void)
  * \test ProtoTestParse02 is a test to make sure that we parse the
  *  protocol correctly, when given "tcp" as proto option.
  */
-static int ProtoTestParse02 (void)
+static int ProtoTestParse02(void)
 {
     DetectProto dp;
-    memset(&dp,0,sizeof(DetectProto));
+    memset(&dp, 0, sizeof(DetectProto));
 
     int r = DetectProtoParse(&dp, "tcp");
 
@@ -226,10 +224,10 @@ static int ProtoTestParse02 (void)
  * \test ProtoTestParse03 is a test to make sure that we parse the
  *  protocol correctly, when given "ip" as proto option.
  */
-static int ProtoTestParse03 (void)
+static int ProtoTestParse03(void)
 {
     DetectProto dp;
-    memset(&dp,0,sizeof(DetectProto));
+    memset(&dp, 0, sizeof(DetectProto));
 
     int r = DetectProtoParse(&dp, "ip");
 
@@ -243,10 +241,10 @@ static int ProtoTestParse03 (void)
  * \test ProtoTestParse04 is a test to make sure that we do not parse the
  *  protocol, when given an invalid proto option.
  */
-static int ProtoTestParse04 (void)
+static int ProtoTestParse04(void)
 {
     DetectProto dp;
-    memset(&dp,0,sizeof(DetectProto));
+    memset(&dp, 0, sizeof(DetectProto));
 
     /* Check for a bad number */
     int r = DetectProtoParse(&dp, "4242");
@@ -260,10 +258,10 @@ static int ProtoTestParse04 (void)
  * \test ProtoTestParse05 is a test to make sure that we do not parse the
  *  protocol, when given an invalid proto option.
  */
-static int ProtoTestParse05 (void)
+static int ProtoTestParse05(void)
 {
     DetectProto dp;
-    memset(&dp,0,sizeof(DetectProto));
+    memset(&dp, 0, sizeof(DetectProto));
 
     /* Check for a bad string */
     int r = DetectProtoParse(&dp, "tcp/udp");
@@ -276,10 +274,10 @@ static int ProtoTestParse05 (void)
 /**
  * \test make sure that we properly parse tcp-pkt
  */
-static int ProtoTestParse06 (void)
+static int ProtoTestParse06(void)
 {
     DetectProto dp;
-    memset(&dp,0,sizeof(DetectProto));
+    memset(&dp, 0, sizeof(DetectProto));
 
     /* Check for a bad string */
     int r = DetectProtoParse(&dp, "tcp-pkt");
@@ -293,10 +291,10 @@ static int ProtoTestParse06 (void)
 /**
  * \test make sure that we properly parse tcp-stream
  */
-static int ProtoTestParse07 (void)
+static int ProtoTestParse07(void)
 {
     DetectProto dp;
-    memset(&dp,0,sizeof(DetectProto));
+    memset(&dp, 0, sizeof(DetectProto));
 
     /* Check for a bad string */
     int r = DetectProtoParse(&dp, "tcp-stream");
@@ -408,4 +406,3 @@ void DetectProtoTests(void)
     UtRegisterTest("DetectProtoTestSig01", DetectProtoTestSig01);
 #endif /* UNITTESTS */
 }
-

@@ -24,7 +24,6 @@
 #ifndef __DETECT_THRESHOLD_H__
 #define __DETECT_THRESHOLD_H__
 
-
 #define TYPE_LIMIT     1
 #define TYPE_BOTH      2
 #define TYPE_THRESHOLD 3
@@ -32,19 +31,19 @@
 #define TYPE_RATE      5
 #define TYPE_SUPPRESS  6
 
-#define TRACK_DST      1
-#define TRACK_SRC      2
-#define TRACK_RULE     3
-#define TRACK_EITHER   4 /**< either src or dst: only used by suppress */
-#define TRACK_BOTH     5 /* used by rate_filter to match detections by both src and dst addresses */
+#define TRACK_DST    1
+#define TRACK_SRC    2
+#define TRACK_RULE   3
+#define TRACK_EITHER 4 /**< either src or dst: only used by suppress */
+#define TRACK_BOTH   5 /* used by rate_filter to match detections by both src and dst addresses */
 
 /* Get the new action to take */
-#define TH_ACTION_ALERT     0x01
-#define TH_ACTION_DROP      0x02
-#define TH_ACTION_PASS      0x04
-#define TH_ACTION_LOG       0x08
-#define TH_ACTION_SDROP     0x10
-#define TH_ACTION_REJECT    0x20
+#define TH_ACTION_ALERT  0x01
+#define TH_ACTION_DROP   0x02
+#define TH_ACTION_PASS   0x04
+#define TH_ACTION_LOG    0x08
+#define TH_ACTION_SDROP  0x10
+#define TH_ACTION_REJECT 0x20
 
 /**
  * \typedef DetectThresholdData
@@ -63,19 +62,18 @@ typedef struct DetectThresholdData_ {
 } DetectThresholdData;
 
 typedef struct DetectThresholdEntry_ {
-    uint32_t sid;           /**< Signature id */
-    uint32_t gid;           /**< Signature group id */
+    uint32_t sid; /**< Signature id */
+    uint32_t gid; /**< Signature group id */
 
     uint32_t tv_timeout;    /**< Timeout for new_action (for rate_filter)
                                  its not "seconds", that define the time interval */
     uint32_t seconds;       /**< Event seconds */
     uint32_t current_count; /**< Var for count control */
-    int track;          /**< Track type: by_src, by_src */
+    int track;              /**< Track type: by_src, by_src */
 
     SCTime_t tv1; /**< Var for time control */
     struct DetectThresholdEntry_ *next;
 } DetectThresholdEntry;
-
 
 /**
  * Registration function for threshold: keyword

@@ -53,12 +53,11 @@
 #include "util-file-decompression.h"
 #include "util-profiling.h"
 
-static int DetectFiledataSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectFiledataSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectFiledataRegisterTests(void);
 #endif
-static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
-                                        Signature *s);
+static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx, Signature *s);
 static int g_file_data_buffer_id = 0;
 
 /* file API */
@@ -93,7 +92,8 @@ void DetectFiledataRegister(void)
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
 }
 
-static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
+static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx)
+{
     if (de_ctx->filedata_config_initialized)
         return;
 
@@ -108,8 +108,10 @@ static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
 
     /* SMTP */
     de_ctx->filedata_config[ALPROTO_SMTP].content_limit = smtp_config.content_limit;
-    de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_min_size = smtp_config.content_inspect_min_size;
-    de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_window = smtp_config.content_inspect_window;
+    de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_min_size =
+            smtp_config.content_inspect_min_size;
+    de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_window =
+            smtp_config.content_inspect_window;
 
     de_ctx->filedata_config_initialized = true;
 }
@@ -125,7 +127,7 @@ static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectFiledataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
 
@@ -141,7 +143,7 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     }
 
     if (s->alproto == ALPROTO_SMTP && (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) &&
-        !(s->flags & SIG_FLAG_TOSERVER) && (s->flags & SIG_FLAG_TOCLIENT)) {
+            !(s->flags & SIG_FLAG_TOSERVER) && (s->flags & SIG_FLAG_TOCLIENT)) {
         SCLogError("The 'file-data' keyword cannot be used with SMTP flow:to_client or "
                    "flow:from_server.");
         return -1;
@@ -155,8 +157,7 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 }
 
-static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
-                                        Signature *s)
+static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
 {
     if (s->alproto == ALPROTO_HTTP1 || s->alproto == ALPROTO_UNKNOWN ||
             s->alproto == ALPROTO_HTTP) {
@@ -486,9 +487,8 @@ int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, Mpm
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxFiledata,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-            pectx, PrefilterMpmFiledataFree, mpm_reg->pname);
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxFiledata, mpm_reg->app_v2.alproto,
+            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmFiledataFree, mpm_reg->pname);
 }
 
 #ifdef UNITTESTS

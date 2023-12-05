@@ -46,7 +46,8 @@ typedef struct HashTable_ {
 #define HASH_NO_SIZE 0
 
 /* prototypes */
-HashTable* HashTableInit(uint32_t, uint32_t (*Hash)(struct HashTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *));
+HashTable *HashTableInit(uint32_t, uint32_t (*Hash)(struct HashTable_ *, void *, uint16_t),
+        char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *));
 void HashTableFree(HashTable *);
 void HashTablePrint(HashTable *);
 int HashTableAdd(HashTable *, void *, uint16_t);
@@ -58,4 +59,3 @@ char HashTableDefaultCompare(void *, uint16_t, void *, uint16_t);
 void HashTableRegisterTests(void);
 
 #endif /* __HASH_H__ */
-

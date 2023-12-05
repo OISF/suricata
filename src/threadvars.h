@@ -32,27 +32,28 @@
 struct TmSlot_;
 
 /** Thread flags set and read by threads to control the threads */
-#define THV_USE                 BIT_U32(0)  /** thread is in use */
-#define THV_INIT_DONE           BIT_U32(1)  /** thread initialization done */
-#define THV_PAUSE               BIT_U32(2)  /** signal thread to pause itself */
-#define THV_PAUSED              BIT_U32(3)  /** the thread is paused atm */
-#define THV_KILL                BIT_U32(4)  /** thread has been asked to cleanup and exit */
-#define THV_FAILED              BIT_U32(5)  /** thread has encountered an error and failed */
-#define THV_CLOSED              BIT_U32(6)  /** thread done, should be joinable */
+#define THV_USE       BIT_U32(0) /** thread is in use */
+#define THV_INIT_DONE BIT_U32(1) /** thread initialization done */
+#define THV_PAUSE     BIT_U32(2) /** signal thread to pause itself */
+#define THV_PAUSED    BIT_U32(3) /** the thread is paused atm */
+#define THV_KILL      BIT_U32(4) /** thread has been asked to cleanup and exit */
+#define THV_FAILED    BIT_U32(5) /** thread has encountered an error and failed */
+#define THV_CLOSED    BIT_U32(6) /** thread done, should be joinable */
 /* used to indicate the thread is going through de-init.  Introduced as more
  * of a hack for solving stream-timeout-shutdown.  Is set by the main thread. */
-#define THV_DEINIT              BIT_U32(7)
-#define THV_RUNNING_DONE        BIT_U32(8)  /** thread has completed running and is entering
-                                         * the de-init phase */
-#define THV_KILL_PKTACQ         BIT_U32(9)  /**< flag thread to stop packet acq */
-#define THV_FLOW_LOOP           BIT_U32(10) /**< thread is in flow shutdown loop */
+#define THV_DEINIT BIT_U32(7)
+#define THV_RUNNING_DONE                                                                           \
+    BIT_U32(8)                      /** thread has completed running and is entering               \
+                                     * the de-init phase */
+#define THV_KILL_PKTACQ BIT_U32(9)  /**< flag thread to stop packet acq */
+#define THV_FLOW_LOOP   BIT_U32(10) /**< thread is in flow shutdown loop */
 
 /** signal thread's capture method to create a fake packet to force through
  *  the engine. This is to force timely handling of maintenance tasks like
  *  rule reloads even if no packets are read by the capture method. */
-#define THV_CAPTURE_INJECT_PKT  BIT_U32(11)
-#define THV_DEAD                BIT_U32(12) /**< thread has been joined with pthread_join() */
-#define THV_RUNNING             BIT_U32(13) /**< thread is running */
+#define THV_CAPTURE_INJECT_PKT BIT_U32(11)
+#define THV_DEAD               BIT_U32(12) /**< thread has been joined with pthread_join() */
+#define THV_RUNNING            BIT_U32(13) /**< thread is running */
 
 /** \brief Per thread variable structure */
 typedef struct ThreadVars_ {
@@ -72,8 +73,7 @@ typedef struct ThreadVars_ {
     uint8_t type;
 
     uint16_t cpu_affinity; /** cpu or core number to set affinity to */
-    int thread_priority; /** priority (real time) for this thread. Look at threads.h */
-
+    int thread_priority;   /** priority (real time) for this thread. Look at threads.h */
 
     /** TmModule::flags for each module part of this thread */
     uint8_t tmm_flags;
@@ -88,7 +88,7 @@ typedef struct ThreadVars_ {
 
     /** incoming queue and handler */
     Tmq *inq;
-    struct Packet_ * (*tmqh_in)(struct ThreadVars_ *);
+    struct Packet_ *(*tmqh_in)(struct ThreadVars_ *);
 
     SC_ATOMIC_DECLARE(uint32_t, flags);
 
@@ -138,8 +138,8 @@ typedef struct ThreadVars_ {
 } ThreadVars;
 
 /** Thread setup flags: */
-#define THREAD_SET_AFFINITY     0x01 /** CPU/Core affinity */
-#define THREAD_SET_PRIORITY     0x02 /** Real time priority */
-#define THREAD_SET_AFFTYPE      0x04 /** Priority and affinity */
+#define THREAD_SET_AFFINITY 0x01 /** CPU/Core affinity */
+#define THREAD_SET_PRIORITY 0x02 /** Real time priority */
+#define THREAD_SET_AFFTYPE  0x04 /** Priority and affinity */
 
 #endif /* __THREADVARS_H__ */

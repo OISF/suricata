@@ -68,10 +68,8 @@ int RunModeFilePcapSingle(void)
     snprintf(tname, sizeof(tname), "%s#01", thread_name_single);
 
     /* create the threads */
-    ThreadVars *tv = TmThreadCreatePacketHandler(tname,
-                                                 "packetpool", "packetpool",
-                                                 "packetpool", "packetpool",
-                                                 "pktacqloop");
+    ThreadVars *tv = TmThreadCreatePacketHandler(
+            tname, "packetpool", "packetpool", "packetpool", "packetpool", "pktacqloop");
     if (tv == NULL) {
         FatalError("threading setup failed");
     }
@@ -161,11 +159,8 @@ int RunModeFilePcapAutoFp(void)
     snprintf(tname, sizeof(tname), "%s#01", thread_name_autofp);
 
     /* create the threads */
-    ThreadVars *tv_receivepcap =
-        TmThreadCreatePacketHandler(tname,
-                                    "packetpool", "packetpool",
-                                    queues, "flow",
-                                    "pktacqloop");
+    ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler(
+            tname, "packetpool", "packetpool", queues, "flow", "pktacqloop");
     SCFree(queues);
 
     if (tv_receivepcap == NULL) {
@@ -196,11 +191,8 @@ int RunModeFilePcapAutoFp(void)
         SCLogDebug("tname %s, qname %s", tname, qname);
         SCLogDebug("Assigning %s affinity to cpu %u", tname, cpu);
 
-        ThreadVars *tv_detect_ncpu =
-            TmThreadCreatePacketHandler(tname,
-                                        qname, "flow",
-                                        "packetpool", "packetpool",
-                                        "varslot");
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(
+                tname, qname, "flow", "packetpool", "packetpool", "varslot");
         if (tv_detect_ncpu == NULL) {
             FatalError("TmThreadsCreate failed");
         }

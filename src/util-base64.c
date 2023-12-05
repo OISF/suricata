@@ -26,23 +26,16 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 /* Constants */
-#define BASE64_TABLE_MAX  122
+#define BASE64_TABLE_MAX 122
 
 /* Base64 character to index conversion table */
 /* Characters are mapped as "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" */
-static const int b64table[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, 62, -1, -1, -1, 63, 52, 53,
-        54, 55, 56, 57, 58, 59, 60, 61, -1, -1,
-        -1, -1, -1, -1, -1, 0, 1, 2, 3, 4,
-        5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
-        15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-        25, -1, -1, -1, -1, -1, -1, 26, 27, 28,
-        29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
-        39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
-        49, 50, 51 };
+static const int b64table[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, 62, -1, -1, -1, 63, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1, -1,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+    -1, -1, -1, -1, -1, -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+    44, 45, 46, 47, 48, 49, 50, 51 };
 
 /**
  * \brief Gets a base64-decoded value from an encoded character
@@ -57,7 +50,7 @@ static inline int GetBase64Value(uint8_t c)
 
     /* Pull from conversion table */
     if (c <= BASE64_TABLE_MAX) {
-        val = b64table[(int) c];
+        val = b64table[(int)c];
     }
 
     return val;
@@ -88,9 +81,9 @@ bool IsBase64Alphabet(uint8_t encoded_byte)
  */
 static inline void DecodeBase64Block(uint8_t ascii[ASCII_BLOCK], uint8_t b64[B64_BLOCK])
 {
-    ascii[0] = (uint8_t) (b64[0] << 2) | (b64[1] >> 4);
-    ascii[1] = (uint8_t) (b64[1] << 4) | (b64[2] >> 2);
-    ascii[2] = (uint8_t) (b64[2] << 6) | (b64[3]);
+    ascii[0] = (uint8_t)(b64[0] << 2) | (b64[1] >> 4);
+    ascii[1] = (uint8_t)(b64[1] << 4) | (b64[2] >> 2);
+    ascii[2] = (uint8_t)(b64[2] << 6) | (b64[3]);
 }
 
 /**
@@ -112,7 +105,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
     int val;
     uint32_t padding = 0, bbidx = 0, sp = 0, leading_sp = 0;
     uint8_t *dptr = dest;
-    uint8_t b64[B64_BLOCK] = { 0,0,0,0 };
+    uint8_t b64[B64_BLOCK] = { 0, 0, 0, 0 };
     bool valid = true;
     Base64Ecode ecode = BASE64_ECODE_OK;
     *decoded_bytes = 0;

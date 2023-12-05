@@ -49,10 +49,9 @@ void OutputFiledataLogFfc(ThreadVars *tv, OutputFiledataLoggerThreadData *td, Pa
 typedef int (*FiledataLogger)(ThreadVars *, void *thread_data, const Packet *, File *, void *tx,
         const uint64_t tx_id, const uint8_t *, uint32_t, uint8_t, uint8_t dir);
 
-int OutputRegisterFiledataLogger(LoggerId id, const char *name,
-    FiledataLogger LogFunc, OutputCtx *, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats);
+int OutputRegisterFiledataLogger(LoggerId id, const char *name, FiledataLogger LogFunc, OutputCtx *,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void OutputFiledataLoggerRegister(void);
 

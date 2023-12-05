@@ -53,15 +53,14 @@ static int g_cip_buffer_id = 0;
 void DetectCipServiceRegister(void)
 {
     SCEnter();
-    sigmatch_table[DETECT_CIPSERVICE].name = "cip_service"; //rule keyword
+    sigmatch_table[DETECT_CIPSERVICE].name = "cip_service"; // rule keyword
     sigmatch_table[DETECT_CIPSERVICE].desc = "match on CIP Service";
     sigmatch_table[DETECT_CIPSERVICE].url = "/rules/enip-keyword.html#enip-cip-keywords";
     sigmatch_table[DETECT_CIPSERVICE].Match = NULL;
     sigmatch_table[DETECT_CIPSERVICE].Setup = DetectCipServiceSetup;
     sigmatch_table[DETECT_CIPSERVICE].Free = DetectCipServiceFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_CIPSERVICE].RegisterTests
-            = DetectCipServiceRegisterTests;
+    sigmatch_table[DETECT_CIPSERVICE].RegisterTests = DetectCipServiceRegisterTests;
 #endif
     DetectAppLayerInspectEngineRegister2(
             "cip", ALPROTO_ENIP, SIG_FLAG_TOSERVER, 0, DetectEngineInspectCIP, NULL);
@@ -87,7 +86,7 @@ static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
     const char delims[] = ",";
     DetectCipServiceData *cipserviced = NULL;
 
-    //SCLogDebug("DetectCipServiceParse - rule string  %s", rulestr);
+    // SCLogDebug("DetectCipServiceParse - rule string  %s", rulestr);
 
     /* strtok_r modifies the string so work with a copy */
     char *rulestr = SCStrdup(rulestrc);
@@ -103,55 +102,50 @@ static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
     cipserviced->matchattribute = 1;
     cipserviced->cipattribute = 0;
 
-    char* token;
+    char *token;
     char *save;
     uint8_t var;
     uint8_t input[3] = { 0, 0, 0 };
     uint8_t i = 0;
 
     token = strtok_r(rulestr, delims, &save);
-    while (token != NULL)
-    {
-        if (i > 2) //for now only need 3 parameters
+    while (token != NULL) {
+        if (i > 2) // for now only need 3 parameters
         {
             SCLogError("too many parameters");
             goto error;
         }
 
-        if (i < 2) //if on service or class
+        if (i < 2) // if on service or class
         {
-            if (!isdigit((int) *token))
-            {
+            if (!isdigit((int)*token)) {
                 SCLogError("parameter error %s", token);
                 goto error;
             }
-        } else //if on attribute
+        } else // if on attribute
         {
 
-            if (token[0] == '!')
-            {
+            if (token[0] == '!') {
                 cipserviced->matchattribute = 0;
                 token++;
             }
 
-            if (!isdigit((int) *token))
-            {
+            if (!isdigit((int)*token)) {
                 SCLogError("attribute error  %s", token);
                 goto error;
             }
-
         }
 
         unsigned long num = atol(token);
-        if ((num > MAX_CIP_SERVICE) && (i == 0))//if service greater than 7 bit
+        if ((num > MAX_CIP_SERVICE) && (i == 0)) // if service greater than 7 bit
         {
             SCLogError("invalid CIP service %lu", num);
             goto error;
-        } else if ((num > MAX_CIP_CLASS) && (i == 1))//if service greater than 16 bit
+        } else if ((num > MAX_CIP_CLASS) && (i == 1)) // if service greater than 16 bit
         {
             SCLogError("invalid CIP class %lu", num);
             goto error;
-        } else if ((num > MAX_CIP_ATTRIBUTE) && (i == 2))//if service greater than 16 bit
+        } else if ((num > MAX_CIP_ATTRIBUTE) && (i == 2)) // if service greater than 16 bit
         {
             SCLogError("invalid CIP attribute %lu", num);
             goto error;
@@ -176,10 +170,8 @@ static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
     SCLogDebug("DetectCipServiceParse - tokens %d", cipserviced->tokens);
     SCLogDebug("DetectCipServiceParse - service %d", cipserviced->cipservice);
     SCLogDebug("DetectCipServiceParse - class %d", cipserviced->cipclass);
-    SCLogDebug("DetectCipServiceParse - match attribute %d",
-            cipserviced->matchattribute);
-    SCLogDebug("DetectCipServiceParse - attribute %d",
-            cipserviced->cipattribute);
+    SCLogDebug("DetectCipServiceParse - match attribute %d", cipserviced->matchattribute);
+    SCLogDebug("DetectCipServiceParse - attribute %d", cipserviced->cipattribute);
 
     SCFree(rulestr);
     SCReturnPtr(cipserviced, "DetectENIPFunction");
@@ -193,7 +185,8 @@ error:
 }
 
 /**
- * \brief this function is used to a cipserviced the parsed cip_service data into the current signature
+ * \brief this function is used to a cipserviced the parsed cip_service data into the current
+ * signature
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
@@ -202,8 +195,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
-        const char *rulestr)
+static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rulestr)
 {
     SCEnter();
 
@@ -235,7 +227,7 @@ error:
  */
 static void DetectCipServiceFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectCipServiceData *cipserviced = (DetectCipServiceData *) ptr;
+    DetectCipServiceData *cipserviced = (DetectCipServiceData *)ptr;
     SCFree(cipserviced);
 }
 
@@ -244,7 +236,7 @@ static void DetectCipServiceFree(DetectEngineCtx *de_ctx, void *ptr)
 /**
  * \test Test CIP Command parameter parsing
  */
-static int DetectCipServiceParseTest01 (void)
+static int DetectCipServiceParseTest01(void)
 {
     DetectCipServiceData *cipserviced = NULL;
     cipserviced = DetectCipServiceParse("7");
@@ -257,11 +249,12 @@ static int DetectCipServiceParseTest01 (void)
 /**
  * \test Test CIP Service signature
  */
-static int DetectCipServiceSignatureTest01 (void)
+static int DetectCipServiceSignatureTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
-    Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (cip_service:1; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert tcp any any -> any any (cip_service:1; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
     DetectEngineCtxFree(de_ctx);
     PASS;
@@ -272,10 +265,8 @@ static int DetectCipServiceSignatureTest01 (void)
  */
 static void DetectCipServiceRegisterTests(void)
 {
-    UtRegisterTest("DetectCipServiceParseTest01",
-            DetectCipServiceParseTest01);
-    UtRegisterTest("DetectCipServiceSignatureTest01",
-            DetectCipServiceSignatureTest01);
+    UtRegisterTest("DetectCipServiceParseTest01", DetectCipServiceParseTest01);
+    UtRegisterTest("DetectCipServiceSignatureTest01", DetectCipServiceSignatureTest01);
 }
 #endif /* UNITTESTS */
 
@@ -298,16 +289,14 @@ static int g_enip_buffer_id = 0;
  */
 void DetectEnipCommandRegister(void)
 {
-    sigmatch_table[DETECT_ENIPCOMMAND].name = "enip_command"; //rule keyword
-    sigmatch_table[DETECT_ENIPCOMMAND].desc
-            = "rules for detecting EtherNet/IP command";
+    sigmatch_table[DETECT_ENIPCOMMAND].name = "enip_command"; // rule keyword
+    sigmatch_table[DETECT_ENIPCOMMAND].desc = "rules for detecting EtherNet/IP command";
     sigmatch_table[DETECT_ENIPCOMMAND].url = "/rules/enip-keyword.html#enip-cip-keywords";
     sigmatch_table[DETECT_ENIPCOMMAND].Match = NULL;
     sigmatch_table[DETECT_ENIPCOMMAND].Setup = DetectEnipCommandSetup;
     sigmatch_table[DETECT_ENIPCOMMAND].Free = DetectEnipCommandFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_ENIPCOMMAND].RegisterTests
-            = DetectEnipCommandRegisterTests;
+    sigmatch_table[DETECT_ENIPCOMMAND].RegisterTests = DetectEnipCommandRegisterTests;
 #endif
     DetectAppLayerInspectEngineRegister2(
             "enip", ALPROTO_ENIP, SIG_FLAG_TOSERVER, 0, DetectEngineInspectENIP, NULL);
@@ -334,7 +323,7 @@ static DetectEnipCommandData *DetectEnipCommandParse(const char *rulestr)
     if (unlikely(enipcmdd == NULL))
         goto error;
 
-    if (!(isdigit((int) *rulestr))) {
+    if (!(isdigit((int)*rulestr))) {
         SCLogError("invalid ENIP command %s", rulestr);
         goto error;
     }
@@ -367,8 +356,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectEnipCommandSetup(DetectEngineCtx *de_ctx, Signature *s,
-        const char *rulestr)
+static int DetectEnipCommandSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rulestr)
 {
     DetectEnipCommandData *enipcmdd = NULL;
 
@@ -398,7 +386,7 @@ error:
  */
 static void DetectEnipCommandFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *) ptr;
+    DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *)ptr;
     SCFree(enipcmdd);
 }
 
@@ -408,7 +396,7 @@ static void DetectEnipCommandFree(DetectEngineCtx *de_ctx, void *ptr)
  * \test ENIP parameter test
  */
 
-static int DetectEnipCommandParseTest01 (void)
+static int DetectEnipCommandParseTest01(void)
 {
     DetectEnipCommandData *enipcmdd = NULL;
 
@@ -423,12 +411,13 @@ static int DetectEnipCommandParseTest01 (void)
 /**
  * \test ENIP Command signature test
  */
-static int DetectEnipCommandSignatureTest01 (void)
+static int DetectEnipCommandSignatureTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (enip_command:1; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert tcp any any -> any any (enip_command:1; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -440,9 +429,7 @@ static int DetectEnipCommandSignatureTest01 (void)
  */
 static void DetectEnipCommandRegisterTests(void)
 {
-    UtRegisterTest("DetectEnipCommandParseTest01",
-            DetectEnipCommandParseTest01);
-    UtRegisterTest("DetectEnipCommandSignatureTest01",
-            DetectEnipCommandSignatureTest01);
+    UtRegisterTest("DetectEnipCommandParseTest01", DetectEnipCommandParseTest01);
+    UtRegisterTest("DetectEnipCommandSignatureTest01", DetectEnipCommandSignatureTest01);
 }
 #endif /* UNITTESTS */

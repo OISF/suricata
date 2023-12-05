@@ -59,7 +59,7 @@
 uint16_t UtilCpuGetNumProcessorsConfigured(void)
 {
 #ifdef SYSCONF_NPROCESSORS_CONF_COMPAT
-	long nprocs = -1;
+    long nprocs = -1;
     nprocs = sysconf(_SC_NPROCESSORS_CONF);
     if (nprocs < 1) {
         SCLogError("Couldn't retrieve the number of cpus "
@@ -71,14 +71,15 @@ uint16_t UtilCpuGetNumProcessorsConfigured(void)
     if (nprocs > UINT16_MAX) {
         SCLogDebug("It seems that there are more than %d CPUs "
                    "configured on this system. You can modify util-cpu.{c,h} "
-                   "to use uint32_t to support it", UINT16_MAX);
+                   "to use uint32_t to support it",
+                UINT16_MAX);
         return UINT16_MAX;
     }
 
     return (uint16_t)nprocs;
 #elif OS_WIN32
     int64_t nprocs = 0;
-    const char* envvar = getenv("NUMBER_OF_PROCESSORS");
+    const char *envvar = getenv("NUMBER_OF_PROCESSORS");
     if (envvar != NULL) {
         if (StringParseInt64(&nprocs, 10, 0, envvar) < 0) {
             SCLogWarning("Invalid value for number of "
@@ -120,13 +121,14 @@ uint16_t UtilCpuGetNumProcessorsOnline(void)
     if (nprocs > UINT16_MAX) {
         SCLogDebug("It seems that there are more than %d CPUs online. "
                    "You can modify util-cpu.{c,h} to use uint32_t to "
-                   "support it", UINT16_MAX);
+                   "support it",
+                UINT16_MAX);
         return UINT16_MAX;
     }
 
     return (uint16_t)nprocs;
 #elif OS_WIN32
-	return UtilCpuGetNumProcessorsConfigured();
+    return UtilCpuGetNumProcessorsConfigured();
 #else
     SCLogError("Couldn't retrieve the number of cpus online, "
                "synconf macro unavailable");
@@ -154,8 +156,9 @@ uint16_t UtilCpuGetNumProcessorsMax(void)
     }
 
     if (nprocs > UINT16_MAX) {
-        SCLogDebug("It seems that the system support more that %"PRIu16" CPUs. You "
-                   "can modify util-cpu.{c,h} to use uint32_t to support it", UINT16_MAX);
+        SCLogDebug("It seems that the system support more that %" PRIu16 " CPUs. You "
+                   "can modify util-cpu.{c,h} to use uint32_t to support it",
+                UINT16_MAX);
         return UINT16_MAX;
     }
 
@@ -177,9 +180,9 @@ void UtilCpuPrintSummary(void)
 
     SCLogDebug("CPUs Summary: ");
     if (cpus_conf > 0)
-        SCLogDebug("CPUs configured: %"PRIu16, cpus_conf);
+        SCLogDebug("CPUs configured: %" PRIu16, cpus_conf);
     if (cpus_online > 0)
-        SCLogInfo("CPUs/cores online: %"PRIu16, cpus_online);
+        SCLogInfo("CPUs/cores online: %" PRIu16, cpus_online);
     if (cpus_online == 0 && cpus_conf == 0)
         SCLogInfo("Couldn't retrieve any information of CPU's, please, send your operating "
                   "system info and check util-cpu.{c,h}");
@@ -194,39 +197,36 @@ void UtilCpuPrintSummary(void)
 uint64_t UtilCpuGetTicks(void)
 {
     uint64_t val;
-#if defined(__GNUC__) && (defined(__x86_64) || defined(_X86_64_) || defined(ia_64) || defined(__i386__))
+#if defined(__GNUC__) &&                                                                           \
+        (defined(__x86_64) || defined(_X86_64_) || defined(ia_64) || defined(__i386__))
 #if defined(__x86_64) || defined(_X86_64_) || defined(ia_64)
-    __asm__ __volatile__ (
-    "xorl %%eax,%%eax\n\t"
-    "cpuid\n\t"
-    ::: "%rax", "%rbx", "%rcx", "%rdx");
+    __asm__ __volatile__("xorl %%eax,%%eax\n\t"
+                         "cpuid\n\t" ::
+                                 : "%rax", "%rbx", "%rcx", "%rdx");
 #else
-    __asm__ __volatile__ (
-    "xorl %%eax,%%eax\n\t"
-    "pushl %%ebx\n\t"
-    "cpuid\n\t"
-    "popl %%ebx\n\t"
-    ::: "%eax", "%ecx", "%edx");
+    __asm__ __volatile__("xorl %%eax,%%eax\n\t"
+                         "pushl %%ebx\n\t"
+                         "cpuid\n\t"
+                         "popl %%ebx\n\t" ::
+                                 : "%eax", "%ecx", "%edx");
 #endif
     uint32_t a, d;
-    __asm__ __volatile__ ("rdtsc" : "=a" (a), "=d" (d));
+    __asm__ __volatile__("rdtsc" : "=a"(a), "=d"(d));
     val = ((uint64_t)a) | (((uint64_t)d) << 32);
 #if defined(__x86_64) || defined(_X86_64_) || defined(ia_64)
-    __asm__ __volatile__ (
-    "xorl %%eax,%%eax\n\t"
-    "cpuid\n\t"
-    ::: "%rax", "%rbx", "%rcx", "%rdx");
+    __asm__ __volatile__("xorl %%eax,%%eax\n\t"
+                         "cpuid\n\t" ::
+                                 : "%rax", "%rbx", "%rcx", "%rdx");
 #else
-    __asm__ __volatile__ (
-    "xorl %%eax,%%eax\n\t"
-    "pushl %%ebx\n\t"
-    "cpuid\n\t"
-    "popl %%ebx\n\t"
-    ::: "%eax", "%ecx", "%edx");
+    __asm__ __volatile__("xorl %%eax,%%eax\n\t"
+                         "pushl %%ebx\n\t"
+                         "cpuid\n\t"
+                         "popl %%ebx\n\t" ::
+                                 : "%eax", "%ecx", "%edx");
 #endif
 
 #else /* #if defined(__GNU__) */
-//#warning Using inferior version of UtilCpuGetTicks
+    // #warning Using inferior version of UtilCpuGetTicks
     struct timeval now;
     gettimeofday(&now, NULL);
     val = (now.tv_sec * 1000000) + now.tv_usec;

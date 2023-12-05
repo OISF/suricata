@@ -24,7 +24,7 @@
 #ifndef __DETECT_TLS_VERSION_H__
 #define __DETECT_TLS_VERSION_H__
 
-#define DETECT_TLS_VERSION_FLAG_RAW  BIT_U8(0)
+#define DETECT_TLS_VERSION_FLAG_RAW BIT_U8(0)
 
 typedef struct DetectTlsVersionData_ {
     uint16_t ver; /** tls version to match */
@@ -32,7 +32,6 @@ typedef struct DetectTlsVersionData_ {
 } DetectTlsVersionData;
 
 /* prototypes */
-void DetectTlsVersionRegister (void);
+void DetectTlsVersionRegister(void);
 
 #endif /* __DETECT_TLS_VERSION_H__ */
-

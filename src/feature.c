@@ -31,14 +31,13 @@
 #include "util-hashlist.h"
 
 typedef struct FeatureEntryType {
-	const char *feature;
+    const char *feature;
 } FeatureEntryType;
 
 static SCMutex feature_table_mutex = SCMUTEX_INITIALIZER;
 static HashListTable *feature_hash_table;
 
-static uint32_t FeatureHashFunc(HashListTable *ht, void *data,
-                                uint16_t datalen)
+static uint32_t FeatureHashFunc(HashListTable *ht, void *data, uint16_t datalen)
 {
     FeatureEntryType *f = (FeatureEntryType *)data;
     uint32_t hash = 0;
@@ -50,8 +49,7 @@ static uint32_t FeatureHashFunc(HashListTable *ht, void *data,
     return (hash % ht->array_size);
 }
 
-static char FeatureHashCompareFunc(void *data1, uint16_t datalen1,
-                                   void *data2, uint16_t datalen2)
+static char FeatureHashCompareFunc(void *data1, uint16_t datalen1, void *data2, uint16_t datalen2)
 {
     FeatureEntryType *f1 = (FeatureEntryType *)data1;
     FeatureEntryType *f2 = (FeatureEntryType *)data2;
@@ -79,10 +77,10 @@ static void FeatureHashFreeFunc(void *data)
     SCFree(data);
 }
 
-static void FeatureInit(void) {
-    feature_hash_table = HashListTableInit(256, FeatureHashFunc,
-                                           FeatureHashCompareFunc,
-                                           FeatureHashFreeFunc);
+static void FeatureInit(void)
+{
+    feature_hash_table =
+            HashListTableInit(256, FeatureHashFunc, FeatureHashCompareFunc, FeatureHashFreeFunc);
 
     if (!feature_hash_table) {
         FatalError("Unable to allocate feature hash table.");

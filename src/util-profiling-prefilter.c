@@ -46,7 +46,7 @@ typedef struct SCProfilePrefilterData_ {
 
 typedef struct SCProfilePrefilterDetectCtx_ {
     uint32_t id;
-    uint32_t size;                  /**< size in elements */
+    uint32_t size; /**< size in elements */
     SCProfilePrefilterData *data;
     pthread_mutex_t data_m;
 } SCProfilePrefilterDetectCtx;
@@ -70,8 +70,8 @@ void SCProfilingPrefilterGlobalInit(void)
                 const char *log_dir;
                 log_dir = ConfigGetLogDirectory();
 
-                snprintf(profiling_file_name, sizeof(profiling_file_name), "%s/%s",
-                        log_dir, filename);
+                snprintf(profiling_file_name, sizeof(profiling_file_name), "%s/%s", log_dir,
+                        filename);
 
                 const char *v = ConfNodeLookupChildValue(conf, "append");
                 if (v == NULL || ConfValIsTrue(v)) {
@@ -90,12 +90,12 @@ static void DoDump(SCProfilePrefilterDetectCtx *rules_ctx, FILE *fp, const char 
 {
     int i;
     fprintf(fp, "  ----------------------------------------------"
-            "------------------------------------------------------"
-            "----------------------------\n");
+                "------------------------------------------------------"
+                "----------------------------\n");
     fprintf(fp, "  Stats for: %s\n", name);
     fprintf(fp, "  ----------------------------------------------"
-            "------------------------------------------------------"
-            "----------------------------\n");
+                "------------------------------------------------------"
+                "----------------------------\n");
     fprintf(fp, "  %-32s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s\n", "Prefilter",
             "Ticks", "Called", "Max Ticks", "Avg", "Bytes", "Called", "Max Bytes", "Avg Bytes",
             "Ticks/Byte");
@@ -112,7 +112,7 @@ static void DoDump(SCProfilePrefilterDetectCtx *rules_ctx, FILE *fp, const char 
                 "\n");
     for (i = 0; i < (int)rules_ctx->size; i++) {
         SCProfilePrefilterData *d = &rules_ctx->data[i];
-        if (d == NULL || d->called== 0)
+        if (d == NULL || d->called == 0)
             continue;
 
         uint64_t ticks = d->total;
@@ -137,8 +137,7 @@ static void DoDump(SCProfilePrefilterDetectCtx *rules_ctx, FILE *fp, const char 
     }
 }
 
-static void
-SCProfilingPrefilterDump(DetectEngineCtx *de_ctx)
+static void SCProfilingPrefilterDump(DetectEngineCtx *de_ctx)
 {
     FILE *fp;
     struct timeval tval;
@@ -161,20 +160,22 @@ SCProfilingPrefilterDump(DetectEngineCtx *de_ctx)
             return;
         }
     } else {
-       fp = stdout;
+        fp = stdout;
     }
 
     fprintf(fp, "  ----------------------------------------------"
-            "------------------------------------------------------"
-            "----------------------------\n");
-    fprintf(fp, "  Date: %" PRId32 "/%" PRId32 "/%04d -- "
-            "%02d:%02d:%02d\n", tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900,
-            tms->tm_hour,tms->tm_min, tms->tm_sec);
+                "------------------------------------------------------"
+                "----------------------------\n");
+    fprintf(fp,
+            "  Date: %" PRId32 "/%" PRId32 "/%04d -- "
+            "%02d:%02d:%02d\n",
+            tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
+            tms->tm_sec);
 
     /* global stats first */
     DoDump(de_ctx->profile_prefilter_ctx, fp, "total");
 
-    fprintf(fp,"\n");
+    fprintf(fp, "\n");
     if (fp != stdout)
         fclose(fp);
 
@@ -192,8 +193,7 @@ void SCProfilingPrefilterUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, u
         uint64_t bytes, uint64_t bytes_called)
 {
     if (det_ctx != NULL && det_ctx->prefilter_perf_data != NULL &&
-            id < (int)det_ctx->de_ctx->prefilter_id)
-    {
+            id < (int)det_ctx->de_ctx->prefilter_id) {
         SCProfilePrefilterData *p = &det_ctx->prefilter_perf_data[id];
 
         p->called++;
@@ -239,7 +239,8 @@ void SCProfilingPrefilterDestroyCtx(DetectEngineCtx *de_ctx)
     }
 }
 
-void SCProfilingPrefilterThreadSetup(SCProfilePrefilterDetectCtx *ctx, DetectEngineThreadCtx *det_ctx)
+void SCProfilingPrefilterThreadSetup(
+        SCProfilePrefilterDetectCtx *ctx, DetectEngineThreadCtx *det_ctx)
 {
     if (ctx == NULL)
         return;
@@ -255,8 +256,8 @@ void SCProfilingPrefilterThreadSetup(SCProfilePrefilterDetectCtx *ctx, DetectEng
 static void SCProfilingPrefilterThreadMerge(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
 {
     if (de_ctx == NULL || de_ctx->profile_prefilter_ctx == NULL ||
-        de_ctx->profile_prefilter_ctx->data == NULL || det_ctx == NULL ||
-        det_ctx->prefilter_perf_data == NULL)
+            de_ctx->profile_prefilter_ctx->data == NULL || det_ctx == NULL ||
+            det_ctx->prefilter_perf_data == NULL)
         return;
 
     for (uint32_t i = 0; i < de_ctx->prefilter_id; i++) {
@@ -293,8 +294,7 @@ void SCProfilingPrefilterThreadCleanup(DetectEngineThreadCtx *det_ctx)
  *
  * \param de_ctx The active DetectEngineCtx, used to get at the loaded rules.
  */
-void
-SCProfilingPrefilterInitCounters(DetectEngineCtx *de_ctx)
+void SCProfilingPrefilterInitCounters(DetectEngineCtx *de_ctx)
 {
     if (profiling_prefilter_enabled == 0)
         return;
@@ -311,14 +311,14 @@ SCProfilingPrefilterInitCounters(DetectEngineCtx *de_ctx)
     BUG_ON(de_ctx->profile_prefilter_ctx->data == NULL);
 
     HashListTableBucket *hb = HashListTableGetListHead(de_ctx->prefilter_hash_table);
-    for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
+    for (; hb != NULL; hb = HashListTableGetListNext(hb)) {
         PrefilterStore *ctx = HashListTableGetListData(hb);
         de_ctx->profile_prefilter_ctx->data[ctx->id].name = ctx->name;
         SCLogDebug("prefilter %s set up", de_ctx->profile_prefilter_ctx->data[ctx->id].name);
     }
     SCLogDebug("size alloc'd %u", (uint32_t)size * (uint32_t)sizeof(SCProfilePrefilterData));
 
-    SCLogPerf("Registered %"PRIu32" prefilter profiling counters.", size);
+    SCLogPerf("Registered %" PRIu32 " prefilter profiling counters.", size);
 }
 
 #endif /* PROFILING */

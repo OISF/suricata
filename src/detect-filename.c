@@ -59,7 +59,7 @@
 #include "app-layer-parser.h"
 
 static int DetectFileextSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str);
-static int DetectFilenameSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectFilenameSetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectFilenameSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);
 #ifdef UNITTESTS
 static void DetectFilenameRegisterTests(void);
@@ -85,7 +85,7 @@ void DetectFilenameRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FILENAME].RegisterTests = DetectFilenameRegisterTests;
 #endif
-    sigmatch_table[DETECT_FILENAME].flags = SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION;
+    sigmatch_table[DETECT_FILENAME].flags = SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_HANDLE_NEGATION;
     sigmatch_table[DETECT_FILENAME].alternative = DETECT_FILE_NAME;
 
     sigmatch_table[DETECT_FILEEXT].name = "fileext";
@@ -99,7 +99,7 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILE_NAME].desc = "sticky buffer to match on the file name";
     sigmatch_table[DETECT_FILE_NAME].url = "/rules/file-keywords.html#filename";
     sigmatch_table[DETECT_FILE_NAME].Setup = DetectFilenameSetupSticky;
-    sigmatch_table[DETECT_FILE_NAME].flags = SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_FILE_NAME].flags = SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectBufferTypeSetDescriptionByName("file.name", "file name");
 
@@ -168,7 +168,7 @@ static int DetectFileextSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectFilenameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     if (s->init_data->transforms.cnt) {
         SCLogError("previous transforms not consumed before 'filename'");
@@ -331,9 +331,8 @@ static int PrefilterMpmFilenameRegister(DetectEngineCtx *de_ctx, SigGroupHead *s
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxFilename,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-            pectx, PrefilterMpmFilenameFree, mpm_reg->pname);
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxFilename, mpm_reg->app_v2.alproto,
+            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmFilenameFree, mpm_reg->pname);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
@@ -343,16 +342,31 @@ static int PrefilterMpmFilenameRegister(DetectEngineCtx *de_ctx, SigGroupHead *s
  */
 static int DetectFilenameSignatureParseTest01(void)
 {
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; file.name; content:\"abc\"; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; file.name; content:\"abc\"; nocase; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; file.name; content:\"abc\"; endswith; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; file.name; content:\"abc\"; startswith; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; file.name; content:\"abc\"; startswith; endswith; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; file.name; bsize:10; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (flow:to_client; file.name; content:\"abc\"; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; file.name; "
+                                  "content:\"abc\"; nocase; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; file.name; "
+                                  "content:\"abc\"; endswith; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; file.name; "
+                                  "content:\"abc\"; startswith; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; file.name; "
+                                  "content:\"abc\"; startswith; endswith; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (flow:to_client; file.name; bsize:10; sid:1;)", true));
 
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; file.name; content:\"abc\"; rawbytes; sid:1;)", false));
-    FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (flow:to_client; file.name; sid:1;)", false));
-    //FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_client; file.name; content:\"abc\"; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; file.name; "
+                                  "content:\"abc\"; rawbytes; sid:1;)",
+            false));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert tcp any any -> any any (flow:to_client; file.name; sid:1;)", false));
+    // FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_client; file.name;
+    // content:\"abc\"; sid:1;)", false));
     PASS;
 }
 /**

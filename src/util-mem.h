@@ -31,34 +31,33 @@
 #ifndef __UTIL_MEM_H__
 #define __UTIL_MEM_H__
 
-#if CPPCHECK==1 || defined(__clang_analyzer__)
-#define SCMalloc malloc
-#define SCCalloc calloc
-#define SCRealloc realloc
-#define SCFree free
-#define SCStrdup strdup
-#define SCStrndup strndup
+#if CPPCHECK == 1 || defined(__clang_analyzer__)
+#define SCMalloc        malloc
+#define SCCalloc        calloc
+#define SCRealloc       realloc
+#define SCFree          free
+#define SCStrdup        strdup
+#define SCStrndup       strndup
 #define SCMallocAligned _mm_malloc
-#define SCFreeAligned _mm_free
+#define SCFreeAligned   _mm_free
 #else /* CPPCHECK */
 
-
 void *SCMallocFunc(const size_t sz);
-#define SCMalloc(sz) SCMallocFunc((sz))
+#define SCMalloc(sz)       SCMallocFunc((sz))
 
 void *SCReallocFunc(void *ptr, const size_t size);
 #define SCRealloc(ptr, sz) SCReallocFunc((ptr), (sz))
 
 void *SCCallocFunc(const size_t nm, const size_t sz);
-#define SCCalloc(nm, sz) SCCallocFunc((nm), (sz))
+#define SCCalloc(nm, sz)   SCCallocFunc((nm), (sz))
 
 char *SCStrdupFunc(const char *s);
-#define SCStrdup(s) SCStrdupFunc((s))
+#define SCStrdup(s)        SCStrdupFunc((s))
 
 char *SCStrndupFunc(const char *s, size_t n);
-#define SCStrndup(s, n) SCStrndupFunc((s), (n))
+#define SCStrndup(s, n)    SCStrndupFunc((s), (n))
 
-#define SCFree(p) free((p))
+#define SCFree(p)                    free((p))
 
 /** \brief wrapper for allocing aligned mem
  *  \param a size
@@ -74,9 +73,8 @@ void *SCMallocAlignedFunc(const size_t size, const size_t align);
  * _mm_free.
  */
 void SCFreeAlignedFunc(void *ptr);
-#define SCFreeAligned(p) SCFreeAlignedFunc((p))
+#define SCFreeAligned(p)             SCFreeAlignedFunc((p))
 
 #endif /* CPPCHECK */
 
 #endif /* __UTIL_MEM_H__ */
-
