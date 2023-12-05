@@ -6478,7 +6478,7 @@ void StreamTcpSetSessionBypassFlag(TcpSession *ssn)
     ssn->flags |= STREAMTCP_FLAG_BYPASS;
 }
 
-Packet * PacketPseudoFromFlow(Flow *f) {
+Packet * PacketPseudoFromFlow(Flow *f, TcpSession *ssn, int dir) {
     Packet *np = PacketPoolGetPacket();
     if (np == NULL) {
         return NULL;
@@ -6658,7 +6658,7 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
         SCReturn;
     }
 
-    Packet *np = PacketPseudoFromFlow(f);
+    Packet *np = PacketPseudoFromFlow(f, ssn, dir);
     if (np == NULL) {
         SCReturn;
     }

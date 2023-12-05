@@ -1448,7 +1448,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
                     SCHttp2ClearLayered(alstate);
                     break;
                 }
-                Packet *np = PacketPseudoFromFlow(f);
+                Packet *np = PacketPseudoFromFlow(f, f->protoctx, direction);
                 if (np == NULL) {
                     //TODO log warning
                     continue;

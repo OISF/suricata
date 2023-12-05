@@ -206,7 +206,7 @@ void StreamTcpThreadCacheEnable(void);
 void StreamTcpThreadCacheCleanup(void);
 
 //move elsewhere
-Packet * PacketPseudoFromFlow(Flow *f);
+Packet * PacketPseudoFromFlow(Flow *f, TcpSession *ssn, int dir);
 
 #endif /* __STREAM_TCP_H__ */
 

@@ -380,6 +380,12 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
     /* Packets here can safely access p->flow as it's locked */
     SCLogDebug("packet %"PRIu64": extra packets %u", p->pcap_cnt, fw->pq.len);
     Packet *x;
+    while ((x = PacketDequeueNoLock(&tv->decode_pq))) {
+        printf("lola %d\n", x->payload_len);
+        SCFree(x->payload);
+        FlowDeReference(&x->flow);
+        TmqhOutputPacketpool(tv, x);
+    }
     while ((x = PacketDequeueNoLock(&fw->pq))) {
         SCLogDebug("packet %"PRIu64" extra packet %p", p->pcap_cnt, x);
 
