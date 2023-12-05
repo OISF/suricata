@@ -1448,7 +1448,18 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
                     SCHttp2ClearLayered(alstate);
                     break;
                 }
-                printf("lol %d\n", b_len);
+                Packet *np = PacketPseudoFromFlow(f);
+                if (np == NULL) {
+                    //TODO log warning
+                    continue;
+                }
+                PKT_SET_SRC(np, PKT_SRC_APP_LAYER_LAYERED);
+                //TODO np->flags |= PKT_PSEUDO_DETECTLOG_FLUSH;
+                np->payload = SCMalloc(b_len);
+                memcpy(np->payload, b, b_len);
+                np->payload_len = b_len;
+                PacketEnqueueNoLock(&tv->decode_pq, np);
+                //TODO StatsIncr(tv, stt->counter_tcp_pseudo);
             }
         }
     }

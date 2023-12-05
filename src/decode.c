@@ -779,6 +779,9 @@ const char *PktSrcToString(enum PktSrcEnum pkt_src)
         case PKT_SRC_SHUTDOWN_FLUSH:
             pkt_src_str = "shutdown flush";
             break;
+        case PKT_SRC_APP_LAYER_LAYERED:
+            pkt_src_str = "app-layer (detect/log)";
+            break;
     }
     DEBUG_VALIDATE_BUG_ON(pkt_src_str == NULL);
     return pkt_src_str;

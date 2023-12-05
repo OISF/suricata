@@ -205,5 +205,8 @@ uint64_t StreamDataRightEdge(const TcpStream *stream, const bool eof);
 void StreamTcpThreadCacheEnable(void);
 void StreamTcpThreadCacheCleanup(void);
 
+//move elsewhere
+Packet * PacketPseudoFromFlow(Flow *f);
+
 #endif /* __STREAM_TCP_H__ */
 

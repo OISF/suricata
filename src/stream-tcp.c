@@ -6478,29 +6478,11 @@ void StreamTcpSetSessionBypassFlag(TcpSession *ssn)
     ssn->flags |= STREAMTCP_FLAG_BYPASS;
 }
 
-/** \brief Create a pseudo packet injected into the engine to signal the
- *         opposing direction of this stream trigger detection/logging.
- *
- *  \param parent real packet
- *  \param pq packet queue to store the new pseudo packet in
- *  \param dir 0 ts 1 tc
- */
-static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
-        StreamTcpThread *stt, Packet *parent,
-        TcpSession *ssn, PacketQueueNoLock *pq, int dir)
-{
-    SCEnter();
-    Flow *f = parent->flow;
-
-    if (parent->flags & PKT_PSEUDO_DETECTLOG_FLUSH) {
-        SCReturn;
-    }
-
+Packet * PacketPseudoFromFlow(Flow *f) {
     Packet *np = PacketPoolGetPacket();
     if (np == NULL) {
-        SCReturn;
+        return NULL;
     }
-    PKT_SET_SRC(np, PKT_SRC_STREAM_TCP_DETECTLOG_FLUSH);
 
     np->tenant_id = f->tenant_id;
     np->datalink = DLT_RAW;
@@ -6509,7 +6491,6 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
     np->flags |= PKT_STREAM_EST;
     np->flags |= PKT_HAS_FLOW;
     np->flags |= PKT_IGNORE_CHECKSUM;
-    np->flags |= PKT_PSEUDO_DETECTLOG_FLUSH;
     memcpy(&np->vlan_id[0], &f->vlan_id[0], sizeof(np->vlan_id));
     np->vlan_idx = f->vlan_idx;
     np->livedev = (struct LiveDevice_ *)f->livedev;
@@ -6652,7 +6633,37 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
         np->tcph->th_seq = htonl(ssn->server.next_seq);
         np->tcph->th_ack = htonl(ssn->client.last_ack);
     }
+    return np;
+error:
+    FlowDeReference(&np->flow);
+    PacketPoolReturnPacket(np);
+    return NULL;
+}
 
+/** \brief Create a pseudo packet injected into the engine to signal the
+ *         opposing direction of this stream trigger detection/logging.
+ *
+ *  \param parent real packet
+ *  \param pq packet queue to store the new pseudo packet in
+ *  \param dir 0 ts 1 tc
+ */
+static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
+        StreamTcpThread *stt, Packet *parent,
+        TcpSession *ssn, PacketQueueNoLock *pq, int dir)
+{
+    SCEnter();
+    Flow *f = parent->flow;
+
+    if (parent->flags & PKT_PSEUDO_DETECTLOG_FLUSH) {
+        SCReturn;
+    }
+
+    Packet *np = PacketPseudoFromFlow(f);
+    if (np == NULL) {
+        SCReturn;
+    }
+    PKT_SET_SRC(np, PKT_SRC_STREAM_TCP_DETECTLOG_FLUSH);
+    np->flags |= PKT_PSEUDO_DETECTLOG_FLUSH;
     /* use parent time stamp */
     np->ts = parent->ts;
 
@@ -6660,9 +6671,6 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
     PacketEnqueueNoLock(pq, np);
 
     StatsIncr(tv, stt->counter_tcp_pseudo);
-    SCReturn;
-error:
-    FlowDeReference(&np->flow);
     SCReturn;
 }
 
