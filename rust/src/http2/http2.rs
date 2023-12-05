@@ -204,10 +204,19 @@ impl HTTP2Transaction {
 
     fn handle_headers(&mut self, blocks: &[parser::HTTP2FrameHeaderBlock], dir: Direction) {
         let mut authority = None;
+        let mut path = None;
+        let mut doh = false;
         let mut host = None;
         for block in blocks {
             if block.name == b"content-encoding" {
                 self.decoder.http2_encoding_fromvec(&block.value, dir);
+            } else if block.name == b"accept" {
+                //TODO? faster pattern matching
+                if block.value == b"application/dns-message" {
+                    doh = true;
+                }
+            } else if block.name == b":path" {
+                path = Some(&block.value);
             } else if block.name.eq_ignore_ascii_case(b":authority") {
                 authority = Some(&block.value);
                 if block.value.iter().any(|&x| x == b'@') {
@@ -226,6 +235,13 @@ impl HTTP2Transaction {
                     // are in the same frame to avoid excessive
                     // complexity at runtime.
                     self.set_event(HTTP2Event::AuthorityHostMismatch);
+                }
+            }
+        }
+        if doh {
+            if let Some(p) = path {
+                if let Ok((_, dns_req)) = parser::doh_extract_request(p) {
+                    println!("lol {:?}", dns_req);
                 }
             }
         }

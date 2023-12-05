@@ -28,6 +28,7 @@ use nom7::multi::many0;
 use nom7::number::streaming::{be_u16, be_u24, be_u32, be_u8};
 use nom7::sequence::tuple;
 use nom7::{Err, IResult};
+use nom7::bytes::complete::tag;
 use std::fmt;
 use std::str::FromStr;
 
@@ -749,6 +750,19 @@ fn http2_parse_frame_setting(i: &[u8]) -> IResult<&[u8], HTTP2FrameSettings> {
 
 pub fn http2_parse_frame_settings(i: &[u8]) -> IResult<&[u8], Vec<HTTP2FrameSettings>> {
     many0(complete(http2_parse_frame_setting))(i)
+}
+
+pub fn doh_extract_request(i: &[u8]) -> IResult<&[u8], Vec<u8>> {
+    let (i, _) = tag("/dns-query?dns=")(i)?;
+    match base64::decode(i) {
+        Ok(dec) => {
+            // i is unused
+            return Ok((i, dec));
+        }
+        _ => {
+            return Err(Err::Error(make_error(i, ErrorKind::MapOpt)));
+        }
+    }
 }
 
 #[cfg(test)]
