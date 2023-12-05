@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2021 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,7 +17,7 @@
 
 /**
  *
- * Implements the quic.sni
+ * Implements the quic.version
  */
 
 #include "suricata-common.h"
@@ -29,24 +29,24 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-uint.h"
-#include "detect-quic-sni.h"
+#include "app-layer/quic/detect-version.h"
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "rust.h"
 
 #ifdef UNITTESTS
-static void DetectQuicSniRegisterTests(void);
+static void DetectQuicVersionRegisterTests(void);
 #endif
 
-#define BUFFER_NAME  "quic_sni"
-#define KEYWORD_NAME "quic.sni"
-#define KEYWORD_ID   DETECT_AL_QUIC_SNI
+#define BUFFER_NAME  "quic_version"
+#define KEYWORD_NAME "quic.version"
+#define KEYWORD_ID   DETECT_AL_QUIC_VERSION
 
-static int quic_sni_id = 0;
+static int quic_version_id = 0;
 
-static int DetectQuicSniSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectQuicVersionSetup(DetectEngineCtx *, Signature *, const char *);
 
-static InspectionBuffer *GetSniData(DetectEngineThreadCtx *det_ctx,
+static InspectionBuffer *GetVersionData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id)
 {
@@ -55,7 +55,7 @@ static InspectionBuffer *GetSniData(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (rs_quic_tx_get_sni(txv, &b, &b_len) != 1)
+        if (rs_quic_tx_get_version(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -67,26 +67,30 @@ static InspectionBuffer *GetSniData(DetectEngineThreadCtx *det_ctx,
 }
 
 /**
- * \brief Registration function for quic.sni: keyword
+ * \brief Registration function for quic.version: keyword
  */
-void DetectQuicSniRegister(void)
+void DetectQuicVersionRegister(void)
 {
-    sigmatch_table[DETECT_AL_QUIC_SNI].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_QUIC_SNI].desc = "match Quic sni";
-    sigmatch_table[DETECT_AL_QUIC_SNI].url = "/rules/quic-keywords.html#quic-sni";
-    sigmatch_table[DETECT_AL_QUIC_SNI].Setup = DetectQuicSniSetup;
-    sigmatch_table[DETECT_AL_QUIC_SNI].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_AL_QUIC_VERSION].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_AL_QUIC_VERSION].desc = "match Quic version";
+    sigmatch_table[DETECT_AL_QUIC_VERSION].url = "/rules/quic-keywords.html#quic-version";
+    sigmatch_table[DETECT_AL_QUIC_VERSION].Setup = DetectQuicVersionSetup;
+    sigmatch_table[DETECT_AL_QUIC_VERSION].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_QUIC_SNI].RegisterTests = DetectQuicSniRegisterTests;
+    sigmatch_table[DETECT_AL_QUIC_VERSION].RegisterTests = DetectQuicVersionRegisterTests;
 #endif
 
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetSniData, ALPROTO_QUIC, 1);
+            GetVersionData, ALPROTO_QUIC, 1);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetVersionData, ALPROTO_QUIC, 1);
 
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectBufferGeneric, GetSniData);
+            DetectEngineInspectBufferGeneric, GetVersionData);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOCLIENT, 1,
+            DetectEngineInspectBufferGeneric, GetVersionData);
 
-    quic_sni_id = DetectBufferTypeGetByName(BUFFER_NAME);
+    quic_version_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }
 
 /**
@@ -100,9 +104,9 @@ void DetectQuicSniRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectQuicSniSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectQuicVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, quic_sni_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, quic_version_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_QUIC) < 0)
@@ -114,22 +118,22 @@ static int DetectQuicSniSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 #ifdef UNITTESTS
 
 /**
- * \test QuicSniTestParse01 is a test for a valid value
+ * \test QuicVersionTestParse01 is a test for a valid value
  *
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int QuicSniTestParse01(void)
+static int QuicVersionTestParse01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
     Signature *sig = DetectEngineAppendSig(
-            de_ctx, "alert ip any any -> any any (quic.sni; content:\"googe.com\"; sid:1; rev:1;)");
+            de_ctx, "alert ip any any -> any any (quic.version; content:\"Q046\"; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(
-            de_ctx, "alert ip any any -> any any (quic.sni; content:\"|00|\"; sid:2; rev:1;)");
+            de_ctx, "alert ip any any -> any any (quic.version; content:\"|00|\"; sid:2; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -138,18 +142,18 @@ static int QuicSniTestParse01(void)
 }
 
 /**
- * \test QuicSniTestParse03 is a test for an invalid value
+ * \test QuicVersionTestParse03 is a test for an invalid value
  *
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int QuicSniTestParse03(void)
+static int QuicVersionTestParse03(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig =
-            DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (quic.sni:; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (quic.version:; sid:1; rev:1;)");
     FAIL_IF_NOT_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -158,12 +162,12 @@ static int QuicSniTestParse03(void)
 }
 
 /**
- * \brief this function registers unit tests for QuicSni
+ * \brief this function registers unit tests for QuicVersion
  */
-void DetectQuicSniRegisterTests(void)
+void DetectQuicVersionRegisterTests(void)
 {
-    UtRegisterTest("QuicSniTestParse01", QuicSniTestParse01);
-    UtRegisterTest("QuicSniTestParse03", QuicSniTestParse03);
+    UtRegisterTest("QuicVersionTestParse01", QuicVersionTestParse01);
+    UtRegisterTest("QuicVersionTestParse03", QuicVersionTestParse03);
 }
 
 #endif /* UNITTESTS */

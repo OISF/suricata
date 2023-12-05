@@ -77,7 +77,7 @@
 #include "app-layer/ike/logger.h"
 #include "app-layer/modbus/logger.h"
 #include "output-json-frame.h"
-#include "output-json-quic.h"
+#include "app-layer/quic/logger.h"
 
 #include "util-byte.h"
 #include "util-privs.h"

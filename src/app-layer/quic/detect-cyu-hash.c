@@ -29,7 +29,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-quic-cyu-hash.h"
+#include "app-layer/quic/detect-cyu-hash.h"
 #include "detect-engine-build.h"
 #include "rust.h"
 #include "util-profiling.h"
