@@ -54,7 +54,7 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
-#include "util-lua-hassh.h"
+#include "app-layer/ssh/lua-hassh.h"
 
 static int GetHasshServerString(lua_State *luastate, const Flow *f)
 {

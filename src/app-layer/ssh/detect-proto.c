@@ -43,8 +43,8 @@
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-ssh.h"
-#include "detect-ssh-proto.h"
+#include "app-layer/ssh/parser.h"
+#include "app-layer/ssh/detect-proto.h"
 #include "rust.h"
 
 #define KEYWORD_NAME        "ssh.proto"

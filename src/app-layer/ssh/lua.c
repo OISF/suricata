@@ -23,7 +23,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
@@ -39,7 +39,7 @@
 #include "output.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-ssh.h"
+#include "app-layer/ssh/parser.h"
 #include "util-privs.h"
 #include "util-buffer.h"
 #include "util-proto-name.h"
@@ -55,7 +55,7 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
-#include "util-lua-ssh.h"
+#include "app-layer/ssh/lua.h"
 
 static int GetServerProtoVersion(lua_State *luastate, const Flow *f)
 {
