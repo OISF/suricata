@@ -44,7 +44,7 @@ noinst_HEADERS = \
 	app-layer-protos.h \
 	app-layer/rdp/parser.h \
 	app-layer-register.h \
-	app-layer-rfb.h \
+	app-layer/rfb/parser.h \
 	app-layer-sip.h \
 	app-layer-smb.h \
 	app-layer-smtp.h \
@@ -279,9 +279,9 @@ noinst_HEADERS = \
 	detect-reference.h \
 	detect-replace.h \
 	detect-rev.h \
-	detect-rfb-name.h \
-	detect-rfb-secresult.h \
-	detect-rfb-sectype.h \
+	app-layer/rfb/detect-name.h \
+	app-layer/rfb/detect-secresult.h \
+	app-layer/rfb/detect-sectype.h \
 	detect-rpc.h \
 	detect-sameip.h \
 	detect-sid.h \
@@ -422,7 +422,7 @@ noinst_HEADERS = \
 	app-layer/nfs/logger.h \
 	output-json-pgsql.h \
 	app-layer/rdp/logger.h \
-	output-json-rfb.h \
+	app-layer/rfb/logger.h \
 	output-json-sip.h \
 	output-json-smb.h \
 	output-json-smtp.h \
@@ -660,7 +660,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-protos.c \
 	app-layer/rdp/parser.c \
 	app-layer-register.c \
-	app-layer-rfb.c \
+	app-layer/rfb/parser.c \
 	app-layer-sip.c \
 	app-layer-smb.c \
 	app-layer-smtp.c \
@@ -892,9 +892,9 @@ libsuricata_c_a_SOURCES = \
 	detect-reference.c \
 	detect-replace.c \
 	detect-rev.c \
-	detect-rfb-name.c \
-	detect-rfb-secresult.c \
-	detect-rfb-sectype.c \
+	app-layer/rfb/detect-name.c \
+	app-layer/rfb/detect-secresult.c \
+	app-layer/rfb/detect-sectype.c \
 	detect-rpc.c \
 	detect-sameip.c \
 	detect-sid.c \
@@ -1034,7 +1034,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/nfs/logger.c \
 	output-json-pgsql.c \
 	app-layer/rdp/logger.c \
-	output-json-rfb.c \
+	app-layer/rfb/logger.c \
 	output-json-sip.c \
 	output-json-smb.c \
 	output-json-smtp.c \

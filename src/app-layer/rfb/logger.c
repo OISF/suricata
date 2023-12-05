@@ -41,8 +41,8 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-rfb.h"
-#include "output-json-rfb.h"
+#include "app-layer/rfb/parser.h"
+#include "app-layer/rfb/logger.h"
 
 #include "rust-bindings.h"
 

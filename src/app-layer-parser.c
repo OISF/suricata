@@ -56,7 +56,7 @@
 #include "app-layer/ike/parser.h"
 #include "app-layer/krb5/parser.h"
 #include "app-layer-sip.h"
-#include "app-layer-rfb.h"
+#include "app-layer/rfb/parser.h"
 #include "app-layer/mqtt/parser.h"
 #include "app-layer-snmp.h"
 #include "app-layer/quic/parser.h"

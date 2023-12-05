@@ -27,7 +27,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-rfb-secresult.h"
+#include "app-layer/rfb/detect-secresult.h"
 #include "util-unittest.h"
 
 #include "rust.h"
