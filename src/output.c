@@ -71,7 +71,7 @@
 #include "app-layer/ftp/parser.h"
 #include "app-layer/tftp/logger.h"
 #include "output-json-smb.h"
-#include "output-json-ike.h"
+#include "app-layer/ike/logger.h"
 #include "output-json-krb5.h"
 #include "output-json-quic.h"
 #include "output-json-dhcp.h"
