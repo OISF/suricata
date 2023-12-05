@@ -73,7 +73,7 @@
 #include "output-json-smb.h"
 #include "app-layer/ike/logger.h"
 #include "app-layer/krb5/logger.h"
-#include "output-json-quic.h"
+#include "app-layer/quic/logger.h"
 #include "output-json-dhcp.h"
 #include "output-json-snmp.h"
 #include "output-json-sip.h"

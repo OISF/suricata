@@ -31,7 +31,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-quic.h"
+#include "app-layer/quic/parser.h"
 #include "rust.h"
 
 void RegisterQuicParsers(void)

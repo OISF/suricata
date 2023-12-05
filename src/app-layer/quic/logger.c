@@ -22,7 +22,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 #include "threads.h"
@@ -36,7 +36,7 @@
 #include "output-json.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "output-json-quic.h"
+#include "app-layer/quic/logger.h"
 #include "rust.h"
 
 typedef struct LogQuicFileCtx_ {

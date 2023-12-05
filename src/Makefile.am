@@ -35,7 +35,7 @@ noinst_HEADERS = \
 	app-layer/ike/parser.h \
 	app-layer/krb5/parser.h \
 	app-layer/modbus/parser.h \
-	app-layer-quic.h \
+	app-layer/quic/parser.h \
 	app-layer/mqtt/parser.h \
 	app-layer/nfs/parser-tcp.h \
 	app-layer/nfs/parser-udp.h \
@@ -241,11 +241,11 @@ noinst_HEADERS = \
 	detect-mark.h \
 	detect-metadata.h \
 	app-layer/modbus/detect.h \
-	detect-quic-sni.h \
-	detect-quic-ua.h \
-	detect-quic-version.h \
-	detect-quic-cyu-hash.h \
-	detect-quic-cyu-string.h \
+	app-layer/quic/detect-sni.h \
+	app-layer/quic/detect-ua.h \
+	app-layer/quic/detect-version.h \
+	app-layer/quic/detect-cyu-hash.h \
+	app-layer/quic/detect-cyu-string.h \
 	app-layer/mqtt/detect-connack-sessionpresent.h \
 	app-layer/mqtt/detect-connect-clientid.h \
 	app-layer/mqtt/detect-connect-flags.h \
@@ -416,7 +416,7 @@ noinst_HEADERS = \
 	app-layer/krb5/logger.h \
 	output-json-metadata.h \
 	app-layer/modbus/logger.h \
-	output-json-quic.h \
+	app-layer/quic/logger.h \
 	app-layer/mqtt/logger.h \
 	output-json-netflow.h \
 	app-layer/nfs/logger.h \
@@ -651,7 +651,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/ike/parser.c \
 	app-layer/krb5/parser.c \
 	app-layer/modbus/parser.c \
-	app-layer-quic.c \
+	app-layer/quic/parser.c \
 	app-layer/mqtt/parser.c \
 	app-layer/nfs/parser-tcp.c \
 	app-layer/nfs/parser-udp.c \
@@ -854,11 +854,11 @@ libsuricata_c_a_SOURCES = \
 	detect-mark.c \
 	detect-metadata.c \
 	app-layer/modbus/detect.c \
-	detect-quic-sni.c \
-	detect-quic-ua.c \
-	detect-quic-version.c \
-	detect-quic-cyu-hash.c \
-	detect-quic-cyu-string.c \
+	app-layer/quic/detect-sni.c \
+	app-layer/quic/detect-ua.c \
+	app-layer/quic/detect-version.c \
+	app-layer/quic/detect-cyu-hash.c \
+	app-layer/quic/detect-cyu-string.c \
 	app-layer/mqtt/detect-connack-sessionpresent.c \
 	app-layer/mqtt/detect-connect-clientid.c \
 	app-layer/mqtt/detect-connect-flags.c \
@@ -1028,7 +1028,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/krb5/logger.c \
 	output-json-metadata.c \
 	app-layer/modbus/logger.c \
-	output-json-quic.c \
+	app-layer/quic/logger.c \
 	app-layer/mqtt/logger.c \
 	output-json-netflow.c \
 	app-layer/nfs/logger.c \
