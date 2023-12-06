@@ -279,6 +279,7 @@ outputs:
             #md5: [body, subject]
 
         #- dnp3
+        - websocket
         - ftp
         - rdp
         - nfs
@@ -923,6 +924,8 @@ app-layer:
     ftp:
       enabled: yes
       # memcap: 64mb
+    websocket:
+      #enabled: yes
     rdp:
       #enabled: yes
     ssh:
