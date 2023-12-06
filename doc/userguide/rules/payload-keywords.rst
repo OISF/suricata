@@ -349,23 +349,23 @@ Example::
 
   alert tcp any any -> any any \
 	 (msg:"Byte_Test Example - Num = Value"; \
-	 content:"|00 01 00 02|"; byte_test:2,=,0x01;)
+	 content:"|00 01 00 02|"; byte_test:2,=,0x01,0;)
 
   alert tcp any any -> any any \
 	 (msg:"Byte_Test Example - Num = Value relative to content"; \
-	 content:"|00 01 00 02|"; byte_test:2,=,0x03,relative;)
+	 content:"|00 01 00 02|"; byte_test:2,=,0x03,2,relative;)
 
   alert tcp any any -> any any \
 	 (msg:"Byte_Test Example - Num != Value"; content:"|00 01 00 02|"; \
-	 byte_test:2,!=,0x06;)
+	 byte_test:2,!=,0x06,0;)
 
   alert tcp any any -> any any \ 
          (msg:"Byte_Test Example - Detect Large Values"; content:"|00 01 00 02|"; \
-         byte_test:2,>,1000,relative;)
+         byte_test:2,>,1000,1,relative;)
 
   alert tcp any any -> any any \
 	 (msg:"Byte_Test Example - Lowest bit is set"; \
-	 content:"|00 01 00 02|"; byte_test:2,&,0x01,relative;)
+	 content:"|00 01 00 02|"; byte_test:2,&,0x01,12,relative;)
 
   alert tcp any any -> any any (msg:"Byte_Test Example - Compare to String"; \
  	 content:"foobar"; byte_test:4,=,1337,1,relative,string,dec;)
