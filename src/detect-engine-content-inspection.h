@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -30,13 +30,15 @@
  */
 enum DetectContentInspectionType {
     DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD = 0, /* enables 'replace' logic */
-    DETECT_ENGINE_CONTENT_INSPECTION_MODE_HEADER,
-    DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM,
-    DETECT_ENGINE_CONTENT_INSPECTION_MODE_FRAME,
-    DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE,
+    DETECT_ENGINE_CONTENT_INSPECTION_MODE_HEADER,      /* indicates a header is being inspected */
+    DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM,      /* enables "stream" inspection logic */
+    DETECT_ENGINE_CONTENT_INSPECTION_MODE_FRAME,       /* enables "frame" inspection logic */
+    DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, /* enables "state" - used for buffers coming from
+                                                    the app-layer state. */
 };
 
-#define DETECT_CI_FLAGS_START   BIT_U8(0)   /**< unused, reserved for future use */
+#define DETECT_CI_FLAGS_START                                                                      \
+    BIT_U8(0) /**< indication that current buffer is the start of the data */
 #define DETECT_CI_FLAGS_END     BIT_U8(1)   /**< indication that current buffer
                                              *   is the end of the data */
 #define DETECT_CI_FLAGS_DCE_LE  BIT_U8(2)   /**< DCERPC record in little endian */
