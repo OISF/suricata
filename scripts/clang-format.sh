@@ -560,9 +560,13 @@ SetTopLevelDir
 
 RequireProgram GIT git
 # ubuntu uses clang-format-{version} name for newer versions. fedora not.
-RequireProgram GIT_CLANG_FORMAT git-clang-format-11 git-clang-format-10 git-clang-format-9 git-clang-format
+RequireProgram GIT_CLANG_FORMAT git-clang-format-14 git-clang-format-11 git-clang-format-10 git-clang-format-9 git-clang-format
 GIT_CLANG_FORMAT_BINARY=clang-format
-if [[ $GIT_CLANG_FORMAT =~ .*git-clang-format-11$ ]]; then
+if [[ $GIT_CLANG_FORMAT =~ .*git-clang-format-14$ ]]; then
+    # default binary is clang-format, specify the correct version.
+    # Alternative: git config clangformat.binary "clang-format-14"
+    GIT_CLANG_FORMAT_BINARY="clang-format-14"
+elif [[ $GIT_CLANG_FORMAT =~ .*git-clang-format-11$ ]]; then
     # default binary is clang-format, specify the correct version.
     # Alternative: git config clangformat.binary "clang-format-11"
     GIT_CLANG_FORMAT_BINARY="clang-format-11"
