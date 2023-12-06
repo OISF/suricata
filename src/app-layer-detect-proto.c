@@ -579,7 +579,10 @@ again_midstream:
         }
     }
 
-    if (dir == STREAM_TOSERVER && f->alproto_tc != ALPROTO_UNKNOWN) {
+    if (f->alproto_expect != ALPROTO_UNKNOWN) {
+        // used for websocket which does not use ports
+        pe0 = AppLayerProtoDetectGetProbingParser(alpd_ctx.ctx_pp, ipproto, f->alproto_expect);
+    } else if (dir == STREAM_TOSERVER && f->alproto_tc != ALPROTO_UNKNOWN) {
         pe0 = AppLayerProtoDetectGetProbingParser(alpd_ctx.ctx_pp, ipproto, f->alproto_tc);
     } else if (dir == STREAM_TOCLIENT && f->alproto_ts != ALPROTO_UNKNOWN) {
         pe0 = AppLayerProtoDetectGetProbingParser(alpd_ctx.ctx_pp, ipproto, f->alproto_ts);
@@ -1574,6 +1577,13 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
     SCEnter();
 
     DetectPort *head = NULL;
+    if (portstr == NULL) {
+        // WebSocket has a probing parser, but no port
+        // as it works only on HTTP1 protocol upgrade
+        AppLayerProtoDetectInsertNewProbingParser(&alpd_ctx.ctx_pp, ipproto, 1, alproto, min_depth,
+                max_depth, direction, ProbingParser1, ProbingParser2);
+        return;
+    }
     DetectPortParse(NULL,&head, portstr);
     DetectPort *temp_dp = head;
     while (temp_dp != NULL) {
