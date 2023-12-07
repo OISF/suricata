@@ -1893,7 +1893,7 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     if (tx_ud == NULL) {
         SCReturnInt(HTP_OK);
     }
-    tx_ud->tx_data.file_flags |= hstate->state_data.file_flags;
+    SCTxDataUpdateFileFlags(&tx_ud->tx_data, hstate->state_data.file_flags);
 
     if (!tx_ud->response_body_init) {
         tx_ud->response_body_init = 1;
@@ -2023,7 +2023,7 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     if (tx_ud == NULL) {
         SCReturnInt(HTP_OK);
     }
-    tx_ud->tx_data.file_flags |= hstate->state_data.file_flags;
+    SCTxDataUpdateFileFlags(&tx_ud->tx_data, hstate->state_data.file_flags);
     if (!tx_ud->request_body_init) {
         tx_ud->request_body_init = 1;
     }
