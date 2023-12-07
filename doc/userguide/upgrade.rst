@@ -179,6 +179,12 @@ Removals
   if this behavior is still required. See :ref:`multiple-eve-instances`.
 - Unified2 has been removed. See :ref:`unified2-removed`.
 
+Performance
+~~~~~~~~~~~
+- In YAML files w/o a `flow-timeouts.tcp.closed` setting, the default went from 0 to 10 seconds.
+  This may lead to higher than expected TCP memory use:
+  https://redmine.openinfosecfoundation.org/issues/6552
+
 Upgrading 4.1 to 5.0
 --------------------
 
