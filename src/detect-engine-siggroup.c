@@ -766,7 +766,7 @@ int SigGroupHeadContainsSigId(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 
 #ifdef UNITTESTS
 
-int SigAddressPrepareStage1(DetectEngineCtx *);
+int SigPrepareStage1(DetectEngineCtx *);
 
 /**
  * \test Check if a SigGroupHead hash table is properly allocated and
@@ -823,7 +823,7 @@ static int SigGroupHeadTest02(void)
                                       "content:\"test2\"; content:\"test3\"; sid:5;)");
     FAIL_IF_NULL(s);
 
-    SigAddressPrepareStage1(de_ctx);
+    SigPrepareStage1(de_ctx);
 
     SigGroupHeadAppendSig(de_ctx, &sh, de_ctx->sig_list);
     SigGroupHeadAppendSig(de_ctx, &sh, de_ctx->sig_list->next->next);
@@ -883,7 +883,7 @@ static int SigGroupHeadTest03(void)
                                       "content:\"test2\"; content:\"test3\"; sid:5;)");
     FAIL_IF_NULL(s);
 
-    SigAddressPrepareStage1(de_ctx);
+    SigPrepareStage1(de_ctx);
 
     SigGroupHeadAppendSig(de_ctx, &sh, de_ctx->sig_list);
     SigGroupHeadAppendSig(de_ctx, &sh, de_ctx->sig_list->next->next);
@@ -951,7 +951,7 @@ static int SigGroupHeadTest04(void)
                                       "content:\"test2\"; content:\"test3\"; sid:5;)");
     FAIL_IF_NULL(s);
 
-    SigAddressPrepareStage1(de_ctx);
+    SigPrepareStage1(de_ctx);
 
     SigGroupHeadAppendSig(de_ctx, &src_sh, de_ctx->sig_list);
     SigGroupHeadAppendSig(de_ctx, &src_sh, de_ctx->sig_list->next->next);
@@ -1021,7 +1021,7 @@ static int SigGroupHeadTest05(void)
                                       "content:\"test2\"; content:\"test3\"; sid:5;)");
     FAIL_IF_NULL(s);
 
-    SigAddressPrepareStage1(de_ctx);
+    SigPrepareStage1(de_ctx);
 
     SigGroupHeadAppendSig(de_ctx, &sh, de_ctx->sig_list);
     SigGroupHeadAppendSig(de_ctx, &sh, de_ctx->sig_list->next->next);
