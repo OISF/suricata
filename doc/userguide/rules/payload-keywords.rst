@@ -289,8 +289,6 @@ Examples of ``absent`` in a rule:
 
    alert http any any -> any any (msg:"HTTP request without referer";  http.referer; absent; sid:1; rev:1;)
 
-.. container:: example-rule
-
 
 bsize
 -----
