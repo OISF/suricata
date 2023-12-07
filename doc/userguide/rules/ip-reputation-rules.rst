@@ -32,10 +32,10 @@ Example:
 
 This rule will alert when a system in $HOME_NET acts as a client while communicating with any IP in the CnC category that has a reputation score set to greater than 30.
 
-IP-only
-~~~~~~~
+Compatibility with IP-only
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The "iprep" keyword is compatible to "IP-only" rules. This means that a rule like:
+The "iprep" keyword is compatible with "IP-only" rules. This means that a rule like:
 
 ::
 
