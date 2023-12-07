@@ -61,6 +61,32 @@ void DetectIsdataatFree(DetectEngineCtx *, void *);
 
 static int DetectEndsWithSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr);
 
+static int DetectAbsentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+{
+    if (s->init_data->list == DETECT_SM_LIST_NOTSET) {
+        SCLogError("no buffer for absent keyword");
+        return -1;
+    }
+
+    if (DetectBufferGetActiveList(de_ctx, s) == -1)
+        return -1;
+
+    DetectIsdataatData *idad = SCMalloc(sizeof(DetectIsdataatData));
+    if (unlikely(idad == NULL))
+        return -1;
+
+    // absent is isdataat:!0
+    idad->flags = ISDATAAT_NEGATED;
+    idad->dataat = 0;
+
+    if (SigMatchAppendSMToList(
+                de_ctx, s, DETECT_ISDATAAT, (SigMatchCtx *)idad, s->init_data->list) == NULL) {
+        DetectIsdataatFree(de_ctx, idad);
+        return -1;
+    }
+    return 0;
+}
+
 /**
  * \brief Registration function for isdataat: keyword
  */
@@ -81,6 +107,12 @@ void DetectIsdataatRegister(void)
     sigmatch_table[DETECT_ENDS_WITH].url = "/rules/payload-keywords.html#endswith";
     sigmatch_table[DETECT_ENDS_WITH].Setup = DetectEndsWithSetup;
     sigmatch_table[DETECT_ENDS_WITH].flags = SIGMATCH_NOOPT;
+
+    sigmatch_table[DETECT_ABSENT].name = "absent";
+    sigmatch_table[DETECT_ABSENT].desc = "test if the buffer is absent";
+    sigmatch_table[DETECT_ABSENT].url = "/rules/payload-keywords.html#absent";
+    sigmatch_table[DETECT_ABSENT].Setup = DetectAbsentSetup;
+    sigmatch_table[DETECT_ABSENT].flags = SIGMATCH_NOOPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
