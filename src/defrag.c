@@ -107,8 +107,7 @@ RB_GENERATE(IP_FRAGMENTS, Frag_, rb, DefragRbFragCompare);
 /**
  * \brief Reset a frag for reuse in a pool.
  */
-static void
-DefragFragReset(Frag *frag)
+static void DefragFragReset(Frag *frag)
 {
     if (frag->pkt != NULL)
         SCFree(frag->pkt);
@@ -118,8 +117,7 @@ DefragFragReset(Frag *frag)
 /**
  * \brief Allocate a new frag for use in a pool.
  */
-static int
-DefragFragInit(void *data, void *initdata)
+static int DefragFragInit(void *data, void *initdata)
 {
     Frag *frag = data;
 
@@ -130,15 +128,14 @@ DefragFragInit(void *data, void *initdata)
 /**
  * \brief Free all frags associated with a tracker.
  */
-void
-DefragTrackerFreeFrags(DefragTracker *tracker)
+void DefragTrackerFreeFrags(DefragTracker *tracker)
 {
     Frag *frag, *tmp;
 
     /* Lock the frag pool as we'll be return items to it. */
     SCMutexLock(&defrag_context->frag_pool_lock);
 
-    RB_FOREACH_SAFE(frag, IP_FRAGMENTS, &tracker->fragment_tree, tmp) {
+    RB_FOREACH_SAFE (frag, IP_FRAGMENTS, &tracker->fragment_tree, tmp) {
         RB_REMOVE(IP_FRAGMENTS, &tracker->fragment_tree, frag);
         DefragFragReset(frag);
         PoolReturn(defrag_context->frag_pool, frag);
@@ -153,8 +150,7 @@ DefragTrackerFreeFrags(DefragTracker *tracker)
  * \retval On success a return an initialized DefragContext, otherwise
  *     NULL will be returned.
  */
-static DefragContext *
-DefragContextNew(void)
+static DefragContext *DefragContextNew(void)
 {
     DefragContext *dc;
 
@@ -174,47 +170,39 @@ DefragContextNew(void)
         frag_pool_size = DEFAULT_DEFRAG_POOL_SIZE;
     }
     intmax_t frag_pool_prealloc = frag_pool_size / 2;
-    dc->frag_pool = PoolInit(frag_pool_size, frag_pool_prealloc,
-        sizeof(Frag),
-        NULL, DefragFragInit, dc, NULL, NULL);
+    dc->frag_pool = PoolInit(
+            frag_pool_size, frag_pool_prealloc, sizeof(Frag), NULL, DefragFragInit, dc, NULL, NULL);
     if (dc->frag_pool == NULL) {
-            FatalError(SC_ERR_FATAL,
-                       "Defrag: Failed to initialize fragment pool.");
+        FatalError(SC_ERR_FATAL, "Defrag: Failed to initialize fragment pool.");
     }
     if (SCMutexInit(&dc->frag_pool_lock, NULL) != 0) {
-            FatalError(SC_ERR_FATAL,
-                       "Defrag: Failed to initialize frag pool mutex.");
+        FatalError(SC_ERR_FATAL, "Defrag: Failed to initialize frag pool mutex.");
     }
 
     /* Set the default timeout. */
     intmax_t timeout;
     if (!ConfGetInt("defrag.timeout", &timeout)) {
         dc->timeout = TIMEOUT_DEFAULT;
-    }
-    else {
+    } else {
         if (timeout < TIMEOUT_MIN) {
-                FatalError(SC_ERR_FATAL,
-                           "defrag: Timeout less than minimum allowed value.");
-        }
-        else if (timeout > TIMEOUT_MAX) {
-                FatalError(SC_ERR_FATAL,
-                           "defrag: Tiemout greater than maximum allowed value.");
+            FatalError(SC_ERR_FATAL, "defrag: Timeout less than minimum allowed value.");
+        } else if (timeout > TIMEOUT_MAX) {
+            FatalError(SC_ERR_FATAL, "defrag: Tiemout greater than maximum allowed value.");
         }
         dc->timeout = timeout;
     }
 
     SCLogDebug("Defrag Initialized:");
-    SCLogDebug("\tTimeout: %"PRIuMAX, (uintmax_t)dc->timeout);
-    SCLogDebug("\tMaximum defrag trackers: %"PRIuMAX, tracker_pool_size);
-    SCLogDebug("\tPreallocated defrag trackers: %"PRIuMAX, tracker_pool_size);
-    SCLogDebug("\tMaximum fragments: %"PRIuMAX, (uintmax_t)frag_pool_size);
-    SCLogDebug("\tPreallocated fragments: %"PRIuMAX, (uintmax_t)frag_pool_prealloc);
+    SCLogDebug("\tTimeout: %" PRIuMAX, (uintmax_t)dc->timeout);
+    SCLogDebug("\tMaximum defrag trackers: %" PRIuMAX, tracker_pool_size);
+    SCLogDebug("\tPreallocated defrag trackers: %" PRIuMAX, tracker_pool_size);
+    SCLogDebug("\tMaximum fragments: %" PRIuMAX, (uintmax_t)frag_pool_size);
+    SCLogDebug("\tPreallocated fragments: %" PRIuMAX, (uintmax_t)frag_pool_prealloc);
 
     return dc;
 }
 
-static void
-DefragContextDestroy(DefragContext *dc)
+static void DefragContextDestroy(DefragContext *dc)
 {
     if (dc == NULL)
         return;
@@ -228,8 +216,7 @@ DefragContextDestroy(DefragContext *dc)
  *
  * \param tracker The defragmentation tracker to reassemble from.
  */
-static Packet *
-Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
+static Packet *Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
 {
     Packet *rp = NULL;
 
@@ -254,13 +241,12 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
      * fragments are inserted in frag_offset order. */
     Frag *frag = NULL;
     size_t len = 0;
-    RB_FOREACH_FROM(frag, IP_FRAGMENTS, first) {
+    RB_FOREACH_FROM (frag, IP_FRAGMENTS, first) {
         if (frag->offset > len) {
             /* This fragment starts after the end of the previous
              * fragment.  We have a hole. */
             goto done;
-        }
-        else {
+        } else {
             len += frag->data_len;
         }
     }
@@ -270,7 +256,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     rp = PacketDefragPktSetup(p, NULL, 0, IPV4_GET_IPPROTO(p));
     if (rp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
-                   "fragmentation re-assembly, dumping fragments.");
+                                     "fragmentation re-assembly, dumping fragments.");
         goto error_remove_tracker;
     }
     PKT_SET_SRC(rp, PKT_SRC_DEFRAG);
@@ -286,9 +272,10 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     uint16_t prev_offset = 0;
     bool more_frags = 1;
 
-    RB_FOREACH(frag, IP_FRAGMENTS, &tracker->fragment_tree) {
-        SCLogDebug("frag %p, data_len %u, offset %u, pcap_cnt %"PRIu64,
-                frag, frag->data_len, frag->offset, frag->pcap_cnt);
+    RB_FOREACH(frag, IP_FRAGMENTS, &tracker->fragment_tree)
+    {
+        SCLogDebug("frag %p, data_len %u, offset %u, pcap_cnt %" PRIu64, frag, frag->data_len,
+                frag->offset, frag->pcap_cnt);
 
         /* Previous fragment has no more fragments, and this packet
          * doesn't overlap. We're done. */
@@ -313,18 +300,17 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
              * this. */
             fragmentable_offset = frag->ip_hdr_offset + frag->hlen;
             fragmentable_len = frag->data_len;
-        }
-        else {
+        } else {
             int pkt_end = fragmentable_offset + frag->offset + frag->data_len;
             if (pkt_end > (int)MAX_PAYLOAD_SIZE) {
-                SCLogWarning(SC_ERR_REASSEMBLY, "Failed re-assemble "
+                SCLogWarning(SC_ERR_REASSEMBLY,
+                        "Failed re-assemble "
                         "fragmented packet, exceeds size of packet buffer.");
                 goto error_remove_tracker;
             }
-            if (PacketCopyDataOffset(rp,
-                    fragmentable_offset + frag->offset + frag->ltrim,
-                    frag->pkt + frag->data_offset + frag->ltrim,
-                    frag->data_len - frag->ltrim) == -1) {
+            if (PacketCopyDataOffset(rp, fragmentable_offset + frag->offset + frag->ltrim,
+                        frag->pkt + frag->data_offset + frag->ltrim,
+                        frag->data_len - frag->ltrim) == -1) {
                 goto error_remove_tracker;
             }
             if (frag->offset + frag->data_len > fragmentable_len)
@@ -343,15 +329,14 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
         prev_offset = frag->offset;
     }
 
-    SCLogDebug("ip_hdr_offset %u, hlen %u, fragmentable_len %u",
-            ip_hdr_offset, hlen, fragmentable_len);
+    SCLogDebug("ip_hdr_offset %u, hlen %u, fragmentable_len %u", ip_hdr_offset, hlen,
+            fragmentable_len);
 
     rp->ip4h = (IPV4Hdr *)(GET_PKT_DATA(rp) + ip_hdr_offset);
     int old = rp->ip4h->ip_len + rp->ip4h->ip_off;
     rp->ip4h->ip_len = htons(fragmentable_len + hlen);
     rp->ip4h->ip_off = 0;
-    rp->ip4h->ip_csum = FixChecksum(rp->ip4h->ip_csum,
-        old, rp->ip4h->ip_len + rp->ip4h->ip_off);
+    rp->ip4h->ip_csum = FixChecksum(rp->ip4h->ip_csum, old, rp->ip4h->ip_len + rp->ip4h->ip_off);
     SET_PKT_LEN(rp, ip_hdr_offset + hlen + fragmentable_len);
 
     tracker->remove = 1;
@@ -372,8 +357,7 @@ error_remove_tracker:
  *
  * \param tracker The defragmentation tracker to reassemble from.
  */
-static Packet *
-Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
+static Packet *Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
 {
     Packet *rp = NULL;
 
@@ -397,7 +381,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
      * fragments are inserted if frag_offset order. */
     size_t len = 0;
     Frag *frag = NULL;
-    RB_FOREACH_FROM(frag, IP_FRAGMENTS, first) {
+    RB_FOREACH_FROM (frag, IP_FRAGMENTS, first) {
         if (frag->skip) {
             continue;
         }
@@ -407,14 +391,12 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
                 goto done;
             }
             len = frag->data_len;
-        }
-        else {
+        } else {
             if (frag->offset > len) {
                 /* This fragment starts after the end of the previous
                  * fragment.  We have a hole. */
                 goto done;
-            }
-            else {
+            } else {
                 len += frag->data_len;
             }
         }
@@ -422,11 +404,10 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
 
     /* Allocate a Packet for the reassembled packet.  On failure we
      * SCFree all the resources held by this tracker. */
-    rp = PacketDefragPktSetup(p, (uint8_t *)p->ip6h,
-            IPV6_GET_PLEN(p) + sizeof(IPV6Hdr), 0);
+    rp = PacketDefragPktSetup(p, (uint8_t *)p->ip6h, IPV6_GET_PLEN(p) + sizeof(IPV6Hdr), 0);
     if (rp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
-                "fragmentation re-assembly, dumping fragments.");
+                                     "fragmentation re-assembly, dumping fragments.");
         goto error_remove_tracker;
     }
     PKT_SET_SRC(rp, PKT_SRC_DEFRAG);
@@ -443,7 +424,8 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     uint16_t prev_offset = 0;
     bool more_frags = 1;
 
-    RB_FOREACH(frag, IP_FRAGMENTS, &tracker->fragment_tree) {
+    RB_FOREACH(frag, IP_FRAGMENTS, &tracker->fragment_tree)
+    {
         if (!more_frags && frag->offset > prev_offset) {
             break;
         }
@@ -452,8 +434,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
         if (frag->data_len - frag->ltrim <= 0)
             continue;
         if (frag->offset == 0) {
-            IPV6FragHdr *frag_hdr = (IPV6FragHdr *)(frag->pkt +
-                frag->frag_hdr_offset);
+            IPV6FragHdr *frag_hdr = (IPV6FragHdr *)(frag->pkt + frag->frag_hdr_offset);
             next_hdr = frag_hdr->ip6fh_nxt;
 
             /* This is the first packet, we use this packets link and
@@ -462,8 +443,8 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
             if (PacketCopyData(rp, frag->pkt, frag->frag_hdr_offset) == -1)
                 goto error_remove_tracker;
             if (PacketCopyDataOffset(rp, frag->frag_hdr_offset,
-                frag->pkt + frag->frag_hdr_offset + sizeof(IPV6FragHdr),
-                frag->data_len) == -1)
+                        frag->pkt + frag->frag_hdr_offset + sizeof(IPV6FragHdr),
+                        frag->data_len) == -1)
                 goto error_remove_tracker;
             ip_hdr_offset = frag->ip_hdr_offset;
 
@@ -478,11 +459,10 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
             unfragmentable_len = (fragmentable_offset - ip_hdr_offset) - IPV6_HEADER_LEN;
             if (unfragmentable_len >= fragmentable_offset)
                 goto error_remove_tracker;
-        }
-        else {
+        } else {
             if (PacketCopyDataOffset(rp, fragmentable_offset + frag->offset + frag->ltrim,
-                frag->pkt + frag->data_offset + frag->ltrim,
-                frag->data_len - frag->ltrim) == -1)
+                        frag->pkt + frag->data_offset + frag->ltrim,
+                        frag->data_len - frag->ltrim) == -1)
                 goto error_remove_tracker;
             if (frag->offset + frag->data_len > fragmentable_len)
                 fragmentable_len = frag->offset + frag->data_len;
@@ -508,8 +488,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
      * directly after the frag header. */
     if (unfragmentable_len == 0)
         rp->ip6h->s_ip6_nxt = next_hdr;
-    SET_PKT_LEN(rp, ip_hdr_offset + sizeof(IPV6Hdr) +
-            unfragmentable_len + fragmentable_len);
+    SET_PKT_LEN(rp, ip_hdr_offset + sizeof(IPV6Hdr) + unfragmentable_len + fragmentable_len);
 
     tracker->remove = 1;
     DefragTrackerFreeFrags(tracker);
@@ -531,7 +510,8 @@ error_remove_tracker:
  * same offset to be treated as greater than, so we don't have an
  * equal return value here.
  */
-int DefragRbFragCompare(struct Frag_ *a, struct Frag_ *b) {
+int DefragRbFragCompare(struct Frag_ *a, struct Frag_ *b)
+{
     if (a->offset < b->offset) {
         return -1;
     }
@@ -543,8 +523,8 @@ int DefragRbFragCompare(struct Frag_ *a, struct Frag_ *b) {
  *
  * \todo Allocate packet buffers from a pool.
  */
-static Packet *
-DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, Packet *p)
+static Packet *DefragInsertFrag(
+        ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, Packet *p)
 {
     Packet *r = NULL;
     int ltrim = 0;
@@ -599,8 +579,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             ENGINE_SET_EVENT(p, IPV4_FRAG_PKT_TOO_LARGE);
             return NULL;
         }
-    }
-    else if (tracker->af == AF_INET6) {
+    } else if (tracker->af == AF_INET6) {
         more_frags = IPV6_EXTHDR_GET_FH_FLAG(p);
         frag_offset = IPV6_EXTHDR_GET_FH_OFFSET(p);
         data_offset = p->ip6eh.fh_data_offset;
@@ -610,9 +589,9 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         frag_hdr_offset = p->ip6eh.fh_header_offset;
 
         SCLogDebug("mf %s frag_offset %u data_offset %u, data_len %u, "
-                "frag_end %u, ip_hdr_offset %u, frag_hdr_offset %u",
-                more_frags ? "true" : "false", frag_offset, data_offset,
-                data_len, frag_end, ip_hdr_offset, frag_hdr_offset);
+                   "frag_end %u, ip_hdr_offset %u, frag_hdr_offset %u",
+                more_frags ? "true" : "false", frag_offset, data_offset, data_len, frag_end,
+                ip_hdr_offset, frag_hdr_offset);
 
         /* handle unfragmentable exthdrs */
         if (ip_hdr_offset + IPV6_HEADER_LEN < frag_hdr_offset) {
@@ -634,8 +613,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             ENGINE_SET_EVENT(p, IPV6_FRAG_PKT_TOO_LARGE);
             return NULL;
         }
-    }
-    else {
+    } else {
         DEBUG_VALIDATE_BUG_ON(1);
         return NULL;
     }
@@ -672,132 +650,161 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             }
 
             switch (tracker->policy) {
-            case DEFRAG_POLICY_BSD:
-                if (frag_offset < prev->offset + prev->data_len) {
-                    if (frag_offset >= prev->offset) {
-                        ltrim = prev->offset + prev->data_len - frag_offset;
+                case DEFRAG_POLICY_BSD:
+                    if (frag_offset < prev->offset + prev->data_len) {
+                        if (prev->offset <= frag_offset) {
+                            /* We prefer the data from the previous
+                             * fragment, so trim off the data in the new
+                             * fragment that exists in the previous
+                             * fragment. */
+                            uint16_t prev_end = prev->offset + prev->data_len;
+                            if (prev_end > frag_end) {
+                                /* Just skip. */
+                                /* TODO: Set overlap flag. */
+                                goto done;
+                            }
+                            ltrim = prev_end - frag_offset;
+
+                            if ((next != NULL) && (frag_end > next->offset)) {
+                                next->ltrim = frag_end - next->offset;
+                            }
+
+                            goto insert;
+                        }
+
+                        /* If the end of this fragment overlaps the start
+                         * of the previous fragment, then trim up the
+                         * start of previous fragment so this fragment is
+                         * used.
+                         *
+                         * See:
+                         * DefragBsdSubsequentOverlapsStartOfOriginal.
+                         */
+                        if (frag_offset <= prev->offset && frag_end > prev->offset + prev->ltrim) {
+                            uint16_t prev_ltrim = frag_end - prev->offset;
+                            if (prev_ltrim > prev->ltrim) {
+                                prev->ltrim = prev_ltrim;
+                            }
+                        }
+
+                        if ((next != NULL) && (frag_end > next->offset)) {
+                            next->ltrim = frag_end - next->offset;
+                        }
+
+                        goto insert;
                     }
-                    if ((next != NULL) && (frag_end > next->offset)) {
-                        next->ltrim = frag_end - next->offset;
+                    break;
+                case DEFRAG_POLICY_LINUX:
+                    /* Check if new fragment overlaps the end of previous
+                     * fragment, if it does, trim the new fragment.
+                     *
+                     * Old: AAAAAAAA AAAAAAAA AAAAAAAA
+                     * New:          BBBBBBBB BBBBBBBB BBBBBBBB
+                     * Res: AAAAAAAA AAAAAAAA AAAAAAAA BBBBBBBB
+                     */
+                    if (prev->offset + prev->ltrim < frag_offset + ltrim &&
+                            prev->offset + prev->data_len > frag_offset + ltrim) {
+                        ltrim += prev->offset + prev->data_len - frag_offset;
                     }
-                    if ((frag_offset < prev->offset) &&
-                        (frag_end >= prev->offset + prev->data_len)) {
+
+                    /* Check if new fragment overlaps the beginning of
+                     * previous fragment, if it does, tim the previous
+                     * fragment.
+                     *
+                     * Old:          AAAAAAAA AAAAAAAA
+                     * New: BBBBBBBB BBBBBBBB BBBBBBBB
+                     * Res: BBBBBBBB BBBBBBBB BBBBBBBB
+                     */
+                    if (frag_offset + ltrim < prev->offset + prev->ltrim &&
+                            frag_end > prev->offset + prev->ltrim) {
+                        prev->ltrim += frag_end - (prev->offset + prev->ltrim);
+                        goto insert;
+                    }
+
+                    /* If the new fragment completely overlaps the
+                     * previous fragment, mark the previous to be
+                     * skipped. Re-assembly would succeed without doing
+                     * this, but this will prevent the bytes from being
+                     * copied just to be overwritten. */
+                    if (frag_offset + ltrim <= prev->offset + prev->ltrim &&
+                            frag_end >= prev->offset + prev->data_len) {
                         prev->skip = 1;
+                        goto insert;
                     }
-                    goto insert;
-                }
-                break;
-            case DEFRAG_POLICY_LINUX:
-                /* Check if new fragment overlaps the end of previous
-                 * fragment, if it does, trim the new fragment.
-                 *
-                 * Old: AAAAAAAA AAAAAAAA AAAAAAAA
-                 * New:          BBBBBBBB BBBBBBBB BBBBBBBB
-                 * Res: AAAAAAAA AAAAAAAA AAAAAAAA BBBBBBBB
-                 */
-                if (prev->offset + prev->ltrim < frag_offset + ltrim &&
-                        prev->offset + prev->data_len > frag_offset + ltrim) {
-                    ltrim += prev->offset + prev->data_len - frag_offset;
-                }
 
-                /* Check if new fragment overlaps the beginning of
-                 * previous fragment, if it does, tim the previous
-                 * fragment.
-                 *
-                 * Old:          AAAAAAAA AAAAAAAA
-                 * New: BBBBBBBB BBBBBBBB BBBBBBBB
-                 * Res: BBBBBBBB BBBBBBBB BBBBBBBB
-                 */
-                if (frag_offset + ltrim < prev->offset + prev->ltrim &&
-                        frag_end > prev->offset + prev->ltrim) {
-                    prev->ltrim += frag_end - (prev->offset + prev->ltrim);
-                    goto insert;
-                }
-
-                /* If the new fragment completely overlaps the
-                 * previous fragment, mark the previous to be
-                 * skipped. Re-assembly would succeed without doing
-                 * this, but this will prevent the bytes from being
-                 * copied just to be overwritten. */
-                if (frag_offset + ltrim <= prev->offset + prev->ltrim &&
-                        frag_end >= prev->offset + prev->data_len) {
-                    prev->skip = 1;
-                    goto insert;
-                }
-
-                break;
-            case DEFRAG_POLICY_WINDOWS:
-                /* If new fragment fits inside a previous fragment, drop it. */
-                if (frag_offset + ltrim >= prev->offset + ltrim &&
-                        frag_end <= prev->offset + prev->data_len) {
-                    goto done;
-                }
-
-                /* If new fragment starts before and ends after
-                 * previous fragment, drop the previous fragment. */
-                if (frag_offset + ltrim < prev->offset + ltrim &&
-                        frag_end > prev->offset + prev->data_len) {
-                    prev->skip = 1;
-                    goto insert;
-                }
-
-                /* Check if new fragment overlaps the end of previous
-                 * fragment, if it does, trim the new fragment.
-                 *
-                 * Old: AAAAAAAA AAAAAAAA AAAAAAAA
-                 * New:          BBBBBBBB BBBBBBBB BBBBBBBB
-                 * Res: AAAAAAAA AAAAAAAA AAAAAAAA BBBBBBBB
-                 */
-                if (frag_offset + ltrim > prev->offset + prev->ltrim &&
-                        frag_offset + ltrim < prev->offset + prev->data_len) {
-                    ltrim += prev->offset + prev->data_len - frag_offset;
-                    goto insert;
-                }
-
-                /* If new fragment starts at same offset as an
-                 * existing fragment, but ends after it, trim the new
-                 * fragment. */
-                if (frag_offset + ltrim == prev->offset + ltrim &&
-                        frag_end > prev->offset + prev->data_len) {
-                    ltrim += prev->offset + prev->data_len - frag_offset;
-                    goto insert;
-                }
-                break;
-            case DEFRAG_POLICY_SOLARIS:
-                if (frag_offset < prev->offset + prev->data_len) {
-                    if (frag_offset >= prev->offset) {
-                        ltrim = prev->offset + prev->data_len - frag_offset;
+                    break;
+                case DEFRAG_POLICY_WINDOWS:
+                    /* If new fragment fits inside a previous fragment, drop it. */
+                    if (frag_offset + ltrim >= prev->offset + ltrim &&
+                            frag_end <= prev->offset + prev->data_len) {
+                        goto done;
                     }
-                    if ((frag_offset < prev->offset) &&
-                        (frag_end >= prev->offset + prev->data_len)) {
+
+                    /* If new fragment starts before and ends after
+                     * previous fragment, drop the previous fragment. */
+                    if (frag_offset + ltrim < prev->offset + ltrim &&
+                            frag_end > prev->offset + prev->data_len) {
                         prev->skip = 1;
+                        goto insert;
                     }
-                    goto insert;
-                }
-                break;
-            case DEFRAG_POLICY_FIRST:
-                if ((frag_offset >= prev->offset) &&
-                    (frag_end <= prev->offset + prev->data_len)) {
-                    goto done;
-                }
-                if (frag_offset < prev->offset) {
-                    goto insert;
-                }
-                if (frag_offset < prev->offset + prev->data_len) {
-                    ltrim = prev->offset + prev->data_len - frag_offset;
-                    goto insert;
-                }
-                break;
-            case DEFRAG_POLICY_LAST:
-                if (frag_offset <= prev->offset) {
-                    if (frag_end > prev->offset) {
-                        prev->ltrim = frag_end - prev->offset;
+
+                    /* Check if new fragment overlaps the end of previous
+                     * fragment, if it does, trim the new fragment.
+                     *
+                     * Old: AAAAAAAA AAAAAAAA AAAAAAAA
+                     * New:          BBBBBBBB BBBBBBBB BBBBBBBB
+                     * Res: AAAAAAAA AAAAAAAA AAAAAAAA BBBBBBBB
+                     */
+                    if (frag_offset + ltrim > prev->offset + prev->ltrim &&
+                            frag_offset + ltrim < prev->offset + prev->data_len) {
+                        ltrim += prev->offset + prev->data_len - frag_offset;
+                        goto insert;
                     }
-                    goto insert;
-                }
-                break;
-            default:
-                break;
+
+                    /* If new fragment starts at same offset as an
+                     * existing fragment, but ends after it, trim the new
+                     * fragment. */
+                    if (frag_offset + ltrim == prev->offset + ltrim &&
+                            frag_end > prev->offset + prev->data_len) {
+                        ltrim += prev->offset + prev->data_len - frag_offset;
+                        goto insert;
+                    }
+                    break;
+                case DEFRAG_POLICY_SOLARIS:
+                    if (frag_offset < prev->offset + prev->data_len) {
+                        if (frag_offset >= prev->offset) {
+                            ltrim = prev->offset + prev->data_len - frag_offset;
+                        }
+                        if ((frag_offset < prev->offset) &&
+                                (frag_end >= prev->offset + prev->data_len)) {
+                            prev->skip = 1;
+                        }
+                        goto insert;
+                    }
+                    break;
+                case DEFRAG_POLICY_FIRST:
+                    if ((frag_offset >= prev->offset) &&
+                            (frag_end <= prev->offset + prev->data_len)) {
+                        goto done;
+                    }
+                    if (frag_offset < prev->offset) {
+                        goto insert;
+                    }
+                    if (frag_offset < prev->offset + prev->data_len) {
+                        ltrim = prev->offset + prev->data_len - frag_offset;
+                        goto insert;
+                    }
+                    break;
+                case DEFRAG_POLICY_LAST:
+                    if (frag_offset <= prev->offset) {
+                        if (frag_end > prev->offset) {
+                            prev->ltrim = frag_end - prev->offset;
+                        }
+                        goto insert;
+                    }
+                    break;
+                default:
+                    break;
             }
 
         next:
@@ -890,8 +897,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             r = Defrag4Reassemble(tv, tracker, p);
             if (r != NULL && tv != NULL && dtv != NULL) {
                 StatsIncr(tv, dtv->counter_defrag_ipv4_reassembled);
-                if (DecodeIPV4(tv, dtv, r, (void *)r->ip4h,
-                               IPV4_GET_IPLEN(r)) != TM_ECODE_OK) {
+                if (DecodeIPV4(tv, dtv, r, (void *)r->ip4h, IPV4_GET_IPLEN(r)) != TM_ECODE_OK) {
 
                     UNSET_TUNNEL_PKT(r);
                     r->root = NULL;
@@ -901,14 +907,12 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                     PacketDefragPktSetupParent(p);
                 }
             }
-        }
-        else if (tracker->af == AF_INET6) {
+        } else if (tracker->af == AF_INET6) {
             r = Defrag6Reassemble(tv, tracker, p);
             if (r != NULL && tv != NULL && dtv != NULL) {
                 StatsIncr(tv, dtv->counter_defrag_ipv6_reassembled);
                 if (DecodeIPV6(tv, dtv, r, (uint8_t *)r->ip6h,
-                               IPV6_GET_PLEN(r) + IPV6_HEADER_LEN)
-                               != TM_ECODE_OK) {
+                            IPV6_GET_PLEN(r) + IPV6_HEADER_LEN) != TM_ECODE_OK) {
 
                     UNSET_TUNNEL_PKT(r);
                     r->root = NULL;
@@ -921,13 +925,11 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         }
     }
 
-
 done:
     if (overlap) {
         if (af == AF_INET) {
             ENGINE_SET_EVENT(p, IPV4_FRAG_OVERLAP);
-        }
-        else {
+        } else {
             ENGINE_SET_EVENT(p, IPV6_FRAG_OVERLAP);
         }
     }
@@ -942,15 +944,13 @@ done:
  *
  * \retval The defrag policy to use.
  */
-uint8_t
-DefragGetOsPolicy(Packet *p)
+uint8_t DefragGetOsPolicy(Packet *p)
 {
     int policy = -1;
 
     if (PKT_IS_IPV4(p)) {
         policy = SCHInfoGetIPv4HostOSFlavour((uint8_t *)GET_IPV4_DST_ADDR_PTR(p));
-    }
-    else if (PKT_IS_IPV6(p)) {
+    } else if (PKT_IS_IPV6(p)) {
         policy = SCHInfoGetIPv6HostOSFlavour((uint8_t *)GET_IPV6_DST_ADDR(p));
     }
 
@@ -961,52 +961,51 @@ DefragGetOsPolicy(Packet *p)
     /* Map the OS policies returned from the configured host info to
      * defrag specific policies. */
     switch (policy) {
-        /* BSD. */
-    case OS_POLICY_BSD:
-    case OS_POLICY_HPUX10:
-    case OS_POLICY_IRIX:
-        return DEFRAG_POLICY_BSD;
+            /* BSD. */
+        case OS_POLICY_BSD:
+        case OS_POLICY_HPUX10:
+        case OS_POLICY_IRIX:
+            return DEFRAG_POLICY_BSD;
 
-        /* BSD-Right. */
-    case OS_POLICY_BSD_RIGHT:
-        return DEFRAG_POLICY_BSD_RIGHT;
+            /* BSD-Right. */
+        case OS_POLICY_BSD_RIGHT:
+            return DEFRAG_POLICY_BSD_RIGHT;
 
-        /* Linux. */
-    case OS_POLICY_OLD_LINUX:
-    case OS_POLICY_LINUX:
-        return DEFRAG_POLICY_LINUX;
+            /* Linux. */
+        case OS_POLICY_OLD_LINUX:
+        case OS_POLICY_LINUX:
+            return DEFRAG_POLICY_LINUX;
 
-        /* First. */
-    case OS_POLICY_OLD_SOLARIS:
-    case OS_POLICY_HPUX11:
-    case OS_POLICY_MACOS:
-    case OS_POLICY_FIRST:
-        return DEFRAG_POLICY_FIRST;
+            /* First. */
+        case OS_POLICY_OLD_SOLARIS:
+        case OS_POLICY_HPUX11:
+        case OS_POLICY_MACOS:
+        case OS_POLICY_FIRST:
+            return DEFRAG_POLICY_FIRST;
 
-        /* Solaris. */
-    case OS_POLICY_SOLARIS:
-        return DEFRAG_POLICY_SOLARIS;
+            /* Solaris. */
+        case OS_POLICY_SOLARIS:
+            return DEFRAG_POLICY_SOLARIS;
 
-        /* Windows. */
-    case OS_POLICY_WINDOWS:
-    case OS_POLICY_VISTA:
-    case OS_POLICY_WINDOWS2K3:
-        return DEFRAG_POLICY_WINDOWS;
+            /* Windows. */
+        case OS_POLICY_WINDOWS:
+        case OS_POLICY_VISTA:
+        case OS_POLICY_WINDOWS2K3:
+            return DEFRAG_POLICY_WINDOWS;
 
-        /* Last. */
-    case OS_POLICY_LAST:
-        return DEFRAG_POLICY_LAST;
+            /* Last. */
+        case OS_POLICY_LAST:
+            return DEFRAG_POLICY_LAST;
 
-    default:
-        return default_policy;
+        default:
+            return default_policy;
     }
 }
 
 /** \internal
  *
  *  \retval NULL or a *LOCKED* tracker */
-static DefragTracker *
-DefragGetTracker(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
+static DefragTracker *DefragGetTracker(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
     return DefragGetTrackerFromHash(p);
 }
@@ -1021,8 +1020,7 @@ DefragGetTracker(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
  *     recent fragment allowed the packet to be re-assembled, otherwise
  *     NULL is returned.
  */
-Packet *
-Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
+Packet *Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
     uint16_t frag_offset;
     uint8_t more_frags;
@@ -1033,13 +1031,11 @@ Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
         af = AF_INET;
         more_frags = IPV4_GET_MF(p);
         frag_offset = IPV4_GET_IPOFFSET(p);
-    }
-    else if (PKT_IS_IPV6(p)) {
+    } else if (PKT_IS_IPV6(p)) {
         af = AF_INET6;
         frag_offset = IPV6_EXTHDR_GET_FH_OFFSET(p);
         more_frags = IPV6_EXTHDR_GET_FH_FLAG(p);
-    }
-    else {
+    } else {
         return NULL;
     }
 
@@ -1050,8 +1046,7 @@ Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
     if (tv != NULL && dtv != NULL) {
         if (af == AF_INET) {
             StatsIncr(tv, dtv->counter_defrag_ipv4_fragments);
-        }
-        else if (af == AF_INET6) {
+        } else if (af == AF_INET6) {
             StatsIncr(tv, dtv->counter_defrag_ipv6_fragments);
         }
     }
@@ -1071,8 +1066,7 @@ Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
     return rp;
 }
 
-void
-DefragInit(void)
+void DefragInit(void)
 {
     intmax_t tracker_pool_size;
     if (!ConfGetInt("defrag.trackers", &tracker_pool_size)) {
@@ -1085,8 +1079,7 @@ DefragInit(void)
     /* Allocate the DefragContext. */
     defrag_context = DefragContextNew();
     if (defrag_context == NULL) {
-            FatalError(SC_ERR_FATAL,
-                       "Failed to allocate memory for the Defrag module.");
+        FatalError(SC_ERR_FATAL, "Failed to allocate memory for the Defrag module.");
     }
 
     DefragSetDefaultTimeout(defrag_context->timeout);
@@ -1124,7 +1117,7 @@ static Packet *BuildIpv4TestPacket(
     PACKET_INITIALIZE(p);
 
     gettimeofday(&p->ts, NULL);
-    //p->ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
+    // p->ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
     ip4h.ip_verhl = 4 << 4;
     ip4h.ip_verhl |= hlen >> 2;
     ip4h.ip_len = htons(hlen + content_len);
@@ -1152,6 +1145,75 @@ static Packet *BuildIpv4TestPacket(
     PacketCopyDataOffset(p, hlen, pcontent, content_len);
     SET_PKT_LEN(p, hlen + content_len);
     SCFree(pcontent);
+
+    p->ip4h->ip_csum = IPV4Checksum((uint16_t *)GET_PKT_DATA(p), hlen, 0);
+
+    /* Self test. */
+    if (IPV4_GET_VER(p) != 4)
+        goto error;
+    if (IPV4_GET_HLEN(p) != hlen)
+        goto error;
+    if (IPV4_GET_IPLEN(p) != hlen + content_len)
+        goto error;
+    if (IPV4_GET_IPID(p) != id)
+        goto error;
+    if (IPV4_GET_IPOFFSET(p) != off)
+        goto error;
+    if (IPV4_GET_MF(p) != mf)
+        goto error;
+    if (IPV4_GET_IPTTL(p) != ttl)
+        goto error;
+    if (IPV4_GET_IPPROTO(p) != proto)
+        goto error;
+
+    return p;
+error:
+    if (p != NULL)
+        SCFree(p);
+    return NULL;
+}
+
+/**
+ * Allocate a test packet, much like BuildIpv4TestPacket, but with
+ * the full content provided by the caller.
+ */
+static Packet *BuildIpv4TestPacketWithContent(
+        uint8_t proto, uint16_t id, uint16_t off, int mf, const uint8_t *content, int content_len)
+{
+    Packet *p = NULL;
+    int hlen = 20;
+    int ttl = 64;
+    IPV4Hdr ip4h;
+
+    p = SCCalloc(1, sizeof(*p) + default_packet_size);
+    if (unlikely(p == NULL))
+        return NULL;
+
+    PACKET_INITIALIZE(p);
+
+    gettimeofday(&p->ts, NULL);
+    ip4h.ip_verhl = 4 << 4;
+    ip4h.ip_verhl |= hlen >> 2;
+    ip4h.ip_len = htons(hlen + content_len);
+    ip4h.ip_id = htons(id);
+    if (mf)
+        ip4h.ip_off = htons(IP_MF | off);
+    else
+        ip4h.ip_off = htons(off);
+    ip4h.ip_ttl = ttl;
+    ip4h.ip_proto = proto;
+
+    ip4h.s_ip_src.s_addr = 0x01010101; /* 1.1.1.1 */
+    ip4h.s_ip_dst.s_addr = 0x02020202; /* 2.2.2.2 */
+
+    /* copy content_len crap, we need full length */
+    PacketCopyData(p, (uint8_t *)&ip4h, sizeof(ip4h));
+    p->ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
+    SET_IPV4_SRC_ADDR(p, &p->src);
+    SET_IPV4_DST_ADDR(p, &p->dst);
+
+    PacketCopyDataOffset(p, hlen, content, content_len);
+    SET_PKT_LEN(p, hlen + content_len);
 
     p->ip4h->ip_csum = IPV4Checksum((uint16_t *)GET_PKT_DATA(p), hlen, 0);
 
@@ -1228,6 +1290,69 @@ static Packet *BuildIpv6TestPacket(
     PacketCopyDataOffset(p, sizeof(IPV6Hdr) + sizeof(IPV6FragHdr), pcontent, content_len);
     SET_PKT_LEN(p, sizeof(IPV6Hdr) + sizeof(IPV6FragHdr) + content_len);
     SCFree(pcontent);
+
+    p->ip6h->s_ip6_plen = htons(sizeof(IPV6FragHdr) + content_len);
+
+    SET_IPV6_SRC_ADDR(p, &p->src);
+    SET_IPV6_DST_ADDR(p, &p->dst);
+
+    /* Self test. */
+    if (IPV6_GET_VER(p) != 6)
+        goto error;
+    if (IPV6_GET_NH(p) != 44)
+        goto error;
+    if (IPV6_GET_PLEN(p) != sizeof(IPV6FragHdr) + content_len)
+        goto error;
+
+    return p;
+error:
+    if (p != NULL)
+        SCFree(p);
+    return NULL;
+}
+
+static Packet *BuildIpv6TestPacketWithContent(
+        uint8_t proto, uint32_t id, uint16_t off, int mf, const uint8_t *content, int content_len)
+{
+    Packet *p = NULL;
+    IPV6Hdr ip6h;
+
+    p = SCCalloc(1, sizeof(*p) + default_packet_size);
+    if (unlikely(p == NULL))
+        return NULL;
+
+    PACKET_INITIALIZE(p);
+
+    gettimeofday(&p->ts, NULL);
+
+    ip6h.s_ip6_nxt = 44;
+    ip6h.s_ip6_hlim = 2;
+
+    /* Source and dest address - very bogus addresses. */
+    ip6h.s_ip6_src[0] = 0x01010101;
+    ip6h.s_ip6_src[1] = 0x01010101;
+    ip6h.s_ip6_src[2] = 0x01010101;
+    ip6h.s_ip6_src[3] = 0x01010101;
+    ip6h.s_ip6_dst[0] = 0x02020202;
+    ip6h.s_ip6_dst[1] = 0x02020202;
+    ip6h.s_ip6_dst[2] = 0x02020202;
+    ip6h.s_ip6_dst[3] = 0x02020202;
+
+    /* copy content_len crap, we need full length */
+    PacketCopyData(p, (uint8_t *)&ip6h, sizeof(IPV6Hdr));
+
+    p->ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
+    IPV6_SET_RAW_VER(p->ip6h, 6);
+    /* Fragmentation header. */
+    IPV6FragHdr *fh = (IPV6FragHdr *)(GET_PKT_DATA(p) + sizeof(IPV6Hdr));
+    fh->ip6fh_nxt = proto;
+    fh->ip6fh_ident = htonl(id);
+    fh->ip6fh_offlg = htons((off << 3) | mf);
+
+    DecodeIPV6FragHeader(p, (uint8_t *)fh, 8, 8 + content_len, 0);
+
+    PacketCopyDataOffset(p, sizeof(IPV6Hdr) + sizeof(IPV6FragHdr), content, content_len);
+    SET_PKT_LEN(p, sizeof(IPV6Hdr) + sizeof(IPV6FragHdr) + content_len);
 
     p->ip6h->s_ip6_plen = htons(sizeof(IPV6FragHdr) + content_len);
 
@@ -1554,7 +1679,13 @@ static int DefragDoSturgesNovakTest(int policy, uint8_t *expected, size_t expect
     FAIL_IF(IPV4_GET_IPLEN(reassembled) != 20 + 192);
     FAIL_IF(expected_len != 192);
 
-    FAIL_IF(memcmp(GET_PKT_DATA(reassembled) + 20, expected, expected_len) != 0);
+    if (memcmp(expected, GET_PKT_DATA(reassembled) + 20, expected_len) != 0) {
+        printf("Expected:\n");
+        PrintRawDataFp(stdout, expected, expected_len);
+        printf("Got:\n");
+        PrintRawDataFp(stdout, GET_PKT_DATA(reassembled) + 20, GET_PKT_LEN(reassembled) - 20);
+        FAIL;
+    }
     SCFree(reassembled);
 
     /* Make sure all frags were returned back to the pool. */
@@ -1703,8 +1834,7 @@ static int DefragDoSturgesNovakIpv6Test(int policy, uint8_t *expected, size_t ex
 #define D_10  'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'
 #define D_11  'Q', 'Q', 'Q', 'Q', 'Q', 'Q', 'Q', 'Q'
 
-static int
-DefragSturgesNovakBsdTest(void)
+static int DefragSturgesNovakBsdTest(void)
 {
     /* Expected data. */
     uint8_t expected[] = {
@@ -1734,8 +1864,7 @@ DefragSturgesNovakBsdTest(void)
         D_11,
     };
 
-    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_BSD, expected,
-                    sizeof(expected)));
+    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_BSD, expected, sizeof(expected)));
     PASS;
 }
 
@@ -1803,8 +1932,7 @@ static int DefragSturgesNovakLinuxIpv4Test(void)
         D_11,
     };
 
-    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_LINUX, expected,
-                    sizeof(expected)));
+    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_LINUX, expected, sizeof(expected)));
     PASS;
 }
 
@@ -1872,8 +2000,7 @@ static int DefragSturgesNovakWindowsIpv4Test(void)
         D_11,
     };
 
-    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_WINDOWS, expected,
-                    sizeof(expected)));
+    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_WINDOWS, expected, sizeof(expected)));
     PASS;
 }
 
@@ -1941,8 +2068,7 @@ static int DefragSturgesNovakSolarisTest(void)
         D_11,
     };
 
-    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_SOLARIS, expected,
-                    sizeof(expected)));
+    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_SOLARIS, expected, sizeof(expected)));
     PASS;
 }
 
@@ -2010,8 +2136,7 @@ static int DefragSturgesNovakFirstTest(void)
         D_11,
     };
 
-    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_FIRST, expected,
-                    sizeof(expected)));
+    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_FIRST, expected, sizeof(expected)));
     PASS;
 }
 
@@ -2048,8 +2173,7 @@ static int DefragSturgesNovakFirstIpv6Test(void)
     return DefragDoSturgesNovakIpv6Test(DEFRAG_POLICY_FIRST, expected, sizeof(expected));
 }
 
-static int
-DefragSturgesNovakLastTest(void)
+static int DefragSturgesNovakLastTest(void)
 {
     /* Expected data. */
     uint8_t expected[] = {
@@ -2079,8 +2203,7 @@ DefragSturgesNovakLastTest(void)
         D_11,
     };
 
-    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_LAST, expected,
-                    sizeof(expected)));
+    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_LAST, expected, sizeof(expected)));
     PASS;
 }
 
@@ -2513,6 +2636,16 @@ static int DefragTestJeremyLinux(void)
     PASS;
 }
 
+/**
+ * | 0        | 8        | 16       | 24       | 32       |
+ * |----------|----------|----------|----------|----------|
+ * |                                  AAAAAAAA | AAAAAAAA |
+ * |          | BBBBBBBB | BBBBBBBB |          |          |
+ * |          |          | CCCCCCCC | CCCCCCCC |          |
+ * | DDDDDDDD |          |          |          |          |
+ *
+ * | DDDDDDDD | BBBBBBBB | BBBBBBBB | CCCCCCCC | AAAAAAAA |
+ */
 static int DefragBsdFragmentAfterNoMfIpv4Test(void)
 {
     DefragInit();
@@ -2603,6 +2736,192 @@ static int DefragBsdFragmentAfterNoMfIpv6Test(void)
     PASS;
 }
 
+static int DefragBsdSubsequentOverlapsStartOfOriginalIpv4Test_2(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[4];
+
+    /* Packet 1: off=16, mf=1 */
+    packets[0] = BuildIpv4TestPacketWithContent(
+            IPPROTO_ICMP, 6, 16 >> 3, 1, (uint8_t *)"AABBCCDDAABBDDCC", 16);
+
+    /* Packet 2: off=8, mf=1 */
+    packets[1] = BuildIpv4TestPacketWithContent(
+            IPPROTO_ICMP, 6, 8 >> 3, 1, (uint8_t *)"AACCBBDDAACCDDBB", 16);
+
+    /* Packet 3: off=0, mf=1: IP and ICMP header. */
+    packets[2] = BuildIpv4TestPacketWithContent(IPPROTO_ICMP, 6, 0, 1, (uint8_t *)"ZZZZZZZZ", 8);
+
+    /* Packet 4: off=8, mf=1 */
+    packets[3] =
+            BuildIpv4TestPacketWithContent(IPPROTO_ICMP, 6, 32 >> 3, 0, (uint8_t *)"DDCCBBAA", 8);
+
+    Packet *r = Defrag(NULL, NULL, packets[0]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[1]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[2]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[3]);
+    FAIL_IF_NULL(r);
+
+    // clang-format off
+    const uint8_t expected[] = {
+	// AACCBBDD
+	// AACCDDBB
+	// AABBDDCC
+	// DDCCBBAA
+	'A', 'A', 'C', 'C', 'B', 'B', 'D', 'D',
+	'A', 'A', 'C', 'C', 'D', 'D', 'B', 'B',
+	'A', 'A', 'B', 'B', 'D', 'D', 'C', 'C',
+	'D', 'D', 'C', 'C', 'B', 'B', 'A', 'A',
+    };
+    // clang-format on
+
+    FAIL_IF(memcmp(expected, GET_PKT_DATA(r) + 20 + 8, sizeof(expected)) != 0);
+
+    DefragDestroy();
+    PASS;
+}
+
+static int DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test_2(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[4];
+
+    /* Packet 1: off=16, mf=1 */
+    packets[0] = BuildIpv6TestPacketWithContent(
+            IPPROTO_ICMP, 6, 16 >> 3, 1, (uint8_t *)"AABBCCDDAABBDDCC", 16);
+
+    /* Packet 2: off=8, mf=1 */
+    packets[1] = BuildIpv6TestPacketWithContent(
+            IPPROTO_ICMP, 6, 8 >> 3, 1, (uint8_t *)"AACCBBDDAACCDDBB", 16);
+
+    /* Packet 3: off=0, mf=1: IP and ICMP header. */
+    packets[2] = BuildIpv6TestPacketWithContent(IPPROTO_ICMP, 6, 0, 1, (uint8_t *)"ZZZZZZZZ", 8);
+
+    /* Packet 4: off=8, mf=1 */
+    packets[3] =
+            BuildIpv6TestPacketWithContent(IPPROTO_ICMP, 6, 32 >> 3, 0, (uint8_t *)"DDCCBBAA", 8);
+
+    Packet *r = Defrag(NULL, NULL, packets[0]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[1]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[2]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[3]);
+    FAIL_IF_NULL(r);
+
+    // clang-format off
+    const uint8_t expected[] = {
+	// AACCBBDD
+	// AACCDDBB
+	// AABBDDCC
+	// DDCCBBAA
+	'A', 'A', 'C', 'C', 'B', 'B', 'D', 'D',
+	'A', 'A', 'C', 'C', 'D', 'D', 'B', 'B',
+	'A', 'A', 'B', 'B', 'D', 'D', 'C', 'C',
+	'D', 'D', 'C', 'C', 'B', 'B', 'A', 'A',
+    };
+    // clang-format on
+
+    FAIL_IF(memcmp(expected, GET_PKT_DATA(r) + 40 + 8, sizeof(expected)) != 0);
+
+    DefragDestroy();
+    PASS;
+}
+
+/**
+ * #### Input
+ *
+ * | 96 (0)   | 104 (8)  | 112 (16) | 120 (24) |
+ * |----------|----------|----------|----------|
+ * |          | EEEEEEEE | EEEEEEEE | EEEEEEEE |
+ * | MMMMMMMM | MMMMMMMM | MMMMMMMM |          |
+ *
+ * #### Expected Output
+ *
+ * | MMMMMMMM | MMMMMMMM | MMMMMMMM | EEEEEEEE |
+ */
+static int DefragBsdSubsequentOverlapsStartOfOriginalIpv4Test(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[2];
+
+    packets[0] = BuildIpv4TestPacket(IPPROTO_ICMP, 1, 8 >> 3, 0, 'E', 24);
+    packets[1] = BuildIpv4TestPacket(IPPROTO_ICMP, 1, 0, 1, 'M', 24);
+
+    Packet *r = Defrag(NULL, NULL, packets[0]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[1]);
+    FAIL_IF_NULL(r);
+
+    // clang-format off
+    const uint8_t expected[] = {
+	'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M',
+	'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M',
+	'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M',
+	'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+    };
+    // clang-format on
+
+    if (memcmp(expected, GET_PKT_DATA(r) + 20, sizeof(expected)) != 0) {
+        printf("Expected:\n");
+        PrintRawDataFp(stdout, expected, sizeof(expected));
+        printf("Got:\n");
+        PrintRawDataFp(stdout, GET_PKT_DATA(r) + 20, GET_PKT_LEN(r) - 20);
+        FAIL;
+    }
+
+    PASS;
+}
+
+static int DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[2];
+
+    packets[0] = BuildIpv6TestPacket(IPPROTO_ICMP, 1, 8 >> 3, 0, 'E', 24);
+    packets[1] = BuildIpv6TestPacket(IPPROTO_ICMP, 1, 0, 1, 'M', 24);
+
+    Packet *r = Defrag(NULL, NULL, packets[0]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[1]);
+    FAIL_IF_NULL(r);
+
+    // clang-format off
+    const uint8_t expected[] = {
+	'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M',
+	'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M',
+	'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M',
+	'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+    };
+    // clang-format on
+
+    if (memcmp(expected, GET_PKT_DATA(r) + 40, sizeof(expected)) != 0) {
+        printf("Expected:\n");
+        PrintRawDataFp(stdout, expected, sizeof(expected));
+        printf("Got:\n");
+        PrintRawDataFp(stdout, GET_PKT_DATA(r) + 40, GET_PKT_LEN(r) - 40);
+        FAIL;
+    }
+
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void DefragRegisterTests(void)
@@ -2611,12 +2930,9 @@ void DefragRegisterTests(void)
     UtRegisterTest("DefragInOrderSimpleTest", DefragInOrderSimpleTest);
     UtRegisterTest("DefragReverseSimpleTest", DefragReverseSimpleTest);
     UtRegisterTest("DefragSturgesNovakBsdTest", DefragSturgesNovakBsdTest);
-    UtRegisterTest("DefragSturgesNovakLinuxIpv4Test",
-            DefragSturgesNovakLinuxIpv4Test);
-    UtRegisterTest("DefragSturgesNovakWindowsIpv4Test",
-                   DefragSturgesNovakWindowsIpv4Test);
-    UtRegisterTest("DefragSturgesNovakSolarisTest",
-                   DefragSturgesNovakSolarisTest);
+    UtRegisterTest("DefragSturgesNovakLinuxIpv4Test", DefragSturgesNovakLinuxIpv4Test);
+    UtRegisterTest("DefragSturgesNovakWindowsIpv4Test", DefragSturgesNovakWindowsIpv4Test);
+    UtRegisterTest("DefragSturgesNovakSolarisTest", DefragSturgesNovakSolarisTest);
     UtRegisterTest("DefragSturgesNovakFirstTest", DefragSturgesNovakFirstTest);
     UtRegisterTest("DefragSturgesNovakLastTest", DefragSturgesNovakLastTest);
 
@@ -2644,5 +2960,13 @@ void DefragRegisterTests(void)
 
     UtRegisterTest("DefragBsdFragmentAfterNoMfIpv4Test", DefragBsdFragmentAfterNoMfIpv4Test);
     UtRegisterTest("DefragBsdFragmentAfterNoMfIpv6Test", DefragBsdFragmentAfterNoMfIpv6Test);
+    UtRegisterTest("DefragBsdSubsequentOverlapsStartOfOriginalIpv4Test",
+            DefragBsdSubsequentOverlapsStartOfOriginalIpv4Test);
+    UtRegisterTest("DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test",
+            DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test);
+    UtRegisterTest("DefragBsdSubsequentOverlapsStartOfOriginalIpv4Test_2",
+            DefragBsdSubsequentOverlapsStartOfOriginalIpv4Test_2);
+    UtRegisterTest("DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test_2",
+            DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test_2);
 #endif /* UNITTESTS */
 }
