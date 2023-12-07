@@ -70,6 +70,15 @@ static void OutputJsonLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
+int OutputJsonLogFlush(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    OutputJsonThreadCtx *aft = thread_data;
+    LogFileCtx *file_ctx = aft->ctx->file_ctx;
+    SCLogDebug("%s flushing %s", tv->name, file_ctx->filename);
+    LogFileFlush(file_ctx);
+    return 0;
+}
+
 OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };

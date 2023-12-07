@@ -208,4 +208,7 @@ void DetectEngineStateResetTxs(Flow *f);
 
 void DeStateRegisterTests(void);
 
+/* packet injection */
+void InjectPackets(ThreadVars **detect_tvs, DetectEngineThreadCtx **new_det_ctx,
+        int no_of_detect_tvs, bool flush_logs);
 #endif /* __DETECT_ENGINE_H__ */

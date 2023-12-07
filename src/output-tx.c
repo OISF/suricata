@@ -665,8 +665,13 @@ static uint32_t OutputTxLoggerGetActiveCount(void)
 
 void OutputTxLoggerRegister (void)
 {
-    OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit,
-        OutputTxLogExitPrintStats, OutputTxLog, OutputTxLoggerGetActiveCount);
+    OutputRootLoggerFunctions root_logger_functions = { .ThreadInitFunc = OutputTxLogThreadInit,
+        .ThreadDeinitFunc = OutputTxLogThreadDeinit,
+        .LogFunc = OutputTxLog,
+        .FlushFunc = NULL,
+        .ThreadExitPrintStatsFunc = OutputTxLogExitPrintStats,
+        .ActiveCntFunc = OutputTxLoggerGetActiveCount };
+    OutputRegisterRootLogger(&root_logger_functions);
 }
 
 void OutputTxShutdown(void)
