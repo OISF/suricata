@@ -85,7 +85,7 @@ static inline bool DetectByteMathValidateNbytesOnly(const DetectByteMathData *da
 }
 
 int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const DetectByteMathData *data,
-        const Signature *s, const uint8_t *payload, uint16_t payload_len, uint8_t nbytes,
+        const Signature *s, const uint8_t *payload, const uint32_t payload_len, uint8_t nbytes,
         uint64_t rvalue, uint64_t *value, uint8_t endian)
 {
     if (payload_len == 0) {
