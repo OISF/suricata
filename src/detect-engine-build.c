@@ -620,6 +620,8 @@ static int RuleGetMpmPatternSize(const Signature *s)
 
 static bool RuleMpmIsNegated(const Signature *s)
 {
+    if (s->flags & SIG_FLAG_MPM_NEG)
+        return true;
     if (s->init_data->mpm_sm == NULL)
         return false;
     int mpm_list = s->init_data->mpm_sm_list;
