@@ -1138,7 +1138,7 @@ static int RuleSetWhitelist(Signature *s)
             SCLogDebug("Rule %u MPM has 1 byte fast_pattern. Whitelisting SGH's.", s->id);
             wl = DETECT_PGSCORE_RULE_MPM_FAST_PATTERN;
 
-        } else if (RuleMpmIsNegated(s)) {
+        } else if (s->flags & SIG_FLAG_MPM_NEG) {
             SCLogDebug("Rule %u MPM is negated. Whitelisting SGH's.", s->id);
             wl = DETECT_PGSCORE_RULE_MPM_NEGATED;
 
