@@ -598,11 +598,11 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
 }
 
 /** \brief Pure-PCRE or bytetest rule */
-static int RuleInspectsPayloadHasNoMpm(const Signature *s)
+static bool RuleInspectsPayloadHasNoMpm(const Signature *s)
 {
     if (s->init_data->mpm_sm == NULL && s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
-        return 1;
-    return 0;
+        return true;
+    return false;
 }
 
 static int RuleGetMpmPatternSize(const Signature *s)
