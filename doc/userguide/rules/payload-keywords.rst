@@ -278,6 +278,18 @@ A negated isdataat on an absent buffer will match any value.
 
 .. image:: payload-keywords/isdataat1.png
 
+absent
+------
+
+The keyword ``absent`` checks that a sticky buffer does not exist.
+
+Example of ``absent`` in a rule:
+
+.. container:: example-rule
+
+   alert http any any -> any any (msg:"HTTP request without referer";  http.referer; absent; sid:1; rev:1;)
+
+
 bsize
 -----
 
@@ -294,7 +306,10 @@ If one or more ``content`` keywords precedes ``bsize``, each occurrence of ``con
 will be inspected and an error will be raised if the content length and the bsize
 value prevent a match.
 
-bsize will not match if a sticky buffer is absent.
+.. note::  bsize will not match if a sticky buffer is absent.
+
+``bsize: 0``  means a buffer exists and is empty (like an empty HTTP header value).
+You should use the specific keyword ``absent`` to test if a buffer is absent.
 
 Format::
 
