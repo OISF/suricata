@@ -29,10 +29,10 @@ int SignatureIsFileSha256Inspecting(const Signature *s);
 int SignatureIsFilesizeInspecting(const Signature *);
 void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s);
 
-int SigAddressPrepareStage1(DetectEngineCtx *de_ctx);
-int SigAddressPrepareStage2(DetectEngineCtx *de_ctx);
-int SigAddressPrepareStage3(DetectEngineCtx *de_ctx);
-int SigAddressPrepareStage4(DetectEngineCtx *de_ctx);
+int SigPrepareStage1(DetectEngineCtx *de_ctx);
+int SigPrepareStage2(DetectEngineCtx *de_ctx);
+int SigPrepareStage3(DetectEngineCtx *de_ctx);
+int SigPrepareStage4(DetectEngineCtx *de_ctx);
 int SigAddressCleanupStage1(DetectEngineCtx *de_ctx);
 
 void SigCleanSignatures(DetectEngineCtx *);

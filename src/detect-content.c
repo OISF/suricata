@@ -811,7 +811,7 @@ static bool TestLastContent(const Signature *s, uint16_t o, uint16_t d)
         snprintf(rule, sizeof(rule), "alert tcp any any -> any any (%s sid:1; rev:1;)", (sig));    \
         Signature *s = DetectEngineAppendSig(de_ctx, rule);                                        \
         FAIL_IF_NULL(s);                                                                           \
-        SigAddressPrepareStage1(de_ctx);                                                           \
+        SigPrepareStage1(de_ctx);                                                                  \
         bool res = TestLastContent(s, (o), (d));                                                   \
         FAIL_IF(res == false);                                                                     \
         DetectEngineCtxFree(de_ctx);                                                               \
