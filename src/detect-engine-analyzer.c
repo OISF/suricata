@@ -870,7 +870,6 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 switch (cd->cmd) {
                     case DETECT_FLOWBITS_CMD_NOALERT:
                         jb_set_string(js, "action", "noalert");
-                        // jb_set_string(js,"name", NULL);
                         break;
                     case DETECT_FLOWBITS_CMD_ISSET:
                         jb_set_string(js, "cmd", "isset");
@@ -888,17 +887,20 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                         jb_set_string(js, "cmd", "toggle");
                         break;
                 }
-                jb_open_array(js, "names");
-                if (cd->or_list_size == 0) {
-                    jb_append_string(js, VarNameStoreSetupLookup(cd->idx, VAR_TYPE_FLOW_BIT));
-                } else if (cd->or_list_size > 0) {
-                    for (uint8_t i = 0; i < cd->or_list_size; i++) {
-                        const char *varname =
-                                VarNameStoreSetupLookup(cd->or_list[i], VAR_TYPE_FLOW_BIT);
-                        jb_append_string(js, varname);
+                if (cd->cmd != DETECT_FLOWBITS_CMD_NOALERT) {
+                    jb_open_array(js, "names");
+                    if (cd->or_list_size == 0) {
+                        jb_append_string(js, VarNameStoreSetupLookup(cd->idx, VAR_TYPE_FLOW_BIT));
+                    } else if (cd->or_list_size > 0) {
+                        jb_set_string(js, "operator", "or");
+                        for (uint8_t i = 0; i < cd->or_list_size; i++) {
+                            const char *varname =
+                                    VarNameStoreSetupLookup(cd->or_list[i], VAR_TYPE_FLOW_BIT);
+                            jb_append_string(js, varname);
+                        }
                     }
+                    jb_close(js); // array
                 }
-                jb_close(js); // array
                 jb_close(js); // object
                 break;
             }
