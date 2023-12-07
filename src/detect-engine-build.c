@@ -1377,7 +1377,7 @@ void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s)
  * \retval  0 on success
  * \retval -1 on failure
  */
-int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
+int SigPrepareStage1(DetectEngineCtx *de_ctx)
 {
     uint32_t cnt_iponly = 0;
     uint32_t cnt_payload = 0;
@@ -1720,7 +1720,7 @@ static void DetectEngineAddDecoderEventSig(DetectEngineCtx *de_ctx, Signature *s
  * \retval  0 On success
  * \retval -1 On failure
  */
-int SigAddressPrepareStage2(DetectEngineCtx *de_ctx)
+int SigPrepareStage2(DetectEngineCtx *de_ctx)
 {
     SCLogDebug("building signature grouping structure, stage 2: "
             "building source address lists...");
@@ -1760,7 +1760,7 @@ static void DetectEngineBuildDecoderEventSgh(DetectEngineCtx *de_ctx)
     SigGroupHeadBuildMatchArray(de_ctx, de_ctx->decoder_event_sgh, max_idx);
 }
 
-int SigAddressPrepareStage3(DetectEngineCtx *de_ctx)
+int SigPrepareStage3(DetectEngineCtx *de_ctx)
 {
     /* prepare the decoder event sgh */
     DetectEngineBuildDecoderEventSgh(de_ctx);
@@ -1841,7 +1841,7 @@ static void DbgPrintSigs2(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 #endif
 
 /** \brief finalize preparing sgh's */
-int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
+int SigPrepareStage4(DetectEngineCtx *de_ctx)
 {
     SCEnter();
 
@@ -2002,18 +2002,18 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
 
     SigInitStandardMpmFactoryContexts(de_ctx);
 
-    if (SigAddressPrepareStage1(de_ctx) != 0) {
+    if (SigPrepareStage1(de_ctx) != 0) {
         FatalError("initializing the detection engine failed");
     }
 
-    if (SigAddressPrepareStage2(de_ctx) != 0) {
+    if (SigPrepareStage2(de_ctx) != 0) {
         FatalError("initializing the detection engine failed");
     }
 
-    if (SigAddressPrepareStage3(de_ctx) != 0) {
+    if (SigPrepareStage3(de_ctx) != 0) {
         FatalError("initializing the detection engine failed");
     }
-    if (SigAddressPrepareStage4(de_ctx) != 0) {
+    if (SigPrepareStage4(de_ctx) != 0) {
         FatalError("initializing the detection engine failed");
     }
 
