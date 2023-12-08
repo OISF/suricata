@@ -3513,8 +3513,7 @@ static int DetectByteExtractTest53(void)
         goto end;
     }
     bjd = (DetectBytejumpData *)sm->ctx;
-    if (bjd->flags != DETECT_CONTENT_OFFSET_VAR ||
-        bjd->offset != 0) {
+    if (bjd->flags != DETECT_BYTEJUMP_OFFSET_VAR || bjd->offset != 0) {
         printf("three failed\n");
         result = 0;
         goto end;
@@ -3618,8 +3617,7 @@ static int DetectByteExtractTest54(void)
         goto end;
     }
     bjd = (DetectBytejumpData *)sm->ctx;
-    if (bjd->flags != DETECT_CONTENT_OFFSET_VAR ||
-        bjd->offset != 0) {
+    if (bjd->flags != DETECT_BYTEJUMP_OFFSET_VAR || bjd->offset != 0) {
         printf("three failed\n");
         result = 0;
         goto end;
@@ -3631,8 +3629,7 @@ static int DetectByteExtractTest54(void)
         goto end;
     }
     bjd = (DetectBytejumpData *)sm->ctx;
-    if (bjd->flags != DETECT_CONTENT_OFFSET_VAR ||
-        bjd->offset != 1) {
+    if (bjd->flags != DETECT_BYTEJUMP_OFFSET_VAR || bjd->offset != 1) {
         printf("four failed\n");
         result = 0;
         goto end;
@@ -4165,8 +4162,7 @@ static int DetectByteExtractTest58(void)
         goto end;
     }
     bjd = (DetectBytejumpData *)sm->ctx;
-    if (bjd->flags != DETECT_CONTENT_OFFSET_VAR ||
-        bjd->offset != 0) {
+    if (bjd->flags != DETECT_BYTEJUMP_OFFSET_VAR || bjd->offset != 0) {
         printf("three failed\n");
         result = 0;
         goto end;
@@ -4178,8 +4174,7 @@ static int DetectByteExtractTest58(void)
         goto end;
     }
     bjd = (DetectBytejumpData *)sm->ctx;
-    if (bjd->flags != DETECT_CONTENT_OFFSET_VAR ||
-        bjd->offset != 1) {
+    if (bjd->flags != DETECT_BYTEJUMP_OFFSET_VAR || bjd->offset != 1) {
         printf("four failed\n");
         result = 0;
         goto end;
@@ -4298,8 +4293,7 @@ static int DetectByteExtractTest59(void)
         goto end;
     }
     bjd = (DetectBytejumpData *)sm->ctx;
-    if (bjd->flags != DETECT_CONTENT_OFFSET_VAR ||
-        bjd->offset != 0) {
+    if (bjd->flags != DETECT_BYTEJUMP_OFFSET_VAR || bjd->offset != 0) {
         printf("three failed\n");
         result = 0;
         goto end;
@@ -4311,8 +4305,7 @@ static int DetectByteExtractTest59(void)
         goto end;
     }
     bjd = (DetectBytejumpData *)sm->ctx;
-    if (bjd->flags != DETECT_CONTENT_OFFSET_VAR ||
-        bjd->offset != 1) {
+    if (bjd->flags != DETECT_BYTEJUMP_OFFSET_VAR || bjd->offset != 1) {
         printf("four failed\n");
         result = 0;
         goto end;
