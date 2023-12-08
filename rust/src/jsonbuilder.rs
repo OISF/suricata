@@ -597,6 +597,27 @@ impl JsonBuilder {
         Ok(self)
     }
 
+    /// Set a key and an signed integer type on an object.
+    pub fn set_int(&mut self, key: &str, val: i64) -> Result<&mut Self, JsonError> {
+        match self.current_state() {
+            State::ObjectNth => {
+                self.push(',')?;
+            }
+            State::ObjectFirst => {
+                self.set_state(State::ObjectNth);
+            }
+            _ => {
+                debug_validate_fail!("invalid state");
+                return Err(JsonError::InvalidState);
+            }
+        }
+        self.push('"')?;
+        self.push_str(key)?;
+        self.push_str("\":")?;
+        self.push_str(&val.to_string())?;
+        Ok(self)
+    }
+
     pub fn set_float(&mut self, key: &str, val: f64) -> Result<&mut Self, JsonError> {
         match self.current_state() {
             State::ObjectNth => {
@@ -936,6 +957,14 @@ pub unsafe extern "C" fn jb_append_float(js: &mut JsonBuilder, val: f64) -> bool
 pub unsafe extern "C" fn jb_set_uint(js: &mut JsonBuilder, key: *const c_char, val: u64) -> bool {
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         return js.set_uint(key, val).is_ok();
+    }
+    return false;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn jb_set_int(js: &mut JsonBuilder, key: *const c_char, val: i64) -> bool {
+    if let Ok(key) = CStr::from_ptr(key).to_str() {
+        return js.set_int(key, val).is_ok();
     }
     return false;
 }
