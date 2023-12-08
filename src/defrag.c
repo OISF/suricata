@@ -104,26 +104,6 @@ static DefragContext *defrag_context;
 RB_GENERATE(IP_FRAGMENTS, Frag_, rb, DefragRbFragCompare);
 
 /**
- * Utility/debugging function to dump the frags associated with a
- * tracker.  Only enable when unit tests are enabled.
- */
-#if 0
-#ifdef UNITTESTS
-static void
-DumpFrags(DefragTracker *tracker)
-{
-    Frag *frag;
-
-    printf("Dumping frags for packet: ID=%d\n", tracker->id);
-    TAILQ_FOREACH(frag, &tracker->frags, next) {
-        printf("-> Frag: frag_offset=%d, frag_len=%d, data_len=%d, ltrim=%d, skip=%d\n", frag->offset, frag->len, frag->data_len, frag->ltrim, frag->skip);
-        PrintRawDataFp(stdout, frag->pkt, frag->len);
-    }
-}
-#endif /* UNITTESTS */
-#endif
-
-/**
  * \brief Reset a frag for reuse in a pool.
  */
 static void
@@ -266,7 +246,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     }
 
     /* Check that we have all the data. Relies on the fact that
-     * fragments are inserted if frag_offset order. */
+     * fragments are inserted in frag_offset order. */
     Frag *frag = NULL;
     size_t len = 0;
     RB_FOREACH_FROM(frag, IP_FRAGMENTS, first) {
