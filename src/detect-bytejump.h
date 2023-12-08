@@ -41,6 +41,7 @@
 #define DETECT_BYTEJUMP_OFFSET_BE BIT_U16(7) /**< "byte extract" enabled */
 #define DETECT_BYTEJUMP_END       BIT_U16(8) /**< "from_end" jump */
 #define DETECT_BYTEJUMP_NBYTES_VAR BIT_U16(9) /**< nbytes string*/
+#define DETECT_BYTEJUMP_OFFSET_VAR BIT_U16(10) /**< byte extract value enabled */
 
 typedef struct DetectBytejumpData_ {
     uint8_t nbytes;                   /**< Number of bytes to compare */

@@ -515,7 +515,7 @@ uint8_t DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThrea
         int32_t offset = bjd->offset;
         int32_t nbytes;
 
-        if (bjflags & DETECT_CONTENT_OFFSET_VAR) {
+        if (bjflags & DETECT_BYTEJUMP_OFFSET_VAR) {
             offset = det_ctx->byte_values[offset];
         }
 

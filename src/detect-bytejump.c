@@ -564,7 +564,7 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
             goto error;
         }
         data->offset = index;
-        data->flags |= DETECT_CONTENT_OFFSET_VAR;
+        data->flags |= DETECT_BYTEJUMP_OFFSET_VAR;
         SCFree(offset);
         offset = NULL;
     }
