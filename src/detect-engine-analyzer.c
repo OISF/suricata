@@ -701,7 +701,7 @@ static void DumpContent(JsonBuilder *js, const DetectContentData *cd)
         jb_set_uint(js, "depth", cd->depth);
     }
     if (cd->flags & DETECT_CONTENT_DISTANCE) {
-        jb_set_uint(js, "distance", cd->distance);
+        jb_set_int(js, "distance", cd->distance);
     }
     if (cd->flags & DETECT_CONTENT_WITHIN) {
         jb_set_uint(js, "within", cd->within);
