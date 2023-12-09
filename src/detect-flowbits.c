@@ -285,7 +285,10 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     }
 
     if (strcmp(fb_cmd_str,"noalert") == 0) {
-        fb_cmd = DETECT_FLOWBITS_CMD_NOALERT;
+        if (strlen(fb_name) != 0)
+            goto error;
+        s->flags |= SIG_FLAG_NOALERT;
+        return 0;
     } else if (strcmp(fb_cmd_str,"isset") == 0) {
         fb_cmd = DETECT_FLOWBITS_CMD_ISSET;
     } else if (strcmp(fb_cmd_str,"isnotset") == 0) {
@@ -302,11 +305,6 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     }
 
     switch (fb_cmd) {
-        case DETECT_FLOWBITS_CMD_NOALERT:
-            if (strlen(fb_name) != 0)
-                goto error;
-            s->flags |= SIG_FLAG_NOALERT;
-            return 0;
         case DETECT_FLOWBITS_CMD_ISNOTSET:
         case DETECT_FLOWBITS_CMD_ISSET:
         case DETECT_FLOWBITS_CMD_SET:
@@ -340,8 +338,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
      * and put it in the Signature. */
 
     switch (fb_cmd) {
-        /* case DETECT_FLOWBITS_CMD_NOALERT can't happen here */
-
+        /* noalert can't happen here */
         case DETECT_FLOWBITS_CMD_ISNOTSET:
         case DETECT_FLOWBITS_CMD_ISSET:
             /* checks, so packet list */
