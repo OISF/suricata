@@ -186,7 +186,7 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    ErfDagThreadVars *ewtn = SCMalloc(sizeof(ErfDagThreadVars));
+    ErfDagThreadVars *ewtn = SCCalloc(1, sizeof(ErfDagThreadVars));
     if (unlikely(ewtn == NULL)) {
         FatalError("Failed to allocate memory for ERF DAG thread vars.");
     }
@@ -508,17 +508,13 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    /* Convert ERF time to timeval - from libpcap. */
+    /* Convert ERF time to SCTime_t */
     uint64_t ts = dr->ts;
     p->ts = SCTIME_FROM_SECS(ts >> 32);
     ts = (ts & 0xffffffffULL) * 1000000;
     ts += 0x80000000; /* rounding */
     uint64_t usecs = ts >> 32;
-    if (usecs >= 1000000) {
-        usecs -= 1000000;
-        p->ts += SCTIME_FROM_SECS(1);
-    }
-    p->ts += SCTIME_FROM_USECS(usecs);
+    p->ts = SCTIME_ADD_USECS(p->ts, usecs);
 
     StatsIncr(ewtn->tv, ewtn->packets);
     ewtn->bytes += wlen;
