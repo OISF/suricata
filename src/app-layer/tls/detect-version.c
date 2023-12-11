@@ -46,7 +46,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer/ssl/parser.h"
-#include "detect-tls-version.h"
+#include "app-layer/tls/detect-version.h"
 
 #include "stream-tcp.h"
 

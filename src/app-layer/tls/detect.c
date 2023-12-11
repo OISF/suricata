@@ -57,8 +57,8 @@
 #include "app-layer.h"
 
 #include "app-layer/ssl/parser.h"
-#include "detect-tls.h"
-#include "detect-tls-cert-fingerprint.h"
+#include "app-layer/tls/detect.h"
+#include "app-layer/tls/detect-cert-fingerprint.h"
 
 #include "stream-tcp.h"
 

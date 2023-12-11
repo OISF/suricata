@@ -24,7 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
@@ -48,7 +48,7 @@
 #include "util-ja3.h"
 
 #include "output-json.h"
-#include "output-json-tls.h"
+#include "app-layer/tls/logger.h"
 
 SC_ATOMIC_EXTERN(unsigned int, cert_id);
 
