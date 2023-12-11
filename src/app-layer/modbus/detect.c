@@ -47,7 +47,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 
-#include "detect-modbus.h"
+#include "app-layer/modbus/detect.h"
 
 #include "util-debug.h"
 #include "util-byte.h"
