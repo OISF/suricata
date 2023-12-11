@@ -29,7 +29,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-prefilter-common.h"
+#include "detect/engine/prefilter-common.h"
 #include "detect-engine-build.h"
 
 #include "flow.h"
@@ -488,7 +488,7 @@ static bool PrefilterFlowIsPrefilterable(const Signature *s)
 }
 
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 /**
  * \test DetectFlowTestParse01 is a test to make sure that we return "something"

@@ -63,7 +63,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-frames.h"
 
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 
 #include "util/profiling.h"
 #include "util/validate.h"

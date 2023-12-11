@@ -35,8 +35,8 @@
 #include "detect-bytejump.h"
 #include "detect-byte-extract.h"
 #include "detect-content.h"
-#include "detect-engine-content-inspection.h"
-#include "detect-engine-dcepayload.h"
+#include "detect/engine/content-inspection.h"
+#include "detect/engine/dcepayload.h"
 #include "detect-engine-build.h"
 #include "app-layer-parser.h"
 
@@ -56,7 +56,7 @@ static int g_dce_stub_data_buffer_id = 0;
 /**************************************Unittests*******************************/
 
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 /**
  * \test Test the working of byte_test endianness.

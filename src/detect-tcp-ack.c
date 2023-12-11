@@ -30,9 +30,9 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-prefilter-common.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/prefilter.h"
+#include "detect/engine/prefilter-common.h"
 #include "detect-engine-build.h"
 
 #include "detect-tcp-ack.h"
@@ -194,7 +194,7 @@ static bool PrefilterTcpAckIsPrefilterable(const Signature *s)
 }
 
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 /**
  * \internal
  * \brief This test tests sameip success and failure.

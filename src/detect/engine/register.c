@@ -31,22 +31,22 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-profile.h"
+#include "detect/engine/profile.h"
 
-#include "detect-engine-alert.h"
-#include "detect-engine-siggroup.h"
-#include "detect-engine-address.h"
-#include "detect-engine-proto.h"
-#include "detect-engine-port.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-iponly.h"
-#include "detect-engine-threshold.h"
-#include "detect-engine-prefilter.h"
+#include "detect/engine/alert.h"
+#include "detect/engine/siggroup.h"
+#include "detect/engine/address.h"
+#include "detect/engine/proto.h"
+#include "detect/engine/port.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/iponly.h"
+#include "detect/engine/threshold.h"
+#include "detect/engine/prefilter.h"
 
 #include "rust.h"
 
-#include "detect-engine-payload.h"
-#include "detect-engine-dcepayload.h"
+#include "detect/engine/payload.h"
+#include "detect/engine/dcepayload.h"
 #include "app-layer/dns/detect-opcode.h"
 #include "app-layer/dns/detect-query.h"
 #include "app-layer/tls/detect-sni.h"
@@ -60,8 +60,8 @@
 #include "app-layer/tls/detect-ja3-string.h"
 #include "app-layer/tls/detect-ja3s-hash.h"
 #include "app-layer/tls/detect-ja3s-string.h"
-#include "detect-engine-state.h"
-#include "detect-engine-analyzer.h"
+#include "detect/engine/state.h"
+#include "detect/engine/analyzer.h"
 
 #include "app-layer/http/detect-cookie.h"
 #include "app-layer/http/detect-method.h"
@@ -72,7 +72,7 @@
 #include "app-layer/nfs/detect-procedure.h"
 #include "app-layer/nfs/detect-version.h"
 
-#include "detect-engine-event.h"
+#include "detect/engine/event.h"
 #include "decode.h"
 
 #include "detect-config.h"
@@ -142,7 +142,7 @@
 #include "detect-xbits.h"
 #include "detect-csum.h"
 #include "detect-stream_size.h"
-#include "detect-engine-sigorder.h"
+#include "detect/engine/sigorder.h"
 #include "detect-ttl.h"
 #include "detect-fast-pattern.h"
 #include "detect-itype.h"
@@ -237,7 +237,7 @@
 
 #include "detect-bypass.h"
 #include "app-layer/ftp/detect-data.h"
-#include "detect-engine-content-inspection.h"
+#include "detect/engine/content-inspection.h"
 
 #include "detect/transform/compress-whitespace.h"
 #include "detect/transform/strip-whitespace.h"

@@ -28,11 +28,11 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "app-layer/nfs/detect-procedure.h"
-#include "detect-engine-uint.h"
+#include "detect/engine/uint.h"
 
 #include "app-layer-parser.h"
 

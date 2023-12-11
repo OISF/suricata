@@ -124,35 +124,35 @@ noinst_HEADERS = \
 	app-layer/dns/detect-opcode.h \
 	app-layer/dns/detect-query.h \
 	detect-dsize.h \
-	detect-engine-address.h \
-	detect-engine-address-ipv4.h \
-	detect-engine-address-ipv6.h \
-	detect-engine-alert.h \
-	detect-engine-analyzer.h \
+	detect/engine/address.h \
+	detect/engine/address-ipv4.h \
+	detect/engine/address-ipv6.h \
+	detect/engine/alert.h \
+	detect/engine/analyzer.h \
 	detect-engine-build.h \
-	detect-engine-content-inspection.h \
-	detect-engine-dcepayload.h \
-	detect-engine-enip.h \
-	detect-engine-event.h \
-	detect-engine-file.h \
-	detect-engine-frame.h \
+	detect/engine/content-inspection.h \
+	detect/engine/dcepayload.h \
+	detect/engine/enip.h \
+	detect/engine/event.h \
+	detect/engine/file.h \
+	detect/engine/frame.h \
 	detect-engine.h \
-	detect-engine-iponly.h \
-	detect-engine-loader.h \
-	detect-engine-mpm.h \
-	detect-engine-payload.h \
-	detect-engine-port.h \
-	detect-engine-prefilter-common.h \
-	detect-engine-prefilter.h \
-	detect-engine-profile.h \
-	detect-engine-proto.h \
-	detect-engine-register.h \
-	detect-engine-siggroup.h \
-	detect-engine-sigorder.h \
-	detect-engine-state.h \
-	detect-engine-tag.h \
-	detect-engine-threshold.h \
-	detect-engine-uint.h \
+	detect/engine/iponly.h \
+	detect/engine/loader.h \
+	detect/engine/mpm.h \
+	detect/engine/payload.h \
+	detect/engine/port.h \
+	detect/engine/prefilter-common.h \
+	detect/engine/prefilter.h \
+	detect/engine/profile.h \
+	detect/engine/proto.h \
+	detect/engine/register.h \
+	detect/engine/siggroup.h \
+	detect/engine/sigorder.h \
+	detect/engine/state.h \
+	detect/engine/tag.h \
+	detect/engine/threshold.h \
+	detect/engine/uint.h \
 	detect-fast-pattern.h \
 	detect-file-data.h \
 	detect-file-hash-common.h \
@@ -739,35 +739,35 @@ libsuricata_c_a_SOURCES = \
 	app-layer/dns/detect-opcode.c \
 	app-layer/dns/detect-query.c \
 	detect-dsize.c \
-	detect-engine-address.c \
-	detect-engine-address-ipv4.c \
-	detect-engine-address-ipv6.c \
-	detect-engine-alert.c \
-	detect-engine-analyzer.c \
+	detect/engine/address.c \
+	detect/engine/address-ipv4.c \
+	detect/engine/address-ipv6.c \
+	detect/engine/alert.c \
+	detect/engine/analyzer.c \
 	detect-engine-build.c \
 	detect-engine.c \
-	detect-engine-content-inspection.c \
-	detect-engine-dcepayload.c \
-	detect-engine-enip.c \
-	detect-engine-event.c \
-	detect-engine-file.c \
-	detect-engine-frame.c \
-	detect-engine-iponly.c \
-	detect-engine-loader.c \
-	detect-engine-mpm.c \
-	detect-engine-payload.c \
-	detect-engine-port.c \
-	detect-engine-prefilter.c \
-	detect-engine-prefilter-common.c \
-	detect-engine-profile.c \
-	detect-engine-proto.c \
-	detect-engine-register.c \
-	detect-engine-siggroup.c \
-	detect-engine-sigorder.c \
-	detect-engine-state.c \
-	detect-engine-tag.c \
-	detect-engine-threshold.c \
-	detect-engine-uint.c \
+	detect/engine/content-inspection.c \
+	detect/engine/dcepayload.c \
+	detect/engine/enip.c \
+	detect/engine/event.c \
+	detect/engine/file.c \
+	detect/engine/frame.c \
+	detect/engine/iponly.c \
+	detect/engine/loader.c \
+	detect/engine/mpm.c \
+	detect/engine/payload.c \
+	detect/engine/port.c \
+	detect/engine/prefilter.c \
+	detect/engine/prefilter-common.c \
+	detect/engine/profile.c \
+	detect/engine/proto.c \
+	detect/engine/register.c \
+	detect/engine/siggroup.c \
+	detect/engine/sigorder.c \
+	detect/engine/state.c \
+	detect/engine/tag.c \
+	detect/engine/threshold.c \
+	detect/engine/uint.c \
 	detect-fast-pattern.c \
 	detect-file-data.c \
 	detect-file-hash-common.c \

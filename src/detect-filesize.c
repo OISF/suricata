@@ -33,8 +33,8 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-state.h"
-#include "detect-engine-uint.h"
+#include "detect/engine/state.h"
+#include "detect/engine/uint.h"
 #include "detect-engine-build.h"
 
 #include "detect-filesize.h"
@@ -156,7 +156,7 @@ static void DetectFilesizeFree(DetectEngineCtx *de_ctx, void *ptr)
 #include "stream.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 #include "app-layer-parser.h"
 
 /** \test   Test the Filesize keyword setup */

@@ -29,8 +29,8 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-prefilter-common.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/prefilter-common.h"
 
 #include "detect-id.h"
 #include "flow.h"

@@ -48,7 +48,7 @@
 #include "flow-util.h"
 
 #include "detect-engine.h"
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 #include "detect-engine-build.h"
 #include "detect-parse.h"
 
@@ -1901,7 +1901,7 @@ void SMTPParserCleanup(void)
 /***************************************Unittests******************************/
 
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 static void SMTPTestInitConfig(void)
 {

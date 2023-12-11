@@ -23,9 +23,9 @@
 #include "detect-parse.h"
 #include "app-layer/dnp3/detect.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/prefilter.h"
+#include "detect/engine/content-inspection.h"
 
 #include "app-layer/dnp3/parser.h"
 #include "util/byte.h"

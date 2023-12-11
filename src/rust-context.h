@@ -20,7 +20,7 @@
 
 #include "flow.h"
 #include "detect.h"
-#include "detect-engine-state.h" //DetectEngineState
+#include "detect/engine/state.h" //DetectEngineState
 
 #include "app-layer/krb5/parser.h" //KRB5State, KRB5Transaction
 #include "app-layer/ike/parser.h"  //IKEState, IKETransaction

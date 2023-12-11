@@ -18,9 +18,9 @@
 #include "suricata-common.h"
 
 #include "detect.h"
-#include "detect-engine-alert.h"
-#include "detect-engine-threshold.h"
-#include "detect-engine-tag.h"
+#include "detect/engine/alert.h"
+#include "detect/engine/threshold.h"
+#include "detect/engine/tag.h"
 
 #include "decode.h"
 #include "packet.h"

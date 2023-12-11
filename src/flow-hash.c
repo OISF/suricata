@@ -28,7 +28,7 @@
 #include "threads.h"
 
 #include "decode.h"
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 
 #include "flow.h"
 #include "flow-hash.h"

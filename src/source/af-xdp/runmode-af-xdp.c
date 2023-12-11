@@ -38,7 +38,7 @@
 #include "source/af-xdp/runmode-af-xdp.h"
 #include "output/output.h"
 #include "app-layer/http/log-httplog.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 
 #include "alert-fastlog.h"
 #include "alert-debuglog.h"

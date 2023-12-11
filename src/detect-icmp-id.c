@@ -28,9 +28,9 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine-prefilter-common.h"
+#include "detect/engine/prefilter-common.h"
 #include "detect-engine-build.h"
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 #include "detect-icmp-id.h"
 
@@ -321,7 +321,7 @@ static bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
 
 #ifdef UNITTESTS
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 
 /**
  * \test DetectIcmpIdParseTest01 is a test for setting a valid icmp_id value

@@ -30,9 +30,9 @@
 #include "detect-rpc.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-siggroup.h"
-#include "detect-engine-address.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/siggroup.h"
+#include "detect/engine/address.h"
 #include "detect-engine-build.h"
 
 #include "util/unittest.h"
@@ -307,7 +307,7 @@ void DetectRpcFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 /**
  * \test DetectRpcTestParse01 is a test to make sure that we return "something"
  *  when given valid rpc opt

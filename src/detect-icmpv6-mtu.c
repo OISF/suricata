@@ -28,7 +28,7 @@
 #include "detect-parse.h"
 
 #include "detect-icmpv6-mtu.h"
-#include "detect-engine-uint.h"
+#include "detect/engine/uint.h"
 
 /* prototypes */
 static int DetectICMPv6mtuMatch(

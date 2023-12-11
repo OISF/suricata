@@ -26,7 +26,7 @@
 
 #include "util/byte.h"
 #include "detect-parse.h"
-#include "detect-engine-uint.h"
+#include "detect/engine/uint.h"
 
 int DetectU32Match(const uint32_t parg, const DetectUintData_u32 *du32)
 {

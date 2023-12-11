@@ -34,11 +34,11 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
-#include "detect-engine-siggroup.h"
-#include "detect-engine-address.h"
-#include "detect-engine-address-ipv4.h"
-#include "detect-engine-address-ipv6.h"
-#include "detect-engine-port.h"
+#include "detect/engine/siggroup.h"
+#include "detect/engine/address.h"
+#include "detect/engine/address-ipv4.h"
+#include "detect/engine/address-ipv6.h"
+#include "detect/engine/port.h"
 
 #include "util/debug.h"
 #include "util/byte.h"

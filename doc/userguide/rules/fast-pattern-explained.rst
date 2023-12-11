@@ -111,7 +111,7 @@ fast pattern match for Suricata 2.0.7 but registration order does.
 Appendix C - Pattern Strength Algorithm
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-From detect-engine-mpm.c. Basically the Pattern Strength "score"
+From detect/engine/mpm.c. Basically the Pattern Strength "score"
 starts at zero and looks at each character/byte in the passed in byte
 array from left to right. If the character/byte has not been seen
 before in the array, it adds 3 to the score if it is an alpha

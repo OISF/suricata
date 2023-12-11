@@ -26,7 +26,7 @@
 
 #include "detect.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 #include "detect-icmpv4hdr.h"
 
 /* prototypes */

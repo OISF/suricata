@@ -40,7 +40,7 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 #include "detect-reference.h"
 #include "app-layer-parser.h"
 #include "app-layer/dnp3/parser.h"

@@ -27,10 +27,10 @@
 
 #include "detect.h"
 #include "detect-engine.h"
-#include "detect-engine-address.h"
-#include "detect-engine-port.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
+#include "detect/engine/address.h"
+#include "detect/engine/port.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/state.h"
 #include "detect-engine-build.h"
 
 #include "detect-content.h"
@@ -67,7 +67,7 @@
 #include "util/debug.h"
 #include "string.h"
 #include "detect-parse.h"
-#include "detect-engine-iponly.h"
+#include "detect/engine/iponly.h"
 #include "app-layer-detect-proto.h"
 
 #include "action-globals.h"
@@ -2765,7 +2765,7 @@ void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *detect_par
  */
 
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 #include "packet.h"
 
 static int SigParseTest01(void)

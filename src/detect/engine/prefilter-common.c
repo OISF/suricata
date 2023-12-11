@@ -16,8 +16,8 @@
  */
 
 #include "suricata-common.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-prefilter-common.h"
+#include "detect/engine/prefilter.h"
+#include "detect/engine/prefilter-common.h"
 
 typedef struct PrefilterPacketHeaderHashCtx_ {
     PrefilterPacketHeaderValue v1;

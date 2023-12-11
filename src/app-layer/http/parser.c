@@ -77,7 +77,7 @@
 
 #include "detect-engine.h"
 #include "detect-engine-build.h"
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 #include "detect-parse.h"
 
 #include "decode-events.h"
@@ -3221,7 +3221,7 @@ void RegisterHTPParsers(void)
 }
 
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 static HTPCfgRec cfglist_backup;
 

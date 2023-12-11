@@ -42,9 +42,9 @@ extern int run_mode;
 #include "detect-replace.h"
 #include "app-layer.h"
 
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 #include "detect-engine.h"
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 #include "detect-engine-build.h"
 
 #include "util/checksum.h"
@@ -221,7 +221,7 @@ void DetectReplaceFreeInternal(DetectReplaceList *replist)
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 #include "packet.h"
 
 /**

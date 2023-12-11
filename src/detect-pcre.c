@@ -37,9 +37,9 @@
 #include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-engine.h"
-#include "detect-engine-sigorder.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
+#include "detect/engine/sigorder.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/state.h"
 #include "detect-engine-build.h"
 
 #include "util/var-name.h"
@@ -970,7 +970,7 @@ static void DetectPcreFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 static int g_file_data_buffer_id = 0;
 static int g_http_header_buffer_id = 0;
 static int g_dce_stub_data_buffer_id = 0;

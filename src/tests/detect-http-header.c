@@ -41,7 +41,7 @@
 #include "../app-layer/http/detect-header.h"
 #include "../app-layer/http/detect-header-common.h"
 #include "../detect-engine-build.h"
-#include "../detect-engine-alert.h"
+#include "../detect/engine/alert.h"
 
 #include "../detect-isdataat.h"
 

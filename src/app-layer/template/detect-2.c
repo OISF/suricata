@@ -27,8 +27,8 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine-prefilter-common.h"
-#include "detect-engine-uint.h"
+#include "detect/engine/prefilter-common.h"
+#include "detect/engine/uint.h"
 
 #include "app-layer/template/detect-2.h"
 

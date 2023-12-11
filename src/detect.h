@@ -27,10 +27,10 @@
 #include "suricata-common.h"
 #include "flow.h"
 
-#include "detect-engine-proto.h"
+#include "detect/engine/proto.h"
 #include "detect-reference.h"
 #include "detect-metadata.h"
-#include "detect-engine-register.h"
+#include "detect/engine/register.h"
 
 #include "util/prefilter.h"
 #include "util/mpm/mpm.h"

@@ -31,11 +31,11 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 #include "detect-engine-build.h"
 
-#include "detect-engine-siggroup.h"
-#include "detect-engine-address.h"
+#include "detect/engine/siggroup.h"
+#include "detect/engine/address.h"
 
 #include "util/byte.h"
 #include "util/proto-name.h"
@@ -454,7 +454,7 @@ static void DetectIPProtoFree(DetectEngineCtx *de_ctx, void *ptr)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 /**
  * \test DetectIPProtoTestParse01 is a test for an invalid proto number

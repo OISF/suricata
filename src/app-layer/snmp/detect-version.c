@@ -26,9 +26,9 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-content-inspection.h"
+#include "detect/engine/content-inspection.h"
 #include "app-layer/snmp/detect-version.h"
-#include "detect-engine-uint.h"
+#include "detect/engine/uint.h"
 #include "app-layer-parser.h"
 #include "rust.h"
 

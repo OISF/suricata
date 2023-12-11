@@ -19,7 +19,7 @@
 
 #include "../detect.h"
 #include "../detect-engine.h"
-#include "../detect-engine-alert.h"
+#include "../detect/engine/alert.h"
 #include "../detect-parse.h"
 
 #include "../util/unittest.h"

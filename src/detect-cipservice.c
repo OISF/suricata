@@ -31,7 +31,7 @@
 
 #include "app-layer/enip/parser-common.h"
 #include "detect-cipservice.h"
-#include "detect-engine-enip.h"
+#include "detect/engine/enip.h"
 
 /*
  * CIP SERVICE CODE
