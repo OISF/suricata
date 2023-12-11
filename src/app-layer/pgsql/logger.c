@@ -24,7 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
@@ -43,7 +43,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "output-json-pgsql.h"
+#include "app-layer/pgsql/logger.h"
 #include "rust.h"
 
 #define PGSQL_LOG_PASSWORDS BIT_U32(0)

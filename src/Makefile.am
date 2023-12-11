@@ -420,7 +420,7 @@ noinst_HEADERS = \
 	app-layer/mqtt/logger.h \
 	output-json-netflow.h \
 	app-layer/nfs/logger.h \
-	output-json-pgsql.h \
+	app-layer/pgsql/logger.h \
 	app-layer/rdp/logger.h \
 	app-layer/rfb/logger.h \
 	app-layer/sip/logger.h \
@@ -1032,7 +1032,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/mqtt/logger.c \
 	output-json-netflow.c \
 	app-layer/nfs/logger.c \
-	output-json-pgsql.c \
+	app-layer/pgsql/logger.c \
 	app-layer/rdp/logger.c \
 	app-layer/rfb/logger.c \
 	app-layer/sip/logger.c \
