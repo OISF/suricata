@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 Open Information Security Foundation
+/* Copyright (C) 2022 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,7 +17,7 @@
 
 /**
  *
- * Implements the quic.version
+ * Implements the quic.ua
  */
 
 #include "suricata-common.h"
@@ -29,24 +29,24 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-uint.h"
-#include "detect-quic-version.h"
+#include "app-layer/quic/detect-ua.h"
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "rust.h"
 
 #ifdef UNITTESTS
-static void DetectQuicVersionRegisterTests(void);
+static void DetectQuicUaRegisterTests(void);
 #endif
 
-#define BUFFER_NAME  "quic_version"
-#define KEYWORD_NAME "quic.version"
-#define KEYWORD_ID   DETECT_AL_QUIC_VERSION
+#define BUFFER_NAME  "quic_ua"
+#define KEYWORD_NAME "quic.ua"
+#define KEYWORD_ID   DETECT_AL_QUIC_UA
 
-static int quic_version_id = 0;
+static int quic_ua_id = 0;
 
-static int DetectQuicVersionSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectQuicUaSetup(DetectEngineCtx *, Signature *, const char *);
 
-static InspectionBuffer *GetVersionData(DetectEngineThreadCtx *det_ctx,
+static InspectionBuffer *GetUaData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id)
 {
@@ -55,7 +55,7 @@ static InspectionBuffer *GetVersionData(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (rs_quic_tx_get_version(txv, &b, &b_len) != 1)
+        if (rs_quic_tx_get_ua(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -67,30 +67,26 @@ static InspectionBuffer *GetVersionData(DetectEngineThreadCtx *det_ctx,
 }
 
 /**
- * \brief Registration function for quic.version: keyword
+ * \brief Registration function for quic.ua: keyword
  */
-void DetectQuicVersionRegister(void)
+void DetectQuicUaRegister(void)
 {
-    sigmatch_table[DETECT_AL_QUIC_VERSION].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_QUIC_VERSION].desc = "match Quic version";
-    sigmatch_table[DETECT_AL_QUIC_VERSION].url = "/rules/quic-keywords.html#quic-version";
-    sigmatch_table[DETECT_AL_QUIC_VERSION].Setup = DetectQuicVersionSetup;
-    sigmatch_table[DETECT_AL_QUIC_VERSION].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_AL_QUIC_UA].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_AL_QUIC_UA].desc = "match Quic ua";
+    sigmatch_table[DETECT_AL_QUIC_UA].url = "/rules/quic-keywords.html#quic-ua";
+    sigmatch_table[DETECT_AL_QUIC_UA].Setup = DetectQuicUaSetup;
+    sigmatch_table[DETECT_AL_QUIC_UA].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_QUIC_VERSION].RegisterTests = DetectQuicVersionRegisterTests;
+    sigmatch_table[DETECT_AL_QUIC_UA].RegisterTests = DetectQuicUaRegisterTests;
 #endif
 
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetVersionData, ALPROTO_QUIC, 1);
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetVersionData, ALPROTO_QUIC, 1);
+            GetUaData, ALPROTO_QUIC, 1);
 
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectBufferGeneric, GetVersionData);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOCLIENT, 1,
-            DetectEngineInspectBufferGeneric, GetVersionData);
+            DetectEngineInspectBufferGeneric, GetUaData);
 
-    quic_version_id = DetectBufferTypeGetByName(BUFFER_NAME);
+    quic_ua_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }
 
 /**
@@ -104,9 +100,9 @@ void DetectQuicVersionRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectQuicVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectQuicUaSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, quic_version_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, quic_ua_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_QUIC) < 0)
@@ -118,22 +114,22 @@ static int DetectQuicVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 #ifdef UNITTESTS
 
 /**
- * \test QuicVersionTestParse01 is a test for a valid value
+ * \test QuicUaTestParse01 is a test for a valid value
  *
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int QuicVersionTestParse01(void)
+static int QuicUaTestParse01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
     Signature *sig = DetectEngineAppendSig(
-            de_ctx, "alert ip any any -> any any (quic.version; content:\"Q046\"; sid:1; rev:1;)");
+            de_ctx, "alert ip any any -> any any (quic.ua; content:\"googe.com\"; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(
-            de_ctx, "alert ip any any -> any any (quic.version; content:\"|00|\"; sid:2; rev:1;)");
+            de_ctx, "alert ip any any -> any any (quic.ua; content:\"|00|\"; sid:2; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -142,18 +138,18 @@ static int QuicVersionTestParse01(void)
 }
 
 /**
- * \test QuicVersionTestParse03 is a test for an invalid value
+ * \test QuicUaTestParse03 is a test for an invalid value
  *
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int QuicVersionTestParse03(void)
+static int QuicUaTestParse03(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(
-            de_ctx, "alert ip any any -> any any (quic.version:; sid:1; rev:1;)");
+    Signature *sig =
+            DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (quic.ua:; sid:1; rev:1;)");
     FAIL_IF_NOT_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -162,12 +158,12 @@ static int QuicVersionTestParse03(void)
 }
 
 /**
- * \brief this function registers unit tests for QuicVersion
+ * \brief this function registers unit tests for QuicUa
  */
-void DetectQuicVersionRegisterTests(void)
+void DetectQuicUaRegisterTests(void)
 {
-    UtRegisterTest("QuicVersionTestParse01", QuicVersionTestParse01);
-    UtRegisterTest("QuicVersionTestParse03", QuicVersionTestParse03);
+    UtRegisterTest("QuicUaTestParse01", QuicUaTestParse01);
+    UtRegisterTest("QuicUaTestParse03", QuicUaTestParse03);
 }
 
 #endif /* UNITTESTS */
