@@ -561,7 +561,7 @@
                 "renewal_time": {
                     "type": "integer"
                 },
-                "requested_ip":{
+                "requested_ip": {
                     "type": "string"
                 },
                 "subnet_mask": {
@@ -570,7 +570,7 @@
                 "type": {
                     "type": "string"
                 },
-                "vendor_class_identifier":{
+                "vendor_class_identifier": {
                     "type": "string"
                 },
                 "dns_servers": {
@@ -2977,7 +2977,8 @@
             "optional": true,
             "properties": {
                 "cyu": {
-                    "description": "ja3-like fingerprint for versions of QUIC before standardization",
+                    "description":
+                            "ja3-like fingerprint for versions of QUIC before standardization",
                     "type": "array",
                     "minItems": 1,
                     "items": {
