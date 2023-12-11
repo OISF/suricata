@@ -33,7 +33,7 @@
 #include "pkt-var.h"
 #include "util-profiling.h"
 
-#include "app-layer-enip-common.h"
+#include "app-layer/enip/parser-common.h"
 
 /**
  * \brief Extract 8 bits and move up the offset
