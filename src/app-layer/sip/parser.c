@@ -24,7 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "app-layer-sip.h"
+#include "app-layer/sip/parser.h"
 #include "rust.h"
 
 void RegisterSIPParsers(void)

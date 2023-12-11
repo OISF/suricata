@@ -19,8 +19,7 @@
  *
  * \author Giuseppe Longo <giuseppe@glongo.it>
  *
- * Implements sip.protocol sticky buffer
- *
+ * Implements the sip.request_line sticky buffer
  */
 
 #include "suricata-common.h"
@@ -32,9 +31,9 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
+#include "detect-urilen.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -48,19 +47,19 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "detect-sip-protocol.h"
+#include "app-layer/sip/detect-request-line.h"
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "app-layer-sip.h"
+#include "app-layer/sip/parser.h"
 
-#define KEYWORD_NAME "sip.protocol"
-#define KEYWORD_DOC  "sip-keywords.html#sip-protocol"
-#define BUFFER_NAME  "sip.protocol"
-#define BUFFER_DESC  "sip protocol"
+#define KEYWORD_NAME "sip.request_line"
+#define KEYWORD_DOC  "sip-keywords.html#sip-request-line"
+#define BUFFER_NAME  "sip.request_line"
+#define BUFFER_DESC  "sip request line"
 static int g_buffer_id = 0;
 
-static int DetectSipProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+static int DetectSipRequestLineSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     if (DetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
         return -1;
@@ -72,7 +71,7 @@ static int DetectSipProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
@@ -80,34 +79,32 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
 
-        if (rs_sip_tx_get_protocol(txv, &b, &b_len, flow_flags) != 1)
+        if (rs_sip_tx_get_request_line(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
+
         InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
-
     return buffer;
 }
 
-void DetectSipProtocolRegister(void)
+void DetectSipRequestLineRegister(void)
 {
-    /* sip.protocol sticky buffer */
-    sigmatch_table[DETECT_AL_SIP_PROTOCOL].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_SIP_PROTOCOL].desc = "sticky buffer to match on the SIP protocol";
-    sigmatch_table[DETECT_AL_SIP_PROTOCOL].url = "/rules/" KEYWORD_DOC;
-    sigmatch_table[DETECT_AL_SIP_PROTOCOL].Setup = DetectSipProtocolSetup;
-    sigmatch_table[DETECT_AL_SIP_PROTOCOL].flags |= SIGMATCH_NOOPT;
+    /* sip.request_line sticky buffer */
+    sigmatch_table[DETECT_AL_SIP_REQUEST_LINE].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_AL_SIP_REQUEST_LINE].desc =
+            "sticky buffer to match on the SIP request line";
+    sigmatch_table[DETECT_AL_SIP_REQUEST_LINE].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_AL_SIP_REQUEST_LINE].Setup = DetectSipRequestLineSetup;
+    sigmatch_table[DETECT_AL_SIP_REQUEST_LINE].flags |= SIGMATCH_NOOPT;
+
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SIP, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_SIP, 1);
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_SIP, 1);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SIP, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectBufferGeneric, GetData);
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SIP, SIG_FLAG_TOCLIENT, 1,
-            DetectEngineInspectBufferGeneric, GetData);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
