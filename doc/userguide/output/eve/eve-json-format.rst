@@ -2501,6 +2501,11 @@ Some of the possible request messages are:
   to be exchanged as subprotocols.
 * "message": frontend responses which do not have meaningful payloads are logged
   like this, where the field value is the message type
+* ``"message": "cancel_request"``: sent after a query, when the frontend
+  attempts to cancel said query. This message is sent over a different port,
+  thus bring shown as a different flow. It has no direct answer from the
+  backend, but if successful will lead to an ``ErrorResponse`` in the
+  transaction where the query was sent.
 
 There are several different authentication messages possible, based on selected
 authentication method. (e.g. the SASL authentication will have a set of
@@ -2589,6 +2594,28 @@ the backend was ``md5``::
       }
     }
   }
+
+A ``CancelRequest`` message::
+
+   {
+      "timestamp": "2023-12-07T15:46:56.971150+0000",
+      "flow_id": 775771889500133,
+      "event_type": "pgsql",
+      "src_ip": "100.88.2.140",
+      "src_port": 39706,
+      "dest_ip": "100.96.199.113",
+      "dest_port": 5432,
+      "proto": "TCP",
+      "pkt_src": "stream (flow timeout)",
+      "pgsql": {
+        "tx_id": 1,
+        "request": {
+          "message": "cancel_request",
+          "backend_pid": 28954,
+          "backend_key": 889887985
+        }
+      }
+   }
 
 
 Event type: IKE
