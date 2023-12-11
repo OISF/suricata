@@ -57,7 +57,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer/http/parser.h"
-#include "detect-http-client-body.h"
+#include "app-layer/http/detect-client-body.h"
 #include "stream-tcp.h"
 #include "util-profiling.h"
 

@@ -56,7 +56,7 @@
 #include "output.h"
 #include "output-json.h"
 #include "output-json-file.h"
-#include "output-json-http.h"
+#include "app-layer/http/logger.h"
 #include "app-layer/smtp/logger.h"
 #include "output-json-email-common.h"
 #include "app-layer/nfs/logger.h"

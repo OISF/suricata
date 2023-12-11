@@ -23,7 +23,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
@@ -54,7 +54,7 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
-#include "util-lua-http.h"
+#include "app-layer/http/lua.h"
 
 static int HttpGetRequestHost(lua_State *luastate)
 {

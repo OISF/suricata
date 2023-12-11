@@ -15,16 +15,16 @@
  * 02110-1301, USA.
  */
 
-#include "detect-http-accept.h"
-#include "detect-http-accept-enc.h"
-#include "detect-http-accept-lang.h"
-#include "detect-http-connection.h"
-#include "detect-http-content-len.h"
-#include "detect-http-content-type.h"
-#include "detect-http-location.h"
-#include "detect-http-server.h"
-#include "detect-http-referer.h"
-#include "detect-http-headers.h"
+#include "app-layer/http/detect-accept.h"
+#include "app-layer/http/detect-accept-enc.h"
+#include "app-layer/http/detect-accept-lang.h"
+#include "app-layer/http/detect-connection.h"
+#include "app-layer/http/detect-content-len.h"
+#include "app-layer/http/detect-content-type.h"
+#include "app-layer/http/detect-location.h"
+#include "app-layer/http/detect-server.h"
+#include "app-layer/http/detect-referer.h"
+#include "app-layer/http/detect-headers.h"
 
 void DetectHttpHeadersRegister(void)
 {

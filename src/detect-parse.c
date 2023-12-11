@@ -43,7 +43,7 @@
 #include "detect-app-layer-protocol.h"
 #include "detect-lua.h"
 #include "detect-app-layer-event.h"
-#include "detect-http-method.h"
+#include "app-layer/http/detect-method.h"
 
 #include "pkt-var.h"
 #include "host.h"

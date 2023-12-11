@@ -56,7 +56,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer/http/parser.h"
-#include "detect-http-cookie.h"
+#include "app-layer/http/detect-cookie.h"
 #include "stream-tcp.h"
 
 static int DetectHttpCookieSetup(DetectEngineCtx *, Signature *, const char *);

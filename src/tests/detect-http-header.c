@@ -38,8 +38,8 @@
 #include "../app-layer-parser.h"
 
 #include "../app-layer/http/parser.h"
-#include "../detect-http-header.h"
-#include "../detect-http-header-common.h"
+#include "../app-layer/http/detect-header.h"
+#include "../app-layer/http/detect-header-common.h"
 #include "../detect-engine-build.h"
 #include "../detect-engine-alert.h"
 
