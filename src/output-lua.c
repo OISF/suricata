@@ -43,7 +43,7 @@
 #include "util-lua.h"
 #include "util-lua-common.h"
 #include "app-layer/http/lua.h"
-#include "util-lua-dns.h"
+#include "app-layer/dns/lua.h"
 #include "util-lua-ja3.h"
 #include "util-lua-tls.h"
 #include "app-layer/ssh/lua.h"
