@@ -798,9 +798,11 @@ static int DetectByteMathParseTest16(void)
 
 static int DetectByteMathPacket01(void)
 {
+    // clang-format off
     uint8_t buf[] = { 0x38, 0x35, 0x6d, 0x00, 0x00, 0x01,
                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                       0x00, 0x00, 0x6d, 0x00, 0x01, 0x00 };
+    // clang-format on
     Flow f;
     void *dns_state = NULL;
     Packet *p = NULL;
@@ -900,8 +902,10 @@ static int DetectByteMathPacket01(void)
 
 static int DetectByteMathPacket02(void)
 {
+    // clang-format off
     uint8_t buf[] = { 0x38, 0x35, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x70, 0x00, 0x01, 0x00 };
+    // clang-format on
     Flow f;
     void *dns_state = NULL;
     Packet *p = NULL;

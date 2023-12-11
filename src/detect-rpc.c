@@ -443,6 +443,7 @@ static int DetectRpcTestParse05 (void)
 static int DetectRpcTestSig01(void)
 {
     /* RPC Call */
+    // clang-format off
     uint8_t buf[] = {
         /* XID */
         0x64,0xb2,0xb3,0x75,
@@ -472,6 +473,7 @@ static int DetectRpcTestSig01(void)
         0x00,0x00,0x00,0x11,
         /* Port 0 */
         0x00,0x00,0x00,0x00 };
+    // clang-format on
     uint16_t buflen = sizeof(buf);
     Packet *p = NULL;
     Signature *s = NULL;

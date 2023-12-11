@@ -1647,6 +1647,7 @@ static void DNP3FixCrc(uint8_t *data, uint32_t len)
  */
 static int DNP3ParserTestCheckCRC(void)
 {
+    // clang-format off
     uint8_t request[] = {
         /* DNP3 start. */
         0x05, 0x64, 0x1a, 0xc4, 0x02, 0x00, 0x01, 0x00,
@@ -1663,6 +1664,7 @@ static int DNP3ParserTestCheckCRC(void)
         /* Application layer - segment 2. */
         0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff
     };
+    // clang-format on
 
     /* Check link header CRC. */
     FAIL_IF(!DNP3CheckCRC(request, sizeof(DNP3LinkHeader)));
@@ -1692,6 +1694,7 @@ static int DNP3ParserTestCheckCRC(void)
 static int DNP3CheckUserDataCRCsTest(void)
 {
     /* Multi-block data with valid CRCs. */
+    // clang-format off
     uint8_t data_valid[] = {
         0xff, 0xc9, 0x05, 0x0c,
         0x01, 0x28, 0x01, 0x00,
@@ -1715,10 +1718,12 @@ static int DNP3CheckUserDataCRCsTest(void)
         0x00,
         0xff, 0xff, /* CRC. */
     };
+    // clang-format on
     FAIL_IF(!DNP3CheckUserDataCRCs(data_valid, sizeof(data_valid)));
 
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     /* Multi-block data with one non-crc byte altered. */
+    // clang-format off
     uint8_t data_invalid[] = {
         0xff, 0xc9, 0x05, 0x0c,
         0x01, 0x28, 0x01, 0x00,
@@ -1742,6 +1747,7 @@ static int DNP3CheckUserDataCRCsTest(void)
         0x01, /* Invalid byte. */
         0xff, 0xff, /* CRC. */
     };
+    // clang-format on
     FAIL_IF(DNP3CheckUserDataCRCs(data_invalid, sizeof(data_invalid)));
 
     /* 1 byte - need at least 3. */
@@ -1830,6 +1836,7 @@ static int DNP3CalculateTransportLengthWithoutCRCsTest(void)
 static int DNP3ParserCheckLinkHeaderCRC(void)
 {
     /* DNP3 frame with valid headers and CRCs. */
+    // clang-format off
     uint8_t request[] = {
         /* DNP3 start. */
         0x05, 0x64, 0x1a, 0xc4, 0x02, 0x00, 0x01, 0x00,
@@ -1843,6 +1850,7 @@ static int DNP3ParserCheckLinkHeaderCRC(void)
         0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x72,
         0xef, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff
     };
+    // clang-format on
 
     DNP3LinkHeader *header = (DNP3LinkHeader *)request;
     FAIL_IF(!DNP3CheckLinkHeaderCRC(header));
@@ -1864,6 +1872,7 @@ static int DNP3ReassembleApplicationLayerTest01(void)
     uint32_t reassembled_len = 0;
     uint8_t *output = NULL;
 
+    // clang-format off
     uint8_t payload[] = {
 
         0xff, 0xc9, 0x05, 0x0c,
@@ -1888,7 +1897,9 @@ static int DNP3ReassembleApplicationLayerTest01(void)
         0x00,
         0xff, 0xff, /* CRC. */
     };
+    // clang-format on
 
+    // clang-format off
     uint8_t expected[] = {
               0xc9, 0x05, 0x0c,
         0x01, 0x28, 0x01, 0x00,
@@ -1909,6 +1920,7 @@ static int DNP3ReassembleApplicationLayerTest01(void)
         0x00
         /* CRC removed. */
     };
+    // clang-format on
 
     /* Valid frame. */
     FAIL_IF(!DNP3ReassembleApplicationLayer(payload,
@@ -1952,6 +1964,7 @@ static int DNP3ReassembleApplicationLayerTest01(void)
     FAIL_IF(reassembled_len != 1);
 
     /* Last block too short (by 1 byte) for data + CRC. */
+    // clang-format off
     uint8_t short_payload1[] = {
 
         0xff, 0xc9, 0x05, 0x0c,
@@ -1974,11 +1987,13 @@ static int DNP3ReassembleApplicationLayerTest01(void)
 
         0x00, 0x00
     };
+    // clang-format on
     reassembled_len = 0;
     FAIL_IF(DNP3ReassembleApplicationLayer(short_payload1,
             sizeof(short_payload1), &output, &reassembled_len));
 
     /* Last block too short (by 2 bytes) for data + CRC. */
+    // clang-format off
     uint8_t short_payload2[] = {
 
         0xff, 0xc9, 0x05, 0x0c,
@@ -2001,6 +2016,7 @@ static int DNP3ReassembleApplicationLayerTest01(void)
 
         0x00,
     };
+    // clang-format on
     reassembled_len = 0;
     FAIL_IF(DNP3ReassembleApplicationLayer(short_payload2,
             sizeof(short_payload2), &output, &reassembled_len));
@@ -2013,10 +2029,12 @@ static int DNP3ReassembleApplicationLayerTest01(void)
  */
 static int DNP3ProbingParserTest(void)
 {
+    // clang-format off
     uint8_t pkt[] = {
         0x05, 0x64, 0x05, 0xc9, 0x03, 0x00, 0x04, 0x00,
         0xbd, 0x71
     };
+    // clang-format on
     uint8_t rdir = 0;
 
     /* Valid frame. */
@@ -2052,6 +2070,7 @@ static int DNP3ParserTestRequestResponse(void)
 {
     DNP3State *state = NULL;
 
+    // clang-format off
     uint8_t request[] = {
         /* DNP3 start. */
         0x05, 0x64, 0x1a, 0xc4, 0x02, 0x00, 0x01, 0x00,
@@ -2065,7 +2084,9 @@ static int DNP3ParserTestRequestResponse(void)
         0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x72,
         0xef, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff
     };
+    // clang-format on
 
+    // clang-format off
     uint8_t response[] = {
         /* DNP3 start. */
         0x05, 0x64, 0x1c, 0x44, 0x01, 0x00, 0x02, 0x00,
@@ -2080,6 +2101,7 @@ static int DNP3ParserTestRequestResponse(void)
         0x65, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0xff, 0xff
     };
+    // clang-format on
 
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     Flow flow;
@@ -2136,19 +2158,23 @@ static int DNP3ParserTestUnsolicitedResponseConfirm(void)
     DNP3State *state = NULL;
 
     /* Unsolicited response with confirm bit set. */
+    // clang-format off
     uint8_t response[] = {
         0x05, 0x64, 0x16, 0x44, 0x01, 0x00, 0x02, 0x00,
         0x89, 0xe5, 0xc4, 0xfa, 0x82, 0x00, 0x00, 0x02,
         0x02, 0x17, 0x01, 0x01, 0x81, 0xa7, 0x75, 0xd8,
         0x32, 0x4c, 0x81, 0x3e, 0x01, 0xa1, 0xc9
     };
+    // clang-format on
 
     /* Confirm. */
+    // clang-format off
     uint8_t confirm[] = {
         0x05, 0x64, 0x08, 0xc4, 0x02, 0x00,
         0x01, 0x00, 0xd3, 0xb7, 0xc0, 0xda, 0x00, 0x6a,
         0x3d
     };
+    // clang-format on
 
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     Flow flow;
@@ -2205,6 +2231,7 @@ static int DNP3ParserTestFlooded(void)
 {
     DNP3State *state = NULL;
 
+    // clang-format off
     uint8_t request[] = {
         /* DNP3 start. */
         0x05, 0x64, 0x1a, 0xc4, 0x02, 0x00, 0x01, 0x00,
@@ -2218,6 +2245,7 @@ static int DNP3ParserTestFlooded(void)
         0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x72,
         0xef, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff
     };
+    // clang-format on
 
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     Flow flow;
@@ -2288,6 +2316,7 @@ static int DNP3ParserTestPartialFrame(void)
     DNP3Transaction *tx;
     int r;
 
+    // clang-format off
     uint8_t request_partial1[] = {
         /* DNP3 start. */
         0x05, 0x64, 0x1a, 0xc4, 0x02, 0x00, 0x01, 0x00,
@@ -2299,13 +2328,17 @@ static int DNP3ParserTestPartialFrame(void)
         /* Application layer. */
         0xc9, 0x05, 0x0c, 0x01, 0x28, 0x01, 0x00, 0x00,
     };
+    // clang-format on
 
+    // clang-format off
     uint8_t request_partial2[] = {
         /* Remainder of application layer. */
         0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x72,
         0xef, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff
     };
+    // clang-format on
 
+    // clang-format off
     uint8_t response_partial1[] = {
         /* DNP3 start. */
         0x05, 0x64, 0x1c, 0x44, 0x01, 0x00, 0x02, 0x00,
@@ -2317,12 +2350,15 @@ static int DNP3ParserTestPartialFrame(void)
         /* Application layer. */
         0xc9, 0x81, 0x00, 0x00, 0x0c, 0x01, 0x28, 0x01,
     };
+    // clang-format on
 
+    // clang-format off
     uint8_t response_partial2[] = {
         0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x7a,
         0x65, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0xff, 0xff
     };
+    // clang-format on
 
     /* Boiler plate for app layer setup. */
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -2418,20 +2454,24 @@ static int DNP3ParserTestMultiFrame(void)
     DNP3State *state = NULL;
 
     /* Unsolicited response 1. */
+    // clang-format off
     uint8_t unsol_response1[] = {
         0x05, 0x64, 0x16, 0x44, 0x01, 0x00, 0x02, 0x00,
         0x89, 0xe5, 0xc4, 0xfa, 0x82, 0x00, 0x00, 0x02,
         0x02, 0x17, 0x01, 0x01, 0x81, 0xa7, 0x75, 0xd8,
         0x32, 0x4c, 0x81, 0x3e, 0x01, 0xa1, 0xc9,
     };
+    // clang-format on
 
     /* Unsolicited response 2. */
+    // clang-format off
     uint8_t unsol_response2[] = {
         0x05, 0x64, 0x16, 0x44, 0x01, 0x00, 0x02, 0x00,
         0x89, 0xe5, 0xc5, 0xfb, 0x82, 0x00, 0x00, 0x02,
         0x02, 0x17, 0x01, 0x0c, 0x01, 0xd8, 0x75, 0xd8,
         0x32, 0x4c, 0xc9, 0x3c, 0x01, 0xa1, 0xc9,
     };
+    // clang-format on
 
     uint8_t combined[sizeof(unsol_response1) + sizeof(unsol_response2)];
     memcpy(combined, unsol_response1, sizeof(unsol_response1));
@@ -2478,11 +2518,13 @@ static int DNP3ParserTestParsePDU01(void)
 {
     /* Frame to be tested. This frame is a DNP3 request with one read
      * request data object, group 1, variation 0. */
+    // clang-format off
     const uint8_t pkt[] = {
         0x05, 0x64,
         0x0b, 0xc4, 0x17, 0x00, 0xef, 0xff, 0xc4, 0x8f,
         0xe1, 0xc8, 0x01, 0x01, 0x00, 0x06, 0x77, 0x6e
     };
+    // clang-format on
 
     DNP3State *dnp3state = DNP3StateAlloc(NULL, ALPROTO_UNKNOWN);
     int pdus = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
@@ -2504,6 +2546,7 @@ static int DNP3ParserTestParsePDU01(void)
  */
 static int DNP3ParserDecodeG70V3Test(void)
 {
+    // clang-format off
     const uint8_t pkt[] = {
         0x05, 0x64,
         0x63, 0xc4, 0x04, 0x00, 0x03, 0x00, 0xc7, 0xee,
@@ -2522,6 +2565,7 @@ static int DNP3ParserDecodeG70V3Test(void)
         0x76, 0x69, 0x63, 0x65, 0x2e, 0x78, 0x6d, 0x6c,
         0xc4, 0x8b
     };
+    // clang-format on
 
     DNP3State *dnp3state = DNP3StateAlloc(NULL, ALPROTO_UNKNOWN);
     FAIL_IF_NULL(dnp3state);
@@ -2556,6 +2600,7 @@ static int DNP3ParserDecodeG70V3Test(void)
 static int DNP3ParserUnknownEventAlertTest(void)
 {
     /* Valid DNP3 frame with 70:3 object. */
+    // clang-format off
     uint8_t pkt[] = {
         0x05, 0x64, 0x63, 0xc4, 0x04, 0x00, 0x03, 0x00,
         0xc7, 0xee,
@@ -2581,6 +2626,7 @@ static int DNP3ParserUnknownEventAlertTest(void)
         0x76, 0x69, 0x63, 0x65, 0x2e, 0x78, 0x6d, 0x6c,
         0xc4, 0x8b
     };
+    // clang-format on
 
     DNP3FixCrc(pkt + 10, sizeof(pkt) - 10);
 
@@ -2598,10 +2644,12 @@ static int DNP3ParserUnknownEventAlertTest(void)
 */
 static int DNP3ParserIncorrectUserData(void)
 {
+    // clang-format off
     uint8_t packet_bytes[] = {
         0x05, 0x64, 0x08, 0xc4, 0x03, 0x00, 0x04, 0x00,
         0xbf, 0xe9, 0xc1, 0xc1, 0x82, 0xc5, 0xee
     };
+    // clang-format on
 
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     Flow flow;

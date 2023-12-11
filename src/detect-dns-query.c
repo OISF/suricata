@@ -260,11 +260,13 @@ static int DetectDnsQuerySetup(DetectEngineCtx *de_ctx, Signature *s, const char
 static int DetectDnsQueryTest01(void)
 {
     /* google.com */
+    // clang-format off
     uint8_t buf[] = {   0x10, 0x32, 0x01, 0x00, 0x00, 0x01,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C,
                         0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
+    // clang-format on
     Flow f;
     void *dns_state = NULL;
     Packet *p = NULL;
@@ -339,12 +341,15 @@ static int DetectDnsQueryTest01(void)
 static int DetectDnsQueryTest02(void)
 {
     /* google.com */
+    // clang-format off
     uint8_t buf1[] = {  0x10, 0x32, 0x01, 0x00, 0x00, 0x01,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C,
                         0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
                         0x00, 0x01, 0x00, 0x01, };
+    // clang-format on
 
+    // clang-format off
     uint8_t buf2[] = {  0x10, 0x32,                             /* tx id */
                         0x81, 0x80,                             /* flags: resp, recursion desired, recursion available */
                         0x00, 0x01,                             /* 1 query */
@@ -359,14 +364,17 @@ static int DetectDnsQueryTest02(void)
                         0x00, 0x01, 0x00, 0x01,                 /* type a, class in */
                         0x00, 0x01, 0x40, 0xef,                 /* ttl */
                         0x00, 0x04,                             /* data len */
-                        0x01, 0x02, 0x03, 0x04 };               /* addr */
+                        0x01, 0x02, 0x03, 0x04 };
+    // clang-format on               /* addr */
 
     /* google.net */
+    // clang-format off
     uint8_t buf3[] = {  0x11, 0x33, 0x01, 0x00, 0x00, 0x01,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C,
                         0x65, 0x03, 0x6E, 0x65, 0x74, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
+    // clang-format on
     Flow f;
     void *dns_state = NULL;
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
@@ -506,12 +514,14 @@ static int DetectDnsQueryTest02(void)
 static int DetectDnsQueryTest03(void)
 {
     /* google.com */
+    // clang-format off
     uint8_t buf[] = {   0x00, 28,
                         0x10, 0x32, 0x01, 0x00, 0x00, 0x01,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C,
                         0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
+    // clang-format on
     Flow f;
     void *dns_state = NULL;
     Packet *p = NULL;
@@ -593,11 +603,13 @@ static int DetectDnsQueryTest03(void)
 static int DetectDnsQueryTest04(void)
 {
     /* google.com */
+    // clang-format off
     uint8_t buf[] = {   0x10, 0x32, 0x01, 0x00, 0x00, 0x01,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C,
                         0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
+    // clang-format on
     Flow f;
     void *dns_state = NULL;
     Packet *p = NULL;
@@ -683,12 +695,15 @@ static int DetectDnsQueryTest04(void)
 static int DetectDnsQueryTest05(void)
 {
     /* google.com */
+    // clang-format off
     uint8_t buf1[] = {  0x10, 0x32, 0x01, 0x00, 0x00, 0x01,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C,
                         0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
                         0x00, 0x01, 0x00, 0x01, };
+    // clang-format on
 
+    // clang-format off
     uint8_t buf2[] = {  0x10, 0x32,                             /* tx id */
                         0x81, 0x80|0x40,                        /* flags: resp, recursion desired, recursion available */
                         0x00, 0x01,                             /* 1 query */
@@ -703,14 +718,17 @@ static int DetectDnsQueryTest05(void)
                         0x00, 0x01, 0x00, 0x01,                 /* type a, class in */
                         0x00, 0x01, 0x40, 0xef,                 /* ttl */
                         0x00, 0x04,                             /* data len */
-                        0x01, 0x02, 0x03, 0x04 };               /* addr */
+                        0x01, 0x02, 0x03, 0x04 };
+    // clang-format on               /* addr */
 
     /* google.net */
+    // clang-format off
     uint8_t buf3[] = {  0x11, 0x33, 0x01, 0x00, 0x00, 0x01,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C,
                         0x65, 0x03, 0x6E, 0x65, 0x74, 0x00,
                         0x00, 0x10, 0x00, 0x01, };
+    // clang-format on
     Flow f;
     void *dns_state = NULL;
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
