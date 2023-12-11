@@ -27,7 +27,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "win32-service.h"
+#include "windows/win32-service.h"
 #include "util/debug.h"
 
 static SERVICE_STATUS_HANDLE service_status_handle = 0;

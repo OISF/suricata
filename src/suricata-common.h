@@ -155,13 +155,13 @@ typedef unsigned char u_char;
 #include <syslog.h>
 #else
 #ifdef OS_WIN32
-#include "win32-syslog.h"
+#include "windows/win32-syslog.h"
 #endif /* OS_WIN32 */
 #endif /* HAVE_SYSLOG_H */
 
 #ifdef OS_WIN32
-#include "win32-misc.h"
-#include "win32-service.h"
+#include "windows/win32-misc.h"
+#include "windows/win32-service.h"
 #endif /* OS_WIN32 */
 
 #if HAVE_SYS_TIME_H
