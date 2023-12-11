@@ -20,7 +20,7 @@
 #include "output.h"
 #include "output-json.h"
 #include "app-layer-parser.h"
-#include "output-json-dcerpc.h"
+#include "app-layer/dcerpc/logger.h"
 #include "rust.h"
 
 static int JsonDCERPCLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
