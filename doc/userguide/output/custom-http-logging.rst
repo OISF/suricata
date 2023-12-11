@@ -1,8 +1,6 @@
 Custom http logging
 ===================
 
-As of Suricata 1.3.1 you can enable a custom http logging option.
-
 In your Suricata.yaml, find the http-log section and edit as follows:
 
 
