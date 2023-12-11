@@ -643,9 +643,9 @@ For setting the option sgh-mpm-context, you can choose from auto, full
 or single. The default setting is 'auto', meaning Suricata selects
 full or single based on the algorithm you use. 'Full' means that every
 group has its own MPM-context, and 'single' that all groups share one
-MPM-context. The two algorithms ac and ac-gfbs are new in 1.03. These
-algorithms use a single MPM-context if the Sgh-MPM-context setting is
-'auto'. The rest of the algorithms use full in that case.
+MPM-context. The algorithm "ac" uses a single MPM-context if the 
+Sgh-MPM-context setting is 'auto'. The rest of the algorithms use full 
+in that case.
 
 The inspection-recursion-limit option has to mitigate that possible
 bugs in Suricata cause big problems. Often Suricata has to deal with
@@ -1287,7 +1287,7 @@ the default behavior).
 
 Each supported protocol has a dedicated subsection under ``protocols``.
 
-Asn1_max_frames (new in 1.0.3 and 1.1)
+Asn1_max_frames
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Asn1 (`Abstract Syntax One
@@ -1860,14 +1860,15 @@ Default Log Format
 ~~~~~~~~~~~~~~~~~~
 
 A logging line exists of two parts. First it displays meta information
-(thread id, date etc.), and finally the actual log message. Example:
+(Log-level, Suricata module), and finally the actual log message. Example:
 
 ::
 
-  [27708] 15/10/2010 -- 11:40:07 - (suricata.c:425) <Info> (main) – This is Suricata version 1.0.2
+  i: suricata: This is Suricata version 7.0.2 RELEASE running in USER mode
 
-(Here the part until the – is the meta info, "This is Suricata 1.0.2"
-is the actual message.)
+(Here the part until the second `:` is the meta info, 
+"This is Suricata version 7.0.2 RELEASE running in USER mode" is the actual 
+message.)
 
 It is possible to determine which information will be displayed in
 this line and (the manner how it will be displayed) in which format it
