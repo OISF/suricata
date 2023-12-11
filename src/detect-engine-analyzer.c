@@ -868,9 +868,7 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
 
                 jb_open_object(js, "flowbits");
                 switch (cd->cmd) {
-                    case DETECT_FLOWBITS_CMD_NOALERT:
-                        jb_set_string(js, "action", "noalert");
-                        break;
+                    /* noalert has been removed and never gets to DumpMatches */
                     case DETECT_FLOWBITS_CMD_ISSET:
                         jb_set_string(js, "cmd", "isset");
                         break;
@@ -887,23 +885,21 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                         jb_set_string(js, "cmd", "toggle");
                         break;
                 }
-                int flag = 0;
-                if (cd->cmd != DETECT_FLOWBITS_CMD_NOALERT) {
-                    jb_open_array(js, "names");
-                    if (cd->or_list_size == 0) {
-                        jb_append_string(js, VarNameStoreSetupLookup(cd->idx, VAR_TYPE_FLOW_BIT));
-                    } else if (cd->or_list_size > 0) {
-                        flag = 1;
-                        for (uint8_t i = 0; i < cd->or_list_size; i++) {
-                            const char *varname =
-                                    VarNameStoreSetupLookup(cd->or_list[i], VAR_TYPE_FLOW_BIT);
-                            jb_append_string(js, varname);
-                        }
+                bool is_or = false;
+                jb_open_array(js, "names");
+                if (cd->or_list_size == 0) {
+                    jb_append_string(js, VarNameStoreSetupLookup(cd->idx, VAR_TYPE_FLOW_BIT));
+                } else if (cd->or_list_size > 0) {
+                    is_or = true;
+                    for (uint8_t i = 0; i < cd->or_list_size; i++) {
+                        const char *varname =
+                                VarNameStoreSetupLookup(cd->or_list[i], VAR_TYPE_FLOW_BIT);
+                        jb_append_string(js, varname);
                     }
-                    jb_close(js); // array
-                    if (flag == 1) {
-                        jb_set_string(js, "operator", "or");
-                    }
+                }
+                jb_close(js); // array
+                if (is_or == true) {
+                    jb_set_string(js, "operator", "or");
                 }
                 jb_close(js); // object
                 break;
