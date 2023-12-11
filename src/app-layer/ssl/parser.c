@@ -38,7 +38,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-frames.h"
-#include "app-layer-ssl.h"
+#include "app-layer/ssl/parser.h"
 
 #include "decode-events.h"
 #include "conf.h"
