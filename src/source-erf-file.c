@@ -195,17 +195,12 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
     GET_PKT_LEN(p) = wlen;
     p->datalink = LINKTYPE_ETHERNET;
 
-    /* Convert ERF time to timeval - from libpcap. */
+    /* Convert ERF time to SCTime_t */
     uint64_t ts = dr.ts;
     p->ts = SCTIME_FROM_SECS(ts >> 32);
     ts = (ts & 0xffffffffULL) * 1000000;
     ts += 0x80000000; /* rounding */
     uint64_t usecs = (ts >> 32);
-    if (usecs >= 1000000) {
-        usecs -= 1000000;
-        p->ts = SCTIME_ADD_SECS(p->ts, 1);
-        usecs++;
-    }
     p->ts = SCTIME_ADD_USECS(p->ts, usecs);
 
     etv->pkts++;
