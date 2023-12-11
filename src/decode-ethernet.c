@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -39,8 +38,8 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                   const uint8_t *pkt, uint32_t len)
+int DecodeEthernet(
+        ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
@@ -58,8 +57,8 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     SCLogDebug("p %p pkt %p ether type %04x", p, pkt, SCNtohs(p->ethh->eth_type));
 
-    DecodeNetworkLayer(tv, dtv, SCNtohs(p->ethh->eth_type), p,
-            pkt + ETHERNET_HEADER_LEN, len - ETHERNET_HEADER_LEN);
+    DecodeNetworkLayer(tv, dtv, SCNtohs(p->ethh->eth_type), p, pkt + ETHERNET_HEADER_LEN,
+            len - ETHERNET_HEADER_LEN);
 
     return TM_ECODE_OK;
 }
@@ -69,7 +68,7 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
  *  \brief Valid Ethernet packet
  *  \retval 0 Expected test value
  */
-static int DecodeEthernetTest01 (void)
+static int DecodeEthernetTest01(void)
 {
     /* ICMP packet wrapped in PPPOE */
     // clang-format off
@@ -99,7 +98,7 @@ static int DecodeEthernetTest01 (void)
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
 
@@ -125,7 +124,7 @@ static int DecodeEthernetTestDceTooSmall(void)
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
 
@@ -162,7 +161,7 @@ static int DecodeEthernetTestDceNextTooSmall(void)
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth));
 
@@ -174,7 +173,6 @@ static int DecodeEthernetTestDceNextTooSmall(void)
 
 #endif /* UNITTESTS */
 
-
 /**
  * \brief Registers Ethernet unit tests
  * \todo More Ethernet tests
@@ -183,10 +181,8 @@ void DecodeEthernetRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DecodeEthernetTest01", DecodeEthernetTest01);
-    UtRegisterTest("DecodeEthernetTestDceNextTooSmall",
-            DecodeEthernetTestDceNextTooSmall);
-    UtRegisterTest("DecodeEthernetTestDceTooSmall",
-            DecodeEthernetTestDceTooSmall);
+    UtRegisterTest("DecodeEthernetTestDceNextTooSmall", DecodeEthernetTestDceNextTooSmall);
+    UtRegisterTest("DecodeEthernetTestDceTooSmall", DecodeEthernetTestDceTooSmall);
 #endif /* UNITTESTS */
 }
 /**

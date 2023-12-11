@@ -49,9 +49,8 @@ static int DetectMQTTConnectPasswordSetup(DetectEngineCtx *de_ctx, Signature *s,
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms,
-        Flow *_f, const uint8_t _flow_flags,
-        void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -73,18 +72,17 @@ void DetectMQTTConnectPasswordRegister(void)
 {
     /* mqtt.connect.password sticky buffer */
     sigmatch_table[DETECT_AL_MQTT_CONNECT_PASSWORD].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_MQTT_CONNECT_PASSWORD].desc = "sticky buffer to match on the MQTT CONNECT password";
+    sigmatch_table[DETECT_AL_MQTT_CONNECT_PASSWORD].desc =
+            "sticky buffer to match on the MQTT CONNECT password";
     sigmatch_table[DETECT_AL_MQTT_CONNECT_PASSWORD].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_MQTT_CONNECT_PASSWORD].Setup = DetectMQTTConnectPasswordSetup;
     sigmatch_table[DETECT_AL_MQTT_CONNECT_PASSWORD].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_MQTT,
-            SIG_FLAG_TOSERVER, 0,
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_MQTT, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_MQTT,
-	        1);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_MQTT, 1);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 

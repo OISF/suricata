@@ -24,7 +24,6 @@
 #ifndef __APP_LAYER_ENIP_H__
 #define __APP_LAYER_ENIP_H__
 
-
 void RegisterENIPUDPParsers(void);
 void RegisterENIPTCPParsers(void);
 void ENIPParserRegisterTests(void);

@@ -28,13 +28,11 @@
 #define IPFW_MAX_QUEUE 16
 
 /* per packet IPFW vars (Not used) */
-typedef struct IPFWPacketVars_
-{
+typedef struct IPFWPacketVars_ {
     int ipfw_index;
 } IPFWPacketVars;
 
-typedef struct IPFWQueueVars_
-{
+typedef struct IPFWQueueVars_ {
     int fd;
     SCMutex socket_lock;
     uint8_t use_mutex;
@@ -62,9 +60,8 @@ typedef struct IPFWQueueVars_
 void *IPFWGetThread(int number);
 int IPFWRegisterQueue(char *queue);
 
-void TmModuleReceiveIPFWRegister (void);
-void TmModuleVerdictIPFWRegister (void);
-void TmModuleDecodeIPFWRegister (void);
-
+void TmModuleReceiveIPFWRegister(void);
+void TmModuleVerdictIPFWRegister(void);
+void TmModuleDecodeIPFWRegister(void);
 
 #endif /* __SOURCE_IPFW_H__ */

@@ -27,24 +27,24 @@
 #ifndef HAVE_PACKET_FANOUT /* not defined if linux/if_packet.h trying to force */
 #define HAVE_PACKET_FANOUT 1
 
-#define PACKET_FANOUT                  18
+#define PACKET_FANOUT 18
 
-#define PACKET_FANOUT_HASH             0
-#define PACKET_FANOUT_LB               1
-#define PACKET_FANOUT_CPU              2
-#define PACKET_FANOUT_ROLLOVER         3
-#define PACKET_FANOUT_RND              4
-#define PACKET_FANOUT_QM               5
+#define PACKET_FANOUT_HASH     0
+#define PACKET_FANOUT_LB       1
+#define PACKET_FANOUT_CPU      2
+#define PACKET_FANOUT_ROLLOVER 3
+#define PACKET_FANOUT_RND      4
+#define PACKET_FANOUT_QM       5
 
-#define PACKET_FANOUT_FLAG_ROLLOVER	   0x1000
-#define PACKET_FANOUT_FLAG_DEFRAG      0x8000
+#define PACKET_FANOUT_FLAG_ROLLOVER 0x1000
+#define PACKET_FANOUT_FLAG_DEFRAG   0x8000
 #else /* HAVE_PACKET_FANOUT */
 #include <linux/if_packet.h>
 #endif /* HAVE_PACKET_FANOUT */
 #include "queue.h"
 
 #ifdef HAVE_PACKET_EBPF
-#define AFP_MODE_XDP_BYPASS 1
+#define AFP_MODE_XDP_BYPASS  1
 #define AFP_MODE_EBPF_BYPASS 2
 struct ebpf_timeout_config {
     const char *pinned_maps_name;
@@ -57,17 +57,17 @@ struct ebpf_timeout_config {
 /* value for flags */
 #define AFP_NEED_PEER (1 << 0)
 // (1<<1) vacant
-#define AFP_SOCK_PROTECT (1<<2)
-#define AFP_EMERGENCY_MODE (1<<3)
-#define AFP_TPACKET_V3 (1<<4)
-#define AFP_VLAN_IN_HEADER (1<<5)
-#define AFP_MMAP_LOCKED (1<<6)
-#define AFP_BYPASS   (1<<7)
-#define AFP_XDPBYPASS   (1<<8)
+#define AFP_SOCK_PROTECT   (1 << 2)
+#define AFP_EMERGENCY_MODE (1 << 3)
+#define AFP_TPACKET_V3     (1 << 4)
+#define AFP_VLAN_IN_HEADER (1 << 5)
+#define AFP_MMAP_LOCKED    (1 << 6)
+#define AFP_BYPASS         (1 << 7)
+#define AFP_XDPBYPASS      (1 << 8)
 
-#define AFP_COPY_MODE_NONE  0
-#define AFP_COPY_MODE_TAP   1
-#define AFP_COPY_MODE_IPS   2
+#define AFP_COPY_MODE_NONE 0
+#define AFP_COPY_MODE_TAP  1
+#define AFP_COPY_MODE_IPS  2
 
 #define AFP_IFACE_NAME_LENGTH 48
 
@@ -77,8 +77,7 @@ struct ebpf_timeout_config {
  * to standard frame size */
 #define AFP_BLOCK_SIZE_DEFAULT_ORDER 3
 
-typedef struct AFPIfaceConfig_
-{
+typedef struct AFPIfaceConfig_ {
     char iface[AFP_IFACE_NAME_LENGTH];
     /* number of threads */
     int threads;
@@ -140,8 +139,7 @@ typedef struct AFPPeer_ {
  * This structure is used y the release data system and is cleaned
  * up by the AFPV_CLEANUP macro below.
  */
-typedef struct AFPPacketVars_
-{
+typedef struct AFPPacketVars_ {
     void *relptr;
     AFPPeer *peer; /**< Sending peer for IPS/TAP mode */
     /** Pointer to ::AFPPeer used for capture. Field is used to be able
@@ -183,8 +181,8 @@ typedef struct AFPPacketVars_
  * @}
  */
 
-void TmModuleReceiveAFPRegister (void);
-void TmModuleDecodeAFPRegister (void);
+void TmModuleReceiveAFPRegister(void);
+void TmModuleDecodeAFPRegister(void);
 
 TmEcode AFPPeersListInit(void);
 TmEcode AFPPeersListCheck(void);

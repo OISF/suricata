@@ -34,11 +34,11 @@
 #include <event2/thread.h>
 #endif /* HAVE_LIBEVENT_PTHREADS */
 
-static const char * redis_lpush_cmd = "LPUSH";
-static const char * redis_rpush_cmd = "RPUSH";
-static const char * redis_publish_cmd = "PUBLISH";
-static const char * redis_default_key = "suricata";
-static const char * redis_default_server = "127.0.0.1";
+static const char *redis_lpush_cmd = "LPUSH";
+static const char *redis_rpush_cmd = "RPUSH";
+static const char *redis_publish_cmd = "PUBLISH";
+static const char *redis_default_key = "suricata";
+static const char *redis_default_server = "127.0.0.1";
 
 static int SCConfLogReopenSyncRedis(LogFileCtx *log_ctx);
 static void SCLogFileCloseRedis(LogFileCtx *log_ctx);
@@ -57,14 +57,14 @@ void SCLogRedisInit(void)
  */
 static SCLogRedisContext *SCLogRedisContextAlloc(void)
 {
-    SCLogRedisContext* ctx = (SCLogRedisContext*) SCCalloc(1, sizeof(SCLogRedisContext));
+    SCLogRedisContext *ctx = (SCLogRedisContext *)SCCalloc(1, sizeof(SCLogRedisContext));
     if (ctx == NULL) {
         FatalError("Unable to allocate redis context");
     }
     ctx->sync = NULL;
 #if HAVE_LIBEVENT
     ctx->ev_base = NULL;
-    ctx->async   = NULL;
+    ctx->async = NULL;
 #endif
     ctx->batch_count = 0;
     ctx->last_push = 0;
@@ -82,13 +82,13 @@ static int SCConfLogReopenAsyncRedis(LogFileCtx *log_ctx);
  */
 static SCLogRedisContext *SCLogRedisContextAsyncAlloc(void)
 {
-    SCLogRedisContext* ctx = (SCLogRedisContext*) SCCalloc(1, sizeof(SCLogRedisContext));
+    SCLogRedisContext *ctx = (SCLogRedisContext *)SCCalloc(1, sizeof(SCLogRedisContext));
     if (unlikely(ctx == NULL)) {
         FatalError("Unable to allocate redis context");
     }
 
     ctx->sync = NULL;
-    ctx->async   = NULL;
+    ctx->async = NULL;
     ctx->ev_base = NULL;
     ctx->connected = 0;
     ctx->batch_count = 0;
@@ -128,20 +128,20 @@ static void SCRedisAsyncCommandCallback(redisAsyncContext *ac, void *r, void *pr
 static void SCRedisAsyncEchoCommandCallback(redisAsyncContext *ac, void *r, void *privdata)
 {
     redisReply *reply = r;
-    SCLogRedisContext * ctx = privdata;
+    SCLogRedisContext *ctx = privdata;
 
     if (reply) {
-       if (ctx->connected == 0) {
-          SCLogNotice("Connected to Redis.");
-          ctx->connected = 1;
-          ctx->tried = 0;
-       }
+        if (ctx->connected == 0) {
+            SCLogNotice("Connected to Redis.");
+            ctx->connected = 1;
+            ctx->tried = 0;
+        }
     } else {
-       ctx->connected = 0;
-       if (ctx->tried == 0) {
-           SCLogWarning("Failed to connect to Redis... (will keep trying)");
-       }
-       ctx->tried = time(NULL);
+        ctx->connected = 0;
+        if (ctx->tried == 0) {
+            SCLogWarning("Failed to connect to Redis... (will keep trying)");
+        }
+        ctx->tried = time(NULL);
     }
     event_base_loopbreak(ctx->ev_base);
 }
@@ -151,7 +151,7 @@ static void SCRedisAsyncEchoCommandCallback(redisAsyncContext *ac, void *r, void
  *         It's used for check if redis is alive.
  *  \param ctx redis context
  */
-static void SCLogAsyncRedisSendEcho(SCLogRedisContext * ctx)
+static void SCLogAsyncRedisSendEcho(SCLogRedisContext *ctx)
 {
     redisAsyncCommand(ctx->async, SCRedisAsyncEchoCommandCallback, ctx, "ECHO suricata");
     event_base_dispatch(ctx->ev_base);
@@ -173,7 +173,7 @@ static void SCRedisAsyncQuitCommandCallback(redisAsyncContext *ac, void *r, void
  *         It's used to disconnect with redis
  *  \param ctx redis context
  */
-static void SCLogAsyncRedisSendQuit(SCLogRedisContext * ctx)
+static void SCLogAsyncRedisSendQuit(SCLogRedisContext *ctx)
 {
     if (ctx->connected) {
         redisAsyncCommand(ctx->async, SCRedisAsyncQuitCommandCallback, ctx, "QUIT");
@@ -193,7 +193,7 @@ static void SCLogAsyncRedisSendQuit(SCLogRedisContext * ctx)
  */
 static int SCConfLogReopenAsyncRedis(LogFileCtx *log_ctx)
 {
-    SCLogRedisContext * ctx = log_ctx->redis;
+    SCLogRedisContext *ctx = log_ctx->redis;
     const char *redis_server = log_ctx->redis_setup.server;
     int redis_port = log_ctx->redis_setup.port;
 
@@ -241,7 +241,6 @@ static int SCConfLogReopenAsyncRedis(LogFileCtx *log_ctx)
     return 0;
 }
 
-
 /** \brief SCLogRedisWriteAsync() writes string to redis output in async mode
  *  \param file_ctx Log file context allocated by caller
  *  \param string Buffer to output
@@ -250,12 +249,12 @@ static int SCLogRedisWriteAsync(LogFileCtx *file_ctx, const char *string, size_t
 {
     SCLogRedisContext *ctx = file_ctx->redis;
 
-    if (! ctx->connected) {
+    if (!ctx->connected) {
         if (SCConfLogReopenAsyncRedis(file_ctx) == -1) {
             return -1;
         }
         if (ctx->tried == 0) {
-           SCLogNotice("Trying to connect to Redis");
+            SCLogNotice("Trying to connect to Redis");
         }
         SCLogAsyncRedisSendEcho(ctx);
     }
@@ -268,27 +267,22 @@ static int SCLogRedisWriteAsync(LogFileCtx *file_ctx, const char *string, size_t
         return -1;
     }
 
-    redisAsyncCommand(ctx->async,
-            SCRedisAsyncCommandCallback,
-            file_ctx,
-            "%s %s %s",
-            file_ctx->redis_setup.command,
-            file_ctx->redis_setup.key,
-            string);
+    redisAsyncCommand(ctx->async, SCRedisAsyncCommandCallback, file_ctx, "%s %s %s",
+            file_ctx->redis_setup.command, file_ctx->redis_setup.key, string);
 
     event_base_loop(ctx->ev_base, EVLOOP_NONBLOCK);
 
     return 0;
 }
 
-#endif// HAVE_LIBEVENT
+#endif // HAVE_LIBEVENT
 
 /** \brief SCConfLogReopenSyncRedis() Open or re-opens connection to redis for logging.
  *  \param log_ctx Log file context allocated by caller
  */
 static int SCConfLogReopenSyncRedis(LogFileCtx *log_ctx)
 {
-    SCLogRedisContext * ctx = log_ctx->redis;
+    SCLogRedisContext *ctx = log_ctx->redis;
 
     /* only try to reconnect once per second */
     if (ctx->tried >= time(NULL)) {
@@ -298,7 +292,7 @@ static int SCConfLogReopenSyncRedis(LogFileCtx *log_ctx)
     const char *redis_server = log_ctx->redis_setup.server;
     int redis_port = log_ctx->redis_setup.port;
 
-    if (ctx->sync != NULL)  {
+    if (ctx->sync != NULL) {
         redisFree(ctx->sync);
     }
 
@@ -331,7 +325,7 @@ static int SCConfLogReopenSyncRedis(LogFileCtx *log_ctx)
  */
 static int SCLogRedisWriteSync(LogFileCtx *file_ctx, const char *string)
 {
-    SCLogRedisContext * ctx = file_ctx->redis;
+    SCLogRedisContext *ctx = file_ctx->redis;
     int ret = -1;
     redisContext *redis = ctx->sync;
     if (redis == NULL) {
@@ -345,10 +339,8 @@ static int SCLogRedisWriteSync(LogFileCtx *file_ctx, const char *string)
 
     /* synchronous mode */
     if (file_ctx->redis_setup.batch_size) {
-        redisAppendCommand(redis, "%s %s %s",
-                file_ctx->redis_setup.command,
-                file_ctx->redis_setup.key,
-                string);
+        redisAppendCommand(redis, "%s %s %s", file_ctx->redis_setup.command,
+                file_ctx->redis_setup.key, string);
         time_t now = time(NULL);
         if ((ctx->batch_count == file_ctx->redis_setup.batch_size) || (ctx->last_push < now)) {
             redisReply *reply;
@@ -362,9 +354,7 @@ static int SCLogRedisWriteSync(LogFileCtx *file_ctx, const char *string)
                     ret = 0;
                 } else {
                     if (redis->err) {
-                        SCLogInfo("Error when fetching reply: %s (%d)",
-                                redis->errstr,
-                                redis->err);
+                        SCLogInfo("Error when fetching reply: %s (%d)", redis->errstr, redis->err);
                     }
                     switch (redis->err) {
                         case REDIS_ERR_EOF:
@@ -374,10 +364,8 @@ static int SCLogRedisWriteSync(LogFileCtx *file_ctx, const char *string)
                             redis = ctx->sync;
                             if (redis) {
                                 SCLogInfo("Reconnected to redis server");
-                                redisAppendCommand(redis, "%s %s %s",
-                                        file_ctx->redis_setup.command,
-                                        file_ctx->redis_setup.key,
-                                        string);
+                                redisAppendCommand(redis, "%s %s %s", file_ctx->redis_setup.command,
+                                        file_ctx->redis_setup.key, string);
                                 ctx->batch_count++;
                                 return 0;
                             } else {
@@ -395,10 +383,8 @@ static int SCLogRedisWriteSync(LogFileCtx *file_ctx, const char *string)
             ctx->batch_count++;
         }
     } else {
-        redisReply *reply = redisCommand(redis, "%s %s %s",
-                file_ctx->redis_setup.command,
-                file_ctx->redis_setup.key,
-                string);
+        redisReply *reply = redisCommand(redis, "%s %s %s", file_ctx->redis_setup.command,
+                file_ctx->redis_setup.key, string);
         /* We may lose the reply if disconnection happens*/
         if (reply) {
             switch (reply->type) {
@@ -445,7 +431,7 @@ int LogFileWriteRedis(void *lf_ctx, const char *string, size_t string_len)
     }
 #endif
     /* sync mode */
-    if (! file_ctx->redis_setup.is_async) {
+    if (!file_ctx->redis_setup.is_async) {
         return SCLogRedisWriteSync(file_ctx, string);
     }
     return -1;
@@ -471,10 +457,10 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
 
     if (redis_node) {
         log_ctx->redis_setup.server = ConfNodeLookupChildValue(redis_node, "server");
-        log_ctx->redis_setup.key =  ConfNodeLookupChildValue(redis_node, "key");
+        log_ctx->redis_setup.key = ConfNodeLookupChildValue(redis_node, "key");
 
-        redis_port =  ConfNodeLookupChildValue(redis_node, "port");
-        redis_mode =  ConfNodeLookupChildValue(redis_node, "mode");
+        redis_port = ConfNodeLookupChildValue(redis_node, "port");
+        redis_mode = ConfNodeLookupChildValue(redis_node, "mode");
 
         (void)ConfGetChildValueBool(redis_node, "async", &is_async);
     }
@@ -495,7 +481,7 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
         SCLogWarning("async option not available.");
     }
     is_async = 0;
-#endif //ifndef HAVE_LIBEVENT
+#endif // ifndef HAVE_LIBEVENT
 
     log_ctx->redis_setup.is_async = is_async;
     log_ctx->redis_setup.batch_size = 0;
@@ -519,11 +505,11 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
         log_ctx->redis_setup.batch_size = 0;
     }
 
-    if (!strcmp(redis_mode, "list") || !strcmp(redis_mode,"lpush")) {
+    if (!strcmp(redis_mode, "list") || !strcmp(redis_mode, "lpush")) {
         log_ctx->redis_setup.command = redis_lpush_cmd;
-    } else if(!strcmp(redis_mode, "rpush")){
+    } else if (!strcmp(redis_mode, "rpush")) {
         log_ctx->redis_setup.command = redis_rpush_cmd;
-    } else if(!strcmp(redis_mode,"channel") || !strcmp(redis_mode,"publish")) {
+    } else if (!strcmp(redis_mode, "channel") || !strcmp(redis_mode, "publish")) {
         log_ctx->redis_setup.command = redis_publish_cmd;
     } else {
         FatalError("Invalid redis mode");
@@ -543,7 +529,7 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
         log_ctx->redis = SCLogRedisContextAsyncAlloc();
     }
 #endif /*HAVE_LIBEVENT*/
-    if (! is_async) {
+    if (!is_async) {
         log_ctx->redis = SCLogRedisContextAlloc();
         SCConfLogReopenSyncRedis(log_ctx);
     }
@@ -555,7 +541,7 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
  */
 void SCLogFileCloseRedis(LogFileCtx *log_ctx)
 {
-    SCLogRedisContext * ctx = log_ctx->redis;
+    SCLogRedisContext *ctx = log_ctx->redis;
     if (ctx == NULL) {
         return;
     }

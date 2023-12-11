@@ -28,12 +28,12 @@
 #include "stream-tcp.h"
 #include "util-unittest-helper.h"
 
-#define TEST_INIT                                                       \
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();                    \
-    FAIL_IF(de_ctx == NULL);                                            \
-    SRepInit(de_ctx);                                                   \
-                                                                        \
-    Address a;                                                          \
+#define TEST_INIT                                                                                  \
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();                                               \
+    FAIL_IF(de_ctx == NULL);                                                                       \
+    SRepInit(de_ctx);                                                                              \
+                                                                                                   \
+    Address a;                                                                                     \
     uint8_t cat = 0, value = 0;
 
 #define TEST_INIT_WITH_PACKET_IPV6(src, dst)                                                       \
@@ -43,19 +43,18 @@
     FAIL_IF(p == NULL);                                                                            \
     TEST_INIT
 
-#define TEST_INIT_WITH_PACKET(ip)                                       \
-    uint8_t *buf = (uint8_t *)"Hi all!";                                \
-    uint16_t buflen = strlen((char *)buf);                              \
-    Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);    \
-    FAIL_IF(p == NULL);                                                 \
-    p->src.addr_data32[0] = UTHSetIPv4Address(ip);                      \
+#define TEST_INIT_WITH_PACKET(ip)                                                                  \
+    uint8_t *buf = (uint8_t *)"Hi all!";                                                           \
+    uint16_t buflen = strlen((char *)buf);                                                         \
+    Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);                               \
+    FAIL_IF(p == NULL);                                                                            \
+    p->src.addr_data32[0] = UTHSetIPv4Address(ip);                                                 \
     TEST_INIT
 
-#define TEST_CLEANUP                                                    \
-    DetectEngineCtxFree(de_ctx);
+#define TEST_CLEANUP DetectEngineCtxFree(de_ctx);
 
-#define TEST_CLEANUP_WITH_PACKET                                        \
-    UTHFreePacket(p);                                                   \
+#define TEST_CLEANUP_WITH_PACKET                                                                   \
+    UTHFreePacket(p);                                                                              \
     TEST_CLEANUP
 
 static int SRepTest01(void)
@@ -140,7 +139,8 @@ static int SRepTest06(void)
     PASS;
 }
 
-static int SRepTest07(void) {
+static int SRepTest07(void)
+{
     TEST_INIT;
 
     char str[] = "2000:0000:0000:0000:0000:0000:0000:0001,";

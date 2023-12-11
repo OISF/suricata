@@ -204,7 +204,7 @@ int ParseSizeStringU64(const char *size, uint64_t *res)
     if (r < 0)
         return r;
 
-    if (temp_res > (double) UINT64_MAX)
+    if (temp_res > (double)UINT64_MAX)
         return -1;
 
     *res = temp_res;
@@ -212,8 +212,7 @@ int ParseSizeStringU64(const char *size, uint64_t *res)
     return 0;
 }
 
-void ShortenString(const char *input,
-    char *output, size_t output_size, char c)
+void ShortenString(const char *input, char *output, size_t output_size, char c)
 {
     const size_t str_len = strlen(input);
     size_t half = (output_size - 1) / 2;
@@ -226,7 +225,7 @@ void ShortenString(const char *input,
     size_t spaces = (output_size - 1) - (half * 2);
 
     /* Add the first half to the new string */
-    snprintf(output, half+1, "%s", input);
+    snprintf(output, half + 1, "%s", input);
 
     /* Add the amount of spaces wanted */
     size_t length = half;
@@ -772,7 +771,6 @@ static int UtilMiscParseSizeStringTest01(void)
 
 void UtilMiscRegisterTests(void)
 {
-    UtRegisterTest("UtilMiscParseSizeStringTest01",
-                   UtilMiscParseSizeStringTest01);
+    UtRegisterTest("UtilMiscParseSizeStringTest01", UtilMiscParseSizeStringTest01);
 }
 #endif /* UNITTESTS */

@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -61,7 +60,7 @@
 #include "util-unittest-helper.h"
 #include "rust.h"
 
-static int DetectDnsQuerySetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectDnsQuerySetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectDnsQueryRegisterTests(void);
 #endif
@@ -108,8 +107,11 @@ static uint8_t DetectEngineInspectDnsQuery(DetectEngineCtx *de_ctx, DetectEngine
         transforms = engine->v2.transforms;
     }
 
-    while(1) {
-        struct DnsQueryGetDataArgs cbdata = { local_id, txv, };
+    while (1) {
+        struct DnsQueryGetDataArgs cbdata = {
+            local_id,
+            txv,
+        };
         InspectionBuffer *buffer =
                 DnsQueryGetData(det_ctx, transforms, f, &cbdata, engine->sm_list);
         if (buffer == NULL || buffer->inspect == NULL)
@@ -149,7 +151,7 @@ static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx, const void *pect
     const int list_id = ctx->list_id;
 
     uint32_t local_id = 0;
-    while(1) {
+    while (1) {
         // loop until we get a NULL
 
         struct DnsQueryGetDataArgs cbdata = { local_id, txv };
@@ -182,15 +184,14 @@ static int PrefilterMpmDnsQueryRegister(DetectEngineCtx *de_ctx, SigGroupHead *s
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxDnsQuery,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-            pectx, PrefilterMpmDnsQueryFree, mpm_reg->pname);
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxDnsQuery, mpm_reg->app_v2.alproto,
+            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmDnsQueryFree, mpm_reg->pname);
 }
 
 /**
  * \brief Registration function for keyword: dns_query
  */
-void DetectDnsQueryRegister (void)
+void DetectDnsQueryRegister(void)
 {
     sigmatch_table[DETECT_AL_DNS_QUERY].name = "dns.query";
     sigmatch_table[DETECT_AL_DNS_QUERY].alias = "dns_query";
@@ -203,16 +204,13 @@ void DetectDnsQueryRegister (void)
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerMpmRegister2("dns_query", SIG_FLAG_TOSERVER, 2,
-            PrefilterMpmDnsQueryRegister, NULL,
-            ALPROTO_DNS, 1);
+    DetectAppLayerMpmRegister2(
+            "dns_query", SIG_FLAG_TOSERVER, 2, PrefilterMpmDnsQueryRegister, NULL, ALPROTO_DNS, 1);
 
-    DetectAppLayerInspectEngineRegister2("dns_query",
-            ALPROTO_DNS, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectDnsQuery, NULL);
+    DetectAppLayerInspectEngineRegister2(
+            "dns_query", ALPROTO_DNS, SIG_FLAG_TOSERVER, 1, DetectEngineInspectDnsQuery, NULL);
 
-    DetectBufferTypeSetDescriptionByName("dns_query",
-            "dns request query");
+    DetectBufferTypeSetDescriptionByName("dns_query", "dns request query");
     DetectBufferTypeSupportsMultiInstance("dns_query");
 
     g_dns_query_buffer_id = DetectBufferTypeGetByName("dns_query");
@@ -224,13 +222,10 @@ void DetectDnsQueryRegister (void)
     DetectAppLayerInspectEngineRegister2("dns_response", ALPROTO_DNS, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectGenericList, NULL);
 
-    DetectBufferTypeSetDescriptionByName("dns_request",
-            "dns requests");
-    DetectBufferTypeSetDescriptionByName("dns_response",
-            "dns responses");
+    DetectBufferTypeSetDescriptionByName("dns_request", "dns requests");
+    DetectBufferTypeSetDescriptionByName("dns_response", "dns responses");
 #endif
 }
-
 
 /**
  * \brief setup the dns_query sticky buffer keyword used in the rule
@@ -278,9 +273,7 @@ static int DetectDnsQueryTest01(void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
 
-    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_UDP,
-                           "192.168.1.5", "192.168.1.1",
-                           41424, 53);
+    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_UDP, "192.168.1.5", "192.168.1.1", 41424, 53);
 
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
@@ -298,15 +291,14 @@ static int DetectDnsQueryTest01(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                              "(msg:\"Test dns_query option\"; "
-                              "dns_query; content:\"google\"; nocase; sid:1;)");
+                                      "(msg:\"Test dns_query option\"; "
+                                      "dns_query; content:\"google\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
-                                STREAM_TOSERVER, buf, sizeof(buf));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER, buf, sizeof(buf));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FAIL;
@@ -386,15 +378,12 @@ static int DetectDnsQueryTest02(void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
 
-    p1 = UTHBuildPacketReal(buf1, sizeof(buf1), IPPROTO_UDP,
-                           "192.168.1.5", "192.168.1.1",
-                           41424, 53);
-    p2 = UTHBuildPacketReal(buf1, sizeof(buf1), IPPROTO_UDP,
-                           "192.168.1.5", "192.168.1.1",
-                           41424, 53);
-    p3 = UTHBuildPacketReal(buf1, sizeof(buf1), IPPROTO_UDP,
-                           "192.168.1.5", "192.168.1.1",
-                           41424, 53);
+    p1 = UTHBuildPacketReal(
+            buf1, sizeof(buf1), IPPROTO_UDP, "192.168.1.5", "192.168.1.1", 41424, 53);
+    p2 = UTHBuildPacketReal(
+            buf1, sizeof(buf1), IPPROTO_UDP, "192.168.1.5", "192.168.1.1", 41424, 53);
+    p3 = UTHBuildPacketReal(
+            buf1, sizeof(buf1), IPPROTO_UDP, "192.168.1.5", "192.168.1.1", 41424, 53);
 
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
@@ -423,19 +412,19 @@ static int DetectDnsQueryTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                              "(msg:\"Test dns_query option\"; "
-                              "dns_query; content:\"google.com\"; nocase; sid:1;)");
+                                      "(msg:\"Test dns_query option\"; "
+                                      "dns_query; content:\"google.com\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                              "(msg:\"Test dns_query option\"; "
-                              "dns_query; content:\"google.net\"; nocase; sid:2;)");
+                                      "(msg:\"Test dns_query option\"; "
+                                      "dns_query; content:\"google.net\"; nocase; sid:2;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
-                                STREAM_TOSERVER, buf1, sizeof(buf1));
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER, buf1, sizeof(buf1));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FAIL;
@@ -456,8 +445,7 @@ static int DetectDnsQueryTest02(void)
         FAIL;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOCLIENT,
-                            buf2, sizeof(buf2));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOCLIENT, buf2, sizeof(buf2));
     if (r != 0) {
         printf("toserver client 1 returned %" PRId32 ", expected 0: ", r);
         FAIL;
@@ -475,8 +463,7 @@ static int DetectDnsQueryTest02(void)
         FAIL;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER,
-                            buf3, sizeof(buf3));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER, buf3, sizeof(buf3));
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         FAIL;
@@ -535,9 +522,7 @@ static int DetectDnsQueryTest03(void)
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
-    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_TCP,
-                           "192.168.1.5", "192.168.1.1",
-                           41424, 53);
+    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 53);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -546,8 +531,8 @@ static int DetectDnsQueryTest03(void)
     f.protomap = FlowGetProtoMapping(f.proto);
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p->flowflags |= FLOW_PKT_TOSERVER|FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->flowflags |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DNS;
 
     StreamTcpInitConfig(true);
@@ -558,15 +543,14 @@ static int DetectDnsQueryTest03(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                              "(msg:\"Test dns_query option\"; "
-                              "dns_query; content:\"google\"; nocase; sid:1;)");
+                                      "(msg:\"Test dns_query option\"; "
+                                      "dns_query; content:\"google\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
-                                STREAM_TOSERVER, buf, sizeof(buf));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER, buf, sizeof(buf));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FAIL;
@@ -598,7 +582,6 @@ static int DetectDnsQueryTest03(void)
     PASS;
 }
 
-
 /** \test simple google.com query matching, pcre */
 static int DetectDnsQueryTest04(void)
 {
@@ -621,9 +604,7 @@ static int DetectDnsQueryTest04(void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
 
-    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_UDP,
-                           "192.168.1.5", "192.168.1.1",
-                           41424, 53);
+    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_UDP, "192.168.1.5", "192.168.1.1", 41424, 53);
 
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
@@ -641,9 +622,9 @@ static int DetectDnsQueryTest04(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                              "(msg:\"Test dns_query option\"; "
-                              "dns_query; content:\"google\"; nocase; "
-                              "pcre:\"/google\\.com$/i\"; sid:1;)");
+                                      "(msg:\"Test dns_query option\"; "
+                                      "dns_query; content:\"google\"; nocase; "
+                                      "pcre:\"/google\\.com$/i\"; sid:1;)");
     FAIL_IF_NULL(s);
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                                       "(msg:\"Test dns_query option\"; "
@@ -654,8 +635,7 @@ static int DetectDnsQueryTest04(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
-                                STREAM_TOSERVER, buf, sizeof(buf));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER, buf, sizeof(buf));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FAIL;
@@ -740,15 +720,12 @@ static int DetectDnsQueryTest05(void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
 
-    p1 = UTHBuildPacketReal(buf1, sizeof(buf1), IPPROTO_UDP,
-                            "192.168.1.5", "192.168.1.1",
-                            41424, 53);
-    p2 = UTHBuildPacketReal(buf2, sizeof(buf2), IPPROTO_UDP,
-                            "192.168.1.5", "192.168.1.1",
-                            41424, 53);
-    p3 = UTHBuildPacketReal(buf3, sizeof(buf3), IPPROTO_UDP,
-                            "192.168.1.5", "192.168.1.1",
-                            41424, 53);
+    p1 = UTHBuildPacketReal(
+            buf1, sizeof(buf1), IPPROTO_UDP, "192.168.1.5", "192.168.1.1", 41424, 53);
+    p2 = UTHBuildPacketReal(
+            buf2, sizeof(buf2), IPPROTO_UDP, "192.168.1.5", "192.168.1.1", 41424, 53);
+    p3 = UTHBuildPacketReal(
+            buf3, sizeof(buf3), IPPROTO_UDP, "192.168.1.5", "192.168.1.1", 41424, 53);
 
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
@@ -777,23 +754,23 @@ static int DetectDnsQueryTest05(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                   "(msg:\"Test dns_query option\"; "
-                                   "dns_query; content:\"google.com\"; nocase; sid:1;)");
+                                      "(msg:\"Test dns_query option\"; "
+                                      "dns_query; content:\"google.com\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                   "(msg:\"Test dns_query option\"; "
-                                   "dns_query; content:\"google.net\"; nocase; sid:2;)");
+                                      "(msg:\"Test dns_query option\"; "
+                                      "dns_query; content:\"google.net\"; nocase; sid:2;)");
     FAIL_IF_NULL(s);
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                   "(msg:\"Test Z flag event\"; "
-                                   "app-layer-event:dns.z_flag_set; sid:3;)");
+                                      "(msg:\"Test Z flag event\"; "
+                                      "app-layer-event:dns.z_flag_set; sid:3;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
-                                STREAM_TOSERVER, buf1, sizeof(buf1));
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER, buf1, sizeof(buf1));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FAIL;
@@ -814,8 +791,7 @@ static int DetectDnsQueryTest05(void)
         FAIL;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOCLIENT,
-                            buf2, sizeof(buf2));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOCLIENT, buf2, sizeof(buf2));
     if (r != 0) {
         printf("toserver client 1 returned %" PRId32 ", expected 0\n", r);
         FAIL;
@@ -837,8 +813,7 @@ static int DetectDnsQueryTest05(void)
         FAIL;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER,
-                            buf3, sizeof(buf3));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER, buf3, sizeof(buf3));
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         FAIL;

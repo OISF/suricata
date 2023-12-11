@@ -34,35 +34,35 @@
 /** Flow engine is in emergency mode. This means it doesn't have enough spare
  *  flows for new flows and/or it's memcap limit it reached. In this state the
  *  flow engine with evaluate flows with lower timeout settings. */
-#define FLOW_EMERGENCY   0x01
+#define FLOW_EMERGENCY 0x01
 
 /* Flow Time out values */
-#define FLOW_DEFAULT_NEW_TIMEOUT 30
+#define FLOW_DEFAULT_NEW_TIMEOUT           30
 #define FLOW_DEFAULT_EST_TIMEOUT           300
-#define FLOW_DEFAULT_BYPASSED_TIMEOUT 100
-#define FLOW_IPPROTO_TCP_NEW_TIMEOUT 30
-#define FLOW_IPPROTO_TCP_EST_TIMEOUT 300
-#define FLOW_IPPROTO_TCP_CLOSED_TIMEOUT 10
-#define FLOW_IPPROTO_TCP_BYPASSED_TIMEOUT 100
-#define FLOW_IPPROTO_UDP_NEW_TIMEOUT 30
-#define FLOW_IPPROTO_UDP_EST_TIMEOUT 300
-#define FLOW_IPPROTO_UDP_BYPASSED_TIMEOUT 100
-#define FLOW_IPPROTO_ICMP_NEW_TIMEOUT 30
-#define FLOW_IPPROTO_ICMP_EST_TIMEOUT 300
+#define FLOW_DEFAULT_BYPASSED_TIMEOUT      100
+#define FLOW_IPPROTO_TCP_NEW_TIMEOUT       30
+#define FLOW_IPPROTO_TCP_EST_TIMEOUT       300
+#define FLOW_IPPROTO_TCP_CLOSED_TIMEOUT    10
+#define FLOW_IPPROTO_TCP_BYPASSED_TIMEOUT  100
+#define FLOW_IPPROTO_UDP_NEW_TIMEOUT       30
+#define FLOW_IPPROTO_UDP_EST_TIMEOUT       300
+#define FLOW_IPPROTO_UDP_BYPASSED_TIMEOUT  100
+#define FLOW_IPPROTO_ICMP_NEW_TIMEOUT      30
+#define FLOW_IPPROTO_ICMP_EST_TIMEOUT      300
 #define FLOW_IPPROTO_ICMP_BYPASSED_TIMEOUT 100
 
-#define FLOW_DEFAULT_EMERG_NEW_TIMEOUT 10
+#define FLOW_DEFAULT_EMERG_NEW_TIMEOUT        10
 #define FLOW_DEFAULT_EMERG_EST_TIMEOUT        100
-#define FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT 50
-#define FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT 10
-#define FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT 100
+#define FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT   50
+#define FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT    10
+#define FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT    100
 #define FLOW_IPPROTO_TCP_EMERG_CLOSED_TIMEOUT 5
-#define FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT 10
-#define FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT 100
-#define FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT 10
-#define FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT 100
+#define FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT    10
+#define FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT    100
+#define FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT   10
+#define FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT   100
 
-#define FLOW_BYPASSED_TIMEOUT   100
+#define FLOW_BYPASSED_TIMEOUT 100
 
 enum {
     FLOW_PROTO_TCP = 0,
@@ -87,7 +87,7 @@ extern FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
 extern FlowProtoFreeFunc flow_freefuncs[FLOW_PROTO_MAX];
 
 /** spare/unused/prealloced flows live here */
-//extern FlowQueue flow_spare_q;
+// extern FlowQueue flow_spare_q;
 
 /** queue to pass flows to cleanup/log thread(s) */
 extern FlowQueue flow_recycle_q;
@@ -102,8 +102,7 @@ typedef FlowProtoTimeout *FlowProtoTimeoutPtr;
 SC_ATOMIC_EXTERN(FlowProtoTimeoutPtr, flow_timeouts);
 
 static inline uint32_t FlowGetFlowTimeoutDirect(
-        const FlowProtoTimeoutPtr flow_timeouts,
-        const enum FlowState state, const uint8_t protomap)
+        const FlowProtoTimeoutPtr flow_timeouts, const enum FlowState state, const uint8_t protomap)
 {
     uint32_t timeout;
     switch (state) {

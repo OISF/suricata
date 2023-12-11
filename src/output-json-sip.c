@@ -48,8 +48,8 @@
 
 #include "rust.h"
 
-static int JsonSIPLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonSIPLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     SIPTransaction *siptx = tx;
     OutputJsonThreadCtx *thread = thread_data;
@@ -73,8 +73,7 @@ error:
     return TM_ECODE_FAILED;
 }
 
-static OutputInitResult OutputSIPLogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult OutputSIPLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SIP);
     return OutputJsonLogInitSub(conf, parent_ctx);

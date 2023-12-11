@@ -60,30 +60,30 @@
 static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name)
 {
     /* extract state from flow */
-    SMTPState *state = (SMTPState *) FlowGetAppState(flow);
+    SMTPState *state = (SMTPState *)FlowGetAppState(flow);
     /* check that state exists */
-    if(state == NULL) {
+    if (state == NULL) {
         return LuaCallbackError(luastate, "Internal error: no state in flow");
     }
     /* pointer to current transaction in state */
     SMTPTransaction *smtp_tx = state->curr_tx;
-    if(smtp_tx == NULL) {
+    if (smtp_tx == NULL) {
         return LuaCallbackError(luastate, "Transaction ending or not found");
     }
     /* pointer to tail of msg list of MimeDecEntities in current transaction. */
     MimeDecEntity *mime = smtp_tx->msg_tail;
     /* check if msg_tail was hit */
-    if(mime == NULL){
+    if (mime == NULL) {
         return LuaCallbackError(luastate, "Internal error: no fields in transaction");
     }
     /* extract MIME field based on specific field name. */
     MimeDecField *field = MimeDecFindField(mime, name);
     /* check MIME field */
-    if(field == NULL) {
+    if (field == NULL) {
         return LuaCallbackError(luastate, "Error: mimefield not found");
     }
     /* return extracted field. */
-    if(field->value == NULL || field->value_len == 0){
+    if (field->value == NULL || field->value_len == 0) {
         return LuaCallbackError(luastate, "Error, pointer error");
     }
 
@@ -102,12 +102,12 @@ static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name)
 
 static int SMTPGetMimeField(lua_State *luastate)
 {
-    if(!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
+    if (!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
         return LuaCallbackError(luastate, "error: protocol not SMTP");
     }
     Flow *flow = LuaStateGetFlow(luastate);
     /* check that flow exist */
-    if(flow == NULL) {
+    if (flow == NULL) {
         return LuaCallbackError(luastate, "Error: no flow found");
     }
     const char *name = LuaGetStringArgument(luastate, 1);
@@ -127,30 +127,30 @@ static int SMTPGetMimeField(lua_State *luastate)
  *
  * \retval 1 if the mimelist table is pushed to luastate stack.
  * Returns error int and msg pushed to luastate stack if error occurs.
-*/
+ */
 
 static int GetMimeList(lua_State *luastate, Flow *flow)
 {
 
-    SMTPState *state = (SMTPState *) FlowGetAppState(flow);
-    if(state == NULL) {
+    SMTPState *state = (SMTPState *)FlowGetAppState(flow);
+    if (state == NULL) {
         return LuaCallbackError(luastate, "Error: no SMTP state");
     }
     /* Create a pointer to the current SMTPtransaction */
     SMTPTransaction *smtp_tx = state->curr_tx;
-    if(smtp_tx == NULL) {
+    if (smtp_tx == NULL) {
         return LuaCallbackError(luastate, "Error: no SMTP transaction found");
     }
     /* Create a pointer to the tail of MimeDecEntity list */
     MimeDecEntity *mime = smtp_tx->msg_tail;
-    if(mime == NULL) {
+    if (mime == NULL) {
         return LuaCallbackError(luastate, "Error: no mime entity found");
     }
     MimeDecField *field = mime->field_list;
-    if(field == NULL) {
+    if (field == NULL) {
         return LuaCallbackError(luastate, "Error: no field_list found");
     }
-    if(field->name == NULL || field->name_len == 0) {
+    if (field->name == NULL || field->name_len == 0) {
         return LuaCallbackError(luastate, "Error: field has no name");
     }
     /* Counter of MIME fields found */
@@ -158,10 +158,10 @@ static int GetMimeList(lua_State *luastate, Flow *flow)
     /* loop trough the list of mimeFields, printing each name found */
     lua_newtable(luastate);
     while (field != NULL) {
-        if(field->name != NULL && field->name_len != 0) {
-            lua_pushinteger(luastate,num++);
+        if (field->name != NULL && field->name_len != 0) {
+            lua_pushinteger(luastate, num++);
             LuaPushStringBuffer(luastate, field->name, field->name_len);
-            lua_settable(luastate,-3);
+            lua_settable(luastate, -3);
         }
         field = field->next;
     }
@@ -182,12 +182,12 @@ static int GetMimeList(lua_State *luastate, Flow *flow)
 static int SMTPGetMimeList(lua_State *luastate)
 {
     /* Check if right protocol */
-    if(!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
+    if (!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
         return LuaCallbackError(luastate, "Error: protocol not SMTP");
     }
     /* Extract network flow */
     Flow *flow = LuaStateGetFlow(luastate);
-    if(flow == NULL) {
+    if (flow == NULL) {
         return LuaCallbackError(luastate, "Error: no flow found");
     }
 
@@ -209,16 +209,16 @@ static int SMTPGetMimeList(lua_State *luastate)
 static int GetMailFrom(lua_State *luastate, Flow *flow)
 {
     /* Extract SMTPstate from current flow */
-    SMTPState *state = (SMTPState *) FlowGetAppState(flow);
+    SMTPState *state = (SMTPState *)FlowGetAppState(flow);
 
-    if(state == NULL) {
+    if (state == NULL) {
         return LuaCallbackError(luastate, "Internal Error: no state");
     }
     SMTPTransaction *smtp_tx = state->curr_tx;
-    if(smtp_tx == NULL) {
+    if (smtp_tx == NULL) {
         return LuaCallbackError(luastate, "Internal Error: no SMTP transaction");
     }
-    if(smtp_tx->mail_from == NULL || smtp_tx->mail_from_len == 0) {
+    if (smtp_tx->mail_from == NULL || smtp_tx->mail_from_len == 0) {
         return LuaCallbackError(luastate, "MailFrom not found");
     }
     return LuaPushStringBuffer(luastate, smtp_tx->mail_from, smtp_tx->mail_from_len);
@@ -239,12 +239,12 @@ static int GetMailFrom(lua_State *luastate, Flow *flow)
 static int SMTPGetMailFrom(lua_State *luastate)
 {
     /* check protocol */
-    if(!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
+    if (!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
         return LuaCallbackError(luastate, "Error: protocol not SMTP");
     }
     /* Extract flow, with lockhint to check mutexlocking */
     Flow *flow = LuaStateGetFlow(luastate);
-    if(flow == NULL) {
+    if (flow == NULL) {
         return LuaCallbackError(luastate, "Internal Error: no flow");
     }
 
@@ -266,13 +266,13 @@ static int SMTPGetMailFrom(lua_State *luastate)
 static int GetRcptList(lua_State *luastate, Flow *flow)
 {
 
-    SMTPState *state = (SMTPState *) FlowGetAppState(flow);
-    if(state == NULL) {
+    SMTPState *state = (SMTPState *)FlowGetAppState(flow);
+    if (state == NULL) {
         return LuaCallbackError(luastate, "Internal error, no state");
     }
 
     SMTPTransaction *smtp_tx = state->curr_tx;
-    if(smtp_tx == NULL) {
+    if (smtp_tx == NULL) {
         return LuaCallbackError(luastate, "No more tx, or tx not found");
     }
 
@@ -282,7 +282,7 @@ static int GetRcptList(lua_State *luastate, Flow *flow)
     int u = 1;
     SMTPString *rcpt;
 
-    TAILQ_FOREACH(rcpt, &smtp_tx->rcpt_to_list, next) {
+    TAILQ_FOREACH (rcpt, &smtp_tx->rcpt_to_list, next) {
         lua_pushinteger(luastate, u++);
         LuaPushStringBuffer(luastate, rcpt->str, rcpt->len);
         lua_settable(luastate, -3);
@@ -306,12 +306,12 @@ static int GetRcptList(lua_State *luastate, Flow *flow)
 static int SMTPGetRcptList(lua_State *luastate)
 {
     /* check protocol */
-    if(!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
+    if (!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
         return LuaCallbackError(luastate, "Error: protocol not SMTP");
     }
     /* Extract flow, with lockhint to check mutexlocking */
     Flow *flow = LuaStateGetFlow(luastate);
-    if(flow == NULL) {
+    if (flow == NULL) {
         return LuaCallbackError(luastate, "Internal error: no flow");
     }
 

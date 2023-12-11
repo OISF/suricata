@@ -25,6 +25,6 @@
 #define __DETECT_PREFILTER_H__
 
 /* prototypes */
-void DetectPrefilterRegister (void);
+void DetectPrefilterRegister(void);
 
 #endif /* __DETECT_PREFILTER_H__ */

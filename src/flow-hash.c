@@ -54,7 +54,6 @@
 
 extern TcpStreamCnf stream_config;
 
-
 FlowBucket *flow_hash;
 SC_ATOMIC_EXTERN(unsigned int, flow_prune_idx);
 SC_ATOMIC_EXTERN(unsigned int, flow_flags);
@@ -196,11 +195,11 @@ static inline uint32_t FlowGetHash(const Packet *p)
             FlowHashKey4 fhk = { .pad[0] = 0 };
 
             int ai = (p->src.addr_data32[0] > p->dst.addr_data32[0]);
-            fhk.addrs[1-ai] = p->src.addr_data32[0];
+            fhk.addrs[1 - ai] = p->src.addr_data32[0];
             fhk.addrs[ai] = p->dst.addr_data32[0];
 
             const int pi = (p->sp > p->dp);
-            fhk.ports[1-pi] = p->sp;
+            fhk.ports[1 - pi] = p->sp;
             fhk.ports[pi] = p->dp;
 
             fhk.proto = p->proto;
@@ -223,11 +222,11 @@ static inline uint32_t FlowGetHash(const Packet *p)
             FlowHashKey4 fhk = { .pad[0] = 0 };
 
             const int ai = (psrc > pdst);
-            fhk.addrs[1-ai] = psrc;
+            fhk.addrs[1 - ai] = psrc;
             fhk.addrs[ai] = pdst;
 
             const int pi = (p->icmpv4vars.emb_sport > p->icmpv4vars.emb_dport);
-            fhk.ports[1-pi] = p->icmpv4vars.emb_sport;
+            fhk.ports[1 - pi] = p->icmpv4vars.emb_sport;
             fhk.ports[pi] = p->icmpv4vars.emb_dport;
 
             fhk.proto = ICMPV4_GET_EMB_PROTO(p);
@@ -243,7 +242,7 @@ static inline uint32_t FlowGetHash(const Packet *p)
         } else {
             FlowHashKey4 fhk = { .pad[0] = 0 };
             const int ai = (p->src.addr_data32[0] > p->dst.addr_data32[0]);
-            fhk.addrs[1-ai] = p->src.addr_data32[0];
+            fhk.addrs[1 - ai] = p->src.addr_data32[0];
             fhk.addrs[ai] = p->dst.addr_data32[0];
             fhk.ports[0] = 0xfeed;
             fhk.ports[1] = 0xbeef;
@@ -280,7 +279,7 @@ static inline uint32_t FlowGetHash(const Packet *p)
         }
 
         const int pi = (p->sp > p->dp);
-        fhk.ports[1-pi] = p->sp;
+        fhk.ports[1 - pi] = p->sp;
         fhk.ports[pi] = p->dp;
         fhk.proto = p->proto;
         fhk.recur = p->recursion_level;
@@ -313,11 +312,11 @@ uint32_t FlowKeyGetHash(FlowKey *fk)
             .pad[0] = 0,
         };
         int ai = (fk->src.address.address_un_data32[0] > fk->dst.address.address_un_data32[0]);
-        fhk.addrs[1-ai] = fk->src.address.address_un_data32[0];
+        fhk.addrs[1 - ai] = fk->src.address.address_un_data32[0];
         fhk.addrs[ai] = fk->dst.address.address_un_data32[0];
 
         const int pi = (fk->sp > fk->dp);
-        fhk.ports[1-pi] = fk->sp;
+        fhk.ports[1 - pi] = fk->sp;
         fhk.ports[pi] = fk->dp;
 
         fhk.proto = fk->proto;
@@ -332,8 +331,8 @@ uint32_t FlowKeyGetHash(FlowKey *fk)
         FlowHashKey6 fhk = {
             .pad[0] = 0,
         };
-        if (FlowHashRawAddressIPv6GtU32(fk->src.address.address_un_data32,
-                    fk->dst.address.address_un_data32)) {
+        if (FlowHashRawAddressIPv6GtU32(
+                    fk->src.address.address_un_data32, fk->dst.address.address_un_data32)) {
             fhk.src[0] = fk->src.address.address_un_data32[0];
             fhk.src[1] = fk->src.address.address_un_data32[1];
             fhk.src[2] = fk->src.address.address_un_data32[2];
@@ -354,7 +353,7 @@ uint32_t FlowKeyGetHash(FlowKey *fk)
         }
 
         const int pi = (fk->sp > fk->dp);
-        fhk.ports[1-pi] = fk->sp;
+        fhk.ports[1 - pi] = fk->sp;
         fhk.ports[pi] = fk->dp;
         fhk.proto = fk->proto;
         fhk.recur = fk->recursion_level;
@@ -370,22 +369,21 @@ uint32_t FlowKeyGetHash(FlowKey *fk)
 
 static inline bool CmpAddrs(const uint32_t addr1[4], const uint32_t addr2[4])
 {
-    return addr1[0] == addr2[0] && addr1[1] == addr2[1] &&
-           addr1[2] == addr2[2] && addr1[3] == addr2[3];
+    return addr1[0] == addr2[0] && addr1[1] == addr2[1] && addr1[2] == addr2[2] &&
+           addr1[3] == addr2[3];
 }
 
-static inline bool CmpAddrsAndPorts(const uint32_t src1[4],
-    const uint32_t dst1[4], Port src_port1, Port dst_port1,
-    const uint32_t src2[4], const uint32_t dst2[4], Port src_port2,
-    Port dst_port2)
+static inline bool CmpAddrsAndPorts(const uint32_t src1[4], const uint32_t dst1[4], Port src_port1,
+        Port dst_port1, const uint32_t src2[4], const uint32_t dst2[4], Port src_port2,
+        Port dst_port2)
 {
     /* Compare the source and destination addresses. If they are not equal,
      * compare the first source address with the second destination address,
      * and vice versa. Likewise for ports. */
-    return (CmpAddrs(src1, src2) && CmpAddrs(dst1, dst2) &&
-            src_port1 == src_port2 && dst_port1 == dst_port2) ||
-           (CmpAddrs(src1, dst2) && CmpAddrs(dst1, src2) &&
-            src_port1 == dst_port2 && dst_port1 == src_port2);
+    return (CmpAddrs(src1, src2) && CmpAddrs(dst1, dst2) && src_port1 == src_port2 &&
+                   dst_port1 == dst_port2) ||
+           (CmpAddrs(src1, dst2) && CmpAddrs(dst1, src2) && src_port1 == dst_port2 &&
+                   dst_port1 == src_port2);
 }
 
 static inline bool CmpVlanIds(
@@ -426,18 +424,17 @@ static inline bool CmpFlowKey(const Flow *f, const FlowKey *k)
            CmpVlanIds(f->vlan_id, k->vlan_id) && CmpLiveDevIds(f->livedev, k->livedev_id);
 }
 
-static inline bool CmpAddrsAndICMPTypes(const uint32_t src1[4],
-    const uint32_t dst1[4], uint8_t icmp_s_type1, uint8_t icmp_d_type1,
-    const uint32_t src2[4], const uint32_t dst2[4], uint8_t icmp_s_type2,
-    uint8_t icmp_d_type2)
+static inline bool CmpAddrsAndICMPTypes(const uint32_t src1[4], const uint32_t dst1[4],
+        uint8_t icmp_s_type1, uint8_t icmp_d_type1, const uint32_t src2[4], const uint32_t dst2[4],
+        uint8_t icmp_s_type2, uint8_t icmp_d_type2)
 {
     /* Compare the source and destination addresses. If they are not equal,
      * compare the first source address with the second destination address,
      * and vice versa. Likewise for icmp types. */
-    return (CmpAddrs(src1, src2) && CmpAddrs(dst1, dst2) &&
-            icmp_s_type1 == icmp_s_type2 && icmp_d_type1 == icmp_d_type2) ||
-           (CmpAddrs(src1, dst2) && CmpAddrs(dst1, src2) &&
-            icmp_s_type1 == icmp_d_type2 && icmp_d_type1 == icmp_s_type2);
+    return (CmpAddrs(src1, src2) && CmpAddrs(dst1, dst2) && icmp_s_type1 == icmp_s_type2 &&
+                   icmp_d_type1 == icmp_d_type2) ||
+           (CmpAddrs(src1, dst2) && CmpAddrs(dst1, src2) && icmp_s_type1 == icmp_d_type2 &&
+                   icmp_d_type1 == icmp_s_type2);
 }
 
 static inline bool CmpFlowICMPPacket(const Flow *f, const Packet *p)
@@ -476,8 +473,8 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
                 (f->livedev == p->livedev || g_livedev_mask == 0)) {
             return 1;
 
-        /* check the less likely case where the ICMP error was a response to
-         * a packet from the server. */
+            /* check the less likely case where the ICMP error was a response to
+             * a packet from the server. */
         } else if ((f->dst.addr_data32[0] == IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p))) &&
                    (f->src.addr_data32[0] == IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p))) &&
                    f->dp == p->icmpv4vars.emb_sport && f->sp == p->icmpv4vars.emb_dport &&
@@ -569,15 +566,14 @@ static inline int FlowCreateCheck(const Packet *p, const bool emerg)
     return 1;
 }
 
-static inline void FlowUpdateCounter(ThreadVars *tv, DecodeThreadVars *dtv,
-        uint8_t proto)
+static inline void FlowUpdateCounter(ThreadVars *tv, DecodeThreadVars *dtv, uint8_t proto)
 {
 #ifdef UNITTESTS
     if (tv && dtv) {
 #endif
         StatsIncr(tv, dtv->counter_flow_total);
         StatsIncr(tv, dtv->counter_flow_active);
-        switch (proto){
+        switch (proto) {
             case IPPROTO_UDP:
                 StatsIncr(tv, dtv->counter_flow_udp);
                 break;
@@ -601,8 +597,8 @@ static inline void FlowUpdateCounter(ThreadVars *tv, DecodeThreadVars *dtv,
  *
  *  If in emergency mode, do this only once a second at max to avoid trying
  *  to synchronise per packet in the worse case. */
-static inline Flow *FlowSpareSync(ThreadVars *tv, FlowLookupStruct *fls,
-        const Packet *p, const bool emerg)
+static inline Flow *FlowSpareSync(
+        ThreadVars *tv, FlowLookupStruct *fls, const Packet *p, const bool emerg)
 {
     Flow *f = NULL;
     bool spare_sync = false;
@@ -626,7 +622,7 @@ static inline Flow *FlowSpareSync(ThreadVars *tv, FlowLookupStruct *fls,
 #endif
         if (spare_sync) {
             if (f != NULL) {
-                StatsAddUI64(tv, fls->dtv->counter_flow_spare_sync_avg, fls->spare_queue.len+1);
+                StatsAddUI64(tv, fls->dtv->counter_flow_spare_sync_avg, fls->spare_queue.len + 1);
                 if (fls->spare_queue.len < 99) {
                     StatsIncr(tv, fls->dtv->counter_flow_spare_sync_incomplete);
                 }
@@ -780,8 +776,8 @@ static inline bool FlowBelongsToUs(const ThreadVars *tv, const Flow *f)
     return f->thread_id[0] == tv->id;
 }
 
-static inline void MoveToWorkQueue(ThreadVars *tv, FlowLookupStruct *fls,
-        FlowBucket *fb, Flow *f, Flow *prev_f)
+static inline void MoveToWorkQueue(
+        ThreadVars *tv, FlowLookupStruct *fls, FlowBucket *fb, Flow *f, Flow *prev_f)
 {
     f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT;
 
@@ -815,8 +811,8 @@ static inline bool FlowIsTimedOut(const Flow *f, const uint32_t sec, const bool 
     } else if (unlikely(emerg)) {
         extern FlowProtoTimeout flow_timeouts_delta[FLOW_PROTO_MAX];
 
-        int64_t timeout_at = f->timeout_at -
-            FlowGetFlowTimeoutDirect(flow_timeouts_delta, f->flow_state, f->protomap);
+        int64_t timeout_at = f->timeout_at - FlowGetFlowTimeoutDirect(flow_timeouts_delta,
+                                                     f->flow_state, f->protomap);
         if ((int64_t)sec >= timeout_at)
             return true;
     }
@@ -897,7 +893,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
                 if (prev_f == NULL) /* if we have no prev it means new_f is now our prev */
                     prev_f = new_f;
                 MoveToWorkQueue(tv, fls, fb, f, prev_f); /* evict old flow */
-                FLOWLOCK_UNLOCK(f); /* unlock old replaced flow */
+                FLOWLOCK_UNLOCK(f);                      /* unlock old replaced flow */
 
                 if (new_f == NULL) {
                     FBLOCK_UNLOCK(fb);
@@ -914,7 +910,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
         prev_f = f;
         next_f = f->next;
 
-flow_removed:
+    flow_removed:
         if (next_f == NULL) {
             f = FlowGetNew(tv, fls, p);
             if (f == NULL) {
@@ -1096,7 +1092,7 @@ static inline int GetUsedTryLockFlow(Flow *f)
 }
 static inline uint32_t GetUsedAtomicUpdate(const uint32_t val)
 {
-    uint32_t r =  SC_ATOMIC_ADD(flow_prune_idx, val);
+    uint32_t r = SC_ATOMIC_ADD(flow_prune_idx, val);
     return r;
 }
 
@@ -1131,13 +1127,12 @@ static inline bool StillAlive(const Flow *f, const SCTime_t ts)
 }
 
 #ifdef UNITTESTS
-    #define STATSADDUI64(cnt, value) \
-        if (tv && dtv) { \
-            StatsAddUI64(tv, dtv->cnt, (value)); \
-        }
+#define STATSADDUI64(cnt, value)                                                                   \
+    if (tv && dtv) {                                                                               \
+        StatsAddUI64(tv, dtv->cnt, (value));                                                       \
+    }
 #else
-    #define STATSADDUI64(cnt, value) \
-        StatsAddUI64(tv, dtv->cnt, (value));
+#define STATSADDUI64(cnt, value) StatsAddUI64(tv, dtv->cnt, (value));
 #endif
 
 /** \internal
@@ -1208,7 +1203,7 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv, const SCTime
         if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY)
             f->flow_end_flags |= FLOW_END_FLAG_EMERGENCY;
 
-        /* invoke flow log api */
+            /* invoke flow log api */
 #ifdef UNITTESTS
         if (dtv) {
 #endif

@@ -36,15 +36,15 @@
 #include "util-validate.h"
 
 static THashData *THashGetUsed(THashTableContext *ctx);
-static void THashDataEnqueue (THashDataQueue *q, THashData *h);
+static void THashDataEnqueue(THashDataQueue *q, THashData *h);
 
 void THashDataMoveToSpare(THashTableContext *ctx, THashData *h)
 {
     THashDataEnqueue(&ctx->spare_q, h);
-    (void) SC_ATOMIC_SUB(ctx->counter, 1);
+    (void)SC_ATOMIC_SUB(ctx->counter, 1);
 }
 
-static THashDataQueue *THashDataQueueInit (THashDataQueue *q)
+static THashDataQueue *THashDataQueueInit(THashDataQueue *q)
 {
     if (q != NULL) {
         memset(q, 0, sizeof(THashDataQueue));
@@ -69,7 +69,7 @@ THashDataQueue *THashDataQueueNew(void)
  *
  *  \param q the queue to destroy
  */
-static void THashDataQueueDestroy (THashDataQueue *q)
+static void THashDataQueueDestroy(THashDataQueue *q)
 {
     HQLOCK_DESTROY(q);
 }
@@ -80,7 +80,7 @@ static void THashDataQueueDestroy (THashDataQueue *q)
  *  \param q queue
  *  \param h data
  */
-static void THashDataEnqueue (THashDataQueue *q, THashData *h)
+static void THashDataEnqueue(THashDataQueue *q, THashData *h)
 {
 #ifdef DEBUG
     BUG_ON(q == NULL || h == NULL);
@@ -93,7 +93,7 @@ static void THashDataEnqueue (THashDataQueue *q, THashData *h)
         h->next = q->top;
         q->top->prev = h;
         q->top = h;
-    /* only data */
+        /* only data */
     } else {
         q->top = h;
         q->bot = h;
@@ -113,7 +113,7 @@ static void THashDataEnqueue (THashDataQueue *q, THashData *h)
  *
  *  \retval h data or NULL if empty list.
  */
-static THashData *THashDataDequeue (THashDataQueue *q)
+static THashData *THashDataDequeue(THashDataQueue *q)
 {
     HQLOCK_LOCK(q);
 
@@ -127,7 +127,7 @@ static THashData *THashDataDequeue (THashDataQueue *q)
     if (q->bot->prev != NULL) {
         q->bot = q->bot->prev;
         q->bot->next = NULL;
-    /* just the one we remove, so now empty */
+        /* just the one we remove, so now empty */
     } else {
         q->top = NULL;
         q->bot = NULL;
@@ -165,7 +165,7 @@ static THashData *THashDataAlloc(THashTableContext *ctx)
         return NULL;
     }
 
-    (void) SC_ATOMIC_ADD(ctx->memuse, data_size);
+    (void)SC_ATOMIC_ADD(ctx->memuse, data_size);
 
     THashData *h = SCCalloc(1, data_size);
     if (unlikely(h == NULL))
@@ -174,7 +174,7 @@ static THashData *THashDataAlloc(THashTableContext *ctx)
     /* points to data right after THashData block */
     h->data = (uint8_t *)h + sizeof(THashData);
 
-//    memset(h, 0x00, data_size);
+    //    memset(h, 0x00, data_size);
 
     SCMutexInit(&h->m, NULL);
     SC_ATOMIC_INIT(h->use_cnt);
@@ -194,16 +194,15 @@ static void THashDataFree(THashTableContext *ctx, THashData *h)
         }
         SCMutexDestroy(&h->m);
         SCFree(h);
-        (void) SC_ATOMIC_SUB(ctx->memuse, THASH_DATA_SIZE(ctx));
+        (void)SC_ATOMIC_SUB(ctx->memuse, THASH_DATA_SIZE(ctx));
     }
 }
 
 #define THASH_DEFAULT_HASHSIZE 4096
-#define THASH_DEFAULT_MEMCAP 16777216
+#define THASH_DEFAULT_MEMCAP   16777216
 #define THASH_DEFAULT_PREALLOC 1000
 
-#define GET_VAR(prefix,name) \
-    snprintf(varname, sizeof(varname), "%s.%s", (prefix), (name))
+#define GET_VAR(prefix, name) snprintf(varname, sizeof(varname), "%s.%s", (prefix), (name))
 
 /** \brief initialize the configuration
  *  \warning Not thread safe */
@@ -219,8 +218,7 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
 
     /** set config values for memcap, prealloc and hash_size */
     GET_VAR(cnf_prefix, "memcap");
-    if ((ConfGet(varname, &conf_val)) == 1)
-    {
+    if ((ConfGet(varname, &conf_val)) == 1) {
         if (ParseSizeStringU64(conf_val, &ctx->config.memcap) < 0) {
             SCLogError("Error parsing %s "
                        "from conf file - %s.  Killing engine",
@@ -229,20 +227,18 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
         }
     }
     GET_VAR(cnf_prefix, "hash-size");
-    if ((ConfGet(varname, &conf_val)) == 1)
-    {
+    if ((ConfGet(varname, &conf_val)) == 1) {
         if (StringParseUint32(&configval, 10, (uint16_t)strlen(conf_val), conf_val) > 0) {
             ctx->config.hash_size = configval;
         }
     }
 
     GET_VAR(cnf_prefix, "prealloc");
-    if ((ConfGet(varname, &conf_val)) == 1)
-    {
+    if ((ConfGet(varname, &conf_val)) == 1) {
         if (StringParseUint32(&configval, 10, (uint16_t)strlen(conf_val), conf_val) > 0) {
             ctx->config.prealloc = configval;
         } else {
-            WarnInvalidConfEntry(varname, "%"PRIu32, ctx->config.prealloc);
+            WarnInvalidConfEntry(varname, "%" PRIu32, ctx->config.prealloc);
         }
     }
 
@@ -268,7 +264,7 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     for (i = 0; i < ctx->config.hash_size; i++) {
         HRLOCK_INIT(&ctx->array[i]);
     }
-    (void) SC_ATOMIC_ADD(ctx->memuse, (ctx->config.hash_size * sizeof(THashHashRow)));
+    (void)SC_ATOMIC_ADD(ctx->memuse, (ctx->config.hash_size * sizeof(THashHashRow)));
 
     /* pre allocate prealloc */
     for (i = 0; i < ctx->config.prealloc; i++) {
@@ -286,7 +282,7 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
             SCLogError("preallocating data failed: %s", strerror(errno));
             return -1;
         }
-        THashDataEnqueue(&ctx->spare_q,h);
+        THashDataEnqueue(&ctx->spare_q, h);
     }
 
     return 0;
@@ -369,7 +365,7 @@ void THashShutdown(THashTableContext *ctx)
         SCFreeAligned(ctx->array);
         ctx->array = NULL;
     }
-    (void) SC_ATOMIC_SUB(ctx->memuse, ctx->config.hash_size * sizeof(THashHashRow));
+    (void)SC_ATOMIC_SUB(ctx->memuse, ctx->config.hash_size * sizeof(THashHashRow));
     THashDataQueueDestroy(&ctx->spare_q);
     SCFree(ctx);
     return;
@@ -378,7 +374,8 @@ void THashShutdown(THashTableContext *ctx)
 /** \brief Walk the hash
  *
  */
-int THashWalk(THashTableContext *ctx, THashFormatFunc FormatterFunc, THashOutputFunc OutputterFunc, void *output_ctx)
+int THashWalk(THashTableContext *ctx, THashFormatFunc FormatterFunc, THashOutputFunc OutputterFunc,
+        void *output_ctx)
 {
     uint32_t u;
 
@@ -517,7 +514,7 @@ static THashData *THashDataGetNew(THashTableContext *ctx, void *data)
     // setup the data
     BUG_ON(ctx->config.DataSet(h->data, data) != 0);
 
-    (void) SC_ATOMIC_ADD(ctx->counter, 1);
+    (void)SC_ATOMIC_ADD(ctx->counter, 1);
     SCMutexLock(&h->m);
     return h;
 }
@@ -526,10 +523,12 @@ static THashData *THashDataGetNew(THashTableContext *ctx, void *data)
  * returns a *LOCKED* data or NULL
  */
 
-struct THashDataGetResult
-THashGetFromHash (THashTableContext *ctx, void *data)
+struct THashDataGetResult THashGetFromHash(THashTableContext *ctx, void *data)
 {
-    struct THashDataGetResult res = { .data = NULL, .is_new = false, };
+    struct THashDataGetResult res = {
+        .data = NULL,
+        .is_new = false,
+    };
     THashData *h = NULL;
 
     /* get the key to our bucket */
@@ -551,7 +550,7 @@ THashGetFromHash (THashTableContext *ctx, void *data)
         hb->tail = h;
 
         /* initialize and return */
-        (void) THashIncrUsecnt(h);
+        (void)THashIncrUsecnt(h);
 
         HRLOCK_UNLOCK(hb);
         res.data = h;
@@ -583,7 +582,7 @@ THashGetFromHash (THashTableContext *ctx, void *data)
                 h->prev = ph;
 
                 /* initialize and return */
-                (void) THashIncrUsecnt(h);
+                (void)THashIncrUsecnt(h);
 
                 HRLOCK_UNLOCK(hb);
                 res.data = h;
@@ -611,7 +610,7 @@ THashGetFromHash (THashTableContext *ctx, void *data)
 
                 /* found our data, lock & return */
                 SCMutexLock(&h->m);
-                (void) THashIncrUsecnt(h);
+                (void)THashIncrUsecnt(h);
                 HRLOCK_UNLOCK(hb);
                 res.data = h;
                 res.is_new = false;
@@ -623,7 +622,7 @@ THashGetFromHash (THashTableContext *ctx, void *data)
 
     /* lock & return */
     SCMutexLock(&h->m);
-    (void) THashIncrUsecnt(h);
+    (void)THashIncrUsecnt(h);
     HRLOCK_UNLOCK(hb);
     res.data = h;
     res.is_new = false;
@@ -637,7 +636,7 @@ THashGetFromHash (THashTableContext *ctx, void *data)
  *
  *  \retval h *LOCKED* data or NULL
  */
-THashData *THashLookupFromHash (THashTableContext *ctx, void *data)
+THashData *THashLookupFromHash(THashTableContext *ctx, void *data)
 {
     THashData *h = NULL;
 
@@ -684,7 +683,7 @@ THashData *THashLookupFromHash (THashTableContext *ctx, void *data)
 
                 /* found our data, lock & return */
                 SCMutexLock(&h->m);
-                (void) THashIncrUsecnt(h);
+                (void)THashIncrUsecnt(h);
                 HRLOCK_UNLOCK(hb);
                 return h;
             }
@@ -693,7 +692,7 @@ THashData *THashLookupFromHash (THashTableContext *ctx, void *data)
 
     /* lock & return */
     SCMutexLock(&h->m);
-    (void) THashIncrUsecnt(h);
+    (void)THashIncrUsecnt(h);
     HRLOCK_UNLOCK(hb);
     return h;
 }
@@ -761,7 +760,7 @@ static THashData *THashGetUsed(THashTableContext *ctx)
         }
         SCMutexUnlock(&h->m);
 
-        (void) SC_ATOMIC_ADD(ctx->prune_idx, (ctx->config.hash_size - cnt));
+        (void)SC_ATOMIC_ADD(ctx->prune_idx, (ctx->config.hash_size - cnt));
         return h;
     }
 
@@ -772,7 +771,7 @@ static THashData *THashGetUsed(THashTableContext *ctx)
  * \retval int -1 not found
  * \retval int 0 found, but it was busy (ref cnt)
  * \retval int 1 found and removed */
-int THashRemoveFromHash (THashTableContext *ctx, void *data)
+int THashRemoveFromHash(THashTableContext *ctx, void *data)
 {
     /* get the key to our bucket */
     uint32_t key = THashGetKey(&ctx->config, data);

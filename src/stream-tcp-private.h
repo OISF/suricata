@@ -27,9 +27,9 @@
 #include "util-pool-thread.h"
 #include "util-streaming-buffer.h"
 
-#define STREAMTCP_QUEUE_FLAG_TS     0x01
-#define STREAMTCP_QUEUE_FLAG_WS     0x02
-#define STREAMTCP_QUEUE_FLAG_SACK   0x04
+#define STREAMTCP_QUEUE_FLAG_TS   0x01
+#define STREAMTCP_QUEUE_FLAG_WS   0x02
+#define STREAMTCP_QUEUE_FLAG_SACK 0x04
 
 /** Tracking SYNs and SYN/ACKs */
 typedef struct TcpStateQueue_ {
@@ -44,8 +44,8 @@ typedef struct TcpStateQueue_ {
 } TcpStateQueue;
 
 typedef struct StreamTcpSackRecord {
-    uint32_t le;    /**< left edge, host order */
-    uint32_t re;    /**< right edge, host order */
+    uint32_t le; /**< left edge, host order */
+    uint32_t re; /**< right edge, host order */
     RB_ENTRY(StreamTcpSackRecord) rb;
 } StreamTcpSackRecord;
 
@@ -71,7 +71,7 @@ typedef struct TcpSegmentPcapHdrStorage_ {
 
 typedef struct TcpSegment {
     PoolThreadId pool_id;
-    uint16_t payload_len;       /**< actual size of the payload */
+    uint16_t payload_len; /**< actual size of the payload */
     uint32_t seq;
     RB_ENTRY(TcpSegment) __attribute__((__packed__)) rb;
     StreamingBufferSegment sbseg;
@@ -91,54 +91,57 @@ int TcpSegmentCompare(struct TcpSegment *a, struct TcpSegment *b);
 RB_HEAD(TCPSEG, TcpSegment);
 RB_PROTOTYPE(TCPSEG, TcpSegment, rb, TcpSegmentCompare);
 
-#define TCP_SEG_LEN(seg)        (seg)->payload_len
-#define TCP_SEG_OFFSET(seg)     (seg)->sbseg.stream_offset
+#define TCP_SEG_LEN(seg)    (seg)->payload_len
+#define TCP_SEG_OFFSET(seg) (seg)->sbseg.stream_offset
 
 #define SEG_SEQ_RIGHT_EDGE(seg) ((seg)->seq + TCP_SEG_LEN((seg)))
 
 /* get right edge of sequence space of seen segments.
  * Only use if STREAM_HAS_SEEN_DATA is true. */
-#define STREAM_SEQ_RIGHT_EDGE(stream)   (stream)->segs_right_edge
-#define STREAM_RIGHT_EDGE(stream)       (STREAM_BASE_OFFSET((stream)) + (STREAM_SEQ_RIGHT_EDGE((stream)) - (stream)->base_seq))
+#define STREAM_SEQ_RIGHT_EDGE(stream) (stream)->segs_right_edge
+#define STREAM_RIGHT_EDGE(stream)                                                                  \
+    (STREAM_BASE_OFFSET((stream)) + (STREAM_SEQ_RIGHT_EDGE((stream)) - (stream)->base_seq))
 /* return true if we have seen data. */
 #define STREAM_HAS_SEEN_DATA(stream) StreamingBufferHasData(&(stream)->sb)
 
 typedef struct TcpStream_ {
-    uint16_t flags:12;              /**< Flag specific to the stream e.g. Timestamp */
+    uint16_t flags : 12; /**< Flag specific to the stream e.g. Timestamp */
     /* coccinelle: TcpStream:flags:STREAMTCP_STREAM_FLAG_ */
-    uint16_t wscale:4;              /**< wscale setting in this direction, 4 bits as max val is 15 */
-    uint8_t os_policy;              /**< target based OS policy used for reassembly and handling packets*/
-    uint8_t tcp_flags;              /**< TCP flags seen */
+    uint16_t wscale : 4; /**< wscale setting in this direction, 4 bits as max val is 15 */
+    uint8_t os_policy;   /**< target based OS policy used for reassembly and handling packets*/
+    uint8_t tcp_flags;   /**< TCP flags seen */
 
-    uint32_t isn;                   /**< initial sequence number */
-    uint32_t next_seq;              /**< next expected sequence number */
-    uint32_t last_ack;              /**< last ack'd sequence number in this stream */
-    uint32_t next_win;              /**< next max seq within window */
-    uint32_t window;                /**< current window setting, after wscale is applied */
+    uint32_t isn;      /**< initial sequence number */
+    uint32_t next_seq; /**< next expected sequence number */
+    uint32_t last_ack; /**< last ack'd sequence number in this stream */
+    uint32_t next_win; /**< next max seq within window */
+    uint32_t window;   /**< current window setting, after wscale is applied */
 
-    uint32_t last_ts;               /**< Time stamp (TSVAL) of the last seen packet for this stream*/
-    uint32_t last_pkt_ts;           /**< Time of last seen packet for this stream (needed for PAWS update)
-                                         This will be used to validate the last_ts, when connection has been idle for
-                                         longer time.(RFC 1323)*/
+    uint32_t last_ts;     /**< Time stamp (TSVAL) of the last seen packet for this stream*/
+    uint32_t last_pkt_ts; /**< Time of last seen packet for this stream (needed for PAWS update)
+                               This will be used to validate the last_ts, when connection has been
+                             idle for longer time.(RFC 1323)*/
     /* reassembly */
     uint32_t base_seq; /**< seq where we are left with reassembly. Matches STREAM_BASE_OFFSET below.
                         */
 
-    uint32_t app_progress_rel;      /**< app-layer progress relative to STREAM_BASE_OFFSET */
-    uint32_t raw_progress_rel;      /**< raw reassembly progress relative to STREAM_BASE_OFFSET */
-    uint32_t log_progress_rel;      /**< streaming logger progress relative to STREAM_BASE_OFFSET */
+    uint32_t app_progress_rel; /**< app-layer progress relative to STREAM_BASE_OFFSET */
+    uint32_t raw_progress_rel; /**< raw reassembly progress relative to STREAM_BASE_OFFSET */
+    uint32_t log_progress_rel; /**< streaming logger progress relative to STREAM_BASE_OFFSET */
 
-    uint32_t min_inspect_depth;     /**< min inspect size set by the app layer, to make sure enough data
-                                     *   remains available for inspection together with app layer buffers */
-    uint32_t data_required;         /**< data required from STREAM_APP_PROGRESS before calling app-layer again */
+    uint32_t min_inspect_depth; /**< min inspect size set by the app layer, to make sure enough data
+                                 *   remains available for inspection together with app layer
+                                 * buffers */
+    uint32_t data_required;     /**< data required from STREAM_APP_PROGRESS before calling app-layer
+                                   again */
 
     StreamingBuffer sb;
-    struct TCPSEG seg_tree;         /**< red black tree of TCP segments. Data is stored in TcpStream::sb */
+    struct TCPSEG seg_tree; /**< red black tree of TCP segments. Data is stored in TcpStream::sb */
     uint32_t segs_right_edge;
 
-    uint32_t sack_size;             /**< combined size of the SACK ranges currently in our tree. Updated
-                                     *   at INSERT/REMOVE time. */
-    struct TCPSACK sack_tree;       /**< red back tree of TCP SACK records. */
+    uint32_t sack_size;       /**< combined size of the SACK ranges currently in our tree. Updated
+                               *   at INSERT/REMOVE time. */
+    struct TCPSACK sack_tree; /**< red back tree of TCP SACK records. */
 } TcpStream;
 
 #define STREAM_BASE_OFFSET(stream)  ((stream)->sb.region.stream_offset)
@@ -181,7 +184,8 @@ enum TcpState {
 /** Flag to indicate that the session is handling asynchronous stream.*/
 #define STREAMTCP_FLAG_ASYNC BIT_U32(6)
 /** Flag to indicate we're dealing with 4WHS: SYN, SYN, SYN/ACK, ACK
- * (http://www.breakingpointsystems.com/community/blog/tcp-portals-the-three-way-handshake-is-a-lie) */
+ * (http://www.breakingpointsystems.com/community/blog/tcp-portals-the-three-way-handshake-is-a-lie)
+ */
 #define STREAMTCP_FLAG_4WHS BIT_U32(7)
 /** Flag to indicate that this session is possible trying to evade the detection
  *  (http://www.packetstan.com/2010/06/recently-ive-been-on-campaign-to-make.html) */
@@ -216,56 +220,57 @@ enum TcpState {
 /** Flag to indicate that we have seen gap on the stream */
 #define STREAMTCP_STREAM_FLAG_HAS_GAP BIT_U16(0)
 /** Flag to avoid stream reassembly/app layer inspection for the stream */
-#define STREAMTCP_STREAM_FLAG_NOREASSEMBLY                  BIT_U16(1)
+#define STREAMTCP_STREAM_FLAG_NOREASSEMBLY BIT_U16(1)
 /** we received a keep alive */
-#define STREAMTCP_STREAM_FLAG_KEEPALIVE                     BIT_U16(2)
+#define STREAMTCP_STREAM_FLAG_KEEPALIVE BIT_U16(2)
 /** Stream has reached it's reassembly depth, all further packets are ignored */
-#define STREAMTCP_STREAM_FLAG_DEPTH_REACHED                 BIT_U16(3)
+#define STREAMTCP_STREAM_FLAG_DEPTH_REACHED BIT_U16(3)
 /** Trigger reassembly next time we need 'raw' */
-#define STREAMTCP_STREAM_FLAG_TRIGGER_RAW                   BIT_U16(4)
+#define STREAMTCP_STREAM_FLAG_TRIGGER_RAW BIT_U16(4)
 /** Stream supports TIMESTAMP -- used to set ssn STREAMTCP_FLAG_TIMESTAMP
  *  flag. */
-#define STREAMTCP_STREAM_FLAG_TIMESTAMP                     BIT_U16(5)
+#define STREAMTCP_STREAM_FLAG_TIMESTAMP BIT_U16(5)
 /** Flag to indicate the zero value of timestamp */
-#define STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP                BIT_U16(6)
+#define STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP BIT_U16(6)
 /** App proto detection completed */
-#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED  BIT_U16(7)
+#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED BIT_U16(7)
 /** App proto detection skipped */
-#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED    BIT_U16(8)
+#define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED BIT_U16(8)
 /** Raw reassembly disabled for new segments */
-#define STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED              BIT_U16(9)
+#define STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED BIT_U16(9)
 /** Raw reassembly disabled completely */
-#define STREAMTCP_STREAM_FLAG_DISABLE_RAW                   BIT_U16(10)
+#define STREAMTCP_STREAM_FLAG_DISABLE_RAW BIT_U16(10)
 
-#define STREAMTCP_STREAM_FLAG_RST_RECV                      BIT_U16(11)
+#define STREAMTCP_STREAM_FLAG_RST_RECV BIT_U16(11)
 
 /** NOTE: flags field is 12 bits */
 
+#define PAWS_24DAYS 2073600 /**< 24 days in seconds */
 
-
-
-#define PAWS_24DAYS         2073600         /**< 24 days in seconds */
-
-#define PKT_IS_IN_RIGHT_DIR(ssn, p)        ((ssn)->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK ? \
-                                            PKT_IS_TOSERVER(p) ? (p)->flowflags &= ~FLOW_PKT_TOSERVER \
-                                            (p)->flowflags |= FLOW_PKT_TOCLIENT : (p)->flowflags &= ~FLOW_PKT_TOCLIENT \
-                                            (p)->flowflags |= FLOW_PKT_TOSERVER : 0)
+#define PKT_IS_IN_RIGHT_DIR(ssn, p)                                                                \
+    ((ssn)->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK                                                \
+                    ? PKT_IS_TOSERVER(p) ? (p)->flowflags &= ~FLOW_PKT_TOSERVER(p)->flowflags |=   \
+                                           FLOW_PKT_TOCLIENT                                       \
+                                         : (p)->flowflags &= ~FLOW_PKT_TOCLIENT(p)->flowflags |=   \
+                                           FLOW_PKT_TOSERVER                                       \
+                    : 0)
 
 /* Macro's for comparing Sequence numbers
  * Page 810 from TCP/IP Illustrated, Volume 2. */
-#define SEQ_EQ(a,b)  ((int32_t)((a) - (b)) == 0)
-#define SEQ_LT(a,b)  ((int32_t)((a) - (b)) <  0)
-#define SEQ_LEQ(a,b) ((int32_t)((a) - (b)) <= 0)
-#define SEQ_GT(a,b)  ((int32_t)((a) - (b)) >  0)
-#define SEQ_GEQ(a,b) ((int32_t)((a) - (b)) >= 0)
+#define SEQ_EQ(a, b)  ((int32_t)((a) - (b)) == 0)
+#define SEQ_LT(a, b)  ((int32_t)((a) - (b)) < 0)
+#define SEQ_LEQ(a, b) ((int32_t)((a) - (b)) <= 0)
+#define SEQ_GT(a, b)  ((int32_t)((a) - (b)) > 0)
+#define SEQ_GEQ(a, b) ((int32_t)((a) - (b)) >= 0)
 #define SEQ_MIN(a, b) (SEQ_LT((a), (b)) ? (a) : (b))
 #define SEQ_MAX(a, b) (SEQ_GT((a), (b)) ? (a) : (b))
 
-#define STREAMTCP_SET_RA_BASE_SEQ(stream, seq) { \
-    do { \
-        (stream)->base_seq = (seq) + 1;    \
-    } while(0); \
-}
+#define STREAMTCP_SET_RA_BASE_SEQ(stream, seq)                                                     \
+    {                                                                                              \
+        do {                                                                                       \
+            (stream)->base_seq = (seq) + 1;                                                        \
+        } while (0);                                                                               \
+    }
 
 #define StreamTcpSetEvent(p, e)                                                                    \
     {                                                                                              \
@@ -282,9 +287,9 @@ enum TcpState {
 
 typedef struct TcpSession_ {
     PoolThreadId pool_id;
-    uint8_t state:4;                        /**< tcp state from state enum */
-    uint8_t pstate:4;                       /**< previous state */
-    uint8_t queue_len;                      /**< length of queue list below */
+    uint8_t state : 4;  /**< tcp state from state enum */
+    uint8_t pstate : 4; /**< previous state */
+    uint8_t queue_len;  /**< length of queue list below */
     int8_t data_first_seen_dir;
     /** track all the tcp flags we've seen */
     uint8_t tcp_packet_flags;
@@ -293,18 +298,19 @@ typedef struct TcpSession_ {
     uint32_t reassembly_depth; /**< reassembly depth for the stream */
     TcpStream server;
     TcpStream client;
-    TcpStateQueue *queue;                   /**< list of SYN/ACK candidates */
+    TcpStateQueue *queue; /**< list of SYN/ACK candidates */
 } TcpSession;
 
-#define StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream) \
+#define StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream)                                   \
     ((stream)->flags |= STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)
-#define StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream) \
+#define StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)                                 \
     ((stream)->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)
-#define StreamTcpResetStreamFlagAppProtoDetectionCompleted(stream) \
+#define StreamTcpResetStreamFlagAppProtoDetectionCompleted(stream)                                 \
     ((stream)->flags &= ~STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED);
-#define StreamTcpDisableAppLayerReassembly(ssn) do { \
-        SCLogDebug("setting STREAMTCP_FLAG_APP_LAYER_DISABLED on ssn %p", ssn); \
-        ((ssn)->flags |= STREAMTCP_FLAG_APP_LAYER_DISABLED); \
+#define StreamTcpDisableAppLayerReassembly(ssn)                                                    \
+    do {                                                                                           \
+        SCLogDebug("setting STREAMTCP_FLAG_APP_LAYER_DISABLED on ssn %p", ssn);                    \
+        ((ssn)->flags |= STREAMTCP_FLAG_APP_LAYER_DISABLED);                                       \
     } while (0);
 
 #define STREAM_PKT_FLAG_RETRANSMISSION          BIT_U16(0)

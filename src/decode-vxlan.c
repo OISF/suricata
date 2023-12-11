@@ -42,10 +42,10 @@
 
 #define VXLAN_HEADER_LEN sizeof(VXLANHeader)
 
-#define VXLAN_MAX_PORTS         4
-#define VXLAN_UNSET_PORT        -1
-#define VXLAN_DEFAULT_PORT      4789
-#define VXLAN_DEFAULT_PORT_S    "4789"
+#define VXLAN_MAX_PORTS      4
+#define VXLAN_UNSET_PORT     -1
+#define VXLAN_DEFAULT_PORT   4789
+#define VXLAN_DEFAULT_PORT_S "4789"
 
 static bool g_vxlan_enabled = true;
 static int g_vxlan_ports_idx = 0;
@@ -119,8 +119,7 @@ void DecodeVXLANConfig(void)
 /** \param pkt payload data directly above UDP header
  *  \param len length in bytes of pkt
  */
-int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len)
+int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
@@ -195,7 +194,7 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
  * \test DecodeVXLANTest01 test a good vxlan header.
  * Contains a DNS request packet.
  */
-static int DecodeVXLANtest01 (void)
+static int DecodeVXLANtest01(void)
 {
     // clang-format off
     uint8_t raw_vxlan[] = {
@@ -236,7 +235,7 @@ static int DecodeVXLANtest01 (void)
 /**
  * \test DecodeVXLANtest02 tests default port disabled by the config.
  */
-static int DecodeVXLANtest02 (void)
+static int DecodeVXLANtest02(void)
 {
     // clang-format off
     uint8_t raw_vxlan[] = {
@@ -274,9 +273,7 @@ static int DecodeVXLANtest02 (void)
 void DecodeVXLANRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodeVXLANtest01",
-                   DecodeVXLANtest01);
-    UtRegisterTest("DecodeVXLANtest02",
-                   DecodeVXLANtest02);
+    UtRegisterTest("DecodeVXLANtest01", DecodeVXLANtest01);
+    UtRegisterTest("DecodeVXLANtest02", DecodeVXLANtest02);
 #endif /* UNITTESTS */
 }

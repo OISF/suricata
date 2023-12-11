@@ -44,9 +44,8 @@
 #include "output-json-dhcp.h"
 #include "rust.h"
 
-
 typedef struct LogDHCPFileCtx_ {
-    void       *rs_logger;
+    void *rs_logger;
     OutputJsonCtx *eve_ctx;
 } LogDHCPFileCtx;
 
@@ -55,8 +54,8 @@ typedef struct LogDHCPLogThread_ {
     OutputJsonThreadCtx *thread;
 } LogDHCPLogThread;
 
-static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonDHCPLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     LogDHCPLogThread *thread = thread_data;
     LogDHCPFileCtx *ctx = thread->dhcplog_ctx;
@@ -86,8 +85,7 @@ static void OutputDHCPLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputInitResult OutputDHCPLogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult OutputDHCPLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
 

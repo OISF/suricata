@@ -25,7 +25,6 @@
 #define __DETECT_WITHIN_H__
 
 /* prototypes */
-void DetectWithinRegister (void);
+void DetectWithinRegister(void);
 
 #endif /* __DETECT_WITHIN_H__ */
-

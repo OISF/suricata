@@ -31,8 +31,7 @@ void TmModuleNapatechDecodeRegister(void);
 #ifdef HAVE_NAPATECH
 #include <nt.h>
 
-struct NapatechStreamDevConf
-{
+struct NapatechStreamDevConf {
     uint16_t stream_id;
 };
 

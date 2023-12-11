@@ -35,14 +35,13 @@
 #define DETECT_FLOW_FLAG_ONLY_FRAG       BIT_U16(8)
 
 typedef struct DetectFlowData_ {
-    uint16_t flags;     /* flags to match */
-    uint8_t match_cnt;  /* number of matches we need */
+    uint16_t flags;    /* flags to match */
+    uint8_t match_cnt; /* number of matches we need */
 } DetectFlowData;
 
 int DetectFlowSetupImplicit(Signature *s, uint32_t flags);
 
 /* prototypes */
-void DetectFlowRegister (void);
+void DetectFlowRegister(void);
 
 #endif /* __DETECT_FLOW_H__ */
-

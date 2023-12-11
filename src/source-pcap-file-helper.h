@@ -37,8 +37,7 @@ typedef struct PcapFileGlobalVars_ {
 /**
  * Data that is shared amongst File, Directory, and Thread level vars
  */
-typedef struct PcapFileSharedVars_
-{
+typedef struct PcapFileSharedVars_ {
     char *bpf_string;
 
     uint32_t tenant_id;
@@ -65,8 +64,7 @@ typedef struct PcapFileSharedVars_
 /**
  * Data specific to a single pcap file
  */
-typedef struct PcapFileFileVars_
-{
+typedef struct PcapFileFileVars_ {
     char *filename;
     pcap_t *pcap_handle;
 

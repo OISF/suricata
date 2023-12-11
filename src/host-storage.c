@@ -112,7 +112,6 @@ void HostFreeStorage(Host *h)
         StorageFreeAll(h->storage, STORAGE_HOST);
 }
 
-
 #ifdef UNITTESTS
 
 static void *StorageTestAlloc(unsigned int size)

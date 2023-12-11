@@ -60,14 +60,14 @@ int UtilSignalUnblock(int signum)
 void UtilSignalHandlerSetup(int sig, void (*handler)(int))
 {
 #ifdef OS_WIN32
-	signal(sig, handler);
+    signal(sig, handler);
 #else
     struct sigaction action;
     memset(&action, 0x00, sizeof(struct sigaction));
 
     action.sa_handler = handler;
     sigemptyset(&(action.sa_mask));
-    sigaddset(&(action.sa_mask),sig);
+    sigaddset(&(action.sa_mask), sig);
     action.sa_flags = 0;
     sigaction(sig, &action, 0);
 #endif /* OS_WIN32 */

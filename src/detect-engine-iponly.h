@@ -37,4 +37,3 @@ void IPOnlyAddSignature(DetectEngineCtx *, DetectEngineIPOnlyCtx *, Signature *)
 void IPOnlyRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_IPONLY_H__ */
-

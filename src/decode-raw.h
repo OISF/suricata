@@ -25,4 +25,3 @@
 #define __DECODE_RAW_H__
 void DecodeRawRegisterTests(void);
 #endif /* __DECODE_RAW_H__ */
-

@@ -34,7 +34,7 @@
 #include "util-unittest.h"
 #include "util-print.h"
 
-static int DetectTransformCompressWhitespaceSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTransformCompressWhitespaceSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTransformCompressWhitespaceRegisterTests(void);
 #endif
@@ -46,19 +46,18 @@ void DetectTransformCompressWhitespaceRegister(void)
 {
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].name = "compress_whitespace";
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].desc =
-        "modify buffer to compress consecutive whitespace characters "
-        "into a single one before inspection";
+            "modify buffer to compress consecutive whitespace characters "
+            "into a single one before inspection";
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].url =
-        "/rules/transforms.html#compress-whitespace";
-    sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].Transform =
-        TransformCompressWhitespace;
+            "/rules/transforms.html#compress-whitespace";
+    sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].Transform = TransformCompressWhitespace;
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].TransformValidate =
             TransformCompressWhitespaceValidate;
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].Setup =
-        DetectTransformCompressWhitespaceSetup;
+            DetectTransformCompressWhitespaceSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].RegisterTests =
-        DetectTransformCompressWhitespaceRegisterTests;
+            DetectTransformCompressWhitespaceRegisterTests;
 #endif
     sigmatch_table[DETECT_TRANSFORM_COMPRESS_WHITESPACE].flags |= SIGMATCH_NOOPT;
 }
@@ -72,7 +71,8 @@ void DetectTransformCompressWhitespaceRegister(void)
  *  \retval 0 ok
  *  \retval -1 failure
  */
-static int DetectTransformCompressWhitespaceSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+static int DetectTransformCompressWhitespaceSetup(
+        DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_COMPRESS_WHITESPACE, NULL);
@@ -114,8 +114,8 @@ static void TransformCompressWhitespace(InspectionBuffer *buffer, void *options)
     uint8_t output[input_len]; // we can only shrink
     uint8_t *oi = output, *os = output;
 
-    //PrintRawDataFp(stdout, input, input_len);
-    for (uint32_t i = 0; i < input_len; ) {
+    // PrintRawDataFp(stdout, input, input_len);
+    for (uint32_t i = 0; i < input_len;) {
         if (!(isspace(*input))) {
             *oi++ = *input++;
             i++;
@@ -130,7 +130,7 @@ static void TransformCompressWhitespace(InspectionBuffer *buffer, void *options)
         }
     }
     uint32_t output_size = oi - os;
-    //PrintRawDataFp(stdout, output, output_size);
+    // PrintRawDataFp(stdout, output, output_size);
 
     InspectionBufferCopy(buffer, os, output_size);
 }
@@ -221,10 +221,10 @@ static int DetectTransformCompressWhitespaceTest04(void)
 
 static void DetectTransformCompressWhitespaceRegisterTests(void)
 {
-    UtRegisterTest("DetectTransformCompressWhitespaceTest01",
-            DetectTransformCompressWhitespaceTest01);
-    UtRegisterTest("DetectTransformCompressWhitespaceTest02",
-            DetectTransformCompressWhitespaceTest02);
+    UtRegisterTest(
+            "DetectTransformCompressWhitespaceTest01", DetectTransformCompressWhitespaceTest01);
+    UtRegisterTest(
+            "DetectTransformCompressWhitespaceTest02", DetectTransformCompressWhitespaceTest02);
     UtRegisterTest(
             "DetectTransformCompressWhitespaceTest03", DetectTransformCompressWhitespaceTest03);
     UtRegisterTest(

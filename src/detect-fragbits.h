@@ -24,7 +24,6 @@
 #ifndef __DETECT_FRAGBITS_H__
 #define __DETECT_FRAGBITS_H__
 
-
 /**
  * \struct DetectFragBitsData_
  * DetectFragBitsData_ is used to store fragbits: input value
@@ -44,6 +43,6 @@ typedef struct DetectFragBitsData_ {
  * Registration function for fragbits: keyword
  */
 
-void DetectFragBitsRegister (void);
+void DetectFragBitsRegister(void);
 
 #endif /*__DETECT_FRAGBITS_H__ */

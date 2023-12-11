@@ -31,12 +31,12 @@
 #include "detect-engine-uint.h"
 
 /* prototypes */
-static int DetectICMPv6mtuMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectICMPv6mtuSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectICMPv6mtuFree (DetectEngineCtx *de_ctx, void *);
+static int DetectICMPv6mtuMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectICMPv6mtuSetup(DetectEngineCtx *, Signature *, const char *);
+void DetectICMPv6mtuFree(DetectEngineCtx *de_ctx, void *);
 #ifdef UNITTESTS
-void DetectICMPv6mtuRegisterTests (void);
+void DetectICMPv6mtuRegisterTests(void);
 #endif
 static int PrefilterSetupIcmpv6mtu(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterIcmpv6mtuIsPrefilterable(const Signature *s);
@@ -76,7 +76,8 @@ static inline int DetectICMPv6mtuGetValue(Packet *p, uint32_t *picmpv6mtu)
 }
 
 /**
- * \brief This function is used to match ICMPV6 MTU rule option on a packet with those passed via icmpv6.mtu:
+ * \brief This function is used to match ICMPV6 MTU rule option on a packet with those passed via
+ * icmpv6.mtu:
  *
  * \param det_ctx pointer to the pattern matcher thread
  * \param p pointer to the current packet
@@ -86,8 +87,8 @@ static inline int DetectICMPv6mtuGetValue(Packet *p, uint32_t *picmpv6mtu)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectICMPv6mtuMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectICMPv6mtuMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     uint32_t picmpv6mtu;
     if (DetectICMPv6mtuGetValue(p, &picmpv6mtu) == 0) {
@@ -108,7 +109,7 @@ static int DetectICMPv6mtuMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectICMPv6mtuSetup (DetectEngineCtx *de_ctx, Signature *s, const char *icmpv6mtustr)
+static int DetectICMPv6mtuSetup(DetectEngineCtx *de_ctx, Signature *s, const char *icmpv6mtustr)
 {
     DetectU32Data *icmpv6mtud = DetectU32Parse(icmpv6mtustr);
     if (icmpv6mtud == NULL)
@@ -137,8 +138,8 @@ void DetectICMPv6mtuFree(DetectEngineCtx *de_ctx, void *ptr)
 
 /* prefilter code */
 
-static void
-PrefilterPacketIcmpv6mtuMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketIcmpv6mtuMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     uint32_t picmpv6mtu;
     if (DetectICMPv6mtuGetValue(p, &picmpv6mtu) == 0) {
@@ -157,8 +158,7 @@ PrefilterPacketIcmpv6mtuMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const v
     du32.mode = ctx->v1.u8[0];
     du32.arg1 = ctx->v1.u32[1];
     du32.arg2 = ctx->v1.u32[2];
-    if (DetectU32Match(picmpv6mtu, &du32))
-    {
+    if (DetectU32Match(picmpv6mtu, &du32)) {
         SCLogDebug("packet matches icmpv6.mtu/hl %u", picmpv6mtu);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
@@ -166,10 +166,8 @@ PrefilterPacketIcmpv6mtuMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const v
 
 static int PrefilterSetupIcmpv6mtu(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMPV6MTU,
-            PrefilterPacketU32Set,
-            PrefilterPacketU32Compare,
-            PrefilterPacketIcmpv6mtuMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMPV6MTU, PrefilterPacketU32Set,
+            PrefilterPacketU32Compare, PrefilterPacketIcmpv6mtuMatch);
 }
 
 static bool PrefilterIcmpv6mtuIsPrefilterable(const Signature *s)

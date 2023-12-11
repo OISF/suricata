@@ -32,27 +32,27 @@
 #define HRLOCK_MUTEX
 
 #ifdef HRLOCK_SPIN
-    #ifdef HRLOCK_MUTEX
-        #error Cannot enable both HRLOCK_SPIN and HRLOCK_MUTEX
-    #endif
+#ifdef HRLOCK_MUTEX
+#error Cannot enable both HRLOCK_SPIN and HRLOCK_MUTEX
+#endif
 #endif
 
 #ifdef HRLOCK_SPIN
-    #define HRLOCK_TYPE SCSpinlock
-    #define HRLOCK_INIT(fb) SCSpinInit(&(fb)->lock, 0)
-    #define HRLOCK_DESTROY(fb) SCSpinDestroy(&(fb)->lock)
-    #define HRLOCK_LOCK(fb) SCSpinLock(&(fb)->lock)
-    #define HRLOCK_TRYLOCK(fb) SCSpinTrylock(&(fb)->lock)
-    #define HRLOCK_UNLOCK(fb) SCSpinUnlock(&(fb)->lock)
+#define HRLOCK_TYPE        SCSpinlock
+#define HRLOCK_INIT(fb)    SCSpinInit(&(fb)->lock, 0)
+#define HRLOCK_DESTROY(fb) SCSpinDestroy(&(fb)->lock)
+#define HRLOCK_LOCK(fb)    SCSpinLock(&(fb)->lock)
+#define HRLOCK_TRYLOCK(fb) SCSpinTrylock(&(fb)->lock)
+#define HRLOCK_UNLOCK(fb)  SCSpinUnlock(&(fb)->lock)
 #elif defined HRLOCK_MUTEX
-    #define HRLOCK_TYPE SCMutex
-    #define HRLOCK_INIT(fb) SCMutexInit(&(fb)->lock, NULL)
-    #define HRLOCK_DESTROY(fb) SCMutexDestroy(&(fb)->lock)
-    #define HRLOCK_LOCK(fb) SCMutexLock(&(fb)->lock)
-    #define HRLOCK_TRYLOCK(fb) SCMutexTrylock(&(fb)->lock)
-    #define HRLOCK_UNLOCK(fb) SCMutexUnlock(&(fb)->lock)
+#define HRLOCK_TYPE        SCMutex
+#define HRLOCK_INIT(fb)    SCMutexInit(&(fb)->lock, NULL)
+#define HRLOCK_DESTROY(fb) SCMutexDestroy(&(fb)->lock)
+#define HRLOCK_LOCK(fb)    SCMutexLock(&(fb)->lock)
+#define HRLOCK_TRYLOCK(fb) SCMutexTrylock(&(fb)->lock)
+#define HRLOCK_UNLOCK(fb)  SCMutexUnlock(&(fb)->lock)
 #else
-    #error Enable HRLOCK_SPIN or HRLOCK_MUTEX
+#error Enable HRLOCK_SPIN or HRLOCK_MUTEX
 #endif
 
 typedef struct IPPair_ {
@@ -86,7 +86,7 @@ typedef struct IPPairHashRow_ {
 /** ippair hash table */
 extern IPPairHashRow *ippair_hash;
 
-#define IPPAIR_QUIET      1
+#define IPPAIR_QUIET 1
 
 typedef struct IPPairConfig_ {
     SC_ATOMIC_DECLARE(uint64_t, memcap);
@@ -102,31 +102,30 @@ typedef struct IPPairConfig_ {
  *  \retval 1 it fits
  *  \retval 0 no fit
  */
-#define IPPAIR_CHECK_MEMCAP(size) \
-    ((((uint64_t)SC_ATOMIC_GET(ippair_memuse) + (uint64_t)(size)) <= SC_ATOMIC_GET(ippair_config.memcap)))
+#define IPPAIR_CHECK_MEMCAP(size)                                                                  \
+    ((((uint64_t)SC_ATOMIC_GET(ippair_memuse) + (uint64_t)(size)) <=                               \
+            SC_ATOMIC_GET(ippair_config.memcap)))
 
-#define IPPairIncrUsecnt(h) \
-    (void)SC_ATOMIC_ADD((h)->use_cnt, 1)
-#define IPPairDecrUsecnt(h) \
-    (void)SC_ATOMIC_SUB((h)->use_cnt, 1)
+#define IPPairIncrUsecnt(h) (void)SC_ATOMIC_ADD((h)->use_cnt, 1)
+#define IPPairDecrUsecnt(h) (void)SC_ATOMIC_SUB((h)->use_cnt, 1)
 
 extern IPPairConfig ippair_config;
-SC_ATOMIC_EXTERN(uint64_t,ippair_memuse);
-SC_ATOMIC_EXTERN(uint32_t,ippair_counter);
-SC_ATOMIC_EXTERN(uint32_t,ippair_prune_idx);
+SC_ATOMIC_EXTERN(uint64_t, ippair_memuse);
+SC_ATOMIC_EXTERN(uint32_t, ippair_counter);
+SC_ATOMIC_EXTERN(uint32_t, ippair_prune_idx);
 
 void IPPairInitConfig(bool quiet);
 void IPPairShutdown(void);
 void IPPairCleanup(void);
 
-IPPair *IPPairLookupIPPairFromHash (Address *, Address *);
-IPPair *IPPairGetIPPairFromHash (Address *, Address *);
+IPPair *IPPairLookupIPPairFromHash(Address *, Address *);
+IPPair *IPPairGetIPPairFromHash(Address *, Address *);
 void IPPairRelease(IPPair *);
 void IPPairLock(IPPair *);
 void IPPairClearMemory(IPPair *);
 void IPPairMoveToSpare(IPPair *);
 uint32_t IPPairSpareQueueGetSize(void);
-void IPPairPrintStats (void);
+void IPPairPrintStats(void);
 
 void IPPairRegisterUnittests(void);
 

@@ -29,9 +29,8 @@
 void ConfSetBPFFilter(
         ConfNode *if_root, ConfNode *if_default, const char *iface, const char **bpf_filter);
 
-int SCBPFCompile(int snaplen_arg, int linktype_arg, struct bpf_program *program,
-                 const char *buf, int optimize, uint32_t mask,
-                 char *errbuf, size_t errbuf_len);
+int SCBPFCompile(int snaplen_arg, int linktype_arg, struct bpf_program *program, const char *buf,
+        int optimize, uint32_t mask, char *errbuf, size_t errbuf_len);
 
 void SCBPFFree(struct bpf_program *program);
 

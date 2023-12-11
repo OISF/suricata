@@ -28,8 +28,7 @@
 #ifndef __SOURCE_PCAP_FILE_DIRECTORY_HELPER_H__
 #define __SOURCE_PCAP_FILE_DIRECTORY_HELPER_H__
 
-typedef struct PendingFile_
-{
+typedef struct PendingFile_ {
     char *filename;
     struct timespec modified_time;
     TAILQ_ENTRY(PendingFile_) next;
@@ -37,8 +36,7 @@ typedef struct PendingFile_
 /**
  * Data specific to a directory of pcap files
  */
-typedef struct PcapFileDirectoryVars_
-{
+typedef struct PcapFileDirectoryVars_ {
     char *filename;
     DIR *directory;
     PcapFileFileVars *current_file;

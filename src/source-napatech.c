@@ -44,7 +44,7 @@
 
 #ifndef HAVE_NAPATECH
 
-TmEcode NoNapatechSupportExit(ThreadVars*, const void*, void**);
+TmEcode NoNapatechSupportExit(ThreadVars *, const void *, void **);
 
 void TmModuleNapatechStreamRegister(void)
 {
@@ -77,14 +77,12 @@ TmEcode NoNapatechSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #else /* Implied we do have NAPATECH support */
 
-
 #include <numa.h>
 #include <nt.h>
 
 extern uint16_t max_pending_packets;
 
-typedef struct NapatechThreadVars_
-{
+typedef struct NapatechThreadVars_ {
     ThreadVars *tv;
     NtNetStreamRx_t rx_stream;
     uint16_t stream_id;
@@ -204,79 +202,74 @@ void TmModuleNapatechDecodeRegister(void)
 /**
  * \brief template of IPv4 header
  */
-struct ipv4_hdr
-{
-    uint8_t version_ihl; /**< version and header length */
-    uint8_t type_of_service; /**< type of service */
-    uint16_t total_length; /**< length of packet */
-    uint16_t packet_id; /**< packet ID */
+struct ipv4_hdr {
+    uint8_t version_ihl;      /**< version and header length */
+    uint8_t type_of_service;  /**< type of service */
+    uint16_t total_length;    /**< length of packet */
+    uint16_t packet_id;       /**< packet ID */
     uint16_t fragment_offset; /**< fragmentation offset */
-    uint8_t time_to_live; /**< time to live */
-    uint8_t next_proto_id; /**< protocol ID */
-    uint16_t hdr_checksum; /**< header checksum */
-    uint32_t src_addr; /**< source address */
-    uint32_t dst_addr; /**< destination address */
-} __attribute__ ((__packed__));
+    uint8_t time_to_live;     /**< time to live */
+    uint8_t next_proto_id;    /**< protocol ID */
+    uint16_t hdr_checksum;    /**< header checksum */
+    uint32_t src_addr;        /**< source address */
+    uint32_t dst_addr;        /**< destination address */
+} __attribute__((__packed__));
 
 /**
  * \brief template of IPv6 header
  */
-struct ipv6_hdr
-{
-    uint32_t vtc_flow; /**< IP version, traffic class & flow label. */
+struct ipv6_hdr {
+    uint32_t vtc_flow;    /**< IP version, traffic class & flow label. */
     uint16_t payload_len; /**< IP packet length - includes sizeof(ip_header). */
-    uint8_t proto; /**< Protocol, next header. */
-    uint8_t hop_limits; /**< Hop limits. */
+    uint8_t proto;        /**< Protocol, next header. */
+    uint8_t hop_limits;   /**< Hop limits. */
     uint8_t src_addr[16]; /**< IP address of source host. */
     uint8_t dst_addr[16]; /**< IP address of destination host(s). */
-} __attribute__ ((__packed__));
+} __attribute__((__packed__));
 
 /**
  * \brief template of UDP header
  */
-struct udp_hdr
-{
-    uint16_t src_port; /**< UDP source port. */
-    uint16_t dst_port; /**< UDP destination port. */
-    uint16_t dgram_len; /**< UDP datagram length */
+struct udp_hdr {
+    uint16_t src_port;    /**< UDP source port. */
+    uint16_t dst_port;    /**< UDP destination port. */
+    uint16_t dgram_len;   /**< UDP datagram length */
     uint16_t dgram_cksum; /**< UDP datagram checksum */
-} __attribute__ ((__packed__));
+} __attribute__((__packed__));
 
 /**
  * \brief template of TCP header
  */
-struct tcp_hdr
-{
+struct tcp_hdr {
     uint16_t src_port; /**< TCP source port. */
     uint16_t dst_port; /**< TCP destination port. */
     uint32_t sent_seq; /**< TX data sequence number. */
     uint32_t recv_ack; /**< RX data acknowledgement sequence number. */
-    uint8_t data_off; /**< Data offset. */
+    uint8_t data_off;  /**< Data offset. */
     uint8_t tcp_flags; /**< TCP flags */
-    uint16_t rx_win; /**< RX flow control window. */
-    uint16_t cksum; /**< TCP checksum. */
-    uint16_t tcp_urp; /**< TCP urgent pointer, if any. */
-} __attribute__ ((__packed__));
-
+    uint16_t rx_win;   /**< RX flow control window. */
+    uint16_t cksum;    /**< TCP checksum. */
+    uint16_t tcp_urp;  /**< TCP urgent pointer, if any. */
+} __attribute__((__packed__));
 
 /*  The hardware will assign a "color" value indicating what filters are matched
  * by a given packet.  These constants indicate what bits are set in the color
  * field for different protocols
  *
  */
-#define RTE_PTYPE_L2_ETHER                  0x10000000
-#define RTE_PTYPE_L3_IPV4                   0x01000000
-#define RTE_PTYPE_L3_IPV6                   0x04000000
-#define RTE_PTYPE_L4_TCP                    0x00100000
-#define RTE_PTYPE_L4_UDP                    0x00200000
+#define RTE_PTYPE_L2_ETHER 0x10000000
+#define RTE_PTYPE_L3_IPV4  0x01000000
+#define RTE_PTYPE_L3_IPV6  0x04000000
+#define RTE_PTYPE_L4_TCP   0x00100000
+#define RTE_PTYPE_L4_UDP   0x00200000
 
 /* These masks are used to extract layer 3 and layer 4 protocol
  * values from the color field in the packet descriptor.
  */
-#define RTE_PTYPE_L3_MASK                   0x0f000000
-#define RTE_PTYPE_L4_MASK                   0x00f00000
+#define RTE_PTYPE_L3_MASK  0x0f000000
+#define RTE_PTYPE_L4_MASK  0x00f00000
 
-#define COLOR_IS_SPAN                       0x00001000
+#define COLOR_IS_SPAN 0x00001000
 
 static int is_inline = 0;
 static int inline_port_map[MAX_PORTS] = { -1 };
@@ -316,7 +309,7 @@ int NapatechGetAdapter(uint8_t port)
 {
     static int port_adapter_map[MAX_PORTS] = { -1 };
     int status;
-    NtInfo_t h_info; /* Info handle */
+    NtInfo_t h_info;              /* Info handle */
     NtInfoStream_t h_info_stream; /* Info stream handle */
 
     if (unlikely(port_adapter_map[port] == -1)) {
@@ -326,7 +319,7 @@ int NapatechGetAdapter(uint8_t port)
         }
         /* Read the system info */
         h_info.cmd = NT_INFO_CMD_READ_PORT_V9;
-        h_info.u.port_v9.portNo = (uint8_t) port;
+        h_info.u.port_v9.portNo = (uint8_t)port;
         if ((status = NT_InfoRead(h_info_stream, &h_info)) != NT_SUCCESS) {
             /* Get the status code as text */
             NAPATECH_ERROR(status);
@@ -341,8 +334,7 @@ int NapatechGetAdapter(uint8_t port)
 /**
  * \brief IPv4 4-tuple convenience structure
  */
-struct IPv4Tuple4
-{
+struct IPv4Tuple4 {
     uint32_t sa; /*!< Source address */
     uint32_t da; /*!< Destination address */
     uint16_t sp; /*!< Source port */
@@ -352,8 +344,7 @@ struct IPv4Tuple4
 /**
  * \brief IPv6 4-tuple convenience structure
  */
-struct IPv6Tuple4
-{
+struct IPv6Tuple4 {
     uint8_t sa[16]; /*!< Source address */
     uint8_t da[16]; /*!< Destination address */
     uint16_t sp;    /*!< Source port */
@@ -371,7 +362,8 @@ struct IPv6Tuple4
  *          1 if addr_a > addr_b
  *          0 if addr_a == addr_b
  */
-static int CompareIPv6Addr(uint8_t addr_a[16], uint8_t addr_b[16]) {
+static int CompareIPv6Addr(uint8_t addr_a[16], uint8_t addr_b[16])
+{
     uint16_t pos;
     for (pos = 0; pos < 16; ++pos) {
         if (addr_a[pos] < addr_b[pos]) {
@@ -405,7 +397,7 @@ static NtFlowStream_t InitFlowStream(int adapter, int stream_id)
     NT_FlowOpenAttrInit(&attr);
     NT_FlowOpenAttrSetAdapterNo(&attr, adapter);
 
-    snprintf(flow_name, sizeof(flow_name), "Flow_stream_%d", stream_id );
+    snprintf(flow_name, sizeof(flow_name), "Flow_stream_%d", stream_id);
     SCLogDebug("Opening flow programming stream:  %s", flow_name);
     if ((status = NT_FlowOpen_Attr(&hFlowStream, flow_name, &attr)) != NT_SUCCESS) {
         SCLogWarning("Napatech bypass functionality not supported by the FPGA version on adapter "
@@ -442,7 +434,7 @@ static int ProgramFlow(Packet *p, int inline_mode)
      * the protocols and if the packet is coming in from a SPAN port.
      */
     uint32_t packet_type = ((ntpv->dyn3->color_hi << 14) & 0xFFFFC000) | ntpv->dyn3->color_lo;
-    uint8_t *packet = (uint8_t *) ntpv->dyn3 + ntpv->dyn3->descrLength;
+    uint8_t *packet = (uint8_t *)ntpv->dyn3 + ntpv->dyn3->descrLength;
 
     uint32_t layer3 = packet_type & RTE_PTYPE_L3_MASK;
     uint32_t layer4 = packet_type & RTE_PTYPE_L4_MASK;
@@ -464,7 +456,7 @@ static int ProgramFlow(Packet *p, int inline_mode)
     /* Only bypass TCP and UDP */
     if (PKT_IS_TCP(p)) {
         SC_ATOMIC_ADD(flow_callback_tcp_pkts, 1);
-    } else if PKT_IS_UDP(p) {
+    } else if PKT_IS_UDP (p) {
         SC_ATOMIC_ADD(flow_callback_udp_pkts, 1);
     } else {
         SC_ATOMIC_ADD(flow_callback_unhandled_pkts, 1);
@@ -476,9 +468,8 @@ static int ProgramFlow(Packet *p, int inline_mode)
     struct ipv6_hdr *pIPv6_hdr = NULL;
 
     switch (layer3) {
-        case RTE_PTYPE_L3_IPV4:
-        {
-            pIPv4_hdr = (struct ipv4_hdr *) (packet + ntpv->dyn3->offset0);
+        case RTE_PTYPE_L3_IPV4: {
+            pIPv4_hdr = (struct ipv4_hdr *)(packet + ntpv->dyn3->offset0);
             if (!is_span) {
                 v4Tuple.sa = pIPv4_hdr->src_addr;
                 v4Tuple.da = pIPv4_hdr->dst_addr;
@@ -495,9 +486,8 @@ static int ProgramFlow(Packet *p, int inline_mode)
             }
             break;
         }
-        case RTE_PTYPE_L3_IPV6:
-        {
-            pIPv6_hdr = (struct ipv6_hdr *) (packet + ntpv->dyn3->offset0);
+        case RTE_PTYPE_L3_IPV6: {
+            pIPv6_hdr = (struct ipv6_hdr *)(packet + ntpv->dyn3->offset0);
             do_swap = (CompareIPv6Addr(pIPv6_hdr->src_addr, pIPv6_hdr->dst_addr) > 0);
 
             if (!is_span) {
@@ -516,16 +506,14 @@ static int ProgramFlow(Packet *p, int inline_mode)
             }
             break;
         }
-        default:
-        {
+        default: {
             return 0;
         }
     }
 
     switch (layer4) {
-        case RTE_PTYPE_L4_TCP:
-        {
-            struct tcp_hdr *tcp_hdr = (struct tcp_hdr *) (packet + ntpv->dyn3->offset1);
+        case RTE_PTYPE_L4_TCP: {
+            struct tcp_hdr *tcp_hdr = (struct tcp_hdr *)(packet + ntpv->dyn3->offset1);
             if (layer3 == RTE_PTYPE_L3_IPV4) {
                 if (!is_span) {
                     v4Tuple.dp = tcp_hdr->dst_port;
@@ -562,9 +550,8 @@ static int ProgramFlow(Packet *p, int inline_mode)
             flow_match.ipProtocolField = 6;
             break;
         }
-        case RTE_PTYPE_L4_UDP:
-        {
-            struct udp_hdr *udp_hdr = (struct udp_hdr *) (packet + ntpv->dyn3->offset1);
+        case RTE_PTYPE_L4_UDP: {
+            struct udp_hdr *udp_hdr = (struct udp_hdr *)(packet + ntpv->dyn3->offset1);
             if (layer3 == RTE_PTYPE_L3_IPV4) {
                 if (!is_span) {
                     v4Tuple.dp = udp_hdr->dst_port;
@@ -601,8 +588,7 @@ static int ProgramFlow(Packet *p, int inline_mode)
             flow_match.ipProtocolField = 17;
             break;
         }
-        default:
-        {
+        default: {
             return 0;
         }
     }
@@ -672,16 +658,16 @@ static int NapatechBypassCallback(Packet *p)
 TmEcode NapatechStreamThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
-    struct NapatechStreamDevConf *conf = (struct NapatechStreamDevConf *) initdata;
+    struct NapatechStreamDevConf *conf = (struct NapatechStreamDevConf *)initdata;
     uint16_t stream_id = conf->stream_id;
     *data = NULL;
 
-    NapatechThreadVars *ntv = SCCalloc(1, sizeof (NapatechThreadVars));
+    NapatechThreadVars *ntv = SCCalloc(1, sizeof(NapatechThreadVars));
     if (unlikely(ntv == NULL)) {
         FatalError("Failed to allocate memory for NAPATECH  thread vars.");
     }
 
-    memset(ntv, 0, sizeof (NapatechThreadVars));
+    memset(ntv, 0, sizeof(NapatechThreadVars));
     ntv->stream_id = stream_id;
     ntv->tv = tv;
 
@@ -689,7 +675,7 @@ TmEcode NapatechStreamThreadInit(ThreadVars *tv, const void *initdata, void **da
 
     SCLogDebug("Started processing packets from NAPATECH  Stream: %u", ntv->stream_id);
 
-    *data = (void *) ntv;
+    *data = (void *)ntv;
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -855,8 +841,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
             }
 #endif
             /* The last thread to run sets up and deletes the streams */
-            status = NapatechSetupTraffic(NapatechGetNumFirstStream(),
-                    NapatechGetNumLastStream());
+            status = NapatechSetupTraffic(NapatechGetNumFirstStream(), NapatechGetNumLastStream());
 
             closer = 1;
 
@@ -871,8 +856,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         }
     } // is_autoconfig
 
-    SCLogInfo(
-            "Napatech Packet Loop Started - cpu: %3d, cpu_numa: %3d   stream: %3u ",
+    SCLogInfo("Napatech Packet Loop Started - cpu: %3d, cpu_numa: %3d   stream: %3u ",
             sched_getcpu(), numa_node, ntv->stream_id);
 
     SCLogDebug("Opening NAPATECH Stream: %u for processing", ntv->stream_id);
@@ -884,7 +868,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         SCFree(ntv);
         SCReturnInt(TM_ECODE_FAILED);
     }
-    TmSlot *s = (TmSlot *) slot;
+    TmSlot *s = (TmSlot *)slot;
     ntv->slot = s->slot_next;
 
     // Indicate that the thread is actually running its application level code (i.e., it can poll
@@ -898,16 +882,14 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
 
         /* Napatech returns packets 1 at a time */
         status = NT_NetRxGet(ntv->rx_stream, &packet_buffer, 1000);
-        if (unlikely(
-                status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN)) {
+        if (unlikely(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN)) {
             if (status == NT_STATUS_TIMEOUT) {
                 TmThreadsCaptureHandleTimeout(tv, NULL);
             }
             continue;
         } else if (unlikely(status != NT_SUCCESS)) {
             NAPATECH_ERROR(status);
-            SCLogInfo("Failed to read from Napatech Stream %d: %s",
-                    ntv->stream_id, error_buffer);
+            SCLogInfo("Failed to read from Napatech Stream %d: %s", ntv->stream_id, error_buffer);
             break;
         }
 
@@ -967,7 +949,8 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
         p->ntpv.stream_id = ntv->stream_id;
         p->datalink = LINKTYPE_ETHERNET;
 
-        if (unlikely(PacketSetData(p, (uint8_t *)NT_NET_GET_PKT_L2_PTR(packet_buffer), NT_NET_GET_PKT_WIRE_LENGTH(packet_buffer)))) {
+        if (unlikely(PacketSetData(p, (uint8_t *)NT_NET_GET_PKT_L2_PTR(packet_buffer),
+                    NT_NET_GET_PKT_WIRE_LENGTH(packet_buffer)))) {
             TmqhOutputPacketpool(ntv->tv, p);
             SCReturnInt(TM_ECODE_FAILED);
         }
@@ -999,17 +982,17 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
  */
 void NapatechStreamThreadExitStats(ThreadVars *tv, void *data)
 {
-    NapatechThreadVars *ntv = (NapatechThreadVars *) data;
+    NapatechThreadVars *ntv = (NapatechThreadVars *)data;
     NapatechCurrentStats stat = NapatechGetCurrentStats(ntv->stream_id);
 
     double percent = 0;
     if (stat.current_drop_packets > 0)
-        percent = (((double) stat.current_drop_packets)
-                  / (stat.current_packets + stat.current_drop_packets)) * 100;
+        percent = (((double)stat.current_drop_packets) /
+                          (stat.current_packets + stat.current_drop_packets)) *
+                  100;
 
-    SCLogInfo("nt%lu - pkts: %lu; drop: %lu (%5.2f%%); bytes: %lu",
-                 (uint64_t) ntv->stream_id, stat.current_packets,
-                  stat.current_drop_packets, percent, stat.current_bytes);
+    SCLogInfo("nt%lu - pkts: %lu; drop: %lu (%5.2f%%); bytes: %lu", (uint64_t)ntv->stream_id,
+            stat.current_packets, stat.current_drop_packets, percent, stat.current_bytes);
 
     SC_ATOMIC_ADD(total_packets, stat.current_packets);
     SC_ATOMIC_ADD(total_drops, stat.current_drop_packets);
@@ -1017,8 +1000,9 @@ void NapatechStreamThreadExitStats(ThreadVars *tv, void *data)
 
     if (SC_ATOMIC_GET(total_tallied) == NapatechGetNumConfiguredStreams()) {
         if (SC_ATOMIC_GET(total_drops) > 0)
-            percent = (((double) SC_ATOMIC_GET(total_drops)) / (SC_ATOMIC_GET(total_packets)
-                         + SC_ATOMIC_GET(total_drops))) * 100;
+            percent = (((double)SC_ATOMIC_GET(total_drops)) /
+                              (SC_ATOMIC_GET(total_packets) + SC_ATOMIC_GET(total_drops))) *
+                      100;
 
         SCLogInfo(" ");
         SCLogInfo("--- Total Packets: %ld  Total Dropped: %ld (%5.2f%%)",
@@ -1026,10 +1010,8 @@ void NapatechStreamThreadExitStats(ThreadVars *tv, void *data)
 
 #ifdef NAPATECH_ENABLE_BYPASS
         SCLogInfo("--- BypassCB - Total: %ld,  UDP: %ld,  TCP: %ld,  Unhandled: %ld",
-                SC_ATOMIC_GET(flow_callback_cnt),
-                SC_ATOMIC_GET(flow_callback_udp_pkts),
-                SC_ATOMIC_GET(flow_callback_tcp_pkts),
-                SC_ATOMIC_GET(flow_callback_unhandled_pkts));
+                SC_ATOMIC_GET(flow_callback_cnt), SC_ATOMIC_GET(flow_callback_udp_pkts),
+                SC_ATOMIC_GET(flow_callback_tcp_pkts), SC_ATOMIC_GET(flow_callback_unhandled_pkts));
 #endif
     }
 }
@@ -1042,7 +1024,7 @@ void NapatechStreamThreadExitStats(ThreadVars *tv, void *data)
 TmEcode NapatechStreamThreadDeinit(ThreadVars *tv, void *data)
 {
     SCEnter();
-    NapatechThreadVars *ntv = (NapatechThreadVars *) data;
+    NapatechThreadVars *ntv = (NapatechThreadVars *)data;
 
     SCLogDebug("Closing Napatech Stream: %d", ntv->stream_id);
     NT_NetRxClose(ntv->rx_stream);
@@ -1064,7 +1046,7 @@ TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
 
-    DecodeThreadVars *dtv = (DecodeThreadVars *) data;
+    DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
     BUG_ON(PKT_IS_PSEUDOPKT(p));
 
@@ -1102,7 +1084,7 @@ TmEcode NapatechDecodeThreadInit(ThreadVars *tv, const void *initdata, void **da
     }
 
     DecodeRegisterPerfCounters(dtv, tv);
-    *data = (void *) dtv;
+    *data = (void *)dtv;
     SCReturnInt(TM_ECODE_OK);
 }
 

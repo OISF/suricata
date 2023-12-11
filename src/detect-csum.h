@@ -27,4 +27,3 @@
 void DetectCsumRegister(void);
 
 #endif /* __DETECT_CSUM_H__ */
-

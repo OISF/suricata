@@ -48,8 +48,7 @@ void HTPParseMemcap(void)
 
     /** set config values for memcap, prealloc and hash_size */
     uint64_t memcap;
-    if ((ConfGet("app-layer.protocols.http.memcap", &conf_val)) == 1)
-    {
+    if ((ConfGet("app-layer.protocols.http.memcap", &conf_val)) == 1) {
         if (ParseSizeStringU64(conf_val, &memcap) < 0) {
             SCLogError("Error parsing http.memcap "
                        "from conf file - %s.  Killing engine",
@@ -58,7 +57,7 @@ void HTPParseMemcap(void)
         } else {
             SC_ATOMIC_SET(htp_config_memcap, memcap);
         }
-        SCLogInfo("HTTP memcap: %"PRIu64, SC_ATOMIC_GET(htp_config_memcap));
+        SCLogInfo("HTTP memcap: %" PRIu64, SC_ATOMIC_GET(htp_config_memcap));
     } else {
         /* default to unlimited */
         SC_ATOMIC_SET(htp_config_memcap, 0);
@@ -70,13 +69,13 @@ void HTPParseMemcap(void)
 
 static void HTPIncrMemuse(uint64_t size)
 {
-    (void) SC_ATOMIC_ADD(htp_memuse, size);
+    (void)SC_ATOMIC_ADD(htp_memuse, size);
     return;
 }
 
 static void HTPDecrMemuse(uint64_t size)
 {
-    (void) SC_ATOMIC_SUB(htp_memuse, size);
+    (void)SC_ATOMIC_SUB(htp_memuse, size);
     return;
 }
 
@@ -103,7 +102,7 @@ static int HTPCheckMemcap(uint64_t size)
     uint64_t memcapcopy = SC_ATOMIC_GET(htp_config_memcap);
     if (memcapcopy == 0 || size + SC_ATOMIC_GET(htp_memuse) <= memcapcopy)
         return 1;
-    (void) SC_ATOMIC_ADD(htp_memcap, 1);
+    (void)SC_ATOMIC_ADD(htp_memcap, 1);
     return 0;
 }
 

@@ -58,13 +58,10 @@
 
 static int DetectTlsJa3SHashSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-       const DetectEngineTransforms *transforms,
-       Flow *f, const uint8_t flow_flags,
-       void *txv, const int list_id);
-static void DetectTlsJa3SHashSetupCallback(const DetectEngineCtx *de_ctx,
-       Signature *s);
-static bool DetectTlsJa3SHashValidateCallback(const Signature *s,
-       const char **sigerror);
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id);
+static void DetectTlsJa3SHashSetupCallback(const DetectEngineCtx *de_ctx, Signature *s);
+static bool DetectTlsJa3SHashValidateCallback(const Signature *s, const char **sigerror);
 static int g_tls_ja3s_hash_buffer_id = 0;
 
 /**
@@ -82,8 +79,8 @@ void DetectTlsJa3SHashRegister(void)
     DetectAppLayerInspectEngineRegister2("ja3s.hash", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("ja3s.hash", SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, 0);
+    DetectAppLayerMpmRegister2("ja3s.hash", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_TLS, 0);
 
     DetectAppLayerMpmRegister2("ja3s.hash", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             Ja3DetectGetHash, ALPROTO_QUIC, 1);
@@ -93,11 +90,9 @@ void DetectTlsJa3SHashRegister(void)
 
     DetectBufferTypeSetDescriptionByName("ja3s.hash", "TLS JA3S hash");
 
-    DetectBufferTypeRegisterSetupCallback("ja3s.hash",
-            DetectTlsJa3SHashSetupCallback);
+    DetectBufferTypeRegisterSetupCallback("ja3s.hash", DetectTlsJa3SHashSetupCallback);
 
-    DetectBufferTypeRegisterValidateCallback("ja3s.hash",
-            DetectTlsJa3SHashValidateCallback);
+    DetectBufferTypeRegisterValidateCallback("ja3s.hash", DetectTlsJa3SHashValidateCallback);
 
     g_tls_ja3s_hash_buffer_id = DetectBufferTypeGetByName("ja3s.hash");
 }
@@ -138,8 +133,8 @@ static int DetectTlsJa3SHashSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -159,8 +154,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-static bool DetectTlsJa3SHashValidateCallback(const Signature *s,
-                                               const char **sigerror)
+static bool DetectTlsJa3SHashValidateCallback(const Signature *s, const char **sigerror)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         if (s->init_data->buffers[x].id != (uint32_t)g_tls_ja3s_hash_buffer_id)
@@ -192,8 +186,7 @@ static bool DetectTlsJa3SHashValidateCallback(const Signature *s,
     return true;
 }
 
-static void DetectTlsJa3SHashSetupCallback(const DetectEngineCtx *de_ctx,
-                                           Signature *s)
+static void DetectTlsJa3SHashSetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
 {
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         if (s->init_data->buffers[x].id != (uint32_t)g_tls_ja3s_hash_buffer_id)

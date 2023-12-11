@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -69,7 +68,8 @@ void DetectHttpServerBodyRegister(void)
 {
     /* http_server_body content modifier */
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].name = "http_server_body";
-    sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].desc = "content modifier to match on the HTTP response-body";
+    sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].desc =
+            "content modifier to match on the HTTP response-body";
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].url = "/rules/http-keywords.html#http-server-body";
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].Setup = DetectHttpServerBodySetup;
 #ifdef UNITTESTS
@@ -81,7 +81,8 @@ void DetectHttpServerBodyRegister(void)
 
     /* http.request_body sticky buffer */
     sigmatch_table[DETECT_HTTP_RESPONSE_BODY].name = "http.response_body";
-    sigmatch_table[DETECT_HTTP_RESPONSE_BODY].desc = "sticky buffer to match the HTTP response body buffer";
+    sigmatch_table[DETECT_HTTP_RESPONSE_BODY].desc =
+            "sticky buffer to match the HTTP response body buffer";
     sigmatch_table[DETECT_HTTP_RESPONSE_BODY].url = "/rules/http-keywords.html#http-server-body";
     sigmatch_table[DETECT_HTTP_RESPONSE_BODY].Setup = DetectHttpServerBodySetupSticky;
     sigmatch_table[DETECT_HTTP_RESPONSE_BODY].flags |= SIGMATCH_NOOPT;

@@ -16,7 +16,7 @@ static int runOneFile(const char *fname)
         return 2;
     }
     size = ftell(fp);
-    if (size == (size_t) -1) {
+    if (size == (size_t)-1) {
         fclose(fp);
         return 2;
     }

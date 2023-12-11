@@ -44,14 +44,14 @@
 
 /** item_size data beyond this header */
 typedef struct ROHashTableItem_ {
-    uint32_t pos;       /**< position relative to other values with same hash */
+    uint32_t pos; /**< position relative to other values with same hash */
     TAILQ_ENTRY(ROHashTableItem_) next;
 } ROHashTableItem;
 
 /** offset table */
 typedef struct ROHashTableOffsets_ {
-    uint32_t cnt;       /**< number of items for this hash */
-    uint32_t offset;    /**< position in the blob of the first item */
+    uint32_t cnt;    /**< number of items for this hash */
+    uint32_t offset; /**< position in the blob of the first item */
 } ROHashTableOffsets;
 
 /** \brief initialize a new rohash
@@ -116,7 +116,7 @@ void *ROHashLookup(ROHashTable *table, void *data, uint16_t size)
         SCReturnPtr(NULL, "void");
     }
 
-    uint32_t hash = hashword(data, table->item_size/4, 0) & hashmask(table->hash_bits);
+    uint32_t hash = hashword(data, table->item_size / 4, 0) & hashmask(table->hash_bits);
 
     /* get offsets start */
     ROHashTableOffsets *os = (void *)table + sizeof(ROHashTable);
@@ -190,8 +190,9 @@ int ROHashInitFinalize(ROHashTable *table)
     ROHashTableOffsets *os = (void *)table + sizeof(ROHashTable);
 
     /* count items per hash value */
-    TAILQ_FOREACH(item, &table->head, next) {
-        uint32_t hash = hashword((void *)item + sizeof(*item), table->item_size/4, 0) & hashmask(table->hash_bits);
+    TAILQ_FOREACH (item, &table->head, next) {
+        uint32_t hash = hashword((void *)item + sizeof(*item), table->item_size / 4, 0) &
+                        hashmask(table->hash_bits);
         ROHashTableOffsets *o = &os[hash];
 
         item->pos = o->cnt;
@@ -226,14 +227,14 @@ int ROHashInitFinalize(ROHashTable *table)
     }
 
     /* copy each value into the data block */
-    TAILQ_FOREACH(item, &table->head, next) {
-        uint32_t hash = hashword((void *)item + sizeof(*item), table->item_size/4, 0) & hashmask(table->hash_bits);
+    TAILQ_FOREACH (item, &table->head, next) {
+        uint32_t hash = hashword((void *)item + sizeof(*item), table->item_size / 4, 0) &
+                        hashmask(table->hash_bits);
 
         ROHashTableOffsets *o = &os[hash];
         uint32_t offset = (o->offset + item->pos) * table->item_size;
 
         memcpy(table->data + offset, (void *)item + sizeof(*item), table->item_size);
-
     }
 
     /* clean up temp items */

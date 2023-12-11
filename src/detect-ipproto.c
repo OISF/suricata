@@ -47,7 +47,7 @@
 /**
  * \brief Regex for parsing our options
  */
-#define PARSE_REGEX  "^([!<>]?)\\s*([^\\s]+)$"
+#define PARSE_REGEX "^([!<>]?)\\s*([^\\s]+)$"
 
 static DetectParseRegex parse_regex;
 
@@ -64,7 +64,7 @@ void DetectIPProtoRegister(void)
     sigmatch_table[DETECT_IPPROTO].url = "/rules/header-keywords.html#ip-proto";
     sigmatch_table[DETECT_IPPROTO].Match = NULL;
     sigmatch_table[DETECT_IPPROTO].Setup = DetectIPProtoSetup;
-    sigmatch_table[DETECT_IPPROTO].Free  = DetectIPProtoFree;
+    sigmatch_table[DETECT_IPPROTO].Free = DetectIPProtoFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_IPPROTO].RegisterTests = DetectIPProtoRegisterTests;
 #endif
@@ -129,15 +129,14 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
             goto error;
         }
         data->proto = proto;
-    }
-    else {
+    } else {
         if (StringParseUint8(&data->proto, 10, 0, args[1]) <= 0) {
             SCLogError("Malformed protocol number: %s", str_ptr);
             goto error;
         }
     }
 
-    for (i = 0; i < (ret - 1); i++){
+    for (i = 0; i < (ret - 1); i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
@@ -149,7 +148,7 @@ error:
     if (match) {
         pcre2_match_data_free(match);
     }
-    for (i = 0; i < (ret - 1) && i < 2; i++){
+    for (i = 0; i < (ret - 1) && i < 2; i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
@@ -257,7 +256,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                     temp_sm = temp_sm->next;
                 }
                 if (temp_sm != NULL) {
-                  DetectIPProtoData *data_temp = (DetectIPProtoData *)temp_sm->ctx;
+                    DetectIPProtoData *data_temp = (DetectIPProtoData *)temp_sm->ctx;
                     if (data_temp->proto <= data->proto) {
                         SCLogError("can't have "
                                    "both gt and lt ipprotos, with the lt being "
@@ -286,7 +285,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                 SigMatch *temp_sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
                 while (temp_sm != NULL) {
                     if (temp_sm->type == DETECT_IPPROTO &&
-                        ((DetectIPProtoData *)temp_sm->ctx)->op == DETECT_IPPROTO_OP_LT) {
+                            ((DetectIPProtoData *)temp_sm->ctx)->op == DETECT_IPPROTO_OP_LT) {
                         break;
                     }
                     temp_sm = temp_sm->next;
@@ -332,7 +331,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                     temp_sm = temp_sm->next;
                 }
                 if (temp_sm != NULL) {
-                  DetectIPProtoData *data_temp = (DetectIPProtoData *)temp_sm->ctx;
+                    DetectIPProtoData *data_temp = (DetectIPProtoData *)temp_sm->ctx;
                     if (data_temp->proto >= data->proto) {
                         SCLogError("can't use a have "
                                    "both gt and lt ipprotos, with the lt being "
@@ -361,13 +360,13 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                 SigMatch *temp_sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
                 while (temp_sm != NULL) {
                     if (temp_sm->type == DETECT_IPPROTO &&
-                        ((DetectIPProtoData *)temp_sm->ctx)->op == DETECT_IPPROTO_OP_GT) {
+                            ((DetectIPProtoData *)temp_sm->ctx)->op == DETECT_IPPROTO_OP_GT) {
                         break;
                     }
                     temp_sm = temp_sm->next;
                 }
                 if (temp_sm != NULL) {
-                  data_temp = (DetectIPProtoData *)temp_sm->ctx;
+                    data_temp = (DetectIPProtoData *)temp_sm->ctx;
                     if (data_temp->proto >= data->proto) {
                         SCLogError("can't have "
                                    "both gt and lt ipprotos, with the lt being "
@@ -421,7 +420,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 
     return 0;
 
- error:
+error:
 
     DetectIPProtoFree(de_ctx, data);
     return -1;
@@ -539,7 +538,7 @@ static int DetectIPProtoTestSetup02(void)
 
     result = 1;
 
- end:
+end:
     if (sig != NULL)
         SigFree(NULL, sig);
     return result;
@@ -576,7 +575,7 @@ static int DetectIPProtoTestSetup03(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -612,7 +611,7 @@ static int DetectIPProtoTestSetup04(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -648,7 +647,7 @@ static int DetectIPProtoTestSetup05(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -675,7 +674,7 @@ static int DetectIPProtoTestSetup06(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -702,7 +701,7 @@ static int DetectIPProtoTestSetup07(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -729,7 +728,7 @@ static int DetectIPProtoTestSetup08(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -756,7 +755,7 @@ static int DetectIPProtoTestSetup09(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -783,7 +782,7 @@ static int DetectIPProtoTestSetup10(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -810,7 +809,7 @@ static int DetectIPProtoTestSetup11(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -837,7 +836,7 @@ static int DetectIPProtoTestSetup12(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -864,7 +863,7 @@ static int DetectIPProtoTestSetup13(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -888,7 +887,7 @@ static int DetectIPProtoTestSetup14(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -925,10 +924,9 @@ static int DetectIPProtoTestSetup15(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
-
 }
 
 static int DetectIPProtoTestSetup16(void)
@@ -963,10 +961,9 @@ static int DetectIPProtoTestSetup16(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
-
 }
 
 static int DetectIPProtoTestSetup17(void)
@@ -1001,10 +998,9 @@ static int DetectIPProtoTestSetup17(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
-
 }
 
 static int DetectIPProtoTestSetup18(void)
@@ -1039,10 +1035,9 @@ static int DetectIPProtoTestSetup18(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
-
 }
 
 static int DetectIPProtoTestSetup19(void)
@@ -1080,7 +1075,7 @@ static int DetectIPProtoTestSetup19(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1117,7 +1112,7 @@ static int DetectIPProtoTestSetup20(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1157,7 +1152,7 @@ static int DetectIPProtoTestSetup21(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1197,7 +1192,7 @@ static int DetectIPProtoTestSetup22(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1234,7 +1229,7 @@ static int DetectIPProtoTestSetup23(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1274,7 +1269,7 @@ static int DetectIPProtoTestSetup24(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1314,7 +1309,7 @@ static int DetectIPProtoTestSetup33(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1355,7 +1350,7 @@ static int DetectIPProtoTestSetup34(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1395,7 +1390,7 @@ static int DetectIPProtoTestSetup36(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1439,7 +1434,7 @@ static int DetectIPProtoTestSetup43(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1479,7 +1474,7 @@ static int DetectIPProtoTestSetup44(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1523,7 +1518,7 @@ static int DetectIPProtoTestSetup45(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1563,7 +1558,7 @@ static int DetectIPProtoTestSetup56(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1600,7 +1595,7 @@ static int DetectIPProtoTestSetup75(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1637,7 +1632,7 @@ static int DetectIPProtoTestSetup76(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1674,7 +1669,7 @@ static int DetectIPProtoTestSetup129(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1711,7 +1706,7 @@ static int DetectIPProtoTestSetup130(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1748,7 +1743,7 @@ static int DetectIPProtoTestSetup131(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1785,7 +1780,7 @@ static int DetectIPProtoTestSetup132(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1855,7 +1850,7 @@ static int DetectIPProtoTestSetup145(void)
 
     result = 1;
 
- end:
+end:
     SigFree(NULL, sig);
     return result;
 }
@@ -1863,10 +1858,9 @@ static int DetectIPProtoTestSetup145(void)
 static int DetectIPProtoTestSig1(void)
 {
     int result = 0;
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"
-                    "Host: one.example.org\r\n"
-                    "\r\n";
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.1\r\n"
+                              "Host: one.example.org\r\n"
+                              "\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     if (p == NULL)
@@ -1874,18 +1868,18 @@ static int DetectIPProtoTestSig1(void)
 
     const char *sigs[4];
     sigs[0] = "alert ip any any -> any any "
-        "(msg:\"Not tcp\"; ip_proto:!tcp; content:\"GET \"; sid:1;)";
+              "(msg:\"Not tcp\"; ip_proto:!tcp; content:\"GET \"; sid:1;)";
     sigs[1] = "alert ip any any -> any any "
-        "(msg:\"Less than 7\"; content:\"GET \"; ip_proto:<7; sid:2;)";
+              "(msg:\"Less than 7\"; content:\"GET \"; ip_proto:<7; sid:2;)";
     sigs[2] = "alert ip any any -> any any "
-        "(msg:\"Greater than 5\"; content:\"GET \"; ip_proto:>5; sid:3;)";
+              "(msg:\"Greater than 5\"; content:\"GET \"; ip_proto:>5; sid:3;)";
     sigs[3] = "alert ip any any -> any any "
-        "(msg:\"Equals tcp\"; content:\"GET \"; ip_proto:tcp; sid:4;)";
+              "(msg:\"Equals tcp\"; content:\"GET \"; ip_proto:tcp; sid:4;)";
 
     /* sids to match */
-    uint32_t sid[4] = {1, 2, 3, 4};
+    uint32_t sid[4] = { 1, 2, 3, 4 };
     /* expected matches for each sid within this packet we are testing */
-    uint32_t results[4] = {0, 1, 1, 1};
+    uint32_t results[4] = { 0, 1, 1, 1 };
 
     /* remember that UTHGenericTest expect the first parameter
      * as an array of packet pointers. And also a bidimensional array of results
@@ -1941,9 +1935,8 @@ static int DetectIPProtoTestSig2(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert ip any any -> any any (msg:\"Check ipproto usage\"; "
-                               "ip_proto:!103; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any any (msg:\"Check ipproto usage\"; "
+                                       "ip_proto:!103; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -2028,9 +2021,8 @@ static int DetectIPProtoTestSig3(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert ip any any -> any any (msg:\"Check ipproto usage\"; "
-                               "ip_proto:103; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any any (msg:\"Check ipproto usage\"; "
+                                       "ip_proto:103; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;

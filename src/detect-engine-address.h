@@ -24,8 +24,6 @@
 #ifndef __DETECT_ADDRESS_H__
 #define __DETECT_ADDRESS_H__
 
-
-
 DetectAddress *DetectAddressInit(void);
 void DetectAddressFree(DetectAddress *);
 DetectAddress *DetectAddressCopy(DetectAddress *);
@@ -47,8 +45,8 @@ void DetectAddressTests(void);
 
 int DetectAddressMapInit(DetectEngineCtx *de_ctx);
 void DetectAddressMapFree(DetectEngineCtx *de_ctx);
-const DetectAddressHead *DetectParseAddress(DetectEngineCtx *de_ctx,
-        const char *string, bool *contains_negation);
+const DetectAddressHead *DetectParseAddress(
+        DetectEngineCtx *de_ctx, const char *string, bool *contains_negation);
 
 #ifdef DEBUG
 void DetectAddressPrintList(DetectAddress *);

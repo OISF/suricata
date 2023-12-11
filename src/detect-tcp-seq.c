@@ -41,8 +41,8 @@
 #include "util-debug.h"
 
 static int DetectSeqSetup(DetectEngineCtx *, Signature *, const char *);
-static int DetectSeqMatch(DetectEngineThreadCtx *,
-                          Packet *, const Signature *, const SigMatchCtx *);
+static int DetectSeqMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 #ifdef UNITTESTS
 static void DetectSeqRegisterTests(void);
 #endif
@@ -78,8 +78,8 @@ void DetectSeqRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectSeqMatch(DetectEngineThreadCtx *det_ctx,
-                          Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectSeqMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectSeqData *data = (const DetectSeqData *)ctx;
 
@@ -102,7 +102,7 @@ static int DetectSeqMatch(DetectEngineThreadCtx *det_ctx,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
+static int DetectSeqSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
 {
     DetectSeqData *data = NULL;
 
@@ -126,7 +126,6 @@ error:
     if (data)
         SCFree(data);
     return -1;
-
 }
 
 /**
@@ -143,31 +142,27 @@ static void DetectSeqFree(DetectEngineCtx *de_ctx, void *ptr)
 
 /* prefilter code */
 
-static void
-PrefilterPacketSeqMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketSeqMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
     if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
-    if ((p->proto) == IPPROTO_TCP && !(PKT_IS_PSEUDOPKT(p)) &&
-        (p->tcph != NULL) && (TCP_GET_SEQ(p) == ctx->v1.u32[0]))
-    {
+    if ((p->proto) == IPPROTO_TCP && !(PKT_IS_PSEUDOPKT(p)) && (p->tcph != NULL) &&
+            (TCP_GET_SEQ(p) == ctx->v1.u32[0])) {
         SCLogDebug("packet matches TCP seq %u", ctx->v1.u32[0]);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
 }
 
-static void
-PrefilterPacketSeqSet(PrefilterPacketHeaderValue *v, void *smctx)
+static void PrefilterPacketSeqSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
     const DetectSeqData *a = smctx;
     v->u32[0] = a->seq;
 }
 
-static bool
-PrefilterPacketSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
+static bool PrefilterPacketSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectSeqData *a = smctx;
     if (v.u32[0] == a->seq)
@@ -177,16 +172,14 @@ PrefilterPacketSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupTcpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_SEQ,
-        PrefilterPacketSeqSet,
-        PrefilterPacketSeqCompare,
-        PrefilterPacketSeqMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_SEQ, PrefilterPacketSeqSet,
+            PrefilterPacketSeqCompare, PrefilterPacketSeqMatch);
 }
 
 static bool PrefilterTcpSeqIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_SEQ:
                 return true;
@@ -194,7 +187,6 @@ static bool PrefilterTcpSeqIsPrefilterable(const Signature *s)
     }
     return false;
 }
-
 
 #ifdef UNITTESTS
 
@@ -209,24 +201,18 @@ static int DetectSeqSigTest01(void)
         goto end;
 
     /* These three are crammed in here as there is no Parse */
-    if (SigInit(de_ctx,
-                "alert tcp any any -> any any "
-                "(msg:\"Testing seq\";seq:foo;sid:1;)") != NULL)
-    {
+    if (SigInit(de_ctx, "alert tcp any any -> any any "
+                        "(msg:\"Testing seq\";seq:foo;sid:1;)") != NULL) {
         printf("invalid seq accepted: ");
         goto cleanup;
     }
-    if (SigInit(de_ctx,
-                "alert tcp any any -> any any "
-                "(msg:\"Testing seq\";seq:9999999999;sid:1;)") != NULL)
-    {
+    if (SigInit(de_ctx, "alert tcp any any -> any any "
+                        "(msg:\"Testing seq\";seq:9999999999;sid:1;)") != NULL) {
         printf("overflowing seq accepted: ");
         goto cleanup;
     }
-    if (SigInit(de_ctx,
-                "alert tcp any any -> any any "
-                "(msg:\"Testing seq\";seq:-100;sid:1;)") != NULL)
-    {
+    if (SigInit(de_ctx, "alert tcp any any -> any any "
+                        "(msg:\"Testing seq\";seq:-100;sid:1;)") != NULL) {
         printf("negative seq accepted: ");
         goto cleanup;
     }
@@ -254,7 +240,7 @@ static int DetectSeqSigTest02(void)
     p[0] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     p[1] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     p[2] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_ICMP);
-    if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
+    if (p[0] == NULL || p[1] == NULL || p[2] == NULL)
         goto end;
 
     /* TCP w/seq=42 */
@@ -264,20 +250,20 @@ static int DetectSeqSigTest02(void)
     p[1]->tcph->th_seq = htonl(100);
 
     const char *sigs[2];
-    sigs[0]= "alert tcp any any -> any any (msg:\"Testing seq\"; seq:41; sid:1;)";
-    sigs[1]= "alert tcp any any -> any any (msg:\"Testing seq\"; seq:42; sid:2;)";
+    sigs[0] = "alert tcp any any -> any any (msg:\"Testing seq\"; seq:41; sid:1;)";
+    sigs[1] = "alert tcp any any -> any any (msg:\"Testing seq\"; seq:42; sid:2;)";
 
-    uint32_t sid[2] = {1, 2};
+    uint32_t sid[2] = { 1, 2 };
 
-    uint32_t results[3][2] = {
-                              /* packet 0 match sid 1 but should not match sid 2 */
-                              {0, 1},
-                              /* packet 1 should not match */
-                              {0, 0},
-                              /* packet 2 should not match */
-                              {0, 0} };
+    uint32_t results[3][2] = { /* packet 0 match sid 1 but should not match sid 2 */
+        { 0, 1 },
+        /* packet 1 should not match */
+        { 0, 0 },
+        /* packet 2 should not match */
+        { 0, 0 }
+    };
 
-    result = UTHGenericTest(p, 3, sigs, sid, (uint32_t *) results, 2);
+    result = UTHGenericTest(p, 3, sigs, sid, (uint32_t *)results, 2);
     UTHFreePackets(p, 3);
 end:
     return result;

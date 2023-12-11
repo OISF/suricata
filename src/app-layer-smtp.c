@@ -74,28 +74,28 @@
 
 /* we are in process of parsing a fresh command.  Just a placeholder.  If we
  * are not in STATE_COMMAND_DATA_MODE, we have to be in this mode */
-#define SMTP_PARSER_STATE_COMMAND_MODE            0x00
+#define SMTP_PARSER_STATE_COMMAND_MODE 0x00
 /* we are in mode of parsing a command's data.  Used when we are parsing tls
  * or accepting the rfc 2822 mail after DATA command */
-#define SMTP_PARSER_STATE_COMMAND_DATA_MODE       0x01
+#define SMTP_PARSER_STATE_COMMAND_DATA_MODE 0x01
 /* Used when we are still in the process of parsing a server command.  Used
  * with multi-line replies and the stream is fragmented before all the lines
  * for a response is seen */
 #define SMTP_PARSER_STATE_PARSING_SERVER_RESPONSE 0x02
 /* Used to indicate that the parser has seen the first reply */
-#define SMTP_PARSER_STATE_FIRST_REPLY_SEEN        0x04
+#define SMTP_PARSER_STATE_FIRST_REPLY_SEEN 0x04
 /* Used to indicate that the parser is parsing a multiline reply */
 #define SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY 0x08
 /* Used to indicate that the server supports pipelining */
-#define SMTP_PARSER_STATE_PIPELINING_SERVER        0x10
+#define SMTP_PARSER_STATE_PIPELINING_SERVER 0x10
 
 /* Various SMTP commands
  * We currently have var-ified just STARTTLS and DATA, since we need to them
  * for state transitions.  The rest are just indicate as OTHER_CMD.  Other
  * commands would be introduced as and when needed */
-#define SMTP_COMMAND_STARTTLS  1
-#define SMTP_COMMAND_DATA      2
-#define SMTP_COMMAND_BDAT      3
+#define SMTP_COMMAND_STARTTLS 1
+#define SMTP_COMMAND_DATA     2
+#define SMTP_COMMAND_BDAT     3
 /* not an actual command per se, but the mode where we accept the mail after
  * DATA has it's own reply code for completion, from the server.  We give this
  * stage a pseudo command of it's own, so that we can add this to the command
@@ -207,7 +207,7 @@ enum SMTPCode {
     SMTP_REPLY_555,
 };
 
-SCEnumCharMap smtp_reply_map[ ] = {
+SCEnumCharMap smtp_reply_map[] = {
     { "211", SMTP_REPLY_211 },
     { "214", SMTP_REPLY_214 },
     { "220", SMTP_REPLY_220 },
@@ -237,7 +237,7 @@ SCEnumCharMap smtp_reply_map[ ] = {
     { "553", SMTP_REPLY_553 },
     { "554", SMTP_REPLY_554 },
     { "555", SMTP_REPLY_555 },
-    {  NULL,  -1 },
+    { NULL, -1 },
 };
 
 /* Create SMTP config structure */
@@ -267,7 +267,8 @@ static SMTPString *SMTPStringAlloc(void);
  *
  * \return none
  */
-static void SMTPConfigure(void) {
+static void SMTPConfigure(void)
+{
 
     SCEnter();
     intmax_t imval;
@@ -297,7 +298,7 @@ static void SMTPConfigure(void) {
 
         ret = ConfGetChildValueInt(config, "header-value-depth", &imval);
         if (ret) {
-            smtp_config.mime_config.header_value_depth = (uint32_t) imval;
+            smtp_config.mime_config.header_value_depth = (uint32_t)imval;
         }
 
         ret = ConfGetChildValueBool(config, "extract-urls", &val);
@@ -381,7 +382,7 @@ static void SMTPConfigure(void) {
     ConfNode *p = NULL;
 
     if (t != NULL) {
-        TAILQ_FOREACH(p, &t->head, next) {
+        TAILQ_FOREACH (p, &t->head, next) {
             if (strcasecmp("content-limit", p->name) == 0) {
                 if (ParseSizeStringU32(p->val, &content_limit) < 0) {
                     SCLogWarning("parsing content-limit %s failed", p->val);
@@ -478,19 +479,18 @@ static void SMTPNewFile(SMTPTransaction *tx, File *file)
     /* set inspect sizes used in file pruning logic.
      * TODO consider moving this to the file.data code that
      * would actually have use for this. */
-    FileSetInspectSizes(file, smtp_config.content_inspect_window,
-            smtp_config.content_inspect_min_size);
+    FileSetInspectSizes(
+            file, smtp_config.content_inspect_window, smtp_config.content_inspect_min_size);
 }
 
-int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
-        MimeDecParseState *state)
+int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len, MimeDecParseState *state)
 {
     SCEnter();
     int ret = MIME_DEC_OK;
-    Flow *flow = (Flow *) state->data;
-    SMTPState *smtp_state = (SMTPState *) flow->alstate;
+    Flow *flow = (Flow *)state->data;
+    SMTPState *smtp_state = (SMTPState *)flow->alstate;
     SMTPTransaction *tx = smtp_state->curr_tx;
-    MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
+    MimeDecEntity *entity = (MimeDecEntity *)state->stack->top->data;
     FileContainer *files = NULL;
 
     DEBUG_VALIDATE_BUG_ON(tx == NULL);
@@ -519,9 +519,10 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 flags |= FILE_STORE;
             }
 
-            uint32_t depth = smtp_config.content_inspect_min_size +
-                (smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp);
-            SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %"PRIu32, depth);
+            uint32_t depth =
+                    smtp_config.content_inspect_min_size +
+                    (smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp);
+            SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %" PRIu32, depth);
             StreamTcpReassemblySetMinInspectDepth(flow->protoctx, STREAM_TOSERVER, depth);
 
             uint16_t flen = (uint16_t)entity->filename_len;
@@ -554,10 +555,8 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 depth = smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp;
 
                 AppLayerParserTriggerRawStreamReassembly(flow, STREAM_TOSERVER);
-                SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u",
-                        depth);
-                StreamTcpReassemblySetMinInspectDepth(flow->protoctx, STREAM_TOSERVER,
-                        depth);
+                SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
+                StreamTcpReassemblySetMinInspectDepth(flow->protoctx, STREAM_TOSERVER, depth);
             }
         } else if (state->body_end) {
             /* Close file */
@@ -574,10 +573,8 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
             }
             uint32_t depth = smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp;
             AppLayerParserTriggerRawStreamReassembly(flow, STREAM_TOSERVER);
-            SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u",
-                    depth);
-            StreamTcpReassemblySetMinInspectDepth(flow->protoctx,
-                    STREAM_TOSERVER, depth);
+            SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
+            StreamTcpReassemblySetMinInspectDepth(flow->protoctx, STREAM_TOSERVER, depth);
         } else {
             /* Append data chunk to file */
             SCLogDebug("Appending file...%u bytes", len);
@@ -593,28 +590,25 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
 
             if (files->tail && files->tail->content_inspected == 0 &&
                     files->tail->size >= smtp_config.content_inspect_min_size) {
-                uint32_t depth = smtp_config.content_inspect_min_size +
-                    (smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp);
+                uint32_t depth =
+                        smtp_config.content_inspect_min_size +
+                        (smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp);
                 AppLayerParserTriggerRawStreamReassembly(flow, STREAM_TOSERVER);
-                SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u",
-                        depth);
-                StreamTcpReassemblySetMinInspectDepth(flow->protoctx,
-                        STREAM_TOSERVER, depth);
+                SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %u", depth);
+                StreamTcpReassemblySetMinInspectDepth(flow->protoctx, STREAM_TOSERVER, depth);
 
-            /* after the start of the body inspection, disable the depth logic */
+                /* after the start of the body inspection, disable the depth logic */
             } else if (files->tail && files->tail->content_inspected > 0) {
-                StreamTcpReassemblySetMinInspectDepth(flow->protoctx,
-                        STREAM_TOSERVER, 0);
+                StreamTcpReassemblySetMinInspectDepth(flow->protoctx, STREAM_TOSERVER, 0);
 
-            /* expand the limit as long as we get file data, as the file data is bigger on the
-             * wire due to base64 */
+                /* expand the limit as long as we get file data, as the file data is bigger on the
+                 * wire due to base64 */
             } else {
-                uint32_t depth = smtp_config.content_inspect_min_size +
-                    (smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp);
-                SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %"PRIu32,
-                        depth);
-                StreamTcpReassemblySetMinInspectDepth(flow->protoctx,
-                        STREAM_TOSERVER, depth);
+                uint32_t depth =
+                        smtp_config.content_inspect_min_size +
+                        (smtp_state->toserver_data_count - smtp_state->toserver_last_data_stamp);
+                SCLogDebug("StreamTcpReassemblySetMinInspectDepth STREAM_TOSERVER %" PRIu32, depth);
+                StreamTcpReassemblySetMinInspectDepth(flow->protoctx, STREAM_TOSERVER, depth);
             }
         }
 
@@ -710,8 +704,7 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state,
             increment = USHRT_MAX - state->cmds_buffer_len;
         }
 
-        ptmp = SCRealloc(state->cmds,
-                         sizeof(uint8_t) * (state->cmds_buffer_len + increment));
+        ptmp = SCRealloc(state->cmds, sizeof(uint8_t) * (state->cmds_buffer_len + increment));
         if (ptmp == NULL) {
             SCFree(state->cmds);
             state->cmds = NULL;
@@ -722,9 +715,8 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state,
 
         state->cmds_buffer_len += increment;
     }
-    if (state->cmds_cnt >= 1 &&
-        ((state->cmds[state->cmds_cnt - 1] == SMTP_COMMAND_STARTTLS) ||
-         (state->cmds[state->cmds_cnt - 1] == SMTP_COMMAND_DATA))) {
+    if (state->cmds_cnt >= 1 && ((state->cmds[state->cmds_cnt - 1] == SMTP_COMMAND_STARTTLS) ||
+                                        (state->cmds[state->cmds_cnt - 1] == SMTP_COMMAND_DATA))) {
         /* decoder event */
         SMTPSetEvent(state, SMTP_DECODER_EVENT_INVALID_PIPELINED_SEQUENCE);
         /* we have to have EHLO, DATA, VRFY, EXPN, TURN, QUIT, NOOP,
@@ -872,16 +864,14 @@ static int SMTPProcessCommandDATA(SMTPState *state, SMTPTransaction *tx, Flow *f
     return 0;
 }
 
-static int SMTPProcessCommandSTARTTLS(SMTPState *state, Flow *f,
-                                      AppLayerParserState *pstate)
+static int SMTPProcessCommandSTARTTLS(SMTPState *state, Flow *f, AppLayerParserState *pstate)
 {
     return 0;
 }
 
 static inline bool IsReplyToCommand(const SMTPState *state, const uint8_t cmd)
 {
-    return (state->cmds_idx < state->cmds_buffer_len &&
-            state->cmds[state->cmds_idx] == cmd);
+    return (state->cmds_idx < state->cmds_buffer_len && state->cmds[state->cmds_idx] == cmd);
 }
 
 static int SMTPProcessReply(SMTPState *state, Flow *f, AppLayerParserState *pstate,
@@ -930,8 +920,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f, AppLayerParserState *psta
         SCReturnInt(-1);
     }
     enum SMTPCode reply_code = smtp_reply_map[td->pmq->rule_id_array[0]].enum_value;
-    SCLogDebug("REPLY: reply_code %u / %s", reply_code,
-            smtp_reply_map[reply_code].enum_name);
+    SCLogDebug("REPLY: reply_code %u / %s", reply_code, smtp_reply_map[reply_code].enum_name);
 
     if (state->cmds_idx == state->cmds_cnt) {
         if (!(state->parser_state & SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
@@ -1179,8 +1168,8 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
 
         /* keep track of the start of the tx */
         state->toserver_last_data_stamp = state->toserver_data_count;
-        StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER,
-                smtp_config.content_inspect_min_size);
+        StreamTcpReassemblySetMinInspectDepth(
+                f->protoctx, STREAM_TOSERVER, smtp_config.content_inspect_min_size);
     }
 
     state->toserver_data_count += (line->len + line->delim_len);
@@ -1237,8 +1226,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
                 if (tx->msg_head == NULL) {
                     tx->msg_head = tx->mime_state->msg;
                     tx->msg_tail = tx->mime_state->msg;
-                }
-                else {
+                } else {
                     tx->msg_tail->next = tx->mime_state->msg;
                     tx->msg_tail = tx->mime_state->msg;
                 }
@@ -1283,8 +1271,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f, AppLayerParserState *ps
 
         /* Every command is inserted into a command buffer, to be matched
          * against reply(ies) sent by the server */
-        if (SMTPInsertCommandIntoCommandBuffer(state->current_command,
-                                               state, f) == -1) {
+        if (SMTPInsertCommandIntoCommandBuffer(state->current_command, state, f) == -1) {
             SCReturnInt(-1);
         }
 
@@ -1525,8 +1512,7 @@ void *SMTPStateAlloc(void *orig_state, AppProto proto_orig)
     if (unlikely(smtp_state == NULL))
         return NULL;
 
-    smtp_state->cmds = SCMalloc(sizeof(uint8_t) *
-                                SMTP_COMMAND_BUFFER_STEPS);
+    smtp_state->cmds = SCMalloc(sizeof(uint8_t) * SMTP_COMMAND_BUFFER_STEPS);
     if (smtp_state->cmds == NULL) {
         SCFree(smtp_state);
         return NULL;
@@ -1546,7 +1532,6 @@ static SMTPString *SMTPStringAlloc(void)
 
     return smtp_string;
 }
-
 
 static void SMTPStringFree(SMTPString *str)
 {
@@ -1661,16 +1646,14 @@ static void SMTPSetMpmState(void)
     MpmInitCtx(smtp_mpm_ctx, SMTP_MPM);
 
     uint32_t i = 0;
-    for (i = 0; i < sizeof(smtp_reply_map)/sizeof(SCEnumCharMap) - 1; i++) {
+    for (i = 0; i < sizeof(smtp_reply_map) / sizeof(SCEnumCharMap) - 1; i++) {
         SCEnumCharMap *map = &smtp_reply_map[i];
         /* The third argument is 3, because reply code is always 3 bytes. */
-        MpmAddPatternCI(smtp_mpm_ctx, (uint8_t *)map->enum_name, 3,
-                        0 /* defunct */, 0 /* defunct */,
-                        i /* pattern id */, i /* rule id */ , 0 /* no flags */);
+        MpmAddPatternCI(smtp_mpm_ctx, (uint8_t *)map->enum_name, 3, 0 /* defunct */,
+                0 /* defunct */, i /* pattern id */, i /* rule id */, 0 /* no flags */);
     }
 
     mpm_table[SMTP_MPM].Prepare(smtp_mpm_ctx);
-
 }
 
 static void SMTPFreeMpmState(void)
@@ -1682,8 +1665,8 @@ static void SMTPFreeMpmState(void)
     }
 }
 
-static int SMTPStateGetEventInfo(const char *event_name,
-                          int *event_id, AppLayerEventType *event_type)
+static int SMTPStateGetEventInfo(
+        const char *event_name, int *event_id, AppLayerEventType *event_type)
 {
     *event_id = SCMapEnumNameToValue(event_name, smtp_decoder_event_table);
     if (*event_id == -1) {
@@ -1699,8 +1682,8 @@ static int SMTPStateGetEventInfo(const char *event_name,
     return 0;
 }
 
-static int SMTPStateGetEventInfoById(int event_id, const char **event_name,
-                                     AppLayerEventType *event_type)
+static int SMTPStateGetEventInfoById(
+        int event_id, const char **event_name, AppLayerEventType *event_type)
 {
     *event_name = SCMapEnumValueToName(event_id, smtp_decoder_event_table);
     if (*event_name == NULL) {
@@ -1718,30 +1701,27 @@ static int SMTPStateGetEventInfoById(int event_id, const char **event_name,
 
 static int SMTPRegisterPatternsForProtocolDetection(void)
 {
-    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SMTP,
-                                               "EHLO", 4, 0, STREAM_TOSERVER) < 0)
-    {
+    if (AppLayerProtoDetectPMRegisterPatternCI(
+                IPPROTO_TCP, ALPROTO_SMTP, "EHLO", 4, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SMTP,
-                                               "HELO", 4, 0, STREAM_TOSERVER) < 0)
-    {
+    if (AppLayerProtoDetectPMRegisterPatternCI(
+                IPPROTO_TCP, ALPROTO_SMTP, "HELO", 4, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
-    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_SMTP,
-                                               "QUIT", 4, 0, STREAM_TOSERVER) < 0)
-    {
+    if (AppLayerProtoDetectPMRegisterPatternCI(
+                IPPROTO_TCP, ALPROTO_SMTP, "QUIT", 4, 0, STREAM_TOSERVER) < 0) {
         return -1;
     }
 
     return 0;
 }
 
-static void SMTPStateTransactionFree (void *state, uint64_t tx_id)
+static void SMTPStateTransactionFree(void *state, uint64_t tx_id)
 {
     SMTPState *smtp_state = state;
     SMTPTransaction *tx = NULL;
-    TAILQ_FOREACH(tx, &smtp_state->tx_list, next) {
+    TAILQ_FOREACH (tx, &smtp_state->tx_list, next) {
         if (tx_id < tx->tx_id)
             break;
         else if (tx_id > tx->tx_id)
@@ -1753,8 +1733,6 @@ static void SMTPStateTransactionFree (void *state, uint64_t tx_id)
         SMTPTransactionFree(tx, state);
         break;
     }
-
-
 }
 
 /** \retval cnt highest tx id */
@@ -1765,7 +1743,7 @@ static uint64_t SMTPStateGetTxCnt(void *state)
     if (smtp_state) {
         cnt = smtp_state->tx_cnt;
     }
-    SCLogDebug("returning %"PRIu64, cnt);
+    SCLogDebug("returning %" PRIu64, cnt);
     return cnt;
 }
 
@@ -1780,13 +1758,12 @@ static void *SMTPStateGetTx(void *state, uint64_t id)
         if (smtp_state->curr_tx->tx_id == id)
             return smtp_state->curr_tx;
 
-        TAILQ_FOREACH(tx, &smtp_state->tx_list, next) {
+        TAILQ_FOREACH (tx, &smtp_state->tx_list, next) {
             if (tx->tx_id == id)
                 return tx;
         }
     }
     return NULL;
-
 }
 
 static int SMTPStateGetAlstateProgress(void *vtx, uint8_t direction)
@@ -1865,31 +1842,32 @@ void RegisterSMTPParsers(void)
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_SMTP, proto_name);
-        if (SMTPRegisterPatternsForProtocolDetection() < 0 )
+        if (SMTPRegisterPatternsForProtocolDetection() < 0)
             return;
     } else {
-        SCLogInfo("Protocol detection and parser disabled for %s protocol.",
-                  proto_name);
+        SCLogInfo("Protocol detection and parser disabled for %s protocol.", proto_name);
         return;
     }
 
     if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateAlloc, SMTPStateFree);
 
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMTP, STREAM_TOSERVER,
-                                     SMTPParseClientRecord);
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMTP, STREAM_TOCLIENT,
-                                     SMTPParseServerRecord);
+        AppLayerParserRegisterParser(
+                IPPROTO_TCP, ALPROTO_SMTP, STREAM_TOSERVER, SMTPParseClientRecord);
+        AppLayerParserRegisterParser(
+                IPPROTO_TCP, ALPROTO_SMTP, STREAM_TOCLIENT, SMTPParseServerRecord);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfo);
-        AppLayerParserRegisterGetEventInfoById(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfoById);
+        AppLayerParserRegisterGetEventInfoById(
+                IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfoById);
 
-        AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPLocalStorageAlloc,
-                                               SMTPLocalStorageFree);
+        AppLayerParserRegisterLocalStorageFunc(
+                IPPROTO_TCP, ALPROTO_SMTP, SMTPLocalStorageAlloc, SMTPLocalStorageFree);
 
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateTransactionFree);
         AppLayerParserRegisterGetTxFilesFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetTxFiles);
-        AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetAlstateProgress);
+        AppLayerParserRegisterGetStateProgressFunc(
+                IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetAlstateProgress);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTxCnt);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTx);
         AppLayerParserRegisterGetTxIterator(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetTxIterator);
@@ -1898,7 +1876,8 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterStateProgressCompletionStatus(ALPROTO_SMTP, 1, 1);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
-                  "still on.", proto_name);
+                  "still on.",
+                proto_name);
     }
 
     SMTPSetMpmState();
@@ -2027,8 +2006,8 @@ static int SMTPParserTest01(void)
     StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, welcome_reply, welcome_reply_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, welcome_reply, welcome_reply_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2044,8 +2023,8 @@ static int SMTPParserTest01(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2057,8 +2036,7 @@ static int SMTPParserTest01(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply1, reply1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply1, reply1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2069,8 +2047,8 @@ static int SMTPParserTest01(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2082,8 +2060,7 @@ static int SMTPParserTest01(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply2, reply2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply2, reply2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2415,8 +2392,8 @@ static int SMTPParserTest02(void)
     StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, welcome_reply, welcome_reply_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, welcome_reply, welcome_reply_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2432,8 +2409,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2445,8 +2422,7 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply1, reply1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply1, reply1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2457,8 +2433,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2470,8 +2446,7 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply2, reply2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply2, reply2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2482,8 +2457,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request3, request3_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request3, request3_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2495,8 +2470,7 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply3, reply3_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply3, reply3_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2507,8 +2481,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request4, request4_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request4, request4_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2520,8 +2494,7 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply4, reply4_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply4, reply4_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2533,22 +2506,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request5_1, request5_1_len);
-    if (r != 0) {
-        printf("smtp check returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
-    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
-            smtp_state->parser_state !=
-                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
-
-        printf("smtp parser in inconsistent state\n");
-        goto end;
-    }
-
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request5_2, request5_2_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request5_1, request5_1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2561,8 +2520,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request5_3, request5_3_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request5_2, request5_2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2575,8 +2534,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request5_4, request5_4_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request5_3, request5_3_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2589,8 +2548,22 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request5_5, request5_5_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request5_4, request5_4_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request5_5, request5_5_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2602,8 +2575,7 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply5, reply5_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply5, reply5_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2614,8 +2586,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request6, request6_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request6, request6_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2627,8 +2599,7 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply6, reply6_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply6, reply6_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2639,8 +2610,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request7, request7_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request7, request7_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2652,8 +2623,7 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply7, reply7_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply7, reply7_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2664,8 +2634,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request8, request8_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request8, request8_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2677,8 +2647,7 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply8, reply8_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply8, reply8_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2690,22 +2659,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request9_1, request9_1_len);
-    if (r != 0) {
-        printf("smtp check returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
-    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
-            smtp_state->parser_state !=
-                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
-
-        printf("smtp parser in inconsistent state\n");
-        goto end;
-    }
-
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request9_2, request9_2_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request9_1, request9_1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2718,8 +2673,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request9_3, request9_3_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request9_2, request9_2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2732,8 +2687,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request9_4, request9_4_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request9_3, request9_3_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2746,8 +2701,22 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request9_5, request9_5_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request9_4, request9_4_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
+            smtp_state->parser_state !=
+                    (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request9_5, request9_5_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2759,8 +2728,7 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply9, reply9_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply9, reply9_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2771,8 +2739,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request10, request10_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request10, request10_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2784,8 +2752,8 @@ static int SMTPParserTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply10, reply10_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply10, reply10_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2919,8 +2887,8 @@ static int SMTPParserTest03(void)
     StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, welcome_reply, welcome_reply_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, welcome_reply, welcome_reply_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2936,8 +2904,8 @@ static int SMTPParserTest03(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2949,8 +2917,7 @@ static int SMTPParserTest03(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply1, reply1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply1, reply1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2962,8 +2929,8 @@ static int SMTPParserTest03(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2979,8 +2946,7 @@ static int SMTPParserTest03(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply2, reply2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply2, reply2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3051,8 +3017,8 @@ static int SMTPParserTest04(void)
     StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, welcome_reply, welcome_reply_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, welcome_reply, welcome_reply_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3068,8 +3034,8 @@ static int SMTPParserTest04(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3204,8 +3170,8 @@ static int SMTPParserTest05(void)
     StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, welcome_reply, welcome_reply_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, welcome_reply, welcome_reply_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3221,8 +3187,8 @@ static int SMTPParserTest05(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3234,8 +3200,7 @@ static int SMTPParserTest05(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply1, reply1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply1, reply1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3247,8 +3212,8 @@ static int SMTPParserTest05(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3261,8 +3226,7 @@ static int SMTPParserTest05(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply2, reply2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply2, reply2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3274,15 +3238,14 @@ static int SMTPParserTest05(void)
         goto end;
     }
 
-    if ((f.flags & FLOW_NOPAYLOAD_INSPECTION) ||
-        (ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
-        (((TcpSession *)f.protoctx)->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
-        (((TcpSession *)f.protoctx)->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
+    if ((f.flags & FLOW_NOPAYLOAD_INSPECTION) || (ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
+            (((TcpSession *)f.protoctx)->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
+            (((TcpSession *)f.protoctx)->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request3, request3_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request3, request3_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3295,8 +3258,7 @@ static int SMTPParserTest05(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply3, reply3_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply3, reply3_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3490,8 +3452,8 @@ static int SMTPParserTest06(void)
     StreamTcpInitConfig(true);
     SMTPTestInitConfig();
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, welcome_reply, welcome_reply_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, welcome_reply, welcome_reply_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3507,8 +3469,8 @@ static int SMTPParserTest06(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3520,8 +3482,7 @@ static int SMTPParserTest06(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply1, reply1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply1, reply1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3532,8 +3493,8 @@ static int SMTPParserTest06(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3545,8 +3506,7 @@ static int SMTPParserTest06(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply2, reply2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply2, reply2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3557,8 +3517,8 @@ static int SMTPParserTest06(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request3, request3_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request3, request3_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3570,8 +3530,7 @@ static int SMTPParserTest06(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply3, reply3_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply3, reply3_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3582,8 +3541,8 @@ static int SMTPParserTest06(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request4, request4_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request4, request4_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3597,8 +3556,8 @@ static int SMTPParserTest06(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request5, request5_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request5, request5_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3611,8 +3570,8 @@ static int SMTPParserTest06(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request6, request6_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request6, request6_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -3679,7 +3638,7 @@ static int SMTPParserTest12(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_SMTP;
 
     StreamTcpInitConfig(true);
@@ -3691,19 +3650,18 @@ static int SMTPParserTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx,"alert tcp any any -> any any "
-                                   "(msg:\"SMTP event handling\"; "
-                                   "app-layer-event: smtp.invalid_reply; "
-                                   "sid:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                      "(msg:\"SMTP event handling\"; "
+                                      "app-layer-event: smtp.invalid_reply; "
+                                      "sid:1;)");
     if (s == NULL)
         goto end;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER | STREAM_START, request1,
-                            request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER | STREAM_START,
+            request1, request1_len);
     if (r != 0) {
         printf("AppLayerParse for smtp failed.  Returned %" PRId32, r);
         goto end;
@@ -3723,9 +3681,8 @@ static int SMTPParserTest12(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT | STREAM_TOCLIENT, reply1,
-                            reply1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT | STREAM_TOCLIENT,
+            reply1, reply1_len);
     if (r == 0) {
         printf("AppLayerParse for smtp failed.  Returned %" PRId32, r);
         goto end;
@@ -3822,7 +3779,7 @@ static int SMTPParserTest13(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_SMTP;
 
     StreamTcpInitConfig(true);
@@ -3835,19 +3792,18 @@ static int SMTPParserTest13(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                              "(msg:\"SMTP event handling\"; "
-                              "app-layer-event: "
-                              "smtp.invalid_pipelined_sequence; "
-                              "sid:1;)");
+                                      "(msg:\"SMTP event handling\"; "
+                                      "app-layer-event: "
+                                      "smtp.invalid_pipelined_sequence; "
+                                      "sid:1;)");
     if (s == NULL)
         goto end;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER | STREAM_START, request1,
-                            request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER | STREAM_START,
+            request1, request1_len);
     if (r != 0) {
         printf("AppLayerParse for smtp failed.  Returned %" PRId32, r);
         goto end;
@@ -3867,8 +3823,7 @@ static int SMTPParserTest13(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply1, reply1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply1, reply1_len);
     if (r != 0) {
         printf("AppLayerParse for smtp failed.  Returned %" PRId32, r);
         goto end;
@@ -3882,8 +3837,8 @@ static int SMTPParserTest13(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("AppLayerParse for smtp failed.  Returned %" PRId32, r);
         goto end;
@@ -4127,8 +4082,8 @@ static int SMTPParserTest14(void)
     SMTPTestInitConfig();
 
     /* Welcome reply */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, welcome_reply, welcome_reply_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, welcome_reply, welcome_reply_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -4144,8 +4099,8 @@ static int SMTPParserTest14(void)
         goto end;
     }
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -4158,15 +4113,15 @@ static int SMTPParserTest14(void)
     }
 
     /* EHLO Reply */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply1, reply1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply1, reply1_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
     if ((smtp_state->helo_len != 7) || strncmp("boo.com", (char *)smtp_state->helo, 7)) {
-        printf("incorrect parsing of HELO field '%s' (%d)\n", smtp_state->helo, smtp_state->helo_len);
+        printf("incorrect parsing of HELO field '%s' (%d)\n", smtp_state->helo,
+                smtp_state->helo_len);
         goto end;
     }
 
@@ -4177,8 +4132,8 @@ static int SMTPParserTest14(void)
     }
 
     /* MAIL FROM Request */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -4191,18 +4146,16 @@ static int SMTPParserTest14(void)
     }
 
     /* MAIL FROM Reply */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply2, reply2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply2, reply2_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
     if ((smtp_state->curr_tx->mail_from_len != 14) ||
-        strncmp("asdff@asdf.com", (char *)smtp_state->curr_tx->mail_from, 14)) {
-        printf("incorrect parsing of MAIL FROM field '%s' (%d)\n",
-               smtp_state->curr_tx->mail_from,
-               smtp_state->curr_tx->mail_from_len);
+            strncmp("asdff@asdf.com", (char *)smtp_state->curr_tx->mail_from, 14)) {
+        printf("incorrect parsing of MAIL FROM field '%s' (%d)\n", smtp_state->curr_tx->mail_from,
+                smtp_state->curr_tx->mail_from_len);
         goto end;
     }
 
@@ -4213,8 +4166,8 @@ static int SMTPParserTest14(void)
     }
 
     /* RCPT TO Request */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request3, request3_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request3, request3_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -4227,8 +4180,7 @@ static int SMTPParserTest14(void)
     }
 
     /* RCPT TO Reply */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply3, reply3_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply3, reply3_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -4246,8 +4198,8 @@ static int SMTPParserTest14(void)
     MimeDecSetConfig(&smtp_config.mime_config);
 
     /* DATA request */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request4, request4_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request4, request4_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -4261,8 +4213,7 @@ static int SMTPParserTest14(void)
     }
 
     /* Data reply */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply4, reply4_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply4, reply4_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -4275,8 +4226,8 @@ static int SMTPParserTest14(void)
     }
 
     /* DATA message */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request4_msg, request4_msg_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request4_msg, request4_msg_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -4292,8 +4243,8 @@ static int SMTPParserTest14(void)
     }
 
     /* DATA . request */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request4_end, request4_end_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request4_end, request4_end_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -4308,7 +4259,7 @@ static int SMTPParserTest14(void)
         goto end;
     }
 
-    SMTPState *state = (SMTPState *) f.alstate;
+    SMTPState *state = (SMTPState *)f.alstate;
     FAIL_IF_NULL(state);
     FAIL_IF_NULL(state->curr_tx);
 
@@ -4316,12 +4267,12 @@ static int SMTPParserTest14(void)
     if (files != NULL && files->head != NULL) {
         File *file = files->head;
 
-        if(strncmp((const char *)file->name, "test.exe", 8) != 0){
+        if (strncmp((const char *)file->name, "test.exe", 8) != 0) {
             printf("smtp-mime file name is incorrect");
             goto end;
         }
-        if (FileTrackedSize(file) != filesize){
-            printf("smtp-mime file size %"PRIu64" is incorrect", FileDataSize(file));
+        if (FileTrackedSize(file) != filesize) {
+            printf("smtp-mime file size %" PRIu64 " is incorrect", FileDataSize(file));
             goto end;
         }
         // clang-format off
@@ -4345,17 +4296,15 @@ static int SMTPParserTest14(void)
                 0x5C, 0x7A, 0x00, 0x00, 0x38,};
         // clang-format on
 
-        if (StreamingBufferCompareRawData(file->sb,
-                    org_binary, sizeof(org_binary)) != 1)
-        {
+        if (StreamingBufferCompareRawData(file->sb, org_binary, sizeof(org_binary)) != 1) {
             printf("smtp-mime file data incorrect\n");
             goto end;
         }
     }
 
     /* DATA . reply */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply4_end, reply4_end_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply4_end, reply4_end_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -4367,8 +4316,8 @@ static int SMTPParserTest14(void)
     }
 
     /* QUIT Request */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOSERVER, request5, request5_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, request5, request5_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -4381,8 +4330,7 @@ static int SMTPParserTest14(void)
     }
 
     /* QUIT Reply */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
-                            STREAM_TOCLIENT, reply5, reply5_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, reply5, reply5_len);
     if (r != 0) {
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;

@@ -27,7 +27,7 @@
 #ifdef NFQ
 
 #include "threads.h"
-#include <linux/netfilter.h>		/* for NF_ACCEPT */
+#include <linux/netfilter.h> /* for NF_ACCEPT */
 #include <libnetfilter_queue/libnetfilter_queue.h>
 
 // Netfilter's limit
@@ -36,9 +36,8 @@
 /* idea: set the recv-thread id in the packet to
  * select an verdict-queue */
 
-typedef struct NFQPacketVars_
-{
-    int id; /* this nfq packets id */
+typedef struct NFQPacketVars_ {
+    int id;             /* this nfq packets id */
     uint16_t nfq_index; /* index in NFQ array */
     uint8_t verdicted;
 
@@ -48,8 +47,7 @@ typedef struct NFQPacketVars_
     uint16_t hw_protocol;
 } NFQPacketVars;
 
-typedef struct NFQQueueVars_
-{
+typedef struct NFQQueueVars_ {
     struct nfq_handle *h;
     struct nfnl_handle *nh;
     int fd;
@@ -77,15 +75,14 @@ typedef struct NFQQueueVars_
         uint32_t packet_id; /* id of last processed packet */
         uint32_t verdict;
         uint32_t mark;
-        uint8_t mark_valid:1;
+        uint8_t mark_valid : 1;
         uint8_t len;
         uint8_t maxlen;
     } verdict_cache;
 
 } NFQQueueVars;
 
-typedef struct NFQGlobalVars_
-{
+typedef struct NFQGlobalVars_ {
     char unbind;
 } NFQGlobalVars;
 
@@ -97,4 +94,3 @@ void *NFQGetThread(int number);
 void NFQContextsClean(void);
 #endif /* NFQ */
 #endif /* __SOURCE_NFQ_H__ */
-

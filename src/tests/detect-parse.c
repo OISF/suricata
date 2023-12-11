@@ -28,13 +28,17 @@
  * Leak happened in function DetectEngineSignatureIsDuplicate
  */
 
-static int DetectParseTest01 (void)
+static int DetectParseTest01(void)
 {
-    DetectEngineCtx * de_ctx = DetectEngineCtxInit();
-    FAIL_IF(DetectEngineAppendSig(de_ctx, "alert http any any -> any any (msg:\"sid 1 version 0\"; content:\"dummy1\"; sid:1;)") == NULL);
-    DetectEngineAppendSig(de_ctx, "alert http any any -> any any (msg:\"sid 2 version 0\"; content:\"dummy2\"; sid:2;)");
-    DetectEngineAppendSig(de_ctx, "alert http any any -> any any (msg:\"sid 1 version 1\"; content:\"dummy1.1\"; sid:1; rev:1;)");
-    DetectEngineAppendSig(de_ctx, "alert http any any -> any any (msg:\"sid 2 version 2\"; content:\"dummy2.1\"; sid:2; rev:1;)");
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF(DetectEngineAppendSig(de_ctx, "alert http any any -> any any (msg:\"sid 1 version 0\"; "
+                                          "content:\"dummy1\"; sid:1;)") == NULL);
+    DetectEngineAppendSig(de_ctx,
+            "alert http any any -> any any (msg:\"sid 2 version 0\"; content:\"dummy2\"; sid:2;)");
+    DetectEngineAppendSig(de_ctx, "alert http any any -> any any (msg:\"sid 1 version 1\"; "
+                                  "content:\"dummy1.1\"; sid:1; rev:1;)");
+    DetectEngineAppendSig(de_ctx, "alert http any any -> any any (msg:\"sid 2 version 2\"; "
+                                  "content:\"dummy2.1\"; sid:2; rev:1;)");
     FAIL_IF(de_ctx->sig_list->next == NULL);
     DetectEngineCtxFree(de_ctx);
 

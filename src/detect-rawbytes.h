@@ -25,7 +25,6 @@
 #define __DETECT_RAWBYTES_H__
 
 /* prototypes */
-void DetectRawbytesRegister (void);
+void DetectRawbytesRegister(void);
 
 #endif /* __DETECT_RAWBYTES_H__ */
-

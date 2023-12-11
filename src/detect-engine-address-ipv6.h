@@ -39,10 +39,8 @@ int AddressIPv6GeU32(uint32_t *a, uint32_t *b);
 int DetectAddressCutNotIPv6(DetectAddress *, DetectAddress **);
 int DetectAddressCmpIPv6(DetectAddress *a, DetectAddress *b);
 
-int DetectAddressCutIPv6(DetectEngineCtx *, DetectAddress *, DetectAddress *,
-                         DetectAddress **);
+int DetectAddressCutIPv6(DetectEngineCtx *, DetectAddress *, DetectAddress *, DetectAddress **);
 
 void DetectAddressIPv6Tests(void);
 
 #endif /* __DETECT_ENGINE_ADDRESS_IPV6_H__ */
-

@@ -24,7 +24,6 @@
 #ifndef __DETECT_SNMP_COMMUNITY_H__
 #define __DETECT_SNMP_COMMUNITY_H__
 
-
 void DetectSNMPCommunityRegister(void);
 
 #endif /* __DETECT_SNMP_COMMUNITY_H__ */

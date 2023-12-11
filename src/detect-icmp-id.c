@@ -43,8 +43,8 @@
 
 static DetectParseRegex parse_regex;
 
-static int DetectIcmpIdMatch(DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
+static int DetectIcmpIdMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectIcmpIdSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectIcmpIdRegisterTests(void);
@@ -56,7 +56,7 @@ static bool PrefilterIcmpIdIsPrefilterable(const Signature *s);
 /**
  * \brief Registration function for icode: icmp_id
  */
-void DetectIcmpIdRegister (void)
+void DetectIcmpIdRegister(void)
 {
     sigmatch_table[DETECT_ICMP_ID].name = "icmp_id";
     sigmatch_table[DETECT_ICMP_ID].desc = "check for a ICMP ID";
@@ -80,7 +80,7 @@ static inline bool GetIcmpId(Packet *p, uint16_t *id)
 
     uint16_t pid;
     if (PKT_IS_ICMPV4(p)) {
-        switch (ICMPV4_GET_TYPE(p)){
+        switch (ICMPV4_GET_TYPE(p)) {
             case ICMP_ECHOREPLY:
             case ICMP_ECHO:
             case ICMP_TIMESTAMP:
@@ -89,9 +89,9 @@ static inline bool GetIcmpId(Packet *p, uint16_t *id)
             case ICMP_INFO_REPLY:
             case ICMP_ADDRESS:
             case ICMP_ADDRESSREPLY:
-                SCLogDebug("ICMPV4_GET_ID(p) %"PRIu16" (network byte order), "
-                        "%"PRIu16" (host byte order)", ICMPV4_GET_ID(p),
-                        SCNtohs(ICMPV4_GET_ID(p)));
+                SCLogDebug("ICMPV4_GET_ID(p) %" PRIu16 " (network byte order), "
+                           "%" PRIu16 " (host byte order)",
+                        ICMPV4_GET_ID(p), SCNtohs(ICMPV4_GET_ID(p)));
 
                 pid = ICMPV4_GET_ID(p);
                 break;
@@ -103,9 +103,9 @@ static inline bool GetIcmpId(Packet *p, uint16_t *id)
         switch (ICMPV6_GET_TYPE(p)) {
             case ICMP6_ECHO_REQUEST:
             case ICMP6_ECHO_REPLY:
-                SCLogDebug("ICMPV6_GET_ID(p) %"PRIu16" (network byte order), "
-                        "%"PRIu16" (host byte order)", ICMPV6_GET_ID(p),
-                        SCNtohs(ICMPV6_GET_ID(p)));
+                SCLogDebug("ICMPV6_GET_ID(p) %" PRIu16 " (network byte order), "
+                           "%" PRIu16 " (host byte order)",
+                        ICMPV6_GET_ID(p), SCNtohs(ICMPV6_GET_ID(p)));
 
                 pid = ICMPV6_GET_ID(p);
                 break;
@@ -133,8 +133,8 @@ static inline bool GetIcmpId(Packet *p, uint16_t *id)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectIcmpIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectIcmpIdMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     uint16_t pid;
 
@@ -157,10 +157,10 @@ static int DetectIcmpIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval iid pointer to DetectIcmpIdData on success
  * \retval NULL on failure
  */
-static DetectIcmpIdData *DetectIcmpIdParse (DetectEngineCtx *de_ctx, const char *icmpidstr)
+static DetectIcmpIdData *DetectIcmpIdParse(DetectEngineCtx *de_ctx, const char *icmpidstr)
 {
     DetectIcmpIdData *iid = NULL;
-    char *substr[3] = {NULL, NULL, NULL};
+    char *substr[3] = { NULL, NULL, NULL };
     int res = 0;
     size_t pcre2_len;
 
@@ -179,7 +179,7 @@ static DetectIcmpIdData *DetectIcmpIdParse (DetectEngineCtx *de_ctx, const char 
             SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
         }
-        substr[i-1] = (char *)str_ptr;
+        substr[i - 1] = (char *)str_ptr;
     }
 
     iid = SCMalloc(sizeof(DetectIcmpIdData));
@@ -187,7 +187,7 @@ static DetectIcmpIdData *DetectIcmpIdParse (DetectEngineCtx *de_ctx, const char 
         goto error;
     iid->id = 0;
 
-    if (substr[0]!= NULL && strlen(substr[0]) != 0) {
+    if (substr[0] != NULL && strlen(substr[0]) != 0) {
         if (substr[2] == NULL) {
             SCLogError("Missing close quote in input");
             goto error;
@@ -223,9 +223,9 @@ error:
         if (substr[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)substr[i]);
     }
-    if (iid != NULL) DetectIcmpIdFree(de_ctx, iid);
+    if (iid != NULL)
+        DetectIcmpIdFree(de_ctx, iid);
     return NULL;
-
 }
 
 /**
@@ -238,12 +238,13 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *icmpidstr)
+static int DetectIcmpIdSetup(DetectEngineCtx *de_ctx, Signature *s, const char *icmpidstr)
 {
     DetectIcmpIdData *iid = NULL;
 
     iid = DetectIcmpIdParse(de_ctx, icmpidstr);
-    if (iid == NULL) goto error;
+    if (iid == NULL)
+        goto error;
 
     if (SigMatchAppendSMToList(
                 de_ctx, s, DETECT_ICMP_ID, (SigMatchCtx *)iid, DETECT_SM_LIST_MATCH) == NULL) {
@@ -257,7 +258,6 @@ error:
     if (iid != NULL)
         DetectIcmpIdFree(de_ctx, iid);
     return -1;
-
 }
 
 /**
@@ -265,7 +265,7 @@ error:
  *
  * \param ptr pointer to DetectIcmpIdData
  */
-void DetectIcmpIdFree (DetectEngineCtx *de_ctx, void *ptr)
+void DetectIcmpIdFree(DetectEngineCtx *de_ctx, void *ptr)
 {
     DetectIcmpIdData *iid = (DetectIcmpIdData *)ptr;
     SCFree(iid);
@@ -273,8 +273,7 @@ void DetectIcmpIdFree (DetectEngineCtx *de_ctx, void *ptr)
 
 /* prefilter code */
 
-static void
-PrefilterPacketIcmpIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketIcmpIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
@@ -282,22 +281,19 @@ PrefilterPacketIcmpIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void
     if (!GetIcmpId(p, &pid))
         return;
 
-    if (pid == ctx->v1.u16[0])
-    {
+    if (pid == ctx->v1.u16[0]) {
         SCLogDebug("packet matches ICMP ID %u", ctx->v1.u16[0]);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
 }
 
-static void
-PrefilterPacketIcmpIdSet(PrefilterPacketHeaderValue *v, void *smctx)
+static void PrefilterPacketIcmpIdSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
     const DetectIcmpIdData *a = smctx;
     v->u16[0] = a->id;
 }
 
-static bool
-PrefilterPacketIcmpIdCompare(PrefilterPacketHeaderValue v, void *smctx)
+static bool PrefilterPacketIcmpIdCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectIcmpIdData *a = smctx;
     if (v.u16[0] == a->id)
@@ -307,16 +303,14 @@ PrefilterPacketIcmpIdCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupIcmpId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMP_ID,
-        PrefilterPacketIcmpIdSet,
-        PrefilterPacketIcmpIdCompare,
-        PrefilterPacketIcmpIdMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMP_ID, PrefilterPacketIcmpIdSet,
+            PrefilterPacketIcmpIdCompare, PrefilterPacketIcmpIdMatch);
 }
 
 static bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ICMP_ID:
                 return true;
@@ -332,7 +326,7 @@ static bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
 /**
  * \test DetectIcmpIdParseTest01 is a test for setting a valid icmp_id value
  */
-static int DetectIcmpIdParseTest01 (void)
+static int DetectIcmpIdParseTest01(void)
 {
     DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "300");
     FAIL_IF_NULL(iid);
@@ -345,7 +339,7 @@ static int DetectIcmpIdParseTest01 (void)
  * \test DetectIcmpIdParseTest02 is a test for setting a valid icmp_id value
  *       with spaces all around
  */
-static int DetectIcmpIdParseTest02 (void)
+static int DetectIcmpIdParseTest02(void)
 {
     DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "  300  ");
     FAIL_IF_NULL(iid);
@@ -358,7 +352,7 @@ static int DetectIcmpIdParseTest02 (void)
  * \test DetectIcmpIdParseTest03 is a test for setting a valid icmp_id value
  *       with quotation marks
  */
-static int DetectIcmpIdParseTest03 (void)
+static int DetectIcmpIdParseTest03(void)
 {
     DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "\"300\"");
     FAIL_IF_NULL(iid);
@@ -371,7 +365,7 @@ static int DetectIcmpIdParseTest03 (void)
  * \test DetectIcmpIdParseTest04 is a test for setting a valid icmp_id value
  *       with quotation marks and spaces all around
  */
-static int DetectIcmpIdParseTest04 (void)
+static int DetectIcmpIdParseTest04(void)
 {
     DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "   \"   300 \"");
     FAIL_IF_NULL(iid);
@@ -384,7 +378,7 @@ static int DetectIcmpIdParseTest04 (void)
  * \test DetectIcmpIdParseTest05 is a test for setting an invalid icmp_id
  *       value with missing quotation marks
  */
-static int DetectIcmpIdParseTest05 (void)
+static int DetectIcmpIdParseTest05(void)
 {
     DetectIcmpIdData *iid = DetectIcmpIdParse(NULL, "\"300");
     FAIL_IF_NOT_NULL(iid);
@@ -396,7 +390,7 @@ static int DetectIcmpIdParseTest05 (void)
  *       icmp_id keyword by creating 2 rules and matching a crafted packet
  *       against them. Only the first one shall trigger.
  */
-static int DetectIcmpIdMatchTest01 (void)
+static int DetectIcmpIdMatchTest01(void)
 {
     int result = 0;
     Packet *p = NULL;
@@ -450,7 +444,6 @@ cleanup:
     UTHFreePackets(&p, 1);
 end:
     return result;
-
 }
 
 /**
@@ -459,7 +452,7 @@ end:
  *       against them. The packet is an ICMP packet with no "id" field,
  *       therefore the rule should not trigger.
  */
-static int DetectIcmpIdMatchTest02 (void)
+static int DetectIcmpIdMatchTest02(void)
 {
     int result = 0;
 
@@ -532,7 +525,7 @@ end:
     return result;
 }
 
-static void DetectIcmpIdRegisterTests (void)
+static void DetectIcmpIdRegisterTests(void)
 {
     UtRegisterTest("DetectIcmpIdParseTest01", DetectIcmpIdParseTest01);
     UtRegisterTest("DetectIcmpIdParseTest02", DetectIcmpIdParseTest02);

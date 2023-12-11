@@ -21,7 +21,6 @@
  *
  */
 
-
 #include "suricata.h"
 #include "suricata-common.h"
 
@@ -42,8 +41,7 @@
  * Return uncompressed file length
  * in little-endian order
  */
-uint32_t FileGetSwfDecompressedLen(const uint8_t *buffer,
-                                   const uint32_t buffer_len)
+uint32_t FileGetSwfDecompressedLen(const uint8_t *buffer, const uint32_t buffer_len)
 {
     if (buffer_len < 8) {
         return 0;
@@ -54,15 +52,11 @@ uint32_t FileGetSwfDecompressedLen(const uint8_t *buffer,
     uint32_t c = buffer[6];
     uint32_t d = buffer[7];
 
-    uint32_t value = (((a & 0xff) << 24UL) |
-                      ((b & 0xff) << 16UL) |
-                      ((c & 0xff) << 8UL) |
-                       (d & 0xff));
+    uint32_t value =
+            (((a & 0xff) << 24UL) | ((b & 0xff) << 16UL) | ((c & 0xff) << 8UL) | (d & 0xff));
 
-    uint32_t len = (((value >> 24) & 0x000000FFUL) |
-                    ((value >> 8)  & 0x0000FF00UL) |
-                    ((value << 8)  & 0x00FF0000UL) |
-                    ((value << 24) & 0xFF000000UL));
+    uint32_t len = (((value >> 24) & 0x000000FFUL) | ((value >> 8) & 0x0000FF00UL) |
+                    ((value << 8) & 0x00FF0000UL) | ((value << 24) & 0xFF000000UL));
 
     return MIN(MAX_SWF_DECOMPRESSED_LEN, len);
 }
@@ -80,9 +74,8 @@ uint8_t FileGetSwfVersion(const uint8_t *buffer, const uint32_t buffer_len)
  * | 4 bytes         | 4 bytes    | n bytes         |
  * | 'CWS' + version | script len | compressed data |
  */
-int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx,
-                             uint8_t *compressed_data, uint32_t compressed_data_len,
-                             uint8_t *decompressed_data, uint32_t decompressed_data_len)
+int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx, uint8_t *compressed_data,
+        uint32_t compressed_data_len, uint8_t *decompressed_data, uint32_t decompressed_data_len)
 {
     int ret = 1;
     z_stream infstream;
@@ -103,7 +96,7 @@ int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx,
     }
 
     result = inflate(&infstream, Z_NO_FLUSH);
-    switch(result) {
+    switch (result) {
         case Z_STREAM_END:
             break;
         case Z_OK:
@@ -135,9 +128,8 @@ int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx,
  * | 4 bytes         | 4 bytes    | 4 bytes        | 5 bytes    | n bytes   | 6 bytes         |
  * | 'ZWS' + version | script len | compressed len | LZMA props | LZMA data | LZMA end marker |
  */
-int FileSwfLzmaDecompression(DetectEngineThreadCtx *det_ctx,
-                             uint8_t *compressed_data, uint32_t compressed_data_len,
-                             uint8_t *decompressed_data, uint32_t decompressed_data_len)
+int FileSwfLzmaDecompression(DetectEngineThreadCtx *det_ctx, uint8_t *compressed_data,
+        uint32_t compressed_data_len, uint8_t *decompressed_data, uint32_t decompressed_data_len)
 {
     int ret = 0;
 
@@ -147,7 +139,7 @@ int FileSwfLzmaDecompression(DetectEngineThreadCtx *det_ctx,
     ret = lzma_decompress(compressed_data, &inprocessed, decompressed_data, &outprocessed,
             MAX_SWF_DECOMPRESSED_LEN);
 
-    switch(ret) {
+    switch (ret) {
         case LzmaOk:
             ret = 1;
             break;

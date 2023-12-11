@@ -252,7 +252,7 @@ static DetectByteMathData *DetectByteMathParse(
     if (bmd->flags & DETECT_BYTEMATH_FLAG_BITMASK) {
         if (bmd->bitmask_val) {
             uint32_t bmask = bmd->bitmask_val;
-            while (!(bmask & 0x1)){
+            while (!(bmask & 0x1)) {
                 bmask = bmask >> 1;
                 bmd->bitmask_shift_count++;
             }
@@ -261,7 +261,7 @@ static DetectByteMathData *DetectByteMathParse(
 
     return bmd;
 
- error:
+error:
     if (bmd != NULL)
         DetectByteMathFree(de_ctx, bmd);
     return NULL;
@@ -307,11 +307,8 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         }
     } else if (data->endian == EndianDCE) {
         if (data->flags & DETECT_BYTEMATH_FLAG_RELATIVE) {
-            prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE,
-                                               DETECT_BYTETEST, DETECT_BYTEJUMP,
-                                               DETECT_BYTE_EXTRACT,
-                                               DETECT_BYTEMATH,
-                                               DETECT_ISDATAAT, -1);
+            prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, DETECT_BYTETEST,
+                    DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT, DETECT_BYTEMATH, DETECT_ISDATAAT, -1);
             if (prev_pm == NULL) {
                 sm_list = DETECT_SM_LIST_PMATCH;
             } else {
@@ -328,10 +325,8 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         s->flags |= SIG_FLAG_APPLAYER;
 
     } else if (data->flags & DETECT_BYTEMATH_FLAG_RELATIVE) {
-        prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE,
-                                           DETECT_BYTETEST, DETECT_BYTEJUMP,
-                                           DETECT_BYTE_EXTRACT, DETECT_BYTEMATH,
-                                           DETECT_ISDATAAT, -1);
+        prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, DETECT_BYTETEST,
+                DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT, DETECT_BYTEMATH, DETECT_ISDATAAT, -1);
         if (prev_pm == NULL) {
             sm_list = DETECT_SM_LIST_PMATCH;
         } else {
@@ -382,8 +377,7 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         rvalue = NULL;
     }
 
-    SigMatch *prev_bmd_sm = DetectGetLastSMByListId(s, sm_list,
-            DETECT_BYTEMATH, -1);
+    SigMatch *prev_bmd_sm = DetectGetLastSMByListId(s, sm_list, DETECT_BYTEMATH, -1);
     if (prev_bmd_sm == NULL) {
         data->local_id = 0;
     } else {
@@ -411,10 +405,10 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
     }
 
- okay:
+okay:
     return 0;
 
- error:
+error:
     if (rvalue)
         SCFree(rvalue);
     if (nbytes)
@@ -711,8 +705,7 @@ static int DetectByteMathParseTest12(void)
 
 static int DetectByteMathParseTest13(void)
 {
-    uint8_t flags = DETECT_BYTEMATH_FLAG_STRING |
-                    DETECT_BYTEMATH_FLAG_RELATIVE |
+    uint8_t flags = DETECT_BYTEMATH_FLAG_STRING | DETECT_BYTEMATH_FLAG_RELATIVE |
                     DETECT_BYTEMATH_FLAG_BITMASK;
 
     DetectByteMathData *bmd = DetectByteMathParse(NULL,
@@ -738,7 +731,6 @@ static int DetectByteMathParseTest13(void)
 
     PASS;
 }
-
 
 static int DetectByteMathParseTest14(void)
 {
@@ -814,9 +806,7 @@ static int DetectByteMathPacket01(void)
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
 
-    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_UDP,
-                           "192.168.1.5", "192.168.1.1",
-                           41424, 53);
+    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_UDP, "192.168.1.5", "192.168.1.1", 41424, 53);
     FAIL_IF_NULL(p);
 
     FLOW_INITIALIZE(&f);
@@ -842,41 +832,43 @@ static int DetectByteMathPacket01(void)
      * byte_test: Compare 2 bytes at offset 13 bytes from last
      *            match and compare with 0x6d
      */
-    s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
-                              "(byte_extract: 1, 0, extracted_val, relative;"
-                              "byte_math: bytes 1, offset 1, oper +, rvalue extracted_val, result var;"
-                              "byte_test: 2, =, var, 13;"
-                              "msg:\"Byte extract and byte math with byte test verification\";"
-                              "sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert udp any any -> any any "
+            "(byte_extract: 1, 0, extracted_val, relative;"
+            "byte_math: bytes 1, offset 1, oper +, rvalue extracted_val, result var;"
+            "byte_test: 2, =, var, 13;"
+            "msg:\"Byte extract and byte math with byte test verification\";"
+            "sid:1;)");
     FAIL_IF_NULL(s);
 
     /* this rule should not alert */
-    s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
-                              "(byte_extract: 1, 0, extracted_val, relative;"
-                              "byte_math: bytes 1, offset 1, oper +, rvalue extracted_val, result var;"
-                              "byte_test: 2, !=, var, 13;"
-                              "msg:\"Byte extract and byte math with byte test verification\";"
-                              "sid:2;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert udp any any -> any any "
+            "(byte_extract: 1, 0, extracted_val, relative;"
+            "byte_math: bytes 1, offset 1, oper +, rvalue extracted_val, result var;"
+            "byte_test: 2, !=, var, 13;"
+            "msg:\"Byte extract and byte math with byte test verification\";"
+            "sid:2;)");
     FAIL_IF_NULL(s);
 
     /*
      * this rule should alert:
      * compares offset 15 with var ... 1 (offset 15) < 0x6d (var)
      */
-    s = DetectEngineAppendSig(de_ctx, "alert udp any any -> any any "
-                              "(byte_extract: 1, 0, extracted_val, relative;"
-                              "byte_math: bytes 1, offset 1, oper +, rvalue extracted_val, result var;"
-                              "byte_test: 2, <, var, 15;"
-                              "msg:\"Byte extract and byte math with byte test verification\";"
-                              "sid:3;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert udp any any -> any any "
+            "(byte_extract: 1, 0, extracted_val, relative;"
+            "byte_math: bytes 1, offset 1, oper +, rvalue extracted_val, result var;"
+            "byte_test: 2, <, var, 15;"
+            "msg:\"Byte extract and byte math with byte test verification\";"
+            "sid:3;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
     FAIL_IF_NULL(det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
-                                STREAM_TOSERVER, buf, sizeof(buf));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER, buf, sizeof(buf));
     FAIL_IF_NOT(r == 0);
 
     dns_state = f.alstate;

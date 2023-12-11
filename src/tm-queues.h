@@ -36,12 +36,11 @@ typedef struct Tmq_ {
     TAILQ_ENTRY(Tmq_) next;
 } Tmq;
 
-Tmq* TmqCreateQueue(const char *name);
-Tmq* TmqGetQueueByName(const char *name);
+Tmq *TmqCreateQueue(const char *name);
+Tmq *TmqGetQueueByName(const char *name);
 
 void TmqDebugList(void);
 void TmqResetQueues(void);
 void TmValidateQueueState(void);
 
 #endif /* __TM_QUEUES_H__ */
-

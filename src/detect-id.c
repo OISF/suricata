@@ -44,13 +44,12 @@
 /**
  * \brief Regex for parsing "id" option, matching number or "number"
  */
-#define PARSE_REGEX  "^\\s*([0-9]{1,5}|\"[0-9]{1,5}\")\\s*$"
+#define PARSE_REGEX "^\\s*([0-9]{1,5}|\"[0-9]{1,5}\")\\s*$"
 
 static DetectParseRegex parse_regex;
 
-static int DetectIdMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectIdSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectIdMatch(DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectIdSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectIdRegisterTests(void);
 #endif
@@ -62,14 +61,14 @@ static bool PrefilterIdIsPrefilterable(const Signature *s);
 /**
  * \brief Registration function for keyword: id
  */
-void DetectIdRegister (void)
+void DetectIdRegister(void)
 {
     sigmatch_table[DETECT_ID].name = "id";
     sigmatch_table[DETECT_ID].desc = "match on a specific IP ID value";
     sigmatch_table[DETECT_ID].url = "/rules/header-keywords.html#id";
     sigmatch_table[DETECT_ID].Match = DetectIdMatch;
     sigmatch_table[DETECT_ID].Setup = DetectIdSetup;
-    sigmatch_table[DETECT_ID].Free  = DetectIdFree;
+    sigmatch_table[DETECT_ID].Free = DetectIdFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_ID].RegisterTests = DetectIdRegisterTests;
 #endif
@@ -90,8 +89,8 @@ void DetectIdRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-                          const Signature *s, const SigMatchCtx *ctx)
+static int DetectIdMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectIdData *id_d = (const DetectIdData *)ctx;
 
@@ -103,8 +102,7 @@ static int DetectIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     }
 
     if (id_d->id == IPV4_GET_IPID(p)) {
-        SCLogDebug("IPV4 Proto and matched with ip_id: %u.\n",
-                    id_d->id);
+        SCLogDebug("IPV4 Proto and matched with ip_id: %u.\n", id_d->id);
         return 1;
     }
 
@@ -119,7 +117,7 @@ static int DetectIdMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval id_d pointer to DetectIdData on success
  * \retval NULL on failure
  */
-static DetectIdData *DetectIdParse (const char *idstr)
+static DetectIdData *DetectIdParse(const char *idstr)
 {
     uint16_t temp;
     DetectIdData *id_d = NULL;
@@ -147,8 +145,7 @@ static DetectIdData *DetectIdParse (const char *idstr)
     tmp_str = copy_str;
 
     /* Let's see if we need to scape "'s */
-    if (tmp_str[0] == '"')
-    {
+    if (tmp_str[0] == '"') {
         tmp_str[strlen(tmp_str) - 1] = '\0';
         tmp_str += 1;
     }
@@ -188,7 +185,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *idstr)
+int DetectIdSetup(DetectEngineCtx *de_ctx, Signature *s, const char *idstr)
 {
     DetectIdData *id_d = NULL;
 
@@ -220,8 +217,7 @@ void DetectIdFree(DetectEngineCtx *de_ctx, void *ptr)
 
 /* prefilter code */
 
-static void
-PrefilterPacketIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
@@ -232,22 +228,19 @@ PrefilterPacketIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pe
     if (!PrefilterPacketHeaderExtraMatch(ctx, p))
         return;
 
-    if (IPV4_GET_IPID(p) == ctx->v1.u16[0])
-    {
+    if (IPV4_GET_IPID(p) == ctx->v1.u16[0]) {
         SCLogDebug("packet matches IP id %u", ctx->v1.u16[0]);
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
 }
 
-static void
-PrefilterPacketIdSet(PrefilterPacketHeaderValue *v, void *smctx)
+static void PrefilterPacketIdSet(PrefilterPacketHeaderValue *v, void *smctx)
 {
     const DetectIdData *a = smctx;
     v->u16[0] = a->id;
 }
 
-static bool
-PrefilterPacketIdCompare(PrefilterPacketHeaderValue v, void *smctx)
+static bool PrefilterPacketIdCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectIdData *a = smctx;
     if (v.u16[0] == a->id)
@@ -257,16 +250,14 @@ PrefilterPacketIdCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ID,
-        PrefilterPacketIdSet,
-        PrefilterPacketIdCompare,
-        PrefilterPacketIdMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ID, PrefilterPacketIdSet,
+            PrefilterPacketIdCompare, PrefilterPacketIdMatch);
 }
 
 static bool PrefilterIdIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ID:
                 return true;
@@ -281,7 +272,7 @@ static bool PrefilterIdIsPrefilterable(const Signature *s)
  * \test DetectIdTestParse01 is a test to make sure that we parse the "id"
  *       option correctly when given valid id option
  */
-static int DetectIdTestParse01 (void)
+static int DetectIdTestParse01(void)
 {
     DetectIdData *id_d = DetectIdParse(" 35402 ");
 
@@ -298,7 +289,7 @@ static int DetectIdTestParse01 (void)
  *       option correctly when given an invalid id option
  *       it should return id_d = NULL
  */
-static int DetectIdTestParse02 (void)
+static int DetectIdTestParse02(void)
 {
     DetectIdData *id_d = DetectIdParse("65537");
 
@@ -312,7 +303,7 @@ static int DetectIdTestParse02 (void)
  *       option correctly when given an invalid id option
  *       it should return id_d = NULL
  */
-static int DetectIdTestParse03 (void)
+static int DetectIdTestParse03(void)
 {
     DetectIdData *id_d = DetectIdParse("12what?");
 
@@ -325,7 +316,7 @@ static int DetectIdTestParse03 (void)
  * \test DetectIdTestParse04 is a test to make sure that we parse the "id"
  *       option correctly when given valid id option but wrapped with "'s
  */
-static int DetectIdTestParse04 (void)
+static int DetectIdTestParse04(void)
 {
     /* yep, look if we trim blank spaces correctly and ignore "'s */
     DetectIdData *id_d = DetectIdParse(" \"35402\" ");
@@ -365,19 +356,19 @@ static int DetectIdTestMatch01(void)
     p[2]->ip4h->ip_id = htons(5101);
 
     const char *sigs[3];
-    sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; id:1234; sid:1;)";
-    sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; id:5678; sid:2;)";
-    sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; id:5101; sid:3;)";
+    sigs[0] = "alert ip any any -> any any (msg:\"Testing id 1\"; id:1234; sid:1;)";
+    sigs[1] = "alert ip any any -> any any (msg:\"Testing id 2\"; id:5678; sid:2;)";
+    sigs[2] = "alert ip any any -> any any (msg:\"Testing id 3\"; id:5101; sid:3;)";
 
-    uint32_t sid[3] = {1, 2, 3};
+    uint32_t sid[3] = { 1, 2, 3 };
 
-    uint32_t results[3][3] = {
-                              /* packet 0 match sid 1 but should not match sid 2 */
-                              {1, 0, 0},
-                              /* packet 1 should not match */
-                              {0, 1, 0},
-                              /* packet 2 should not match */
-                              {0, 0, 1} };
+    uint32_t results[3][3] = { /* packet 0 match sid 1 but should not match sid 2 */
+        { 1, 0, 0 },
+        /* packet 1 should not match */
+        { 0, 1, 0 },
+        /* packet 2 should not match */
+        { 0, 0, 1 }
+    };
 
     FAIL_IF_NOT(UTHGenericTest(p, 3, sigs, sid, (uint32_t *)results, 3));
 
@@ -396,6 +387,5 @@ void DetectIdRegisterTests(void)
     UtRegisterTest("DetectIdTestParse03", DetectIdTestParse03);
     UtRegisterTest("DetectIdTestParse04", DetectIdTestParse04);
     UtRegisterTest("DetectIdTestMatch01", DetectIdTestMatch01);
-
 }
 #endif /* UNITTESTS */

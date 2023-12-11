@@ -44,9 +44,9 @@
 #include "host.h"
 #include "util-profiling.h"
 
-static int DetectDsizeMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectDsizeSetup (DetectEngineCtx *, Signature *s, const char *str);
+static int DetectDsizeMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectDsizeSetup(DetectEngineCtx *, Signature *s, const char *str);
 #ifdef UNITTESTS
 static void DsizeRegisterTests(void);
 #endif
@@ -58,14 +58,14 @@ static bool PrefilterDsizeIsPrefilterable(const Signature *s);
 /**
  * \brief Registration function for dsize: keyword
  */
-void DetectDsizeRegister (void)
+void DetectDsizeRegister(void)
 {
     sigmatch_table[DETECT_DSIZE].name = "dsize";
     sigmatch_table[DETECT_DSIZE].desc = "match on the size of the packet payload";
     sigmatch_table[DETECT_DSIZE].url = "/rules/payload-keywords.html#dsize";
     sigmatch_table[DETECT_DSIZE].Match = DetectDsizeMatch;
     sigmatch_table[DETECT_DSIZE].Setup = DetectDsizeSetup;
-    sigmatch_table[DETECT_DSIZE].Free  = DetectDsizeFree;
+    sigmatch_table[DETECT_DSIZE].Free = DetectDsizeFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_DSIZE].RegisterTests = DsizeRegisterTests;
 #endif
@@ -86,8 +86,8 @@ void DetectDsizeRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectDsizeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-    const Signature *s, const SigMatchCtx *ctx)
+static int DetectDsizeMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
     int ret = 0;
@@ -98,7 +98,7 @@ static int DetectDsizeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
 
     const DetectU16Data *dd = (const DetectU16Data *)ctx;
 
-    SCLogDebug("p->payload_len %"PRIu16"", p->payload_len);
+    SCLogDebug("p->payload_len %" PRIu16 "", p->payload_len);
 
     ret = DetectU16Match(p->payload_len, dd);
 
@@ -116,7 +116,7 @@ static int DetectDsizeMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectDsizeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectU16Data *dd = NULL;
 
@@ -172,8 +172,7 @@ void DetectDsizeFree(DetectEngineCtx *de_ctx, void *de_ptr)
 
 /* prefilter code */
 
-static void
-PrefilterPacketDsizeMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketDsizeMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     if (PKT_IS_PSEUDOPKT(p)) {
         SCReturn;
@@ -204,7 +203,7 @@ static int PrefilterSetupDsize(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 static bool PrefilterDsizeIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_DSIZE:
                 return true;
@@ -344,7 +343,7 @@ void SigParseApplyDsizeToContent(Signature *s)
         }
 
         SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
-        for ( ; sm != NULL;  sm = sm->next) {
+        for (; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT) {
                 continue;
             }
@@ -358,7 +357,8 @@ void SigParseApplyDsizeToContent(Signature *s)
                 cd->flags |= DETECT_CONTENT_DEPTH;
                 cd->depth = (uint16_t)dsize;
                 SCLogDebug("updated %u, content %u to have depth %u "
-                        "because of dsize.", s->id, cd->id, cd->depth);
+                           "because of dsize.",
+                        s->id, cd->id, cd->depth);
             }
         }
     }

@@ -25,6 +25,6 @@
 #define __DETECT_IPREP_H__
 
 /* prototypes */
-void DetectIPRepRegister (void);
+void DetectIPRepRegister(void);
 
 #endif /* __DETECT_IPREP_H__ */

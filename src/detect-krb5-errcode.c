@@ -36,17 +36,16 @@
 /**
  * \brief Regex for parsing our keyword options
  */
-#define PARSE_REGEX  "^\\s*([A-z0-9\\.]+|\"[A-z0-9_\\.]+\")\\s*$"
+#define PARSE_REGEX "^\\s*([A-z0-9\\.]+|\"[A-z0-9_\\.]+\")\\s*$"
 static DetectParseRegex parse_regex;
 
 /* Prototypes of functions registered in DetectKrb5ErrCodeRegister below */
-static int DetectKrb5ErrCodeMatch (DetectEngineThreadCtx *, Flow *,
-                                   uint8_t, void *, void *, const Signature *,
-                                   const SigMatchCtx *);
-static int DetectKrb5ErrCodeSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectKrb5ErrCodeFree (DetectEngineCtx *, void *);
+static int DetectKrb5ErrCodeMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
+        const Signature *, const SigMatchCtx *);
+static int DetectKrb5ErrCodeSetup(DetectEngineCtx *, Signature *, const char *);
+static void DetectKrb5ErrCodeFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
-static void DetectKrb5ErrCodeRegisterTests (void);
+static void DetectKrb5ErrCodeRegisterTests(void);
 #endif
 
 static int g_krb5_err_code_list_id = 0;
@@ -93,10 +92,8 @@ void DetectKrb5ErrCodeRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectKrb5ErrCodeMatch (DetectEngineThreadCtx *det_ctx,
-                                   Flow *f, uint8_t flags, void *state,
-                                   void *txv, const Signature *s,
-                                   const SigMatchCtx *ctx)
+static int DetectKrb5ErrCodeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     int32_t err_code;
     int ret;
@@ -122,7 +119,7 @@ static int DetectKrb5ErrCodeMatch (DetectEngineThreadCtx *det_ctx,
  * \retval krb5d pointer to DetectKrb5Data on success
  * \retval NULL on failure
  */
-static DetectKrb5ErrCodeData *DetectKrb5ErrCodeParse (const char *krb5str)
+static DetectKrb5ErrCodeData *DetectKrb5ErrCodeParse(const char *krb5str)
 {
     DetectKrb5ErrCodeData *krb5d = NULL;
     char arg1[4] = "";
@@ -143,11 +140,10 @@ static DetectKrb5ErrCodeData *DetectKrb5ErrCodeParse (const char *krb5str)
         goto error;
     }
 
-    krb5d = SCMalloc(sizeof (DetectKrb5ErrCodeData));
+    krb5d = SCMalloc(sizeof(DetectKrb5ErrCodeData));
     if (unlikely(krb5d == NULL))
         goto error;
-    if (StringParseInt32(&krb5d->err_code, 10, 0,
-                         (const char *)arg1) < 0) {
+    if (StringParseInt32(&krb5d->err_code, 10, 0, (const char *)arg1) < 0) {
         goto error;
     }
     pcre2_match_data_free(match);
@@ -173,7 +169,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectKrb5ErrCodeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *krb5str)
+static int DetectKrb5ErrCodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *krb5str)
 {
     DetectKrb5ErrCodeData *krb5d = NULL;
 
@@ -202,7 +198,8 @@ error:
  *
  * \param ptr pointer to DetectKrb5Data
  */
-static void DetectKrb5ErrCodeFree(DetectEngineCtx *de_ctx, void *ptr) {
+static void DetectKrb5ErrCodeFree(DetectEngineCtx *de_ctx, void *ptr)
+{
     DetectKrb5ErrCodeData *krb5d = (DetectKrb5ErrCodeData *)ptr;
 
     SCFree(krb5d);
@@ -213,7 +210,7 @@ static void DetectKrb5ErrCodeFree(DetectEngineCtx *de_ctx, void *ptr) {
  * \test description of the test
  */
 
-static int DetectKrb5ErrCodeParseTest01 (void)
+static int DetectKrb5ErrCodeParseTest01(void)
 {
     DetectKrb5ErrCodeData *krb5d = DetectKrb5ErrCodeParse("10");
     FAIL_IF_NULL(krb5d);
@@ -222,12 +219,13 @@ static int DetectKrb5ErrCodeParseTest01 (void)
     PASS;
 }
 
-static int DetectKrb5ErrCodeSignatureTest01 (void)
+static int DetectKrb5ErrCodeSignatureTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx, "alert krb5 any any -> any any (krb5_err_code:10; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert krb5 any any -> any any (krb5_err_code:10; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -240,7 +238,6 @@ static int DetectKrb5ErrCodeSignatureTest01 (void)
 static void DetectKrb5ErrCodeRegisterTests(void)
 {
     UtRegisterTest("DetectKrb5ErrCodeParseTest01", DetectKrb5ErrCodeParseTest01);
-    UtRegisterTest("DetectKrb5ErrCodeSignatureTest01",
-                   DetectKrb5ErrCodeSignatureTest01);
+    UtRegisterTest("DetectKrb5ErrCodeSignatureTest01", DetectKrb5ErrCodeSignatureTest01);
 }
 #endif /* UNITTESTS */

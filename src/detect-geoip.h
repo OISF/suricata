@@ -29,12 +29,13 @@
 
 #include <maxminddb.h>
 
-#define GEOOPTION_MAXSIZE 3 /* Country Code (2 chars) + NULL */
+#define GEOOPTION_MAXSIZE      3 /* Country Code (2 chars) + NULL */
 #define GEOOPTION_MAXLOCATIONS 64
 
 typedef struct DetectGeoipData_ {
-    uint8_t location[GEOOPTION_MAXLOCATIONS][GEOOPTION_MAXSIZE];  /** country code for now, null term.*/
-    int nlocations;  /** number of location strings parsed */
+    uint8_t location[GEOOPTION_MAXLOCATIONS]
+                    [GEOOPTION_MAXSIZE]; /** country code for now, null term.*/
+    int nlocations;                      /** number of location strings parsed */
     uint32_t flags;
     int mmdb_status; /** Status of DB open call, MMDB_SUCCESS or error */
     MMDB_s mmdb;     /** MaxMind DB file handle structure */

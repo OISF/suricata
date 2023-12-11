@@ -32,7 +32,9 @@
 #include "util-memcmp.h"
 #include "util-debug.h"
 
-HashTable* HashTableInit(uint32_t size, uint32_t (*Hash)(struct HashTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *)) {
+HashTable *HashTableInit(uint32_t size, uint32_t (*Hash)(struct HashTable_ *, void *, uint16_t),
+        char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *))
+{
 
     HashTable *ht = NULL;
 
@@ -41,7 +43,7 @@ HashTable* HashTableInit(uint32_t size, uint32_t (*Hash)(struct HashTable_ *, vo
     }
 
     if (Hash == NULL) {
-        //printf("ERROR: HashTableInit no Hash function\n");
+        // printf("ERROR: HashTableInit no Hash function\n");
         goto error;
     }
 
@@ -165,7 +167,7 @@ int HashTableRemove(HashTable *ht, void *data, uint16_t datalen)
 
     HashTableBucket *hashbucket = ht->array[hash], *prev_hashbucket = NULL;
     do {
-        if (ht->Compare(hashbucket->data,hashbucket->size,data,datalen) == 1) {
+        if (ht->Compare(hashbucket->data, hashbucket->size, data, datalen) == 1) {
             if (prev_hashbucket == NULL) {
                 /* root bucket */
                 ht->array[hash] = hashbucket->next;
@@ -218,19 +220,22 @@ void *HashTableLookup(HashTable *ht, void *data, uint16_t datalen)
 
 uint32_t HashTableGenericHash(HashTable *ht, void *data, uint16_t datalen)
 {
-     uint8_t *d = (uint8_t *)data;
-     uint32_t i;
-     uint32_t hash = 0;
+    uint8_t *d = (uint8_t *)data;
+    uint32_t i;
+    uint32_t hash = 0;
 
-     for (i = 0; i < datalen; i++) {
-         if (i == 0)      hash += (((uint32_t)*d++));
-         else if (i == 1) hash += (((uint32_t)*d++) * datalen);
-         else             hash *= (((uint32_t)*d++) * i) + datalen + i;
-     }
+    for (i = 0; i < datalen; i++) {
+        if (i == 0)
+            hash += (((uint32_t)*d++));
+        else if (i == 1)
+            hash += (((uint32_t)*d++) * datalen);
+        else
+            hash *= (((uint32_t)*d++) * i) + datalen + i;
+    }
 
-     hash *= datalen;
-     hash %= ht->array_size;
-     return hash;
+    hash *= datalen;
+    hash %= ht->array_size;
+    return hash;
 }
 
 char HashTableDefaultCompare(void *data1, uint16_t len1, void *data2, uint16_t len2)
@@ -238,7 +243,7 @@ char HashTableDefaultCompare(void *data1, uint16_t len1, void *data2, uint16_t l
     if (len1 != len2)
         return 0;
 
-    if (SCMemcmp(data1,data2,len1) != 0)
+    if (SCMemcmp(data1, data2, len1) != 0)
         return 0;
 
     return 1;
@@ -249,7 +254,7 @@ char HashTableDefaultCompare(void *data1, uint16_t len1, void *data2, uint16_t l
  */
 
 #ifdef UNITTESTS
-static int HashTableTestInit01 (void)
+static int HashTableTestInit01(void)
 {
     HashTable *ht = HashTableInit(1024, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
@@ -260,7 +265,7 @@ static int HashTableTestInit01 (void)
 }
 
 /* no hash function, so it should fail */
-static int HashTableTestInit02 (void)
+static int HashTableTestInit02(void)
 {
     HashTable *ht = HashTableInit(1024, NULL, NULL, NULL);
     if (ht == NULL)
@@ -270,7 +275,7 @@ static int HashTableTestInit02 (void)
     return 0;
 }
 
-static int HashTableTestInit03 (void)
+static int HashTableTestInit03(void)
 {
     int result = 0;
     HashTable *ht = HashTableInit(1024, HashTableGenericHash, NULL, NULL);
@@ -284,7 +289,7 @@ static int HashTableTestInit03 (void)
     return result;
 }
 
-static int HashTableTestInit04 (void)
+static int HashTableTestInit04(void)
 {
     HashTable *ht = HashTableInit(0, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
@@ -294,7 +299,7 @@ static int HashTableTestInit04 (void)
     return 0;
 }
 
-static int HashTableTestInit05 (void)
+static int HashTableTestInit05(void)
 {
     int result = 0;
     HashTable *ht = HashTableInit(1024, HashTableGenericHash, NULL, NULL);
@@ -313,13 +318,13 @@ static char HashTableDefaultCompareTest(void *data1, uint16_t len1, void *data2,
     if (len1 != len2)
         return 0;
 
-    if (SCMemcmp(data1,data2,len1) != 0)
+    if (SCMemcmp(data1, data2, len1) != 0)
         return 0;
 
     return 1;
 }
 
-static int HashTableTestInit06 (void)
+static int HashTableTestInit06(void)
 {
     int result = 0;
     HashTable *ht = HashTableInit(1024, HashTableGenericHash, HashTableDefaultCompareTest, NULL);
@@ -333,7 +338,7 @@ static int HashTableTestInit06 (void)
     return result;
 }
 
-static int HashTableTestAdd01 (void)
+static int HashTableTestAdd01(void)
 {
     int result = 0;
     HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL, NULL);
@@ -347,11 +352,12 @@ static int HashTableTestAdd01 (void)
     /* all is good! */
     result = 1;
 end:
-    if (ht != NULL) HashTableFree(ht);
+    if (ht != NULL)
+        HashTableFree(ht);
     return result;
 }
 
-static int HashTableTestAdd02 (void)
+static int HashTableTestAdd02(void)
 {
     int result = 0;
     HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL, NULL);
@@ -365,11 +371,12 @@ static int HashTableTestAdd02 (void)
     /* all is good! */
     result = 1;
 end:
-    if (ht != NULL) HashTableFree(ht);
+    if (ht != NULL)
+        HashTableFree(ht);
     return result;
 }
 
-static int HashTableTestFull01 (void)
+static int HashTableTestFull01(void)
 {
     int result = 0;
     HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL, NULL);
@@ -391,11 +398,12 @@ static int HashTableTestFull01 (void)
     /* all is good! */
     result = 1;
 end:
-    if (ht != NULL) HashTableFree(ht);
+    if (ht != NULL)
+        HashTableFree(ht);
     return result;
 }
 
-static int HashTableTestFull02 (void)
+static int HashTableTestFull02(void)
 {
     int result = 0;
     HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL, NULL);
@@ -417,7 +425,8 @@ static int HashTableTestFull02 (void)
     /* all is good! */
     result = 1;
 end:
-    if (ht != NULL) HashTableFree(ht);
+    if (ht != NULL)
+        HashTableFree(ht);
     return result;
 }
 #endif
@@ -439,4 +448,3 @@ void HashTableRegisterTests(void)
     UtRegisterTest("HashTableTestFull02", HashTableTestFull02);
 #endif
 }
-

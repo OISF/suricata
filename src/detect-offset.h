@@ -25,7 +25,6 @@
 #define __DETECT_OFFSET_H__
 
 /* prototypes */
-void DetectOffsetRegister (void);
+void DetectOffsetRegister(void);
 
 #endif /* __DETECT_OFFSET_H__ */
-

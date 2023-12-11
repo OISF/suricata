@@ -38,8 +38,7 @@ static LiveDevStorageId g_bypass_storage_id = { .id = -1 };
  */
 
 /** private device list */
-static TAILQ_HEAD(, LiveDevice_) live_devices =
-    TAILQ_HEAD_INITIALIZER(live_devices);
+static TAILQ_HEAD(, LiveDevice_) live_devices = TAILQ_HEAD_INITIALIZER(live_devices);
 
 /** List of the name of devices
  *
@@ -47,8 +46,7 @@ static TAILQ_HEAD(, LiveDevice_) live_devices =
  * before the parsing we need to wait and use this list
  * to create later the LiveDevice via LiveDeviceFinalize()
  */
-static TAILQ_HEAD(, LiveDeviceName_) pre_live_devices =
-    TAILQ_HEAD_INITIALIZER(pre_live_devices);
+static TAILQ_HEAD(, LiveDeviceName_) pre_live_devices = TAILQ_HEAD_INITIALIZER(pre_live_devices);
 
 typedef struct BypassInfo_ {
     SC_ATOMIC_DECLARE(uint64_t, ipv4_hash_count);
@@ -62,9 +60,7 @@ typedef struct BypassInfo_ {
 /** if set to 0 when we don't have real devices */
 static int live_devices_stats = 1;
 
-
-static int LiveSafeDeviceName(const char *devname,
-                              char *newdevname, size_t destlen);
+static int LiveSafeDeviceName(const char *devname, char *newdevname, size_t destlen);
 
 static int g_live_devices_disable_offloading = 1;
 
@@ -166,7 +162,7 @@ int LiveGetDeviceCount(void)
     int i = 0;
     LiveDevice *pd;
 
-    TAILQ_FOREACH(pd, &live_devices, next) {
+    TAILQ_FOREACH (pd, &live_devices, next) {
         i++;
     }
 
@@ -186,7 +182,7 @@ const char *LiveGetDeviceName(int number)
     int i = 0;
     LiveDevice *pd;
 
-    TAILQ_FOREACH(pd, &live_devices, next) {
+    TAILQ_FOREACH (pd, &live_devices, next) {
         if (i == number) {
             return pd->dev;
         }
@@ -224,7 +220,7 @@ static int LiveSafeDeviceName(const char *devname, char *newdevname, size_t dest
          * 6 chars there is no point in shortening it since we must at
          * least enter two periods (.) into the string.
          */
-        if ((destlen-1) > 10 || (destlen-1) < 6) {
+        if ((destlen - 1) > 10 || (destlen - 1) < 6) {
             return 1;
         }
 
@@ -254,7 +250,7 @@ LiveDevice *LiveGetDevice(const char *name)
         return NULL;
     }
 
-    TAILQ_FOREACH(pd, &live_devices, next) {
+    TAILQ_FOREACH (pd, &live_devices, next) {
         if (!strcmp(name, pd->dev)) {
             return pd;
         }
@@ -285,14 +281,13 @@ int LiveBuildDeviceListCustom(const char *runmode, const char *itemname)
     if (base == NULL)
         return 0;
 
-    TAILQ_FOREACH(child, &base->head, next) {
+    TAILQ_FOREACH (child, &base->head, next) {
         ConfNode *subchild;
-        TAILQ_FOREACH(subchild, &child->head, next) {
+        TAILQ_FOREACH (subchild, &child->head, next) {
             if ((!strcmp(subchild->name, itemname))) {
                 if (!strcmp(subchild->val, "default"))
                     break;
-                SCLogConfig("Adding %s %s from config file",
-                          itemname, subchild->val);
+                SCLogConfig("Adding %s %s from config file", itemname, subchild->val);
                 LiveRegisterDeviceName(subchild->val);
                 i++;
             }
@@ -320,7 +315,7 @@ int LiveDeviceListClean(void)
     TAILQ_FOREACH (pd, &live_devices, next) {
         DPDKCloseDevice(pd);
     }
-    TAILQ_FOREACH_SAFE(pd, &live_devices, next, tpd) {
+    TAILQ_FOREACH_SAFE (pd, &live_devices, next, tpd) {
         if (live_devices_stats) {
             SCLogNotice("%s: packets: %" PRIu64 ", drops: %" PRIu64
                         " (%.2f%%), invalid chksum: %" PRIu64,
@@ -348,9 +343,9 @@ TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *answer, void *data)
 {
     SCEnter();
     LiveDevice *pd;
-    const char * name = NULL;
+    const char *name = NULL;
     json_t *jarg = json_object_get(cmd, "iface");
-    if(!json_is_string(jarg)) {
+    if (!json_is_string(jarg)) {
         json_object_set_new(answer, "message", json_string("Iface is not a string"));
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -360,22 +355,19 @@ TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *answer, void *data)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    TAILQ_FOREACH(pd, &live_devices, next) {
+    TAILQ_FOREACH (pd, &live_devices, next) {
         if (!strcmp(name, pd->dev)) {
             json_t *jdata = json_object();
             if (jdata == NULL) {
-                json_object_set_new(answer, "message",
-                        json_string("internal error at json object creation"));
+                json_object_set_new(
+                        answer, "message", json_string("internal error at json object creation"));
                 SCReturnInt(TM_ECODE_FAILED);
             }
-            json_object_set_new(jdata, "pkts",
-                                json_integer(SC_ATOMIC_GET(pd->pkts)));
-            json_object_set_new(jdata, "invalid-checksums",
-                                json_integer(SC_ATOMIC_GET(pd->invalid_checksums)));
-            json_object_set_new(jdata, "drop",
-                                json_integer(SC_ATOMIC_GET(pd->drop)));
-            json_object_set_new(jdata, "bypassed",
-                                json_integer(SC_ATOMIC_GET(pd->bypassed)));
+            json_object_set_new(jdata, "pkts", json_integer(SC_ATOMIC_GET(pd->pkts)));
+            json_object_set_new(
+                    jdata, "invalid-checksums", json_integer(SC_ATOMIC_GET(pd->invalid_checksums)));
+            json_object_set_new(jdata, "drop", json_integer(SC_ATOMIC_GET(pd->drop)));
+            json_object_set_new(jdata, "bypassed", json_integer(SC_ATOMIC_GET(pd->bypassed)));
             json_object_set_new(answer, "message", jdata);
             SCReturnInt(TM_ECODE_OK);
         }
@@ -394,17 +386,17 @@ TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *answer, void *data)
 
     jdata = json_object();
     if (jdata == NULL) {
-        json_object_set_new(answer, "message",
-                            json_string("internal error at json object creation"));
+        json_object_set_new(
+                answer, "message", json_string("internal error at json object creation"));
         return TM_ECODE_FAILED;
     }
     jarray = json_array();
     if (jarray == NULL) {
-        json_object_set_new(answer, "message",
-                            json_string("internal error at json object creation"));
+        json_object_set_new(
+                answer, "message", json_string("internal error at json object creation"));
         return TM_ECODE_FAILED;
     }
-    TAILQ_FOREACH(pd, &live_devices, next) {
+    TAILQ_FOREACH (pd, &live_devices, next) {
         json_array_append_new(jarray, json_string(pd->dev));
         i++;
     }
@@ -444,7 +436,7 @@ void LiveDeviceFinalize(void)
     LiveDeviceName *ld, *pld;
     SCLogDebug("Finalize live device");
     /* Iter on devices and register them */
-    TAILQ_FOREACH_SAFE(ld, &pre_live_devices, next, pld) {
+    TAILQ_FOREACH_SAFE (ld, &pre_live_devices, next, pld) {
         if (ld->dev) {
             LiveRegisterDevice(ld->dev);
             SCFree(ld->dev);
@@ -464,8 +456,8 @@ static void LiveDevExtensionFree(void *x)
  */
 void LiveDevRegisterExtension(void)
 {
-    g_bypass_storage_id = LiveDevStorageRegister("bypass_stats", sizeof(void *),
-                                                 NULL, LiveDevExtensionFree);
+    g_bypass_storage_id =
+            LiveDevStorageRegister("bypass_stats", sizeof(void *), NULL, LiveDevExtensionFree);
 }
 
 /**
@@ -587,7 +579,7 @@ TmEcode LiveDeviceGetBypassedStats(json_t *cmd, json_t *answer, void *data)
     LiveDevice *ldev = NULL, *ndev = NULL;
 
     json_t *ifaces = NULL;
-    while(LiveDeviceForEach(&ldev, &ndev)) {
+    while (LiveDeviceForEach(&ldev, &ndev)) {
         BypassInfo *bpinfo = LiveDevGetStorageById(ldev, g_bypass_storage_id);
         if (bpinfo) {
             uint64_t ipv4_hash_count = SC_ATOMIC_GET(bpinfo->ipv4_hash_count);
@@ -619,8 +611,7 @@ TmEcode LiveDeviceGetBypassedStats(json_t *cmd, json_t *answer, void *data)
         SCReturnInt(TM_ECODE_OK);
     }
 
-    json_object_set_new(answer, "message",
-                        json_string("No interface using bypass"));
+    json_object_set_new(answer, "message", json_string("No interface using bypass"));
     SCReturnInt(TM_ECODE_FAILED);
 }
 #endif

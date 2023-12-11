@@ -25,6 +25,6 @@
 #define __DETECT_FILEMD5_H__
 
 /* prototypes */
-void DetectFileMd5Register (void);
+void DetectFileMd5Register(void);
 
 #endif /* __DETECT_FILEMD5_H__ */

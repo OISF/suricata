@@ -100,7 +100,7 @@ static int UtAppendTest(UtTest **list, UtTest *test)
  * \param TestFn Unit test function
  */
 
-void UtRegisterTest(const char *name, int(*TestFn)(void))
+void UtRegisterTest(const char *name, int (*TestFn)(void))
 {
     UtTest *ut = UtAllocTest();
     if (ut == NULL)
@@ -122,19 +122,18 @@ void UtRegisterTest(const char *name, int(*TestFn)(void))
  * \retval 1  Regex compiled
  * \retval -1 Regex error
  */
-static int UtRegex (const char *regex_arg)
+static int UtRegex(const char *regex_arg)
 {
     int en;
     PCRE2_SIZE eo;
     int opts = PCRE2_CASELESS;
 
-    if(regex_arg == NULL)
+    if (regex_arg == NULL)
         return -1;
 
     parse_regex =
             pcre2_compile((PCRE2_SPTR8)regex_arg, PCRE2_ZERO_TERMINATED, opts, &en, &eo, NULL);
-    if(parse_regex == NULL)
-    {
+    if (parse_regex == NULL) {
         PCRE2_UCHAR errbuffer[256];
         pcre2_get_error_message(en, errbuffer, sizeof(errbuffer));
         SCLogError("pcre2 compile of \"%s\" failed at "
@@ -162,14 +161,13 @@ void UtListTests(const char *regex_arg)
     rcomp = UtRegex(regex_arg);
 
     for (ut = ut_list; ut != NULL; ut = ut->next) {
-        if (rcomp == 1)  {
+        if (rcomp == 1) {
             ret = pcre2_match(parse_regex, (PCRE2_SPTR8)ut->name, strlen(ut->name), 0, 0,
                     parse_regex_match, NULL);
             if (ret >= 1) {
                 printf("%s\n", ut->name);
             }
-        }
-        else {
+        } else {
             printf("%s\n", ut->name);
         }
     }
@@ -196,11 +194,11 @@ uint32_t UtRunTests(const char *regex_arg)
 
     rcomp = UtRegex(regex_arg);
 
-    if(rcomp == 1){
+    if (rcomp == 1) {
         for (ut = ut_list; ut != NULL; ut = ut->next) {
             ret = pcre2_match(parse_regex, (PCRE2_SPTR8)ut->name, strlen(ut->name), 0, 0,
                     parse_regex_match, NULL);
-            if( ret >= 1 )  {
+            if (ret >= 1) {
                 printf("Test %-60.60s : ", ut->name);
                 matchcnt++;
                 fflush(stdout); /* flush so in case of a segv we see the testname */
@@ -212,16 +210,17 @@ uint32_t UtRunTests(const char *regex_arg)
                 ret = ut->TestFn();
 
                 if (StreamTcpMemuseCounter() != 0) {
-                    printf("STREAM MEMORY IN USE %"PRIu64"\n", StreamTcpMemuseCounter());
+                    printf("STREAM MEMORY IN USE %" PRIu64 "\n", StreamTcpMemuseCounter());
                     ret = 0;
                 }
                 if (FlowGetMemuse() != 0) {
-                    printf("FLOW MEMORY IN USE %"PRIu64"\n", FlowGetMemuse());
+                    printf("FLOW MEMORY IN USE %" PRIu64 "\n", FlowGetMemuse());
                     ret = 0;
                 }
 
                 if (StreamTcpReassembleMemuseGlobalCounter() != 0) {
-                    printf("STREAM REASSEMBLY MEMORY IN USE %"PRIu64"\n", StreamTcpReassembleMemuseGlobalCounter());
+                    printf("STREAM REASSEMBLY MEMORY IN USE %" PRIu64 "\n",
+                            StreamTcpReassembleMemuseGlobalCounter());
                     ret = 0;
                 }
 
@@ -238,13 +237,14 @@ uint32_t UtRunTests(const char *regex_arg)
                 }
             }
         }
-        if(matchcnt > 0){
+        if (matchcnt > 0) {
             printf("==== TEST RESULTS ====\n");
             printf("PASSED: %" PRIu32 "\n", good);
             printf("FAILED: %" PRIu32 "\n", bad);
             printf("======================\n");
         } else {
-            SCLogInfo("UtRunTests: regex provided regex_arg: %s did not match any tests",regex_arg);
+            SCLogInfo(
+                    "UtRunTests: regex provided regex_arg: %s did not match any tests", regex_arg);
         }
     } else {
         SCLogInfo("UtRunTests: pcre compilation failed");
@@ -298,8 +298,10 @@ void UtRunModeRegister(void)
  */
 static int UtSelftestTrue(void)
 {
-    if (1)return 1;
-    else  return 0;
+    if (1)
+        return 1;
+    else
+        return 0;
 }
 
 /** \brief False test
@@ -309,8 +311,10 @@ static int UtSelftestTrue(void)
  */
 static int UtSelftestFalse(void)
 {
-    if (0)return 0;
-    else  return 1;
+    if (0)
+        return 0;
+    else
+        return 1;
 }
 
 /** \brief Run self tests
@@ -320,7 +324,7 @@ static int UtSelftestFalse(void)
  *  \retval 0 all successful
  */
 
-int UtRunSelftest (const char *regex_arg)
+int UtRunSelftest(const char *regex_arg)
 {
     printf("* Running Unittesting subsystem selftests...\n");
 

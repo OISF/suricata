@@ -42,25 +42,15 @@
 #include <mach/mach.h>
 #include <mach/mach_init.h>
 #include <mach/thread_policy.h>
-#define cpu_set_t thread_affinity_policy_data_t
-#define CPU_SET(cpu_id, new_mask) (*(new_mask)).affinity_tag = (cpu_id + 1)
+#define cpu_set_t                   thread_affinity_policy_data_t
+#define CPU_SET(cpu_id, new_mask)   (*(new_mask)).affinity_tag = (cpu_id + 1)
 #define CPU_ISSET(cpu_id, new_mask) ((*(new_mask)).affinity_tag == (cpu_id + 1))
-#define CPU_ZERO(new_mask) (*(new_mask)).affinity_tag = THREAD_AFFINITY_TAG_NULL
+#define CPU_ZERO(new_mask)          (*(new_mask)).affinity_tag = THREAD_AFFINITY_TAG_NULL
 #endif
 
-enum {
-    RECEIVE_CPU_SET,
-    WORKER_CPU_SET,
-    VERDICT_CPU_SET,
-    MANAGEMENT_CPU_SET,
-    MAX_CPU_SET
-};
+enum { RECEIVE_CPU_SET, WORKER_CPU_SET, VERDICT_CPU_SET, MANAGEMENT_CPU_SET, MAX_CPU_SET };
 
-enum {
-    BALANCED_AFFINITY,
-    EXCLUSIVE_AFFINITY,
-    MAX_AFFINITY
-};
+enum { BALANCED_AFFINITY, EXCLUSIVE_AFFINITY, MAX_AFFINITY };
 
 typedef struct ThreadsAffinityType_ {
     const char *name;
@@ -84,7 +74,7 @@ extern ThreadsAffinityType thread_affinity[MAX_CPU_SET];
 #endif
 
 void AffinitySetupLoadFromConfig(void);
-ThreadsAffinityType * GetAffinityTypeFromName(const char *name);
+ThreadsAffinityType *GetAffinityTypeFromName(const char *name);
 
 uint16_t AffinityGetNextCPU(ThreadsAffinityType *taf);
 uint16_t UtilAffinityGetAffinedCPUNum(ThreadsAffinityType *taf);
@@ -93,8 +83,7 @@ uint16_t UtilAffinityCpusOverlap(ThreadsAffinityType *taf1, ThreadsAffinityType 
 void UtilAffinityCpusExclude(ThreadsAffinityType *mod_taf, ThreadsAffinityType *static_taf);
 #endif /* HAVE_DPDK */
 
-void BuildCpusetWithCallback(const char *name, ConfNode *node,
-                             void (*Callback)(int i, void * data),
-                             void *data);
+void BuildCpusetWithCallback(
+        const char *name, ConfNode *node, void (*Callback)(int i, void *data), void *data);
 
 #endif /* __UTIL_AFFINITY_H__ */

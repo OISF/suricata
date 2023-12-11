@@ -40,10 +40,8 @@
 
 /** An enum-string map, that maps the different vars type in the yaml conf
  *  type with the mapping path in the yaml conf file */
-SCEnumCharMap sc_rule_vars_type_map[ ] = {
-    { "vars.address-groups", SC_RULE_VARS_ADDRESS_GROUPS },
-    { "vars.port-groups",    SC_RULE_VARS_PORT_GROUPS }
-};
+SCEnumCharMap sc_rule_vars_type_map[] = { { "vars.address-groups", SC_RULE_VARS_ADDRESS_GROUPS },
+    { "vars.port-groups", SC_RULE_VARS_PORT_GROUPS } };
 
 /**
  * \internal
@@ -62,9 +60,8 @@ SCEnumCharMap sc_rule_vars_type_map[ ] = {
  * \retval conf_var_name_value Pointer to the string containing the conf value
  *                             on success; NULL on failure.
  */
-const char *SCRuleVarsGetConfVar(const DetectEngineCtx *de_ctx,
-                           const char *conf_var_name,
-                           SCRuleVarsType conf_vars_type)
+const char *SCRuleVarsGetConfVar(
+        const DetectEngineCtx *de_ctx, const char *conf_var_name, SCRuleVarsType conf_vars_type)
 {
     SCEnter();
 
@@ -80,8 +77,7 @@ const char *SCRuleVarsGetConfVar(const DetectEngineCtx *de_ctx,
     }
 
     (conf_var_name[0] == '$') ? conf_var_name++ : conf_var_name;
-    conf_var_type_name = SCMapEnumValueToName(conf_vars_type,
-                                              sc_rule_vars_type_map);
+    conf_var_type_name = SCMapEnumValueToName(conf_vars_type, sc_rule_vars_type_map);
     if (conf_var_type_name == NULL)
         goto end;
 
@@ -91,8 +87,8 @@ const char *SCRuleVarsGetConfVar(const DetectEngineCtx *de_ctx,
             goto end;
         }
     } else {
-        if (snprintf(conf_var_full_name, sizeof(conf_var_full_name), "%s.%s",
-                    conf_var_type_name, conf_var_name) < 0) {
+        if (snprintf(conf_var_full_name, sizeof(conf_var_full_name), "%s.%s", conf_var_type_name,
+                    conf_var_name) < 0) {
             goto end;
         }
     }
@@ -105,81 +101,81 @@ const char *SCRuleVarsGetConfVar(const DetectEngineCtx *de_ctx,
     }
 
     SCLogDebug("Value obtained from the yaml conf file, for the var "
-               "\"%s\" is \"%s\"", conf_var_name, conf_var_full_name_value);
+               "\"%s\" is \"%s\"",
+            conf_var_name, conf_var_full_name_value);
 
- end:
+end:
     SCReturnCharPtr(conf_var_full_name_value);
 }
-
 
 /**********************************Unittests***********************************/
 #ifdef UNITTESTS
 
 static const char *dummy_conf_string =
-    "%YAML 1.1\n"
-    "---\n"
-    "\n"
-    "default-log-dir: /var/log/suricata\n"
-    "\n"
-    "logging:\n"
-    "\n"
-    "  default-log-level: debug\n"
-    "\n"
-    "  default-format: \"<%t> - <%l>\"\n"
-    "\n"
-    "  default-startup-message: Your IDS has started.\n"
-    "\n"
-    "  default-output-filter:\n"
-    "\n"
-    "  output:\n"
-    "\n"
-    "  - interface: console\n"
-    "    log-level: info\n"
-    "\n"
-    "  - interface: file\n"
-    "    filename: /var/log/suricata.log\n"
-    "\n"
-    "  - interface: syslog\n"
-    "    facility: local5\n"
-    "    format: \"%l\"\n"
-    "\n"
-    "pfring:\n"
-    "\n"
-    "  interface: eth0\n"
-    "\n"
-    "  clusterid: 99\n"
-    "\n"
-    "vars:\n"
-    "\n"
-    "  address-groups:\n"
-    "\n"
-    "    HOME_NET: \"[192.168.0.0/16,10.8.0.0/16,127.0.0.1,2001:888:"
-    "13c5:5AFE::/64,2001:888:13c5:CAFE::/64]\"\n"
-    "\n"
-    "    EXTERNAL_NET: \"[!192.168.0.0/16,2000::/3]\"\n"
-    "\n"
-    "    HTTP_SERVERS: \"!192.168.0.0/16\"\n"
-    "\n"
-    "    SMTP_SERVERS: \"!192.168.0.0/16\"\n"
-    "\n"
-    "    SQL_SERVERS: \"!192.168.0.0/16\"\n"
-    "\n"
-    "    DNS_SERVERS: any\n"
-    "\n"
-    "    TELNET_SERVERS: any\n"
-    "\n"
-    "    AIM_SERVERS: any\n"
-    "\n"
-    "  port-groups:\n"
-    "\n"
-    "    HTTP_PORTS: \"80:81,88\"\n"
-    "\n"
-    "    SHELLCODE_PORTS: 80\n"
-    "\n"
-    "    ORACLE_PORTS: 1521\n"
-    "\n"
-    "    SSH_PORTS: 22\n"
-    "\n";
+        "%YAML 1.1\n"
+        "---\n"
+        "\n"
+        "default-log-dir: /var/log/suricata\n"
+        "\n"
+        "logging:\n"
+        "\n"
+        "  default-log-level: debug\n"
+        "\n"
+        "  default-format: \"<%t> - <%l>\"\n"
+        "\n"
+        "  default-startup-message: Your IDS has started.\n"
+        "\n"
+        "  default-output-filter:\n"
+        "\n"
+        "  output:\n"
+        "\n"
+        "  - interface: console\n"
+        "    log-level: info\n"
+        "\n"
+        "  - interface: file\n"
+        "    filename: /var/log/suricata.log\n"
+        "\n"
+        "  - interface: syslog\n"
+        "    facility: local5\n"
+        "    format: \"%l\"\n"
+        "\n"
+        "pfring:\n"
+        "\n"
+        "  interface: eth0\n"
+        "\n"
+        "  clusterid: 99\n"
+        "\n"
+        "vars:\n"
+        "\n"
+        "  address-groups:\n"
+        "\n"
+        "    HOME_NET: \"[192.168.0.0/16,10.8.0.0/16,127.0.0.1,2001:888:"
+        "13c5:5AFE::/64,2001:888:13c5:CAFE::/64]\"\n"
+        "\n"
+        "    EXTERNAL_NET: \"[!192.168.0.0/16,2000::/3]\"\n"
+        "\n"
+        "    HTTP_SERVERS: \"!192.168.0.0/16\"\n"
+        "\n"
+        "    SMTP_SERVERS: \"!192.168.0.0/16\"\n"
+        "\n"
+        "    SQL_SERVERS: \"!192.168.0.0/16\"\n"
+        "\n"
+        "    DNS_SERVERS: any\n"
+        "\n"
+        "    TELNET_SERVERS: any\n"
+        "\n"
+        "    AIM_SERVERS: any\n"
+        "\n"
+        "  port-groups:\n"
+        "\n"
+        "    HTTP_PORTS: \"80:81,88\"\n"
+        "\n"
+        "    SHELLCODE_PORTS: 80\n"
+        "\n"
+        "    ORACLE_PORTS: 1521\n"
+        "\n"
+        "    SSH_PORTS: 22\n"
+        "\n";
 
 /**
  * \test Check that valid address and port group vars are correctly retrieved
@@ -320,26 +316,25 @@ static int SCRuleVarsNegativeTest04(void)
     PASS;
 }
 
-static const char *dummy_mt_conf_string =
-    "%YAML 1.1\n"
-    "---\n"
-    "vars:\n"
-    "\n"
-    "  address-groups:\n"
-    "\n"
-    "    HOME_NET: \"[1.2.3.4]\"\n"
-    "  port-groups:\n"
-    "    HTTP_PORTS: \"12345\"\n"
-    "multi-detect:\n"
-    "  0:\n"
-    "    vars:\n"
-    "\n"
-    "      address-groups:\n"
-    "\n"
-    "        HOME_NET: \"[8.8.8.8]\"\n"
-    "      port-groups:\n"
-    "        HTTP_PORTS: \"54321\"\n"
-    "\n";
+static const char *dummy_mt_conf_string = "%YAML 1.1\n"
+                                          "---\n"
+                                          "vars:\n"
+                                          "\n"
+                                          "  address-groups:\n"
+                                          "\n"
+                                          "    HOME_NET: \"[1.2.3.4]\"\n"
+                                          "  port-groups:\n"
+                                          "    HTTP_PORTS: \"12345\"\n"
+                                          "multi-detect:\n"
+                                          "  0:\n"
+                                          "    vars:\n"
+                                          "\n"
+                                          "      address-groups:\n"
+                                          "\n"
+                                          "        HOME_NET: \"[8.8.8.8]\"\n"
+                                          "      port-groups:\n"
+                                          "        HTTP_PORTS: \"54321\"\n"
+                                          "\n";
 
 /**
  * \test Check that valid address and port group vars are correctly retrieved
@@ -354,34 +349,33 @@ static int SCRuleVarsMTest01(void)
     ConfInit();
     ConfYamlLoadString(dummy_mt_conf_string, strlen(dummy_mt_conf_string));
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         return 0;
     de_ctx->flags |= DE_QUIET;
-    snprintf(de_ctx->config_prefix, sizeof(de_ctx->config_prefix),
-                "multi-detect.0");
+    snprintf(de_ctx->config_prefix, sizeof(de_ctx->config_prefix), "multi-detect.0");
 
     /* check for address-groups */
-    result = (SCRuleVarsGetConfVar(de_ctx,"$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar(de_ctx,"$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS),
+    result = (SCRuleVarsGetConfVar(de_ctx, "$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
+              strcmp(SCRuleVarsGetConfVar(de_ctx, "$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS),
                       "[8.8.8.8]") == 0);
     if (result == 0)
         goto end;
 
-    result = (SCRuleVarsGetConfVar(NULL,"$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar(NULL,"$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS),
+    result = (SCRuleVarsGetConfVar(NULL, "$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
+              strcmp(SCRuleVarsGetConfVar(NULL, "$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS),
                       "[1.2.3.4]") == 0);
     if (result == 0)
         goto end;
 
     /* check for port-groups */
-    result = (SCRuleVarsGetConfVar(de_ctx,"$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar(de_ctx,"$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS),
+    result = (SCRuleVarsGetConfVar(de_ctx, "$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
+              strcmp(SCRuleVarsGetConfVar(de_ctx, "$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS),
                       "54321") == 0);
     if (result == 0)
         goto end;
 
-    result = (SCRuleVarsGetConfVar(NULL,"$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar(NULL,"$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS),
+    result = (SCRuleVarsGetConfVar(NULL, "$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
+              strcmp(SCRuleVarsGetConfVar(NULL, "$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS),
                       "12345") == 0);
     if (result == 0)
         goto end;

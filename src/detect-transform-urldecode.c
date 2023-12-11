@@ -35,7 +35,7 @@
 #include "util-unittest.h"
 #include "util-print.h"
 
-static int DetectTransformUrlDecodeSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTransformUrlDecodeSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTransformUrlDecodeRegisterTests(void);
 #endif
@@ -46,15 +46,13 @@ void DetectTransformUrlDecodeRegister(void)
 {
     sigmatch_table[DETECT_TRANSFORM_URL_DECODE].name = "url_decode";
     sigmatch_table[DETECT_TRANSFORM_URL_DECODE].desc =
-        "modify buffer to decode urlencoded data before inspection";
+            "modify buffer to decode urlencoded data before inspection";
     sigmatch_table[DETECT_TRANSFORM_URL_DECODE].url = "/rules/transforms.html#url-decode";
-    sigmatch_table[DETECT_TRANSFORM_URL_DECODE].Transform =
-        TransformUrlDecode;
-    sigmatch_table[DETECT_TRANSFORM_URL_DECODE].Setup =
-        DetectTransformUrlDecodeSetup;
+    sigmatch_table[DETECT_TRANSFORM_URL_DECODE].Transform = TransformUrlDecode;
+    sigmatch_table[DETECT_TRANSFORM_URL_DECODE].Setup = DetectTransformUrlDecodeSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_URL_DECODE].RegisterTests =
-        DetectTransformUrlDecodeRegisterTests;
+            DetectTransformUrlDecodeRegisterTests;
 #endif
 
     sigmatch_table[DETECT_TRANSFORM_URL_DECODE].flags |= SIGMATCH_NOOPT;
@@ -69,7 +67,7 @@ void DetectTransformUrlDecodeRegister(void)
  *  \retval 0 ok
  *  \retval -1 failure
  */
-static int DetectTransformUrlDecodeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+static int DetectTransformUrlDecodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
     int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_URL_DECODE, NULL);
@@ -77,20 +75,22 @@ static int DetectTransformUrlDecodeSetup (DetectEngineCtx *de_ctx, Signature *s,
 }
 
 // util function so as to ease reuse sometimes
-static bool BufferUrlDecode(const uint8_t *input, const uint32_t input_len, uint8_t *output, uint32_t *output_size)
+static bool BufferUrlDecode(
+        const uint8_t *input, const uint32_t input_len, uint8_t *output, uint32_t *output_size)
 {
     bool changed = false;
     uint8_t *oi = output;
-    //PrintRawDataFp(stdout, input, input_len);
+    // PrintRawDataFp(stdout, input, input_len);
     for (uint32_t i = 0; i < input_len; i++) {
         if (input[i] == '%') {
             if (i + 2 < input_len) {
-                if ((isxdigit(input[i+1])) && (isxdigit(input[i+2]))) {
+                if ((isxdigit(input[i + 1])) && (isxdigit(input[i + 2]))) {
                     // Decode %HH encoding.
                     *oi = (uint8_t)((input[i + 1] >= 'A' ? ((input[i + 1] & 0xdf) - 'A') + 10
                                                          : (input[i + 1] - '0'))
                                     << 4);
-                    *oi |= (input[i+2] >= 'A' ? ((input[i+2] & 0xdf) - 'A') + 10 : (input[i+2] - '0'));
+                    *oi |= (input[i + 2] >= 'A' ? ((input[i + 2] & 0xdf) - 'A') + 10
+                                                : (input[i + 2] - '0'));
                     oi++;
                     // one more increment before looping
                     i += 2;
@@ -146,15 +146,16 @@ static int DetectTransformUrlDecodeTest01(void)
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     TransformUrlDecode(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    FAIL_IF (buffer.inspect_len != strlen("Suricata is 'awesome!'%00%ZZ%4"));
-    FAIL_IF (memcmp(buffer.inspect, "Suricata is 'awesome!'%00%ZZ%4", buffer.inspect_len) != 0);
+    FAIL_IF(buffer.inspect_len != strlen("Suricata is 'awesome!'%00%ZZ%4"));
+    FAIL_IF(memcmp(buffer.inspect, "Suricata is 'awesome!'%00%ZZ%4", buffer.inspect_len) != 0);
     InspectionBufferFree(&buffer);
     PASS;
 }
 
 static int DetectTransformUrlDecodeTest02(void)
 {
-    const char rule[] = "alert http any any -> any any (http.request_body; url_decode; content:\"mail=test@oisf.net\"; sid:1;)";
+    const char rule[] = "alert http any any -> any any (http.request_body; url_decode; "
+                        "content:\"mail=test@oisf.net\"; sid:1;)";
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     memset(&th_v, 0, sizeof(th_v));
@@ -172,9 +173,7 @@ static int DetectTransformUrlDecodeTest02(void)
 
 static void DetectTransformUrlDecodeRegisterTests(void)
 {
-    UtRegisterTest("DetectTransformUrlDecodeTest01",
-            DetectTransformUrlDecodeTest01);
-    UtRegisterTest("DetectTransformUrlDecodeTest02",
-            DetectTransformUrlDecodeTest02);
+    UtRegisterTest("DetectTransformUrlDecodeTest01", DetectTransformUrlDecodeTest01);
+    UtRegisterTest("DetectTransformUrlDecodeTest02", DetectTransformUrlDecodeTest02);
 }
 #endif

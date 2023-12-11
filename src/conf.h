@@ -43,15 +43,14 @@ typedef struct ConfNode_ {
     TAILQ_ENTRY(ConfNode_) next;
 } ConfNode;
 
-
 /**
  * The default log directory.
  */
 #ifdef OS_WIN32
-#define DEFAULT_LOG_DIR "C:\\WINDOWS\\Temp"
+#define DEFAULT_LOG_DIR  "C:\\WINDOWS\\Temp"
 #define DEFAULT_DATA_DIR "C:\\WINDOWS\\Temp"
 #else
-#define DEFAULT_LOG_DIR "/var/log/suricata"
+#define DEFAULT_LOG_DIR  "/var/log/suricata"
 #define DEFAULT_DATA_DIR DATA_DIR
 #endif /* OS_WIN32 */
 
@@ -89,9 +88,12 @@ ConfNode *ConfNodeLookupKeyValue(const ConfNode *base, const char *key, const ch
 int ConfGetChildValue(const ConfNode *base, const char *name, const char **vptr);
 int ConfGetChildValueInt(const ConfNode *base, const char *name, intmax_t *val);
 int ConfGetChildValueBool(const ConfNode *base, const char *name, int *val);
-int ConfGetChildValueWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name, const char **vptr);
-int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name, intmax_t *val);
-int ConfGetChildValueBoolWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name, int *val);
+int ConfGetChildValueWithDefault(
+        const ConfNode *base, const ConfNode *dflt, const char *name, const char **vptr);
+int ConfGetChildValueIntWithDefault(
+        const ConfNode *base, const ConfNode *dflt, const char *name, intmax_t *val);
+int ConfGetChildValueBoolWithDefault(
+        const ConfNode *base, const ConfNode *dflt, const char *name, int *val);
 char *ConfLoadCompleteIncludePath(const char *);
 int ConfNodeIsSequence(const ConfNode *node);
 ConfNode *ConfSetIfaceNode(const char *ifaces_node_name, const char *iface);

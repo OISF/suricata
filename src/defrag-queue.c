@@ -29,7 +29,7 @@
 #include "util-debug.h"
 #include "util-print.h"
 
-DefragTrackerQueue *DefragTrackerQueueInit (DefragTrackerQueue *q)
+DefragTrackerQueue *DefragTrackerQueueInit(DefragTrackerQueue *q)
 {
     if (q != NULL) {
         memset(q, 0, sizeof(DefragTrackerQueue));
@@ -54,7 +54,7 @@ DefragTrackerQueue *DefragTrackerQueueNew(void)
  *
  *  \param q the tracker queue to destroy
  */
-void DefragTrackerQueueDestroy (DefragTrackerQueue *q)
+void DefragTrackerQueueDestroy(DefragTrackerQueue *q)
 {
     DQLOCK_DESTROY(q);
 }
@@ -65,7 +65,7 @@ void DefragTrackerQueueDestroy (DefragTrackerQueue *q)
  *  \param q queue
  *  \param dt tracker
  */
-void DefragTrackerEnqueue (DefragTrackerQueue *q, DefragTracker *dt)
+void DefragTrackerEnqueue(DefragTrackerQueue *q, DefragTracker *dt)
 {
 #ifdef DEBUG
     BUG_ON(q == NULL || dt == NULL);
@@ -78,7 +78,7 @@ void DefragTrackerEnqueue (DefragTrackerQueue *q, DefragTracker *dt)
         dt->lnext = q->top;
         q->top->lprev = dt;
         q->top = dt;
-    /* only tracker */
+        /* only tracker */
     } else {
         q->top = dt;
         q->bot = dt;
@@ -98,7 +98,7 @@ void DefragTrackerEnqueue (DefragTrackerQueue *q, DefragTracker *dt)
  *
  *  \retval dt tracker or NULL if empty list.
  */
-DefragTracker *DefragTrackerDequeue (DefragTrackerQueue *q)
+DefragTracker *DefragTrackerDequeue(DefragTrackerQueue *q)
 {
     DQLOCK_LOCK(q);
 
@@ -112,7 +112,7 @@ DefragTracker *DefragTrackerDequeue (DefragTrackerQueue *q)
     if (q->bot->lprev != NULL) {
         q->bot = q->bot->lprev;
         q->bot->lnext = NULL;
-    /* just the one we remove, so now empty */
+        /* just the one we remove, so now empty */
     } else {
         q->top = NULL;
         q->bot = NULL;
@@ -139,4 +139,3 @@ uint32_t DefragTrackerQueueLen(DefragTrackerQueue *q)
     DQLOCK_UNLOCK(q);
     return len;
 }
-

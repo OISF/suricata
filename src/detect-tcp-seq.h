@@ -28,7 +28,7 @@
  * \brief seq data
  */
 typedef struct DetectSeqData_ {
-    uint32_t seq;                    /**< seq to match */
+    uint32_t seq; /**< seq to match */
 } DetectSeqData;
 
 /**

@@ -27,4 +27,3 @@
 uint32_t DefragTimeoutHash(SCTime_t ts);
 
 #endif
-

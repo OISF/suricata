@@ -36,27 +36,28 @@
 
 static int mqtt_protocol_version_id = 0;
 
-static int DetectMQTTProtocolVersionMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state,
-                               void *txv, const Signature *s,
-                               const SigMatchCtx *ctx);
-static int DetectMQTTProtocolVersionSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectMQTTProtocolVersionMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectMQTTProtocolVersionSetup(DetectEngineCtx *, Signature *, const char *);
 void MQTTProtocolVersionRegisterTests(void);
 void DetectMQTTProtocolVersionFree(DetectEngineCtx *de_ctx, void *);
 
 /**
  * \brief Registration function for mqtt.protocol_version: keyword
  */
-void DetectMQTTProtocolVersionRegister (void)
+void DetectMQTTProtocolVersionRegister(void)
 {
     sigmatch_table[DETECT_AL_MQTT_PROTOCOL_VERSION].name = "mqtt.protocol_version";
     sigmatch_table[DETECT_AL_MQTT_PROTOCOL_VERSION].desc = "match MQTT protocol version";
-    sigmatch_table[DETECT_AL_MQTT_PROTOCOL_VERSION].url = "/rules/mqtt-keywords.html#mqtt-protocol-version";
-    sigmatch_table[DETECT_AL_MQTT_PROTOCOL_VERSION].AppLayerTxMatch = DetectMQTTProtocolVersionMatch;
+    sigmatch_table[DETECT_AL_MQTT_PROTOCOL_VERSION].url =
+            "/rules/mqtt-keywords.html#mqtt-protocol-version";
+    sigmatch_table[DETECT_AL_MQTT_PROTOCOL_VERSION].AppLayerTxMatch =
+            DetectMQTTProtocolVersionMatch;
     sigmatch_table[DETECT_AL_MQTT_PROTOCOL_VERSION].Setup = DetectMQTTProtocolVersionSetup;
-    sigmatch_table[DETECT_AL_MQTT_PROTOCOL_VERSION].Free  = DetectMQTTProtocolVersionFree;
+    sigmatch_table[DETECT_AL_MQTT_PROTOCOL_VERSION].Free = DetectMQTTProtocolVersionFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_MQTT_PROTOCOL_VERSION].RegisterTests = MQTTProtocolVersionRegisterTests;
+    sigmatch_table[DETECT_AL_MQTT_PROTOCOL_VERSION].RegisterTests =
+            MQTTProtocolVersionRegisterTests;
 #endif
 
     DetectAppLayerInspectEngineRegister2("mqtt.protocol_version", ALPROTO_MQTT, SIG_FLAG_TOSERVER,
@@ -80,10 +81,8 @@ void DetectMQTTProtocolVersionRegister (void)
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectMQTTProtocolVersionMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state,
-                               void *txv, const Signature *s,
-                               const SigMatchCtx *ctx)
+static int DetectMQTTProtocolVersionMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectU8Data *de = (const DetectU8Data *)ctx;
     uint8_t version;
@@ -150,17 +149,17 @@ void DetectMQTTProtocolVersionFree(DetectEngineCtx *de_ctx, void *de_ptr)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTProtocolVersionTestParse01 (void)
+static int MQTTProtocolVersionTestParse01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (mqtt.protocol_version:3; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (mqtt.protocol_version:3; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
-    sig = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (mqtt.protocol_version:3; sid:2; rev:1;)");
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (mqtt.protocol_version:3; sid:2; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -174,17 +173,17 @@ static int MQTTProtocolVersionTestParse01 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTProtocolVersionTestParse02 (void)
+static int MQTTProtocolVersionTestParse02(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (mqtt.protocol_version:>3; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (mqtt.protocol_version:>3; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
-    sig = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (mqtt.protocol_version:<44; sid:2; rev:1;)");
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (mqtt.protocol_version:<44; sid:2; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -198,13 +197,13 @@ static int MQTTProtocolVersionTestParse02 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTProtocolVersionTestParse03 (void)
+static int MQTTProtocolVersionTestParse03(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (mqtt.protocol_version:; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (mqtt.protocol_version:; sid:1; rev:1;)");
     FAIL_IF_NOT_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -218,13 +217,13 @@ static int MQTTProtocolVersionTestParse03 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTProtocolVersionTestParse04 (void)
+static int MQTTProtocolVersionTestParse04(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (mqtt.protocol_version:<444; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (mqtt.protocol_version:<444; sid:1; rev:1;)");
     FAIL_IF_NOT_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);

@@ -92,31 +92,31 @@ static void FileEndSha256(File *ff);
 void FileForceFilestoreEnable(void)
 {
     g_file_force_filestore = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_STORE_TS|FLOWFILE_NO_STORE_TC);
+    g_file_flow_mask |= (FLOWFILE_NO_STORE_TS | FLOWFILE_NO_STORE_TC);
 }
 
 void FileForceMagicEnable(void)
 {
     g_file_force_magic = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_MAGIC_TS|FLOWFILE_NO_MAGIC_TC);
+    g_file_flow_mask |= (FLOWFILE_NO_MAGIC_TS | FLOWFILE_NO_MAGIC_TC);
 }
 
 void FileForceMd5Enable(void)
 {
     g_file_force_md5 = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_MD5_TS|FLOWFILE_NO_MD5_TC);
+    g_file_flow_mask |= (FLOWFILE_NO_MD5_TS | FLOWFILE_NO_MD5_TC);
 }
 
 void FileForceSha1Enable(void)
 {
     g_file_force_sha1 = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_SHA1_TS|FLOWFILE_NO_SHA1_TC);
+    g_file_flow_mask |= (FLOWFILE_NO_SHA1_TS | FLOWFILE_NO_SHA1_TC);
 }
 
 void FileForceSha256Enable(void)
 {
     g_file_force_sha256 = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_SHA256_TS|FLOWFILE_NO_SHA256_TC);
+    g_file_flow_mask |= (FLOWFILE_NO_SHA256_TS | FLOWFILE_NO_SHA256_TC);
 }
 
 int FileForceFilestore(void)
@@ -161,7 +161,7 @@ int FileForceSha256(void)
 void FileForceTrackingEnable(void)
 {
     g_file_force_tracking = 1;
-    g_file_flow_mask |= (FLOWFILE_NO_SIZE_TS|FLOWFILE_NO_SIZE_TC);
+    g_file_flow_mask |= (FLOWFILE_NO_SIZE_TS | FLOWFILE_NO_SIZE_TC);
 }
 
 /**
@@ -196,7 +196,7 @@ void FileForceHashParseCfg(ConfNode *conf)
     if (forcehash_node != NULL) {
         ConfNode *field = NULL;
 
-        TAILQ_FOREACH(field, &forcehash_node->head, next) {
+        TAILQ_FOREACH (field, &forcehash_node->head, next) {
             if (strcasecmp("md5", field->val) == 0) {
                 if (g_disable_hashing) {
                     SCLogInfo("not forcing md5 calculation for logged files: hashing globally "
@@ -365,8 +365,8 @@ static int FilePruneFile(File *file, const StreamingBufferConfig *cfg)
     SCEnter();
 
     /* file is done when state is closed+, logging/storing is done (if any) */
-    SCLogDebug("file->state %d. Is >= FILE_STATE_CLOSED: %s",
-            file->state, (file->state >= FILE_STATE_CLOSED) ? "yes" : "no");
+    SCLogDebug("file->state %d. Is >= FILE_STATE_CLOSED: %s", file->state,
+            (file->state >= FILE_STATE_CLOSED) ? "yes" : "no");
     if (file->state >= FILE_STATE_CLOSED) {
         SCReturnInt(1);
     }
@@ -384,7 +384,7 @@ static int FilePruneFile(File *file, const StreamingBufferConfig *cfg)
 #endif
     uint64_t left_edge = FileDataSize(file);
     if (file->flags & FILE_STORE) {
-        left_edge = MIN(left_edge,file->content_stored);
+        left_edge = MIN(left_edge, file->content_stored);
     }
 
     if (!g_detect_disabled) {
@@ -400,8 +400,8 @@ static int FilePruneFile(File *file, const StreamingBufferConfig *cfg)
             uint64_t file_size = FileDataSize(file);
             uint64_t data_size = file_size - file_offset;
 
-            SCLogDebug("window %"PRIu32", file_size %"PRIu64", data_size %"PRIu64,
-                    window, file_size, data_size);
+            SCLogDebug("window %" PRIu32 ", file_size %" PRIu64 ", data_size %" PRIu64, window,
+                    file_size, data_size);
 
             if (data_size > (window * 3)) {
                 file->content_inspected = MAX(file->content_inspected, file->size - window);
@@ -515,7 +515,7 @@ void FileContainerRecycle(FileContainer *ffc, const StreamingBufferConfig *cfg)
 
     File *cur = ffc->head;
     File *next = NULL;
-    for (;cur != NULL; cur = next) {
+    for (; cur != NULL; cur = next) {
         next = cur->next;
         FileFree(cur, cfg);
     }
@@ -535,7 +535,7 @@ void FileContainerFree(FileContainer *ffc, const StreamingBufferConfig *cfg)
 
     File *ptr = ffc->head;
     File *next = NULL;
-    for (;ptr != NULL; ptr = next) {
+    for (; ptr != NULL; ptr = next) {
         next = ptr->next;
         FileFree(ptr, cfg);
     }
@@ -646,9 +646,7 @@ static int FileStoreNoStoreCheck(File *ff)
     }
 
     if (ff->flags & FILE_NOSTORE) {
-        if (ff->state == FILE_STATE_OPENED &&
-            FileDataSize(ff) >= (uint64_t)FileMagicSize())
-        {
+        if (ff->state == FILE_STATE_OPENED && FileDataSize(ff) >= (uint64_t)FileMagicSize()) {
             SCReturnInt(1);
         }
     }
@@ -685,10 +683,11 @@ static int AppendData(
  *
  *  \param ff the file
  */
-static void FileFlagGap(File *ff) {
+static void FileFlagGap(File *ff)
+{
     ff->flags |= FILE_HAS_GAPS;
-    ff->flags |= (FILE_NOMD5|FILE_NOSHA1|FILE_NOSHA256);
-    ff->flags &= ~(FILE_MD5|FILE_SHA1|FILE_SHA256);
+    ff->flags |= (FILE_NOMD5 | FILE_NOSHA1 | FILE_NOSHA256);
+    ff->flags &= ~(FILE_MD5 | FILE_SHA1 | FILE_SHA256);
 }
 
 /** \internal
@@ -751,7 +750,7 @@ static int FileAppendDataDo(
         SCReturnInt(-2);
     }
 
-    SCLogDebug("appending %"PRIu32" bytes", data_len);
+    SCLogDebug("appending %" PRIu32 " bytes", data_len);
 
     int r = AppendData(sbcfg, ff, data, data_len);
     if (r != 0) {
@@ -808,7 +807,7 @@ int FileAppendDataById(FileContainer *ffc, const StreamingBufferConfig *sbcfg, u
         SCReturnInt(-1);
     }
     File *ff = ffc->head;
-    for ( ; ff != NULL; ff = ff->next) {
+    for (; ff != NULL; ff = ff->next) {
         if (track_id == ff->file_track_id) {
             int r = FileAppendDataDo(sbcfg, ff, data, data_len);
             SCReturnInt(r);
@@ -839,7 +838,7 @@ int FileAppendGAPById(FileContainer *ffc, const StreamingBufferConfig *sbcfg, ui
         SCReturnInt(-1);
     }
     File *ff = ffc->head;
-    for ( ; ff != NULL; ff = ff->next) {
+    for (; ff != NULL; ff = ff->next) {
         if (track_id == ff->file_track_id) {
             FileFlagGap(ff);
             SCLogDebug("FILE_HAS_GAPS set");
@@ -895,12 +894,12 @@ int FileSetRange(FileContainer *ffc, uint64_t start, uint64_t end)
  *  \note filename is not a string, so it's not nul terminated.
  */
 static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
-        const uint8_t *name, uint16_t name_len,
-        const uint8_t *data, uint32_t data_len, uint16_t flags)
+        const uint8_t *name, uint16_t name_len, const uint8_t *data, uint32_t data_len,
+        uint16_t flags)
 {
     SCEnter();
 
-    //PrintRawDataFp(stdout, name, name_len);
+    // PrintRawDataFp(stdout, name, name_len);
 
     File *ff = FileAlloc(name, name_len);
     if (ff == NULL) {
@@ -964,7 +963,7 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
             ff->state = FILE_STATE_ERROR;
             SCReturnPtr(NULL, "File");
         }
-        SCLogDebug("file size is now %"PRIu64, FileTrackedSize(ff));
+        SCLogDebug("file size is now %" PRIu64, FileTrackedSize(ff));
     } else if (data_len > 0) {
         FileFlagGap(ff);
     }
@@ -975,9 +974,9 @@ static File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg
 /**
  *  \retval 0 ok
  *  \retval -1 failed */
-int FileOpenFileWithId(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
-        uint32_t track_id, const uint8_t *name, uint16_t name_len,
-        const uint8_t *data, uint32_t data_len, uint16_t flags)
+int FileOpenFileWithId(FileContainer *ffc, const StreamingBufferConfig *sbcfg, uint32_t track_id,
+        const uint8_t *name, uint16_t name_len, const uint8_t *data, uint32_t data_len,
+        uint16_t flags)
 {
     SCLogDebug("ffc %p track_id %u", ffc, track_id);
     File *ff = FileOpenFile(ffc, sbcfg, name, name_len, data, data_len, flags);
@@ -1097,7 +1096,7 @@ int FileCloseFileById(FileContainer *ffc, const StreamingBufferConfig *sbcfg, ui
     }
 
     File *ff = ffc->head;
-    for ( ; ff != NULL; ff = ff->next) {
+    for (; ff != NULL; ff = ff->next) {
         if (track_id == ff->file_track_id) {
             int r = FileCloseFilePtr(ff, sbcfg, data, data_len, flags);
             SCReturnInt(r);
@@ -1120,14 +1119,14 @@ void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction
     /* remove flags not in our direction and
        don't disable what is globally enabled */
     if (direction == STREAM_TOSERVER) {
-        set_file_flags &= ~(FLOWFILE_NONE_TC|g_file_flow_mask);
+        set_file_flags &= ~(FLOWFILE_NONE_TC | g_file_flow_mask);
     } else {
-        set_file_flags &= ~(FLOWFILE_NONE_TS|g_file_flow_mask);
+        set_file_flags &= ~(FLOWFILE_NONE_TS | g_file_flow_mask);
     }
     f->file_flags |= set_file_flags;
 
-    SCLogDebug("f->file_flags %04x set_file_flags %04x g_file_flow_mask %04x",
-            f->file_flags, set_file_flags, g_file_flow_mask);
+    SCLogDebug("f->file_flags %04x set_file_flags %04x g_file_flow_mask %04x", f->file_flags,
+            set_file_flags, g_file_flow_mask);
 
     if (set_file_flags != 0 && f->alproto != ALPROTO_UNKNOWN && f->alstate != NULL) {
         AppLayerStateData *sd = AppLayerParserGetStateData(f->proto, f->alproto, f->alstate);

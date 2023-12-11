@@ -50,7 +50,7 @@ static StorageMapping **storage_map = NULL;
 
 static const char *StoragePrintType(StorageEnum type)
 {
-    switch(type) {
+    switch (type) {
         case STORAGE_HOST:
             return "host";
         case STORAGE_FLOW:
@@ -97,13 +97,14 @@ void StorageCleanup(void)
     storage_list = NULL;
 }
 
-int StorageRegister(const StorageEnum type, const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *))
+int StorageRegister(const StorageEnum type, const char *name, const unsigned int size,
+        void *(*Alloc)(unsigned int), void (*Free)(void *))
 {
     if (storage_registration_closed)
         return -1;
 
-    if (type >= STORAGE_MAX || name == NULL || strlen(name) == 0 ||
-            size == 0 || (size != sizeof(void *) && Alloc == NULL) || Free == NULL)
+    if (type >= STORAGE_MAX || name == NULL || strlen(name) == 0 || size == 0 ||
+            (size != sizeof(void *) && Alloc == NULL) || Free == NULL)
         return -1;
 
     StorageList *list = storage_list;
@@ -186,8 +187,8 @@ int StorageFinalize(void)
         int j;
         for (j = 0; j < storage_max_id[i]; j++) {
             StorageMapping *m = &storage_map[i][j];
-            SCLogDebug("type \"%s\" name \"%s\" size \"%"PRIuMAX"\"",
-                    StoragePrintType(m->type), m->name, (uintmax_t)m->size);
+            SCLogDebug("type \"%s\" name \"%s\" size \"%" PRIuMAX "\"", StoragePrintType(m->type),
+                    m->name, (uintmax_t)m->size);
         }
     }
 #endif

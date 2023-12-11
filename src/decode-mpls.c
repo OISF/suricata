@@ -38,16 +38,15 @@
 #define MPLS_LABEL_IPV6         2
 #define MPLS_LABEL_NULL         3
 
-#define MPLS_LABEL(shim)        SCNtohl(shim) >> 12
-#define MPLS_BOTTOM(shim)       ((SCNtohl(shim) >> 8) & 0x1)
+#define MPLS_LABEL(shim)  SCNtohl(shim) >> 12
+#define MPLS_BOTTOM(shim) ((SCNtohl(shim) >> 8) & 0x1)
 
 /* Inner protocol guessing values. */
-#define MPLS_PROTO_ETHERNET_PW  0
-#define MPLS_PROTO_IPV4         4
-#define MPLS_PROTO_IPV6         6
+#define MPLS_PROTO_ETHERNET_PW 0
+#define MPLS_PROTO_IPV4        4
+#define MPLS_PROTO_IPV6        6
 
-int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint32_t len)
+int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
@@ -76,22 +75,18 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             return TM_ECODE_FAILED;
         }
         return DecodeIPV4(tv, dtv, p, pkt, (uint16_t)len);
-    }
-    else if (label == MPLS_LABEL_ROUTER_ALERT) {
+    } else if (label == MPLS_LABEL_ROUTER_ALERT) {
         /* Not valid at the bottom of the stack. */
         event = MPLS_BAD_LABEL_ROUTER_ALERT;
-    }
-    else if (label == MPLS_LABEL_IPV6) {
+    } else if (label == MPLS_LABEL_IPV6) {
         if (len > USHRT_MAX) {
             return TM_ECODE_FAILED;
         }
         return DecodeIPV6(tv, dtv, p, pkt, (uint16_t)len);
-    }
-    else if (label == MPLS_LABEL_NULL) {
+    } else if (label == MPLS_LABEL_NULL) {
         /* Shouldn't appear on the wire. */
         event = MPLS_BAD_LABEL_IMPLICIT_NULL;
-    }
-    else if (label < MPLS_MAX_RESERVED_LABEL) {
+    } else if (label < MPLS_MAX_RESERVED_LABEL) {
         event = MPLS_BAD_LABEL_RESERVED;
     }
 
@@ -108,24 +103,24 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     /* Best guess at inner packet. */
     switch (pkt[0] >> 4) {
-    case MPLS_PROTO_IPV4:
-        if (len > USHRT_MAX) {
-            return TM_ECODE_FAILED;
-        }
-        DecodeIPV4(tv, dtv, p, pkt, (uint16_t)len);
-        break;
-    case MPLS_PROTO_IPV6:
-        if (len > USHRT_MAX) {
-            return TM_ECODE_FAILED;
-        }
-        DecodeIPV6(tv, dtv, p, pkt, (uint16_t)len);
-        break;
-    case MPLS_PROTO_ETHERNET_PW:
-        DecodeEthernet(tv, dtv, p, pkt + MPLS_PW_LEN, len - MPLS_PW_LEN);
-        break;
-    default:
-        ENGINE_SET_INVALID_EVENT(p, MPLS_UNKNOWN_PAYLOAD_TYPE);
-        return TM_ECODE_OK;
+        case MPLS_PROTO_IPV4:
+            if (len > USHRT_MAX) {
+                return TM_ECODE_FAILED;
+            }
+            DecodeIPV4(tv, dtv, p, pkt, (uint16_t)len);
+            break;
+        case MPLS_PROTO_IPV6:
+            if (len > USHRT_MAX) {
+                return TM_ECODE_FAILED;
+            }
+            DecodeIPV6(tv, dtv, p, pkt, (uint16_t)len);
+            break;
+        case MPLS_PROTO_ETHERNET_PW:
+            DecodeEthernet(tv, dtv, p, pkt + MPLS_PW_LEN, len - MPLS_PW_LEN);
+            break;
+        default:
+            ENGINE_SET_INVALID_EVENT(p, MPLS_UNKNOWN_PAYLOAD_TYPE);
+            return TM_ECODE_OK;
     }
 
 end:
@@ -151,7 +146,7 @@ static int DecodeMPLSTestHeaderTooSmall(void)
     ThreadVars tv;
     DecodeThreadVars dtv;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
     DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
     FAIL_IF(!ENGINE_ISSET_EVENT(p, MPLS_HEADER_TOO_SMALL));
@@ -165,7 +160,7 @@ static int DecodeMPLSTestPacketTooSmall(void)
     ThreadVars tv;
     DecodeThreadVars dtv;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
     Packet *p = PacketGetFromAlloc();
     FAIL_IF_NULL(p);
@@ -233,7 +228,7 @@ static int DecodeMPLSTestBadLabelRouterAlert(void)
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
     DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
     FAIL_IF(!ENGINE_ISSET_EVENT(p, MPLS_BAD_LABEL_ROUTER_ALERT));
@@ -267,7 +262,7 @@ static int DecodeMPLSTestBadLabelImplicitNull(void)
     ThreadVars tv;
     DecodeThreadVars dtv;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
     DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
     FAIL_IF(!ENGINE_ISSET_EVENT(p, MPLS_BAD_LABEL_IMPLICIT_NULL));
@@ -301,7 +296,7 @@ static int DecodeMPLSTestBadLabelReserved(void)
     ThreadVars tv;
     DecodeThreadVars dtv;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
     DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
     FAIL_IF(!ENGINE_ISSET_EVENT(p, MPLS_BAD_LABEL_RESERVED));
@@ -338,7 +333,7 @@ static int DecodeMPLSTestUnknownPayloadType(void)
     ThreadVars tv;
     DecodeThreadVars dtv;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
     DecodeMPLS(&tv, &dtv, p, pkt, sizeof(pkt));
     FAIL_IF(!ENGINE_ISSET_EVENT(p, MPLS_UNKNOWN_PAYLOAD_TYPE));
@@ -352,17 +347,11 @@ static int DecodeMPLSTestUnknownPayloadType(void)
 void DecodeMPLSRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodeMPLSTestHeaderTooSmall",
-                   DecodeMPLSTestHeaderTooSmall);
-    UtRegisterTest("DecodeMPLSTestPacketTooSmall",
-                   DecodeMPLSTestPacketTooSmall);
-    UtRegisterTest("DecodeMPLSTestBadLabelRouterAlert",
-                   DecodeMPLSTestBadLabelRouterAlert);
-    UtRegisterTest("DecodeMPLSTestBadLabelImplicitNull",
-                   DecodeMPLSTestBadLabelImplicitNull);
-    UtRegisterTest("DecodeMPLSTestBadLabelReserved",
-                   DecodeMPLSTestBadLabelReserved);
-    UtRegisterTest("DecodeMPLSTestUnknownPayloadType",
-                   DecodeMPLSTestUnknownPayloadType);
+    UtRegisterTest("DecodeMPLSTestHeaderTooSmall", DecodeMPLSTestHeaderTooSmall);
+    UtRegisterTest("DecodeMPLSTestPacketTooSmall", DecodeMPLSTestPacketTooSmall);
+    UtRegisterTest("DecodeMPLSTestBadLabelRouterAlert", DecodeMPLSTestBadLabelRouterAlert);
+    UtRegisterTest("DecodeMPLSTestBadLabelImplicitNull", DecodeMPLSTestBadLabelImplicitNull);
+    UtRegisterTest("DecodeMPLSTestBadLabelReserved", DecodeMPLSTestBadLabelReserved);
+    UtRegisterTest("DecodeMPLSTestUnknownPayloadType", DecodeMPLSTestUnknownPayloadType);
 #endif /* UNITTESTS */
 }

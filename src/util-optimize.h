@@ -24,7 +24,7 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#if CPPCHECK==1
+#if CPPCHECK == 1
 #define likely
 #define unlikely
 #else
@@ -40,7 +40,7 @@
  *
  *  C Compiler memory barrier
  */
-#define cc_barrier() __asm__ __volatile__("": : :"memory")
+#define cc_barrier() __asm__ __volatile__("" : : : "memory")
 
 /** from http://gcc.gnu.org/onlinedocs/gcc-4.1.2/gcc/Atomic-Builtins.html
  *
@@ -49,4 +49,3 @@
 #define hw_barrier() __sync_synchronize()
 
 #endif /* __UTIL_OPTIMIZE_H__ */
-

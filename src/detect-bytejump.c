@@ -46,37 +46,40 @@
 /**
  * \brief Regex for parsing our options
  */
-#define PARSE_REGEX  "^\\s*" \
-                     "([^\\s,]+\\s*,\\s*[^\\s,]+)" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?" \
-                     "\\s*$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*"                                                                                        \
+    "([^\\s,]+\\s*,\\s*[^\\s,]+)"                                                                  \
+    "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?"                              \
+    "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?"                              \
+    "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?"                              \
+    "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?"                              \
+    "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?"                              \
+    "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?"                              \
+    "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?"                              \
+    "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?"                              \
+    "(?:\\s*,\\s*((?:multiplier|post_offset)\\s+[^\\s,]+|[^\\s,]+))?"                              \
+    "\\s*$"
 
 static DetectParseRegex parse_regex;
 
 static DetectBytejumpData *DetectBytejumpParse(
         DetectEngineCtx *de_ctx, const char *optstr, char **nbytes, char **offset);
 static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr);
-static void DetectBytejumpFree(DetectEngineCtx*, void *ptr);
+static void DetectBytejumpFree(DetectEngineCtx *, void *ptr);
 #ifdef UNITTESTS
 static void DetectBytejumpRegisterTests(void);
 #endif
 
-void DetectBytejumpRegister (void)
+void DetectBytejumpRegister(void)
 {
     sigmatch_table[DETECT_BYTEJUMP].name = "byte_jump";
-    sigmatch_table[DETECT_BYTEJUMP].desc = "allow the ability to select a <num of bytes> from an <offset> and move the detection pointer to that position";
+    sigmatch_table[DETECT_BYTEJUMP].desc =
+            "allow the ability to select a <num of bytes> from an <offset> and move the detection "
+            "pointer to that position";
     sigmatch_table[DETECT_BYTEJUMP].url = "/rules/payload-keywords.html#byte-jump";
     sigmatch_table[DETECT_BYTEJUMP].Match = NULL;
     sigmatch_table[DETECT_BYTEJUMP].Setup = DetectBytejumpSetup;
-    sigmatch_table[DETECT_BYTEJUMP].Free  = DetectBytejumpFree;
+    sigmatch_table[DETECT_BYTEJUMP].Free = DetectBytejumpFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_BYTEJUMP].RegisterTests = DetectBytejumpRegisterTests;
 #endif
@@ -191,12 +194,11 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     /* Extract the byte data */
     if (flags & DETECT_BYTEJUMP_STRING) {
         extbytes = ByteExtractStringUint64(&val, data->base, nbytes, (const char *)ptr);
-        if(extbytes <= 0) {
+        if (extbytes <= 0) {
             SCLogDebug("error extracting %d bytes of string data: %d", nbytes, extbytes);
             SCReturnBool(false);
         }
-    }
-    else {
+    } else {
         int endianness = (flags & DETECT_BYTEJUMP_LITTLE) ? BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, (uint16_t)nbytes, ptr);
         if (extbytes != nbytes) {
@@ -300,13 +302,15 @@ static DetectBytejumpData *DetectBytejumpParse(
      * and *yes* this *is* ugly.
      */
     end_ptr = str;
-    while (!(isspace((unsigned char)*end_ptr) || (*end_ptr == ','))) end_ptr++;
+    while (!(isspace((unsigned char)*end_ptr) || (*end_ptr == ',')))
+        end_ptr++;
     *(end_ptr++) = '\0';
     strlcpy(args[0], str, sizeof(args[0]));
     numargs++;
 
     str_ptr = end_ptr;
-    while (isspace((unsigned char)*str_ptr) || (*str_ptr == ',')) str_ptr++;
+    while (isspace((unsigned char)*str_ptr) || (*str_ptr == ','))
+        str_ptr++;
     end_ptr = str_ptr;
     while (!(isspace((unsigned char)*end_ptr) || (*end_ptr == ',')) && (*end_ptr != '\0'))
         end_ptr++;
@@ -491,10 +495,8 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         }
     } else if (data->flags & DETECT_BYTEJUMP_DCE) {
         if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
-            prev_pm = DetectGetLastSMFromLists(s,
-                    DETECT_CONTENT, DETECT_PCRE,
-                    DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-                    DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
+            prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, DETECT_BYTETEST,
+                    DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT, DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
             if (prev_pm == NULL) {
                 sm_list = DETECT_SM_LIST_PMATCH;
             } else {
@@ -510,10 +512,8 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
             goto error;
 
     } else if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
-        prev_pm = DetectGetLastSMFromLists(s,
-                DETECT_CONTENT, DETECT_PCRE,
-                DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
-                DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
+        prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, DETECT_BYTETEST,
+                DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT, DETECT_ISDATAAT, DETECT_BYTEMATH, -1);
         if (prev_pm == NULL) {
             sm_list = DETECT_SM_LIST_PMATCH;
         } else {
@@ -527,14 +527,11 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     }
 
     if (data->flags & DETECT_BYTEJUMP_DCE) {
-        if ((data->flags & DETECT_BYTEJUMP_STRING) ||
-            (data->flags & DETECT_BYTEJUMP_LITTLE) ||
-            (data->flags & DETECT_BYTEJUMP_BIG) ||
-            (data->flags & DETECT_BYTEJUMP_BEGIN) ||
-            (data->flags & DETECT_BYTEJUMP_END) ||
-            (data->base == DETECT_BYTEJUMP_BASE_DEC) ||
-            (data->base == DETECT_BYTEJUMP_BASE_HEX) ||
-            (data->base == DETECT_BYTEJUMP_BASE_OCT) ) {
+        if ((data->flags & DETECT_BYTEJUMP_STRING) || (data->flags & DETECT_BYTEJUMP_LITTLE) ||
+                (data->flags & DETECT_BYTEJUMP_BIG) || (data->flags & DETECT_BYTEJUMP_BEGIN) ||
+                (data->flags & DETECT_BYTEJUMP_END) || (data->base == DETECT_BYTEJUMP_BASE_DEC) ||
+                (data->base == DETECT_BYTEJUMP_BASE_HEX) ||
+                (data->base == DETECT_BYTEJUMP_BASE_OCT)) {
             SCLogError("Invalid option. "
                        "A byte_jump keyword with dce holds other invalid modifiers.");
             goto error;
@@ -586,14 +583,14 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
     }
 
- okay:
+okay:
     ret = 0;
     return ret;
 
- error:
-     if (nbytes != NULL) {
-         SCFree(nbytes);
-     }
+error:
+    if (nbytes != NULL) {
+        SCFree(nbytes);
+    }
     if (offset != NULL) {
         SCFree(offset);
     }
@@ -614,7 +611,6 @@ static void DetectBytejumpFree(DetectEngineCtx *de_ctx, void *ptr)
     DetectBytejumpData *data = (DetectBytejumpData *)ptr;
     SCFree(data);
 }
-
 
 /* UNITTESTS */
 #ifdef UNITTESTS
@@ -887,59 +883,59 @@ static int DetectBytejumpTestParse11(void)
 
     de_ctx->flags |= DE_QUIET;
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytejump_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "dce_stub_data; "
-                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
-                "post_offset -16,string,dce; sid:1;)");
+                        "(msg:\"Testing bytejump_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "dce_stub_data; "
+                        "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
+                        "post_offset -16,string,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytejump_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "dce_sub_data; "
-                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
-                "post_offset -16,big,dce; sid:1;)");
+                        "(msg:\"Testing bytejump_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "dce_sub_data; "
+                        "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
+                        "post_offset -16,big,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytejump_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "dce_stub_data; "
-                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
-                "post_offset -16,little,dce; sid:1;)");
+                        "(msg:\"Testing bytejump_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "dce_stub_data; "
+                        "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
+                        "post_offset -16,little,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytejump_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "dce_stub_data; "
-                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
-                "post_offset -16,string,hex,dce; sid:1;)");
+                        "(msg:\"Testing bytejump_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "dce_stub_data; "
+                        "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
+                        "post_offset -16,string,hex,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytejump_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "dce_stub_data; "
-                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
-                "post_offset -16,string,dec,dce; sid:1;)");
+                        "(msg:\"Testing bytejump_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "dce_stub_data; "
+                        "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
+                        "post_offset -16,string,dec,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytejump_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "dce_stub_data; "
-                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
-                "post_offset -16,string,oct,dce; sid:1;)");
+                        "(msg:\"Testing bytejump_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "dce_stub_data; "
+                        "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
+                        "post_offset -16,string,oct,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytejump_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "dce_stub_data; "
-                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
-                "post_offset -16,from_beginning,dce; sid:1;)");
+                        "(msg:\"Testing bytejump_body\"; "
+                        "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                        "dce_stub_data; "
+                        "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
+                        "post_offset -16,from_beginning,dce; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     SigGroupCleanup(de_ctx);
@@ -1007,14 +1003,14 @@ static int DetectBytejumpTestParse14(void)
  * byte_jump and byte_jump relative works if the previous keyword is pcre
  * (bug 142)
  */
-static int DetectByteJumpTestPacket01 (void)
+static int DetectByteJumpTestPacket01(void)
 {
     uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
-                    "User-Agent: Wget/1.11.4"
-                    "Accept: */*"
-                    "Host: www.google.com"
-                    "Connection: Keep-Alive"
-                    "Date: Mon, 04 Jan 2010 17:29:39 GMT";
+                              "User-Agent: Wget/1.11.4"
+                              "Accept: */*"
+                              "Host: www.google.com"
+                              "Connection: Keep-Alive"
+                              "Date: Mon, 04 Jan 2010 17:29:39 GMT";
     uint16_t buflen = strlen((char *)buf);
     Packet *p;
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
@@ -1022,8 +1018,8 @@ static int DetectByteJumpTestPacket01 (void)
     FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (msg:\"pcre + byte_test + "
-    "relative\"; pcre:\"/AllWorkAndNoPlayMakesWillADullBoy/\"; byte_jump:1,6,"
-    "relative,string,dec; content:\"0\"; sid:134; rev:1;)";
+                 "relative\"; pcre:\"/AllWorkAndNoPlayMakesWillADullBoy/\"; byte_jump:1,6,"
+                 "relative,string,dec; content:\"0\"; sid:134; rev:1;)";
 
     FAIL_IF_NOT(UTHPacketMatchSig(p, sig));
 
@@ -1036,7 +1032,7 @@ static int DetectByteJumpTestPacket01 (void)
  * byte_jump and byte_jump relative works if the previous keyword is byte_jump
  * (bug 165)
  */
-static int DetectByteJumpTestPacket02 (void)
+static int DetectByteJumpTestPacket02(void)
 {
     // clang-format off
     uint8_t buf[] = { 0x00, 0x00, 0x00, 0x77, 0xff, 0x53,
@@ -1081,7 +1077,7 @@ static int DetectByteJumpTestPacket03(void)
     FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (msg:\"byte_jump\"; "
-        "byte_jump:1,214748364; sid:1; rev:1;)";
+                 "byte_jump:1,214748364; sid:1; rev:1;)";
 
     FAIL_IF(UTHPacketMatchSig(p, sig));
 
@@ -1095,7 +1091,7 @@ static int DetectByteJumpTestPacket03(void)
 /**
  * \test check matches of with from_beginning (bug 626/627)
  */
-static int DetectByteJumpTestPacket04 (void)
+static int DetectByteJumpTestPacket04(void)
 {
     uint8_t *buf = (uint8_t *)"XYZ04abcdABCD";
     uint16_t buflen = strlen((char *)buf);
@@ -1104,7 +1100,9 @@ static int DetectByteJumpTestPacket04 (void)
 
     FAIL_IF_NULL(p);
 
-    char sig[] = "alert tcp any any -> any any (content:\"XYZ\"; byte_jump:2,0,relative,string,dec; content:\"ABCD\"; distance:0; within:4; sid:1; rev:1;)";
+    char sig[] =
+            "alert tcp any any -> any any (content:\"XYZ\"; byte_jump:2,0,relative,string,dec; "
+            "content:\"ABCD\"; distance:0; within:4; sid:1; rev:1;)";
 
     FAIL_IF_NOT(UTHPacketMatchSig(p, sig));
 
@@ -1115,7 +1113,7 @@ static int DetectByteJumpTestPacket04 (void)
 /**
  * \test check matches of with from_beginning (bug 626/627)
  */
-static int DetectByteJumpTestPacket05 (void)
+static int DetectByteJumpTestPacket05(void)
 {
     uint8_t *buf = (uint8_t *)"XYZ04abcdABCD";
     uint16_t buflen = strlen((char *)buf);
@@ -1124,7 +1122,8 @@ static int DetectByteJumpTestPacket05 (void)
 
     FAIL_IF_NULL(p);
 
-    char sig[] = "alert tcp any any -> any any (content:\"XYZ\"; byte_jump:2,0,relative,string,dec; content:\"cdABCD\"; within:6; sid:1; rev:1;)";
+    char sig[] = "alert tcp any any -> any any (content:\"XYZ\"; "
+                 "byte_jump:2,0,relative,string,dec; content:\"cdABCD\"; within:6; sid:1; rev:1;)";
 
     FAIL_IF_NOT(UTHPacketMatchSig(p, sig) ? 0 : 1);
 
@@ -1135,7 +1134,7 @@ static int DetectByteJumpTestPacket05 (void)
 /**
  * \test check matches of with from_beginning (bug 626/627)
  */
-static int DetectByteJumpTestPacket06 (void)
+static int DetectByteJumpTestPacket06(void)
 {
     uint8_t *buf = (uint8_t *)"XX04abcdABCD";
     uint16_t buflen = strlen((char *)buf);
@@ -1144,7 +1143,9 @@ static int DetectByteJumpTestPacket06 (void)
 
     FAIL_IF_NULL(p);
 
-    char sig[] = "alert tcp any any -> any any (content:\"XX\"; byte_jump:2,0,relative,string,dec,from_beginning; content:\"ABCD\"; distance:4; within:4; sid:1; rev:1;)";
+    char sig[] = "alert tcp any any -> any any (content:\"XX\"; "
+                 "byte_jump:2,0,relative,string,dec,from_beginning; content:\"ABCD\"; distance:4; "
+                 "within:4; sid:1; rev:1;)";
 
     FAIL_IF_NOT(UTHPacketMatchSig(p, sig));
 
@@ -1155,7 +1156,7 @@ static int DetectByteJumpTestPacket06 (void)
 /**
  * \test check matches of with from_beginning (bug 626/627)
  */
-static int DetectByteJumpTestPacket07 (void)
+static int DetectByteJumpTestPacket07(void)
 {
     uint8_t *buf = (uint8_t *)"XX04abcdABCD";
     uint16_t buflen = strlen((char *)buf);
@@ -1164,7 +1165,9 @@ static int DetectByteJumpTestPacket07 (void)
 
     FAIL_IF_NULL(p);
 
-    char sig[] = "alert tcp any any -> any any (content:\"XX\"; byte_jump:2,0,relative,string,dec,from_beginning; content:\"abcdABCD\"; distance:0; within:8; sid:1; rev:1;)";
+    char sig[] = "alert tcp any any -> any any (content:\"XX\"; "
+                 "byte_jump:2,0,relative,string,dec,from_beginning; content:\"abcdABCD\"; "
+                 "distance:0; within:8; sid:1; rev:1;)";
 
     FAIL_IF_NOT(UTHPacketMatchSig(p, sig) ? 1 : 0);
 
@@ -1175,7 +1178,7 @@ static int DetectByteJumpTestPacket07 (void)
 /**
  * \test check matches of with from_end
  */
-static int DetectByteJumpTestPacket08 (void)
+static int DetectByteJumpTestPacket08(void)
 {
     uint8_t *buf = (uint8_t *)"XX04abcdABCD";
     uint16_t buflen = strlen((char *)buf);
@@ -1184,7 +1187,7 @@ static int DetectByteJumpTestPacket08 (void)
     FAIL_IF_NULL(p);
 
     char sig[] = "alert tcp any any -> any any (content:\"XX\"; byte_jump:2,0,"
-        "relative,string,dec,from_end, post_offset -8; content:\"ABCD\";  sid:1; rev:1;)";
+                 "relative,string,dec,from_end, post_offset -8; content:\"ABCD\";  sid:1; rev:1;)";
 
     FAIL_IF_NOT(UTHPacketMatchSig(p, sig));
 

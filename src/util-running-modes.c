@@ -52,4 +52,3 @@ int ListAppLayerProtocols(const char *conf_filename)
 
     return TM_ECODE_DONE;
 }
-

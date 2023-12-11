@@ -52,7 +52,8 @@ static void DetectWithinRegisterTests(void);
 void DetectWithinRegister(void)
 {
     sigmatch_table[DETECT_WITHIN].name = "within";
-    sigmatch_table[DETECT_WITHIN].desc = "indicate that this content match has to be within a certain distance of the previous content keyword match";
+    sigmatch_table[DETECT_WITHIN].desc = "indicate that this content match has to be within a "
+                                         "certain distance of the previous content keyword match";
     sigmatch_table[DETECT_WITHIN].url = "/rules/payload-keywords.html#within";
     sigmatch_table[DETECT_WITHIN].Match = NULL;
     sigmatch_table[DETECT_WITHIN].Setup = DetectWithinSetup;
@@ -132,8 +133,7 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     /* these are the only ones against which we set a flag.  We have other
      * relative keywords like byttest, isdataat, bytejump, but we don't
      * set a flag against them */
-    SigMatch *prev_pm = DetectGetLastSMByListPtr(s, pm->prev,
-            DETECT_CONTENT, DETECT_PCRE, -1);
+    SigMatch *prev_pm = DetectGetLastSMByListPtr(s, pm->prev, DETECT_CONTENT, DETECT_PCRE, -1);
     if (prev_pm == NULL) {
         return 0;
     }
@@ -158,18 +158,18 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
 
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
- /**
+/**
  * \test DetectWithinTestPacket01 is a test to check matches of
  * within, if the previous keyword is pcre (bug 145)
  */
-static int DetectWithinTestPacket01 (void)
+static int DetectWithinTestPacket01(void)
 {
     uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
-                    "User-Agent: Wget/1.11.4"
-                    "Accept: */*"
-                    "Host: www.google.com"
-                    "Connection: Keep-Alive"
-                    "Date: Mon, 04 Jan 2010 17:29:39 GMT";
+                              "User-Agent: Wget/1.11.4"
+                              "Accept: */*"
+                              "Host: www.google.com"
+                              "Connection: Keep-Alive"
+                              "Date: Mon, 04 Jan 2010 17:29:39 GMT";
     uint16_t buflen = strlen((char *)buf);
 
     Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
@@ -185,8 +185,7 @@ static int DetectWithinTestPacket01 (void)
     PASS;
 }
 
-
-static int DetectWithinTestPacket02 (void)
+static int DetectWithinTestPacket02(void)
 {
     uint8_t *buf = (uint8_t *)"Zero Five Ten Fourteen";
     uint16_t buflen = strlen((char *)buf);
@@ -207,14 +206,14 @@ static int DetectWithinTestPacket02 (void)
 static int DetectWithinTestVarSetup(void)
 {
     char sig[] = "alert tcp any any -> any any ( "
-        "msg:\"test rule\"; "
-        "content:\"abc\"; "
-        "http_client_body; "
-        "byte_extract:2,0,somevar,relative; "
-        "content:\"def\"; "
-        "within:somevar; "
-        "http_client_body; "
-        "sid:4; rev:1;)";
+                 "msg:\"test rule\"; "
+                 "content:\"abc\"; "
+                 "http_client_body; "
+                 "byte_extract:2,0,somevar,relative; "
+                 "content:\"def\"; "
+                 "within:somevar; "
+                 "http_client_body; "
+                 "sid:4; rev:1;)";
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);

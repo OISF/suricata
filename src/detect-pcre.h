@@ -26,16 +26,16 @@
 
 #include "detect-parse.h"
 
-#define DETECT_PCRE_RELATIVE            0x00001
+#define DETECT_PCRE_RELATIVE 0x00001
 /* no-op other than in parsing */
-#define DETECT_PCRE_RAWBYTES            0x00002
-#define DETECT_PCRE_CASELESS            0x00004
+#define DETECT_PCRE_RAWBYTES 0x00002
+#define DETECT_PCRE_CASELESS 0x00004
 
-#define DETECT_PCRE_MATCH_LIMIT         0x00020
-#define DETECT_PCRE_RELATIVE_NEXT       0x00040
-#define DETECT_PCRE_NEGATE              0x00080
+#define DETECT_PCRE_MATCH_LIMIT   0x00020
+#define DETECT_PCRE_RELATIVE_NEXT 0x00040
+#define DETECT_PCRE_NEGATE        0x00080
 
-#define DETECT_PCRE_CAPTURE_MAX         8
+#define DETECT_PCRE_CAPTURE_MAX 8
 
 #define SC_MATCH_LIMIT_DEFAULT           3500
 #define SC_MATCH_LIMIT_RECURSION_DEFAULT 1500
@@ -54,11 +54,9 @@ typedef struct DetectPcreData_ {
 
 /* prototypes */
 
-int DetectPcrePayloadMatch(DetectEngineThreadCtx *,
-        const Signature *, const SigMatchData *,
+int DetectPcrePayloadMatch(DetectEngineThreadCtx *, const Signature *, const SigMatchData *,
         Packet *, Flow *, const uint8_t *, uint32_t);
 
-void DetectPcreRegister (void);
+void DetectPcreRegister(void);
 
 #endif /* __DETECT_PCRE_H__ */
-

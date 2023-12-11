@@ -41,8 +41,8 @@ typedef struct Dataset {
     char name[DATASET_NAME_MAX_LEN + 1];
     enum DatasetTypes type;
     uint32_t id;
-    bool from_yaml;                     /* Mark whether the set was retrieved from YAML */
-    bool hidden;                        /* Mark the old sets hidden in case of reload */
+    bool from_yaml; /* Mark whether the set was retrieved from YAML */
+    bool hidden;    /* Mark the old sets hidden in case of reload */
     THashTableContext *hash;
 
     char load[PATH_MAX];
@@ -57,8 +57,8 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         uint64_t memcap, uint32_t hashsize);
 int DatasetAdd(Dataset *set, const uint8_t *data, const uint32_t data_len);
 int DatasetLookup(Dataset *set, const uint8_t *data, const uint32_t data_len);
-DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,
-        const DataRepType *rep);
+DataRepResultType DatasetLookupwRep(
+        Dataset *set, const uint8_t *data, const uint32_t data_len, const DataRepType *rep);
 
 int DatasetAddSerialized(Dataset *set, const char *string);
 int DatasetRemoveSerialized(Dataset *set, const char *string);

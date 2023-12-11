@@ -62,15 +62,15 @@
 #include "detect-http-header.h"
 #include "stream-tcp.h"
 
-#define KEYWORD_NAME "http.start"
+#define KEYWORD_NAME        "http.start"
 #define KEYWORD_NAME_LEGACY "http_start"
-#define KEYWORD_DOC "http-keywords.html#http-start"
-#define BUFFER_NAME "http_start"
-#define BUFFER_DESC "http start: request/response line + headers"
+#define KEYWORD_DOC         "http-keywords.html#http-start"
+#define BUFFER_NAME         "http_start"
+#define BUFFER_DESC         "http start: request/response line + headers"
 static int g_buffer_id = 0;
 static int g_keyword_thread_id = 0;
 
-#define BUFFER_SIZE_STEP    2048
+#define BUFFER_SIZE_STEP 2048
 static HttpHeaderThreadDataConfig g_td_config = { BUFFER_SIZE_STEP };
 
 static uint8_t *GetBufferForTX(
@@ -186,7 +186,7 @@ void DetectHttpStartRegister(void)
     sigmatch_table[DETECT_AL_HTTP_START].desc = BUFFER_NAME " sticky buffer";
     sigmatch_table[DETECT_AL_HTTP_START].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_HTTP_START].Setup = DetectHttpStartSetup;
-    sigmatch_table[DETECT_AL_HTTP_START].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_AL_HTTP_START].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetBuffer1ForTX, ALPROTO_HTTP1, HTP_REQUEST_HEADERS);
@@ -198,16 +198,14 @@ void DetectHttpStartRegister(void)
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_HEADERS, DetectEngineInspectBufferGeneric, GetBuffer1ForTX);
 
-    DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
-            BUFFER_DESC);
+    DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 
-    g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs(KEYWORD_NAME,
-            HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
+    g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs(
+            KEYWORD_NAME, HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
 
     SCLogDebug("keyword %s registered. Thread id %d. "
-            "Buffer %s registered. Buffer id %d",
-            KEYWORD_NAME, g_keyword_thread_id,
-            BUFFER_NAME, g_buffer_id);
+               "Buffer %s registered. Buffer id %d",
+            KEYWORD_NAME, g_keyword_thread_id, BUFFER_NAME, g_buffer_id);
 }

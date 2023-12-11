@@ -50,13 +50,13 @@
 
 #include "rust.h"
 
-#define PARSE_REGEX "^\\s*([0-9]{1,5}(\\s*-\\s*[0-9]{1,5}\\s*)?)(,\\s*[0-9]{1,5}(\\s*-\\s*[0-9]{1,5})?\\s*)*$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*([0-9]{1,5}(\\s*-\\s*[0-9]{1,5}\\s*)?)(,\\s*[0-9]{1,5}(\\s*-\\s*[0-9]{1,5})?\\s*)*$"
 
 static DetectParseRegex parse_regex;
 
-static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, void *txv,
-        const Signature *s, const SigMatchCtx *m);
+static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *m);
 static int DetectDceOpnumSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectDceOpnumFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
@@ -73,7 +73,7 @@ void DetectDceOpnumRegister(void)
     sigmatch_table[DETECT_DCE_OPNUM].alias = "dce_opnum";
     sigmatch_table[DETECT_DCE_OPNUM].AppLayerTxMatch = DetectDceOpnumMatchRust;
     sigmatch_table[DETECT_DCE_OPNUM].Setup = DetectDceOpnumSetup;
-    sigmatch_table[DETECT_DCE_OPNUM].Free  = DetectDceOpnumFree;
+    sigmatch_table[DETECT_DCE_OPNUM].Free = DetectDceOpnumFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_DCE_OPNUM].RegisterTests = DetectDceOpnumRegisterTests;
 #endif
@@ -96,9 +96,8 @@ void DetectDceOpnumRegister(void)
  * \retval 1 On Match.
  * \retval 0 On no match.
  */
-static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, void *txv,
-        const Signature *s, const SigMatchCtx *m)
+static int DetectDceOpnumMatchRust(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 

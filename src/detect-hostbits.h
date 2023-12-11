@@ -29,6 +29,6 @@
 int DetectXbitMatchHost(Packet *p, const DetectXbitsData *xd);
 
 /* prototypes */
-void DetectHostbitsRegister (void);
+void DetectHostbitsRegister(void);
 
 #endif /* __DETECT_HOSTBITS_H__ */

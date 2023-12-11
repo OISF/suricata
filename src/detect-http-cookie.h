@@ -22,10 +22,9 @@
  */
 
 #ifndef _DETECT_HTTP_COOKIE_H
-#define	_DETECT_HTTP_COOKIE_H
+#define _DETECT_HTTP_COOKIE_H
 
 /* prototypes */
 void DetectHttpCookieRegister(void);
 
-#endif	/* _DETECT_HTTP_COOKIE_H */
-
+#endif /* _DETECT_HTTP_COOKIE_H */

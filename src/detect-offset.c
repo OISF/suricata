@@ -43,15 +43,16 @@
 
 static int DetectOffsetSetup(DetectEngineCtx *, Signature *, const char *);
 
-void DetectOffsetRegister (void)
+void DetectOffsetRegister(void)
 {
     sigmatch_table[DETECT_OFFSET].name = "offset";
-    sigmatch_table[DETECT_OFFSET].desc = "designate from which byte in the payload will be checked to find a match";
+    sigmatch_table[DETECT_OFFSET].desc =
+            "designate from which byte in the payload will be checked to find a match";
     sigmatch_table[DETECT_OFFSET].url = "/rules/payload-keywords.html#offset";
     sigmatch_table[DETECT_OFFSET].Setup = DetectOffsetSetup;
 }
 
-int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offsetstr)
+int DetectOffsetSetup(DetectEngineCtx *de_ctx, Signature *s, const char *offsetstr)
 {
     const char *str = offsetstr;
 
@@ -101,15 +102,13 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
         cd->offset = index;
         cd->flags |= DETECT_CONTENT_OFFSET_VAR;
     } else {
-        if (StringParseUint16(&cd->offset, 0, 0, str) < 0)
-        {
+        if (StringParseUint16(&cd->offset, 0, 0, str) < 0) {
             SCLogError("invalid value for offset: %s.", str);
             return -1;
         }
         if (cd->depth != 0) {
             if (cd->depth < cd->content_len) {
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len",
-                           cd->content_len);
+                SCLogDebug("depth increased to %" PRIu32 " to match pattern len", cd->content_len);
                 cd->depth = cd->content_len;
             }
             /* Updating the depth as is relative to the offset */
@@ -119,4 +118,3 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
     cd->flags |= DETECT_CONTENT_OFFSET;
     return 0;
 }
-

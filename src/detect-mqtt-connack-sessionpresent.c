@@ -37,27 +37,31 @@ static DetectParseRegex parse_regex;
 
 static int mqtt_connack_session_present_id = 0;
 
-static int DetectMQTTConnackSessionPresentMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state,
-                               void *txv, const Signature *s,
-                               const SigMatchCtx *ctx);
-static int DetectMQTTConnackSessionPresentSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectMQTTConnackSessionPresentMatch(DetectEngineThreadCtx *det_ctx, Flow *f,
+        uint8_t flags, void *state, void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectMQTTConnackSessionPresentSetup(DetectEngineCtx *, Signature *, const char *);
 void MQTTConnackSessionPresentRegisterTests(void);
 void DetectMQTTConnackSessionPresentFree(DetectEngineCtx *de_ctx, void *);
 
 /**
  * \brief Registration function for mqtt.connack.session_present: keyword
  */
-void DetectMQTTConnackSessionPresentRegister (void)
+void DetectMQTTConnackSessionPresentRegister(void)
 {
     sigmatch_table[DETECT_AL_MQTT_CONNACK_SESSION_PRESENT].name = "mqtt.connack.session_present";
-    sigmatch_table[DETECT_AL_MQTT_CONNACK_SESSION_PRESENT].desc = "match MQTT CONNACK session present flag";
-    sigmatch_table[DETECT_AL_MQTT_CONNACK_SESSION_PRESENT].url = "/rules/mqtt-keywords.html#mqtt-connack-session-present";
-    sigmatch_table[DETECT_AL_MQTT_CONNACK_SESSION_PRESENT].AppLayerTxMatch = DetectMQTTConnackSessionPresentMatch;
-    sigmatch_table[DETECT_AL_MQTT_CONNACK_SESSION_PRESENT].Setup = DetectMQTTConnackSessionPresentSetup;
-    sigmatch_table[DETECT_AL_MQTT_CONNACK_SESSION_PRESENT].Free  = DetectMQTTConnackSessionPresentFree;
+    sigmatch_table[DETECT_AL_MQTT_CONNACK_SESSION_PRESENT].desc =
+            "match MQTT CONNACK session present flag";
+    sigmatch_table[DETECT_AL_MQTT_CONNACK_SESSION_PRESENT].url =
+            "/rules/mqtt-keywords.html#mqtt-connack-session-present";
+    sigmatch_table[DETECT_AL_MQTT_CONNACK_SESSION_PRESENT].AppLayerTxMatch =
+            DetectMQTTConnackSessionPresentMatch;
+    sigmatch_table[DETECT_AL_MQTT_CONNACK_SESSION_PRESENT].Setup =
+            DetectMQTTConnackSessionPresentSetup;
+    sigmatch_table[DETECT_AL_MQTT_CONNACK_SESSION_PRESENT].Free =
+            DetectMQTTConnackSessionPresentFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_MQTT_CONNACK_SESSION_PRESENT].RegisterTests = MQTTConnackSessionPresentRegisterTests;
+    sigmatch_table[DETECT_AL_MQTT_CONNACK_SESSION_PRESENT].RegisterTests =
+            MQTTConnackSessionPresentRegisterTests;
 #endif
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
@@ -78,15 +82,14 @@ void DetectMQTTConnackSessionPresentRegister (void)
  * \param state   App layer state.
  * \param txv     Pointer to the transaction.
  * \param s       Pointer to the Signature.
- * \param ctx     Pointer to the sigmatch that we will cast into DetectMQTTConnackSessionPresentData.
+ * \param ctx     Pointer to the sigmatch that we will cast into
+ * DetectMQTTConnackSessionPresentData.
  *
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectMQTTConnackSessionPresentMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state,
-                               void *txv, const Signature *s,
-                               const SigMatchCtx *ctx)
+static int DetectMQTTConnackSessionPresentMatch(DetectEngineThreadCtx *det_ctx, Flow *f,
+        uint8_t flags, void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     const bool *de = (const bool *)ctx;
     bool value = false;
@@ -94,7 +97,7 @@ static int DetectMQTTConnackSessionPresentMatch(DetectEngineThreadCtx *det_ctx,
     if (!de)
         return 0;
 
-    if (rs_mqtt_tx_get_connack_sessionpresent(txv, &value) ==0 ) {
+    if (rs_mqtt_tx_get_connack_sessionpresent(txv, &value) == 0) {
         return 0;
     }
     if (value != *de) {
@@ -153,7 +156,8 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectMQTTConnackSessionPresentSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectMQTTConnackSessionPresentSetup(
+        DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     bool *de = NULL;
 
@@ -200,7 +204,7 @@ void DetectMQTTConnackSessionPresentFree(DetectEngineCtx *de_ctx, void *de_ptr)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTConnackSessionPresentTestParse01 (void)
+static int MQTTConnackSessionPresentTestParse01(void)
 {
     bool *de = NULL;
 
@@ -229,7 +233,7 @@ static int MQTTConnackSessionPresentTestParse01 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTConnackSessionPresentTestParse02 (void)
+static int MQTTConnackSessionPresentTestParse02(void)
 {
     bool *de = NULL;
     de = DetectMQTTConnackSessionPresentParse("nix");
@@ -247,7 +251,7 @@ static int MQTTConnackSessionPresentTestParse02 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTConnackSessionPresentTestParse03 (void)
+static int MQTTConnackSessionPresentTestParse03(void)
 {
     bool *de = NULL;
     de = DetectMQTTConnackSessionPresentParse("");
@@ -265,7 +269,7 @@ static int MQTTConnackSessionPresentTestParse03 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTConnackSessionPresentTestParse04 (void)
+static int MQTTConnackSessionPresentTestParse04(void)
 {
     bool *de = NULL;
     de = DetectMQTTConnackSessionPresentParse(",");
@@ -276,7 +280,6 @@ static int MQTTConnackSessionPresentTestParse04 (void)
 
     PASS;
 }
-
 
 #endif /* UNITTESTS */
 

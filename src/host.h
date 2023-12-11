@@ -32,27 +32,27 @@
 #define HRLOCK_MUTEX
 
 #ifdef HRLOCK_SPIN
-    #ifdef HRLOCK_MUTEX
-        #error Cannot enable both HRLOCK_SPIN and HRLOCK_MUTEX
-    #endif
+#ifdef HRLOCK_MUTEX
+#error Cannot enable both HRLOCK_SPIN and HRLOCK_MUTEX
+#endif
 #endif
 
 #ifdef HRLOCK_SPIN
-    #define HRLOCK_TYPE SCSpinlock
-    #define HRLOCK_INIT(fb) SCSpinInit(&(fb)->lock, 0)
-    #define HRLOCK_DESTROY(fb) SCSpinDestroy(&(fb)->lock)
-    #define HRLOCK_LOCK(fb) SCSpinLock(&(fb)->lock)
-    #define HRLOCK_TRYLOCK(fb) SCSpinTrylock(&(fb)->lock)
-    #define HRLOCK_UNLOCK(fb) SCSpinUnlock(&(fb)->lock)
+#define HRLOCK_TYPE        SCSpinlock
+#define HRLOCK_INIT(fb)    SCSpinInit(&(fb)->lock, 0)
+#define HRLOCK_DESTROY(fb) SCSpinDestroy(&(fb)->lock)
+#define HRLOCK_LOCK(fb)    SCSpinLock(&(fb)->lock)
+#define HRLOCK_TRYLOCK(fb) SCSpinTrylock(&(fb)->lock)
+#define HRLOCK_UNLOCK(fb)  SCSpinUnlock(&(fb)->lock)
 #elif defined HRLOCK_MUTEX
-    #define HRLOCK_TYPE SCMutex
-    #define HRLOCK_INIT(fb) SCMutexInit(&(fb)->lock, NULL)
-    #define HRLOCK_DESTROY(fb) SCMutexDestroy(&(fb)->lock)
-    #define HRLOCK_LOCK(fb) SCMutexLock(&(fb)->lock)
-    #define HRLOCK_TRYLOCK(fb) SCMutexTrylock(&(fb)->lock)
-    #define HRLOCK_UNLOCK(fb) SCMutexUnlock(&(fb)->lock)
+#define HRLOCK_TYPE        SCMutex
+#define HRLOCK_INIT(fb)    SCMutexInit(&(fb)->lock, NULL)
+#define HRLOCK_DESTROY(fb) SCMutexDestroy(&(fb)->lock)
+#define HRLOCK_LOCK(fb)    SCMutexLock(&(fb)->lock)
+#define HRLOCK_TRYLOCK(fb) SCMutexTrylock(&(fb)->lock)
+#define HRLOCK_UNLOCK(fb)  SCMutexUnlock(&(fb)->lock)
 #else
-    #error Enable HRLOCK_SPIN or HRLOCK_MUTEX
+#error Enable HRLOCK_SPIN or HRLOCK_MUTEX
 #endif
 
 typedef struct Host_ {
@@ -89,8 +89,8 @@ typedef struct HostHashRow_ {
 /** host hash table */
 extern HostHashRow *host_hash;
 
-#define HOST_VERBOSE    0
-#define HOST_QUIET      1
+#define HOST_VERBOSE 0
+#define HOST_QUIET   1
 
 typedef struct HostConfig_ {
     SC_ATOMIC_DECLARE(uint64_t, memcap);
@@ -106,45 +106,46 @@ typedef struct HostConfig_ {
  *  \retval 1 it fits
  *  \retval 0 no fit
  */
-#define HOST_CHECK_MEMCAP(size) \
-    ((((uint64_t)SC_ATOMIC_GET(host_memuse) + (uint64_t)(size)) <= SC_ATOMIC_GET(host_config.memcap)))
+#define HOST_CHECK_MEMCAP(size)                                                                    \
+    ((((uint64_t)SC_ATOMIC_GET(host_memuse) + (uint64_t)(size)) <=                                 \
+            SC_ATOMIC_GET(host_config.memcap)))
 
-#define HostIncrUsecnt(h) \
-    (void)SC_ATOMIC_ADD((h)->use_cnt, 1)
-#define HostDecrUsecnt(h) \
-    (void)SC_ATOMIC_SUB((h)->use_cnt, 1)
+#define HostIncrUsecnt(h) (void)SC_ATOMIC_ADD((h)->use_cnt, 1)
+#define HostDecrUsecnt(h) (void)SC_ATOMIC_SUB((h)->use_cnt, 1)
 
-#define HostReference(dst_h_ptr, h) do {            \
-        if ((h) != NULL) {                          \
-            HostIncrUsecnt((h));                    \
-            *(dst_h_ptr) = h;                       \
-        }                                           \
+#define HostReference(dst_h_ptr, h)                                                                \
+    do {                                                                                           \
+        if ((h) != NULL) {                                                                         \
+            HostIncrUsecnt((h));                                                                   \
+            *(dst_h_ptr) = h;                                                                      \
+        }                                                                                          \
     } while (0)
 
-#define HostDeReference(src_h_ptr) do {               \
-        if (*(src_h_ptr) != NULL) {                   \
-            HostDecrUsecnt(*(src_h_ptr));             \
-            *(src_h_ptr) = NULL;                      \
-        }                                             \
+#define HostDeReference(src_h_ptr)                                                                 \
+    do {                                                                                           \
+        if (*(src_h_ptr) != NULL) {                                                                \
+            HostDecrUsecnt(*(src_h_ptr));                                                          \
+            *(src_h_ptr) = NULL;                                                                   \
+        }                                                                                          \
     } while (0)
 
 extern HostConfig host_config;
-SC_ATOMIC_EXTERN(uint64_t,host_memuse);
-SC_ATOMIC_EXTERN(uint32_t,host_counter);
-SC_ATOMIC_EXTERN(uint32_t,host_prune_idx);
+SC_ATOMIC_EXTERN(uint64_t, host_memuse);
+SC_ATOMIC_EXTERN(uint32_t, host_counter);
+SC_ATOMIC_EXTERN(uint32_t, host_prune_idx);
 
 void HostInitConfig(bool quiet);
 void HostShutdown(void);
 void HostCleanup(void);
 
-Host *HostLookupHostFromHash (Address *);
-Host *HostGetHostFromHash (Address *);
+Host *HostLookupHostFromHash(Address *);
+Host *HostGetHostFromHash(Address *);
 void HostRelease(Host *);
 void HostLock(Host *);
 void HostClearMemory(Host *);
 void HostMoveToSpare(Host *);
 uint32_t HostSpareQueueGetSize(void);
-void HostPrintStats (void);
+void HostPrintStats(void);
 
 void HostRegisterUnittests(void);
 
@@ -158,4 +159,3 @@ uint64_t HostGetMemcap(void);
 uint64_t HostGetMemuse(void);
 
 #endif /* __HOST_H__ */
-

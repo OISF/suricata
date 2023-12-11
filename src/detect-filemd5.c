@@ -33,7 +33,7 @@
 
 static int g_file_match_list_id = 0;
 
-static int DetectFileMd5Setup (DetectEngineCtx *, Signature *, const char *);
+static int DetectFileMd5Setup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectFileMd5RegisterTests(void);
 #endif
@@ -48,7 +48,7 @@ void DetectFileMd5Register(void)
     sigmatch_table[DETECT_FILEMD5].url = "/rules/file-keywords.html#filemd5";
     sigmatch_table[DETECT_FILEMD5].FileMatch = DetectFileHashMatch;
     sigmatch_table[DETECT_FILEMD5].Setup = DetectFileMd5Setup;
-    sigmatch_table[DETECT_FILEMD5].Free  = DetectFileHashFree;
+    sigmatch_table[DETECT_FILEMD5].Free = DetectFileHashFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FILEMD5].RegisterTests = DetectFileMd5RegisterTests;
 #endif
@@ -69,7 +69,7 @@ void DetectFileMd5Register(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFileMd5Setup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectFileMd5Setup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     return DetectFileHashSetup(de_ctx, s, str, DETECT_FILEMD5, g_file_match_list_id);
 }

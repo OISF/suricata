@@ -24,7 +24,6 @@
 #ifndef __UTIL_ROHASH_H__
 #define __UTIL_ROHASH_H__
 
-
 typedef struct ROHashTable_ {
     uint8_t locked;
     uint8_t hash_bits;

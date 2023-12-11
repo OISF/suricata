@@ -38,7 +38,8 @@ int TestHelperBufferToFile(const char *name, const uint8_t *data, size_t size);
 #ifdef UNITTESTS
 uint32_t UTHSetIPv4Address(const char *);
 
-Packet *UTHBuildPacketReal(uint8_t *, uint16_t, uint8_t ipproto, const char *, const char *, uint16_t, uint16_t);
+Packet *UTHBuildPacketReal(
+        uint8_t *, uint16_t, uint8_t ipproto, const char *, const char *, uint16_t, uint16_t);
 Packet *UTHBuildPacket(uint8_t *, uint16_t, uint8_t ipproto);
 Packet *UTHBuildPacketSrcDst(uint8_t *, uint16_t, uint8_t ipproto, const char *, const char *);
 Packet *UTHBuildPacketSrcDstPorts(uint8_t *, uint16_t, uint8_t ipproto, uint16_t, uint16_t);
@@ -69,10 +70,10 @@ int UTHMatchPacketsWithResults(DetectEngineCtx *, Packet **, int, uint32_t *, ui
 int UTHGenericTest(Packet **, int, const char **, uint32_t *, uint32_t *, int);
 
 uint32_t UTHBuildPacketOfFlows(uint32_t, uint32_t, uint8_t);
-Packet *UTHBuildPacketIPV6Real(uint8_t *, uint16_t , uint8_t ipproto, const char *, const char *,
-                           uint16_t , uint16_t );
+Packet *UTHBuildPacketIPV6Real(
+        uint8_t *, uint16_t, uint8_t ipproto, const char *, const char *, uint16_t, uint16_t);
 
-void * UTHmemsearch(const void *big, size_t big_len, const void *little, size_t little_len);
+void *UTHmemsearch(const void *big, size_t big_len, const void *little, size_t little_len);
 int UTHParseSignature(const char *str, bool expect);
 #endif
 

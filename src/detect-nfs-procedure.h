@@ -25,6 +25,6 @@
 #define __DETECT_NFS_PROCEDURE_H__
 
 /* prototypes */
-void DetectNfsProcedureRegister (void);
+void DetectNfsProcedureRegister(void);
 
 #endif /* __DETECT_NFS_PROCEDURE_H__ */

@@ -41,6 +41,6 @@ static inline void DetectReplaceFree(DetectEngineThreadCtx *det_ctx)
     }
 }
 
-void DetectReplaceRegister (void);
+void DetectReplaceRegister(void);
 
 #endif

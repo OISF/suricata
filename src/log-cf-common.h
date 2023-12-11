@@ -28,34 +28,32 @@
 #ifndef __LOG_CF_COMMON_H__
 #define __LOG_CF_COMMON_H__
 
-#define LOG_MAXN_NODES 64
-#define LOG_NODE_STRLEN 256
+#define LOG_MAXN_NODES        64
+#define LOG_NODE_STRLEN       256
 #define LOG_NODE_MAXOUTPUTLEN 8192
 
 #define TIMESTAMP_DEFAULT_FORMAT "%D-%H:%M:%S"
 
 /* Common format nodes */
-#define LOG_CF_NONE "-"
-#define LOG_CF_LITERAL '%'
-#define LOG_CF_TIMESTAMP 't'
+#define LOG_CF_NONE        "-"
+#define LOG_CF_LITERAL     '%'
+#define LOG_CF_TIMESTAMP   't'
 #define LOG_CF_TIMESTAMP_U 'z'
-#define LOG_CF_CLIENT_IP 'a'
-#define LOG_CF_SERVER_IP 'A'
+#define LOG_CF_CLIENT_IP   'a'
+#define LOG_CF_SERVER_IP   'A'
 #define LOG_CF_CLIENT_PORT 'p'
 #define LOG_CF_SERVER_PORT 'P'
 
 /* Line log common separators **/
-#define LOG_CF_STAR_SEPARATOR "[**]"
+#define LOG_CF_STAR_SEPARATOR  "[**]"
 #define LOG_CF_SPACE_SEPARATOR " "
-#define LOG_CF_UNKNOWN_VALUE "-"
+#define LOG_CF_UNKNOWN_VALUE   "-"
 
 #define LOG_CF_WRITE_STAR_SEPARATOR(buffer) MemBufferWriteString(buffer, LOG_CF_STAR_SEPARATOR);
 
-#define LOG_CF_WRITE_SPACE_SEPARATOR(buffer) \
-    MemBufferWriteString(buffer, LOG_CF_SPACE_SEPARATOR);
+#define LOG_CF_WRITE_SPACE_SEPARATOR(buffer) MemBufferWriteString(buffer, LOG_CF_SPACE_SEPARATOR);
 
-#define LOG_CF_WRITE_UNKNOWN_VALUE(buffer) \
-    MemBufferWriteString(buffer, LOG_CF_UNKNOWN_VALUE);
+#define LOG_CF_WRITE_UNKNOWN_VALUE(buffer) MemBufferWriteString(buffer, LOG_CF_UNKNOWN_VALUE);
 
 /* Include */
 #include "suricata-common.h"
@@ -67,14 +65,13 @@ typedef struct LogCustomFormatNode_ {
     char data[LOG_NODE_STRLEN]; /**< optional data. ie: http header name */
 } LogCustomFormatNode;
 
-
 typedef struct LogCustomFormat_ {
-    uint32_t cf_n;                                  /**< Total number of custom string format nodes */
-    LogCustomFormatNode *cf_nodes[LOG_MAXN_NODES];  /**< Custom format string nodes */
+    uint32_t cf_n; /**< Total number of custom string format nodes */
+    LogCustomFormatNode *cf_nodes[LOG_MAXN_NODES]; /**< Custom format string nodes */
 } LogCustomFormat;
 
-LogCustomFormatNode * LogCustomFormatNodeAlloc(void);
-LogCustomFormat * LogCustomFormatAlloc(void);
+LogCustomFormatNode *LogCustomFormatNodeAlloc(void);
+LogCustomFormat *LogCustomFormatAlloc(void);
 
 void LogCustomFormatNodeFree(LogCustomFormatNode *node);
 void LogCustomFormatFree(LogCustomFormat *cf);

@@ -27,4 +27,3 @@
 long int RandomGet(void);
 
 #endif /* __UTIL_RANDOM_H__ */
-

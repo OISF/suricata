@@ -36,7 +36,7 @@
 
 #include "rust.h"
 
-static int DetectTransformToSha1Setup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTransformToSha1Setup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTransformToSha1RegisterTests(void);
 #endif
@@ -45,17 +45,12 @@ static void TransformToSha1(InspectionBuffer *buffer, void *options);
 void DetectTransformSha1Register(void)
 {
     sigmatch_table[DETECT_TRANSFORM_SHA1].name = "to_sha1";
-    sigmatch_table[DETECT_TRANSFORM_SHA1].desc =
-        "convert to sha1 hash of the buffer";
-    sigmatch_table[DETECT_TRANSFORM_SHA1].url =
-        "/rules/transforms.html#to-sha1";
-    sigmatch_table[DETECT_TRANSFORM_SHA1].Setup =
-        DetectTransformToSha1Setup;
-    sigmatch_table[DETECT_TRANSFORM_SHA1].Transform =
-        TransformToSha1;
+    sigmatch_table[DETECT_TRANSFORM_SHA1].desc = "convert to sha1 hash of the buffer";
+    sigmatch_table[DETECT_TRANSFORM_SHA1].url = "/rules/transforms.html#to-sha1";
+    sigmatch_table[DETECT_TRANSFORM_SHA1].Setup = DetectTransformToSha1Setup;
+    sigmatch_table[DETECT_TRANSFORM_SHA1].Transform = TransformToSha1;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_TRANSFORM_SHA1].RegisterTests =
-        DetectTransformToSha1RegisterTests;
+    sigmatch_table[DETECT_TRANSFORM_SHA1].RegisterTests = DetectTransformToSha1RegisterTests;
 #endif
     sigmatch_table[DETECT_TRANSFORM_SHA1].flags |= SIGMATCH_NOOPT;
 }
@@ -69,7 +64,7 @@ void DetectTransformSha1Register(void)
  *  \retval 0 ok
  *  \retval -1 failure
  */
-static int DetectTransformToSha1Setup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+static int DetectTransformToSha1Setup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
     if (g_disable_hashing) {
@@ -87,7 +82,7 @@ static void TransformToSha1(InspectionBuffer *buffer, void *options)
     const uint32_t input_len = buffer->inspect_len;
     uint8_t output[SC_SHA1_LEN];
 
-    //PrintRawDataFp(stdout, input, input_len);
+    // PrintRawDataFp(stdout, input, input_len);
     SCSha1HashBuffer(input, input_len, output, sizeof(output));
     InspectionBufferCopy(buffer, output, sizeof(output));
 }
@@ -110,7 +105,6 @@ static int DetectTransformToSha1Test01(void)
 
 static void DetectTransformToSha1RegisterTests(void)
 {
-    UtRegisterTest("DetectTransformToSha1Test01",
-            DetectTransformToSha1Test01);
+    UtRegisterTest("DetectTransformToSha1Test01", DetectTransformToSha1Test01);
 }
 #endif

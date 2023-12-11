@@ -24,12 +24,11 @@
 #ifndef __RESPOND_REJECT_H__
 #define __RESPOND_REJECT_H__
 
-
 enum RejectDirection {
     REJECT_DIR_SRC = 0,
     REJECT_DIR_DST = 1,
 };
 
-void TmModuleRespondRejectRegister (void);
+void TmModuleRespondRejectRegister(void);
 
 #endif /* __RESPOND_REJECT_H__ */

@@ -19,7 +19,7 @@
 #define __DETECT_BASE64_DECODE_H__
 
 void DetectBase64DecodeRegister(void);
-int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *, const Signature *,
-    const SigMatchData *, const uint8_t *, uint32_t);
+int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *, const Signature *, const SigMatchData *,
+        const uint8_t *, uint32_t);
 
 #endif /* __DETECT_BASE64_DECODE_H__ */

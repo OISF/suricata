@@ -44,8 +44,8 @@ static int g_buffer_id = 0;
 
 #ifdef KEYWORD_TOSERVER
 static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     SCEnter();
 
@@ -56,11 +56,9 @@ static InspectionBuffer *GetRequestData(DetectEngineThreadCtx *det_ctx,
         if (tx->request_headers == NULL)
             return NULL;
 
-        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
-                                                          HEADER_NAME);
+        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers, HEADER_NAME);
         if (h == NULL || h->value == NULL) {
-            SCLogDebug("HTTP %s header not present in this request",
-                       HEADER_NAME);
+            SCLogDebug("HTTP %s header not present in this request", HEADER_NAME);
             return NULL;
         }
 
@@ -100,8 +98,8 @@ static InspectionBuffer *GetRequestData2(DetectEngineThreadCtx *det_ctx,
 #endif
 #ifdef KEYWORD_TOCLIENT
 static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     SCEnter();
 
@@ -112,11 +110,9 @@ static InspectionBuffer *GetResponseData(DetectEngineThreadCtx *det_ctx,
         if (tx->response_headers == NULL)
             return NULL;
 
-        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->response_headers,
-                                                          HEADER_NAME);
+        htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->response_headers, HEADER_NAME);
         if (h == NULL || h->value == NULL) {
-            SCLogDebug("HTTP %s header not present in this request",
-                       HEADER_NAME);
+            SCLogDebug("HTTP %s header not present in this request", HEADER_NAME);
             return NULL;
         }
 

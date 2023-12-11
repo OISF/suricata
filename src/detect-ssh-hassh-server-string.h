@@ -25,6 +25,6 @@
 #define __DETECT_SSH_HASSH_SERVER_STRING_H__
 
 /* prototypes */
-void DetectSshHasshServerStringRegister (void);
+void DetectSshHasshServerStringRegister(void);
 
 #endif /* __DETECT_SSH_HASSH_SERVER_STRING_H__ */

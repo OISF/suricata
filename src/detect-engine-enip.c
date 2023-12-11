@@ -80,50 +80,39 @@ static int CIPPathMatch(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
     int found_class = 0;
 
     SegmentEntry *seg = NULL;
-    TAILQ_FOREACH(seg, &svc->segment_list, next)
-    {
-        switch(seg->segment)
-        {
+    TAILQ_FOREACH (seg, &svc->segment_list, next) {
+        switch (seg->segment) {
             case PATH_CLASS_8BIT:
                 class = seg->value;
-                if (cipserviced->cipclass == class)
-                {
-                    if (cipserviced->tokens == 2)
-                    {// if rule only has class
+                if (cipserviced->cipclass == class) {
+                    if (cipserviced->tokens == 2) { // if rule only has class
                         return 1;
-                    } else
-                    {
+                    } else {
                         found_class = 1;
                     }
                 }
                 break;
             case PATH_INSTANCE_8BIT:
                 break;
-            case PATH_ATTR_8BIT: //single attribute
+            case PATH_ATTR_8BIT: // single attribute
                 attrib = seg->value;
-                if ((cipserviced->tokens == 3) &&
-                        (cipserviced->cipclass == class) &&
+                if ((cipserviced->tokens == 3) && (cipserviced->cipclass == class) &&
                         (cipserviced->cipattribute == attrib) &&
-                        (cipserviced->matchattribute == 1))
-                { // if rule has class & attribute, matched all here
+                        (cipserviced->matchattribute ==
+                                1)) { // if rule has class & attribute, matched all here
                     return 1;
                 }
-                if ((cipserviced->tokens == 3) &&
-                        (cipserviced->cipclass == class) &&
-                        (cipserviced->matchattribute == 0))
-                { // for negation rule on attribute
+                if ((cipserviced->tokens == 3) && (cipserviced->cipclass == class) &&
+                        (cipserviced->matchattribute == 0)) { // for negation rule on attribute
                     return 1;
                 }
                 break;
             case PATH_CLASS_16BIT:
                 class = seg->value;
-                if (cipserviced->cipclass == class)
-                {
-                    if (cipserviced->tokens == 2)
-                    {// if rule only has class
+                if (cipserviced->cipclass == class) {
+                    if (cipserviced->tokens == 2) { // if rule only has class
                         return 1;
-                    } else
-                    {
+                    } else {
                         found_class = 1;
                     }
                 }
@@ -135,19 +124,14 @@ static int CIPPathMatch(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
         }
     }
 
-    if (found_class == 0)
-    { // if haven't matched class yet, no need to check attribute
+    if (found_class == 0) { // if haven't matched class yet, no need to check attribute
         return 0;
     }
 
-    if ((svc->service == CIP_SET_ATTR_LIST) ||
-            (svc->service == CIP_GET_ATTR_LIST))
-    {
+    if ((svc->service == CIP_SET_ATTR_LIST) || (svc->service == CIP_GET_ATTR_LIST)) {
         AttributeEntry *attr = NULL;
-        TAILQ_FOREACH    (attr, &svc->attrib_list, next)
-        {
-            if (cipserviced->cipattribute == attr->attribute)
-            {
+        TAILQ_FOREACH (attr, &svc->attrib_list, next) {
+            if (cipserviced->cipattribute == attr->attribute) {
                 return 1;
             }
         }
@@ -162,42 +146,35 @@ static int CIPPathMatch(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
  * * @param cipserviced - the CIP service rule
  */
 
-static int CIPServiceMatch(ENIPTransaction *enip_data,
-        DetectCipServiceData *cipserviced)
+static int CIPServiceMatch(ENIPTransaction *enip_data, DetectCipServiceData *cipserviced)
 {
 #ifdef DEBUG
     int count = 1;
 #endif
     CIPServiceEntry *svc = NULL;
-    //SCLogDebug("CIPServiceMatchAL");
-    TAILQ_FOREACH(svc, &enip_data->service_list, next)
-    {
-        SCLogDebug("CIPServiceMatchAL service #%d : 0x%x dir %d",
-                count, svc->service,  svc->direction);
+    // SCLogDebug("CIPServiceMatchAL");
+    TAILQ_FOREACH (svc, &enip_data->service_list, next) {
+        SCLogDebug(
+                "CIPServiceMatchAL service #%d : 0x%x dir %d", count, svc->service, svc->direction);
 
-        if (cipserviced->cipservice == svc->service)
-        { // compare service
-            //SCLogDebug("Rule Match for cip service %d",cipserviced->cipservice );
+        if (cipserviced->cipservice == svc->service) { // compare service
+            // SCLogDebug("Rule Match for cip service %d",cipserviced->cipservice );
 
-            if (cipserviced->tokens > 1)
-            { //if rule params have class and attribute
+            if (cipserviced->tokens > 1) { // if rule params have class and attribute
 
-
-                if ((svc->service == CIP_SET_ATTR_LIST) || (svc->service
-                                == CIP_SET_ATTR_SINGLE) || (svc->service
-                                == CIP_GET_ATTR_LIST) || (svc->service
-                                == CIP_GET_ATTR_SINGLE))
-                { //decode path
-                    if (CIPPathMatch(svc, cipserviced) == 1)
-                    {
-                        if (svc->direction == 1) return 0; //don't match responses
+                if ((svc->service == CIP_SET_ATTR_LIST) || (svc->service == CIP_SET_ATTR_SINGLE) ||
+                        (svc->service == CIP_GET_ATTR_LIST) ||
+                        (svc->service == CIP_GET_ATTR_SINGLE)) { // decode path
+                    if (CIPPathMatch(svc, cipserviced) == 1) {
+                        if (svc->direction == 1)
+                            return 0; // don't match responses
 
                         return 1;
                     }
                 }
-            } else
-            {
-                if (svc->direction == 1) return 0; //don't match responses
+            } else {
+                if (svc->direction == 1)
+                    return 0; // don't match responses
 
                 // SCLogDebug("CIPServiceMatchAL found");
                 return 1;
@@ -228,20 +205,17 @@ uint8_t DetectEngineInspectCIP(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
 {
     SCEnter();
 
-
-    ENIPTransaction *tx = (ENIPTransaction *) txv;
+    ENIPTransaction *tx = (ENIPTransaction *)txv;
     DetectCipServiceData *cipserviced = (DetectCipServiceData *)engine->smd->ctx;
 
-    if (cipserviced == NULL)
-    {
+    if (cipserviced == NULL) {
         SCLogDebug("no cipservice state, no match");
         SCReturnInt(0);
     }
-    //SCLogDebug("DetectEngineInspectCIP %d", cipserviced->cipservice);
+    // SCLogDebug("DetectEngineInspectCIP %d", cipserviced->cipservice);
 
-    if (CIPServiceMatch(tx, cipserviced) == 1)
-    {
-        //SCLogDebug("DetectCIPServiceMatchAL found");
+    if (CIPServiceMatch(tx, cipserviced) == 1) {
+        // SCLogDebug("DetectCIPServiceMatchAL found");
         SCReturnInt(1);
     }
 
@@ -267,19 +241,17 @@ uint8_t DetectEngineInspectENIP(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
 {
     SCEnter();
 
-    ENIPTransaction *tx = (ENIPTransaction *) txv;
+    ENIPTransaction *tx = (ENIPTransaction *)txv;
     DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *)engine->smd->ctx;
 
-    if (enipcmdd == NULL)
-    {
+    if (enipcmdd == NULL) {
         SCLogDebug("no enipcommand state, no match");
         SCReturnInt(0);
     }
 
-    //SCLogDebug("DetectEngineInspectENIP %d, %d", enipcmdd->enipcommand, tx->header.command);
+    // SCLogDebug("DetectEngineInspectENIP %d, %d", enipcmdd->enipcommand, tx->header.command);
 
-    if (enipcmdd->enipcommand == tx->header.command)
-    {
+    if (enipcmdd->enipcommand == tx->header.command) {
         // SCLogDebug("DetectENIPCommandMatchAL found!");
         SCReturnInt(1);
     }

@@ -72,8 +72,8 @@ static int DetectSipStatMsgSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t _flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
 {
     SCEnter();
 
@@ -94,22 +94,21 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-void DetectSipStatMsgRegister (void)
+void DetectSipStatMsgRegister(void)
 {
     /* sip.stat_msg sticky buffer */
     sigmatch_table[DETECT_AL_SIP_STAT_MSG].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_SIP_STAT_MSG].desc = "sticky buffer to match on the SIP status message";
+    sigmatch_table[DETECT_AL_SIP_STAT_MSG].desc =
+            "sticky buffer to match on the SIP status message";
     sigmatch_table[DETECT_AL_SIP_STAT_MSG].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_AL_SIP_STAT_MSG].Setup = DetectSipStatMsgSetup;
     sigmatch_table[DETECT_AL_SIP_STAT_MSG].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SIP,
-            SIG_FLAG_TOCLIENT, 1,
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SIP, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 3,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_SIP,
-            1);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 3, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_SIP, 1);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 

@@ -28,4 +28,3 @@ void LogHttpLogRegister(void);
 OutputInitResult LogHttpLogInitCtx(ConfNode *);
 
 #endif /* __LOG_HTTPLOG_H__ */
-

@@ -32,8 +32,7 @@ typedef struct PfringThreadVars_ PfringThreadVars;
 #define PFRING_CONF_FLAGS_CLUSTER (1 << 0)
 #define PFRING_CONF_FLAGS_BYPASS  (1 << 1)
 
-typedef struct PfringIfaceConfig_
-{
+typedef struct PfringIfaceConfig_ {
     uint32_t flags;
 
     /* cluster param */
@@ -56,15 +55,13 @@ typedef struct PfringIfaceConfig_
  *
  * This structure is used to pass packet metadata in callbacks.
  */
-typedef struct PfringPacketVars_
-{
+typedef struct PfringPacketVars_ {
     PfringThreadVars *ptv;
     uint32_t flow_id;
 } PfringPacketVars;
 
-
-void TmModuleReceivePfringRegister (void);
-void TmModuleDecodePfringRegister (void);
+void TmModuleReceivePfringRegister(void);
+void TmModuleDecodePfringRegister(void);
 
 int PfringConfGetThreads(void);
 void PfringLoadConfig(void);
@@ -74,9 +71,9 @@ void PfringLoadConfig(void);
  * these values must match with cluster_type in the kernel
  * include file pf_ring.h
  */
-#define CLUSTER_FLOW 0
-#define CLUSTER_ROUND_ROBIN 1
-#define CLUSTER_FLOW_5_TUPLE 4
+#define CLUSTER_FLOW               0
+#define CLUSTER_ROUND_ROBIN        1
+#define CLUSTER_FLOW_5_TUPLE       4
 #define CLUSTER_INNER_FLOW         6
 #define CLUSTER_INNER_FLOW_2_TUPLE 7
 #define CLUSTER_INNER_FLOW_4_TUPLE 8

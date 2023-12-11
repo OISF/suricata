@@ -25,6 +25,6 @@
 #define __DETECT_SSH_HASSH_H__
 
 /* prototypes */
-void DetectSshHasshRegister (void);
+void DetectSshHasshRegister(void);
 
 #endif /* __DETECT_SSH_HASSH_H__ */

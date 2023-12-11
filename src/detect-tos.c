@@ -43,13 +43,13 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-#define PARSE_REGEX  "^\\s*(!?\\s*[0-9]{1,3}|!?\\s*[xX][0-9a-fA-F]{1,2})\\s*$"
+#define PARSE_REGEX "^\\s*(!?\\s*[0-9]{1,3}|!?\\s*[xX][0-9a-fA-F]{1,2})\\s*$"
 
 static DetectParseRegex parse_regex;
 
 static int DetectTosSetup(DetectEngineCtx *, Signature *, const char *);
-static int DetectTosMatch(DetectEngineThreadCtx *, Packet *,
-                          const Signature *, const SigMatchCtx *);
+static int DetectTosMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 #ifdef UNITTESTS
 static void DetectTosRegisterTests(void);
 #endif
@@ -71,10 +71,8 @@ void DetectTosRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TOS].RegisterTests = DetectTosRegisterTests;
 #endif
-    sigmatch_table[DETECT_TOS].flags =
-        (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
-    sigmatch_table[DETECT_TOS].url =
-        "/rules/header-keywords.html#tos";
+    sigmatch_table[DETECT_TOS].flags = (SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_HANDLE_NEGATION);
+    sigmatch_table[DETECT_TOS].url = "/rules/header-keywords.html#tos";
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
@@ -90,8 +88,8 @@ void DetectTosRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTosMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
-                   const Signature *s, const SigMatchCtx *ctx)
+static int DetectTosMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectTosData *tosd = (const DetectTosData *)ctx;
     int result = 0;
@@ -331,19 +329,18 @@ static int DetectTosTest12(void)
     IPV4_SET_RAW_IPTOS(p->ip4h, 10);
 
     const char *sigs[4];
-    sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; tos: 10 ; sid:1;)";
-    sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; tos: ! 10; sid:2;)";
-    sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; tos:20 ; sid:3;)";
-    sigs[3]= "alert ip any any -> any any (msg:\"Testing id 3\"; tos:! 20; sid:4;)";
+    sigs[0] = "alert ip any any -> any any (msg:\"Testing id 1\"; tos: 10 ; sid:1;)";
+    sigs[1] = "alert ip any any -> any any (msg:\"Testing id 2\"; tos: ! 10; sid:2;)";
+    sigs[2] = "alert ip any any -> any any (msg:\"Testing id 3\"; tos:20 ; sid:3;)";
+    sigs[3] = "alert ip any any -> any any (msg:\"Testing id 3\"; tos:! 20; sid:4;)";
 
-    uint32_t sid[4] = {1, 2, 3, 4};
+    uint32_t sid[4] = { 1, 2, 3, 4 };
 
-    uint32_t results[1][4] =
-        {
-            {1, 0, 0, 1},
-        };
+    uint32_t results[1][4] = {
+        { 1, 0, 0, 1 },
+    };
 
-    result = UTHGenericTest(&p, 1, sigs, sid, (uint32_t *) results, 4);
+    result = UTHGenericTest(&p, 1, sigs, sid, (uint32_t *)results, 4);
 
     UTHFreePackets(&p, 1);
 

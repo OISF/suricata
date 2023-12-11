@@ -43,13 +43,14 @@
 /**
  * \brief Regex for parsing our rpc options
  */
-#define PARSE_REGEX  "^\\s*([0-9]{0,10})\\s*(?:,\\s*([0-9]{0,10}|[*])\\s*(?:,\\s*([0-9]{0,10}|[*]))?)?\\s*$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*([0-9]{0,10})\\s*(?:,\\s*([0-9]{0,10}|[*])\\s*(?:,\\s*([0-9]{0,10}|[*]))?)?\\s*$"
 
 static DetectParseRegex parse_regex;
 
-static int DetectRpcMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectRpcSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectRpcMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectRpcSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectRpcRegisterTests(void);
 #endif
@@ -58,14 +59,14 @@ void DetectRpcFree(DetectEngineCtx *, void *);
 /**
  * \brief Registration function for rpc keyword
  */
-void DetectRpcRegister (void)
+void DetectRpcRegister(void)
 {
     sigmatch_table[DETECT_RPC].name = "rpc";
     sigmatch_table[DETECT_RPC].desc = "match RPC procedure numbers and RPC version";
     sigmatch_table[DETECT_RPC].url = "/rules/payload-keywords.html#rpc";
     sigmatch_table[DETECT_RPC].Match = DetectRpcMatch;
     sigmatch_table[DETECT_RPC].Setup = DetectRpcSetup;
-    sigmatch_table[DETECT_RPC].Free  = DetectRpcFree;
+    sigmatch_table[DETECT_RPC].Free = DetectRpcFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_RPC].RegisterTests = DetectRpcRegisterTests;
 #endif
@@ -89,8 +90,8 @@ void DetectRpcRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectRpcMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectRpcMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     /* PrintRawDataFp(stdout, p->payload, p->payload_len); */
     const DetectRpcData *rd = (const DetectRpcData *)ctx;
@@ -132,7 +133,8 @@ static int DetectRpcMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     if ((rd->flags & DETECT_RPC_CHECK_PROCEDURE) && SCNtohl(msg->proc) != rd->procedure)
         return 0;
 
-    SCLogDebug("prog:%u pver:%u proc:%u matched", SCNtohl(msg->prog), SCNtohl(msg->vers), SCNtohl(msg->proc));
+    SCLogDebug("prog:%u pver:%u proc:%u matched", SCNtohl(msg->prog), SCNtohl(msg->vers),
+            SCNtohl(msg->proc));
     return 1;
 }
 
@@ -145,10 +147,10 @@ static int DetectRpcMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval rd pointer to DetectRpcData on success
  * \retval NULL on failure
  */
-static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcstr)
+static DetectRpcData *DetectRpcParse(DetectEngineCtx *de_ctx, const char *rpcstr)
 {
     DetectRpcData *rd = NULL;
-    char *args[3] = {NULL,NULL,NULL};
+    char *args[3] = { NULL, NULL, NULL };
     int res = 0;
     size_t pcre2_len;
 
@@ -207,7 +209,8 @@ static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcst
                     break;
                 case 1:
                     if (args[i][0] != '*') {
-                        if (StringParseUint32(&rd->program_version, 10, strlen(args[i]), args[i]) <= 0) {
+                        if (StringParseUint32(&rd->program_version, 10, strlen(args[i]), args[i]) <=
+                                0) {
                             SCLogError(
                                     "Invalid size specified for the rpc version:\"%s\"", args[i]);
                             goto error;
@@ -224,14 +227,14 @@ static DetectRpcData *DetectRpcParse (DetectEngineCtx *de_ctx, const char *rpcst
                         }
                         rd->flags |= DETECT_RPC_CHECK_PROCEDURE;
                     }
-                break;
+                    break;
             }
         } else {
             SCLogError("invalid rpc option %s", rpcstr);
             goto error;
         }
     }
-    for (i = 0; i < (ret -1); i++){
+    for (i = 0; i < (ret - 1); i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
@@ -242,14 +245,13 @@ error:
     if (match) {
         pcre2_match_data_free(match);
     }
-    for (i = 0; i < (ret -1) && i < 3; i++){
+    for (i = 0; i < (ret - 1) && i < 3; i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
     if (rd != NULL)
         DetectRpcFree(de_ctx, rd);
     return NULL;
-
 }
 
 /**
@@ -263,12 +265,13 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectRpcSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rpcstr)
+int DetectRpcSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rpcstr)
 {
     DetectRpcData *rd = NULL;
 
     rd = DetectRpcParse(de_ctx, rpcstr);
-    if (rd == NULL) goto error;
+    if (rd == NULL)
+        goto error;
 
     if (SigMatchAppendSMToList(de_ctx, s, DETECT_RPC, (SigMatchCtx *)rd, DETECT_SM_LIST_MATCH) ==
             NULL) {
@@ -282,7 +285,6 @@ error:
     if (rd != NULL)
         DetectRpcFree(de_ctx, rd);
     return -1;
-
 }
 
 /**
@@ -310,7 +312,7 @@ void DetectRpcFree(DetectEngineCtx *de_ctx, void *ptr)
  * \test DetectRpcTestParse01 is a test to make sure that we return "something"
  *  when given valid rpc opt
  */
-static int DetectRpcTestParse01 (void)
+static int DetectRpcTestParse01(void)
 {
     DetectRpcData *rd = DetectRpcParse(NULL, "123,444,555");
     FAIL_IF_NULL(rd);
@@ -322,7 +324,7 @@ static int DetectRpcTestParse01 (void)
 /**
  * \test DetectRpcTestParse02 is a test for setting the established rpc opt
  */
-static int DetectRpcTestParse02 (void)
+static int DetectRpcTestParse02(void)
 {
     DetectRpcData *rd = NULL;
     rd = DetectRpcParse(NULL, "111,222,333");
@@ -343,7 +345,7 @@ static int DetectRpcTestParse02 (void)
  * \test DetectRpcTestParse03 is a test for checking the wildcards
  * and not specified fields
  */
-static int DetectRpcTestParse03 (void)
+static int DetectRpcTestParse03(void)
 {
     DetectRpcData *rd = NULL;
 
@@ -412,7 +414,7 @@ static int DetectRpcTestParse03 (void)
 /**
  * \test DetectRpcTestParse04 is a test for check the discarding of empty options
  */
-static int DetectRpcTestParse04 (void)
+static int DetectRpcTestParse04(void)
 {
     DetectRpcData *rd = NULL;
     rd = DetectRpcParse(NULL, "");
@@ -426,7 +428,7 @@ static int DetectRpcTestParse04 (void)
 /**
  * \test DetectRpcTestParse05 is a test for check invalid values
  */
-static int DetectRpcTestParse05 (void)
+static int DetectRpcTestParse05(void)
 {
     DetectRpcData *rd = NULL;
     rd = DetectRpcParse(NULL, "111,aaa,*");

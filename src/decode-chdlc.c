@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -39,8 +38,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-int DecodeCHDLC(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                   const uint8_t *pkt, uint32_t len)
+int DecodeCHDLC(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
@@ -62,14 +60,14 @@ int DecodeCHDLC(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     SCLogDebug("p %p pkt %p ether type %04x", p, pkt, SCNtohs(hdr->protocol));
 
-    DecodeNetworkLayer(tv, dtv, SCNtohs(hdr->protocol), p,
-            pkt + CHDLC_HEADER_LEN, len - CHDLC_HEADER_LEN);
+    DecodeNetworkLayer(
+            tv, dtv, SCNtohs(hdr->protocol), p, pkt + CHDLC_HEADER_LEN, len - CHDLC_HEADER_LEN);
 
     return TM_ECODE_OK;
 }
 
 #ifdef UNITTESTS
-static int DecodeCHDLCTest01 (void)
+static int DecodeCHDLCTest01(void)
 {
     // clang-format off
     uint8_t raw[] = { 0x0f,0x00,0x08,0x00,  // HDLC
@@ -86,7 +84,7 @@ static int DecodeCHDLCTest01 (void)
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&tv,  0, sizeof(ThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
 
     DecodeCHDLC(&tv, &dtv, p, raw, sizeof(raw));
 
@@ -98,7 +96,6 @@ static int DecodeCHDLCTest01 (void)
     PASS;
 }
 #endif /* UNITTESTS */
-
 
 /**
  * \brief Registers Ethernet unit tests

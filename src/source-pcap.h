@@ -24,16 +24,15 @@
 #ifndef __SOURCE_PCAP_H__
 #define __SOURCE_PCAP_H__
 
-void TmModuleReceivePcapRegister (void);
-void TmModuleDecodePcapRegister (void);
+void TmModuleReceivePcapRegister(void);
+void TmModuleDecodePcapRegister(void);
 void PcapTranslateIPToDevice(char *pcap_dev, size_t len);
 
-#define LIBPCAP_COPYWAIT    500
-#define LIBPCAP_PROMISC     1
+#define LIBPCAP_COPYWAIT 500
+#define LIBPCAP_PROMISC  1
 
 /* per packet Pcap vars */
-typedef struct PcapPacketVars_
-{
+typedef struct PcapPacketVars_ {
     uint32_t tenant_id;
 } PcapPacketVars;
 
@@ -41,8 +40,7 @@ typedef struct PcapPacketVars_
  *  must be quite long. */
 #define PCAP_IFACE_NAME_LENGTH 128
 
-typedef struct PcapIfaceConfig_
-{
+typedef struct PcapIfaceConfig_ {
     char iface[PCAP_IFACE_NAME_LENGTH];
     /* number of threads */
     int threads;

@@ -34,25 +34,23 @@
 
 static int mqtt_type_id = 0;
 
-static int DetectMQTTTypeMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state,
-                               void *txv, const Signature *s,
-                               const SigMatchCtx *ctx);
-static int DetectMQTTTypeSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectMQTTTypeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectMQTTTypeSetup(DetectEngineCtx *, Signature *, const char *);
 void MQTTTypeRegisterTests(void);
 void DetectMQTTTypeFree(DetectEngineCtx *de_ctx, void *);
 
 /**
  * \brief Registration function for mqtt.type: keyword
  */
-void DetectMQTTTypeRegister (void)
+void DetectMQTTTypeRegister(void)
 {
     sigmatch_table[DETECT_AL_MQTT_TYPE].name = "mqtt.type";
     sigmatch_table[DETECT_AL_MQTT_TYPE].desc = "match MQTT control packet type";
     sigmatch_table[DETECT_AL_MQTT_TYPE].url = "/rules/mqtt-keywords.html#mqtt-type";
     sigmatch_table[DETECT_AL_MQTT_TYPE].AppLayerTxMatch = DetectMQTTTypeMatch;
     sigmatch_table[DETECT_AL_MQTT_TYPE].Setup = DetectMQTTTypeSetup;
-    sigmatch_table[DETECT_AL_MQTT_TYPE].Free  = DetectMQTTTypeFree;
+    sigmatch_table[DETECT_AL_MQTT_TYPE].Free = DetectMQTTTypeFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_MQTT_TYPE].RegisterTests = MQTTTypeRegisterTests;
 #endif
@@ -78,10 +76,8 @@ void DetectMQTTTypeRegister (void)
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectMQTTTypeMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state,
-                               void *txv, const Signature *s,
-                               const SigMatchCtx *ctx)
+static int DetectMQTTTypeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     const uint8_t *de = (const uint8_t *)ctx;
 
@@ -107,7 +103,7 @@ static uint8_t *DetectMQTTTypeParse(const char *rawstr)
 
     ret = rs_mqtt_cstr_message_code(rawstr);
     // negative value denotes invalid input
-    if(ret < 0) {
+    if (ret < 0) {
         SCLogError("unknown mqtt.type value %s", rawstr);
         goto error;
     }
@@ -116,7 +112,7 @@ static uint8_t *DetectMQTTTypeParse(const char *rawstr)
     if (unlikely(de == NULL))
         goto error;
 
-    *de = (uint8_t) ret;
+    *de = (uint8_t)ret;
 
     return de;
 
@@ -137,7 +133,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectMQTTTypeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectMQTTTypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     uint8_t *de = NULL;
 
@@ -184,7 +180,7 @@ void DetectMQTTTypeFree(DetectEngineCtx *de_ctx, void *de_ptr)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTTypeTestParse01 (void)
+static int MQTTTypeTestParse01(void)
 {
     uint8_t *de = NULL;
     de = DetectMQTTTypeParse("CONNECT");
@@ -206,7 +202,7 @@ static int MQTTTypeTestParse01 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTTypeTestParse02 (void)
+static int MQTTTypeTestParse02(void)
 {
     uint8_t *de = NULL;
     de = DetectMQTTTypeParse("auth");
@@ -223,7 +219,7 @@ static int MQTTTypeTestParse02 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTTypeTestParse03 (void)
+static int MQTTTypeTestParse03(void)
 {
     uint8_t *de = NULL;
     de = DetectMQTTTypeParse("invalidopt");

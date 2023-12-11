@@ -82,7 +82,8 @@ static TmEcode LuaLogThreadDeinit(ThreadVars *t, void *data);
  *
  * NOTE: The flow (f) also referenced by p->flow is locked.
  */
-static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate,
+        void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
@@ -115,8 +116,8 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
  *  Hooks into the Streaming Logger API. Gets called for each chunk of new
  *  streaming data.
  */
-static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
-        const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags)
+static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data,
+        uint32_t data_len, uint64_t tx_id, uint8_t flags)
 {
     SCEnter();
 
@@ -203,7 +204,7 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
         LuaStateSetPacketAlert(td->lua_ctx->luastate, (PacketAlert *)pa);
 
         /* prepare data to pass to script */
-        //lua_newtable(td->lua_ctx->luastate);
+        // lua_newtable(td->lua_ctx->luastate);
 
         int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
         if (retval != 0) {
@@ -337,8 +338,6 @@ static int LuaFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     return 0;
 }
 
-
-
 static int LuaStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
 {
     SCEnter();
@@ -388,7 +387,6 @@ static int LuaStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *s
     }
     SCMutexUnlock(&td->lua_ctx->m);
     return 0;
-
 }
 
 typedef struct LogLuaScriptOptions_ {
@@ -413,7 +411,8 @@ typedef struct LogLuaScriptOptions_ {
  *  \param options struct to pass script requirements/options back to caller
  *  \retval errcode 0 ok, -1 error
  */
-static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
+static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options)
+{
     lua_State *luastate = LuaGetState();
     if (luastate == NULL)
         goto error;
@@ -444,7 +443,7 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
     }
 
     lua_pushliteral(luastate, "script_api_ver");
-    lua_pushnumber (luastate, 1);
+    lua_pushnumber(luastate, 1);
     lua_settable(luastate, -3);
 
     if (lua_pcall(luastate, 1, 1, 0) != 0) {
@@ -476,15 +475,15 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
 
         SCLogDebug("k='%s', v='%s'", k, v);
 
-        if (strcmp(k,"protocol") == 0 && strcmp(v, "http") == 0)
+        if (strcmp(k, "protocol") == 0 && strcmp(v, "http") == 0)
             options->alproto = ALPROTO_HTTP1;
-        else if (strcmp(k,"protocol") == 0 && strcmp(v, "dns") == 0)
+        else if (strcmp(k, "protocol") == 0 && strcmp(v, "dns") == 0)
             options->alproto = ALPROTO_DNS;
-        else if (strcmp(k,"protocol") == 0 && strcmp(v, "tls") == 0)
+        else if (strcmp(k, "protocol") == 0 && strcmp(v, "tls") == 0)
             options->alproto = ALPROTO_TLS;
-        else if (strcmp(k,"protocol") == 0 && strcmp(v, "ssh") == 0)
+        else if (strcmp(k, "protocol") == 0 && strcmp(v, "ssh") == 0)
             options->alproto = ALPROTO_SSH;
-        else if (strcmp(k,"protocol") == 0 && strcmp(v, "smtp") == 0)
+        else if (strcmp(k, "protocol") == 0 && strcmp(v, "smtp") == 0)
             options->alproto = ALPROTO_SMTP;
         else if (strcmp(k, "type") == 0 && strcmp(v, "packet") == 0)
             options->packet = 1;
@@ -590,7 +589,8 @@ error:
     return NULL;
 }
 
-static void LogLuaSubFree(OutputCtx *oc) {
+static void LogLuaSubFree(OutputCtx *oc)
+{
     if (oc->data)
         SCFree(oc->data);
     SCFree(oc);
@@ -625,7 +625,7 @@ static OutputInitResult OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ct
     }
 
     char path[PATH_MAX] = "";
-    int ret = snprintf(path, sizeof(path),"%s%s%s", dir, strlen(dir) ? "/" : "", conf->val);
+    int ret = snprintf(path, sizeof(path), "%s%s%s", dir, strlen(dir) ? "/" : "", conf->val);
     if (ret < 0 || ret == sizeof(path)) {
         SCLogError("failed to construct lua script path");
         goto error;
@@ -659,7 +659,7 @@ static void LogLuaMasterFree(OutputCtx *oc)
         SCFree(oc->data);
 
     OutputModule *om, *tom;
-    TAILQ_FOREACH_SAFE(om, &oc->submodules, entries, tom) {
+    TAILQ_FOREACH_SAFE (om, &oc->submodules, entries, tom) {
         SCFree(om);
     }
     SCFree(oc);
@@ -703,13 +703,13 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
 
     /* check the enables scripts and set them up as submodules */
     ConfNode *script;
-    TAILQ_FOREACH(script, &scripts->head, next) {
+    TAILQ_FOREACH (script, &scripts->head, next) {
         SCLogInfo("enabling script %s", script->val);
         LogLuaScriptOptions opts;
         memset(&opts, 0x00, sizeof(opts));
 
         char path[PATH_MAX] = "";
-        snprintf(path, sizeof(path),"%s%s%s", dir, strlen(dir) ? "/" : "", script->val);
+        snprintf(path, sizeof(path), "%s%s%s", dir, strlen(dir) ? "/" : "", script->val);
         SCLogDebug("script full path %s", path);
 
         int r = LuaScriptInit(path, &opts);
@@ -825,7 +825,7 @@ static void OutputLuaLogDoDeinit(LogLuaCtx *lua_ctx)
         SCLogError("no deinit function in script");
         return;
     }
-    //LuaPrintStack(luastate);
+    // LuaPrintStack(luastate);
 
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
         SCLogError("couldn't run script 'deinit' function: %s", lua_tostring(luastate, -1));
@@ -884,14 +884,16 @@ static TmEcode LuaLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void LuaLogRegister(void) {
+void LuaLogRegister(void)
+{
     /* register as separate module */
     OutputRegisterModule(MODULE_NAME, "lua", OutputLuaLogInit);
 }
 
 #else /* HAVE_LUA */
 
-void LuaLogRegister (void) {
+void LuaLogRegister(void)
+{
     /* no-op */
 }
 
