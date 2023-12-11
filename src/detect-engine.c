@@ -33,7 +33,7 @@
 #include "datasets.h"
 
 #include "app-layer-parser.h"
-#include "app-layer-htp.h"
+#include "app-layer/http/parser.h"
 
 #include "detect-parse.h"
 #include "detect-engine-sigorder.h"

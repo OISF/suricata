@@ -58,7 +58,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "app-layer.h"
-#include "app-layer-htp.h"
+#include "app-layer/http/parser.h"
 #include "app-layer-protos.h"
 
 #include "conf.h"

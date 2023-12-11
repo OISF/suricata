@@ -51,7 +51,7 @@
 
 #include "conf.h"
 #include "app-layer.h"
-#include "app-layer-htp.h"
+#include "app-layer/http/parser.h"
 #include "stream.h"
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"

@@ -32,7 +32,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-htp.h"
+#include "app-layer/http/parser.h"
 #include "app-layer-http2.h"
 #include "rust.h"
 

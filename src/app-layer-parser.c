@@ -43,7 +43,7 @@
 #include "app-layer-smtp.h"
 
 #include "app-layer-smb.h"
-#include "app-layer-htp.h"
+#include "app-layer/http/parser.h"
 #include "app-layer-ssl.h"
 #include "app-layer-ssh.h"
 #include "app-layer-modbus.h"

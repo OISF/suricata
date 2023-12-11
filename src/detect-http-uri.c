@@ -51,7 +51,7 @@
 
 #include "app-layer.h"
 
-#include "app-layer-htp.h"
+#include "app-layer/http/parser.h"
 #include "detect-http-uri.h"
 #include "stream-tcp.h"
 

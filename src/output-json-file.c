@@ -63,8 +63,8 @@
 #include "output-json-smb.h"
 #include "output-json-http2.h"
 
-#include "app-layer-htp.h"
-#include "app-layer-htp-xff.h"
+#include "app-layer/http/parser.h"
+#include "app-layer/http/parser-xff.h"
 #include "util-memcmp.h"
 #include "stream-tcp-reassemble.h"
 

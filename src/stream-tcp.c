@@ -65,7 +65,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"
-#include "app-layer-htp-mem.h"
+#include "app-layer/http/parser-mem.h"
 
 #include "util-host-os-info.h"
 #include "util-privs.h"
