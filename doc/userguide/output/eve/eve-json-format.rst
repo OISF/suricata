@@ -2490,22 +2490,22 @@ Fields
 Request Messages
 ~~~~~~~~~~~~~~~~
 
-Some of the possible request messages are:
+Requests are sent by the frontend (client), which would be the source of a pgsql
+flow. Some of the possible request messages are:
 
-* "startup_message": message sent by a frontend/client process to start a new
-  PostgreSQL connection
+* "startup_message": message sent to start a new PostgreSQL connection
 * "password_message": if password output for PGSQL is enabled in suricata.yaml,
   carries the password sent during Authentication phase
 * "simple_query": issued SQL command during simple query subprotocol. PostgreSQL
   identifies specific sets of commands that change the set of expected messages
   to be exchanged as subprotocols.
-* "message": frontend responses which do not have meaningful payloads are logged
-  like this, where the field value is the message type
 * ``"message": "cancel_request"``: sent after a query, when the frontend
   attempts to cancel said query. This message is sent over a different port,
   thus bring shown as a different flow. It has no direct answer from the
   backend, but if successful will lead to an ``ErrorResponse`` in the
   transaction where the query was sent.
+* "message": requests which do not have meaningful payloads are logged like this,
+  where the field value is the message type
 
 There are several different authentication messages possible, based on selected
 authentication method. (e.g. the SASL authentication will have a set of
@@ -2514,7 +2514,8 @@ authentication messages different from when ``md5`` authentication is chosen).
 Response Messages
 ~~~~~~~~~~~~~~~~~
 
-Some of the possible request messages are:
+Responses are sent by the backend (server), which would be the destination of a
+pgsql flow. Some of the possible request messages are:
 
 * "authentication_sasl_final": final SCRAM ``server-final-message``, as explained
   at https://www.postgresql.org/docs/14/sasl-authentication.html#SASL-SCRAM-SHA-256
