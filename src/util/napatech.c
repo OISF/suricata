@@ -32,8 +32,8 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 #include "util/napatech.h"
-#include "source-napatech.h"
-#include "runmode-napatech.h"
+#include "source/napatech/source-napatech.h"
+#include "source/napatech/runmode-napatech.h"
 
 #ifdef NAPATECH_ENABLE_BYPASS
 

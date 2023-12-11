@@ -66,21 +66,21 @@ enum PktSrcEnum {
     PKT_SRC_SHUTDOWN_FLUSH,
 };
 
-#include "source-nflog.h"
-#include "source-nfq.h"
-#include "source-ipfw.h"
-#include "source-pcap.h"
-#include "source-af-packet.h"
-#include "source-netmap.h"
-#include "source-windivert.h"
+#include "source/nflog/source-nflog.h"
+#include "source/nfq/source-nfq.h"
+#include "source/ipfw/source-ipfw.h"
+#include "source/pcap/source-pcap.h"
+#include "source/af-packet/source-af-packet.h"
+#include "source/netmap/source-netmap.h"
+#include "source/windivert/source-windivert.h"
 #ifdef HAVE_DPDK
-#include "source-dpdk.h"
+#include "source/dpdk/source-dpdk.h"
 #endif
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
-#include "source-pfring.h"
+#include "source/pfring/source-pfring.h"
 #endif
 #ifdef HAVE_AF_XDP
-#include "source-af-xdp.h"
+#include "source/af-xdp/source-af-xdp.h"
 #endif
 
 #include "decode-ethernet.h"
