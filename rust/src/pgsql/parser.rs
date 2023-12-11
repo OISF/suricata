@@ -275,7 +275,7 @@ impl PgsqlBEMessage {
             }
             PgsqlBEMessage::ConsolidatedDataRow(_) => "data_row",
             PgsqlBEMessage::NotificationResponse(_) => "notification_response",
-            PgsqlBEMessage::UnknownMessageType(_) => "unknown_message_type"
+            PgsqlBEMessage::UnknownMessageType(_) => "unknown_message_type",
         }
     }
 
@@ -522,16 +522,25 @@ fn pgsql_parse_generic_parameter(i: &[u8]) -> IResult<&[u8], PgsqlParameter> {
     let (i, _) = tag("\x00")(i)?;
     let (i, param_value) = take_until("\x00")(i)?;
     let (i, _) = tag("\x00")(i)?;
-    Ok((i, PgsqlParameter {
-        name: PgsqlParameters::from(param_name),
-        value: param_value.to_vec(),
-    }))
+    Ok((
+        i,
+        PgsqlParameter {
+            name: PgsqlParameters::from(param_name),
+            value: param_value.to_vec(),
+        },
+    ))
 }
 
 pub fn pgsql_parse_startup_parameters(i: &[u8]) -> IResult<&[u8], PgsqlStartupParameters> {
-    let (i, mut optional) = opt(terminated(many1(pgsql_parse_generic_parameter), tag("\x00")))(i)?;
+    let (i, mut optional) = opt(terminated(
+        many1(pgsql_parse_generic_parameter),
+        tag("\x00"),
+    ))(i)?;
     if let Some(ref mut params) = optional {
-        let mut user = PgsqlParameter{name: PgsqlParameters::User, value: Vec::new() };
+        let mut user = PgsqlParameter {
+            name: PgsqlParameters::User,
+            value: Vec::new(),
+        };
         let mut index: usize = 0;
         for (j, p) in params.iter().enumerate() {
             if p.name == PgsqlParameters::User {
@@ -543,17 +552,20 @@ pub fn pgsql_parse_startup_parameters(i: &[u8]) -> IResult<&[u8], PgsqlStartupPa
         if user.value.is_empty() {
             return Err(Err::Error(make_error(i, ErrorKind::Tag)));
         }
-        return Ok((i, PgsqlStartupParameters{
-            user,
-            optional_params: if !params.is_empty() {
-                optional
-            } else { None },
-        }));
+        return Ok((
+            i,
+            PgsqlStartupParameters {
+                user,
+                optional_params: if !params.is_empty() { optional } else { None },
+            },
+        ));
     }
     return Err(Err::Error(make_error(i, ErrorKind::Tag)));
 }
 
-fn parse_sasl_initial_response_payload(i: &[u8]) -> IResult<&[u8], (SASLAuthenticationMechanism, u32, Vec<u8>)> {
+fn parse_sasl_initial_response_payload(
+    i: &[u8],
+) -> IResult<&[u8], (SASLAuthenticationMechanism, u32, Vec<u8>)> {
     let (i, sasl_mechanism) = parse_sasl_mechanism(i)?;
     let (i, param_length) = be_u32(i)?;
     // From RFC 5802 - the client-first-message will always start w/
@@ -565,27 +577,31 @@ fn parse_sasl_initial_response_payload(i: &[u8]) -> IResult<&[u8], (SASLAuthenti
 pub fn parse_sasl_initial_response(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage> {
     let (i, identifier) = verify(be_u8, |&x| x == b'p')(i)?;
     let (i, length) = verify(be_u32, |&x| x > PGSQL_LENGTH_FIELD)(i)?;
-    let (i, payload) = map_parser(take(length - PGSQL_LENGTH_FIELD), parse_sasl_initial_response_payload)(i)?;
-    Ok((i, PgsqlFEMessage::SASLInitialResponse(
-                SASLInitialResponsePacket {
-                    identifier,
-                    length,
-                    auth_mechanism: payload.0,
-                    param_length: payload.1,
-                    sasl_param: payload.2,
-                })))
+    let (i, payload) = map_parser(
+        take(length - PGSQL_LENGTH_FIELD),
+        parse_sasl_initial_response_payload,
+    )(i)?;
+    Ok((
+        i,
+        PgsqlFEMessage::SASLInitialResponse(SASLInitialResponsePacket {
+            identifier,
+            length,
+            auth_mechanism: payload.0,
+            param_length: payload.1,
+            sasl_param: payload.2,
+        }),
+    ))
 }
 
 pub fn parse_sasl_response(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage> {
     let (i, identifier) = verify(be_u8, |&x| x == b'p')(i)?;
     let (i, length) = verify(be_u32, |&x| x > PGSQL_LENGTH_FIELD)(i)?;
     let (i, payload) = take(length - PGSQL_LENGTH_FIELD)(i)?;
-    let resp = PgsqlFEMessage::SASLResponse(
-        RegularPacket {
-            identifier,
-            length,
-            payload: payload.to_vec(),
-        });
+    let resp = PgsqlFEMessage::SASLResponse(RegularPacket {
+        identifier,
+        length,
+        payload: payload.to_vec(),
+    });
     Ok((i, resp))
 }
 
@@ -593,33 +609,40 @@ pub fn pgsql_parse_startup_packet(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage> {
     let (i, len) = verify(be_u32, |&x| x >= 8)(i)?;
     let (i, proto_major) = peek(be_u16)(i)?;
     let (i, b) = take(len - PGSQL_LENGTH_FIELD)(i)?;
-    let (_, message) =
-        match proto_major {
-            1..=3 => {
-                let (b, proto_major) = be_u16(b)?;
-                let (b, proto_minor) = be_u16(b)?;
-                let (b, params) = pgsql_parse_startup_parameters(b)?;
-                (b, PgsqlFEMessage::StartupMessage(StartupPacket{
+    let (_, message) = match proto_major {
+        1..=3 => {
+            let (b, proto_major) = be_u16(b)?;
+            let (b, proto_minor) = be_u16(b)?;
+            let (b, params) = pgsql_parse_startup_parameters(b)?;
+            (
+                b,
+                PgsqlFEMessage::StartupMessage(StartupPacket {
                     length: len,
                     proto_major,
                     proto_minor,
-                    params}))
-            },
-            PGSQL_DUMMY_PROTO_MAJOR => {
-                let (b, proto_major) = be_u16(b)?;
-                let (b, proto_minor) = all_consuming(be_u16)(b)?;
-                let _message = match proto_minor {
-                    PGSQL_DUMMY_PROTO_MINOR_SSL => (len, proto_major, proto_minor),
-                    _ => return Err(Err::Error(make_error(b, ErrorKind::Switch))),
-                };
+                    params,
+                }),
+            )
+        }
+        PGSQL_DUMMY_PROTO_MAJOR => {
+            let (b, proto_major) = be_u16(b)?;
+            let (b, proto_minor) = all_consuming(be_u16)(b)?;
+            let _message = match proto_minor {
+                PGSQL_DUMMY_PROTO_MINOR_SSL => (len, proto_major, proto_minor),
+                _ => return Err(Err::Error(make_error(b, ErrorKind::Switch))),
+            };
 
-                (b, PgsqlFEMessage::SSLRequest(DummyStartupPacket{
+            (
+                b,
+                PgsqlFEMessage::SSLRequest(DummyStartupPacket {
                     length: len,
                     proto_major,
-                    proto_minor}))
-            }
-            _ => return Err(Err::Error(make_error(b, ErrorKind::Switch))),
-        };
+                    proto_minor,
+                }),
+            )
+        }
+        _ => return Err(Err::Error(make_error(b, ErrorKind::Switch))),
+    };
     Ok((i, message))
 }
 
@@ -639,33 +662,38 @@ pub fn pgsql_parse_startup_packet(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage> {
 pub fn parse_password_message(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage> {
     let (i, identifier) = verify(be_u8, |&x| x == b'p')(i)?;
     let (i, length) = verify(be_u32, |&x| x >= PGSQL_LENGTH_FIELD)(i)?;
-    let (i, password) = map_parser(
-        take(length - PGSQL_LENGTH_FIELD),
-        take_until1("\x00")
-        )(i)?;
-    Ok((i, PgsqlFEMessage::PasswordMessage(
-                RegularPacket{
-                    identifier,
-                    length,
-                    payload: password.to_vec(),
-                })))
+    let (i, password) = map_parser(take(length - PGSQL_LENGTH_FIELD), take_until1("\x00"))(i)?;
+    Ok((
+        i,
+        PgsqlFEMessage::PasswordMessage(RegularPacket {
+            identifier,
+            length,
+            payload: password.to_vec(),
+        }),
+    ))
 }
 
 fn parse_simple_query(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage> {
     let (i, identifier) = verify(be_u8, |&x| x == b'Q')(i)?;
     let (i, length) = verify(be_u32, |&x| x > PGSQL_LENGTH_FIELD)(i)?;
     let (i, query) = map_parser(take(length - PGSQL_LENGTH_FIELD), take_until1("\x00"))(i)?;
-    Ok((i, PgsqlFEMessage::SimpleQuery(RegularPacket {
-        identifier,
-        length,
-        payload: query.to_vec(),
-    })))
+    Ok((
+        i,
+        PgsqlFEMessage::SimpleQuery(RegularPacket {
+            identifier,
+            length,
+            payload: query.to_vec(),
+        }),
+    ))
 }
 
 fn parse_terminate_message(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage> {
     let (i, identifier) = verify(be_u8, |&x| x == b'X')(i)?;
     let (i, length) = verify(be_u32, |&x| x == PGSQL_LENGTH_FIELD)(i)?;
-    Ok((i, PgsqlFEMessage::Terminate(TerminationMessage { identifier, length })))
+    Ok((
+        i,
+        PgsqlFEMessage::Terminate(TerminationMessage { identifier, length }),
+    ))
 }
 
 // Messages that begin with 'p' but are not password ones are not parsed here
@@ -679,7 +707,7 @@ pub fn parse_request(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage> {
             let (i, identifier) = be_u8(i)?;
             let (i, length) = verify(be_u32, |&x| x > PGSQL_LENGTH_FIELD)(i)?;
             let (i, payload) = take(length - PGSQL_LENGTH_FIELD)(i)?;
-            let unknown = PgsqlFEMessage::UnknownMessageType (RegularPacket{
+            let unknown = PgsqlFEMessage::UnknownMessageType(RegularPacket {
                 identifier,
                 length,
                 payload: payload.to_vec(),
@@ -695,97 +723,114 @@ fn pgsql_parse_authentication_message<'a>(i: &'a [u8]) -> IResult<&'a [u8], Pgsq
     let (i, length) = verify(be_u32, |&x| x >= 8)(i)?;
     let (i, auth_type) = be_u32(i)?;
     let (i, payload) = peek(rest)(i)?;
-    let (i, message) = map_parser(
-        take(length - 8),
-        |b: &'a [u8]| {
-            match auth_type {
-                0 => Ok((b, PgsqlBEMessage::AuthenticationOk(
-                            AuthenticationMessage {
-                                identifier,
-                                length,
-                                auth_type,
-                                payload: payload.to_vec(),
-                            }))),
-                3 => Ok((b, PgsqlBEMessage::AuthenticationCleartextPassword(
-                            AuthenticationMessage {
-                                identifier,
-                                length,
-                                auth_type,
-                                payload: payload.to_vec(),
-                            }))),
-                5 => {
-                    let (b, salt) = all_consuming(take(4_usize))(b)?;
-                    Ok((b, PgsqlBEMessage::AuthenticationMD5Password(
-                                AuthenticationMessage {
-                                    identifier,
-                                    length,
-                                    auth_type,
-                                    payload: salt.to_vec(),
-                                })))
-                }
-                9 => Ok((b, PgsqlBEMessage::AuthenticationSSPI(
-                            AuthenticationMessage {
-                                identifier,
-                                length,
-                                auth_type,
-                                payload: payload.to_vec(),
-                            }))),
-                // TODO - For SASL, should we parse specific details of the challenge itself? (as seen in: https://github.com/launchbadge/sqlx/blob/master/sqlx-core/src/postgres/message/authentication.rs )
-                10 => {
-                    let (b, auth_mechanisms) = parse_sasl_mechanisms(b)?;
-                    Ok((b, PgsqlBEMessage::AuthenticationSASL(
-                                AuthenticationSASLMechanismMessage {
-                                    identifier,
-                                    length,
-                                    auth_type,
-                                    auth_mechanisms,
-                                })))
-                }
-                11 => {
-                    let (b, sasl_challenge) = rest(i)?;
-                    Ok((b, PgsqlBEMessage::AuthenticationSASLContinue(
-                                AuthenticationMessage {
-                                    identifier,
-                                    length,
-                                    auth_type,
-                                    payload: sasl_challenge.to_vec(),
-                                })))
-                },
-                12 => {
-                    let (i, signature) = take(length - 8)(i)?;
-                    Ok((i, PgsqlBEMessage::AuthenticationSASLFinal(
-                                AuthenticationMessage {
-                                    identifier,
-                                    length,
-                                    auth_type,
-                                    payload: signature.to_vec(),
-                                }
-                                )))
-                }
-                // TODO add other authentication messages
-                _ => return Err(Err::Error(make_error(i, ErrorKind::Switch))),
+    let (i, message) = map_parser(take(length - 8), |b: &'a [u8]| {
+        match auth_type {
+            0 => Ok((
+                b,
+                PgsqlBEMessage::AuthenticationOk(AuthenticationMessage {
+                    identifier,
+                    length,
+                    auth_type,
+                    payload: payload.to_vec(),
+                }),
+            )),
+            3 => Ok((
+                b,
+                PgsqlBEMessage::AuthenticationCleartextPassword(AuthenticationMessage {
+                    identifier,
+                    length,
+                    auth_type,
+                    payload: payload.to_vec(),
+                }),
+            )),
+            5 => {
+                let (b, salt) = all_consuming(take(4_usize))(b)?;
+                Ok((
+                    b,
+                    PgsqlBEMessage::AuthenticationMD5Password(AuthenticationMessage {
+                        identifier,
+                        length,
+                        auth_type,
+                        payload: salt.to_vec(),
+                    }),
+                ))
             }
+            9 => Ok((
+                b,
+                PgsqlBEMessage::AuthenticationSSPI(AuthenticationMessage {
+                    identifier,
+                    length,
+                    auth_type,
+                    payload: payload.to_vec(),
+                }),
+            )),
+            // TODO - For SASL, should we parse specific details of the challenge itself? (as seen in: https://github.com/launchbadge/sqlx/blob/master/sqlx-core/src/postgres/message/authentication.rs )
+            10 => {
+                let (b, auth_mechanisms) = parse_sasl_mechanisms(b)?;
+                Ok((
+                    b,
+                    PgsqlBEMessage::AuthenticationSASL(AuthenticationSASLMechanismMessage {
+                        identifier,
+                        length,
+                        auth_type,
+                        auth_mechanisms,
+                    }),
+                ))
+            }
+            11 => {
+                let (b, sasl_challenge) = rest(i)?;
+                Ok((
+                    b,
+                    PgsqlBEMessage::AuthenticationSASLContinue(AuthenticationMessage {
+                        identifier,
+                        length,
+                        auth_type,
+                        payload: sasl_challenge.to_vec(),
+                    }),
+                ))
+            }
+            12 => {
+                let (i, signature) = take(length - 8)(i)?;
+                Ok((
+                    i,
+                    PgsqlBEMessage::AuthenticationSASLFinal(AuthenticationMessage {
+                        identifier,
+                        length,
+                        auth_type,
+                        payload: signature.to_vec(),
+                    }),
+                ))
+            }
+            // TODO add other authentication messages
+            _ => return Err(Err::Error(make_error(i, ErrorKind::Switch))),
         }
-    )(i)?;
+    })(i)?;
     Ok((i, message))
 }
 
 fn parse_parameter_status_message(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
     let (i, identifier) = verify(be_u8, |&x| x == b'S')(i)?;
     let (i, length) = verify(be_u32, |&x| x >= PGSQL_LENGTH_FIELD)(i)?;
-    let (i, param) = map_parser(take(length - PGSQL_LENGTH_FIELD), pgsql_parse_generic_parameter)(i)?;
-    Ok((i, PgsqlBEMessage::ParameterStatus(ParameterStatusMessage {
-        identifier,
-        length,
-        param,
-    })))
+    let (i, param) = map_parser(
+        take(length - PGSQL_LENGTH_FIELD),
+        pgsql_parse_generic_parameter,
+    )(i)?;
+    Ok((
+        i,
+        PgsqlBEMessage::ParameterStatus(ParameterStatusMessage {
+            identifier,
+            length,
+            param,
+        }),
+    ))
 }
 
 pub fn parse_ssl_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
     let (i, tag) = alt((char('N'), char('S')))(i)?;
-    Ok((i, PgsqlBEMessage::SSLResponse(
-                SSLResponseMessage::from(tag))
-       ))
+    Ok((
+        i,
+        PgsqlBEMessage::SSLResponse(SSLResponseMessage::from(tag)),
+    ))
 }
 
 fn parse_backend_key_data_message(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
@@ -793,34 +838,43 @@ fn parse_backend_key_data_message(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
     let (i, length) = verify(be_u32, |&x| x == 12)(i)?;
     let (i, pid) = be_u32(i)?;
     let (i, secret_key) = be_u32(i)?;
-    Ok((i, PgsqlBEMessage::BackendKeyData(BackendKeyDataMessage {
-        identifier,
-        length,
-        backend_pid: pid,
-        secret_key,
-    })))
+    Ok((
+        i,
+        PgsqlBEMessage::BackendKeyData(BackendKeyDataMessage {
+            identifier,
+            length,
+            backend_pid: pid,
+            secret_key,
+        }),
+    ))
 }
 
 fn parse_command_complete(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
     let (i, identifier) = verify(be_u8, |&x| x == b'C')(i)?;
     let (i, length) = verify(be_u32, |&x| x > PGSQL_LENGTH_FIELD)(i)?;
     let (i, payload) = map_parser(take(length - PGSQL_LENGTH_FIELD), take_until("\x00"))(i)?;
-    Ok((i, PgsqlBEMessage::CommandComplete(RegularPacket {
-        identifier,
-        length,
-        payload: payload.to_vec(),
-    })))
+    Ok((
+        i,
+        PgsqlBEMessage::CommandComplete(RegularPacket {
+            identifier,
+            length,
+            payload: payload.to_vec(),
+        }),
+    ))
 }
 
 fn parse_ready_for_query(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
     let (i, identifier) = verify(be_u8, |&x| x == b'Z')(i)?;
     let (i, length) = verify(be_u32, |&x| x == 5)(i)?;
     let (i, status) = verify(be_u8, |&x| x == b'I' || x == b'T' || x == b'E')(i)?;
-    Ok((i, PgsqlBEMessage::ReadyForQuery(ReadyForQueryMessage {
-        identifier,
-        length,
-        transaction_status: status,
-    })))
+    Ok((
+        i,
+        PgsqlBEMessage::ReadyForQuery(ReadyForQueryMessage {
+            identifier,
+            length,
+            transaction_status: status,
+        }),
+    ))
 }
 
 fn parse_row_field(i: &[u8]) -> IResult<&[u8], RowField> {
@@ -832,15 +886,18 @@ fn parse_row_field(i: &[u8]) -> IResult<&[u8], RowField> {
     let (i, data_type_size) = be_i16(i)?;
     let (i, type_modifier) = be_i32(i)?;
     let (i, format_code) = be_u16(i)?;
-    Ok((i, RowField {
-        field_name: field_name.to_vec(),
-        table_oid,
-        column_index,
-        data_type_oid,
-        data_type_size,
-        type_modifier,
-        format_code,
-    }))
+    Ok((
+        i,
+        RowField {
+            field_name: field_name.to_vec(),
+            table_oid,
+            column_index,
+            data_type_oid,
+            data_type_size,
+            type_modifier,
+            format_code,
+        },
+    ))
 }
 
 pub fn parse_row_description(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
@@ -849,29 +906,34 @@ pub fn parse_row_description(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
     let (i, field_count) = be_u16(i)?;
     let (i, fields) = map_parser(
         take(length - 6),
-        many_m_n(0, field_count.into(), parse_row_field)
+        many_m_n(0, field_count.into(), parse_row_field),
     )(i)?;
-    Ok((i, PgsqlBEMessage::RowDescription(
-                RowDescriptionMessage {
-                    identifier,
-                    length,
-                    field_count,
-                    fields,
-                })))
+    Ok((
+        i,
+        PgsqlBEMessage::RowDescription(RowDescriptionMessage {
+            identifier,
+            length,
+            field_count,
+            fields,
+        }),
+    ))
 }
 
 fn parse_data_row_value(i: &[u8]) -> IResult<&[u8], ColumnFieldValue> {
     let (i, value_length) = be_i32(i)?;
     let (i, value) = cond(value_length >= 0, take(value_length as usize))(i)?;
-    Ok((i, ColumnFieldValue {
-        value_length,
-        value: {
-            match value {
-                Some(data) => data.to_vec(),
-                None => [].to_vec(),
-            }
+    Ok((
+        i,
+        ColumnFieldValue {
+            value_length,
+            value: {
+                match value {
+                    Some(data) => data.to_vec(),
+                    None => [].to_vec(),
+                }
+            },
         },
-    }))
+    ))
 }
 
 /// For each column, add up the data size. Return the total
@@ -894,15 +956,19 @@ pub fn parse_consolidated_data_row(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
     let (i, length) = verify(be_u32, |&x| x >= 6)(i)?;
     let (i, field_count) = be_u16(i)?;
     // 6 here is for skipping length + field_count
-    let (i, rows) = map_parser(take(length - 6), many_m_n(0, field_count.into(), parse_data_row_value))(i)?;
-    Ok((i, PgsqlBEMessage::ConsolidatedDataRow(
-                ConsolidatedDataRowPacket {
-                    identifier,
-                    length,
-                    row_cnt: 1,
-                    data_size: add_up_data_size(rows),
-                }
-                )))
+    let (i, rows) = map_parser(
+        take(length - 6),
+        many_m_n(0, field_count.into(), parse_data_row_value),
+    )(i)?;
+    Ok((
+        i,
+        PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
+            identifier,
+            length,
+            row_cnt: 1,
+            data_size: add_up_data_size(rows),
+        }),
+    ))
 }
 
 fn parse_sasl_mechanism(i: &[u8]) -> IResult<&[u8], SASLAuthenticationMechanism> {
@@ -924,10 +990,13 @@ fn parse_sasl_mechanisms(i: &[u8]) -> IResult<&[u8], Vec<SASLAuthenticationMecha
 pub fn parse_error_response_code(i: &[u8]) -> IResult<&[u8], PgsqlErrorNoticeMessageField> {
     let (i, _field_type) = char('C')(i)?;
     let (i, field_value) = map_parser(take(6_usize), alphanumeric1)(i)?;
-    Ok((i, PgsqlErrorNoticeMessageField{
-        field_type: PgsqlErrorNoticeFieldType::CodeSqlStateCode,
-        field_value: field_value.to_vec(),
-    }))
+    Ok((
+        i,
+        PgsqlErrorNoticeMessageField {
+            field_type: PgsqlErrorNoticeFieldType::CodeSqlStateCode,
+            field_value: field_value.to_vec(),
+        },
+    ))
 }
 
 // Parse an error response with non-localizeable severity message.
@@ -936,10 +1005,13 @@ pub fn parse_error_response_severity(i: &[u8]) -> IResult<&[u8], PgsqlErrorNotic
     let (i, field_type) = char('V')(i)?;
     let (i, field_value) = alt((tag("ERROR"), tag("FATAL"), tag("PANIC")))(i)?;
     let (i, _) = tag("\x00")(i)?;
-    Ok((i, PgsqlErrorNoticeMessageField{
-        field_type: PgsqlErrorNoticeFieldType::from(field_type),
-        field_value: field_value.to_vec(),
-    }))
+    Ok((
+        i,
+        PgsqlErrorNoticeMessageField {
+            field_type: PgsqlErrorNoticeFieldType::from(field_type),
+            field_value: field_value.to_vec(),
+        },
+    ))
 }
 
 // The non-localizable version of Severity field has different values,
@@ -947,16 +1019,20 @@ pub fn parse_error_response_severity(i: &[u8]) -> IResult<&[u8], PgsqlErrorNotic
 pub fn parse_notice_response_severity(i: &[u8]) -> IResult<&[u8], PgsqlErrorNoticeMessageField> {
     let (i, field_type) = char('V')(i)?;
     let (i, field_value) = alt((
-            tag("WARNING"),
-            tag("NOTICE"),
-            tag("DEBUG"),
-            tag("INFO"),
-            tag("LOG")))(i)?;
+        tag("WARNING"),
+        tag("NOTICE"),
+        tag("DEBUG"),
+        tag("INFO"),
+        tag("LOG"),
+    ))(i)?;
     let (i, _) = tag("\x00")(i)?;
-    Ok((i, PgsqlErrorNoticeMessageField{
-        field_type: PgsqlErrorNoticeFieldType::from(field_type),
-        field_value: field_value.to_vec(),
-    }))
+    Ok((
+        i,
+        PgsqlErrorNoticeMessageField {
+            field_type: PgsqlErrorNoticeFieldType::from(field_type),
+            field_value: field_value.to_vec(),
+        },
+    ))
 }
 
 pub fn parse_error_response_field(
@@ -986,7 +1062,9 @@ pub fn parse_error_response_field(
     Ok((i, data))
 }
 
-pub fn parse_error_notice_fields(i: &[u8], is_err_msg: bool) -> IResult<&[u8], Vec<PgsqlErrorNoticeMessageField>> {
+pub fn parse_error_notice_fields(
+    i: &[u8], is_err_msg: bool,
+) -> IResult<&[u8], Vec<PgsqlErrorNoticeMessageField>> {
     let (i, data) = many_till(|b| parse_error_response_field(b, is_err_msg), tag("\x00"))(i)?;
     Ok((i, data.0))
 }
@@ -994,45 +1072,47 @@ pub fn parse_error_notice_fields(i: &[u8], is_err_msg: bool) -> IResult<&[u8], V
 fn pgsql_parse_error_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
     let (i, identifier) = verify(be_u8, |&x| x == b'E')(i)?;
     let (i, length) = verify(be_u32, |&x| x > 10)(i)?;
-    let (i, message_body) = map_parser(
-        take(length - PGSQL_LENGTH_FIELD),
-        |b| parse_error_notice_fields(b, true)
-        )(i)?;
+    let (i, message_body) = map_parser(take(length - PGSQL_LENGTH_FIELD), |b| {
+        parse_error_notice_fields(b, true)
+    })(i)?;
 
-    Ok((i, PgsqlBEMessage::ErrorResponse(ErrorNoticeMessage {
-        identifier,
-        length,
-        message_body,
-    })))
+    Ok((
+        i,
+        PgsqlBEMessage::ErrorResponse(ErrorNoticeMessage {
+            identifier,
+            length,
+            message_body,
+        }),
+    ))
 }
 
 fn pgsql_parse_notice_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
     let (i, identifier) = verify(be_u8, |&x| x == b'N')(i)?;
     let (i, length) = verify(be_u32, |&x| x > 10)(i)?;
-    let (i, message_body) = map_parser(
-        take(length - PGSQL_LENGTH_FIELD),
-        |b| parse_error_notice_fields(b, false)
-        )(i)?;
-    Ok((i, PgsqlBEMessage::NoticeResponse(ErrorNoticeMessage {
-        identifier,
-        length,
-        message_body,
-    })))
+    let (i, message_body) = map_parser(take(length - PGSQL_LENGTH_FIELD), |b| {
+        parse_error_notice_fields(b, false)
+    })(i)?;
+    Ok((
+        i,
+        PgsqlBEMessage::NoticeResponse(ErrorNoticeMessage {
+            identifier,
+            length,
+            message_body,
+        }),
+    ))
 }
 
 fn parse_notification_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
     let (i, identifier) = verify(be_u8, |&x| x == b'A')(i)?;
     // length (u32) + pid (u32) + at least one byte, for we have two str fields
     let (i, length) = verify(be_u32, |&x| x > 9)(i)?;
-    let (i, data) = map_parser(
-        take(length - PGSQL_LENGTH_FIELD),
-        |b| {
-            let (b, pid) = be_u32(b)?;
-            let (b, channel_name) = take_until_and_consume(b"\x00")(b)?;
-            let (b, payload) = take_until_and_consume(b"\x00")(b)?;
-            Ok((b, (pid, channel_name, payload)))
-        })(i)?;
-    let msg = PgsqlBEMessage::NotificationResponse(NotificationResponse{
+    let (i, data) = map_parser(take(length - PGSQL_LENGTH_FIELD), |b| {
+        let (b, pid) = be_u32(b)?;
+        let (b, channel_name) = take_until_and_consume(b"\x00")(b)?;
+        let (b, payload) = take_until_and_consume(b"\x00")(b)?;
+        Ok((b, (pid, channel_name, payload)))
+    })(i)?;
+    let msg = PgsqlBEMessage::NotificationResponse(NotificationResponse {
         identifier,
         length,
         pid: data.0,
@@ -1044,29 +1124,27 @@ fn parse_notification_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
 
 pub fn pgsql_parse_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
     let (i, pseudo_header) = peek(tuple((be_u8, be_u32)))(i)?;
-    let (i, message) =
-            match pseudo_header.0 {
-                b'E' => pgsql_parse_error_response(i)?,
-                b'K' => parse_backend_key_data_message(i)?,
-                b'N' => pgsql_parse_notice_response(i)?,
-                b'R' => pgsql_parse_authentication_message(i)?,
-                b'S' => parse_parameter_status_message(i)?,
-                b'C' => parse_command_complete(i)?,
-                b'Z' => parse_ready_for_query(i)?,
-                b'T' => parse_row_description(i)?,
-                b'A' => parse_notification_response(i)?,
-                b'D' => parse_consolidated_data_row(i)?,
-                _ => {
-                    let (i, payload) = rest(i)?;
-                    let unknown = PgsqlBEMessage::UnknownMessageType (RegularPacket{
-                        identifier: pseudo_header.0,
-                        length: pseudo_header.1,
-                        payload: payload.to_vec(),
-                    });
-                    (i, unknown)
-                }
-
-            };
+    let (i, message) = match pseudo_header.0 {
+        b'E' => pgsql_parse_error_response(i)?,
+        b'K' => parse_backend_key_data_message(i)?,
+        b'N' => pgsql_parse_notice_response(i)?,
+        b'R' => pgsql_parse_authentication_message(i)?,
+        b'S' => parse_parameter_status_message(i)?,
+        b'C' => parse_command_complete(i)?,
+        b'Z' => parse_ready_for_query(i)?,
+        b'T' => parse_row_description(i)?,
+        b'A' => parse_notification_response(i)?,
+        b'D' => parse_consolidated_data_row(i)?,
+        _ => {
+            let (i, payload) = rest(i)?;
+            let unknown = PgsqlBEMessage::UnknownMessageType(RegularPacket {
+                identifier: pseudo_header.0,
+                length: pseudo_header.1,
+                payload: payload.to_vec(),
+            });
+            (i, unknown)
+        }
+    };
     Ok((i, message))
 }
 
@@ -1866,7 +1944,8 @@ mod tests {
             0x2b, 0x4a, 0x36, 0x79, 0x78, 0x72, 0x66, 0x77, 0x2f, 0x7a, 0x7a, 0x70, 0x38, 0x59,
             0x54, 0x39, 0x65, 0x78, 0x56, 0x37, 0x73, 0x38, 0x3d,
         ];
-        let (remainder, result) = pgsql_parse_response(bad_buf).expect("parsing sasl final response failed");
+        let (remainder, result) =
+            pgsql_parse_response(bad_buf).expect("parsing sasl final response failed");
         let res = PgsqlBEMessage::UnknownMessageType(RegularPacket {
             identifier: b'`',
             length: 54,
@@ -2078,55 +2157,34 @@ mod tests {
         // S   #standard_conforming_strings on S   ·TimeZone Europe/Paris
         // K      ···O··Z   ·I
         let buf = &[
-            0x52, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
-            0x00, 0x53, 0x00, 0x00, 0x00, 0x16, 0x61, 0x70,
-            0x70, 0x6c, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6f,
-            0x6e, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x00, 0x00,
-            0x53, 0x00, 0x00, 0x00, 0x19, 0x63, 0x6c, 0x69,
-            0x65, 0x6e, 0x74, 0x5f, 0x65, 0x6e, 0x63, 0x6f,
-            0x64, 0x69, 0x6e, 0x67, 0x00, 0x55, 0x54, 0x46,
-            0x38, 0x00, 0x53, 0x00, 0x00, 0x00, 0x17, 0x44,
-            0x61, 0x74, 0x65, 0x53, 0x74, 0x79, 0x6c, 0x65,
-            0x00, 0x49, 0x53, 0x4f, 0x2c, 0x20, 0x4d, 0x44,
-            0x59, 0x00, 0x53, 0x00, 0x00, 0x00, 0x26, 0x64,
-            0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x5f, 0x74,
-            0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69,
-            0x6f, 0x6e, 0x5f, 0x72, 0x65, 0x61, 0x64, 0x5f,
-            0x6f, 0x6e, 0x6c, 0x79, 0x00, 0x6f, 0x66, 0x66,
-            0x00, 0x53, 0x00, 0x00, 0x00, 0x17, 0x69, 0x6e,
-            0x5f, 0x68, 0x6f, 0x74, 0x5f, 0x73, 0x74, 0x61,
-            0x6e, 0x64, 0x62, 0x79, 0x00, 0x6f, 0x66, 0x66,
-            0x00, 0x53, 0x00, 0x00, 0x00, 0x19, 0x69, 0x6e,
-            0x74, 0x65, 0x67, 0x65, 0x72, 0x5f, 0x64, 0x61,
-            0x74, 0x65, 0x74, 0x69, 0x6d, 0x65, 0x73, 0x00,
-            0x6f, 0x6e, 0x00, 0x53, 0x00, 0x00, 0x00, 0x1b,
-            0x49, 0x6e, 0x74, 0x65, 0x72, 0x76, 0x61, 0x6c,
-            0x53, 0x74, 0x79, 0x6c, 0x65, 0x00, 0x70, 0x6f,
-            0x73, 0x74, 0x67, 0x72, 0x65, 0x73, 0x00, 0x53,
-            0x00, 0x00, 0x00, 0x15, 0x69, 0x73, 0x5f, 0x73,
-            0x75, 0x70, 0x65, 0x72, 0x75, 0x73, 0x65, 0x72,
-            0x00, 0x6f, 0x66, 0x66, 0x00, 0x53, 0x00, 0x00,
-            0x00, 0x19, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72,
-            0x5f, 0x65, 0x6e, 0x63, 0x6f, 0x64, 0x69, 0x6e,
-            0x67, 0x00, 0x55, 0x54, 0x46, 0x38, 0x00, 0x53,
-            0x00, 0x00, 0x00, 0x18, 0x73, 0x65, 0x72, 0x76,
-            0x65, 0x72, 0x5f, 0x76, 0x65, 0x72, 0x73, 0x69,
-            0x6f, 0x6e, 0x00, 0x31, 0x34, 0x2e, 0x35, 0x00,
-            0x53, 0x00, 0x00, 0x00, 0x22, 0x73, 0x65, 0x73,
-            0x73, 0x69, 0x6f, 0x6e, 0x5f, 0x61, 0x75, 0x74,
-            0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69,
-            0x6f, 0x6e, 0x00, 0x63, 0x74, 0x66, 0x70, 0x6f,
-            0x73, 0x74, 0x00, 0x53, 0x00, 0x00, 0x00, 0x23,
-            0x73, 0x74, 0x61, 0x6e, 0x64, 0x61, 0x72, 0x64,
-            0x5f, 0x63, 0x6f, 0x6e, 0x66, 0x6f, 0x72, 0x6d,
-            0x69, 0x6e, 0x67, 0x5f, 0x73, 0x74, 0x72, 0x69,
-            0x6e, 0x67, 0x73, 0x00, 0x6f, 0x6e, 0x00, 0x53,
-            0x00, 0x00, 0x00, 0x1a, 0x54, 0x69, 0x6d, 0x65,
-            0x5a, 0x6f, 0x6e, 0x65, 0x00, 0x45, 0x75, 0x72,
-            0x6f, 0x70, 0x65, 0x2f, 0x50, 0x61, 0x72, 0x69,
-            0x73, 0x00, 0x4b, 0x00, 0x00, 0x00, 0x0c, 0x00,
-            0x00, 0x0b, 0x8d, 0xcf, 0x4f, 0xb6, 0xcf, 0x5a,
-            0x00, 0x00, 0x00, 0x05, 0x49
+            0x52, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x53, 0x00, 0x00, 0x00, 0x16,
+            0x61, 0x70, 0x70, 0x6c, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x6e, 0x61,
+            0x6d, 0x65, 0x00, 0x00, 0x53, 0x00, 0x00, 0x00, 0x19, 0x63, 0x6c, 0x69, 0x65, 0x6e,
+            0x74, 0x5f, 0x65, 0x6e, 0x63, 0x6f, 0x64, 0x69, 0x6e, 0x67, 0x00, 0x55, 0x54, 0x46,
+            0x38, 0x00, 0x53, 0x00, 0x00, 0x00, 0x17, 0x44, 0x61, 0x74, 0x65, 0x53, 0x74, 0x79,
+            0x6c, 0x65, 0x00, 0x49, 0x53, 0x4f, 0x2c, 0x20, 0x4d, 0x44, 0x59, 0x00, 0x53, 0x00,
+            0x00, 0x00, 0x26, 0x64, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x5f, 0x74, 0x72, 0x61,
+            0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x72, 0x65, 0x61, 0x64, 0x5f,
+            0x6f, 0x6e, 0x6c, 0x79, 0x00, 0x6f, 0x66, 0x66, 0x00, 0x53, 0x00, 0x00, 0x00, 0x17,
+            0x69, 0x6e, 0x5f, 0x68, 0x6f, 0x74, 0x5f, 0x73, 0x74, 0x61, 0x6e, 0x64, 0x62, 0x79,
+            0x00, 0x6f, 0x66, 0x66, 0x00, 0x53, 0x00, 0x00, 0x00, 0x19, 0x69, 0x6e, 0x74, 0x65,
+            0x67, 0x65, 0x72, 0x5f, 0x64, 0x61, 0x74, 0x65, 0x74, 0x69, 0x6d, 0x65, 0x73, 0x00,
+            0x6f, 0x6e, 0x00, 0x53, 0x00, 0x00, 0x00, 0x1b, 0x49, 0x6e, 0x74, 0x65, 0x72, 0x76,
+            0x61, 0x6c, 0x53, 0x74, 0x79, 0x6c, 0x65, 0x00, 0x70, 0x6f, 0x73, 0x74, 0x67, 0x72,
+            0x65, 0x73, 0x00, 0x53, 0x00, 0x00, 0x00, 0x15, 0x69, 0x73, 0x5f, 0x73, 0x75, 0x70,
+            0x65, 0x72, 0x75, 0x73, 0x65, 0x72, 0x00, 0x6f, 0x66, 0x66, 0x00, 0x53, 0x00, 0x00,
+            0x00, 0x19, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x5f, 0x65, 0x6e, 0x63, 0x6f, 0x64,
+            0x69, 0x6e, 0x67, 0x00, 0x55, 0x54, 0x46, 0x38, 0x00, 0x53, 0x00, 0x00, 0x00, 0x18,
+            0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x5f, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e,
+            0x00, 0x31, 0x34, 0x2e, 0x35, 0x00, 0x53, 0x00, 0x00, 0x00, 0x22, 0x73, 0x65, 0x73,
+            0x73, 0x69, 0x6f, 0x6e, 0x5f, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61,
+            0x74, 0x69, 0x6f, 0x6e, 0x00, 0x63, 0x74, 0x66, 0x70, 0x6f, 0x73, 0x74, 0x00, 0x53,
+            0x00, 0x00, 0x00, 0x23, 0x73, 0x74, 0x61, 0x6e, 0x64, 0x61, 0x72, 0x64, 0x5f, 0x63,
+            0x6f, 0x6e, 0x66, 0x6f, 0x72, 0x6d, 0x69, 0x6e, 0x67, 0x5f, 0x73, 0x74, 0x72, 0x69,
+            0x6e, 0x67, 0x73, 0x00, 0x6f, 0x6e, 0x00, 0x53, 0x00, 0x00, 0x00, 0x1a, 0x54, 0x69,
+            0x6d, 0x65, 0x5a, 0x6f, 0x6e, 0x65, 0x00, 0x45, 0x75, 0x72, 0x6f, 0x70, 0x65, 0x2f,
+            0x50, 0x61, 0x72, 0x69, 0x73, 0x00, 0x4b, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x0b,
+            0x8d, 0xcf, 0x4f, 0xb6, 0xcf, 0x5a, 0x00, 0x00, 0x00, 0x05, 0x49,
         ];
 
         let result = pgsql_parse_response(buf);

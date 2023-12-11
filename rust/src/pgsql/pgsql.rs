@@ -549,11 +549,10 @@ fn probe_tc(input: &[u8]) -> bool {
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_probing_parser_ts(
+pub unsafe extern fn rs_pgsql_probing_parser_ts(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
-
         let slice: &[u8] = build_slice!(input, input_len as usize);
 
         match parser::parse_request(slice) {
@@ -576,11 +575,10 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_ts(
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
+pub unsafe extern fn rs_pgsql_probing_parser_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if input_len >= 1 && !input.is_null() {
-
         let slice: &[u8] = build_slice!(input, input_len as usize);
 
         if parser::parse_ssl_response(slice).is_ok() {
@@ -606,7 +604,7 @@ pub unsafe extern "C" fn rs_pgsql_probing_parser_tc(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_state_new(
+pub extern fn rs_pgsql_state_new(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = PgsqlState::new();
@@ -615,13 +613,13 @@ pub extern "C" fn rs_pgsql_state_new(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_state_free(state: *mut std::os::raw::c_void) {
+pub extern fn rs_pgsql_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     std::mem::drop(unsafe { Box::from_raw(state as *mut PgsqlState) });
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub extern fn rs_pgsql_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state_safe: &mut PgsqlState;
     unsafe {
         state_safe = cast_pointer!(state, PgsqlState);
@@ -630,7 +628,7 @@ pub extern "C" fn rs_pgsql_state_tx_free(state: *mut std::os::raw::c_void, tx_id
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_parse_request(
+pub unsafe extern fn rs_pgsql_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -643,7 +641,6 @@ pub unsafe extern "C" fn rs_pgsql_parse_request(
         }
     }
 
-
     let state_safe: &mut PgsqlState = cast_pointer!(state, PgsqlState);
 
     if stream_slice.is_gap() {
@@ -655,7 +652,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_request(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_parse_response(
+pub unsafe extern fn rs_pgsql_parse_response(
     flow: *const Flow, state: *mut std::os::raw::c_void, pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -672,7 +669,7 @@ pub unsafe extern "C" fn rs_pgsql_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_state_get_tx(
+pub unsafe extern fn rs_pgsql_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state_safe: &mut PgsqlState = cast_pointer!(state, PgsqlState);
@@ -687,7 +684,7 @@ pub unsafe extern "C" fn rs_pgsql_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub extern fn rs_pgsql_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state_safe: &mut PgsqlState;
     unsafe {
         state_safe = cast_pointer!(state, PgsqlState);
@@ -696,7 +693,7 @@ pub extern "C" fn rs_pgsql_state_get_tx_count(state: *mut std::os::raw::c_void) 
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_tx_get_state(tx: *mut std::os::raw::c_void) -> PgsqlTransactionState {
+pub extern fn rs_pgsql_tx_get_state(tx: *mut std::os::raw::c_void) -> PgsqlTransactionState {
     let tx_safe: &mut PgsqlTransaction;
     unsafe {
         tx_safe = cast_pointer!(tx, PgsqlTransaction);
@@ -705,7 +702,7 @@ pub extern "C" fn rs_pgsql_tx_get_state(tx: *mut std::os::raw::c_void) -> PgsqlT
 }
 
 #[no_mangle]
-pub extern "C" fn rs_pgsql_tx_get_alstate_progress(
+pub extern fn rs_pgsql_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     return rs_pgsql_tx_get_state(tx) as i32;
@@ -718,7 +715,7 @@ export_state_data_get!(rs_pgsql_get_state_data, PgsqlState);
 const PARSER_NAME: &[u8] = b"pgsql\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_pgsql_register_parser() {
+pub unsafe extern fn rs_pgsql_register_parser() {
     let default_port = CString::new("[5432]").unwrap();
     let mut stream_depth = PGSQL_CONFIG_DEFAULT_STREAM_DEPTH;
     let parser = RustParser {

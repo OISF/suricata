@@ -20,9 +20,9 @@ use crate::dcerpc::dcerpc::{
 use crate::dcerpc::dcerpc_udp::DCERPCHdrUdp;
 use nom7::bytes::streaming::take;
 use nom7::combinator::cond;
+use nom7::multi::count;
 use nom7::number::complete::{le_u16, le_u32, le_u8, u16, u32};
 use nom7::number::Endianness;
-use nom7::multi::count;
 use nom7::IResult;
 
 fn uuid_to_vec(uuid: Uuid) -> Vec<u8> {
@@ -77,7 +77,11 @@ pub fn parse_dcerpc_udp_header(i: &[u8]) -> IResult<&[u8], DCERPCHdrUdp> {
     let (i, flags1) = le_u8(i)?;
     let (i, flags2) = le_u8(i)?;
     let (i, drep) = take(3_usize)(i)?;
-    let endianness = if drep[0] == 0 { Endianness::Big } else { Endianness::Little };
+    let endianness = if drep[0] == 0 {
+        Endianness::Big
+    } else {
+        Endianness::Little
+    };
     let (i, serial_hi) = le_u8(i)?;
     let (i, objectuuid) = take(16_usize)(i)?;
     let (i, interfaceuuid) = take(16_usize)(i)?;
@@ -104,21 +108,21 @@ pub fn parse_dcerpc_udp_header(i: &[u8]) -> IResult<&[u8], DCERPCHdrUdp> {
             Err(_e) => {
                 SCLogDebug!("{}", _e);
                 vec![0]
-            },
+            }
         },
         interfaceuuid: match parse_uuid(interfaceuuid) {
             Ok((_, vect)) => assemble_uuid(vect),
             Err(_e) => {
                 SCLogDebug!("{}", _e);
                 vec![0]
-            },
+            }
         },
-        activityuuid: match parse_uuid(activityuuid){
+        activityuuid: match parse_uuid(activityuuid) {
             Ok((_, vect)) => assemble_uuid(vect),
             Err(_e) => {
                 SCLogDebug!("{}", _e);
                 vec![0]
-            },
+            }
         },
         server_boot,
         if_vers,
@@ -136,9 +140,9 @@ pub fn parse_dcerpc_udp_header(i: &[u8]) -> IResult<&[u8], DCERPCHdrUdp> {
 
 pub fn parse_dcerpc_bindack_result(i: &[u8]) -> IResult<&[u8], DCERPCBindAckResult> {
     let (i, ack_result) = le_u16(i)?;
-    let (i,  ack_reason) = le_u16(i)?;
-    let (i,  transfer_syntax) = take(16_usize)(i)?;
-    let (i,  syntax_version) = le_u32(i)?;
+    let (i, ack_reason) = le_u16(i)?;
+    let (i, transfer_syntax) = take(16_usize)(i)?;
+    let (i, syntax_version) = le_u32(i)?;
     let result = DCERPCBindAckResult {
         ack_result,
         ack_reason,
@@ -154,7 +158,9 @@ pub fn parse_dcerpc_bindack(i: &[u8]) -> IResult<&[u8], DCERPCBindAck> {
     let (i, _assoc_group) = take(4_usize)(i)?;
     let (i, sec_addr_len) = le_u16(i)?;
     let (i, _) = take(sec_addr_len)(i)?;
-    let (i, _) = cond((sec_addr_len.wrapping_add(2)) % 4 != 0, |b| take(4 - (sec_addr_len.wrapping_add(2)) % 4)(b))(i)?;
+    let (i, _) = cond((sec_addr_len.wrapping_add(2)) % 4 != 0, |b| {
+        take(4 - (sec_addr_len.wrapping_add(2)) % 4)(b)
+    })(i)?;
     let (i, numctxitems) = le_u8(i)?;
     let (i, _) = take(3_usize)(i)?; // Padding
     let (i, ctxitems) = count(parse_dcerpc_bindack_result, numctxitems as usize)(i)?;
@@ -184,7 +190,9 @@ pub fn parse_bindctx_item(i: &[u8], endianness: Endianness) -> IResult<&[u8], Bi
                 _ => uuid_to_vec(vect),
             },
             // Shouldn't happen
-            Err(_e) => {vec![0]},
+            Err(_e) => {
+                vec![0]
+            }
         },
         version,
         versionminor,
@@ -211,7 +219,11 @@ pub fn parse_dcerpc_header(i: &[u8]) -> IResult<&[u8], DCERPCHdr> {
     let (i, hdrtype) = le_u8(i)?;
     let (i, pfc_flags) = le_u8(i)?;
     let (i, packed_drep) = take(4_usize)(i)?;
-    let endianness = if packed_drep[0] & 0x10 == 0 { Endianness::Big } else { Endianness::Little };
+    let endianness = if packed_drep[0] & 0x10 == 0 {
+        Endianness::Big
+    } else {
+        Endianness::Little
+    };
     let (i, frag_length) = u16(endianness)(i)?;
     let (i, auth_length) = u16(endianness)(i)?;
     let (i, call_id) = u32(endianness)(i)?;

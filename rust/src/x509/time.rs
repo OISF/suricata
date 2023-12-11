@@ -37,7 +37,7 @@ pub fn format_timestamp(timestamp: i64) -> Result<String, time::error::Error> {
 ///
 /// Access buffers from C that are expected to be valid.
 #[no_mangle]
-pub unsafe extern "C" fn sc_x509_format_timestamp(
+pub unsafe extern fn sc_x509_format_timestamp(
     timestamp: i64, buf: *mut c_char, size: usize,
 ) -> bool {
     let timestamp = match format_timestamp(timestamp) {

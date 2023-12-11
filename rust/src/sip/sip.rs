@@ -17,10 +17,10 @@
 
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
-use crate::frames::*;
 use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN};
+use crate::frames::*;
 use crate::sip::parser::*;
 use nom7::Err;
 use std;
@@ -96,10 +96,7 @@ impl SIPState {
     }
 
     fn free_tx(&mut self, tx_id: u64) {
-        let tx = self
-            .transactions
-            .iter()
-            .position(|tx| tx.id == tx_id + 1);
+        let tx = self.transactions.iter().position(|tx| tx.id == tx_id + 1);
         debug_assert!(tx.is_some());
         if let Some(idx) = tx {
             let _ = self.transactions.remove(idx);
@@ -149,7 +146,13 @@ impl SIPState {
 
     fn parse_response(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
-        let _pdu = Frame::new(flow, &stream_slice, input, input.len() as i64, SIPFrameType::Pdu as u8);
+        let _pdu = Frame::new(
+            flow,
+            &stream_slice,
+            input,
+            input.len() as i64,
+            SIPFrameType::Pdu as u8,
+        );
         SCLogDebug!("tc: pdu {:?}", _pdu);
 
         match sip_parse_response(input) {
@@ -224,35 +227,54 @@ fn sip_frames_ts(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Reques
 
 fn sip_frames_tc(flow: *const core::Flow, stream_slice: &StreamSlice, r: &Response) {
     let oi = stream_slice.as_slice();
-    let _f = Frame::new(flow, stream_slice, oi, r.response_line_len as i64, SIPFrameType::ResponseLine as u8);
-    let hi = &oi[r.response_line_len as usize ..];
+    let _f = Frame::new(
+        flow,
+        stream_slice,
+        oi,
+        r.response_line_len as i64,
+        SIPFrameType::ResponseLine as u8,
+    );
+    let hi = &oi[r.response_line_len as usize..];
     SCLogDebug!("tc: response_line {:?}", _f);
-    let _f = Frame::new(flow, stream_slice, hi, r.headers_len as i64, SIPFrameType::ResponseHeaders as u8);
+    let _f = Frame::new(
+        flow,
+        stream_slice,
+        hi,
+        r.headers_len as i64,
+        SIPFrameType::ResponseHeaders as u8,
+    );
     SCLogDebug!("tc: response_headers {:?}", _f);
     if r.body_len > 0 {
-        let bi = &oi[r.body_offset as usize ..];
-        let _f = Frame::new(flow, stream_slice, bi, r.body_len as i64, SIPFrameType::ResponseBody as u8);
+        let bi = &oi[r.body_offset as usize..];
+        let _f = Frame::new(
+            flow,
+            stream_slice,
+            bi,
+            r.body_len as i64,
+            SIPFrameType::ResponseBody as u8,
+        );
         SCLogDebug!("tc: response_body {:?}", _f);
     }
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern fn rs_sip_state_new(
+    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+) -> *mut std::os::raw::c_void {
     let state = SIPState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_state_free(state: *mut std::os::raw::c_void) {
+pub extern fn rs_sip_state_free(state: *mut std::os::raw::c_void) {
     let mut state = unsafe { Box::from_raw(state as *mut SIPState) };
     state.free();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_sip_state_get_tx(
-    state: *mut std::os::raw::c_void,
-    tx_id: u64,
+pub unsafe extern fn rs_sip_state_get_tx(
+    state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, SIPState);
     match state.get_tx_by_id(tx_id) {
@@ -262,21 +284,20 @@ pub unsafe extern "C" fn rs_sip_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_sip_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern fn rs_sip_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, SIPState);
     state.tx_id
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_sip_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern fn rs_sip_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, SIPState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_sip_tx_get_alstate_progress(
-    _tx: *mut std::os::raw::c_void,
-    _direction: u8,
+pub extern fn rs_sip_tx_get_alstate_progress(
+    _tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     1
 }
@@ -284,12 +305,8 @@ pub extern "C" fn rs_sip_tx_get_alstate_progress(
 static mut ALPROTO_SIP: AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_sip_probing_parser_ts(
-    _flow: *const Flow,
-    _direction: u8,
-    input: *const u8,
-    input_len: u32,
-    _rdir: *mut u8,
+pub unsafe extern fn rs_sip_probing_parser_ts(
+    _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     let buf = build_slice!(input, input_len as usize);
     if sip_parse_request(buf).is_ok() {
@@ -299,12 +316,8 @@ pub unsafe extern "C" fn rs_sip_probing_parser_ts(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_sip_probing_parser_tc(
-    _flow: *const Flow,
-    _direction: u8,
-    input: *const u8,
-    input_len: u32,
-    _rdir: *mut u8,
+pub unsafe extern fn rs_sip_probing_parser_tc(
+    _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     let buf = build_slice!(input, input_len as usize);
     if sip_parse_response(buf).is_ok() {
@@ -314,24 +327,18 @@ pub unsafe extern "C" fn rs_sip_probing_parser_tc(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_sip_parse_request(
-    flow: *const core::Flow,
-    state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+pub unsafe extern fn rs_sip_parse_request(
+    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
     state.parse_request(flow, stream_slice).into()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_sip_parse_response(
-    flow: *const core::Flow,
-    state: *mut std::os::raw::c_void,
-    _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+pub unsafe extern fn rs_sip_parse_response(
+    flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, SIPState);
     state.parse_response(flow, stream_slice).into()
@@ -343,7 +350,7 @@ export_state_data_get!(rs_sip_get_state_data, SIPState);
 const PARSER_NAME: &[u8] = b"sip\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_sip_register_parser() {
+pub unsafe extern fn rs_sip_register_parser() {
     let default_port = CString::new("[5060,5061]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,

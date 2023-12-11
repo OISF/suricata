@@ -124,11 +124,11 @@ impl Transaction for IKETransaction {
 
 impl IKETransaction {
     pub fn new(direction: Direction) -> Self {
-	Self {
-	    direction,
-	    tx_data: applayer::AppLayerTxData::for_direction(direction),
-	    ..Default::default()
-	}
+        Self {
+            direction,
+            tx_data: applayer::AppLayerTxData::for_direction(direction),
+            ..Default::default()
+        }
     }
 
     /// Set an event.
@@ -171,7 +171,9 @@ impl IKEState {
     }
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&mut IKETransaction> {
-        self.transactions.iter_mut().find(|tx| tx.tx_id == tx_id + 1)
+        self.transactions
+            .iter_mut()
+            .find(|tx| tx.tx_id == tx_id + 1)
     }
 
     pub fn new_tx(&mut self, direction: Direction) -> IKETransaction {
@@ -278,7 +280,7 @@ fn probe(input: &[u8], direction: Direction, rdir: *mut u8) -> bool {
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_probing_parser(
+pub unsafe extern fn rs_ike_probing_parser(
     _flow: *const Flow, direction: u8, input: *const u8, input_len: u32, rdir: *mut u8,
 ) -> AppProto {
     if input_len < 28 {
@@ -296,7 +298,7 @@ pub unsafe extern "C" fn rs_ike_probing_parser(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_new(
+pub extern fn rs_ike_state_new(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = IKEState::default();
@@ -305,19 +307,19 @@ pub extern "C" fn rs_ike_state_new(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_free(state: *mut std::os::raw::c_void) {
+pub unsafe extern fn rs_ike_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     std::mem::drop(Box::from_raw(state as *mut IKEState));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern fn rs_ike_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, IKEState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_parse_request(
+pub unsafe extern fn rs_ike_parse_request(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -326,7 +328,7 @@ pub unsafe extern "C" fn rs_ike_parse_request(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_parse_response(
+pub unsafe extern fn rs_ike_parse_response(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -335,7 +337,7 @@ pub unsafe extern "C" fn rs_ike_parse_response(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_tx(
+pub unsafe extern fn rs_ike_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, IKEState);
@@ -350,26 +352,26 @@ pub unsafe extern "C" fn rs_ike_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern fn rs_ike_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, IKEState);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
+pub extern fn rs_ike_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
     // This parser uses 1 to signal transaction completion status.
     return 1;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_tx_get_alstate_progress(
+pub extern fn rs_ike_tx_get_alstate_progress(
     _tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     return 1;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_tx_get_logged(
+pub unsafe extern fn rs_ike_tx_get_logged(
     _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void,
 ) -> u32 {
     let tx = cast_pointer!(tx, IKETransaction);
@@ -377,7 +379,7 @@ pub unsafe extern "C" fn rs_ike_tx_get_logged(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_tx_set_logged(
+pub unsafe extern fn rs_ike_tx_set_logged(
     _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void, logged: u32,
 ) {
     let tx = cast_pointer!(tx, IKETransaction);
@@ -394,7 +396,7 @@ export_tx_data_get!(rs_ike_get_tx_data, IKETransaction);
 export_state_data_get!(rs_ike_get_state_data, IKEState);
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_register_parser() {
+pub unsafe extern fn rs_ike_register_parser() {
     let default_port = CString::new("500").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,

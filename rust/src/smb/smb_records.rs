@@ -22,22 +22,21 @@ use nom7::{Err, IResult};
 /// parse a UTF16 string that is null terminated. Normally by 2 null
 /// bytes, but at the end of the data it can also be a single null.
 /// Skip every second byte.
-pub fn smb_get_unicode_string(blob: &[u8]) -> IResult<&[u8], Vec<u8>, SmbError>
-{
+pub fn smb_get_unicode_string(blob: &[u8]) -> IResult<&[u8], Vec<u8>, SmbError> {
     SCLogDebug!("get_unicode_string: blob {} {:?}", blob.len(), blob);
-    let mut name : Vec<u8> = Vec::new();
+    let mut name: Vec<u8> = Vec::new();
     let mut c = blob;
     while !c.is_empty() {
         if c.len() == 1 && c[0] == 0 {
             let rem = &c[1..];
             SCLogDebug!("get_unicode_string: name {:?}", name);
-            return Ok((rem, name))
+            return Ok((rem, name));
         } else if c.len() == 1 {
             break;
         } else if c[0] == 0 && c[1] == 0 {
             let rem = &c[2..];
             SCLogDebug!("get_unicode_string: name {:?}", name);
-            return Ok((rem, name))
+            return Ok((rem, name));
         }
         name.push(c[0]);
         c = &c[2..];
@@ -50,4 +49,3 @@ pub fn smb_get_ascii_string(i: &[u8]) -> IResult<&[u8], Vec<u8>, SmbError> {
     let (i, s) = take_until_and_consume(b"\x00")(i)?;
     Ok((i, s.to_vec()))
 }
-

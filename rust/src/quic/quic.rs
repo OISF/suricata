@@ -22,7 +22,7 @@ use super::{
     parser::{quic_pkt_num, QuicData, QuicHeader, QuicType},
 };
 use crate::applayer::{self, *};
-use crate::core::{AppProto, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP, Direction};
+use crate::core::{AppProto, Direction, Flow, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_UDP};
 use std::collections::VecDeque;
 use std::ffi::CString;
 use tls_parser::TlsExtensionType;
@@ -57,7 +57,11 @@ impl QuicTransaction {
         header: QuicHeader, data: QuicData, sni: Option<Vec<u8>>, ua: Option<Vec<u8>>,
         extv: Vec<QuicTlsExtension>, ja3: Option<String>, client: bool,
     ) -> Self {
-	let direction = if client { Direction::ToServer } else { Direction::ToClient };
+        let direction = if client {
+            Direction::ToServer
+        } else {
+            Direction::ToClient
+        };
         let cyu = Cyu::generate(&header, &data.frames);
         QuicTransaction {
             tx_id: 0,
@@ -73,7 +77,11 @@ impl QuicTransaction {
     }
 
     fn new_empty(client: bool, header: QuicHeader) -> Self {
-	let direction = if client { Direction::ToServer } else { Direction::ToClient };
+        let direction = if client {
+            Direction::ToServer
+        } else {
+            Direction::ToClient
+        };
         QuicTransaction {
             tx_id: 0,
             header,
@@ -329,7 +337,7 @@ impl QuicState {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_quic_state_new(
+pub extern fn rs_quic_state_new(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = QuicState::new();
@@ -338,19 +346,19 @@ pub extern "C" fn rs_quic_state_new(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_quic_state_free(state: *mut std::os::raw::c_void) {
+pub extern fn rs_quic_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     std::mem::drop(unsafe { Box::from_raw(state as *mut QuicState) });
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern fn rs_quic_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, QuicState);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_probing_parser(
+pub unsafe extern fn rs_quic_probing_parser(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     let slice = build_slice!(input, input_len as usize);
@@ -363,7 +371,7 @@ pub unsafe extern "C" fn rs_quic_probing_parser(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_parse_tc(
+pub unsafe extern fn rs_quic_parse_tc(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -378,7 +386,7 @@ pub unsafe extern "C" fn rs_quic_parse_tc(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_parse_ts(
+pub unsafe extern fn rs_quic_parse_ts(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -393,7 +401,7 @@ pub unsafe extern "C" fn rs_quic_parse_ts(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_state_get_tx(
+pub unsafe extern fn rs_quic_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, QuicState);
@@ -408,19 +416,19 @@ pub unsafe extern "C" fn rs_quic_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern fn rs_quic_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, QuicState);
     return state.max_tx_id;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_quic_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
+pub extern fn rs_quic_state_progress_completion_status(_direction: u8) -> std::os::raw::c_int {
     // This parser uses 1 to signal transaction completion status.
     return 1;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_tx_get_alstate_progress(
+pub unsafe extern fn rs_quic_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     let _tx = cast_pointer!(tx, QuicTransaction);
@@ -428,7 +436,7 @@ pub unsafe extern "C" fn rs_quic_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_state_get_tx_iterator(
+pub unsafe extern fn rs_quic_state_get_tx_iterator(
     _ipproto: u8, _alproto: AppProto, state: *mut std::os::raw::c_void, min_tx_id: u64,
     _max_tx_id: u64, istate: &mut u64,
 ) -> applayer::AppLayerGetTxIterTuple {
@@ -452,7 +460,7 @@ export_state_data_get!(rs_quic_get_state_data, QuicState);
 const PARSER_NAME: &[u8] = b"quic\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_register_parser() {
+pub unsafe extern fn rs_quic_register_parser() {
     let default_port = CString::new("[443,80]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,

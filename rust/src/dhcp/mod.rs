@@ -17,7 +17,7 @@
 
 //! DHCP parser, detection and logger module.
 
-pub mod dhcp;
-pub mod parser;
-pub mod logger;
 pub mod detect;
+pub mod dhcp;
+pub mod logger;
+pub mod parser;
