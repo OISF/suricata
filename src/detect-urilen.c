@@ -27,8 +27,8 @@
 #include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer/http/parser.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 #include "detect.h"
 #include "detect-parse.h"
@@ -39,8 +39,8 @@
 #include "detect-engine-uint.h"
 
 #include "detect-urilen.h"
-#include "util-debug.h"
-#include "util-byte.h"
+#include "util/debug.h"
+#include "util/byte.h"
 #include "flow-util.h"
 #include "stream-tcp.h"
 

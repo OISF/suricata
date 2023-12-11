@@ -26,7 +26,7 @@
 #ifndef __APP_LAYER_SSL_H__
 #define __APP_LAYER_SSL_H__
 
-#include "util-ja3.h"
+#include "util/ja3.h"
 #include "rust.h"
 
 enum TlsFrameTypes {

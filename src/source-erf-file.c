@@ -29,7 +29,7 @@
 #include "suricata.h"
 #include "tm-threads.h"
 #include "source-erf-file.h"
-#include "util-datalink.h"
+#include "util/datalink.h"
 
 #define DAG_TYPE_ETH 2
 

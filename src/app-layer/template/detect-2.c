@@ -23,7 +23,7 @@
  */
 
 #include "suricata-common.h"
-#include "util-byte.h"
+#include "util/byte.h"
 
 #include "detect.h"
 #include "detect-parse.h"

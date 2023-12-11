@@ -36,13 +36,13 @@
 #include "detect-content.h"
 #include "detect-dsize.h"
 
-#include "util-unittest.h"
-#include "util-debug.h"
-#include "util-byte.h"
+#include "util/unittest.h"
+#include "util/debug.h"
+#include "util/byte.h"
 
 #include "pkt-var.h"
 #include "host.h"
-#include "util-profiling.h"
+#include "util/profiling.h"
 
 static int DetectDsizeMatch(
         DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
@@ -369,7 +369,7 @@ void SigParseApplyDsizeToContent(Signature *s)
  */
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 #include "detect-engine.h"
 #include "detect-engine-alert.h"
 #include "packet.h"

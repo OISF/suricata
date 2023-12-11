@@ -33,9 +33,9 @@
 #include "decode-tcp.h"
 #include "decode.h"
 #include "decode-events.h"
-#include "util-unittest.h"
-#include "util-debug.h"
-#include "util-optimize.h"
+#include "util/unittest.h"
+#include "util/debug.h"
+#include "util/optimize.h"
 #include "flow.h"
 
 #define SET_OPTS(dst, src)                                                                         \
@@ -275,7 +275,7 @@ int DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
 }
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 #include "packet.h"
 
 static int TCPCalculateValidChecksumtest01(void)

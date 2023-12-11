@@ -35,10 +35,10 @@
 #include "decode.h"
 #include "runmodes.h"
 #include "runmode-netmap.h"
-#include "util-runmodes.h"
-#include "util-ioctl.h"
-#include "util-byte.h"
-#include "util-time.h"
+#include "util/runmodes.h"
+#include "util/ioctl.h"
+#include "util/byte.h"
+#include "util/time.h"
 
 #ifdef HAVE_NETMAP
 #define NETMAP_WITH_LIBS
@@ -46,9 +46,9 @@
 #endif /* HAVE_NETMAP */
 
 #include "source-netmap.h"
-#include "util-conf.h"
+#include "util/conf.h"
 #include "suricata.h"
-#include "util-bpf.h"
+#include "util/bpf.h"
 
 extern uint16_t max_pending_packets;
 

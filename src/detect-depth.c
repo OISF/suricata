@@ -39,8 +39,8 @@
 #include "flow-var.h"
 #include "app-layer.h"
 
-#include "util-byte.h"
-#include "util-debug.h"
+#include "util/byte.h"
+#include "util/debug.h"
 
 static int DetectDepthSetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectStartsWithSetup(DetectEngineCtx *, Signature *, const char *);

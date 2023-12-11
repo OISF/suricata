@@ -31,7 +31,7 @@
 #include "decode-esp.h"
 #include "flow.h"
 
-#include "util-validate.h"
+#include "util/validate.h"
 
 static int DecodeESPPacket(ThreadVars *tv, Packet *p, const uint8_t *pkt, uint16_t len)
 {
@@ -84,7 +84,7 @@ int DecodeESP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
 
 #ifdef UNITTESTS
 
-#include "util-unittest.h"
+#include "util/unittest.h"
 
 /** \test Successful decoding */
 static int DecodeESPTest01(void)

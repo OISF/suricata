@@ -35,26 +35,26 @@
 #include "threads.h"
 #include "tm-threads.h"
 #include "threadvars.h"
-#include "util-debug.h"
+#include "util/debug.h"
 
-#include "util-misc.h"
+#include "util/misc.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "util-logopenfile.h"
+#include "util/logopenfile.h"
 
 #include "output/output.h"
 #include "output/eve/output-json.h"
 #include "output/eve/output-json-anomaly.h"
 
-#include "util-byte.h"
-#include "util-enum.h"
-#include "util-privs.h"
-#include "util-print.h"
-#include "util-proto-name.h"
-#include "util-optimize.h"
-#include "util-buffer.h"
-#include "util-validate.h"
+#include "util/byte.h"
+#include "util/enum.h"
+#include "util/privs.h"
+#include "util/print.h"
+#include "util/proto-name.h"
+#include "util/optimize.h"
+#include "util/buffer.h"
+#include "util/validate.h"
 
 #define MODULE_NAME "JsonAnomalyLog"
 

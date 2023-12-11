@@ -37,12 +37,12 @@
 #include "detect-engine-siggroup.h"
 #include "detect-engine-address.h"
 
-#include "util-byte.h"
-#include "util-proto-name.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/byte.h"
+#include "util/proto-name.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
-#include "util-debug.h"
+#include "util/debug.h"
 
 /**
  * \brief Regex for parsing our options

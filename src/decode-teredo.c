@@ -36,8 +36,8 @@
 #include "decode-ipv6.h"
 #include "decode-teredo.h"
 
-#include "util-validate.h"
-#include "util-debug.h"
+#include "util/validate.h"
+#include "util/debug.h"
 #include "conf.h"
 
 #include "detect.h"

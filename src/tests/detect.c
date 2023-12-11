@@ -25,9 +25,9 @@
 #include "../pkt-var.h"
 #include "../flow-util.h"
 #include "../stream-tcp-reassemble.h"
-#include "../util-unittest.h"
-#include "../util-var-name.h"
-#include "../util-unittest-helper.h"
+#include "../util/unittest.h"
+#include "../util/var-name.h"
+#include "../util/unittest-helper.h"
 
 static const char *dummy_conf_string =
         "%YAML 1.1\n"

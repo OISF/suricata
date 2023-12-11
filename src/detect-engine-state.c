@@ -58,9 +58,9 @@
 #include "app-layer-protos.h"
 #include "app-layer/http/parser.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-profiling.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/profiling.h"
 
 #include "flow-util.h"
 

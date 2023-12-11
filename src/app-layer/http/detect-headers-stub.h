@@ -37,7 +37,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 
-#include "util-debug.h"
+#include "util/debug.h"
 #include "rust.h"
 
 static int g_buffer_id = 0;

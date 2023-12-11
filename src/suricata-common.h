@@ -510,12 +510,12 @@ typedef void lua_State;
 #endif
 
 #include "tm-threads-common.h"
-#include "util-optimize.h"
-#include "util-time.h"
-#include "util-mem.h"
-#include "util-memcmp.h"
-#include "util-atomic.h"
-#include "util-unittest.h"
+#include "util/optimize.h"
+#include "util/time.h"
+#include "util/mem.h"
+#include "util/memcmp.h"
+#include "util/atomic.h"
+#include "util/unittest.h"
 
 // pseudo system headers
 #include "queue.h"

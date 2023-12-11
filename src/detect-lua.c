@@ -42,13 +42,13 @@
 #include "flow-var.h"
 #include "flow-util.h"
 
-#include "util-debug.h"
-#include "util-spm-bm.h"
-#include "util-print.h"
-#include "util-byte.h"
+#include "util/debug.h"
+#include "util/spm-bm.h"
+#include "util/print.h"
+#include "util/byte.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -60,8 +60,8 @@
 #include "detect-lua-extensions.h"
 
 #include "queue.h"
-#include "util-cpu.h"
-#include "util-var-name.h"
+#include "util/cpu.h"
+#include "util/var-name.h"
 
 #ifndef HAVE_LUA
 
@@ -90,7 +90,7 @@ void DetectLuaRegister(void)
 
 #else /* HAVE_LUA */
 
-#include "util-lua.h"
+#include "util/lua/lua.h"
 
 static int DetectLuaMatch(
         DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);

@@ -29,11 +29,11 @@
 #include "flow-private.h"
 
 #ifdef DEBUG
-#include "util-exception-policy.h"
+#include "util/exception-policy.h"
 #endif
 
-#include "util-profiling.h"
-#include "util-validate.h"
+#include "util/profiling.h"
+#include "util/validate.h"
 
 #include "action-globals.h"
 

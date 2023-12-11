@@ -26,8 +26,8 @@
 #include "suricata-common.h"
 #include "decode.h"
 
-#include "util-validate.h"
-#include "util-unittest.h"
+#include "util/validate.h"
+#include "util/unittest.h"
 
 #define MPLS_HEADER_LEN         4
 #define MPLS_PW_LEN             4

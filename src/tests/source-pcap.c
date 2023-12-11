@@ -16,7 +16,7 @@
  */
 
 #include "../suricata-common.h"
-#include "../util-unittest.h"
+#include "../util/unittest.h"
 
 static uint32_t Upper32(uint64_t value)
 {

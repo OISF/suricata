@@ -39,9 +39,9 @@
 #include "detect-byte-extract.h"
 #include "app-layer.h"
 
-#include "util-byte.h"
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/byte.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 #include "detect-pcre.h"
 
 /**
@@ -739,7 +739,7 @@ static void DetectBytetestFree(DetectEngineCtx *de_ctx, void *ptr)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 #include "app-layer-parser.h"
 #include "flow-util.h"
 static int g_file_data_buffer_id = 0;

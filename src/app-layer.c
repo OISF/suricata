@@ -41,13 +41,13 @@
 #include "flow-util.h"
 #include "flow-private.h"
 #include "ippair.h"
-#include "util-debug.h"
-#include "util-print.h"
-#include "util-profiling.h"
-#include "util-validate.h"
+#include "util/debug.h"
+#include "util/print.h"
+#include "util/profiling.h"
+#include "util/validate.h"
 #include "decode-events.h"
 #include "app-layer/http/parser-mem.h"
-#include "util-exception-policy.h"
+#include "util/exception-policy.h"
 
 /**
  * \brief This is for the app layer in general and it contains per thread
@@ -1161,7 +1161,7 @@ void AppLayerDeSetupCounters(void)
 #include "pkt-var.h"
 #include "stream-tcp-util.h"
 #include "stream.h"
-#include "util-unittest.h"
+#include "util/unittest.h"
 
 #define TEST_START                                                                                 \
     Packet *p = PacketGetFromAlloc();                                                              \

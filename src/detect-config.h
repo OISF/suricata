@@ -24,7 +24,7 @@
 #ifndef __DETECT_CONFIG_H__
 #define __DETECT_CONFIG_H__
 
-#include "util-config.h"
+#include "util/config.h"
 
 typedef struct DetectConfigData_ {
     enum ConfigSubsys subsys;

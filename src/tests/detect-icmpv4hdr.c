@@ -22,7 +22,7 @@
 
 #include "../detect-icmpv4hdr.h"
 
-#include "../util-unittest.h"
+#include "../util/unittest.h"
 
 static int DetectIcmpv4HdrParseTest01(void)
 {

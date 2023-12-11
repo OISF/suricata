@@ -27,7 +27,7 @@
 #define __REPUTATION_H__
 
 #include "host.h"
-#include "util-radix-tree.h"
+#include "util/radix-tree.h"
 
 #define SREP_MAX_CATS 60
 #define SREP_MAX_VAL  127

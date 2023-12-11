@@ -39,12 +39,12 @@
 #include "app-layer-detect-proto.h"
 
 #include "detect-fragbits.h"
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 
 #include "pkt-var.h"
 #include "host.h"
-#include "util-profiling.h"
+#include "util/profiling.h"
 
 /**
  *  Regex
@@ -376,7 +376,7 @@ static bool PrefilterFragBitsIsPrefilterable(const Signature *s)
  */
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 #include "packet.h"
 
 /**

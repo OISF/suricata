@@ -38,10 +38,10 @@
 #include "detect-config.h"
 #include "detect-flowbits.h"
 
-#include "util-profiling.h"
-#include "util-validate.h"
-#include "util-var-name.h"
-#include "util-conf.h"
+#include "util/profiling.h"
+#include "util/validate.h"
+#include "util/var-name.h"
+#include "util/conf.h"
 
 /* Magic numbers to make the rules of a certain order fall in the same group */
 #define DETECT_PGSCORE_RULE_PORT_WHITELISTED 111 /* Rule port group contains a whitelisted port */

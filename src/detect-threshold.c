@@ -51,13 +51,13 @@
 #include "detect-engine-address.h"
 #include "detect-engine-build.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-byte.h"
-#include "util-debug.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/byte.h"
+#include "util/debug.h"
 
 #ifdef UNITTESTS
-#include "util-cpu.h"
+#include "util/cpu.h"
 #endif
 
 #define PARSE_REGEX                                                                                \
@@ -340,8 +340,8 @@ error:
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-alert.h"
-#include "util-time.h"
-#include "util-hashlist.h"
+#include "util/time.h"
+#include "util/hashlist.h"
 #include "packet.h"
 #include "action-globals.h"
 /**

@@ -21,7 +21,7 @@
 
 #include "../app-layer/http2/detect.h"
 
-#include "../util-unittest.h"
+#include "../util/unittest.h"
 
 /**
  * \test signature with a valid http2.frametype value.

@@ -35,11 +35,11 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 
-#include "util-debug.h"
-#include "util-print.h"
-#include "util-misc.h"
-#include "util-path.h"
-#include "util-conf.h"
+#include "util/debug.h"
+#include "util/print.h"
+#include "util/misc.h"
+#include "util/path.h"
+#include "util/conf.h"
 
 int DetectDatasetMatch(
         ThreadVars *, DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);

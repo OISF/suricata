@@ -53,17 +53,17 @@
 #include "detect-dataset.h"
 #include "detect-datarep.h"
 
-#include "util-spm.h"
-#include "util-debug.h"
-#include "util-print.h"
-#include "util-validate.h"
+#include "util/spm.h"
+#include "util/debug.h"
+#include "util/print.h"
+#include "util/validate.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-profiling.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/profiling.h"
 
 #ifdef HAVE_LUA
-#include "util-lua.h"
+#include "util/lua/lua.h"
 #endif
 
 #ifdef UNITTESTS

@@ -26,10 +26,10 @@
 
 #include "threadvars.h"
 
-#include "util-conf.h"
-#include "util-logopenfile.h"
-#include "util-path.h"
-#include "util-print.h"
+#include "util/conf.h"
+#include "util/logopenfile.h"
+#include "util/path.h"
+#include "util/print.h"
 
 #define DEFAULT_LOG_FILENAME "tcp-data.log"
 

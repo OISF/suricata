@@ -177,10 +177,10 @@ info on the line it is ignored.
 
 Output from md5sum is fine::
 
-  2f8d0355f0032c3e6311c6408d7c2dc2  util-path.c
-  b9cf5cf347a70e02fde975fc4e117760  util-pidfile.c
-  02aaa6c3f4dbae65f5889eeb8f2bbb8d  util-pool.c
-  dd5fc1ee7f2f96b5f12d1a854007a818  util-print.c
+  2f8d0355f0032c3e6311c6408d7c2dc2  util/path.c
+  b9cf5cf347a70e02fde975fc4e117760  util/pidfile.c
+  02aaa6c3f4dbae65f5889eeb8f2bbb8d  util/pool.c
+  dd5fc1ee7f2f96b5f12d1a854007a818  util/print.c
 
 Just MD5's are good as well::
 

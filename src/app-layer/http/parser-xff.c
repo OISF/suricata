@@ -30,11 +30,11 @@
 #include "app-layer/http/parser-xff.h"
 
 #ifndef HAVE_MEMRCHR
-#include "util-memrchr.h"
+#include "util/memrchr.h"
 #endif
 
-#include "util-misc.h"
-#include "util-unittest.h"
+#include "util/misc.h"
+#include "util/unittest.h"
 
 /** XFF header value minimal length */
 #define XFF_CHAIN_MINLEN 7

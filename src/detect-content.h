@@ -85,7 +85,7 @@
  */
 #define DETECT_CONTENT_VALUE_MAX 1024 * 1024
 
-#include "util-spm.h"
+#include "util/spm.h"
 
 typedef struct DetectContentData_ {
     uint8_t *content;

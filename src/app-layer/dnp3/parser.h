@@ -26,7 +26,7 @@
 
 #include "rust.h"
 #if __BYTE_ORDER == __BIG_ENDIAN
-#include "util-byte.h"
+#include "util/byte.h"
 #endif
 
 /* DNP3 application request function codes. */

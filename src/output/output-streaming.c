@@ -29,13 +29,13 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer/http/parser.h"
-#include "util-print.h"
+#include "util/print.h"
 #include "conf.h"
-#include "util-profiling.h"
+#include "util/profiling.h"
 #include "stream-tcp.h"
 #include "stream-tcp-inline.h"
 #include "stream-tcp-reassemble.h"
-#include "util-validate.h"
+#include "util/validate.h"
 
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */

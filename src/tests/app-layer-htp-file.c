@@ -16,7 +16,7 @@
  */
 
 #include "../app-layer/http/parser-file.h"
-#include "../util-unittest.h"
+#include "../util/unittest.h"
 
 /**
  * \test AppLayerHtpFileParseContentRangeTest01 is a test

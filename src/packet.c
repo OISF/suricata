@@ -19,8 +19,8 @@
 #include "pkt-var.h"
 #include "flow.h"
 #include "host.h"
-#include "util-profiling.h"
-#include "util-validate.h"
+#include "util/profiling.h"
+#include "util/validate.h"
 #include "action-globals.h"
 
 /** \brief issue drop action

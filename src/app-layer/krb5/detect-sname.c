@@ -22,7 +22,7 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
+#include "util/unittest.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -35,7 +35,7 @@
 
 #include "rust.h"
 #include "app-layer/krb5/parser.h"
-#include "util-profiling.h"
+#include "util/profiling.h"
 
 static int g_krb5_sname_buffer_id = 0;
 
