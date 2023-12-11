@@ -2805,6 +2805,9 @@
                         "password_message": {
                             "type": "string"
                         },
+                        "process_id": {
+                            "type": "integer"
+                        },
                         "protocol_version": {
                             "type": "string"
                         },
@@ -2816,6 +2819,9 @@
                         },
                         "sasl_response": {
                             "type": "string"
+                        },
+                        "secret_key": {
+                            "type": "integer"
                         },
                         "simple_query": {
                             "type": "string"
