@@ -32,7 +32,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-snmp-community.h"
+#include "app-layer/snmp/detect-community.h"
 #include "app-layer-parser.h"
 #include "rust.h"
 

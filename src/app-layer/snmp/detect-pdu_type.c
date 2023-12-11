@@ -27,7 +27,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-snmp-pdu_type.h"
+#include "app-layer/snmp/detect-pdu_type.h"
 #include "app-layer-parser.h"
 #include "rust.h"
 
