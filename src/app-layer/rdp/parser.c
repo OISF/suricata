@@ -29,7 +29,7 @@
 #include "util-unittest.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
-#include "app-layer-rdp.h"
+#include "app-layer/rdp/parser.h"
 #include "rust.h"
 
 void RegisterRdpParsers(void)
