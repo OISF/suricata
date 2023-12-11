@@ -34,7 +34,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 
-#include "detect-smb-ntlmssp.h"
+#include "app-layer/smb/detect-ntlmssp.h"
 #include "rust.h"
 
 #define BUFFER_NAME  "smb_ntlmssp_user"
