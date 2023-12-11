@@ -320,9 +320,9 @@ noinst_HEADERS = \
 	detect-tcpmss.h \
 	detect-tcp-seq.h \
 	detect-tcp-window.h \
-	detect-template2.h \
-	detect-template.h \
-	detect-template-rust-buffer.h \
+	app-layer/template/detect-2.h \
+	app-layer/template/detect.h \
+	app-layer/template/detect-rust-buffer.h \
 	detect-threshold.h \
 	app-layer/tls/detect-cert-fingerprint.h \
 	app-layer/tls/detect-cert-issuer.h \
@@ -429,7 +429,7 @@ noinst_HEADERS = \
 	app-layer/snmp/logger.h \
 	app-layer/ssh/logger.h \
 	output-json-stats.h \
-	output-json-template.h \
+	app-layer/template/logger.h \
 	app-layer/tftp/logger.h \
 	app-layer/tls/logger.h \
 	output-eve-syslog.h \
@@ -933,9 +933,9 @@ libsuricata_c_a_SOURCES = \
 	detect-tcpmss.c \
 	detect-tcp-seq.c \
 	detect-tcp-window.c \
-	detect-template2.c \
-	detect-template.c \
-	detect-template-rust-buffer.c \
+	app-layer/template/detect-2.c \
+	app-layer/template/detect.c \
+	app-layer/template/detect-rust-buffer.c \
 	detect-threshold.c \
 	app-layer/tls/detect.c \
 	app-layer/tls/detect-cert-fingerprint.c \
@@ -1041,7 +1041,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/snmp/logger.c \
 	app-layer/ssh/logger.c \
 	output-json-stats.c \
-	output-json-template.c \
+	app-layer/template/logger.c \
 	app-layer/tftp/logger.c \
 	app-layer/tls/logger.c \
 	output-eve-syslog.c \

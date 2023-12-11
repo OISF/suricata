@@ -21,7 +21,7 @@
 #include "../detect-parse.h"
 #include "../detect-engine.h"
 
-#include "../detect-template.h"
+#include "../app-layer/template/detect.h"
 
 /**
  * \test test keyword parsing
