@@ -19,7 +19,7 @@ The fast_pattern selection criteria are as follows:
    "priority" that are used in the signature.  The priority is based
    off of the buffer being matched on and generally 'http_*' buffers
    have a higher priority (lower number is higher priority).  See
-   :ref:`Appendix B <fast-pattern-explained-appendix-b>` for details
+   :ref:`Appendix B <fast-pattern-explained-appendix-a>` for details
    on which buffers have what priority.
 #. Within the content matches identified in step 1 (the highest
    priority content matches), the longest (in terms of character/byte
@@ -28,13 +28,13 @@ The fast_pattern selection criteria are as follows:
    qualify for the longest length, the one with the highest
    character/byte diversity score ("Pattern Strength") is used as the
    fast pattern match.  See :ref:`Appendix C
-   <fast-pattern-explained-appendix-c>` for details on the algorithm
+   <fast-pattern-explained-appendix-b>` for details on the algorithm
    used to determine Pattern Strength.
 #. If multiple content matches have the same highest priority, qualify
    for the longest length, and the same highest Pattern Strength, the
    buffer ("list_id") that was *registered last* is used as the fast
    pattern match.  See :ref:`Appendix B
-   <fast-pattern-explained-appendix-b>` for the registration order of
+   <fast-pattern-explained-appendix-a>` for the registration order of
    the different buffers/lists.
 #. If multiple content matches have the same highest priority, qualify
    for the longest length, the same highest Pattern Strength, and have
@@ -52,36 +52,8 @@ Appendices
 
 .. _fast-pattern-explained-appendix-a:
 
-Appendix A - Buffers, list_id values, and Registration Order for Suricata 1.3.4
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This should be pretty much the same for Suricata 1.1.x - 1.4.x.
-
-======= ============================== ======================== ==================
-list_id Content Modifier Keyword       Buffer Name              Registration Order
-======= ============================== ======================== ==================
-1       <none> (regular content match) DETECT_SM_LIST_PMATCH    1 (first)
-2       http_uri                       DETECT_SM_LIST_UMATCH    2
-6       http_client_body               DETECT_SM_LIST_HCBDMATCH 3
-7       http_server_body               DETECT_SM_LIST_HSBDMATCH 4
-8       http_header                    DETECT_SM_LIST_HHDMATCH  5
-9       http_raw_header                DETECT_SM_LIST_HRHDMATCH 6
-10      http_method                    DETECT_SM_LIST_HMDMATCH  7
-11      http_cookie                    DETECT_SM_LIST_HCDMATCH  8
-12      http_raw_uri                   DETECT_SM_LIST_HRUDMATCH 9
-13      http_stat_msg                  DETECT_SM_LIST_HSMDMATCH 10
-14      http_stat_code                 DETECT_SM_LIST_HSCDMATCH 11
-15      http_user_agent                DETECT_SM_LIST_HUADMATCH 12 (last)
-======= ============================== ======================== ==================
-
-Note: registration order doesn't matter when it comes to determining the fast pattern match for Suricata 1.3.4 but list_id value does.
-
-.. _fast-pattern-explained-appendix-b:
-
-Appendix B - Buffers, list_id values, Priorities, and Registration Order for Suricata 2.0.7
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This should be pretty much the same for Suricata 2.0.x.
+Appendix A - Buffers, list_id values, Priorities, and Registration Order for Suricata 2.0.7+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ========================================== ================== ============================== ============================= =======
 Priority (lower number is higher priority) Registration Order Content Modifier Keyword       Buffer Name                   list_id
@@ -106,9 +78,9 @@ Priority (lower number is higher priority) Registration Order Content Modifier K
 Note: list_id value doesn't matter when it comes to determining the
 fast pattern match for Suricata 2.0.7 but registration order does.
 
-.. _fast-pattern-explained-appendix-c:
+.. _fast-pattern-explained-appendix-b:
 
-Appendix C - Pattern Strength Algorithm
+Appendix B - Pattern Strength Algorithm
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 From detect-engine-mpm.c. Basically the Pattern Strength "score"
