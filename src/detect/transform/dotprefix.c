@@ -29,7 +29,7 @@
 #include "detect-engine.h"
 #include "detect-engine-prefilter.h"
 #include "detect-parse.h"
-#include "detect-transform-dotprefix.h"
+#include "detect/transform/dotprefix.h"
 #include "detect-engine-build.h"
 
 #include "util/unittest.h"

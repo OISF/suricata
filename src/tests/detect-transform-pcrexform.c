@@ -19,7 +19,7 @@
 
 #include "../detect-engine.h"
 
-#include "../detect-transform-pcrexform.h"
+#include "../detect/transform/pcrexform.h"
 
 #include "../util/unittest.h"
 

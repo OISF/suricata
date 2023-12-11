@@ -30,7 +30,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-build.h"
 #include "detect-parse.h"
-#include "detect-transform-urldecode.h"
+#include "detect/transform/urldecode.h"
 
 #include "util/unittest.h"
 #include "util/print.h"
