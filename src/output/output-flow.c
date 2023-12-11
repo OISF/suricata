@@ -20,79 +20,78 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Packet Logger Output registration functions
+ * Flow Logger Output registration functions
  */
 
 #include "suricata-common.h"
-#include "output.h"
-#include "output-packet.h"
+#include "output/output.h"
+#include "output/output-flow.h"
 #include "util-profiling.h"
 #include "util-validate.h"
 
 /** per thread data for this module, contains a list of per thread
  *  data for the packet loggers. */
-typedef struct OutputPacketLoggerThreadData_ {
+typedef struct OutputFlowLoggerThreadData_ {
     OutputLoggerThreadStore *store;
-} OutputPacketLoggerThreadData;
+} OutputFlowLoggerThreadData;
 
 /* logger instance, a module + a output ctx,
  * it's perfectly valid that have multiple instances of the same
- * log module (e.g. fast.log) with different output ctx'. */
-typedef struct OutputPacketLogger_ {
-    PacketLogger LogFunc;
-    PacketLogCondition ConditionFunc;
+ * log module (e.g. http.log) with different output ctx'. */
+typedef struct OutputFlowLogger_ {
+    FlowLogger LogFunc;
     OutputCtx *output_ctx;
-    struct OutputPacketLogger_ *next;
+    struct OutputFlowLogger_ *next;
     const char *name;
-    LoggerId logger_id;
-    ThreadInitFunc ThreadInit;
-    ThreadDeinitFunc ThreadDeinit;
-    ThreadExitPrintStatsFunc ThreadExitPrintStats;
-} OutputPacketLogger;
+    TmEcode (*ThreadInit)(ThreadVars *, const void *, void **);
+    TmEcode (*ThreadDeinit)(ThreadVars *, void *);
+    void (*ThreadExitPrintStats)(ThreadVars *, void *);
+} OutputFlowLogger;
 
-static OutputPacketLogger *list = NULL;
+static OutputFlowLogger *list = NULL;
 
-int OutputRegisterPacketLogger(LoggerId logger_id, const char *name, PacketLogger LogFunc,
-        PacketLogCondition ConditionFunc, OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
-        ThreadDeinitFunc ThreadDeinit, ThreadExitPrintStatsFunc ThreadExitPrintStats)
+int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, OutputCtx *output_ctx,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
-    OutputPacketLogger *op = SCCalloc(1, sizeof(*op));
+    OutputFlowLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
         return -1;
 
     op->LogFunc = LogFunc;
-    op->ConditionFunc = ConditionFunc;
     op->output_ctx = output_ctx;
     op->name = name;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
     op->ThreadExitPrintStats = ThreadExitPrintStats;
-    op->logger_id = logger_id;
 
     if (list == NULL)
         list = op;
     else {
-        OutputPacketLogger *t = list;
+        OutputFlowLogger *t = list;
         while (t->next)
             t = t->next;
         t->next = op;
     }
 
-    SCLogDebug("OutputRegisterPacketLogger happy");
+    SCLogDebug("OutputRegisterFlowLogger happy");
     return 0;
 }
 
-static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data)
+/** \brief Run flow logger(s)
+ *  \note flow is already write locked
+ */
+TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f)
 {
     DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
 
-    if (list == NULL) {
-        /* No child loggers. */
+    if (list == NULL)
         return TM_ECODE_OK;
-    }
 
-    OutputPacketLoggerThreadData *op_thread_data = (OutputPacketLoggerThreadData *)thread_data;
-    OutputPacketLogger *logger = list;
+    FlowSetEndFlags(f);
+
+    OutputFlowLoggerThreadData *op_thread_data = (OutputFlowLoggerThreadData *)thread_data;
+    OutputFlowLogger *logger = list;
     OutputLoggerThreadStore *store = op_thread_data->store;
 
     DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
@@ -100,13 +99,12 @@ static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data)
     DEBUG_VALIDATE_BUG_ON(logger == NULL && store == NULL);
 
     while (logger && store) {
-        DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL || logger->ConditionFunc == NULL);
+        DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL);
 
-        if (logger->ConditionFunc(tv, store->thread_data, (const Packet *)p)) {
-            PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
-            logger->LogFunc(tv, store->thread_data, (const Packet *)p);
-            PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
-        }
+        SCLogDebug("logger %p", logger);
+        // PACKET_PROFILING_LOGGER_START(p, logger->module_id);
+        logger->LogFunc(tv, store->thread_data, f);
+        // PACKET_PROFILING_LOGGER_END(p, logger->module_id);
 
         logger = logger->next;
         store = store->next;
@@ -118,20 +116,20 @@ static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data)
     return TM_ECODE_OK;
 }
 
-/** \brief thread init for the packet logger
+/** \brief thread init for the flow logger
  *  This will run the thread init functions for the individual registered
  *  loggers */
-static TmEcode OutputPacketLogThreadInit(ThreadVars *tv, const void *initdata, void **data)
+TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
-    OutputPacketLoggerThreadData *td = SCCalloc(1, sizeof(*td));
+    OutputFlowLoggerThreadData *td = SCCalloc(1, sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;
 
     *data = (void *)td;
 
-    SCLogDebug("OutputPacketLogThreadInit happy (*data %p)", *data);
+    SCLogDebug("OutputFlowLogThreadInit happy (*data %p)", *data);
 
-    OutputPacketLogger *logger = list;
+    OutputFlowLogger *logger = list;
     while (logger) {
         if (logger->ThreadInit) {
             void *retptr = NULL;
@@ -161,11 +159,14 @@ static TmEcode OutputPacketLogThreadInit(ThreadVars *tv, const void *initdata, v
     return TM_ECODE_OK;
 }
 
-static TmEcode OutputPacketLogThreadDeinit(ThreadVars *tv, void *thread_data)
+TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data)
 {
-    OutputPacketLoggerThreadData *op_thread_data = (OutputPacketLoggerThreadData *)thread_data;
+    OutputFlowLoggerThreadData *op_thread_data = (OutputFlowLoggerThreadData *)thread_data;
+    if (op_thread_data == NULL)
+        return TM_ECODE_OK;
+
     OutputLoggerThreadStore *store = op_thread_data->store;
-    OutputPacketLogger *logger = list;
+    OutputFlowLogger *logger = list;
 
     while (logger && store) {
         if (logger->ThreadDeinit) {
@@ -175,7 +176,6 @@ static TmEcode OutputPacketLogThreadDeinit(ThreadVars *tv, void *thread_data)
         OutputLoggerThreadStore *next_store = store->next;
         SCFree(store);
         store = next_store;
-
         logger = logger->next;
     }
 
@@ -183,11 +183,11 @@ static TmEcode OutputPacketLogThreadDeinit(ThreadVars *tv, void *thread_data)
     return TM_ECODE_OK;
 }
 
-static void OutputPacketLogExitPrintStats(ThreadVars *tv, void *thread_data)
+void OutputFlowLogExitPrintStats(ThreadVars *tv, void *thread_data)
 {
-    OutputPacketLoggerThreadData *op_thread_data = (OutputPacketLoggerThreadData *)thread_data;
+    OutputFlowLoggerThreadData *op_thread_data = (OutputFlowLoggerThreadData *)thread_data;
     OutputLoggerThreadStore *store = op_thread_data->store;
-    OutputPacketLogger *logger = list;
+    OutputFlowLogger *logger = list;
 
     while (logger && store) {
         if (logger->ThreadExitPrintStats) {
@@ -199,30 +199,13 @@ static void OutputPacketLogExitPrintStats(ThreadVars *tv, void *thread_data)
     }
 }
 
-static uint32_t OutputPacketLoggerGetActiveCount(void)
+void OutputFlowShutdown(void)
 {
-    uint32_t cnt = 0;
-    for (OutputPacketLogger *p = list; p != NULL; p = p->next) {
-        cnt++;
-    }
-    return cnt;
-}
-
-void OutputPacketLoggerRegister(void)
-{
-    OutputRegisterRootLogger(OutputPacketLogThreadInit, OutputPacketLogThreadDeinit,
-            OutputPacketLogExitPrintStats, OutputPacketLog, OutputPacketLoggerGetActiveCount);
-}
-
-void OutputPacketShutdown(void)
-{
-    OutputPacketLogger *logger = list;
+    OutputFlowLogger *logger = list;
     while (logger) {
-        OutputPacketLogger *next_logger = logger->next;
+        OutputFlowLogger *next_logger = logger->next;
         SCFree(logger);
         logger = next_logger;
     }
-
-    /* reset list pointer */
     list = NULL;
 }

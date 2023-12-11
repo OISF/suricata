@@ -37,7 +37,7 @@
 
 #include "util-debug.h"
 #include "app-layer-parser.h"
-#include "output.h"
+#include "output/output.h"
 #include "app-layer/http2/parser.h"
 #include "app-layer.h"
 #include "util-privs.h"
@@ -45,7 +45,7 @@
 
 #include "util-logopenfile.h"
 
-#include "output-json.h"
+#include "output/eve/output-json.h"
 #include "app-layer/http2/logger.h"
 #include "rust.h"
 

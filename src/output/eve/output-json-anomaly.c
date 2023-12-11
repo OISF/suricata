@@ -43,9 +43,9 @@
 #include "detect-engine.h"
 #include "util-logopenfile.h"
 
-#include "output.h"
-#include "output-json.h"
-#include "output-json-anomaly.h"
+#include "output/output.h"
+#include "output/eve/output-json.h"
+#include "output/eve/output-json-anomaly.h"
 
 #include "util-byte.h"
 #include "util-enum.h"

@@ -20,7 +20,7 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-erf-dag.h"
-#include "output.h"
+#include "output/output.h"
 
 #include "detect-engine.h"
 

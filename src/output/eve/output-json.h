@@ -27,7 +27,7 @@
 #include "suricata-common.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
-#include "output.h"
+#include "output/output.h"
 #include "rust.h"
 
 #include "app-layer/http/parser-xff.h"

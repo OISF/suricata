@@ -36,7 +36,7 @@
 
 #include "util-debug.h"
 
-#include "output.h"
+#include "output/output.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer/ssh/parser.h"

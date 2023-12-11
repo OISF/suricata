@@ -29,7 +29,7 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-ipfw.h"
-#include "output.h"
+#include "output/output.h"
 
 #include "util-debug.h"
 #include "util-time.h"

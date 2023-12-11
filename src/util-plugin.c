@@ -19,7 +19,7 @@
 #include "suricata-plugin.h"
 #include "suricata.h"
 #include "runmodes.h"
-#include "output-eve-syslog.h"
+#include "output/eve/output-eve-syslog.h"
 #include "util-plugin.h"
 #include "util-debug.h"
 

@@ -388,37 +388,37 @@ noinst_HEADERS = \
 	log-tcp-data.h \
 	app-layer/tls/log-tlslog.h \
 	app-layer/tls/log-tlsstore.h \
-	output-eve-stream.h \
-	output-eve-null.h \
-	output-filedata.h \
-	output-file.h \
-	output-filestore.h \
-	output-flow.h \
-	output.h \
-	output-json-alert.h \
-	output-json-anomaly.h \
+	output/eve/output-eve-stream.h \
+	output/eve/output-eve-null.h \
+	output/output-filedata.h \
+	output/output-file.h \
+	output/output-filestore.h \
+	output/output-flow.h \
+	output/output.h \
+	output/eve/output-json-alert.h \
+	output/eve/output-json-anomaly.h \
 	app-layer/bittorrent-dht/logger.h \
 	app-layer/dcerpc/logger.h \
 	app-layer/dhcp/logger.h \
 	app-layer/dnp3/logger.h \
 	app-layer/dnp3/logger-objects.h \
 	app-layer/dns/logger.h \
-	output-json-drop.h \
-	output-json-email-common.h \
-	output-json-file.h \
-	output-json-flow.h \
-	output-json-frame.h \
+	output/eve/output-json-drop.h \
+	output/eve/output-json-email-common.h \
+	output/eve/output-json-file.h \
+	output/eve/output-json-flow.h \
+	output/eve/output-json-frame.h \
 	app-layer/ftp/logger.h \
-	output-json.h \
+	output/eve/output-json.h \
 	app-layer/http2/logger.h \
 	app-layer/http/logger.h \
 	app-layer/ike/logger.h \
 	app-layer/krb5/logger.h \
-	output-json-metadata.h \
+	output/eve/output-json-metadata.h \
 	app-layer/modbus/logger.h \
 	app-layer/quic/logger.h \
 	app-layer/mqtt/logger.h \
-	output-json-netflow.h \
+	output/eve/output-json-netflow.h \
 	app-layer/nfs/logger.h \
 	app-layer/pgsql/logger.h \
 	app-layer/rdp/logger.h \
@@ -428,16 +428,16 @@ noinst_HEADERS = \
 	app-layer/smtp/logger.h \
 	app-layer/snmp/logger.h \
 	app-layer/ssh/logger.h \
-	output-json-stats.h \
+	output/eve/output-json-stats.h \
 	app-layer/template/logger.h \
 	app-layer/tftp/logger.h \
 	app-layer/tls/logger.h \
-	output-eve-syslog.h \
-	output-lua.h \
-	output-packet.h \
-	output-stats.h \
-	output-streaming.h \
-	output-tx.h \
+	output/eve/output-eve-syslog.h \
+	output/output-lua.h \
+	output/output-packet.h \
+	output/output-stats.h \
+	output/output-streaming.h \
+	output/output-tx.h \
 	packet.h \
 	packet-queue.h \
 	pkt-var.h \
@@ -1000,37 +1000,37 @@ libsuricata_c_a_SOURCES = \
 	log-tcp-data.c \
 	app-layer/tls/log-tlslog.c \
 	app-layer/tls/log-tlsstore.c \
-	output.c \
-	output-eve-stream.c \
-	output-file.c \
-	output-filedata.c \
-	output-filestore.c \
-	output-flow.c \
-	output-json-alert.c \
-	output-json-anomaly.c \
+	output/output.c \
+	output/eve/output-eve-stream.c \
+	output/output-file.c \
+	output/output-filedata.c \
+	output/output-filestore.c \
+	output/output-flow.c \
+	output/eve/output-json-alert.c \
+	output/eve/output-json-anomaly.c \
 	app-layer/bittorrent-dht/logger.c \
-	output-json.c \
-	output-json-common.c \
+	output/eve/output-json.c \
+	output/eve/output-json-common.c \
 	app-layer/dcerpc/logger.c \
 	app-layer/dhcp/logger.c \
 	app-layer/dnp3/logger.c \
 	app-layer/dnp3/logger-objects.c \
 	app-layer/dns/logger.c \
-	output-json-drop.c \
-	output-json-email-common.c \
-	output-json-file.c \
-	output-json-flow.c \
-	output-json-frame.c \
+	output/eve/output-json-drop.c \
+	output/eve/output-json-email-common.c \
+	output/eve/output-json-file.c \
+	output/eve/output-json-flow.c \
+	output/eve/output-json-frame.c \
 	app-layer/ftp/logger.c \
 	app-layer/http2/logger.c \
 	app-layer/http/logger.c \
 	app-layer/ike/logger.c \
 	app-layer/krb5/logger.c \
-	output-json-metadata.c \
+	output/eve/output-json-metadata.c \
 	app-layer/modbus/logger.c \
 	app-layer/quic/logger.c \
 	app-layer/mqtt/logger.c \
-	output-json-netflow.c \
+	output/eve/output-json-netflow.c \
 	app-layer/nfs/logger.c \
 	app-layer/pgsql/logger.c \
 	app-layer/rdp/logger.c \
@@ -1040,17 +1040,17 @@ libsuricata_c_a_SOURCES = \
 	app-layer/smtp/logger.c \
 	app-layer/snmp/logger.c \
 	app-layer/ssh/logger.c \
-	output-json-stats.c \
+	output/eve/output-json-stats.c \
 	app-layer/template/logger.c \
 	app-layer/tftp/logger.c \
 	app-layer/tls/logger.c \
-	output-eve-syslog.c \
-	output-eve-null.c \
-	output-lua.c \
-	output-packet.c \
-	output-stats.c \
-	output-streaming.c \
-	output-tx.c \
+	output/eve/output-eve-syslog.c \
+	output/eve/output-eve-null.c \
+	output/output-lua.c \
+	output/output-packet.c \
+	output/output-stats.c \
+	output/output-streaming.c \
+	output/output-tx.c \
 	packet.c \
 	packet-queue.c \
 	pkt-var.c \

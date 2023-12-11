@@ -25,7 +25,7 @@
 #define __LOG_TCPDATALOG_H__
 
 #include "conf.h"
-#include "output.h"
+#include "output/output.h"
 
 void LogTcpDataLogRegister(void);
 OutputInitResult LogTcpDataLogInitCtx(ConfNode *);

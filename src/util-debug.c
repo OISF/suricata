@@ -26,7 +26,7 @@
 #include "suricata-common.h"
 #include "util-debug.h"
 
-#include "output.h"
+#include "output/output.h"
 
 #include "suricata.h"
 

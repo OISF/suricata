@@ -30,7 +30,7 @@
 #include "conf.h"
 #include "runmode-unix-socket.h"
 
-#include "output-json-stats.h"
+#include "output/eve/output-json-stats.h"
 
 #include "util-conf.h"
 #include "util-privs.h"
@@ -48,8 +48,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "output.h"
-#include "output-json.h"
+#include "output/output.h"
+#include "output/eve/output-json.h"
 
 // MSG_NOSIGNAL does not exists on OS X
 #ifdef OS_DARWIN

@@ -62,7 +62,7 @@
 #include "ippair-timeout.h"
 #include "app-layer/http/parser-range.h"
 
-#include "output-flow.h"
+#include "output/output-flow.h"
 
 #include "runmode-unix-socket.h"
 

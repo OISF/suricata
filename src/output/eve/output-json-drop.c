@@ -41,10 +41,10 @@
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
 
-#include "output.h"
-#include "output-json.h"
-#include "output-json-alert.h"
-#include "output-json-drop.h"
+#include "output/output.h"
+#include "output/eve/output-json.h"
+#include "output/eve/output-json-alert.h"
+#include "output/eve/output-json-drop.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
