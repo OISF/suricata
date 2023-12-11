@@ -2501,6 +2501,11 @@ Some of the possible request messages are:
   to be exchanged as subprotocols.
 * "message": frontend responses which do not have meaningful payloads are logged
   like this, where the field value is the message type
+* ``"message": "cancel_request"``: sent after a query, when the frontend
+  attempts to cancel said query. This message is sent over a different port,
+  thus bring shown as a different flow. It has no direct answer from the
+  backend, but if successful will lead to an ``ErrorResponse`` in the
+  transaction where the query was sent.
 
 There are several different authentication messages possible, based on selected
 authentication method. (e.g. the SASL authentication will have a set of
@@ -2589,6 +2594,97 @@ the backend was ``md5``::
       }
     }
   }
+
+``AuthenticationOk``: a response indicating that the connection was successfully
+established.::
+
+  {
+    "pgsql": {
+      "tx_id": 3,
+      "response": {
+        "message": "authentication_ok",
+        "parameter_status": [
+          {
+            "application_name": "psql"
+          },
+          {
+            "client_encoding": "UTF8"
+          },
+          {
+            "date_style": "ISO, MDY"
+          },
+          {
+            "integer_datetimes": "on"
+          },
+          {
+            "interval_style": "postgres"
+          },
+          {
+            "is_superuser": "on"
+          },
+          {
+            "server_encoding": "UTF8"
+          },
+          {
+            "server_version": "13.6 (Debian 13.6-1.pgdg110+1)"
+          },
+          {
+            "session_authorization": "rules"
+          },
+          {
+            "standard_conforming_strings": "on"
+          },
+          {
+            "time_zone": "Etc/UTC"
+          }
+        ],
+        "process_id": 28954,
+        "secret_key": 889887985
+      }
+    }
+  }
+
+.. note::
+   In Suricata, the ``AuthenticationOk`` message is also where the backend's
+   ``process_id`` and ``secret_key`` are logged. These must be sent by the
+   frontend when it issues a ``CancelRequest`` message (seen below).
+
+A ``CancelRequest`` message::
+
+   {
+      "timestamp": "2023-12-07T15:46:56.971150+0000",
+      "flow_id": 775771889500133,
+      "event_type": "pgsql",
+      "src_ip": "100.88.2.140",
+      "src_port": 39706,
+      "dest_ip": "100.96.199.113",
+      "dest_port": 5432,
+      "proto": "TCP",
+      "pkt_src": "stream (flow timeout)",
+      "pgsql": {
+        "tx_id": 1,
+        "request": {
+          "message": "cancel_request",
+          "process_id": 28954,
+          "secret_key": 889887985
+        }
+      }
+   }
+
+.. note::
+   As the ``CancelRequest`` message is sent over a new connection, the way to
+   correlate it with the proper frontend/flow from which it originates is by
+   querying on ``process_id`` and ``secret_key`` seen in the
+   ``AuthenticationOk`` event.
+
+References:
+  * `PostgreSQL protocol - Canceling Requests in Progress`_
+  * `PostgreSQL message format - BackendKeyData`_
+
+.. _PostgreSQL protocol - Canceling Requests in Progress: https://www.postgresql
+   .org/docs/current/protocol-flow.html#PROTOCOL-FLOW-CANCELING-REQUESTS
+.. _PostgreSQL message format - BackendKeyData: https://www.postgresql.org/docs
+   /current/protocol-message-formats.html#PROTOCOL-MESSAGE-FORMATS-BACKENDKEYDATA
 
 
 Event type: IKE
