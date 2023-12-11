@@ -36,7 +36,7 @@ noinst_HEADERS = \
 	app-layer/krb5/parser.h \
 	app-layer/modbus/parser.h \
 	app-layer-quic.h \
-	app-layer-mqtt.h \
+	app-layer/mqtt/parser.h \
 	app-layer-nfs-tcp.h \
 	app-layer-nfs-udp.h \
 	app-layer-ntp.h \
@@ -246,23 +246,23 @@ noinst_HEADERS = \
 	detect-quic-version.h \
 	detect-quic-cyu-hash.h \
 	detect-quic-cyu-string.h \
-	detect-mqtt-connack-sessionpresent.h \
-	detect-mqtt-connect-clientid.h \
-	detect-mqtt-connect-flags.h \
-	detect-mqtt-connect-password.h \
-	detect-mqtt-connect-protocol-string.h \
-	detect-mqtt-connect-username.h \
-	detect-mqtt-connect-willmessage.h \
-	detect-mqtt-connect-willtopic.h \
-	detect-mqtt-flags.h \
-	detect-mqtt-protocol-version.h \
-	detect-mqtt-publish-message.h \
-	detect-mqtt-publish-topic.h \
-	detect-mqtt-qos.h \
-	detect-mqtt-reason-code.h \
-	detect-mqtt-subscribe-topic.h \
-	detect-mqtt-type.h \
-	detect-mqtt-unsubscribe-topic.h \
+	app-layer/mqtt/detect-connack-sessionpresent.h \
+	app-layer/mqtt/detect-connect-clientid.h \
+	app-layer/mqtt/detect-connect-flags.h \
+	app-layer/mqtt/detect-connect-password.h \
+	app-layer/mqtt/detect-connect-protocol-string.h \
+	app-layer/mqtt/detect-connect-username.h \
+	app-layer/mqtt/detect-connect-willmessage.h \
+	app-layer/mqtt/detect-connect-willtopic.h \
+	app-layer/mqtt/detect-flags.h \
+	app-layer/mqtt/detect-protocol-version.h \
+	app-layer/mqtt/detect-publish-message.h \
+	app-layer/mqtt/detect-publish-topic.h \
+	app-layer/mqtt/detect-qos.h \
+	app-layer/mqtt/detect-reason-code.h \
+	app-layer/mqtt/detect-subscribe-topic.h \
+	app-layer/mqtt/detect-type.h \
+	app-layer/mqtt/detect-unsubscribe-topic.h \
 	detect-msg.h \
 	detect-nfs-procedure.h \
 	detect-nfs-version.h \
@@ -417,7 +417,7 @@ noinst_HEADERS = \
 	output-json-metadata.h \
 	app-layer/modbus/logger.h \
 	output-json-quic.h \
-	output-json-mqtt.h \
+	app-layer/mqtt/logger.h \
 	output-json-netflow.h \
 	output-json-nfs.h \
 	output-json-pgsql.h \
@@ -652,7 +652,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/krb5/parser.c \
 	app-layer/modbus/parser.c \
 	app-layer-quic.c \
-	app-layer-mqtt.c \
+	app-layer/mqtt/parser.c \
 	app-layer-nfs-tcp.c \
 	app-layer-nfs-udp.c \
 	app-layer-ntp.c \
@@ -859,23 +859,23 @@ libsuricata_c_a_SOURCES = \
 	detect-quic-version.c \
 	detect-quic-cyu-hash.c \
 	detect-quic-cyu-string.c \
-	detect-mqtt-connack-sessionpresent.c \
-	detect-mqtt-connect-clientid.c \
-	detect-mqtt-connect-flags.c \
-	detect-mqtt-connect-password.c \
-	detect-mqtt-connect-protocol-string.c \
-	detect-mqtt-connect-username.c \
-	detect-mqtt-connect-willmessage.c \
-	detect-mqtt-connect-willtopic.c \
-	detect-mqtt-flags.c \
-	detect-mqtt-protocol-version.c \
-	detect-mqtt-publish-message.c \
-	detect-mqtt-publish-topic.c \
-	detect-mqtt-qos.c \
-	detect-mqtt-reason-code.c \
-	detect-mqtt-subscribe-topic.c \
-	detect-mqtt-type.c \
-	detect-mqtt-unsubscribe-topic.c \
+	app-layer/mqtt/detect-connack-sessionpresent.c \
+	app-layer/mqtt/detect-connect-clientid.c \
+	app-layer/mqtt/detect-connect-flags.c \
+	app-layer/mqtt/detect-connect-password.c \
+	app-layer/mqtt/detect-connect-protocol-string.c \
+	app-layer/mqtt/detect-connect-username.c \
+	app-layer/mqtt/detect-connect-willmessage.c \
+	app-layer/mqtt/detect-connect-willtopic.c \
+	app-layer/mqtt/detect-flags.c \
+	app-layer/mqtt/detect-protocol-version.c \
+	app-layer/mqtt/detect-publish-message.c \
+	app-layer/mqtt/detect-publish-topic.c \
+	app-layer/mqtt/detect-qos.c \
+	app-layer/mqtt/detect-reason-code.c \
+	app-layer/mqtt/detect-subscribe-topic.c \
+	app-layer/mqtt/detect-type.c \
+	app-layer/mqtt/detect-unsubscribe-topic.c \
 	detect-msg.c \
 	detect-nfs-procedure.c \
 	detect-nfs-version.c \
@@ -1029,7 +1029,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-metadata.c \
 	app-layer/modbus/logger.c \
 	output-json-quic.c \
-	output-json-mqtt.c \
+	app-layer/mqtt/logger.c \
 	output-json-netflow.c \
 	output-json-nfs.c \
 	output-json-pgsql.c \

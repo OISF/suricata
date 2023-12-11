@@ -78,7 +78,7 @@
 #include "output-json-snmp.h"
 #include "output-json-sip.h"
 #include "output-json-rfb.h"
-#include "output-json-mqtt.h"
+#include "app-layer/mqtt/logger.h"
 #include "output-json-pgsql.h"
 #include "output-json-template.h"
 #include "output-json-rdp.h"
