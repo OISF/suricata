@@ -35,7 +35,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-tftp.h"
+#include "app-layer/tftp/parser.h"
 #include "rust.h"
 
 /* The default port to probe if not provided in the configuration file. */
