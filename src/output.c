@@ -58,7 +58,7 @@
 #include "log-tlslog.h"
 #include "log-tlsstore.h"
 #include "output-json-tls.h"
-#include "output-json-ssh.h"
+#include "app-layer/ssh/logger.h"
 #include "log-pcap.h"
 #include "output-json-file.h"
 #include "app-layer/smtp/logger.h"
