@@ -34,7 +34,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 
-#include "detect-http2.h"
+#include "app-layer/http2/detect.h"
 #include "util-byte.h"
 #include "rust.h"
 #include "util-profiling.h"

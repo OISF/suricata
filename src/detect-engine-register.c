@@ -168,7 +168,7 @@
 #include "detect-http-stat-msg.h"
 #include "detect-http-request-line.h"
 #include "detect-http-response-line.h"
-#include "detect-http2.h"
+#include "app-layer/http2/detect.h"
 #include "detect-byte-extract.h"
 #include "detect-file-data.h"
 #include "detect-pkt-data.h"

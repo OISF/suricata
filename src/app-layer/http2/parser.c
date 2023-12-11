@@ -33,7 +33,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer/http/parser.h"
-#include "app-layer-http2.h"
+#include "app-layer/http2/parser.h"
 #include "rust.h"
 
 static int HTTP2RegisterPatternsForProtocolDetection(void)

@@ -61,7 +61,7 @@
 #include "app-layer-snmp.h"
 #include "app-layer-quic.h"
 #include "app-layer-rdp.h"
-#include "app-layer-http2.h"
+#include "app-layer/http2/parser.h"
 
 struct AppLayerParserThreadCtx_ {
     void *alproto_local_storage[FLOW_PROTO_MAX][ALPROTO_MAX];

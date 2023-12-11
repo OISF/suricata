@@ -82,7 +82,7 @@
 #include "output-json-pgsql.h"
 #include "output-json-template.h"
 #include "output-json-rdp.h"
-#include "output-json-http2.h"
+#include "app-layer/http2/logger.h"
 #include "output-lua.h"
 #include "app-layer/dnp3/logger.h"
 #include "output-json-metadata.h"
