@@ -69,7 +69,7 @@
 #include "util-lua-tls.h"
 #include "util-lua-ssh.h"
 #include "util-lua-hassh.h"
-#include "util-lua-smtp.h"
+#include "app-layer/smtp/lua.h"
 #include "app-layer/dnp3/lua.h"
 #include "detect-lua-extensions.h"
 

@@ -42,7 +42,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"
 #include "app-layer/http/parser.h"
-#include "app-layer-smtp.h"
+#include "app-layer/smtp/parser.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
