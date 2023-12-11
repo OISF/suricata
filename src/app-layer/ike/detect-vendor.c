@@ -28,7 +28,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-mpm.h"
-#include "detect-ike-vendor.h"
+#include "app-layer/ike/detect-vendor.h"
 #include "app-layer-parser.h"
 #include "util-byte.h"
 

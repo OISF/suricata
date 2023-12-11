@@ -74,7 +74,7 @@
 #include "output-json-sip.h"
 #include "output-json-rfb.h"
 #include "output-json-mqtt.h"
-#include "output-json-ike.h"
+#include "app-layer/ike/logger.h"
 #include "output-json-modbus.h"
 #include "output-json-frame.h"
 #include "output-json-quic.h"
