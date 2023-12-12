@@ -2057,6 +2057,9 @@ void AppLayerProtoDetectSupportedIpprotos(AppProto alproto, uint8_t *ipprotos)
     if (alproto == ALPROTO_HTTP) {
         AppLayerProtoDetectSupportedIpprotos(ALPROTO_HTTP1, ipprotos);
         AppLayerProtoDetectSupportedIpprotos(ALPROTO_HTTP2, ipprotos);
+    } else if (alproto == ALPROTO_DOH2) {
+        // DOH2 is not detected, just HTTP2
+        AppLayerProtoDetectSupportedIpprotos(ALPROTO_HTTP2, ipprotos);
     } else {
         AppLayerProtoDetectPMGetIpprotos(alproto, ipprotos);
         AppLayerProtoDetectPPGetIpprotos(alproto, ipprotos);
