@@ -38,5 +38,5 @@ Started up!
 ::
 
 
-  [5570] 10/7/2012 -- 13:52:30 - (source-erf-dag.c:262) <Info> (ReceiveErfDagThreadInit) -- Attached and started stream: 0 on DAG: /dev/dag0
-  [5570] 10/7/2012 -- 13:52:30 - (source-erf-dag.c:288) <Info> (ReceiveErfDagThreadInit) -- Starting processing packets from stream: 0 on DAG: /dev/dag0
+  [5570] 10/7/2012 -- 13:52:30 - (source/endace/source-erf-dag.c:262) <Info> (ReceiveErfDagThreadInit) -- Attached and started stream: 0 on DAG: /dev/dag0
+  [5570] 10/7/2012 -- 13:52:30 - (source/endace/source-erf-dag.c:288) <Info> (ReceiveErfDagThreadInit) -- Starting processing packets from stream: 0 on DAG: /dev/dag0

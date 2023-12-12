@@ -445,43 +445,43 @@ noinst_HEADERS = \
 	reputation.h \
 	respond-reject.h \
 	respond-reject-libnet11.h \
-	runmode-af-packet.h \
-	runmode-af-xdp.h \
-	runmode-dpdk.h \
-	runmode-erf-dag.h \
-	runmode-erf-file.h \
-	runmode-ipfw.h \
-	runmode-napatech.h \
-	runmode-netmap.h \
-	runmode-nflog.h \
-	runmode-nfq.h \
-	runmode-pcap-file.h \
-	runmode-pcap.h \
-	runmode-pfring.h \
+	source/af-packet/runmode-af-packet.h \
+	source/af-xdp/runmode-af-xdp.h \
+	source/dpdk/runmode-dpdk.h \
+	source/endace/runmode-erf-dag.h \
+	source/endace/runmode-erf-file.h \
+	source/ipfw/runmode-ipfw.h \
+	source/napatech/runmode-napatech.h \
+	source/netmap/runmode-netmap.h \
+	source/nflog/runmode-nflog.h \
+	source/nfq/runmode-nfq.h \
+	source/pcap/runmode-pcap-file.h \
+	source/pcap/runmode-pcap.h \
+	source/pfring/runmode-pfring.h \
 	runmodes.h \
 	runmode-unittests.h \
 	runmode-unix-socket.h \
-	runmode-windivert.h \
+	source/windivert/runmode-windivert.h \
 	rust-context.h \
 	rust.h \
-	source-af-packet.h \
-	source-af-xdp.h \
-	source-dpdk.h \
-	source-erf-dag.h \
-	source-erf-file.h \
-	source-ipfw.h \
-	source-napatech.h \
-	source-netmap.h \
-	source-nflog.h \
-	source-nfq.h \
-	source-nfq-prototypes.h \
-	source-pcap-file-directory-helper.h \
-	source-pcap-file.h \
-	source-pcap-file-helper.h \
-	source-pcap.h \
-	source-pfring.h \
-	source-windivert.h \
-	source-windivert-prototypes.h \
+	source/af-packet/source-af-packet.h \
+	source/af-xdp/source-af-xdp.h \
+	source/dpdk/source-dpdk.h \
+	source/endace/source-erf-dag.h \
+	source/endace/source-erf-file.h \
+	source/ipfw/source-ipfw.h \
+	source/napatech/source-napatech.h \
+	source/netmap/source-netmap.h \
+	source/nflog/source-nflog.h \
+	source/nfq/source-nfq.h \
+	source/nfq/source-nfq-prototypes.h \
+	source/pcap/source-pcap-file-directory-helper.h \
+	source/pcap/source-pcap-file.h \
+	source/pcap/source-pcap-file-helper.h \
+	source/pcap/source-pcap.h \
+	source/pfring/source-pfring.h \
+	source/windivert/source-windivert.h \
+	source/windivert/source-windivert-prototypes.h \
 	stream.h \
 	stream-tcp.h \
 	stream-tcp-cache.h \
@@ -1057,40 +1057,40 @@ libsuricata_c_a_SOURCES = \
 	reputation.c \
 	respond-reject.c \
 	respond-reject-libnet11.c \
-	runmode-af-packet.c \
-	runmode-af-xdp.c \
-	runmode-dpdk.c \
-	runmode-erf-dag.c \
-	runmode-erf-file.c \
-	runmode-ipfw.c \
-	runmode-napatech.c \
-	runmode-netmap.c \
-	runmode-nflog.c \
-	runmode-nfq.c \
-	runmode-pcap.c \
-	runmode-pcap-file.c \
-	runmode-pfring.c \
+	source/af-packet/runmode-af-packet.c \
+	source/af-xdp/runmode-af-xdp.c \
+	source/dpdk/runmode-dpdk.c \
+	source/endace/runmode-erf-dag.c \
+	source/endace/runmode-erf-file.c \
+	source/ipfw/runmode-ipfw.c \
+	source/napatech/runmode-napatech.c \
+	source/netmap/runmode-netmap.c \
+	source/nflog/runmode-nflog.c \
+	source/nfq/runmode-nfq.c \
+	source/pcap/runmode-pcap.c \
+	source/pcap/runmode-pcap-file.c \
+	source/pfring/runmode-pfring.c \
 	runmodes.c \
 	runmode-unittests.c \
 	runmode-unix-socket.c \
-	runmode-windivert.c \
+	source/windivert/runmode-windivert.c \
 	rust-context.c \
-	source-af-packet.c \
-	source-af-xdp.c \
-	source-dpdk.c \
-	source-erf-dag.c \
-	source-erf-file.c \
-	source-ipfw.c \
-	source-napatech.c \
-	source-netmap.c \
-	source-nflog.c \
-	source-nfq.c \
-	source-pcap.c \
-	source-pcap-file.c \
-	source-pcap-file-directory-helper.c \
-	source-pcap-file-helper.c \
-	source-pfring.c \
-	source-windivert.c \
+	source/af-packet/source-af-packet.c \
+	source/af-xdp/source-af-xdp.c \
+	source/dpdk/source-dpdk.c \
+	source/endace/source-erf-dag.c \
+	source/endace/source-erf-file.c \
+	source/ipfw/source-ipfw.c \
+	source/napatech/source-napatech.c \
+	source/netmap/source-netmap.c \
+	source/nflog/source-nflog.c \
+	source/nfq/source-nfq.c \
+	source/pcap/source-pcap.c \
+	source/pcap/source-pcap-file.c \
+	source/pcap/source-pcap-file-directory-helper.c \
+	source/pcap/source-pcap-file-helper.c \
+	source/pfring/source-pfring.c \
+	source/windivert/source-windivert.c \
 	stream.c \
 	stream-tcp.c \
 	stream-tcp-cache.c \

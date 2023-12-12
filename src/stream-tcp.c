@@ -77,7 +77,7 @@
 #include "util/exception-policy.h"
 #include "util/time.h"
 
-#include "source-pcap-file.h"
+#include "source/pcap/source-pcap-file.h"
 #include "action-globals.h"
 
 // #define DEBUG

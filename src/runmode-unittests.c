@@ -119,7 +119,7 @@
 #endif
 
 #ifdef WINDIVERT
-#include "source-windivert.h"
+#include "source/windivert/source-windivert.h"
 #endif
 
 #endif /* UNITTESTS */

@@ -19,7 +19,7 @@
 #include "tm-threads.h"
 #include "conf.h"
 #include "runmodes.h"
-#include "runmode-pcap-file.h"
+#include "source/pcap/runmode-pcap-file.h"
 #include "output/output.h"
 #include "output/eve/output-json.h"
 
@@ -38,7 +38,7 @@
 #include "flow-hash.h"
 #include "stream-tcp.h"
 #include "stream-tcp-reassemble.h"
-#include "source-pcap-file-directory-helper.h"
+#include "source/pcap/source-pcap-file-directory-helper.h"
 #include "host.h"
 #include "defrag.h"
 #include "defrag-hash.h"

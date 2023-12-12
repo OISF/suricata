@@ -5,7 +5,7 @@
  */
 
 #include "suricata-common.h"
-#include "source-pcap-file.h"
+#include "source/pcap/source-pcap-file.h"
 #include "detect-engine.h"
 #include "util/classification-config.h"
 #include "util/reference-config.h"
