@@ -107,6 +107,11 @@ void DetectAppLayerMpmRegister(const char *name, int direction, int priority,
         FatalError("MPM engine registration for %s failed", name);
     }
 
+    // every HTTP2 can be accessed from DOH2
+    if (alproto == ALPROTO_HTTP2 || alproto == ALPROTO_DNS) {
+        DetectAppLayerMpmRegister(name, direction, priority, PrefilterRegister, GetData,
+                ALPROTO_DOH2, tx_min_progress);
+    }
     DetectBufferMpmRegistry *am = SCCalloc(1, sizeof(*am));
     BUG_ON(am == NULL);
     am->name = name;
