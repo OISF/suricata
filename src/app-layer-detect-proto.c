@@ -1844,6 +1844,12 @@ bool AppLayerRequestProtocolTLSUpgrade(Flow *f)
     return AppLayerRequestProtocolChange(f, 443, ALPROTO_TLS);
 }
 
+/** \brief Forces a flow app-layer protocol change.
+ *         Happens for instance when a HTTP2 flow is seen as DOH2
+ *
+ *  \param f flow to act on
+ *  \param new_proto new app-layer protocol
+ */
 void AppLayerForceProtocolChange(Flow *f, AppProto new_proto)
 {
     if (new_proto != f->alproto) {
@@ -2034,6 +2040,9 @@ void AppLayerProtoDetectSupportedIpprotos(AppProto alproto, uint8_t *ipprotos)
     // Custom case for only signature-only protocol so far
     if (alproto == ALPROTO_HTTP) {
         AppLayerProtoDetectSupportedIpprotos(ALPROTO_HTTP1, ipprotos);
+        AppLayerProtoDetectSupportedIpprotos(ALPROTO_HTTP2, ipprotos);
+    } else if (alproto == ALPROTO_DOH2) {
+        // DOH2 is not detected, just HTTP2
         AppLayerProtoDetectSupportedIpprotos(ALPROTO_HTTP2, ipprotos);
     } else {
         AppLayerProtoDetectPMGetIpprotos(alproto, ipprotos);
