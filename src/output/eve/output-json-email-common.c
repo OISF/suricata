@@ -35,19 +35,19 @@
 #include "tm-threads.h"
 #include "tm-threads-common.h"
 
-#include "util-print.h"
-#include "util-unittest.h"
+#include "util/print.h"
+#include "util/unittest.h"
 
-#include "util-debug.h"
+#include "util/debug.h"
 #include "app-layer-parser.h"
 #include "output/output.h"
 #include "app-layer/smtp/parser.h"
 #include "app-layer.h"
-#include "util-privs.h"
-#include "util-buffer.h"
-#include "util-byte.h"
+#include "util/privs.h"
+#include "util/buffer.h"
+#include "util/byte.h"
 
-#include "util-logopenfile.h"
+#include "util/logopenfile.h"
 
 #include "output/eve/output-json.h"
 #include "output/eve/output-json-email-common.h"

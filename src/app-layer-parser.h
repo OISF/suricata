@@ -26,9 +26,9 @@
 #define __APP_LAYER_PARSER_H__
 
 #include "app-layer-events.h"
-#include "util-file.h"
+#include "util/file.h"
 #include "rust.h"
-#include "util-config.h"
+#include "util/config.h"
 
 /* Flags for AppLayerParserState. */
 // flag available                               BIT_U16(0)

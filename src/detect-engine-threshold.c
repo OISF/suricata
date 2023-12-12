@@ -60,12 +60,12 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 
-#include "util-hash.h"
-#include "util-time.h"
-#include "util-error.h"
-#include "util-debug.h"
+#include "util/hash.h"
+#include "util/time.h"
+#include "util/error.h"
+#include "util/debug.h"
 
-#include "util-var-name.h"
+#include "util/var-name.h"
 #include "tm-threads.h"
 
 #include "action-globals.h"

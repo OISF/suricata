@@ -27,11 +27,11 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
-#include "util-debug.h"
-#include "util-byte.h"
-#include "util-enum.h"
-#include "util-mem.h"
-#include "util-misc.h"
+#include "util/debug.h"
+#include "util/byte.h"
+#include "util/enum.h"
+#include "util/mem.h"
+#include "util/misc.h"
 
 #include "stream.h"
 
@@ -48,10 +48,10 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 #include "pkt-var.h"
-#include "util-profiling.h"
+#include "util/profiling.h"
 
 SCEnumCharMap enip_decoder_event_table[] = {
     { NULL, -1 },

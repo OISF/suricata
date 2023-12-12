@@ -18,9 +18,9 @@
 #include "../detect.h"
 #include "../detect-parse.h"
 #include "../detect-engine-port.h"
-#include "../util-unittest.h"
-#include "util-debug.h"
-#include "util-error.h"
+#include "../util/unittest.h"
+#include "util/debug.h"
+#include "util/error.h"
 
 /**
  * \test DetectParseTest01 is a regression test against a memory leak

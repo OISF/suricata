@@ -25,10 +25,10 @@
 #include "output/output.h"
 #include "output/eve/output-json-file.h"
 
-#include "util-conf.h"
-#include "util-misc.h"
-#include "util-path.h"
-#include "util-print.h"
+#include "util/conf.h"
+#include "util/misc.h"
+#include "util/path.h"
+#include "util/print.h"
 
 #define MODULE_NAME "OutputFilestore"
 

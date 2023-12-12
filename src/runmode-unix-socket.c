@@ -23,12 +23,12 @@
 #include "output/output.h"
 #include "output/eve/output-json.h"
 
-#include "util-debug.h"
-#include "util-time.h"
-#include "util-cpu.h"
-#include "util-affinity.h"
-#include "util-var-name.h"
-#include "util-path.h"
+#include "util/debug.h"
+#include "util/time.h"
+#include "util/cpu.h"
+#include "util/affinity.h"
+#include "util/var-name.h"
+#include "util/path.h"
 #include "unix-manager.h"
 
 #include "detect-engine.h"
@@ -47,8 +47,8 @@
 #include "app-layer/http/parser-mem.h"
 #include "host-bit.h"
 
-#include "util-misc.h"
-#include "util-profiling.h"
+#include "util/misc.h"
+#include "util/profiling.h"
 
 #include "conf-yaml-loader.h"
 

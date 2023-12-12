@@ -45,9 +45,9 @@
 #include "app-layer-parser.h"
 #include "app-layer-frames.h"
 
-#include "util-profiling.h"
-#include "util-validate.h"
-#include "util-time.h"
+#include "util/profiling.h"
+#include "util/validate.h"
+#include "util/time.h"
 #include "tmqh-packetpool.h"
 
 #include "flow-util.h"

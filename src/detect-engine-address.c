@@ -28,9 +28,9 @@
 #include "detect.h"
 #include "flow-var.h"
 
-#include "util-cidr.h"
-#include "util-unittest.h"
-#include "util-rule-vars.h"
+#include "util/cidr.h"
+#include "util/unittest.h"
+#include "util/rule-vars.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
@@ -40,10 +40,10 @@
 #include "detect-engine-address-ipv6.h"
 #include "detect-engine-port.h"
 
-#include "util-debug.h"
-#include "util-byte.h"
-#include "util-print.h"
-#include "util-var.h"
+#include "util/debug.h"
+#include "util/byte.h"
+#include "util/print.h"
+#include "util/var.h"
 
 /* prototypes */
 #ifdef DEBUG
@@ -1300,7 +1300,7 @@ error:
     return -1;
 }
 
-#include "util-hash-lookup3.h"
+#include "util/hash-lookup3.h"
 
 typedef struct DetectAddressMap_ {
     char *string;

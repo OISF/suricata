@@ -38,11 +38,11 @@
 
 #include "flow.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
-#include "util-print.h"
-#include "util-validate.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/debug.h"
+#include "util/print.h"
+#include "util/validate.h"
 
 /**
  * Note, this is the IP header, plus a bit of the original packet, not the whole thing!

@@ -539,9 +539,9 @@ File names
 
 File names are all lowercase and have a .c. .h  or .rs (Rust) extension.
 
-Most files have a _subsystem_ prefix, e.g. ``detect-dsize.c, util-ip.c``
+Most files have a _subsystem_ prefix, e.g. ``detect-dsize.c, util/ip.c``
 
-Some cases have a multi-layer prefix, e.g. ``util-mpm-ac.c``
+Some cases have a multi-layer prefix, e.g. ``util/mpm/mpm-ac.c``
 
 Enums
 ~~~~~

@@ -33,13 +33,13 @@
 #include "detect-pcre.h"
 #include "detect-engine-build.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-debug.h"
-#include "util-action.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/debug.h"
+#include "util/action.h"
 #include "action-globals.h"
 #include "flow-util.h"
-#include "util-validate.h"
+#include "util/validate.h"
 
 #define DETECT_FLOWVAR_NOT_USED      1
 #define DETECT_FLOWVAR_TYPE_READ     2

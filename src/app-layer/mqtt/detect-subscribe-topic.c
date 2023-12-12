@@ -37,8 +37,8 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
 #include "app-layer/mqtt/detect-subscribe-topic.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 #include "rust-bindings.h"
 
@@ -48,10 +48,10 @@
 #include "flow-util.h"
 #include "flow-var.h"
 
-#include "util-debug.h"
-#include "util-spm.h"
-#include "util-print.h"
-#include "util-profiling.h"
+#include "util/debug.h"
+#include "util/spm.h"
+#include "util/print.h"
+#include "util/profiling.h"
 
 static int DetectMQTTSubscribeTopicSetup(DetectEngineCtx *, Signature *, const char *);
 

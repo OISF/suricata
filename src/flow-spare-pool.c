@@ -29,10 +29,10 @@
 #include "flow-queue.h"
 #include "flow-util.h"
 #include "flow-spare-pool.h"
-#include "util-error.h"
-#include "util-debug.h"
-#include "util-print.h"
-#include "util-validate.h"
+#include "util/error.h"
+#include "util/debug.h"
+#include "util/print.h"
+#include "util/validate.h"
 
 typedef struct FlowSparePool {
     FlowQueuePrivate queue;

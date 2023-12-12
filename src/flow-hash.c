@@ -40,17 +40,17 @@
 #include "flow-spare-pool.h"
 #include "app-layer-parser.h"
 
-#include "util-time.h"
-#include "util-debug.h"
-#include "util-device.h"
+#include "util/time.h"
+#include "util/debug.h"
+#include "util/device.h"
 
-#include "util-hash-lookup3.h"
+#include "util/hash-lookup3.h"
 
 #include "conf.h"
 #include "output/output.h"
 #include "output/output-flow.h"
 #include "stream-tcp.h"
-#include "util-exception-policy.h"
+#include "util/exception-policy.h"
 
 extern TcpStreamCnf stream_config;
 

@@ -17,8 +17,8 @@
 
 #include "suricata-common.h"
 #include "suricata-plugin.h"
-#include "util-mem.h"
-#include "util-debug.h"
+#include "util/mem.h"
+#include "util/debug.h"
 
 #define FILETYPE_NAME "json-filetype-plugin"
 

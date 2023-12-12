@@ -24,8 +24,8 @@
 #ifndef __STREAM_TCP_PRIVATE_H__
 #define __STREAM_TCP_PRIVATE_H__
 
-#include "util-pool-thread.h"
-#include "util-streaming-buffer.h"
+#include "util/pool-thread.h"
+#include "util/streaming-buffer.h"
 
 #define STREAMTCP_QUEUE_FLAG_TS   0x01
 #define STREAMTCP_QUEUE_FLAG_WS   0x02

@@ -36,7 +36,7 @@
 
 #include "suricata-common.h"
 
-#include "util-debug.h"
+#include "util/debug.h"
 
 #include "app-layer-parser.h"
 #include "app-layer/modbus/parser.h"
@@ -66,8 +66,8 @@ void RegisterModbusParsers(void)
 
 #include "flow-util.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"

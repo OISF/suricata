@@ -27,7 +27,7 @@
 #include "suricata-common.h"
 #ifdef HAVE_LIBLZ4
 #include <lz4frame.h>
-#include "util-fmemopen.h"
+#include "util/fmemopen.h"
 #endif /* HAVE_LIBLZ4 */
 
 #if defined(HAVE_DIRENT_H) && defined(HAVE_FNMATCH_H)
@@ -46,15 +46,15 @@
 
 #include "output/output.h"
 
-#include "util-buffer.h"
-#include "util-byte.h"
-#include "util-conf.h"
-#include "util-cpu.h"
-#include "util-datalink.h"
-#include "util-misc.h"
-#include "util-path.h"
-#include "util-profiling.h"
-#include "util-time.h"
+#include "util/buffer.h"
+#include "util/byte.h"
+#include "util/conf.h"
+#include "util/cpu.h"
+#include "util/datalink.h"
+#include "util/misc.h"
+#include "util/path.h"
+#include "util/profiling.h"
+#include "util/time.h"
 
 #define DEFAULT_LOG_FILENAME "pcaplog"
 #define MODULE_NAME          "PcapLog"

@@ -28,8 +28,8 @@
 #include "app-layer/snmp/parser.h" //SNMPState, SNMPTransaction
 #include "app-layer/tftp/parser.h" //TFTPState, TFTPTransaction
 
-#include "util-debug.h"
-#include "util-file.h"
+#include "util/debug.h"
+#include "util/file.h"
 
 // hack for include orders cf SCSha256
 typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;

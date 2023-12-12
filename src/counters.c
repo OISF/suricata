@@ -33,13 +33,13 @@
 #include "output/output.h"
 #include "output/eve/output-json-stats.h"
 
-#include "util-byte.h"
-#include "util-conf.h"
-#include "util-hash.h"
-#include "util-time.h"
+#include "util/byte.h"
+#include "util/conf.h"
+#include "util/hash.h"
+#include "util/time.h"
 
 #include "tm-threads.h"
-#include "util-privs.h"
+#include "util/privs.h"
 
 /* Time interval for syncing the local counters with the global ones */
 #define STATS_WUT_TTS 3

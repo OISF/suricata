@@ -34,9 +34,9 @@
 
 #include "rust.h"
 
-#include "util-misc.h"
-#include "util-mpm.h"
-#include "util-validate.h"
+#include "util/misc.h"
+#include "util/mpm/mpm.h"
+#include "util/validate.h"
 
 typedef struct FTPThreadCtx_ {
     MpmThreadCtx *ftp_mpm_thread_ctx;
@@ -467,7 +467,7 @@ static uint32_t CopyCommandLine(uint8_t **dest, FtpLineState *line)
     return line->len ? line->len + 1 : 0;
 }
 
-#include "util-print.h"
+#include "util/print.h"
 
 /**
  * \brief This function is called to retrieve a ftp request

@@ -26,9 +26,9 @@
 #include "suricata-common.h"
 #include "app-layer-protos.h"
 #include "app-layer/http/parser.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-misc.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/misc.h"
 
 #include "detect.h"
 #include "detect-parse.h"
@@ -38,8 +38,8 @@
 #include "detect-engine-build.h"
 
 #include "detect-filesize.h"
-#include "util-debug.h"
-#include "util-byte.h"
+#include "util/debug.h"
+#include "util/byte.h"
 #include "flow-util.h"
 #include "stream-tcp.h"
 

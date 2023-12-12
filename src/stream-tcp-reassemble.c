@@ -38,13 +38,13 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 
-#include "util-pool.h"
-#include "util-unittest.h"
-#include "util-print.h"
-#include "util-host-os-info.h"
-#include "util-unittest-helper.h"
-#include "util-byte.h"
-#include "util-device.h"
+#include "util/pool.h"
+#include "util/unittest.h"
+#include "util/print.h"
+#include "util/host-os-info.h"
+#include "util/unittest-helper.h"
+#include "util/byte.h"
+#include "util/device.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
@@ -56,7 +56,7 @@
 
 #include "stream.h"
 
-#include "util-debug.h"
+#include "util/debug.h"
 #include "app-layer-protos.h"
 #include "app-layer.h"
 #include "app-layer-events.h"
@@ -65,9 +65,9 @@
 
 #include "detect-engine-state.h"
 
-#include "util-profiling.h"
-#include "util-validate.h"
-#include "util-exception-policy.h"
+#include "util/profiling.h"
+#include "util/validate.h"
+#include "util/exception-policy.h"
 
 #ifdef DEBUG
 static SCMutex segment_pool_memuse_mutex;

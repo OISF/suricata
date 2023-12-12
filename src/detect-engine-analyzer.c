@@ -41,10 +41,10 @@
 #include "detect-tcp-flags.h"
 #include "detect-ipopts.h"
 #include "feature.h"
-#include "util-print.h"
-#include "util-time.h"
-#include "util-validate.h"
-#include "util-conf.h"
+#include "util/print.h"
+#include "util/time.h"
+#include "util/validate.h"
+#include "util/conf.h"
 
 static int rule_warnings_only = 0;
 

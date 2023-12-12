@@ -37,9 +37,9 @@
 #include "detect-engine-iponly.h"
 #include "detect-parse.h"
 #include "detect-engine-prefilter.h"
-#include "util-mpm.h"
-#include "util-memcmp.h"
-#include "util-memcpy.h"
+#include "util/mpm/mpm.h"
+#include "util/memcmp.h"
+#include "util/memcpy.h"
 #include "conf.h"
 #include "detect-fast-pattern.h"
 
@@ -56,12 +56,12 @@
 
 #include "stream.h"
 
-#include "util-misc.h"
-#include "util-enum.h"
-#include "util-debug.h"
-#include "util-print.h"
-#include "util-validate.h"
-#include "util-hash-string.h"
+#include "util/misc.h"
+#include "util/enum.h"
+#include "util/debug.h"
+#include "util/print.h"
+#include "util/validate.h"
+#include "util/hash-string.h"
 
 const char *builtin_mpms[] = { "toserver TCP packet", "toclient TCP packet", "toserver TCP stream",
     "toclient TCP stream", "toserver UDP packet", "toclient UDP packet", "other IP packet",

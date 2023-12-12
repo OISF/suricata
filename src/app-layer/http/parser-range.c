@@ -23,12 +23,12 @@
 
 #include "suricata-common.h"
 #include "app-layer/http/parser-range.h"
-#include "util-misc.h"        //ParseSizeStringU64
-#include "util-thash.h"       //HashTable
-#include "util-memcmp.h"      //SCBufferCmp
-#include "util-hash-string.h" //StringHashDjb2
-#include "util-validate.h"    //DEBUG_VALIDATE_BUG_ON
-#include "util-byte.h"        //StringParseUint32
+#include "util/misc.h"        //ParseSizeStringU64
+#include "util/thash.h"       //HashTable
+#include "util/memcmp.h"      //SCBufferCmp
+#include "util/hash-string.h" //StringHashDjb2
+#include "util/validate.h"    //DEBUG_VALIDATE_BUG_ON
+#include "util/byte.h"        //StringParseUint32
 
 typedef struct ContainerTHashTable {
     THashTableContext *ht;

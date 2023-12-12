@@ -28,8 +28,8 @@
 #include "tm-threads.h"
 #include "runmodes.h"
 
-#include "util-random.h"
-#include "util-time.h"
+#include "util/random.h"
+#include "util/time.h"
 
 #include "flow.h"
 #include "flow-queue.h"
@@ -44,11 +44,11 @@
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-device.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/device.h"
 
-#include "util-debug.h"
+#include "util/debug.h"
 
 #include "threads.h"
 #include "detect.h"

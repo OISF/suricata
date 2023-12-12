@@ -25,8 +25,8 @@
 #include "stream.h"
 #include "conf.h"
 
-#include "util-misc.h"
-#include "util-unittest.h"
+#include "util/misc.h"
+#include "util/unittest.h"
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"

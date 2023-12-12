@@ -34,7 +34,7 @@
 
 #include "stream-tcp.h"
 
-#include "util-validate.h"
+#include "util/validate.h"
 
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
@@ -1831,7 +1831,7 @@ void AppLayerParserStatePrintDetails(AppLayerParserState *pstate)
 /***** Unittests *****/
 
 #ifdef UNITTESTS
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 
 static AppLayerParserCtx alp_ctx_backup_unittest;
 

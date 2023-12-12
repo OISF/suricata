@@ -29,7 +29,7 @@
 #include "app-layer/rfb/detect-sectype.h"
 #include "detect-engine-uint.h"
 #include "app-layer-parser.h"
-#include "util-byte.h"
+#include "util/byte.h"
 
 #include "rust-bindings.h"
 

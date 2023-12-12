@@ -20,14 +20,14 @@
 #include "runmodes.h"
 #include "output/output.h"
 
-#include "util-conf.h"
-#include "util-debug.h"
-#include "util-time.h"
-#include "util-cpu.h"
-#include "util-device.h"
-#include "util-runmodes.h"
-#include "util-misc.h"
-#include "util-byte.h"
+#include "util/conf.h"
+#include "util/debug.h"
+#include "util/time.h"
+#include "util/cpu.h"
+#include "util/device.h"
+#include "util/runmodes.h"
+#include "util/misc.h"
+#include "util/byte.h"
 
 const char *RunModeIdsGetDefaultMode(void)
 {

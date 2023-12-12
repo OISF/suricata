@@ -30,7 +30,7 @@
 #include "suricata-common.h"
 #include "suricata-plugin.h"
 #include "threadvars.h"
-#include "util-debug.h"
+#include "util/debug.h"
 #include "decode-events.h"
 #ifdef PROFILING
 #include "flow-worker.h"
@@ -38,7 +38,7 @@
 #endif
 
 #ifdef HAVE_NAPATECH
-#include "util-napatech.h"
+#include "util/napatech.h"
 #endif /* HAVE_NAPATECH */
 
 typedef enum {

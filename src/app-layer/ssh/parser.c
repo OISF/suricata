@@ -29,8 +29,8 @@
 #include "decode.h"
 #include "threads.h"
 
-#include "util-print.h"
-#include "util-pool.h"
+#include "util/print.h"
+#include "util/pool.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -45,13 +45,13 @@
 
 #include "conf.h"
 
-#include "util-spm.h"
-#include "util-unittest.h"
-#include "util-debug.h"
+#include "util/spm.h"
+#include "util/unittest.h"
+#include "util/debug.h"
 #include "flow-private.h"
 
-#include "util-byte.h"
-#include "util-memcmp.h"
+#include "util/byte.h"
+#include "util/memcmp.h"
 
 /* HASSH fingerprints are disabled by default */
 #define SSH_CONFIG_DEFAULT_HASSH false
@@ -115,7 +115,7 @@ void RegisterSSHParsers(void)
 #ifdef UNITTESTS
 #include "flow-util.h"
 #include "stream-tcp-util.h"
-#include "util-unittest-helper.h"
+#include "util/unittest-helper.h"
 
 static int SSHParserTestUtilCheck(
         const char *protoexp, const char *softexp, void *tx, uint8_t flags)

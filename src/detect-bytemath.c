@@ -50,11 +50,11 @@
 #include "flow-var.h"
 #include "flow-util.h"
 
-#include "util-byte.h"
-#include "util-debug.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-spm.h"
+#include "util/byte.h"
+#include "util/debug.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/spm.h"
 
 static int DetectByteMathSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

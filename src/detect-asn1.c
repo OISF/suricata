@@ -31,10 +31,10 @@
 #include "flow.h"
 #include "detect-asn1.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "util-byte.h"
-#include "util-debug.h"
+#include "util/unittest.h"
+#include "util/unittest-helper.h"
+#include "util/byte.h"
+#include "util/debug.h"
 
 static int DetectAsn1Setup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

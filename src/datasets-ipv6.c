@@ -25,8 +25,8 @@
 #include "conf.h"
 #include "datasets.h"
 #include "datasets-ipv6.h"
-#include "util-thash.h"
-#include "util-print.h"
+#include "util/thash.h"
+#include "util/print.h"
 
 int IPv6Set(void *dst, void *src)
 {

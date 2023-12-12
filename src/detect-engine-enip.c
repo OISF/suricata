@@ -33,7 +33,7 @@
 
 #include "flow.h"
 
-#include "util-debug.h"
+#include "util/debug.h"
 
 #if 0
 /**

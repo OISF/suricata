@@ -55,8 +55,8 @@
 #include "app-layer-parser.h"
 #include "app-layer/http/parser.h"
 
-#include "util-profiling.h"
-#include "util-validate.h"
+#include "util/profiling.h"
+#include "util/validate.h"
 
 static int PrefilterStoreGetId(DetectEngineCtx *de_ctx, const char *name, void (*FreeFunc)(void *));
 static const PrefilterStore *PrefilterStoreGetStore(
@@ -676,7 +676,7 @@ const char *PrefilterStoreGetName(const uint32_t id)
 }
 #endif
 
-#include "util-print.h"
+#include "util/print.h"
 
 typedef struct PrefilterMpmCtx {
     int list_id;

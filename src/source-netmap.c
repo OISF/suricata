@@ -38,10 +38,10 @@
 #include "suricata-common.h"
 #include "tm-threads.h"
 #include "packet.h"
-#include "util-bpf.h"
-#include "util-privs.h"
-#include "util-validate.h"
-#include "util-datalink.h"
+#include "util/bpf.h"
+#include "util/privs.h"
+#include "util/validate.h"
+#include "util/datalink.h"
 
 #include "source-netmap.h"
 
@@ -57,7 +57,7 @@
 
 #endif /* HAVE_NETMAP */
 
-#include "util-ioctl.h"
+#include "util/ioctl.h"
 
 #ifndef HAVE_NETMAP
 
