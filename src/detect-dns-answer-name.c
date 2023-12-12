@@ -83,6 +83,12 @@ static uint8_t DetectEngineInspectCb(DetectEngineCtx *de_ctx, DetectEngineThread
         transforms = engine->v2.transforms;
     }
 
+    if (f->alproto == ALPROTO_DOH2) {
+        txv = SCDoH2GetDnsTx(txv, flags);
+        if (txv == NULL) {
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+        }
+    }
     for (uint32_t i = 0;; i++) {
         InspectionBuffer *buffer = GetBuffer(det_ctx, flags, transforms, txv, i, engine->sm_list);
         if (buffer == NULL || buffer->inspect == NULL) {
@@ -108,6 +114,12 @@ static void PrefilterTx(DetectEngineThreadCtx *det_ctx, const void *pectx, Packe
     const MpmCtx *mpm_ctx = ctx->mpm_ctx;
     const int list_id = ctx->list_id;
 
+    if (f->alproto == ALPROTO_DOH2) {
+        txv = SCDoH2GetDnsTx(txv, flags);
+        if (txv == NULL) {
+            return;
+        }
+    }
     for (uint32_t i = 0;; i++) {
         InspectionBuffer *buffer = GetBuffer(det_ctx, flags, ctx->transforms, txv, i, list_id);
         if (buffer == NULL) {

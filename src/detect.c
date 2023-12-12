@@ -1099,7 +1099,9 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         if (!(inspect_flags & BIT_U32(engine->id)) &&
                 direction == engine->dir)
         {
-            const bool skip_engine = (engine->alproto != 0 && engine->alproto != f->alproto);
+            const bool skip_engine =
+                    (engine->alproto != 0 && !AppProtoCompatible(engine->alproto, f->alproto));
+
             /* special case: file_data on 'alert tcp' will have engines
              * in the list that are not for us. */
             if (unlikely(skip_engine)) {
