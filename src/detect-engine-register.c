@@ -241,6 +241,7 @@
 
 #include "detect-transform-compress-whitespace.h"
 #include "detect-transform-strip-whitespace.h"
+#include "detect-transform-strip-pseudo-headers.h"
 #include "detect-transform-md5.h"
 #include "detect-transform-sha1.h"
 #include "detect-transform-sha256.h"
@@ -700,6 +701,7 @@ void SigTableSetup(void)
 
     DetectTransformCompressWhitespaceRegister();
     DetectTransformStripWhitespaceRegister();
+    DetectTransformStripPseudoHeadersRegister();
     DetectTransformMd5Register();
     DetectTransformSha1Register();
     DetectTransformSha256Register();

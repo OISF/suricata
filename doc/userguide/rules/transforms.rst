@@ -174,3 +174,17 @@ Example::
 
     alert http any any -> any any (msg:"HTTP authorization"; http.header_names; \
         header_lowercase; content:"authorization:"; sid:1;)
+
+strip_pseudo_headers
+--------------------
+
+This transform is meant for HTTP/1 HTTP/2 header names normalization.
+It strips HTTP2 pseudo-headers (names and values).
+
+The implementation just strips every line beginning by ``:``.
+
+This example alerts for both HTTP/1 and HTTP/2 with only a user agent
+Example::
+
+    alert http any any -> any any (msg:"HTTP ua only"; http.header_names; \
+       bsize:16; content:"|0d 0a|User-Agent|0d 0a 0d 0a|"; nocase; sid:1;)
