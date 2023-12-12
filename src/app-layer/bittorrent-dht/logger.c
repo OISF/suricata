@@ -22,7 +22,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
@@ -41,7 +41,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "output-json-bittorrent-dht.h"
+#include "app-layer/bittorrent-dht/logger.h"
 #include "rust.h"
 
 typedef struct LogBitTorrentDHTFileCtx_ {

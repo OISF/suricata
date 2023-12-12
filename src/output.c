@@ -88,7 +88,7 @@
 #include "output-json-metadata.h"
 #include "output-json-dcerpc.h"
 #include "output-json-frame.h"
-#include "output-json-bittorrent-dht.h"
+#include "app-layer/bittorrent-dht/logger.h"
 #include "output-filestore.h"
 
 typedef struct RootLogger_ {
