@@ -610,7 +610,7 @@ fn dns_log_json_answer(
 }
 
 fn dns_log_query(
-    tx: &mut DNSTransaction, i: u16, flags: u64, jb: &mut JsonBuilder,
+    tx: &DNSTransaction, i: u16, flags: u64, jb: &mut JsonBuilder,
 ) -> Result<bool, JsonError> {
     let index = i as usize;
     if let Some(request) = &tx.request {
@@ -637,7 +637,7 @@ fn dns_log_query(
 
 #[no_mangle]
 pub extern "C" fn SCDnsLogJsonQuery(
-    tx: &mut DNSTransaction, i: u16, flags: u64, jb: &mut JsonBuilder,
+    tx: &DNSTransaction, i: u16, flags: u64, jb: &mut JsonBuilder,
 ) -> bool {
     match dns_log_query(tx, i, flags, jb) {
         Ok(false) | Err(_) => {
@@ -651,7 +651,7 @@ pub extern "C" fn SCDnsLogJsonQuery(
 
 #[no_mangle]
 pub extern "C" fn SCDnsLogJsonAnswer(
-    tx: &mut DNSTransaction, flags: u64, js: &mut JsonBuilder,
+    tx: &DNSTransaction, flags: u64, js: &mut JsonBuilder,
 ) -> bool {
     if let Some(response) = &tx.response {
         for query in &response.queries {
@@ -664,7 +664,7 @@ pub extern "C" fn SCDnsLogJsonAnswer(
 }
 
 #[no_mangle]
-pub extern "C" fn SCDnsLogAnswerEnabled(tx: &mut DNSTransaction, flags: u64) -> bool {
+pub extern "C" fn SCDnsLogAnswerEnabled(tx: &DNSTransaction, flags: u64) -> bool {
     if let Some(response) = &tx.response {
         for query in &response.queries {
             if dns_log_rrtype_enabled(query.rrtype, flags) {
