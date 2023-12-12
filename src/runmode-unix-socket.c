@@ -44,7 +44,7 @@
 #include "defrag-hash.h"
 #include "ippair.h"
 #include "app-layer.h"
-#include "app-layer-htp-mem.h"
+#include "app-layer/http/parser-mem.h"
 #include "host-bit.h"
 
 #include "util-misc.h"

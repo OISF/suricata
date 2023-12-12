@@ -19,8 +19,8 @@
 #include "rust-context.h"
 #include "app-layer-parser.h"
 #include "app-layer-register.h"
-#include "app-layer-htp-range.h"
-#include "app-layer-htp-file.h"
+#include "app-layer/http/parser-range.h"
+#include "app-layer/http/parser-file.h"
 
 const SuricataContext suricata_context = {
     SCLogMessage,

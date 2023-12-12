@@ -22,7 +22,7 @@
  */
 
 #include "suricata-common.h"
-#include "app-layer-htp-range.h"
+#include "app-layer/http/parser-range.h"
 #include "util-misc.h"        //ParseSizeStringU64
 #include "util-thash.h"       //HashTable
 #include "util-memcmp.h"      //SCBufferCmp

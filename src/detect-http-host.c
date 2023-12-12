@@ -53,7 +53,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-htp.h"
+#include "app-layer/http/parser.h"
 #include "stream-tcp.h"
 #include "detect-http-host.h"
 

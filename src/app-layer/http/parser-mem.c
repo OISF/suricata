@@ -30,7 +30,7 @@
  */
 
 #include "suricata-common.h"
-#include "app-layer-htp-mem.h"
+#include "app-layer/http/parser-mem.h"
 
 #include "conf.h"
 #include "util-misc.h"

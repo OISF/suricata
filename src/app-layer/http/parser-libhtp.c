@@ -45,7 +45,7 @@
 
 #include "suricata-common.h"
 #include <htp/htp.h>
-#include "app-layer-htp-libhtp.h"
+#include "app-layer/http/parser-libhtp.h"
 
 /**
  * \brief Generates the normalized uri.
