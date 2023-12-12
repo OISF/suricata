@@ -49,7 +49,7 @@
 #include "app-layer/dnp3/parser.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
-#include "app-layer-ftp.h"
+#include "app-layer/ftp/parser.h"
 #include "util-classification-config.h"
 #include "stream-tcp.h"
 
