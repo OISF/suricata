@@ -80,6 +80,7 @@
 #include "output-json-rfb.h"
 #include "output-json-mqtt.h"
 #include "output-json-pgsql.h"
+#include "output-json-doh2.h"
 #include "output-json-template.h"
 #include "output-json-rdp.h"
 #include "output-json-http2.h"
@@ -1117,6 +1118,8 @@ void OutputRegisterLoggers(void)
     JsonMQTTLogRegister();
     /* Pgsql JSON logger. */
     JsonPgsqlLogRegister();
+    /* DoH2 JSON logger. */
+    JsonDoH2LogRegister();
     /* Template JSON logger. */
     JsonTemplateLogRegister();
     /* RDP JSON logger. */
@@ -1157,8 +1160,9 @@ static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_SIP, (EveJsonSimpleTxLogFunc)rs_sip_log_json },
     { ALPROTO_RFB, rs_rfb_logger_log },
     { ALPROTO_MQTT, JsonMQTTAddMetadata },
-    { ALPROTO_PGSQL, NULL },  // TODO missing
-    { ALPROTO_TELNET, NULL }, // no logging
+    { ALPROTO_PGSQL, NULL },             // TODO missing
+    { ALPROTO_TELNET, NULL },            // no logging
+    { ALPROTO_DOH2, rs_http2_log_json }, // http2 logger knows how to log dns
     { ALPROTO_TEMPLATE, rs_template_logger_log },
     { ALPROTO_RDP, (EveJsonSimpleTxLogFunc)rs_rdp_to_json },
     { ALPROTO_HTTP2, rs_http2_log_json },

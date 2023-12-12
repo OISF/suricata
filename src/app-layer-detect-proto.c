@@ -1866,6 +1866,16 @@ bool AppLayerRequestProtocolTLSUpgrade(Flow *f)
     return AppLayerRequestProtocolChange(f, 443, ALPROTO_TLS);
 }
 
+void AppLayerForceProtocolChange(Flow *f, AppProto new_proto)
+{
+    if (new_proto != f->alproto) {
+        f->alproto_orig = f->alproto;
+        f->alproto = new_proto;
+        f->alproto_ts = f->alproto;
+        f->alproto_tc = f->alproto;
+    }
+}
+
 void AppLayerProtoDetectReset(Flow *f)
 {
     FLOW_RESET_PM_DONE(f, STREAM_TOSERVER);
