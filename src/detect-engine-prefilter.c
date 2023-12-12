@@ -107,7 +107,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
 
     PrefilterEngine *engine = sgh->tx_engines;
     do {
-        if (engine->alproto != alproto)
+        if (!AppProtoCompatible(engine->alproto, alproto))
             goto next;
         if (engine->ctx.tx_min_progress > tx->tx_progress)
             break;
