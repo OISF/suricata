@@ -621,10 +621,10 @@ noinst_HEADERS = \
 	util/validate.h \
 	util/var.h \
 	util/var-name.h \
-	win32-misc.h \
-	win32-service.h \
-	win32-syscall.h \
-	win32-syslog.h
+	windows/win32-misc.h \
+	windows/win32-service.h \
+	windows/win32-syscall.h \
+	windows/win32-syslog.h
 
 libsuricata_c_a_SOURCES = \
 	alert-debuglog.c \
@@ -1225,9 +1225,9 @@ libsuricata_c_a_SOURCES = \
 	util/unittest-helper.c \
 	util/var.c \
 	util/var-name.c \
-	win32-misc.c \
-	win32-service.c \
-	win32-syscall.c
+	windows/win32-misc.c \
+	windows/win32-service.c \
+	windows/win32-syscall.c
 
 EXTRA_DIST = \
 	tests/stream-tcp-inline.c \
