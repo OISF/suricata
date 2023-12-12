@@ -24,7 +24,6 @@
 #ifndef __DETECT_SNMP_VERSION_H__
 #define __DETECT_SNMP_VERSION_H__
 
-
 void DetectSNMPVersionRegister(void);
 
 #endif /* __DETECT_SNMP_VERSION_H__ */

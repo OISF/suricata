@@ -41,17 +41,16 @@ typedef struct DetectSNMPPduTypeData_ {
     uint32_t pdu_type;
 } DetectSNMPPduTypeData;
 
-static DetectSNMPPduTypeData *DetectSNMPPduTypeParse (const char *);
-static int DetectSNMPPduTypeSetup (DetectEngineCtx *, Signature *s, const char *str);
+static DetectSNMPPduTypeData *DetectSNMPPduTypeParse(const char *);
+static int DetectSNMPPduTypeSetup(DetectEngineCtx *, Signature *s, const char *str);
 static void DetectSNMPPduTypeFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void DetectSNMPPduTypeRegisterTests(void);
 #endif
 static int g_snmp_pdu_type_buffer_id = 0;
 
-static int DetectSNMPPduTypeMatch (DetectEngineThreadCtx *, Flow *,
-                                   uint8_t, void *, void *, const Signature *,
-                                   const SigMatchCtx *);
+static int DetectSNMPPduTypeMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
+        const Signature *, const SigMatchCtx *);
 
 void DetectSNMPPduTypeRegister(void)
 {
@@ -93,18 +92,15 @@ void DetectSNMPPduTypeRegister(void)
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectSNMPPduTypeMatch (DetectEngineThreadCtx *det_ctx,
-                                   Flow *f, uint8_t flags, void *state,
-                                   void *txv, const Signature *s,
-                                   const SigMatchCtx *ctx)
+static int DetectSNMPPduTypeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
     const DetectSNMPPduTypeData *dd = (const DetectSNMPPduTypeData *)ctx;
     uint32_t pdu_type;
     rs_snmp_tx_get_pdu_type(txv, &pdu_type);
-    SCLogDebug("pdu_type %u ref_pdu_type %d",
-            pdu_type, dd->pdu_type);
+    SCLogDebug("pdu_type %u ref_pdu_type %d", pdu_type, dd->pdu_type);
     if (pdu_type == dd->pdu_type)
         SCReturnInt(1);
     SCReturnInt(0);
@@ -119,7 +115,7 @@ static int DetectSNMPPduTypeMatch (DetectEngineThreadCtx *det_ctx,
  * \retval dd pointer to DetectSNMPPduTypeData on success.
  * \retval NULL on failure.
  */
-static DetectSNMPPduTypeData *DetectSNMPPduTypeParse (const char *rawstr)
+static DetectSNMPPduTypeData *DetectSNMPPduTypeParse(const char *rawstr)
 {
     DetectSNMPPduTypeData *dd = NULL;
     int res = 0;
@@ -176,8 +172,7 @@ error:
  * \retval 0 on Success.
  * \retval -1 on Failure.
  */
-static int DetectSNMPPduTypeSetup (DetectEngineCtx *de_ctx, Signature *s,
-                                   const char *rawstr)
+static int DetectSNMPPduTypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectSNMPPduTypeData *dd = NULL;
 

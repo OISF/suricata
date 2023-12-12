@@ -27,13 +27,13 @@
  * \test signature with a valid http2.frametype value.
  */
 
-static int DetectHTTP2frameTypeParseTest01 (void)
+static int DetectHTTP2frameTypeParseTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-                                           "alert http2 any any -> any any (http2.frametype:GOAWAY; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert http2 any any -> any any (http2.frametype:GOAWAY; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -52,13 +52,13 @@ void DetectHTTP2frameTypeRegisterTests(void)
  * \test signature with a valid http2.errorcode value.
  */
 
-static int DetectHTTP2errorCodeParseTest01 (void)
+static int DetectHTTP2errorCodeParseTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-                                           "alert http2 any any -> any any (http2.errorcode:NO_ERROR; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert http2 any any -> any any (http2.errorcode:NO_ERROR; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -74,13 +74,13 @@ void DetectHTTP2errorCodeRegisterTests(void)
  * \test signature with a valid http2.priority value.
  */
 
-static int DetectHTTP2priorityParseTest01 (void)
+static int DetectHTTP2priorityParseTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-                                           "alert http2 any any -> any any (http2.priority:>100; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert http2 any any -> any any (http2.priority:>100; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -96,13 +96,13 @@ void DetectHTTP2priorityRegisterTests(void)
  * \test signature with a valid http2.window value.
  */
 
-static int DetectHTTP2windowParseTest01 (void)
+static int DetectHTTP2windowParseTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-                                           "alert http2 any any -> any any (http2.window:<42; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert http2 any any -> any any (http2.window:<42; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -114,18 +114,18 @@ void DetectHTTP2windowRegisterTests(void)
     UtRegisterTest("DetectHTTP2windowParseTest01", DetectHTTP2windowParseTest01);
 }
 
-
 /**
  * \test signature with a valid http2.settings value.
  */
 
-static int DetectHTTP2settingsParseTest01 (void)
+static int DetectHTTP2settingsParseTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
     Signature *sig = DetectEngineAppendSig(de_ctx,
-                                           "alert http2 any any -> any any (http2.settings:SETTINGS_MAX_HEADER_LIST_SIZE >1024; sid:1; rev:1;)");
+            "alert http2 any any -> any any (http2.settings:SETTINGS_MAX_HEADER_LIST_SIZE "
+            ">1024; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -137,18 +137,17 @@ void DetectHTTP2settingsRegisterTests(void)
     UtRegisterTest("DetectHTTP2settingsParseTest01", DetectHTTP2settingsParseTest01);
 }
 
-
 /**
-* \test signature with a valid http2.size_update value.
-*/
+ * \test signature with a valid http2.size_update value.
+ */
 
-static int DetectHTTP2sizeUpdateParseTest01 (void)
+static int DetectHTTP2sizeUpdateParseTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx,
-                                           "alert http2 any any -> any any (http2.size_update:>4096; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert http2 any any -> any any (http2.size_update:>4096; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);

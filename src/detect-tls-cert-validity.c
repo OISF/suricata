@@ -54,17 +54,16 @@
 #define PARSE_REGEX "^\\s*(<|>)?\\s*([ -:TW0-9]+)\\s*(?:(<>)\\s*([ -:TW0-9]+))?\\s*$"
 static DetectParseRegex parse_regex;
 
-static int DetectTlsValidityMatch (DetectEngineThreadCtx *, Flow *,
-                                   uint8_t, void *, void *, const Signature *,
-                                   const SigMatchCtx *);
+static int DetectTlsValidityMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
+        const Signature *, const SigMatchCtx *);
 
-static time_t DateStringToEpoch (char *);
-static DetectTlsValidityData *DetectTlsValidityParse (const char *);
-static int DetectTlsExpiredSetup (DetectEngineCtx *, Signature *s, const char *str);
-static int DetectTlsValidSetup (DetectEngineCtx *, Signature *s, const char *str);
-static int DetectTlsNotBeforeSetup (DetectEngineCtx *, Signature *s, const char *str);
-static int DetectTlsNotAfterSetup (DetectEngineCtx *, Signature *s, const char *str);
-static int DetectTlsValiditySetup (DetectEngineCtx *, Signature *s, const char *str, uint8_t);
+static time_t DateStringToEpoch(char *);
+static DetectTlsValidityData *DetectTlsValidityParse(const char *);
+static int DetectTlsExpiredSetup(DetectEngineCtx *, Signature *s, const char *str);
+static int DetectTlsValidSetup(DetectEngineCtx *, Signature *s, const char *str);
+static int DetectTlsNotBeforeSetup(DetectEngineCtx *, Signature *s, const char *str);
+static int DetectTlsNotAfterSetup(DetectEngineCtx *, Signature *s, const char *str);
+static int DetectTlsValiditySetup(DetectEngineCtx *, Signature *s, const char *str, uint8_t);
 #ifdef UNITTESTS
 static void TlsNotBeforeRegisterTests(void);
 static void TlsNotAfterRegisterTests(void);
@@ -77,7 +76,7 @@ static int g_tls_validity_buffer_id = 0;
 /**
  * \brief Registration function for tls validity keywords.
  */
-void DetectTlsValidityRegister (void)
+void DetectTlsValidityRegister(void)
 {
     sigmatch_table[DETECT_AL_TLS_NOTBEFORE].name = "tls_cert_notbefore";
     sigmatch_table[DETECT_AL_TLS_NOTBEFORE].desc = "match TLS certificate notBefore field";
@@ -145,10 +144,8 @@ void DetectTlsValidityRegister (void)
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectTlsValidityMatch (DetectEngineThreadCtx *det_ctx,
-                                   Flow *f, uint8_t flags, void *state,
-                                   void *txv, const Signature *s,
-                                   const SigMatchCtx *ctx)
+static int DetectTlsValidityMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -183,8 +180,8 @@ static int DetectTlsValidityMatch (DetectEngineThreadCtx *det_ctx,
         ret = 1;
     else if ((dd->mode & DETECT_TLS_VALIDITY_GT) && cert_epoch >= dd->epoch)
         ret = 1;
-    else if ((dd->mode & DETECT_TLS_VALIDITY_RA) &&
-            cert_epoch >= dd->epoch && cert_epoch <= dd->epoch2)
+    else if ((dd->mode & DETECT_TLS_VALIDITY_RA) && cert_epoch >= dd->epoch &&
+             cert_epoch <= dd->epoch2)
         ret = 1;
     else if ((dd->mode & DETECT_TLS_VALIDITY_EX) && (time_t)SCTIME_SECS(f->lastts) > cert_epoch)
         ret = 1;
@@ -203,7 +200,7 @@ static int DetectTlsValidityMatch (DetectEngineThreadCtx *det_ctx,
  * \retval epoch time on success.
  * \retval LONG_MIN on failure.
  */
-static time_t StringIsEpoch (char *string)
+static time_t StringIsEpoch(char *string)
 {
     if (strlen(string) == 0)
         return LONG_MIN;
@@ -228,22 +225,22 @@ static time_t StringIsEpoch (char *string)
  * \retval epoch on success.
  * \retval 0 on failure.
  */
-static time_t DateStringToEpoch (char *string)
+static time_t DateStringToEpoch(char *string)
 {
     int r = 0;
     struct tm tm;
     const char *patterns[] = {
-            /* ISO 8601 */
-            "%Y-%m",
-            "%Y-%m-%d",
-            "%Y-%m-%d %H",
-            "%Y-%m-%d %H:%M",
-            "%Y-%m-%d %H:%M:%S",
-            "%Y-%m-%dT%H",
-            "%Y-%m-%dT%H:%M",
-            "%Y-%m-%dT%H:%M:%S",
-            "%H:%M",
-            "%H:%M:%S",
+        /* ISO 8601 */
+        "%Y-%m",
+        "%Y-%m-%d",
+        "%Y-%m-%d %H",
+        "%Y-%m-%d %H:%M",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%dT%H",
+        "%Y-%m-%dT%H:%M",
+        "%Y-%m-%dT%H:%M:%S",
+        "%H:%M",
+        "%H:%M:%S",
     };
 
     /* Skip leading whitespace.  */
@@ -287,7 +284,7 @@ static time_t DateStringToEpoch (char *string)
  * \retval dd pointer to DetectTlsValidityData on success.
  * \retval NULL on failure.
  */
-static DetectTlsValidityData *DetectTlsValidityParse (const char *rawstr)
+static DetectTlsValidityData *DetectTlsValidityParse(const char *rawstr)
 {
     DetectTlsValidityData *dd = NULL;
     char mode[2] = "";
@@ -410,8 +407,7 @@ error:
  * \retval 0 on Success.
  * \retval -1 on Failure.
  */
-static int DetectTlsExpiredSetup (DetectEngineCtx *de_ctx, Signature *s,
-                                  const char *rawstr)
+static int DetectTlsExpiredSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectTlsValidityData *dd = NULL;
 
@@ -455,8 +451,7 @@ error:
  * \retval 0 on Success.
  * \retval -1 on Failure.
  */
-static int DetectTlsValidSetup (DetectEngineCtx *de_ctx, Signature *s,
-                                const char *rawstr)
+static int DetectTlsValidSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectTlsValidityData *dd = NULL;
 
@@ -500,8 +495,7 @@ error:
  * \retval 0 on Success.
  * \retval -1 on Failure.
  */
-static int DetectTlsNotBeforeSetup (DetectEngineCtx *de_ctx, Signature *s,
-                                    const char *rawstr)
+static int DetectTlsNotBeforeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     uint8_t type = DETECT_TLS_TYPE_NOTBEFORE;
     int r = DetectTlsValiditySetup(de_ctx, s, rawstr, type);
@@ -519,8 +513,7 @@ static int DetectTlsNotBeforeSetup (DetectEngineCtx *de_ctx, Signature *s,
  * \retval 0 on Success.
  * \retval -1 on Failure.
  */
-static int DetectTlsNotAfterSetup (DetectEngineCtx *de_ctx, Signature *s,
-                                   const char *rawstr)
+static int DetectTlsNotAfterSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     uint8_t type = DETECT_TLS_TYPE_NOTAFTER;
     int r = DetectTlsValiditySetup(de_ctx, s, rawstr, type);
@@ -539,8 +532,8 @@ static int DetectTlsNotAfterSetup (DetectEngineCtx *de_ctx, Signature *s,
  * \retval 0 on Success.
  * \retval -1 on Failure.
  */
-static int DetectTlsValiditySetup (DetectEngineCtx *de_ctx, Signature *s,
-                                   const char *rawstr, uint8_t type)
+static int DetectTlsValiditySetup(
+        DetectEngineCtx *de_ctx, Signature *s, const char *rawstr, uint8_t type)
 {
     DetectTlsValidityData *dd = NULL;
 
@@ -560,11 +553,9 @@ static int DetectTlsValiditySetup (DetectEngineCtx *de_ctx, Signature *s,
 
     if (type == DETECT_TLS_TYPE_NOTBEFORE) {
         dd->type = DETECT_TLS_TYPE_NOTBEFORE;
-    }
-    else if (type == DETECT_TLS_TYPE_NOTAFTER) {
+    } else if (type == DETECT_TLS_TYPE_NOTAFTER) {
         dd->type = DETECT_TLS_TYPE_NOTAFTER;
-    }
-    else {
+    } else {
         goto error;
     }
 

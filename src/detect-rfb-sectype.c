@@ -33,19 +33,17 @@
 
 #include "rust-bindings.h"
 
-
-static int DetectRfbSectypeSetup (DetectEngineCtx *, Signature *s, const char *str);
+static int DetectRfbSectypeSetup(DetectEngineCtx *, Signature *s, const char *str);
 static void DetectRfbSectypeFree(DetectEngineCtx *, void *);
 static int g_rfb_sectype_buffer_id = 0;
 
-static int DetectRfbSectypeMatch (DetectEngineThreadCtx *, Flow *,
-                                   uint8_t, void *, void *, const Signature *,
-                                   const SigMatchCtx *);
+static int DetectRfbSectypeMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
+        const Signature *, const SigMatchCtx *);
 
 /**
  * \brief Registration function for rfb.sectype keyword.
  */
-void DetectRfbSectypeRegister (void)
+void DetectRfbSectypeRegister(void)
 {
     sigmatch_table[DETECT_AL_RFB_SECTYPE].name = "rfb.sectype";
     sigmatch_table[DETECT_AL_RFB_SECTYPE].desc = "match RFB security type";
@@ -75,10 +73,8 @@ void DetectRfbSectypeRegister (void)
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectRfbSectypeMatch (DetectEngineThreadCtx *det_ctx,
-                                   Flow *f, uint8_t flags, void *state,
-                                   void *txv, const Signature *s,
-                                   const SigMatchCtx *ctx)
+static int DetectRfbSectypeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -114,7 +110,7 @@ static DetectU32Data *DetectRfbSectypeParse(const char *rawstr)
  * \retval 0 on Success.
  * \retval -1 on Failure.
  */
-static int DetectRfbSectypeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectRfbSectypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     if (DetectSignatureSetAppProto(s, ALPROTO_RFB) != 0)
         return -1;

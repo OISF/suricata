@@ -25,7 +25,6 @@
 #define __DETECT_FTPBOUNCE_H__
 
 /* prototypes */
-void DetectFtpbounceRegister (void);
+void DetectFtpbounceRegister(void);
 
 #endif /* __DETECT_FTPBOUNCE_H__ */
-

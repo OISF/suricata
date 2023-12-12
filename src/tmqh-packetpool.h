@@ -27,8 +27,8 @@
 #include "decode.h"
 #include "threads.h"
 
-    /* Return stack, onto which other threads free packets. */
-typedef struct PktPoolLockedStack_{
+/* Return stack, onto which other threads free packets. */
+typedef struct PktPoolLockedStack_ {
     /* linked list of free packets. */
     SCMutex mutex;
     SCCondT cond;

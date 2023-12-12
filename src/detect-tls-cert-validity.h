@@ -24,16 +24,16 @@
 #ifndef __DETECT_TLS_VALIDITY_H__
 #define __DETECT_TLS_VALIDITY_H__
 
-#define DETECT_TLS_VALIDITY_EQ (1)    /* equal */
-#define DETECT_TLS_VALIDITY_LT (1<<1) /* less than */
-#define DETECT_TLS_VALIDITY_GT (1<<2) /* greater than */
-#define DETECT_TLS_VALIDITY_RA (1<<3) /* range */
+#define DETECT_TLS_VALIDITY_EQ (1)      /* equal */
+#define DETECT_TLS_VALIDITY_LT (1 << 1) /* less than */
+#define DETECT_TLS_VALIDITY_GT (1 << 2) /* greater than */
+#define DETECT_TLS_VALIDITY_RA (1 << 3) /* range */
 
 /* Used by tls_cert_expired */
-#define DETECT_TLS_VALIDITY_EX (1<<4) /* expired */
+#define DETECT_TLS_VALIDITY_EX (1 << 4) /* expired */
 
 /* Used by tls_cert_valid */
-#define DETECT_TLS_VALIDITY_VA (1<<5) /* valid */
+#define DETECT_TLS_VALIDITY_VA (1 << 5) /* valid */
 
 #define DETECT_TLS_TYPE_NOTBEFORE 0
 #define DETECT_TLS_TYPE_NOTAFTER  1
@@ -46,6 +46,6 @@ typedef struct DetectTlsValidityData_ {
 } DetectTlsValidityData;
 
 /* prototypes */
-void DetectTlsValidityRegister (void);
+void DetectTlsValidityRegister(void);
 
 #endif /* __DETECT_TLS_VALIDITY_H__ */

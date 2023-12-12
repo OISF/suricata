@@ -33,11 +33,10 @@
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
-
 static int initialized = 0;
 ThreadVars tv;
 DecodeThreadVars *dtv;
-//FlowWorkerThreadData
+// FlowWorkerThreadData
 void *fwd;
 SCInstance surifuzz;
 SC_ATOMIC_EXTERN(unsigned int, engine_stage);
@@ -46,7 +45,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    pcap_t * pkts;
+    pcap_t *pkts;
     char errbuf[PCAP_ERRBUF_SIZE];
     const u_char *pkt;
     struct pcap_pkthdr *header;
@@ -56,7 +55,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     size_t pcap_cnt = 0;
 
     if (initialized == 0) {
-        //Redirects logs to /dev/null
+        // Redirects logs to /dev/null
         setenv("SC_LOG_OP_IFACE", "file", 0);
         setenv("SC_LOG_FILE", "/dev/null", 0);
 
@@ -64,9 +63,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
         GlobalsInitPreConfig();
         run_mode = RUNMODE_PCAP_FILE;
-        //redirect logs to /tmp
+        // redirect logs to /tmp
         ConfigSetLogDirectory("/tmp/");
-        //disables checksums validation for fuzzing
+        // disables checksums validation for fuzzing
         if (ConfYamlLoadString(configNoChecksum, strlen(configNoChecksum)) != 0) {
             abort();
         }
@@ -74,7 +73,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         remove("/tmp/fuzz.rules");
         surifuzz.sig_file = strdup("/tmp/fuzz.rules");
         surifuzz.sig_file_exclusive = 1;
-        //loads rules after init
+        // loads rules after init
         surifuzz.delayed_detect = 1;
 
         PostConfLoadedSetup(&surifuzz);
@@ -113,14 +112,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     data += pos;
     size -= pos;*/
 
-    for (pos=0; pos < size; pos++) {
+    for (pos = 0; pos < size; pos++) {
         if (data[pos] == 0) {
             break;
         }
     }
     if (pos > 0 && pos < size) {
         // dump signatures to a file so as to reuse SigLoadSignatures
-        if (TestHelperBufferToFile(surifuzz.sig_file, data, pos-1) < 0) {
+        if (TestHelperBufferToFile(surifuzz.sig_file, data, pos - 1) < 0) {
             return 0;
         }
     } else {
@@ -142,24 +141,24 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     DetectEngineThreadCtxDeinit(NULL, old_det_ctx);
 
     if (pos < size) {
-        //skip zero
+        // skip zero
         pos++;
     }
     data += pos;
     size -= pos;
 
-    //rewrite buffer to a file as libpcap does not have buffer inputs
+    // rewrite buffer to a file as libpcap does not have buffer inputs
     if (TestHelperBufferToFile("/tmp/fuzz.pcap", data, size) < 0) {
         return 0;
     }
 
-    //initialize structure
+    // initialize structure
     pkts = pcap_open_offline("/tmp/fuzz.pcap", errbuf);
     if (pkts == NULL) {
         return 0;
     }
 
-    //loop over packets
+    // loop over packets
     r = pcap_next_ex(pkts, &header, &pkt);
     p = PacketGetFromAlloc();
     if (r <= 0 || header->ts.tv_sec >= INT_MAX - 3600 || header->ts.tv_usec < 0) {
@@ -199,7 +198,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         p->pcap_cnt = pcap_cnt;
     }
 bail:
-    //close structure
+    // close structure
     pcap_close(pkts);
     PacketFree(p);
     FlowReset();

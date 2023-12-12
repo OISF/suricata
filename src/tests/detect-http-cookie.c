@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /** \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
@@ -60,10 +59,9 @@ static int DetectEngineHttpCookieTest01(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -81,7 +79,7 @@ static int DetectEngineHttpCookieTest01(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -92,10 +90,10 @@ static int DetectEngineHttpCookieTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CONNECT\"; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CONNECT\"; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -152,10 +150,9 @@ static int DetectEngineHttpCookieTest02(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -173,7 +170,7 @@ static int DetectEngineHttpCookieTest02(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -184,10 +181,10 @@ static int DetectEngineHttpCookieTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; depth:4; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; depth:4; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -244,10 +241,9 @@ static int DetectEngineHttpCookieTest03(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -265,7 +261,7 @@ static int DetectEngineHttpCookieTest03(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -276,10 +272,10 @@ static int DetectEngineHttpCookieTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"ECT\"; depth:4; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:!\"ECT\"; depth:4; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -336,10 +332,9 @@ static int DetectEngineHttpCookieTest04(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -357,7 +352,7 @@ static int DetectEngineHttpCookieTest04(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -368,10 +363,10 @@ static int DetectEngineHttpCookieTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"ECT\"; depth:4; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"ECT\"; depth:4; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -428,10 +423,9 @@ static int DetectEngineHttpCookieTest05(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -449,7 +443,7 @@ static int DetectEngineHttpCookieTest05(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -460,10 +454,10 @@ static int DetectEngineHttpCookieTest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"CON\"; depth:4; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:!\"CON\"; depth:4; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -520,10 +514,9 @@ static int DetectEngineHttpCookieTest06(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -541,7 +534,7 @@ static int DetectEngineHttpCookieTest06(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -552,10 +545,10 @@ static int DetectEngineHttpCookieTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"ECT\"; offset:3; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"ECT\"; offset:3; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -612,10 +605,9 @@ static int DetectEngineHttpCookieTest07(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -633,7 +625,7 @@ static int DetectEngineHttpCookieTest07(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -644,10 +636,10 @@ static int DetectEngineHttpCookieTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"CO\"; offset:3; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:!\"CO\"; offset:3; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -704,10 +696,9 @@ static int DetectEngineHttpCookieTest08(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -725,7 +716,7 @@ static int DetectEngineHttpCookieTest08(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -736,10 +727,10 @@ static int DetectEngineHttpCookieTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"ECT\"; offset:3; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:!\"ECT\"; offset:3; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -796,10 +787,9 @@ static int DetectEngineHttpCookieTest09(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -817,7 +807,7 @@ static int DetectEngineHttpCookieTest09(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -828,10 +818,10 @@ static int DetectEngineHttpCookieTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CON\"; offset:3; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CON\"; offset:3; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -888,10 +878,9 @@ static int DetectEngineHttpCookieTest10(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -909,7 +898,7 @@ static int DetectEngineHttpCookieTest10(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -920,11 +909,11 @@ static int DetectEngineHttpCookieTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_cookie; "
-                               "content:\"EC\"; within:4; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_cookie; "
+                                       "content:\"EC\"; within:4; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -981,10 +970,9 @@ static int DetectEngineHttpCookieTest11(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1002,7 +990,7 @@ static int DetectEngineHttpCookieTest11(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1013,11 +1001,11 @@ static int DetectEngineHttpCookieTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_cookie; "
-                               "content:!\"EC\"; within:3; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_cookie; "
+                                       "content:!\"EC\"; within:3; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1074,10 +1062,9 @@ static int DetectEngineHttpCookieTest12(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1095,7 +1082,7 @@ static int DetectEngineHttpCookieTest12(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1106,11 +1093,11 @@ static int DetectEngineHttpCookieTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_cookie; "
-                               "content:\"EC\"; within:3; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_cookie; "
+                                       "content:\"EC\"; within:3; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1167,10 +1154,9 @@ static int DetectEngineHttpCookieTest13(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1188,7 +1174,7 @@ static int DetectEngineHttpCookieTest13(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1199,11 +1185,11 @@ static int DetectEngineHttpCookieTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_cookie; "
-                               "content:!\"EC\"; within:4; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_cookie; "
+                                       "content:!\"EC\"; within:4; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1260,10 +1246,9 @@ static int DetectEngineHttpCookieTest14(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1281,7 +1266,7 @@ static int DetectEngineHttpCookieTest14(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1292,11 +1277,11 @@ static int DetectEngineHttpCookieTest14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_cookie; "
-                               "content:\"EC\"; distance:2; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_cookie; "
+                                       "content:\"EC\"; distance:2; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1353,10 +1338,9 @@ static int DetectEngineHttpCookieTest15(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1374,7 +1358,7 @@ static int DetectEngineHttpCookieTest15(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1385,11 +1369,11 @@ static int DetectEngineHttpCookieTest15(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_cookie; "
-                               "content:!\"EC\"; distance:3; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_cookie; "
+                                       "content:!\"EC\"; distance:3; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1446,10 +1430,9 @@ static int DetectEngineHttpCookieTest16(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1467,7 +1450,7 @@ static int DetectEngineHttpCookieTest16(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1478,11 +1461,11 @@ static int DetectEngineHttpCookieTest16(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_cookie; "
-                               "content:\"EC\"; distance:3; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_cookie; "
+                                       "content:\"EC\"; distance:3; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1539,10 +1522,9 @@ static int DetectEngineHttpCookieTest17(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "CONNECT /index.html HTTP/1.0\r\n"
-        "Cookie: CONNECT\r\n"
-        "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
+    uint8_t http_buf[] = "CONNECT /index.html HTTP/1.0\r\n"
+                         "Cookie: CONNECT\r\n"
+                         "Host: www.onetwothreefourfivesixseven.org\r\n\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1560,7 +1542,7 @@ static int DetectEngineHttpCookieTest17(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1571,11 +1553,11 @@ static int DetectEngineHttpCookieTest17(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"CO\"; http_cookie; "
-                               "content:!\"EC\"; distance:2; http_cookie; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http header test\"; "
+                                       "content:\"CO\"; http_cookie; "
+                                       "content:!\"EC\"; distance:2; http_cookie; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1628,12 +1610,12 @@ static int DetectHttpCookieTest01(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_cookie\"; http_cookie;sid:1;)");
+                                       "(msg:\"Testing http_cookie\"; http_cookie;sid:1;)");
     if (de_ctx->sig_list == NULL)
         result = 1;
 
@@ -1652,13 +1634,13 @@ static int DetectHttpCookieTest02(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_cookie\"; content:\"me\"; "
-                               "http_cookie:woo; sid:1;)");
+                                       "(msg:\"Testing http_cookie\"; content:\"me\"; "
+                                       "http_cookie:woo; sid:1;)");
     if (de_ctx->sig_list == NULL)
         result = 1;
 
@@ -1698,7 +1680,7 @@ static int DetectHttpCookieSigTest01(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1710,19 +1692,18 @@ static int DetectHttpCookieSigTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP cookie\"; content:\"me\"; "
-                                   "http_cookie; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any (msg:"
+                                           "\"HTTP cookie\"; content:\"me\"; "
+                                           "http_cookie; sid:1;)");
     if (s == NULL) {
         goto end;
     }
 
-    s->next = SigInit(de_ctx,"alert http any any -> any any (msg:\"HTTP "
-                      "cookie\"; content:\"go\"; http_cookie; sid:2;)");
+    s->next = SigInit(de_ctx, "alert http any any -> any any (msg:\"HTTP "
+                              "cookie\"; content:\"go\"; http_cookie; sid:2;)");
     if (s->next == NULL) {
         goto end;
     }
-
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1801,7 +1782,7 @@ static int DetectHttpCookieSigTest02(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1813,9 +1794,9 @@ static int DetectHttpCookieSigTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP cookie\"; content:\"me\"; "
-                                   "http_cookie; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any (msg:"
+                                           "\"HTTP cookie\"; content:\"me\"; "
+                                           "http_cookie; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -1867,7 +1848,7 @@ static int DetectHttpCookieSigTest03(void)
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
-        "Cookie: dummy\r\n\r\n";
+                         "Cookie: dummy\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
     Packet *p = NULL;
@@ -1891,7 +1872,7 @@ static int DetectHttpCookieSigTest03(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1903,9 +1884,9 @@ static int DetectHttpCookieSigTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP cookie\"; content:\"boo\"; "
-                                   "http_cookie; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any (msg:"
+                                           "\"HTTP cookie\"; content:\"boo\"; "
+                                           "http_cookie; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -1957,7 +1938,7 @@ static int DetectHttpCookieSigTest04(void)
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
-        "Cookie: dummy\r\n\r\n";
+                         "Cookie: dummy\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
     Packet *p = NULL;
@@ -1982,7 +1963,7 @@ static int DetectHttpCookieSigTest04(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1994,9 +1975,9 @@ static int DetectHttpCookieSigTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP cookie\"; content:!\"boo\"; "
-                                   "http_cookie; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any (msg:"
+                                           "\"HTTP cookie\"; content:!\"boo\"; "
+                                           "http_cookie; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -2048,7 +2029,7 @@ static int DetectHttpCookieSigTest05(void)
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
-        "Cookie: DuMmY\r\n\r\n";
+                         "Cookie: DuMmY\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
     Packet *p = NULL;
@@ -2073,7 +2054,7 @@ static int DetectHttpCookieSigTest05(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2085,9 +2066,9 @@ static int DetectHttpCookieSigTest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP cookie\"; content:\"dummy\"; nocase; "
-                                   "http_cookie; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any (msg:"
+                                           "\"HTTP cookie\"; content:\"dummy\"; nocase; "
+                                           "http_cookie; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -2139,7 +2120,7 @@ static int DetectHttpCookieSigTest06(void)
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
-        "Cookie: DuMmY\r\n\r\n";
+                         "Cookie: DuMmY\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
     Packet *p = NULL;
@@ -2164,7 +2145,7 @@ static int DetectHttpCookieSigTest06(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2176,9 +2157,9 @@ static int DetectHttpCookieSigTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP cookie\"; content:\"dummy\"; "
-                                   "http_cookie; nocase; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any (msg:"
+                                           "\"HTTP cookie\"; content:\"dummy\"; "
+                                           "http_cookie; nocase; sid:1;)");
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -2230,7 +2211,7 @@ static int DetectHttpCookieSigTest07(void)
     int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
-        "Cookie: dummy\r\n\r\n";
+                         "Cookie: dummy\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
     Packet *p = NULL;
@@ -2254,7 +2235,7 @@ static int DetectHttpCookieSigTest07(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2266,9 +2247,9 @@ static int DetectHttpCookieSigTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP cookie\"; content:!\"dummy\"; "
-                                   "http_cookie; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any (msg:"
+                                           "\"HTTP cookie\"; content:!\"dummy\"; "
+                                           "http_cookie; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -2322,16 +2303,14 @@ static int DetectHttpCookieSigTest08(void)
     int result = 0;
     Flow f;
 
-    uint8_t httpbuf_request[] =
-        "GET / HTTP/1.1\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "\r\n";
+    uint8_t httpbuf_request[] = "GET / HTTP/1.1\r\n"
+                                "User-Agent: Mozilla/1.0\r\n"
+                                "\r\n";
     uint32_t httpbuf_request_len = sizeof(httpbuf_request) - 1; /* minus the \0 */
 
-    uint8_t httpbuf_response[] =
-        "HTTP/1.1 200 OK\r\n"
-        "Set-Cookie: response_user_agent\r\n"
-        "\r\n";
+    uint8_t httpbuf_response[] = "HTTP/1.1 200 OK\r\n"
+                                 "Set-Cookie: response_user_agent\r\n"
+                                 "\r\n";
     uint32_t httpbuf_response_len = sizeof(httpbuf_response) - 1; /* minus the \0 */
 
     TcpSession ssn;
@@ -2373,9 +2352,9 @@ static int DetectHttpCookieSigTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                                   "(flow:to_client; content:\"response_user_agent\"; "
-                                   "http_cookie; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                           "(flow:to_client; content:\"response_user_agent\"; "
+                                           "http_cookie; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -2445,17 +2424,15 @@ static int DetectHttpCookieSigTest09(void)
     int result = 0;
     Flow f;
 
-    uint8_t httpbuf_request[] =
-        "GET / HTTP/1.1\r\n"
-        "Cookie: request_user_agent\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "\r\n";
+    uint8_t httpbuf_request[] = "GET / HTTP/1.1\r\n"
+                                "Cookie: request_user_agent\r\n"
+                                "User-Agent: Mozilla/1.0\r\n"
+                                "\r\n";
     uint32_t httpbuf_request_len = sizeof(httpbuf_request) - 1; /* minus the \0 */
 
-    uint8_t httpbuf_response[] =
-        "HTTP/1.1 200 OK\r\n"
-        "Set-Cookie: response_user_agent\r\n"
-        "\r\n";
+    uint8_t httpbuf_response[] = "HTTP/1.1 200 OK\r\n"
+                                 "Set-Cookie: response_user_agent\r\n"
+                                 "\r\n";
     uint32_t httpbuf_response_len = sizeof(httpbuf_response) - 1; /* minus the \0 */
 
     TcpSession ssn;
@@ -2497,15 +2474,16 @@ static int DetectHttpCookieSigTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                                   "(flow:to_server; content:\"request_user_agent\"; "
-                                   "http_cookie; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                           "(flow:to_server; content:\"request_user_agent\"; "
+                                           "http_cookie; sid:1;)");
     if (s == NULL) {
         goto end;
     }
-    s = de_ctx->sig_list->next = SigInit(de_ctx,"alert http any any -> any any "
-                                         "(flow:to_client; content:\"response_user_agent\"; "
-                                         "http_cookie; sid:2;)");
+    s = de_ctx->sig_list->next =
+            SigInit(de_ctx, "alert http any any -> any any "
+                            "(flow:to_client; content:\"response_user_agent\"; "
+                            "http_cookie; sid:2;)");
     if (s == NULL) {
         goto end;
     }
@@ -2570,7 +2548,7 @@ end:
 /**
  * \brief   Register the UNITTESTS for the http_cookie keyword
  */
-void DetectHttpCookieRegisterTests (void)
+void DetectHttpCookieRegisterTests(void)
 {
     UtRegisterTest("DetectHttpCookieTest01", DetectHttpCookieTest01);
     UtRegisterTest("DetectHttpCookieTest02", DetectHttpCookieTest02);
@@ -2583,40 +2561,23 @@ void DetectHttpCookieRegisterTests (void)
     UtRegisterTest("DetectHttpCookieSigTest07", DetectHttpCookieSigTest07);
     UtRegisterTest("DetectHttpCookieSigTest08", DetectHttpCookieSigTest08);
     UtRegisterTest("DetectHttpCookieSigTest09", DetectHttpCookieSigTest09);
-    UtRegisterTest("DetectEngineHttpCookieTest01",
-                   DetectEngineHttpCookieTest01);
-    UtRegisterTest("DetectEngineHttpCookieTest02",
-                   DetectEngineHttpCookieTest02);
-    UtRegisterTest("DetectEngineHttpCookieTest03",
-                   DetectEngineHttpCookieTest03);
-    UtRegisterTest("DetectEngineHttpCookieTest04",
-                   DetectEngineHttpCookieTest04);
-    UtRegisterTest("DetectEngineHttpCookieTest05",
-                   DetectEngineHttpCookieTest05);
-    UtRegisterTest("DetectEngineHttpCookieTest06",
-                   DetectEngineHttpCookieTest06);
-    UtRegisterTest("DetectEngineHttpCookieTest07",
-                   DetectEngineHttpCookieTest07);
-    UtRegisterTest("DetectEngineHttpCookieTest08",
-                   DetectEngineHttpCookieTest08);
-    UtRegisterTest("DetectEngineHttpCookieTest09",
-                   DetectEngineHttpCookieTest09);
-    UtRegisterTest("DetectEngineHttpCookieTest10",
-                   DetectEngineHttpCookieTest10);
-    UtRegisterTest("DetectEngineHttpCookieTest11",
-                   DetectEngineHttpCookieTest11);
-    UtRegisterTest("DetectEngineHttpCookieTest12",
-                   DetectEngineHttpCookieTest12);
-    UtRegisterTest("DetectEngineHttpCookieTest13",
-                   DetectEngineHttpCookieTest13);
-    UtRegisterTest("DetectEngineHttpCookieTest14",
-                   DetectEngineHttpCookieTest14);
-    UtRegisterTest("DetectEngineHttpCookieTest15",
-                   DetectEngineHttpCookieTest15);
-    UtRegisterTest("DetectEngineHttpCookieTest16",
-                   DetectEngineHttpCookieTest16);
-    UtRegisterTest("DetectEngineHttpCookieTest17",
-                   DetectEngineHttpCookieTest17);
+    UtRegisterTest("DetectEngineHttpCookieTest01", DetectEngineHttpCookieTest01);
+    UtRegisterTest("DetectEngineHttpCookieTest02", DetectEngineHttpCookieTest02);
+    UtRegisterTest("DetectEngineHttpCookieTest03", DetectEngineHttpCookieTest03);
+    UtRegisterTest("DetectEngineHttpCookieTest04", DetectEngineHttpCookieTest04);
+    UtRegisterTest("DetectEngineHttpCookieTest05", DetectEngineHttpCookieTest05);
+    UtRegisterTest("DetectEngineHttpCookieTest06", DetectEngineHttpCookieTest06);
+    UtRegisterTest("DetectEngineHttpCookieTest07", DetectEngineHttpCookieTest07);
+    UtRegisterTest("DetectEngineHttpCookieTest08", DetectEngineHttpCookieTest08);
+    UtRegisterTest("DetectEngineHttpCookieTest09", DetectEngineHttpCookieTest09);
+    UtRegisterTest("DetectEngineHttpCookieTest10", DetectEngineHttpCookieTest10);
+    UtRegisterTest("DetectEngineHttpCookieTest11", DetectEngineHttpCookieTest11);
+    UtRegisterTest("DetectEngineHttpCookieTest12", DetectEngineHttpCookieTest12);
+    UtRegisterTest("DetectEngineHttpCookieTest13", DetectEngineHttpCookieTest13);
+    UtRegisterTest("DetectEngineHttpCookieTest14", DetectEngineHttpCookieTest14);
+    UtRegisterTest("DetectEngineHttpCookieTest15", DetectEngineHttpCookieTest15);
+    UtRegisterTest("DetectEngineHttpCookieTest16", DetectEngineHttpCookieTest16);
+    UtRegisterTest("DetectEngineHttpCookieTest17", DetectEngineHttpCookieTest17);
 }
 /**
  * @}

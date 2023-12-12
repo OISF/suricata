@@ -24,7 +24,6 @@
 #ifndef __UTIL_MISC_H__
 #define __UTIL_MISC_H__
 
-
 /**
  * \brief Generic API that can be used by all to log an
  *        invalid conf entry.
@@ -54,7 +53,6 @@ void UtilMiscRegisterTests(void);
 void ParseSizeInit(void);
 void ParseSizeDeinit(void);
 
-void ShortenString(const char *input,
-    char *output, size_t output_size, char c);
+void ShortenString(const char *input, char *output, size_t output_size, char c);
 
 #endif /* __UTIL_MISC_H__ */

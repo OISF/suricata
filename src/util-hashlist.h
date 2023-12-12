@@ -45,7 +45,9 @@ typedef struct HashListTable_ {
 } HashListTable;
 
 /* prototypes */
-HashListTable* HashListTableInit(uint32_t, uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *));
+HashListTable *HashListTableInit(uint32_t,
+        uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t),
+        char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *));
 void HashListTableFree(HashListTable *);
 void HashListTablePrint(HashListTable *);
 int HashListTableAdd(HashListTable *, void *, uint16_t);
@@ -60,4 +62,3 @@ char HashListTableDefaultCompare(void *, uint16_t, void *, uint16_t);
 void HashListTableRegisterTests(void);
 
 #endif /* __HASHLIST_H__ */
-

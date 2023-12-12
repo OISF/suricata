@@ -25,6 +25,6 @@
 #define __DETECT_TRANSFORM_COMPRESS_WHITESPACE_H__
 
 /* prototypes */
-void DetectTransformCompressWhitespaceRegister (void);
+void DetectTransformCompressWhitespaceRegister(void);
 
 #endif /* __DETECT_TRANSFORM_COMPRESS_WHITESPACE_H__ */

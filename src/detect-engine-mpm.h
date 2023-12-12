@@ -24,9 +24,7 @@
 #ifndef __DETECT_ENGINE_MPM_H__
 #define __DETECT_ENGINE_MPM_H__
 
-
 #include "detect.h"
-
 
 void DetectMpmInitializeFrameMpms(DetectEngineCtx *de_ctx);
 int DetectMpmPrepareFrameMpms(DetectEngineCtx *de_ctx);
@@ -62,7 +60,8 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s);
 int MpmStoreInit(DetectEngineCtx *);
 void MpmStoreFree(DetectEngineCtx *);
 void MpmStoreReportStats(const DetectEngineCtx *de_ctx);
-MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh, enum MpmBuiltinBuffers buf);
+MpmStore *MpmStorePrepareBuffer(
+        DetectEngineCtx *de_ctx, SigGroupHead *sgh, enum MpmBuiltinBuffers buf);
 
 /**
  * \brief Figure out the FP and their respective content ids for all the
@@ -93,15 +92,12 @@ typedef int (*PrefilterRegisterFunc)(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 void DetectAppLayerMpmRegister2(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionBufferGetDataPtr GetData,
         AppProto alproto, int tx_min_progress);
-void DetectAppLayerMpmRegisterByParentId(
-        DetectEngineCtx *de_ctx,
-        const int id, const int parent_id,
+void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx, const int id, const int parent_id,
         DetectEngineTransforms *transforms);
 
 void DetectPktMpmRegister(const char *name, int priority, PrefilterRegisterFunc PrefilterRegister,
         InspectionBufferGetPktDataPtr GetData);
-void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx,
-        const int id, const int parent_id,
+void DetectPktMpmRegisterByParentId(DetectEngineCtx *de_ctx, const int id, const int parent_id,
         DetectEngineTransforms *transforms);
 
 void DetectFrameMpmRegister(const char *name, int direction, int priority,
@@ -136,4 +132,3 @@ struct MpmListIdDataArgs {
 void EngineAnalysisAddAllRulePatterns(DetectEngineCtx *de_ctx, const Signature *s);
 
 #endif /* __DETECT_ENGINE_MPM_H__ */
-

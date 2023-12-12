@@ -40,8 +40,7 @@ void RegisterNTPParsers(void)
     rs_register_ntp_parser();
 
 #ifdef UNITTESTS
-    AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_NTP,
-        NTPParserRegisterTests);
+    AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_NTP, NTPParserRegisterTests);
 #endif
 }
 

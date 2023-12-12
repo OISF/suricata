@@ -24,14 +24,14 @@
 #ifndef __DETECT_FILESTORE_H__
 #define __DETECT_FILESTORE_H__
 
-#define FILESTORE_DIR_DEFAULT   0   /* rule dir */
-#define FILESTORE_DIR_TOSERVER  1
-#define FILESTORE_DIR_TOCLIENT  2
-#define FILESTORE_DIR_BOTH      3
+#define FILESTORE_DIR_DEFAULT  0 /* rule dir */
+#define FILESTORE_DIR_TOSERVER 1
+#define FILESTORE_DIR_TOCLIENT 2
+#define FILESTORE_DIR_BOTH     3
 
-#define FILESTORE_SCOPE_DEFAULT 0   /* per file */
-#define FILESTORE_SCOPE_TX      1   /* per transaction */
-#define FILESTORE_SCOPE_SSN     2   /* per flow/ssn */
+#define FILESTORE_SCOPE_DEFAULT 0 /* per file */
+#define FILESTORE_SCOPE_TX      1 /* per transaction */
+#define FILESTORE_SCOPE_SSN     2 /* per flow/ssn */
 
 typedef struct DetectFilestoreData_ {
     int16_t direction;
@@ -39,6 +39,6 @@ typedef struct DetectFilestoreData_ {
 } DetectFilestoreData;
 
 /* prototypes */
-void DetectFilestoreRegister (void);
+void DetectFilestoreRegister(void);
 
 #endif /* __DETECT_FILESTORE_H__ */

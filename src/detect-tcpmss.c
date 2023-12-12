@@ -32,14 +32,13 @@
 
 #include "detect-tcpmss.h"
 
-
 /* prototypes */
-static int DetectTcpmssMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectTcpmssSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectTcpmssFree (DetectEngineCtx *, void *);
+static int DetectTcpmssMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectTcpmssSetup(DetectEngineCtx *, Signature *, const char *);
+void DetectTcpmssFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
-void DetectTcpmssRegisterTests (void);
+void DetectTcpmssRegisterTests(void);
 #endif
 static int PrefilterSetupTcpmss(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterTcpmssIsPrefilterable(const Signature *s);
@@ -73,8 +72,8 @@ void DetectTcpmssRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTcpmssMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectTcpmssMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
 
     if (!(PKT_IS_TCP(p)) || PKT_IS_PSEUDOPKT(p))
@@ -99,7 +98,7 @@ static int DetectTcpmssMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTcpmssSetup (DetectEngineCtx *de_ctx, Signature *s, const char *tcpmssstr)
+static int DetectTcpmssSetup(DetectEngineCtx *de_ctx, Signature *s, const char *tcpmssstr)
 {
     DetectU16Data *tcpmssd = DetectU16Parse(tcpmssstr);
     if (tcpmssd == NULL)
@@ -127,8 +126,7 @@ void DetectTcpmssFree(DetectEngineCtx *de_ctx, void *ptr)
 
 /* prefilter code */
 
-static void
-PrefilterPacketTcpmssMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketTcpmssMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     if (!(PKT_IS_TCP(p)) || PKT_IS_PSEUDOPKT(p))
         return;
@@ -165,7 +163,7 @@ static int PrefilterSetupTcpmss(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 static bool PrefilterTcpmssIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_TCPMSS:
                 return true;

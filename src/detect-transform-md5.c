@@ -35,7 +35,7 @@
 #include "util-print.h"
 #include "rust.h"
 
-static int DetectTransformToMd5Setup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTransformToMd5Setup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTransformToMd5RegisterTests(void);
 #endif
@@ -44,17 +44,12 @@ static void TransformToMd5(InspectionBuffer *buffer, void *options);
 void DetectTransformMd5Register(void)
 {
     sigmatch_table[DETECT_TRANSFORM_MD5].name = "to_md5";
-    sigmatch_table[DETECT_TRANSFORM_MD5].desc =
-        "convert to md5 hash of the buffer";
-    sigmatch_table[DETECT_TRANSFORM_MD5].url =
-        "/rules/transforms.html#to-md5";
-    sigmatch_table[DETECT_TRANSFORM_MD5].Setup =
-        DetectTransformToMd5Setup;
-    sigmatch_table[DETECT_TRANSFORM_MD5].Transform =
-        TransformToMd5;
+    sigmatch_table[DETECT_TRANSFORM_MD5].desc = "convert to md5 hash of the buffer";
+    sigmatch_table[DETECT_TRANSFORM_MD5].url = "/rules/transforms.html#to-md5";
+    sigmatch_table[DETECT_TRANSFORM_MD5].Setup = DetectTransformToMd5Setup;
+    sigmatch_table[DETECT_TRANSFORM_MD5].Transform = TransformToMd5;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_TRANSFORM_MD5].RegisterTests =
-        DetectTransformToMd5RegisterTests;
+    sigmatch_table[DETECT_TRANSFORM_MD5].RegisterTests = DetectTransformToMd5RegisterTests;
 #endif
     sigmatch_table[DETECT_TRANSFORM_MD5].flags |= SIGMATCH_NOOPT;
 }
@@ -68,7 +63,7 @@ void DetectTransformMd5Register(void)
  *  \retval 0 ok
  *  \retval -1 failure
  */
-static int DetectTransformToMd5Setup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+static int DetectTransformToMd5Setup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
     if (g_disable_hashing) {
@@ -86,7 +81,7 @@ static void TransformToMd5(InspectionBuffer *buffer, void *options)
     const uint32_t input_len = buffer->inspect_len;
     uint8_t output[SC_MD5_LEN];
 
-    //PrintRawDataFp(stdout, input, input_len);
+    // PrintRawDataFp(stdout, input, input_len);
     SCMd5HashBuffer(input, input_len, output, sizeof(output));
     InspectionBufferCopy(buffer, output, sizeof(output));
 }
@@ -109,7 +104,6 @@ static int DetectTransformToMd5Test01(void)
 
 static void DetectTransformToMd5RegisterTests(void)
 {
-    UtRegisterTest("DetectTransformToMd5Test01",
-            DetectTransformToMd5Test01);
+    UtRegisterTest("DetectTransformToMd5Test01", DetectTransformToMd5Test01);
 }
 #endif

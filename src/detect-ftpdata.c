@@ -37,17 +37,16 @@
 /**
  * \brief Regex for parsing our keyword options
  */
-#define PARSE_REGEX  "^\\s*(stor|retr)\\s*$"
+#define PARSE_REGEX "^\\s*(stor|retr)\\s*$"
 static DetectParseRegex parse_regex;
 
 /* Prototypes of functions registered in DetectFtpdataRegister below */
-static int DetectFtpdataMatch(DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *, void *,
+static int DetectFtpdataMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectFtpdataSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectFtpdataFree (DetectEngineCtx *, void *);
+static int DetectFtpdataSetup(DetectEngineCtx *, Signature *, const char *);
+static void DetectFtpdataFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
-static void DetectFtpdataRegisterTests (void);
+static void DetectFtpdataRegisterTests(void);
 #endif
 static int g_ftpdata_buffer_id = 0;
 
@@ -56,7 +55,8 @@ static int g_ftpdata_buffer_id = 0;
  *
  * This function is called once in the 'lifetime' of the engine.
  */
-void DetectFtpdataRegister(void) {
+void DetectFtpdataRegister(void)
+{
     /* keyword name: this is how the keyword is used in a rule */
     sigmatch_table[DETECT_FTPDATA].name = "ftpdata_command";
     /* description: listed in "suricata --list-keywords=all" */
@@ -94,12 +94,10 @@ void DetectFtpdataRegister(void) {
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFtpdataMatch(DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags,
-        void *state, void *txv,
-        const Signature *s, const SigMatchCtx *m)
+static int DetectFtpdataMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
+        void *txv, const Signature *s, const SigMatchCtx *m)
 {
-    const DetectFtpdataData *ftpcommandd = (const DetectFtpdataData *) m;
+    const DetectFtpdataData *ftpcommandd = (const DetectFtpdataData *)m;
     const FtpDataState *ftp_state = (const FtpDataState *)state;
 
     if (ftp_state == NULL)
@@ -147,7 +145,7 @@ static DetectFtpdataData *DetectFtpdataParse(const char *ftpcommandstr)
     }
     SCLogDebug("Arg1 \"%s\"", arg1);
 
-    ftpcommandd = SCMalloc(sizeof (DetectFtpdataData));
+    ftpcommandd = SCMalloc(sizeof(DetectFtpdataData));
     if (unlikely(ftpcommandd == NULL))
         goto error;
     if (!strcmp(arg1, "stor")) {
@@ -204,7 +202,8 @@ static int DetectFtpdataSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
  *
  * \param ptr pointer to DetectFtpdataData
  */
-static void DetectFtpdataFree(DetectEngineCtx *de_ctx, void *ptr) {
+static void DetectFtpdataFree(DetectEngineCtx *de_ctx, void *ptr)
+{
     DetectFtpdataData *ftpcommandd = (DetectFtpdataData *)ptr;
 
     /* do more specific cleanup here, if needed */
@@ -228,11 +227,14 @@ static int DetectFtpdataSignatureTest01(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (ftpdata_command:stor; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (ftpdata_command:stor; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
-    sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (ftpdata_command:retr; sid:2; rev:1;)");
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (ftpdata_command:retr; sid:2; rev:1;)");
     FAIL_IF_NULL(sig);
-    sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (ftpdata_command:xxx; sid:3; rev:1;)");
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (ftpdata_command:xxx; sid:3; rev:1;)");
     FAIL_IF_NOT_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -245,7 +247,6 @@ static int DetectFtpdataSignatureTest01(void)
 static void DetectFtpdataRegisterTests(void)
 {
     UtRegisterTest("DetectFtpdataParseTest01", DetectFtpdataParseTest01);
-    UtRegisterTest("DetectFtpdataSignatureTest01",
-                   DetectFtpdataSignatureTest01);
+    UtRegisterTest("DetectFtpdataSignatureTest01", DetectFtpdataSignatureTest01);
 }
 #endif /* UNITTESTS */

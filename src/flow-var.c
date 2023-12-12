@@ -58,7 +58,7 @@ FlowVar *FlowVarGetByKey(Flow *f, const uint8_t *key, uint16_t keylen)
 
     GenericVar *gv = f->flowvar;
 
-    for ( ; gv != NULL; gv = gv->next) {
+    for (; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_FLOWVAR && gv->idx == 0) {
 
             FlowVar *fv = (FlowVar *)gv;
@@ -82,7 +82,7 @@ FlowVar *FlowVarGet(Flow *f, uint32_t idx)
 
     GenericVar *gv = f->flowvar;
 
-    for ( ; gv != NULL; gv = gv->next) {
+    for (; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_FLOWVAR && gv->idx == idx)
             return (FlowVar *)gv;
     }
@@ -143,7 +143,7 @@ void FlowVarAddIntNoLock(Flow *f, uint32_t idx, uint32_t value)
         fv->type = DETECT_FLOWVAR;
         fv->datatype = FLOWVAR_TYPE_INT;
         fv->idx = idx;
-        fv->data.fv_int.value= value;
+        fv->data.fv_int.value = value;
         fv->next = NULL;
 
         GenericVarAppend(&f->flowvar, (GenericVar *)fv);
@@ -201,4 +201,3 @@ void FlowVarPrint(GenericVar *gv)
     }
     FlowVarPrint(gv->next);
 }
-

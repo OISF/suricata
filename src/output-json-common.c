@@ -86,7 +86,6 @@ OutputInitResult OutputJsonLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     return result;
 }
 
-
 TmEcode JsonLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     if (initdata == NULL) {

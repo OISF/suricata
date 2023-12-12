@@ -37,8 +37,7 @@ static int DetectSslStateTest02(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_hello");
     FAIL_IF_NULL(ssd);
-    FAIL_IF_NOT(ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO |
-            DETECT_SSL_STATE_CLIENT_HELLO));
+    FAIL_IF_NOT(ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO | DETECT_SSL_STATE_CLIENT_HELLO));
     SCFree(ssd);
     PASS;
 }
@@ -48,9 +47,8 @@ static int DetectSslStateTest03(void)
     DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
                                                   "client_hello");
     FAIL_IF_NULL(ssd);
-    FAIL_IF_NOT(ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO |
-                       DETECT_SSL_STATE_CLIENT_KEYX |
-                       DETECT_SSL_STATE_CLIENT_HELLO));
+    FAIL_IF_NOT(ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO | DETECT_SSL_STATE_CLIENT_KEYX |
+                                      DETECT_SSL_STATE_CLIENT_HELLO));
     SCFree(ssd);
     PASS;
 }
@@ -61,11 +59,9 @@ static int DetectSslStateTest04(void)
                                                   "client_hello , server_keyx , "
                                                   "unknown");
     FAIL_IF_NULL(ssd);
-    FAIL_IF_NOT(ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO |
-                       DETECT_SSL_STATE_CLIENT_KEYX |
-                       DETECT_SSL_STATE_CLIENT_HELLO |
-                       DETECT_SSL_STATE_SERVER_KEYX |
-                       DETECT_SSL_STATE_UNKNOWN));
+    FAIL_IF_NOT(ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO | DETECT_SSL_STATE_CLIENT_KEYX |
+                                      DETECT_SSL_STATE_CLIENT_HELLO | DETECT_SSL_STATE_SERVER_KEYX |
+                                      DETECT_SSL_STATE_UNKNOWN));
     SCFree(ssd);
     PASS;
 }
@@ -97,8 +93,7 @@ static int DetectSslStateTest08(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("server_hello|client_hello");
     FAIL_IF_NULL(ssd);
-    FAIL_IF_NOT(ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO |
-            DETECT_SSL_STATE_CLIENT_HELLO));
+    FAIL_IF_NOT(ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO | DETECT_SSL_STATE_CLIENT_HELLO));
     SCFree(ssd);
     PASS;
 }
@@ -132,6 +127,5 @@ static void DetectSslStateRegisterTests(void)
     UtRegisterTest("DetectSslStateTest05", DetectSslStateTest05);
     UtRegisterTest("DetectSslStateTest06", DetectSslStateTest06);
     UtRegisterTest("DetectSslStateTest08", DetectSslStateTest08);
-    UtRegisterTest("DetectSslStateTestParseNegate",
-        DetectSslStateTestParseNegate);
+    UtRegisterTest("DetectSslStateTestParseNegate", DetectSslStateTestParseNegate);
 }

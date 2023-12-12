@@ -53,9 +53,9 @@ typedef struct GenericVar_ {
 } GenericVar;
 
 typedef struct XBit_ {
-    uint8_t type;       /* type, DETECT_XBITS in this case */
+    uint8_t type; /* type, DETECT_XBITS in this case */
     uint8_t pad[3];
-    uint32_t idx;       /* name idx */
+    uint32_t idx; /* name idx */
     GenericVar *next;
     uint32_t expire;
 } XBit;
@@ -79,4 +79,3 @@ int AddVariableToResolveList(ResolvedVariablesList *list, const char *var);
 void CleanVariableResolveList(ResolvedVariablesList *var_list);
 
 #endif /* __UTIL_VAR_H__ */
-

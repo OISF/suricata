@@ -60,13 +60,13 @@ typedef struct TargetVar_ {
 /** Context data for flowint vars */
 typedef struct DetectFlowintData_ {
     /* This is the main var we are going to use
-    * against the target */
+     * against the target */
     char *name;
     /* Internal id of the var */
     uint32_t idx;
 
     /* The modifier/operation/condition we are
-    * going to execute */
+     * going to execute */
     uint8_t modifier;
     uint8_t targettype;
 
@@ -79,7 +79,6 @@ typedef struct DetectFlowintData_ {
 } DetectFlowintData;
 
 /* prototypes */
-void DetectFlowintRegister (void);
+void DetectFlowintRegister(void);
 
 #endif /* __DETECT_FLOWINT_H__ */
-

@@ -37,9 +37,10 @@
  *
  * \return -1 in case of error, the number of segment in case of success
  */
-int StreamSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
+int StreamSegmentForEach(
+        const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
 {
-    switch(p->proto) {
+    switch (p->proto) {
         case IPPROTO_TCP:
             return StreamTcpSegmentForEach(p, flag, CallbackFunc, data);
             break;

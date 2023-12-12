@@ -30,7 +30,8 @@
 #include "flow.h"
 
 /** tx logger function pointer type */
-typedef int (*TxLogger)(ThreadVars *, void *thread_data, const Packet *, Flow *f, void *state, void *tx, uint64_t tx_id);
+typedef int (*TxLogger)(ThreadVars *, void *thread_data, const Packet *, Flow *f, void *state,
+        void *tx, uint64_t tx_id);
 
 /** tx logger condition function pointer type,
  *  must return true for tx that should be logged
@@ -38,14 +39,11 @@ typedef int (*TxLogger)(ThreadVars *, void *thread_data, const Packet *, Flow *f
 typedef bool (*TxLoggerCondition)(
         ThreadVars *, const Packet *, void *state, void *tx, uint64_t tx_id);
 
-int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
-        TxLogger LogFunc,
-        OutputCtx *, int tc_log_progress, int ts_log_progress,
-        TxLoggerCondition LogCondition,
-        ThreadInitFunc, ThreadDeinitFunc,
-        void (*ThreadExitPrintStats)(ThreadVars *, void *));
+int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, TxLogger LogFunc,
+        OutputCtx *, int tc_log_progress, int ts_log_progress, TxLoggerCondition LogCondition,
+        ThreadInitFunc, ThreadDeinitFunc, void (*ThreadExitPrintStats)(ThreadVars *, void *));
 
-void OutputTxLoggerRegister (void);
+void OutputTxLoggerRegister(void);
 
 void OutputTxShutdown(void);
 

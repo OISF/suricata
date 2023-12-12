@@ -37,12 +37,12 @@
 #include "util-byte.h"
 
 /* prototypes */
-static int DetectTtlMatch (DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
-static int DetectTtlSetup (DetectEngineCtx *, Signature *, const char *);
-void DetectTtlFree (DetectEngineCtx *, void *);
+static int DetectTtlMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
+static int DetectTtlSetup(DetectEngineCtx *, Signature *, const char *);
+void DetectTtlFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
-void DetectTtlRegisterTests (void);
+void DetectTtlRegisterTests(void);
 #endif
 static int PrefilterSetupTtl(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterTtlIsPrefilterable(const Signature *s);
@@ -80,8 +80,8 @@ void DetectTtlRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTtlMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectTtlMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     if (PKT_IS_PSEUDOPKT(p))
         return 0;
@@ -110,7 +110,7 @@ static int DetectTtlMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ttlstr)
+static int DetectTtlSetup(DetectEngineCtx *de_ctx, Signature *s, const char *ttlstr)
 {
     DetectU8Data *ttld = DetectU8Parse(ttlstr);
     if (ttld == NULL)
@@ -137,8 +137,7 @@ void DetectTtlFree(DetectEngineCtx *de_ctx, void *ptr)
 
 /* prefilter code */
 
-static void
-PrefilterPacketTtlMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketTtlMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
 {
     if (PKT_IS_PSEUDOPKT(p)) {
         SCReturn;
@@ -177,7 +176,7 @@ static int PrefilterSetupTtl(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 static bool PrefilterTtlIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_TTL:
                 return true;

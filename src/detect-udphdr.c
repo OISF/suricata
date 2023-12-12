@@ -34,9 +34,9 @@
 #include "detect-udphdr.h"
 
 /* prototypes */
-static int DetectUdphdrSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectUdphdrSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-void DetectUdphdrRegisterTests (void);
+void DetectUdphdrRegisterTests(void);
 #endif
 
 static int g_udphdr_buffer_id = 0;
@@ -64,8 +64,7 @@ void DetectUdphdrRegister(void)
 
     DetectPktMpmRegister("udp.hdr", 2, PrefilterGenericMpmPktRegister, GetData);
 
-    DetectPktInspectEngineRegister("udp.hdr", GetData,
-            DetectEngineInspectPktBufferGeneric);
+    DetectPktInspectEngineRegister("udp.hdr", GetData, DetectEngineInspectPktBufferGeneric);
     return;
 }
 
@@ -79,7 +78,7 @@ void DetectUdphdrRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectUdphdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
+static int DetectUdphdrSetup(DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
     if (!(DetectProtoContainsProto(&s->proto, IPPROTO_UDP)))
         return -1;
@@ -103,8 +102,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
             return NULL;
         }
         if (((uint8_t *)p->udph + (ptrdiff_t)UDP_HEADER_LEN) >
-                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
-        {
+                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p))) {
             SCLogDebug("data out of range: %p > %p",
                     ((uint8_t *)p->udph + (ptrdiff_t)UDP_HEADER_LEN),
                     ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)));

@@ -22,7 +22,7 @@
  */
 
 #ifndef __DETECT_BSIZE_H__
-#define	__DETECT_BSIZE_H__
+#define __DETECT_BSIZE_H__
 
 void DetectBsizeRegister(void);
 int DetectBsizeMatch(const SigMatchCtx *ctx, const uint64_t buffer_size, bool eof);

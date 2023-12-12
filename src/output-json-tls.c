@@ -52,30 +52,30 @@
 
 SC_ATOMIC_EXTERN(unsigned int, cert_id);
 
-#define MODULE_NAME "LogTlsLog"
+#define MODULE_NAME          "LogTlsLog"
 #define DEFAULT_LOG_FILENAME "tls.json"
 
-#define LOG_TLS_DEFAULT                 0
-#define LOG_TLS_EXTENDED                (1 << 0)
-#define LOG_TLS_CUSTOM                  (1 << 1)
-#define LOG_TLS_SESSION_RESUMPTION      (1 << 2)
+#define LOG_TLS_DEFAULT            0
+#define LOG_TLS_EXTENDED           (1 << 0)
+#define LOG_TLS_CUSTOM             (1 << 1)
+#define LOG_TLS_SESSION_RESUMPTION (1 << 2)
 
-#define LOG_TLS_FIELD_VERSION           (1 << 0)
-#define LOG_TLS_FIELD_SUBJECT           (1 << 1)
-#define LOG_TLS_FIELD_ISSUER            (1 << 2)
-#define LOG_TLS_FIELD_SERIAL            (1 << 3)
-#define LOG_TLS_FIELD_FINGERPRINT       (1 << 4)
-#define LOG_TLS_FIELD_NOTBEFORE         (1 << 5)
-#define LOG_TLS_FIELD_NOTAFTER          (1 << 6)
-#define LOG_TLS_FIELD_SNI               (1 << 7)
-#define LOG_TLS_FIELD_CERTIFICATE       (1 << 8)
-#define LOG_TLS_FIELD_CHAIN             (1 << 9)
-#define LOG_TLS_FIELD_SESSION_RESUMED   (1 << 10)
-#define LOG_TLS_FIELD_JA3               (1 << 11)
-#define LOG_TLS_FIELD_JA3S              (1 << 12)
-#define LOG_TLS_FIELD_CLIENT            (1 << 13) /**< client fields (issuer, subject, etc) */
-#define LOG_TLS_FIELD_CLIENT_CERT       (1 << 14)
-#define LOG_TLS_FIELD_CLIENT_CHAIN      (1 << 15)
+#define LOG_TLS_FIELD_VERSION         (1 << 0)
+#define LOG_TLS_FIELD_SUBJECT         (1 << 1)
+#define LOG_TLS_FIELD_ISSUER          (1 << 2)
+#define LOG_TLS_FIELD_SERIAL          (1 << 3)
+#define LOG_TLS_FIELD_FINGERPRINT     (1 << 4)
+#define LOG_TLS_FIELD_NOTBEFORE       (1 << 5)
+#define LOG_TLS_FIELD_NOTAFTER        (1 << 6)
+#define LOG_TLS_FIELD_SNI             (1 << 7)
+#define LOG_TLS_FIELD_CERTIFICATE     (1 << 8)
+#define LOG_TLS_FIELD_CHAIN           (1 << 9)
+#define LOG_TLS_FIELD_SESSION_RESUMED (1 << 10)
+#define LOG_TLS_FIELD_JA3             (1 << 11)
+#define LOG_TLS_FIELD_JA3S            (1 << 12)
+#define LOG_TLS_FIELD_CLIENT          (1 << 13) /**< client fields (issuer, subject, etc) */
+#define LOG_TLS_FIELD_CLIENT_CERT     (1 << 14)
+#define LOG_TLS_FIELD_CLIENT_CHAIN    (1 << 15)
 
 typedef struct {
     const char *name;
@@ -98,7 +98,6 @@ typedef struct OutputTlsCtx_ {
     OutputJsonCtx *eve_ctx;
 } OutputTlsCtx;
 
-
 typedef struct JsonTlsLogThread_ {
     OutputTlsCtx *tlslog_ctx;
     OutputJsonThreadCtx *ctx;
@@ -107,16 +106,14 @@ typedef struct JsonTlsLogThread_ {
 static void JsonTlsLogSubject(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_subject) {
-        jb_set_string(js, "subject",
-                            ssl_state->server_connp.cert0_subject);
+        jb_set_string(js, "subject", ssl_state->server_connp.cert0_subject);
     }
 }
 
 static void JsonTlsLogIssuer(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_issuerdn) {
-        jb_set_string(js, "issuerdn",
-                            ssl_state->server_connp.cert0_issuerdn);
+        jb_set_string(js, "issuerdn", ssl_state->server_connp.cert0_issuerdn);
     }
 }
 
@@ -126,9 +123,9 @@ static void JsonTlsLogSessionResumed(JsonBuilder *js, SSLState *ssl_state)
         /* Only log a session as 'resumed' if a certificate has not
            been seen, and the session is not TLSv1.3 or later. */
         if ((ssl_state->server_connp.cert0_issuerdn == NULL &&
-               ssl_state->server_connp.cert0_subject == NULL) &&
-               (ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
-               ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
+                    ssl_state->server_connp.cert0_subject == NULL) &&
+                (ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
+                ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
             jb_set_bool(js, "session_resumed", true);
         }
     }
@@ -137,24 +134,21 @@ static void JsonTlsLogSessionResumed(JsonBuilder *js, SSLState *ssl_state)
 static void JsonTlsLogFingerprint(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_fingerprint) {
-        jb_set_string(js, "fingerprint",
-                ssl_state->server_connp.cert0_fingerprint);
+        jb_set_string(js, "fingerprint", ssl_state->server_connp.cert0_fingerprint);
     }
 }
 
 static void JsonTlsLogSni(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->client_connp.sni) {
-        jb_set_string(js, "sni",
-                            ssl_state->client_connp.sni);
+        jb_set_string(js, "sni", ssl_state->client_connp.sni);
     }
 }
 
 static void JsonTlsLogSerial(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_serial) {
-        jb_set_string(js, "serial",
-                            ssl_state->server_connp.cert0_serial);
+        jb_set_string(js, "serial", ssl_state->server_connp.cert0_serial);
     }
 }
 
@@ -182,8 +176,7 @@ static void JsonTlsLogNotAfter(JsonBuilder *js, SSLState *ssl_state)
 static void JsonTlsLogJa3Hash(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->client_connp.ja3_hash != NULL) {
-        jb_set_string(js, "hash",
-                            ssl_state->client_connp.ja3_hash);
+        jb_set_string(js, "hash", ssl_state->client_connp.ja3_hash);
     }
 }
 
@@ -191,8 +184,7 @@ static void JsonTlsLogJa3String(JsonBuilder *js, SSLState *ssl_state)
 {
     if ((ssl_state->client_connp.ja3_str != NULL) &&
             ssl_state->client_connp.ja3_str->data != NULL) {
-        jb_set_string(js, "string",
-                            ssl_state->client_connp.ja3_str->data);
+        jb_set_string(js, "string", ssl_state->client_connp.ja3_str->data);
     }
 }
 
@@ -213,8 +205,7 @@ static void JsonTlsLogJa3(JsonBuilder *js, SSLState *ssl_state)
 static void JsonTlsLogJa3SHash(JsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.ja3_hash != NULL) {
-        jb_set_string(js, "hash",
-                            ssl_state->server_connp.ja3_hash);
+        jb_set_string(js, "hash", ssl_state->server_connp.ja3_hash);
     }
 }
 
@@ -222,8 +213,7 @@ static void JsonTlsLogJa3SString(JsonBuilder *js, SSLState *ssl_state)
 {
     if ((ssl_state->server_connp.ja3_str != NULL) &&
             ssl_state->server_connp.ja3_str->data != NULL) {
-        jb_set_string(js, "string",
-                            ssl_state->server_connp.ja3_str->data);
+        jb_set_string(js, "string", ssl_state->server_connp.ja3_str->data);
     }
 }
 
@@ -326,8 +316,7 @@ void JsonTlsLogJSONBasic(JsonBuilder *js, SSLState *ssl_state)
     JsonTlsLogSessionResumed(js, ssl_state);
 }
 
-static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, JsonBuilder *js,
-                                 SSLState *ssl_state)
+static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, JsonBuilder *js, SSLState *ssl_state)
 {
     /* tls subject */
     if (tls_ctx->fields & LOG_TLS_FIELD_SUBJECT)
@@ -437,8 +426,8 @@ bool JsonTlsLogJSONExtended(void *vtx, JsonBuilder *tjs)
     return r;
 }
 
-static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
-                         Flow *f, void *state, void *txptr, uint64_t tx_id)
+static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *txptr, uint64_t tx_id)
 {
     JsonTlsLogThread *aft = (JsonTlsLogThread *)thread_data;
     OutputTlsCtx *tls_ctx = aft->tlslog_ctx;
@@ -449,9 +438,9 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     }
 
     if ((ssl_state->server_connp.cert0_issuerdn == NULL ||
-            ssl_state->server_connp.cert0_subject == NULL) &&
+                ssl_state->server_connp.cert0_subject == NULL) &&
             ((ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) == 0 ||
-            (tls_ctx->flags & LOG_TLS_SESSION_RESUMPTION) == 0) &&
+                    (tls_ctx->flags & LOG_TLS_SESSION_RESUMPTION) == 0) &&
             ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
         return 0;
     }
@@ -479,8 +468,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     /* print original application level protocol when it have been changed
        because of STARTTLS, HTTP CONNECT, or similar. */
     if (f->alproto_orig != ALPROTO_UNKNOWN) {
-        jb_set_string(js, "from_proto",
-                AppLayerGetProtoName(f->alproto_orig));
+        jb_set_string(js, "from_proto", AppLayerGetProtoName(f->alproto_orig));
     }
 
     /* Close the tls object. */
@@ -558,11 +546,10 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
     if (custom) {
         tls_ctx->flags = LOG_TLS_CUSTOM;
         ConfNode *field;
-        TAILQ_FOREACH(field, &custom->head, next)
-        {
+        TAILQ_FOREACH (field, &custom->head, next) {
             bool valid = false;
             TlsFields *valid_fields = tls_fields;
-            for ( ; valid_fields->name != NULL; valid_fields++) {
+            for (; valid_fields->name != NULL; valid_fields++) {
                 if (strcasecmp(field->val, valid_fields->name) == 0) {
                     tls_ctx->fields |= valid_fields->flag;
                     SCLogDebug("enabled %s", field->val);
@@ -581,15 +568,13 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
         tls_ctx->flags |= LOG_TLS_SESSION_RESUMPTION;
     }
 
-    if ((tls_ctx->fields & LOG_TLS_FIELD_JA3) &&
-            Ja3IsDisabled("fields")) {
+    if ((tls_ctx->fields & LOG_TLS_FIELD_JA3) && Ja3IsDisabled("fields")) {
         /* JA3 is disabled, so don't log any JA3 fields */
         tls_ctx->fields &= ~LOG_TLS_FIELD_JA3;
         tls_ctx->fields &= ~LOG_TLS_FIELD_JA3S;
     }
 
-    if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&
-            (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {
+    if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) && (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {
         SCLogWarning("Both 'certificate' and 'chain' contains the top "
                      "certificate, so only one of them should be enabled "
                      "at a time");
@@ -639,8 +624,7 @@ static OutputInitResult OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ct
 
     tls_ctx->eve_ctx = ojc;
 
-    if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&
-            (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {
+    if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) && (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {
         SCLogWarning("Both 'certificate' and 'chain' contains the top "
                      "certificate, so only one of them should be enabled "
                      "at a time");
@@ -656,7 +640,7 @@ static OutputInitResult OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ct
     return result;
 }
 
-void JsonTlsLogRegister (void)
+void JsonTlsLogRegister(void)
 {
     /* register as child of eve-log */
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", "JsonTlsLog", "eve-log.tls",

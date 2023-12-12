@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -44,9 +43,9 @@
 #include "detect.h"
 #include "detect-engine-port.h"
 
-#define TEREDO_ORIG_INDICATION_LENGTH   8
-#define TEREDO_MAX_PORTS                4
-#define TEREDO_UNSET_PORT               -1
+#define TEREDO_ORIG_INDICATION_LENGTH 8
+#define TEREDO_MAX_PORTS              4
+#define TEREDO_UNSET_PORT             -1
 
 static bool g_teredo_enabled = true;
 static bool g_teredo_ports_any = true;
@@ -124,8 +123,7 @@ void DecodeTeredoConfig(void)
  *
  * \retval TM_ECODE_FAILED if packet is not a Teredo packet, TM_ECODE_OK if it is
  */
-int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        const uint8_t *pkt, uint16_t len)
+int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint16_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
@@ -180,16 +178,14 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         if (IPV6_GET_RAW_NH(thdr) == 0 && IPV6_GET_RAW_PLEN(thdr) < 8)
             return TM_ECODE_FAILED;
 
-        if (len ==  IPV6_HEADER_LEN +
-                IPV6_GET_RAW_PLEN(thdr) + (start - pkt)) {
+        if (len == IPV6_HEADER_LEN + IPV6_GET_RAW_PLEN(thdr) + (start - pkt)) {
             int blen = len - (start - pkt);
             /* spawn off tunnel packet */
-            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, start, blen,
-                    DECODE_TUNNEL_IPV6_TEREDO);
+            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, start, blen, DECODE_TUNNEL_IPV6_TEREDO);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_TEREDO);
                 /* add the tp to the packet queue. */
-                PacketEnqueueNoLock(&tv->decode_pq,tp);
+                PacketEnqueueNoLock(&tv->decode_pq, tp);
                 StatsIncr(tv, dtv->counter_teredo);
                 return TM_ECODE_OK;
             }

@@ -51,8 +51,8 @@
 
 #define MODULE_NAME "LogSshLog"
 
-static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
-                         Flow *f, void *state, void *txptr, uint64_t tx_id)
+static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *txptr, uint64_t tx_id)
 {
     OutputJsonThreadCtx *thread = thread_data;
 
@@ -80,7 +80,7 @@ static OutputInitResult OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ct
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
-void JsonSshLogRegister (void)
+void JsonSshLogRegister(void)
 {
     /* register as child of eve-log */
     OutputRegisterTxSubModuleWithCondition(LOGGER_JSON_TX, "eve-log", "JsonSshLog", "eve-log.ssh",

@@ -46,8 +46,8 @@
 
 #include "rust-bindings.h"
 
-static int JsonRFBLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonRFBLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     OutputJsonThreadCtx *thread = thread_data;
 
@@ -70,8 +70,7 @@ error:
     return TM_ECODE_FAILED;
 }
 
-static OutputInitResult OutputRFBLogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult OutputRFBLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_RFB);
     return OutputJsonLogInitSub(conf, parent_ctx);

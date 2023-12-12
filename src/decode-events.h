@@ -301,8 +301,7 @@ enum {
     DECODE_EVENT_MAX,
 };
 
-#define EVENT_IS_DECODER_PACKET_ERROR(e)    \
-    ((e) < (DECODE_EVENT_PACKET_MAX))
+#define EVENT_IS_DECODER_PACKET_ERROR(e) ((e) < (DECODE_EVENT_PACKET_MAX))
 
 /* supported decoder events */
 

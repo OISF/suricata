@@ -35,8 +35,7 @@ uint32_t StringHashFunc(HashTable *ht, void *data, uint16_t datalen)
     return StringHashDjb2(data, datalen) % ht->array_size;
 }
 
-char StringHashCompareFunc(void *data1, uint16_t datalen1,
-                           void *data2, uint16_t datalen2)
+char StringHashCompareFunc(void *data1, uint16_t datalen1, void *data2, uint16_t datalen2)
 {
     int len1 = strlen((char *)data1);
     int len2 = strlen((char *)data2);

@@ -50,10 +50,9 @@ typedef struct OutputFlowLogger_ {
 
 static OutputFlowLogger *list = NULL;
 
-int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc,
-    OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, OutputCtx *output_ctx,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     OutputFlowLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
@@ -103,9 +102,9 @@ TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f)
         DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL);
 
         SCLogDebug("logger %p", logger);
-        //PACKET_PROFILING_LOGGER_START(p, logger->module_id);
+        // PACKET_PROFILING_LOGGER_START(p, logger->module_id);
         logger->LogFunc(tv, store->thread_data, f);
-        //PACKET_PROFILING_LOGGER_END(p, logger->module_id);
+        // PACKET_PROFILING_LOGGER_END(p, logger->module_id);
 
         logger = logger->next;
         store = store->next;

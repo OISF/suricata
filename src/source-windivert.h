@@ -40,8 +40,7 @@ typedef void *WinDivertHandle;
  *
  * see https://reqrypt.org/windivert-doc.html#divert_open for more info
  */
-typedef struct WinDivertQueueVars_
-{
+typedef struct WinDivertQueueVars_ {
     int queue_num;
 
     /* see https://reqrypt.org/windivert-doc.html#filter_language */
@@ -64,8 +63,7 @@ typedef struct WinDivertQueueVars_
     SCMutex counters_mutex;
 } WinDivertQueueVars;
 
-typedef struct WinDivertPacketVars_
-{
+typedef struct WinDivertPacketVars_ {
     int thread_num;
 
     WINDIVERT_ADDRESS addr;

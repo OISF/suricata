@@ -24,6 +24,6 @@
 #ifndef __DETECT_DNS_QUERY_H__
 #define __DETECT_DNS_QUERY_H__
 
-void DetectDnsQueryRegister (void);
+void DetectDnsQueryRegister(void);
 
 #endif /* __DETECT_DNS_QUERY_H__ */

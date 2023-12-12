@@ -96,8 +96,8 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     if (pcap_g.checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
         p->flags |= PKT_IGNORE_CHECKSUM;
     } else if (pcap_g.checksum_mode == CHECKSUM_VALIDATION_AUTO) {
-        if (ChecksumAutoModeCheck(ptv->shared->pkts, p->pcap_cnt,
-                                  SC_ATOMIC_GET(pcap_g.invalid_checksums))) {
+        if (ChecksumAutoModeCheck(
+                    ptv->shared->pkts, p->pcap_cnt, SC_ATOMIC_GET(pcap_g.invalid_checksums))) {
             pcap_g.checksum_mode = CHECKSUM_VALIDATION_DISABLE;
             p->flags |= PKT_IGNORE_CHECKSUM;
         }
@@ -130,8 +130,7 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
     /* initialize all the thread's initial timestamp */
     if (likely(ptv->first_pkt_hdr != NULL)) {
         TmThreadsInitThreadsTimestamp(SCTIME_FROM_TIMEVAL(&ptv->first_pkt_ts));
-        PcapFileCallbackLoop((char *)ptv, ptv->first_pkt_hdr,
-                (u_char *)ptv->first_pkt_data);
+        PcapFileCallbackLoop((char *)ptv, ptv->first_pkt_hdr, (u_char *)ptv->first_pkt_data);
         ptv->first_pkt_hdr = NULL;
         ptv->first_pkt_data = NULL;
     }
@@ -150,8 +149,8 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
         PacketPoolWait();
 
         /* Right now we just support reading packets one at a time. */
-        int r = pcap_dispatch(ptv->pcap_handle, packet_q_len,
-                          (pcap_handler)PcapFileCallbackLoop, (u_char *)ptv);
+        int r = pcap_dispatch(
+                ptv->pcap_handle, packet_q_len, (pcap_handler)PcapFileCallbackLoop, (u_char *)ptv);
         if (unlikely(r == -1)) {
             SCLogError("error code %" PRId32 " %s for %s", r, pcap_geterr(ptv->pcap_handle),
                     ptv->filename);
@@ -160,8 +159,8 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
             }
             loop_result = TM_ECODE_DONE;
         } else if (unlikely(r == 0)) {
-            SCLogInfo("pcap file %s end of file reached (pcap err code %" PRId32 ")",
-                      ptv->filename, r);
+            SCLogInfo("pcap file %s end of file reached (pcap err code %" PRId32 ")", ptv->filename,
+                    r);
             ptv->shared->files++;
             loop_result = TM_ECODE_DONE;
         } else if (ptv->shared->cb_result == TM_ECODE_FAILED) {
@@ -197,7 +196,7 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
 {
     char errbuf[PCAP_ERRBUF_SIZE] = "";
 
-    if(unlikely(pfv->filename == NULL)) {
+    if (unlikely(pfv->filename == NULL)) {
         SCLogError("Filename was null");
         SCReturnInt(TM_ECODE_FAILED);
     }

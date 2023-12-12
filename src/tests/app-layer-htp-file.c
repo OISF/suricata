@@ -23,10 +23,10 @@
  * for setting up a valid range value.
  */
 
-static int AppLayerHtpFileParseContentRangeTest01 (void)
+static int AppLayerHtpFileParseContentRangeTest01(void)
 {
     HTTPContentRange range;
-    bstr * rawvalue = bstr_dup_c("bytes 12-25/100");
+    bstr *rawvalue = bstr_dup_c("bytes 12-25/100");
     FAIL_IF_NOT(HTPParseContentRange(rawvalue, &range) == 0);
     FAIL_IF_NOT(range.start == 12);
     FAIL_IF_NOT(range.end == 25);
@@ -40,10 +40,10 @@ static int AppLayerHtpFileParseContentRangeTest01 (void)
  * for setting up an invalid range value.
  */
 
-static int AppLayerHtpFileParseContentRangeTest02 (void)
+static int AppLayerHtpFileParseContentRangeTest02(void)
 {
     HTTPContentRange range;
-    bstr * rawvalue = bstr_dup_c("bytes 15335424-27514354/");
+    bstr *rawvalue = bstr_dup_c("bytes 15335424-27514354/");
     FAIL_IF(HTPParseContentRange(rawvalue, &range) == 0);
     bstr_free(rawvalue);
     PASS;
@@ -54,25 +54,24 @@ static int AppLayerHtpFileParseContentRangeTest02 (void)
  * for setting up an invalid range value.
  */
 
-static int AppLayerHtpFileParseContentRangeTest03 (void)
+static int AppLayerHtpFileParseContentRangeTest03(void)
 {
     HTTPContentRange range;
-    bstr * rawvalue = bstr_dup_c("bytes 15335424-");
+    bstr *rawvalue = bstr_dup_c("bytes 15335424-");
     FAIL_IF(HTPParseContentRange(rawvalue, &range) == 0);
     bstr_free(rawvalue);
     PASS;
 }
-
 
 /**
  * \test AppLayerHtpFileParseContentRangeTest04 is a test
  * for setting up a valid range value without the size.
  */
 
-static int AppLayerHtpFileParseContentRangeTest04 (void)
+static int AppLayerHtpFileParseContentRangeTest04(void)
 {
     HTTPContentRange range;
-    bstr * rawvalue = bstr_dup_c("bytes 24-42/*");
+    bstr *rawvalue = bstr_dup_c("bytes 24-42/*");
     FAIL_IF_NOT(HTPParseContentRange(rawvalue, &range) == 0);
     FAIL_IF_NOT(range.start == 24);
     FAIL_IF_NOT(range.end == 42);
@@ -85,8 +84,12 @@ static int AppLayerHtpFileParseContentRangeTest04 (void)
  */
 void AppLayerHtpFileRegisterTests(void)
 {
-    UtRegisterTest("AppLayerHtpFileParseContentRangeTest01", AppLayerHtpFileParseContentRangeTest01);
-    UtRegisterTest("AppLayerHtpFileParseContentRangeTest02", AppLayerHtpFileParseContentRangeTest02);
-    UtRegisterTest("AppLayerHtpFileParseContentRangeTest03", AppLayerHtpFileParseContentRangeTest03);
-    UtRegisterTest("AppLayerHtpFileParseContentRangeTest04", AppLayerHtpFileParseContentRangeTest04);
+    UtRegisterTest(
+            "AppLayerHtpFileParseContentRangeTest01", AppLayerHtpFileParseContentRangeTest01);
+    UtRegisterTest(
+            "AppLayerHtpFileParseContentRangeTest02", AppLayerHtpFileParseContentRangeTest02);
+    UtRegisterTest(
+            "AppLayerHtpFileParseContentRangeTest03", AppLayerHtpFileParseContentRangeTest03);
+    UtRegisterTest(
+            "AppLayerHtpFileParseContentRangeTest04", AppLayerHtpFileParseContentRangeTest04);
 }

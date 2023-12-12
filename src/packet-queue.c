@@ -43,7 +43,7 @@ void PacketQueueValidateDebug(PacketQueue *q)
     if (q->len == 0) {
         BUG_ON(q->top != NULL);
         BUG_ON(q->bot != NULL);
-    } else if(q->len == 1) {
+    } else if (q->len == 1) {
         SCLogDebug("q->top->next %p, q->top->prev %p", q->top->next, q->top->prev);
         SCLogDebug("q->bot->next %p, q->bot->prev %p", q->bot->next, q->bot->prev);
 
@@ -85,22 +85,22 @@ void PacketQueueValidateDebug(PacketQueue *q)
             SCLogDebug("p %p, pp %p, p->next %p, p->prev %p", p, pp, p->next, p->prev);
             BUG_ON(pp != p->prev);
         }
-
     }
 }
 
-#define BUGGER_ON(cond) { \
-    if ((cond)) { \
-        PacketQueueValidateDebug(q); \
-    } \
-}
+#define BUGGER_ON(cond)                                                                            \
+    {                                                                                              \
+        if ((cond)) {                                                                              \
+            PacketQueueValidateDebug(q);                                                           \
+        }                                                                                          \
+    }
 
 void PacketQueueValidate(PacketQueue *q)
 {
     if (q->len == 0) {
         BUGGER_ON(q->top != NULL);
         BUGGER_ON(q->bot != NULL);
-    } else if(q->len == 1) {
+    } else if (q->len == 1) {
         BUGGER_ON(q->top != q->bot);
         BUGGER_ON(q->top->next != NULL);
         BUGGER_ON(q->bot->next != NULL);
@@ -132,14 +132,13 @@ void PacketQueueValidate(PacketQueue *q)
         for (p = q->top, pp = p->prev; p != NULL; pp = p, p = p->next) {
             BUGGER_ON(pp != p->prev);
         }
-
     }
 }
 #endif /* DEBUG */
 
 static inline void PacketEnqueueDo(PacketQueue *q, Packet *p)
 {
-    //PacketQueueValidateDebug(q);
+    // PacketQueueValidateDebug(q);
 
     if (p == NULL)
         return;
@@ -150,7 +149,7 @@ static inline void PacketEnqueueDo(PacketQueue *q, Packet *p)
         p->next = q->top;
         q->top->prev = p;
         q->top = p;
-    /* only packet */
+        /* only packet */
     } else {
         p->prev = NULL;
         p->next = NULL;
@@ -162,7 +161,7 @@ static inline void PacketEnqueueDo(PacketQueue *q, Packet *p)
     if (q->len > q->dbg_maxlen)
         q->dbg_maxlen = q->len;
 #endif /* DBG_PERF */
-    //PacketQueueValidateDebug(q);
+    // PacketQueueValidateDebug(q);
 }
 
 void PacketEnqueueNoLock(PacketQueueNoLock *qnl, Packet *p)
@@ -172,14 +171,14 @@ void PacketEnqueueNoLock(PacketQueueNoLock *qnl, Packet *p)
     PacketEnqueueDo(q, p);
 }
 
-void PacketEnqueue (PacketQueue *q, Packet *p)
+void PacketEnqueue(PacketQueue *q, Packet *p)
 {
     PacketEnqueueDo(q, p);
 }
 
-static inline Packet *PacketDequeueDo (PacketQueue *q)
+static inline Packet *PacketDequeueDo(PacketQueue *q)
 {
-    //PacketQueueValidateDebug(q);
+    // PacketQueueValidateDebug(q);
     /* if the queue is empty there are no packets left. */
     if (q->len == 0) {
         return NULL;
@@ -199,13 +198,13 @@ static inline Packet *PacketDequeueDo (PacketQueue *q)
         q->bot = NULL;
     }
 
-    //PacketQueueValidateDebug(q);
+    // PacketQueueValidateDebug(q);
     p->next = NULL;
     p->prev = NULL;
     return p;
 }
 
-Packet *PacketDequeueNoLock (PacketQueueNoLock *qnl)
+Packet *PacketDequeueNoLock(PacketQueueNoLock *qnl)
 {
     PacketQueue *q = (PacketQueue *)qnl;
     Packet *p = PacketDequeueDo(q);
@@ -213,7 +212,7 @@ Packet *PacketDequeueNoLock (PacketQueueNoLock *qnl)
     return p;
 }
 
-Packet *PacketDequeue (PacketQueue *q)
+Packet *PacketDequeue(PacketQueue *q)
 {
     return PacketDequeueDo(q);
 }

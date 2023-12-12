@@ -29,4 +29,3 @@ void TmModuleReceiveErfDagRegister(void);
 void TmModuleDecodeErfDagRegister(void);
 
 #endif /* __SOURCE_ERF_DAG_H__ */
-

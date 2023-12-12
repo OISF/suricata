@@ -35,20 +35,19 @@
 
 #ifdef UNITTESTS
 
-typedef struct UtTest_
-{
+typedef struct UtTest_ {
     const char *name;
-    int(*TestFn)(void);
+    int (*TestFn)(void);
 
     struct UtTest_ *next;
 
 } UtTest;
 
-void UtRegisterTest(const char *name, int(*TestFn)(void));
+void UtRegisterTest(const char *name, int (*TestFn)(void));
 uint32_t UtRunTests(const char *regex_arg);
 void UtInitialize(void);
 void UtCleanup(void);
-int UtRunSelftest (const char *regex_arg);
+int UtRunSelftest(const char *regex_arg);
 void UtListTests(const char *regex_arg);
 void UtRunModeRegister(void);
 
@@ -57,44 +56,49 @@ extern int unittests_fatal;
 /**
  * \brief Fail a test.
  */
-#define FAIL do {                                      \
-        if (unittests_fatal) {                         \
-            BUG_ON(1);                                 \
-        } else {                                       \
-            return 0;                                  \
-        }                                              \
+#define FAIL                                                                                       \
+    do {                                                                                           \
+        if (unittests_fatal) {                                                                     \
+            BUG_ON(1);                                                                             \
+        } else {                                                                                   \
+            return 0;                                                                              \
+        }                                                                                          \
     } while (0)
 
 /**
  * \brief Fail a test if expression evaluates to true.
  */
-#define FAIL_IF(expr) do {                             \
-        if (unittests_fatal) {                         \
-            BUG_ON(expr);                              \
-        } else if (expr) {                             \
-            return 0;                                  \
-        }                                              \
+#define FAIL_IF(expr)                                                                              \
+    do {                                                                                           \
+        if (unittests_fatal) {                                                                     \
+            BUG_ON(expr);                                                                          \
+        } else if (expr) {                                                                         \
+            return 0;                                                                              \
+        }                                                                                          \
     } while (0)
 
 /**
  * \brief Fail a test if expression evaluates to false.
  */
-#define FAIL_IF_NOT(expr) do { \
-        FAIL_IF(!(expr));      \
+#define FAIL_IF_NOT(expr)                                                                          \
+    do {                                                                                           \
+        FAIL_IF(!(expr));                                                                          \
     } while (0)
 
 /**
  * \brief Fail a test if expression evaluates to NULL.
  */
-#define FAIL_IF_NULL(expr) do {                 \
-        FAIL_IF(NULL == expr);                  \
+#define FAIL_IF_NULL(expr)                                                                         \
+    do {                                                                                           \
+        FAIL_IF(NULL == expr);                                                                     \
     } while (0)
 
 /**
  * \brief Fail a test if expression evaluates to non-NULL.
  */
-#define FAIL_IF_NOT_NULL(expr) do { \
-        FAIL_IF(NULL != expr);      \
+#define FAIL_IF_NOT_NULL(expr)                                                                     \
+    do {                                                                                           \
+        FAIL_IF(NULL != expr);                                                                     \
     } while (0)
 
 /**
@@ -102,8 +106,9 @@ extern int unittests_fatal;
  *
  * Only to be used at the end of a function instead of "return 1."
  */
-#define PASS do { \
-        return 1; \
+#define PASS                                                                                       \
+    do {                                                                                           \
+        return 1;                                                                                  \
     } while (0)
 
 #endif

@@ -93,16 +93,16 @@ static fpos_t SeekFn(void *handler, fpos_t offset, int whence)
             if (offset >= 0 && (size_t)offset <= mem->size) {
                 return mem->pos = offset;
             }
-        break;
+            break;
         case SEEK_CUR:
             if (mem->pos + offset <= mem->size)
                 return mem->pos += offset;
-        break;
+            break;
         case SEEK_END:
             /* must be negative */
             if (mem->size + offset <= mem->size)
                 return pos = mem->size + offset;
-        break;
+            break;
     }
 
     return -1;
@@ -122,7 +122,8 @@ static int ReadFn(void *handler, char *buf, int size)
     size_t available = mem->size - mem->pos;
     int is_eof = 0;
 
-    if (size < 0) return - 1;
+    if (size < 0)
+        return -1;
 
     if ((size_t)size > available) {
         size = available;
@@ -152,7 +153,8 @@ static int WriteFn(void *handler, const char *buf, int size)
     SCFmem *mem = handler;
     size_t available = mem->size - mem->pos;
 
-    if (size < 0) return - 1;
+    if (size < 0)
+        return -1;
 
     if ((size_t)size > available)
         size = available;

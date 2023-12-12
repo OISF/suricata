@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -63,11 +62,11 @@
 #include "detect-http-header.h"
 #include "stream-tcp.h"
 
-#define KEYWORD_NAME "http.protocol"
+#define KEYWORD_NAME        "http.protocol"
 #define KEYWORD_NAME_LEGACY "http_protocol"
-#define KEYWORD_DOC "http-keywords.html#http-protocol"
-#define BUFFER_NAME "http_protocol"
-#define BUFFER_DESC "http protocol"
+#define KEYWORD_DOC         "http-keywords.html#http-protocol"
+#define BUFFER_NAME         "http_protocol"
+#define BUFFER_DESC         "http protocol"
 static int g_buffer_id = 0;
 
 static int DetectHttpProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
@@ -82,8 +81,8 @@ static int DetectHttpProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const 
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const uint8_t flow_flags, void *txv, const int list_id)
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
@@ -158,8 +157,7 @@ void DetectHttpProtocolRegister(void)
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetData2, ALPROTO_HTTP2, HTTP2StateDataServer);
 
-    DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
-            BUFFER_DESC);
+    DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }

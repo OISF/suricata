@@ -34,7 +34,7 @@ void FlowManagerThreadSpawn(void);
 void FlowDisableFlowManagerThread(void);
 void FlowRecyclerThreadSpawn(void);
 void FlowDisableFlowRecyclerThread(void);
-void TmModuleFlowManagerRegister (void);
-void TmModuleFlowRecyclerRegister (void);
+void TmModuleFlowManagerRegister(void);
+void TmModuleFlowRecyclerRegister(void);
 
 #endif /* __FLOW_MANAGER_H__ */

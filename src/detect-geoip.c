@@ -41,7 +41,7 @@
 
 #ifndef HAVE_GEOIP
 
-static int DetectGeoipSetupNoSupport (DetectEngineCtx *a, Signature *b, const char *c)
+static int DetectGeoipSetupNoSupport(DetectEngineCtx *a, Signature *b, const char *c)
 {
     SCLogError("no GeoIP support built in, needed for geoip keyword");
     return -1;
@@ -54,7 +54,9 @@ static int DetectGeoipSetupNoSupport (DetectEngineCtx *a, Signature *b, const ch
 void DetectGeoipRegister(void)
 {
     sigmatch_table[DETECT_GEOIP].name = "geoip";
-    sigmatch_table[DETECT_GEOIP].desc = "match on the source, destination or source and destination IP addresses of network traffic, and to see to which country it belongs";
+    sigmatch_table[DETECT_GEOIP].desc =
+            "match on the source, destination or source and destination IP addresses of network "
+            "traffic, and to see to which country it belongs";
     sigmatch_table[DETECT_GEOIP].url = "/rules/header-keywords.html#geoip";
     sigmatch_table[DETECT_GEOIP].Setup = DetectGeoipSetupNoSupport;
     sigmatch_table[DETECT_GEOIP].Free = NULL;
@@ -64,8 +66,8 @@ void DetectGeoipRegister(void)
 
 #include <maxminddb.h>
 
-static int DetectGeoipMatch(DetectEngineThreadCtx *, Packet *,
-                            const Signature *, const SigMatchCtx *);
+static int DetectGeoipMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectGeoipSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectGeoipRegisterTests(void);
@@ -149,24 +151,22 @@ static const char *GeolocateIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
         return NULL;
 
     /* Attempt to find the IPv4 address in the database */
-    result = MMDB_lookup_sockaddr((MMDB_s *)&geoipdata->mmdb,
-                                  (struct sockaddr*)&sa, &mmdb_error);
+    result = MMDB_lookup_sockaddr((MMDB_s *)&geoipdata->mmdb, (struct sockaddr *)&sa, &mmdb_error);
     if (mmdb_error != MMDB_SUCCESS)
         return NULL;
 
     /* The IPv4 address was found, so grab ISO country code if available */
     if (result.found_entry) {
-        mmdb_error = MMDB_get_value(&result.entry, &entry_data, "country",
-                                    "iso_code", NULL);
+        mmdb_error = MMDB_get_value(&result.entry, &entry_data, "country", "iso_code", NULL);
         if (mmdb_error != MMDB_SUCCESS)
             return NULL;
 
         /* If ISO country code was found, then return it */
         if (entry_data.has_data) {
             if (entry_data.type == MMDB_DATA_TYPE_UTF8_STRING) {
-                    char *country_code = SCStrndup((char *)entry_data.utf8_string,
-                                                    entry_data.data_size);
-                    return country_code;
+                char *country_code =
+                        SCStrndup((char *)entry_data.utf8_string, entry_data.data_size);
+                return country_code;
             }
         }
     }
@@ -176,17 +176,17 @@ static const char *GeolocateIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
 }
 
 /* Match-on conditions supported */
-#define GEOIP_MATCH_SRC_STR     "src"
-#define GEOIP_MATCH_DST_STR     "dst"
-#define GEOIP_MATCH_BOTH_STR    "both"
-#define GEOIP_MATCH_ANY_STR     "any"
+#define GEOIP_MATCH_SRC_STR  "src"
+#define GEOIP_MATCH_DST_STR  "dst"
+#define GEOIP_MATCH_BOTH_STR "both"
+#define GEOIP_MATCH_ANY_STR  "any"
 
-#define GEOIP_MATCH_NO_FLAG     0
-#define GEOIP_MATCH_SRC_FLAG    1
-#define GEOIP_MATCH_DST_FLAG    2
-#define GEOIP_MATCH_ANY_FLAG    3 /* default src and dst*/
-#define GEOIP_MATCH_BOTH_FLAG   4
-#define GEOIP_MATCH_NEGATED     8
+#define GEOIP_MATCH_NO_FLAG   0
+#define GEOIP_MATCH_SRC_FLAG  1
+#define GEOIP_MATCH_DST_FLAG  2
+#define GEOIP_MATCH_ANY_FLAG  3 /* default src and dst*/
+#define GEOIP_MATCH_BOTH_FLAG 4
+#define GEOIP_MATCH_NEGATED   8
 
 /**
  * \internal
@@ -209,10 +209,9 @@ static int CheckGeoMatchIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
         return 0;
 
     /* Check if NOT NEGATED match-on condition */
-    if ((geoipdata->flags & GEOIP_MATCH_NEGATED) == 0)
-    {
+    if ((geoipdata->flags & GEOIP_MATCH_NEGATED) == 0) {
         for (i = 0; i < geoipdata->nlocations; i++) {
-            if (strcmp(country, (char *)geoipdata->location[i])==0) {
+            if (strcmp(country, (char *)geoipdata->location[i]) == 0) {
                 SCFree((void *)country);
                 return 1;
             }
@@ -220,7 +219,7 @@ static int CheckGeoMatchIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
     } else {
         /* Check if NEGATED match-on condition */
         for (i = 0; i < geoipdata->nlocations; i++) {
-            if (strcmp(country, (char *)geoipdata->location[i])==0) {
+            if (strcmp(country, (char *)geoipdata->location[i]) == 0) {
                 SCFree((void *)country);
                 return 0; /* if one matches, rule does NOT match (negated) */
             }
@@ -244,8 +243,8 @@ static int CheckGeoMatchIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectGeoipMatch(DetectEngineThreadCtx *det_ctx,
-                            Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectGeoipMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectGeoipData *geoipdata = (const DetectGeoipData *)ctx;
     int matches = 0;
@@ -253,22 +252,17 @@ static int DetectGeoipMatch(DetectEngineThreadCtx *det_ctx,
     if (PKT_IS_PSEUDOPKT(p))
         return 0;
 
-    if (PKT_IS_IPV4(p))
-    {
-        if (geoipdata->flags & ( GEOIP_MATCH_SRC_FLAG | GEOIP_MATCH_BOTH_FLAG ))
-        {
-            if (CheckGeoMatchIPv4(geoipdata, GET_IPV4_SRC_ADDR_U32(p)))
-            {
+    if (PKT_IS_IPV4(p)) {
+        if (geoipdata->flags & (GEOIP_MATCH_SRC_FLAG | GEOIP_MATCH_BOTH_FLAG)) {
+            if (CheckGeoMatchIPv4(geoipdata, GET_IPV4_SRC_ADDR_U32(p))) {
                 if (geoipdata->flags & GEOIP_MATCH_BOTH_FLAG)
                     matches++;
                 else
                     return 1;
             }
         }
-        if (geoipdata->flags & ( GEOIP_MATCH_DST_FLAG | GEOIP_MATCH_BOTH_FLAG ))
-        {
-            if (CheckGeoMatchIPv4(geoipdata, GET_IPV4_DST_ADDR_U32(p)))
-            {
+        if (geoipdata->flags & (GEOIP_MATCH_DST_FLAG | GEOIP_MATCH_BOTH_FLAG)) {
+            if (CheckGeoMatchIPv4(geoipdata, GET_IPV4_DST_ADDR_U32(p))) {
                 if (geoipdata->flags & GEOIP_MATCH_BOTH_FLAG)
                     matches++;
                 else
@@ -292,7 +286,7 @@ static int DetectGeoipMatch(DetectEngineThreadCtx *det_ctx,
  * \retval pointer to DetectGeoipData on success
  * \retval NULL on failure
  */
-static DetectGeoipData *DetectGeoipDataParse (DetectEngineCtx *de_ctx, const char *str)
+static DetectGeoipData *DetectGeoipDataParse(DetectEngineCtx *de_ctx, const char *str)
 {
     DetectGeoipData *geoipdata = NULL;
     uint16_t pos = 0;
@@ -310,13 +304,10 @@ static DetectGeoipData *DetectGeoipDataParse (DetectEngineCtx *de_ctx, const cha
         goto error;
 
     /* Parse the geoip option string */
-    while (pos <= slen)
-    {
+    while (pos <= slen) {
         /* search for ',' or end of string */
-        if (str[pos] == ',' || pos == slen)
-        {
-            if (geoipdata->flags == GEOIP_MATCH_NO_FLAG)
-            {
+        if (str[pos] == ',' || pos == slen) {
+            if (geoipdata->flags == GEOIP_MATCH_NO_FLAG) {
                 /* Parse match-on condition */
                 if (pos == slen) /* if end of option str then there are no match-on cond. */
                 {
@@ -325,13 +316,13 @@ static DetectGeoipData *DetectGeoipDataParse (DetectEngineCtx *de_ctx, const cha
                     geoipdata->flags |= GEOIP_MATCH_ANY_FLAG;
                 } else {
                     skiplocationparsing = 1;
-                    if (strncmp(&str[prevpos], GEOIP_MATCH_SRC_STR, pos-prevpos) == 0)
+                    if (strncmp(&str[prevpos], GEOIP_MATCH_SRC_STR, pos - prevpos) == 0)
                         geoipdata->flags |= GEOIP_MATCH_SRC_FLAG;
-                    else if (strncmp(&str[prevpos], GEOIP_MATCH_DST_STR, pos-prevpos) == 0)
+                    else if (strncmp(&str[prevpos], GEOIP_MATCH_DST_STR, pos - prevpos) == 0)
                         geoipdata->flags |= GEOIP_MATCH_DST_FLAG;
-                    else if (strncmp(&str[prevpos], GEOIP_MATCH_BOTH_STR, pos-prevpos) == 0)
+                    else if (strncmp(&str[prevpos], GEOIP_MATCH_BOTH_STR, pos - prevpos) == 0)
                         geoipdata->flags |= GEOIP_MATCH_BOTH_FLAG;
-                    else if (strncmp(&str[prevpos], GEOIP_MATCH_ANY_STR, pos-prevpos) == 0)
+                    else if (strncmp(&str[prevpos], GEOIP_MATCH_ANY_STR, pos - prevpos) == 0)
                         geoipdata->flags |= GEOIP_MATCH_ANY_FLAG;
                     else {
                         /* There was NO match-on condition! we default to ANY*/
@@ -340,8 +331,7 @@ static DetectGeoipData *DetectGeoipDataParse (DetectEngineCtx *de_ctx, const cha
                     }
                 }
             }
-            if (geoipdata->flags != GEOIP_MATCH_NO_FLAG && skiplocationparsing == 0)
-            {
+            if (geoipdata->flags != GEOIP_MATCH_NO_FLAG && skiplocationparsing == 0) {
                 /* Parse location string: for now just the country code(s) */
                 if (str[prevpos] == '!') {
                     geoipdata->flags |= GEOIP_MATCH_NEGATED;
@@ -353,24 +343,24 @@ static DetectGeoipData *DetectGeoipDataParse (DetectEngineCtx *de_ctx, const cha
                     goto error;
                 }
 
-                if (pos-prevpos > GEOOPTION_MAXSIZE)
+                if (pos - prevpos > GEOOPTION_MAXSIZE)
                     strlcpy((char *)geoipdata->location[geoipdata->nlocations], &str[prevpos],
-                                                                            GEOOPTION_MAXSIZE);
+                            GEOOPTION_MAXSIZE);
                 else
                     strlcpy((char *)geoipdata->location[geoipdata->nlocations], &str[prevpos],
-                                                                                pos-prevpos+1);
+                            pos - prevpos + 1);
 
                 if (geoipdata->nlocations < GEOOPTION_MAXLOCATIONS)
                     geoipdata->nlocations++;
             }
-            prevpos = pos+1;
+            prevpos = pos + 1;
             skiplocationparsing = 0; /* match-on condition for sure has been parsed already */
         }
         pos++;
     }
 
-    SCLogDebug("GeoIP: %"PRIu32" countries loaded", geoipdata->nlocations);
-    for (int i=0; i<geoipdata->nlocations; i++)
+    SCLogDebug("GeoIP: %" PRIu32 " countries loaded", geoipdata->nlocations);
+    for (int i = 0; i < geoipdata->nlocations; i++)
         SCLogDebug("GeoIP country code: %s", geoipdata->location[i]);
 
     SCLogDebug("flags %02X", geoipdata->flags);
@@ -426,7 +416,6 @@ error:
     if (geoipdata != NULL)
         DetectGeoipDataFree(de_ctx, geoipdata);
     return -1;
-
 }
 
 /**
@@ -467,11 +456,10 @@ static int GeoipParseTest(const char *rule, int ncountries, const char **countri
     data = (DetectGeoipData *)s->init_data->smlists_tail[DETECT_SM_LIST_MATCH]->ctx;
     FAIL_IF(data->flags != flags);
 
-    FAIL_IF(data->nlocations!=ncountries);
+    FAIL_IF(data->nlocations != ncountries);
 
-    for (int i=0; i<ncountries; i++)
-    {
-        FAIL_IF(strcmp((char *)data->location[i],countries[i])!=0);
+    for (int i = 0; i < ncountries; i++) {
+        FAIL_IF(strcmp((char *)data->location[i], countries[i]) != 0);
     }
 
     DetectEngineCtxFree(de_ctx);
@@ -480,51 +468,51 @@ static int GeoipParseTest(const char *rule, int ncountries, const char **countri
 
 static int GeoipParseTest01(void)
 {
-    const char *ccodes[1] = {"US"};
-    return GeoipParseTest("alert tcp any any -> any any (geoip:US;sid:1;)", 1, ccodes,
-                                GEOIP_MATCH_ANY_FLAG);
+    const char *ccodes[1] = { "US" };
+    return GeoipParseTest(
+            "alert tcp any any -> any any (geoip:US;sid:1;)", 1, ccodes, GEOIP_MATCH_ANY_FLAG);
 }
 
 static int GeoipParseTest02(void)
 {
-    const char *ccodes[1] = {"US"};
+    const char *ccodes[1] = { "US" };
     return GeoipParseTest("alert tcp any any -> any any (geoip:!US;sid:1;)", 1, ccodes,
-                                GEOIP_MATCH_ANY_FLAG | GEOIP_MATCH_NEGATED);
+            GEOIP_MATCH_ANY_FLAG | GEOIP_MATCH_NEGATED);
 }
 
 static int GeoipParseTest03(void)
 {
-    const char *ccodes[1] = {"US"};
+    const char *ccodes[1] = { "US" };
     return GeoipParseTest("alert tcp any any -> any any (geoip:!US;sid:1;)", 1, ccodes,
-                                GEOIP_MATCH_ANY_FLAG | GEOIP_MATCH_NEGATED);
+            GEOIP_MATCH_ANY_FLAG | GEOIP_MATCH_NEGATED);
 }
 
 static int GeoipParseTest04(void)
 {
-    const char *ccodes[1] = {"US"};
-    return GeoipParseTest("alert tcp any any -> any any (geoip:src,US;sid:1;)", 1, ccodes,
-                                GEOIP_MATCH_SRC_FLAG);
+    const char *ccodes[1] = { "US" };
+    return GeoipParseTest(
+            "alert tcp any any -> any any (geoip:src,US;sid:1;)", 1, ccodes, GEOIP_MATCH_SRC_FLAG);
 }
 
 static int GeoipParseTest05(void)
 {
-    const char *ccodes[1] = {"US"};
+    const char *ccodes[1] = { "US" };
     return GeoipParseTest("alert tcp any any -> any any (geoip:dst,!US;sid:1;)", 1, ccodes,
-                                GEOIP_MATCH_DST_FLAG | GEOIP_MATCH_NEGATED);
+            GEOIP_MATCH_DST_FLAG | GEOIP_MATCH_NEGATED);
 }
 
 static int GeoipParseTest06(void)
 {
-    const char *ccodes[3] = {"US", "ES", "UK"};
+    const char *ccodes[3] = { "US", "ES", "UK" };
     return GeoipParseTest("alert tcp any any -> any any (geoip:US,ES,UK;sid:1;)", 3, ccodes,
-                                GEOIP_MATCH_ANY_FLAG);
+            GEOIP_MATCH_ANY_FLAG);
 }
 
 static int GeoipParseTest07(void)
 {
-    const char *ccodes[3] = {"US", "ES", "UK"};
+    const char *ccodes[3] = { "US", "ES", "UK" };
     return GeoipParseTest("alert tcp any any -> any any (geoip:both,!US,ES,UK;sid:1;)", 3, ccodes,
-                                GEOIP_MATCH_BOTH_FLAG | GEOIP_MATCH_NEGATED);
+            GEOIP_MATCH_BOTH_FLAG | GEOIP_MATCH_NEGATED);
 }
 
 /**

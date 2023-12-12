@@ -48,8 +48,8 @@
 
 #include "rust.h"
 
-static int JsonKRB5Logger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonKRB5Logger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     KRB5Transaction *krb5tx = tx;
     OutputJsonThreadCtx *thread = thread_data;
@@ -73,8 +73,7 @@ error:
     return TM_ECODE_FAILED;
 }
 
-static OutputInitResult OutputKRB5LogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult OutputKRB5LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_KRB5);
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_KRB5);

@@ -36,7 +36,7 @@ Packet *TmqhInputSimple(ThreadVars *t);
 void TmqhOutputSimple(ThreadVars *t, Packet *p);
 void TmqhInputSimpleShutdownHandler(ThreadVars *);
 
-void TmqhSimpleRegister (void)
+void TmqhSimpleRegister(void)
 {
     tmqh_table[TMQH_SIMPLE].name = "simple";
     tmqh_table[TMQH_SIMPLE].InHandler = TmqhInputSimple;
@@ -91,4 +91,3 @@ void TmqhOutputSimple(ThreadVars *t, Packet *p)
     SCCondSignal(&q->cond_q);
     SCMutexUnlock(&q->mutex_q);
 }
-

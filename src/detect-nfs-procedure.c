@@ -47,21 +47,20 @@
 #include "app-layer-nfs-tcp.h"
 #include "rust.h"
 
-static int DetectNfsProcedureSetup (DetectEngineCtx *, Signature *s, const char *str);
+static int DetectNfsProcedureSetup(DetectEngineCtx *, Signature *s, const char *str);
 static void DetectNfsProcedureFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void DetectNfsProcedureRegisterTests(void);
 #endif
 static int g_nfs_request_buffer_id = 0;
 
-static int DetectNfsProcedureMatch (DetectEngineThreadCtx *, Flow *,
-                                   uint8_t, void *, void *, const Signature *,
-                                   const SigMatchCtx *);
+static int DetectNfsProcedureMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
+        const Signature *, const SigMatchCtx *);
 
 /**
  * \brief Registration function for nfs_procedure keyword.
  */
-void DetectNfsProcedureRegister (void)
+void DetectNfsProcedureRegister(void)
 {
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].name = "nfs_procedure";
     sigmatch_table[DETECT_AL_NFS_PROCEDURE].desc = "match NFS procedure";
@@ -100,10 +99,8 @@ void DetectNfsProcedureRegister (void)
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectNfsProcedureMatch (DetectEngineThreadCtx *det_ctx,
-                                   Flow *f, uint8_t flags, void *state,
-                                   void *txv, const Signature *s,
-                                   const SigMatchCtx *ctx)
+static int DetectNfsProcedureMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -136,8 +133,6 @@ static DetectU32Data *DetectNfsProcedureParse(const char *rawstr)
     return rs_detect_u32_parse_inclusive(rawstr);
 }
 
-
-
 /**
  * \brief Function to add the parsed tls validity field into the current signature.
  *
@@ -149,8 +144,7 @@ static DetectU32Data *DetectNfsProcedureParse(const char *rawstr)
  * \retval 0 on Success.
  * \retval -1 on Failure.
  */
-static int DetectNfsProcedureSetup (DetectEngineCtx *de_ctx, Signature *s,
-                                   const char *rawstr)
+static int DetectNfsProcedureSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectU32Data *dd = NULL;
 
@@ -199,7 +193,7 @@ void DetectNfsProcedureFree(DetectEngineCtx *de_ctx, void *ptr)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse01 (void)
+static int ValidityTestParse01(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("1430000000");
@@ -215,7 +209,7 @@ static int ValidityTestParse01 (void)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse02 (void)
+static int ValidityTestParse02(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse(">1430000000");
@@ -231,7 +225,7 @@ static int ValidityTestParse02 (void)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse03 (void)
+static int ValidityTestParse03(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("<1430000000");
@@ -247,7 +241,7 @@ static int ValidityTestParse03 (void)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse04 (void)
+static int ValidityTestParse04(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("1430000001<>1470000000");
@@ -263,7 +257,7 @@ static int ValidityTestParse04 (void)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse05 (void)
+static int ValidityTestParse05(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("A");
@@ -277,7 +271,7 @@ static int ValidityTestParse05 (void)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse06 (void)
+static int ValidityTestParse06(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse(">1430000000<>1470000000");
@@ -291,7 +285,7 @@ static int ValidityTestParse06 (void)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse07 (void)
+static int ValidityTestParse07(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("1430000000<>");
@@ -305,7 +299,7 @@ static int ValidityTestParse07 (void)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse08 (void)
+static int ValidityTestParse08(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("<>1430000000");
@@ -319,7 +313,7 @@ static int ValidityTestParse08 (void)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse09 (void)
+static int ValidityTestParse09(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("");
@@ -333,7 +327,7 @@ static int ValidityTestParse09 (void)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse10 (void)
+static int ValidityTestParse10(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse(" ");
@@ -347,7 +341,7 @@ static int ValidityTestParse10 (void)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse11 (void)
+static int ValidityTestParse11(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("1490000000<>1430000000");
@@ -361,7 +355,7 @@ static int ValidityTestParse11 (void)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse12 (void)
+static int ValidityTestParse12(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("1430000001 <> 1490000000");
@@ -377,7 +371,7 @@ static int ValidityTestParse12 (void)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse13 (void)
+static int ValidityTestParse13(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("> 1430000000 ");
@@ -393,7 +387,7 @@ static int ValidityTestParse13 (void)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse14 (void)
+static int ValidityTestParse14(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("<   1490000000 ");
@@ -409,7 +403,7 @@ static int ValidityTestParse14 (void)
  * \retval 1 on success.
  * \retval 0 on failure.
  */
-static int ValidityTestParse15 (void)
+static int ValidityTestParse15(void)
 {
     DetectU32Data *dd = NULL;
     dd = DetectNfsProcedureParse("   1490000000 ");

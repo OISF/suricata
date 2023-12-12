@@ -34,27 +34,29 @@
 /**
  * \brief Regex for parsing our keyword options
  */
-#define PARSE_REGEX  "^\\s*(src_ip|dest_ip)\\s*$"
+#define PARSE_REGEX "^\\s*(src_ip|dest_ip)\\s*$"
 
 static DetectParseRegex parse_regex;
 
 /* Prototypes of functions registered in DetectTargetRegister below */
-static int DetectTargetSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTargetSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-static void DetectTargetRegisterTests (void);
+static void DetectTargetRegisterTests(void);
 #endif
 
 /**
  * \brief Registration function for target keyword
  *
  */
-void DetectTargetRegister(void) {
+void DetectTargetRegister(void)
+{
     /* keyword name: this is how the keyword is used in a rule */
     sigmatch_table[DETECT_TARGET].name = "target";
     /* description: listed in "suricata --list-keywords=all" */
-    sigmatch_table[DETECT_TARGET].desc = "indicate to output module which side is the target of the attack";
+    sigmatch_table[DETECT_TARGET].desc =
+            "indicate to output module which side is the target of the attack";
     /* link to further documentation of the keyword. Normally on the Suricata redmine/wiki */
-    sigmatch_table[DETECT_TARGET].url =  "/rules/meta.html#target";
+    sigmatch_table[DETECT_TARGET].url = "/rules/meta.html#target";
     /* match function is called when the signature is inspected on a packet */
     sigmatch_table[DETECT_TARGET].Match = NULL;
     /* setup function is called during signature parsing, when the target
@@ -152,7 +154,8 @@ static int DetectTargetSignatureTest01(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    Signature *sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (target: dest_ip; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (target: dest_ip; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -164,7 +167,6 @@ static int DetectTargetSignatureTest01(void)
  */
 static void DetectTargetRegisterTests(void)
 {
-    UtRegisterTest("DetectTargetSignatureTest01",
-                   DetectTargetSignatureTest01);
+    UtRegisterTest("DetectTargetSignatureTest01", DetectTargetSignatureTest01);
 }
 #endif /* UNITTESTS */

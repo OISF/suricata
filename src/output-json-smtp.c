@@ -63,14 +63,15 @@ static void EveSmtpDataLogger(void *state, void *vtx, JsonBuilder *js)
     }
     if (!TAILQ_EMPTY(&tx->rcpt_to_list)) {
         jb_open_array(js, "rcpt_to");
-        TAILQ_FOREACH(rcptto_str, &tx->rcpt_to_list, next) {
+        TAILQ_FOREACH (rcptto_str, &tx->rcpt_to_list, next) {
             jb_append_string(js, (char *)rcptto_str->str);
         }
         jb_close(js);
     }
 }
 
-static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     SCEnter();
     JsonEmailLogThread *jhl = (JsonEmailLogThread *)thread_data;
@@ -90,7 +91,6 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     jb_free(jb);
 
     SCReturnInt(TM_ECODE_OK);
-
 }
 
 bool EveSMTPAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js)
@@ -153,7 +153,7 @@ static TmEcode JsonSmtpLogThreadInit(ThreadVars *t, const void *initdata, void *
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
 
-    if(initdata == NULL) {
+    if (initdata == NULL) {
         SCLogDebug("Error getting context for EveLogSMTP.  \"initdata\" argument NULL");
         goto error_exit;
     }
@@ -189,7 +189,8 @@ static TmEcode JsonSmtpLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void JsonSmtpLogRegister (void) {
+void JsonSmtpLogRegister(void)
+{
     /* register as child of eve-log */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonSmtpLog", "eve-log.smtp",
             OutputSmtpLogInitSub, ALPROTO_SMTP, JsonSmtpLogger, JsonSmtpLogThreadInit,

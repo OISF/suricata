@@ -45,12 +45,12 @@
 #include "util-time.h"
 
 #define DEFAULT_LOG_FILENAME "stats.log"
-#define MODULE_NAME "LogStatsLog"
-#define OUTPUT_BUFFER_SIZE 16384
+#define MODULE_NAME          "LogStatsLog"
+#define OUTPUT_BUFFER_SIZE   16384
 
-#define LOG_STATS_TOTALS  (1<<0)
-#define LOG_STATS_THREADS (1<<1)
-#define LOG_STATS_NULLS   (1<<2)
+#define LOG_STATS_TOTALS  (1 << 0)
+#define LOG_STATS_THREADS (1 << 1)
+#define LOG_STATS_NULLS   (1 << 2)
 
 TmEcode LogStatsLogThreadInit(ThreadVars *, const void *, void **);
 TmEcode LogStatsLogThreadDeinit(ThreadVars *, void *);
@@ -81,25 +81,25 @@ static int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *s
     /* Calculate the Engine uptime */
     double up_time_d = difftime(tval.tv_sec, st->start_time);
     int up_time = (int)up_time_d; // ignoring risk of overflow here
-    int sec = up_time % 60;     // Seconds in a minute
+    int sec = up_time % 60;       // Seconds in a minute
     int in_min = up_time / 60;
-    int min = in_min % 60;      // Minutes in a hour
+    int min = in_min % 60; // Minutes in a hour
     int in_hours = in_min / 60;
-    int hours = in_hours % 24;  // Hours in a day
+    int hours = in_hours % 24; // Hours in a day
     int days = in_hours / 24;
 
     MemBufferWriteString(aft->buffer, "----------------------------------------------"
-            "--------------------------------------\n");
-    MemBufferWriteString(aft->buffer, "Date: %" PRId32 "/%" PRId32 "/%04d -- "
-            "%02d:%02d:%02d (uptime: %"PRId32"d, %02dh %02dm %02ds)\n",
-            tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900, tms->tm_hour,
-            tms->tm_min, tms->tm_sec, days, hours, min, sec);
+                                      "--------------------------------------\n");
+    MemBufferWriteString(aft->buffer,
+            "Date: %" PRId32 "/%" PRId32 "/%04d -- "
+            "%02d:%02d:%02d (uptime: %" PRId32 "d, %02dh %02dm %02ds)\n",
+            tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
+            tms->tm_sec, days, hours, min, sec);
     MemBufferWriteString(aft->buffer, "----------------------------------------------"
-            "--------------------------------------\n");
-    MemBufferWriteString(aft->buffer, "%-45s | %-25s | %-s\n", "Counter", "TM Name",
-            "Value");
+                                      "--------------------------------------\n");
+    MemBufferWriteString(aft->buffer, "%-45s | %-25s | %-s\n", "Counter", "TM Name", "Value");
     MemBufferWriteString(aft->buffer, "----------------------------------------------"
-            "--------------------------------------\n");
+                                      "--------------------------------------\n");
 
     /* global stats */
     uint32_t u = 0;
@@ -156,7 +156,7 @@ static int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *s
     }
 
     aft->statslog_ctx->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
-        MEMBUFFER_OFFSET(aft->buffer), aft->statslog_ctx->file_ctx);
+            MEMBUFFER_OFFSET(aft->buffer), aft->statslog_ctx->file_ctx);
 
     MemBufferReset(aft->buffer);
 
@@ -169,8 +169,7 @@ TmEcode LogStatsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
 
-    if(initdata == NULL)
-    {
+    if (initdata == NULL) {
         SCLogDebug("Error getting context for LogStats.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
@@ -183,7 +182,7 @@ TmEcode LogStatsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
     }
 
     /* Use the Output Context (file pointer and mutex) */
-    aft->statslog_ctx= ((OutputCtx *)initdata)->data;
+    aft->statslog_ctx = ((OutputCtx *)initdata)->data;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -283,9 +282,8 @@ static void LogStatsLogDeInitCtx(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-void LogStatsLogRegister (void)
+void LogStatsLogRegister(void)
 {
-    OutputRegisterStatsModule(LOGGER_STATS, MODULE_NAME, "stats",
-        LogStatsLogInitCtx, LogStatsLogger, LogStatsLogThreadInit,
-        LogStatsLogThreadDeinit, NULL);
+    OutputRegisterStatsModule(LOGGER_STATS, MODULE_NAME, "stats", LogStatsLogInitCtx,
+            LogStatsLogger, LogStatsLogThreadInit, LogStatsLogThreadDeinit, NULL);
 }

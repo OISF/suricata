@@ -36,15 +36,30 @@
  */
 static int DetectHttpServerBodyParserTest01(void)
 {
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; content:\"abc\"; http_server_body; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; content:\"abc\"; nocase; http_server_body; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; content:\"abc\"; endswith; http_server_body; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; content:\"abc\"; startswith; http_server_body; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; content:\"abc\"; startswith; endswith; http_server_body; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; content:\"abc\"; "
+                                  "http_server_body; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; content:\"abc\"; "
+                                  "nocase; http_server_body; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; content:\"abc\"; "
+                                  "endswith; http_server_body; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; content:\"abc\"; "
+                                  "startswith; http_server_body; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; content:\"abc\"; "
+                                  "startswith; endswith; http_server_body; sid:1;)",
+            true));
 
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; content:\"abc\"; rawbytes; http_server_body; sid:1;)", false));
-    FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (flow:to_client; http_server_body; sid:1;)", false));
-    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_client; content:\"abc\"; http_server_body; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; content:\"abc\"; "
+                                  "rawbytes; http_server_body; sid:1;)",
+            false));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert tcp any any -> any any (flow:to_client; http_server_body; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_client; content:\"abc\"; "
+                                  "http_server_body; sid:1;)",
+            false));
     PASS;
 }
 
@@ -53,22 +68,40 @@ static int DetectHttpServerBodyParserTest01(void)
  */
 static int DetectHttpServerBodyParserTest02(void)
 {
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; http.response_body; content:\"abc\"; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; http.response_body; content:\"abc\"; nocase; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; http.response_body; content:\"abc\"; endswith; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; http.response_body; content:\"abc\"; startswith; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; http.response_body; content:\"abc\"; startswith; endswith; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; http.response_body; bsize:10; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; "
+                                  "http.response_body; content:\"abc\"; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; "
+                                  "http.response_body; content:\"abc\"; nocase; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; "
+                                  "http.response_body; content:\"abc\"; endswith; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; "
+                                  "http.response_body; content:\"abc\"; startswith; sid:1;)",
+            true));
+    FAIL_IF_NOT(
+            UTHParseSignature("alert http any any -> any any (flow:to_client; http.response_body; "
+                              "content:\"abc\"; startswith; endswith; sid:1;)",
+                    true));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (flow:to_client; http.response_body; bsize:10; sid:1;)",
+            true));
 
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; http.response_body; content:\"abc\"; rawbytes; sid:1;)", false));
-    FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (flow:to_client; http.response_body; sid:1;)", false));
-    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_client; http.response_body; content:\"abc\"; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_client; "
+                                  "http.response_body; content:\"abc\"; rawbytes; sid:1;)",
+            false));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert tcp any any -> any any (flow:to_client; http.response_body; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_client; "
+                                  "http.response_body; content:\"abc\"; sid:1;)",
+            false));
     PASS;
 }
 struct TestSteps {
     const uint8_t *input;
-    size_t input_size;      /**< if 0 strlen will be used */
-    int direction;          /**< STREAM_TOSERVER, STREAM_TOCLIENT */
+    size_t input_size; /**< if 0 strlen will be used */
+    int direction;     /**< STREAM_TOSERVER, STREAM_TOCLIENT */
     int expect;
 };
 
@@ -124,7 +157,7 @@ static int RunTest(struct TestSteps *steps, const char *sig, const char *yaml)
         p->flow = &f;
         p->flowflags = (b->direction == STREAM_TOSERVER) ? FLOW_PKT_TOSERVER : FLOW_PKT_TOCLIENT;
         p->flowflags |= FLOW_PKT_ESTABLISHED;
-        p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+        p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
         int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, b->direction,
                 (uint8_t *)b->input,
@@ -167,18 +200,17 @@ static int DetectEngineHttpServerBodyTest01(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 7\r\n"
-        "\r\n"
-        "message";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 7\r\n"
+                          "\r\n"
+                          "message";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -198,11 +230,11 @@ static int DetectEngineHttpServerBodyTest01(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -213,10 +245,10 @@ static int DetectEngineHttpServerBodyTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"message\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"message\"; http_server_body; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -286,18 +318,17 @@ static int DetectEngineHttpServerBodyTest02(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 7\r\n"
-        "\r\n"
-        "xxxxABC";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 7\r\n"
+                          "\r\n"
+                          "xxxxABC";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -316,7 +347,7 @@ static int DetectEngineHttpServerBodyTest02(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOCLIENT;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -327,10 +358,10 @@ static int DetectEngineHttpServerBodyTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"ABC\"; http_server_body; offset:4; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"ABC\"; http_server_body; offset:4; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -393,21 +424,19 @@ static int DetectEngineHttpServerBodyTest03(void)
     HtpState *http_state = NULL;
     Flow f;
     int result = 0;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 17\r\n"
-        "\r\n"
-        "1234567";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 17\r\n"
+                          "\r\n"
+                          "1234567";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "8901234ABC";
+    uint8_t http_buf3[] = "8901234ABC";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -426,11 +455,11 @@ static int DetectEngineHttpServerBodyTest03(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -441,10 +470,10 @@ static int DetectEngineHttpServerBodyTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"ABC\"; http_server_body; offset:14; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"ABC\"; http_server_body; offset:14; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -523,18 +552,17 @@ static int DetectEngineHttpServerBodyTest04(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -554,11 +582,11 @@ static int DetectEngineHttpServerBodyTest04(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -569,10 +597,10 @@ static int DetectEngineHttpServerBodyTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:!\"abc\"; http_server_body; offset:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:!\"abc\"; http_server_body; offset:3; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -643,18 +671,17 @@ static int DetectEngineHttpServerBodyTest05(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -674,11 +701,11 @@ static int DetectEngineHttpServerBodyTest05(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -689,10 +716,10 @@ static int DetectEngineHttpServerBodyTest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"abc\"; http_server_body; depth:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"abc\"; http_server_body; depth:3; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -763,18 +790,17 @@ static int DetectEngineHttpServerBodyTest06(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -794,11 +820,11 @@ static int DetectEngineHttpServerBodyTest06(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -809,10 +835,10 @@ static int DetectEngineHttpServerBodyTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:!\"def\"; http_server_body; depth:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:!\"def\"; http_server_body; depth:3; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -883,18 +909,17 @@ static int DetectEngineHttpServerBodyTest07(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -914,11 +939,11 @@ static int DetectEngineHttpServerBodyTest07(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -929,10 +954,10 @@ static int DetectEngineHttpServerBodyTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:!\"def\"; http_server_body; offset:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:!\"def\"; http_server_body; offset:3; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1003,18 +1028,17 @@ static int DetectEngineHttpServerBodyTest08(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1034,11 +1058,11 @@ static int DetectEngineHttpServerBodyTest08(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1049,10 +1073,10 @@ static int DetectEngineHttpServerBodyTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:!\"abc\"; http_server_body; depth:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:!\"abc\"; http_server_body; depth:3; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1123,18 +1147,17 @@ static int DetectEngineHttpServerBodyTest09(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1154,11 +1177,11 @@ static int DetectEngineHttpServerBodyTest09(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1169,11 +1192,11 @@ static int DetectEngineHttpServerBodyTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"abc\"; http_server_body; depth:3; "
-                               "content:\"def\"; http_server_body; within:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"abc\"; http_server_body; depth:3; "
+                                       "content:\"def\"; http_server_body; within:3; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1244,18 +1267,17 @@ static int DetectEngineHttpServerBodyTest10(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1275,11 +1297,11 @@ static int DetectEngineHttpServerBodyTest10(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1290,11 +1312,11 @@ static int DetectEngineHttpServerBodyTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"abc\"; http_server_body; depth:3; "
-                               "content:!\"xyz\"; http_server_body; within:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"abc\"; http_server_body; depth:3; "
+                                       "content:!\"xyz\"; http_server_body; within:3; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1365,18 +1387,17 @@ static int DetectEngineHttpServerBodyTest11(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1396,11 +1417,11 @@ static int DetectEngineHttpServerBodyTest11(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1411,11 +1432,11 @@ static int DetectEngineHttpServerBodyTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"abc\"; http_server_body; depth:3; "
-                               "content:\"xyz\"; http_server_body; within:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"abc\"; http_server_body; depth:3; "
+                                       "content:\"xyz\"; http_server_body; within:3; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1486,18 +1507,17 @@ static int DetectEngineHttpServerBodyTest12(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1517,11 +1537,11 @@ static int DetectEngineHttpServerBodyTest12(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1532,11 +1552,11 @@ static int DetectEngineHttpServerBodyTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"ab\"; http_server_body; depth:2; "
-                               "content:\"ef\"; http_server_body; distance:2; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"ab\"; http_server_body; depth:2; "
+                                       "content:\"ef\"; http_server_body; distance:2; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1607,18 +1627,17 @@ static int DetectEngineHttpServerBodyTest13(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1638,11 +1657,11 @@ static int DetectEngineHttpServerBodyTest13(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1653,11 +1672,11 @@ static int DetectEngineHttpServerBodyTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"ab\"; http_server_body; depth:3; "
-                               "content:!\"yz\"; http_server_body; distance:2; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"ab\"; http_server_body; depth:3; "
+                                       "content:!\"yz\"; http_server_body; distance:2; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1728,18 +1747,17 @@ static int DetectEngineHttpServerBodyTest14(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1759,11 +1777,11 @@ static int DetectEngineHttpServerBodyTest14(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1774,11 +1792,11 @@ static int DetectEngineHttpServerBodyTest14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "pcre:/ab/Q; "
-                               "content:\"ef\"; http_server_body; distance:2; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "pcre:/ab/Q; "
+                                       "content:\"ef\"; http_server_body; distance:2; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1849,18 +1867,17 @@ static int DetectEngineHttpServerBodyTest15(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1880,11 +1897,11 @@ static int DetectEngineHttpServerBodyTest15(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1895,11 +1912,11 @@ static int DetectEngineHttpServerBodyTest15(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "pcre:/abc/Q; "
-                               "content:!\"xyz\"; http_server_body; distance:0; within:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "pcre:/abc/Q; "
+                                       "content:!\"xyz\"; http_server_body; distance:0; within:3; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1994,21 +2011,19 @@ libhtp:\n\
     HtpState *http_state = NULL;
     Flow f;
     int result = 0;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 17\r\n"
-        "\r\n"
-        "1234567";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 17\r\n"
+                          "\r\n"
+                          "1234567";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "8901234ABC";
+    uint8_t http_buf3[] = "8901234ABC";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -2027,11 +2042,11 @@ libhtp:\n\
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2042,10 +2057,10 @@ libhtp:\n\
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"890\"; within:3; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"890\"; within:3; http_server_body; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2159,21 +2174,19 @@ libhtp:\n\
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 17\r\n"
-        "\r\n"
-        "1234567";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 17\r\n"
+                          "\r\n"
+                          "1234567";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "8901234ABC";
+    uint8_t http_buf3[] = "8901234ABC";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -2192,11 +2205,11 @@ libhtp:\n\
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2269,11 +2282,11 @@ static int DetectEngineHttpServerBodyTest18(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -2309,11 +2322,11 @@ static int DetectEngineHttpServerBodyTest18(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2324,10 +2337,10 @@ static int DetectEngineHttpServerBodyTest18(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"file\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"file\"; http_server_body; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2401,11 +2414,11 @@ static int DetectEngineHttpServerBodyTest19(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -2439,11 +2452,11 @@ static int DetectEngineHttpServerBodyTest19(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2454,10 +2467,10 @@ static int DetectEngineHttpServerBodyTest19(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"file\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"file\"; http_server_body; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2531,11 +2544,11 @@ static int DetectEngineHttpServerBodyTest20(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -2569,11 +2582,11 @@ static int DetectEngineHttpServerBodyTest20(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2584,10 +2597,10 @@ static int DetectEngineHttpServerBodyTest20(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"file\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"file\"; http_server_body; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2660,11 +2673,11 @@ static int DetectEngineHttpServerBodyTest21(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -2700,11 +2713,11 @@ static int DetectEngineHttpServerBodyTest21(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2715,10 +2728,10 @@ static int DetectEngineHttpServerBodyTest21(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"file\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"file\"; http_server_body; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2792,11 +2805,11 @@ static int DetectEngineHttpServerBodyTest22(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -2833,11 +2846,11 @@ static int DetectEngineHttpServerBodyTest22(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2848,10 +2861,10 @@ static int DetectEngineHttpServerBodyTest22(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"file\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"file\"; http_server_body; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2921,18 +2934,17 @@ static int DetectEngineHttpServerBodyFileDataTest01(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -2952,11 +2964,11 @@ static int DetectEngineHttpServerBodyFileDataTest01(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2967,11 +2979,11 @@ static int DetectEngineHttpServerBodyFileDataTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; pcre:/ab/; "
-                               "content:\"ef\"; distance:2; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "file_data; pcre:/ab/; "
+                                       "content:\"ef\"; distance:2; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3042,18 +3054,17 @@ static int DetectEngineHttpServerBodyFileDataTest02(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "abcdef";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 6\r\n"
+                          "\r\n"
+                          "abcdef";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -3073,11 +3084,11 @@ static int DetectEngineHttpServerBodyFileDataTest02(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -3088,11 +3099,11 @@ static int DetectEngineHttpServerBodyFileDataTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; pcre:/abc/; "
-                               "content:!\"xyz\"; distance:0; within:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "file_data; pcre:/abc/; "
+                                       "content:!\"xyz\"; distance:0; within:3; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3163,18 +3174,17 @@ static int DetectEngineHttpServerBodyFileDataTest03(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 33\r\n"
-        "\r\n"
-        "XYZ_klm_1234abcd_XYZ_klm_5678abcd";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 33\r\n"
+                          "\r\n"
+                          "XYZ_klm_1234abcd_XYZ_klm_5678abcd";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -3193,11 +3203,11 @@ static int DetectEngineHttpServerBodyFileDataTest03(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -3269,22 +3279,21 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 6\r\n"
-            "\r\n"
-            "ab",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"cd",
-            0, STREAM_TOCLIENT, 1 },
-        {   (const uint8_t *)"ef",
-            0, STREAM_TOCLIENT, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 6\r\n"
+                           "\r\n"
+                           "ab",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"cd", 0, STREAM_TOCLIENT, 1 },
+        { (const uint8_t *)"ef", 0, STREAM_TOCLIENT, 0 },
+        { NULL, 0, 0, 0 },
     };
 
     const char *sig = "alert http any any -> any any (file_data; content:\"abcd\"; sid:1;)";
@@ -3307,22 +3316,21 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 6\r\n"
-            "\r\n"
-            "ab",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"cd",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"ef",
-            0, STREAM_TOCLIENT, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 6\r\n"
+                           "\r\n"
+                           "ab",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"cd", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"ef", 0, STREAM_TOCLIENT, 1 },
+        { NULL, 0, 0, 0 },
     };
 
     const char *sig = "alert http any any -> any any (file_data; content:\"abcdef\"; sid:1;)";
@@ -3345,25 +3353,25 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 6\r\n"
-            "\r\n"
-            "ab",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"cd",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"ef",
-            0, STREAM_TOCLIENT, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 6\r\n"
+                           "\r\n"
+                           "ab",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"cd", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"ef", 0, STREAM_TOCLIENT, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (file_data; content:\"bcdef\"; offset:1; sid:1;)";
+    const char *sig =
+            "alert http any any -> any any (file_data; content:\"bcdef\"; offset:1; sid:1;)";
     return RunTest(steps, sig, yaml);
 }
 
@@ -3383,25 +3391,25 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 13\r\n"
-            "\r\n"
-            "ab",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"cd",
-            0, STREAM_TOCLIENT, 1 },
-        {   (const uint8_t *)"123456789",
-            0, STREAM_TOCLIENT, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 13\r\n"
+                           "\r\n"
+                           "ab",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"cd", 0, STREAM_TOCLIENT, 1 },
+        { (const uint8_t *)"123456789", 0, STREAM_TOCLIENT, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (file_data; content:\"bc\"; offset:1; depth:2; sid:1;)";
+    const char *sig =
+            "alert http any any -> any any (file_data; content:\"bc\"; offset:1; depth:2; sid:1;)";
     return RunTest(steps, sig, yaml);
 }
 
@@ -3421,25 +3429,25 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 14\r\n"
-            "\r\n"
-            "ab",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"cd",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"1234567890",
-            0, STREAM_TOCLIENT, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 14\r\n"
+                           "\r\n"
+                           "ab",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"cd", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"1234567890", 0, STREAM_TOCLIENT, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (file_data; content:\"d123456789\"; offset:3; sid:1;)";
+    const char *sig =
+            "alert http any any -> any any (file_data; content:\"d123456789\"; offset:3; sid:1;)";
     return RunTest(steps, sig, yaml);
 }
 
@@ -3459,25 +3467,25 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 13\r\n"
-            "\r\n"
-            "ab",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"cd",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"123456789",
-            0, STREAM_TOCLIENT, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 13\r\n"
+                           "\r\n"
+                           "ab",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"cd", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"123456789", 0, STREAM_TOCLIENT, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (file_data; content:\"abcd12\"; depth:6; sid:1;)";
+    const char *sig =
+            "alert http any any -> any any (file_data; content:\"abcd12\"; depth:6; sid:1;)";
     return RunTest(steps, sig, yaml);
 }
 
@@ -3497,22 +3505,21 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 5\r\n"
-            "\r\n"
-            "ab",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"c",
-            0, STREAM_TOCLIENT, 1 },
-        {   (const uint8_t *)"de",
-            0, STREAM_TOCLIENT, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 5\r\n"
+                           "\r\n"
+                           "ab",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"c", 0, STREAM_TOCLIENT, 1 },
+        { (const uint8_t *)"de", 0, STREAM_TOCLIENT, 0 },
+        { NULL, 0, 0, 0 },
     };
 
     const char *sig = "alert http any any -> any any (file_data; content:\"abc\"; depth:3; sid:1;)";
@@ -3535,25 +3542,25 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 5\r\n"
-            "\r\n"
-            "ab",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"c",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"de",
-            0, STREAM_TOCLIENT, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 5\r\n"
+                           "\r\n"
+                           "ab",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"c", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"de", 0, STREAM_TOCLIENT, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (file_data; content:\"bcde\"; offset:1; depth:4; sid:1;)";
+    const char *sig = "alert http any any -> any any (file_data; content:\"bcde\"; offset:1; "
+                      "depth:4; sid:1;)";
     return RunTest(steps, sig, yaml);
 }
 
@@ -3573,26 +3580,23 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 13\r\n"
-            "\r\n"
-            "a",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"b",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"c",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"d",
-            0, STREAM_TOCLIENT, 1 },
-        {   (const uint8_t *)"efghijklm",
-            0, STREAM_TOCLIENT, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 13\r\n"
+                           "\r\n"
+                           "a",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"b", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"c", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"d", 0, STREAM_TOCLIENT, 1 },
+        { (const uint8_t *)"efghijklm", 0, STREAM_TOCLIENT, 0 },
+        { NULL, 0, 0, 0 },
     };
 
     const char *sig = "alert http any any -> any any (file_data; content:\"abcd\"; sid:1;)";
@@ -3615,29 +3619,27 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 13\r\n"
-            "\r\n"
-            "a",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"b",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"c",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"d",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"efghijklm",
-            0, STREAM_TOCLIENT, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 13\r\n"
+                           "\r\n"
+                           "a",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"b", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"c", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"d", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"efghijklm", 0, STREAM_TOCLIENT, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (file_data; content:\"abcdefghijklm\"; sid:1;)";
+    const char *sig =
+            "alert http any any -> any any (file_data; content:\"abcdefghijklm\"; sid:1;)";
     return RunTest(steps, sig, yaml);
 }
 
@@ -3657,20 +3659,20 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 20\r\n"
-            "\r\n"
-            "1234567890",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"abcdefghi",
-            0, STREAM_TOCLIENT, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 20\r\n"
+                           "\r\n"
+                           "1234567890",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"abcdefghi", 0, STREAM_TOCLIENT, 1 },
+        { NULL, 0, 0, 0 },
     };
 
     const char *sig = "alert http any any -> any any (file_data; content:\"890abcdefghi\"; sid:1;)";
@@ -3693,23 +3695,24 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 20\r\n"
-            "\r\n"
-            "1234567890",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"abcdefghi",
-            0, STREAM_TOCLIENT, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 20\r\n"
+                           "\r\n"
+                           "1234567890",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"abcdefghi", 0, STREAM_TOCLIENT, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (file_data; content:\"7890ab\"; depth:6; sid:1;)";
+    const char *sig =
+            "alert http any any -> any any (file_data; content:\"7890ab\"; depth:6; sid:1;)";
     return RunTest(steps, sig, yaml);
 }
 
@@ -3729,27 +3732,26 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 20\r\n"
-            "\r\n"
-            "aaaab",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"bbbbc",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"ccccd",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"dddde",
-            0, STREAM_TOCLIENT, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 20\r\n"
+                           "\r\n"
+                           "aaaab",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"bbbbc", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"ccccd", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"dddde", 0, STREAM_TOCLIENT, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (file_data; content:\"aabb\"; depth:4; sid:1;)";
+    const char *sig =
+            "alert http any any -> any any (file_data; content:\"aabb\"; depth:4; sid:1;)";
     return RunTest(steps, sig, yaml);
 }
 
@@ -3769,27 +3771,26 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 20\r\n"
-            "\r\n"
-            "aaaab",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"bbbbc",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"ccccd",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"dddde",
-            0, STREAM_TOCLIENT, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 20\r\n"
+                           "\r\n"
+                           "aaaab",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"bbbbc", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"ccccd", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"dddde", 0, STREAM_TOCLIENT, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (file_data; content:\"bbbc\"; depth:4; sid:1;)";
+    const char *sig =
+            "alert http any any -> any any (file_data; content:\"bbbc\"; depth:4; sid:1;)";
     return RunTest(steps, sig, yaml);
 }
 
@@ -3809,27 +3810,26 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-            "\r\n",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 20\r\n"
-            "\r\n"
-            "aaaab",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"bbbbc",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"ccccd",
-            0, STREAM_TOCLIENT, 0 },
-        {   (const uint8_t *)"dddde",
-            0, STREAM_TOCLIENT, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                           "Gecko/20091221 Firefox/3.5.7\r\n"
+                           "\r\n",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 20\r\n"
+                           "\r\n"
+                           "aaaab",
+                0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"bbbbc", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"ccccd", 0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"dddde", 0, STREAM_TOCLIENT, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (file_data; content:\"bccd\"; depth:4; sid:1;)";
+    const char *sig =
+            "alert http any any -> any any (file_data; content:\"bccd\"; depth:4; sid:1;)";
     return RunTest(steps, sig, yaml);
 }
 static int DetectEngineHttpServerBodyFileDataTest19(void)
@@ -3860,11 +3860,11 @@ libhtp:\n\
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /file.swf HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /file.swf HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -3899,11 +3899,11 @@ libhtp:\n\
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -3913,10 +3913,10 @@ libhtp:\n\
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any "
-                               "(flow:established,from_server; "
-                               "file_data; content:\"FWS\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(flow:established,from_server; "
+                                       "file_data; content:\"FWS\"; "
+                                       "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
@@ -3989,11 +3989,11 @@ libhtp:\n\
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /file.swf HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /file.swf HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -4028,11 +4028,11 @@ libhtp:\n\
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -4042,10 +4042,10 @@ libhtp:\n\
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any "
-                               "(flow:established,from_server; "
-                               "file_data; content:\"CWS\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(flow:established,from_server; "
+                                       "file_data; content:\"CWS\"; "
+                                       "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
@@ -4118,11 +4118,11 @@ libhtp:\n\
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /file.swf HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /file.swf HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -4157,11 +4157,11 @@ libhtp:\n\
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -4171,10 +4171,10 @@ libhtp:\n\
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any "
-                               "(flow:established,from_server; "
-                               "file_data; content:\"FWS\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(flow:established,from_server; "
+                                       "file_data; content:\"FWS\"; "
+                                       "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
@@ -4247,11 +4247,11 @@ libhtp:\n\
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /file.swf HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /file.swf HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -4286,11 +4286,11 @@ libhtp:\n\
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -4300,10 +4300,10 @@ libhtp:\n\
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any "
-                               "(flow:established,from_server; "
-                               "file_data; content:\"CWS\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(flow:established,from_server; "
+                                       "file_data; content:\"CWS\"; "
+                                       "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
@@ -4376,11 +4376,11 @@ libhtp:\n\
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /file.swf HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /file.swf HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -4415,11 +4415,11 @@ libhtp:\n\
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -4429,10 +4429,10 @@ libhtp:\n\
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any "
-                               "(flow:established,from_server; "
-                               "file_data; content:\"CWS\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(flow:established,from_server; "
+                                       "file_data; content:\"CWS\"; "
+                                       "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
@@ -4505,11 +4505,11 @@ libhtp:\n\
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /file.swf HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /file.swf HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -4546,11 +4546,11 @@ libhtp:\n\
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -4558,13 +4558,12 @@ libhtp:\n\
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any "
-                               "(flow:established,from_server; "
-                               "file_data; content:\"FWS\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(flow:established,from_server; "
+                                       "file_data; content:\"FWS\"; "
+                                       "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
@@ -4637,11 +4636,11 @@ libhtp:\n\
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /file.swf HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /file.swf HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -4676,11 +4675,11 @@ libhtp:\n\
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -4690,10 +4689,10 @@ libhtp:\n\
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any "
-                               "(flow:established,from_server; "
-                               "file_data; content:\"ZWS\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(flow:established,from_server; "
+                                       "file_data; content:\"ZWS\"; "
+                                       "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
@@ -4766,11 +4765,11 @@ libhtp:\n\
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /file.swf HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /file.swf HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -4807,11 +4806,11 @@ libhtp:\n\
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -4821,10 +4820,10 @@ libhtp:\n\
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any "
-                               "(flow:established,from_server; "
-                               "file_data; content:\"FWS\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(flow:established,from_server; "
+                                       "file_data; content:\"FWS\"; "
+                                       "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
@@ -4897,11 +4896,11 @@ libhtp:\n\
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /file.swf HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /file.swf HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -4936,11 +4935,11 @@ libhtp:\n\
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -4950,10 +4949,10 @@ libhtp:\n\
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any "
-                               "(flow:established,from_server; "
-                               "file_data; content:\"ZWS\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(flow:established,from_server; "
+                                       "file_data; content:\"ZWS\"; "
+                                       "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
@@ -5026,11 +5025,11 @@ libhtp:\n\
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /file.swf HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /file.swf HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -5065,11 +5064,11 @@ libhtp:\n\
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -5079,10 +5078,10 @@ libhtp:\n\
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any "
-                               "(flow:established,from_server; "
-                               "file_data; content:\"ZWS\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(flow:established,from_server; "
+                                       "file_data; content:\"ZWS\"; "
+                                       "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
@@ -5154,11 +5153,11 @@ libhtp:\n\
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /file.swf HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /file.swf HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
     // clang-format off
     uint8_t http_buf2[] = {
@@ -5193,11 +5192,11 @@ libhtp:\n\
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -5207,10 +5206,10 @@ libhtp:\n\
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any "
-                               "(flow:established,from_server; "
-                               "file_data; content:\"FWS\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(flow:established,from_server; "
+                                       "file_data; content:\"FWS\"; "
+                                       "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
@@ -5265,18 +5264,17 @@ static int DetectHttpServerBodyTest06(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                         "Gecko/20091221 Firefox/3.5.7\r\n"
+                         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 7\r\n"
-        "\r\n"
-        "message";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 7\r\n"
+                          "\r\n"
+                          "message";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -5295,7 +5293,7 @@ static int DetectHttpServerBodyTest06(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -5306,10 +5304,10 @@ static int DetectHttpServerBodyTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"message\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"message\"; http_server_body; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -5373,20 +5371,18 @@ static int DetectHttpServerBodyTest07(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 14\r\n"
-        "\r\n";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 14\r\n"
+                          "\r\n";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "message";
+    uint8_t http_buf3[] = "message";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -5406,12 +5402,12 @@ static int DetectHttpServerBodyTest07(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOCLIENT;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -5422,10 +5418,10 @@ static int DetectHttpServerBodyTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"message\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "content:\"message\"; http_server_body; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -5502,21 +5498,19 @@ static int DetectHttpServerBodyTest08(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 14\r\n"
-        "\r\n"
-        "bigmes";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 14\r\n"
+                          "\r\n"
+                          "bigmes";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "sage4u!!";
+    uint8_t http_buf3[] = "sage4u!!";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -5536,11 +5530,11 @@ static int DetectHttpServerBodyTest08(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOCLIENT;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -5551,10 +5545,10 @@ static int DetectHttpServerBodyTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:\"message\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "content:\"message\"; http_server_body; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -5636,24 +5630,21 @@ static int DetectHttpServerBodyTest09(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 14\r\n"
-        "\r\n"
-        "bigmes";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 14\r\n"
+                          "\r\n"
+                          "bigmes";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "sag";
+    uint8_t http_buf3[] = "sag";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
-    uint8_t http_buf4[] =
-        "e4u!!";
+    uint8_t http_buf4[] = "e4u!!";
     uint32_t http_len4 = sizeof(http_buf4) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -5673,11 +5664,11 @@ static int DetectHttpServerBodyTest09(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOCLIENT;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -5688,10 +5679,10 @@ static int DetectHttpServerBodyTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:\"message\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "content:\"message\"; http_server_body; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -5781,24 +5772,21 @@ static int DetectHttpServerBodyTest10(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 14\r\n"
-        "\r\n"
-        "bigmes";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 14\r\n"
+                          "\r\n"
+                          "bigmes";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "sag";
+    uint8_t http_buf3[] = "sag";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
-    uint8_t http_buf4[] =
-        "e4u!!";
+    uint8_t http_buf4[] = "e4u!!";
     uint32_t http_len4 = sizeof(http_buf4) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -5818,11 +5806,11 @@ static int DetectHttpServerBodyTest10(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOCLIENT;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -5833,10 +5821,10 @@ static int DetectHttpServerBodyTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:\"MeSSaGE\"; http_server_body; nocase; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "content:\"MeSSaGE\"; http_server_body; nocase; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -5926,20 +5914,18 @@ static int DetectHttpServerBodyTest11(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 14\r\n"
-        "\r\n";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 14\r\n"
+                          "\r\n";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "bigmessage4u!!";
+    uint8_t http_buf3[] = "bigmessage4u!!";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -5959,11 +5945,11 @@ static int DetectHttpServerBodyTest11(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOCLIENT;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -5974,10 +5960,10 @@ static int DetectHttpServerBodyTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:!\"MaSSaGE\"; http_server_body; nocase; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "content:!\"MaSSaGE\"; http_server_body; nocase; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -6059,20 +6045,18 @@ static int DetectHttpServerBodyTest12(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 14\r\n"
-        "\r\n";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 14\r\n"
+                          "\r\n";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "bigmessage4u!!";
+    uint8_t http_buf3[] = "bigmessage4u!!";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -6092,11 +6076,11 @@ static int DetectHttpServerBodyTest12(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOCLIENT;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -6107,10 +6091,10 @@ static int DetectHttpServerBodyTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:!\"MeSSaGE\"; http_server_body; nocase; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "content:!\"MeSSaGE\"; http_server_body; nocase; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -6187,18 +6171,17 @@ static int DetectHttpServerBodyTest13(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                         "Gecko/20091221 Firefox/3.5.7\r\n"
+                         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 55\r\n"
-        "\r\n"
-        "longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 55\r\n"
+                          "\r\n"
+                          "longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -6217,7 +6200,7 @@ static int DetectHttpServerBodyTest13(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -6228,10 +6211,12 @@ static int DetectHttpServerBodyTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert http any any -> any any "
+                            "(msg:\"http server body test\"; "
+                            "content:\"longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend\"; "
+                            "http_server_body; "
+                            "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -6292,28 +6277,28 @@ static int DetectHttpServerBodyTest14(void)
     TcpSession ssn;
     Packet *p = NULL;
     uint8_t httpbuf1[] = "GET /index1.html HTTP/1.1\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Connection: keep-alive\r\n"
-        "Cookie: dummy1\r\n\r\n";
+                         "User-Agent: Mozilla/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "Connection: keep-alive\r\n"
+                         "Cookie: dummy1\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint8_t httpbuf2[] = "HTTP/1.1 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 3\r\n"
-        "\r\n"
-        "one";
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 3\r\n"
+                         "\r\n"
+                         "one";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     uint8_t httpbuf3[] = "GET /index2.html HTTP/1.1\r\n"
-        "User-Agent: Firefox/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Connection: keep-alive\r\n"
-        "Cookie: dummy2\r\n\r\n";
+                         "User-Agent: Firefox/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "Connection: keep-alive\r\n"
+                         "Cookie: dummy2\r\n\r\n";
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
     uint8_t httpbuf4[] = "HTTP/1.1 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 3\r\n"
-        "\r\n"
-        "two";
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 3\r\n"
+                         "\r\n"
+                         "two";
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -6331,7 +6316,7 @@ static int DetectHttpServerBodyTest14(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -6343,12 +6328,14 @@ static int DetectHttpServerBodyTest14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; content:\"one\"; http_server_body; sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; "
+                                      "content:\"one\"; http_server_body; sid:1; rev:1;)");
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; content:\"two\"; http_server_body; sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; "
+                                      "content:\"two\"; http_server_body; sid:2; rev:1;)");
     if (s == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -6453,28 +6440,28 @@ static int DetectHttpServerBodyTest15(void)
     TcpSession ssn;
     Packet *p = NULL;
     uint8_t httpbuf1[] = "GET /index1.html HTTP/1.1\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Connection: keep-alive\r\n"
-        "Cookie: dummy1\r\n\r\n";
+                         "User-Agent: Mozilla/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "Connection: keep-alive\r\n"
+                         "Cookie: dummy1\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint8_t httpbuf2[] = "HTTP/1.1 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 3\r\n"
-        "\r\n"
-        "one";
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 3\r\n"
+                         "\r\n"
+                         "one";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     uint8_t httpbuf3[] = "GET /index2.html HTTP/1.1\r\n"
-        "User-Agent: Firefox/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Connection: keep-alive\r\n"
-        "Cookie: dummy2\r\n\r\n";
+                         "User-Agent: Firefox/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "Connection: keep-alive\r\n"
+                         "Cookie: dummy2\r\n\r\n";
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
     uint8_t httpbuf4[] = "HTTP/1.1 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 3\r\n"
-        "\r\n"
-        "two";
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 3\r\n"
+                         "\r\n"
+                         "two";
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -6492,7 +6479,7 @@ static int DetectHttpServerBodyTest15(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -6504,12 +6491,14 @@ static int DetectHttpServerBodyTest15(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; content:\"one\"; http_server_body; sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; "
+                                      "content:\"one\"; http_server_body; sid:1; rev:1;)");
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; content:\"two\"; http_server_body; sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; "
+                                      "content:\"two\"; http_server_body; sid:2; rev:1;)");
     if (s == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -6609,18 +6598,17 @@ static int DetectHttpServerBodyFileDataTest01(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                         "Gecko/20091221 Firefox/3.5.7\r\n"
+                         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 7\r\n"
-        "\r\n"
-        "message";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 7\r\n"
+                          "\r\n"
+                          "message";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -6638,7 +6626,7 @@ static int DetectHttpServerBodyFileDataTest01(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -6647,10 +6635,10 @@ static int DetectHttpServerBodyFileDataTest01(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"message\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "file_data; content:\"message\"; "
+                                       "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     SigGroupBuild(de_ctx);
@@ -6693,20 +6681,18 @@ static int DetectHttpServerBodyFileDataTest02(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 14\r\n"
-        "\r\n";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 14\r\n"
+                          "\r\n";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "message";
+    uint8_t http_buf3[] = "message";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -6726,12 +6712,12 @@ static int DetectHttpServerBodyFileDataTest02(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOCLIENT;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -6742,10 +6728,10 @@ static int DetectHttpServerBodyFileDataTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"message\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http server body test\"; "
+                                       "file_data; content:\"message\"; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -6824,21 +6810,19 @@ static int DetectHttpServerBodyFileDataTest03(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 14\r\n"
-        "\r\n"
-        "bigmes";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 14\r\n"
+                          "\r\n"
+                          "bigmes";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "sage4u!!";
+    uint8_t http_buf3[] = "sage4u!!";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -6858,11 +6842,11 @@ static int DetectHttpServerBodyFileDataTest03(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOCLIENT;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -6873,10 +6857,10 @@ static int DetectHttpServerBodyFileDataTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "file_data; content:\"message\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "file_data; content:\"message\"; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -6922,7 +6906,6 @@ static int DetectHttpServerBodyFileDataTest03(void)
         goto end;
     }
 
-
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
@@ -6959,24 +6942,21 @@ static int DetectHttpServerBodyFileDataTest04(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 14\r\n"
-        "\r\n"
-        "bigmes";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 14\r\n"
+                          "\r\n"
+                          "bigmes";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "sag";
+    uint8_t http_buf3[] = "sag";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
-    uint8_t http_buf4[] =
-        "e4u!!";
+    uint8_t http_buf4[] = "e4u!!";
     uint32_t http_len4 = sizeof(http_buf4) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -6996,11 +6976,11 @@ static int DetectHttpServerBodyFileDataTest04(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOCLIENT;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -7011,10 +6991,10 @@ static int DetectHttpServerBodyFileDataTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "file_data; content:\"message\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "file_data; content:\"message\"; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -7104,24 +7084,21 @@ static int DetectHttpServerBodyFileDataTest05(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 14\r\n"
-        "\r\n"
-        "bigmes";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 14\r\n"
+                          "\r\n"
+                          "bigmes";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "sag";
+    uint8_t http_buf3[] = "sag";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
-    uint8_t http_buf4[] =
-        "e4u!!";
+    uint8_t http_buf4[] = "e4u!!";
     uint32_t http_len4 = sizeof(http_buf4) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -7141,11 +7118,11 @@ static int DetectHttpServerBodyFileDataTest05(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOCLIENT;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -7156,10 +7133,10 @@ static int DetectHttpServerBodyFileDataTest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "file_data; content:\"MeSSaGE\"; nocase; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http client body test\"; "
+                                       "file_data; content:\"MeSSaGE\"; nocase; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -7249,20 +7226,18 @@ static int DetectHttpServerBodyFileDataTest06(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 14\r\n"
-        "\r\n";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 14\r\n"
+                          "\r\n";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "bigmessage4u!!";
+    uint8_t http_buf3[] = "bigmessage4u!!";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -7282,11 +7257,11 @@ static int DetectHttpServerBodyFileDataTest06(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOCLIENT;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -7297,10 +7272,10 @@ static int DetectHttpServerBodyFileDataTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http file_data test\"; "
-                               "file_data; content:!\"MaSSaGE\"; nocase; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http file_data test\"; "
+                                       "file_data; content:!\"MaSSaGE\"; nocase; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -7382,20 +7357,18 @@ static int DetectHttpServerBodyFileDataTest07(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf1[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "\r\n";
     uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 14\r\n"
-        "\r\n";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 14\r\n"
+                          "\r\n";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] =
-        "bigmessage4u!!";
+    uint8_t http_buf3[] = "bigmessage4u!!";
     uint32_t http_len3 = sizeof(http_buf3) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -7415,11 +7388,11 @@ static int DetectHttpServerBodyFileDataTest07(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOCLIENT;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOCLIENT;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -7430,10 +7403,10 @@ static int DetectHttpServerBodyFileDataTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http file_data test\"; "
-                               "file_data; content:!\"MeSSaGE\"; nocase; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http file_data test\"; "
+                                       "file_data; content:!\"MeSSaGE\"; nocase; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -7510,18 +7483,17 @@ static int DetectHttpServerBodyFileDataTest08(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                         "Gecko/20091221 Firefox/3.5.7\r\n"
+                         "\r\n";
     uint32_t http_len = sizeof(http_buf) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 55\r\n"
-        "\r\n"
-        "longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend";
+    uint8_t http_buf2[] = "HTTP/1.0 200 ok\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 55\r\n"
+                          "\r\n"
+                          "longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend";
     uint32_t http_len2 = sizeof(http_buf2) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -7540,7 +7512,7 @@ static int DetectHttpServerBodyFileDataTest08(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -7551,10 +7523,11 @@ static int DetectHttpServerBodyFileDataTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert http any any -> any any "
+            "(msg:\"http server body test\"; "
+            "file_data; content:\"longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend\"; "
+            "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -7615,28 +7588,28 @@ static int DetectHttpServerBodyFileDataTest09(void)
     TcpSession ssn;
     Packet *p = NULL;
     uint8_t httpbuf1[] = "GET /index1.html HTTP/1.1\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Connection: keep-alive\r\n"
-        "Cookie: dummy1\r\n\r\n";
+                         "User-Agent: Mozilla/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "Connection: keep-alive\r\n"
+                         "Cookie: dummy1\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint8_t httpbuf2[] = "HTTP/1.1 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 3\r\n"
-        "\r\n"
-        "one";
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 3\r\n"
+                         "\r\n"
+                         "one";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     uint8_t httpbuf3[] = "GET /index2.html HTTP/1.1\r\n"
-        "User-Agent: Firefox/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Connection: keep-alive\r\n"
-        "Cookie: dummy2\r\n\r\n";
+                         "User-Agent: Firefox/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "Connection: keep-alive\r\n"
+                         "Cookie: dummy2\r\n\r\n";
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
     uint8_t httpbuf4[] = "HTTP/1.1 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 3\r\n"
-        "\r\n"
-        "two";
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 3\r\n"
+                         "\r\n"
+                         "two";
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -7654,7 +7627,7 @@ static int DetectHttpServerBodyFileDataTest09(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -7666,12 +7639,14 @@ static int DetectHttpServerBodyFileDataTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; file_data; content:\"one\"; sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; "
+                                      "file_data; content:\"one\"; sid:1; rev:1;)");
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; file_data; content:\"two\"; sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; "
+                                      "file_data; content:\"two\"; sid:2; rev:1;)");
     if (s == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -7764,28 +7739,28 @@ static int DetectHttpServerBodyFileDataTest10(void)
     TcpSession ssn;
     Packet *p = NULL;
     uint8_t httpbuf1[] = "GET /index1.html HTTP/1.1\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Connection: keep-alive\r\n"
-        "Cookie: dummy1\r\n\r\n";
+                         "User-Agent: Mozilla/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "Connection: keep-alive\r\n"
+                         "Cookie: dummy1\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint8_t httpbuf2[] = "HTTP/1.1 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 3\r\n"
-        "\r\n"
-        "one";
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 3\r\n"
+                         "\r\n"
+                         "one";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     uint8_t httpbuf3[] = "GET /index2.html HTTP/1.1\r\n"
-        "User-Agent: Firefox/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Connection: keep-alive\r\n"
-        "Cookie: dummy2\r\n\r\n";
+                         "User-Agent: Firefox/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "Connection: keep-alive\r\n"
+                         "Cookie: dummy2\r\n\r\n";
     uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
     uint8_t httpbuf4[] = "HTTP/1.1 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 3\r\n"
-        "\r\n"
-        "two";
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 3\r\n"
+                         "\r\n"
+                         "two";
     uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -7803,7 +7778,7 @@ static int DetectHttpServerBodyFileDataTest10(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -7815,12 +7790,14 @@ static int DetectHttpServerBodyFileDataTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; file_data; content:\"one\";  sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; "
+                                      "file_data; content:\"one\";  sid:1; rev:1;)");
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; file_data; content:\"two\"; sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; "
+                                      "file_data; content:\"two\"; sid:2; rev:1;)");
     if (s == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -7919,129 +7896,97 @@ void DetectHttpServerBodyRegisterTests(void)
     UtRegisterTest("DetectHttpServerBodyTest14", DetectHttpServerBodyTest14);
     UtRegisterTest("DetectHttpServerBodyTest15", DetectHttpServerBodyTest15);
 
-    UtRegisterTest("DetectHttpServerBodyFileDataTest01",
-                   DetectHttpServerBodyFileDataTest01);
-    UtRegisterTest("DetectHttpServerBodyFileDataTest02",
-                   DetectHttpServerBodyFileDataTest02);
-    UtRegisterTest("DetectHttpServerBodyFileDataTest03",
-                   DetectHttpServerBodyFileDataTest03);
-    UtRegisterTest("DetectHttpServerBodyFileDataTest04",
-                   DetectHttpServerBodyFileDataTest04);
-    UtRegisterTest("DetectHttpServerBodyFileDataTest05",
-                   DetectHttpServerBodyFileDataTest05);
-    UtRegisterTest("DetectHttpServerBodyFileDataTest06",
-                   DetectHttpServerBodyFileDataTest06);
-    UtRegisterTest("DetectHttpServerBodyFileDataTest07",
-                   DetectHttpServerBodyFileDataTest07);
-    UtRegisterTest("DetectHttpServerBodyFileDataTest08",
-                   DetectHttpServerBodyFileDataTest08);
-    UtRegisterTest("DetectHttpServerBodyFileDataTest09",
-                   DetectHttpServerBodyFileDataTest09);
-    UtRegisterTest("DetectHttpServerBodyFileDataTest10",
-                   DetectHttpServerBodyFileDataTest10);
+    UtRegisterTest("DetectHttpServerBodyFileDataTest01", DetectHttpServerBodyFileDataTest01);
+    UtRegisterTest("DetectHttpServerBodyFileDataTest02", DetectHttpServerBodyFileDataTest02);
+    UtRegisterTest("DetectHttpServerBodyFileDataTest03", DetectHttpServerBodyFileDataTest03);
+    UtRegisterTest("DetectHttpServerBodyFileDataTest04", DetectHttpServerBodyFileDataTest04);
+    UtRegisterTest("DetectHttpServerBodyFileDataTest05", DetectHttpServerBodyFileDataTest05);
+    UtRegisterTest("DetectHttpServerBodyFileDataTest06", DetectHttpServerBodyFileDataTest06);
+    UtRegisterTest("DetectHttpServerBodyFileDataTest07", DetectHttpServerBodyFileDataTest07);
+    UtRegisterTest("DetectHttpServerBodyFileDataTest08", DetectHttpServerBodyFileDataTest08);
+    UtRegisterTest("DetectHttpServerBodyFileDataTest09", DetectHttpServerBodyFileDataTest09);
+    UtRegisterTest("DetectHttpServerBodyFileDataTest10", DetectHttpServerBodyFileDataTest10);
 
-    UtRegisterTest("DetectEngineHttpServerBodyTest01",
-                   DetectEngineHttpServerBodyTest01);
-    UtRegisterTest("DetectEngineHttpServerBodyTest02",
-                   DetectEngineHttpServerBodyTest02);
-    UtRegisterTest("DetectEngineHttpServerBodyTest03",
-                   DetectEngineHttpServerBodyTest03);
-    UtRegisterTest("DetectEngineHttpServerBodyTest04",
-                   DetectEngineHttpServerBodyTest04);
-    UtRegisterTest("DetectEngineHttpServerBodyTest05",
-                   DetectEngineHttpServerBodyTest05);
-    UtRegisterTest("DetectEngineHttpServerBodyTest06",
-                   DetectEngineHttpServerBodyTest06);
-    UtRegisterTest("DetectEngineHttpServerBodyTest07",
-                   DetectEngineHttpServerBodyTest07);
-    UtRegisterTest("DetectEngineHttpServerBodyTest08",
-                   DetectEngineHttpServerBodyTest08);
-    UtRegisterTest("DetectEngineHttpServerBodyTest09",
-                   DetectEngineHttpServerBodyTest09);
-    UtRegisterTest("DetectEngineHttpServerBodyTest10",
-                   DetectEngineHttpServerBodyTest10);
-    UtRegisterTest("DetectEngineHttpServerBodyTest11",
-                   DetectEngineHttpServerBodyTest11);
-    UtRegisterTest("DetectEngineHttpServerBodyTest12",
-                   DetectEngineHttpServerBodyTest12);
-    UtRegisterTest("DetectEngineHttpServerBodyTest13",
-                   DetectEngineHttpServerBodyTest13);
-    UtRegisterTest("DetectEngineHttpServerBodyTest14",
-                   DetectEngineHttpServerBodyTest14);
-    UtRegisterTest("DetectEngineHttpServerBodyTest15",
-                   DetectEngineHttpServerBodyTest15);
-    UtRegisterTest("DetectEngineHttpServerBodyTest16",
-                   DetectEngineHttpServerBodyTest16);
-    UtRegisterTest("DetectEngineHttpServerBodyTest17",
-                   DetectEngineHttpServerBodyTest17);
-    UtRegisterTest("DetectEngineHttpServerBodyTest18",
-                   DetectEngineHttpServerBodyTest18);
-    UtRegisterTest("DetectEngineHttpServerBodyTest19",
-                   DetectEngineHttpServerBodyTest19);
-    UtRegisterTest("DetectEngineHttpServerBodyTest20",
-                   DetectEngineHttpServerBodyTest20);
-    UtRegisterTest("DetectEngineHttpServerBodyTest21",
-                   DetectEngineHttpServerBodyTest21);
-    UtRegisterTest("DetectEngineHttpServerBodyTest22",
-                   DetectEngineHttpServerBodyTest22);
+    UtRegisterTest("DetectEngineHttpServerBodyTest01", DetectEngineHttpServerBodyTest01);
+    UtRegisterTest("DetectEngineHttpServerBodyTest02", DetectEngineHttpServerBodyTest02);
+    UtRegisterTest("DetectEngineHttpServerBodyTest03", DetectEngineHttpServerBodyTest03);
+    UtRegisterTest("DetectEngineHttpServerBodyTest04", DetectEngineHttpServerBodyTest04);
+    UtRegisterTest("DetectEngineHttpServerBodyTest05", DetectEngineHttpServerBodyTest05);
+    UtRegisterTest("DetectEngineHttpServerBodyTest06", DetectEngineHttpServerBodyTest06);
+    UtRegisterTest("DetectEngineHttpServerBodyTest07", DetectEngineHttpServerBodyTest07);
+    UtRegisterTest("DetectEngineHttpServerBodyTest08", DetectEngineHttpServerBodyTest08);
+    UtRegisterTest("DetectEngineHttpServerBodyTest09", DetectEngineHttpServerBodyTest09);
+    UtRegisterTest("DetectEngineHttpServerBodyTest10", DetectEngineHttpServerBodyTest10);
+    UtRegisterTest("DetectEngineHttpServerBodyTest11", DetectEngineHttpServerBodyTest11);
+    UtRegisterTest("DetectEngineHttpServerBodyTest12", DetectEngineHttpServerBodyTest12);
+    UtRegisterTest("DetectEngineHttpServerBodyTest13", DetectEngineHttpServerBodyTest13);
+    UtRegisterTest("DetectEngineHttpServerBodyTest14", DetectEngineHttpServerBodyTest14);
+    UtRegisterTest("DetectEngineHttpServerBodyTest15", DetectEngineHttpServerBodyTest15);
+    UtRegisterTest("DetectEngineHttpServerBodyTest16", DetectEngineHttpServerBodyTest16);
+    UtRegisterTest("DetectEngineHttpServerBodyTest17", DetectEngineHttpServerBodyTest17);
+    UtRegisterTest("DetectEngineHttpServerBodyTest18", DetectEngineHttpServerBodyTest18);
+    UtRegisterTest("DetectEngineHttpServerBodyTest19", DetectEngineHttpServerBodyTest19);
+    UtRegisterTest("DetectEngineHttpServerBodyTest20", DetectEngineHttpServerBodyTest20);
+    UtRegisterTest("DetectEngineHttpServerBodyTest21", DetectEngineHttpServerBodyTest21);
+    UtRegisterTest("DetectEngineHttpServerBodyTest22", DetectEngineHttpServerBodyTest22);
 
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest01",
-                   DetectEngineHttpServerBodyFileDataTest01);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest02",
-                   DetectEngineHttpServerBodyFileDataTest02);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest03",
-                   DetectEngineHttpServerBodyFileDataTest03);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest04",
-                   DetectEngineHttpServerBodyFileDataTest04);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest05",
-                   DetectEngineHttpServerBodyFileDataTest05);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest06",
-                   DetectEngineHttpServerBodyFileDataTest06);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest07",
-                   DetectEngineHttpServerBodyFileDataTest07);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest08",
-                   DetectEngineHttpServerBodyFileDataTest08);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest09",
-                   DetectEngineHttpServerBodyFileDataTest09);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest10",
-                   DetectEngineHttpServerBodyFileDataTest10);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest11",
-                   DetectEngineHttpServerBodyFileDataTest11);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest12",
-                   DetectEngineHttpServerBodyFileDataTest12);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest13",
-                   DetectEngineHttpServerBodyFileDataTest13);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest14",
-                   DetectEngineHttpServerBodyFileDataTest14);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest15",
-                   DetectEngineHttpServerBodyFileDataTest15);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest16",
-                   DetectEngineHttpServerBodyFileDataTest16);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest17",
-                   DetectEngineHttpServerBodyFileDataTest17);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest18",
-                   DetectEngineHttpServerBodyFileDataTest18);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest01", DetectEngineHttpServerBodyFileDataTest01);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest02", DetectEngineHttpServerBodyFileDataTest02);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest03", DetectEngineHttpServerBodyFileDataTest03);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest04", DetectEngineHttpServerBodyFileDataTest04);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest05", DetectEngineHttpServerBodyFileDataTest05);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest06", DetectEngineHttpServerBodyFileDataTest06);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest07", DetectEngineHttpServerBodyFileDataTest07);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest08", DetectEngineHttpServerBodyFileDataTest08);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest09", DetectEngineHttpServerBodyFileDataTest09);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest10", DetectEngineHttpServerBodyFileDataTest10);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest11", DetectEngineHttpServerBodyFileDataTest11);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest12", DetectEngineHttpServerBodyFileDataTest12);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest13", DetectEngineHttpServerBodyFileDataTest13);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest14", DetectEngineHttpServerBodyFileDataTest14);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest15", DetectEngineHttpServerBodyFileDataTest15);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest16", DetectEngineHttpServerBodyFileDataTest16);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest17", DetectEngineHttpServerBodyFileDataTest17);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest18", DetectEngineHttpServerBodyFileDataTest18);
 
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest19",
-                  DetectEngineHttpServerBodyFileDataTest19);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest20",
-                  DetectEngineHttpServerBodyFileDataTest20);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest21",
-                  DetectEngineHttpServerBodyFileDataTest21);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest22",
-                  DetectEngineHttpServerBodyFileDataTest22);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest23",
-                  DetectEngineHttpServerBodyFileDataTest23);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest24",
-                  DetectEngineHttpServerBodyFileDataTest24);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest25",
-                  DetectEngineHttpServerBodyFileDataTest25);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest26",
-                  DetectEngineHttpServerBodyFileDataTest26);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest27",
-                  DetectEngineHttpServerBodyFileDataTest27);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest28",
-                  DetectEngineHttpServerBodyFileDataTest28);
-    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest29",
-                  DetectEngineHttpServerBodyFileDataTest29);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest19", DetectEngineHttpServerBodyFileDataTest19);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest20", DetectEngineHttpServerBodyFileDataTest20);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest21", DetectEngineHttpServerBodyFileDataTest21);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest22", DetectEngineHttpServerBodyFileDataTest22);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest23", DetectEngineHttpServerBodyFileDataTest23);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest24", DetectEngineHttpServerBodyFileDataTest24);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest25", DetectEngineHttpServerBodyFileDataTest25);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest26", DetectEngineHttpServerBodyFileDataTest26);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest27", DetectEngineHttpServerBodyFileDataTest27);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest28", DetectEngineHttpServerBodyFileDataTest28);
+    UtRegisterTest(
+            "DetectEngineHttpServerBodyFileDataTest29", DetectEngineHttpServerBodyFileDataTest29);
 }

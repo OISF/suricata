@@ -76,8 +76,8 @@ void RulesDumpTxMatchArray(const DetectEngineThreadCtx *det_ctx, const SigGroupH
     jb_free(js);
 }
 
-void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx,
-        const SigGroupHead *sgh, const Packet *p)
+void RulesDumpMatchArray(
+        const DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, const Packet *p)
 {
     JsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "inspectedrules", NULL, NULL);
     if (js == NULL)
@@ -99,7 +99,6 @@ void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx,
         if (s == NULL)
             continue;
         jb_append_uint(js, s->id);
-
     }
     jb_close(js); // close array
     jb_close(js); // close inspectedrules object

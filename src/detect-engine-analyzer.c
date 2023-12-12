@@ -50,12 +50,12 @@ static int rule_warnings_only = 0;
 
 /* Details for each buffer being tracked */
 typedef struct DetectEngineAnalyzerItems {
-    int16_t     item_id;
-    bool        item_seen;
-    bool        export_item_seen;
-    bool        check_encoding_match;
-    const char  *item_name;
-    const char  *display_name;
+    int16_t item_id;
+    bool item_seen;
+    bool export_item_seen;
+    bool check_encoding_match;
+    const char *item_name;
+    const char *display_name;
 } DetectEngineAnalyzerItems;
 
 typedef struct FpPatternStats_ {
@@ -67,8 +67,8 @@ typedef struct FpPatternStats_ {
 
 /* Track which items require the item_seen value to be exposed */
 struct ExposedItemSeen {
-    const char  *bufname;
-    bool        *item_seen_ptr;
+    const char *bufname;
+    bool *item_seen_ptr;
 };
 
 typedef struct EngineAnalysisCtx_ {
@@ -213,7 +213,8 @@ void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, char *l
     if (fp_cd->flags & DETECT_CONTENT_OFFSET) {
         fprintf(fp, " Offset");
         flags_set = 1;
-    } if (fp_cd->flags & DETECT_CONTENT_DEPTH) {
+    }
+    if (fp_cd->flags & DETECT_CONTENT_DEPTH) {
         fprintf(fp, " Depth");
         flags_set = 1;
     }
@@ -293,8 +294,7 @@ static int SetupFPAnalyzer(DetectEngineCtx *de_ctx)
 {
     int fp_engine_analysis_set = 0;
 
-    if ((ConfGetBool("engine-analysis.rules-fast-pattern",
-                     &fp_engine_analysis_set)) == 0) {
+    if ((ConfGetBool("engine-analysis.rules-fast-pattern", &fp_engine_analysis_set)) == 0) {
         return false;
     }
 
@@ -318,8 +318,7 @@ static int SetupFPAnalyzer(DetectEngineCtx *de_ctx)
 
     de_ctx->ea->fp_engine_analysis_fp = fp;
 
-    SCLogInfo("Engine-Analysis for fast_pattern printed to file - %s",
-              log_path);
+    SCLogInfo("Engine-Analysis for fast_pattern printed to file - %s", log_path);
     SCFree(log_path);
 
     struct timeval tval;
@@ -393,8 +392,7 @@ static int SetupRuleAnalyzer(DetectEngineCtx *de_ctx)
                 return 0;
             }
 
-            SCLogInfo("Engine-Analysis for rules printed to file - %s",
-                      log_path);
+            SCLogInfo("Engine-Analysis for rules printed to file - %s", log_path);
 
             struct timeval tval;
             gettimeofday(&tval, NULL);
@@ -419,10 +417,9 @@ static int SetupRuleAnalyzer(DetectEngineCtx *de_ctx)
                         "http content.\n");
             }
         }
-    }
-    else {
+    } else {
         SCLogInfo("Conf parameter \"engine-analysis.rules\" not found. "
-                                      "Defaulting to not printing the rules analysis report.");
+                  "Defaulting to not printing the rules analysis report.");
     }
     if (!enabled) {
         SCLogInfo("Engine-Analysis for rules disabled in conf file.");
@@ -594,8 +591,7 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
         fprintf(ea_ctx->rule_engine_analysis_fp, "%s",
                 payload ? (stream ? "payload and reassembled stream" : "payload")
                         : "reassembled stream");
-    }
-    else {
+    } else {
         const char *desc = DetectEngineBufferTypeGetDescriptionById(de_ctx, list_type);
         const char *name = DetectEngineBufferTypeGetNameById(de_ctx, list_type);
         if (desc && name) {
@@ -603,7 +599,6 @@ static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Sign
         } else if (desc || name) {
             fprintf(ea_ctx->rule_engine_analysis_fp, "%s", desc ? desc : name);
         }
-
     }
 
     fprintf(ea_ctx->rule_engine_analysis_fp, "\" ");
@@ -663,7 +658,9 @@ static void ATTR_FMT_PRINTF(2, 3) AnalyzerWarning(RuleAnalyzer *ctx, char *fmt, 
         jb_append_string(ctx->js_warnings, str);
 }
 
-#define CHECK(pat) if (strlen((pat)) <= len && memcmp((pat), buf, MIN(len, strlen((pat)))) == 0) return true;
+#define CHECK(pat)                                                                                 \
+    if (strlen((pat)) <= len && memcmp((pat), buf, MIN(len, strlen((pat)))) == 0)                  \
+        return true;
 
 static bool LooksLikeHTTPMethod(const uint8_t *buf, uint16_t len)
 {
@@ -1019,7 +1016,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
 
     jb_open_array(ctx.js, "pkt_engines");
     const DetectEnginePktInspectionEngine *pkt = s->pkt_inspect;
-    for ( ; pkt != NULL; pkt = pkt->next) {
+    for (; pkt != NULL; pkt = pkt->next) {
         const char *name = DetectEngineBufferTypeGetNameById(de_ctx, pkt->sm_list);
         if (name == NULL) {
             switch (pkt->sm_list) {
@@ -1083,7 +1080,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
 
         jb_open_array(ctx.js, "engines");
         const DetectEngineAppInspectionEngine *app = s->app_inspect;
-        for ( ; app != NULL; app = app->next) {
+        for (; app != NULL; app = app->next) {
             const char *name = DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list);
             if (name == NULL) {
                 switch (app->sm_list) {
@@ -1131,9 +1128,11 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         jb_close(ctx.js);
 
         if (has_stream && has_client_body_mpm)
-            AnalyzerNote(&ctx, (char *)"mpm in http_client_body combined with stream match leads to stream buffering");
+            AnalyzerNote(&ctx, (char *)"mpm in http_client_body combined with stream match leads "
+                                       "to stream buffering");
         if (has_stream && has_file_data_mpm)
-            AnalyzerNote(&ctx, (char *)"mpm in file_data combined with stream match leads to stream buffering");
+            AnalyzerNote(&ctx, (char *)"mpm in file_data combined with stream match leads to "
+                                       "stream buffering");
     }
 
     jb_open_object(ctx.js, "lists");
@@ -1364,8 +1363,7 @@ static void EngineAnalysisItemsInit(EngineAnalysisCtx *ea_ctx)
  *
  * \param s Pointer to the signature.
  */
-void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
-        const Signature *s, const char *line)
+void EngineAnalysisRules(const DetectEngineCtx *de_ctx, const Signature *s, const char *line)
 {
     uint32_t rule_bidirectional = 0;
     uint32_t rule_pcre = 0;
@@ -1466,13 +1464,11 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                         warn_encoding_norm_http_buf += 1;
                     }
                 }
-            }
-            else if (sm->type == DETECT_FLOW) {
+            } else if (sm->type == DETECT_FLOW) {
                 rule_flow += 1;
                 if ((s->flags & SIG_FLAG_TOSERVER) && !(s->flags & SIG_FLAG_TOCLIENT)) {
                     rule_flow_toserver = 1;
-                }
-                else if ((s->flags & SIG_FLAG_TOCLIENT) && !(s->flags & SIG_FLAG_TOSERVER)) {
+                } else if ((s->flags & SIG_FLAG_TOCLIENT) && !(s->flags & SIG_FLAG_TOSERVER)) {
                     rule_flow_toclient = 1;
                 }
                 DetectFlowData *fd = (DetectFlowData *)sm->ctx;
@@ -1480,18 +1476,15 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                     if (fd->flags & DETECT_FLOW_FLAG_NOSTREAM)
                         rule_flow_nostream = 1;
                 }
-            }
-            else if (sm->type == DETECT_FLOWBITS) {
+            } else if (sm->type == DETECT_FLOWBITS) {
                 if (list_id == DETECT_SM_LIST_MATCH) {
                     rule_flowbits += 1;
                 }
-            }
-            else if (sm->type == DETECT_FLOWINT) {
+            } else if (sm->type == DETECT_FLOWINT) {
                 if (list_id == DETECT_SM_LIST_MATCH) {
                     rule_flowint += 1;
                 }
-            }
-            else if (sm->type == DETECT_FLAGS) {
+            } else if (sm->type == DETECT_FLAGS) {
                 DetectFlagsData *fd = (DetectFlagsData *)sm->ctx;
                 if (fd != NULL) {
                     rule_flags = 1;
@@ -1528,7 +1521,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         warn_content_http = 1;
     }
     if (rule_content == 1) {
-         //todo: warning if content is weak, separate warning for pcre + weak content
+        // todo: warning if content is weak, separate warning for pcre + weak content
     }
     if (rule_flow == 0 && rule_flags == 0 && !(s->proto.flags & DETECT_PROTO_ANY) &&
             DetectProtoContainsProto(&s->proto, IPPROTO_TCP) &&
@@ -1537,10 +1530,12 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         rule_warning += 1;
         warn_tcp_no_flow = 1;
     }
-    if (rule_flow && !rule_bidirectional && (rule_flow_toserver || rule_flow_toclient)
-                  && !((s->flags & SIG_FLAG_SP_ANY) && (s->flags & SIG_FLAG_DP_ANY))) {
-        if (((s->flags & SIG_FLAG_TOSERVER) && !(s->flags & SIG_FLAG_SP_ANY) && (s->flags & SIG_FLAG_DP_ANY))
-          || ((s->flags & SIG_FLAG_TOCLIENT) && !(s->flags & SIG_FLAG_DP_ANY) && (s->flags & SIG_FLAG_SP_ANY))) {
+    if (rule_flow && !rule_bidirectional && (rule_flow_toserver || rule_flow_toclient) &&
+            !((s->flags & SIG_FLAG_SP_ANY) && (s->flags & SIG_FLAG_DP_ANY))) {
+        if (((s->flags & SIG_FLAG_TOSERVER) && !(s->flags & SIG_FLAG_SP_ANY) &&
+                    (s->flags & SIG_FLAG_DP_ANY)) ||
+                ((s->flags & SIG_FLAG_TOCLIENT) && !(s->flags & SIG_FLAG_DP_ANY) &&
+                        (s->flags & SIG_FLAG_SP_ANY))) {
             rule_warning += 1;
             warn_client_ports = 1;
         }
@@ -1568,7 +1563,8 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         rule_warning += 1;
         warn_offset_depth_pkt_stream = 1;
     }
-    if (rule_content_offset_depth > 0 && !stream_buf && packet_buf && s->alproto != ALPROTO_UNKNOWN) {
+    if (rule_content_offset_depth > 0 && !stream_buf && packet_buf &&
+            s->alproto != ALPROTO_UNKNOWN) {
         rule_warning += 1;
         warn_offset_depth_alproto = 1;
     }
@@ -1578,14 +1574,16 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         warn_non_alproto_fp_for_alproto_sig = 1;
     }
 
-    if ((s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == 0) {
+    if ((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) == 0) {
         warn_no_direction += 1;
         rule_warning += 1;
     }
 
     /* No warning about direction for ICMP protos */
-    if (!(DetectProtoContainsProto(&s->proto, IPPROTO_ICMPV6) && DetectProtoContainsProto(&s->proto, IPPROTO_ICMP))) {
-        if ((s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) {
+    if (!(DetectProtoContainsProto(&s->proto, IPPROTO_ICMPV6) &&
+                DetectProtoContainsProto(&s->proto, IPPROTO_ICMP))) {
+        if ((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) ==
+                (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) {
             warn_both_direction += 1;
             rule_warning += 1;
         }
@@ -1639,7 +1637,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                 (rule_flow || rule_flowbits || rule_flowint || rule_content || rule_pcre)) {
             fprintf(fp, "    Rule matches on reassembled stream.\n");
         }
-        for(size_t i = 0; i < ARRAY_SIZE(analyzer_items); i++) {
+        for (size_t i = 0; i < ARRAY_SIZE(analyzer_items); i++) {
             DetectEngineAnalyzerItems *ai = &de_ctx->ea->analyzer_items[i];
             if (ai->item_seen) {
                 fprintf(fp, "    Rule matches on %s buffer.\n", ai->display_name);
@@ -1690,7 +1688,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                         "             -Consider adding http content modifiers.\n");
         }
         if (rule_content == 1) {
-             //todo: warning if content is weak, separate warning for pcre + weak content
+            // todo: warning if content is weak, separate warning for pcre + weak content
         }
         if (warn_encoding_norm_http_buf) {
             fprintf(fp, "    Warning: Rule may contain percent encoded content for a normalized "

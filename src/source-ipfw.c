@@ -43,7 +43,7 @@
 #include "runmodes.h"
 
 #define IPFW_ACCEPT 0
-#define IPFW_DROP 1
+#define IPFW_DROP   1
 
 #define IPFW_SOCKET_POLL_MSEC 300
 
@@ -58,7 +58,7 @@
 
 TmEcode NoIPFWSupportExit(ThreadVars *, const void *, void **);
 
-void TmModuleReceiveIPFWRegister (void)
+void TmModuleReceiveIPFWRegister(void)
 {
 
     tmm_modules[TMM_RECEIVEIPFW].name = "ReceiveIPFW";
@@ -69,7 +69,7 @@ void TmModuleReceiveIPFWRegister (void)
     tmm_modules[TMM_RECEIVEIPFW].flags = TM_FLAG_RECEIVE_TM;
 }
 
-void TmModuleVerdictIPFWRegister (void)
+void TmModuleVerdictIPFWRegister(void)
 {
     tmm_modules[TMM_VERDICTIPFW].name = "VerdictIPFW";
     tmm_modules[TMM_VERDICTIPFW].ThreadInit = NoIPFWSupportExit;
@@ -78,7 +78,7 @@ void TmModuleVerdictIPFWRegister (void)
     tmm_modules[TMM_VERDICTIPFW].ThreadDeinit = NULL;
 }
 
-void TmModuleDecodeIPFWRegister (void)
+void TmModuleDecodeIPFWRegister(void)
 {
     tmm_modules[TMM_DECODEIPFW].name = "DecodeIPFW";
     tmm_modules[TMM_DECODEIPFW].ThreadInit = NoIPFWSupportExit;
@@ -107,8 +107,7 @@ extern uint16_t max_pending_packets;
 /**
  * \brief Structure to hold thread specific variables.
  */
-typedef struct IPFWThreadVars_
-{
+typedef struct IPFWThreadVars_ {
     /* data link type for the thread, probably not needed */
     int datalink;
 
@@ -151,7 +150,7 @@ static TmEcode DecodeIPFW(ThreadVars *, Packet *, void *);
  * \brief Registration Function for RecieveIPFW.
  * \todo Unit tests are needed for this module.
  */
-void TmModuleReceiveIPFWRegister (void)
+void TmModuleReceiveIPFWRegister(void)
 {
     SCMutexInit(&ipfw_init_lock, NULL);
 
@@ -172,22 +171,22 @@ void TmModuleReceiveIPFWRegister (void)
  * \brief Registration Function for VerdictIPFW.
  * \todo Unit tests are needed for this module.
  */
-void TmModuleVerdictIPFWRegister (void)
+void TmModuleVerdictIPFWRegister(void)
 {
     tmm_modules[TMM_VERDICTIPFW].name = "VerdictIPFW";
     tmm_modules[TMM_VERDICTIPFW].ThreadInit = VerdictIPFWThreadInit;
     tmm_modules[TMM_VERDICTIPFW].Func = VerdictIPFW;
     tmm_modules[TMM_VERDICTIPFW].ThreadExitPrintStats = VerdictIPFWThreadExitStats;
     tmm_modules[TMM_VERDICTIPFW].ThreadDeinit = VerdictIPFWThreadDeinit;
-    tmm_modules[TMM_VERDICTIPFW].cap_flags = SC_CAP_NET_ADMIN | SC_CAP_NET_RAW |
-                                             SC_CAP_NET_BIND_SERVICE; /** \todo untested */
+    tmm_modules[TMM_VERDICTIPFW].cap_flags =
+            SC_CAP_NET_ADMIN | SC_CAP_NET_RAW | SC_CAP_NET_BIND_SERVICE; /** \todo untested */
 }
 
 /**
  * \brief Registration Function for DecodeIPFW.
  * \todo Unit tests are needed for this module.
  */
-void TmModuleDecodeIPFWRegister (void)
+void TmModuleDecodeIPFWRegister(void)
 {
     tmm_modules[TMM_DECODEIPFW].name = "DecodeIPFW";
     tmm_modules[TMM_DECODEIPFW].ThreadInit = DecodeIPFWThreadInit;
@@ -230,7 +229,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
     IPFWQueueVars *nq = NULL;
     uint8_t pkt[IP_MAXPACKET];
-    int pktlen=0;
+    int pktlen = 0;
     struct pollfd IPFWpoll;
     struct timeval IPFWts;
     Packet *p = NULL;
@@ -241,8 +240,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    SCLogInfo("Thread '%s' will run on port %d (item %d)",
-              tv->name, nq->port_num, ptv->ipfw_index);
+    SCLogInfo("Thread '%s' will run on port %d (item %d)", tv->name, nq->port_num, ptv->ipfw_index);
 
     // Indicate that the thread is actually running its application level code (i.e., it can poll
     // packets)
@@ -256,14 +254,13 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
         IPFWpoll.fd = nq->fd;
         IPFWpoll.events = POLLRDNORM;
         /* Poll the socket for status */
-        if ( (poll(&IPFWpoll, 1, IPFW_SOCKET_POLL_MSEC)) > 0) {
+        if ((poll(&IPFWpoll, 1, IPFW_SOCKET_POLL_MSEC)) > 0) {
             if (!(IPFWpoll.revents & (POLLRDNORM | POLLERR)))
                 continue;
         }
 
-        if ((pktlen = recvfrom(nq->fd, pkt, sizeof(pkt), 0,
-                               (struct sockaddr *)&nq->ipfw_sin,
-                               &nq->ipfw_sinlen)) == -1) {
+        if ((pktlen = recvfrom(nq->fd, pkt, sizeof(pkt), 0, (struct sockaddr *)&nq->ipfw_sin,
+                     &nq->ipfw_sinlen)) == -1) {
             /* We received an error on socket read */
             if (errno == EINTR || errno == EWOULDBLOCK) {
                 /* Nothing for us to process */
@@ -274,7 +271,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
             }
         }
         /* We have a packet to process */
-        memset (&IPFWts, 0, sizeof(struct timeval));
+        memset(&IPFWts, 0, sizeof(struct timeval));
         gettimeofday(&IPFWts, NULL);
 
         /* make sure we have at least one packet in the packet pool, to prevent
@@ -299,11 +296,10 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
         p->ipfw_v.ipfw_index = ptv->ipfw_index;
 
         PacketCopyData(p, pkt, pktlen);
-        SCLogDebug("Packet info: pkt_len: %" PRIu32 " (pkt %02x, pkt_data %02x)",
-                   GET_PKT_LEN(p), *pkt, *(GET_PKT_DATA(p)));
+        SCLogDebug("Packet info: pkt_len: %" PRIu32 " (pkt %02x, pkt_data %02x)", GET_PKT_LEN(p),
+                *pkt, *(GET_PKT_DATA(p)));
 
-        if (TmThreadsSlotProcessPkt(tv, ((TmSlot *) slot)->slot_next, p)
-                != TM_ECODE_OK) {
+        if (TmThreadsSlotProcessPkt(tv, ((TmSlot *)slot)->slot_next, p) != TM_ECODE_OK) {
             SCReturnInt(TM_ECODE_FAILED);
         }
 
@@ -328,7 +324,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     struct timeval timev;
-    IPFWThreadVars *ntv = (IPFWThreadVars *) initdata;
+    IPFWThreadVars *ntv = (IPFWThreadVars *)initdata;
     IPFWQueueVars *nq = IPFWGetQueue(ntv->ipfw_index);
 
     sigset_t sigs;
@@ -358,7 +354,7 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, const void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    nq->ipfw_sinlen=sizeof(nq->ipfw_sin);
+    nq->ipfw_sinlen = sizeof(nq->ipfw_sin);
     memset(&nq->ipfw_sin, 0, nq->ipfw_sinlen);
     nq->ipfw_sin.sin_family = PF_INET;
     nq->ipfw_sin.sin_addr.s_addr = INADDR_ANY;
@@ -390,11 +386,10 @@ void ReceiveIPFWThreadExitStats(ThreadVars *tv, void *data)
 
     SCEnter();
 
-    SCLogNotice("(%s) Treated: Pkts %" PRIu32 ", Bytes %" PRIu64 ", Errors %" PRIu32 "",
-            tv->name, ptv->pkts, ptv->bytes, ptv->errs);
-    SCLogNotice("(%s) Verdict: Accepted %"PRIu32", Dropped %"PRIu32 "",
-            tv->name, ptv->accepted, ptv->dropped);
-
+    SCLogNotice("(%s) Treated: Pkts %" PRIu32 ", Bytes %" PRIu64 ", Errors %" PRIu32 "", tv->name,
+            ptv->pkts, ptv->bytes, ptv->errs);
+    SCLogNotice("(%s) Verdict: Accepted %" PRIu32 ", Dropped %" PRIu32 "", tv->name, ptv->accepted,
+            ptv->dropped);
 
     SCReturn;
 }
@@ -453,7 +448,7 @@ TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data)
         SCLogDebug("DecodeIPFW ip4 processing");
         DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
 
-    } else if(IPV6_GET_RAW_VER(ip6h) == 6) {
+    } else if (IPV6_GET_RAW_VER(ip6h) == 6) {
         if (unlikely(GET_PKT_LEN(p) > USHRT_MAX)) {
             return TM_ECODE_FAILED;
         }
@@ -463,7 +458,7 @@ TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data)
     } else {
         /* We don't support anything besides IP packets for now, bridged packets? */
         SCLogInfo("IPFW unknown protocol support %02x", *GET_PKT_DATA(p));
-       SCReturnInt(TM_ECODE_FAILED);
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
     PacketDecodeFinalize(tv, dtv, p);
@@ -547,7 +542,8 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
         /* For divert sockets, accepting means writing the
          * packet back to the socket for ipfw to pick up
          */
-        SCLogDebug("IPFWSetVerdict writing to socket %d, %p, %u", nq->fd, GET_PKT_DATA(p),GET_PKT_LEN(p));
+        SCLogDebug("IPFWSetVerdict writing to socket %d, %p, %u", nq->fd, GET_PKT_DATA(p),
+                GET_PKT_LEN(p));
 
 #if 0
         while ((poll(&IPFWpoll,1,IPFW_SOCKET_POLL_MSEC)) < 1) {
@@ -560,7 +556,8 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
 #endif
 
         IPFWMutexLock(nq);
-        if (sendto(nq->fd, GET_PKT_DATA(p), GET_PKT_LEN(p), 0,(struct sockaddr *)&nq->ipfw_sin, nq->ipfw_sinlen) == -1) {
+        if (sendto(nq->fd, GET_PKT_DATA(p), GET_PKT_LEN(p), 0, (struct sockaddr *)&nq->ipfw_sin,
+                    nq->ipfw_sinlen) == -1) {
             int r = errno;
             switch (r) {
                 default:
@@ -575,10 +572,9 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
 
         IPFWMutexUnlock(nq);
 
-        SCLogDebug("Sent Packet back into IPFW Len: %d",GET_PKT_LEN(p));
+        SCLogDebug("Sent Packet back into IPFW Len: %d", GET_PKT_LEN(p));
 
     } /* end IPFW_ACCEPT */
-
 
     if (verdict == IPFW_DROP) {
         SCLogDebug("IPFW SetVerdict is to DROP");
@@ -591,7 +587,6 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
 
     SCReturnInt(TM_ECODE_OK);
 }
-
 
 /**
  * \brief This function handles the Verdict processing
@@ -672,7 +667,6 @@ TmEcode VerdictIPFWThreadDeinit(ThreadVars *tv, void *data)
 
     /* We don't need to do anything...not sure quite yet */
 
-
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -686,7 +680,8 @@ TmEcode VerdictIPFWThreadDeinit(ThreadVars *tv, void *data)
 void VerdictIPFWThreadExitStats(ThreadVars *tv, void *data)
 {
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
-    SCLogInfo("IPFW Processing: - (%s) Pkts accepted %" PRIu32 ", dropped %" PRIu32 "", tv->name, ptv->accepted, ptv->dropped);
+    SCLogInfo("IPFW Processing: - (%s) Pkts accepted %" PRIu32 ", dropped %" PRIu32 "", tv->name,
+            ptv->accepted, ptv->dropped);
 }
 
 /**
@@ -703,8 +698,7 @@ int IPFWRegisterQueue(char *queue)
     IPFWQueueVars *nq = NULL;
     /* Extract the queue number from the specified command line argument */
     uint16_t port_num = 0;
-    if ((StringParseUint16(&port_num, 10, strlen(queue), queue)) < 0)
-    {
+    if ((StringParseUint16(&port_num, 10, strlen(queue), queue)) < 0) {
         SCLogError("specified queue number %s is not "
                    "valid",
                 queue);
@@ -772,4 +766,3 @@ void *IPFWGetThread(int number)
 #endif /* End ifdef IPFW */
 
 /* eof */
-

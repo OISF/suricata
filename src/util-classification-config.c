@@ -39,7 +39,9 @@
 /* Regex to parse the classtype argument from a Signature.  The first substring
  * holds the classtype name, the second substring holds the classtype the
  * classtype description, and the third argument holds the priority */
-#define DETECT_CLASSCONFIG_REGEX "^\\s*config\\s*classification\\s*:\\s*([a-zA-Z][a-zA-Z0-9-_]*)\\s*,\\s*(.+)\\s*,\\s*(\\d+)\\s*$"
+#define DETECT_CLASSCONFIG_REGEX                                                                   \
+    "^\\s*config\\s*classification\\s*:\\s*([a-zA-Z][a-zA-Z0-9-_]*)\\s*,\\s*(.+)\\s*,\\s*(\\d+)"   \
+    "\\s*$"
 
 /* Default path for the classification.config file */
 #if defined OS_WIN32 || defined __CYGWIN__
@@ -49,13 +51,13 @@
 #endif
 
 uint32_t SCClassConfClasstypeHashFunc(HashTable *ht, void *data, uint16_t datalen);
-char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
-                                         void *data2, uint16_t datalen2);
+char SCClassConfClasstypeHashCompareFunc(
+        void *data1, uint16_t datalen1, void *data2, uint16_t datalen2);
 void SCClassConfClasstypeHashFree(void *ch);
 static const char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx);
 
-static SCClassConfClasstype *SCClassConfAllocClasstype(uint16_t classtype_id,
-        const char *classtype, const char *classtype_desc, int priority);
+static SCClassConfClasstype *SCClassConfAllocClasstype(
+        uint16_t classtype_id, const char *classtype, const char *classtype_desc, int priority);
 static void SCClassConfDeAllocClasstype(SCClassConfClasstype *ct);
 
 void SCClassConfInit(DetectEngineCtx *de_ctx)
@@ -91,7 +93,6 @@ void SCClassConfDeinit(DetectEngineCtx *de_ctx)
     }
 }
 
-
 /**
  * \brief Inits the context to be used by the Classification Config parsing API.
  *
@@ -113,8 +114,7 @@ static FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FI
 {
     /* init the hash table to be used by the classification config Classtypes */
     de_ctx->class_conf_ht = HashTableInit(128, SCClassConfClasstypeHashFunc,
-                                          SCClassConfClasstypeHashCompareFunc,
-                                          SCClassConfClasstypeHashFree);
+            SCClassConfClasstypeHashCompareFunc, SCClassConfClasstypeHashFree);
     if (de_ctx->class_conf_ht == NULL) {
         SCLogError("Error initializing the hash "
                    "table");
@@ -127,7 +127,7 @@ static FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FI
      * classification strings */
     if (fd == NULL) {
         const char *filename = SCClassConfGetConfFilename(de_ctx);
-        if ( (fd = fopen(filename, "r")) == NULL) {
+        if ((fd = fopen(filename, "r")) == NULL) {
 #ifdef UNITTESTS
             if (RunmodeIsUnittests())
                 return NULL; // silently fail
@@ -139,7 +139,6 @@ static FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FI
 
     return fd;
 }
-
 
 /**
  * \brief Returns the path for the Classification Config file.  We check if we
@@ -156,8 +155,8 @@ static const char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx)
 
     if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0) {
         char config_value[256];
-        snprintf(config_value, sizeof(config_value),
-                 "%s.classification-file", de_ctx->config_prefix);
+        snprintf(config_value, sizeof(config_value), "%s.classification-file",
+                de_ctx->config_prefix);
 
         /* try loading prefix setting, fall back to global if that
          * fails. */
@@ -208,7 +207,7 @@ static char *SCClassConfStringToLowercase(const char *str)
     char *new_str = NULL;
     char *temp_str = NULL;
 
-    if ( (new_str = SCStrdup(str)) == NULL) {
+    if ((new_str = SCStrdup(str)) == NULL) {
         SCLogError("Error allocating memory");
         return NULL;
     }
@@ -298,14 +297,16 @@ int SCClassConfAddClasstype(DetectEngineCtx *de_ctx, char *rawstr, uint16_t inde
             SCLogDebug("HashTable Add failed");
     } else {
         SCLogDebug("Duplicate classtype found inside classification.config");
-        if (ct_new->classtype_desc) SCFree(ct_new->classtype_desc);
-        if (ct_new->classtype) SCFree(ct_new->classtype);
+        if (ct_new->classtype_desc)
+            SCFree(ct_new->classtype_desc);
+        if (ct_new->classtype)
+            SCFree(ct_new->classtype);
         SCFree(ct_new);
     }
 
     return 0;
 
- error:
+error:
     return -1;
 }
 
@@ -386,10 +387,8 @@ static bool SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
  * \retval ct Pointer to the new instance of SCClassConfClasstype on success;
  *            NULL on failure.
  */
-static SCClassConfClasstype *SCClassConfAllocClasstype(uint16_t classtype_id,
-                                                const char *classtype,
-                                                const char *classtype_desc,
-                                                int priority)
+static SCClassConfClasstype *SCClassConfAllocClasstype(
+        uint16_t classtype_id, const char *classtype, const char *classtype_desc, int priority)
 {
     SCClassConfClasstype *ct = NULL;
 
@@ -404,8 +403,7 @@ static SCClassConfClasstype *SCClassConfAllocClasstype(uint16_t classtype_id,
         return NULL;
     }
 
-    if (classtype_desc != NULL &&
-        (ct->classtype_desc = SCStrdup(classtype_desc)) == NULL) {
+    if (classtype_desc != NULL && (ct->classtype_desc = SCStrdup(classtype_desc)) == NULL) {
         SCLogError("Error allocating memory");
 
         SCClassConfDeAllocClasstype(ct);
@@ -478,8 +476,8 @@ uint32_t SCClassConfClasstypeHashFunc(HashTable *ht, void *data, uint16_t datale
  * \retval 1 On data1 and data2 being equal.
  * \retval 0 On data1 and data2 not being equal.
  */
-char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
-                                         void *data2, uint16_t datalen2)
+char SCClassConfClasstypeHashCompareFunc(
+        void *data1, uint16_t datalen1, void *data2, uint16_t datalen2)
 {
     SCClassConfClasstype *ct1 = (SCClassConfClasstype *)data1;
     SCClassConfClasstype *ct2 = (SCClassConfClasstype *)data2;
@@ -565,8 +563,7 @@ bool SCClassConfLoadClassificationConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
  * \retval lookup_ct_info Pointer to the SCClassConfClasstype instance from
  *                        the hash table on success; NULL on failure.
  */
-SCClassConfClasstype *SCClassConfGetClasstype(const char *ct_name,
-                                              DetectEngineCtx *de_ctx)
+SCClassConfClasstype *SCClassConfGetClasstype(const char *ct_name, DetectEngineCtx *de_ctx)
 {
     char name[strlen(ct_name) + 1];
     size_t s;
@@ -574,14 +571,12 @@ SCClassConfClasstype *SCClassConfGetClasstype(const char *ct_name,
         name[s] = u8_tolower((unsigned char)ct_name[s]);
     name[s] = '\0';
 
-    SCClassConfClasstype ct_lookup = {0, 0, name, NULL };
-    SCClassConfClasstype *lookup_ct_info = HashTableLookup(de_ctx->class_conf_ht,
-                                                           &ct_lookup, 0);
+    SCClassConfClasstype ct_lookup = { 0, 0, name, NULL };
+    SCClassConfClasstype *lookup_ct_info = HashTableLookup(de_ctx->class_conf_ht, &ct_lookup, 0);
     return lookup_ct_info;
 }
 
 /*----------------------------------Unittests---------------------------------*/
-
 
 #ifdef UNITTESTS
 
@@ -593,10 +588,9 @@ SCClassConfClasstype *SCClassConfGetClasstype(const char *ct_name,
  */
 FILE *SCClassConfGenerateValidDummyClassConfigFD01(void)
 {
-    const char *buffer =
-        "config classification: nothing-wrong,Nothing Wrong With Us,3\n"
-        "config classification: unknown,Unknown are we,3\n"
-        "config classification: bad-unknown,We think it's bad, 2\n";
+    const char *buffer = "config classification: nothing-wrong,Nothing Wrong With Us,3\n"
+                         "config classification: unknown,Unknown are we,3\n"
+                         "config classification: bad-unknown,We think it's bad, 2\n";
 
     FILE *fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
@@ -613,14 +607,13 @@ FILE *SCClassConfGenerateValidDummyClassConfigFD01(void)
  */
 FILE *SCClassConfGenerateInvalidDummyClassConfigFD02(void)
 {
-    const char *buffer =
-        "config classification: not-suspicious,Not Suspicious Traffic,3\n"
-        "onfig classification: unknown,Unknown Traffic,3\n"
-        "config classification: _badunknown,Potentially Bad Traffic, 2\n"
-        "config classification: bamboola1,Unknown Traffic,3\n"
-        "config classification: misc-activity,Misc activity,-1\n"
-        "config classification: policy-violation,Potential Corporate "
-        "config classification: bamboola,Unknown Traffic,3\n";
+    const char *buffer = "config classification: not-suspicious,Not Suspicious Traffic,3\n"
+                         "onfig classification: unknown,Unknown Traffic,3\n"
+                         "config classification: _badunknown,Potentially Bad Traffic, 2\n"
+                         "config classification: bamboola1,Unknown Traffic,3\n"
+                         "config classification: misc-activity,Misc activity,-1\n"
+                         "config classification: policy-violation,Potential Corporate "
+                         "config classification: bamboola,Unknown Traffic,3\n";
 
     FILE *fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
@@ -637,11 +630,10 @@ FILE *SCClassConfGenerateInvalidDummyClassConfigFD02(void)
  */
 FILE *SCClassConfGenerateInvalidDummyClassConfigFD03(void)
 {
-    const char *buffer =
-        "conig classification: not-suspicious,Not Suspicious Traffic,3\n"
-        "onfig classification: unknown,Unknown Traffic,3\n"
-        "config classification: _badunknown,Potentially Bad Traffic, 2\n"
-        "config classification: misc-activity,Misc activity,-1\n";
+    const char *buffer = "conig classification: not-suspicious,Not Suspicious Traffic,3\n"
+                         "onfig classification: unknown,Unknown Traffic,3\n"
+                         "config classification: _badunknown,Potentially Bad Traffic, 2\n"
+                         "config classification: misc-activity,Misc activity,-1\n";
 
     FILE *fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
@@ -669,7 +661,8 @@ static int SCClassConfTest01(void)
         return result;
 
     result = (de_ctx->class_conf_ht->count == 3);
-    if (result == 0) printf("de_ctx->class_conf_ht->count %u: ", de_ctx->class_conf_ht->count);
+    if (result == 0)
+        printf("de_ctx->class_conf_ht->count %u: ", de_ctx->class_conf_ht->count);
 
     DetectEngineCtxFree(de_ctx);
 

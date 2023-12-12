@@ -34,9 +34,9 @@
 #include "detect-ipv6hdr.h"
 
 /* prototypes */
-static int DetectIpv6hdrSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectIpv6hdrSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-void DetectIpv6hdrRegisterTests (void);
+void DetectIpv6hdrRegisterTests(void);
 #endif
 
 static int g_ipv6hdr_buffer_id = 0;
@@ -65,8 +65,7 @@ void DetectIpv6hdrRegister(void)
 
     DetectPktMpmRegister("ipv6.hdr", 2, PrefilterGenericMpmPktRegister, GetData);
 
-    DetectPktInspectEngineRegister("ipv6.hdr", GetData,
-            DetectEngineInspectPktBufferGeneric);
+    DetectPktInspectEngineRegister("ipv6.hdr", GetData, DetectEngineInspectPktBufferGeneric);
 
     return;
 }
@@ -81,7 +80,7 @@ void DetectIpv6hdrRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectIpv6hdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
+static int DetectIpv6hdrSetup(DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
     s->proto.flags |= DETECT_PROTO_IPV6; // TODO
 
@@ -106,8 +105,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         }
         uint32_t hlen = IPV6_HEADER_LEN + IPV6_GET_EXTHDRS_LEN(p);
         if (((uint8_t *)p->ip6h + (ptrdiff_t)hlen) >
-                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
-        {
+                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p))) {
             SCLogDebug("data out of range: %p > %p (exthdrs_len %u)",
                     ((uint8_t *)p->ip6h + (ptrdiff_t)hlen),
                     ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)),

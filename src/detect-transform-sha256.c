@@ -36,7 +36,7 @@
 
 #include "rust.h"
 
-static int DetectTransformToSha256Setup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTransformToSha256Setup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectTransformToSha256RegisterTests(void);
 #endif
@@ -45,17 +45,12 @@ static void TransformToSha256(InspectionBuffer *buffer, void *options);
 void DetectTransformSha256Register(void)
 {
     sigmatch_table[DETECT_TRANSFORM_SHA256].name = "to_sha256";
-    sigmatch_table[DETECT_TRANSFORM_SHA256].desc =
-        "convert to sha256 hash of the buffer";
-    sigmatch_table[DETECT_TRANSFORM_SHA256].url =
-        "/rules/transforms.html#to-sha256";
-    sigmatch_table[DETECT_TRANSFORM_SHA256].Setup =
-        DetectTransformToSha256Setup;
-    sigmatch_table[DETECT_TRANSFORM_SHA256].Transform =
-        TransformToSha256;
+    sigmatch_table[DETECT_TRANSFORM_SHA256].desc = "convert to sha256 hash of the buffer";
+    sigmatch_table[DETECT_TRANSFORM_SHA256].url = "/rules/transforms.html#to-sha256";
+    sigmatch_table[DETECT_TRANSFORM_SHA256].Setup = DetectTransformToSha256Setup;
+    sigmatch_table[DETECT_TRANSFORM_SHA256].Transform = TransformToSha256;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_TRANSFORM_SHA256].RegisterTests =
-        DetectTransformToSha256RegisterTests;
+    sigmatch_table[DETECT_TRANSFORM_SHA256].RegisterTests = DetectTransformToSha256RegisterTests;
 #endif
     sigmatch_table[DETECT_TRANSFORM_SHA256].flags |= SIGMATCH_NOOPT;
 }
@@ -69,7 +64,7 @@ void DetectTransformSha256Register(void)
  *  \retval 0 ok
  *  \retval -1 failure
  */
-static int DetectTransformToSha256Setup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+static int DetectTransformToSha256Setup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
     if (g_disable_hashing) {
@@ -87,7 +82,7 @@ static void TransformToSha256(InspectionBuffer *buffer, void *options)
     const uint32_t input_len = buffer->inspect_len;
     uint8_t output[SC_SHA256_LEN];
 
-    //PrintRawDataFp(stdout, input, input_len);
+    // PrintRawDataFp(stdout, input, input_len);
     SCSha256HashBuffer(input, input_len, output, sizeof(output));
     InspectionBufferCopy(buffer, output, sizeof(output));
 }
@@ -110,7 +105,6 @@ static int DetectTransformToSha256Test01(void)
 
 static void DetectTransformToSha256RegisterTests(void)
 {
-    UtRegisterTest("DetectTransformToSha256Test01",
-            DetectTransformToSha256Test01);
+    UtRegisterTest("DetectTransformToSha256Test01", DetectTransformToSha256Test01);
 }
 #endif

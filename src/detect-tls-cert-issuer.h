@@ -24,7 +24,6 @@
 #ifndef __DETECT_TLS_ISSUER_H__
 #define __DETECT_TLS_ISSUER_H__
 
-
 void DetectTlsIssuerRegister(void);
 
 #endif /* __DETECT_TLS_ISSUER_H__ */

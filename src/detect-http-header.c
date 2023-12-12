@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /**
  * \file
  *
@@ -63,7 +62,7 @@ static void DetectHttpHeaderRegisterTests(void);
 static int g_http_header_buffer_id = 0;
 static int g_keyword_thread_id = 0;
 
-#define BUFFER_SIZE_STEP    1024
+#define BUFFER_SIZE_STEP 1024
 static HttpHeaderThreadDataConfig g_td_config = { BUFFER_SIZE_STEP };
 
 static uint8_t *GetBufferForTX(
@@ -101,13 +100,11 @@ static uint8_t *GetBufferForTX(
         size_t size2 = bstr_size(h->value);
 
         if (flags & STREAM_TOSERVER) {
-            if (size1 == 6 &&
-                SCMemcmpLowercase("cookie", bstr_ptr(h->name), 6) == 0) {
+            if (size1 == 6 && SCMemcmpLowercase("cookie", bstr_ptr(h->name), 6) == 0) {
                 continue;
             }
         } else {
-            if (size1 == 10 &&
-                SCMemcmpLowercase("set-cookie", bstr_ptr(h->name), 10) == 0) {
+            if (size1 == 10 && SCMemcmpLowercase("set-cookie", bstr_ptr(h->name), 10) == 0) {
                 continue;
             }
         }
@@ -260,7 +257,7 @@ static void PrefilterMpmHttpHeader(DetectEngineThreadCtx *det_ctx, const void *p
     const uint8_t *data = buffer->inspect;
 
     SCLogDebug("mpm'ing buffer:");
-    //PrintRawDataFp(stdout, data, data_len);
+    // PrintRawDataFp(stdout, data, data_len);
 
     if (data != NULL && data_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(
@@ -277,9 +274,8 @@ static void PrefilterMpmHttpTrailer(DetectEngineThreadCtx *det_ctx, const void *
     htp_tx_t *tx = txv;
     const HtpTxUserData *htud = (const HtpTxUserData *)htp_tx_get_user_data(tx);
     /* if the request wasn't flagged as having a trailer, we skip */
-    if (htud && (
-            ((flags & STREAM_TOSERVER) && !htud->request_has_trailers) ||
-            ((flags & STREAM_TOCLIENT) && !htud->response_has_trailers))) {
+    if (htud && (((flags & STREAM_TOSERVER) && !htud->request_has_trailers) ||
+                        ((flags & STREAM_TOCLIENT) && !htud->response_has_trailers))) {
         SCReturn;
     }
     PrefilterMpmHttpHeader(det_ctx, pectx, p, f, txv, idx, _txd, flags);
@@ -304,9 +300,8 @@ static int PrefilterMpmHttpHeaderRequestRegister(DetectEngineCtx *de_ctx, SigGro
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpHeader,
-            mpm_reg->app_v2.alproto, HTP_REQUEST_HEADERS,
-            pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpHeader, mpm_reg->app_v2.alproto,
+            HTP_REQUEST_HEADERS, pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
         return r;
@@ -320,9 +315,8 @@ static int PrefilterMpmHttpHeaderRequestRegister(DetectEngineCtx *de_ctx, SigGro
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpTrailer,
-            mpm_reg->app_v2.alproto, HTP_REQUEST_TRAILER,
-            pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
+    r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpTrailer, mpm_reg->app_v2.alproto,
+            HTP_REQUEST_TRAILER, pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
     }
@@ -342,9 +336,8 @@ static int PrefilterMpmHttpHeaderResponseRegister(DetectEngineCtx *de_ctx, SigGr
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpHeader,
-            mpm_reg->app_v2.alproto, HTP_RESPONSE_HEADERS,
-            pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpHeader, mpm_reg->app_v2.alproto,
+            HTP_RESPONSE_HEADERS, pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
         return r;
@@ -358,9 +351,8 @@ static int PrefilterMpmHttpHeaderResponseRegister(DetectEngineCtx *de_ctx, SigGr
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpTrailer,
-            mpm_reg->app_v2.alproto, HTP_RESPONSE_TRAILER,
-            pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
+    r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpTrailer, mpm_reg->app_v2.alproto,
+            HTP_RESPONSE_TRAILER, pectx, PrefilterMpmHttpHeaderFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
     }
@@ -411,20 +403,24 @@ void DetectHttpHeaderRegister(void)
 {
     /* http_header content modifier */
     sigmatch_table[DETECT_AL_HTTP_HEADER].name = "http_header";
-    sigmatch_table[DETECT_AL_HTTP_HEADER].desc = "content modifier to match only on the HTTP header-buffer";
-    sigmatch_table[DETECT_AL_HTTP_HEADER].url = "/rules/http-keywords.html#http-header-and-http-raw-header";
+    sigmatch_table[DETECT_AL_HTTP_HEADER].desc =
+            "content modifier to match only on the HTTP header-buffer";
+    sigmatch_table[DETECT_AL_HTTP_HEADER].url =
+            "/rules/http-keywords.html#http-header-and-http-raw-header";
     sigmatch_table[DETECT_AL_HTTP_HEADER].Setup = DetectHttpHeaderSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_HTTP_HEADER].RegisterTests = DetectHttpHeaderRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_NOOPT ;
+    sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_INFO_CONTENT_MODIFIER;
     sigmatch_table[DETECT_AL_HTTP_HEADER].alternative = DETECT_HTTP_HEADER;
 
     /* http.header sticky buffer */
     sigmatch_table[DETECT_HTTP_HEADER].name = "http.header";
-    sigmatch_table[DETECT_HTTP_HEADER].desc = "sticky buffer to match on the normalized HTTP header-buffer";
-    sigmatch_table[DETECT_HTTP_HEADER].url = "/rules/http-keywords.html#http-header-and-http-raw-header";
+    sigmatch_table[DETECT_HTTP_HEADER].desc =
+            "sticky buffer to match on the normalized HTTP header-buffer";
+    sigmatch_table[DETECT_HTTP_HEADER].url =
+            "/rules/http-keywords.html#http-header-and-http-raw-header";
     sigmatch_table[DETECT_HTTP_HEADER].Setup = DetectHttpHeaderSetupSticky;
     sigmatch_table[DETECT_HTTP_HEADER].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_HTTP_HEADER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
@@ -451,13 +447,12 @@ void DetectHttpHeaderRegister(void)
     DetectAppLayerMpmRegister2("http_header", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2StateDataServer);
 
-    DetectBufferTypeSetDescriptionByName("http_header",
-            "http headers");
+    DetectBufferTypeSetDescriptionByName("http_header", "http headers");
 
     g_http_header_buffer_id = DetectBufferTypeGetByName("http_header");
 
-    g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs("http_header",
-            HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
+    g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs(
+            "http_header", HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
 }
 
 static int g_http_request_header_buffer_id = 0;

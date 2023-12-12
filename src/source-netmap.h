@@ -16,11 +16,11 @@
  */
 
 /**
-* \file
-*
-* \author Aleksey Katargin <gureedo@gmail.com>
-* \author Victor Julien <victor@inliniac.net>
-*/
+ * \file
+ *
+ * \author Aleksey Katargin <gureedo@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
+ */
 
 #ifndef __SOURCE_NETMAP_H__
 #define __SOURCE_NETMAP_H__
@@ -32,18 +32,17 @@ enum {
     NETMAP_COPY_MODE_IPS,
 };
 
-#define NETMAP_IFACE_NAME_LENGTH    48
+#define NETMAP_IFACE_NAME_LENGTH 48
 
-typedef struct NetmapIfaceSettings_
-{
+typedef struct NetmapIfaceSettings_ {
     /* real inner interface name */
     char iface[NETMAP_IFACE_NAME_LENGTH];
 
     /* sw ring flag for out_iface */
     bool sw_ring;
     bool promisc;
-    bool real;      /**< real iface or not. Not in case of vale, pipe */
-    bool ips;       /**< set to true if checksum_mode != NETMAP_COPY_MODE_NONE */
+    bool real; /**< real iface or not. Not in case of vale, pipe */
+    bool ips;  /**< set to true if checksum_mode != NETMAP_COPY_MODE_NONE */
     bool threads_auto;
 
     uint16_t threads;
@@ -52,8 +51,7 @@ typedef struct NetmapIfaceSettings_
     const char *bpf_filter;
 } NetmapIfaceSettings;
 
-typedef struct NetmapIfaceConfig_
-{
+typedef struct NetmapIfaceConfig_ {
     /* semantic interface name */
     char iface_name[NETMAP_IFACE_NAME_LENGTH];
 
@@ -67,15 +65,14 @@ typedef struct NetmapIfaceConfig_
     void (*DerefFunc)(void *);
 } NetmapIfaceConfig;
 
-typedef struct NetmapPacketVars_
-{
+typedef struct NetmapPacketVars_ {
     /* NetmapThreadVars */
     void *ntv;
 } NetmapPacketVars;
 
 int NetmapGetRSSCount(const char *ifname);
 
-void TmModuleReceiveNetmapRegister (void);
-void TmModuleDecodeNetmapRegister (void);
+void TmModuleReceiveNetmapRegister(void);
+void TmModuleDecodeNetmapRegister(void);
 
 #endif /* __SOURCE_NETMAP_H__ */

@@ -27,4 +27,3 @@
 void AlertDebugLogRegister(void);
 
 #endif /* __ALERT_DEBUGLOG_H__ */
-

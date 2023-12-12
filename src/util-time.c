@@ -69,7 +69,7 @@
 #ifdef UNITTESTS
 static struct timeval current_time = { 0, 0 };
 #endif
-//static SCMutex current_time_mutex = SCMUTEX_INITIALIZER;
+// static SCMutex current_time_mutex = SCMUTEX_INITIALIZER;
 static SCSpinlock current_time_spinlock;
 static bool live_time_tracking = true;
 
@@ -102,7 +102,7 @@ void TimeModeSetLive(void)
     SCLogDebug("live time mode enabled");
 }
 
-void TimeModeSetOffline (void)
+void TimeModeSetOffline(void)
 {
     live_time_tracking = false;
     SCLogDebug("offline time mode enabled");
@@ -130,8 +130,8 @@ void TimeSet(SCTime_t ts)
     SCSpinLock(&current_time_spinlock);
     SCTIME_TO_TIMEVAL(&current_time, ts);
 
-    SCLogDebug("time set to %" PRIuMAX " sec, %" PRIuMAX " usec",
-               (uintmax_t)current_time.tv_sec, (uintmax_t)current_time.tv_usec);
+    SCLogDebug("time set to %" PRIuMAX " sec, %" PRIuMAX " usec", (uintmax_t)current_time.tv_sec,
+            (uintmax_t)current_time.tv_usec);
 
     SCSpinUnlock(&current_time_spinlock);
 }
@@ -211,7 +211,7 @@ void CreateIsoTimeString(const SCTime_t ts, char *str, size_t size)
     time_t time = SCTIME_SECS(ts);
     struct tm local_tm;
     memset(&local_tm, 0, sizeof(local_tm));
-    struct tm *t = (struct tm*)SCLocalTime(time, &local_tm);
+    struct tm *t = (struct tm *)SCLocalTime(time, &local_tm);
 
     if (likely(t != NULL)) {
 #ifdef OS_WIN32
@@ -232,7 +232,7 @@ void CreateUtcIsoTimeString(const SCTime_t ts, char *str, size_t size)
     time_t time = SCTIME_SECS(ts);
     struct tm local_tm;
     memset(&local_tm, 0, sizeof(local_tm));
-    struct tm *t = (struct tm*)SCUtcTime(time, &local_tm);
+    struct tm *t = (struct tm *)SCUtcTime(time, &local_tm);
 
     if (likely(t != NULL)) {
         char time_fmt[64] = { 0 };
@@ -243,7 +243,7 @@ void CreateUtcIsoTimeString(const SCTime_t ts, char *str, size_t size)
     }
 }
 
-void CreateFormattedTimeString (const struct tm *t, const char *fmt, char *str, size_t size)
+void CreateFormattedTimeString(const struct tm *t, const char *fmt, char *str, size_t size)
 {
     if (likely(t != NULL)) {
         strftime(str, size, fmt, t);
@@ -273,7 +273,7 @@ void CreateTimeString(const SCTime_t ts, char *str, size_t size)
 {
     time_t time = SCTIME_SECS(ts);
     struct tm local_tm;
-    struct tm *t = (struct tm*)SCLocalTime(time, &local_tm);
+    struct tm *t = (struct tm *)SCLocalTime(time, &local_tm);
 
     if (likely(t != NULL)) {
         snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u", t->tm_mon + 1, t->tm_mday,
@@ -335,7 +335,7 @@ struct tm *SCLocalTime(time_t timep, struct tm *result)
     int mru_seconds = timep - cached_minute_start[mru];
     int lru_seconds = timep - cached_minute_start[lru];
     int new_seconds;
-    if (cached_minute_start[mru]==0 && cached_minute_start[lru]==0) {
+    if (cached_minute_start[mru] == 0 && cached_minute_start[lru] == 0) {
         localtime_r(&timep, &cached_local_tm[lru]);
         /* Subtract seconds to get back to the start of the minute. */
         new_seconds = cached_local_tm[lru].tm_sec;
@@ -372,9 +372,8 @@ static int UpdateCachedTime(int n, time_t time)
     struct tm local_tm;
     struct tm *t = (struct tm *)SCLocalTime(time, &local_tm);
     int cached_len = snprintf(cached_local_time[n], MAX_LOCAL_TIME_STRING,
-                              "%02d/%02d/%02d-%02d:%02d:",
-                              t->tm_mon + 1, t->tm_mday, t->tm_year + 1900,
-                              t->tm_hour, t->tm_min);
+            "%02d/%02d/%02d-%02d:%02d:", t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
+            t->tm_min);
     cached_local_time_len[n] = cached_len;
     /* Store the time of the beginning of the minute. */
     last_local_time[n] = time - t->tm_sec;
@@ -400,7 +399,7 @@ void CreateTimeString(const SCTime_t ts, char *str, size_t size)
     int lru = 1 - mru;
     int mru_seconds = time - last_local_time[mru];
     int lru_seconds = time - last_local_time[lru];
-    if (last_local_time[mru]==0 && last_local_time[lru]==0) {
+    if (last_local_time[mru] == 0 && last_local_time[lru] == 0) {
         /* First time here, update both caches */
         UpdateCachedTime(mru, time);
         seconds = UpdateCachedTime(lru, time);
@@ -422,7 +421,7 @@ void CreateTimeString(const SCTime_t ts, char *str, size_t size)
     char *cached_str = cached_local_time[mru_time_slot];
     int cached_len = cached_local_time_len[mru_time_slot];
     if (cached_len >= (int)size)
-      cached_len = size;
+        cached_len = size;
     memcpy(str, cached_str, cached_len);
     snprintf(str + cached_len, size - cached_len, "%02d.%06u", seconds, (uint32_t)SCTIME_USECS(ts));
 }
@@ -439,13 +438,13 @@ void CreateTimeString(const SCTime_t ts, char *str, size_t size)
  *
  * \retval Seconds since Unix epoch.
  */
-time_t SCMkTimeUtc (struct tm *tp)
+time_t SCMkTimeUtc(struct tm *tp)
 {
     time_t result;
     long year;
 #define MONTHSPERYEAR 12
-    static const int mdays[MONTHSPERYEAR] =
-            { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 };
+    static const int mdays[MONTHSPERYEAR] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304,
+        334 };
 
     year = 1900 + tp->tm_year + tp->tm_mon / MONTHSPERYEAR;
     result = (year - 1970) * 365 + mdays[tp->tm_mon % MONTHSPERYEAR];
@@ -482,15 +481,13 @@ time_t SCMkTimeUtc (struct tm *tp)
  * \retval 0 on success.
  * \retval 1 on failure.
  */
-int SCStringPatternToTime (char *string, const char **patterns, int num_patterns,
-                           struct tm *tp)
+int SCStringPatternToTime(char *string, const char **patterns, int num_patterns, struct tm *tp)
 {
     char *result = NULL;
     int i = 0;
 
     /* Do the pattern matching */
-    for (i = 0; i < num_patterns; i++)
-    {
+    for (i = 0; i < num_patterns; i++) {
         if (patterns[i] == NULL)
             continue;
 
@@ -512,14 +509,12 @@ int SCStringPatternToTime (char *string, const char **patterns, int num_patterns
         return 1;
 
     /* Return if no date is given */
-    if (tp->tm_year == INT_MIN && tp->tm_mon == INT_MIN &&
-            tp->tm_mday == INT_MIN)
+    if (tp->tm_year == INT_MIN && tp->tm_mon == INT_MIN && tp->tm_mday == INT_MIN)
         return 1;
 
     /* The first of the month is assumed, if only year and
        month is given */
-    if (tp->tm_year != INT_MIN && tp->tm_mon != INT_MIN &&
-            tp->tm_mday <= 0)
+    if (tp->tm_year != INT_MIN && tp->tm_mon != INT_MIN && tp->tm_mday <= 0)
         tp->tm_mday = 1;
 
     return 0;
@@ -538,7 +533,7 @@ int SCStringPatternToTime (char *string, const char **patterns, int num_patterns
  * \retval 0 on success.
  * \retval 1 on failure.
  */
-int SCTimeToStringPattern (time_t epoch, const char *pattern, char *str, size_t size)
+int SCTimeToStringPattern(time_t epoch, const char *pattern, char *str, size_t size)
 {
     struct tm tm;
     memset(&tm, 0, sizeof(tm));
@@ -567,14 +562,13 @@ int SCTimeToStringPattern (time_t epoch, const char *pattern, char *str, size_t 
  * \retval size on success.
  * \retval 0 on failure.
  */
-uint64_t SCParseTimeSizeString (const char *str)
+uint64_t SCParseTimeSizeString(const char *str)
 {
     uint64_t size = 0;
     uint64_t modifier = 1;
-    char last = str[strlen(str)-1];
+    char last = str[strlen(str) - 1];
 
-    switch (last)
-    {
+    switch (last) {
         case '0' ... '9':
             break;
         /* seconds */
@@ -618,7 +612,7 @@ uint64_t SCParseTimeSizeString (const char *str)
  *
  * \retval seconds.
  */
-uint64_t SCGetSecondsUntil (const char *str, time_t epoch)
+uint64_t SCGetSecondsUntil(const char *str, time_t epoch)
 {
     uint64_t seconds = 0;
     struct tm tm;
@@ -630,13 +624,12 @@ uint64_t SCGetSecondsUntil (const char *str, time_t epoch)
     else if (strcmp(str, "hour") == 0)
         seconds = (60 * (60 - tp->tm_min)) + (60 - tp->tm_sec);
     else if (strcmp(str, "day") == 0)
-        seconds = (3600 * (24 - tp->tm_hour)) + (60 * (60 - tp->tm_min)) +
-                  (60 - tp->tm_sec);
+        seconds = (3600 * (24 - tp->tm_hour)) + (60 * (60 - tp->tm_min)) + (60 - tp->tm_sec);
 
     return seconds;
 }
 
-uint64_t SCTimespecAsEpochMillis(const struct timespec* ts)
+uint64_t SCTimespecAsEpochMillis(const struct timespec *ts)
 {
     return ts->tv_sec * 1000L + ts->tv_nsec / 1000000L;
 }

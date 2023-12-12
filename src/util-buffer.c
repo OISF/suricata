@@ -60,7 +60,8 @@ MemBuffer *MemBufferCreateNew(uint32_t size)
  *
  *  \retval result 0 ok, -1 expansion failed
  */
-int MemBufferExpand(MemBuffer **buffer, uint32_t expand_by) {
+int MemBufferExpand(MemBuffer **buffer, uint32_t expand_by)
+{
     if (((*buffer)->size + expand_by) > MAX_LIMIT) {
         SCLogWarning("Mem buffer asked to create "
                      "buffer with size greater than API limit - %d",

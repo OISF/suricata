@@ -53,7 +53,6 @@
 
 static int g_dce_stub_data_buffer_id = 0;
 
-
 /**************************************Unittests*******************************/
 
 #ifdef UNITTESTS
@@ -94,11 +93,11 @@ static int DcePayloadTest15(void)
     int r;
 
     const char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
-        "byte_test:2,=,14080,0,relative,dce; sid:1;)";
+                       "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
+                       "byte_test:2,=,14080,0,relative,dce; sid:1;)";
     const char *sig2 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
-        "byte_test:2,=,46,5,relative,dce; sid:2;)";
+                       "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
+                       "byte_test:2,=,46,5,relative,dce; sid:2;)";
 
     Signature *s;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -109,7 +108,7 @@ static int DcePayloadTest15(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -138,8 +137,8 @@ static int DcePayloadTest15(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
-                            STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -210,11 +209,11 @@ static int DcePayloadTest16(void)
     int r;
 
     const char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
-        "byte_test:2,=,55,0,relative; sid:1;)";
+                       "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
+                       "byte_test:2,=,55,0,relative; sid:1;)";
     const char *sig2 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
-        "byte_test:2,=,11776,5,relative; sid:2;)";
+                       "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
+                       "byte_test:2,=,11776,5,relative; sid:2;)";
 
     Signature *s;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -225,7 +224,7 @@ static int DcePayloadTest16(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -254,8 +253,8 @@ static int DcePayloadTest16(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
-                            STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -326,11 +325,11 @@ static int DcePayloadTest17(void)
     int r;
 
     const char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
-        "byte_test:2,=,55,0,relative,big; sid:1;)";
+                       "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
+                       "byte_test:2,=,55,0,relative,big; sid:1;)";
     const char *sig2 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
-        "byte_test:2,=,46,5,relative,little; sid:2;)";
+                       "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
+                       "byte_test:2,=,46,5,relative,little; sid:2;)";
 
     Signature *s;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -341,7 +340,7 @@ static int DcePayloadTest17(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -370,8 +369,8 @@ static int DcePayloadTest17(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
-                            STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -442,11 +441,11 @@ static int DcePayloadTest18(void)
     int r;
 
     const char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
-        "byte_jump:2,0,relative,dce; byte_test:2,=,46,0,relative,dce; sid:1;)";
+                       "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
+                       "byte_jump:2,0,relative,dce; byte_test:2,=,46,0,relative,dce; sid:1;)";
     const char *sig2 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
-        "byte_jump:2,2,relative,dce; byte_test:2,=,14080,0,relative; sid:2;)";
+                       "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
+                       "byte_jump:2,2,relative,dce; byte_test:2,=,14080,0,relative; sid:2;)";
 
     Signature *s;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -457,7 +456,7 @@ static int DcePayloadTest18(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -486,8 +485,8 @@ static int DcePayloadTest18(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
-                            STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -558,11 +557,11 @@ static int DcePayloadTest19(void)
     int r;
 
     const char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
-        "byte_jump:2,0,relative; byte_test:2,=,46,0,relative,dce; sid:1;)";
+                       "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
+                       "byte_jump:2,0,relative; byte_test:2,=,46,0,relative,dce; sid:1;)";
     const char *sig2 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
-        "byte_jump:2,2,relative; byte_test:2,=,14080,0,relative; sid:2;)";
+                       "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
+                       "byte_jump:2,2,relative; byte_test:2,=,14080,0,relative; sid:2;)";
 
     Signature *s;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -573,7 +572,7 @@ static int DcePayloadTest19(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -602,8 +601,8 @@ static int DcePayloadTest19(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
-                            STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -674,11 +673,11 @@ static int DcePayloadTest20(void)
     int r;
 
     const char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
-        "byte_jump:2,0,relative,big; byte_test:2,=,46,0,relative,dce; sid:1;)";
+                       "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
+                       "byte_jump:2,0,relative,big; byte_test:2,=,46,0,relative,dce; sid:1;)";
     const char *sig2 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
-        "byte_jump:2,2,little,relative; byte_test:2,=,14080,0,relative; sid:2;)";
+                       "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
+                       "byte_jump:2,2,little,relative; byte_test:2,=,14080,0,relative; sid:2;)";
 
     Signature *s;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -689,7 +688,7 @@ static int DcePayloadTest20(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -718,8 +717,8 @@ static int DcePayloadTest20(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
-                            STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;

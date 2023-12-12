@@ -74,12 +74,8 @@ int RunModeIdsErfDagSingle(void)
 
     TimeModeSetLive();
 
-    ret = RunModeSetLiveCaptureSingle(ParseDagConfig,
-        DagConfigGetThreadCount,
-        "ReceiveErfDag",
-        "DecodeErfDag",
-        thread_name_single,
-        NULL);
+    ret = RunModeSetLiveCaptureSingle(ParseDagConfig, DagConfigGetThreadCount, "ReceiveErfDag",
+            "DecodeErfDag", thread_name_single, NULL);
     if (ret != 0) {
         FatalError("DAG single runmode failed to start");
     }

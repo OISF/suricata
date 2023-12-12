@@ -42,12 +42,12 @@ static int UriTestSig01(void)
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] = "POST /oneself HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
     Packet *p = NULL;
@@ -68,7 +68,7 @@ static int UriTestSig01(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -82,8 +82,8 @@ static int UriTestSig01(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test uricontent option\"; "
-                                   "uricontent:\"one\"; sid:1;)");
+                                           "(msg:\"Test uricontent option\"; "
+                                           "uricontent:\"one\"; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -158,12 +158,12 @@ static int UriTestSig02(void)
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /on HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] = "POST /one HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
     Packet *p = NULL;
@@ -184,7 +184,7 @@ static int UriTestSig02(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -198,8 +198,8 @@ static int UriTestSig02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test pcre /U option\"; "
-                                   "pcre:/one/U; sid:1;)");
+                                           "(msg:\"Test pcre /U option\"; "
+                                           "pcre:/one/U; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -274,12 +274,12 @@ static int UriTestSig03(void)
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] = "POST /oneself HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
     Packet *p = NULL;
@@ -300,7 +300,7 @@ static int UriTestSig03(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -314,8 +314,8 @@ static int UriTestSig03(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test pcre /U option\"; "
-                                   "pcre:/blah/U; sid:1;)");
+                                           "(msg:\"Test pcre /U option\"; "
+                                           "pcre:/blah/U; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -390,12 +390,12 @@ static int UriTestSig04(void)
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] = "POST /oneself HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
     Packet *p = NULL;
@@ -416,7 +416,7 @@ static int UriTestSig04(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -430,8 +430,8 @@ static int UriTestSig04(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test urilen option\"; "
-                                   "urilen:>20; sid:1;)");
+                                           "(msg:\"Test urilen option\"; "
+                                           "urilen:>20; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -506,12 +506,12 @@ static int UriTestSig05(void)
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] = "POST /oneself HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
     Packet *p = NULL;
@@ -532,7 +532,7 @@ static int UriTestSig05(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -546,8 +546,8 @@ static int UriTestSig05(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test urilen option\"; "
-                                   "urilen:>4; sid:1;)");
+                                           "(msg:\"Test urilen option\"; "
+                                           "urilen:>4; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -622,12 +622,12 @@ static int UriTestSig06(void)
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /oneoneoneone HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] = "POST /oneself HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
     Packet *p = NULL;
@@ -648,7 +648,7 @@ static int UriTestSig06(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -662,8 +662,8 @@ static int UriTestSig06(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test pcre /U option\"; "
-                                   "pcre:/(oneself)+/U; sid:1;)");
+                                           "(msg:\"Test pcre /U option\"; "
+                                           "pcre:/(oneself)+/U; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -738,12 +738,12 @@ static int UriTestSig07(void)
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /oneoneoneone HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] = "POST /oneoneself HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
     Packet *p = NULL;
@@ -764,7 +764,7 @@ static int UriTestSig07(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -778,8 +778,8 @@ static int UriTestSig07(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test pcre /U option with urilen \"; "
-                                   "pcre:/(one){2,}(self)?/U; urilen:3<>20; sid:1;)");
+                                           "(msg:\"Test pcre /U option with urilen \"; "
+                                           "pcre:/(one){2,}(self)?/U; urilen:3<>20; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -854,12 +854,12 @@ static int UriTestSig08(void)
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /oneoneoneone HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] = "POST /oneoneself HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
     Packet *p = NULL;
@@ -880,7 +880,7 @@ static int UriTestSig08(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -894,8 +894,8 @@ static int UriTestSig08(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test pcre /U option with urilen\"; "
-                                   "pcre:/(blabla){2,}(self)?/U; urilen:3<>20; sid:1;)");
+                                           "(msg:\"Test pcre /U option with urilen\"; "
+                                           "pcre:/(blabla){2,}(self)?/U; urilen:3<>20; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -970,12 +970,12 @@ static int UriTestSig09(void)
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /oneoneoneone HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] = "POST /oneoneself HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
     Packet *p = NULL;
@@ -996,7 +996,7 @@ static int UriTestSig09(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -1010,8 +1010,8 @@ static int UriTestSig09(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test pcre /U option with urilen \"; "
-                                   "pcre:/(one){2,}(self)?/U; urilen:<2; sid:1;)");
+                                           "(msg:\"Test pcre /U option with urilen \"; "
+                                           "pcre:/(one){2,}(self)?/U; urilen:<2; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -1086,12 +1086,12 @@ static int UriTestSig12(void)
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /oneoneoneone HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] = "POST /oneoneself HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
     Packet *p = NULL;
@@ -1112,7 +1112,7 @@ static int UriTestSig12(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -1126,9 +1126,9 @@ static int UriTestSig12(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test pcre /U, uricontent and urilen option\"; "
-                                   "uricontent:\"one\"; "
-                                   "pcre:/(one)+self/U; urilen:>2; sid:1;)");
+                                           "(msg:\"Test pcre /U, uricontent and urilen option\"; "
+                                           "uricontent:\"one\"; "
+                                           "pcre:/(one)+self/U; urilen:>2; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -1203,12 +1203,12 @@ static int UriTestSig13(void)
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] = "POST /oneself HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
     Packet *p = NULL;
@@ -1229,7 +1229,7 @@ static int UriTestSig13(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -1243,8 +1243,8 @@ static int UriTestSig13(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test urilen option\"; "
-                                   "urilen:>2; uricontent:\"one\"; sid:1;)");
+                                           "(msg:\"Test urilen option\"; "
+                                           "urilen:>2; uricontent:\"one\"; sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -1288,7 +1288,6 @@ static int UriTestSig13(void)
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-
 
     if (!PacketAlertCheck(p, 1)) {
         printf("sig 1 didnt alert with payload2, but it should: ");
@@ -1320,12 +1319,12 @@ static int UriTestSig14(void)
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] = "POST /oneself HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
     Packet *p = NULL;
@@ -1346,7 +1345,7 @@ static int UriTestSig14(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -1360,8 +1359,8 @@ static int UriTestSig14(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test uricontent option\"; "
-                                   "uricontent:\"one\"; pcre:/one(self)?/U;sid:1;)");
+                                           "(msg:\"Test uricontent option\"; "
+                                           "uricontent:\"one\"; pcre:/one(self)?/U;sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -1405,7 +1404,6 @@ static int UriTestSig14(void)
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-
 
     if (!PacketAlertCheck(p, 1)) {
         printf("sig 1 didnt alert with payload2, but it should: ");
@@ -1437,12 +1435,12 @@ static int UriTestSig15(void)
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] = "POST /oneself HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
     Packet *p = NULL;
@@ -1463,7 +1461,7 @@ static int UriTestSig15(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -1477,8 +1475,8 @@ static int UriTestSig15(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test uricontent option\"; "
-                                   "uricontent:\"one\"; pcre:/^\\/one(self)?$/U;sid:1;)");
+                                           "(msg:\"Test uricontent option\"; "
+                                           "uricontent:\"one\"; pcre:/^\\/one(self)?$/U;sid:1;)");
     if (s == NULL) {
         goto end;
     }
@@ -1523,7 +1521,6 @@ static int UriTestSig15(void)
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-
     if (!PacketAlertCheck(p, 1)) {
         printf("sig 1 didnt alert with payload2, but it should: ");
         goto end;
@@ -1552,12 +1549,12 @@ static int UriTestSig16(void)
 {
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /search?q=123&aq=7123abcee HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0/\r\n"
-        "Host: 1.2.3.4\r\n\r\n";
+                          "User-Agent: Mozilla/1.0/\r\n"
+                          "Host: 1.2.3.4\r\n\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     uint8_t http_buf2[] = "POST /search?q=123&aq=7123abcee HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
+                          "User-Agent: Mozilla/1.0\r\n"
+                          "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
     Signature *s = NULL;
@@ -1589,7 +1586,11 @@ static int UriTestSig16(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any any (flow:to_server,established; uricontent:\"/search?q=\"; pcre:\"/^\\/search\\?q=[0-9]{1,3}(&aq=7(\\?[0-9a-f]{8})?)?/U\"; pcre:\"/\\x0d\\x0aHost\\: \\d+\\.\\d+\\.\\d+\\.\\d+\\x0d\\x0a/\"; sid:2009024; rev:9;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+            "drop tcp any any -> any any (flow:to_server,established; uricontent:\"/search?q=\"; "
+            "pcre:\"/^\\/search\\?q=[0-9]{1,3}(&aq=7(\\?[0-9a-f]{8})?)?/U\"; "
+            "pcre:\"/\\x0d\\x0aHost\\: \\d+\\.\\d+\\.\\d+\\.\\d+\\x0d\\x0a/\"; sid:2009024; "
+            "rev:9;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -1642,7 +1643,7 @@ static int UriTestSig17(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /now_this_is_is_big_big_string_now HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -1664,7 +1665,7 @@ static int UriTestSig17(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -1678,10 +1679,10 @@ static int UriTestSig17(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"this\"; uricontent:\"is\"; within:6; "
-                               "uricontent:\"big\"; within:8; "
-                               "uricontent:\"string\"; within:8; sid:1;)");
+                                       "(msg:\"test multiple relative uricontents\"; "
+                                       "uricontent:\"this\"; uricontent:\"is\"; within:6; "
+                                       "uricontent:\"big\"; within:8; "
+                                       "uricontent:\"string\"; within:8; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -1735,7 +1736,7 @@ static int UriTestSig18(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /now_this_is_is_is_big_big_big_string_now HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -1757,7 +1758,7 @@ static int UriTestSig18(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -1771,10 +1772,10 @@ static int UriTestSig18(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"this\"; uricontent:\"is\"; within:9; "
-                               "uricontent:\"big\"; within:12; "
-                               "uricontent:\"string\"; within:8; sid:1;)");
+                                       "(msg:\"test multiple relative uricontents\"; "
+                                       "uricontent:\"this\"; uricontent:\"is\"; within:9; "
+                                       "uricontent:\"big\"; within:12; "
+                                       "uricontent:\"string\"; within:8; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -1828,7 +1829,7 @@ static int UriTestSig19(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /this_this_now_is_is_____big_string_now HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -1850,7 +1851,7 @@ static int UriTestSig19(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -1864,11 +1865,11 @@ static int UriTestSig19(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"now\"; uricontent:\"this\"; "
-                               "uricontent:\"is\"; within:12; "
-                               "uricontent:\"big\"; within:8; "
-                               "uricontent:\"string\"; within:8; sid:1;)");
+                                       "(msg:\"test multiple relative uricontents\"; "
+                                       "uricontent:\"now\"; uricontent:\"this\"; "
+                                       "uricontent:\"is\"; within:12; "
+                                       "uricontent:\"big\"; within:8; "
+                                       "uricontent:\"string\"; within:8; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -1922,7 +1923,7 @@ static int UriTestSig20(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /_________thus_thus_is_a_big HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -1944,7 +1945,7 @@ static int UriTestSig20(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -1958,10 +1959,10 @@ static int UriTestSig20(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"thus\"; offset:8; "
-                               "uricontent:\"is\"; within:6; "
-                               "uricontent:\"big\"; within:8; sid:1;)");
+                                       "(msg:\"test multiple relative uricontents\"; "
+                                       "uricontent:\"thus\"; offset:8; "
+                                       "uricontent:\"is\"; within:6; "
+                                       "uricontent:\"big\"; within:8; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2015,7 +2016,7 @@ static int UriTestSig21(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /we_need_to_fix_this_and_yes_fix_this_now HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -2037,7 +2038,7 @@ static int UriTestSig21(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -2051,9 +2052,9 @@ static int UriTestSig21(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"fix\"; uricontent:\"this\"; within:6; "
-                               "uricontent:!\"and\"; distance:0; sid:1;)");
+                                       "(msg:\"test multiple relative uricontents\"; "
+                                       "uricontent:\"fix\"; uricontent:\"this\"; within:6; "
+                                       "uricontent:!\"and\"; distance:0; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2107,8 +2108,8 @@ static int UriTestSig22(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /this_is_a_super_duper_"
-        "nova_in_super_nova_now HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "nova_in_super_nova_now HTTP/1.0\r\n"
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -2130,7 +2131,7 @@ static int UriTestSig22(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -2144,8 +2145,8 @@ static int UriTestSig22(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "pcre:/super/U; uricontent:\"nova\"; within:7; sid:1;)");
+                                       "(msg:\"test multiple relative uricontents\"; "
+                                       "pcre:/super/U; uricontent:\"nova\"; within:7; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2199,7 +2200,7 @@ static int UriTestSig23(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /we_need_to_fix_this_and_yes_fix_this_now HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -2221,7 +2222,7 @@ static int UriTestSig23(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -2235,8 +2236,8 @@ static int UriTestSig23(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:!\"fix_this_now\"; sid:1;)");
+                                       "(msg:\"test multiple relative uricontents\"; "
+                                       "uricontent:!\"fix_this_now\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2290,7 +2291,7 @@ static int UriTestSig24(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /we_need_to_fix_this_and_yes_fix_this_now HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -2312,7 +2313,7 @@ static int UriTestSig24(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -2325,9 +2326,10 @@ static int UriTestSig24(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"we_need_to\"; uricontent:!\"fix_this_now\"; sid:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any any "
+                            "(msg:\"test multiple relative uricontents\"; "
+                            "uricontent:\"we_need_to\"; uricontent:!\"fix_this_now\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2381,7 +2383,7 @@ static int UriTestSig25(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /normalized%20uri "
-        "HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n";
+                                   "HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -2406,7 +2408,7 @@ static int UriTestSig25(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -2416,9 +2418,10 @@ static int UriTestSig25(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "pcre:/normalized/U; uricontent:\"normalized uri\"; sid:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any any "
+                            "(msg:\"test multiple relative uricontents\"; "
+                            "pcre:/normalized/U; uricontent:\"normalized uri\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2472,7 +2475,7 @@ static int UriTestSig26(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /we_need_to_fix_this_and_yes_fix_this_now HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -2494,7 +2497,7 @@ static int UriTestSig26(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -2508,8 +2511,8 @@ static int UriTestSig26(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"fix_this\"; isdataat:4,relative; sid:1;)");
+                                       "(msg:\"test multiple relative uricontents\"; "
+                                       "uricontent:\"fix_this\"; isdataat:4,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2562,7 +2565,7 @@ end:
 static int UriTestSig27(void)
 {
     uint8_t *http_buf = (uint8_t *)"POST /we_need_to_fix_this_and_yes_fix_this_now HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -2584,7 +2587,7 @@ static int UriTestSig27(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -2627,7 +2630,7 @@ static int UriTestSig28(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /this_b5ig_string_now_in_http HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -2649,7 +2652,7 @@ static int UriTestSig28(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -2662,11 +2665,10 @@ static int UriTestSig28(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any (msg:\"dummy\"; "
-                               "uricontent:\"this\"; "
-                               "byte_extract:1,2,one,string,dec,relative; "
-                               "uricontent:\"ring\"; distance:one; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"dummy\"; "
+                                       "uricontent:\"this\"; "
+                                       "byte_extract:1,2,one,string,dec,relative; "
+                                       "uricontent:\"ring\"; distance:one; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2717,7 +2719,7 @@ static int UriTestSig29(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /this_b5ig_string_now_in_http HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -2739,7 +2741,7 @@ static int UriTestSig29(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -2752,11 +2754,10 @@ static int UriTestSig29(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any (msg:\"dummy\"; "
-                               "uricontent:\"this\"; "
-                               "byte_extract:1,2,one,string,dec,relative; "
-                               "uricontent:\"ring\"; distance:one; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"dummy\"; "
+                                       "uricontent:\"this\"; "
+                                       "byte_extract:1,2,one,string,dec,relative; "
+                                       "uricontent:\"ring\"; distance:one; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2807,7 +2808,7 @@ static int UriTestSig30(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /this_b5ig_string_now_in_http HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -2829,7 +2830,7 @@ static int UriTestSig30(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -2842,11 +2843,10 @@ static int UriTestSig30(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any (msg:\"dummy\"; "
-                               "uricontent:\"this\"; "
-                               "byte_extract:1,2,one,string,dec,relative; "
-                               "uricontent:\"_b5ig\"; offset:one; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"dummy\"; "
+                                       "uricontent:\"this\"; "
+                                       "byte_extract:1,2,one,string,dec,relative; "
+                                       "uricontent:\"_b5ig\"; offset:one; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2897,7 +2897,7 @@ static int UriTestSig31(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /this_b5ig_string_now_in_http HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -2919,7 +2919,7 @@ static int UriTestSig31(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -2932,11 +2932,10 @@ static int UriTestSig31(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any (msg:\"dummy\"; "
-                               "uricontent:\"this\"; "
-                               "byte_extract:1,2,one,string,dec,relative; "
-                               "uricontent:\"his\"; depth:one; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"dummy\"; "
+                                       "uricontent:\"this\"; "
+                                       "byte_extract:1,2,one,string,dec,relative; "
+                                       "uricontent:\"his\"; depth:one; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2987,7 +2986,7 @@ static int UriTestSig32(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /this_b5ig_string_now_in_http HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -3009,7 +3008,7 @@ static int UriTestSig32(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -3022,11 +3021,10 @@ static int UriTestSig32(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any (msg:\"dummy\"; "
-                               "uricontent:\"this\"; "
-                               "byte_extract:1,2,one,string,dec,relative; "
-                               "uricontent:\"g_st\"; within:one; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"dummy\"; "
+                                       "uricontent:\"this\"; "
+                                       "byte_extract:1,2,one,string,dec,relative; "
+                                       "uricontent:\"g_st\"; within:one; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3077,7 +3075,7 @@ static int UriTestSig33(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /normalized%20uri "
-        "HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n";
+                                   "HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -3102,7 +3100,7 @@ static int UriTestSig33(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -3113,8 +3111,8 @@ static int UriTestSig33(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "urilen:15; sid:1;)");
+                                       "(msg:\"test multiple relative uricontents\"; "
+                                       "urilen:15; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3165,7 +3163,7 @@ static int UriTestSig34(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /normalized%20uri "
-        "HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n";
+                                   "HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -3190,7 +3188,7 @@ static int UriTestSig34(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -3201,8 +3199,8 @@ static int UriTestSig34(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "urilen:15, norm; sid:1;)");
+                                       "(msg:\"test multiple relative uricontents\"; "
+                                       "urilen:15, norm; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3253,7 +3251,7 @@ static int UriTestSig35(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /normalized%20uri "
-        "HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n";
+                                   "HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -3278,7 +3276,7 @@ static int UriTestSig35(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -3289,8 +3287,8 @@ static int UriTestSig35(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "urilen:16; sid:1;)");
+                                       "(msg:\"test multiple relative uricontents\"; "
+                                       "urilen:16; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3322,7 +3320,7 @@ static int UriTestSig35(void)
     result = 1;
 
 end:
-     if (alp_tctx != NULL)
+    if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&tv, det_ctx);
@@ -3341,7 +3339,7 @@ static int UriTestSig36(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /normalized%20uri "
-        "HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n";
+                                   "HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -3366,7 +3364,7 @@ static int UriTestSig36(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -3377,8 +3375,8 @@ static int UriTestSig36(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "urilen:16, norm; sid:1;)");
+                                       "(msg:\"test multiple relative uricontents\"; "
+                                       "urilen:16, norm; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3429,7 +3427,7 @@ static int UriTestSig37(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /normalized%20uri "
-        "HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n";
+                                   "HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -3454,7 +3452,7 @@ static int UriTestSig37(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -3465,8 +3463,8 @@ static int UriTestSig37(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "urilen:17, raw; sid:1;)");
+                                       "(msg:\"test multiple relative uricontents\"; "
+                                       "urilen:17, raw; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3517,7 +3515,7 @@ static int UriTestSig38(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /normalized%20uri "
-        "HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n";
+                                   "HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -3542,7 +3540,7 @@ static int UriTestSig38(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     StreamTcpInitConfig(true);
 
@@ -3553,8 +3551,8 @@ static int UriTestSig38(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "urilen:18, raw; sid:1;)");
+                                       "(msg:\"test multiple relative uricontents\"; "
+                                       "urilen:18, raw; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3635,17 +3633,16 @@ static int DetectEngineHttpRawUriTest01(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a/b/../c";
-    uint8_t http2_buf[] =
-        "/./d.html HTTP/1.1\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a/b/../c";
+    uint8_t http2_buf[] = "/./d.html HTTP/1.1\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -3681,10 +3678,10 @@ static int DetectEngineHttpRawUriTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:\"../c/./d\"; http_raw_uri; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:\"../c/./d\"; http_raw_uri; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3759,14 +3756,14 @@ static int DetectEngineHttpRawUriTest02(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 19\r\n"
-        "\r\n"
-        "This is dummy body1";
+    uint8_t http1_buf[] = "GET /../a/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 19\r\n"
+                          "\r\n"
+                          "This is dummy body1";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -3801,10 +3798,10 @@ static int DetectEngineHttpRawUriTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:\"/c/./d\"; http_raw_uri; offset:5; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:\"/c/./d\"; http_raw_uri; offset:5; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3863,17 +3860,16 @@ static int DetectEngineHttpRawUriTest03(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a/b/../";
-    uint8_t http2_buf[] =
-        "c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a/b/../";
+    uint8_t http2_buf[] = "c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -3909,10 +3905,10 @@ static int DetectEngineHttpRawUriTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:\"/a/b\"; http_raw_uri; offset:10; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:\"/a/b\"; http_raw_uri; offset:10; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3987,17 +3983,16 @@ static int DetectEngineHttpRawUriTest04(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a/b/../";
-    uint8_t http2_buf[] =
-        "c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a/b/../";
+    uint8_t http2_buf[] = "c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -4033,10 +4028,10 @@ static int DetectEngineHttpRawUriTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:!\"/a/b\"; http_raw_uri; offset:10; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:!\"/a/b\"; http_raw_uri; offset:10; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -4111,16 +4106,14 @@ static int DetectEngineHttpRawUriTest05(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a/b/";
-    uint8_t http2_buf[] =
-        "../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a/b/";
+    uint8_t http2_buf[] = "../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -4156,10 +4149,10 @@ static int DetectEngineHttpRawUriTest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:\"a/b\"; http_raw_uri; depth:10; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:\"a/b\"; http_raw_uri; depth:10; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -4234,16 +4227,14 @@ static int DetectEngineHttpRawUriTest06(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a/b/";
-    uint8_t http2_buf[] =
-        "../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a/b/";
+    uint8_t http2_buf[] = "../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -4279,10 +4270,10 @@ static int DetectEngineHttpRawUriTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:!\"/a/b\"; http_raw_uri; depth:25; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:!\"/a/b\"; http_raw_uri; depth:25; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -4357,16 +4348,14 @@ static int DetectEngineHttpRawUriTest07(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a/b/";
-    uint8_t http2_buf[] =
-        "../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a/b/";
+    uint8_t http2_buf[] = "../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -4402,10 +4391,10 @@ static int DetectEngineHttpRawUriTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:!\"/c/./d\"; http_raw_uri; depth:12; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:!\"/c/./d\"; http_raw_uri; depth:12; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -4480,16 +4469,14 @@ static int DetectEngineHttpRawUriTest08(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a/";
-    uint8_t http2_buf[] =
-        "b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a/";
+    uint8_t http2_buf[] = "b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -4525,10 +4512,10 @@ static int DetectEngineHttpRawUriTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:!\"/c/./d\"; http_raw_uri; depth:18; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:!\"/c/./d\"; http_raw_uri; depth:18; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -4603,16 +4590,14 @@ static int DetectEngineHttpRawUriTest09(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -4648,11 +4633,11 @@ static int DetectEngineHttpRawUriTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:\"/a\"; http_raw_uri; "
-                               "content:\"./c/.\"; http_raw_uri; within:9; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:\"/a\"; http_raw_uri; "
+                                       "content:\"./c/.\"; http_raw_uri; within:9; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -4727,16 +4712,14 @@ static int DetectEngineHttpRawUriTest10(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -4772,11 +4755,11 @@ static int DetectEngineHttpRawUriTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:\"/a\"; http_raw_uri; "
-                               "content:!\"boom\"; http_raw_uri; within:5; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:\"/a\"; http_raw_uri; "
+                                       "content:!\"boom\"; http_raw_uri; within:5; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -4851,16 +4834,14 @@ static int DetectEngineHttpRawUriTest11(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -4896,11 +4877,11 @@ static int DetectEngineHttpRawUriTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:\"./a\"; http_raw_uri; "
-                               "content:\"boom\"; http_raw_uri; within:5; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:\"./a\"; http_raw_uri; "
+                                       "content:\"boom\"; http_raw_uri; within:5; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -4975,16 +4956,14 @@ static int DetectEngineHttpRawUriTest12(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -5020,11 +4999,11 @@ static int DetectEngineHttpRawUriTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:\"./a\"; http_raw_uri; "
-                               "content:!\"/b/..\"; http_raw_uri; within:5; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:\"./a\"; http_raw_uri; "
+                                       "content:!\"/b/..\"; http_raw_uri; within:5; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -5099,16 +5078,14 @@ static int DetectEngineHttpRawUriTest13(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -5144,11 +5121,11 @@ static int DetectEngineHttpRawUriTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:\"./a\"; http_raw_uri; "
-                               "content:\"/c/.\"; http_raw_uri; distance:5; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:\"./a\"; http_raw_uri; "
+                                       "content:\"/c/.\"; http_raw_uri; distance:5; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -5223,16 +5200,14 @@ static int DetectEngineHttpRawUriTest14(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -5268,11 +5243,11 @@ static int DetectEngineHttpRawUriTest14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:\"./a\"; http_raw_uri; "
-                               "content:!\"b/..\"; http_raw_uri; distance:5; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:\"./a\"; http_raw_uri; "
+                                       "content:!\"b/..\"; http_raw_uri; distance:5; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -5347,16 +5322,14 @@ static int DetectEngineHttpRawUriTest15(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -5392,11 +5365,11 @@ static int DetectEngineHttpRawUriTest15(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:\"./a\"; http_raw_uri; "
-                               "content:\"/c/\"; http_raw_uri; distance:7; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:\"./a\"; http_raw_uri; "
+                                       "content:\"/c/\"; http_raw_uri; distance:7; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -5471,16 +5444,14 @@ static int DetectEngineHttpRawUriTest16(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -5516,11 +5487,11 @@ static int DetectEngineHttpRawUriTest16(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "content:\"./a\"; http_raw_uri; "
-                               "content:!\"/c/\"; http_raw_uri; distance:4; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "content:\"./a\"; http_raw_uri; "
+                                       "content:!\"/c/\"; http_raw_uri; distance:4; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -5595,16 +5566,14 @@ static int DetectEngineHttpRawUriTest21(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -5640,11 +5609,11 @@ static int DetectEngineHttpRawUriTest21(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "pcre:/\\.\\/a/I; "
-                               "content:!\"/c/\"; http_raw_uri; within:5; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "pcre:/\\.\\/a/I; "
+                                       "content:!\"/c/\"; http_raw_uri; within:5; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -5719,16 +5688,14 @@ static int DetectEngineHttpRawUriTest22(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -5764,11 +5731,11 @@ static int DetectEngineHttpRawUriTest22(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "pcre:/\\.\\/a/I; "
-                               "content:!\"/c/\"; within:5; http_raw_uri; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "pcre:/\\.\\/a/I; "
+                                       "content:!\"/c/\"; within:5; http_raw_uri; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -5843,16 +5810,14 @@ static int DetectEngineHttpRawUriTest23(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -5888,11 +5853,11 @@ static int DetectEngineHttpRawUriTest23(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "pcre:/\\.\\/a/I; "
-                               "content:!\"/c/\"; distance:3; http_raw_uri; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "pcre:/\\.\\/a/I; "
+                                       "content:!\"/c/\"; distance:3; http_raw_uri; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -5967,16 +5932,14 @@ static int DetectEngineHttpRawUriTest24(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -6012,11 +5975,11 @@ static int DetectEngineHttpRawUriTest24(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "pcre:/\\.\\/a/I; "
-                               "content:!\"/c/\"; distance:10; http_raw_uri; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "pcre:/\\.\\/a/I; "
+                                       "content:!\"/c/\"; distance:10; http_raw_uri; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -6091,16 +6054,14 @@ static int DetectEngineHttpRawUriTest25(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -6136,11 +6097,11 @@ static int DetectEngineHttpRawUriTest25(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "pcre:/\\.\\/a/I; "
-                               "content:\"/c/\"; within:10; http_raw_uri; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "pcre:/\\.\\/a/I; "
+                                       "content:\"/c/\"; within:10; http_raw_uri; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -6215,16 +6176,14 @@ static int DetectEngineHttpRawUriTest26(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -6260,11 +6219,11 @@ static int DetectEngineHttpRawUriTest26(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "pcre:/\\.\\/a/I; "
-                               "content:\"/c/\"; within:5; http_raw_uri; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "pcre:/\\.\\/a/I; "
+                                       "content:\"/c/\"; within:5; http_raw_uri; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -6339,16 +6298,14 @@ static int DetectEngineHttpRawUriTest27(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -6384,11 +6341,11 @@ static int DetectEngineHttpRawUriTest27(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "pcre:/\\.\\/a/I; "
-                               "content:\"/c/\"; distance:5; http_raw_uri; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "pcre:/\\.\\/a/I; "
+                                       "content:\"/c/\"; distance:5; http_raw_uri; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -6463,16 +6420,14 @@ static int DetectEngineHttpRawUriTest28(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /../a";
-    uint8_t http2_buf[] =
-        "/b/../c/./d.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1"
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /../a";
+    uint8_t http2_buf[] = "/b/../c/./d.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1"
+                          "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -6508,11 +6463,11 @@ static int DetectEngineHttpRawUriTest28(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http raw uri test\"; "
-                               "pcre:/\\.\\/a/I; "
-                               "content:\"/c/\"; distance:10; http_raw_uri; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(msg:\"http raw uri test\"; "
+                                       "pcre:/\\.\\/a/I; "
+                                       "content:\"/c/\"; distance:10; http_raw_uri; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -6584,7 +6539,7 @@ static int DetectEngineHttpRawUriTest29(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /../a/b/../c/./d.html HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -6620,9 +6575,9 @@ static int DetectEngineHttpRawUriTest29(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative raw uri contents\"; "
-                               "content:\"/c/\"; http_raw_uri; "
-                               "isdataat:4,relative; sid:1;)");
+                                       "(msg:\"test multiple relative raw uri contents\"; "
+                                       "content:\"/c/\"; http_raw_uri; "
+                                       "isdataat:4,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -6676,7 +6631,7 @@ static int DetectEngineHttpRawUriTest30(void)
 {
     int result = 0;
     uint8_t *http_buf = (uint8_t *)"POST /../a/b/../c/./d.html HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n";
+                                   "User-Agent: Mozilla/1.0\r\n";
     uint32_t http_buf_len = strlen((char *)http_buf);
     Flow f;
     TcpSession ssn;
@@ -6698,7 +6653,7 @@ static int DetectEngineHttpRawUriTest30(void)
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP1;
@@ -6712,8 +6667,8 @@ static int DetectEngineHttpRawUriTest30(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative raw uri contents\"; "
-                               "uricontent:\"/c/\"; isdataat:!10,relative; sid:1;)");
+                                       "(msg:\"test multiple relative raw uri contents\"; "
+                                       "uricontent:\"/c/\"; isdataat:!10,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -6763,7 +6718,7 @@ end:
 /**
  * \brief   Register the UNITTESTS for the http_uri keyword
  */
-static void DetectHttpUriRegisterTests (void)
+static void DetectHttpUriRegisterTests(void)
 {
     UtRegisterTest("UriTestSig01", UriTestSig01);
     UtRegisterTest("UriTestSig02", UriTestSig02);
@@ -6803,59 +6758,32 @@ static void DetectHttpUriRegisterTests (void)
     UtRegisterTest("UriTestSig37", UriTestSig37);
     UtRegisterTest("UriTestSig38", UriTestSig38);
 
-    UtRegisterTest("DetectHttpUriIsdataatParseTest",
-            DetectHttpUriIsdataatParseTest);
+    UtRegisterTest("DetectHttpUriIsdataatParseTest", DetectHttpUriIsdataatParseTest);
 
-    UtRegisterTest("DetectEngineHttpRawUriTest01",
-                   DetectEngineHttpRawUriTest01);
-    UtRegisterTest("DetectEngineHttpRawUriTest02",
-                   DetectEngineHttpRawUriTest02);
-    UtRegisterTest("DetectEngineHttpRawUriTest03",
-                   DetectEngineHttpRawUriTest03);
-    UtRegisterTest("DetectEngineHttpRawUriTest04",
-                   DetectEngineHttpRawUriTest04);
-    UtRegisterTest("DetectEngineHttpRawUriTest05",
-                   DetectEngineHttpRawUriTest05);
-    UtRegisterTest("DetectEngineHttpRawUriTest06",
-                   DetectEngineHttpRawUriTest06);
-    UtRegisterTest("DetectEngineHttpRawUriTest07",
-                   DetectEngineHttpRawUriTest07);
-    UtRegisterTest("DetectEngineHttpRawUriTest08",
-                   DetectEngineHttpRawUriTest08);
-    UtRegisterTest("DetectEngineHttpRawUriTest09",
-                   DetectEngineHttpRawUriTest09);
-    UtRegisterTest("DetectEngineHttpRawUriTest10",
-                   DetectEngineHttpRawUriTest10);
-    UtRegisterTest("DetectEngineHttpRawUriTest11",
-                   DetectEngineHttpRawUriTest11);
-    UtRegisterTest("DetectEngineHttpRawUriTest12",
-                   DetectEngineHttpRawUriTest12);
-    UtRegisterTest("DetectEngineHttpRawUriTest13",
-                   DetectEngineHttpRawUriTest13);
-    UtRegisterTest("DetectEngineHttpRawUriTest14",
-                   DetectEngineHttpRawUriTest14);
-    UtRegisterTest("DetectEngineHttpRawUriTest15",
-                   DetectEngineHttpRawUriTest15);
-    UtRegisterTest("DetectEngineHttpRawUriTest16",
-                   DetectEngineHttpRawUriTest16);
-    UtRegisterTest("DetectEngineHttpRawUriTest21",
-                   DetectEngineHttpRawUriTest21);
-    UtRegisterTest("DetectEngineHttpRawUriTest22",
-                   DetectEngineHttpRawUriTest22);
-    UtRegisterTest("DetectEngineHttpRawUriTest23",
-                   DetectEngineHttpRawUriTest23);
-    UtRegisterTest("DetectEngineHttpRawUriTest24",
-                   DetectEngineHttpRawUriTest24);
-    UtRegisterTest("DetectEngineHttpRawUriTest25",
-                   DetectEngineHttpRawUriTest25);
-    UtRegisterTest("DetectEngineHttpRawUriTest26",
-                   DetectEngineHttpRawUriTest26);
-    UtRegisterTest("DetectEngineHttpRawUriTest27",
-                   DetectEngineHttpRawUriTest27);
-    UtRegisterTest("DetectEngineHttpRawUriTest28",
-                   DetectEngineHttpRawUriTest28);
-    UtRegisterTest("DetectEngineHttpRawUriTest29",
-                   DetectEngineHttpRawUriTest29);
-    UtRegisterTest("DetectEngineHttpRawUriTest30",
-                   DetectEngineHttpRawUriTest30);
+    UtRegisterTest("DetectEngineHttpRawUriTest01", DetectEngineHttpRawUriTest01);
+    UtRegisterTest("DetectEngineHttpRawUriTest02", DetectEngineHttpRawUriTest02);
+    UtRegisterTest("DetectEngineHttpRawUriTest03", DetectEngineHttpRawUriTest03);
+    UtRegisterTest("DetectEngineHttpRawUriTest04", DetectEngineHttpRawUriTest04);
+    UtRegisterTest("DetectEngineHttpRawUriTest05", DetectEngineHttpRawUriTest05);
+    UtRegisterTest("DetectEngineHttpRawUriTest06", DetectEngineHttpRawUriTest06);
+    UtRegisterTest("DetectEngineHttpRawUriTest07", DetectEngineHttpRawUriTest07);
+    UtRegisterTest("DetectEngineHttpRawUriTest08", DetectEngineHttpRawUriTest08);
+    UtRegisterTest("DetectEngineHttpRawUriTest09", DetectEngineHttpRawUriTest09);
+    UtRegisterTest("DetectEngineHttpRawUriTest10", DetectEngineHttpRawUriTest10);
+    UtRegisterTest("DetectEngineHttpRawUriTest11", DetectEngineHttpRawUriTest11);
+    UtRegisterTest("DetectEngineHttpRawUriTest12", DetectEngineHttpRawUriTest12);
+    UtRegisterTest("DetectEngineHttpRawUriTest13", DetectEngineHttpRawUriTest13);
+    UtRegisterTest("DetectEngineHttpRawUriTest14", DetectEngineHttpRawUriTest14);
+    UtRegisterTest("DetectEngineHttpRawUriTest15", DetectEngineHttpRawUriTest15);
+    UtRegisterTest("DetectEngineHttpRawUriTest16", DetectEngineHttpRawUriTest16);
+    UtRegisterTest("DetectEngineHttpRawUriTest21", DetectEngineHttpRawUriTest21);
+    UtRegisterTest("DetectEngineHttpRawUriTest22", DetectEngineHttpRawUriTest22);
+    UtRegisterTest("DetectEngineHttpRawUriTest23", DetectEngineHttpRawUriTest23);
+    UtRegisterTest("DetectEngineHttpRawUriTest24", DetectEngineHttpRawUriTest24);
+    UtRegisterTest("DetectEngineHttpRawUriTest25", DetectEngineHttpRawUriTest25);
+    UtRegisterTest("DetectEngineHttpRawUriTest26", DetectEngineHttpRawUriTest26);
+    UtRegisterTest("DetectEngineHttpRawUriTest27", DetectEngineHttpRawUriTest27);
+    UtRegisterTest("DetectEngineHttpRawUriTest28", DetectEngineHttpRawUriTest28);
+    UtRegisterTest("DetectEngineHttpRawUriTest29", DetectEngineHttpRawUriTest29);
+    UtRegisterTest("DetectEngineHttpRawUriTest30", DetectEngineHttpRawUriTest30);
 }

@@ -48,8 +48,8 @@
 
 #include "rust.h"
 
-static int JsonSNMPLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonSNMPLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     SNMPTransaction *snmptx = tx;
     OutputJsonThreadCtx *thread = thread_data;
@@ -73,8 +73,7 @@ error:
     return TM_ECODE_FAILED;
 }
 
-static OutputInitResult OutputSNMPLogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult OutputSNMPLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_SNMP);
     return OutputJsonLogInitSub(conf, parent_ctx);

@@ -16,9 +16,9 @@
  */
 
 /** \file
-*
-*  \author Aleksey Katargin <gureedo@gmail.com>
-*/
+ *
+ *  \author Aleksey Katargin <gureedo@gmail.com>
+ */
 
 #ifndef __RUNMODE_NETMAP_H__
 #define __RUNMODE_NETMAP_H__

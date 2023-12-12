@@ -278,12 +278,12 @@ static int DetectTlsFingerprintTest02(void)
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
-    p1 = UTHBuildPacketReal(client_hello, sizeof(client_hello), IPPROTO_TCP,
-                            "192.168.1.5", "192.168.1.1", 51251, 443);
-    p2 = UTHBuildPacketReal(server_hello, sizeof(server_hello), IPPROTO_TCP,
-                            "192.168.1.1", "192.168.1.5", 443, 51251);
-    p3 = UTHBuildPacketReal(certificate, sizeof(certificate), IPPROTO_TCP,
-                            "192.168.1.1", "192.168.1.5", 443, 51251);
+    p1 = UTHBuildPacketReal(client_hello, sizeof(client_hello), IPPROTO_TCP, "192.168.1.5",
+            "192.168.1.1", 51251, 443);
+    p2 = UTHBuildPacketReal(server_hello, sizeof(server_hello), IPPROTO_TCP, "192.168.1.1",
+            "192.168.1.5", 443, 51251);
+    p3 = UTHBuildPacketReal(certificate, sizeof(certificate), IPPROTO_TCP, "192.168.1.1",
+            "192.168.1.5", 443, 51251);
 
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
@@ -317,19 +317,19 @@ static int DetectTlsFingerprintTest02(void)
     de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test tls.cert_fingerprint\"; "
-                              "tls.cert_fingerprint; "
-                              "content:\"4a:a3:66:76:82:cb:6b:23:bb:c3:58:47:23:a4:63:a7:78:a4:a1:18\"; "
-                              "sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tls any any -> any any "
+            "(msg:\"Test tls.cert_fingerprint\"; "
+            "tls.cert_fingerprint; "
+            "content:\"4a:a3:66:76:82:cb:6b:23:bb:c3:58:47:23:a4:63:a7:78:a4:a1:18\"; "
+            "sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
-                                STREAM_TOSERVER, client_hello,
-                                sizeof(client_hello));
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, client_hello, sizeof(client_hello));
 
     FAIL_IF(r != 0);
 
@@ -340,8 +340,8 @@ static int DetectTlsFingerprintTest02(void)
 
     FAIL_IF(PacketAlertCheck(p1, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
-                            server_hello, sizeof(server_hello));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, server_hello, sizeof(server_hello));
 
     FAIL_IF(r != 0);
 
@@ -349,8 +349,8 @@ static int DetectTlsFingerprintTest02(void)
 
     FAIL_IF(PacketAlertCheck(p2, 1));
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
-                            certificate, sizeof(certificate));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, certificate, sizeof(certificate));
 
     FAIL_IF(r != 0);
 

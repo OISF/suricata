@@ -28,4 +28,3 @@
 void DetectClasstypeRegister(void);
 
 #endif /* __DETECT_CLASSTYPE_H__ */
-

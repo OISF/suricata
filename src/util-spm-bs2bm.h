@@ -34,4 +34,3 @@ uint8_t *Bs2Bm(const uint8_t *, uint32_t, const uint8_t *, uint16_t, const uint8
 uint8_t *Bs2BmNocase(const uint8_t *, uint32_t, const uint8_t *, uint16_t, const uint8_t[]);
 
 #endif /* __UTIL_SPM_BS2BM__ */
-

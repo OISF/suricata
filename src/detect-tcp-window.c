@@ -41,12 +41,12 @@
 /**
  * \brief Regex for parsing our window option
  */
-#define PARSE_REGEX  "^\\s*([!])?\\s*([0-9]{1,9}+)\\s*$"
+#define PARSE_REGEX "^\\s*([!])?\\s*([0-9]{1,9}+)\\s*$"
 
 static DetectParseRegex parse_regex;
 
-static int DetectWindowMatch(DetectEngineThreadCtx *, Packet *,
-        const Signature *, const SigMatchCtx *);
+static int DetectWindowMatch(
+        DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 static int DetectWindowSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectWindowRegisterTests(void);
@@ -56,7 +56,7 @@ void DetectWindowFree(DetectEngineCtx *, void *);
 /**
  * \brief Registration function for window: keyword
  */
-void DetectWindowRegister (void)
+void DetectWindowRegister(void)
 {
     sigmatch_table[DETECT_WINDOW].name = "tcp.window";
     sigmatch_table[DETECT_WINDOW].alias = "window";
@@ -64,7 +64,7 @@ void DetectWindowRegister (void)
     sigmatch_table[DETECT_WINDOW].url = "/rules/header-keywords.html#window";
     sigmatch_table[DETECT_WINDOW].Match = DetectWindowMatch;
     sigmatch_table[DETECT_WINDOW].Setup = DetectWindowSetup;
-    sigmatch_table[DETECT_WINDOW].Free  = DetectWindowFree;
+    sigmatch_table[DETECT_WINDOW].Free = DetectWindowFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_WINDOW].RegisterTests = DetectWindowRegisterTests;
 #endif
@@ -82,16 +82,17 @@ void DetectWindowRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectWindowMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx)
+static int DetectWindowMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectWindowData *wd = (const DetectWindowData *)ctx;
 
-    if ( !(PKT_IS_TCP(p)) || wd == NULL || PKT_IS_PSEUDOPKT(p)) {
+    if (!(PKT_IS_TCP(p)) || wd == NULL || PKT_IS_PSEUDOPKT(p)) {
         return 0;
     }
 
-    if ( (!wd->negated && wd->size == TCP_GET_WINDOW(p)) || (wd->negated && wd->size != TCP_GET_WINDOW(p))) {
+    if ((!wd->negated && wd->size == TCP_GET_WINDOW(p)) ||
+            (wd->negated && wd->size != TCP_GET_WINDOW(p))) {
         return 1;
     }
 
@@ -165,7 +166,6 @@ error:
     if (wd != NULL)
         DetectWindowFree(de_ctx, wd);
     return NULL;
-
 }
 
 /**
@@ -178,12 +178,13 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *windowstr)
+static int DetectWindowSetup(DetectEngineCtx *de_ctx, Signature *s, const char *windowstr)
 {
     DetectWindowData *wd = NULL;
 
     wd = DetectWindowParse(de_ctx, windowstr);
-    if (wd == NULL) goto error;
+    if (wd == NULL)
+        goto error;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -200,7 +201,6 @@ error:
     if (wd != NULL)
         DetectWindowFree(de_ctx, wd);
     return -1;
-
 }
 
 /**
@@ -220,7 +220,7 @@ void DetectWindowFree(DetectEngineCtx *de_ctx, void *ptr)
  * \test DetectWindowTestParse01 is a test to make sure that we set the size correctly
  *  when given valid window opt
  */
-static int DetectWindowTestParse01 (void)
+static int DetectWindowTestParse01(void)
 {
     DetectWindowData *wd = NULL;
     wd = DetectWindowParse(NULL, "35402");
@@ -234,7 +234,7 @@ static int DetectWindowTestParse01 (void)
 /**
  * \test DetectWindowTestParse02 is a test for setting the window opt negated
  */
-static int DetectWindowTestParse02 (void)
+static int DetectWindowTestParse02(void)
 {
     DetectWindowData *wd = NULL;
     wd = DetectWindowParse(NULL, "!35402");
@@ -249,7 +249,7 @@ static int DetectWindowTestParse02 (void)
 /**
  * \test DetectWindowTestParse03 is a test to check for an empty value
  */
-static int DetectWindowTestParse03 (void)
+static int DetectWindowTestParse03(void)
 {
     DetectWindowData *wd = NULL;
     wd = DetectWindowParse(NULL, "");
@@ -262,7 +262,7 @@ static int DetectWindowTestParse03 (void)
 /**
  * \test DetectWindowTestParse03 is a test to check for a big value
  */
-static int DetectWindowTestParse04 (void)
+static int DetectWindowTestParse04(void)
 {
     DetectWindowData *wd = NULL;
     wd = DetectWindowParse(NULL, "1235402");
@@ -275,7 +275,7 @@ static int DetectWindowTestParse04 (void)
 /**
  * \test DetectWindowTestPacket01 is a test to check window with constructed packets
  */
-static int DetectWindowTestPacket01 (void)
+static int DetectWindowTestPacket01(void)
 {
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint16_t buflen = strlen((char *)buf);
@@ -293,18 +293,18 @@ static int DetectWindowTestPacket01 (void)
     p[1]->tcph->th_win = htons(41);
 
     const char *sigs[2];
-    sigs[0]= "alert tcp any any -> any any (msg:\"Testing window 1\"; window:40; sid:1;)";
-    sigs[1]= "alert tcp any any -> any any (msg:\"Testing window 2\"; window:41; sid:2;)";
+    sigs[0] = "alert tcp any any -> any any (msg:\"Testing window 1\"; window:40; sid:1;)";
+    sigs[1] = "alert tcp any any -> any any (msg:\"Testing window 2\"; window:41; sid:2;)";
 
-    uint32_t sid[2] = {1, 2};
+    uint32_t sid[2] = { 1, 2 };
 
-    uint32_t results[3][2] = {
-                              /* packet 0 match sid 1 but should not match sid 2 */
-                              {1, 0},
-                              /* packet 1 should not match */
-                              {0, 1},
-                              /* packet 2 should not match */
-                              {0, 0} };
+    uint32_t results[3][2] = { /* packet 0 match sid 1 but should not match sid 2 */
+        { 1, 0 },
+        /* packet 1 should not match */
+        { 0, 1 },
+        /* packet 2 should not match */
+        { 0, 0 }
+    };
     FAIL_IF(UTHGenericTest(p, 3, sigs, sid, (uint32_t *)results, 2) == 0);
 
     UTHFreePackets(p, 3);

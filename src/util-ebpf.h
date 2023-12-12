@@ -28,11 +28,10 @@
 
 #ifdef HAVE_PACKET_EBPF
 
-#define XDP_FLAGS_UPDATE_IF_NOEXIST	(1U << 0)
-#define XDP_FLAGS_SKB_MODE		(1U << 1)
-#define XDP_FLAGS_DRV_MODE		(1U << 2)
-#define XDP_FLAGS_HW_MODE		(1U << 3)
-
+#define XDP_FLAGS_UPDATE_IF_NOEXIST (1U << 0)
+#define XDP_FLAGS_SKB_MODE          (1U << 1)
+#define XDP_FLAGS_DRV_MODE          (1U << 2)
+#define XDP_FLAGS_HW_MODE           (1U << 3)
 
 struct flowv4_keys {
     __be32 src;
@@ -41,8 +40,8 @@ struct flowv4_keys {
         __be32 ports;
         __be16 port16[2];
     };
-    __u8 ip_proto:1;
-    __u16 vlan0:15;
+    __u8 ip_proto : 1;
+    __u16 vlan0 : 15;
     __u16 vlan1;
     __u16 vlan2;
 };
@@ -54,8 +53,8 @@ struct flowv6_keys {
         __be32 ports;
         __be16 port16[2];
     };
-    __u8 ip_proto:1;
-    __u16 vlan0:15;
+    __u8 ip_proto : 1;
+    __u16 vlan0 : 15;
     __u16 vlan1;
     __u16 vlan2;
 };
@@ -71,14 +70,14 @@ typedef struct EBPFBypassData_ {
     int cpus_count;
 } EBPFBypassData;
 
-#define EBPF_SOCKET_FILTER  (1<<0)
-#define EBPF_XDP_CODE       (1<<1)
-#define EBPF_PINNED_MAPS    (1<<2)
-#define EBPF_XDP_HW_MODE    (1<<3)
+#define EBPF_SOCKET_FILTER (1 << 0)
+#define EBPF_XDP_CODE      (1 << 1)
+#define EBPF_PINNED_MAPS   (1 << 2)
+#define EBPF_XDP_HW_MODE   (1 << 3)
 
 int EBPFGetMapFDByName(const char *iface, const char *name);
-int EBPFLoadFile(const char *iface, const char *path, const char * section,
-                 int *val, struct ebpf_timeout_config *config);
+int EBPFLoadFile(const char *iface, const char *path, const char *section, int *val,
+        struct ebpf_timeout_config *config);
 int EBPFSetupXDP(const char *iface, int fd, uint8_t flags);
 
 int EBPFCheckBypassedFlowCreate(ThreadVars *th_v, struct timespec *curtime, void *data);
@@ -95,13 +94,13 @@ void EBPFBypassFree(void *data);
 
 void EBPFDeleteKey(int fd, void *key);
 
-#define __bpf_percpu_val_align  __attribute__((__aligned__(8)))
+#define __bpf_percpu_val_align __attribute__((__aligned__(8)))
 
-#define BPF_DECLARE_PERCPU(type, name, nr_cpus)                          \
-        struct { type v; /* padding */ } __bpf_percpu_val_align \
-                name[nr_cpus]
+#define BPF_DECLARE_PERCPU(type, name, nr_cpus)                                                    \
+    struct {                                                                                       \
+        type v; /* padding */                                                                      \
+    } __bpf_percpu_val_align name[nr_cpus]
 #define BPF_PERCPU(name, cpu) name[(cpu)].v
-
 
 #endif
 

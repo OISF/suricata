@@ -26,8 +26,8 @@
 
 #include <stdint.h>
 
-#define BYTE_BIG_ENDIAN      0
-#define BYTE_LITTLE_ENDIAN   1
+#define BYTE_BIG_ENDIAN    0
+#define BYTE_LITTLE_ENDIAN 1
 
 /** Wrappers for OS dependent byte swapping functions */
 #ifdef OS_FREEBSD
@@ -47,23 +47,15 @@
 #define SCByteSwap64(x) OSSwapInt64(x)
 #elif defined(__WIN32) || defined(_WIN32) || defined(sun)
 /* Quick & dirty solution, nothing seems to exist for this in Win32 API */
-#define SCByteSwap16(x)                         \
-	((((x) & 0xff00) >> 8)                      \
-	| (((x) & 0x00ff) << 8))
-#define SCByteSwap32(x)                         \
-	((((x) & 0xff000000) >> 24)                 \
-	| (((x) & 0x00ff0000) >> 8)                 \
-	| (((x) & 0x0000ff00) << 8)                 \
-	| (((x) & 0x000000ff) << 24))
-#define SCByteSwap64(x)                         \
-	((((x) & 0xff00000000000000ull) >> 56)      \
-	| (((x) & 0x00ff000000000000ull) >> 40)     \
-	| (((x) & 0x0000ff0000000000ull) >> 24)     \
-	| (((x) & 0x000000ff00000000ull) >> 8)      \
-	| (((x) & 0x00000000ff000000ull) << 8)      \
-	| (((x) & 0x0000000000ff0000ull) << 24)     \
-	| (((x) & 0x000000000000ff00ull) << 40)     \
-	| (((x) & 0x00000000000000ffull) << 56))
+#define SCByteSwap16(x) ((((x)&0xff00) >> 8) | (((x)&0x00ff) << 8))
+#define SCByteSwap32(x)                                                                            \
+    ((((x)&0xff000000) >> 24) | (((x)&0x00ff0000) >> 8) | (((x)&0x0000ff00) << 8) |                \
+            (((x)&0x000000ff) << 24))
+#define SCByteSwap64(x)                                                                            \
+    ((((x)&0xff00000000000000ull) >> 56) | (((x)&0x00ff000000000000ull) >> 40) |                   \
+            (((x)&0x0000ff0000000000ull) >> 24) | (((x)&0x000000ff00000000ull) >> 8) |             \
+            (((x)&0x00000000ff000000ull) << 8) | (((x)&0x0000000000ff0000ull) << 24) |             \
+            (((x)&0x000000000000ff00ull) << 40) | (((x)&0x00000000000000ffull) << 56))
 #else
 #include <byteswap.h>
 #define SCByteSwap16(x) bswap_16(x)
@@ -492,8 +484,7 @@ static inline int WARN_UNUSED ByteExtract(uint64_t *res, int e, uint16_t len, co
         uint64_t b;
         if (e == BYTE_LITTLE_ENDIAN) {
             b = bytes[i];
-        }
-        else {
+        } else {
             b = bytes[len - i - 1];
         }
 

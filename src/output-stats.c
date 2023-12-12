@@ -49,10 +49,9 @@ typedef struct OutputStatsLogger_ {
 
 static OutputStatsLogger *list = NULL;
 
-int OutputRegisterStatsLogger(const char *name, StatsLogger LogFunc,
-    OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+int OutputRegisterStatsLogger(const char *name, StatsLogger LogFunc, OutputCtx *output_ctx,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     OutputStatsLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
@@ -186,7 +185,7 @@ static void OutputStatsLogExitPrintStats(ThreadVars *tv, void *thread_data)
     }
 }
 
-void TmModuleStatsLoggerRegister (void)
+void TmModuleStatsLoggerRegister(void)
 {
     tmm_modules[TMM_STATSLOGGER].name = "__stats_logger__";
     tmm_modules[TMM_STATSLOGGER].ThreadInit = OutputStatsLogThreadInit;

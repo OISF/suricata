@@ -37,7 +37,7 @@
 #include "util-debug.h"
 
 /* Default order: */
-uint8_t action_order_sigs[4] = {ACTION_PASS, ACTION_DROP, ACTION_REJECT, ACTION_ALERT};
+uint8_t action_order_sigs[4] = { ACTION_PASS, ACTION_DROP, ACTION_REJECT, ACTION_ALERT };
 /* This order can be changed from config */
 
 /**
@@ -53,9 +53,7 @@ uint8_t action_order_sigs[4] = {ACTION_PASS, ACTION_DROP, ACTION_REJECT, ACTION_
 uint8_t ActionOrderVal(uint8_t action)
 {
     /* reject_both and reject_dst have the same prio as reject */
-    if( (action & ACTION_REJECT) ||
-        (action & ACTION_REJECT_BOTH) ||
-        (action & ACTION_REJECT_DST)) {
+    if ((action & ACTION_REJECT) || (action & ACTION_REJECT_BOTH) || (action & ACTION_REJECT_DST)) {
         action = ACTION_REJECT;
     }
     uint8_t i = 0;
@@ -76,13 +74,13 @@ uint8_t ActionOrderVal(uint8_t action)
  */
 static uint8_t ActionAsciiToFlag(const char *action)
 {
-    if (strcmp(action,"pass") == 0)
+    if (strcmp(action, "pass") == 0)
         return ACTION_PASS;
-    if (strcmp(action,"drop") == 0)
+    if (strcmp(action, "drop") == 0)
         return ACTION_DROP;
-    if (strcmp(action,"reject") == 0)
+    if (strcmp(action, "reject") == 0)
         return ACTION_REJECT;
-    if (strcmp(action,"alert") == 0)
+    if (strcmp(action, "alert") == 0)
         return ACTION_ALERT;
 
     return 0;
@@ -99,7 +97,7 @@ int ActionInitConfig(void)
 {
     uint8_t actions_used = 0;
     uint8_t action_flag = 0;
-    uint8_t actions_config[4] = {0, 0, 0, 0};
+    uint8_t actions_config[4] = { 0, 0, 0, 0 };
     int order = 0;
 
     ConfNode *action_order;
@@ -110,9 +108,8 @@ int ActionInitConfig(void)
     if (action_order == NULL) {
         /* No configuration, use defaults. */
         return 0;
-    }
-    else {
-        TAILQ_FOREACH(action, &action_order->head, next) {
+    } else {
+        TAILQ_FOREACH (action, &action_order->head, next) {
             SCLogDebug("Loading action order : %s", action->val);
             action_flag = ActionAsciiToFlag(action->val);
             if (action_flag == 0) {
@@ -161,7 +158,7 @@ int ActionInitConfig(void)
 
     return 0;
 
- error:
+error:
     return -1;
 }
 
@@ -407,7 +404,7 @@ action-order:\n\
 static int UtilActionTest08(void)
 {
     char config[] = "%YAML 1.1\n"
-        "---\n";
+                    "---\n";
 
     ConfCreateContextBackup();
     ConfInit();

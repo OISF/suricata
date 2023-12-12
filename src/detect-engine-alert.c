@@ -70,7 +70,7 @@ void PacketAlertTagInit(void)
  * \retval 0 alert is suppressed
  */
 static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                             const Signature *s, Packet *p, PacketAlert *pa)
+        const Signature *s, Packet *p, PacketAlert *pa)
 {
     SCEnter();
     int ret = 1;
@@ -118,7 +118,7 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
                 KEYWORD_PROFILING_START;
                 ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s, pa);
                 if (ret == 0 || ret == 2) {
-                    KEYWORD_PROFILING_END(det_ctx, DETECT_THRESHOLD ,0);
+                    KEYWORD_PROFILING_END(det_ctx, DETECT_THRESHOLD, 0);
                     /* It doesn't match threshold, remove it */
                     SCReturnInt(ret);
                 }

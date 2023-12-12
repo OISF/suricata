@@ -38,18 +38,16 @@ static DetectParseRegex parse_regex;
 
 static int mqtt_reason_code_id = 0;
 
-static int DetectMQTTReasonCodeMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state,
-                               void *txv, const Signature *s,
-                               const SigMatchCtx *ctx);
-static int DetectMQTTReasonCodeSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectMQTTReasonCodeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx);
+static int DetectMQTTReasonCodeSetup(DetectEngineCtx *, Signature *, const char *);
 void MQTTReasonCodeRegisterTests(void);
 void DetectMQTTReasonCodeFree(DetectEngineCtx *de_ctx, void *);
 
 /**
  * \brief Registration function for mqtt.reason_code: keyword
  */
-void DetectMQTTReasonCodeRegister (void)
+void DetectMQTTReasonCodeRegister(void)
 {
     sigmatch_table[DETECT_AL_MQTT_REASON_CODE].name = "mqtt.reason_code";
     sigmatch_table[DETECT_AL_MQTT_REASON_CODE].alias = "mqtt.connack.return_code";
@@ -57,7 +55,7 @@ void DetectMQTTReasonCodeRegister (void)
     sigmatch_table[DETECT_AL_MQTT_REASON_CODE].url = "/rules/mqtt-keywords.html#mqtt-reason-code";
     sigmatch_table[DETECT_AL_MQTT_REASON_CODE].AppLayerTxMatch = DetectMQTTReasonCodeMatch;
     sigmatch_table[DETECT_AL_MQTT_REASON_CODE].Setup = DetectMQTTReasonCodeSetup;
-    sigmatch_table[DETECT_AL_MQTT_REASON_CODE].Free  = DetectMQTTReasonCodeFree;
+    sigmatch_table[DETECT_AL_MQTT_REASON_CODE].Free = DetectMQTTReasonCodeFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_AL_MQTT_REASON_CODE].RegisterTests = MQTTReasonCodeRegisterTests;
 #endif
@@ -85,10 +83,8 @@ void DetectMQTTReasonCodeRegister (void)
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DetectMQTTReasonCodeMatch(DetectEngineThreadCtx *det_ctx,
-                               Flow *f, uint8_t flags, void *state,
-                               void *txv, const Signature *s,
-                               const SigMatchCtx *ctx)
+static int DetectMQTTReasonCodeMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+        void *state, void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
     const uint8_t *de = (const uint8_t *)ctx;
     uint8_t code;
@@ -132,7 +128,7 @@ static uint8_t *DetectMQTTReasonCodeParse(const char *rawstr)
     de = SCMalloc(sizeof(uint8_t));
     if (unlikely(de == NULL))
         return NULL;
-    *de = (uint8_t) val;
+    *de = (uint8_t)val;
 
     return de;
 }
@@ -148,7 +144,7 @@ static uint8_t *DetectMQTTReasonCodeParse(const char *rawstr)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectMQTTReasonCodeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectMQTTReasonCodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     uint8_t *de = NULL;
 
@@ -195,7 +191,7 @@ void DetectMQTTReasonCodeFree(DetectEngineCtx *de_ctx, void *de_ptr)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTReasonCodeTestParse01 (void)
+static int MQTTReasonCodeTestParse01(void)
 {
     uint8_t *de = NULL;
 
@@ -228,7 +224,7 @@ static int MQTTReasonCodeTestParse01 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTReasonCodeTestParse02 (void)
+static int MQTTReasonCodeTestParse02(void)
 {
     uint8_t *de = NULL;
     de = DetectMQTTReasonCodeParse("6X");
@@ -246,7 +242,7 @@ static int MQTTReasonCodeTestParse02 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTReasonCodeTestParse03 (void)
+static int MQTTReasonCodeTestParse03(void)
 {
     uint8_t *de = NULL;
     de = DetectMQTTReasonCodeParse("");
@@ -264,7 +260,7 @@ static int MQTTReasonCodeTestParse03 (void)
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int MQTTReasonCodeTestParse04 (void)
+static int MQTTReasonCodeTestParse04(void)
 {
     uint8_t *de = NULL;
     de = DetectMQTTReasonCodeParse("256");
@@ -275,8 +271,6 @@ static int MQTTReasonCodeTestParse04 (void)
 
     PASS;
 }
-
-
 
 #endif /* UNITTESTS */
 

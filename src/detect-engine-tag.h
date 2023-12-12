@@ -38,8 +38,8 @@
 
 /* Used for tagged data (sid and gid of the packets that
  * follow the one that triggered the rule with tag option) */
-#define TAG_SIG_GEN           2
-#define TAG_SIG_ID            1
+#define TAG_SIG_GEN 2
+#define TAG_SIG_ID  1
 
 int TagHashAddTag(DetectTagDataEntry *, Packet *);
 int TagFlowAdd(Packet *, DetectTagDataEntry *);
@@ -57,5 +57,3 @@ int TagHostHasTag(Host *host);
 void DetectEngineTagRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_TAG_H__ */
-
-

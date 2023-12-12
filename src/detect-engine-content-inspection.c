@@ -128,14 +128,14 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
     if (smd->type == DETECT_CONTENT) {
         const DetectContentData *cd = (const DetectContentData *)smd->ctx;
-        SCLogDebug("inspecting content %"PRIu32" buffer_len %"PRIu32, cd->id, buffer_len);
+        SCLogDebug("inspecting content %" PRIu32 " buffer_len %" PRIu32, cd->id, buffer_len);
 
         /* we might have already have this content matched by the mpm.
          * (if there is any other reason why we'd want to avoid checking
          *  it here, please fill it in) */
-        //if (cd->flags & DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED) {
-        //    goto match;
-        //}
+        // if (cd->flags & DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED) {
+        //     goto match;
+        // }
 
         /* rule parsers should take care of this */
 #ifdef DEBUG
@@ -150,8 +150,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         do {
             uint32_t depth = buffer_len;
             uint32_t offset = 0;
-            if ((cd->flags & DETECT_CONTENT_DISTANCE) ||
-                (cd->flags & DETECT_CONTENT_WITHIN)) {
+            if ((cd->flags & DETECT_CONTENT_DISTANCE) || (cd->flags & DETECT_CONTENT_WITHIN)) {
                 SCLogDebug("det_ctx->buffer_offset %" PRIu32, det_ctx->buffer_offset);
                 offset = prev_buffer_offset;
 
@@ -165,22 +164,27 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                     else
                         offset += distance;
 
-                    SCLogDebug("cd->distance %"PRIi32", offset %"PRIu32", depth %"PRIu32,
-                               distance, offset, depth);
+                    SCLogDebug("cd->distance %" PRIi32 ", offset %" PRIu32 ", depth %" PRIu32,
+                            distance, offset, depth);
                 }
 
                 if (cd->flags & DETECT_CONTENT_WITHIN) {
                     if (cd->flags & DETECT_CONTENT_WITHIN_VAR) {
-                        if ((int32_t)depth > (int32_t)(prev_buffer_offset + det_ctx->byte_values[cd->within] + distance)) {
-                            depth = prev_buffer_offset + det_ctx->byte_values[cd->within] + distance;
+                        if ((int32_t)depth >
+                                (int32_t)(prev_buffer_offset + det_ctx->byte_values[cd->within] +
+                                          distance)) {
+                            depth = prev_buffer_offset + det_ctx->byte_values[cd->within] +
+                                    distance;
                         }
                     } else {
-                        if ((int32_t)depth > (int32_t)(prev_buffer_offset + cd->within + distance)) {
+                        if ((int32_t)depth >
+                                (int32_t)(prev_buffer_offset + cd->within + distance)) {
                             depth = prev_buffer_offset + cd->within + distance;
                         }
 
-                        SCLogDebug("cd->within %"PRIi32", det_ctx->buffer_offset %"PRIu32", depth %"PRIu32,
-                                   cd->within, prev_buffer_offset, depth);
+                        SCLogDebug("cd->within %" PRIi32 ", det_ctx->buffer_offset %" PRIu32
+                                   ", depth %" PRIu32,
+                                cd->within, prev_buffer_offset, depth);
                     }
 
                     if (stream_start_offset != 0 && prev_buffer_offset == 0) {
@@ -204,7 +208,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                             depth = prev_buffer_offset + cd->depth;
                         }
 
-                        SCLogDebug("cd->depth %"PRIu32", depth %"PRIu32, cd->depth, depth);
+                        SCLogDebug("cd->depth %" PRIu32 ", depth %" PRIu32, cd->depth, depth);
                     }
                 }
 
@@ -214,7 +218,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 } else {
                     if (cd->offset > offset) {
                         offset = cd->offset;
-                        SCLogDebug("setting offset %"PRIu32, offset);
+                        SCLogDebug("setting offset %" PRIu32, offset);
                     }
                 }
             } else { /* implied no relative matches */
@@ -248,17 +252,18 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             /* If the value came from a variable, make sure to adjust the depth so it's relative
              * to the offset value.
              */
-            if (cd->flags & (DETECT_CONTENT_DISTANCE_VAR|DETECT_CONTENT_OFFSET_VAR|DETECT_CONTENT_DEPTH_VAR)) {
-                 depth += offset;
+            if (cd->flags & (DETECT_CONTENT_DISTANCE_VAR | DETECT_CONTENT_OFFSET_VAR |
+                                    DETECT_CONTENT_DEPTH_VAR)) {
+                depth += offset;
             }
 
             /* update offset with prev_offset if we're searching for
              * matches after the first occurrence. */
-            SCLogDebug("offset %"PRIu32", prev_offset %"PRIu32, offset, prev_offset);
+            SCLogDebug("offset %" PRIu32 ", prev_offset %" PRIu32, offset, prev_offset);
             if (prev_offset != 0)
                 offset = prev_offset;
 
-            SCLogDebug("offset %"PRIu32", depth %"PRIu32, offset, depth);
+            SCLogDebug("offset %" PRIu32 ", depth %" PRIu32, offset, depth);
 
             if (depth > buffer_len)
                 depth = buffer_len;
@@ -282,19 +287,20 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 #endif
             const uint8_t *found;
             if (cd->flags & DETECT_CONTENT_ENDS_WITH && depth < buffer_len) {
-                SCLogDebug("depth < buffer_len while DETECT_CONTENT_ENDS_WITH is set. Can't possibly match.");
+                SCLogDebug("depth < buffer_len while DETECT_CONTENT_ENDS_WITH is set. Can't "
+                           "possibly match.");
                 found = NULL;
             } else if (cd->content_len > sbuffer_len) {
                 found = NULL;
             } else {
                 /* do the actual search */
-                found = SpmScan(cd->spm_ctx, det_ctx->spm_thread_ctx, sbuffer,
-                        sbuffer_len);
+                found = SpmScan(cd->spm_ctx, det_ctx->spm_thread_ctx, sbuffer, sbuffer_len);
             }
 
             /* next we evaluate the result in combination with the
              * negation flag. */
-            SCLogDebug("found %p cd negated %s", found, cd->flags & DETECT_CONTENT_NEGATED ? "true" : "false");
+            SCLogDebug("found %p cd negated %s", found,
+                    cd->flags & DETECT_CONTENT_NEGATED ? "true" : "false");
 
             if (found == NULL) {
                 if (!(cd->flags & DETECT_CONTENT_NEGATED)) {
@@ -382,7 +388,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             prev_offset = (match_offset - (cd->content_len - 1));
             SCLogDebug("trying to see if there is another match after prev_offset %" PRIu32,
                     prev_offset);
-        } while(1);
+        } while (1);
 
     } else if (smd->type == DETECT_ISDATAAT) {
         SCLogDebug("inspecting isdataat");
@@ -393,19 +399,21 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             uint64_t be_value = det_ctx->byte_values[dataat];
             if (be_value >= 100000000) {
                 if ((id->flags & ISDATAAT_NEGATED) == 0) {
-                    SCLogDebug("extracted value %"PRIu64" very big: no match", be_value);
+                    SCLogDebug("extracted value %" PRIu64 " very big: no match", be_value);
                     goto no_match;
                 }
-                SCLogDebug("extracted value way %"PRIu64" very big: match", be_value);
+                SCLogDebug("extracted value way %" PRIu64 " very big: match", be_value);
                 goto match;
             }
             dataat = (uint32_t)be_value;
-            SCLogDebug("isdataat: using value %u from byte_extract local_id %u", dataat, id->dataat);
+            SCLogDebug(
+                    "isdataat: using value %u from byte_extract local_id %u", dataat, id->dataat);
         }
 
         if (id->flags & ISDATAAT_RELATIVE) {
             if (det_ctx->buffer_offset + dataat > buffer_len) {
-                SCLogDebug("det_ctx->buffer_offset + dataat %"PRIu32" > %"PRIu32, det_ctx->buffer_offset + dataat, buffer_len);
+                SCLogDebug("det_ctx->buffer_offset + dataat %" PRIu32 " > %" PRIu32,
+                        det_ctx->buffer_offset + dataat, buffer_len);
                 if (id->flags & ISDATAAT_NEGATED)
                     goto match;
                 if ((id->flags & ISDATAAT_OFFSET_VAR) == 0) {
@@ -430,7 +438,9 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 }
                 goto match;
             } else {
-                SCLogDebug("absolute isdataat mismatch, id->isdataat %"PRIu32", buffer_len %"PRIu32"", dataat, buffer_len);
+                SCLogDebug("absolute isdataat mismatch, id->isdataat %" PRIu32
+                           ", buffer_len %" PRIu32 "",
+                        dataat, buffer_len);
                 if (id->flags & ISDATAAT_NEGATED)
                     goto match;
                 if ((id->flags & ISDATAAT_OFFSET_VAR) == 0) {
@@ -498,8 +508,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         if (btflags & DETECT_BYTETEST_DCE) {
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            btflags |= ((flags & DETECT_CI_FLAGS_DCE_LE) ?
-                      DETECT_BYTETEST_LITTLE: 0);
+            btflags |= ((flags & DETECT_CI_FLAGS_DCE_LE) ? DETECT_BYTETEST_LITTLE : 0);
         }
 
         if (DetectBytetestDoMatch(det_ctx, s, smd->ctx, buffer, buffer_len, btflags, offset, nbytes,
@@ -530,8 +539,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         if (bjflags & DETECT_BYTEJUMP_DCE) {
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            bjflags |= ((flags & DETECT_CI_FLAGS_DCE_LE) ?
-                      DETECT_BYTEJUMP_LITTLE: 0);
+            bjflags |= ((flags & DETECT_CI_FLAGS_DCE_LE) ? DETECT_BYTEJUMP_LITTLE : 0);
         }
 
         if (!DetectBytejumpDoMatch(
@@ -549,13 +557,13 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
         if ((bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) &&
-            endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE &&
-            flags & (DETECT_CI_FLAGS_DCE_LE|DETECT_CI_FLAGS_DCE_BE)) {
+                endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE &&
+                flags & (DETECT_CI_FLAGS_DCE_LE | DETECT_CI_FLAGS_DCE_BE)) {
 
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            endian |= ((flags & DETECT_CI_FLAGS_DCE_LE) ?
-                       DETECT_BYTE_EXTRACT_ENDIAN_LITTLE : DETECT_BYTE_EXTRACT_ENDIAN_BIG);
+            endian |= ((flags & DETECT_CI_FLAGS_DCE_LE) ? DETECT_BYTE_EXTRACT_ENDIAN_LITTLE
+                                                        : DETECT_BYTE_EXTRACT_ENDIAN_BIG);
         }
 
         if (DetectByteExtractDoMatch(det_ctx, smd, s, buffer, buffer_len,
@@ -563,8 +571,8 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             goto no_match;
         }
 
-        SCLogDebug("[BE] Fetched value for index %d: %"PRIu64,
-                   bed->local_id, det_ctx->byte_values[bed->local_id]);
+        SCLogDebug("[BE] Fetched value for index %d: %" PRIu64, bed->local_id,
+                det_ctx->byte_values[bed->local_id]);
         goto match;
 
     } else if (smd->type == DETECT_BYTEMATH) {
@@ -600,8 +608,8 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             goto no_match;
         }
 
-        SCLogDebug("[BM] Fetched value for index %d: %"PRIu64,
-                   bmd->local_id, det_ctx->byte_values[bmd->local_id]);
+        SCLogDebug("[BM] Fetched value for index %d: %" PRIu64, bmd->local_id,
+                det_ctx->byte_values[bmd->local_id]);
         goto match;
 
     } else if (smd->type == DETECT_BSIZE) {
@@ -618,9 +626,9 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
     } else if (smd->type == DETECT_DATASET) {
 
-        //PrintRawDataFp(stdout, buffer, buffer_len);
-        const DetectDatasetData *sd = (const DetectDatasetData *) smd->ctx;
-        int r = DetectDatasetBufferMatch(det_ctx, sd, buffer, buffer_len); //TODO buffer offset?
+        // PrintRawDataFp(stdout, buffer, buffer_len);
+        const DetectDatasetData *sd = (const DetectDatasetData *)smd->ctx;
+        int r = DetectDatasetBufferMatch(det_ctx, sd, buffer, buffer_len); // TODO buffer offset?
         if (r == 1) {
             goto match;
         }
@@ -628,9 +636,9 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
     } else if (smd->type == DETECT_DATAREP) {
 
-        //PrintRawDataFp(stdout, buffer, buffer_len);
-        const DetectDatarepData *sd = (const DetectDatarepData *) smd->ctx;
-        int r = DetectDatarepBufferMatch(det_ctx, sd, buffer, buffer_len); //TODO buffer offset?
+        // PrintRawDataFp(stdout, buffer, buffer_len);
+        const DetectDatarepData *sd = (const DetectDatarepData *)smd->ctx;
+        int r = DetectDatarepBufferMatch(det_ctx, sd, buffer, buffer_len); // TODO buffer offset?
         if (r == 1) {
             goto match;
         }
@@ -652,13 +660,11 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         }
         goto no_match_discontinue;
 #ifdef HAVE_LUA
-    }
-    else if (smd->type == DETECT_LUA) {
+    } else if (smd->type == DETECT_LUA) {
         SCLogDebug("lua starting");
 
-        if (DetectLuaMatchBuffer(det_ctx, s, smd, buffer, buffer_len,
-                    det_ctx->buffer_offset, f) != 1)
-        {
+        if (DetectLuaMatchBuffer(det_ctx, s, smd, buffer, buffer_len, det_ctx->buffer_offset, f) !=
+                1) {
             SCLogDebug("lua no_match");
             goto no_match;
         }

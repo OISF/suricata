@@ -43,9 +43,9 @@
 #include "flow-util.h"
 #include "stream-tcp-private.h"
 
-SC_ATOMIC_DECLARE(unsigned int, num_tags);  /**< Atomic counter, to know if we
-                                                 have tagged hosts/sessions,
-                                                 to avoid locking */
+SC_ATOMIC_DECLARE(unsigned int, num_tags);       /**< Atomic counter, to know if we
+                                                      have tagged hosts/sessions,
+                                                      to avoid locking */
 static HostStorageId host_tag_id = { .id = -1 }; /**< Host storage id for tags */
 static FlowStorageId flow_tag_id = { .id = -1 }; /**< Flow storage id for tags */
 
@@ -159,10 +159,10 @@ int TagFlowAdd(Packet *p, DetectTagDataEntry *tde)
             new_tde->next = FlowGetStorageById(p->flow, flow_tag_id);
             FlowSetStorageById(p->flow, flow_tag_id, new_tde);
             SCLogDebug("adding tag with first_ts %u", new_tde->first_ts);
-            (void) SC_ATOMIC_ADD(num_tags, 1);
+            (void)SC_ATOMIC_ADD(num_tags, 1);
         }
     } else if (tag_cnt == DETECT_TAG_MAX_TAGS) {
-        SCLogDebug("Max tags for sessions reached (%"PRIu16")", tag_cnt);
+        SCLogDebug("Max tags for sessions reached (%" PRIu16 ")", tag_cnt);
     }
 
     return updated;
@@ -204,7 +204,7 @@ int TagHashAddTag(DetectTagDataEntry *tde, Packet *p)
         DetectTagDataEntry *new_tde = DetectTagDataCopy(tde);
         if (new_tde != NULL) {
             HostSetStorageById(host, host_tag_id, new_tde);
-            (void) SC_ATOMIC_ADD(num_tags, 1);
+            (void)SC_ATOMIC_ADD(num_tags, 1);
             SCLogDebug("host tag added");
         }
     } else {
@@ -236,13 +236,13 @@ int TagHashAddTag(DetectTagDataEntry *tde, Packet *p)
             /* get a new tde as the one we have is on the stack */
             DetectTagDataEntry *new_tde = DetectTagDataCopy(tde);
             if (new_tde != NULL) {
-                (void) SC_ATOMIC_ADD(num_tags, 1);
+                (void)SC_ATOMIC_ADD(num_tags, 1);
 
                 new_tde->next = tag;
                 HostSetStorageById(host, host_tag_id, new_tde);
             }
         } else if (ntags == DETECT_TAG_MAX_TAGS) {
-            SCLogDebug("Max tags for sessions reached (%"PRIu16")", ntags);
+            SCLogDebug("Max tags for sessions reached (%" PRIu16 ")", ntags);
         }
     }
 
@@ -282,22 +282,21 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
             switch (iter->metric) {
                 case DETECT_TAG_METRIC_PACKET:
                     if (iter->packets > iter->count) {
-                        SCLogDebug("flow tag expired: packets %u > %u",
-                            iter->packets, iter->count);
+                        SCLogDebug("flow tag expired: packets %u > %u", iter->packets, iter->count);
                         /* tag expired */
                         if (prev != NULL) {
                             tde = iter;
                             prev->next = iter->next;
                             iter = iter->next;
                             SCFree(tde);
-                            (void) SC_ATOMIC_SUB(num_tags, 1);
+                            (void)SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
                             FlowSetStorageById(p->flow, flow_tag_id, iter->next);
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);
-                            (void) SC_ATOMIC_SUB(num_tags, 1);
+                            (void)SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         }
                     } else if (flag_added == 0) {
@@ -310,21 +309,20 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
                 case DETECT_TAG_METRIC_BYTES:
                     if (iter->bytes > iter->count) {
                         /* tag expired */
-                        SCLogDebug("flow tag expired: bytes %u > %u",
-                            iter->bytes, iter->count);
+                        SCLogDebug("flow tag expired: bytes %u > %u", iter->bytes, iter->count);
                         if (prev != NULL) {
                             tde = iter;
                             prev->next = iter->next;
                             iter = iter->next;
                             SCFree(tde);
-                            (void) SC_ATOMIC_SUB(num_tags, 1);
+                            (void)SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
                             FlowSetStorageById(p->flow, flow_tag_id, iter->next);
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);
-                            (void) SC_ATOMIC_SUB(num_tags, 1);
+                            (void)SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         }
                     } else if (flag_added == 0) {
@@ -338,23 +336,22 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
                     /* last_ts handles this metric, but also a generic time based
                      * expiration to prevent dead sessions/hosts */
                     if (iter->last_ts - iter->first_ts > iter->count) {
-                        SCLogDebug("flow tag expired: %u - %u = %u > %u",
-                            iter->last_ts, iter->first_ts,
-                            (iter->last_ts - iter->first_ts), iter->count);
+                        SCLogDebug("flow tag expired: %u - %u = %u > %u", iter->last_ts,
+                                iter->first_ts, (iter->last_ts - iter->first_ts), iter->count);
                         /* tag expired */
                         if (prev != NULL) {
                             tde = iter;
                             prev->next = iter->next;
                             iter = iter->next;
                             SCFree(tde);
-                            (void) SC_ATOMIC_SUB(num_tags, 1);
+                            (void)SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
                             FlowSetStorageById(p->flow, flow_tag_id, iter->next);
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);
-                            (void) SC_ATOMIC_SUB(num_tags, 1);
+                            (void)SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         }
                     } else if (flag_added == 0) {
@@ -365,7 +362,6 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
                     }
                     break;
             }
-
         }
 
         prev = iter;
@@ -410,13 +406,13 @@ static void TagHandlePacketHost(Host *host, Packet *p)
                             prev->next = iter->next;
                             iter = iter->next;
                             SCFree(tde);
-                            (void) SC_ATOMIC_SUB(num_tags, 1);
+                            (void)SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);
-                            (void) SC_ATOMIC_SUB(num_tags, 1);
+                            (void)SC_ATOMIC_SUB(num_tags, 1);
                             HostSetStorageById(host, host_tag_id, iter);
                             continue;
                         }
@@ -436,13 +432,13 @@ static void TagHandlePacketHost(Host *host, Packet *p)
                             prev->next = iter->next;
                             iter = iter->next;
                             SCFree(tde);
-                            (void) SC_ATOMIC_SUB(num_tags, 1);
+                            (void)SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);
-                            (void) SC_ATOMIC_SUB(num_tags, 1);
+                            (void)SC_ATOMIC_SUB(num_tags, 1);
                             HostSetStorageById(host, host_tag_id, iter);
                             continue;
                         }
@@ -457,22 +453,21 @@ static void TagHandlePacketHost(Host *host, Packet *p)
                     /* last_ts handles this metric, but also a generic time based
                      * expiration to prevent dead sessions/hosts */
                     if (iter->last_ts - iter->first_ts > iter->count) {
-                        SCLogDebug("host tag expired: %u - %u = %u > %u",
-                            iter->last_ts, iter->first_ts,
-                            (iter->last_ts - iter->first_ts), iter->count);
+                        SCLogDebug("host tag expired: %u - %u = %u > %u", iter->last_ts,
+                                iter->first_ts, (iter->last_ts - iter->first_ts), iter->count);
                         /* tag expired */
                         if (prev != NULL) {
                             tde = iter;
                             prev->next = iter->next;
                             iter = iter->next;
                             SCFree(tde);
-                            (void) SC_ATOMIC_SUB(num_tags, 1);
+                            (void)SC_ATOMIC_SUB(num_tags, 1);
                             continue;
                         } else {
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);
-                            (void) SC_ATOMIC_SUB(num_tags, 1);
+                            (void)SC_ATOMIC_SUB(num_tags, 1);
                             HostSetStorageById(host, host_tag_id, iter);
                             continue;
                         }
@@ -484,7 +479,6 @@ static void TagHandlePacketHost(Host *host, Packet *p)
                     }
                     break;
             }
-
         }
 
         prev = iter;
@@ -520,8 +514,7 @@ static Host *GetLockedDstHost(Packet *p)
  * \param p packet
  *
  */
-void TagHandlePacket(DetectEngineCtx *de_ctx,
-                     DetectEngineThreadCtx *det_ctx, Packet *p)
+void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     SCEnter();
 
@@ -593,7 +586,7 @@ int TagTimeoutCheck(Host *host, SCTime_t ts)
             tmp = tde->next;
 
             SCFree(tde);
-            (void) SC_ATOMIC_SUB(num_tags, 1);
+            (void)SC_ATOMIC_SUB(num_tags, 1);
         } else {
             HostSetStorageById(host, host_tag_id, tmp->next);
 
@@ -601,7 +594,7 @@ int TagTimeoutCheck(Host *host, SCTime_t ts)
             tmp = tde->next;
 
             SCFree(tde);
-            (void) SC_ATOMIC_SUB(num_tags, 1);
+            (void)SC_ATOMIC_SUB(num_tags, 1);
         }
     }
     return retval;
@@ -612,7 +605,7 @@ int TagTimeoutCheck(Host *host, SCTime_t ts)
 /**
  * \test host tagging: packets
  */
-static int DetectTagTestPacket01 (void)
+static int DetectTagTestPacket01(void)
 {
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
@@ -620,47 +613,30 @@ static int DetectTagTestPacket01 (void)
     uint16_t buf_len2 = strlen((char *)buf2);
 
     Packet *p[7];
-    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.9",
-                              41424, 80);
-    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.9",
-                              41424, 80);
-    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.1", "192.168.1.9",
-                              41424, 80);
-    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.1", "192.168.1.11",
-                              41424, 80);
-    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.11",
-                              41424, 80);
+    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.9", 41424, 80);
+    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.9", 41424, 80);
+    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.1", "192.168.1.9", 41424, 80);
+    p[5] = UTHBuildPacketReal(
+            buf2, buf_len2, IPPROTO_TCP, "192.168.1.1", "192.168.1.11", 41424, 80);
+    p[6] = UTHBuildPacketReal(
+            buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.11", 41424, 80);
 
     const char *sigs[5];
-    sigs[0]= "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:host,3,packets,src; sid:1;)";
-    sigs[1]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"Hi all\"; tag:host,4,packets,dst; sid:2;)";
-    sigs[2]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
-    sigs[3]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
-    sigs[4]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
+    sigs[0] = "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; "
+              "tag:host,3,packets,src; sid:1;)";
+    sigs[1] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"Hi all\"; "
+              "tag:host,4,packets,dst; sid:2;)";
+    sigs[2] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
+    sigs[3] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
+    sigs[4] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
 
     /* Please, Notice that tagged data goes with sig_id = 1 and tag sig generator = 2 */
-    uint32_t sid[5] = {1,2,3,4,5};
+    uint32_t sid[5] = { 1, 2, 3, 4, 5 };
 
-    int32_t results[7][5] = {
-                              {1, 1, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0}
-                             };
+    int32_t results[7][5] = { { 1, 1, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } };
     StorageInit();
     TagInitCtx();
     StorageFinalize();
@@ -702,7 +678,7 @@ static int DetectTagTestPacket01 (void)
 /**
  * \test host tagging: seconds
  */
-static int DetectTagTestPacket02 (void)
+static int DetectTagTestPacket02(void)
 {
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
@@ -725,52 +701,35 @@ static int DetectTagTestPacket02 (void)
     de_ctx->flags |= DE_QUIET;
 
     Packet *p[7];
-    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.9",
-                              41424, 80);
-    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.9",
-                              41424, 80);
-    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.1", "192.168.1.9",
-                              41424, 80);
-    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.1", "192.168.1.11",
-                              41424, 80);
-    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.11",
-                              41424, 80);
+    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.9", 41424, 80);
+    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.9", 41424, 80);
+    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.1", "192.168.1.9", 41424, 80);
+    p[5] = UTHBuildPacketReal(
+            buf2, buf_len2, IPPROTO_TCP, "192.168.1.1", "192.168.1.11", 41424, 80);
+    p[6] = UTHBuildPacketReal(
+            buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.11", 41424, 80);
 
     const char *sigs[5];
-    sigs[0]= "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:host,3,seconds,src; sid:1;)";
-    sigs[1]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"Hi all\"; tag:host,8,seconds,dst; sid:2;)";
-    sigs[2]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
-    sigs[3]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
-    sigs[4]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
+    sigs[0] = "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; "
+              "tag:host,3,seconds,src; sid:1;)";
+    sigs[1] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"Hi all\"; "
+              "tag:host,8,seconds,dst; sid:2;)";
+    sigs[2] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
+    sigs[3] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
+    sigs[4] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
 
     /* Please, Notice that tagged data goes with sig_id = 1 and tag sig generator = 2 */
-    uint32_t sid[5] = {1,2,3,4,5};
+    uint32_t sid[5] = { 1, 2, 3, 4, 5 };
     int numsigs = 5;
 
     FAIL_IF(UTHAppendSigs(de_ctx, sigs, numsigs) == 0);
 
-    //de_ctx->flags |= DE_QUIET;
+    // de_ctx->flags |= DE_QUIET;
 
-    int32_t results[7][5] = {
-                              {1, 1, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0}
-                             };
+    int32_t results[7][5] = { { 1, 1, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } };
 
     int num_packets = 7;
     SigGroupBuild(de_ctx);
@@ -804,7 +763,7 @@ static int DetectTagTestPacket02 (void)
 /**
  * \test host tagging: bytes
  */
-static int DetectTagTestPacket03 (void)
+static int DetectTagTestPacket03(void)
 {
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
@@ -828,50 +787,33 @@ static int DetectTagTestPacket03 (void)
     de_ctx->flags |= DE_QUIET;
 
     Packet *p[7];
-    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.9",
-                              41424, 80);
-    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.9",
-                              41424, 80);
-    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.1", "192.168.1.9",
-                              41424, 80);
-    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.1", "192.168.1.11",
-                              41424, 80);
-    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.11",
-                              41424, 80);
+    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.9", 41424, 80);
+    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.9", 41424, 80);
+    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.1", "192.168.1.9", 41424, 80);
+    p[5] = UTHBuildPacketReal(
+            buf2, buf_len2, IPPROTO_TCP, "192.168.1.1", "192.168.1.11", 41424, 80);
+    p[6] = UTHBuildPacketReal(
+            buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.11", 41424, 80);
 
     const char *sigs[5];
-    sigs[0]= "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:host, 150, bytes, src; sid:1;)";
-    sigs[1]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"Hi all\"; tag:host, 150, bytes, dst; sid:2;)";
-    sigs[2]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
-    sigs[3]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
-    sigs[4]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
+    sigs[0] = "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:host, "
+              "150, bytes, src; sid:1;)";
+    sigs[1] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"Hi all\"; tag:host, "
+              "150, bytes, dst; sid:2;)";
+    sigs[2] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
+    sigs[3] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
+    sigs[4] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
 
     /* Please, Notice that tagged data goes with sig_id = 1 and tag sig generator = 2 */
-    uint32_t sid[5] = {1,2,3,4,5};
+    uint32_t sid[5] = { 1, 2, 3, 4, 5 };
     int numsigs = 5;
 
     FAIL_IF(UTHAppendSigs(de_ctx, sigs, numsigs) == 0);
 
-    int32_t results[7][5] = {
-                              {1, 1, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0}
-                             };
+    int32_t results[7][5] = { { 1, 1, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } };
 
     int num_packets = 7;
     SigGroupBuild(de_ctx);
@@ -903,7 +845,7 @@ static int DetectTagTestPacket03 (void)
 /**
  * \test session tagging: packets
  */
-static int DetectTagTestPacket04 (void)
+static int DetectTagTestPacket04(void)
 {
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
@@ -941,50 +883,30 @@ static int DetectTagTestPacket04 (void)
     de_ctx->flags |= DE_QUIET;
 
     Packet *p[7];
-    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.1", "192.168.1.5",
-                              80, 41424);
-    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.1", "192.168.1.5",
-                              80, 41424);
-    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              80, 41424);
+    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.1", "192.168.1.5", 80, 41424);
+    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.1", "192.168.1.5", 80, 41424);
+    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 80, 41424);
 
     const char *sigs[5];
-    sigs[0]= "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:session,4,packets; sid:1;)";
-    sigs[1]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"blahblah\"; sid:2;)";
-    sigs[2]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
-    sigs[3]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
-    sigs[4]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
+    sigs[0] = "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; "
+              "tag:session,4,packets; sid:1;)";
+    sigs[1] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"blahblah\"; sid:2;)";
+    sigs[2] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
+    sigs[3] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
+    sigs[4] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
 
     /* Please, Notice that tagged data goes with sig_id = 1 and tag sig generator = 2 */
-    uint32_t sid[5] = {1,2,3,4,5};
+    uint32_t sid[5] = { 1, 2, 3, 4, 5 };
     int numsigs = 5;
 
     FAIL_IF(UTHAppendSigs(de_ctx, sigs, numsigs) == 0);
 
-    int32_t results[7][5] = {
-                              {1, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0}
-                             };
+    int32_t results[7][5] = { { 1, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } };
 
     int num_packets = 7;
     SigGroupBuild(de_ctx);
@@ -1024,7 +946,7 @@ static int DetectTagTestPacket04 (void)
 /**
  * \test session tagging: seconds
  */
-static int DetectTagTestPacket05 (void)
+static int DetectTagTestPacket05(void)
 {
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
@@ -1062,50 +984,30 @@ static int DetectTagTestPacket05 (void)
     de_ctx->flags |= DE_QUIET;
 
     Packet *p[7];
-    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.1", "192.168.1.5",
-                              80, 41424);
-    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.1", "192.168.1.5",
-                              80, 41424);
-    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              80, 41424);
+    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.1", "192.168.1.5", 80, 41424);
+    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.1", "192.168.1.5", 80, 41424);
+    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 80, 41424);
 
     const char *sigs[5];
-    sigs[0]= "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:session,8,seconds; sid:1;)";
-    sigs[1]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"blahblah\"; sid:2;)";
-    sigs[2]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
-    sigs[3]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
-    sigs[4]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
+    sigs[0] = "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; "
+              "tag:session,8,seconds; sid:1;)";
+    sigs[1] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"blahblah\"; sid:2;)";
+    sigs[2] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
+    sigs[3] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
+    sigs[4] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
 
     /* Please, Notice that tagged data goes with sig_id = 1 and tag sig generator = 2 */
-    uint32_t sid[5] = {1,2,3,4,5};
+    uint32_t sid[5] = { 1, 2, 3, 4, 5 };
     int numsigs = 5;
 
     FAIL_IF(UTHAppendSigs(de_ctx, sigs, numsigs) == 0);
 
-    int32_t results[7][5] = {
-                              {1, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0}
-                             };
+    int32_t results[7][5] = { { 1, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } };
 
     int num_packets = 7;
     SigGroupBuild(de_ctx);
@@ -1150,7 +1052,7 @@ static int DetectTagTestPacket05 (void)
 /**
  * \test session tagging: bytes
  */
-static int DetectTagTestPacket06 (void)
+static int DetectTagTestPacket06(void)
 {
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
@@ -1188,50 +1090,30 @@ static int DetectTagTestPacket06 (void)
     de_ctx->flags |= DE_QUIET;
 
     Packet *p[7];
-    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.1", "192.168.1.5",
-                              80, 41424);
-    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.1", "192.168.1.5",
-                              80, 41424);
-    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              80, 41424);
+    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[3] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.1", "192.168.1.5", 80, 41424);
+    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.1", "192.168.1.5", 80, 41424);
+    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 80, 41424);
 
     const char *sigs[5];
-    sigs[0]= "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:session,150,bytes; sid:1;)";
-    sigs[1]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"blahblah\"; sid:2;)";
-    sigs[2]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
-    sigs[3]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
-    sigs[4]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
+    sigs[0] = "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; "
+              "tag:session,150,bytes; sid:1;)";
+    sigs[1] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"blahblah\"; sid:2;)";
+    sigs[2] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
+    sigs[3] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
+    sigs[4] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
 
     /* Please, Notice that tagged data goes with sig_id = 1 and tag sig generator = 2 */
-    uint32_t sid[5] = {1,2,3,4,5};
+    uint32_t sid[5] = { 1, 2, 3, 4, 5 };
     int numsigs = 5;
 
     FAIL_IF(UTHAppendSigs(de_ctx, sigs, numsigs) == 0);
 
-    int32_t results[7][5] = {
-                              {1, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0}
-                             };
+    int32_t results[7][5] = { { 1, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } };
 
     int num_packets = 7;
     SigGroupBuild(de_ctx);
@@ -1272,7 +1154,7 @@ static int DetectTagTestPacket06 (void)
 /**
  * \test session tagging: bytes, where a 2nd match makes us tag more
  */
-static int DetectTagTestPacket07 (void)
+static int DetectTagTestPacket07(void)
 {
     uint8_t *buf = (uint8_t *)"Hi all!";
     uint8_t *buf2 = (uint8_t *)"lalala!";
@@ -1310,49 +1192,29 @@ static int DetectTagTestPacket07 (void)
     de_ctx->flags |= DE_QUIET;
 
     Packet *p[7];
-    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[3] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              41424, 80);
-    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.1", "192.168.1.5",
-                              80, 41424);
-    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.1", "192.168.1.5",
-                              80, 41424);
-    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP,
-                              "192.168.1.5", "192.168.1.1",
-                              80, 41424);
+    p[0] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[1] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[2] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[3] = UTHBuildPacketReal(buf, buf_len, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 41424, 80);
+    p[4] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.1", "192.168.1.5", 80, 41424);
+    p[5] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.1", "192.168.1.5", 80, 41424);
+    p[6] = UTHBuildPacketReal(buf2, buf_len2, IPPROTO_TCP, "192.168.1.5", "192.168.1.1", 80, 41424);
 
     const char *sigs[5];
-    sigs[0]= "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; tag:session,150,bytes; sid:1;)";
-    sigs[1]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"blahblah\"; sid:2;)";
-    sigs[2]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
-    sigs[3]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
-    sigs[4]= "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
+    sigs[0] = "alert tcp any any -> any any (msg:\"Testing tag 1\"; content:\"Hi all\"; "
+              "tag:session,150,bytes; sid:1;)";
+    sigs[1] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"blahblah\"; sid:2;)";
+    sigs[2] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:3;)";
+    sigs[3] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:4;)";
+    sigs[4] = "alert tcp any any -> any any (msg:\"Testing tag 2\"; content:\"no match\"; sid:5;)";
 
     /* Please, Notice that tagged data goes with sig_id = 1 and tag sig generator = 2 */
-    uint32_t sid[5] = {1,2,3,4,5};
+    uint32_t sid[5] = { 1, 2, 3, 4, 5 };
     int numsigs = 5;
 
     FAIL_IF(UTHAppendSigs(de_ctx, sigs, numsigs) == 0);
-    int32_t results[7][5] = {
-                              {1, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {1, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0},
-                              {0, 0, 0, 0, 0}
-                             };
+    int32_t results[7][5] = { { 1, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 },
+        { 1, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 } };
 
     int num_packets = 7;
     SigGroupBuild(de_ctx);
@@ -1407,4 +1269,3 @@ void DetectEngineTagRegisterTests(void)
     UtRegisterTest("DetectTagTestPacket07", DetectTagTestPacket07);
 #endif /* UNITTESTS */
 }
-

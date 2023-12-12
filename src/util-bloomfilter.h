@@ -33,7 +33,8 @@ typedef struct BloomFilter_ {
 } BloomFilter;
 
 /* prototypes */
-BloomFilter *BloomFilterInit(uint32_t, uint8_t, uint32_t (*Hash)(const void *, uint16_t, uint8_t, uint32_t));
+BloomFilter *BloomFilterInit(
+        uint32_t, uint8_t, uint32_t (*Hash)(const void *, uint16_t, uint8_t, uint32_t));
 void BloomFilterFree(BloomFilter *);
 void BloomFilterPrint(BloomFilter *);
 int BloomFilterAdd(BloomFilter *, const void *, uint16_t);
@@ -54,7 +55,7 @@ static inline int BloomFilterTest(const BloomFilter *bf, const void *data, uint1
 
     for (iter = 0; iter < bf->hash_iterations; iter++) {
         hash = bf->Hash(data, datalen, iter, bf->bitarray_size);
-        if (!(bf->bitarray[hash/8] & (1<<hash%8))) {
+        if (!(bf->bitarray[hash / 8] & (1 << hash % 8))) {
             hit = 0;
             break;
         }
@@ -64,4 +65,3 @@ static inline int BloomFilterTest(const BloomFilter *bf, const void *data, uint1
 }
 
 #endif /* __BLOOMFILTER_H__ */
-

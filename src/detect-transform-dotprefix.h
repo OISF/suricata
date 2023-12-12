@@ -25,6 +25,6 @@
 #define __DETECT_TRANSFORM_DOTPREFIX_H__
 
 /* prototypes */
-void DetectTransformDotPrefixRegister (void);
+void DetectTransformDotPrefixRegister(void);
 
 #endif /* __DETECT_TRANSFORM_DOTPREFIX_H__ */

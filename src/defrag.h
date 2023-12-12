@@ -44,31 +44,31 @@ typedef struct DefragContext_ {
  * Storage for an individual fragment.
  */
 typedef struct Frag_ {
-    uint16_t offset;            /**< The offset of this fragment, already
-                                 *   multiplied by 8. */
+    uint16_t offset; /**< The offset of this fragment, already
+                      *   multiplied by 8. */
 
     uint32_t len; /**< The length of this fragment. */
 
-    uint8_t hlen;               /**< The length of this fragments IP header. */
+    uint8_t hlen; /**< The length of this fragments IP header. */
 
-    uint8_t more_frags:4;       /**< More frags? */
-    uint8_t skip:4;             /**< Skip this fragment during re-assembly. */
+    uint8_t more_frags : 4; /**< More frags? */
+    uint8_t skip : 4;       /**< Skip this fragment during re-assembly. */
 
-    uint16_t ip_hdr_offset;     /**< Offset in the packet where the IP
-                                 * header starts. */
-    uint16_t frag_hdr_offset;   /**< Offset in the packet where the frag
-                                 * header starts. */
+    uint16_t ip_hdr_offset;   /**< Offset in the packet where the IP
+                               * header starts. */
+    uint16_t frag_hdr_offset; /**< Offset in the packet where the frag
+                               * header starts. */
 
-    uint16_t data_offset;       /**< Offset to the packet data. */
-    uint16_t data_len;          /**< Length of data. */
+    uint16_t data_offset; /**< Offset to the packet data. */
+    uint16_t data_len;    /**< Length of data. */
 
-    uint16_t ltrim;             /**< Number of leading bytes to trim when
-                                 * re-assembling the packet. */
+    uint16_t ltrim; /**< Number of leading bytes to trim when
+                     * re-assembling the packet. */
 
-    uint8_t *pkt;               /**< The actual packet. */
+    uint8_t *pkt; /**< The actual packet. */
 
 #ifdef DEBUG
-    uint64_t pcap_cnt;          /**< pcap_cnt of original packet */
+    uint64_t pcap_cnt; /**< pcap_cnt of original packet */
 #endif
 
     RB_ENTRY(Frag_) rb;
@@ -85,7 +85,7 @@ RB_PROTOTYPE(IP_FRAGMENTS, Frag_, rb, DefragRbFragCompare);
  */
 typedef struct DefragTracker_ {
     SCMutex lock; /**< Mutex for locking list operations on
-                           * this tracker. */
+                   * this tracker. */
 
     uint16_t vlan_id[VLAN_MAX_LAYERS]; /**< VLAN ID tracker applies to. */
 
@@ -106,8 +106,8 @@ typedef struct DefragTracker_ {
     Address src_addr; /**< Source address for this tracker. */
     Address dst_addr; /**< Destination address for this tracker. */
 
-    SCTime_t timeout;       /**< When this tracker will timeout. */
-    uint32_t host_timeout;  /**< Host timeout, statically assigned from the yaml */
+    SCTime_t timeout;      /**< When this tracker will timeout. */
+    uint32_t host_timeout; /**< Host timeout, statically assigned from the yaml */
 
     /** use cnt, reference counter */
     SC_ATOMIC_DECLARE(unsigned int, use_cnt);

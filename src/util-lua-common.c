@@ -96,7 +96,8 @@ void LuaPushTableKeyValueString(lua_State *luastate, const char *key, const char
     lua_settable(luastate, -3);
 }
 
-void LuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8_t *value, size_t len)
+void LuaPushTableKeyValueArray(
+        lua_State *luastate, const char *key, const uint8_t *value, size_t len)
 {
     lua_pushstring(luastate, key);
     LuaPushStringBuffer(luastate, value, len);
@@ -113,12 +114,12 @@ void LuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8
  */
 static int LuaCallbackStreamingBufferPushToStack(lua_State *luastate, const LuaStreamingBuffer *b)
 {
-    //PrintRawDataFp(stdout, (uint8_t *)b->data, b->data_len);
-    lua_pushlstring (luastate, (const char *)b->data, b->data_len);
-    lua_pushboolean (luastate, (b->flags & OUTPUT_STREAMING_FLAG_OPEN));
-    lua_pushboolean (luastate, (b->flags & OUTPUT_STREAMING_FLAG_CLOSE));
-    lua_pushboolean (luastate, (b->flags & OUTPUT_STREAMING_FLAG_TOSERVER));
-    lua_pushboolean (luastate, (b->flags & OUTPUT_STREAMING_FLAG_TOCLIENT));
+    // PrintRawDataFp(stdout, (uint8_t *)b->data, b->data_len);
+    lua_pushlstring(luastate, (const char *)b->data, b->data_len);
+    lua_pushboolean(luastate, (b->flags & OUTPUT_STREAMING_FLAG_OPEN));
+    lua_pushboolean(luastate, (b->flags & OUTPUT_STREAMING_FLAG_CLOSE));
+    lua_pushboolean(luastate, (b->flags & OUTPUT_STREAMING_FLAG_TOSERVER));
+    lua_pushboolean(luastate, (b->flags & OUTPUT_STREAMING_FLAG_TOCLIENT));
     return 5;
 }
 
@@ -145,7 +146,7 @@ static int LuaCallbackStreamingBuffer(lua_State *luastate)
  */
 static int LuaCallbackPacketPayloadPushToStackFromPacket(lua_State *luastate, const Packet *p)
 {
-    lua_pushlstring (luastate, (const char *)p->payload, p->payload_len);
+    lua_pushlstring(luastate, (const char *)p->payload, p->payload_len);
     return 1;
 }
 
@@ -189,7 +190,7 @@ static int LuaCallbackTimeStringPushToStackFromPacket(lua_State *luastate, const
 {
     char timebuf[64];
     CreateTimeString(p->ts, timebuf, sizeof(timebuf));
-    lua_pushstring (luastate, timebuf);
+    lua_pushstring(luastate, timebuf);
     return 1;
 }
 
@@ -265,7 +266,7 @@ static int LuaCallbackTimeStringPushToStackFromFlow(lua_State *luastate, const F
 {
     char timebuf[64];
     CreateTimeString(flow->startts, timebuf, sizeof(timebuf));
-    lua_pushstring (luastate, timebuf);
+    lua_pushstring(luastate, timebuf);
     return 1;
 }
 
@@ -346,8 +347,8 @@ static int LuaCallbackTuplePushToStackFromPacket(lua_State *luastate, const Pack
         PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
     }
 
-    lua_pushstring (luastate, srcip);
-    lua_pushstring (luastate, dstip);
+    lua_pushstring(luastate, srcip);
+    lua_pushstring(luastate, dstip);
 
     /* proto and ports (or type/code) */
     lua_pushinteger(luastate, p->proto);
@@ -409,8 +410,8 @@ static int LuaCallbackTuplePushToStackFromFlow(lua_State *luastate, const Flow *
         PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, sizeof(dstip));
     }
 
-    lua_pushstring (luastate, srcip);
-    lua_pushstring (luastate, dstip);
+    lua_pushstring(luastate, srcip);
+    lua_pushstring(luastate, dstip);
 
     /* proto and ports (or type/code) */
     lua_pushinteger(luastate, f->proto);
@@ -825,13 +826,13 @@ static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const Fil
     lua_pushinteger(luastate, tx_id);
     lua_pushlstring(luastate, (char *)file->name, file->name_len);
     lua_pushinteger(luastate, FileTrackedSize(file));
-    lua_pushstring (luastate,
+    lua_pushstring(luastate,
 #ifdef HAVE_MAGIC
-                    file->magic
+            file->magic
 #else
-                    "nomagic"
+            "nomagic"
 #endif
-                    );
+    );
     lua_pushstring(luastate, md5ptr);
     lua_pushstring(luastate, sha1ptr);
     lua_pushstring(luastate, sha256ptr);
@@ -882,8 +883,8 @@ static int LuaCallbackFileStatePushToStackFromFile(lua_State *luastate, const Fi
             break;
     }
 
-    lua_pushstring (luastate, state);
-    lua_pushboolean (luastate, file->flags & FILE_STORED);
+    lua_pushstring(luastate, state);
+    lua_pushboolean(luastate, file->flags & FILE_STORED);
     return 2;
 }
 
@@ -911,9 +912,9 @@ static int LuaCallbackFileState(lua_State *luastate)
 static int LuaCallbackThreadInfoPushToStackFromThreadVars(lua_State *luastate, const ThreadVars *tv)
 {
     unsigned long tid = SCGetThreadIdLong();
-    lua_pushinteger (luastate, (lua_Integer)tid);
-    lua_pushstring (luastate, tv->name);
-    lua_pushstring (luastate, tv->thread_group_name);
+    lua_pushinteger(luastate, (lua_Integer)tid);
+    lua_pushstring(luastate, tv->name);
+    lua_pushstring(luastate, tv->thread_group_name);
     return 3;
 }
 
@@ -974,7 +975,6 @@ int LuaRegisterFunctions(lua_State *luastate)
     lua_pushcfunction(luastate, LuaCallbackLogError);
     lua_setglobal(luastate, "SCLogError");
 
-
     lua_pushcfunction(luastate, LuaCallbackRuleIds);
     lua_setglobal(luastate, "SCRuleIds");
     lua_pushcfunction(luastate, LuaCallbackRuleAction);
@@ -1004,7 +1004,6 @@ int LuaStateNeedProto(lua_State *luastate, AppProto alproto)
     flow_alproto = flow->alproto;
 
     return (alproto == flow_alproto);
-
 }
 
 #endif /* HAVE_LUA */

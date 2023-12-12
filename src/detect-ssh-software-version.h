@@ -26,11 +26,10 @@
 
 typedef struct DetectSshSoftwareVersionData_ {
     uint8_t *software_ver; /** ssh version to match */
-    uint16_t len; /** ssh version length to match */
+    uint16_t len;          /** ssh version length to match */
 } DetectSshSoftwareVersionData;
 
 /* prototypes */
 void DetectSshSoftwareVersionRegister(void);
 
 #endif /* __DETECT_SSH_SOFTWARE_VERSION_H__ */
-

@@ -133,7 +133,7 @@
 #endif
 
 #if HAVE_SCHED_H
-#include <sched.h>     /* for sched_setaffinity(2) */
+#include <sched.h> /* for sched_setaffinity(2) */
 #endif
 
 #ifdef HAVE_TYPE_U_LONG_NOT_DEFINED
@@ -288,30 +288,33 @@ typedef unsigned char u_char;
 /* we need this to stringify the defines which are supplied at compiletime see:
    http://gcc.gnu.org/onlinedocs/gcc-3.4.1/cpp/Stringification.html#Stringification */
 #define xstr(s) str(s)
-#define str(s) #s
+#define str(s)  #s
 
-#if CPPCHECK==1
-    #define BUG_ON(x) if (((x))) exit(1)
+#if CPPCHECK == 1
+#define BUG_ON(x)                                                                                  \
+    if (((x)))                                                                                     \
+    exit(1)
 #else
-    #if defined HAVE_ASSERT_H && !defined NDEBUG
-    #include <assert.h>
-        #define BUG_ON(x) assert(!(x))
-    #else
-        #define BUG_ON(x) do {      \
-            if (((x))) {            \
-                fprintf(stderr, "BUG at %s:%d(%s)\n", __FILE__, __LINE__, __func__);    \
-                fprintf(stderr, "Code: '%s'\n", xstr((x)));                             \
-                exit(EXIT_FAILURE); \
-            }                       \
-        } while(0)
-    #endif
+#if defined HAVE_ASSERT_H && !defined NDEBUG
+#include <assert.h>
+#define BUG_ON(x) assert(!(x))
+#else
+#define BUG_ON(x)                                                                                  \
+    do {                                                                                           \
+        if (((x))) {                                                                               \
+            fprintf(stderr, "BUG at %s:%d(%s)\n", __FILE__, __LINE__, __func__);                   \
+            fprintf(stderr, "Code: '%s'\n", xstr((x)));                                            \
+            exit(EXIT_FAILURE);                                                                    \
+        }                                                                                          \
+    } while (0)
+#endif
 #endif
 
 /** type for the internal signature id. Since it's used in the matching engine
  *  extensively keeping this as small as possible reduces the overall memory
  *  footprint of the engine. Set to uint32_t if the engine needs to support
  *  more than 64k sigs. */
-//#define SigIntId uint16_t
+// #define SigIntId uint16_t
 #define SigIntId uint32_t
 
 /** same for pattern id's */
@@ -319,85 +322,84 @@ typedef unsigned char u_char;
 
 /** FreeBSD does not define __WORDSIZE, but it uses __LONG_BIT */
 #ifndef __WORDSIZE
-    #ifdef __LONG_BIT
-        #define __WORDSIZE __LONG_BIT
-    #else
-        #ifdef LONG_BIT
-            #define __WORDSIZE LONG_BIT
-        #endif
-    #endif
+#ifdef __LONG_BIT
+#define __WORDSIZE __LONG_BIT
+#else
+#ifdef LONG_BIT
+#define __WORDSIZE LONG_BIT
+#endif
+#endif
 #endif
 
 /** Windows does not define __WORDSIZE, but it uses __X86__ */
 #ifndef __WORDSIZE
-    #if defined(__X86__) || defined(_X86_) || defined(_M_IX86)
-        #define __WORDSIZE 32
-    #else
-        #if defined(__X86_64__) || defined(_X86_64_) || \
-            defined(__x86_64)   || defined(__x86_64__) || \
-            defined(__amd64)    || defined(__amd64__)
-            #define __WORDSIZE 64
-        #endif
-    #endif
+#if defined(__X86__) || defined(_X86_) || defined(_M_IX86)
+#define __WORDSIZE 32
+#else
+#if defined(__X86_64__) || defined(_X86_64_) || defined(__x86_64) || defined(__x86_64__) ||        \
+        defined(__amd64) || defined(__amd64__)
+#define __WORDSIZE 64
+#endif
+#endif
 #endif
 
 /** if not succesful yet try the data models */
 #ifndef __WORDSIZE
-    #if defined(_ILP32) || defined(__ILP32__)
-        #define __WORDSIZE 32
-    #endif
-    #if defined(_LP64) || defined(__LP64__)
-        #define __WORDSIZE 64
-    #endif
+#if defined(_ILP32) || defined(__ILP32__)
+#define __WORDSIZE 32
+#endif
+#if defined(_LP64) || defined(__LP64__)
+#define __WORDSIZE 64
+#endif
 #endif
 
 #ifndef __WORDSIZE
-    #warning Defaulting to __WORDSIZE 32
-    #define __WORDSIZE 32
+#warning Defaulting to __WORDSIZE 32
+#define __WORDSIZE 32
 #endif
 
 /** darwin doesn't defined __BYTE_ORDER and friends, but BYTE_ORDER */
 #ifndef __BYTE_ORDER
-    #if defined(BYTE_ORDER)
-        #define __BYTE_ORDER BYTE_ORDER
-    #elif defined(__BYTE_ORDER__)
-        #define __BYTE_ORDER __BYTE_ORDER__
-    #else
-        #error "byte order not detected"
-    #endif
+#if defined(BYTE_ORDER)
+#define __BYTE_ORDER BYTE_ORDER
+#elif defined(__BYTE_ORDER__)
+#define __BYTE_ORDER __BYTE_ORDER__
+#else
+#error "byte order not detected"
+#endif
 #endif
 
 #ifndef __LITTLE_ENDIAN
-    #if defined(LITTLE_ENDIAN)
-        #define __LITTLE_ENDIAN LITTLE_ENDIAN
-    #elif defined(__ORDER_LITTLE_ENDIAN__)
-        #define __LITTLE_ENDIAN __ORDER_LITTLE_ENDIAN__
-    #endif
+#if defined(LITTLE_ENDIAN)
+#define __LITTLE_ENDIAN LITTLE_ENDIAN
+#elif defined(__ORDER_LITTLE_ENDIAN__)
+#define __LITTLE_ENDIAN __ORDER_LITTLE_ENDIAN__
+#endif
 #endif
 
 #ifndef __BIG_ENDIAN
-    #if defined(BIG_ENDIAN)
-        #define __BIG_ENDIAN BIG_ENDIAN
-    #elif defined(__ORDER_BIG_ENDIAN__)
-        #define __BIG_ENDIAN __ORDER_BIG_ENDIAN__
-    #endif
+#if defined(BIG_ENDIAN)
+#define __BIG_ENDIAN BIG_ENDIAN
+#elif defined(__ORDER_BIG_ENDIAN__)
+#define __BIG_ENDIAN __ORDER_BIG_ENDIAN__
+#endif
 #endif
 
 #if !defined(__LITTLE_ENDIAN) && !defined(__BIG_ENDIAN)
-    #error "byte order: can't figure out big or little"
+#error "byte order: can't figure out big or little"
 #endif
 
 #ifndef MIN
-#define MIN(x, y) (((x)<(y))?(x):(y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
 #ifndef MAX
-#define MAX(x, y) (((x)<(y))?(y):(x))
+#define MAX(x, y) (((x) < (y)) ? (y) : (x))
 #endif
 
 #define BIT_U8(n)  ((uint8_t)(1 << (n)))
 #define BIT_U16(n) ((uint16_t)(1 << (n)))
-#define BIT_U32(n) (1UL  << (n))
+#define BIT_U32(n) (1UL << (n))
 #define BIT_U64(n) (1ULL << (n))
 
 #define WARN_UNUSED __attribute__((warn_unused_result))
@@ -410,26 +412,26 @@ typedef unsigned char u_char;
 #define ATTR_FMT_PRINTF(x, y)
 #endif
 
-#define SCNtohl(x) (uint32_t)ntohl((x))
-#define SCNtohs(x) (uint16_t)ntohs((x))
+#define SCNtohl(x) (uint32_t) ntohl((x))
+#define SCNtohs(x) (uint16_t) ntohs((x))
 
 /* swap flags if one of them is set, otherwise do nothing. */
-#define SWAP_FLAGS(flags, a, b)                     \
-    do {                                            \
-        if (((flags) & ((a)|(b))) == (a)) {         \
-            (flags) &= ~(a);                        \
-            (flags) |= (b);                         \
-        } else if (((flags) & ((a)|(b))) == (b)) {  \
-            (flags) &= ~(b);                        \
-            (flags) |= (a);                         \
-        }                                           \
-    } while(0)
+#define SWAP_FLAGS(flags, a, b)                                                                    \
+    do {                                                                                           \
+        if (((flags) & ((a) | (b))) == (a)) {                                                      \
+            (flags) &= ~(a);                                                                       \
+            (flags) |= (b);                                                                        \
+        } else if (((flags) & ((a) | (b))) == (b)) {                                               \
+            (flags) &= ~(b);                                                                       \
+            (flags) |= (a);                                                                        \
+        }                                                                                          \
+    } while (0)
 
-#define SWAP_VARS(type, a, b)           \
-    do {                                \
-        type t = (a);                   \
-        (a) = (b);                      \
-        (b) = t;                        \
+#define SWAP_VARS(type, a, b)                                                                      \
+    do {                                                                                           \
+        type t = (a);                                                                              \
+        (a) = (b);                                                                                 \
+        (b) = t;                                                                                   \
     } while (0)
 
 #include <ctype.h>
@@ -526,19 +528,19 @@ size_t strlcat(char *, const char *src, size_t siz);
 size_t strlcpy(char *dst, const char *src, size_t siz);
 #endif
 #ifndef HAVE_STRPTIME
-char *strptime(const char * __restrict, const char * __restrict, struct tm * __restrict);
+char *strptime(const char *__restrict, const char *__restrict, struct tm *__restrict);
 #endif
 
 #ifndef HAVE_FWRITE_UNLOCKED
-#define SCFwriteUnlocked    fwrite
-#define SCFflushUnlocked    fflush
-#define SCClearErrUnlocked  clearerr
-#define SCFerrorUnlocked    ferror
+#define SCFwriteUnlocked   fwrite
+#define SCFflushUnlocked   fflush
+#define SCClearErrUnlocked clearerr
+#define SCFerrorUnlocked   ferror
 #else
-#define SCFwriteUnlocked    fwrite_unlocked
-#define SCFflushUnlocked    fflush_unlocked
-#define SCClearErrUnlocked  clearerr_unlocked
-#define SCFerrorUnlocked    ferror_unlocked
+#define SCFwriteUnlocked   fwrite_unlocked
+#define SCFflushUnlocked   fflush_unlocked
+#define SCClearErrUnlocked clearerr_unlocked
+#define SCFerrorUnlocked   ferror_unlocked
 #endif
 extern int coverage_unittests;
 extern int g_ut_modules;

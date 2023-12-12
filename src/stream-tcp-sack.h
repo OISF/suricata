@@ -42,6 +42,6 @@ int StreamTcpSackUpdatePacket(TcpStream *, Packet *);
 bool StreamTcpSackPacketIsOutdated(TcpStream *stream, Packet *p);
 void StreamTcpSackPruneList(TcpStream *);
 void StreamTcpSackFreeList(TcpStream *);
-void StreamTcpSackRegisterTests (void);
+void StreamTcpSackRegisterTests(void);
 
 #endif /* __STREAM_TCP_SACK_H__*/

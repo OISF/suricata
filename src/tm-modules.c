@@ -125,7 +125,6 @@ int TmModuleGetIDForTM(TmModule *tm)
     return -1;
 }
 
-
 void TmModuleRunInit(void)
 {
     TmModule *t;
@@ -177,7 +176,6 @@ void TmModuleRegisterTests(void)
 
         g_ut_modules++;
 
-
         if (t->RegisterTests == NULL) {
             if (coverage_unittests)
                 SCLogWarning("threading module %s has no unittest "
@@ -192,7 +190,9 @@ void TmModuleRegisterTests(void)
 }
 
 #ifdef PROFILING
-#define CASE_CODE(E)  case E: return #E
+#define CASE_CODE(E)                                                                               \
+    case E:                                                                                        \
+        return #E
 
 /**
  * \brief Maps the TmmId, to its string equivalent
@@ -201,53 +201,53 @@ void TmModuleRegisterTests(void)
  *
  * \retval string equivalent for the tmm id
  */
-const char * TmModuleTmmIdToString(TmmId id)
+const char *TmModuleTmmIdToString(TmmId id)
 {
     switch (id) {
-        CASE_CODE (TMM_FLOWWORKER);
-        CASE_CODE (TMM_RECEIVENFLOG);
-        CASE_CODE (TMM_DECODENFLOG);
-        CASE_CODE (TMM_DECODENFQ);
-        CASE_CODE (TMM_VERDICTNFQ);
-        CASE_CODE (TMM_RECEIVENFQ);
-        CASE_CODE (TMM_RECEIVEPCAP);
-        CASE_CODE (TMM_RECEIVEPCAPFILE);
-        CASE_CODE (TMM_DECODEPCAP);
-        CASE_CODE (TMM_DECODEPCAPFILE);
-        CASE_CODE (TMM_RECEIVEPFRING);
-        CASE_CODE (TMM_DECODEPFRING);
+        CASE_CODE(TMM_FLOWWORKER);
+        CASE_CODE(TMM_RECEIVENFLOG);
+        CASE_CODE(TMM_DECODENFLOG);
+        CASE_CODE(TMM_DECODENFQ);
+        CASE_CODE(TMM_VERDICTNFQ);
+        CASE_CODE(TMM_RECEIVENFQ);
+        CASE_CODE(TMM_RECEIVEPCAP);
+        CASE_CODE(TMM_RECEIVEPCAPFILE);
+        CASE_CODE(TMM_DECODEPCAP);
+        CASE_CODE(TMM_DECODEPCAPFILE);
+        CASE_CODE(TMM_RECEIVEPFRING);
+        CASE_CODE(TMM_DECODEPFRING);
         CASE_CODE(TMM_RECEIVEDPDK);
         CASE_CODE(TMM_DECODEDPDK);
-        CASE_CODE (TMM_RECEIVEPLUGIN);
-        CASE_CODE (TMM_DECODEPLUGIN);
-        CASE_CODE (TMM_RESPONDREJECT);
-        CASE_CODE (TMM_DECODEIPFW);
-        CASE_CODE (TMM_VERDICTIPFW);
-        CASE_CODE (TMM_RECEIVEIPFW);
-        CASE_CODE (TMM_RECEIVEERFFILE);
-        CASE_CODE (TMM_DECODEERFFILE);
-        CASE_CODE (TMM_RECEIVEERFDAG);
-        CASE_CODE (TMM_DECODEERFDAG);
-        CASE_CODE (TMM_RECEIVENAPATECH);
-        CASE_CODE (TMM_DECODENAPATECH);
-        CASE_CODE (TMM_RECEIVEAFP);
+        CASE_CODE(TMM_RECEIVEPLUGIN);
+        CASE_CODE(TMM_DECODEPLUGIN);
+        CASE_CODE(TMM_RESPONDREJECT);
+        CASE_CODE(TMM_DECODEIPFW);
+        CASE_CODE(TMM_VERDICTIPFW);
+        CASE_CODE(TMM_RECEIVEIPFW);
+        CASE_CODE(TMM_RECEIVEERFFILE);
+        CASE_CODE(TMM_DECODEERFFILE);
+        CASE_CODE(TMM_RECEIVEERFDAG);
+        CASE_CODE(TMM_DECODEERFDAG);
+        CASE_CODE(TMM_RECEIVENAPATECH);
+        CASE_CODE(TMM_DECODENAPATECH);
+        CASE_CODE(TMM_RECEIVEAFP);
         CASE_CODE(TMM_RECEIVEAFXDP);
-        CASE_CODE (TMM_ALERTPCAPINFO);
-        CASE_CODE (TMM_DECODEAFP);
+        CASE_CODE(TMM_ALERTPCAPINFO);
+        CASE_CODE(TMM_DECODEAFP);
         CASE_CODE(TMM_DECODEAFXDP);
-        CASE_CODE (TMM_STATSLOGGER);
-        CASE_CODE (TMM_FLOWMANAGER);
-        CASE_CODE (TMM_FLOWRECYCLER);
-        CASE_CODE (TMM_BYPASSEDFLOWMANAGER);
-        CASE_CODE (TMM_UNIXMANAGER);
-        CASE_CODE (TMM_DETECTLOADER);
-        CASE_CODE (TMM_RECEIVENETMAP);
-        CASE_CODE (TMM_DECODENETMAP);
-        CASE_CODE (TMM_RECEIVEWINDIVERT);
-        CASE_CODE (TMM_VERDICTWINDIVERT);
-        CASE_CODE (TMM_DECODEWINDIVERT);
+        CASE_CODE(TMM_STATSLOGGER);
+        CASE_CODE(TMM_FLOWMANAGER);
+        CASE_CODE(TMM_FLOWRECYCLER);
+        CASE_CODE(TMM_BYPASSEDFLOWMANAGER);
+        CASE_CODE(TMM_UNIXMANAGER);
+        CASE_CODE(TMM_DETECTLOADER);
+        CASE_CODE(TMM_RECEIVENETMAP);
+        CASE_CODE(TMM_DECODENETMAP);
+        CASE_CODE(TMM_RECEIVEWINDIVERT);
+        CASE_CODE(TMM_VERDICTWINDIVERT);
+        CASE_CODE(TMM_DECODEWINDIVERT);
 
-        CASE_CODE (TMM_SIZE);
+        CASE_CODE(TMM_SIZE);
     }
     return "<unknown>";
 }

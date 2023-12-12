@@ -21,7 +21,6 @@
  * @{
  */
 
-
 /** \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
@@ -74,15 +73,30 @@
  */
 static int DetectHttpClientBodyParserTest01(void)
 {
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; http_client_body; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; nocase; http_client_body; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; endswith; http_client_body; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; startswith; http_client_body; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; startswith; endswith; http_client_body; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; "
+                                  "http_client_body; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; "
+                                  "nocase; http_client_body; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; "
+                                  "endswith; http_client_body; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; "
+                                  "startswith; http_client_body; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; "
+                                  "startswith; endswith; http_client_body; sid:1;)",
+            true));
 
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; rawbytes; http_client_body; sid:1;)", false));
-    FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (flow:to_server; http_client_body; sid:1;)", false));
-    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_server; content:\"abc\"; http_client_body; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; content:\"abc\"; "
+                                  "rawbytes; http_client_body; sid:1;)",
+            false));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert tcp any any -> any any (flow:to_server; http_client_body; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_server; content:\"abc\"; "
+                                  "http_client_body; sid:1;)",
+            false));
     PASS;
 }
 
@@ -91,27 +105,45 @@ static int DetectHttpClientBodyParserTest01(void)
  */
 static int DetectHttpClientBodyParserTest02(void)
 {
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; content:\"abc\"; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; content:\"abc\"; nocase; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; content:\"abc\"; endswith; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; content:\"abc\"; startswith; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; content:\"abc\"; startswith; endswith; sid:1;)", true));
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; bsize:10; sid:1;)", true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; "
+                                  "http.request_body; content:\"abc\"; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; "
+                                  "http.request_body; content:\"abc\"; nocase; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; "
+                                  "http.request_body; content:\"abc\"; endswith; sid:1;)",
+            true));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; "
+                                  "http.request_body; content:\"abc\"; startswith; sid:1;)",
+            true));
+    FAIL_IF_NOT(
+            UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; "
+                              "content:\"abc\"; startswith; endswith; sid:1;)",
+                    true));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert http any any -> any any (flow:to_server; http.request_body; bsize:10; sid:1;)",
+            true));
 
-    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; http.request_body; content:\"abc\"; rawbytes; sid:1;)", false));
-    FAIL_IF_NOT(UTHParseSignature("alert tcp any any -> any any (flow:to_server; http.request_body; sid:1;)", false));
-    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_server; http.request_body; content:\"abc\"; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert http any any -> any any (flow:to_server; "
+                                  "http.request_body; content:\"abc\"; rawbytes; sid:1;)",
+            false));
+    FAIL_IF_NOT(UTHParseSignature(
+            "alert tcp any any -> any any (flow:to_server; http.request_body; sid:1;)", false));
+    FAIL_IF_NOT(UTHParseSignature("alert tls any any -> any any (flow:to_server; "
+                                  "http.request_body; content:\"abc\"; sid:1;)",
+            false));
     PASS;
 }
 
 struct TestSteps {
     const uint8_t *input;
-    size_t input_size;      /**< if 0 strlen will be used */
-    int direction;          /**< STREAM_TOSERVER, STREAM_TOCLIENT */
+    size_t input_size; /**< if 0 strlen will be used */
+    int direction;     /**< STREAM_TOSERVER, STREAM_TOCLIENT */
     int expect;
 };
 
-static int RunTest (struct TestSteps *steps, const char *sig, const char *yaml)
+static int RunTest(struct TestSteps *steps, const char *sig, const char *yaml)
 {
     TcpSession ssn;
     Flow f;
@@ -162,7 +194,7 @@ static int RunTest (struct TestSteps *steps, const char *sig, const char *yaml)
         p->flow = &f;
         p->flowflags = (b->direction == STREAM_TOSERVER) ? FLOW_PKT_TOSERVER : FLOW_PKT_TOCLIENT;
         p->flowflags |= FLOW_PKT_ESTABLISHED;
-        p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+        p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
         int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, b->direction,
                 (uint8_t *)b->input,
@@ -173,7 +205,7 @@ static int RunTest (struct TestSteps *steps, const char *sig, const char *yaml)
         SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
         int match = PacketAlertCheck(p, 1);
-        FAIL_IF_NOT (b->expect == match);
+        FAIL_IF_NOT(b->expect == match);
 
         UTHFreePackets(&p, 1);
         b++;
@@ -197,522 +229,527 @@ static int RunTest (struct TestSteps *steps, const char *sig, const char *yaml)
 static int DetectEngineHttpClientBodyTest01(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"body1This\"; http_client_body; sid:1;)";
+    const char *sig =
+            "alert http any any -> any any (content:\"body1This\"; http_client_body; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest02(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 19\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 19\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; offset:5; sid:1;)";
+    const char *sig =
+            "alert http any any -> any any (content:\"body1\"; http_client_body; offset:5; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest03(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; offset:16; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; "
+                      "offset:16; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest04(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:!\"body1\"; http_client_body; offset:16; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:!\"body1\"; http_client_body; "
+                      "offset:16; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest05(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; depth:25; sid:1;)";
+    const char *sig =
+            "alert http any any -> any any (content:\"body1\"; http_client_body; depth:25; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest06(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:!\"body1\"; http_client_body; depth:25; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:!\"body1\"; http_client_body; "
+                      "depth:25; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest07(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:!\"body1\"; http_client_body; depth:15; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:!\"body1\"; http_client_body; "
+                      "depth:15; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest08(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"This is dummy body1This is dummy message body2\"; http_client_body; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"This is dummy body1This is dummy "
+                      "message body2\"; http_client_body; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest09(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; content:\"This\"; http_client_body; within:5; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; "
+                      "content:\"This\"; http_client_body; within:5; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest10(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; content:!\"boom\"; http_client_body; within:5; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; "
+                      "content:!\"boom\"; http_client_body; within:5; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest11(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; content:\"boom\"; http_client_body; within:5; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; "
+                      "content:\"boom\"; http_client_body; within:5; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest12(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; content:!\"This\"; http_client_body; within:5; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; "
+                      "content:!\"This\"; http_client_body; within:5; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest13(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; content:\"dummy\"; http_client_body; distance:5; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; "
+                      "content:\"dummy\"; http_client_body; distance:5; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest14(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; content:!\"dummy\"; http_client_body; distance:10; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; "
+                      "content:!\"dummy\"; http_client_body; distance:10; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest15(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; content:\"dummy\"; http_client_body; distance:10; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; "
+                      "content:\"dummy\"; http_client_body; distance:10; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest16(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; content:!\"dummy\"; http_client_body; distance:5; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; "
+                      "content:!\"dummy\"; http_client_body; distance:5; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest17(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 19\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 19\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; content:\"bambu\"; http_client_body; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; "
+                      "content:\"bambu\"; http_client_body; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest18(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 19\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 19\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; content:\"bambu\"; http_client_body; fast_pattern; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"body1\"; http_client_body; "
+                      "content:\"bambu\"; http_client_body; fast_pattern; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest19(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 19\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 19\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"bambu\"; http_client_body; content:\"is\"; http_client_body; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"bambu\"; http_client_body; "
+                      "content:\"is\"; http_client_body; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest20(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 19\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 19\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"is\"; http_client_body; fast_pattern; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"is\"; http_client_body; "
+                      "fast_pattern; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest21(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:!\"dummy\"; http_client_body; within:7; sid:1;)";
+    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:!\"dummy\"; "
+                      "http_client_body; within:7; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest22(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:!\"dummy\"; within:7; http_client_body; sid:1;)";
+    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:!\"dummy\"; within:7; "
+                      "http_client_body; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest23(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:!\"dummy\"; distance:3; http_client_body; sid:1;)";
+    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:!\"dummy\"; "
+                      "distance:3; http_client_body; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest24(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:!\"dummy\"; distance:13; http_client_body; sid:1;)";
+    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:!\"dummy\"; "
+                      "distance:13; http_client_body; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest25(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:\"dummy\"; within:15; http_client_body; sid:1;)";
+    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:\"dummy\"; within:15; "
+                      "http_client_body; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest26(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:\"dummy\"; within:10; http_client_body; sid:1;)";
+    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:\"dummy\"; within:10; "
+                      "http_client_body; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest27(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 1 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 1 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:\"dummy\"; distance:8; http_client_body; sid:1;)";
+    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:\"dummy\"; "
+                      "distance:8; http_client_body; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
 static int DetectEngineHttpClientBodyTest28(void)
 {
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:\"dummy\"; distance:14; http_client_body; sid:1;)";
+    const char *sig = "alert http any any -> any any (pcre:/body1/P; content:\"dummy\"; "
+                      "distance:14; http_client_body; sid:1;)";
     return RunTest(steps, sig, NULL);
 }
 
@@ -725,27 +762,26 @@ static int DetectEngineHttpClientBodyTest29(void)
     if (unlikely(http_buf == NULL))
         return 0;
     for (int i = 0; i < TOTAL_REQUESTS; i++) {
-        memcpy(http_buf + i * strlen(request_buffer), request_buffer,
-               strlen(request_buffer));
+        memcpy(http_buf + i * strlen(request_buffer), request_buffer, strlen(request_buffer));
     }
     uint32_t http_buf_len = TOTAL_REQUESTS * strlen(request_buffer);
 #undef TOTAL_REQUESTS
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)http_buf,
-            (size_t)http_buf_len, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)http_buf, (size_t)http_buf_len, STREAM_TOSERVER, 0 },
 
-        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 5\r\n"
-            "\r\n"
-            "dummy",
-            0, STREAM_TOCLIENT, 0 },
+        { (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 5\r\n"
+                           "\r\n"
+                           "dummy",
+                0, STREAM_TOCLIENT, 0 },
 
-        {   NULL, 0, 0, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"dummyone\"; fast_pattern:0,3; http_server_body; sid:1;)";
+    const char *sig = "alert http any any -> any any (content:\"dummyone\"; fast_pattern:0,3; "
+                      "http_server_body; sid:1;)";
     int result = RunTest(steps, sig, NULL);
     SCFree(http_buf);
     return result;
@@ -769,19 +805,19 @@ libhtp:\n\
     response-body-minimal-inspect-size: 0\n\
 ";
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"bags\"; within:4; http_client_body; sid:1;)";
+    const char *sig =
+            "alert http any any -> any any (content:\"bags\"; within:4; http_client_body; sid:1;)";
     return RunTest(steps, sig, yaml);
 }
 
@@ -804,19 +840,19 @@ libhtp:\n\
 ";
 
     struct TestSteps steps[] = {
-        {   (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
-            "Host: www.openinfosecfoundation.org\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 46\r\n"
-            "\r\n"
-            "This is dummy body1",
-            0, STREAM_TOSERVER, 0 },
-        {   (const uint8_t *)"This is dummy message body2",
-            0, STREAM_TOSERVER, 0 },
-        {   NULL, 0, 0, 0 },
+        { (const uint8_t *)"GET /index.html HTTP/1.1\r\n"
+                           "Host: www.openinfosecfoundation.org\r\n"
+                           "Content-Type: text/html\r\n"
+                           "Content-Length: 46\r\n"
+                           "\r\n"
+                           "This is dummy body1",
+                0, STREAM_TOSERVER, 0 },
+        { (const uint8_t *)"This is dummy message body2", 0, STREAM_TOSERVER, 0 },
+        { NULL, 0, 0, 0 },
     };
 
-    const char *sig = "alert http any any -> any any (content:\"bags\"; depth:4; http_client_body; sid:1;)";
+    const char *sig =
+            "alert http any any -> any any (content:\"bags\"; depth:4; http_client_body; sid:1;)";
     return RunTest(steps, sig, yaml);
 }
 
@@ -923,14 +959,14 @@ static int DetectHttpClientBodyTest06(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 26\r\n"
-        "\r\n"
-        "This is dummy message body";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                         "Gecko/20091221 Firefox/3.5.7\r\n"
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 26\r\n"
+                         "\r\n"
+                         "This is dummy message body";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -949,7 +985,7 @@ static int DetectHttpClientBodyTest06(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1019,16 +1055,15 @@ static int DetectHttpClientBodyTest07(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 54\r\n"
-        "\r\n"
-        "This is dummy message body1";
-    uint8_t http2_buf[] =
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 54\r\n"
+                          "\r\n"
+                          "This is dummy message body1";
+    uint8_t http2_buf[] = "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -1049,11 +1084,11 @@ static int DetectHttpClientBodyTest07(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1137,16 +1172,15 @@ static int DetectHttpClientBodyTest08(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1";
-    uint8_t http2_buf[] =
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1";
+    uint8_t http2_buf[] = "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -1167,11 +1201,11 @@ static int DetectHttpClientBodyTest08(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1258,16 +1292,15 @@ static int DetectHttpClientBodyTest09(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy body1";
-    uint8_t http2_buf[] =
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy body1";
+    uint8_t http2_buf[] = "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -1288,11 +1321,11 @@ static int DetectHttpClientBodyTest09(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1379,16 +1412,15 @@ static int DetectHttpClientBodyTest10(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http1_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 46\r\n"
-        "\r\n"
-        "This is dummy bodY1";
-    uint8_t http2_buf[] =
-        "This is dummy message body2";
+    uint8_t http1_buf[] = "GET /index.html HTTP/1.0\r\n"
+                          "Host: www.openinfosecfoundation.org\r\n"
+                          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                          "Gecko/20091221 Firefox/3.5.7\r\n"
+                          "Content-Type: text/html\r\n"
+                          "Content-Length: 46\r\n"
+                          "\r\n"
+                          "This is dummy bodY1";
+    uint8_t http2_buf[] = "This is dummy message body2";
     uint32_t http1_len = sizeof(http1_buf) - 1;
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
@@ -1409,11 +1441,11 @@ static int DetectHttpClientBodyTest10(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1499,14 +1531,14 @@ static int DetectHttpClientBodyTest11(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 26\r\n"
-        "\r\n"
-        "This is dummy message body";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                         "Gecko/20091221 Firefox/3.5.7\r\n"
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 26\r\n"
+                         "\r\n"
+                         "This is dummy message body";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1525,7 +1557,7 @@ static int DetectHttpClientBodyTest11(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1594,14 +1626,14 @@ static int DetectHttpClientBodyTest12(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 26\r\n"
-        "\r\n"
-        "This is dummy message body";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                         "Gecko/20091221 Firefox/3.5.7\r\n"
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 26\r\n"
+                         "\r\n"
+                         "This is dummy message body";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1620,7 +1652,7 @@ static int DetectHttpClientBodyTest12(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1689,14 +1721,14 @@ static int DetectHttpClientBodyTest13(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
     Flow f;
-    uint8_t http_buf[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 55\r\n"
-        "\r\n"
-        "longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend";
+    uint8_t http_buf[] = "GET /index.html HTTP/1.0\r\n"
+                         "Host: www.openinfosecfoundation.org\r\n"
+                         "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) "
+                         "Gecko/20091221 Firefox/3.5.7\r\n"
+                         "Content-Type: text/html\r\n"
+                         "Content-Length: 55\r\n"
+                         "\r\n"
+                         "longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend";
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -1715,7 +1747,7 @@ static int DetectHttpClientBodyTest13(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1812,7 +1844,7 @@ static int DetectHttpClientBodyTest14(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -1824,12 +1856,18 @@ static int DetectHttpClientBodyTest14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"POST\"; http_method; content:\"Mozilla\"; http_header; content:\"dummy\"; http_cookie; content:\"one\"; http_client_body; sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (content:\"POST\"; http_method; "
+            "content:\"Mozilla\"; http_header; content:\"dummy\"; http_cookie; "
+            "content:\"one\"; http_client_body; sid:1; rev:1;)");
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"Firefox\"; http_header; content:\"dummy2\"; http_cookie; content:\"two\"; http_client_body; sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (content:\"GET\"; http_method; "
+            "content:\"Firefox\"; http_header; content:\"dummy2\"; http_cookie; "
+            "content:\"two\"; http_client_body; sid:2; rev:1;)");
     if (s == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -2009,7 +2047,7 @@ static int DetectHttpClientBodyTest15(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -2021,12 +2059,18 @@ static int DetectHttpClientBodyTest15(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"POST\"; http_method; content:\"Mozilla\"; http_header; content:\"dummy\"; http_cookie; content:\"one\"; http_client_body; sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (content:\"POST\"; http_method; "
+            "content:\"Mozilla\"; http_header; content:\"dummy\"; http_cookie; "
+            "content:\"one\"; http_client_body; sid:1; rev:1;)");
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"Firefox\"; http_header; content:\"dummy2\"; http_cookie; content:\"two\"; http_client_body; sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (content:\"GET\"; http_method; "
+            "content:\"Firefox\"; http_header; content:\"dummy2\"; http_cookie; "
+            "content:\"two\"; http_client_body; sid:2; rev:1;)");
     if (s == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -2153,7 +2197,7 @@ static int DetectHttpClientBodyTest15(void)
     htp_tx_t *t1 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, 0);
     htp_tx_t *t2 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP1, htp_state, 1);
 
-    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(t1);
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(t1);
 
     HtpBodyChunk *cur = htud->request_body.first;
     if (htud->request_body.first == NULL) {
@@ -2161,14 +2205,13 @@ static int DetectHttpClientBodyTest15(void)
         goto end;
     }
 
-    if (StreamingBufferSegmentCompareRawData(htud->request_body.sb, &cur->sbseg,
-                (uint8_t *)"Body one!!", 10) != 1)
-    {
+    if (StreamingBufferSegmentCompareRawData(
+                htud->request_body.sb, &cur->sbseg, (uint8_t *)"Body one!!", 10) != 1) {
         SCLogDebug("Body data in t1 is not correctly set: ");
         goto end;
     }
 
-    htud = (HtpTxUserData *) htp_tx_get_user_data(t2);
+    htud = (HtpTxUserData *)htp_tx_get_user_data(t2);
 
     cur = htud->request_body.first;
     if (htud->request_body.first == NULL) {
@@ -2176,9 +2219,8 @@ static int DetectHttpClientBodyTest15(void)
         goto end;
     }
 
-    if (StreamingBufferSegmentCompareRawData(htud->request_body.sb, &cur->sbseg,
-                (uint8_t *)"Body two!!", 10) != 1)
-    {
+    if (StreamingBufferSegmentCompareRawData(
+                htud->request_body.sb, &cur->sbseg, (uint8_t *)"Body two!!", 10) != 1) {
         SCLogDebug("Body data in t1 is not correctly set: ");
         goto end;
     }
@@ -2287,7 +2329,7 @@ static int DetectHttpClientBodyTest24(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
@@ -2321,24 +2363,22 @@ static int DetectHttpClientBodyTest24(void)
                     ->prev->ctx;
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (pd1->flags != 0 ||
-        cd2->flags != 0 || memcmp(cd2->content, "four", cd2->content_len) != 0 ||
-        hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
-        memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
-        hcbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN) ||
-        memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
+    if (pd1->flags != 0 || cd2->flags != 0 || memcmp(cd2->content, "four", cd2->content_len) != 0 ||
+            hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+            memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
+            hcbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN) ||
+            memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
         goto end;
     }
 
-    if (!DETECT_CONTENT_IS_SINGLE(cd2) ||
-        DETECT_CONTENT_IS_SINGLE(hcbd1) ||
-        DETECT_CONTENT_IS_SINGLE(hcbd2)) {
+    if (!DETECT_CONTENT_IS_SINGLE(cd2) || DETECT_CONTENT_IS_SINGLE(hcbd1) ||
+            DETECT_CONTENT_IS_SINGLE(hcbd2)) {
         goto end;
     }
 
     result = 1;
 
- end:
+end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2348,7 +2388,7 @@ static int DetectHttpClientBodyTest25(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
@@ -2383,25 +2423,23 @@ static int DetectHttpClientBodyTest25(void)
                     ->prev->ctx;
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (pd1->flags != DETECT_PCRE_RELATIVE_NEXT ||
-        cd2->flags != DETECT_CONTENT_DISTANCE ||
-        memcmp(cd2->content, "four", cd2->content_len) != 0 ||
-        hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
-        memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
-        hcbd2->flags != DETECT_CONTENT_DISTANCE ||
-        memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
+    if (pd1->flags != DETECT_PCRE_RELATIVE_NEXT || cd2->flags != DETECT_CONTENT_DISTANCE ||
+            memcmp(cd2->content, "four", cd2->content_len) != 0 ||
+            hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+            memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
+            hcbd2->flags != DETECT_CONTENT_DISTANCE ||
+            memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
         goto end;
     }
 
-    if (DETECT_CONTENT_IS_SINGLE(cd2) ||
-        DETECT_CONTENT_IS_SINGLE(hcbd1) ||
-        DETECT_CONTENT_IS_SINGLE(hcbd2)) {
+    if (DETECT_CONTENT_IS_SINGLE(cd2) || DETECT_CONTENT_IS_SINGLE(hcbd1) ||
+            DETECT_CONTENT_IS_SINGLE(hcbd2)) {
         goto end;
     }
 
     result = 1;
 
- end:
+end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2411,7 +2449,7 @@ static int DetectHttpClientBodyTest26(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
@@ -2446,26 +2484,24 @@ static int DetectHttpClientBodyTest26(void)
                     ->prev->ctx;
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
-        cd2->flags != DETECT_CONTENT_DISTANCE ||
-        memcmp(cd2->content, "four", cd2->content_len) != 0 ||
-        hcbd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_OFFSET) ||
-        memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
-        hcbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN) ||
-        memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
-        printf ("failed: http_client_body incorrect flags");
+    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) || cd2->flags != DETECT_CONTENT_DISTANCE ||
+            memcmp(cd2->content, "four", cd2->content_len) != 0 ||
+            hcbd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_OFFSET) ||
+            memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
+            hcbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN) ||
+            memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
+        printf("failed: http_client_body incorrect flags");
         goto end;
     }
 
-    if (DETECT_CONTENT_IS_SINGLE(cd2) ||
-        DETECT_CONTENT_IS_SINGLE(hcbd1) ||
-        DETECT_CONTENT_IS_SINGLE(hcbd2)) {
+    if (DETECT_CONTENT_IS_SINGLE(cd2) || DETECT_CONTENT_IS_SINGLE(hcbd1) ||
+            DETECT_CONTENT_IS_SINGLE(hcbd2)) {
         goto end;
     }
 
     result = 1;
 
- end:
+end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2475,7 +2511,7 @@ static int DetectHttpClientBodyTest27(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
@@ -2488,7 +2524,7 @@ static int DetectHttpClientBodyTest27(void)
 
     result = 1;
 
- end:
+end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2498,7 +2534,7 @@ static int DetectHttpClientBodyTest28(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
@@ -2532,25 +2568,22 @@ static int DetectHttpClientBodyTest28(void)
                     ->prev->ctx;
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
-        cd2->flags != DETECT_CONTENT_DISTANCE ||
-        memcmp(cd2->content, "four", cd2->content_len) != 0 ||
-        hcbd1->flags != 0 ||
-        memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
-        hcbd2->flags != DETECT_CONTENT_DEPTH ||
-        memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
+    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) || cd2->flags != DETECT_CONTENT_DISTANCE ||
+            memcmp(cd2->content, "four", cd2->content_len) != 0 || hcbd1->flags != 0 ||
+            memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
+            hcbd2->flags != DETECT_CONTENT_DEPTH ||
+            memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
         goto end;
     }
 
-    if (DETECT_CONTENT_IS_SINGLE(cd2) ||
-        !DETECT_CONTENT_IS_SINGLE(hcbd1) ||
-        DETECT_CONTENT_IS_SINGLE(hcbd2)) {
+    if (DETECT_CONTENT_IS_SINGLE(cd2) || !DETECT_CONTENT_IS_SINGLE(hcbd1) ||
+            DETECT_CONTENT_IS_SINGLE(hcbd2)) {
         goto end;
     }
 
     result = 1;
 
- end:
+end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2560,7 +2593,7 @@ static int DetectHttpClientBodyTest29(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
@@ -2589,15 +2622,15 @@ static int DetectHttpClientBodyTest29(void)
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
     if (hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
-        memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
-        hcbd2->flags != DETECT_CONTENT_DISTANCE ||
-        memcmp(hcbd2->content, "two", hcbd1->content_len) != 0) {
+            memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
+            hcbd2->flags != DETECT_CONTENT_DISTANCE ||
+            memcmp(hcbd2->content, "two", hcbd1->content_len) != 0) {
         goto end;
     }
 
     result = 1;
 
- end:
+end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2607,7 +2640,7 @@ static int DetectHttpClientBodyTest30(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
@@ -2636,15 +2669,15 @@ static int DetectHttpClientBodyTest30(void)
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
     if (hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
-        memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
-        hcbd2->flags != DETECT_CONTENT_WITHIN ||
-        memcmp(hcbd2->content, "two", hcbd1->content_len) != 0) {
+            memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
+            hcbd2->flags != DETECT_CONTENT_WITHIN ||
+            memcmp(hcbd2->content, "two", hcbd1->content_len) != 0) {
         goto end;
     }
 
     result = 1;
 
- end:
+end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2654,7 +2687,7 @@ static int DetectHttpClientBodyTest31(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
@@ -2665,7 +2698,7 @@ static int DetectHttpClientBodyTest31(void)
 
     result = 1;
 
- end:
+end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2675,7 +2708,7 @@ static int DetectHttpClientBodyTest32(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
@@ -2686,7 +2719,7 @@ static int DetectHttpClientBodyTest32(void)
 
     result = 1;
 
- end:
+end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2696,7 +2729,7 @@ static int DetectHttpClientBodyTest33(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
@@ -2706,7 +2739,7 @@ static int DetectHttpClientBodyTest33(void)
 
     result = 1;
 
- end:
+end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2716,7 +2749,7 @@ static int DetectHttpClientBodyTest34(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
@@ -2753,15 +2786,14 @@ static int DetectHttpClientBodyTest34(void)
                     ->prev->ctx;
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
-        hcbd2->flags != DETECT_CONTENT_WITHIN ||
-        memcmp(hcbd2->content, "two", hcbd2->content_len) != 0) {
+    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) || hcbd2->flags != DETECT_CONTENT_WITHIN ||
+            memcmp(hcbd2->content, "two", hcbd2->content_len) != 0) {
         goto end;
     }
 
     result = 1;
 
- end:
+end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2771,7 +2803,7 @@ static int DetectHttpClientBodyTest35(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
@@ -2807,15 +2839,14 @@ static int DetectHttpClientBodyTest35(void)
                     ->prev->ctx;
     DetectPcreData *pd2 =
             (DetectPcreData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (pd2->flags != (DETECT_PCRE_RELATIVE) ||
-        hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
-        memcmp(hcbd1->content, "two", hcbd1->content_len) != 0) {
+    if (pd2->flags != (DETECT_PCRE_RELATIVE) || hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+            memcmp(hcbd1->content, "two", hcbd1->content_len) != 0) {
         goto end;
     }
 
     result = 1;
 
- end:
+end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2825,7 +2856,7 @@ static int DetectHttpClientBodyTest36(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
@@ -2862,15 +2893,14 @@ static int DetectHttpClientBodyTest36(void)
                     ->prev->ctx;
     DetectContentData *hcbd2 =
             (DetectContentData *)DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id)->ctx;
-    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
-        hcbd2->flags != DETECT_CONTENT_DISTANCE ||
-        memcmp(hcbd2->content, "two", hcbd2->content_len) != 0) {
+    if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) || hcbd2->flags != DETECT_CONTENT_DISTANCE ||
+            memcmp(hcbd2->content, "two", hcbd2->content_len) != 0) {
         goto end;
     }
 
     result = 1;
 
- end:
+end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2881,10 +2911,9 @@ static int DetectHttpClientBodyIsdataatParseTest(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx,
-            "alert tcp any any -> any any ("
-            "content:\"one\"; http_client_body; "
-            "isdataat:!4,relative; sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any ("
+                                                 "content:\"one\"; http_client_body; "
+                                                 "isdataat:!4,relative; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigMatch *sm = DetectBufferGetLastSigMatch(s, g_http_client_body_buffer_id);
@@ -2935,72 +2964,40 @@ void DetectHttpClientBodyRegisterTests(void)
     UtRegisterTest("DetectHttpClientBodyTest35", DetectHttpClientBodyTest35);
     UtRegisterTest("DetectHttpClientBodyTest36", DetectHttpClientBodyTest36);
 
-    UtRegisterTest("DetectHttpClientBodyIsdataatParseTest",
-            DetectHttpClientBodyIsdataatParseTest);
+    UtRegisterTest("DetectHttpClientBodyIsdataatParseTest", DetectHttpClientBodyIsdataatParseTest);
 
-    UtRegisterTest("DetectEngineHttpClientBodyTest01",
-                   DetectEngineHttpClientBodyTest01);
-    UtRegisterTest("DetectEngineHttpClientBodyTest02",
-                   DetectEngineHttpClientBodyTest02);
-    UtRegisterTest("DetectEngineHttpClientBodyTest03",
-                   DetectEngineHttpClientBodyTest03);
-    UtRegisterTest("DetectEngineHttpClientBodyTest04",
-                   DetectEngineHttpClientBodyTest04);
-    UtRegisterTest("DetectEngineHttpClientBodyTest05",
-                   DetectEngineHttpClientBodyTest05);
-    UtRegisterTest("DetectEngineHttpClientBodyTest06",
-                   DetectEngineHttpClientBodyTest06);
-    UtRegisterTest("DetectEngineHttpClientBodyTest07",
-                   DetectEngineHttpClientBodyTest07);
-    UtRegisterTest("DetectEngineHttpClientBodyTest08",
-                   DetectEngineHttpClientBodyTest08);
-    UtRegisterTest("DetectEngineHttpClientBodyTest09",
-                   DetectEngineHttpClientBodyTest09);
-    UtRegisterTest("DetectEngineHttpClientBodyTest10",
-                   DetectEngineHttpClientBodyTest10);
-    UtRegisterTest("DetectEngineHttpClientBodyTest11",
-                   DetectEngineHttpClientBodyTest11);
-    UtRegisterTest("DetectEngineHttpClientBodyTest12",
-                   DetectEngineHttpClientBodyTest12);
-    UtRegisterTest("DetectEngineHttpClientBodyTest13",
-                   DetectEngineHttpClientBodyTest13);
-    UtRegisterTest("DetectEngineHttpClientBodyTest14",
-                   DetectEngineHttpClientBodyTest14);
-    UtRegisterTest("DetectEngineHttpClientBodyTest15",
-                   DetectEngineHttpClientBodyTest15);
-    UtRegisterTest("DetectEngineHttpClientBodyTest16",
-                   DetectEngineHttpClientBodyTest16);
-    UtRegisterTest("DetectEngineHttpClientBodyTest17",
-                   DetectEngineHttpClientBodyTest17);
-    UtRegisterTest("DetectEngineHttpClientBodyTest18",
-                   DetectEngineHttpClientBodyTest18);
-    UtRegisterTest("DetectEngineHttpClientBodyTest19",
-                   DetectEngineHttpClientBodyTest19);
-    UtRegisterTest("DetectEngineHttpClientBodyTest20",
-                   DetectEngineHttpClientBodyTest20);
-    UtRegisterTest("DetectEngineHttpClientBodyTest21",
-                   DetectEngineHttpClientBodyTest21);
-    UtRegisterTest("DetectEngineHttpClientBodyTest22",
-                   DetectEngineHttpClientBodyTest22);
-    UtRegisterTest("DetectEngineHttpClientBodyTest23",
-                   DetectEngineHttpClientBodyTest23);
-    UtRegisterTest("DetectEngineHttpClientBodyTest24",
-                   DetectEngineHttpClientBodyTest24);
-    UtRegisterTest("DetectEngineHttpClientBodyTest25",
-                   DetectEngineHttpClientBodyTest25);
-    UtRegisterTest("DetectEngineHttpClientBodyTest26",
-                   DetectEngineHttpClientBodyTest26);
-    UtRegisterTest("DetectEngineHttpClientBodyTest27",
-                   DetectEngineHttpClientBodyTest27);
-    UtRegisterTest("DetectEngineHttpClientBodyTest28",
-                   DetectEngineHttpClientBodyTest28);
-    UtRegisterTest("DetectEngineHttpClientBodyTest29",
-                   DetectEngineHttpClientBodyTest29);
+    UtRegisterTest("DetectEngineHttpClientBodyTest01", DetectEngineHttpClientBodyTest01);
+    UtRegisterTest("DetectEngineHttpClientBodyTest02", DetectEngineHttpClientBodyTest02);
+    UtRegisterTest("DetectEngineHttpClientBodyTest03", DetectEngineHttpClientBodyTest03);
+    UtRegisterTest("DetectEngineHttpClientBodyTest04", DetectEngineHttpClientBodyTest04);
+    UtRegisterTest("DetectEngineHttpClientBodyTest05", DetectEngineHttpClientBodyTest05);
+    UtRegisterTest("DetectEngineHttpClientBodyTest06", DetectEngineHttpClientBodyTest06);
+    UtRegisterTest("DetectEngineHttpClientBodyTest07", DetectEngineHttpClientBodyTest07);
+    UtRegisterTest("DetectEngineHttpClientBodyTest08", DetectEngineHttpClientBodyTest08);
+    UtRegisterTest("DetectEngineHttpClientBodyTest09", DetectEngineHttpClientBodyTest09);
+    UtRegisterTest("DetectEngineHttpClientBodyTest10", DetectEngineHttpClientBodyTest10);
+    UtRegisterTest("DetectEngineHttpClientBodyTest11", DetectEngineHttpClientBodyTest11);
+    UtRegisterTest("DetectEngineHttpClientBodyTest12", DetectEngineHttpClientBodyTest12);
+    UtRegisterTest("DetectEngineHttpClientBodyTest13", DetectEngineHttpClientBodyTest13);
+    UtRegisterTest("DetectEngineHttpClientBodyTest14", DetectEngineHttpClientBodyTest14);
+    UtRegisterTest("DetectEngineHttpClientBodyTest15", DetectEngineHttpClientBodyTest15);
+    UtRegisterTest("DetectEngineHttpClientBodyTest16", DetectEngineHttpClientBodyTest16);
+    UtRegisterTest("DetectEngineHttpClientBodyTest17", DetectEngineHttpClientBodyTest17);
+    UtRegisterTest("DetectEngineHttpClientBodyTest18", DetectEngineHttpClientBodyTest18);
+    UtRegisterTest("DetectEngineHttpClientBodyTest19", DetectEngineHttpClientBodyTest19);
+    UtRegisterTest("DetectEngineHttpClientBodyTest20", DetectEngineHttpClientBodyTest20);
+    UtRegisterTest("DetectEngineHttpClientBodyTest21", DetectEngineHttpClientBodyTest21);
+    UtRegisterTest("DetectEngineHttpClientBodyTest22", DetectEngineHttpClientBodyTest22);
+    UtRegisterTest("DetectEngineHttpClientBodyTest23", DetectEngineHttpClientBodyTest23);
+    UtRegisterTest("DetectEngineHttpClientBodyTest24", DetectEngineHttpClientBodyTest24);
+    UtRegisterTest("DetectEngineHttpClientBodyTest25", DetectEngineHttpClientBodyTest25);
+    UtRegisterTest("DetectEngineHttpClientBodyTest26", DetectEngineHttpClientBodyTest26);
+    UtRegisterTest("DetectEngineHttpClientBodyTest27", DetectEngineHttpClientBodyTest27);
+    UtRegisterTest("DetectEngineHttpClientBodyTest28", DetectEngineHttpClientBodyTest28);
+    UtRegisterTest("DetectEngineHttpClientBodyTest29", DetectEngineHttpClientBodyTest29);
 
-    UtRegisterTest("DetectEngineHttpClientBodyTest30",
-                   DetectEngineHttpClientBodyTest30);
-    UtRegisterTest("DetectEngineHttpClientBodyTest31",
-                   DetectEngineHttpClientBodyTest31);
+    UtRegisterTest("DetectEngineHttpClientBodyTest30", DetectEngineHttpClientBodyTest30);
+    UtRegisterTest("DetectEngineHttpClientBodyTest31", DetectEngineHttpClientBodyTest31);
 }
 
 #endif

@@ -28,10 +28,12 @@
 
 /* Feel free to add more macros */
 
-#define CLOCK_INIT          clock_t clo1, clo2; clo1 = clo2 = 0;
-#define CLOCK_START         clo1 = clock()
+#define CLOCK_INIT                                                                                 \
+    clock_t clo1, clo2;                                                                            \
+    clo1 = clo2 = 0;
+#define CLOCK_START clo1 = clock()
 
-#define CLOCK_END           clo2 = clock()
+#define CLOCK_END clo2 = clock()
 
 #define CLOCK_PRINT_SEC                                                                            \
     printf("Seconds spent: %.4fs\n", ((double)(clo2 - clo1) / (double)CLOCKS_PER_SEC))

@@ -26,7 +26,7 @@
  * \test DetectTtlParseTest01 is a test for setting up an valid ttl value.
  */
 
-static int DetectTtlParseTest01 (void)
+static int DetectTtlParseTest01(void)
 {
     DetectU8Data *ttld = DetectU8Parse("10");
     FAIL_IF_NULL(ttld);
@@ -41,7 +41,7 @@ static int DetectTtlParseTest01 (void)
  *       "<" operator.
  */
 
-static int DetectTtlParseTest02 (void)
+static int DetectTtlParseTest02(void)
 {
     DetectU8Data *ttld = DetectU8Parse("<10");
     FAIL_IF_NULL(ttld);
@@ -56,7 +56,7 @@ static int DetectTtlParseTest02 (void)
  *       "-" operator.
  */
 
-static int DetectTtlParseTest03 (void)
+static int DetectTtlParseTest03(void)
 {
     DetectU8Data *ttld = DetectU8Parse("1-3");
     FAIL_IF_NULL(ttld);
@@ -72,7 +72,7 @@ static int DetectTtlParseTest03 (void)
  *       ">" operator and include spaces arround the given values.
  */
 
-static int DetectTtlParseTest04 (void)
+static int DetectTtlParseTest04(void)
 {
     DetectU8Data *ttld = DetectU8Parse(" > 10 ");
     FAIL_IF_NULL(ttld);
@@ -87,7 +87,7 @@ static int DetectTtlParseTest04 (void)
  *       "-" operator and include spaces arround the given values.
  */
 
-static int DetectTtlParseTest05 (void)
+static int DetectTtlParseTest05(void)
 {
     DetectU8Data *ttld = DetectU8Parse(" 1 - 3 ");
     FAIL_IF_NULL(ttld);
@@ -103,7 +103,7 @@ static int DetectTtlParseTest05 (void)
  *       invalid "=" operator and include spaces arround the given values.
  */
 
-static int DetectTtlParseTest06 (void)
+static int DetectTtlParseTest06(void)
 {
     DetectU8Data *ttld = DetectU8Parse(" 1 = 2 ");
     FAIL_IF_NOT_NULL(ttld);
@@ -115,7 +115,7 @@ static int DetectTtlParseTest06 (void)
  *       invalid "<>" operator and include spaces arround the given values.
  */
 
-static int DetectTtlParseTest07 (void)
+static int DetectTtlParseTest07(void)
 {
     DetectU8Data *ttld = DetectU8Parse(" 1<>2 ");
     FAIL_IF_NOT_NULL(ttld);
@@ -178,16 +178,20 @@ static int DetectTtlTestSig1(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx,"alert ip any any -> any any (msg:\"with in ttl limit\"; ttl: >16; sid:1;)");
+    s = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (msg:\"with in ttl limit\"; ttl: >16; sid:1;)");
     FAIL_IF_NULL(s);
 
-    s = DetectEngineAppendSig(de_ctx,"alert ip any any -> any any (msg:\"Less than 17\"; ttl: <17; sid:2;)");
+    s = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (msg:\"Less than 17\"; ttl: <17; sid:2;)");
     FAIL_IF_NULL(s);
 
-    s = DetectEngineAppendSig(de_ctx,"alert ip any any -> any any (msg:\"Greater than 5\"; ttl:15; sid:3;)");
+    s = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (msg:\"Greater than 5\"; ttl:15; sid:3;)");
     FAIL_IF_NULL(s);
 
-    s = DetectEngineAppendSig(de_ctx,"alert ip any any -> any any (msg:\"Equals tcp\"; ttl: 1-30; sid:4;)");
+    s = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (msg:\"Equals tcp\"; ttl: 1-30; sid:4;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);

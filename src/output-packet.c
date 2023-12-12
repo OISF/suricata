@@ -52,11 +52,9 @@ typedef struct OutputPacketLogger_ {
 
 static OutputPacketLogger *list = NULL;
 
-int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
-    PacketLogger LogFunc, PacketLogCondition ConditionFunc,
-    OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
-    ThreadDeinitFunc ThreadDeinit,
-    ThreadExitPrintStatsFunc ThreadExitPrintStats)
+int OutputRegisterPacketLogger(LoggerId logger_id, const char *name, PacketLogger LogFunc,
+        PacketLogCondition ConditionFunc, OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit, ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     OutputPacketLogger *op = SCCalloc(1, sizeof(*op));
     if (op == NULL)
@@ -212,9 +210,8 @@ static uint32_t OutputPacketLoggerGetActiveCount(void)
 
 void OutputPacketLoggerRegister(void)
 {
-    OutputRegisterRootLogger(OutputPacketLogThreadInit,
-        OutputPacketLogThreadDeinit, OutputPacketLogExitPrintStats,
-        OutputPacketLog, OutputPacketLoggerGetActiveCount);
+    OutputRegisterRootLogger(OutputPacketLogThreadInit, OutputPacketLogThreadDeinit,
+            OutputPacketLogExitPrintStats, OutputPacketLog, OutputPacketLoggerGetActiveCount);
 }
 
 void OutputPacketShutdown(void)

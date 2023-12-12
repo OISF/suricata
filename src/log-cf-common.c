@@ -38,7 +38,7 @@
  */
 LogCustomFormatNode *LogCustomFormatNodeAlloc(void)
 {
-    LogCustomFormatNode * node = SCCalloc(1, sizeof(LogCustomFormatNode));
+    LogCustomFormatNode *node = SCCalloc(1, sizeof(LogCustomFormatNode));
     if (unlikely(node == NULL)) {
         SCLogError("Failed to alloc custom format node");
         return NULL;
@@ -53,7 +53,7 @@ LogCustomFormatNode *LogCustomFormatNodeAlloc(void)
  */
 LogCustomFormat *LogCustomFormatAlloc(void)
 {
-    LogCustomFormat * cf = SCCalloc(1, sizeof(LogCustomFormat));
+    LogCustomFormat *cf = SCCalloc(1, sizeof(LogCustomFormat));
     if (unlikely(cf == NULL)) {
         SCLogError("Failed to alloc custom format");
         return NULL;
@@ -67,7 +67,7 @@ LogCustomFormat *LogCustomFormatAlloc(void)
  */
 void LogCustomFormatNodeFree(LogCustomFormatNode *node)
 {
-    if (node==NULL)
+    if (node == NULL)
         return;
 
     SCFree(node);
@@ -79,7 +79,7 @@ void LogCustomFormatNodeFree(LogCustomFormatNode *node)
  */
 void LogCustomFormatFree(LogCustomFormat *cf)
 {
-    if (cf==NULL)
+    if (cf == NULL)
         return;
 
     for (size_t i = 0; i < cf->cf_n; ++i) {
@@ -99,15 +99,15 @@ int LogCustomFormatParse(LogCustomFormat *cf, const char *format)
     uint32_t n;
     LogCustomFormatNode *node = NULL;
 
-    if (cf==NULL)
+    if (cf == NULL)
         return 0;
 
-    if (format==NULL)
+    if (format == NULL)
         return 0;
 
-    p=format;
+    p = format;
 
-    for (cf->cf_n = 0; cf->cf_n < LOG_MAXN_NODES-1 && p && *p != '\0';){
+    for (cf->cf_n = 0; cf->cf_n < LOG_MAXN_NODES - 1 && p && *p != '\0';) {
 
         node = LogCustomFormatNodeAlloc();
         if (node == NULL) {
@@ -115,17 +115,17 @@ int LogCustomFormatParse(LogCustomFormat *cf, const char *format)
         }
         node->maxlen = 0;
 
-        if (*p != '%'){
+        if (*p != '%') {
             /* Literal found in format string */
             node->type = LOG_CF_LITERAL;
             np = strchr(p, '%');
-            if (np == NULL){
-                n = LOG_NODE_STRLEN-2;
+            if (np == NULL) {
+                n = LOG_NODE_STRLEN - 2;
                 np = NULL; /* End */
-            }else{
-                n = np-p;
+            } else {
+                n = np - p;
             }
-            strlcpy(node->data,p,n+1);
+            strlcpy(node->data, p, n + 1);
             p = np;
         } else {
             /* Non Literal found in format string */
@@ -134,10 +134,10 @@ int LogCustomFormatParse(LogCustomFormat *cf, const char *format)
                 p++;
                 np = strchr(p, ']');
                 if (np != NULL) {
-                    if (np-p > 0 && np-p < 10){
-                        long maxlen = strtol(p,NULL,10);
+                    if (np - p > 0 && np - p < 10) {
+                        long maxlen = strtol(p, NULL, 10);
                         if (maxlen > 0 && maxlen < LOG_NODE_MAXOUTPUTLEN) {
-                            node->maxlen = (uint32_t) maxlen;
+                            node->maxlen = (uint32_t)maxlen;
                         }
                     } else {
                         goto parsererror;
@@ -149,10 +149,10 @@ int LogCustomFormatParse(LogCustomFormat *cf, const char *format)
             }
             if (*p == '{') { /* Simple format char */
                 np = strchr(p, '}');
-                if (np != NULL && np-p > 1 && np-p < LOG_NODE_STRLEN-2) {
+                if (np != NULL && np - p > 1 && np - p < LOG_NODE_STRLEN - 2) {
                     p++;
-                    n = np-p;
-                    strlcpy(node->data, p, n+1);
+                    n = np - p;
+                    strlcpy(node->data, p, n + 1);
                     p = np;
                 } else {
                     goto parsererror;
@@ -162,7 +162,7 @@ int LogCustomFormatParse(LogCustomFormat *cf, const char *format)
                 node->data[0] = '\0';
             }
             node->type = *p;
-            if (*p == '%'){
+            if (*p == '%') {
                 node->type = LOG_CF_LITERAL;
                 strlcpy(node->data, "%", 2);
             }
@@ -193,8 +193,8 @@ void LogCustomFormatAddNode(LogCustomFormat *cf, LogCustomFormatNode *node)
     }
 
 #ifdef DEBUG
-    SCLogDebug("%d-> n.type=[%d] n.maxlen=[%d] n.data=[%s]",
-            cf->cf_n, node->type, node->maxlen, node->data);
+    SCLogDebug("%d-> n.type=[%d] n.maxlen=[%d] n.data=[%s]", cf->cf_n, node->type, node->maxlen,
+            node->data);
 #endif
 
     cf->cf_nodes[cf->cf_n] = node;
@@ -214,16 +214,16 @@ void LogCustomFormatWriteTimestamp(MemBuffer *buffer, const char *fmt, const SCT
     time_t time = SCTIME_SECS(ts);
     struct tm local_tm;
     struct tm *timestamp = SCLocalTime(time, &local_tm);
-    char buf[128] = {0};
-    const char * fmt_to_use = TIMESTAMP_DEFAULT_FORMAT;
+    char buf[128] = { 0 };
+    const char *fmt_to_use = TIMESTAMP_DEFAULT_FORMAT;
 
     if (fmt && *fmt != '\0') {
         fmt_to_use = fmt;
     }
 
-    CreateFormattedTimeString (timestamp, fmt_to_use, buf, sizeof(buf));
-    PrintRawUriBuf((char *)buffer->buffer, &buffer->offset,
-                   buffer->size, (uint8_t *)buf,strlen(buf));
+    CreateFormattedTimeString(timestamp, fmt_to_use, buf, sizeof(buf));
+    PrintRawUriBuf(
+            (char *)buffer->buffer, &buffer->offset, buffer->size, (uint8_t *)buf, strlen(buf));
 }
 
 #ifdef UNITTESTS
@@ -254,7 +254,7 @@ static int LogCustomFormatTest01(void)
     /*
      * {buffer = "01/13/14-04:30:00", size = 62, offset = 17}
      */
-    FAIL_IF_NOT( buffer->offset == 17);
+    FAIL_IF_NOT(buffer->offset == 17);
     FAIL_IF(strcmp((char *)buffer->buffer, "01/13/14-04:30:00") != 0);
 
     MemBufferFree(buffer);

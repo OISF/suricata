@@ -58,13 +58,15 @@
 /**
  * \brief Regex for parsing our flow options
  */
-#define PARSE_REGEX  "^\\s*([A-z_]+)\\s*\\s*([A-z_]+)\\s*(?:,\\s*([A-z_]+)\\s+([A-z_]+))?\\s*(?:,\\s*([A-z_]+)\\s+([A-z_]+))?$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*([A-z_]+)\\s*\\s*([A-z_]+)\\s*(?:,\\s*([A-z_]+)\\s+([A-z_]+))?\\s*(?:,\\s*([A-z_]+)\\s+" \
+    "([A-z_]+))?$"
 
 static DetectParseRegex parse_regex;
 
-static int DetectConfigPostMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx);
-static int DetectConfigSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectConfigPostMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx);
+static int DetectConfigSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectConfigFree(DetectEngineCtx *, void *);
 #ifdef UNITTESTS
 static void DetectConfigRegisterTests(void);
@@ -78,15 +80,14 @@ void DetectConfigRegister(void)
     sigmatch_table[DETECT_CONFIG].name = "config";
     sigmatch_table[DETECT_CONFIG].Match = DetectConfigPostMatch;
     sigmatch_table[DETECT_CONFIG].Setup = DetectConfigSetup;
-    sigmatch_table[DETECT_CONFIG].Free  = DetectConfigFree;
+    sigmatch_table[DETECT_CONFIG].Free = DetectConfigFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_CONFIG].RegisterTests = DetectConfigRegisterTests;
 #endif
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
-static void ConfigApplyTx(Flow *f,
-        const uint64_t tx_id, const DetectConfigData *config)
+static void ConfigApplyTx(Flow *f, const uint64_t tx_id, const DetectConfigData *config)
 {
     if (f->alstate == NULL) {
         return;
@@ -120,8 +121,7 @@ static void ConfigApplyTx(Flow *f,
 /**
  *  \brief apply the post match filestore with options
  */
-static int ConfigApply(DetectEngineThreadCtx *det_ctx,
-        Packet *p, const DetectConfigData *config)
+static int ConfigApply(DetectEngineThreadCtx *det_ctx, Packet *p, const DetectConfigData *config)
 {
     bool this_tx = false;
     bool this_flow = false;
@@ -136,7 +136,7 @@ static int ConfigApply(DetectEngineThreadCtx *det_ctx,
     }
 
     if (this_tx) {
-        SCLogDebug("tx logic here: tx_id %"PRIu64, det_ctx->tx_id);
+        SCLogDebug("tx logic here: tx_id %" PRIu64, det_ctx->tx_id);
         ConfigApplyTx(p->flow, det_ctx->tx_id, config);
     } else if (this_flow) {
         SCLogDebug("flow logic here");
@@ -145,8 +145,8 @@ static int ConfigApply(DetectEngineThreadCtx *det_ctx,
     SCReturnInt(0);
 }
 
-static int DetectConfigPostMatch(DetectEngineThreadCtx *det_ctx,
-        Packet *p, const Signature *s, const SigMatchCtx *ctx)
+static int DetectConfigPostMatch(
+        DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
     const DetectConfigData *config = (const DetectConfigData *)ctx;
@@ -165,7 +165,7 @@ static int DetectConfigPostMatch(DetectEngineThreadCtx *det_ctx,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectConfigSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
 
@@ -245,7 +245,7 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
         goto error;
     }
 
-    if (!(strcmp(typeval, "tx") == 0 ||strcmp(typeval, "flow") == 0)) {
+    if (!(strcmp(typeval, "tx") == 0 || strcmp(typeval, "flow") == 0)) {
         SCLogError("only 'tx' and 'flow' supported at this time");
         goto error;
     }
@@ -271,7 +271,7 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
         goto error;
     }
 
-    if (!(strcmp(scopeval, "tx") == 0 ||strcmp(scopeval, "flow") == 0)) {
+    if (!(strcmp(scopeval, "tx") == 0 || strcmp(scopeval, "flow") == 0)) {
         SCLogError("only 'tx' and 'flow' supported at this time");
         goto error;
     }
@@ -325,11 +325,10 @@ static int DetectConfigTest01(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
     de_ctx->flags |= DE_QUIET;
-    Signature *s = DetectEngineAppendSig(de_ctx,
-            "config dns any any -> any any ("
-            "dns.query; content:\"common.domain.com\"; "
-            "config:logging disable, type tx, scope tx; "
-            "sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "config dns any any -> any any ("
+                                                 "dns.query; content:\"common.domain.com\"; "
+                                                 "config:logging disable, type tx, scope tx; "
+                                                 "sid:1;)");
     FAIL_IF_NULL(s);
     DetectEngineCtxFree(de_ctx);
     PASS;

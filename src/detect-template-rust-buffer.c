@@ -198,7 +198,6 @@ static int DetectTemplateRustBufferTest(void)
 
 static void DetectTemplateRustBufferRegisterTests(void)
 {
-    UtRegisterTest("DetectTemplateRustBufferTest",
-        DetectTemplateRustBufferTest);
+    UtRegisterTest("DetectTemplateRustBufferTest", DetectTemplateRustBufferTest);
 }
 #endif /* UNITTESTS */

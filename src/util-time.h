@@ -53,9 +53,9 @@ typedef struct {
     {                                                                                              \
         .secs = 0, .usecs = 0                                                                      \
     }
-#define SCTIME_USECS(t)          ((uint64_t)(t).usecs)
-#define SCTIME_SECS(t)           ((uint64_t)(t).secs)
-#define SCTIME_MSECS(t)          (SCTIME_SECS(t) * 1000 + SCTIME_USECS(t) / 1000)
+#define SCTIME_USECS(t) ((uint64_t)(t).usecs)
+#define SCTIME_SECS(t)  ((uint64_t)(t).secs)
+#define SCTIME_MSECS(t) (SCTIME_SECS(t) * 1000 + SCTIME_USECS(t) / 1000)
 #define SCTIME_ADD_USECS(ts, us)                                                                   \
     (SCTime_t)                                                                                     \
     {                                                                                              \
@@ -113,7 +113,10 @@ void TimeSetByThread(const int thread_id, SCTime_t tv);
 SCTime_t TimeGet(void);
 
 /** \brief initialize a 'struct timespec' from a 'struct timeval'. */
-#define FROM_TIMEVAL(timev) { .tv_sec = (timev).tv_sec, .tv_nsec = (timev).tv_usec * 1000 }
+#define FROM_TIMEVAL(timev)                                                                        \
+    {                                                                                              \
+        .tv_sec = (timev).tv_sec, .tv_nsec = (timev).tv_usec * 1000                                \
+    }
 
 /** \brief compare two 'struct timeval' and return if the first is earlier than the second */
 static inline bool TimevalEarlier(struct timeval *first, struct timeval *second)
@@ -144,23 +147,20 @@ void TimeSetIncrementTime(uint32_t);
 
 bool TimeModeIsReady(void);
 void TimeModeSetLive(void);
-void TimeModeSetOffline (void);
+void TimeModeSetOffline(void);
 bool TimeModeIsLive(void);
 
 struct tm *SCLocalTime(time_t timep, struct tm *result);
 void CreateTimeString(const SCTime_t ts, char *str, size_t size);
 void CreateIsoTimeString(const SCTime_t ts, char *str, size_t size);
 void CreateUtcIsoTimeString(const SCTime_t ts, char *str, size_t size);
-void CreateFormattedTimeString(const struct tm *t, const char * fmt, char *str, size_t size);
+void CreateFormattedTimeString(const struct tm *t, const char *fmt, char *str, size_t size);
 time_t SCMkTimeUtc(struct tm *tp);
-int SCStringPatternToTime(char *string, const char **patterns,
-                           int num_patterns, struct tm *time);
-int SCTimeToStringPattern (time_t epoch, const char *pattern, char *str,
-                           size_t size);
-uint64_t SCParseTimeSizeString (const char *str);
-uint64_t SCGetSecondsUntil (const char *str, time_t epoch);
+int SCStringPatternToTime(char *string, const char **patterns, int num_patterns, struct tm *time);
+int SCTimeToStringPattern(time_t epoch, const char *pattern, char *str, size_t size);
+uint64_t SCParseTimeSizeString(const char *str);
+uint64_t SCGetSecondsUntil(const char *str, time_t epoch);
 uint64_t SCTimespecAsEpochMillis(const struct timespec *ts);
 uint64_t TimeDifferenceMicros(struct timeval t0, struct timeval t1);
 
 #endif /* __UTIL_TIME_H__ */
-

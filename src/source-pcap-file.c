@@ -38,8 +38,7 @@ PcapFileGlobalVars pcap_g;
 /**
  * Union determining whether the behavior of the thread is file or directory
  */
-typedef union PcapFileBehaviorVar_
-{
+typedef union PcapFileBehaviorVar_ {
     PcapFileDirectoryVars *directory;
     PcapFileFileVars *file;
 } PcapFileBehaviorVar;
@@ -47,8 +46,7 @@ typedef union PcapFileBehaviorVar_
 /**
  * Data specific to the thread
  */
-typedef struct PcapFileThreadVars_
-{
+typedef struct PcapFileThreadVars_ {
     PcapFileBehaviorVar behavior;
     bool is_directory;
 
@@ -64,8 +62,7 @@ static TmEcode DecodePcapFile(ThreadVars *, Packet *, void *);
 static TmEcode DecodePcapFileThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodePcapFileThreadDeinit(ThreadVars *tv, void *data);
 
-static void CleanupPcapDirectoryFromThreadVars(PcapFileThreadVars *tv,
-                                               PcapFileDirectoryVars *ptv);
+static void CleanupPcapDirectoryFromThreadVars(PcapFileThreadVars *tv, PcapFileDirectoryVars *ptv);
 static void CleanupPcapFileFromThreadVars(PcapFileThreadVars *tv, PcapFileFileVars *pfv);
 static void CleanupPcapFileThreadVars(PcapFileThreadVars *tv);
 static TmEcode PcapFileExit(TmEcode status, struct timespec *last_processed);
@@ -111,7 +108,7 @@ void CleanupPcapFileThreadVars(PcapFileThreadVars *ptv)
 /**
  * Pcap File Functionality
  */
-void TmModuleReceivePcapFileRegister (void)
+void TmModuleReceivePcapFileRegister(void)
 {
     tmm_modules[TMM_RECEIVEPCAPFILE].name = "ReceivePcapFile";
     tmm_modules[TMM_RECEIVEPCAPFILE].ThreadInit = ReceivePcapFileThreadInit;
@@ -124,7 +121,7 @@ void TmModuleReceivePcapFileRegister (void)
     tmm_modules[TMM_RECEIVEPCAPFILE].flags = TM_FLAG_RECEIVE_TM;
 }
 
-void TmModuleDecodePcapFileRegister (void)
+void TmModuleDecodePcapFileRegister(void)
 {
     tmm_modules[TMM_DECODEPCAPFILE].name = "DecodePcapFile";
     tmm_modules[TMM_DECODEPCAPFILE].ThreadInit = DecodePcapFileThreadInit;
@@ -143,7 +140,7 @@ void PcapFileGlobalInit(void)
 
 TmEcode PcapFileExit(TmEcode status, struct timespec *last_processed)
 {
-    if(RunModeUnixSocketIsActive()) {
+    if (RunModeUnixSocketIsActive()) {
         status = UnixSocketPcapFile(status, last_processed);
         SCReturnInt(status);
     } else {
@@ -156,7 +153,7 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
 {
     SCEnter();
 
-    if(unlikely(data == NULL)) {
+    if (unlikely(data == NULL)) {
         SCLogError("pcap file reader thread failed to initialize");
 
         PcapFileExit(TM_ECODE_FAILED, NULL);
@@ -165,7 +162,7 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
     }
 
     TmEcode status = TM_ECODE_OK;
-    PcapFileThreadVars *ptv = (PcapFileThreadVars *) data;
+    PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
     TmSlot *s = (TmSlot *)slot;
 
     ptv->shared.slot = s->slot_next;
@@ -175,7 +172,7 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
     // packets)
     TmThreadsSetFlag(tv, THV_RUNNING);
 
-    if(ptv->is_directory == 0) {
+    if (ptv->is_directory == 0) {
         SCLogInfo("Starting file run for %s", ptv->behavior.file->filename);
         status = PcapFileDispatch(ptv->behavior.file);
         CleanupPcapFileFromThreadVars(ptv, ptv->behavior.file);
@@ -241,13 +238,13 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
     }
 
     DIR *directory = NULL;
-    SCLogDebug("checking file or directory %s", (char*)initdata);
-    if(PcapDetermineDirectoryOrFile((char *)initdata, &directory) == TM_ECODE_FAILED) {
+    SCLogDebug("checking file or directory %s", (char *)initdata);
+    if (PcapDetermineDirectoryOrFile((char *)initdata, &directory) == TM_ECODE_FAILED) {
         CleanupPcapFileThreadVars(ptv);
         SCReturnInt(TM_ECODE_OK);
     }
 
-    if(directory == NULL) {
+    if (directory == NULL) {
         SCLogDebug("argument %s was a file", (char *)initdata);
         PcapFileFileVars *pv = SCCalloc(1, sizeof(PcapFileFileVars));
         if (unlikely(pv == NULL)) {
@@ -266,7 +263,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
 
         pv->shared = &ptv->shared;
         status = InitPcapFile(pv);
-        if(status == TM_ECODE_OK) {
+        if (status == TM_ECODE_OK) {
             ptv->is_directory = 0;
             ptv->behavior.file = pv;
         } else {
@@ -285,7 +282,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
             SCReturnInt(TM_ECODE_OK);
         }
 
-        pv->filename = SCStrdup((char*)initdata);
+        pv->filename = SCStrdup((char *)initdata);
         if (unlikely(pv->filename == NULL)) {
             SCLogError("Failed to allocate filename");
             closedir(directory);
@@ -351,7 +348,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
     } else {
         if (strcmp(tmpstring, "auto") == 0) {
             pcap_g.conf_checksum_mode = CHECKSUM_VALIDATION_AUTO;
-        } else if (ConfValIsTrue(tmpstring)){
+        } else if (ConfValIsTrue(tmpstring)) {
             pcap_g.conf_checksum_mode = CHECKSUM_VALIDATION_ENABLE;
         } else if (ConfValIsFalse(tmpstring)) {
             pcap_g.conf_checksum_mode = CHECKSUM_VALIDATION_DISABLE;
@@ -368,12 +365,11 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
 void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data)
 {
     SCEnter();
-    if(data != NULL) {
+    if (data != NULL) {
         PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
 
         if (pcap_g.conf_checksum_mode == CHECKSUM_VALIDATION_AUTO &&
-            pcap_g.cnt < CHECKSUM_SAMPLE_COUNT &&
-            SC_ATOMIC_GET(pcap_g.invalid_checksums)) {
+                pcap_g.cnt < CHECKSUM_SAMPLE_COUNT && SC_ATOMIC_GET(pcap_g.invalid_checksums)) {
             uint64_t chrate = pcap_g.cnt / SC_ATOMIC_GET(pcap_g.invalid_checksums);
             if (chrate < CHECKSUM_INVALID_RATIO)
                 SCLogWarning("1/%" PRIu64 "th of packets have an invalid checksum,"
@@ -381,8 +377,7 @@ void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data)
                              " or use '-k none' option on command line.",
                         chrate);
             else
-                SCLogInfo("1/%" PRIu64 "th of packets have an invalid checksum",
-                      chrate);
+                SCLogInfo("1/%" PRIu64 "th of packets have an invalid checksum", chrate);
         }
         SCLogNotice("read %" PRIu64 " file%s, %" PRIu64 " packets, %" PRIu64 " bytes",
                 ptv->shared.files, ptv->shared.files == 1 ? "" : "s", ptv->shared.pkts,
@@ -393,8 +388,8 @@ void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data)
 TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data)
 {
     SCEnter();
-    if(data != NULL) {
-        PcapFileThreadVars *ptv = (PcapFileThreadVars *) data;
+    if (data != NULL) {
+        PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
         CleanupPcapFileThreadVars(ptv);
     }
     SCReturnInt(TM_ECODE_OK);
@@ -411,7 +406,7 @@ static TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data)
     DecodeUpdatePacketCounters(tv, dtv, p);
 
     DecoderFunc decoder;
-    if(ValidateLinkType(p->datalink, &decoder) == TM_ECODE_OK) {
+    if (ValidateLinkType(p->datalink, &decoder) == TM_ECODE_OK) {
 
         /* call the decoder */
         decoder(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p));
@@ -453,7 +448,7 @@ TmEcode DecodePcapFileThreadDeinit(ThreadVars *tv, void *data)
 
 void PcapIncreaseInvalidChecksum(void)
 {
-    (void) SC_ATOMIC_ADD(pcap_g.invalid_checksums, 1);
+    (void)SC_ATOMIC_ADD(pcap_g.invalid_checksums, 1);
 }
 
 /* eof */

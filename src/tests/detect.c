@@ -30,85 +30,85 @@
 #include "../util-unittest-helper.h"
 
 static const char *dummy_conf_string =
-    "%YAML 1.1\n"
-    "---\n"
-    "\n"
-    "default-log-dir: /var/log/suricata\n"
-    "\n"
-    "logging:\n"
-    "\n"
-    "  default-log-level: debug\n"
-    "\n"
-    "  default-format: \"<%t> - <%l>\"\n"
-    "\n"
-    "  default-startup-message: Your IDS has started.\n"
-    "\n"
-    "  default-output-filter:\n"
-    "\n"
-    "  output:\n"
-    "\n"
-    "  - interface: console\n"
-    "    log-level: info\n"
-    "\n"
-    "  - interface: file\n"
-    "    filename: /var/log/suricata.log\n"
-    "\n"
-    "  - interface: syslog\n"
-    "    facility: local5\n"
-    "    format: \"%l\"\n"
-    "\n"
-    "pfring:\n"
-    "\n"
-    "  interface: eth0\n"
-    "\n"
-    "  clusterid: 99\n"
-    "\n"
-    "vars:\n"
-    "\n"
-    "  address-groups:\n"
-    "\n"
-    "    HOME_NET: \"[192.168.0.0/16,10.8.0.0/16,127.0.0.1,2001:888:"
-    "13c5:5AFE::/64,2001:888:13c5:CAFE::/64]\"\n"
-    "\n"
-    "    EXTERNAL_NET: \"[!192.168.0.0/16,2000::/3]\"\n"
-    "\n"
-    "    HTTP_SERVERS: \"!192.168.0.0/16\"\n"
-    "\n"
-    "    SMTP_SERVERS: \"!192.168.0.0/16\"\n"
-    "\n"
-    "    SQL_SERVERS: \"!192.168.0.0/16\"\n"
-    "\n"
-    "    DNS_SERVERS: any\n"
-    "\n"
-    "    TELNET_SERVERS: any\n"
-    "\n"
-    "    AIM_SERVERS: any\n"
-    "\n"
-    "  port-groups:\n"
-    "\n"
-    "    HTTP_PORTS: \"80:81,88\"\n"
-    "\n"
-    "    SHELLCODE_PORTS: 80\n"
-    "\n"
-    "    ORACLE_PORTS: 1521\n"
-    "\n"
-    "    SSH_PORTS: 22\n"
-    "\n";
+        "%YAML 1.1\n"
+        "---\n"
+        "\n"
+        "default-log-dir: /var/log/suricata\n"
+        "\n"
+        "logging:\n"
+        "\n"
+        "  default-log-level: debug\n"
+        "\n"
+        "  default-format: \"<%t> - <%l>\"\n"
+        "\n"
+        "  default-startup-message: Your IDS has started.\n"
+        "\n"
+        "  default-output-filter:\n"
+        "\n"
+        "  output:\n"
+        "\n"
+        "  - interface: console\n"
+        "    log-level: info\n"
+        "\n"
+        "  - interface: file\n"
+        "    filename: /var/log/suricata.log\n"
+        "\n"
+        "  - interface: syslog\n"
+        "    facility: local5\n"
+        "    format: \"%l\"\n"
+        "\n"
+        "pfring:\n"
+        "\n"
+        "  interface: eth0\n"
+        "\n"
+        "  clusterid: 99\n"
+        "\n"
+        "vars:\n"
+        "\n"
+        "  address-groups:\n"
+        "\n"
+        "    HOME_NET: \"[192.168.0.0/16,10.8.0.0/16,127.0.0.1,2001:888:"
+        "13c5:5AFE::/64,2001:888:13c5:CAFE::/64]\"\n"
+        "\n"
+        "    EXTERNAL_NET: \"[!192.168.0.0/16,2000::/3]\"\n"
+        "\n"
+        "    HTTP_SERVERS: \"!192.168.0.0/16\"\n"
+        "\n"
+        "    SMTP_SERVERS: \"!192.168.0.0/16\"\n"
+        "\n"
+        "    SQL_SERVERS: \"!192.168.0.0/16\"\n"
+        "\n"
+        "    DNS_SERVERS: any\n"
+        "\n"
+        "    TELNET_SERVERS: any\n"
+        "\n"
+        "    AIM_SERVERS: any\n"
+        "\n"
+        "  port-groups:\n"
+        "\n"
+        "    HTTP_PORTS: \"80:81,88\"\n"
+        "\n"
+        "    SHELLCODE_PORTS: 80\n"
+        "\n"
+        "    ORACLE_PORTS: 1521\n"
+        "\n"
+        "    SSH_PORTS: 22\n"
+        "\n";
 
-static int SigTest01 (void)
+static int SigTest01(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"
-                    "Host: one.example.org\r\n"
-                    "\r\n\r\n"
-                    "GET /two/ HTTP/1.1\r\n"
-                    "Host: two.example.org\r\n"
-                    "\r\n\r\n";
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.1\r\n"
+                              "Host: one.example.org\r\n"
+                              "\r\n\r\n"
+                              "GET /two/ HTTP/1.1\r\n"
+                              "Host: two.example.org\r\n"
+                              "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
     int result = 0;
 
-    char sig[] = "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)";
+    char sig[] = "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; "
+                 "pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)";
     if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 0) {
         result = 0;
         goto end;
@@ -133,32 +133,31 @@ end:
     return result;
 }
 
-static int SigTest02 (void)
+static int SigTest02(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"
-                    "Host: one.example.org\r\n"
-                    "\r\n\r\n"
-                    "GET /two/ HTTP/1.1\r\n"
-                    "Host: two.example.org\r\n"
-                    "\r\n\r\n";
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.1\r\n"
+                              "Host: one.example.org\r\n"
+                              "\r\n\r\n"
+                              "GET /two/ HTTP/1.1\r\n"
+                              "Host: two.example.org\r\n"
+                              "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
-    char sig[] = "alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:41; sid:1;)";
+    Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+    char sig[] = "alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: "
+                 "one.example.org\"; offset:20; depth:41; sid:1;)";
     int ret = UTHPacketMatchSigMpm(p, sig, MPM_AC);
     UTHFreePacket(p);
     return ret;
 }
 
-static int SigTest03 (void)
+static int SigTest03(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"
-                    "Host: one.example.org\r\n"
-                    "\r\n\r\n"
-                    "GET /two/ HTTP/1.1\r\n"
-                    "Host: two.example.org\r\n"
-                    "\r\n\r\n";
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.1\r\n"
+                              "Host: one.example.org\r\n"
+                              "\r\n\r\n"
+                              "GET /two/ HTTP/1.1\r\n"
+                              "Host: two.example.org\r\n"
+                              "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
@@ -176,7 +175,9 @@ static int SigTest03 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:39; sid:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: "
+                            "one.example.org\"; offset:20; depth:39; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -199,15 +200,14 @@ end:
     return result;
 }
 
-static int SigTest04 (void)
+static int SigTest04(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n" /* 20*/
-                    "Host: one.example.org\r\n" /* 23, post "Host:" 18 */
-                    "\r\n\r\n" /* 4 */
-                    "GET /two/ HTTP/1.1\r\n" /* 20 */
-                    "Host: two.example.org\r\n" /* 23 */
-                    "\r\n\r\n"; /* 4 */
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.1\r\n"    /* 20*/
+                              "Host: one.example.org\r\n" /* 23, post "Host:" 18 */
+                              "\r\n\r\n"                  /* 4 */
+                              "GET /two/ HTTP/1.1\r\n"    /* 20 */
+                              "Host: two.example.org\r\n" /* 23 */
+                              "\r\n\r\n";                 /* 4 */
     uint16_t buflen = strlen((char *)buf);
 
     Packet *p = NULL;
@@ -226,7 +226,9 @@ static int SigTest04 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:42; within:47; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; "
+            "offset:20; depth:25; content:\"Host:\"; distance:42; within:47; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -249,15 +251,14 @@ end:
     return result;
 }
 
-static int SigTest05 (void)
+static int SigTest05(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"    /* 20 */
-                    "Host: one.example.org\r\n" /* 23, 43 */
-                    "\r\n\r\n"                  /* 4,  47 */
-                    "GET /two/ HTTP/1.1\r\n"    /* 20, 67 */
-                    "Host: two.example.org\r\n" /* 23, 90 */
-                    "\r\n\r\n";                 /* 4,  94 */
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.1\r\n"    /* 20 */
+                              "Host: one.example.org\r\n" /* 23, 43 */
+                              "\r\n\r\n"                  /* 4,  47 */
+                              "GET /two/ HTTP/1.1\r\n"    /* 20, 67 */
+                              "Host: two.example.org\r\n" /* 23, 90 */
+                              "\r\n\r\n";                 /* 4,  94 */
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
@@ -275,7 +276,9 @@ static int SigTest05 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:48; within:52; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; "
+            "offset:20; depth:25; content:\"Host:\"; distance:48; within:52; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -301,15 +304,14 @@ end:
     return result;
 }
 
-static int SigTest06 (void)
+static int SigTest06(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"    /* 20 */
-                    "Host: one.example.org\r\n" /* 23, 43 */
-                    "\r\n\r\n"                  /* 4,  47 */
-                    "GET /two/ HTTP/1.1\r\n"    /* 20, 67 */
-                    "Host: two.example.org\r\n" /* 23, 90 */
-                    "\r\n\r\n";                 /* 4,  94 */
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.1\r\n"    /* 20 */
+                              "Host: one.example.org\r\n" /* 23, 43 */
+                              "\r\n\r\n"                  /* 4,  47 */
+                              "GET /two/ HTTP/1.1\r\n"    /* 20, 67 */
+                              "Host: two.example.org\r\n" /* 23, 90 */
+                              "\r\n\r\n";                 /* 4,  94 */
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
@@ -333,7 +335,7 @@ static int SigTest06 (void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -342,10 +344,13 @@ static int SigTest06 (void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; "
+            "pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
     FAIL_IF_NULL(s);
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -368,15 +373,14 @@ static int SigTest06 (void)
     PASS;
 }
 
-static int SigTest07 (void)
+static int SigTest07(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"    /* 20 */
-                    "Host: one.example.org\r\n" /* 23, 43 */
-                    "\r\n\r\n"                  /* 4,  47 */
-                    "GET /two/ HTTP/1.1\r\n"    /* 20, 67 */
-                    "Host: two.example.org\r\n" /* 23, 90 */
-                    "\r\n\r\n";                 /* 4,  94 */
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.1\r\n"    /* 20 */
+                              "Host: one.example.org\r\n" /* 23, 43 */
+                              "\r\n\r\n"                  /* 4,  47 */
+                              "GET /two/ HTTP/1.1\r\n"    /* 20, 67 */
+                              "Host: two.example.org\r\n" /* 23, 90 */
+                              "\r\n\r\n";                 /* 4,  94 */
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
@@ -399,7 +403,7 @@ static int SigTest07 (void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -411,19 +415,22 @@ static int SigTest07 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; "
+            "pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"three\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"three\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, buf, buflen);
     if (r != 0) {
@@ -454,15 +461,14 @@ end:
     return result;
 }
 
-static int SigTest08 (void)
+static int SigTest08(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.0\r\n"    /* 20 */
-                    "Host: one.example.org\r\n" /* 23, 43 */
-                    "\r\n\r\n"                  /* 4,  47 */
-                    "GET /two/ HTTP/1.0\r\n"    /* 20, 67 */
-                    "Host: two.example.org\r\n" /* 23, 90 */
-                    "\r\n\r\n";                 /* 4,  94 */
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"    /* 20 */
+                              "Host: one.example.org\r\n" /* 23, 43 */
+                              "\r\n\r\n"                  /* 4,  47 */
+                              "GET /two/ HTTP/1.0\r\n"    /* 20, 67 */
+                              "Host: two.example.org\r\n" /* 23, 90 */
+                              "\r\n\r\n";                 /* 4,  94 */
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
@@ -485,7 +491,7 @@ static int SigTest08 (void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -497,19 +503,22 @@ static int SigTest08 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; "
+            "depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"one\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"one\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, buf, buflen);
     if (r != 0) {
@@ -522,9 +531,8 @@ static int SigTest08 (void)
     if (PacketAlertCheck(p, 1) && PacketAlertCheck(p, 2))
         result = 1;
     else
-        printf("sid:1 %s, sid:2 %s: ",
-            PacketAlertCheck(p, 1) ? "OK" : "FAIL",
-            PacketAlertCheck(p, 2) ? "OK" : "FAIL");
+        printf("sid:1 %s, sid:2 %s: ", PacketAlertCheck(p, 1) ? "OK" : "FAIL",
+                PacketAlertCheck(p, 2) ? "OK" : "FAIL");
 
 end:
     FlowCleanupAppLayer(&f);
@@ -542,15 +550,14 @@ end:
     return result;
 }
 
-static int SigTest09 (void)
+static int SigTest09(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.0\r\n"    /* 20 */
-                    "Host: one.example.org\r\n" /* 23, 43 */
-                    "\r\n\r\n"                  /* 4,  47 */
-                    "GET /two/ HTTP/1.0\r\n"    /* 20, 67 */
-                    "Host: two.example.org\r\n" /* 23, 90 */
-                    "\r\n\r\n";                 /* 4,  94 */
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"    /* 20 */
+                              "Host: one.example.org\r\n" /* 23, 43 */
+                              "\r\n\r\n"                  /* 4,  47 */
+                              "GET /two/ HTTP/1.0\r\n"    /* 20, 67 */
+                              "Host: two.example.org\r\n" /* 23, 90 */
+                              "\r\n\r\n";                 /* 4,  94 */
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
@@ -573,7 +580,7 @@ static int SigTest09 (void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -585,19 +592,22 @@ static int SigTest09 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; "
+            "depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, buf, buflen);
     if (r != 0) {
@@ -627,10 +637,9 @@ end:
     return result;
 }
 
-static int SigTest10 (void)
+static int SigTest10(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "ABC";
+    uint8_t *buf = (uint8_t *)"ABC";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
@@ -653,7 +662,7 @@ static int SigTest10 (void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -665,19 +674,21 @@ static int SigTest10 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Long content test (1)\"; content:\"ABCD\"; depth:4; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Long content test "
+                                       "(1)\"; content:\"ABCD\"; depth:4; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Long content test (2)\"; content:\"VWXYZ\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Long content "
+                                             "test (2)\"; content:\"VWXYZ\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, buf, buflen);
     if (r != 0) {
@@ -692,7 +703,7 @@ static int SigTest10 (void)
     else
         result = 1;
 
- end:
+end:
     FlowCleanupAppLayer(&f);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -707,10 +718,10 @@ static int SigTest10 (void)
     return result;
 }
 
-static int SigTest11 (void)
+static int SigTest11(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
+    uint8_t *buf =
+            (uint8_t *)"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
@@ -731,7 +742,7 @@ static int SigTest11 (void)
     f.flags |= FLOW_IPV4;
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP1;
 
     StreamTcpInitConfig(true);
@@ -743,23 +754,26 @@ static int SigTest11 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (content:\"ABCDEFGHIJ\"; "
+                                       "content:\"klmnop\"; content:\"1234\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (content:\"VWXYZabcde\"; content:\"5678\"; content:\"89\"; sid:2;)");
+    de_ctx->sig_list->next =
+            SigInit(de_ctx, "alert tcp any any -> any any (content:\"VWXYZabcde\"; "
+                            "content:\"5678\"; content:\"89\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 1) && PacketAlertCheck(p, 2))
         result = 1;
 
- end:
+end:
     FlowCleanupAppLayer(&f);
     SigGroupCleanup(de_ctx);
     if (det_ctx)
@@ -771,10 +785,10 @@ static int SigTest11 (void)
     return result;
 }
 
-static int SigTest12 (void)
+static int SigTest12(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
+    uint8_t *buf =
+            (uint8_t *)"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
@@ -789,7 +803,7 @@ static int SigTest12 (void)
 
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -798,14 +812,16 @@ static int SigTest12 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"Content order test\"; "
+            "content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 1))
@@ -814,7 +830,7 @@ static int SigTest12 (void)
         result = 0;
 
     if (det_ctx != NULL)
-            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 end:
     UTHFreePackets(&p, 1);
     if (de_ctx != NULL) {
@@ -826,10 +842,10 @@ end:
     return result;
 }
 
-static int SigTest13 (void)
+static int SigTest13(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
+    uint8_t *buf =
+            (uint8_t *)"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
@@ -844,7 +860,7 @@ static int SigTest13 (void)
 
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -853,14 +869,16 @@ static int SigTest13 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"Content order test\"; "
+            "content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 1))
@@ -878,10 +896,10 @@ end:
     return result;
 }
 
-static int SigTest14 (void)
+static int SigTest14(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
+    uint8_t *buf =
+            (uint8_t *)"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
@@ -899,14 +917,16 @@ static int SigTest14 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; distance:0; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; "
+            "content:\"1234\"; content:\"klmnop\"; distance:0; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 1))
@@ -923,10 +943,9 @@ end:
     return result;
 }
 
-static int SigTest15 (void)
+static int SigTest15(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "CONNECT 213.92.8.7:31204 HTTP/1.1";
+    uint8_t *buf = (uint8_t *)"CONNECT 213.92.8.7:31204 HTTP/1.1";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -954,14 +973,17 @@ static int SigTest15 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP "
+                            "CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; "
+                            "content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 2008284))
@@ -980,10 +1002,9 @@ end:
     return result;
 }
 
-static int SigTest16 (void)
+static int SigTest16(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "CONNECT 213.92.8.7:31204 HTTP/1.1";
+    uint8_t *buf = (uint8_t *)"CONNECT 213.92.8.7:31204 HTTP/1.1";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
@@ -1006,13 +1027,16 @@ static int SigTest16 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP "
+                            "CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; "
+                            "content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 2008284))
@@ -1030,15 +1054,14 @@ end:
     return result;
 }
 
-static int SigTest17 (void)
+static int SigTest17(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"    /* 20 */
-                    "Host: one.example.org\r\n" /* 23, 43 */
-                    "\r\n\r\n"                  /* 4,  47 */
-                    "GET /two/ HTTP/1.1\r\n"    /* 20, 67 */
-                    "Host: two.example.org\r\n" /* 23, 90 */
-                    "\r\n\r\n";                 /* 4,  94 */
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.1\r\n"    /* 20 */
+                              "Host: one.example.org\r\n" /* 23, 43 */
+                              "\r\n\r\n"                  /* 4,  47 */
+                              "GET /two/ HTTP/1.1\r\n"    /* 20, 67 */
+                              "Host: two.example.org\r\n" /* 23, 90 */
+                              "\r\n\r\n";                 /* 4,  94 */
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
     ThreadVars th_v;
@@ -1056,11 +1079,13 @@ static int SigTest17 (void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; "
+            "pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     uint32_t capid = VarNameStoreLookupByName("http_host", VAR_TYPE_PKT_VAR);
@@ -1078,10 +1103,9 @@ static int SigTest17 (void)
     PASS;
 }
 
-static int SigTest18 (void)
+static int SigTest18(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "220 (vsFTPd 2.0.5)\r\n";
+    uint8_t *buf = (uint8_t *)"220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -1106,14 +1130,16 @@ static int SigTest18 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:2003055; rev:4;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local "
+            "Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:2003055; rev:4;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (!PacketAlertCheck(p, 2003055))
@@ -1130,10 +1156,9 @@ end:
     return result;
 }
 
-static int SigTest19 (void)
+static int SigTest19(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "220 (vsFTPd 2.0.5)\r\n";
+    uint8_t *buf = (uint8_t *)"220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -1165,14 +1190,15 @@ static int SigTest19 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert ip $HOME_NET any -> 1.2.3.4 any (msg:\"IP-ONLY test (1)\"; sid:999; rev:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert ip $HOME_NET any -> 1.2.3.4 any (msg:\"IP-ONLY test (1)\"; sid:999; rev:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 999))
@@ -1190,10 +1216,9 @@ end:
     return result;
 }
 
-static int SigTest20 (void)
+static int SigTest20(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "220 (vsFTPd 2.0.5)\r\n";
+    uint8_t *buf = (uint8_t *)"220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -1225,14 +1250,16 @@ static int SigTest20 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert ip $HOME_NET any -> [99.99.99.99,1.2.3.0/24,1.1.1.1,3.0.0.0/8] any (msg:\"IP-ONLY test (2)\"; sid:999; rev:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert ip $HOME_NET any -> [99.99.99.99,1.2.3.0/24,1.1.1.1,3.0.0.0/8] "
+                            "any (msg:\"IP-ONLY test (2)\"; sid:999; rev:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 999))
@@ -1251,7 +1278,7 @@ end:
     return result;
 }
 
-static int SigTest21 (void)
+static int SigTest21(void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
@@ -1264,21 +1291,21 @@ static int SigTest21 (void)
 
     /* packet 1 */
     uint8_t *buf1 = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
-                    "\r\n\r\n";
+                               "\r\n\r\n";
     uint16_t buf1len = strlen((char *)buf1);
     Packet *p1 = NULL;
     /* packet 2 */
     uint8_t *buf2 = (uint8_t *)"GET /two/ HTTP/1.0\r\n"
-                    "\r\n\r\n";
+                               "\r\n\r\n";
     uint16_t buf2len = strlen((char *)buf2);
     Packet *p2 = NULL;
 
     p1 = UTHBuildPacket((uint8_t *)buf1, buf1len, IPPROTO_TCP);
     p1->flow = &f;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     p2 = UTHBuildPacket((uint8_t *)buf2, buf2len, IPPROTO_TCP);
     p2->flow = &f;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1287,12 +1314,15 @@ static int SigTest21 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; "
+                            "flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; "
+                                             "content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1329,7 +1359,7 @@ end:
     return result;
 }
 
-static int SigTest22 (void)
+static int SigTest22(void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
@@ -1342,23 +1372,23 @@ static int SigTest22 (void)
 
     /* packet 1 */
     uint8_t *buf1 = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
-                    "\r\n\r\n";
+                               "\r\n\r\n";
     uint16_t buf1len = strlen((char *)buf1);
     Packet *p1 = NULL;
 
     p1 = UTHBuildPacket((uint8_t *)buf1, buf1len, IPPROTO_TCP);
     p1->flow = &f;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     /* packet 2 */
     uint8_t *buf2 = (uint8_t *)"GET /two/ HTTP/1.0\r\n"
-                    "\r\n\r\n";
+                               "\r\n\r\n";
     uint16_t buf2len = strlen((char *)buf2);
     Packet *p2 = NULL;
 
     p2 = UTHBuildPacket((uint8_t *)buf2, buf2len, IPPROTO_TCP);
     p2->flow = &f;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1367,12 +1397,15 @@ static int SigTest22 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; "
+                            "flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.abc; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; "
+                                             "content:\"/two/\"; flowbits:isset,TEST.abc; sid:2;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1404,7 +1437,7 @@ end:
     return result;
 }
 
-static int SigTest23 (void)
+static int SigTest23(void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
@@ -1417,23 +1450,23 @@ static int SigTest23 (void)
 
     /* packet 1 */
     uint8_t *buf1 = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
-                    "\r\n\r\n";
+                               "\r\n\r\n";
     uint16_t buf1len = strlen((char *)buf1);
     Packet *p1 = NULL;
 
     p1 = UTHBuildPacket((uint8_t *)buf1, buf1len, IPPROTO_TCP);
     p1->flow = &f;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     /* packet 2 */
     uint8_t *buf2 = (uint8_t *)"GET /two/ HTTP/1.0\r\n"
-                    "\r\n\r\n";
+                               "\r\n\r\n";
     uint16_t buf2len = strlen((char *)buf2);
     Packet *p2 = NULL;
 
     p2 = UTHBuildPacket((uint8_t *)buf2, buf2len, IPPROTO_TCP);
     p2->flow = &f;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1442,12 +1475,15 @@ static int SigTest23 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:toggle,TEST.one; flowbits:noalert; sid:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; "
+                            "flowbits:toggle,TEST.one; flowbits:noalert; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; "
+                                             "content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1508,7 +1544,7 @@ static int SigTest24IPV4Keyword(void)
     int result = 0;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
-                    "\r\n\r\n";
+                              "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
@@ -1538,27 +1574,25 @@ static int SigTest24IPV4Keyword(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-            "alert ip any any -> any any "
-            "(content:\"/one/\"; ipv4-csum:valid; "
-            "msg:\"ipv4-csum keyword check(1)\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any any "
+                                       "(content:\"/one/\"; ipv4-csum:valid; "
+                                       "msg:\"ipv4-csum keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("sig 1 parse: ");
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,
-            "alert ip any any -> any any "
-            "(content:\"/one/\"; ipv4-csum:invalid; "
-            "msg:\"ipv4-csum keyword check(1)\"; "
-            "sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert ip any any -> any any "
+                                             "(content:\"/one/\"; ipv4-csum:invalid; "
+                                             "msg:\"ipv4-csum keyword check(1)\"; "
+                                             "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         printf("sig 2 parse: ");
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     if (!(PacketAlertCheck(p1, 1))) {
@@ -1614,7 +1648,7 @@ static int SigTest25NegativeIPV4Keyword(void)
     int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
-                    "\r\n\r\n";
+                              "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
@@ -1644,27 +1678,25 @@ static int SigTest25NegativeIPV4Keyword(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert ip any any -> any any "
-                               "(content:\"/one/\"; ipv4-csum:invalid; "
-                               "msg:\"ipv4-csum keyword check(1)\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any any "
+                                       "(content:\"/one/\"; ipv4-csum:invalid; "
+                                       "msg:\"ipv4-csum keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert ip any any -> any any "
-                                     "(content:\"/one/\"; ipv4-csum:valid; "
-                                     "msg:\"ipv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert ip any any -> any any "
+                                             "(content:\"/one/\"; ipv4-csum:valid; "
+                                             "msg:\"ipv4-csum keyword check(1)\"; "
+                                             "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     if (PacketAlertCheck(p1, 1))
@@ -1759,21 +1791,19 @@ static int SigTest26TCPV4Keyword(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert ip any any -> any any "
-                               "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; "
-                               "msg:\"tcpv4-csum keyword check(1)\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any any "
+                                       "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; "
+                                       "msg:\"tcpv4-csum keyword check(1)\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert ip any any -> any any "
-                                     "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; "
-                                     "msg:\"tcpv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert ip any any -> any any "
+                                             "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; "
+                                             "msg:\"tcpv4-csum keyword check(1)\"; "
+                                             "sid:2;)");
     FAIL_IF_NULL(de_ctx->sig_list->next);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     FAIL_IF(!(PacketAlertCheck(p1, 1)));
@@ -1865,27 +1895,26 @@ static int SigTest26TCPV4AndNegativeIPV4Keyword(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert ip any any -> any any "
-                               "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; "
-                               "ipv4-csum:invalid; "
-                               "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; sid:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert ip any any -> any any "
+                            "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; "
+                            "ipv4-csum:invalid; "
+                            "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert ip any any -> any any "
-                                     "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; "
-                                     "ipv4-csum:invalid; "
-                                     "msg:\"tcpv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert ip any any -> any any "
+                                             "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; "
+                                             "ipv4-csum:invalid; "
+                                             "msg:\"tcpv4-csum keyword check(1)\"; "
+                                             "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     if (!(PacketAlertCheck(p1, 1))) {
@@ -1995,27 +2024,26 @@ static int SigTest26TCPV4AndIPV4Keyword(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert ip any any -> any any "
-                               "(tcpv4-csum:valid; "
-                               "ipv4-csum:valid; "
-                               "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; sid:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert ip any any -> any any "
+                            "(tcpv4-csum:valid; "
+                            "ipv4-csum:valid; "
+                            "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert ip any any -> any any "
-                                     "(tcpv4-csum:invalid; "
-                                     "ipv4-csum:valid; "
-                                     "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert ip any any -> any any "
+                                             "(tcpv4-csum:invalid; "
+                                             "ipv4-csum:valid; "
+                                             "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; "
+                                             "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     if (!(PacketAlertCheck(p1, 1))) {
@@ -2112,25 +2140,23 @@ static int SigTest27NegativeTCPV4Keyword(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-            "alert tcp any any -> any any "
-            "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; dsize:20; "
-            "msg:\"tcpv4-csum keyword check(1)\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; dsize:20; "
+                                       "msg:\"tcpv4-csum keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert tcp any any -> any any "
-                                     "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; "
-                                     "msg:\"tcpv4-csum keyword check(2)\"; "
-                                     "sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                                             "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; "
+                                             "msg:\"tcpv4-csum keyword check(2)\"; "
+                                             "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     if (!PacketAlertCheck(p1, 1)) {
@@ -2211,7 +2237,7 @@ static int SigTest28TCPV6Keyword(void)
 
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
-    p1->tcph = (TCPHdr *) (valid_raw_ipv6 + 54);
+    p1->tcph = (TCPHdr *)(valid_raw_ipv6 + 54);
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
     p1->payload = valid_raw_ipv6 + 54 + 20;
@@ -2224,7 +2250,7 @@ static int SigTest28TCPV6Keyword(void)
 
     PACKET_RESET_CHECKSUMS(p2);
     p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
-    p2->tcph = (TCPHdr *) (invalid_raw_ipv6 + 54);
+    p2->tcph = (TCPHdr *)(invalid_raw_ipv6 + 54);
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
     p2->payload = invalid_raw_ipv6 + 54 + 20;
@@ -2242,25 +2268,24 @@ static int SigTest28TCPV6Keyword(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(content:\"|00 01 69|\"; tcpv6-csum:valid; dsize:12; "
-                               "msg:\"tcpv6-csum keyword check(1)\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(content:\"|00 01 69|\"; tcpv6-csum:valid; dsize:12; "
+                                       "msg:\"tcpv6-csum keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert tcp any any -> any any "
-                                     "(content:\"|00 01 69|\"; tcpv6-csum:invalid; dsize:12; "
-                                     "msg:\"tcpv6-csum keyword check(1)\"; "
-                                     "sid:2;)");
+    de_ctx->sig_list->next =
+            SigInit(de_ctx, "alert tcp any any -> any any "
+                            "(content:\"|00 01 69|\"; tcpv6-csum:invalid; dsize:12; "
+                            "msg:\"tcpv6-csum keyword check(1)\"; "
+                            "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     if (!(PacketAlertCheck(p1, 1))) {
@@ -2341,7 +2366,7 @@ static int SigTest29NegativeTCPV6Keyword(void)
 
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
-    p1->tcph = (TCPHdr *) (valid_raw_ipv6 + 54);
+    p1->tcph = (TCPHdr *)(valid_raw_ipv6 + 54);
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
     p1->payload = valid_raw_ipv6 + 54 + 20;
@@ -2354,7 +2379,7 @@ static int SigTest29NegativeTCPV6Keyword(void)
 
     PACKET_RESET_CHECKSUMS(p2);
     p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
-    p2->tcph = (TCPHdr *) (invalid_raw_ipv6 + 54);
+    p2->tcph = (TCPHdr *)(invalid_raw_ipv6 + 54);
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
     p2->payload = invalid_raw_ipv6 + 54 + 20;
@@ -2372,26 +2397,24 @@ static int SigTest29NegativeTCPV6Keyword(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(content:\"|00 01 69|\"; tcpv6-csum:invalid; dsize:12; "
-                               "msg:\"tcpv6-csum keyword check(1)\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(content:\"|00 01 69|\"; tcpv6-csum:invalid; dsize:12; "
+                                       "msg:\"tcpv6-csum keyword check(1)\"; "
+                                       "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert tcp any any -> any any "
-                                     "(content:\"|00 01 69|\"; tcpv6-csum:valid; dsize:12; "
-                                     "msg:\"tcpv6-csum keyword check(1)\"; "
-                                     "sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                                             "(content:\"|00 01 69|\"; tcpv6-csum:valid; dsize:12; "
+                                             "msg:\"tcpv6-csum keyword check(1)\"; "
+                                             "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     if (PacketAlertCheck(p1, 1))
@@ -2461,7 +2484,7 @@ static int SigTest30UDPV4Keyword(void)
     DetectEngineThreadCtx *det_ctx = NULL;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0yyyyyyyyyyyyyyyy\r\n"
-                    "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
+                              "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
 
     memset(&th_v, 0, sizeof(ThreadVars));
 
@@ -2488,22 +2511,20 @@ static int SigTest30UDPV4Keyword(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(content:\"/one/\"; udpv4-csum:valid; "
-                               "msg:\"udpv4-csum keyword check(1)\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(content:\"/one/\"; udpv4-csum:valid; "
+                                       "msg:\"udpv4-csum keyword check(1)\"; "
+                                       "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert udp any any -> any any "
-                                     "(content:\"/one/\"; udpv4-csum:invalid; "
-                                     "msg:\"udpv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert udp any any -> any any "
+                                             "(content:\"/one/\"; udpv4-csum:invalid; "
+                                             "msg:\"udpv4-csum keyword check(1)\"; "
+                                             "sid:2;)");
     FAIL_IF_NULL(de_ctx->sig_list->next);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     FAIL_IF_NOT(PacketAlertCheck(p1, 1));
@@ -2573,7 +2594,7 @@ static int SigTest31NegativeUDPV4Keyword(void)
     int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0yyyyyyyyyyyyyyyy\r\n"
-                    "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
+                              "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
 
     memset(&th_v, 0, sizeof(ThreadVars));
 
@@ -2602,27 +2623,25 @@ static int SigTest31NegativeUDPV4Keyword(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(content:\"/one/\"; udpv4-csum:invalid; "
-                               "msg:\"udpv4-csum keyword check(1)\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(content:\"/one/\"; udpv4-csum:invalid; "
+                                       "msg:\"udpv4-csum keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert udp any any -> any any "
-                                     "(content:\"/one/\"; udpv4-csum:valid; "
-                                     "msg:\"udpv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert udp any any -> any any "
+                                             "(content:\"/one/\"; udpv4-csum:valid; "
+                                             "msg:\"udpv4-csum keyword check(1)\"; "
+                                             "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     if (PacketAlertCheck(p1, 1))
@@ -2633,8 +2652,7 @@ static int SigTest31NegativeUDPV4Keyword(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
     if (PacketAlertCheck(p2, 2)) {
         result &= 0;
-    }
-    else
+    } else
         result &= 1;
 
     SigGroupCleanup(de_ctx);
@@ -2647,7 +2665,6 @@ end:
     SCFree(p2);
     return result;
 }
-
 
 static int SigTest32UDPV6Keyword(void)
 {
@@ -2688,13 +2705,13 @@ static int SigTest32UDPV6Keyword(void)
     DetectEngineThreadCtx *det_ctx = NULL;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP\r\n"
-                    "\r\n\r\n";
+                              "\r\n\r\n";
 
     memset(&th_v, 0, sizeof(ThreadVars));
 
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
-    p1->udph = (UDPHdr *) (valid_raw_ipv6 + 54);
+    p1->udph = (UDPHdr *)(valid_raw_ipv6 + 54);
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
     p1->payload = buf;
@@ -2703,7 +2720,7 @@ static int SigTest32UDPV6Keyword(void)
 
     PACKET_RESET_CHECKSUMS(p2);
     p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
-    p2->udph = (UDPHdr *) (invalid_raw_ipv6 + 54);
+    p2->udph = (UDPHdr *)(invalid_raw_ipv6 + 54);
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
     p2->payload = buf;
@@ -2715,21 +2732,19 @@ static int SigTest32UDPV6Keyword(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(content:\"/one/\"; udpv6-csum:valid; "
-                               "msg:\"udpv6-csum keyword check(1)\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(content:\"/one/\"; udpv6-csum:valid; "
+                                       "msg:\"udpv6-csum keyword check(1)\"; sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert udp any any -> any any "
-                                     "(content:\"/one/\"; udpv6-csum:invalid; "
-                                     "msg:\"udpv6-csum keyword check(1)\"; "
-                                     "sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert udp any any -> any any "
+                                             "(content:\"/one/\"; udpv6-csum:invalid; "
+                                             "msg:\"udpv6-csum keyword check(1)\"; "
+                                             "sid:2;)");
     FAIL_IF_NULL(de_ctx->sig_list->next);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     FAIL_IF_NOT(PacketAlertCheck(p1, 1));
@@ -2791,13 +2806,13 @@ static int SigTest33NegativeUDPV6Keyword(void)
     int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP\r\n"
-                    "\r\n\r\n";
+                              "\r\n\r\n";
 
     memset(&th_v, 0, sizeof(ThreadVars));
 
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
-    p1->udph = (UDPHdr *) (valid_raw_ipv6 + 54);
+    p1->udph = (UDPHdr *)(valid_raw_ipv6 + 54);
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
     p1->payload = buf;
@@ -2806,7 +2821,7 @@ static int SigTest33NegativeUDPV6Keyword(void)
 
     PACKET_RESET_CHECKSUMS(p2);
     p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
-    p2->udph = (UDPHdr *) (invalid_raw_ipv6 + 54);
+    p2->udph = (UDPHdr *)(invalid_raw_ipv6 + 54);
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
     p2->payload = buf;
@@ -2820,27 +2835,25 @@ static int SigTest33NegativeUDPV6Keyword(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(content:\"/one/\"; udpv6-csum:invalid; "
-                               "msg:\"udpv6-csum keyword check(1)\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
+                                       "(content:\"/one/\"; udpv6-csum:invalid; "
+                                       "msg:\"udpv6-csum keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert udp any any -> any any "
-                                     "(content:\"/one/\"; udpv6-csum:valid; "
-                                     "msg:\"udpv6-csum keyword check(1)\"; "
-                                     "sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert udp any any -> any any "
+                                             "(content:\"/one/\"; udpv6-csum:valid; "
+                                             "msg:\"udpv6-csum keyword check(1)\"; "
+                                             "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     if (PacketAlertCheck(p1, 1))
@@ -2910,7 +2923,7 @@ static int SigTest34ICMPV4Keyword(void)
     int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
-                    "\r\n\r\n";
+                              "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
@@ -2918,7 +2931,7 @@ static int SigTest34ICMPV4Keyword(void)
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip4h = (IPV4Hdr *)(valid_raw_ipv4);
     p1->ip4h->ip_verhl = 69;
-    p1->icmpv4h = (ICMPV4Hdr *) (valid_raw_ipv4 + IPV4_GET_RAW_HLEN(p1->ip4h) * 4);
+    p1->icmpv4h = (ICMPV4Hdr *)(valid_raw_ipv4 + IPV4_GET_RAW_HLEN(p1->ip4h) * 4);
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
     p1->payload = buf;
@@ -2928,7 +2941,7 @@ static int SigTest34ICMPV4Keyword(void)
     PACKET_RESET_CHECKSUMS(p2);
     p2->ip4h = (IPV4Hdr *)(invalid_raw_ipv4);
     p2->ip4h->ip_verhl = 69;
-    p2->icmpv4h = (ICMPV4Hdr *) (invalid_raw_ipv4 + IPV4_GET_RAW_HLEN(p2->ip4h) * 4);
+    p2->icmpv4h = (ICMPV4Hdr *)(invalid_raw_ipv4 + IPV4_GET_RAW_HLEN(p2->ip4h) * 4);
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
     p2->payload = buf;
@@ -2942,27 +2955,25 @@ static int SigTest34ICMPV4Keyword(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert icmp any any -> any any "
-                               "(content:\"/one/\"; icmpv4-csum:valid; "
-                               "msg:\"icmpv4-csum keyword check(1)\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                                       "(content:\"/one/\"; icmpv4-csum:valid; "
+                                       "msg:\"icmpv4-csum keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert icmp any any -> any any "
-                                     "(content:\"/one/\"; icmpv4-csum:invalid; "
-                                     "msg:\"icmpv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert icmp any any -> any any "
+                                             "(content:\"/one/\"; icmpv4-csum:invalid; "
+                                             "msg:\"icmpv4-csum keyword check(1)\"; "
+                                             "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     if (PacketAlertCheck(p1, 1))
@@ -3032,7 +3043,7 @@ static int SigTest35NegativeICMPV4Keyword(void)
     int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
-                    "\r\n\r\n";
+                              "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
@@ -3040,7 +3051,7 @@ static int SigTest35NegativeICMPV4Keyword(void)
     PACKET_RESET_CHECKSUMS(p1);
     p1->ip4h = (IPV4Hdr *)(valid_raw_ipv4);
     p1->ip4h->ip_verhl = 69;
-    p1->icmpv4h = (ICMPV4Hdr *) (valid_raw_ipv4 + IPV4_GET_RAW_HLEN(p1->ip4h) * 4);
+    p1->icmpv4h = (ICMPV4Hdr *)(valid_raw_ipv4 + IPV4_GET_RAW_HLEN(p1->ip4h) * 4);
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
     p1->payload = buf;
@@ -3050,7 +3061,7 @@ static int SigTest35NegativeICMPV4Keyword(void)
     PACKET_RESET_CHECKSUMS(p2);
     p2->ip4h = (IPV4Hdr *)(invalid_raw_ipv4);
     p2->ip4h->ip_verhl = 69;
-    p2->icmpv4h = (ICMPV4Hdr *) (invalid_raw_ipv4 + IPV4_GET_RAW_HLEN(p2->ip4h) * 4);
+    p2->icmpv4h = (ICMPV4Hdr *)(invalid_raw_ipv4 + IPV4_GET_RAW_HLEN(p2->ip4h) * 4);
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
     p2->payload = buf;
@@ -3064,27 +3075,25 @@ static int SigTest35NegativeICMPV4Keyword(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert icmp any any -> any any "
-                               "(content:\"/one/\"; icmpv4-csum:invalid; "
-                               "msg:\"icmpv4-csum keyword check(1)\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                                       "(content:\"/one/\"; icmpv4-csum:invalid; "
+                                       "msg:\"icmpv4-csum keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert icmp any any -> any any "
-                                     "(content:\"/one/\"; icmpv4-csum:valid; "
-                                     "msg:\"icmpv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert icmp any any -> any any "
+                                             "(content:\"/one/\"; icmpv4-csum:valid; "
+                                             "msg:\"icmpv4-csum keyword check(1)\"; "
+                                             "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     if (PacketAlertCheck(p1, 1))
@@ -3197,20 +3206,18 @@ static int SigTest38(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(content:\"LEN1|20|\"; "
-                               "byte_test:4,=,8,0; "
-                               "msg:\"byte_test keyword check(1)\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                       "(content:\"LEN1|20|\"; "
+                                       "byte_test:4,=,8,0; "
+                                       "msg:\"byte_test keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(content:\"LEN1|20|\"; "
-                               "byte_test:4,=,8,5,relative,string,dec; "
-                               "msg:\"byte_test keyword check(2)\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                                             "(content:\"LEN1|20|\"; "
+                                             "byte_test:4,=,8,5,relative,string,dec; "
+                                             "msg:\"byte_test keyword check(2)\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
@@ -3353,43 +3360,44 @@ static int SigTest39(void)
  * \brief expecting to match a size
  */
 
-static int SigTest36ContentAndIsdataatKeywords01 (void)
+static int SigTest36ContentAndIsdataatKeywords01(void)
 {
     int result = 0;
 
     // Build and decode the packet
 
-    uint8_t raw_eth [] = {
-     0x00,0x25,0x00,0x9e,0xfa,0xfe,0x00,0x02,0xcf,0x74,0xfe,0xe1,0x08,0x00,0x45,0x00
-	,0x01,0xcc,0xcb,0x91,0x00,0x00,0x34,0x06,0xdf,0xa8,0xd1,0x55,0xe3,0x67,0xc0,0xa8
-	,0x64,0x8c,0x00,0x50,0xc0,0xb7,0xd1,0x11,0xed,0x63,0x81,0xa9,0x9a,0x05,0x80,0x18
-	,0x00,0x75,0x0a,0xdd,0x00,0x00,0x01,0x01,0x08,0x0a,0x09,0x8a,0x06,0xd0,0x12,0x21
-	,0x2a,0x3b,0x48,0x54,0x54,0x50,0x2f,0x31,0x2e,0x31,0x20,0x33,0x30,0x32,0x20,0x46
-	,0x6f,0x75,0x6e,0x64,0x0d,0x0a,0x4c,0x6f,0x63,0x61,0x74,0x69,0x6f,0x6e,0x3a,0x20
-	,0x68,0x74,0x74,0x70,0x3a,0x2f,0x2f,0x77,0x77,0x77,0x2e,0x67,0x6f,0x6f,0x67,0x6c
-	,0x65,0x2e,0x65,0x73,0x2f,0x0d,0x0a,0x43,0x61,0x63,0x68,0x65,0x2d,0x43,0x6f,0x6e
-	,0x74,0x72,0x6f,0x6c,0x3a,0x20,0x70,0x72,0x69,0x76,0x61,0x74,0x65,0x0d,0x0a,0x43
-	,0x6f,0x6e,0x74,0x65,0x6e,0x74,0x2d,0x54,0x79,0x70,0x65,0x3a,0x20,0x74,0x65,0x78
-	,0x74,0x2f,0x68,0x74,0x6d,0x6c,0x3b,0x20,0x63,0x68,0x61,0x72,0x73,0x65,0x74,0x3d
-	,0x55,0x54,0x46,0x2d,0x38,0x0d,0x0a,0x44,0x61,0x74,0x65,0x3a,0x20,0x4d,0x6f,0x6e
-	,0x2c,0x20,0x31,0x34,0x20,0x53,0x65,0x70,0x20,0x32,0x30,0x30,0x39,0x20,0x30,0x38
-	,0x3a,0x34,0x38,0x3a,0x33,0x31,0x20,0x47,0x4d,0x54,0x0d,0x0a,0x53,0x65,0x72,0x76
-	,0x65,0x72,0x3a,0x20,0x67,0x77,0x73,0x0d,0x0a,0x43,0x6f,0x6e,0x74,0x65,0x6e,0x74
-	,0x2d,0x4c,0x65,0x6e,0x67,0x74,0x68,0x3a,0x20,0x32,0x31,0x38,0x0d,0x0a,0x0d,0x0a
-	,0x3c,0x48,0x54,0x4d,0x4c,0x3e,0x3c,0x48,0x45,0x41,0x44,0x3e,0x3c,0x6d,0x65,0x74
-	,0x61,0x20,0x68,0x74,0x74,0x70,0x2d,0x65,0x71,0x75,0x69,0x76,0x3d,0x22,0x63,0x6f
-	,0x6e,0x74,0x65,0x6e,0x74,0x2d,0x74,0x79,0x70,0x65,0x22,0x20,0x63,0x6f,0x6e,0x74
-	,0x65,0x6e,0x74,0x3d,0x22,0x74,0x65,0x78,0x74,0x2f,0x68,0x74,0x6d,0x6c,0x3b,0x63
-	,0x68,0x61,0x72,0x73,0x65,0x74,0x3d,0x75,0x74,0x66,0x2d,0x38,0x22,0x3e,0x0a,0x3c
-	,0x54,0x49,0x54,0x4c,0x45,0x3e,0x33,0x30,0x32,0x20,0x4d,0x6f,0x76,0x65,0x64,0x3c
-	,0x2f,0x54,0x49,0x54,0x4c,0x45,0x3e,0x3c,0x2f,0x48,0x45,0x41,0x44,0x3e,0x3c,0x42
-	,0x4f,0x44,0x59,0x3e,0x0a,0x3c,0x48,0x31,0x3e,0x33,0x30,0x32,0x20,0x4d,0x6f,0x76
-	,0x65,0x64,0x3c,0x2f,0x48,0x31,0x3e,0x0a,0x54,0x68,0x65,0x20,0x64,0x6f,0x63,0x75
-	,0x6d,0x65,0x6e,0x74,0x20,0x68,0x61,0x73,0x20,0x6d,0x6f,0x76,0x65,0x64,0x0a,0x3c
-	,0x41,0x20,0x48,0x52,0x45,0x46,0x3d,0x22,0x68,0x74,0x74,0x70,0x3a,0x2f,0x2f,0x77
-	,0x77,0x77,0x2e,0x67,0x6f,0x6f,0x67,0x6c,0x65,0x2e,0x65,0x73,0x2f,0x22,0x3e,0x68
-	,0x65,0x72,0x65,0x3c,0x2f,0x41,0x3e,0x2e,0x0d,0x0a,0x3c,0x2f,0x42,0x4f,0x44,0x59
-	,0x3e,0x3c,0x2f,0x48,0x54,0x4d,0x4c,0x3e,0x0d,0x0a };
+    uint8_t raw_eth[] = { 0x00, 0x25, 0x00, 0x9e, 0xfa, 0xfe, 0x00, 0x02, 0xcf, 0x74, 0xfe, 0xe1,
+        0x08, 0x00, 0x45, 0x00, 0x01, 0xcc, 0xcb, 0x91, 0x00, 0x00, 0x34, 0x06, 0xdf, 0xa8, 0xd1,
+        0x55, 0xe3, 0x67, 0xc0, 0xa8, 0x64, 0x8c, 0x00, 0x50, 0xc0, 0xb7, 0xd1, 0x11, 0xed, 0x63,
+        0x81, 0xa9, 0x9a, 0x05, 0x80, 0x18, 0x00, 0x75, 0x0a, 0xdd, 0x00, 0x00, 0x01, 0x01, 0x08,
+        0x0a, 0x09, 0x8a, 0x06, 0xd0, 0x12, 0x21, 0x2a, 0x3b, 0x48, 0x54, 0x54, 0x50, 0x2f, 0x31,
+        0x2e, 0x31, 0x20, 0x33, 0x30, 0x32, 0x20, 0x46, 0x6f, 0x75, 0x6e, 0x64, 0x0d, 0x0a, 0x4c,
+        0x6f, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f,
+        0x2f, 0x77, 0x77, 0x77, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x65, 0x73, 0x2f,
+        0x0d, 0x0a, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2d, 0x43, 0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c,
+        0x3a, 0x20, 0x70, 0x72, 0x69, 0x76, 0x61, 0x74, 0x65, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x74,
+        0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79, 0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78, 0x74, 0x2f,
+        0x68, 0x74, 0x6d, 0x6c, 0x3b, 0x20, 0x63, 0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x3d, 0x55,
+        0x54, 0x46, 0x2d, 0x38, 0x0d, 0x0a, 0x44, 0x61, 0x74, 0x65, 0x3a, 0x20, 0x4d, 0x6f, 0x6e,
+        0x2c, 0x20, 0x31, 0x34, 0x20, 0x53, 0x65, 0x70, 0x20, 0x32, 0x30, 0x30, 0x39, 0x20, 0x30,
+        0x38, 0x3a, 0x34, 0x38, 0x3a, 0x33, 0x31, 0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65,
+        0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x67, 0x77, 0x73, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x74,
+        0x65, 0x6e, 0x74, 0x2d, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x32, 0x31, 0x38,
+        0x0d, 0x0a, 0x0d, 0x0a, 0x3c, 0x48, 0x54, 0x4d, 0x4c, 0x3e, 0x3c, 0x48, 0x45, 0x41, 0x44,
+        0x3e, 0x3c, 0x6d, 0x65, 0x74, 0x61, 0x20, 0x68, 0x74, 0x74, 0x70, 0x2d, 0x65, 0x71, 0x75,
+        0x69, 0x76, 0x3d, 0x22, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x74, 0x79, 0x70,
+        0x65, 0x22, 0x20, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x3d, 0x22, 0x74, 0x65, 0x78,
+        0x74, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3b, 0x63, 0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x3d,
+        0x75, 0x74, 0x66, 0x2d, 0x38, 0x22, 0x3e, 0x0a, 0x3c, 0x54, 0x49, 0x54, 0x4c, 0x45, 0x3e,
+        0x33, 0x30, 0x32, 0x20, 0x4d, 0x6f, 0x76, 0x65, 0x64, 0x3c, 0x2f, 0x54, 0x49, 0x54, 0x4c,
+        0x45, 0x3e, 0x3c, 0x2f, 0x48, 0x45, 0x41, 0x44, 0x3e, 0x3c, 0x42, 0x4f, 0x44, 0x59, 0x3e,
+        0x0a, 0x3c, 0x48, 0x31, 0x3e, 0x33, 0x30, 0x32, 0x20, 0x4d, 0x6f, 0x76, 0x65, 0x64, 0x3c,
+        0x2f, 0x48, 0x31, 0x3e, 0x0a, 0x54, 0x68, 0x65, 0x20, 0x64, 0x6f, 0x63, 0x75, 0x6d, 0x65,
+        0x6e, 0x74, 0x20, 0x68, 0x61, 0x73, 0x20, 0x6d, 0x6f, 0x76, 0x65, 0x64, 0x0a, 0x3c, 0x41,
+        0x20, 0x48, 0x52, 0x45, 0x46, 0x3d, 0x22, 0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x77,
+        0x77, 0x77, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x65, 0x73, 0x2f, 0x22, 0x3e,
+        0x68, 0x65, 0x72, 0x65, 0x3c, 0x2f, 0x41, 0x3e, 0x2e, 0x0d, 0x0a, 0x3c, 0x2f, 0x42, 0x4f,
+        0x44, 0x59, 0x3e, 0x3c, 0x2f, 0x48, 0x54, 0x4d, 0x4c, 0x3e, 0x0d, 0x0a };
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -3405,7 +3413,6 @@ static int SigTest36ContentAndIsdataatKeywords01 (void)
     FlowInitConfig(FLOW_QUIET);
     DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth));
 
-
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
@@ -3413,7 +3420,9 @@ static int SigTest36ContentAndIsdataatKeywords01 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest36ContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:404, relative; sid:101;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"SigTest36ContentAndIsdataatKeywords01 \"; "
+            "content:\"HTTP\"; isdataat:404, relative; sid:101;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -3427,7 +3436,7 @@ static int SigTest36ContentAndIsdataatKeywords01 (void)
         result = 0;
         goto end;
     } else {
-        result=1;
+        result = 1;
     }
 
     SigGroupCleanup(de_ctx);
@@ -3442,19 +3451,18 @@ static int SigTest36ContentAndIsdataatKeywords01 (void)
     return result;
 
 end:
-    if(de_ctx)
-    {
+    if (de_ctx) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
     }
 
-    if(det_ctx)
+    if (det_ctx)
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
-    //PatternMatchDestroy(mpm_ctx);
+    // PatternMatchDestroy(mpm_ctx);
 
-    if(de_ctx)
-             DetectEngineCtxFree(de_ctx);
+    if (de_ctx)
+        DetectEngineCtxFree(de_ctx);
 
     if (p != NULL)
         PacketRecycle(p);
@@ -3465,49 +3473,49 @@ end:
     return result;
 }
 
-
 /**
  * \test SigTest37ContentAndIsdataatKeywords02 is a test to check window with constructed packets,
  *  \brief not expecting to match a size
  */
 
-static int SigTest37ContentAndIsdataatKeywords02 (void)
+static int SigTest37ContentAndIsdataatKeywords02(void)
 {
     int result = 0;
 
     // Build and decode the packet
 
-    uint8_t raw_eth [] = {
-   0x00,0x25,0x00,0x9e,0xfa,0xfe,0x00,0x02,0xcf,0x74,0xfe,0xe1,0x08,0x00,0x45,0x00
-	,0x01,0xcc,0xcb,0x91,0x00,0x00,0x34,0x06,0xdf,0xa8,0xd1,0x55,0xe3,0x67,0xc0,0xa8
-	,0x64,0x8c,0x00,0x50,0xc0,0xb7,0xd1,0x11,0xed,0x63,0x81,0xa9,0x9a,0x05,0x80,0x18
-	,0x00,0x75,0x0a,0xdd,0x00,0x00,0x01,0x01,0x08,0x0a,0x09,0x8a,0x06,0xd0,0x12,0x21
-	,0x2a,0x3b,0x48,0x54,0x54,0x50,0x2f,0x31,0x2e,0x31,0x20,0x33,0x30,0x32,0x20,0x46
-	,0x6f,0x75,0x6e,0x64,0x0d,0x0a,0x4c,0x6f,0x63,0x61,0x74,0x69,0x6f,0x6e,0x3a,0x20
-	,0x68,0x74,0x74,0x70,0x3a,0x2f,0x2f,0x77,0x77,0x77,0x2e,0x67,0x6f,0x6f,0x67,0x6c
-	,0x65,0x2e,0x65,0x73,0x2f,0x0d,0x0a,0x43,0x61,0x63,0x68,0x65,0x2d,0x43,0x6f,0x6e
-	,0x74,0x72,0x6f,0x6c,0x3a,0x20,0x70,0x72,0x69,0x76,0x61,0x74,0x65,0x0d,0x0a,0x43
-	,0x6f,0x6e,0x74,0x65,0x6e,0x74,0x2d,0x54,0x79,0x70,0x65,0x3a,0x20,0x74,0x65,0x78
-	,0x74,0x2f,0x68,0x74,0x6d,0x6c,0x3b,0x20,0x63,0x68,0x61,0x72,0x73,0x65,0x74,0x3d
-	,0x55,0x54,0x46,0x2d,0x38,0x0d,0x0a,0x44,0x61,0x74,0x65,0x3a,0x20,0x4d,0x6f,0x6e
-	,0x2c,0x20,0x31,0x34,0x20,0x53,0x65,0x70,0x20,0x32,0x30,0x30,0x39,0x20,0x30,0x38
-	,0x3a,0x34,0x38,0x3a,0x33,0x31,0x20,0x47,0x4d,0x54,0x0d,0x0a,0x53,0x65,0x72,0x76
-	,0x65,0x72,0x3a,0x20,0x67,0x77,0x73,0x0d,0x0a,0x43,0x6f,0x6e,0x74,0x65,0x6e,0x74
-	,0x2d,0x4c,0x65,0x6e,0x67,0x74,0x68,0x3a,0x20,0x32,0x31,0x38,0x0d,0x0a,0x0d,0x0a
-	,0x3c,0x48,0x54,0x4d,0x4c,0x3e,0x3c,0x48,0x45,0x41,0x44,0x3e,0x3c,0x6d,0x65,0x74
-	,0x61,0x20,0x68,0x74,0x74,0x70,0x2d,0x65,0x71,0x75,0x69,0x76,0x3d,0x22,0x63,0x6f
-	,0x6e,0x74,0x65,0x6e,0x74,0x2d,0x74,0x79,0x70,0x65,0x22,0x20,0x63,0x6f,0x6e,0x74
-	,0x65,0x6e,0x74,0x3d,0x22,0x74,0x65,0x78,0x74,0x2f,0x68,0x74,0x6d,0x6c,0x3b,0x63
-	,0x68,0x61,0x72,0x73,0x65,0x74,0x3d,0x75,0x74,0x66,0x2d,0x38,0x22,0x3e,0x0a,0x3c
-	,0x54,0x49,0x54,0x4c,0x45,0x3e,0x33,0x30,0x32,0x20,0x4d,0x6f,0x76,0x65,0x64,0x3c
-	,0x2f,0x54,0x49,0x54,0x4c,0x45,0x3e,0x3c,0x2f,0x48,0x45,0x41,0x44,0x3e,0x3c,0x42
-	,0x4f,0x44,0x59,0x3e,0x0a,0x3c,0x48,0x31,0x3e,0x33,0x30,0x32,0x20,0x4d,0x6f,0x76
-	,0x65,0x64,0x3c,0x2f,0x48,0x31,0x3e,0x0a,0x54,0x68,0x65,0x20,0x64,0x6f,0x63,0x75
-	,0x6d,0x65,0x6e,0x74,0x20,0x68,0x61,0x73,0x20,0x6d,0x6f,0x76,0x65,0x64,0x0a,0x3c
-	,0x41,0x20,0x48,0x52,0x45,0x46,0x3d,0x22,0x68,0x74,0x74,0x70,0x3a,0x2f,0x2f,0x77
-	,0x77,0x77,0x2e,0x67,0x6f,0x6f,0x67,0x6c,0x65,0x2e,0x65,0x73,0x2f,0x22,0x3e,0x68
-	,0x65,0x72,0x65,0x3c,0x2f,0x41,0x3e,0x2e,0x0d,0x0a,0x3c,0x2f,0x42,0x4f,0x44,0x59
-	,0x3e,0x3c,0x2f,0x48,0x54,0x4d,0x4c,0x3e,0x0d,0x0a };
+    uint8_t raw_eth[] = { 0x00, 0x25, 0x00, 0x9e, 0xfa, 0xfe, 0x00, 0x02, 0xcf, 0x74, 0xfe, 0xe1,
+        0x08, 0x00, 0x45, 0x00, 0x01, 0xcc, 0xcb, 0x91, 0x00, 0x00, 0x34, 0x06, 0xdf, 0xa8, 0xd1,
+        0x55, 0xe3, 0x67, 0xc0, 0xa8, 0x64, 0x8c, 0x00, 0x50, 0xc0, 0xb7, 0xd1, 0x11, 0xed, 0x63,
+        0x81, 0xa9, 0x9a, 0x05, 0x80, 0x18, 0x00, 0x75, 0x0a, 0xdd, 0x00, 0x00, 0x01, 0x01, 0x08,
+        0x0a, 0x09, 0x8a, 0x06, 0xd0, 0x12, 0x21, 0x2a, 0x3b, 0x48, 0x54, 0x54, 0x50, 0x2f, 0x31,
+        0x2e, 0x31, 0x20, 0x33, 0x30, 0x32, 0x20, 0x46, 0x6f, 0x75, 0x6e, 0x64, 0x0d, 0x0a, 0x4c,
+        0x6f, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20, 0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f,
+        0x2f, 0x77, 0x77, 0x77, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x65, 0x73, 0x2f,
+        0x0d, 0x0a, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2d, 0x43, 0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c,
+        0x3a, 0x20, 0x70, 0x72, 0x69, 0x76, 0x61, 0x74, 0x65, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x74,
+        0x65, 0x6e, 0x74, 0x2d, 0x54, 0x79, 0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78, 0x74, 0x2f,
+        0x68, 0x74, 0x6d, 0x6c, 0x3b, 0x20, 0x63, 0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x3d, 0x55,
+        0x54, 0x46, 0x2d, 0x38, 0x0d, 0x0a, 0x44, 0x61, 0x74, 0x65, 0x3a, 0x20, 0x4d, 0x6f, 0x6e,
+        0x2c, 0x20, 0x31, 0x34, 0x20, 0x53, 0x65, 0x70, 0x20, 0x32, 0x30, 0x30, 0x39, 0x20, 0x30,
+        0x38, 0x3a, 0x34, 0x38, 0x3a, 0x33, 0x31, 0x20, 0x47, 0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65,
+        0x72, 0x76, 0x65, 0x72, 0x3a, 0x20, 0x67, 0x77, 0x73, 0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x74,
+        0x65, 0x6e, 0x74, 0x2d, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x32, 0x31, 0x38,
+        0x0d, 0x0a, 0x0d, 0x0a, 0x3c, 0x48, 0x54, 0x4d, 0x4c, 0x3e, 0x3c, 0x48, 0x45, 0x41, 0x44,
+        0x3e, 0x3c, 0x6d, 0x65, 0x74, 0x61, 0x20, 0x68, 0x74, 0x74, 0x70, 0x2d, 0x65, 0x71, 0x75,
+        0x69, 0x76, 0x3d, 0x22, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x74, 0x79, 0x70,
+        0x65, 0x22, 0x20, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x3d, 0x22, 0x74, 0x65, 0x78,
+        0x74, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3b, 0x63, 0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x3d,
+        0x75, 0x74, 0x66, 0x2d, 0x38, 0x22, 0x3e, 0x0a, 0x3c, 0x54, 0x49, 0x54, 0x4c, 0x45, 0x3e,
+        0x33, 0x30, 0x32, 0x20, 0x4d, 0x6f, 0x76, 0x65, 0x64, 0x3c, 0x2f, 0x54, 0x49, 0x54, 0x4c,
+        0x45, 0x3e, 0x3c, 0x2f, 0x48, 0x45, 0x41, 0x44, 0x3e, 0x3c, 0x42, 0x4f, 0x44, 0x59, 0x3e,
+        0x0a, 0x3c, 0x48, 0x31, 0x3e, 0x33, 0x30, 0x32, 0x20, 0x4d, 0x6f, 0x76, 0x65, 0x64, 0x3c,
+        0x2f, 0x48, 0x31, 0x3e, 0x0a, 0x54, 0x68, 0x65, 0x20, 0x64, 0x6f, 0x63, 0x75, 0x6d, 0x65,
+        0x6e, 0x74, 0x20, 0x68, 0x61, 0x73, 0x20, 0x6d, 0x6f, 0x76, 0x65, 0x64, 0x0a, 0x3c, 0x41,
+        0x20, 0x48, 0x52, 0x45, 0x46, 0x3d, 0x22, 0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x77,
+        0x77, 0x77, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x65, 0x73, 0x2f, 0x22, 0x3e,
+        0x68, 0x65, 0x72, 0x65, 0x3c, 0x2f, 0x41, 0x3e, 0x2e, 0x0d, 0x0a, 0x3c, 0x2f, 0x42, 0x4f,
+        0x44, 0x59, 0x3e, 0x3c, 0x2f, 0x48, 0x54, 0x4d, 0x4c, 0x3e, 0x0d, 0x0a };
 
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -3523,7 +3531,6 @@ static int SigTest37ContentAndIsdataatKeywords02 (void)
     FlowInitConfig(FLOW_QUIET);
     DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth));
 
-
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
@@ -3531,7 +3538,9 @@ static int SigTest37ContentAndIsdataatKeywords02 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest37ContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:500, relative; sid:101;)");
+    Signature *s = de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"SigTest37ContentAndIsdataatKeywords01 \"; "
+            "content:\"HTTP\"; isdataat:500, relative; sid:101;)");
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         result = 0;
@@ -3551,7 +3560,7 @@ static int SigTest37ContentAndIsdataatKeywords02 (void)
         goto end;
     } else {
         printf("sig matched, but should not have: ");
-        result=0;
+        result = 0;
     }
 
     SigGroupCleanup(de_ctx);
@@ -3567,16 +3576,15 @@ static int SigTest37ContentAndIsdataatKeywords02 (void)
     return result;
 
 end:
-    if(de_ctx)
-    {
+    if (de_ctx) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
     }
 
-    if(det_ctx)
+    if (det_ctx)
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
-    if(de_ctx)
+    if (de_ctx)
         DetectEngineCtxFree(de_ctx);
 
     if (p != NULL)
@@ -3596,13 +3604,12 @@ end:
 static int SigTest40NoPacketInspection01(void)
 {
 
-    uint8_t *buf = (uint8_t *)
-                    "220 (vsFTPd 2.0.5)\r\n";
+    uint8_t *buf = (uint8_t *)"220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = PacketGetFromAlloc();
     TCPHdr tcphdr;
     if (unlikely(p == NULL))
-    return 0;
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     PacketQueue pq;
@@ -3637,14 +3644,15 @@ static int SigTest40NoPacketInspection01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> 1.2.3.4 any (msg:\"No Packet Inspection Test\"; flow:to_server; sid:2; rev:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> 1.2.3.4 any (msg:\"No Packet "
+                                       "Inspection Test\"; flow:to_server; sid:2; rev:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
     det_ctx->de_ctx = de_ctx;
 
     Detect(&th_v, p, det_ctx);
@@ -3656,7 +3664,7 @@ static int SigTest40NoPacketInspection01(void)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
+    // PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     SCFree(p);
@@ -3671,8 +3679,7 @@ end:
 static int SigTest40NoPayloadInspection02(void)
 {
 
-    uint8_t *buf = (uint8_t *)
-                    "220 (vsFTPd 2.0.5)\r\n";
+    uint8_t *buf = (uint8_t *)"220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
@@ -3692,8 +3699,8 @@ static int SigTest40NoPayloadInspection02(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = DetectEngineAppendSig(de_ctx,
-            "alert tcp any any -> any any (msg:\"No Payload TEST\"; content:\"220 (vsFTPd 2.0.5)\"; sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"No Payload "
+                                                 "TEST\"; content:\"220 (vsFTPd 2.0.5)\"; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -3709,15 +3716,14 @@ static int SigTest40NoPayloadInspection02(void)
     PASS;
 }
 
-static int SigTestMemory01 (void)
+static int SigTestMemory01(void)
 {
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"
-                    "Host: one.example.org\r\n"
-                    "\r\n\r\n"
-                    "GET /two/ HTTP/1.1\r\n"
-                    "Host: two.example.org\r\n"
-                    "\r\n\r\n";
+    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.1\r\n"
+                              "Host: one.example.org\r\n"
+                              "\r\n\r\n"
+                              "GET /two/ HTTP/1.1\r\n"
+                              "Host: two.example.org\r\n"
+                              "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
@@ -3740,7 +3746,9 @@ static int SigTestMemory01 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; "
+            "pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -3759,7 +3767,7 @@ end:
     return result;
 }
 
-static int SigTestMemory02 (void)
+static int SigTestMemory02(void)
 {
     ThreadVars th_v;
     int result = 0;
@@ -3772,12 +3780,16 @@ static int SigTestMemory02 (void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 456 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any 456 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; "
+            "pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any 1:1000 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+            "alert tcp any any -> any 1:1000 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; "
+            "pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -3793,7 +3805,7 @@ end:
     return result;
 }
 
-static int SigTestMemory03 (void)
+static int SigTestMemory03(void)
 {
     ThreadVars th_v;
     int result = 0;
@@ -3806,17 +3818,23 @@ static int SigTestMemory03 (void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> 1.2.3.4 456 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> 1.2.3.4 456 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; "
+            "pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> 1.2.3.3-1.2.3.6 1:1000 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+            "alert tcp any any -> 1.2.3.3-1.2.3.6 1:1000 (msg:\"HTTP URI cap\"; content:\"GET \"; "
+            "depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next->next = SigInit(de_ctx,"alert tcp any any -> !1.2.3.5 1:990 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:3;)");
+    de_ctx->sig_list->next->next = SigInit(de_ctx,
+            "alert tcp any any -> !1.2.3.5 1:990 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; "
+            "pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:3;)");
     if (de_ctx->sig_list->next->next == NULL) {
         result = 0;
         goto end;
@@ -3832,7 +3850,7 @@ end:
     return result;
 }
 
-static int SigTestContent01 (void)
+static int SigTestContent01(void)
 {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901";
     uint16_t buflen = strlen((char *)buf);
@@ -3851,7 +3869,8 @@ static int SigTestContent01 (void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Test 32\"; "
+                                       "content:\"01234567890123456789012345678901\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -3876,7 +3895,7 @@ end:
     return result;
 }
 
-static int SigTestContent02 (void)
+static int SigTestContent02(void)
 {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901";
     uint16_t buflen = strlen((char *)buf);
@@ -3894,13 +3913,16 @@ static int SigTestContent02 (void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Test 32\"; "
+                                       "content:\"01234567890123456789012345678901\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 31\"; content:\"0123456789012345678901234567890\"; sid:2;)");
+    de_ctx->sig_list->next =
+            SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Test 31\"; "
+                            "content:\"0123456789012345678901234567890\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -3915,8 +3937,7 @@ static int SigTestContent02 (void)
             result = 1;
         } else
             printf("sig 2 didn't match: ");
-    }
-    else
+    } else
         printf("sig 1 didn't match: ");
 
     SigGroupCleanup(de_ctx);
@@ -3929,9 +3950,10 @@ end:
     return result;
 }
 
-static int SigTestContent03 (void)
+static int SigTestContent03(void)
 {
-    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJ"
+                              "KLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -3948,7 +3970,10 @@ static int SigTestContent03 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; sid:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Test 32\"; "
+                            "content:\"01234567890123456789012345678901\"; "
+                            "content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -3973,9 +3998,10 @@ end:
     return result;
 }
 
-static int SigTestContent04 (void)
+static int SigTestContent04(void)
 {
-    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJ"
+                              "KLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -3993,7 +4019,10 @@ static int SigTestContent04 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"Test 32\"; "
+            "content:\"01234567890123456789012345678901\"; "
+            "content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -4019,9 +4048,10 @@ end:
 }
 
 /** \test sigs with patterns at the limit of the pm's size limit */
-static int SigTestContent05 (void)
+static int SigTestContent05(void)
 {
-    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901PADabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901PADabcdefghijklmnopqrstuvwxyzABCDEFG"
+                              "HIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -4039,12 +4069,18 @@ static int SigTestContent05 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"Test 32\"; "
+            "content:\"01234567890123456789012345678901\"; "
+            "content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("sig1 parse failed: ");
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:1; within:32; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+            "alert tcp any any -> any any (msg:\"Test 32\"; "
+            "content:\"01234567890123456789012345678901\"; "
+            "content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:1; within:32; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -4080,9 +4116,10 @@ end:
     return result;
 }
 
-static int SigTestContent06 (void)
+static int SigTestContent06(void)
 {
-    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJ"
+                              "KLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -4099,12 +4136,17 @@ static int SigTestContent06 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Test 32 sig1\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert ip any any -> any any (msg:\"Test 32 sig1\"; "
+            "content:\"01234567890123456789012345678901\"; "
+            "content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Test 32 sig2\"; content:\"01234567890123456789012345678901\"; content:\"abcdefg\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+            "alert ip any any -> any any (msg:\"Test 32 sig2\"; "
+            "content:\"01234567890123456789012345678901\"; content:\"abcdefg\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -4114,16 +4156,16 @@ static int SigTestContent06 (void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)){
-        //printf("sig 1 matched :");
-    }else{
+    if (PacketAlertCheck(p, 1)) {
+        // printf("sig 1 matched :");
+    } else {
         printf("sig 1 didn't match: ");
         goto end;
     }
 
-    if (PacketAlertCheck(p, 2)){
+    if (PacketAlertCheck(p, 2)) {
         result = 1;
-    }else{
+    } else {
         printf("sig 2 didn't match: ");
         goto end;
     }
@@ -4138,7 +4180,7 @@ end:
     return result;
 }
 
-static int SigTestWithin01 (void)
+static int SigTestWithin01(void)
 {
     DecodeThreadVars dtv;
     ThreadVars th_v;

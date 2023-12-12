@@ -48,7 +48,7 @@ typedef struct LockRecord_ {
     char *func; // info
     int type;   // info
 
-    int line;   // hash
+    int line; // hash
 
     uint32_t cont;
     uint32_t ticks_cnt;
@@ -61,15 +61,15 @@ pthread_mutex_t lock_records_mutex;
 
 static uint32_t LockRecordHash(HashListTable *ht, void *buf, uint16_t buflen)
 {
-     LockRecord *fn = (LockRecord *)buf;
-     uint32_t hash = strlen(fn->file) + fn->line;
-     uint16_t u;
+    LockRecord *fn = (LockRecord *)buf;
+    uint32_t hash = strlen(fn->file) + fn->line;
+    uint16_t u;
 
-     for (u = 0; u < strlen(fn->file); u++) {
-         hash += fn->file[u];
-     }
+    for (u = 0; u < strlen(fn->file); u++) {
+        hash += fn->file[u];
+    }
 
-     return hash % ht->array_size;
+    return hash % ht->array_size;
 }
 
 static char LockRecordCompare(void *buf1, uint16_t len1, void *buf2, uint16_t len2)
@@ -110,7 +110,7 @@ int LockRecordInitHash(void)
 
 static void LockRecordAdd(ProfilingLock *l)
 {
-    LockRecord fn = { NULL, NULL, 0,0,0,0,0,0}, *ptr = &fn;
+    LockRecord fn = { NULL, NULL, 0, 0, 0, 0, 0, 0 }, *ptr = &fn;
     fn.file = l->file;
     fn.line = l->line;
 
@@ -167,11 +167,13 @@ static void SCProfilingListLocks(void)
             return;
         }
     } else {
-       fp = stdout;
+        fp = stdout;
     }
 
-    fprintf(fp, "\n\nLock                                               Cnt        Avg ticks Max ticks    Total ticks  Cont    Func\n");
-    fprintf(fp,     "------------------                                 ---------- --------- ------------ ------------ ------- ---------\n");
+    fprintf(fp, "\n\nLock                                               Cnt        Avg ticks Max "
+                "ticks    Total ticks  Cont    Func\n");
+    fprintf(fp, "------------------                                 ---------- --------- "
+                "------------ ------------ ------- ---------\n");
 
     uint64_t total = 0;
     uint32_t cont = 0;
@@ -201,10 +203,11 @@ static void SCProfilingListLocks(void)
         }
 
         char str[128] = "";
-        snprintf(str, sizeof(str), "(%s) %s:%d", lock,r->file, r->line);
+        snprintf(str, sizeof(str), "(%s) %s:%d", lock, r->file, r->line);
 
-        fprintf(fp, "%-50s %-10u %-9"PRIu64" %-12"PRIu64" %-12"PRIu64" %-7u %-s\n",
-            str, r->ticks_cnt, (uint64_t)((uint64_t)r->ticks_total/(uint64_t)r->ticks_cnt), r->ticks_max, r->ticks_total, r->cont, r->func);
+        fprintf(fp, "%-50s %-10u %-9" PRIu64 " %-12" PRIu64 " %-12" PRIu64 " %-7u %-s\n", str,
+                r->ticks_cnt, (uint64_t)((uint64_t)r->ticks_total / (uint64_t)r->ticks_cnt),
+                r->ticks_max, r->ticks_total, r->cont, r->func);
 
         total += r->ticks_total;
         cnt += r->ticks_cnt;
@@ -213,8 +216,10 @@ static void SCProfilingListLocks(void)
         b = HashListTableGetListNext(b);
     }
 
-    fprintf(fp, "\nOverall: locks %"PRIu64", average cost %"PRIu64", contentions %"PRIu32", total ticks %"PRIu64"\n",
-        cnt, (uint64_t)((uint64_t)total/(uint64_t)cnt), cont, total);
+    fprintf(fp,
+            "\nOverall: locks %" PRIu64 ", average cost %" PRIu64 ", contentions %" PRIu32
+            ", total ticks %" PRIu64 "\n",
+            cnt, (uint64_t)((uint64_t)total / (uint64_t)cnt), cont, total);
 
     fclose(fp);
 }
@@ -239,4 +244,3 @@ void LockRecordFreeHash(void)
 
 #endif
 #endif
-

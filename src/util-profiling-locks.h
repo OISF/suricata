@@ -33,4 +33,3 @@ void LockRecordFreeHash(void);
 
 #endif /* PROFILING */
 #endif /* __UTIL_PROFILE_LOCKS_H__ */
-

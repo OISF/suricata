@@ -28,8 +28,8 @@
 #include "suricata-common.h"
 
 /* Constants */
-#define ASCII_BLOCK         3
-#define B64_BLOCK           4
+#define ASCII_BLOCK 3
+#define B64_BLOCK   4
 
 typedef enum {
     BASE64_MODE_RELAX,

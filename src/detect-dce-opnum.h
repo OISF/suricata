@@ -24,7 +24,6 @@
 #ifndef __DETECT_DCE_OPNUM_H__
 #define __DETECT_DCE_OPNUM_H__
 
-
 void DetectDceOpnumRegister(void);
 
 #endif /* __DETECT_DCE_OPNUM_H__ */

@@ -29,9 +29,9 @@
 #include "util-debug.h"
 #include "util-error.h"
 
-static int DetectRevSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectRevSetup(DetectEngineCtx *, Signature *, const char *);
 
-void DetectRevRegister (void)
+void DetectRevRegister(void)
 {
     sigmatch_table[DETECT_REV].name = "rev";
     sigmatch_table[DETECT_REV].desc = "set version of the rule";
@@ -39,7 +39,7 @@ void DetectRevRegister (void)
     sigmatch_table[DETECT_REV].Setup = DetectRevSetup;
 }
 
-static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectRevSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     unsigned long rev = 0;
     char *endptr = NULL;
@@ -66,6 +66,6 @@ static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ra
 
     return 0;
 
- error:
+error:
     return -1;
 }

@@ -40,7 +40,6 @@ typedef struct DetectFlowbitsData_ {
 } DetectFlowbitsData;
 
 /* prototypes */
-void DetectFlowbitsRegister (void);
+void DetectFlowbitsRegister(void);
 
 #endif /* __DETECT_FLOWBITS_H__ */
-

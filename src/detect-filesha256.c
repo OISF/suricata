@@ -32,7 +32,7 @@
 
 #include "detect-filesha256.h"
 
-static int DetectFileSha256Setup (DetectEngineCtx *, Signature *, const char *);
+static int DetectFileSha256Setup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
 static void DetectFileSha256RegisterTests(void);
 #endif
@@ -48,7 +48,7 @@ void DetectFileSha256Register(void)
     sigmatch_table[DETECT_FILESHA256].url = "/rules/file-keywords.html#filesha256";
     sigmatch_table[DETECT_FILESHA256].FileMatch = DetectFileHashMatch;
     sigmatch_table[DETECT_FILESHA256].Setup = DetectFileSha256Setup;
-    sigmatch_table[DETECT_FILESHA256].Free  = DetectFileHashFree;
+    sigmatch_table[DETECT_FILESHA256].Free = DetectFileHashFree;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FILESHA256].RegisterTests = DetectFileSha256RegisterTests;
 #endif
@@ -70,7 +70,7 @@ void DetectFileSha256Register(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFileSha256Setup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectFileSha256Setup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     return DetectFileHashSetup(de_ctx, s, str, DETECT_FILESHA256, g_file_match_list_id);
 }

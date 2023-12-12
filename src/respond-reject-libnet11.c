@@ -61,7 +61,7 @@ const char *g_reject_dev = NULL;
 uint16_t g_reject_dev_mtu = 0;
 
 /** set to true in main if we're setting caps. We need it here if we're using
-  * reject rules as libnet 1.1 is not compatible with caps. */
+ * reject rules as libnet 1.1 is not compatible with caps. */
 extern bool sc_set_caps;
 
 #include <libnet.h>
@@ -163,26 +163,25 @@ static inline void SetupTCP(Packet *p, Libnet11Packet *lpacket, enum RejectDirec
             break;
     }
     lpacket->window = TCP_GET_WINDOW(p);
-    //lpacket.seq += lpacket.dsize;
+    // lpacket.seq += lpacket.dsize;
 }
 
 static inline int BuildTCP(libnet_t *c, Libnet11Packet *lpacket)
 {
     /* build the package */
-    if ((libnet_build_tcp(
-                    lpacket->sp,           /* source port */
-                    lpacket->dp,           /* dst port */
-                    lpacket->seq,          /* seq number */
-                    lpacket->ack,          /* ack number */
-                    TH_RST|TH_ACK,         /* flags */
-                    lpacket->window,       /* window size */
-                    0,                     /* checksum */
-                    0,                     /* urgent flag */
-                    LIBNET_TCP_H,          /* header length */
-                    NULL,                  /* payload */
-                    0,                     /* payload length */
-                    c,                     /* libnet context */
-                    0)) < 0)               /* libnet ptag */
+    if ((libnet_build_tcp(lpacket->sp, /* source port */
+                lpacket->dp,           /* dst port */
+                lpacket->seq,          /* seq number */
+                lpacket->ack,          /* ack number */
+                TH_RST | TH_ACK,       /* flags */
+                lpacket->window,       /* window size */
+                0,                     /* checksum */
+                0,                     /* urgent flag */
+                LIBNET_TCP_H,          /* header length */
+                NULL,                  /* payload */
+                0,                     /* payload length */
+                c,                     /* libnet context */
+                0)) < 0)               /* libnet ptag */
     {
         SCLogError("libnet_build_tcp %s", libnet_geterror(c));
         return -1;
@@ -192,20 +191,19 @@ static inline int BuildTCP(libnet_t *c, Libnet11Packet *lpacket)
 
 static inline int BuildIPv4(libnet_t *c, Libnet11Packet *lpacket, const uint8_t proto)
 {
-    if ((libnet_build_ipv4(
-                    lpacket->len,                 /* entire packet length */
-                    0,                            /* tos */
-                    lpacket->id,                  /* ID */
-                    0,                            /* fragmentation flags and offset */
-                    lpacket->ttl,                 /* TTL */
-                    proto,                        /* protocol */
-                    0,                            /* checksum */
-                    lpacket->src4,                /* source address */
-                    lpacket->dst4,                /* destination address */
-                    NULL,                         /* pointer to packet data (or NULL) */
-                    0,                            /* payload length */
-                    c,                            /* libnet context pointer */
-                    0)) < 0)                      /* packet id */
+    if ((libnet_build_ipv4(lpacket->len, /* entire packet length */
+                0,                       /* tos */
+                lpacket->id,             /* ID */
+                0,                       /* fragmentation flags and offset */
+                lpacket->ttl,            /* TTL */
+                proto,                   /* protocol */
+                0,                       /* checksum */
+                lpacket->src4,           /* source address */
+                lpacket->dst4,           /* destination address */
+                NULL,                    /* pointer to packet data (or NULL) */
+                0,                       /* payload length */
+                c,                       /* libnet context pointer */
+                0)) < 0)                 /* packet id */
     {
         SCLogError("libnet_build_ipv4 %s", libnet_geterror(c));
         return -1;
@@ -215,18 +213,17 @@ static inline int BuildIPv4(libnet_t *c, Libnet11Packet *lpacket, const uint8_t 
 
 static inline int BuildIPv6(libnet_t *c, Libnet11Packet *lpacket, const uint8_t proto)
 {
-    if ((libnet_build_ipv6(
-                    lpacket->class,               /* traffic class */
-                    lpacket->flow,                /* Flow label */
-                    lpacket->len,                 /* payload length */
-                    proto,                        /* next header */
-                    lpacket->ttl,                 /* TTL */
-                    lpacket->src6,                /* source address */
-                    lpacket->dst6,                /* destination address */
-                    NULL,                         /* pointer to packet data (or NULL) */
-                    0,                            /* payload length */
-                    c,                            /* libnet context pointer */
-                    0)) < 0)                      /* packet id */
+    if ((libnet_build_ipv6(lpacket->class, /* traffic class */
+                lpacket->flow,             /* Flow label */
+                lpacket->len,              /* payload length */
+                proto,                     /* next header */
+                lpacket->ttl,              /* TTL */
+                lpacket->src6,             /* source address */
+                lpacket->dst6,             /* destination address */
+                NULL,                      /* pointer to packet data (or NULL) */
+                0,                         /* payload length */
+                c,                         /* libnet context pointer */
+                0)) < 0)                   /* packet id */
     {
         SCLogError("libnet_build_ipv6 %s", libnet_geterror(c));
         return -1;
@@ -251,14 +248,15 @@ static inline void SetupEthernet(Packet *p, Libnet11Packet *lpacket, enum Reject
 
 static inline int BuildEthernet(libnet_t *c, Libnet11Packet *lpacket, uint16_t proto)
 {
-    if ((libnet_build_ethernet(lpacket->dmac,lpacket->smac, proto , NULL, 0, c, 0)) < 0) {
+    if ((libnet_build_ethernet(lpacket->dmac, lpacket->smac, proto, NULL, 0, c, 0)) < 0) {
         SCLogError("libnet_build_ethernet %s", libnet_geterror(c));
         return -1;
     }
     return 0;
 }
 
-static inline int BuildEthernetVLAN(libnet_t *c, Libnet11Packet *lpacket, uint16_t proto, uint16_t vlan_id)
+static inline int BuildEthernetVLAN(
+        libnet_t *c, Libnet11Packet *lpacket, uint16_t proto, uint16_t vlan_id)
 {
     if (libnet_build_802_1q(lpacket->dmac, lpacket->smac, ETHERTYPE_VLAN, 0, 0, vlan_id, proto,
                 NULL, /* payload */
@@ -351,7 +349,7 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     if (g_reject_dev_mtu >= ETHERNET_HEADER_LEN + LIBNET_IPV4_H + 8) {
         lpacket.len = MIN(g_reject_dev_mtu - ETHERNET_HEADER_LEN, (LIBNET_IPV4_H + iplen));
     } else {
-        lpacket.len = LIBNET_IPV4_H + MIN(8,iplen); // 8 bytes is the minimum we have to attach
+        lpacket.len = LIBNET_IPV4_H + MIN(8, iplen); // 8 bytes is the minimum we have to attach
     }
     lpacket.dsize = lpacket.len - (LIBNET_IPV4_H + LIBNET_ICMPV4_H);
 
@@ -375,14 +373,13 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     lpacket.ttl = 64;
 
     /* build the package */
-    if ((libnet_build_icmpv4_unreach(
-                    ICMP_DEST_UNREACH,        /* type */
-                    ICMP_HOST_ANO,            /* code */
-                    0,                        /* checksum */
-                    (uint8_t *)p->ip4h,       /* payload */
-                    lpacket.dsize,            /* payload length */
-                    c,                        /* libnet context */
-                    0)) < 0)                  /* libnet ptag */
+    if ((libnet_build_icmpv4_unreach(ICMP_DEST_UNREACH, /* type */
+                ICMP_HOST_ANO,                          /* code */
+                0,                                      /* checksum */
+                (uint8_t *)p->ip4h,                     /* payload */
+                lpacket.dsize,                          /* payload length */
+                c,                                      /* libnet context */
+                0)) < 0)                                /* libnet ptag */
     {
         SCLogError("libnet_build_icmpv4_unreach %s", libnet_geterror(c));
         goto cleanup;
@@ -426,7 +423,7 @@ int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
     lpacket.class = 0;
 
     if (p->tcph == NULL)
-       return 1;
+        return 1;
 
     libnet_t *c = GetCtx(p, LIBNET_RAW6);
     if (c == NULL)
@@ -517,14 +514,13 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     lpacket.ttl = 64;
 
     /* build the package */
-    if ((libnet_build_icmpv6_unreach(
-                    ICMP6_DST_UNREACH,        /* type */
-                    ICMP6_DST_UNREACH_ADMIN,  /* code */
-                    0,                        /* checksum */
-                    (uint8_t *)p->ip6h,       /* payload */
-                    lpacket.dsize,            /* payload length */
-                    c,                        /* libnet context */
-                    0)) < 0)                  /* libnet ptag */
+    if ((libnet_build_icmpv6_unreach(ICMP6_DST_UNREACH, /* type */
+                ICMP6_DST_UNREACH_ADMIN,                /* code */
+                0,                                      /* checksum */
+                (uint8_t *)p->ip6h,                     /* payload */
+                lpacket.dsize,                          /* payload length */
+                c,                                      /* libnet context */
+                0)) < 0)                                /* libnet ptag */
     {
         SCLogError("libnet_build_icmpv6_unreach %s", libnet_geterror(c));
         goto cleanup;
@@ -555,7 +551,7 @@ cleanup:
     return 0;
 }
 
-#else /* HAVE_LIBNET_ICMPV6_UNREACH */
+#else  /* HAVE_LIBNET_ICMPV6_UNREACH */
 
 int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum RejectDirection dir)
 {
@@ -565,7 +561,6 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     return 0;
 }
 #endif /* HAVE_LIBNET_ICMPV6_UNREACH */
-
 
 #else
 

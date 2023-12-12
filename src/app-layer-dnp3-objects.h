@@ -39,14 +39,14 @@ typedef struct DNP3ObjectG1V1_ {
 } DNP3ObjectG1V1;
 
 typedef struct DNP3ObjectG1V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t chatter_filter:1;
-    uint8_t reserved:1;
-    uint8_t state:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t chatter_filter : 1;
+    uint8_t reserved : 1;
+    uint8_t state : 1;
 } DNP3ObjectG1V2;
 
 typedef struct DNP3ObjectG2V1_ {
@@ -54,26 +54,26 @@ typedef struct DNP3ObjectG2V1_ {
 } DNP3ObjectG2V1;
 
 typedef struct DNP3ObjectG2V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t chatter_filter:1;
-    uint8_t reserved:1;
-    uint8_t state:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t chatter_filter : 1;
+    uint8_t reserved : 1;
+    uint8_t state : 1;
     uint64_t timestamp;
 } DNP3ObjectG2V2;
 
 typedef struct DNP3ObjectG2V3_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t chatter_filter:1;
-    uint8_t reserved:1;
-    uint8_t state:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t chatter_filter : 1;
+    uint8_t reserved : 1;
+    uint8_t state : 1;
     uint16_t timestamp;
 } DNP3ObjectG2V3;
 
@@ -82,44 +82,44 @@ typedef struct DNP3ObjectG3V1_ {
 } DNP3ObjectG3V1;
 
 typedef struct DNP3ObjectG3V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t chatter_filter:1;
-    uint8_t state:2;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t chatter_filter : 1;
+    uint8_t state : 2;
 } DNP3ObjectG3V2;
 
 typedef struct DNP3ObjectG4V1_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t chatter_filter:1;
-    uint8_t state:2;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t chatter_filter : 1;
+    uint8_t state : 2;
 } DNP3ObjectG4V1;
 
 typedef struct DNP3ObjectG4V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t chatter_filter:1;
-    uint8_t state:2;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t chatter_filter : 1;
+    uint8_t state : 2;
     uint64_t timestamp;
 } DNP3ObjectG4V2;
 
 typedef struct DNP3ObjectG4V3_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t chatter_filter:1;
-    uint8_t state:2;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t chatter_filter : 1;
+    uint8_t state : 2;
     uint16_t relative_time_ms;
 } DNP3ObjectG4V3;
 
@@ -128,61 +128,61 @@ typedef struct DNP3ObjectG10V1_ {
 } DNP3ObjectG10V1;
 
 typedef struct DNP3ObjectG10V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
-    uint8_t state:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
+    uint8_t state : 1;
 } DNP3ObjectG10V2;
 
 typedef struct DNP3ObjectG11V1_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
-    uint8_t state:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
+    uint8_t state : 1;
 } DNP3ObjectG11V1;
 
 typedef struct DNP3ObjectG11V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
-    uint8_t state:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
+    uint8_t state : 1;
     uint64_t timestamp;
 } DNP3ObjectG11V2;
 
 typedef struct DNP3ObjectG12V1_ {
-    uint8_t op_type:4;
-    uint8_t qu:1;
-    uint8_t cr:1;
-    uint8_t tcc:2;
+    uint8_t op_type : 4;
+    uint8_t qu : 1;
+    uint8_t cr : 1;
+    uint8_t tcc : 2;
     uint8_t count;
     uint32_t ontime;
     uint32_t offtime;
-    uint8_t status_code:7;
-    uint8_t reserved:1;
+    uint8_t status_code : 7;
+    uint8_t reserved : 1;
 } DNP3ObjectG12V1;
 
 typedef struct DNP3ObjectG12V2_ {
-    uint8_t op_type:4;
-    uint8_t qu:1;
-    uint8_t cr:1;
-    uint8_t tcc:2;
+    uint8_t op_type : 4;
+    uint8_t qu : 1;
+    uint8_t cr : 1;
+    uint8_t tcc : 2;
     uint8_t count;
     uint32_t ontime;
     uint32_t offtime;
-    uint8_t status_code:7;
-    uint8_t reserved:1;
+    uint8_t status_code : 7;
+    uint8_t reserved : 1;
 } DNP3ObjectG12V2;
 
 typedef struct DNP3ObjectG12V3_ {
@@ -190,61 +190,61 @@ typedef struct DNP3ObjectG12V3_ {
 } DNP3ObjectG12V3;
 
 typedef struct DNP3ObjectG13V1_ {
-    uint8_t status_code:7;
-    uint8_t commanded_state:1;
+    uint8_t status_code : 7;
+    uint8_t commanded_state : 1;
 } DNP3ObjectG13V1;
 
 typedef struct DNP3ObjectG13V2_ {
-    uint8_t status_code:7;
-    uint8_t commanded_state:1;
+    uint8_t status_code : 7;
+    uint8_t commanded_state : 1;
     uint64_t timestamp;
 } DNP3ObjectG13V2;
 
 typedef struct DNP3ObjectG20V1_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved0 : 1;
     uint32_t count;
 } DNP3ObjectG20V1;
 
 typedef struct DNP3ObjectG20V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved0 : 1;
     uint16_t count;
 } DNP3ObjectG20V2;
 
 typedef struct DNP3ObjectG20V3_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint32_t count;
 } DNP3ObjectG20V3;
 
 typedef struct DNP3ObjectG20V4_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint16_t count;
 } DNP3ObjectG20V4;
 
@@ -265,101 +265,101 @@ typedef struct DNP3ObjectG20V8_ {
 } DNP3ObjectG20V8;
 
 typedef struct DNP3ObjectG21V1_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved0 : 1;
     uint32_t count;
 } DNP3ObjectG21V1;
 
 typedef struct DNP3ObjectG21V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved0 : 1;
     uint16_t count;
 } DNP3ObjectG21V2;
 
 typedef struct DNP3ObjectG21V3_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint32_t count;
 } DNP3ObjectG21V3;
 
 typedef struct DNP3ObjectG21V4_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint16_t count;
 } DNP3ObjectG21V4;
 
 typedef struct DNP3ObjectG21V5_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved1 : 1;
     uint32_t count;
     uint64_t timestamp;
 } DNP3ObjectG21V5;
 
 typedef struct DNP3ObjectG21V6_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved1 : 1;
     uint16_t count;
     uint64_t timestamp;
 } DNP3ObjectG21V6;
 
 typedef struct DNP3ObjectG21V7_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint32_t count;
     uint64_t timestamp;
 } DNP3ObjectG21V7;
 
 typedef struct DNP3ObjectG21V8_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint16_t count;
     uint64_t timestamp;
 } DNP3ObjectG21V8;
@@ -381,226 +381,226 @@ typedef struct DNP3ObjectG21V12_ {
 } DNP3ObjectG21V12;
 
 typedef struct DNP3ObjectG22V1_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved0 : 1;
     uint32_t count;
 } DNP3ObjectG22V1;
 
 typedef struct DNP3ObjectG22V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved0 : 1;
     uint16_t count;
 } DNP3ObjectG22V2;
 
 typedef struct DNP3ObjectG22V3_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint32_t count;
 } DNP3ObjectG22V3;
 
 typedef struct DNP3ObjectG22V4_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint16_t count;
 } DNP3ObjectG22V4;
 
 typedef struct DNP3ObjectG22V5_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint32_t count;
     uint64_t timestamp;
 } DNP3ObjectG22V5;
 
 typedef struct DNP3ObjectG22V6_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved0 : 1;
     uint16_t count;
     uint64_t timestamp;
 } DNP3ObjectG22V6;
 
 typedef struct DNP3ObjectG22V7_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint32_t count;
     uint64_t timestamp;
 } DNP3ObjectG22V7;
 
 typedef struct DNP3ObjectG22V8_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint16_t count;
     uint64_t timestamp;
 } DNP3ObjectG22V8;
 
 typedef struct DNP3ObjectG23V1_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved0 : 1;
     uint32_t count;
 } DNP3ObjectG23V1;
 
 typedef struct DNP3ObjectG23V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint16_t count;
 } DNP3ObjectG23V2;
 
 typedef struct DNP3ObjectG23V3_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint32_t count;
 } DNP3ObjectG23V3;
 
 typedef struct DNP3ObjectG23V4_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint16_t count;
 } DNP3ObjectG23V4;
 
 typedef struct DNP3ObjectG23V5_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved0 : 1;
     uint32_t count;
     uint64_t timestamp;
 } DNP3ObjectG23V5;
 
 typedef struct DNP3ObjectG23V6_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved0 : 1;
     uint16_t count;
     uint64_t timestamp;
 } DNP3ObjectG23V6;
 
 typedef struct DNP3ObjectG23V7_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint32_t count;
     uint64_t timestamp;
 } DNP3ObjectG23V7;
 
 typedef struct DNP3ObjectG23V8_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t rollover:1;
-    uint8_t reserved0:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t rollover : 1;
+    uint8_t reserved0 : 1;
+    uint8_t reserved1 : 1;
     uint16_t count;
     uint64_t timestamp;
 } DNP3ObjectG23V8;
 
 typedef struct DNP3ObjectG30V1_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int32_t value;
 } DNP3ObjectG30V1;
 
 typedef struct DNP3ObjectG30V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int16_t value;
 } DNP3ObjectG30V2;
 
@@ -613,75 +613,75 @@ typedef struct DNP3ObjectG30V4_ {
 } DNP3ObjectG30V4;
 
 typedef struct DNP3ObjectG30V5_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     float value;
 } DNP3ObjectG30V5;
 
 typedef struct DNP3ObjectG30V6_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     double value;
 } DNP3ObjectG30V6;
 
 typedef struct DNP3ObjectG31V1_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int32_t value;
 } DNP3ObjectG31V1;
 
 typedef struct DNP3ObjectG31V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int16_t value;
 } DNP3ObjectG31V2;
 
 typedef struct DNP3ObjectG31V3_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int32_t value;
     uint64_t timestamp;
 } DNP3ObjectG31V3;
 
 typedef struct DNP3ObjectG31V4_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int16_t value;
     uint64_t timestamp;
 } DNP3ObjectG31V4;
@@ -695,225 +695,225 @@ typedef struct DNP3ObjectG31V6_ {
 } DNP3ObjectG31V6;
 
 typedef struct DNP3ObjectG31V7_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     float value;
 } DNP3ObjectG31V7;
 
 typedef struct DNP3ObjectG31V8_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     double value;
 } DNP3ObjectG31V8;
 
 typedef struct DNP3ObjectG32V1_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int32_t value;
 } DNP3ObjectG32V1;
 
 typedef struct DNP3ObjectG32V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int16_t value;
 } DNP3ObjectG32V2;
 
 typedef struct DNP3ObjectG32V3_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int32_t value;
     uint64_t timestamp;
 } DNP3ObjectG32V3;
 
 typedef struct DNP3ObjectG32V4_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int16_t value;
     uint64_t timestamp;
 } DNP3ObjectG32V4;
 
 typedef struct DNP3ObjectG32V5_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     float value;
 } DNP3ObjectG32V5;
 
 typedef struct DNP3ObjectG32V6_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     double value;
 } DNP3ObjectG32V6;
 
 typedef struct DNP3ObjectG32V7_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     float value;
     uint64_t timestamp;
 } DNP3ObjectG32V7;
 
 typedef struct DNP3ObjectG32V8_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     double value;
     uint64_t timestamp;
 } DNP3ObjectG32V8;
 
 typedef struct DNP3ObjectG33V1_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int32_t value;
 } DNP3ObjectG33V1;
 
 typedef struct DNP3ObjectG33V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int16_t value;
 } DNP3ObjectG33V2;
 
 typedef struct DNP3ObjectG33V3_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int32_t value;
     uint64_t timestamp;
 } DNP3ObjectG33V3;
 
 typedef struct DNP3ObjectG33V4_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int16_t value;
     uint64_t timestamp;
 } DNP3ObjectG33V4;
 
 typedef struct DNP3ObjectG33V5_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     float value;
 } DNP3ObjectG33V5;
 
 typedef struct DNP3ObjectG33V6_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     double value;
 } DNP3ObjectG33V6;
 
 typedef struct DNP3ObjectG33V7_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     float value;
     uint64_t timestamp;
 } DNP3ObjectG33V7;
 
 typedef struct DNP3ObjectG33V8_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     double value;
     uint64_t timestamp;
 } DNP3ObjectG33V8;
@@ -931,50 +931,50 @@ typedef struct DNP3ObjectG34V3_ {
 } DNP3ObjectG34V3;
 
 typedef struct DNP3ObjectG40V1_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int32_t value;
 } DNP3ObjectG40V1;
 
 typedef struct DNP3ObjectG40V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int16_t value;
 } DNP3ObjectG40V2;
 
 typedef struct DNP3ObjectG40V3_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     float value;
 } DNP3ObjectG40V3;
 
 typedef struct DNP3ObjectG40V4_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     double value;
 } DNP3ObjectG40V4;
 
@@ -999,153 +999,153 @@ typedef struct DNP3ObjectG41V4_ {
 } DNP3ObjectG41V4;
 
 typedef struct DNP3ObjectG42V1_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int32_t value;
 } DNP3ObjectG42V1;
 
 typedef struct DNP3ObjectG42V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int16_t value;
 } DNP3ObjectG42V2;
 
 typedef struct DNP3ObjectG42V3_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int32_t value;
     uint64_t timestamp;
 } DNP3ObjectG42V3;
 
 typedef struct DNP3ObjectG42V4_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     int16_t value;
     uint64_t timestamp;
 } DNP3ObjectG42V4;
 
 typedef struct DNP3ObjectG42V5_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     float value;
 } DNP3ObjectG42V5;
 
 typedef struct DNP3ObjectG42V6_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     double value;
 } DNP3ObjectG42V6;
 
 typedef struct DNP3ObjectG42V7_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     float value;
     uint64_t timestamp;
 } DNP3ObjectG42V7;
 
 typedef struct DNP3ObjectG42V8_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t over_range:1;
-    uint8_t reference_err:1;
-    uint8_t reserved0:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t over_range : 1;
+    uint8_t reference_err : 1;
+    uint8_t reserved0 : 1;
     double value;
     uint64_t timestamp;
 } DNP3ObjectG42V8;
 
 typedef struct DNP3ObjectG43V1_ {
-    uint8_t status_code:7;
-    uint8_t reserved0:1;
+    uint8_t status_code : 7;
+    uint8_t reserved0 : 1;
     int32_t commanded_value;
 } DNP3ObjectG43V1;
 
 typedef struct DNP3ObjectG43V2_ {
-    uint8_t status_code:7;
-    uint8_t reserved0:1;
+    uint8_t status_code : 7;
+    uint8_t reserved0 : 1;
     int16_t commanded_value;
 } DNP3ObjectG43V2;
 
 typedef struct DNP3ObjectG43V3_ {
-    uint8_t status_code:7;
-    uint8_t reserved0:1;
+    uint8_t status_code : 7;
+    uint8_t reserved0 : 1;
     int32_t commanded_value;
     uint64_t timestamp;
 } DNP3ObjectG43V3;
 
 typedef struct DNP3ObjectG43V4_ {
-    uint8_t status_code:7;
-    uint8_t reserved0:1;
+    uint8_t status_code : 7;
+    uint8_t reserved0 : 1;
     int16_t commanded_value;
     uint64_t timestamp;
 } DNP3ObjectG43V4;
 
 typedef struct DNP3ObjectG43V5_ {
-    uint8_t status_code:7;
-    uint8_t reserved0:1;
+    uint8_t status_code : 7;
+    uint8_t reserved0 : 1;
     float commanded_value;
 } DNP3ObjectG43V5;
 
 typedef struct DNP3ObjectG43V6_ {
-    uint8_t status_code:7;
-    uint8_t reserved0:1;
+    uint8_t status_code : 7;
+    uint8_t reserved0 : 1;
     double commanded_value;
 } DNP3ObjectG43V6;
 
 typedef struct DNP3ObjectG43V7_ {
-    uint8_t status_code:7;
-    uint8_t reserved0:1;
+    uint8_t status_code : 7;
+    uint8_t reserved0 : 1;
     float commanded_value;
     uint64_t timestamp;
 } DNP3ObjectG43V7;
 
 typedef struct DNP3ObjectG43V8_ {
-    uint8_t status_code:7;
-    uint8_t reserved0:1;
+    uint8_t status_code : 7;
+    uint8_t reserved0 : 1;
     double commanded_value;
     uint64_t timestamp;
 } DNP3ObjectG43V8;
@@ -1273,8 +1273,8 @@ typedef struct DNP3ObjectG80V1_ {
 } DNP3ObjectG80V1;
 
 typedef struct DNP3ObjectG81V1_ {
-    uint8_t fill_percentage:7;
-    uint8_t overflow_state:1;
+    uint8_t fill_percentage : 7;
+    uint8_t overflow_state : 1;
     uint8_t group;
     uint8_t variation;
 } DNP3ObjectG81V1;
@@ -1287,14 +1287,14 @@ typedef struct DNP3ObjectG83V1_ {
 } DNP3ObjectG83V1;
 
 typedef struct DNP3ObjectG86V2_ {
-    uint8_t rd:1;
-    uint8_t wr:1;
-    uint8_t st:1;
-    uint8_t ev:1;
-    uint8_t df:1;
-    uint8_t padding0:1;
-    uint8_t padding1:1;
-    uint8_t padding2:1;
+    uint8_t rd : 1;
+    uint8_t wr : 1;
+    uint8_t st : 1;
+    uint8_t ev : 1;
+    uint8_t df : 1;
+    uint8_t padding0 : 1;
+    uint8_t padding1 : 1;
+    uint8_t padding2 : 1;
 } DNP3ObjectG86V2;
 
 typedef struct DNP3ObjectG102V1_ {
@@ -1414,40 +1414,40 @@ typedef struct DNP3ObjectG120V15_ {
 } DNP3ObjectG120V15;
 
 typedef struct DNP3ObjectG121V1_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t reserved0:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t reserved0 : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved1 : 1;
     uint16_t association_id;
     uint32_t count_value;
 } DNP3ObjectG121V1;
 
 typedef struct DNP3ObjectG122V1_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t reserved0:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t reserved0 : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved1 : 1;
     uint16_t association_id;
     uint32_t count_value;
 } DNP3ObjectG122V1;
 
 typedef struct DNP3ObjectG122V2_ {
-    uint8_t online:1;
-    uint8_t restart:1;
-    uint8_t comm_lost:1;
-    uint8_t remote_forced:1;
-    uint8_t local_forced:1;
-    uint8_t reserved0:1;
-    uint8_t discontinuity:1;
-    uint8_t reserved1:1;
+    uint8_t online : 1;
+    uint8_t restart : 1;
+    uint8_t comm_lost : 1;
+    uint8_t remote_forced : 1;
+    uint8_t local_forced : 1;
+    uint8_t reserved0 : 1;
+    uint8_t discontinuity : 1;
+    uint8_t reserved1 : 1;
     uint16_t association_id;
     uint32_t count_value;
     uint64_t timestamp;
@@ -1455,9 +1455,8 @@ typedef struct DNP3ObjectG122V2_ {
 
 /* END GENERATED CODE */
 
-int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
-    uint32_t *len, uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *);
+int DNP3DecodeObject(int group, int variation, const uint8_t **buf, uint32_t *len,
+        uint8_t prefix_code, uint32_t start, uint32_t count, DNP3PointList *);
 DNP3PointList *DNP3PointListAlloc(void);
 void DNP3FreeObjectPointList(int group, int variation, DNP3PointList *);
 

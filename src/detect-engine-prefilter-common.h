@@ -58,26 +58,20 @@ typedef struct PrefilterPacketU8HashCtx_ {
 #define PREFILTER_U8HASH_MODE_GT DetectUintModeGt
 #define PREFILTER_U8HASH_MODE_RA DetectUintModeRange
 
-int PrefilterSetupPacketHeader(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, int sm_type,
+int PrefilterSetupPacketHeader(DetectEngineCtx *de_ctx, SigGroupHead *sgh, int sm_type,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
         bool (*Compare)(PrefilterPacketHeaderValue v, void *),
-        void (*Match)(DetectEngineThreadCtx *det_ctx,
-            Packet *p, const void *pectx));
+        void (*Match)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx));
 
-int PrefilterSetupPacketHeaderU8Hash(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, int sm_type,
+int PrefilterSetupPacketHeaderU8Hash(DetectEngineCtx *de_ctx, SigGroupHead *sgh, int sm_type,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
         bool (*Compare)(PrefilterPacketHeaderValue v, void *),
-        void (*Match)(DetectEngineThreadCtx *det_ctx,
-            Packet *p, const void *pectx));
+        void (*Match)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx));
 
-static inline bool
-PrefilterPacketHeaderExtraMatch(const PrefilterPacketHeaderCtx *ctx,
-                                const Packet *p)
+static inline bool PrefilterPacketHeaderExtraMatch(
+        const PrefilterPacketHeaderCtx *ctx, const Packet *p)
 {
-    switch (ctx->type)
-    {
+    switch (ctx->type) {
         case PREFILTER_EXTRA_MATCH_UNUSED:
             break;
         case PREFILTER_EXTRA_MATCH_ALPROTO:
@@ -99,7 +93,7 @@ PrefilterPacketHeaderExtraMatch(const PrefilterPacketHeaderCtx *ctx,
 static inline bool PrefilterIsPrefilterableById(const Signature *s, enum DetectKeywordId kid)
 {
     const SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         if (sm->type == kid) {
             return true;
         }

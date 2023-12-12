@@ -34,9 +34,9 @@
 #include "detect-tcphdr.h"
 
 /* prototypes */
-static int DetectTcphdrSetup (DetectEngineCtx *, Signature *, const char *);
+static int DetectTcphdrSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-void DetectTcphdrRegisterTests (void);
+void DetectTcphdrRegisterTests(void);
 #endif
 
 static int g_tcphdr_buffer_id = 0;
@@ -65,8 +65,7 @@ void DetectTcphdrRegister(void)
 
     DetectPktMpmRegister("tcp.hdr", 2, PrefilterGenericMpmPktRegister, GetData);
 
-    DetectPktInspectEngineRegister("tcp.hdr", GetData,
-            DetectEngineInspectPktBufferGeneric);
+    DetectPktInspectEngineRegister("tcp.hdr", GetData, DetectEngineInspectPktBufferGeneric);
 
     return;
 }
@@ -81,7 +80,7 @@ void DetectTcphdrRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTcphdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
+static int DetectTcphdrSetup(DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
     if (!(DetectProtoContainsProto(&s->proto, IPPROTO_TCP)))
         return -1;
@@ -108,10 +107,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         }
         uint32_t hlen = TCP_GET_HLEN(p);
         if (((uint8_t *)p->tcph + (ptrdiff_t)hlen) >
-                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)))
-        {
-            SCLogDebug("data out of range: %p > %p",
-                    ((uint8_t *)p->tcph + (ptrdiff_t)hlen),
+                ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p))) {
+            SCLogDebug("data out of range: %p > %p", ((uint8_t *)p->tcph + (ptrdiff_t)hlen),
                     ((uint8_t *)GET_PKT_DATA(p) + (ptrdiff_t)GET_PKT_LEN(p)));
             return NULL;
         }

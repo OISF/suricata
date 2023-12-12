@@ -42,8 +42,8 @@
 #include "output-json-rdp.h"
 #include "rust.h"
 
-static int JsonRdpLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonRdpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
+        void *tx, uint64_t tx_id)
 {
     OutputJsonThreadCtx *thread = thread_data;
 
@@ -61,8 +61,7 @@ static int JsonRdpLogger(ThreadVars *tv, void *thread_data,
     return TM_ECODE_OK;
 }
 
-static OutputInitResult OutputRdpLogInitSub(ConfNode *conf,
-    OutputCtx *parent_ctx)
+static OutputInitResult OutputRdpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_RDP);
     return OutputJsonLogInitSub(conf, parent_ctx);

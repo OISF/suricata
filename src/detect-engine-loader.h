@@ -43,7 +43,7 @@ typedef struct DetectLoaderTask_ {
 
 typedef struct DetectLoaderControl_ {
     int id;
-    int result;     /* 0 for ok, error otherwise */
+    int result; /* 0 for ok, error otherwise */
     SCMutex m;
     TAILQ_HEAD(, DetectLoaderTask_) task_list;
 } DetectLoaderControl;
@@ -54,6 +54,6 @@ void DetectLoadersInit(void);
 
 void TmThreadContinueDetectLoaderThreads(void);
 void DetectLoaderThreadSpawn(void);
-void TmModuleDetectLoaderRegister (void);
+void TmModuleDetectLoaderRegister(void);
 
 #endif /* __DETECT_ENGINE_LOADER_H__ */

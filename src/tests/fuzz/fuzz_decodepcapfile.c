@@ -38,16 +38,16 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     void *ptv = NULL;
 
     if (initialized == 0) {
-        //Redirects logs to /dev/null
+        // Redirects logs to /dev/null
         setenv("SC_LOG_OP_IFACE", "file", 0);
         setenv("SC_LOG_FILE", "/dev/null", 0);
 
         InitGlobal();
         run_mode = RUNMODE_PCAP_FILE;
 
-        //redirect logs to /tmp
+        // redirect logs to /tmp
         ConfigSetLogDirectory("/tmp/");
-        //disables checksums validation for fuzzing
+        // disables checksums validation for fuzzing
         if (ConfYamlLoadString(configNoChecksum, strlen(configNoChecksum)) != 0) {
             abort();
         }
@@ -58,10 +58,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         TimeModeSetOffline();
         PcapFileGlobalInit();
 
-        tv = TmThreadCreatePacketHandler("fuzz",
-                                         "packetpool", "packetpool",
-                                         "packetpool", "packetpool",
-                                         "pktacqloop");
+        tv = TmThreadCreatePacketHandler(
+                "fuzz", "packetpool", "packetpool", "packetpool", "packetpool", "pktacqloop");
         if (tv == NULL) {
             return 0;
         }
@@ -75,7 +73,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             return 0;
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
-        tmm_modules[TMM_DECODEPCAPFILE].ThreadInit(tv, NULL, (void **) &dtv);
+        tmm_modules[TMM_DECODEPCAPFILE].ThreadInit(tv, NULL, (void **)&dtv);
         (void)SC_ATOMIC_SET(tv->tm_slots->slot_next->slot_data, dtv);
 
         extern uint16_t max_pending_packets;
@@ -86,12 +84,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         initialized = 1;
     }
 
-    //rewrite buffer to a file as libpcap does not have buffer inputs
+    // rewrite buffer to a file as libpcap does not have buffer inputs
     if (TestHelperBufferToFile("/tmp/fuzz.pcap", data, size) < 0) {
         return 0;
     }
 
-    if (tmm_modules[TMM_RECEIVEPCAPFILE].ThreadInit(tv, "/tmp/fuzz.pcap", &ptv) == TM_ECODE_OK && ptv != NULL) {
+    if (tmm_modules[TMM_RECEIVEPCAPFILE].ThreadInit(tv, "/tmp/fuzz.pcap", &ptv) == TM_ECODE_OK &&
+            ptv != NULL) {
         suricata_ctl_flags = 0;
         tmm_modules[TMM_RECEIVEPCAPFILE].PktAcqLoop(tv, ptv, tv->tm_slots);
         tmm_modules[TMM_RECEIVEPCAPFILE].ThreadDeinit(tv, ptv);

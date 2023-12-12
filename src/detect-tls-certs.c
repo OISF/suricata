@@ -93,13 +93,11 @@ void DetectTlsCertsRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERTS].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_TLS_CERTS].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("tls.certs", ALPROTO_TLS,
-            SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
-            DetectEngineInspectTlsCerts, NULL);
+    DetectAppLayerInspectEngineRegister2("tls.certs", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            TLS_STATE_CERT_READY, DetectEngineInspectTlsCerts, NULL);
 
-    DetectAppLayerMpmRegister2("tls.certs", SIG_FLAG_TOCLIENT, 2,
-            PrefilterMpmTlsCertsRegister, NULL, ALPROTO_TLS,
-            TLS_STATE_CERT_READY);
+    DetectAppLayerMpmRegister2("tls.certs", SIG_FLAG_TOCLIENT, 2, PrefilterMpmTlsCertsRegister,
+            NULL, ALPROTO_TLS, TLS_STATE_CERT_READY);
 
     DetectAppLayerInspectEngineRegister2("tls.certs", ALPROTO_TLS, SIG_FLAG_TOSERVER,
             TLS_STATE_CERT_READY, DetectEngineInspectTlsCerts, NULL);
@@ -124,8 +122,7 @@ void DetectTlsCertsRegister(void)
  * \retval  0 On success
  * \retval -1 On failure
  */
-static int DetectTlsCertsSetup(DetectEngineCtx *de_ctx, Signature *s,
-                               const char *str)
+static int DetectTlsCertsSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     if (DetectBufferSetActiveList(de_ctx, s, g_tls_certs_buffer_id) < 0)
         return -1;
@@ -137,8 +134,8 @@ static int DetectTlsCertsSetup(DetectEngineCtx *de_ctx, Signature *s,
 }
 
 static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f,
-	struct TlsCertsGetDataArgs *cbdata, int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, struct TlsCertsGetDataArgs *cbdata,
+        int list_id)
 {
     SCEnter();
 
@@ -187,10 +184,9 @@ static uint8_t DetectEngineInspectTlsCerts(DetectEngineCtx *de_ctx, DetectEngine
 
     struct TlsCertsGetDataArgs cbdata = { 0, NULL };
 
-    while (1)
-    {
-        InspectionBuffer *buffer = TlsCertsGetData(det_ctx, transforms, f,
-			                           &cbdata, engine->sm_list);
+    while (1) {
+        InspectionBuffer *buffer =
+                TlsCertsGetData(det_ctx, transforms, f, &cbdata, engine->sm_list);
         if (buffer == NULL || buffer->inspect == NULL)
             break;
 
@@ -218,10 +214,8 @@ static void PrefilterTxTlsCerts(DetectEngineThreadCtx *det_ctx, const void *pect
 
     struct TlsCertsGetDataArgs cbdata = { 0, NULL };
 
-    while (1)
-    {
-        InspectionBuffer *buffer = TlsCertsGetData(det_ctx, ctx->transforms,
-                                                   f, &cbdata, list_id);
+    while (1) {
+        InspectionBuffer *buffer = TlsCertsGetData(det_ctx, ctx->transforms, f, &cbdata, list_id);
         if (buffer == NULL)
             break;
 
@@ -251,9 +245,8 @@ static int PrefilterMpmTlsCertsRegister(DetectEngineCtx *de_ctx, SigGroupHead *s
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxTlsCerts,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-            pectx, PrefilterMpmTlsCertsFree, mpm_reg->name);
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxTlsCerts, mpm_reg->app_v2.alproto,
+            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmTlsCertsFree, mpm_reg->name);
 }
 
 static int g_tls_cert_buffer_id = 0;
