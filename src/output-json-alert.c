@@ -73,7 +73,7 @@
 #include "output-json-flow.h"
 #include "output-json-sip.h"
 #include "output-json-rfb.h"
-#include "output-json-mqtt.h"
+#include "app-layer/mqtt/logger.h"
 #include "app-layer/ike/logger.h"
 #include "app-layer/modbus/logger.h"
 #include "output-json-frame.h"

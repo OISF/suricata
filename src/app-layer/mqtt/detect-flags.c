@@ -27,7 +27,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-mqtt-flags.h"
+#include "app-layer/mqtt/detect-flags.h"
 #include "util-unittest.h"
 
 #include "rust.h"

@@ -27,7 +27,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
-#include "detect-mqtt-connack-sessionpresent.h"
+#include "app-layer/mqtt/detect-connack-sessionpresent.h"
 #include "util-unittest.h"
 
 #include "rust.h"
