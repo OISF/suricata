@@ -63,7 +63,7 @@
 #include "app-layer/dnp3/logger.h"
 #include "app-layer/dns/logger.h"
 #include "app-layer/http/logger.h"
-#include "output-json-tls.h"
+#include "app-layer/tls/logger.h"
 #include "app-layer/ssh/logger.h"
 #include "rust.h"
 #include "app-layer/smtp/logger.h"

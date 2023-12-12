@@ -20,7 +20,7 @@
  *
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  *
- * Implements support for tls.cert_subject keyword.
+ * Implements support for tls.cert_issuer keyword.
  */
 
 #include "suricata-common.h"
@@ -34,7 +34,6 @@
 #include "detect-engine-prefilter.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
-#include "detect-tls-cert-subject.h"
 
 #include "flow.h"
 #include "flow-util.h"
@@ -48,57 +47,56 @@
 
 #include "app-layer.h"
 #include "app-layer/ssl/parser.h"
+#include "app-layer/tls/detect-cert-issuer.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-static int DetectTlsSubjectSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectTlsIssuerSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-static void DetectTlsSubjectRegisterTests(void);
+static void DetectTlsIssuerRegisterTests(void);
 #endif
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
         const int list_id);
-static int g_tls_cert_subject_buffer_id = 0;
+static int g_tls_cert_issuer_buffer_id = 0;
 
 /**
- * \brief Registration function for keyword: tls.cert_subject
+ * \brief Registration function for keyword: tls.cert_issuer
  */
-void DetectTlsSubjectRegister(void)
+void DetectTlsIssuerRegister(void)
 {
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].name = "tls.cert_subject";
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].alias = "tls_cert_subject";
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].desc =
-            "sticky buffer to match specifically and only on the TLS cert subject buffer";
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].url = "/rules/tls-keywords.html#tls-cert-subject";
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].Setup = DetectTlsSubjectSetup;
+    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].name = "tls.cert_issuer";
+    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].alias = "tls_cert_issuer";
+    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].desc =
+            "sticky buffer to match specifically and only on the TLS cert issuer buffer";
+    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].url = "/rules/tls-keywords.html#tls-cert-issuer";
+    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].Setup = DetectTlsIssuerSetup;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].RegisterTests = DetectTlsSubjectRegisterTests;
+    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].RegisterTests = DetectTlsIssuerRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister2("tls.cert_subject", ALPROTO_TLS, SIG_FLAG_TOSERVER,
+    DetectAppLayerInspectEngineRegister2("tls.cert_issuer", ALPROTO_TLS, SIG_FLAG_TOSERVER,
             TLS_STATE_CERT_READY, DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("tls.cert_subject", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, TLS_STATE_CERT_READY);
+    DetectAppLayerMpmRegister2("tls.cert_issuer", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_TLS, TLS_STATE_CERT_READY);
 
-    DetectAppLayerInspectEngineRegister2("tls.cert_subject", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+    DetectAppLayerInspectEngineRegister2("tls.cert_issuer", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
             TLS_STATE_CERT_READY, DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister2("tls.cert_subject", SIG_FLAG_TOCLIENT, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, TLS_STATE_CERT_READY);
+    DetectAppLayerMpmRegister2("tls.cert_issuer", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_TLS, TLS_STATE_CERT_READY);
 
-    DetectBufferTypeSupportsMultiInstance("tls.cert_subject");
+    DetectBufferTypeSetDescriptionByName("tls.cert_issuer", "TLS certificate issuer");
 
-    DetectBufferTypeSetDescriptionByName("tls.cert_subject", "TLS certificate subject");
-
-    g_tls_cert_subject_buffer_id = DetectBufferTypeGetByName("tls.cert_subject");
+    g_tls_cert_issuer_buffer_id = DetectBufferTypeGetByName("tls.cert_issuer");
 }
 
 /**
- * \brief this function setup the tls.cert_subject modifier keyword used in the rule
+ * \brief this function setup the tls_cert_issuer modifier keyword used in the rule
  *
  * \param de_ctx   Pointer to the Detection Engine Context
  * \param s        Pointer to the Signature to which the current keyword belongs
@@ -107,9 +105,9 @@ void DetectTlsSubjectRegister(void)
  * \retval 0  On success
  * \retval -1 On failure
  */
-static int DetectTlsSubjectSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectTlsIssuerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, g_tls_cert_subject_buffer_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, g_tls_cert_issuer_buffer_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) < 0)
@@ -126,19 +124,18 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         const SSLState *ssl_state = (SSLState *)f->alstate;
         const SSLStateConnp *connp;
-
         if (flow_flags & STREAM_TOSERVER) {
             connp = &ssl_state->client_connp;
         } else {
             connp = &ssl_state->server_connp;
         }
 
-        if (connp->cert0_subject == NULL) {
+        if (connp->cert0_issuerdn == NULL) {
             return NULL;
         }
 
-        const uint32_t data_len = strlen(connp->cert0_subject);
-        const uint8_t *data = (uint8_t *)connp->cert0_subject;
+        const uint32_t data_len = strlen(connp->cert0_issuerdn);
+        const uint8_t *data = (uint8_t *)connp->cert0_issuerdn;
 
         InspectionBufferSetup(det_ctx, list_id, buffer, data, data_len);
         InspectionBufferApplyTransforms(buffer, transforms);
@@ -148,5 +145,5 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 }
 
 #ifdef UNITTESTS
-#include "tests/detect-tls-cert-subject.c"
+#include "tests/detect-tls-cert-issuer.c"
 #endif

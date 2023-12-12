@@ -34,7 +34,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
-#include "detect-tls-ja3s-string.h"
+#include "app-layer/tls/detect-ja3s-string.h"
 
 #include "flow.h"
 #include "flow-util.h"
