@@ -17,6 +17,7 @@
 
 use super::http2::{HTTP2Frame, HTTP2FrameTypeData, HTTP2Transaction};
 use super::parser;
+use crate::dns::log::{SCDnsLogAnswerEnabled, SCDnsLogJsonAnswer, SCDnsLogJsonQuery};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use std;
 use std::collections::{HashMap, HashSet};
@@ -281,6 +282,35 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
     js.close()?; // http2
     js.close()?; // http
 
+    if tx.dns_request_tx.is_some() || tx.dns_response_tx.is_some() {
+        js.open_object("dns")?;
+        if let Some(dtx) = &tx.dns_request_tx {
+            let mark = js.get_mark();
+            let mut has_dns_query = false;
+            js.open_array("query")?;
+            for i in 0..0xFFFF {
+                let mut jsa = JsonBuilder::try_new_object()?;
+                if !SCDnsLogJsonQuery(dtx, i, 0xFFFFFFFFFFFFFFFF, &mut jsa) {
+                    break;
+                }
+                jsa.close()?;
+                js.append_object(&jsa)?;
+                has_dns_query = true;
+            }
+            if has_dns_query {
+                js.close()?; // query
+            } else {
+                js.restore_mark(&mark)?;
+            }
+        }
+        if let Some(dtx) = &tx.dns_response_tx {
+            if SCDnsLogAnswerEnabled(dtx, 0xFFFFFFFFFFFFFFFF) {
+                // logging at root of dns object
+                SCDnsLogJsonAnswer(dtx, 0xFFFFFFFFFFFFFFFF, js);
+            }
+        }
+        js.close()?; // dns
+    }
     return Ok(has_request || has_response || has_headers);
 }
 
