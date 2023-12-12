@@ -62,7 +62,7 @@
 #include "app-layer/ftp/parser.h"
 #include "app-layer-ssl.h"
 #include "app-layer-ssh.h"
-#include "app-layer-smtp.h"
+#include "app-layer/smtp/parser.h"
 
 #include "util-action.h"
 #include "util-radix-tree.h"

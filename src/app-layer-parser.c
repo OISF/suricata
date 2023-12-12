@@ -40,7 +40,7 @@
 #include "app-layer-detect-proto.h"
 
 #include "app-layer/ftp/parser.h"
-#include "app-layer-smtp.h"
+#include "app-layer/smtp/parser.h"
 
 #include "app-layer/smb/parser.h"
 #include "app-layer/http/parser.h"
