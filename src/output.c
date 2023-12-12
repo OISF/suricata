@@ -1082,6 +1082,12 @@ static OutputInitResult OutputRdpLogInitSub(ConfNode *conf, OutputCtx *parent_ct
     return OutputJsonLogInitSub(conf, parent_ctx);
 }
 
+static OutputInitResult OutputDoH2LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DOH2);
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
 static OutputInitResult OutputRFBLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_RFB);
@@ -1275,6 +1281,10 @@ void OutputRegisterLoggers(void)
     JsonMQTTLogRegister();
     /* Pgsql JSON logger. */
     JsonPgsqlLogRegister();
+    /* DoH2 JSON logger. */
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDoH2Log", "eve-log.doh2",
+            OutputDoH2LogInitSub, ALPROTO_DOH2, JsonGenericLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
     /* Template JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTemplateLog", "eve-log.template",
             OutputTemplateLogInitSub, ALPROTO_TEMPLATE, JsonGenericLogger, JsonLogThreadInit,
@@ -1325,8 +1335,9 @@ static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_SIP, (EveJsonSimpleTxLogFunc)rs_sip_log_json },
     { ALPROTO_RFB, rs_rfb_logger_log },
     { ALPROTO_MQTT, JsonMQTTAddMetadata },
-    { ALPROTO_PGSQL, NULL },  // TODO missing
-    { ALPROTO_TELNET, NULL }, // no logging
+    { ALPROTO_PGSQL, NULL },             // TODO missing
+    { ALPROTO_TELNET, NULL },            // no logging
+    { ALPROTO_DOH2, rs_http2_log_json }, // http2 logger knows how to log dns
     { ALPROTO_TEMPLATE, rs_template_logger_log },
     { ALPROTO_RDP, (EveJsonSimpleTxLogFunc)rs_rdp_to_json },
     { ALPROTO_HTTP2, rs_http2_log_json },
