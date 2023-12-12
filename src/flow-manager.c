@@ -827,9 +827,21 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             }
 
             /* try to time out flows */
-            // clang-format off
-            FlowTimeoutCounters counters = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, };
-            // clang-format on
+            FlowTimeoutCounters counters = {
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            };
 
             if (emerg) {
                 /* in emergency mode, do a full pass of the hash table */

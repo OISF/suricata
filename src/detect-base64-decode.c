@@ -371,10 +371,12 @@ static int DetectBase64DecodeTestDecode(void)
     Packet *p = NULL;
     int retval = 0;
 
+    // clang-format off
     uint8_t payload[] = {
         'S', 'G', 'V', 's', 'b', 'G', '8', 'g',
         'V', '2', '9', 'y', 'b', 'G', 'Q', '=',
     };
+    // clang-format on
 
     memset(&tv, 0, sizeof(tv));
 
@@ -426,11 +428,13 @@ static int DetectBase64DecodeTestDecodeWithOffset(void)
     Packet *p = NULL;
     int retval = 0;
 
+    // clang-format off
     uint8_t payload[] = {
         'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
         'S', 'G', 'V', 's', 'b', 'G', '8', 'g',
         'V', '2', '9', 'y', 'b', 'G', 'Q', '=',
     };
+    // clang-format on
     char decoded[] = "Hello World";
 
     memset(&tv, 0, sizeof(tv));
@@ -486,10 +490,12 @@ static int DetectBase64DecodeTestDecodeLargeOffset(void)
     Packet *p = NULL;
     int retval = 0;
 
+    // clang-format off
     uint8_t payload[] = {
         'S', 'G', 'V', 's', 'b', 'G', '8', 'g',
         'V', '2', '9', 'y', 'b', 'G', 'Q', '=',
     };
+    // clang-format on
 
     memset(&tv, 0, sizeof(tv));
 
@@ -542,11 +548,13 @@ static int DetectBase64DecodeTestDecodeRelative(void)
     Packet *p = NULL;
     int retval = 0;
 
+    // clang-format off
     uint8_t payload[] = {
         'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
         'S', 'G', 'V', 's', 'b', 'G', '8', 'g',
         'V', '2', '9', 'y', 'b', 'G', 'Q', '=',
     };
+    // clang-format on
     char decoded[] = "Hello World";
 
     memset(&tv, 0, sizeof(tv));
