@@ -280,6 +280,36 @@ static const int transform_max_segs = 2; /* The maximum segment count to display
  */
 static const char *SCTransformModule(const char *module_name, int *dn_len)
 {
+    char *m = (char *)module_name;
+    *dn_len = strlen(m);
+
+    /* Remove leading "./" which occurs for filenames in the top
+     * source directory. */
+    if (strncmp("./", m, 2) == 0) {
+        m += 2;
+        *dn_len = strlen(m);
+    }
+
+    /* Now if any /'s occur, use the path up to the last / as the
+     * module name. */
+    if (strchr(m, '/') != NULL) {
+        int segs = 0;
+        char *p = m;
+        while (p && (p = strchr(p, '/')) != NULL) {
+            segs++;
+            p++;
+        }
+
+        if (segs > 1) {
+            char *last = strrchr(m, '/');
+            *dn_len -= strlen(last);
+        }
+
+        return m;
+    }
+
+    /* Fallback to the old behavior for files not in directories. */
+
     /*
      * special case for source code module names beginning with:
      *    Prefixes skipped
@@ -289,33 +319,32 @@ static const char *SCTransformModule(const char *module_name, int *dn_len)
      *    No transformation
      *        app-layer-*
      */
-    if (strncmp("tm-", module_name, 3) == 0) {
-        *dn_len = strlen(module_name) - 3;
-        return module_name + 3;
-    } else if (strncmp("util-", module_name, 5) == 0) {
-        *dn_len = strlen(module_name) - 5;
-        return module_name + 5;
-    } else if (strncmp("source-pcap-file", module_name, 16) == 0) {
+    if (strncmp("tm-", m, 3) == 0) {
+        *dn_len = strlen(m) - 3;
+        return m + 3;
+    } else if (strncmp("util-", m, 5) == 0) {
+        *dn_len = strlen(m) - 5;
+        return m + 5;
+    } else if (strncmp("source-pcap-file", m, 16) == 0) {
         *dn_len = strlen("pcap");
         return "pcap";
-    } else if (strncmp("source-", module_name, 7) == 0) {
-        *dn_len = strlen(module_name) - 7;
-        return module_name + 7;
-    } else if (strncmp("runmode-", module_name, 8) == 0) {
-        *dn_len = strlen(module_name) - 8;
-        return module_name + 8;
-    } else if (strncmp("app-layer-", module_name, 10) == 0) {
-        *dn_len = strlen(module_name);
-        return module_name;
-    } else if (strncmp("detect-engine", module_name, 13) == 0) {
+    } else if (strncmp("source-", m, 7) == 0) {
+        *dn_len = strlen(m) - 7;
+        return m + 7;
+    } else if (strncmp("runmode-", m, 8) == 0) {
+        *dn_len = strlen(m) - 8;
+        return m + 8;
+    } else if (strncmp("app-layer-", m, 10) == 0) {
+        *dn_len = strlen(m);
+        return m;
+    } else if (strncmp("detect-engine", m, 13) == 0) {
         *dn_len = strlen("detect");
         return "detect";
     }
 
     int seg_cnt = 0;
-
+    char *w = (char *)m;
     char *last;
-    char *w = (char *)module_name;
     while (w && (w = strchr(w, '-')) != NULL && seg_cnt < transform_max_segs) {
         seg_cnt++;
         last = w;
@@ -323,11 +352,11 @@ static const char *SCTransformModule(const char *module_name, int *dn_len)
     }
 
     if (seg_cnt < transform_max_segs)
-        *dn_len = strlen(module_name);
+        *dn_len = strlen(m);
     else
-        *dn_len = last - module_name;
+        *dn_len = last - m;
 
-    return module_name;
+    return m;
 }
 
 /**
@@ -382,6 +411,7 @@ static SCError SCLogMessageGetBuffer(SCTime_t tval, bool color, SCLogOPType type
         strlcat(local_format, "%M", sizeof(local_format));
     char *temp_fmt = local_format;
     char *substr = temp_fmt;
+    char scratch[SC_LOG_MAX_LOG_MSG_LEN];
     struct tm local_tm;
 
     while ((temp_fmt = strchr(temp_fmt, SC_LOG_FMT_PREFIX))) {
@@ -545,14 +575,18 @@ static SCError SCLogMessageGetBuffer(SCTime_t tval, bool color, SCLogOPType type
                 temp_fmt[0] = '\0';
 
                 /* Determine how much of module name to display */
-                int dn_len = 0;
                 const char *dn_name = "unknown";
+                int dn_len = strlen(dn_name);
                 if (module) {
                     dn_name = SCTransformModule(module, &dn_len);
                 }
 
+                /* Copy the transformed module name to deal with any truncation. */
+                scratch[0] = '\0';
+                strlcpy(scratch, dn_name, dn_len + 1);
+
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s%s", substr,
-                        green, dn_name, reset);
+                        green, scratch, reset);
                 if (cw < 0)
                     return -1;
                 temp += cw;

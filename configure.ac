@@ -2529,7 +2529,7 @@ if test "${enable_ebpf}" = "yes" || test "${enable_nfqueue}" = "yes" || test "${
 fi
 
 # Add diagnostic filename
-CPPFLAGS="${CPPFLAGS} -D__SCFILENAME__=\\\"\$(*F)\\\""
+CPPFLAGS="${CPPFLAGS} -D__SCFILENAME__=\\\"\$(*D)/\$(*F)\\\""
 
 AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
