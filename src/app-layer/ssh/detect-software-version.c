@@ -20,11 +20,15 @@
  *
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  *
- * Implements the ssh.protoversion keyword
- * You can specify a concrete version like ssh.protoversion: 1.66
- * or search for protoversion 2 compat (1.99 is considered as 2) like
- * ssh.protoversion:2_compat
- * or just the beginning of the string like ssh.protoversion:"1."
+ * Implements the ssh.softwareversion keyword
+ * You can match over the software version string of ssh, and it will
+ * be compared from the beginning of the string so you can say for
+ * example ssh.softwareversion:"PuTTY" and it can match, or you can
+ * also specify the version, something like
+ * ssh.softwareversion:"PuTTY-Release-0.55"
+ * I find this useful to match over a known vulnerable server/client
+ * software version in combination to other checks, so you can know
+ * that the risk is higher
  */
 
 #include "suricata-common.h"
@@ -49,49 +53,56 @@
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-ssh.h"
-#include "detect-ssh-proto-version.h"
+#include "app-layer/ssh/parser.h"
+#include "app-layer/ssh/detect-software-version.h"
 #include "rust.h"
 
 #include "stream-tcp.h"
 
 /**
- * \brief Regex for parsing the protoversion string
+ * \brief Regex for parsing the softwareversion string
  */
-#define PARSE_REGEX "^\\s*\"?\\s*([0-9]+([\\.\\-0-9]+)?|2_compat)\\s*\"?\\s*$"
+#define PARSE_REGEX "^\\s*\"?\\s*?([0-9a-zA-Z\\:\\.\\-\\_\\+\\s+]+)\\s*\"?\\s*$"
 
 static DetectParseRegex parse_regex;
 
-static int DetectSshVersionMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
+static int DetectSshSoftwareVersionMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectSshVersionSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectSshSoftwareVersionSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-static void DetectSshVersionRegisterTests(void);
+static void DetectSshSoftwareVersionRegisterTests(void);
 #endif
-static void DetectSshVersionFree(DetectEngineCtx *, void *);
+static void DetectSshSoftwareVersionFree(DetectEngineCtx *de_ctx, void *);
 static int g_ssh_banner_list_id = 0;
 
 /**
- * \brief Registration function for keyword: ssh.protoversion
+ * \brief Registration function for keyword: ssh.softwareversion
  */
-void DetectSshVersionRegister(void)
+void DetectSshSoftwareVersionRegister(void)
 {
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].name = "ssh.protoversion";
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].desc = "match SSH protocol version";
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].url = "/rules/ssh-keywords.html#ssh-protoversion";
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].AppLayerTxMatch = DetectSshVersionMatch;
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Setup = DetectSshVersionSetup;
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Free = DetectSshVersionFree;
+    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].name = "ssh.softwareversion";
+    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].desc = "match SSH software string";
+    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].url =
+            "/rules/ssh-keywords.html#ssh-softwareversion";
+    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].AppLayerTxMatch = DetectSshSoftwareVersionMatch;
+    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].Setup = DetectSshSoftwareVersionSetup;
+    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].Free = DetectSshSoftwareVersionFree;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].RegisterTests = DetectSshVersionRegisterTests;
+    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].RegisterTests =
+            DetectSshSoftwareVersionRegisterTests;
 #endif
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].flags =
+    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].flags =
             SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_INFO_DEPRECATED;
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].alternative = DETECT_AL_SSH_PROTOCOL;
+    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].alternative = DETECT_AL_SSH_SOFTWARE;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_ssh_banner_list_id = DetectBufferTypeRegister("ssh_banner");
+
+    DetectAppLayerInspectEngineRegister2("ssh_banner", ALPROTO_SSH, SIG_FLAG_TOSERVER,
+            SshStateBannerDone, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister2("ssh_banner", ALPROTO_SSH, SIG_FLAG_TOCLIENT,
+            SshStateBannerDone, DetectEngineInspectGenericList, NULL);
 }
 
 /**
@@ -100,50 +111,36 @@ void DetectSshVersionRegister(void)
  * \param t pointer to thread vars
  * \param det_ctx pointer to the pattern matcher thread
  * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectSshVersionData
+ * \param m pointer to the sigmatch that we will cast into DetectSshSoftwareVersionData
  *
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectSshVersionMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
+static int DetectSshSoftwareVersionMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags,
         void *state, void *txv, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
-    SCLogDebug("lets see");
-
-    DetectSshVersionData *ssh = (DetectSshVersionData *)m;
+    DetectSshSoftwareVersionData *ssh = (DetectSshSoftwareVersionData *)m;
     if (state == NULL) {
         SCLogDebug("no ssh state, no match");
         SCReturnInt(0);
     }
 
     int ret = 0;
-    const uint8_t *protocol = NULL;
+    const uint8_t *software = NULL;
     uint32_t b_len = 0;
 
-    if (rs_ssh_tx_get_protocol(txv, &protocol, &b_len, flags) != 1)
+    if (rs_ssh_tx_get_software(txv, &software, &b_len, flags) != 1)
         SCReturnInt(0);
-    if (protocol == NULL || b_len == 0)
+    if (software == NULL || b_len == 0)
         SCReturnInt(0);
-
-    if (ssh->flags & SSH_FLAG_PROTOVERSION_2_COMPAT) {
-        SCLogDebug("looking for ssh protoversion 2 compat");
-        if (protocol[0] == '2') {
+    if (b_len == ssh->len) {
+        if (memcmp(software, ssh->software_ver, ssh->len) == 0) {
             ret = 1;
-        } else if (b_len >= 4) {
-            if (memcmp(protocol, "1.99", 4) == 0) {
-                ret = 1;
-            }
-        }
-    } else {
-        SCLogDebug("looking for ssh protoversion %s length %" PRIu16 "", ssh->ver, ssh->len);
-        if (b_len == ssh->len) {
-            if (memcmp(protocol, ssh->ver, ssh->len) == 0) {
-                ret = 1;
-            }
         }
     }
+
     SCReturnInt(ret);
 }
 
@@ -153,24 +150,26 @@ static int DetectSshVersionMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_
  * \param de_ctx Pointer to the detection engine context
  * \param idstr Pointer to the user provided id option
  *
- * \retval id_d pointer to DetectSshVersionData on success
+ * \retval id_d pointer to DetectSshSoftwareVersionData on success
  * \retval NULL on failure
  */
-static DetectSshVersionData *DetectSshVersionParse(DetectEngineCtx *de_ctx, const char *str)
+static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse(
+        DetectEngineCtx *de_ctx, const char *str)
 {
-    DetectSshVersionData *ssh = NULL;
+    DetectSshSoftwareVersionData *ssh = NULL;
     int res = 0;
     size_t pcre2_len;
 
     pcre2_match_data *match = NULL;
     int ret = DetectParsePcreExec(&parse_regex, &match, str, 0, 0);
+
     if (ret < 1 || ret > 3) {
-        SCLogError("invalid ssh.protoversion option");
+        SCLogError("invalid ssh.softwareversion option");
         goto error;
     }
 
     if (ret > 1) {
-        const char *str_ptr;
+        const char *str_ptr = NULL;
         res = pcre2_substring_get_bynumber(match, 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
             SCLogError("pcre2_substring_get_bynumber failed");
@@ -178,30 +177,21 @@ static DetectSshVersionData *DetectSshVersionParse(DetectEngineCtx *de_ctx, cons
         }
 
         /* We have a correct id option */
-        ssh = SCCalloc(1, sizeof(DetectSshVersionData));
+        ssh = SCMalloc(sizeof(DetectSshSoftwareVersionData));
         if (unlikely(ssh == NULL)) {
             pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
             goto error;
         }
-
-        /* If we expect a protocol version 2 or 1.99 (considered 2, we
-         * will compare it with both strings) */
-        if (strcmp("2_compat", str_ptr) == 0) {
-            ssh->flags |= SSH_FLAG_PROTOVERSION_2_COMPAT;
-            SCLogDebug("will look for ssh protocol version 2 (2, 2.0, 1.99 that's considered as 2");
-            pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
-            return ssh;
-        }
-
-        ssh->ver = (uint8_t *)SCStrdup((char *)str_ptr);
-        if (ssh->ver == NULL) {
+        ssh->software_ver = (uint8_t *)SCStrdup((char *)str_ptr);
+        if (ssh->software_ver == NULL) {
             pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
             goto error;
         }
-        ssh->len = (uint16_t)strlen((char *)ssh->ver);
         pcre2_substring_free((PCRE2_UCHAR *)str_ptr);
 
-        SCLogDebug("will look for ssh %s", ssh->ver);
+        ssh->len = (uint16_t)strlen((char *)ssh->software_ver);
+
+        SCLogDebug("will look for ssh %s", ssh->software_ver);
     }
 
     pcre2_match_data_free(match);
@@ -212,7 +202,7 @@ error:
         pcre2_match_data_free(match);
     }
     if (ssh != NULL)
-        DetectSshVersionFree(de_ctx, ssh);
+        DetectSshSoftwareVersionFree(de_ctx, ssh);
     return NULL;
 }
 
@@ -227,21 +217,21 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectSshVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectSshSoftwareVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectSshVersionData *ssh = NULL;
+    DetectSshSoftwareVersionData *ssh = NULL;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_SSH) != 0)
         return -1;
 
-    ssh = DetectSshVersionParse(de_ctx, str);
+    ssh = DetectSshSoftwareVersionParse(NULL, str);
     if (ssh == NULL)
         goto error;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
 
-    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_SSH_PROTOVERSION, (SigMatchCtx *)ssh,
+    if (SigMatchAppendSMToList(de_ctx, s, DETECT_AL_SSH_SOFTWAREVERSION, (SigMatchCtx *)ssh,
                 g_ssh_banner_list_id) == NULL) {
         goto error;
     }
@@ -249,78 +239,82 @@ static int DetectSshVersionSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
 
 error:
     if (ssh != NULL)
-        DetectSshVersionFree(de_ctx, ssh);
+        DetectSshSoftwareVersionFree(de_ctx, ssh);
     return -1;
 }
 
 /**
- * \brief this function will free memory associated with DetectSshVersionData
+ * \brief this function will free memory associated with DetectSshSoftwareVersionData
  *
- * \param id_d pointer to DetectSshVersionData
+ * \param id_d pointer to DetectSshSoftwareVersionData
  */
-void DetectSshVersionFree(DetectEngineCtx *de_ctx, void *ptr)
+static void DetectSshSoftwareVersionFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectSshVersionData *sshd = (DetectSshVersionData *)ptr;
-    SCFree(sshd->ver);
-    SCFree(sshd);
+    if (ptr == NULL)
+        return;
+
+    DetectSshSoftwareVersionData *ssh = (DetectSshSoftwareVersionData *)ptr;
+    if (ssh->software_ver != NULL)
+        SCFree(ssh->software_ver);
+    SCFree(ssh);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
 #include "detect-engine-alert.h"
 
 /**
- * \test DetectSshVersionTestParse01 is a test to make sure that we parse
- *       a proto version correctly
+ * \test DetectSshSoftwareVersionTestParse01 is a test to make sure that we parse
+ *       a software version correctly
  */
-static int DetectSshVersionTestParse01(void)
+static int DetectSshSoftwareVersionTestParse01(void)
 {
-    DetectSshVersionData *ssh = NULL;
-    ssh = DetectSshVersionParse(NULL, "1.0");
-    FAIL_IF_NULL(ssh);
-    FAIL_IF_NOT(strncmp((char *)ssh->ver, "1.0", 3) == 0);
-    DetectSshVersionFree(NULL, ssh);
+    DetectSshSoftwareVersionData *ssh = NULL;
+    ssh = DetectSshSoftwareVersionParse(NULL, "PuTTY_1.0");
+    if (ssh != NULL && strncmp((char *)ssh->software_ver, "PuTTY_1.0", 9) == 0) {
+        DetectSshSoftwareVersionFree(NULL, ssh);
+        return 1;
+    }
 
-    PASS;
+    return 0;
 }
 
 /**
- * \test DetectSshVersionTestParse02 is a test to make sure that we parse
- *       the proto version (compatible with proto version 2) correctly
+ * \test DetectSshSoftwareVersionTestParse02 is a test to make sure that we parse
+ *       the software version correctly
  */
-static int DetectSshVersionTestParse02(void)
+static int DetectSshSoftwareVersionTestParse02(void)
 {
-    DetectSshVersionData *ssh = NULL;
-    ssh = DetectSshVersionParse(NULL, "2_compat");
-    FAIL_IF_NOT(ssh->flags & SSH_FLAG_PROTOVERSION_2_COMPAT);
-    DetectSshVersionFree(NULL, ssh);
+    DetectSshSoftwareVersionData *ssh = NULL;
+    ssh = DetectSshSoftwareVersionParse(NULL, "\"SecureCRT-4.0\"");
+    if (ssh != NULL && strncmp((char *)ssh->software_ver, "SecureCRT-4.0", 13) == 0) {
+        DetectSshSoftwareVersionFree(NULL, ssh);
+        return 1;
+    }
 
-    PASS;
+    return 0;
 }
 
 /**
- * \test DetectSshVersionTestParse03 is a test to make sure that we
- *       don't return a ssh_data with an invalid value specified
+ * \test DetectSshSoftwareVersionTestParse03 is a test to make sure that we
+ *       don't return a ssh_data with an empty value specified
  */
-static int DetectSshVersionTestParse03(void)
+static int DetectSshSoftwareVersionTestParse03(void)
 {
-    DetectSshVersionData *ssh = NULL;
-    ssh = DetectSshVersionParse(NULL, "2_com");
-    FAIL_IF_NOT_NULL(ssh);
-    ssh = DetectSshVersionParse(NULL, "");
-    FAIL_IF_NOT_NULL(ssh);
-    ssh = DetectSshVersionParse(NULL, ".1");
-    FAIL_IF_NOT_NULL(ssh);
-    ssh = DetectSshVersionParse(NULL, "lalala");
-    FAIL_IF_NOT_NULL(ssh);
+    DetectSshSoftwareVersionData *ssh = NULL;
+    ssh = DetectSshSoftwareVersionParse(NULL, "");
+    if (ssh != NULL) {
+        DetectSshSoftwareVersionFree(NULL, ssh);
+        return 0;
+    }
 
-    PASS;
+    return 1;
 }
 
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-util.h"
 
 /** \test Send a get request in three chunks + more data. */
-static int DetectSshVersionTestDetect01(void)
+static int DetectSshSoftwareVersionTestDetect01(void)
 {
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     ThreadVars tv;
@@ -366,8 +360,8 @@ static int DetectSshVersionTestDetect01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(
-            de_ctx, "alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:1.10; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+            "alert ssh any any -> any any (msg:\"SSH\"; ssh.softwareversion:PuTTY_2.123; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -401,7 +395,7 @@ static int DetectSshVersionTestDetect01(void)
 }
 
 /** \test Send a get request in three chunks + more data. */
-static int DetectSshVersionTestDetect02(void)
+static int DetectSshSoftwareVersionTestDetect02(void)
 {
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     ThreadVars tv;
@@ -448,7 +442,7 @@ static int DetectSshVersionTestDetect02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-            "alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:2_compat; sid:1;)");
+            "alert ssh any any -> any any (msg:\"SSH\"; ssh.softwareversion:PuTTY_2.123; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -482,7 +476,7 @@ static int DetectSshVersionTestDetect02(void)
 }
 
 /** \test Send a get request in three chunks + more data. */
-static int DetectSshVersionTestDetect03(void)
+static int DetectSshSoftwareVersionTestDetect03(void)
 {
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     ThreadVars tv;
@@ -529,7 +523,7 @@ static int DetectSshVersionTestDetect03(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-            "alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:2_compat; sid:1;)");
+            "alert ssh any any -> any any (msg:\"SSH\"; ssh.softwareversion:lalala-3.1.4; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
@@ -563,15 +557,15 @@ static int DetectSshVersionTestDetect03(void)
 }
 
 /**
- * \brief this function registers unit tests for DetectSshVersion
+ * \brief this function registers unit tests for DetectSshSoftwareVersion
  */
-static void DetectSshVersionRegisterTests(void)
+static void DetectSshSoftwareVersionRegisterTests(void)
 {
-    UtRegisterTest("DetectSshVersionTestParse01", DetectSshVersionTestParse01);
-    UtRegisterTest("DetectSshVersionTestParse02", DetectSshVersionTestParse02);
-    UtRegisterTest("DetectSshVersionTestParse03", DetectSshVersionTestParse03);
-    UtRegisterTest("DetectSshVersionTestDetect01", DetectSshVersionTestDetect01);
-    UtRegisterTest("DetectSshVersionTestDetect02", DetectSshVersionTestDetect02);
-    UtRegisterTest("DetectSshVersionTestDetect03", DetectSshVersionTestDetect03);
+    UtRegisterTest("DetectSshSoftwareVersionTestParse01", DetectSshSoftwareVersionTestParse01);
+    UtRegisterTest("DetectSshSoftwareVersionTestParse02", DetectSshSoftwareVersionTestParse02);
+    UtRegisterTest("DetectSshSoftwareVersionTestParse03", DetectSshSoftwareVersionTestParse03);
+    UtRegisterTest("DetectSshSoftwareVersionTestDetect01", DetectSshSoftwareVersionTestDetect01);
+    UtRegisterTest("DetectSshSoftwareVersionTestDetect02", DetectSshSoftwareVersionTestDetect02);
+    UtRegisterTest("DetectSshSoftwareVersionTestDetect03", DetectSshSoftwareVersionTestDetect03);
 }
 #endif /* UNITTESTS */

@@ -49,7 +49,7 @@ noinst_HEADERS = \
 	app-layer/smb/parser.h \
 	app-layer/smtp/parser.h \
 	app-layer/snmp/parser.h \
-	app-layer-ssh.h \
+	app-layer/ssh/parser.h \
 	app-layer/ssl/parser.h \
 	app-layer/tftp/parser.h \
 	autoconf.h \
@@ -301,14 +301,14 @@ noinst_HEADERS = \
 	detect-dhcp-leasetime.h \
 	detect-dhcp-rebinding-time.h \
 	detect-dhcp-renewal-time.h \
-	detect-ssh-hassh.h \
-	detect-ssh-hassh-server.h \
-	detect-ssh-hassh-server-string.h \
-	detect-ssh-hassh-string.h \
-	detect-ssh-proto.h \
-	detect-ssh-proto-version.h \
-	detect-ssh-software.h \
-	detect-ssh-software-version.h \
+	app-layer/ssh/detect-hassh.h \
+	app-layer/ssh/detect-hassh-server.h \
+	app-layer/ssh/detect-hassh-server-string.h \
+	app-layer/ssh/detect-hassh-string.h \
+	app-layer/ssh/detect-proto.h \
+	app-layer/ssh/detect-proto-version.h \
+	app-layer/ssh/detect-software.h \
+	app-layer/ssh/detect-software-version.h \
 	app-layer/ssl/detect-state.h \
 	app-layer/ssl/detect-version.h \
 	detect-stream_size.h \
@@ -427,7 +427,7 @@ noinst_HEADERS = \
 	app-layer/smb/logger.h \
 	app-layer/smtp/logger.h \
 	app-layer/snmp/logger.h \
-	output-json-ssh.h \
+	app-layer/ssh/logger.h \
 	output-json-stats.h \
 	output-json-template.h \
 	app-layer/tftp/logger.h \
@@ -564,12 +564,12 @@ noinst_HEADERS = \
 	app-layer/dnp3/lua-objects.h \
 	util-lua-dns.h \
 	util-lua.h \
-	util-lua-hassh.h \
+	app-layer/ssh/lua-hassh.h \
 	util-lua-http.h \
 	util-lua-ja3.h \
 	util-luajit.h \
 	app-layer/smtp/lua.h \
-	util-lua-ssh.h \
+	app-layer/ssh/lua.h \
 	util-lua-tls.h \
 	util-macset.h \
 	util-magic.h \
@@ -665,7 +665,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/smb/parser.c \
 	app-layer/smtp/parser.c \
 	app-layer/snmp/parser.c \
-	app-layer-ssh.c \
+	app-layer/ssh/parser.c \
 	app-layer/ssl/parser.c \
 	app-layer/tftp/parser.c \
 	conf.c \
@@ -914,14 +914,14 @@ libsuricata_c_a_SOURCES = \
 	detect-dhcp-leasetime.c \
 	detect-dhcp-rebinding-time.c \
 	detect-dhcp-renewal-time.c \
-	detect-ssh-hassh.c \
-	detect-ssh-hassh-server.c \
-	detect-ssh-hassh-server-string.c \
-	detect-ssh-hassh-string.c \
-	detect-ssh-proto.c \
-	detect-ssh-proto-version.c \
-	detect-ssh-software.c \
-	detect-ssh-software-version.c \
+	app-layer/ssh/detect-hassh.c \
+	app-layer/ssh/detect-hassh-server.c \
+	app-layer/ssh/detect-hassh-server-string.c \
+	app-layer/ssh/detect-hassh-string.c \
+	app-layer/ssh/detect-proto.c \
+	app-layer/ssh/detect-proto-version.c \
+	app-layer/ssh/detect-software.c \
+	app-layer/ssh/detect-software-version.c \
 	app-layer/ssl/detect-state.c \
 	app-layer/ssl/detect-version.c \
 	detect-stream_size.c \
@@ -1039,7 +1039,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/smb/logger.c \
 	app-layer/smtp/logger.c \
 	app-layer/snmp/logger.c \
-	output-json-ssh.c \
+	app-layer/ssh/logger.c \
 	output-json-stats.c \
 	output-json-template.c \
 	app-layer/tftp/logger.c \
@@ -1163,12 +1163,12 @@ libsuricata_c_a_SOURCES = \
 	app-layer/dnp3/lua.c \
 	app-layer/dnp3/lua-objects.c \
 	util-lua-dns.c \
-	util-lua-hassh.c \
+	app-layer/ssh/lua-hassh.c \
 	util-lua-http.c \
 	util-lua-ja3.c \
 	util-luajit.c \
 	app-layer/smtp/lua.c \
-	util-lua-ssh.c \
+	app-layer/ssh/lua.c \
 	util-lua-tls.c \
 	util-macset.c \
 	util-magic.c \

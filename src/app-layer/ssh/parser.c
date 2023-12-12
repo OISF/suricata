@@ -40,7 +40,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "app-layer-ssh.h"
+#include "app-layer/ssh/parser.h"
 #include "rust.h"
 
 #include "conf.h"
