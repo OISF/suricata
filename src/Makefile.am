@@ -15,8 +15,8 @@ noinst_HEADERS = \
 	alert-fastlog.h \
 	alert-syslog.h \
 	app-layer-detect-proto.h \
-	app-layer-dnp3.h \
-	app-layer-dnp3-objects.h \
+	app-layer/dnp3/parser.h \
+	app-layer/dnp3/parser-objects.h \
 	app-layer-enip-common.h \
 	app-layer-enip.h \
 	app-layer-events.h \
@@ -120,7 +120,7 @@ noinst_HEADERS = \
 	detect-depth.h \
 	detect-detection-filter.h \
 	detect-distance.h \
-	detect-dnp3.h \
+	app-layer/dnp3/detect.h \
 	detect-dns-opcode.h \
 	detect-dns-query.h \
 	detect-dsize.h \
@@ -400,8 +400,8 @@ noinst_HEADERS = \
 	output-json-bittorrent-dht.h \
 	output-json-dcerpc.h \
 	output-json-dhcp.h \
-	output-json-dnp3.h \
-	output-json-dnp3-objects.h \
+	app-layer/dnp3/logger.h \
+	app-layer/dnp3/logger-objects.h \
 	output-json-dns.h \
 	output-json-drop.h \
 	output-json-email-common.h \
@@ -560,8 +560,8 @@ noinst_HEADERS = \
 	util-logopenfile.h \
 	util-log-redis.h \
 	util-lua-common.h \
-	util-lua-dnp3.h \
-	util-lua-dnp3-objects.h \
+	app-layer/dnp3/lua.h \
+	app-layer/dnp3/lua-objects.h \
 	util-lua-dns.h \
 	util-lua.h \
 	util-lua-hassh.h \
@@ -632,8 +632,8 @@ libsuricata_c_a_SOURCES = \
 	alert-syslog.c \
 	app-layer.c \
 	app-layer-detect-proto.c \
-	app-layer-dnp3.c \
-	app-layer-dnp3-objects.c \
+	app-layer/dnp3/parser.c \
+	app-layer/dnp3/parser-objects.c \
 	app-layer-enip.c \
 	app-layer-enip-common.c \
 	app-layer-events.c \
@@ -735,7 +735,7 @@ libsuricata_c_a_SOURCES = \
 	detect-depth.c \
 	detect-detection-filter.c \
 	detect-distance.c \
-	detect-dnp3.c \
+	app-layer/dnp3/detect.c \
 	detect-dns-opcode.c \
 	detect-dns-query.c \
 	detect-dsize.c \
@@ -1013,8 +1013,8 @@ libsuricata_c_a_SOURCES = \
 	output-json-common.c \
 	output-json-dcerpc.c \
 	output-json-dhcp.c \
-	output-json-dnp3.c \
-	output-json-dnp3-objects.c \
+	app-layer/dnp3/logger.c \
+	app-layer/dnp3/logger-objects.c \
 	output-json-dns.c \
 	output-json-drop.c \
 	output-json-email-common.c \
@@ -1160,8 +1160,8 @@ libsuricata_c_a_SOURCES = \
 	util-log-redis.c \
 	util-lua.c \
 	util-lua-common.c \
-	util-lua-dnp3.c \
-	util-lua-dnp3-objects.c \
+	app-layer/dnp3/lua.c \
+	app-layer/dnp3/lua-objects.c \
 	util-lua-dns.c \
 	util-lua-hassh.c \
 	util-lua-http.c \
