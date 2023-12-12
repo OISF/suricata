@@ -1088,6 +1088,10 @@ void OutputRegisterLoggers(void)
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonWebSocketLog", "eve-log.websocket",
             OutputJsonLogInitSub, ALPROTO_WEBSOCKET, JsonGenericDirPacketLogger, JsonLogThreadInit,
             JsonLogThreadDeinit, NULL);
+    /* DoH2 JSON logger. */
+    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDoH2Log", "eve-log.doh2",
+            OutputJsonLogInitSub, ALPROTO_DOH2, JsonGenericDirFlowLogger, JsonLogThreadInit,
+            JsonLogThreadDeinit, NULL);
     /* Template JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTemplateLog", "eve-log.template",
             OutputJsonLogInitSub, ALPROTO_TEMPLATE, JsonGenericDirPacketLogger, JsonLogThreadInit,
@@ -1143,6 +1147,7 @@ static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
     { ALPROTO_PGSQL, JsonPgsqlAddMetadata },
     { ALPROTO_TELNET, NULL }, // no logging
     { ALPROTO_WEBSOCKET, rs_websocket_logger_log },
+    { ALPROTO_DOH2, rs_http2_log_json }, // http2 logger knows how to log dns
     { ALPROTO_TEMPLATE, rs_template_logger_log },
     { ALPROTO_RDP, (EveJsonSimpleTxLogFunc)rs_rdp_to_json },
     { ALPROTO_HTTP2, rs_http2_log_json },
