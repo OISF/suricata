@@ -3778,6 +3778,9 @@
                                     "description": "Errors encountered parsing DNS/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "doh2": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "enip_tcp": {
                                     "description": "Errors encounterd parsing ENIP/TCP",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -3926,6 +3929,9 @@
                                 },
                                 "dns_udp": {
                                     "description": "Number of flows for DNS/UDP protocol",
+                                    "type": "integer"
+                                },
+                                "doh2": {
                                     "type": "integer"
                                 },
                                 "enip_tcp": {
@@ -4077,6 +4083,9 @@
                                     "type": "integer"
                                 },
                                 "dns_udp": {
+                                    "type": "integer"
+                                },
+                                "doh2": {
                                     "type": "integer"
                                 },
                                 "enip_tcp": {
