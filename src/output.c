@@ -74,7 +74,7 @@
 #include "app-layer/ike/logger.h"
 #include "app-layer/krb5/logger.h"
 #include "app-layer/quic/logger.h"
-#include "output-json-dhcp.h"
+#include "app-layer/dhcp/logger.h"
 #include "app-layer/snmp/logger.h"
 #include "app-layer/sip/logger.h"
 #include "app-layer/rfb/logger.h"
