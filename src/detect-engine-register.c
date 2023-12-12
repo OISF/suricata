@@ -69,8 +69,8 @@
 #include "detect-http-host.h"
 
 #include "detect-mark.h"
-#include "detect-nfs-procedure.h"
-#include "detect-nfs-version.h"
+#include "app-layer/nfs/detect-procedure.h"
+#include "app-layer/nfs/detect-version.h"
 
 #include "detect-engine-event.h"
 #include "decode.h"

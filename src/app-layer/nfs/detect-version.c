@@ -31,7 +31,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
-#include "detect-nfs-version.h"
+#include "app-layer/nfs/detect-version.h"
 #include "detect-engine-uint.h"
 
 #include "app-layer-parser.h"
@@ -44,7 +44,7 @@
 #include "util-unittest-helper.h"
 #include "util-byte.h"
 
-#include "app-layer-nfs-tcp.h"
+#include "app-layer/nfs/parser-tcp.h"
 #include "rust.h"
 
 static int DetectNfsVersionSetup(DetectEngineCtx *, Signature *s, const char *str);
