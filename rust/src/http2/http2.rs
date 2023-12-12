@@ -186,13 +186,13 @@ impl HTTP2Transaction {
                 if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
                     //TODO get a file container instead of NULL
                     (c.HTPFileCloseHandleRange)(
-                            sfcm.files_sbcfg,
-                            std::ptr::null_mut(),
-                            0,
-                            self.file_range,
-                            std::ptr::null_mut(),
-                            0,
-                            );
+                        sfcm.files_sbcfg,
+                        std::ptr::null_mut(),
+                        0,
+                        self.file_range,
+                        std::ptr::null_mut(),
+                        0,
+                    );
                     (c.HttpRangeFreeBlock)(self.file_range);
                     self.file_range = std::ptr::null_mut();
                 }
@@ -239,7 +239,8 @@ impl HTTP2Transaction {
     }
 
     fn decompress<'a>(
-        &'a mut self, input: &'a [u8], dir: Direction, sfcm: &'static SuricataFileContext, over: bool, flow: *const Flow,
+        &'a mut self, input: &'a [u8], dir: Direction, sfcm: &'static SuricataFileContext,
+        over: bool, flow: *const Flow,
     ) -> io::Result<()> {
         let mut output = Vec::with_capacity(decompression::HTTP2_DECOMPRESSION_CHUNK_SIZE);
         let decompressed = self.decoder.decompress(input, &mut output, dir)?;
@@ -258,7 +259,14 @@ impl HTTP2Transaction {
                 ) {
                     match range::http2_parse_check_content_range(&value) {
                         Ok((_, v)) => {
-                            range::http2_range_open(self, &v, flow, sfcm, Direction::ToClient, decompressed);
+                            range::http2_range_open(
+                                self,
+                                &v,
+                                flow,
+                                sfcm,
+                                Direction::ToClient,
+                                decompressed,
+                            );
                             if over && !self.file_range.is_null() {
                                 range::http2_range_close(self, Direction::ToClient, &[])
                             }
@@ -603,7 +611,7 @@ impl HTTP2State {
         tx.state = HTTP2TransactionState::HTTP2StateGlobal;
         tx.tx_data.update_file_flags(self.state_data.file_flags);
         // TODO can this tx hold files?
-        tx.tx_data.file_tx = STREAM_TOSERVER|STREAM_TOCLIENT; // might hold files in both directions
+        tx.tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // might hold files in both directions
         tx.update_file_flags(tx.tx_data.file_flags);
         self.transactions.push_back(tx);
         return self.transactions.back_mut().unwrap();
@@ -677,7 +685,7 @@ impl HTTP2State {
             tx.state = HTTP2TransactionState::HTTP2StateOpen;
             tx.tx_data.update_file_flags(self.state_data.file_flags);
             tx.update_file_flags(tx.tx_data.file_flags);
-            tx.tx_data.file_tx = STREAM_TOSERVER|STREAM_TOCLIENT; // might hold files in both directions
+            tx.tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // might hold files in both directions
             self.transactions.push_back(tx);
             return Some(self.transactions.back_mut().unwrap());
         }
@@ -688,9 +696,7 @@ impl HTTP2State {
         for block in blocks {
             if block.error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
                 self.set_event(HTTP2Event::InvalidHeader);
-            } else if block.error
-                == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
-            {
+            } else if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate {
                 update = true;
                 if block.sizeupdate > sizeup {
                     sizeup = block.sizeupdate;
@@ -1087,15 +1093,10 @@ impl HTTP2State {
                                         tx_same.ft_ts.tx_id = tx_same.tx_id - 1;
                                     };
                                     let mut dinput = &rem[..hlsafe];
-                                    if padded && !rem.is_empty() && usize::from(rem[0]) < hlsafe{
+                                    if padded && !rem.is_empty() && usize::from(rem[0]) < hlsafe {
                                         dinput = &rem[1..hlsafe - usize::from(rem[0])];
                                     }
-                                    if tx_same.decompress(
-                                        dinput,
-                                        dir,
-                                        sfcm,
-                                        over,
-                                        flow).is_err() {
+                                    if tx_same.decompress(dinput, dir, sfcm, over, flow).is_err() {
                                         self.set_event(HTTP2Event::FailedDecompression);
                                     }
                                 }
@@ -1324,9 +1325,15 @@ pub unsafe extern "C" fn rs_http2_getfiles(
     let tx = cast_pointer!(tx, HTTP2Transaction);
     if let Some(sfcm) = { SURICATA_HTTP2_FILE_CONFIG } {
         if direction & STREAM_TOSERVER != 0 {
-            return AppLayerGetFileState { fc: &mut tx.ft_ts.file, cfg: sfcm.files_sbcfg }
+            return AppLayerGetFileState {
+                fc: &mut tx.ft_ts.file,
+                cfg: sfcm.files_sbcfg,
+            };
         } else {
-            return AppLayerGetFileState { fc: &mut tx.ft_tc.file, cfg: sfcm.files_sbcfg }
+            return AppLayerGetFileState {
+                fc: &mut tx.ft_tc.file,
+                cfg: sfcm.files_sbcfg,
+            };
         }
     }
     AppLayerGetFileState::err()
