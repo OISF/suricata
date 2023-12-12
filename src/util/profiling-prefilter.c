@@ -28,7 +28,7 @@
 #include "util/profiling.h"
 
 #ifdef PROFILING
-#include "detect-engine-prefilter.h"
+#include "detect/engine/prefilter.h"
 #include "util/conf.h"
 #include "util/time.h"
 

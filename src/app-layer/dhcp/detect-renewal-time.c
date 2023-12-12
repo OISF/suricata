@@ -19,9 +19,9 @@
 #include "rust.h"
 #include "app-layer/dhcp/detect-renewal-time.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-uint.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/prefilter.h"
+#include "detect/engine/uint.h"
 #include "detect-parse.h"
 
 static int g_buffer_id = 0;

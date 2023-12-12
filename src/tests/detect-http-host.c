@@ -42,7 +42,7 @@
 #include "app-layer/http/parser.h"
 #include "app-layer-protos.h"
 #include "detect-engine-build.h"
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 /**
  * \test Test that the http_host content matches against a http request

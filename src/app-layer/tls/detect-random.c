@@ -21,7 +21,7 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 #include "detect-content.h"
 
 #include "flow.h"
@@ -29,7 +29,7 @@
 
 #include "app-layer.h"
 #include "app-layer/ssl/parser.h"
-#include "detect-engine-prefilter.h"
+#include "detect/engine/prefilter.h"
 #include "app-layer/tls/detect-random.h"
 
 #define DETECT_TLS_RANDOM_TIME_LEN  4

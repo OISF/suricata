@@ -28,10 +28,10 @@
 #include "detect.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 #include "detect-engine.h"
 #include "detect-engine-build.h"
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 #include "detect-parse.h"
 #include "detect-pcre.h"
 #include "util/mpm/mpm.h"
@@ -764,7 +764,7 @@ int DetectContentConvertToNocase(DetectEngineCtx *de_ctx, DetectContentData *cd)
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 #include "packet.h"
 
 static bool TestLastContent(const Signature *s, uint16_t o, uint16_t d)

@@ -43,8 +43,8 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "detect-engine-state.h"
-#include "detect-engine-dcepayload.h"
+#include "detect/engine/state.h"
+#include "detect/engine/dcepayload.h"
 #include "detect-engine-build.h"
 
 #include "detect-flowvar.h"
@@ -292,7 +292,7 @@ void DetectEngineStateResetTxs(Flow *f)
 /*********Unittests*********/
 
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 static int DeStateTest01(void)
 {

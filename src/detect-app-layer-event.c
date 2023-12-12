@@ -32,7 +32,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 #include "detect-engine-build.h"
 #include "detect-app-layer-event.h"
 

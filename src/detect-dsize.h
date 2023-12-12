@@ -24,7 +24,7 @@
 #ifndef __DETECT_DSIZE_H__
 #define __DETECT_DSIZE_H__
 
-#include "detect-engine-uint.h"
+#include "detect/engine/uint.h"
 
 /* prototypes */
 void DetectDsizeRegister(void);

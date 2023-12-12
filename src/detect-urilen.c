@@ -33,10 +33,10 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 #include "detect-engine-build.h"
 #include "detect-content.h"
-#include "detect-engine-uint.h"
+#include "detect/engine/uint.h"
 
 #include "detect-urilen.h"
 #include "util/debug.h"
@@ -244,9 +244,9 @@ bool DetectUrilenValidateContent(const Signature *s, int list, const char **sige
 #include "stream.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 #include "app-layer-parser.h"
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 /** \test   Test the Urilen keyword setup */
 static int DetectUrilenParseTest01(void)

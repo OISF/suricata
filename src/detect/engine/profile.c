@@ -23,7 +23,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect-engine-profile.h"
+#include "detect/engine/profile.h"
 
 #ifdef PROFILING
 #include "output/eve/output-json.h"

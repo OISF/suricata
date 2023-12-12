@@ -29,13 +29,13 @@
 #include "tm-threads.h"
 
 #include "detect.h"
-#include "detect-engine-port.h"
+#include "detect/engine/port.h"
 #include "detect-engine-build.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-content.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/state.h"
 
 #include "util/print.h"
 #include "util/pool.h"
@@ -2064,7 +2064,7 @@ void AppLayerRegisterExpectationProto(uint8_t proto, AppProto alproto)
 #ifdef UNITTESTS
 
 #include "app-layer/http/parser.h"
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 static AppLayerProtoDetectCtx alpd_ctx_ut;
 

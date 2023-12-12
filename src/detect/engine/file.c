@@ -28,12 +28,12 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 
 #include "detect-filestore.h"
 
-#include "detect-engine-dcepayload.h"
-#include "detect-engine-file.h"
+#include "detect/engine/dcepayload.h"
+#include "detect/engine/file.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"

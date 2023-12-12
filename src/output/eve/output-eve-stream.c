@@ -33,7 +33,7 @@
 #include "decode-ipv4.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 #include "detect-reference.h"
 
 #include "output/output.h"

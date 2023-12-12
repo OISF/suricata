@@ -1066,7 +1066,7 @@ void MpmHSGlobalCleanup(void)
 /*************************************Unittests********************************/
 
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 static int SCHSTest01(void)
 {

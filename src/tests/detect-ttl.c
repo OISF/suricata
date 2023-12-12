@@ -19,7 +19,7 @@
 #include "../util/unittest.h"
 #include "../util/unittest-helper.h"
 #include "detect-engine.h"
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 #include "detect-engine-build.h"
 
 /**

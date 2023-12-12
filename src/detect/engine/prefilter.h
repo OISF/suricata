@@ -25,7 +25,7 @@
 #define __DETECT_ENGINE_PREFILTER_H__
 
 #include "detect.h"
-#include "detect-engine-state.h"
+#include "detect/engine/state.h"
 
 // TODO
 typedef struct DetectTransaction_ {

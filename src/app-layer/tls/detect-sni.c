@@ -30,7 +30,7 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 
@@ -46,7 +46,7 @@
 
 #include "app-layer.h"
 #include "app-layer/ssl/parser.h"
-#include "detect-engine-prefilter.h"
+#include "detect/engine/prefilter.h"
 #include "app-layer/tls/detect-sni.h"
 
 #include "util/unittest.h"

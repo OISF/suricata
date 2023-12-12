@@ -29,8 +29,8 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-prefilter-common.h"
+#include "detect/engine/prefilter.h"
+#include "detect/engine/prefilter-common.h"
 
 #include "flow-var.h"
 #include "decode-events.h"

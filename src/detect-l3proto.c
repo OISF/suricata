@@ -32,11 +32,11 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 #include "detect-engine-build.h"
 
-#include "detect-engine-siggroup.h"
-#include "detect-engine-address.h"
+#include "detect/engine/siggroup.h"
+#include "detect/engine/address.h"
 
 #include "detect-l3proto.h"
 
@@ -106,7 +106,7 @@ error:
 }
 
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 /**
  * \test DetectL3protoTestSig01 is a test for checking the working of ttl keyword

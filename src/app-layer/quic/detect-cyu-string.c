@@ -24,9 +24,9 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/prefilter.h"
+#include "detect/engine/content-inspection.h"
 #include "app-layer/quic/detect-cyu-string.h"
 #include "detect-engine-build.h"
 #include "rust.h"
@@ -203,7 +203,7 @@ void DetectQuicCyuStringRegister(void)
 #include "util/unittest.h"
 #include "util/unittest-helper.h"
 #include "flow-util.h"
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 /**
  * \test DetectQuicCyuStringTest01 is a test for a valid quic packet, matching

@@ -1131,7 +1131,7 @@ void MpmACRegister(void)
 /*************************************Unittests********************************/
 
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 static int SCACTest01(void)
 {

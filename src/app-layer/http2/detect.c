@@ -29,10 +29,10 @@
 #include "detect-content.h"
 
 #include "detect-engine.h"
-#include "detect-engine-uint.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
+#include "detect/engine/uint.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/prefilter.h"
+#include "detect/engine/content-inspection.h"
 
 #include "app-layer/http2/detect.h"
 #include "util/byte.h"

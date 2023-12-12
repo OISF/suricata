@@ -22,17 +22,17 @@
  *
  */
 
-#include "detect-engine-register.h"
+#include "detect/engine/register.h"
 #include "suricata-common.h"
 
 #include "detect.h"
 #include "detect-parse.h"
 
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/state.h"
+#include "detect/engine/prefilter.h"
+#include "detect/engine/content-inspection.h"
 
 #include "app-layer/smb/detect-ntlmssp.h"
 #include "rust.h"

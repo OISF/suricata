@@ -25,7 +25,7 @@
 #define __DETECT_ENGINE_UINT_H
 
 #include "rust.h"
-#include "detect-engine-prefilter-common.h"
+#include "detect/engine/prefilter-common.h"
 
 // These definitions are kept to minimize the diff
 // We can run a big sed commit next

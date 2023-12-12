@@ -32,10 +32,10 @@
 #include "util/cidr.h"
 #include "util/unittest.h"
 
-#include "detect-engine-address.h"
-#include "detect-engine-address-ipv6.h"
-#include "detect-engine-siggroup.h"
-#include "detect-engine-port.h"
+#include "detect/engine/address.h"
+#include "detect/engine/address-ipv6.h"
+#include "detect/engine/siggroup.h"
+#include "detect/engine/port.h"
 
 #include "util/debug.h"
 

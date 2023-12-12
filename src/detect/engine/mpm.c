@@ -32,11 +32,11 @@
 #include "decode.h"
 #include "detect.h"
 #include "detect-engine.h"
-#include "detect-engine-siggroup.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-iponly.h"
+#include "detect/engine/siggroup.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/iponly.h"
 #include "detect-parse.h"
-#include "detect-engine-prefilter.h"
+#include "detect/engine/prefilter.h"
 #include "util/mpm/mpm.h"
 #include "util/memcmp.h"
 #include "util/memcpy.h"
@@ -52,7 +52,7 @@
 
 #include "detect-content.h"
 
-#include "detect-engine-payload.h"
+#include "detect/engine/payload.h"
 
 #include "stream.h"
 

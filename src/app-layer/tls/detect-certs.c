@@ -30,13 +30,13 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/prefilter.h"
+#include "detect/engine/content-inspection.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "app-layer/tls/detect-certs.h"
-#include "detect-engine-uint.h"
+#include "detect/engine/uint.h"
 
 #include "flow.h"
 #include "flow-util.h"

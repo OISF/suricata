@@ -32,7 +32,7 @@
 #include "decode-events.h"
 
 #include "detect.h"
-#include "detect-engine-port.h"
+#include "detect/engine/port.h"
 
 #include "flow.h"
 

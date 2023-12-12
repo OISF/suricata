@@ -29,7 +29,7 @@
 #include "detect-content.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 #include "detect-engine-build.h"
 #include "detect-fast-pattern.h"
 
@@ -359,7 +359,7 @@ error:
 /*----------------------------------Unittests---------------------------------*/
 
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 static SigMatch *GetMatches(Signature *s, const int list)
 {
     SigMatch *sm = DetectBufferGetFirstSigMatch(s, list);

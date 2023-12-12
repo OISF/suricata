@@ -31,10 +31,10 @@
 
 #include "detect-engine.h"
 #include "detect-engine-build.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-content-inspection.h"
+#include "detect/engine/mpm.h"
+#include "detect/engine/state.h"
+#include "detect/engine/prefilter.h"
+#include "detect/engine/content-inspection.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -167,7 +167,7 @@ static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 /************************************Unittests*********************************/
 
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 /**
  * \test Test a valid dce_stub_data entry with  bind, bind_ack, request frags.

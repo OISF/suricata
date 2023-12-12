@@ -29,7 +29,7 @@
 #include "detect-flowbits.h"
 #include "detect-flowint.h"
 #include "detect-parse.h"
-#include "detect-engine-sigorder.h"
+#include "detect/engine/sigorder.h"
 #include "detect-pcre.h"
 #include "detect-engine-build.h"
 

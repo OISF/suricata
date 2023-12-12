@@ -25,7 +25,7 @@
 #define __DETECT_PARSE_H__
 
 #include "detect.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 
 /* File handler registration */
 #define MAX_DETECT_ALPROTO_CNT 10

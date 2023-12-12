@@ -35,8 +35,8 @@
 #include "flow-util.h"
 #include "flow-var.h"
 
-#include "detect-engine-siggroup.h"
-#include "detect-engine-state.h"
+#include "detect/engine/siggroup.h"
+#include "detect/engine/state.h"
 
 #include "util/cidr.h"
 #include "util/byte.h"
@@ -145,7 +145,7 @@ int DetectProtoContainsProto(const DetectProto *dp, int proto)
 #ifdef UNITTESTS
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 /**
  * \brief this function is used to initialize the detection engine context and
  *        setup the signature with passed values.

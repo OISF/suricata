@@ -35,7 +35,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-content-inspection.h"
+#include "detect/engine/content-inspection.h"
 #include "app-layer/template/detect-rust-buffer.h"
 #include "app-layer-parser.h"
 #include "detect-engine-build.h"
@@ -120,7 +120,7 @@ static uint8_t DetectEngineInspectTemplateRustBuffer(DetectEngineCtx *de_ctx,
 #include "util/unittest-helper.h"
 #include "flow-util.h"
 #include "stream-tcp.h"
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 static int DetectTemplateRustBufferTest(void)
 {

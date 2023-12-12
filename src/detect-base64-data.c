@@ -18,7 +18,7 @@
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-engine.h"
-#include "detect-engine-content-inspection.h"
+#include "detect/engine/content-inspection.h"
 #include "detect-parse.h"
 #include "detect-base64-data.h"
 #include "detect-engine-build.h"

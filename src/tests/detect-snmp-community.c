@@ -23,7 +23,7 @@
 #include "flow-util.h"
 #include "stream-tcp.h"
 #include "detect-engine-build.h"
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 static int DetectSNMPCommunityTest(void)
 {

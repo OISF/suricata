@@ -28,7 +28,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-#include "detect-engine-prefilter-common.h"
+#include "detect/engine/prefilter-common.h"
 #include "detect-engine-build.h"
 
 #include "flow-var.h"
@@ -371,7 +371,7 @@ void SigParseApplyDsizeToContent(Signature *s)
 #ifdef UNITTESTS
 #include "util/unittest-helper.h"
 #include "detect-engine.h"
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 #include "packet.h"
 
 /**

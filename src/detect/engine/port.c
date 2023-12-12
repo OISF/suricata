@@ -38,10 +38,10 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect/engine/mpm.h"
 
-#include "detect-engine-siggroup.h"
-#include "detect-engine-port.h"
+#include "detect/engine/siggroup.h"
+#include "detect/engine/port.h"
 
 #include "conf.h"
 #include "util/debug.h"

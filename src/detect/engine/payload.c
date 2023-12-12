@@ -32,10 +32,10 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "detect-engine-content-inspection.h"
-#include "detect-engine-prefilter.h"
-#include "detect-engine-state.h"
-#include "detect-engine-payload.h"
+#include "detect/engine/content-inspection.h"
+#include "detect/engine/prefilter.h"
+#include "detect/engine/state.h"
+#include "detect/engine/payload.h"
 #include "detect-engine-build.h"
 
 #include "stream.h"
@@ -332,7 +332,7 @@ uint8_t DetectEngineInspectStream(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 }
 
 #ifdef UNITTESTS
-#include "detect-engine-alert.h"
+#include "detect/engine/alert.h"
 
 /** \test Not the first but the second occurrence of "abc" should be used
  *       for the 2nd match */
