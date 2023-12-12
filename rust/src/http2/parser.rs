@@ -463,8 +463,9 @@ fn http2_parse_headers_block_literal_incindex<'a>(
                 while dyn_headers.current_size > dyn_headers.max_size
                     && toremove < dyn_headers.table.len()
                 {
-                    dyn_headers.current_size -=
-                        32 + dyn_headers.table[toremove].name.len() + dyn_headers.table[toremove].value.len();
+                    dyn_headers.current_size -= 32
+                        + dyn_headers.table[toremove].name.len()
+                        + dyn_headers.table[toremove].value.len();
                     toremove += 1;
                 }
                 dyn_headers.table.drain(0..toremove);
