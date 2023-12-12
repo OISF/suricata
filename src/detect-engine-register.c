@@ -272,7 +272,7 @@
 #include "detect-http-stat-code.h"
 #include "detect-ssl-version.h"
 #include "detect-ssl-state.h"
-#include "detect-modbus.h"
+#include "app-layer/modbus/detect.h"
 #include "detect-cipservice.h"
 #include "app-layer/dnp3/detect.h"
 #include "app-layer/ike/detect-exch-type.h"
