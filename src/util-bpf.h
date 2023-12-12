@@ -35,4 +35,6 @@ int SCBPFCompile(int snaplen_arg, int linktype_arg, struct bpf_program *program,
 
 void SCBPFFree(struct bpf_program *program);
 
+int SCBPFDump(struct bpf_program *program, bool dumpRaw);
+
 #endif /* __UTIL_BPF_H__ */

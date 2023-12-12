@@ -95,3 +95,20 @@ int SCBPFCompile(int snaplen_arg, int linktype_arg, struct bpf_program *program,
 
     return (ret);
 }
+
+int SCBPFDump(struct bpf_program *program, bool dumpRaw)
+{
+	u_int i;
+	if (dumpRaw) {
+        for (i = 0; i < program->bf_len; ++i) {
+            struct bpf_insn *insn = &program->bf_insns[i];
+			printf("{ 0x%x, %d, %d, 0x%08x },\n",
+			       insn->code, insn->jt, insn->jf, insn->k);
+        }
+	}
+
+	for (i = 0; i < program->bf_len; ++i) {
+		SCLogInfo("%s", bpf_image(&program->bf_insns[i], i));
+	}
+    return 0;
+}

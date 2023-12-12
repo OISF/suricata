@@ -2317,6 +2317,10 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
                    errbuf);
         return TM_ECODE_FAILED;
     }
+    // don't spam the logs... only dump the disassembly on the first worker thread...
+    if(ptv->tv->id == 1) {
+        SCBPFDump(&filter, false);
+    }
 
     fcode.len    = filter.bf_len;
     fcode.filter = (struct sock_filter*)filter.bf_insns;

@@ -35,6 +35,10 @@
 
 #include "hash_func01.h"
 
+#ifdef ENABLE_EAST_WEST_FILTER
+#include "east_west_filter.h"
+#endif
+
 #ifndef DEBUG
 #define DEBUG 0
 #endif
@@ -166,6 +170,12 @@ static int INLINE hash_ipv4(void *data, void *data_end)
     if ((void *)(iph + 1) > data_end) {
         return XDP_PASS;
     }
+
+#ifdef ENABLE_EAST_WEST_FILTER
+    if (is_east_west(iph->saddr) && is_east_west(iph->daddr)) {
+        return XDP_DROP;
+    }
+#endif
 
     void* layer4 = data + (iph->ihl << 2);
 
