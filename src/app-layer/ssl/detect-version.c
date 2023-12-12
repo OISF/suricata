@@ -45,10 +45,10 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "detect-ssl-version.h"
+#include "app-layer/ssl/detect-version.h"
 
 #include "stream-tcp.h"
-#include "app-layer-ssl.h"
+#include "app-layer/ssl/parser.h"
 
 static int DetectSslVersionMatch(DetectEngineThreadCtx *, Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);

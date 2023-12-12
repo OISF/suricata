@@ -60,7 +60,7 @@
 #include "app-layer.h"
 #include "app-layer/http/parser.h"
 #include "app-layer/ftp/parser.h"
-#include "app-layer-ssl.h"
+#include "app-layer/ssl/parser.h"
 #include "app-layer-ssh.h"
 #include "app-layer/smtp/parser.h"
 

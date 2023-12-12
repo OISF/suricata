@@ -26,7 +26,7 @@
 
 void JsonTlsLogRegister(void);
 
-#include "app-layer-ssl.h"
+#include "app-layer/ssl/parser.h"
 
 void JsonTlsLogJSONBasic(JsonBuilder *js, SSLState *ssl_state);
 bool JsonTlsLogJSONExtended(void *vtx, JsonBuilder *js);
