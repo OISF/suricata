@@ -36,6 +36,7 @@ use std::fmt;
 use std::io;
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
+static mut ALPROTO_DOH2: AppProto = ALPROTO_UNKNOWN;
 
 const HTTP2_DEFAULT_MAX_FRAME_SIZE: u32 = 16384;
 const HTTP2_MAX_HANDLED_FRAME_SIZE: usize = 65536;
@@ -1021,6 +1022,9 @@ impl HTTP2State {
                     if let Some(doh_req_buf) = tx.handle_frame(&head, &txdata, dir) {
                         if let Ok(dtx) = dns_parse_request(&doh_req_buf) {
                             tx.dns_request_tx = Some(dtx);
+                            unsafe {
+                                AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
+                            }
                         }
                     }
                     let over = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
@@ -1066,12 +1070,16 @@ impl HTTP2State {
                                         flow,
                                     ) {
                                         Ok(_) => {
-                                            if !tx_same.doh_response_buf.is_empty() {
-                                                if over {
-                                                    if let Ok(dtx) = dns_parse_response(
-                                                        &tx_same.doh_response_buf,
-                                                    ) {
-                                                        tx_same.dns_response_tx = Some(dtx);
+                                            if !tx_same.doh_response_buf.is_empty() && over {
+                                                if let Ok(dtx) =
+                                                    dns_parse_response(&tx_same.doh_response_buf)
+                                                {
+                                                    tx_same.dns_response_tx = Some(dtx);
+                                                    unsafe {
+                                                        AppLayerForceProtocolChange(
+                                                            flow,
+                                                            ALPROTO_DOH2,
+                                                        );
                                                     }
                                                 }
                                             }
@@ -1326,7 +1334,7 @@ const PARSER_NAME: &[u8] = b"http2\0";
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_register_parser() {
     let default_port = CString::new("[80]").unwrap();
-    let parser = RustParser {
+    let mut parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
@@ -1384,5 +1392,20 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         SCLogDebug!("Rust http2 parser registered.");
     } else {
         SCLogNotice!("Protocol detector and parser disabled for HTTP2.");
+    }
+
+    // doh2 is just http2 wrapped in another name
+    parser.name = b"doh2\0".as_ptr() as *const std::os::raw::c_char;
+    parser.probe_tc = None;
+    parser.default_port = std::ptr::null();
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        ALPROTO_DOH2 = alproto;
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+            let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        SCLogDebug!("Rust doh2 parser registered.");
+    } else {
+        SCLogNotice!("Protocol detector and parser disabled for DOH2.");
     }
 }
