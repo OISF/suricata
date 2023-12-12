@@ -39,7 +39,7 @@ noinst_HEADERS = \
 	app-layer/mqtt/parser.h \
 	app-layer/nfs/parser-tcp.h \
 	app-layer/nfs/parser-udp.h \
-	app-layer-ntp.h \
+	app-layer/ntp/parser.h \
 	app-layer-parser.h \
 	app-layer-protos.h \
 	app-layer-rdp.h \
@@ -655,7 +655,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer/mqtt/parser.c \
 	app-layer/nfs/parser-tcp.c \
 	app-layer/nfs/parser-udp.c \
-	app-layer-ntp.c \
+	app-layer/ntp/parser.c \
 	app-layer-parser.c \
 	app-layer-protos.c \
 	app-layer-rdp.c \
