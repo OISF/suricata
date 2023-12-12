@@ -27,7 +27,7 @@
 #include "app-layer/dnp3/parser.h"
 #include "app-layer/dnp3/parser-objects.h"
 #include "app-layer/dnp3/logger-objects.h"
-#include "output-json.h"
+#include "output/eve/output-json.h"
 
 // clang-format off
 void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,

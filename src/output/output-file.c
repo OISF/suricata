@@ -24,8 +24,8 @@
  */
 
 #include "suricata-common.h"
-#include "output.h"
-#include "output-file.h"
+#include "output/output.h"
+#include "output/output-file.h"
 #if 0
 #include "app-layer.h"
 #endif

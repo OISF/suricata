@@ -34,7 +34,7 @@
 #include "app-layer-parser.h"
 #include "app-layer/ssl/parser.h"
 
-#include "output.h"
+#include "output/output.h"
 #include "app-layer/tls/log-tlslog.h"
 
 #include "util-conf.h"

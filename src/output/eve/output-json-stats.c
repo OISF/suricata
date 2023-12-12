@@ -38,14 +38,14 @@
 #include "util-unittest.h"
 
 #include "util-debug.h"
-#include "output.h"
+#include "output/output.h"
 #include "util-privs.h"
 #include "util-buffer.h"
 
 #include "util-logopenfile.h"
 
-#include "output-json.h"
-#include "output-json-stats.h"
+#include "output/eve/output-json.h"
+#include "output/eve/output-json-stats.h"
 
 #define MODULE_NAME "JsonStatsLog"
 

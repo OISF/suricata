@@ -53,9 +53,9 @@
 #include "util-classification-config.h"
 #include "stream-tcp.h"
 
-#include "output.h"
-#include "output-json.h"
-#include "output-json-frame.h"
+#include "output/output.h"
+#include "output/eve/output-json.h"
+#include "output/eve/output-json-frame.h"
 
 #include "util-byte.h"
 #include "util-privs.h"

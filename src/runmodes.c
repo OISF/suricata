@@ -55,7 +55,7 @@
 #include "util-misc.h"
 #include "util-plugin.h"
 
-#include "output.h"
+#include "output/output.h"
 
 #include "alert-fastlog.h"
 #include "alert-debuglog.h"

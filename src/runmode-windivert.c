@@ -28,7 +28,7 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-windivert.h"
-#include "output.h"
+#include "output/output.h"
 
 #include "util-affinity.h"
 #include "util-cpu.h"

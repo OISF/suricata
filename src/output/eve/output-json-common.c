@@ -22,8 +22,8 @@
  */
 
 #include "suricata-common.h"
-#include "output.h"
-#include "output-json.h"
+#include "output/output.h"
+#include "output/eve/output-json.h"
 #include "util-buffer.h"
 
 OutputJsonThreadCtx *CreateEveThreadCtx(ThreadVars *t, OutputJsonCtx *ctx)

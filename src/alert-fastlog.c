@@ -44,7 +44,7 @@
 #include "detect-reference.h"
 #include "util-classification-config.h"
 
-#include "output.h"
+#include "output/output.h"
 #include "alert-fastlog.h"
 
 #include "util-privs.h"

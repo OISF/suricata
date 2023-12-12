@@ -38,7 +38,7 @@
 #include "util-debug.h"
 #include "util-mem.h"
 #include "app-layer-parser.h"
-#include "output.h"
+#include "output/output.h"
 #include "app-layer.h"
 #include "util-privs.h"
 #include "util-buffer.h"
@@ -46,7 +46,7 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 
-#include "output-json.h"
+#include "output/eve/output-json.h"
 #include "app-layer/dns/logger.h"
 #include "rust.h"
 

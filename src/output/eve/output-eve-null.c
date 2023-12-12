@@ -25,8 +25,8 @@
 
 #include "suricata-common.h" /* errno.h, string.h, etc. */
 
-#include "output.h" /* DEFAULT_LOG_* */
-#include "output-eve-null.h"
+#include "output/output.h" /* DEFAULT_LOG_* */
+#include "output/eve/output-eve-null.h"
 
 #ifdef OS_WIN32
 void NullLogInitialize(void)

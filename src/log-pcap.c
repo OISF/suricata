@@ -44,7 +44,7 @@
 #include "stream.h"
 #include "stream-tcp-reassemble.h"
 
-#include "output.h"
+#include "output/output.h"
 
 #include "util-buffer.h"
 #include "util-byte.h"

@@ -24,8 +24,8 @@
  */
 
 #include "suricata-common.h"
-#include "output.h"
-#include "output-streaming.h"
+#include "output/output.h"
+#include "output/output-streaming.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer/http/parser.h"

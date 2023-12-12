@@ -37,8 +37,8 @@
 #include "util-debug.h"
 #include "util-mem.h"
 
-#include "output.h"
-#include "output-json.h"
+#include "output/output.h"
+#include "output/eve/output-json.h"
 
 #include "app-layer.h"
 #include "app-layer-parser.h"

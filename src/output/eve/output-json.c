@@ -49,11 +49,11 @@
 #include "util-syslog.h"
 
 /* Internal output plugins */
-#include "output-eve-syslog.h"
-#include "output-eve-null.h"
+#include "output/eve/output-eve-syslog.h"
+#include "output/eve/output-eve-null.h"
 
-#include "output.h"
-#include "output-json.h"
+#include "output/output.h"
+#include "output/eve/output-json.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
