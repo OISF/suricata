@@ -58,7 +58,7 @@
 #include "app-layer/sip/parser.h"
 #include "app-layer/rfb/parser.h"
 #include "app-layer/mqtt/parser.h"
-#include "app-layer-snmp.h"
+#include "app-layer/snmp/parser.h"
 #include "app-layer/quic/parser.h"
 #include "app-layer/rdp/parser.h"
 #include "app-layer/http2/parser.h"
