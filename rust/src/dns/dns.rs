@@ -281,6 +281,11 @@ impl DNSTransaction {
         }
         return 0;
     }
+
+    /// Set an event. The event is set on the most recent transaction.
+    pub fn set_event(&mut self, event: DNSEvent) {
+        self.tx_data.set_event(event as u8);
+    }
 }
 
 struct ConfigTracker {
@@ -338,16 +343,114 @@ impl State<DNSTransaction> for DNSState {
     }
 }
 
+fn dns_validate_header(input: &[u8]) -> Option<(&[u8], DNSHeader)> {
+    if let Ok((body, header)) = parser::dns_parse_header(input) {
+        if probe_header_validity(&header, input.len()).0 {
+            return Some((body, header));
+        }
+    }
+    None
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum DNSParseError {
+    HeaderValidation,
+    NotRequest,
+    Incomplete,
+    OtherError,
+}
+
+pub(crate) fn dns_parse_request(input: &[u8]) -> Result<DNSTransaction, DNSParseError> {
+    let (body, header) = if let Some((body, header)) = dns_validate_header(input) {
+        (body, header)
+    } else {
+        return Err(DNSParseError::HeaderValidation);
+    };
+
+    match parser::dns_parse_body(body, input, header) {
+        Ok((_, request)) => {
+            if request.header.flags & 0x8000 != 0 {
+                SCLogDebug!("DNS message is not a request");
+                return Err(DNSParseError::NotRequest);
+            }
+
+            let z_flag = request.header.flags & 0x0040 != 0;
+            let opcode = ((request.header.flags >> 11) & 0xf) as u8;
+
+            let mut tx = DNSTransaction::new(Direction::ToServer);
+            tx.request = Some(request);
+
+            if z_flag {
+                SCLogDebug!("Z-flag set on DNS request");
+                tx.set_event(DNSEvent::ZFlagSet);
+            }
+            if opcode >= 7 {
+                tx.set_event(DNSEvent::InvalidOpcode);
+            }
+
+            return Ok(tx);
+        }
+        Err(Err::Incomplete(_)) => {
+            // Insufficient data.
+            SCLogDebug!("Insufficient data while parsing DNS request");
+            return Err(DNSParseError::Incomplete);
+        }
+        Err(_) => {
+            // Error, probably malformed data.
+            SCLogDebug!("An error occurred while parsing DNS request");
+            return Err(DNSParseError::OtherError);
+        }
+    }
+}
+
+pub(crate) fn dns_parse_response(input: &[u8]) -> Result<DNSTransaction, DNSParseError> {
+    let (body, header) = if let Some((body, header)) = dns_validate_header(input) {
+        (body, header)
+    } else {
+        return Err(DNSParseError::HeaderValidation);
+    };
+
+    match parser::dns_parse_body(body, input, header) {
+        Ok((_, response)) => {
+            SCLogDebug!("Response header flags: {}", response.header.flags);
+            let z_flag = response.header.flags & 0x0040 != 0;
+            let opcode = ((response.header.flags >> 11) & 0xf) as u8;
+            let flags = response.header.flags;
+
+            let mut tx = DNSTransaction::new(Direction::ToClient);
+            tx.response = Some(response);
+
+            if flags & 0x8000 == 0 {
+                SCLogDebug!("DNS message is not a response");
+                tx.set_event(DNSEvent::NotResponse);
+            }
+
+            if z_flag {
+                SCLogDebug!("Z-flag set on DNS response");
+                tx.set_event(DNSEvent::ZFlagSet);
+            }
+            if opcode >= 7 {
+                tx.set_event(DNSEvent::InvalidOpcode);
+            }
+
+            return Ok(tx);
+        }
+        Err(Err::Incomplete(_)) => {
+            // Insufficient data.
+            SCLogDebug!("Insufficient data while parsing DNS request");
+            return Err(DNSParseError::Incomplete);
+        }
+        Err(_) => {
+            // Error, probably malformed data.
+            SCLogDebug!("An error occurred while parsing DNS request");
+            return Err(DNSParseError::OtherError);
+        }
+    }
+}
+
 impl DNSState {
     fn new() -> Self {
         Default::default()
-    }
-
-    fn new_tx(&mut self, direction: Direction) -> DNSTransaction {
-        let mut tx = DNSTransaction::new(direction);
-        self.tx_id += 1;
-        tx.id = self.tx_id;
-        return tx;
     }
 
     fn free_tx(&mut self, tx_id: u64) {
@@ -382,63 +485,34 @@ impl DNSState {
         tx.tx_data.set_event(event as u8);
     }
 
-    fn validate_header<'a>(&self, input: &'a [u8]) -> Option<(&'a [u8], DNSHeader)> {
-        if let Ok((body, header)) = parser::dns_parse_header(input) {
-            if probe_header_validity(&header, input.len()).0 {
-                return Some((body, header));
-            }
-        }
-        None
-    }
-
     fn parse_request(&mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const core::Flow,) -> bool {
-        let (body, header) = if let Some((body, header)) = self.validate_header(input) {
-            (body, header)
-        } else {
-            return !is_tcp;
-        };
-
-        match parser::dns_parse_body(body, input, header) {
-            Ok((_, request)) => {
-                if request.header.flags & 0x8000 != 0 {
-                    SCLogDebug!("DNS message is not a request");
-                    self.set_event(DNSEvent::NotRequest);
-                    return false;
-                }
-
-                let z_flag = request.header.flags & 0x0040 != 0;
-                let opcode = ((request.header.flags >> 11) & 0xf) as u8;
-
-                let mut tx = self.new_tx(Direction::ToServer);
+        match dns_parse_request(input) {
+            Ok(mut tx) => {
+                self.tx_id += 1;
+                tx.id = self.tx_id;
                 if let Some(frame) = frame {
                     frame.set_tx(flow, tx.id);
                 }
-                tx.request = Some(request);
                 self.transactions.push_back(tx);
-
-                if z_flag {
-                    SCLogDebug!("Z-flag set on DNS response");
-                    self.set_event(DNSEvent::ZFlagSet);
-                }
-
-                if opcode >= 7 {
-                    self.set_event(DNSEvent::InvalidOpcode);
-                }
-
                 return true;
             }
-            Err(Err::Incomplete(_)) => {
-                // Insufficient data.
-                SCLogDebug!("Insufficient data while parsing DNS request");
-                self.set_event(DNSEvent::MalformedData);
-                return false;
-            }
-            Err(_) => {
-                // Error, probably malformed data.
-                SCLogDebug!("An error occurred while parsing DNS request");
-                self.set_event(DNSEvent::MalformedData);
-                return false;
-            }
+            Err(e) => match e {
+                DNSParseError::HeaderValidation => {
+                    return !is_tcp;
+                }
+                DNSParseError::NotRequest => {
+                    self.set_event(DNSEvent::NotRequest);
+                    return false;
+                }
+                DNSParseError::Incomplete => {
+                    self.set_event(DNSEvent::MalformedData);
+                    return false;
+                }
+                DNSParseError::OtherError => {
+                    self.set_event(DNSEvent::MalformedData);
+                    return false;
+                }
+            },
         }
     }
 
@@ -469,59 +543,32 @@ impl DNSState {
     }
 
     fn parse_response(&mut self, input: &[u8], is_tcp: bool, frame: Option<Frame>, flow: *const core::Flow) -> bool {
-        let (body, header) = if let Some((body, header)) = self.validate_header(input) {
-            (body, header)
-        } else {
-            return !is_tcp;
-        };
-
-        match parser::dns_parse_body(body, input, header) {
-            Ok((_, response)) => {
-                SCLogDebug!("Response header flags: {}", response.header.flags);
-
-                if response.header.flags & 0x8000 == 0 {
-                    SCLogDebug!("DNS message is not a response");
-                    self.set_event(DNSEvent::NotResponse);
+        match dns_parse_response(input) {
+            Ok(mut tx) => {
+                self.tx_id += 1;
+                tx.id = self.tx_id;
+                if let Some(ref mut config) = &mut self.config {
+                    if let Some(response) = &tx.response {
+                        if let Some(config) = config.remove(&response.header.tx_id) {
+                            tx.tx_data.config = config;
+                        }
+                    }
                 }
-
-                let z_flag = response.header.flags & 0x0040 != 0;
-                let opcode = ((response.header.flags >> 11) & 0xf) as u8;
-
-                let mut tx = self.new_tx(Direction::ToClient);
                 if let Some(frame) = frame {
                     frame.set_tx(flow, tx.id);
                 }
-                if let Some(ref mut config) = &mut self.config {
-                    if let Some(config) = config.remove(&response.header.tx_id) {
-                        tx.tx_data.config = config;
-                    }
-                }
-                tx.response = Some(response);
                 self.transactions.push_back(tx);
-
-                if z_flag {
-                    SCLogDebug!("Z-flag set on DNS response");
-                    self.set_event(DNSEvent::ZFlagSet);
-                }
-
-                if opcode >= 7 {
-                    self.set_event(DNSEvent::InvalidOpcode);
-                }
-
                 return true;
             }
-            Err(Err::Incomplete(_)) => {
-                // Insufficient data.
-                SCLogDebug!("Insufficient data while parsing DNS response");
-                self.set_event(DNSEvent::MalformedData);
-                return false;
-            }
-            Err(_) => {
-                // Error, probably malformed data.
-                SCLogDebug!("An error occurred while parsing DNS response");
-                self.set_event(DNSEvent::MalformedData);
-                return false;
-            }
+            Err(e) => match e {
+                DNSParseError::HeaderValidation => {
+                    return !is_tcp;
+                }
+                _ => {
+                    self.set_event(DNSEvent::MalformedData);
+                    return false;
+                }
+            },
         }
     }
 
