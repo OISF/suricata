@@ -86,6 +86,16 @@ static inline bool AppProtoIsValid(AppProto a)
     return ((a > ALPROTO_UNKNOWN && a < ALPROTO_FAILED));
 }
 
+// whether an engine proto works on a flow proto
+static inline bool AppProtoCompatible(AppProto eng_proto, AppProto alproto)
+{
+    switch (alproto) {
+        case ALPROTO_DOH2:
+            return (eng_proto == ALPROTO_HTTP2) || (eng_proto == ALPROTO_DNS);
+    }
+    return (eng_proto == alproto);
+}
+
 // whether a signature AppProto matches a flow (or signature) AppProto
 static inline bool AppProtoEquals(AppProto sigproto, AppProto alproto)
 {
@@ -93,12 +103,61 @@ static inline bool AppProtoEquals(AppProto sigproto, AppProto alproto)
         return true;
     }
     switch (sigproto) {
+        case ALPROTO_DNS:
+            return (alproto == ALPROTO_DOH2) || (alproto == ALPROTO_DNS);
+        case ALPROTO_HTTP2:
+            return (alproto == ALPROTO_DOH2) || (alproto == ALPROTO_HTTP2);
+        case ALPROTO_DOH2:
+            return (alproto == ALPROTO_DOH2) || (alproto == ALPROTO_HTTP2) ||
+                   (alproto == ALPROTO_DNS) || (alproto == ALPROTO_HTTP);
         case ALPROTO_HTTP:
             return (alproto == ALPROTO_HTTP1) || (alproto == ALPROTO_HTTP2);
         case ALPROTO_DCERPC:
             return (alproto == ALPROTO_SMB);
     }
     return false;
+}
+
+// whether a signature AppProto matches a flow (or signature) AppProto
+static inline AppProto AppProtoCommon(AppProto sigproto, AppProto alproto)
+{
+    switch (sigproto) {
+        case ALPROTO_SMB:
+            if (alproto == ALPROTO_DCERPC) {
+                // ok to have dcerpc keywords in smb sig
+                return ALPROTO_SMB;
+            }
+            break;
+        case ALPROTO_HTTP:
+            // we had a generic http sig, now version specific
+            if (alproto == ALPROTO_HTTP1) {
+                return ALPROTO_HTTP1;
+            } else if (alproto == ALPROTO_HTTP2) {
+                return ALPROTO_HTTP2;
+            }
+            break;
+        case ALPROTO_HTTP1:
+            // version-specific sig with a generic keyword
+            if (alproto == ALPROTO_HTTP) {
+                return ALPROTO_HTTP1;
+            }
+            break;
+        case ALPROTO_HTTP2:
+            if (alproto == ALPROTO_HTTP) {
+                return ALPROTO_HTTP2;
+            }
+            break;
+        case ALPROTO_DOH2:
+            // DOH2 accepts different protocol keywords
+            if (alproto == ALPROTO_HTTP || alproto == ALPROTO_HTTP2 || alproto == ALPROTO_DNS) {
+                return ALPROTO_DOH2;
+            }
+            break;
+    }
+    if (sigproto != alproto) {
+        return ALPROTO_FAILED;
+    }
+    return alproto;
 }
 
 /**
