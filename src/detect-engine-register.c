@@ -47,8 +47,8 @@
 
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
-#include "detect-dns-opcode.h"
-#include "detect-dns-query.h"
+#include "app-layer/dns/detect-opcode.h"
+#include "app-layer/dns/detect-query.h"
 #include "detect-tls-sni.h"
 #include "detect-tls-certs.h"
 #include "detect-tls-cert-fingerprint.h"
