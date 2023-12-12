@@ -19,7 +19,7 @@
 
 #include "../detect-engine.h"
 
-#include "../detect-http2.h"
+#include "../app-layer/http2/detect.h"
 
 #include "../util-unittest.h"
 
