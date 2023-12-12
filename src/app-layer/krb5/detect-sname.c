@@ -31,10 +31,10 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 
-#include "detect-krb5-sname.h"
+#include "app-layer/krb5/detect-sname.h"
 
 #include "rust.h"
-#include "app-layer-krb5.h"
+#include "app-layer/krb5/parser.h"
 #include "util-profiling.h"
 
 static int g_krb5_sname_buffer_id = 0;

@@ -18,7 +18,7 @@
 #include "suricata-common.h"
 #include "rust.h"
 
-#include "detect-krb5-ticket-encryption.h"
+#include "app-layer/krb5/detect-ticket-encryption.h"
 
 #include "detect-engine.h"
 #include "detect-parse.h"
