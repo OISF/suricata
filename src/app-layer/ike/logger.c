@@ -25,7 +25,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
@@ -44,8 +44,8 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-ike.h"
-#include "output-json-ike.h"
+#include "app-layer/ike/parser.h"
+#include "app-layer/ike/logger.h"
 
 #include "rust.h"
 

@@ -117,7 +117,7 @@ From ``conf-yaml-loader.c``:
         PASS;
     }
 
-In ``detect-ike-chosen-sa.c``, it is possible to see the freeing of resources (``DetectIkeChosenSaFree``) and the
+In ``app-layer/ike/detect-chosen-sa.c``, it is possible to see the freeing of resources (``DetectIkeChosenSaFree``) and the
 function that should group all the ``UtRegisterTest`` calls:
 
 .. code-block:: c

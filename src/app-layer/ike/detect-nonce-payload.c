@@ -43,11 +43,11 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "detect-ike-nonce-payload.h"
+#include "app-layer/ike/detect-nonce-payload.h"
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "app-layer-ike.h"
+#include "app-layer/ike/parser.h"
 #include "rust-bindings.h"
 
 #define KEYWORD_NAME_NONCE "ike.nonce_payload"
