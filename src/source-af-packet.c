@@ -2133,6 +2133,10 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
         SCLogError("%s: failed to compile BPF \"%s\": %s", ptv->iface, ptv->bpf_filter, errbuf);
         return TM_ECODE_FAILED;
     }
+    // don't spam the logs... only dump the disassembly on the first worker thread...
+    if(ptv->tv->id == 1) {
+        SCBPFDump(&filter, false);
+    }
 
     if (filter.bf_len > USHRT_MAX) {
         return TM_ECODE_FAILED;
