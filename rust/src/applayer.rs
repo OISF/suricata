@@ -471,6 +471,7 @@ pub unsafe fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProt
 
 // Defined in app-layer-detect-proto.h
 extern {
+    pub fn AppLayerForceProtocolChange(f: *const Flow, new_proto: AppProto);
     pub fn AppLayerProtoDetectPPRegister(ipproto: u8, portstr: *const c_char, alproto: AppProto,
                                          min_depth: u16, max_depth: u16, dir: u8,
                                          pparser1: ProbeFn, pparser2: ProbeFn);
