@@ -47,11 +47,11 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "detect-sip-method.h"
+#include "app-layer/sip/detect-method.h"
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "app-layer-sip.h"
+#include "app-layer/sip/parser.h"
 
 #define KEYWORD_NAME "sip.method"
 #define KEYWORD_DOC  "sip-keywords.html#sip-method"

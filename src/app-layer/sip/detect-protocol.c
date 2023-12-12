@@ -19,7 +19,7 @@
  *
  * \author Giuseppe Longo <giuseppe@glongo.it>
  *
- * Implements the sip.uri sticky buffer
+ * Implements sip.protocol sticky buffer
  *
  */
 
@@ -32,9 +32,9 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-prefilter.h"
+#include "detect-engine-content-inspection.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
-#include "detect-urilen.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -48,30 +48,19 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "detect-sip-uri.h"
+#include "app-layer/sip/detect-protocol.h"
 #include "stream-tcp.h"
 
 #include "rust.h"
-#include "app-layer-sip.h"
+#include "app-layer/sip/parser.h"
 
-#define KEYWORD_NAME "sip.uri"
-#define KEYWORD_DOC  "sip-keywords.html#sip-uri"
-#define BUFFER_NAME  "sip.uri"
-#define BUFFER_DESC  "sip request uri"
+#define KEYWORD_NAME "sip.protocol"
+#define KEYWORD_DOC  "sip-keywords.html#sip-protocol"
+#define BUFFER_NAME  "sip.protocol"
+#define BUFFER_DESC  "sip protocol"
 static int g_buffer_id = 0;
 
-static bool DetectSipUriValidateCallback(const Signature *s, const char **sigerror)
-{
-    return DetectUrilenValidateContent(s, g_buffer_id, sigerror);
-}
-
-static void DetectSipUriSetupCallback(const DetectEngineCtx *de_ctx, Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    DetectUrilenApplyToContent(s, g_buffer_id);
-}
-
-static int DetectSipUriSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+static int DetectSipProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     if (DetectBufferSetActiveList(de_ctx, s, g_buffer_id) < 0)
         return -1;
@@ -83,7 +72,7 @@ static int DetectSipUriSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
         const int list_id)
 {
     InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
@@ -91,11 +80,10 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const uint8_t *b = NULL;
         uint32_t b_len = 0;
 
-        if (rs_sip_tx_get_uri(txv, &b, &b_len) != 1)
+        if (rs_sip_tx_get_protocol(txv, &b, &b_len, flow_flags) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
-
         InspectionBufferSetup(det_ctx, list_id, buffer, b, b_len);
         InspectionBufferApplyTransforms(buffer, transforms);
     }
@@ -103,25 +91,25 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
-void DetectSipUriRegister(void)
+void DetectSipProtocolRegister(void)
 {
-    sigmatch_table[DETECT_AL_SIP_URI].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_SIP_URI].desc = "sticky buffer to match on the SIP URI";
-    sigmatch_table[DETECT_AL_SIP_URI].url = "/rules/" KEYWORD_DOC;
-    sigmatch_table[DETECT_AL_SIP_URI].Setup = DetectSipUriSetup;
-    sigmatch_table[DETECT_AL_SIP_URI].flags |= SIGMATCH_NOOPT;
-
-    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SIP, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectBufferGeneric, GetData);
+    /* sip.protocol sticky buffer */
+    sigmatch_table[DETECT_AL_SIP_PROTOCOL].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_AL_SIP_PROTOCOL].desc = "sticky buffer to match on the SIP protocol";
+    sigmatch_table[DETECT_AL_SIP_PROTOCOL].url = "/rules/" KEYWORD_DOC;
+    sigmatch_table[DETECT_AL_SIP_PROTOCOL].Setup = DetectSipProtocolSetup;
+    sigmatch_table[DETECT_AL_SIP_PROTOCOL].flags |= SIGMATCH_NOOPT;
 
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_SIP, 1);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_SIP, 1);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SIP, SIG_FLAG_TOSERVER, 1,
+            DetectEngineInspectBufferGeneric, GetData);
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_SIP, SIG_FLAG_TOCLIENT, 1,
+            DetectEngineInspectBufferGeneric, GetData);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
-
-    DetectBufferTypeRegisterSetupCallback(BUFFER_NAME, DetectSipUriSetupCallback);
-
-    DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectSipUriValidateCallback);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 
