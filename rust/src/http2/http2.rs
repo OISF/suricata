@@ -1277,6 +1277,22 @@ impl HTTP2State {
 
 // C exports.
 
+#[no_mangle]
+pub unsafe extern "C" fn SCDoH2GetDnsTx(
+    tx: &HTTP2Transaction, flags: u8,
+) -> *mut std::os::raw::c_void {
+    if flags & Direction::ToServer as u8 != 0 {
+        if let Some(ref dtx) = &tx.dns_request_tx {
+            return dtx as *const _ as *mut _;
+        }
+    } else if flags & Direction::ToClient as u8 != 0 {
+        if let Some(ref dtx) = &tx.dns_response_tx {
+            return dtx as *const _ as *mut _;
+        }
+    }
+    std::ptr::null_mut()
+}
+
 export_tx_data_get!(rs_http2_get_tx_data, HTTP2Transaction);
 export_state_data_get!(rs_http2_get_state_data, HTTP2State);
 
