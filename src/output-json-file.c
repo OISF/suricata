@@ -60,7 +60,7 @@
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
 #include "app-layer/nfs/logger.h"
-#include "output-json-smb.h"
+#include "app-layer/smb/logger.h"
 #include "app-layer/http2/logger.h"
 
 #include "app-layer/http/parser.h"

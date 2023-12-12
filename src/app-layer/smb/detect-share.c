@@ -33,7 +33,7 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-content-inspection.h"
 
-#include "detect-smb-share.h"
+#include "app-layer/smb/detect-share.h"
 #include "rust.h"
 
 #define BUFFER_NAME         "smb_named_pipe"
