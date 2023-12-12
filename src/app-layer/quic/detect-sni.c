@@ -17,7 +17,7 @@
 
 /**
  *
- * Implements the quic.ua
+ * Implements the quic.sni
  */
 
 #include "suricata-common.h"
@@ -29,24 +29,24 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-uint.h"
-#include "detect-quic-ua.h"
+#include "app-layer/quic/detect-sni.h"
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "rust.h"
 
 #ifdef UNITTESTS
-static void DetectQuicUaRegisterTests(void);
+static void DetectQuicSniRegisterTests(void);
 #endif
 
-#define BUFFER_NAME  "quic_ua"
-#define KEYWORD_NAME "quic.ua"
-#define KEYWORD_ID   DETECT_AL_QUIC_UA
+#define BUFFER_NAME  "quic_sni"
+#define KEYWORD_NAME "quic.sni"
+#define KEYWORD_ID   DETECT_AL_QUIC_SNI
 
-static int quic_ua_id = 0;
+static int quic_sni_id = 0;
 
-static int DetectQuicUaSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectQuicSniSetup(DetectEngineCtx *, Signature *, const char *);
 
-static InspectionBuffer *GetUaData(DetectEngineThreadCtx *det_ctx,
+static InspectionBuffer *GetSniData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id)
 {
@@ -55,7 +55,7 @@ static InspectionBuffer *GetUaData(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (rs_quic_tx_get_ua(txv, &b, &b_len) != 1)
+        if (rs_quic_tx_get_sni(txv, &b, &b_len) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -67,26 +67,26 @@ static InspectionBuffer *GetUaData(DetectEngineThreadCtx *det_ctx,
 }
 
 /**
- * \brief Registration function for quic.ua: keyword
+ * \brief Registration function for quic.sni: keyword
  */
-void DetectQuicUaRegister(void)
+void DetectQuicSniRegister(void)
 {
-    sigmatch_table[DETECT_AL_QUIC_UA].name = KEYWORD_NAME;
-    sigmatch_table[DETECT_AL_QUIC_UA].desc = "match Quic ua";
-    sigmatch_table[DETECT_AL_QUIC_UA].url = "/rules/quic-keywords.html#quic-ua";
-    sigmatch_table[DETECT_AL_QUIC_UA].Setup = DetectQuicUaSetup;
-    sigmatch_table[DETECT_AL_QUIC_UA].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
+    sigmatch_table[DETECT_AL_QUIC_SNI].name = KEYWORD_NAME;
+    sigmatch_table[DETECT_AL_QUIC_SNI].desc = "match Quic sni";
+    sigmatch_table[DETECT_AL_QUIC_SNI].url = "/rules/quic-keywords.html#quic-sni";
+    sigmatch_table[DETECT_AL_QUIC_SNI].Setup = DetectQuicSniSetup;
+    sigmatch_table[DETECT_AL_QUIC_SNI].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_AL_QUIC_UA].RegisterTests = DetectQuicUaRegisterTests;
+    sigmatch_table[DETECT_AL_QUIC_SNI].RegisterTests = DetectQuicSniRegisterTests;
 #endif
 
     DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetUaData, ALPROTO_QUIC, 1);
+            GetSniData, ALPROTO_QUIC, 1);
 
     DetectAppLayerInspectEngineRegister2(BUFFER_NAME, ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectBufferGeneric, GetUaData);
+            DetectEngineInspectBufferGeneric, GetSniData);
 
-    quic_ua_id = DetectBufferTypeGetByName(BUFFER_NAME);
+    quic_sni_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }
 
 /**
@@ -100,9 +100,9 @@ void DetectQuicUaRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectQuicUaSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
+static int DetectQuicSniSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    if (DetectBufferSetActiveList(de_ctx, s, quic_ua_id) < 0)
+    if (DetectBufferSetActiveList(de_ctx, s, quic_sni_id) < 0)
         return -1;
 
     if (DetectSignatureSetAppProto(s, ALPROTO_QUIC) < 0)
@@ -114,22 +114,22 @@ static int DetectQuicUaSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
 #ifdef UNITTESTS
 
 /**
- * \test QuicUaTestParse01 is a test for a valid value
+ * \test QuicSniTestParse01 is a test for a valid value
  *
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int QuicUaTestParse01(void)
+static int QuicSniTestParse01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
     Signature *sig = DetectEngineAppendSig(
-            de_ctx, "alert ip any any -> any any (quic.ua; content:\"googe.com\"; sid:1; rev:1;)");
+            de_ctx, "alert ip any any -> any any (quic.sni; content:\"googe.com\"; sid:1; rev:1;)");
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(
-            de_ctx, "alert ip any any -> any any (quic.ua; content:\"|00|\"; sid:2; rev:1;)");
+            de_ctx, "alert ip any any -> any any (quic.sni; content:\"|00|\"; sid:2; rev:1;)");
     FAIL_IF_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -138,18 +138,18 @@ static int QuicUaTestParse01(void)
 }
 
 /**
- * \test QuicUaTestParse03 is a test for an invalid value
+ * \test QuicSniTestParse03 is a test for an invalid value
  *
  *  \retval 1 on success
  *  \retval 0 on failure
  */
-static int QuicUaTestParse03(void)
+static int QuicSniTestParse03(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
     Signature *sig =
-            DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (quic.ua:; sid:1; rev:1;)");
+            DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (quic.sni:; sid:1; rev:1;)");
     FAIL_IF_NOT_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);
@@ -158,12 +158,12 @@ static int QuicUaTestParse03(void)
 }
 
 /**
- * \brief this function registers unit tests for QuicUa
+ * \brief this function registers unit tests for QuicSni
  */
-void DetectQuicUaRegisterTests(void)
+void DetectQuicSniRegisterTests(void)
 {
-    UtRegisterTest("QuicUaTestParse01", QuicUaTestParse01);
-    UtRegisterTest("QuicUaTestParse03", QuicUaTestParse03);
+    UtRegisterTest("QuicSniTestParse01", QuicSniTestParse01);
+    UtRegisterTest("QuicSniTestParse03", QuicSniTestParse03);
 }
 
 #endif /* UNITTESTS */

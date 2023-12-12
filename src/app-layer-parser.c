@@ -59,7 +59,7 @@
 #include "app-layer-rfb.h"
 #include "app-layer/mqtt/parser.h"
 #include "app-layer-snmp.h"
-#include "app-layer-quic.h"
+#include "app-layer/quic/parser.h"
 #include "app-layer-rdp.h"
 #include "app-layer/http2/parser.h"
 
