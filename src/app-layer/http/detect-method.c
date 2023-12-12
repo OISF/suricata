@@ -54,7 +54,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer/http/parser.h"
-#include "detect-http-method.h"
+#include "app-layer/http/detect-method.h"
 #include "stream-tcp.h"
 
 static int g_http_method_buffer_id = 0;

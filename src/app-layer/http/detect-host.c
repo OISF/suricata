@@ -55,7 +55,7 @@
 
 #include "app-layer/http/parser.h"
 #include "stream-tcp.h"
-#include "detect-http-host.h"
+#include "app-layer/http/detect-host.h"
 
 static int DetectHttpHHSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

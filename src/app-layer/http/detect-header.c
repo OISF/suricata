@@ -52,8 +52,8 @@
 #include "app-layer-parser.h"
 
 #include "app-layer/http/parser.h"
-#include "detect-http-header.h"
-#include "detect-http-header-common.h"
+#include "app-layer/http/detect-header.h"
+#include "app-layer/http/detect-header-common.h"
 
 static int DetectHttpHeaderSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

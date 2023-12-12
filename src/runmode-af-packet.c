@@ -37,7 +37,7 @@
 #include "runmodes.h"
 #include "runmode-af-packet.h"
 #include "output.h"
-#include "log-httplog.h"
+#include "app-layer/http/log-httplog.h"
 #include "detect-engine-mpm.h"
 
 #include "alert-fastlog.h"

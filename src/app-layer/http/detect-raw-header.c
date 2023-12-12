@@ -50,7 +50,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer/http/parser.h"
-#include "detect-http-raw-header.h"
+#include "app-layer/http/detect-raw-header.h"
 
 static int DetectHttpRawHeaderSetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectHttpRawHeaderSetupSticky(DetectEngineCtx *de_ctx, Signature *s, const char *str);

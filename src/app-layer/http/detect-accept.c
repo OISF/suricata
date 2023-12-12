@@ -26,23 +26,22 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Implements the http_connection sticky buffer
+ * Implements support http_header_*
  */
 
-#define KEYWORD_NAME_LEGACY "http_connection"
-#define KEYWORD_NAME        "http.connection"
-#define KEYWORD_DOC         "http-keywords.html#http-connection"
-#define BUFFER_NAME         "http_connection"
-#define BUFFER_DESC         "http connection header"
-#define HEADER_NAME         "Connection"
-#define KEYWORD_ID          DETECT_AL_HTTP_HEADER_CONNECTION
+#define KEYWORD_NAME_LEGACY "http_accept"
+#define KEYWORD_NAME        "http.accept"
+#define KEYWORD_DOC         "http-keywords.html#http-accept"
+#define BUFFER_NAME         "http_accept"
+#define BUFFER_DESC         "http accept header"
+#define HEADER_NAME         "Accept"
+#define KEYWORD_ID          DETECT_AL_HTTP_HEADER_ACCEPT
 #define KEYWORD_TOSERVER    1
-#define KEYWORD_TOCLIENT    1
 
-#include "detect-http-headers-stub.h"
-#include "detect-http-connection.h"
+#include "app-layer/http/detect-headers-stub.h"
+#include "app-layer/http/detect-accept.h"
 
-void RegisterHttpHeadersConnection(void)
+void RegisterHttpHeadersAccept(void)
 {
     DetectHttpHeadersRegisterStub();
 }

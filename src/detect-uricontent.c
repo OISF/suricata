@@ -28,7 +28,7 @@
 #include "decode.h"
 #include "detect.h"
 #include "detect-content.h"
-#include "detect-http-uri.h"
+#include "app-layer/http/detect-uri.h"
 #include "detect-uricontent.h"
 #include "detect-engine-mpm.h"
 #include "detect-parse.h"

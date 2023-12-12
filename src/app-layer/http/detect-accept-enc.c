@@ -26,22 +26,22 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Implements http_accept_lang sticky buffer
+ * Implements http_accept_enc sticky buffer
  */
 
-#define KEYWORD_NAME_LEGACY "http_accept_lang"
-#define KEYWORD_NAME        "http.accept_lang"
-#define KEYWORD_DOC         "http-keywords.html#http-accept-lang"
-#define BUFFER_NAME         "http_accept_lang"
-#define BUFFER_DESC         "http accept language header"
-#define HEADER_NAME         "Accept-Language"
-#define KEYWORD_ID          DETECT_AL_HTTP_HEADER_ACCEPT_LANG
+#define KEYWORD_NAME_LEGACY "http_accept_enc"
+#define KEYWORD_NAME        "http.accept_enc"
+#define KEYWORD_DOC         "http-keywords.html#http-accept-enc"
+#define BUFFER_NAME         "http_accept_enc"
+#define BUFFER_DESC         "http accept encoding header"
+#define HEADER_NAME         "Accept-Encoding"
+#define KEYWORD_ID          DETECT_AL_HTTP_HEADER_ACCEPT_ENC
 #define KEYWORD_TOSERVER    1
 
-#include "detect-http-headers-stub.h"
-#include "detect-http-accept-lang.h"
+#include "app-layer/http/detect-headers-stub.h"
+#include "app-layer/http/detect-accept-enc.h"
 
-void RegisterHttpHeadersAcceptLang(void)
+void RegisterHttpHeadersAcceptEnc(void)
 {
     DetectHttpHeadersRegisterStub();
 }

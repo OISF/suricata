@@ -57,7 +57,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer/http/parser.h"
-#include "detect-http-stat-code.h"
+#include "app-layer/http/detect-stat-code.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp.h"
 

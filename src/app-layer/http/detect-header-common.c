@@ -49,10 +49,10 @@
 #include "app-layer-parser.h"
 
 #include "app-layer/http/parser.h"
-#include "detect-http-header.h"
+#include "app-layer/http/detect-header.h"
 #include "stream-tcp.h"
 
-#include "detect-http-header-common.h"
+#include "app-layer/http/detect-header-common.h"
 
 void *HttpHeaderThreadDataInit(void *data)
 {
