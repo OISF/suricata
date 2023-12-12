@@ -112,7 +112,10 @@ fn log_http2_frames(frames: &[HTTP2Frame], js: &mut JsonBuilder) -> Result<bool,
             }
             for e in set {
                 js.start_object()?;
-                js.set_string("settings_id", &format!("SETTINGS{}", &e.id.to_string().to_uppercase()))?;
+                js.set_string(
+                    "settings_id",
+                    &format!("SETTINGS{}", &e.id.to_string().to_uppercase()),
+                )?;
                 js.set_uint("settings_value", e.value as u64)?;
                 js.close()?;
             }
@@ -269,7 +272,7 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_log_json(
+pub unsafe extern fn rs_http2_log_json(
     tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, HTTP2Transaction);

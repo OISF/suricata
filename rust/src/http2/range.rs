@@ -84,7 +84,7 @@ pub fn http2_parse_check_content_range(input: &[u8]) -> IResult<&[u8], HTTPConte
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http_parse_content_range(
+pub unsafe extern fn rs_http_parse_content_range(
     cr: &mut HTTPContentRange, buffer: *const u8, buffer_len: u32,
 ) -> std::os::raw::c_int {
     let slice = build_slice!(buffer, buffer_len as usize);
@@ -131,7 +131,11 @@ pub fn http2_range_open(
         // whole file in one range
         return;
     }
-    let flags = if dir == Direction::ToServer { tx.ft_ts.file_flags } else { tx.ft_tc.file_flags };
+    let flags = if dir == Direction::ToServer {
+        tx.ft_ts.file_flags
+    } else {
+        tx.ft_tc.file_flags
+    };
     if let Ok((key, index)) = http2_range_key_get(tx) {
         let name = &key[index..];
         tx.file_range = unsafe {
@@ -151,15 +155,15 @@ pub fn http2_range_open(
     }
 }
 
-pub fn http2_range_append(cfg: &'static SuricataFileContext, fr: *mut HttpRangeContainerBlock, data: &[u8]) {
+pub fn http2_range_append(
+    cfg: &'static SuricataFileContext, fr: *mut HttpRangeContainerBlock, data: &[u8],
+) {
     unsafe {
         HttpRangeAppendData(cfg.files_sbcfg, fr, data.as_ptr(), data.len() as u32);
     }
 }
 
-pub fn http2_range_close(
-    tx: &mut HTTP2Transaction, dir: Direction, data: &[u8],
-) {
+pub fn http2_range_close(tx: &mut HTTP2Transaction, dir: Direction, data: &[u8]) {
     let added = if let Some(c) = unsafe { SC } {
         if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
             let (files, flags) = if dir == Direction::ToServer {
@@ -168,13 +172,13 @@ pub fn http2_range_close(
                 (&mut tx.ft_tc.file, tx.ft_tc.file_flags)
             };
             let added = (c.HTPFileCloseHandleRange)(
-                    sfcm.files_sbcfg,
-                    files,
-                    flags,
-                    tx.file_range,
-                    data.as_ptr(),
-                    data.len() as u32,
-                    );
+                sfcm.files_sbcfg,
+                files,
+                flags,
+                tx.file_range,
+                data.as_ptr(),
+                data.len() as u32,
+            );
             (c.HttpRangeFreeBlock)(tx.file_range);
             added
         } else {
@@ -190,14 +194,15 @@ pub fn http2_range_close(
 }
 
 // Defined in app-layer-htp-range.h
-extern "C" {
+extern {
     pub fn HttpRangeContainerOpenFile(
         key: *const c_uchar, keylen: u32, f: *const Flow, cr: &HTTPContentRange,
         sbcfg: *const StreamingBufferConfig, name: *const c_uchar, name_len: u16, flags: u16,
         data: *const c_uchar, data_len: u32,
     ) -> *mut HttpRangeContainerBlock;
     pub fn HttpRangeAppendData(
-        cfg: *const StreamingBufferConfig, c: *mut HttpRangeContainerBlock, data: *const c_uchar, data_len: u32,
+        cfg: *const StreamingBufferConfig, c: *mut HttpRangeContainerBlock, data: *const c_uchar,
+        data_len: u32,
     ) -> std::os::raw::c_int;
 }
 

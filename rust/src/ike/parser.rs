@@ -470,8 +470,7 @@ pub fn parse_sa_attribute(i: &[u8]) -> IResult<&[u8], Vec<SaAttribute>> {
                 _ => None,
             },
             hex_value: match format.0 {
-                0 => variable_attribute_value
-                    .map(to_hex),
+                0 => variable_attribute_value.map(to_hex),
                 _ => None,
             },
         };
@@ -556,7 +555,9 @@ pub fn parse_payload(
                 transforms,
                 vendor_ids,
                 payload_types,
-            ).is_err() {
+            )
+            .is_err()
+            {
                 SCLogDebug!("Error parsing SecurityAssociation");
                 return Err(());
             }
@@ -572,7 +573,9 @@ pub fn parse_payload(
                 transforms,
                 vendor_ids,
                 payload_types,
-            ).is_err() {
+            )
+            .is_err()
+            {
                 SCLogDebug!("Error parsing Proposal");
                 return Err(());
             }
@@ -632,7 +635,9 @@ fn parse_proposal_payload(
                             transforms,
                             vendor_ids,
                             payload_types,
-                        ).is_err() {
+                        )
+                        .is_err()
+                        {
                             SCLogDebug!("Error parsing transform payload");
                             return Err(());
                         }
@@ -683,7 +688,9 @@ fn parse_security_association_payload(
                                     transforms,
                                     vendor_ids,
                                     payload_types,
-                                ).is_err() {
+                                )
+                                .is_err()
+                                {
                                     SCLogDebug!("Error parsing proposal payload");
                                     return Err(());
                                 }
