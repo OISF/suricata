@@ -27,7 +27,7 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "detect-transform-xor.h"
+#include "detect/transform/xor.h"
 
 typedef struct DetectTransformXorData {
     uint8_t *key;

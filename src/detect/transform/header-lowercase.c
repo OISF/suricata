@@ -27,7 +27,7 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "detect-transform-header-lowercase.h"
+#include "detect/transform/header-lowercase.h"
 
 /**
  *  \internal

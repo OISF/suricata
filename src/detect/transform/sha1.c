@@ -20,7 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Implements the nocase keyword
+ * Implements the sha1 transformation keyword
  */
 
 #include "suricata-common.h"
@@ -29,30 +29,30 @@
 #include "detect-engine.h"
 #include "detect-engine-prefilter.h"
 #include "detect-parse.h"
-#include "detect-transform-sha256.h"
+#include "detect/transform/sha1.h"
 
 #include "util/unittest.h"
 #include "util/print.h"
 
 #include "rust.h"
 
-static int DetectTransformToSha256Setup(DetectEngineCtx *, Signature *, const char *);
+static int DetectTransformToSha1Setup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
-static void DetectTransformToSha256RegisterTests(void);
+static void DetectTransformToSha1RegisterTests(void);
 #endif
-static void TransformToSha256(InspectionBuffer *buffer, void *options);
+static void TransformToSha1(InspectionBuffer *buffer, void *options);
 
-void DetectTransformSha256Register(void)
+void DetectTransformSha1Register(void)
 {
-    sigmatch_table[DETECT_TRANSFORM_SHA256].name = "to_sha256";
-    sigmatch_table[DETECT_TRANSFORM_SHA256].desc = "convert to sha256 hash of the buffer";
-    sigmatch_table[DETECT_TRANSFORM_SHA256].url = "/rules/transforms.html#to-sha256";
-    sigmatch_table[DETECT_TRANSFORM_SHA256].Setup = DetectTransformToSha256Setup;
-    sigmatch_table[DETECT_TRANSFORM_SHA256].Transform = TransformToSha256;
+    sigmatch_table[DETECT_TRANSFORM_SHA1].name = "to_sha1";
+    sigmatch_table[DETECT_TRANSFORM_SHA1].desc = "convert to sha1 hash of the buffer";
+    sigmatch_table[DETECT_TRANSFORM_SHA1].url = "/rules/transforms.html#to-sha1";
+    sigmatch_table[DETECT_TRANSFORM_SHA1].Setup = DetectTransformToSha1Setup;
+    sigmatch_table[DETECT_TRANSFORM_SHA1].Transform = TransformToSha1;
 #ifdef UNITTESTS
-    sigmatch_table[DETECT_TRANSFORM_SHA256].RegisterTests = DetectTransformToSha256RegisterTests;
+    sigmatch_table[DETECT_TRANSFORM_SHA1].RegisterTests = DetectTransformToSha1RegisterTests;
 #endif
-    sigmatch_table[DETECT_TRANSFORM_SHA256].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_TRANSFORM_SHA1].flags |= SIGMATCH_NOOPT;
 }
 
 /**
@@ -64,31 +64,31 @@ void DetectTransformSha256Register(void)
  *  \retval 0 ok
  *  \retval -1 failure
  */
-static int DetectTransformToSha256Setup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
+static int DetectTransformToSha1Setup(DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
     if (g_disable_hashing) {
-        SCLogError("SHA256 hashing has been disabled, "
-                   "needed for to_sha256 keyword");
+        SCLogError("SHA1 hashing has been disabled, "
+                   "needed for to_sha1 keyword");
         SCReturnInt(-1);
     }
-    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_SHA256, NULL);
+    int r = DetectSignatureAddTransform(s, DETECT_TRANSFORM_SHA1, NULL);
     SCReturnInt(r);
 }
 
-static void TransformToSha256(InspectionBuffer *buffer, void *options)
+static void TransformToSha1(InspectionBuffer *buffer, void *options)
 {
     const uint8_t *input = buffer->inspect;
     const uint32_t input_len = buffer->inspect_len;
-    uint8_t output[SC_SHA256_LEN];
+    uint8_t output[SC_SHA1_LEN];
 
     // PrintRawDataFp(stdout, input, input_len);
-    SCSha256HashBuffer(input, input_len, output, sizeof(output));
+    SCSha1HashBuffer(input, input_len, output, sizeof(output));
     InspectionBufferCopy(buffer, output, sizeof(output));
 }
 
 #ifdef UNITTESTS
-static int DetectTransformToSha256Test01(void)
+static int DetectTransformToSha1Test01(void)
 {
     const uint8_t *input = (const uint8_t *)" A B C D ";
     uint32_t input_len = strlen((char *)input);
@@ -97,14 +97,14 @@ static int DetectTransformToSha256Test01(void)
     InspectionBufferInit(&buffer, 8);
     InspectionBufferSetup(NULL, -1, &buffer, input, input_len);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
-    TransformToSha256(&buffer, NULL);
+    TransformToSha1(&buffer, NULL);
     PrintRawDataFp(stdout, buffer.inspect, buffer.inspect_len);
     InspectionBufferFree(&buffer);
     PASS;
 }
 
-static void DetectTransformToSha256RegisterTests(void)
+static void DetectTransformToSha1RegisterTests(void)
 {
-    UtRegisterTest("DetectTransformToSha256Test01", DetectTransformToSha256Test01);
+    UtRegisterTest("DetectTransformToSha1Test01", DetectTransformToSha1Test01);
 }
 #endif

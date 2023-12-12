@@ -19,7 +19,7 @@
 
 #include "../detect-engine.h"
 
-#include "../detect-transform-xor.h"
+#include "../detect/transform/xor.h"
 
 #include "../util/unittest.h"
 

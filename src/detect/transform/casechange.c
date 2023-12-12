@@ -27,7 +27,7 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "detect-transform-casechange.h"
+#include "detect/transform/casechange.h"
 
 /**
  *  \internal
