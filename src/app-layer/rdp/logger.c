@@ -24,7 +24,7 @@
  */
 
 #include "suricata-common.h"
-#include "detect.h"
+#include "../../detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 #include "threads.h"
@@ -38,8 +38,8 @@
 #include "output-json.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
-#include "app-layer-rdp.h"
-#include "output-json-rdp.h"
+#include "app-layer/rdp/parser.h"
+#include "app-layer/rdp/logger.h"
 #include "rust.h"
 
 static int JsonRdpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,

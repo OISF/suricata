@@ -60,7 +60,7 @@
 #include "app-layer/mqtt/parser.h"
 #include "app-layer-snmp.h"
 #include "app-layer/quic/parser.h"
-#include "app-layer-rdp.h"
+#include "app-layer/rdp/parser.h"
 #include "app-layer/http2/parser.h"
 
 struct AppLayerParserThreadCtx_ {
