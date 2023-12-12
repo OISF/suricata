@@ -315,6 +315,8 @@ outputs:
         - mqtt:
             # passwords: yes           # enable output of passwords
         - http2
+        # dns over http2
+        - doh2
         - pgsql:
             enabled: no
             # passwords: yes           # enable output of passwords. Disabled by default
@@ -942,6 +944,8 @@ app-layer:
     ssh:
       enabled: yes
       #hassh: yes
+    doh2:
+      enabled: yes
     http2:
       enabled: yes
       # Maximum number of live HTTP2 streams in a flow
