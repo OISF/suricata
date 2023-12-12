@@ -108,6 +108,12 @@ static uint8_t DetectEngineInspectDnsQuery(DetectEngineCtx *de_ctx, DetectEngine
         transforms = engine->v2.transforms;
     }
 
+    if (f->alproto == ALPROTO_DOH2) {
+        txv = SCDoH2GetDnsTx(txv, flags);
+        if (txv == NULL) {
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+        }
+    }
     while(1) {
         struct DnsQueryGetDataArgs cbdata = { local_id, txv, };
         InspectionBuffer *buffer =
@@ -149,6 +155,12 @@ static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx, const void *pect
     const int list_id = ctx->list_id;
 
     uint32_t local_id = 0;
+    if (f->alproto == ALPROTO_DOH2) {
+        txv = SCDoH2GetDnsTx(txv, flags);
+        if (txv == NULL) {
+            return;
+        }
+    }
     while(1) {
         // loop until we get a NULL
 
