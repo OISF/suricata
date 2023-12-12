@@ -30,7 +30,7 @@
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
-#include "app-layer-rfb.h"
+#include "app-layer/rfb/parser.h"
 
 #include "rust.h"
 
