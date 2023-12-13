@@ -563,7 +563,6 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 
         if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0)
             goto error;
-        s->flags |= SIG_FLAG_APPLAYER;
 
     } else if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
         prev_pm = DetectGetLastSMFromLists(s,
@@ -576,8 +575,6 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const c
             sm_list = SigMatchListSMBelongsTo(s, prev_pm);
             if (sm_list < 0)
                 goto error;
-            if (sm_list != DETECT_SM_LIST_PMATCH)
-                s->flags |= SIG_FLAG_APPLAYER;
         }
 
     } else {
