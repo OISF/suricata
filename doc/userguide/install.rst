@@ -11,6 +11,11 @@ recommended.
 
 Advanced users can check the advanced guides, see :ref:`install-advanced`.
 
+.. note::
+
+   If installing from a git checkout please see :ref:`Installation
+   from GIT`.
+
 Source
 ------
 
