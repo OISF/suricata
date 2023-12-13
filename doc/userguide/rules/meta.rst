@@ -9,18 +9,19 @@ they do have an effect on the way Suricata reports events/alerts.
 msg (message)
 -------------
 
-The keyword msg gives contextual information about the signature and the possible alert.
+The ``msg`` keyword gives contextual information about the signature
+and the possible alert.
 
-The format of msg is::
+The format of ``msg`` is::
 
-  msg: "some description";
+  msg:"some description";
 
 Examples::
 
   msg:"ET MALWARE Win32/RecordBreaker CnC Checkin";
   msg:"ET EXPLOIT SMB-DS DCERPC PnP bind attempt";
 
-To continue the example from the previous chapter, the msg component of the
+To continue the example from the previous chapter, the ``msg`` component of the
 signature is emphasized below:
 
 .. container:: example-rule
@@ -40,12 +41,12 @@ signature is emphasized below:
 sid (signature ID)
 ------------------
 
-The keyword sid gives every signature its own id. This id is stated with a number
-greater than zero. The format of sid is::
+The ``sid`` keyword gives every signature its own id. This id is
+stated with a number greater than zero. The format of ``sid`` is::
 
-  sid:123;
+  sid:2260005;
 
-Example of sid in a signature:
+Example of ``sid`` in a signature:
 
 .. container:: example-rule
 
@@ -72,15 +73,14 @@ Example of sid in a signature:
 rev (revision)
 --------------
 
-The sid keyword is commonly accompanied by the rev keyword. Rev
-represents the version of the signature. If a signature is modified,
-the number of rev will be incremented by the signature writers. The
-format of rev is::
+The ``sid`` keyword is commonly accompanied by the ``rev``
+keyword. ``rev`` represents the revision of the signature. If a
+signature is modified, the number of ``rev`` will be incremented by
+the signature writers. The format of ``rev`` is::
 
-  rev:123;
+  rev:3;
 
-
-Example of rev in a signature:
+Example of ``rev`` in a signature:
 
 .. container:: example-rule
 
@@ -88,23 +88,25 @@ Example of rev in a signature:
 
 .. tip::
 
-    It is a standard practice in rule writing that the rev keyword
-    is expressed after the sid keyword. The sid and rev keywords
-    are commonly put as the last two keywords in a signature.
+    It is a standard practice in rule writing that the ``rev`` keyword
+    is expressed after the ``sid`` keyword. The ``sid`` and ``rev``
+    keywords are commonly put as the last two keywords in a signature.
 
 .. _gid:
 
 gid (group ID)
 --------------
 
-The gid keyword can be used to give different groups of
-signatures another id value (like in sid). Suricata by default uses gid 1.
-It is possible to modify the default value. In most cases, it will be
-unnecessary to change the default gid value. Changing the gid value
-has no technical implications, the value is only noted in alert data.
+The ``gid`` keyword can be used to give different groups of signatures
+another id value (like in ``sid``). Suricata by default uses
+``gid`` 1.  It is possible to modify the default value. In most cases,
+it will be unnecessary to change the default ``gid`` value. Changing
+the ``gid`` value has no technical implications, the value is only
+noted in alert data.
 
-Example of the gid value in an alert entry in the fast.log file.
-In the part [1:123], the first 1 is the gid (123 is the sid and 1 is the rev).
+Example of the ``gid`` value in an alert entry in the fast.log file.
+In the part [1:123], the first 1 is the ``gid`` (123 is the ``sid``
+and 1 is the ``rev``).
 
 .. container:: example-rule
 
@@ -114,21 +116,21 @@ In the part [1:123], the first 1 is the gid (123 is the sid and 1 is the rev).
 classtype
 ---------
 
-The classtype keyword gives information about the classification of
-rules and alerts. It consists of a short name, a long name and a
+The ``classtype`` keyword gives information about the classification
+of rules and alerts. It consists of a short name, a long name and a
 priority. It can tell for example whether a rule is just informational
-or is about a CVE. For each classtype, the classification.config has a
-priority that will be used in the rule.
+or is about a CVE. For each ``classtype``, the classification.config
+has a priority that will be used in the rule.
 
 Example classtype definition::
 
   config classification: web-application-attack,Web Application Attack,1
   config classification: not-suspicious,Not Suspicious Traffic,3
 
-Once we have defined the classification in the configuration file,
-we can use the classtypes in our rules. A rule with classtype web-application-attack
-will be assigned a priority of 1 and the alert will contain 'Web Application Attack'
-in the Suricata logs:
+Once we have defined the classification in the configuration file, we
+can use the classtypes in our rules. A rule with ``classtype``
+web-application-attack will be assigned a priority of 1 and the alert
+will contain 'Web Application Attack' in the Suricata logs:
 
 =======================  ======================  ===========
 classtype                Alert                   Priority
@@ -137,7 +139,7 @@ web-application-attack   Web Application Attack  1
 not-suspicious           Not Suspicious Traffic  3
 =======================  ======================  ===========
 
-Our continuing example also has a classtype: bad-unknown:
+Our continuing example also has a ``classtype``: bad-unknown:
 
 .. container:: example-rule
 
@@ -146,16 +148,19 @@ Our continuing example also has a classtype: bad-unknown:
 
 .. tip::
 
-    It is a standard practice in rule writing that the classtype keyword comes
-    before the sid and rev keywords (as shown in the example rule).
+    It is a standard practice in rule writing that the ``classtype``
+    keyword comes before the ``sid`` and ``rev`` keywords (as shown in
+    the example rule).
 
 reference
 ---------
-The reference keyword is used to document where information about the
-signature and about the problem the signature tries to address can be
-found. The reference keyword can appear multiple times in a signature.
-This keyword is meant for signature-writers and analysts who
-investigate why a signature has matched. It has the following format::
+
+The ``reference`` keyword is used to document where information about
+the signature and about the problem the signature tries to address can
+be found. The ``reference`` keyword can appear multiple times in a
+signature.  This keyword is meant for signature-writers and analysts
+who investigate why a signature has matched. It has the following
+format::
 
   reference:type,reference
 
@@ -177,22 +182,23 @@ All the reference types are defined in the reference.config configuration file.
 priority
 --------
 
-The priority keyword comes with a mandatory numeric value which can
-range from 1 to 255. The values 1 through 4 are commonly used.
-The highest priority is 1. Signatures with a higher priority will
-be examined first. Normally signatures have a priority determined through
-a classtype definition. The classtype definition can be overridden
-by defining the priority keyword in the signature.
-The format of priority is::
+The ``priority`` keyword comes with a mandatory numeric value which
+can range from 1 to 255. The values 1 through 4 are commonly used.
+The highest priority is 1. Signatures with a higher priority will be
+examined first. Normally signatures have a priority determined through
+a classtype definition. The classtype definition can be overridden by
+defining the priority keyword in the signature.  The format of
+priority is::
 
   priority:1;
 
 metadata
 --------
-The metadata keyword allows additional, non-functional, information to
-be added to the signature. While the format is free-form, it is
-recommended to stick to `[key, value]` pairs as Suricata can include these
-in eve alerts. The format is::
+
+The ``metadata`` keyword allows additional, non-functional,
+information to be added to the signature. While the format is
+free-form, it is recommended to stick to `[key, value]` pairs as
+Suricata can include these in eve alerts. The format is::
 
   metadata: key value;
   metadata: key value, key value;
@@ -200,14 +206,15 @@ in eve alerts. The format is::
 target
 ------
 
-The target keyword allows the rules writer to specify which side of the
-alert is the target of the attack. If specified, the alert event is enhanced
-to contain information about source and target.
+The ``target`` keyword allows the rules writer to specify which side
+of the alert is the target of the attack. If specified, the alert
+event is enhanced to contain information about source and target.
 
 The format is::
 
    target:[src_ip|dest_ip]
 
-If the value is src_ip then the source IP in the generated event (src_ip
-field in JSON) is the target of the attack. If target is set to dest_ip
-then the target is the destination IP in the generated event.
+If the value is ``src_ip`` then the source IP in the generated event
+(src_ip field in JSON) is the target of the attack. If ``target`` is
+set to ``dest_ip`` then the target is the destination IP in the
+generated event.
