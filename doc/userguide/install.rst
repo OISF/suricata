@@ -109,39 +109,44 @@ CentOS, AlmaLinux, RockyLinux, Fedora, etc
 
 .. note:: The following instructions require ``sudo`` to be installed.
 
-To install all minimal dependencies, it is required to enable extra package
-repository in most distros. You can enable it possibly by
-one of the following ways::
+Some of these distributions require extra package repositories to be
+enabled.
 
-    sudo dnf -y update
-    sudo dnf -y install dnf-plugins-core
-    # AlmaLinux 8
-    sudo dnf config-manager --set-enabled powertools
-    # AlmaLinux 9
-    sudo dnf config-manager --set-enable crb
-    # Oracle Linux 8
-    sudo dnf config-manager --set-enable ol8_codeready_builder
-    # Oracle Linux 9
-    sudo dnf config-manager --set-enable ol9_codeready_builder
+* AlmaLinux 8
 
-Minimal::
+  ::
 
-    # Installed Rust and cargo as indicated above
-    sudo dnf install -y gcc gcc-c++ git jansson-devel libpcap-devel libtool \
-                   libyaml-devel make pcre2-devel which zlib-devel
-    cargo install --force cbindgen
+     sudo dnf -y install dnf-plugins-core epel-release
+     sudo dnf config-manager --set-enabled powertools
 
-Recommended::
+* AlmaLinux 9
 
-    # Installed Rust and cargo as indicated above
-    sudo dnf install -y autoconf automake diffutils file-devel gcc gcc-c++ git \
-                   jansson-devel jq libcap-ng-devel libevent-devel \
-                   libmaxminddb-devel libnet-devel libnetfilter_queue-devel \
-                   libnfnetlink-devel libpcap-devel libtool libyaml-devel \
-                   lua-devel lz4-devel make nss-devel pcre2-devel pkgconfig \
-                   python3-devel python3-sphinx python3-yaml sudo which \
-                   zlib-devel
-    cargo install --force cbindgen
+  ::
+
+     sudo dnf -y install dnf-plugins-core epel-release
+     sudo dnf config-manager --set-enable crb
+
+* Oracle Linux 8
+
+  ::
+
+     sudo dnf -y install dnf-plugins-core epel-release
+     sudo dnf config-manager --set-enable ol8_codeready_builder
+
+* Oracle Linux 9
+
+  ::
+
+     sudo dnf -y install dnf-plugins-core epel-release
+     sudo dnf config-manager --set-enable ol9_codeready_builder
+
+Recommended Dependencies::
+
+    sudo dnf -y install cargo diffutils file-devel gcc gcc-c++
+        hyperscan-devel jansson-devel libcap-ng-devel libnet-devel
+        libnetfilter_queue-devel libpcap-devel libtool libyaml-devel lua-devel
+        lz4-devel make pcre2-devel pkgconfig python3-yaml rust which
+        zlib-devel
 
 Compilation
 ^^^^^^^^^^^
