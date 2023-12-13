@@ -92,31 +92,17 @@ Ubuntu/Debian
 
 .. note:: The following instructions require ``sudo`` to be installed.
 
-Minimal::
+::
 
-    # Installed Rust and cargo as indicated above
-    sudo apt-get install build-essential git libjansson-dev libpcap-dev \
-                    libpcre2-dev libtool libyaml-dev make pkg-config zlib1g-dev
-    # On most distros installing cbindgen with package manager should be enough
-    sudo apt-get install cbindgen # alternative: cargo install --force cbindgen
+   sudo apt-get update
 
-Recommended::
+   sudo apt-get install build-essential libcap-ng-dev libgeoip-dev \
+        libhyperscan-dev libjansson-dev liblz4-dev libmagic-dev \
+        libnet1-dev libnetfilter-queue-dev libpcap-dev libpcre2-dev \
+        libtool libunwind-dev libyaml-dev make pkg-config python3-yaml \
+        zlib1g-dev
 
-    # Installed Rust and cargo as indicated above
-    sudo apt-get install autoconf automake build-essential ccache clang curl git \
-                    gosu jq libbpf-dev libcap-ng0 libcap-ng-dev libelf-dev \
-                    libevent-dev libgeoip-dev libhiredis-dev libjansson-dev \
-                    liblua5.1-dev libmagic-dev libnet1-dev libpcap-dev \
-                    libpcre2-dev libtool libyaml-0-2 libyaml-dev m4 make \
-                    pkg-config python3 python3-dev python3-yaml sudo zlib1g \
-                    zlib1g-dev
-    cargo install --force cbindgen
-
-Extra for iptables/nftables IPS integration::
-
-    sudo apt-get install libnetfilter-queue-dev libnetfilter-queue1  \
-                    libnetfilter-log-dev libnetfilter-log1      \
-                    libnfnetlink-dev libnfnetlink0
+:sub:`Tested on Ubuntu 20.04, 22.04; Debian 11, 12.`
 
 CentOS, AlmaLinux, RockyLinux, Fedora, etc
 """"""""""""""""""""""""""""""""""""""""""
