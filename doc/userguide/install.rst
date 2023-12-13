@@ -78,20 +78,14 @@ The following tools are required::
 
   make gcc (or clang) pkg-config rustc cargo
 
-Rust support::
+.. note::
 
-  rustc, cargo
+   While most current operating systems and Linux distributions have a
+   recent enough version of Rust, some do not. In which case Rust may
+   need to be manually installed.
 
-  Some distros don't provide or provide outdated Rust packages.
-  Rust can also be installed directly from the Rust project itself::
-
-    1) Install Rust https://www.rust-lang.org/en-US/install.html
-    2) Install cbindgen - if the cbindgen is not found in the repository
-       or the cbindgen version is lower than required, it can be
-       alternatively installed as: cargo install --force cbindgen
-    3) Make sure the cargo path is within your PATH environment
-        e.g. echo 'export PATH=”${PATH}:~/.cargo/bin”' >> ~/.bashrc
-        e.g. export PATH="${PATH}:/root/.cargo/bin"
+   See https://www.rust-lang.org/tools/install for instructions on
+   installing Rust.
 
 Ubuntu/Debian
 """""""""""""
