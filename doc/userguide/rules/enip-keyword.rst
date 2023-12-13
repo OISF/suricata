@@ -93,7 +93,8 @@ Examples::
 enip.cip_extendedstatus
 -----------------------
 
-Match on the cip extended status if any (one of them in case of multiple service packet).
+Match on the cip extended status, if any is present.
+For multiple service packet, will match on any of the seen statuses.
 It uses a 16-bit unsigned integer as value.
 
 Examples::
