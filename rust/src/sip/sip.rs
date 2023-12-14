@@ -121,17 +121,17 @@ impl SIPState {
     // app-layer-frame-documentation tag start: parse_request
     fn parse_request(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
-        let _pdu = Frame::new(
-            flow,
-            &stream_slice,
-            input,
-            input.len() as i64,
-            SIPFrameType::Pdu as u8,
-        );
-        SCLogDebug!("ts: pdu {:?}", _pdu);
 
         match sip_parse_request(input) {
             Ok((_, request)) => {
+                let _pdu = Frame::new(
+                    flow,
+                    &stream_slice,
+                    input,
+                    input.len() as i64,
+                    SIPFrameType::Pdu as u8,
+                );
+                SCLogDebug!("ts: pdu {:?}", _pdu);
                 sip_frames_ts(flow, &stream_slice, &request);
                 self.build_tx_request(input, request);
                 return true;
@@ -155,19 +155,20 @@ impl SIPState {
         if input.is_empty() {
             return AppLayerResult::ok();
         }
-        let _pdu = Frame::new(
-            flow,
-            &stream_slice,
-            input,
-            input.len() as i64,
-            SIPFrameType::Pdu as u8,
-        );
-        SCLogDebug!("ts: pdu {:?}", _pdu);
 
         let mut start = input;
         while !start.is_empty() {
             match sip_parse_request(start) {
                 Ok((rem, request)) => {
+                    let pdu_len = (start.len() - rem.len()) as i64;
+                    let _f = Frame::new(
+                        flow,
+                        &stream_slice,
+                        start,
+                        pdu_len,
+                        SIPFrameType::Pdu as u8,
+                    );
+                    SCLogDebug!("ts: pdu {:?}", _f);
                     sip_frames_ts(flow, &stream_slice, &request);
                     self.build_tx_request(start, request);
                     start = rem;
@@ -204,17 +205,17 @@ impl SIPState {
 
     fn parse_response(&mut self, flow: *const core::Flow, stream_slice: StreamSlice) -> bool {
         let input = stream_slice.as_slice();
-        let _pdu = Frame::new(
-            flow,
-            &stream_slice,
-            input,
-            input.len() as i64,
-            SIPFrameType::Pdu as u8,
-        );
-        SCLogDebug!("tc: pdu {:?}", _pdu);
 
         match sip_parse_response(input) {
             Ok((_, response)) => {
+                let _pdu = Frame::new(
+                    flow,
+                    &stream_slice,
+                    input,
+                    input.len() as i64,
+                    SIPFrameType::Pdu as u8,
+                );
+                SCLogDebug!("tc: pdu {:?}", _pdu);
                 sip_frames_tc(flow, &stream_slice, &response);
                 self.build_tx_response(input, response);
                 return true;
@@ -237,19 +238,20 @@ impl SIPState {
         if input.is_empty() {
             return AppLayerResult::ok();
         }
-        let _pdu = Frame::new(
-            flow,
-            &stream_slice,
-            input,
-            input.len() as i64,
-            SIPFrameType::Pdu as u8,
-        );
-        SCLogDebug!("tc: pdu {:?}", _pdu);
 
         let mut start = input;
         while !start.is_empty() {
             match sip_parse_response(start) {
                 Ok((rem, response)) => {
+                    let pdu_len = (start.len() - rem.len()) as i64;
+                    let _pdu = Frame::new(
+                        flow,
+                        &stream_slice,
+                        start,
+                        pdu_len,
+                        SIPFrameType::Pdu as u8,
+                    );
+                    SCLogDebug!("tc: pdu {:?}", _pdu);
                     sip_frames_tc(flow, &stream_slice, &response);
                     self.build_tx_response(start, response);
                     start = rem;
