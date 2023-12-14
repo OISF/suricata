@@ -510,6 +510,20 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         if (r != 1) {
             StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
         }
+        if (r == 0) {
+            if (*alproto_otherdir == ALPROTO_UNKNOWN) {
+                TcpStream *opposing_stream;
+                if (*stream == &ssn->client) {
+                    opposing_stream = &ssn->server;
+                } else {
+                    opposing_stream = &ssn->client;
+                }
+                if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(opposing_stream)) {
+                    // can happen in detection-only
+                    AppLayerIncFlowCounter(tv, f);
+                }
+            }
+        }
         if (r < 0) {
             goto parser_error;
         }
