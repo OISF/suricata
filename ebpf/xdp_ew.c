@@ -32,6 +32,7 @@
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include "bpf_helpers.h"
+#include "east_west_filter.h"
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -72,10 +73,6 @@ struct vlan_hdr {
     __u16	h_vlan_TCI;
     __u16	h_vlan_encapsulated_proto;
 };
-
-static INLINE __u16 ntohs(__u16 val) {
-    return ((val & 0xff00) >> 8) + ((val & 0x00ff) << 8);
-}
 
 static int INLINE filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end)
 {
