@@ -51,12 +51,11 @@ static void DetectEnipCipClassFree(DetectEngineCtx *de_ctx, void *ptr)
 static int DetectEnipCipClassSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rulestr)
 {
     if (DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0)
-        return -1;
+        SCReturnInt(-1);
 
     DetectU32Data *du32 = DetectU32Parse(rulestr);
-    if (du32 == NULL) {
-        return -1;
-    }
+    if (du32 == NULL)
+        SCReturnInt(-1);
 
     if (SigMatchAppendSMToList(de_ctx, s, DETECT_ENIP_CIPCLASS, (SigMatchCtx *)du32,
                 g_enip_cip_class_id) == NULL) {
