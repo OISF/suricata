@@ -53,39 +53,39 @@ Example signature that would alert on the above response.
   classtype:bad-unknown; sid:30; rev:1;)
 
 Request Keywords:
- * http.uri
- * http.uri.raw
+ * :ref:`http.uri`
+ * :ref:`http.uri.raw`
  * :ref:`http.method`
- * http.request_line
- * http.request_body
- * http.cookie
- * http.user_agent
- * http.host
- * http.host.raw
- * http.accept
- * http.accept_lang
- * http.accept_enc
- * http.referer
- * file.name
+ * :ref:`http.request_line`
+ * :ref:`http.request_body`
+ * :ref:`http.cookie`
+ * :ref:`http.user_agent`
+ * :ref:`http.host`
+ * :ref:`http.host.raw`
+ * :ref:`http.accept`
+ * :ref:`http.accept_lang`
+ * :ref:`http.accept_enc`
+ * :ref:`http.referer`
+ * :ref:`file.name`
 
 Response Keywords:
- * http.stat_msg
- * http.stat_code 
- * http.response_line
- * http.response_body
- * http.server
- * http.location
+ * :ref:`http.stat_msg`
+ * :ref:`http.stat_code`
+ * :ref:`http.response_line`
+ * :ref:`http.response_body`
+ * :ref:`http.server`
+ * :ref:`http.location`
 
 Request or Response Keywords:
- * file.data
- * http.content_type
- * http.content_len
- * http.start
- * http.protocol
- * http.header_names
- * http.header
- * http.header.raw
- * http.cookie
+ * :ref:`file.data`
+ * :ref:`http.content_type`
+ * :ref:`http.content_len`
+ * :ref:`http.start`
+ * :ref:`http.protocol`
+ * :ref:`http.header_names`
+ * :ref:`http.header`
+ * :ref:`http.header.raw`
+ * :ref:`http.cookie`
 
 
 Although cookies are sent in an HTTP header, you can not match on them
@@ -130,6 +130,10 @@ Example of the purpose of method:
 
 .. _rules-http-uri-normalization:
 
+.. _http.uri:
+
+.. _http.uri.raw:
+
 http.uri and http.uri.raw
 -------------------------
 
@@ -161,29 +165,6 @@ Example of the purpose of ``http.uri``:
 
 .. image:: http-keywords/uri.png
 
-uricontent
-----------
-
-The ``uricontent`` keyword has the exact same effect as the
-``http.uri`` sticky buffer. ``uricontent`` is a deprecated
-(although still supported) way to match specifically and only on the
-request URI buffer.
-
-Example of ``uricontent``:
-
-.. container:: example-rule
-
-    alert tcp $HOME_NET any -> $EXTERNAL_NET $HTTP_PORTS (msg:"ET TROJAN Possible Vundo Trojan Variant reporting to Controller"; flow:established,to_server; content:"POST "; depth:5; :example-rule-emphasis:`uricontent:"/frame.html?";` urilen: > 80; classtype:trojan-activity; reference:url,doc.emergingthreats.net/2009173; reference:url,www.emergingthreats.net/cgi-bin/cvsweb.cgi/sigs/VIRUS/TROJAN_Vundo; sid:2009173; rev:2;)
-
-The difference between ``http.uri`` and ``uricontent`` is the syntax:
-
-.. image:: http-keywords/uricontent1.png
-
-.. image:: http-keywords/http_uri.png
-
-When authoring new rules, it is recommended that the ``http.uri``
-content sticky buffer be used rather than the deprecated ``uricontent``
-keyword.
 
 urilen
 ------
@@ -216,6 +197,8 @@ Example of ``urilen`` in a signature:
 You can also append ``norm`` or ``raw`` to define what sort of buffer you want
 to use (normalized or raw buffer).
 
+.. _http.protocol:
+
 http.protocol
 -------------
 
@@ -233,6 +216,8 @@ Example::
 
     alert http any any -> any any (flow:to_server; http.protocol; content:"HTTP/1.0"; sid:1;)
 
+.. _http.request_line:
+
 http.request_line
 -----------------
 
@@ -241,6 +226,10 @@ The ``http.request_line`` forces the whole HTTP request line to be inspected.
 Example::
 
     alert http any any -> any any (http.request_line; content:"GET / HTTP/1.0"; sid:1;)
+
+.. _http.header:
+
+.. _http.header.raw:
 
 http.header and http.header.raw
 -------------------------------
@@ -269,6 +258,8 @@ Example of a header in a HTTP request:
 Example of the purpose of ``http.header``:
 
 .. image:: http-keywords/header1.png
+
+.. _http.cookie:
 
 http.cookie
 -----------
@@ -301,6 +292,8 @@ Example ``http.cookie`` keyword in a signature:
     http.uri; content:"/"; fast_pattern; :example-rule-emphasis:`http.cookie;
     content:"PHPSESSIONID="; startswith;` classtype:bad-unknown; sid:123;
     rev:1;)
+
+.. _http.user_agent:
 
 http.user_agent
 ---------------
@@ -361,6 +354,8 @@ Notes
 
 -  `https://blog.inliniac.net/2012/07/09/suricata-http\_user\_agent-vs-http\_header/ <https://blog.inliniac.net/2012/07/09/suricata-http_user_agent-vs-http_header/>`_
 
+.. _http.accept:
+
 http.accept
 -----------
 
@@ -370,6 +365,8 @@ value. The \\r\\n after the header are not part of the buffer.
 Example::
 
     alert http any any -> any any (http.accept; content:"image/gif"; sid:1;)
+
+.. _http.accept_enc:
 
 http.accept_enc
 ---------------
@@ -381,6 +378,7 @@ Example::
 
     alert http any any -> any any (http.accept_enc; content:"gzip"; sid:1;)
 
+.. _http.accept_lang:
 
 http.accept_lang
 ----------------
@@ -392,6 +390,7 @@ Example::
 
     alert http any any -> any any (http.accept_lang; content:"en-us"; sid:1;)
 
+.. _http.connection:
 
 http.connection
 ---------------
@@ -403,6 +402,7 @@ Example::
 
     alert http any any -> any any (http.connection; content:"keep-alive"; sid:1;)
 
+.. _http.content_type:
 
 http.content_type
 -----------------
@@ -420,6 +420,7 @@ Examples::
     alert http any any -> any any (flow:to_client; \
             http.content_type; content:"text/javascript"; sid:2;)
 
+.. _http.content_len:
 
 http.content_len
 ----------------
@@ -444,8 +445,10 @@ Example, match if C-L is equal to or bigger than 8079::
     alert http any any -> any any (flow:to_client; \
             http.content_len; byte_test:0,>=,8079,0,string,dec; sid:3;)
 
+.. _http.referer:
+
 http.referer
----------------
+-------------
 
 Sticky buffer to match on the HTTP Referer header. Only contains the
 header value. The \\r\\n after the header are not part of the buffer.
@@ -453,6 +456,8 @@ header value. The \\r\\n after the header are not part of the buffer.
 Example::
 
     alert http any any -> any any (http.referer; content:".php"; sid:1;)
+
+.. _http.start:
 
 http.start
 ----------
@@ -467,6 +472,8 @@ Example::
 
 The buffer contains the normalized headers and is terminated by an extra
 \\r\\n to indicate the end of the headers.
+
+.. _http.header_names:
 
 http.header_names
 -----------------
@@ -501,6 +508,8 @@ Example to make sure *User-Agent* is after *Host*, but not necessarily directly 
             content:"|0d 0a|Host|0d 0a|"; content:"|0a 0d|User-Agent|0d 0a|"; \
             distance:-2; sid:1;)
 
+.. _http.request_body:
+
 http.request_body
 -----------------
 
@@ -526,6 +535,8 @@ setting.
 +to use the previous name, but it's recommended that rules be converted to use
 +the new name.
 
+.. _http.stat_code:
+
 http.stat_code
 --------------
 
@@ -541,6 +552,8 @@ Example of ``http.stat_code`` in a HTTP response:
 Example of the purpose of ``http.stat_code``:
 
 .. image:: http-keywords/stat-code1.png
+
+.. _http.stat_msg:
 
 http.stat_msg
 -------------
@@ -559,6 +572,8 @@ Example of the purpose of ``http.stat_msg``:
 
 .. image:: http-keywords/stat_msg_1.png
 
+.. _http.response_line:
+
 http.response_line
 ------------------
 
@@ -567,6 +582,8 @@ The ``http.response_line`` forces the whole HTTP response line to be inspected.
 Example::
 
     alert http any any -> any any (http.response_line; content:"HTTP/1.0 200 OK"; sid:1;)
+
+.. _http.response_body:
 
 http.response_body
 ------------------
@@ -604,6 +621,8 @@ Notes
 +to use the previous name, but it's recommended that rules be converted to use
 +the new name.
 
+.. _http.server:
+
 http.server
 -----------
 
@@ -615,6 +634,8 @@ Example::
     alert http any any -> any any (flow:to_client; \
             http.server; content:"Microsoft-IIS/6.0"; sid:1;)
 
+.. _http.location:
+
 http.location
 -------------
 
@@ -625,6 +646,10 @@ Example::
 
     alert http any any -> any any (flow:to_client; \
             http.location; content:"http://www.google.com"; sid:1;)
+
+.. _http.host:
+
+.. _http.host.raw:
 
 http.host and http.host.raw
 ---------------------------
@@ -638,6 +663,8 @@ like ``distance``, ``offset``, ``within``, etc.
 
 The ``nocase`` keyword is not allowed anymore. Keep in mind that you need
 to specify a lowercase pattern.
+
+.. _http.request_header:
 
 http.request_header
 -------------------
@@ -657,6 +684,7 @@ Examples::
 
 ``http.request_header`` can be used as ``fast_pattern``.
 
+.. _http.response_header:
 
 http.response_header
 --------------------
@@ -727,6 +755,8 @@ Notes
 
 -  Corresponding PCRE modifier (``http_host``): ``W``
 -  Corresponding PCRE modifier (``http_raw_host``): ``Z``
+
+.. _file.data:
 
 file.data
 ---------
@@ -799,6 +829,8 @@ Multiple Buffer Matching
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``file.data`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+
+.. _file.name:
 
 file.name
 ---------
