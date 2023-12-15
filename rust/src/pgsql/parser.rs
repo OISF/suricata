@@ -210,7 +210,6 @@ pub struct BackendKeyDataMessage {
 #[derive(Debug, PartialEq, Eq)]
 pub struct ConsolidatedDataRowPacket {
     pub identifier: u8,
-    pub length: u32,
     pub row_cnt: u16,
     pub data_size: u64,
 }
@@ -924,7 +923,6 @@ pub fn parse_consolidated_data_row(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage> {
     Ok((i, PgsqlBEMessage::ConsolidatedDataRow(
                 ConsolidatedDataRowPacket {
                     identifier,
-                    length,
                     row_cnt: 1,
                     data_size: add_up_data_size(rows),
                 }
