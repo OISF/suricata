@@ -487,7 +487,6 @@ impl PgsqlState {
                             let dummy_resp =
                                 PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
                                     identifier: b'D',
-                                    length: tx.get_row_cnt() as u32, // TODO this is ugly. We can probably get rid of `length` field altogether...
                                     row_cnt: tx.get_row_cnt(),
                                     data_size: tx.data_size, // total byte count of all data_row messages combined
                                 });
