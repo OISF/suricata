@@ -1797,9 +1797,11 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data)
 
 #ifdef PROFILE_RULES
     /* aggregate statistics */
-    if (SCTIME_SECS(p->ts) != det_ctx->rule_perf_last_sync) {
+    struct timeval ts;
+    gettimeofday(&ts, NULL);
+    if (ts.tv_sec != det_ctx->rule_perf_last_sync) {
         SCProfilingRuleThreatAggregate(det_ctx);
-        det_ctx->rule_perf_last_sync = SCTIME_SECS(p->ts);
+        det_ctx->rule_perf_last_sync = ts.tv_sec;
     }
 #endif
 
