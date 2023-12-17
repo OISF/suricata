@@ -41,15 +41,14 @@
 #define SC_MATCH_LIMIT_RECURSION_DEFAULT 1500
 
 typedef struct DetectPcreData_ {
-    /* pcre options */
     DetectParseRegex parse_regex;
+    int thread_ctx_id;
 
     int opts;
     uint16_t flags;
     uint8_t idx;
     uint8_t captypes[DETECT_PCRE_CAPTURE_MAX];
     uint32_t capids[DETECT_PCRE_CAPTURE_MAX];
-    int thread_ctx_id;
 } DetectPcreData;
 
 /* prototypes */
