@@ -68,8 +68,6 @@
 
 static DetectParseRegex parse_regex;
 
-static int DetectBytetestMatch(DetectEngineThreadCtx *det_ctx,
-                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr);
 static void DetectBytetestFree(DetectEngineCtx *, void *ptr);
 #ifdef UNITTESTS
@@ -81,7 +79,6 @@ void DetectBytetestRegister (void)
     sigmatch_table[DETECT_BYTETEST].name = "byte_test";
     sigmatch_table[DETECT_BYTETEST].desc = "extract <num of bytes> and perform an operation selected with <operator> against the value in <test value> at a particular <offset>";
     sigmatch_table[DETECT_BYTETEST].url = "/rules/payload-keywords.html#byte-test";
-    sigmatch_table[DETECT_BYTETEST].Match = DetectBytetestMatch;
     sigmatch_table[DETECT_BYTETEST].Setup = DetectBytetestSetup;
     sigmatch_table[DETECT_BYTETEST].Free  = DetectBytetestFree;
 #ifdef UNITTESTS
@@ -311,13 +308,6 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     SCLogDebug("NO MATCH");
     SCReturnInt(0);
 
-}
-
-static int DetectBytetestMatch(DetectEngineThreadCtx *det_ctx,
-                        Packet *p, const Signature *s, const SigMatchCtx *ctx)
-{
-    return DetectBytetestDoMatch(det_ctx, s, ctx, p->payload, p->payload_len,
-            ((DetectBytetestData *)ctx)->flags, 0, 0, 0);
 }
 
 static DetectBytetestData *DetectBytetestParse(
