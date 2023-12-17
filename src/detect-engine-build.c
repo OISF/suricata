@@ -1371,6 +1371,7 @@ void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s)
     }
 }
 
+extern int g_skip_prefilter;
 /**
  * \brief Preprocess signature, classify ip-only, etc, build sig array
  *
@@ -1459,9 +1460,8 @@ int SigPrepareStage1(DetectEngineCtx *de_ctx)
         RuleSetWhitelist(s);
 
         /* if keyword engines are enabled in the config, handle them here */
-        if (de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO &&
-                !(s->flags & SIG_FLAG_PREFILTER))
-        {
+        if (!g_skip_prefilter && de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO &&
+                !(s->flags & SIG_FLAG_PREFILTER)) {
             int prefilter_list = DETECT_TBLSIZE;
 
             // TODO buffers?
