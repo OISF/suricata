@@ -1066,8 +1066,13 @@ static SigMatch *GetMpmForList(const Signature *s, SigMatch *list, SigMatch *mpm
     return mpm_sm;
 }
 
+int g_skip_prefilter = 0;
+
 void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
 {
+    if (g_skip_prefilter)
+        return;
+
     if (s->init_data->mpm_sm != NULL)
         return;
 
