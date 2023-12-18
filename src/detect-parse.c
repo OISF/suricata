@@ -2710,9 +2710,6 @@ void DetectParseFreeRegex(DetectParseRegex *r)
     if (r->context) {
         pcre2_match_context_free(r->context);
     }
-    if (r->match) {
-        pcre2_match_data_free(r->match);
-    }
 }
 
 void DetectParseFreeRegexes(void)
@@ -2738,7 +2735,6 @@ void DetectParseRegexAddToFreeList(DetectParseRegex *detect_parse)
         FatalError("failed to alloc memory for pcre free list");
     }
     r->regex = detect_parse->regex;
-    r->match = detect_parse->match;
     r->next = g_detect_parse_regex_list;
     g_detect_parse_regex_list = r;
 }
@@ -2758,8 +2754,6 @@ bool DetectSetupParseRegexesOpts(const char *parse_str, DetectParseRegex *detect
                 parse_str, en, errbuffer);
         return false;
     }
-    detect_parse->match = pcre2_match_data_create_from_pattern(detect_parse->regex, NULL);
-
     DetectParseRegexAddToFreeList(detect_parse);
 
     return true;
@@ -2785,7 +2779,6 @@ DetectParseRegex *DetectSetupPCRE2(const char *parse_str, int opts)
         SCFree(detect_parse);
         return NULL;
     }
-    detect_parse->match = pcre2_match_data_create_from_pattern(detect_parse->regex, NULL);
 
     detect_parse->next = g_detect_parse_regex_list;
     g_detect_parse_regex_list = detect_parse;
