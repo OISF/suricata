@@ -1037,8 +1037,10 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_DNS = alproto;
+	crate::feature::provides("app-layer::dns::detect");
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
+	    crate::feature::provides("app-layer::dns");
         }
     }
 }
@@ -1083,8 +1085,10 @@ pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_DNS = alproto;
+	crate::feature::provides("app-layer::dns::detect");
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
+	    crate::feature::provides("app-layer::dns");
         }
     }
 }
