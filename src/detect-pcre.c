@@ -678,7 +678,6 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
         SCLogError("pcre2 could not create match context");
         goto error;
     }
-    pd->parse_regex.match = pcre2_match_data_create_from_pattern(pd->parse_regex.regex, NULL);
 
     if (apply_match_limit) {
         if (pcre_match_limit >= -1) {
