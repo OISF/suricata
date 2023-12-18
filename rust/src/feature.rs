@@ -32,6 +32,9 @@ mod mock {
     pub fn requires(feature: &str) -> bool {
         return feature.starts_with("true");
     }
+
+    /// This mock version does nothing.
+    pub fn provides(_feature: &str) {}
 }
 
 #[cfg(not(test))]
@@ -41,6 +44,7 @@ mod real {
 
     extern "C" {
         fn RequiresFeature(feature: *const c_char) -> bool;
+        fn ProvidesFeature(feature: *const c_char);
     }
 
     /// Check for a feature returning true if found.
@@ -49,6 +53,13 @@ mod real {
             unsafe { RequiresFeature(feature.as_ptr()) }
         } else {
             false
+        }
+    }
+
+    /// Register a feature as provided.
+    pub fn provides(feature: &str) {
+        if let Ok(feature) = CString::new(feature) {
+            unsafe { ProvidesFeature(feature.as_ptr()) };
         }
     }
 }
