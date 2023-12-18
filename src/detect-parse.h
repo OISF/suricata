@@ -62,7 +62,6 @@ enum {
 typedef struct DetectParseRegex {
     pcre2_code *regex;
     pcre2_match_context *context;
-    pcre2_match_data *match;
     struct DetectParseRegex *next;
 } DetectParseRegex;
 
