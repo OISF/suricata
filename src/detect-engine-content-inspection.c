@@ -594,8 +594,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             nbytes = bmd->nbytes;
         }
 
-        DEBUG_VALIDATE_BUG_ON(buffer_len > UINT16_MAX);
-        if (DetectByteMathDoMatch(det_ctx, bmd, s, buffer, (uint16_t)buffer_len, nbytes, rvalue,
+        if (DetectByteMathDoMatch(det_ctx, bmd, s, buffer, buffer_len, nbytes, rvalue,
                     &det_ctx->byte_values[bmd->local_id], endian) != 1) {
             goto no_match;
         }
