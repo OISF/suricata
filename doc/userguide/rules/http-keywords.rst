@@ -17,7 +17,7 @@ requests resources from a server and a server responds to the request.
 
 In versions of HTTP prior to version 2 a client request could look like:
 
-Example::
+Example HTTP Request::
 
   GET /index.html HTTP/1.1
   User-Agent: Mozilla/5.0
@@ -36,12 +36,14 @@ Example signature that would alert on the above request.
 
 In versions of HTTP prior to version 2 a server response could look like:
 
-HTTP/1.1 200 OK
-Content-Type: text/html
-Content-Length: 258
-Date: Thu, 14 Dec 2023 20:22:41 GMT
-Server: nginx/0.8.54
-Connection: Close
+Example HTTP Response::
+
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Content-Length: 258
+  Date: Thu, 14 Dec 2023 20:22:41 GMT
+  Server: nginx/0.8.54
+  Connection: Close
 
 Example signature that would alert on the above response.
 
@@ -87,46 +89,38 @@ Request or Response Keywords:
  * :ref:`http.header.raw`
  * :ref:`http.cookie`
 
-
-Although cookies are sent in an HTTP header, you can not match on them
-with the ``http.header`` keyword. Cookies are matched with their own
-keyword, namely ``http.cookie``.
-
-Each part of the table belongs to a so-called *buffer*. The HTTP
-method belongs to the method buffer, HTTP headers to the header buffer
-etc. A buffer is a specific portion of the request or response that
-Suricata extracts in memory for inspection.
-
-All previous described keywords can be used in combination with a
-buffer in a signature. The keywords ``distance`` and ``within`` are
-relative modifiers, so they may only be used within the same
-buffer. You can not relate content matches against different buffers
-with relative modifiers.
-
 .. _http.method:
 
 http.method
 -----------
 
-With the ``http.method`` sticky buffer, it is possible to match
-specifically and only on the HTTP method buffer. The keyword can be
-used in combination with all previously mentioned content modifiers
-such as: ``depth``, ``distance``, ``offset``, ``nocase`` and ``within``.
+The ``http.method`` keyword matches on the method/verb used in an HTTP request.
+HTTP request methods can be any of the following:
 
-Examples of methods are: **GET**, **POST**, **PUT**, **HEAD**,
-**DELETE**, **TRACE**, **OPTIONS**, **CONNECT** and **PATCH**.
+* GET
+* POST
+* HEAD
+* OPTIONS
+* PUT
+* DELETE
+* TRACE
+* CONNECT
+* PATCH
 
-Example of a method in a HTTP request:
+It is possible to use any of the :doc:`payload-keywords` with the ``http.method`` keyword.
 
-.. image:: http-keywords/method2.png
+Example HTTP Request::
 
-Example of the purpose of method:
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: suricata.io
 
-.. image:: http-keywords/method.png
+.. container:: example-rule
 
-.. image:: http-keywords/Legenda_rules.png
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Request Example"; \
+  flow:established,to_server; :example-rule-options:`http.method; \
+  content:"GET";`classtype:bad-unknown; sid:2; rev:1;)
 
-.. image:: http-keywords/method1.png
 
 .. _rules-http-uri-normalization:
 
@@ -258,6 +252,9 @@ Example of a header in a HTTP request:
 Example of the purpose of ``http.header``:
 
 .. image:: http-keywords/header1.png
+
+Although cookies are sent in an HTTP header, you can not match on them with the ``http.header`` keyword. Cookies are matched with their own keyword, namely ``http.cookie``.
+
 
 .. _http.cookie:
 
