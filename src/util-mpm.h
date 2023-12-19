@@ -138,6 +138,9 @@ typedef struct MpmCtxFactoryContainer_ {
  *  what is passed through the API */
 #define MPM_PATTERN_CTX_OWNS_ID     0x20
 
+#define MPM_FEATURE_FLAG_DEPTH  BIT_U8(0)
+#define MPM_FEATURE_FLAG_OFFSET BIT_U8(1)
+
 typedef struct MpmTableElmt_ {
     const char *name;
     void (*InitCtx)(struct MpmCtx_ *);
@@ -166,6 +169,7 @@ typedef struct MpmTableElmt_ {
 #ifdef UNITTESTS
     void (*RegisterUnittests)(void);
 #endif
+    uint8_t feature_flags;
 } MpmTableElmt;
 
 extern MpmTableElmt mpm_table[MPM_TABLE_SIZE];

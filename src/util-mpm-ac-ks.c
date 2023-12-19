@@ -1408,6 +1408,7 @@ void MpmACTileRegister(void)
 #ifdef UNITTESTS
     mpm_table[MPM_AC_KS].RegisterUnittests = SCACTileRegisterTests;
 #endif
+    mpm_table[MPM_AC_KS].feature_flags = MPM_FEATURE_FLAG_DEPTH | MPM_FEATURE_FLAG_OFFSET;
 }
 
 
