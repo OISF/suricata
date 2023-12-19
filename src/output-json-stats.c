@@ -98,6 +98,7 @@ static json_t *EngineStats2Json(const DetectEngineCtx *de_ctx,
                             json_integer(sig_stat->good_sigs_total));
         json_object_set_new(jdata, "rules_failed",
                             json_integer(sig_stat->bad_sigs_total));
+        json_object_set_new(jdata, "rules_skipped", json_integer(sig_stat->skipped_sigs_total));
     }
 
     return jdata;
