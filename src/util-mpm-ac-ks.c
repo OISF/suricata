@@ -95,7 +95,9 @@ uint32_t SCACTileSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         PrefilterRuleStore *pmq, const uint8_t *buf,
                         uint32_t buflen);
 void SCACTilePrintInfo(MpmCtx *mpm_ctx);
-void SCACTileRegisterTests(void);
+#ifdef UNITTESTS
+static void SCACTileRegisterTests(void);
+#endif
 
 uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                              PrefilterRuleStore *pmq,
@@ -1403,7 +1405,9 @@ void MpmACTileRegister(void)
     mpm_table[MPM_AC_KS].Prepare = SCACTilePreparePatterns;
     mpm_table[MPM_AC_KS].Search = SCACTileSearch;
     mpm_table[MPM_AC_KS].PrintCtx = SCACTilePrintInfo;
+#ifdef UNITTESTS
     mpm_table[MPM_AC_KS].RegisterUnittests = SCACTileRegisterTests;
+#endif
 }
 
 
@@ -2384,12 +2388,8 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
-
 void SCACTileRegisterTests(void)
 {
-
-#ifdef UNITTESTS
     UtRegisterTest("SCACTileTest01", SCACTileTest01);
     UtRegisterTest("SCACTileTest02", SCACTileTest02);
     UtRegisterTest("SCACTileTest03", SCACTileTest03);
@@ -2419,8 +2419,8 @@ void SCACTileRegisterTests(void)
     UtRegisterTest("SCACTileTest27", SCACTileTest27);
     UtRegisterTest("SCACTileTest28", SCACTileTest28);
     UtRegisterTest("SCACTileTest29", SCACTileTest29);
-#endif
 }
+#endif
 
 #else /* we're big endian */
 
