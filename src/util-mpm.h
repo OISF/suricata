@@ -164,7 +164,6 @@ typedef struct MpmTableElmt_ {
     void (*PrintCtx)(struct MpmCtx_ *);
     void (*PrintThreadCtx)(struct MpmThreadCtx_ *);
     void (*RegisterUnittests)(void);
-    uint8_t flags;
 } MpmTableElmt;
 
 extern MpmTableElmt mpm_table[MPM_TABLE_SIZE];
