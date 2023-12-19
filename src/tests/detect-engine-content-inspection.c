@@ -202,6 +202,12 @@ static int DetectEngineContentInspectionTest08(void) {
     TEST_RUN("abcdefghy", 9,
             "content:\"a\"; content:!\"x\"; content:!\"c\"; distance:2; within:1; ", true, 3);
 
+    TEST_RUN("aaabbbccc", 9, "content:\"ccc\"; endswith; content:!\"bccc\"; endswith; ", false, 2);
+    TEST_RUN("aaabbbccc", 9, "content:\"ccc\"; endswith; content:!\"accc\"; endswith; ", true, 2);
+    TEST_RUN("aaabbbccc", 9, "content:\"ccc\"; endswith; content:!\"bccc\"; endswith; depth:4; ",
+            true, 2);
+    TEST_RUN("aaabbbccc", 9, "content:\"ccc\"; endswith; content:!\"bccc\"; endswith; depth:9; ",
+            false, 2);
     TEST_FOOTER;
 }
 
