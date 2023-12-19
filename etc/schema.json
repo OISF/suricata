@@ -4871,6 +4871,9 @@
                                     },
                                     "rules_failed": {
                                         "type": "integer"
+                                    },
+                                    "rules_skipped": {
+                                        "type": "integer"
                                     }
                                 },
                                 "additionalProperties": false
