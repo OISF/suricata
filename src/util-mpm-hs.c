@@ -60,7 +60,9 @@ uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     PrefilterRuleStore *pmq, const uint8_t *buf, const uint32_t buflen);
 void SCHSPrintInfo(MpmCtx *mpm_ctx);
 void SCHSPrintSearchStats(MpmThreadCtx *mpm_thread_ctx);
-void SCHSRegisterTests(void);
+#ifdef UNITTESTS
+static void SCHSRegisterTests(void);
+#endif
 
 /* size of the hash table used to speed up pattern insertions initially */
 #define INIT_HASH_SIZE 65536
@@ -1049,8 +1051,9 @@ void MpmHSRegister(void)
     mpm_table[MPM_HS].Search = SCHSSearch;
     mpm_table[MPM_HS].PrintCtx = SCHSPrintInfo;
     mpm_table[MPM_HS].PrintThreadCtx = SCHSPrintSearchStats;
+#ifdef UNITTESTS
     mpm_table[MPM_HS].RegisterUnittests = SCHSRegisterTests;
-
+#endif
     /* Set Hyperscan memory allocators */
     SCHSSetAllocators();
 }
@@ -2132,11 +2135,8 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
-
-void SCHSRegisterTests(void)
+static void SCHSRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("SCHSTest01", SCHSTest01);
     UtRegisterTest("SCHSTest02", SCHSTest02);
     UtRegisterTest("SCHSTest03", SCHSTest03);
@@ -2166,9 +2166,6 @@ void SCHSRegisterTests(void)
     UtRegisterTest("SCHSTest27", SCHSTest27);
     UtRegisterTest("SCHSTest28", SCHSTest28);
     UtRegisterTest("SCHSTest29", SCHSTest29);
-#endif
-
-    return;
 }
-
+#endif /* UNITTESTS */
 #endif /* BUILD_HYPERSCAN */
