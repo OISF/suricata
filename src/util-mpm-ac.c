@@ -1127,6 +1127,7 @@ void MpmACRegister(void)
 #ifdef UNITTESTS
     mpm_table[MPM_AC].RegisterUnittests = SCACRegisterTests;
 #endif
+    mpm_table[MPM_AC].feature_flags = MPM_FEATURE_FLAG_DEPTH | MPM_FEATURE_FLAG_OFFSET;
     return;
 }
 
