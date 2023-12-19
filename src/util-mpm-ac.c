@@ -72,7 +72,9 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx);
 uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     PrefilterRuleStore *pmq, const uint8_t *buf, uint32_t buflen);
 void SCACPrintInfo(MpmCtx *mpm_ctx);
-void SCACRegisterTests(void);
+#ifdef UNITTESTS
+static void SCACRegisterTests(void);
+#endif
 
 /* a placeholder to denote a failure transition in the goto table */
 #define SC_AC_FAIL (-1)
@@ -1139,8 +1141,9 @@ void MpmACRegister(void)
     mpm_table[MPM_AC].Prepare = SCACPreparePatterns;
     mpm_table[MPM_AC].Search = SCACSearch;
     mpm_table[MPM_AC].PrintCtx = SCACPrintInfo;
+#ifdef UNITTESTS
     mpm_table[MPM_AC].RegisterUnittests = SCACRegisterTests;
-
+#endif
     return;
 }
 
@@ -2121,12 +2124,8 @@ end:
     return result;
 }
 
-#endif /* UNITTESTS */
-
 void SCACRegisterTests(void)
 {
-
-#ifdef UNITTESTS
     UtRegisterTest("SCACTest01", SCACTest01);
     UtRegisterTest("SCACTest02", SCACTest02);
     UtRegisterTest("SCACTest03", SCACTest03);
@@ -2156,7 +2155,5 @@ void SCACRegisterTests(void)
     UtRegisterTest("SCACTest27", SCACTest27);
     UtRegisterTest("SCACTest28", SCACTest28);
     UtRegisterTest("SCACTest29", SCACTest29);
-#endif
-
-    return;
 }
+#endif /* UNITTESTS */
