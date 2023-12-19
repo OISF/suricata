@@ -1055,6 +1055,7 @@ void MpmHSRegister(void)
 #ifdef UNITTESTS
     mpm_table[MPM_HS].RegisterUnittests = SCHSRegisterTests;
 #endif
+    mpm_table[MPM_HS].feature_flags = MPM_FEATURE_FLAG_DEPTH | MPM_FEATURE_FLAG_OFFSET;
     /* Set Hyperscan memory allocators */
     SCHSSetAllocators();
 }
