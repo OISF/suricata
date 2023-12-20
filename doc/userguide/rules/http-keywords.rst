@@ -55,14 +55,12 @@ Example signature that would alert on the above response.
   classtype:bad-unknown; sid:30; rev:1;)
 
 Request Keywords:
- * :ref:`http.uri`
  * :ref:`http.uri.raw`
  * :ref:`http.method`
  * :ref:`http.request_line`
  * :ref:`http.request_body`
  * :ref:`http.cookie`
  * :ref:`http.user_agent`
- * :ref:`http.host`
  * :ref:`http.host.raw`
  * :ref:`http.accept`
  * :ref:`http.accept_lang`
@@ -85,7 +83,6 @@ Request or Response Keywords:
  * :ref:`http.start`
  * :ref:`http.protocol`
  * :ref:`http.header_names`
- * :ref:`http.header`
  * :ref:`http.header.raw`
  * :ref:`http.cookie`
 
