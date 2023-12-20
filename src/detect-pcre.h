@@ -31,7 +31,6 @@
 #define DETECT_PCRE_RAWBYTES            0x00002
 #define DETECT_PCRE_CASELESS            0x00004
 
-#define DETECT_PCRE_MATCH_LIMIT         0x00020
 #define DETECT_PCRE_RELATIVE_NEXT       0x00040
 #define DETECT_PCRE_NEGATE              0x00080
 
