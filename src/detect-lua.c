@@ -83,6 +83,7 @@ void DetectLuaRegister(void)
 #else /* HAVE_LUA */
 
 #include "util-lua.h"
+#include "util-lua-sandbox.h"
 
 static int DetectLuaMatch (DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
@@ -96,6 +97,9 @@ static void DetectLuaRegisterTests(void);
 #endif
 static void DetectLuaFree(DetectEngineCtx *, void *);
 static int g_smtp_generic_list_id = 0;
+
+// TODO: move to config
+static const uint64_t g_lua_alloc_limit = 500000, g_lua_instruction_limit = 500000;
 
 /**
  * \brief Registration function for keyword: lua
@@ -479,7 +483,7 @@ static void *DetectLuaThreadInit(void *data)
     t->alproto = lua->alproto;
     t->flags = lua->flags;
 
-    t->luastate = LuaGetState();
+    t->luastate = sb_newstate(g_lua_alloc_limit, g_lua_instruction_limit);
     if (t->luastate == NULL) {
         SCLogError("luastate pool depleted");
         goto error;
@@ -525,7 +529,7 @@ static void *DetectLuaThreadInit(void *data)
 
 error:
     if (t->luastate != NULL)
-        LuaReturnState(t->luastate);
+        sb_close(t->luastate);
     SCFree(t);
     return NULL;
 }
@@ -535,7 +539,7 @@ static void DetectLuaThreadFree(void *ctx)
     if (ctx != NULL) {
         DetectLuaThreadData *t = (DetectLuaThreadData *)ctx;
         if (t->luastate != NULL)
-            LuaReturnState(t->luastate);
+            sb_close(t->luastate);
         SCFree(t);
     }
 }
@@ -581,10 +585,10 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
 {
     int status;
 
-    lua_State *luastate = luaL_newstate();
+    lua_State *luastate = sb_newstate(g_lua_alloc_limit, g_lua_instruction_limit);
     if (luastate == NULL)
         return -1;
-    luaL_openlibs(luastate);
+    luaL_openlibs(luastate); // TODO: get sandbox config and load appropriate libs
 
     /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
 #ifdef UNITTESTS
@@ -863,10 +867,10 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
 
     /* pop the table */
     lua_pop(luastate, 1);
-    lua_close(luastate);
+    sb_close(luastate);
     return 0;
 error:
-    lua_close(luastate);
+    sb_close(luastate);
     return -1;
 }
 
