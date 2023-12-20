@@ -119,7 +119,7 @@ Example HTTP Request::
 
   alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Request Example"; \
   flow:established,to_server; :example-rule-options:`http.method; \
-  content:"GET";`classtype:bad-unknown; sid:2; rev:1;)
+  content:"GET";` classtype:bad-unknown; sid:2; rev:1;)
 
 
 .. _rules-http-uri-normalization:
@@ -641,8 +641,8 @@ header value. The \\r\\n after the header are not part of the buffer.
 
 Example::
 
-    alert http any any -> any any (flow:to_client; \
-            http.location; content:"http://www.google.com"; sid:1;)
+  alert http any any -> any any (flow:to_client; \
+  http.location; content:"http://www.google.com"; sid:1;)
 
 .. _http.host:
 
