@@ -562,6 +562,7 @@ noinst_HEADERS = \
 	util-lua-hassh.h \
 	util-lua-http.h \
 	util-lua-ja3.h \
+	util-lua-sandbox.h \
 	util-lua-smtp.h \
 	util-lua-ssh.h \
 	util-lua-tls.h \
@@ -1155,6 +1156,7 @@ libsuricata_c_a_SOURCES = \
 	util-lua-hassh.c \
 	util-lua-http.c \
 	util-lua-ja3.c \
+	util-lua-sandbox.c \
 	util-lua-smtp.c \
 	util-lua-ssh.c \
 	util-lua-tls.c \
