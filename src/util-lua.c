@@ -54,6 +54,7 @@
 #include <lauxlib.h>
 
 #include "util-lua.h"
+#include "util-lua-sandbox.h"
 
 lua_State *LuaGetState(void)
 {
