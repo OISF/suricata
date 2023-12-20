@@ -574,10 +574,21 @@ static void PropagateLimits(Signature *s, SigMatch *sm_head)
                 SCLogDebug("stored: offset %u depth %u offset_plus_pat %u "
                            "has_active_depth_chain %s",
                         offset, depth, offset_plus_pat, has_active_depth_chain ? "true" : "false");
-                if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance >= 0) {
-                    VALIDATE((uint32_t)offset_plus_pat + cd->distance <= UINT16_MAX);
-                    offset = cd->offset = (uint16_t)(offset_plus_pat + cd->distance);
-                    SCLogDebug("updated content to have offset %u", cd->offset);
+                if (cd->flags & DETECT_CONTENT_DISTANCE) {
+                    if (cd->distance >= 0) {
+                        VALIDATE((uint32_t)offset_plus_pat + cd->distance <= UINT16_MAX);
+                        offset = cd->offset = (uint16_t)(offset_plus_pat + cd->distance);
+                        SCLogDebug("distance %d: updated content to have offset %u", cd->distance,
+                                cd->offset);
+                    } else {
+                        if (abs(cd->distance) > offset_plus_pat)
+                            offset = cd->offset = 0;
+                        else
+                            offset = cd->offset = (uint16_t)(offset_plus_pat + cd->distance);
+                        offset_plus_pat = offset + cd->content_len;
+                        SCLogDebug("distance %d: updated content to have offset %u", cd->distance,
+                                cd->offset);
+                    }
                 }
                 if (has_active_depth_chain) {
                     if (offset_plus_pat && cd->flags & DETECT_CONTENT_WITHIN && cd->within >= 0) {

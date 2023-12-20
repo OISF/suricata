@@ -273,6 +273,17 @@ static int DetectEngineContentInspectionTest13(void) {
     TEST_FOOTER;
 }
 
+/** \brief negative distance */
+static int DetectEngineContentInspectionTest17(void)
+{
+    TEST_HEADER;
+    TEST_RUN("aaabbbcccdddee", 14,
+            "content:\"aaa\"; content:\"ee\"; within:2; distance:9; content:\"bbb\"; within:3; "
+            "distance:-11; content:\"ccc\"; within:3; distance:0;",
+            true, 4);
+    TEST_FOOTER;
+}
+
 void DetectEngineContentInspectionRegisterTests(void)
 {
     UtRegisterTest("DetectEngineContentInspectionTest01",
@@ -301,6 +312,8 @@ void DetectEngineContentInspectionRegisterTests(void)
                    DetectEngineContentInspectionTest12);
     UtRegisterTest("DetectEngineContentInspectionTest13 mix startswith/endswith",
                    DetectEngineContentInspectionTest13);
+    UtRegisterTest("DetectEngineContentInspectionTest17 negative distance",
+            DetectEngineContentInspectionTest17);
 }
 
 #undef TEST_HEADER
