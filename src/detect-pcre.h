@@ -44,7 +44,6 @@ typedef struct DetectPcreData_ {
     DetectParseRegex parse_regex;
     int thread_ctx_id;
 
-    int opts;
     uint16_t flags;
     uint8_t idx;
     uint8_t captypes[DETECT_PCRE_CAPTURE_MAX];
