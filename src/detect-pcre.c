@@ -360,6 +360,8 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     int check_host_header = 0;
     char op_str[64] = "";
 
+    bool apply_match_limit = false;
+
     int cut_capture = 0;
     char *fcap = strstr(regexstr, "flow:");
     char *pcap = strstr(regexstr, "pkt:");
@@ -472,7 +474,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
                     break;
 
                 case 'O':
-                    pd->flags |= DETECT_PCRE_MATCH_LIMIT;
+                    apply_match_limit = true;
                     break;
 
                 case 'B': /* snort's option */
@@ -678,7 +680,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     }
     pd->parse_regex.match = pcre2_match_data_create_from_pattern(pd->parse_regex.regex, NULL);
 
-    if (pd->flags & DETECT_PCRE_MATCH_LIMIT) {
+    if (apply_match_limit) {
         if (pcre_match_limit >= -1) {
             pcre2_set_match_limit(pd->parse_regex.context, pcre_match_limit);
         }
