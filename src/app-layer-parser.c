@@ -57,7 +57,6 @@
 #include "app-layer-krb5.h"
 #include "app-layer-sip.h"
 #include "app-layer-rfb.h"
-#include "app-layer-mqtt.h"
 #include "app-layer-snmp.h"
 #include "app-layer-quic.h"
 #include "app-layer-rdp.h"
@@ -1766,7 +1765,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterQuicParsers();
     rs_template_register_parser();
     RegisterRFBParsers();
-    RegisterMQTTParsers();
+    SCMqttRegisterParser();
     rs_pgsql_register_parser();
     RegisterRdpParsers();
     RegisterHTTP2Parsers();

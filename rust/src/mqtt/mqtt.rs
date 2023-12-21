@@ -1,4 +1,4 @@
-/* Copyright (C) 2020-2022 Open Information Security Foundation
+/* Copyright (C) 2020-2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,7 +21,7 @@ use super::mqtt_message::*;
 use super::parser::*;
 use crate::applayer::*;
 use crate::applayer::{self, LoggerFlags};
-use crate::conf::conf_get;
+use crate::conf::{conf_get, get_memval};
 use crate::core::*;
 use crate::frames::*;
 use nom7::Err;
@@ -112,7 +112,7 @@ pub struct MQTTState {
     connected: bool,
     skip_request: usize,
     skip_response: usize,
-    max_msg_len: usize,
+    max_msg_len: u32,
     tx_index_completed: usize,
 }
 
@@ -142,7 +142,7 @@ impl MQTTState {
             connected: false,
             skip_request: 0,
             skip_response: 0,
-            max_msg_len: unsafe { MAX_MSG_LEN as usize },
+            max_msg_len: unsafe { MAX_MSG_LEN},
             tx_index_completed: 0,
         }
     }
@@ -778,10 +778,8 @@ export_tx_data_get!(rs_mqtt_get_tx_data, MQTTTransaction);
 export_state_data_get!(rs_mqtt_get_state_data, MQTTState);
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
+pub unsafe extern "C" fn SCMqttRegisterParser() {
     let default_port = CString::new("[1883]").unwrap();
-    let max_msg_len = &mut MAX_MSG_LEN;
-    *max_msg_len = cfg_max_msg_len;
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
@@ -828,6 +826,13 @@ pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
                 MQTT_MAX_TX = v;
             } else {
                 SCLogError!("Invalid value for mqtt.max-tx");
+            }
+        }
+        if let Some(val) = conf_get("app-layer.protocols.mqtt.max-msg-length") {
+            if let Ok(v) = get_memval(val) {
+                MAX_MSG_LEN = v as u32;
+            } else {
+                SCLogError!("Invalid value for mqtt.max-msg-length: {}", val);
             }
         }
     } else {

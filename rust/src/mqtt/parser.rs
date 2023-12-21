@@ -634,7 +634,7 @@ fn parse_remaining_message<'a>(
 pub fn parse_message(
     input: &[u8],
     protocol_version: u8,
-    max_msg_size: usize,
+    max_msg_size: u32,
 ) -> IResult<&[u8], MQTTMessage> {
     // Parse the fixed header first. This is identical across versions and can
     // be between 2 and 5 bytes long.
@@ -652,7 +652,7 @@ pub fn parse_message(
             // limit, we return a special truncation message type, containing
             // no parsed metadata but just the skipped length and the message
             // type.
-            if len > max_msg_size {
+            if len > max_msg_size as usize {
                 let msg = MQTTMessage {
                     header,
                     op: MQTTOperation::TRUNCATED(MQTTTruncatedData {

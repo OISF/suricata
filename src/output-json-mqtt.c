@@ -41,7 +41,6 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-mqtt.h"
 #include "output-json-mqtt.h"
 #include "rust.h"
 
