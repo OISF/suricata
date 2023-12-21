@@ -36,7 +36,6 @@ noinst_HEADERS = \
 	app-layer-krb5.h \
 	app-layer-modbus.h \
 	app-layer-quic.h \
-	app-layer-mqtt.h \
 	app-layer-nfs-tcp.h \
 	app-layer-nfs-udp.h \
 	app-layer-ntp.h \
@@ -655,7 +654,6 @@ libsuricata_c_a_SOURCES = \
 	app-layer-krb5.c \
 	app-layer-modbus.c \
 	app-layer-quic.c \
-	app-layer-mqtt.c \
 	app-layer-nfs-tcp.c \
 	app-layer-nfs-udp.c \
 	app-layer-ntp.c \
