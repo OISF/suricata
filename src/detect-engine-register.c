@@ -48,6 +48,7 @@
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
 #include "detect-dns-opcode.h"
+#include "detect-dns-rcode.h"
 #include "detect-dns-query.h"
 #include "detect-dns-answer-name.h"
 #include "detect-dns-query-name.h"
@@ -521,6 +522,7 @@ void SigTableSetup(void)
 
     DetectDnsQueryRegister();
     DetectDnsOpcodeRegister();
+    DetectDnsRcodeRegister();
     DetectDnsAnswerNameRegister();
     DetectDnsQueryNameRegister();
     DetectModbusRegister();

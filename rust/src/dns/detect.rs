@@ -26,6 +26,12 @@ pub struct DetectDnsOpcode {
     opcode: u8,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct DetectDnsRcode {
+    negate: bool,
+    rcode: u8,
+}
+
 /// Parse a DNS opcode argument returning the code and if it is to be
 /// negated or not.
 ///
@@ -46,6 +52,33 @@ fn parse_opcode(opcode: &str) -> Result<DetectDnsOpcode, ()> {
                 return Ok(DetectDnsOpcode {
                     negate: negated,
                     opcode: code,
+                });
+            }
+        }
+    }
+    Err(())
+}
+
+/// Parse a DNS rcode argument returning the code and if it is to be
+/// negated or not.
+///
+/// For now only an indication that an error occurred is returned, not
+/// the details of the error.
+fn parse_rcode(rcode: &str) -> Result<DetectDnsRcode, ()> {
+    let mut negated = false;
+    for (i, c) in rcode.chars().enumerate() {
+        match c {
+            ' ' | '\t' => {
+                continue;
+            }
+            '!' => {
+                negated = true;
+            }
+            _ => {
+                let code: u8 = rcode[i..].parse().map_err(|_| ())?;
+                return Ok(DetectDnsRcode {
+                    negate: negated,
+                    rcode: code,
                 });
             }
         }
@@ -80,12 +113,48 @@ pub extern "C" fn rs_dns_opcode_match(
     match_opcode(detect, header_flags).into()
 }
 
+/// Perform the DNS rcode match.
+///
+/// 1 will be returned on match, otherwise 0 will be returned.
+#[no_mangle]
+pub extern "C" fn rs_dns_rcode_match(
+    tx: &mut DNSTransaction, detect: &mut DetectDnsRcode, flags: u8,
+) -> u8 {
+    let header_flags = if flags & Direction::ToServer as u8 != 0 {
+        if let Some(request) = &tx.request {
+            request.header.flags
+        } else {
+            return 0;
+        }
+    } else if flags & Direction::ToClient as u8 != 0 {
+        if let Some(response) = &tx.response {
+            response.header.flags
+        } else {
+            return 0;
+        }
+    } else {
+        // Not to server or to client??
+        return 0;
+    };
+
+    match_rcode(detect, header_flags).into()
+}
+
 fn match_opcode(detect: &DetectDnsOpcode, flags: u16) -> bool {
     let opcode = ((flags >> 11) & 0xf) as u8;
     if detect.negate {
         detect.opcode != opcode
     } else {
         detect.opcode == opcode
+    }
+}
+
+fn match_rcode(detect: &DetectDnsRcode, flags: u16) -> bool {
+    let rcode = (flags & 0xf) as u8;
+    if detect.negate {
+        detect.rcode != rcode
+    } else {
+        detect.rcode == rcode
     }
 }
 
@@ -108,9 +177,34 @@ pub unsafe extern "C" fn rs_detect_dns_opcode_parse(carg: *const c_char) -> *mut
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn rs_detect_dns_rcode_parse(carg: *const c_char) -> *mut c_void {
+    if carg.is_null() {
+        return std::ptr::null_mut();
+    }
+    let arg = match CStr::from_ptr(carg).to_str() {
+        Ok(arg) => arg,
+        _ => {
+            return std::ptr::null_mut();
+        }
+    };
+
+    match parse_rcode(arg) {
+        Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn rs_dns_detect_opcode_free(ptr: *mut c_void) {
     if !ptr.is_null() {
         std::mem::drop(Box::from_raw(ptr as *mut DetectDnsOpcode));
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_dns_detect_rcode_free(ptr: *mut c_void) {
+    if !ptr.is_null() {
+        std::mem::drop(Box::from_raw(ptr as *mut DetectDnsRcode));
     }
 }
 
@@ -155,6 +249,42 @@ mod test {
     }
 
     #[test]
+    fn parse_rcode_good() {
+        assert_eq!(
+            parse_rcode("1"),
+            Ok(DetectDnsRcode {
+                negate: false,
+                rcode: 1
+            })
+        );
+        assert_eq!(
+            parse_rcode("123"),
+            Ok(DetectDnsRcode {
+                negate: false,
+                rcode: 123
+            })
+        );
+        assert_eq!(
+            parse_rcode("!123"),
+            Ok(DetectDnsRcode {
+                negate: true,
+                rcode: 123
+            })
+        );
+        assert_eq!(
+            parse_rcode("!123"),
+            Ok(DetectDnsRcode {
+                negate: true,
+                rcode: 123
+            })
+        );
+        assert_eq!(parse_rcode(""), Err(()));
+        assert_eq!(parse_rcode("!"), Err(()));
+        assert_eq!(parse_rcode("!   "), Err(()));
+        assert_eq!(parse_rcode("!asdf"), Err(()));
+    }
+
+    #[test]
     fn test_match_opcode() {
         assert!(match_opcode(
             &DetectDnsOpcode {
@@ -186,6 +316,41 @@ mod test {
                 opcode: 4,
             },
             0b0010_0000_0000_0000,
+        ));
+    }
+
+    #[test]
+    fn test_match_rcode() {
+        assert!(match_rcode(
+            &DetectDnsRcode {
+                negate: false,
+                rcode: 0,
+            },
+            0b0000_0000_0000_0000,
+        ));
+
+        assert!(!match_rcode(
+            &DetectDnsRcode {
+                negate: true,
+                rcode: 0,
+            },
+            0b0000_0000_0000_0000,
+        ));
+
+        assert!(match_rcode(
+            &DetectDnsRcode {
+                negate: false,
+                rcode: 4,
+            },
+            0b0000_0000_0000_0100,
+        ));
+
+        assert!(!match_rcode(
+            &DetectDnsRcode {
+                negate: true,
+                rcode: 4,
+            },
+            0b0000_0000_0000_0100,
         ));
     }
 }

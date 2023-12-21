@@ -122,6 +122,7 @@ noinst_HEADERS = \
 	detect-dnp3.h \
 	detect-dns-answer-name.h \
 	detect-dns-opcode.h \
+	detect-dns-rcode.h \
 	detect-dns-query.h \
 	detect-dns-query-name.h \
 	detect-dsize.h \
@@ -740,6 +741,7 @@ libsuricata_c_a_SOURCES = \
 	detect-dnp3.c \
 	detect-dns-answer-name.c \
 	detect-dns-opcode.c \
+	detect-dns-rcode.c \
 	detect-dns-query.c \
 	detect-dns-query-name.c \
 	detect-dsize.c \
