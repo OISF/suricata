@@ -25,6 +25,9 @@ pub struct DetectDnsOpcode {
     negate: bool,
     opcode: u8,
 }
+pub struct DetectDnsRcode {
+    rcode: u16,
+}
 
 /// Parse a DNS opcode argument returning the code and if it is to be
 /// negated or not.
@@ -46,6 +49,23 @@ fn parse_opcode(opcode: &str) -> Result<DetectDnsOpcode, ()> {
                 return Ok(DetectDnsOpcode {
                     negate: negated,
                     opcode: code,
+                });
+            }
+        }
+    }
+    Err(())
+}
+
+fn parse_rcode(rcode: &str) -> Result<DetectDnsRcode, ()> {
+    for (i, c) in rcode.chars().enumerate() {
+        match c {
+            ' ' | '\t' => {
+                continue;
+            }
+            _ => {
+                let code: u16 = rcode[i..].parse().map_err(|_| ())?;
+                return Ok(DetectDnsRcode {
+                    rcode: code,
                 });
             }
         }
@@ -80,6 +100,30 @@ pub extern "C" fn rs_dns_opcode_match(
     match_opcode(detect, header_flags).into()
 }
 
+#[no_mangle]
+pub extern "C" fn rs_dns_rcode_match(
+    tx: &mut DNSTransaction, detect: &mut DetectDnsRcode, flags: u16,
+) -> u16 {
+    let header_flags = if flags & Direction::ToServer as u16 != 0 {
+        if let Some(request) = &tx.request {
+            request.header.flags
+        } else {
+            return 0;
+        }
+    } else if flags & Direction::ToClient as u16 != 0 {
+        if let Some(response) = &tx.response {
+            response.header.flags
+        } else {
+            return 0;
+        }
+    } else {
+        // Not to server or to client??
+        return 0;
+    };
+
+    match_rcode(detect, header_flags).into()
+}
+
 fn match_opcode(detect: &DetectDnsOpcode, flags: u16) -> bool {
     let opcode = ((flags >> 11) & 0xf) as u8;
     if detect.negate {
@@ -87,6 +131,11 @@ fn match_opcode(detect: &DetectDnsOpcode, flags: u16) -> bool {
     } else {
         detect.opcode == opcode
     }
+}
+
+fn match_rcode(detect: &DetectDnsRcode, flags: u16) -> bool {
+    let rcode = ((flags >> 11) & 0xf) as u16;
+    detect.rcode == rcode
 }
 
 #[no_mangle]
@@ -108,9 +157,34 @@ pub unsafe extern "C" fn rs_detect_dns_opcode_parse(carg: *const c_char) -> *mut
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn rs_detect_dns_rcode_parse(carg: *const c_char) -> *mut c_void {
+    if carg.is_null() {
+        return std::ptr::null_mut();
+    }
+    let arg = match CStr::from_ptr(carg).to_str() {
+        Ok(arg) => arg,
+        _ => {
+            return std::ptr::null_mut();
+        }
+    };
+
+    match parse_rcode(arg) {
+        Ok(detect) => Box::into_raw(Box::new(detect)) as *mut _,
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn rs_dns_detect_opcode_free(ptr: *mut c_void) {
     if !ptr.is_null() {
         std::mem::drop(Box::from_raw(ptr as *mut DetectDnsOpcode));
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_dns_detect_rcode_free(ptr: *mut c_void) {
+    if !ptr.is_null() {
+        std::mem::drop(Box::from_raw(ptr as *mut DetectDnsRcode));
     }
 }
 
@@ -184,6 +258,46 @@ mod test {
             &DetectDnsOpcode {
                 negate: true,
                 opcode: 4,
+            },
+            0b0010_0000_0000_0000,
+        ));
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn parse_rcode_good() {
+        assert_eq!(
+            parse_rcode("1"),
+            Ok(DetectDnsRcode {
+                rcode: 1
+            })
+        );
+        assert_eq!(
+            parse_rcode("123"),
+            Ok(DetectDnsRcode {
+                rcode: 123
+            })
+        );
+        assert_eq!(parse_rcode(""), Err(()));
+        assert_eq!(parse_opcode("asdf"), Err(()));
+    }
+
+    #[test]
+    fn test_match_rcode() {
+        assert!(match_rcode(
+            &DetectDnsRcode {
+                rcode: 0,
+            },
+            0b0000_0000_0000_0000,
+        ));
+
+        assert!(match_rcode(
+            &DetectDnsRcode {
+                rcode: 4,
             },
             0b0010_0000_0000_0000,
         ));
