@@ -1156,7 +1156,12 @@
                         "opcode": {
                             "description": "DNS opcode as an integer",
                             "type": "integer"
-                        }
+                        },
+			"authorities": {
+			    "description": "Array of authorities in DNS response",
+			    "$comment": "Probably also need answers and additional records",
+			    "type": "array"
+			}
                     },
                     "additionalProperties": false
                 },
