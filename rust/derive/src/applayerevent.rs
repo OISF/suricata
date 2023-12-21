@@ -51,7 +51,9 @@ pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
     // "crate", but if we're being used by a library or plugin user we need to reference the
     // Suricata name space as "suricata". Check the CARGO_PKG_NAME environment variable to
     // determine what identifier to setup.
-    let is_suricata = std::env::var("CARGO_PKG_NAME").map(|var| var == "suricata").unwrap_or(false);
+    let is_suricata = std::env::var("CARGO_PKG_NAME")
+        .map(|var| var == "suricata")
+        .unwrap_or(false);
     let crate_id = if is_suricata {
         syn::Ident::new("crate", proc_macro2::Span::call_site())
     } else {

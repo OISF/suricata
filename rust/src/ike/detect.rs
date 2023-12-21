@@ -23,7 +23,7 @@ use std::ffi::CStr;
 use std::ptr;
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_exch_type(tx: &mut IKETransaction, exch_type: *mut u8) -> u8 {
+pub extern fn rs_ike_state_get_exch_type(tx: &mut IKETransaction, exch_type: *mut u8) -> u8 {
     debug_validate_bug_on!(exch_type.is_null());
 
     if tx.ike_version == 1 {
@@ -44,7 +44,7 @@ pub extern "C" fn rs_ike_state_get_exch_type(tx: &mut IKETransaction, exch_type:
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_spi_initiator(
+pub extern fn rs_ike_state_get_spi_initiator(
     tx: &mut IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
@@ -57,7 +57,7 @@ pub extern "C" fn rs_ike_state_get_spi_initiator(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_spi_responder(
+pub extern fn rs_ike_state_get_spi_responder(
     tx: &mut IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
@@ -70,7 +70,7 @@ pub extern "C" fn rs_ike_state_get_spi_responder(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_nonce(
+pub extern fn rs_ike_state_get_nonce(
     tx: &mut IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
@@ -93,7 +93,7 @@ pub extern "C" fn rs_ike_state_get_nonce(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_key_exchange(
+pub extern fn rs_ike_state_get_key_exchange(
     tx: &mut IKETransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     debug_validate_bug_on!(buffer.is_null() || buffer_len.is_null());
@@ -116,7 +116,7 @@ pub extern "C" fn rs_ike_state_get_key_exchange(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_tx_get_vendor(
+pub extern fn rs_ike_tx_get_vendor(
     tx: &IKETransaction, i: u32, buf: *mut *const u8, len: *mut u32,
 ) -> u8 {
     if tx.ike_version == 1 && i < tx.hdr.ikev1_header.vendor_ids.len() as u32 {
@@ -136,7 +136,7 @@ pub extern "C" fn rs_ike_tx_get_vendor(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_ike_state_get_sa_attribute(
+pub extern fn rs_ike_state_get_sa_attribute(
     tx: &mut IKETransaction, sa_type: *const std::os::raw::c_char, value: *mut u32,
 ) -> u8 {
     debug_validate_bug_on!(value.is_null());
@@ -207,7 +207,7 @@ pub extern "C" fn rs_ike_state_get_sa_attribute(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_key_exchange_payload_length(
+pub unsafe extern fn rs_ike_state_get_key_exchange_payload_length(
     tx: &mut IKETransaction, value: *mut u32,
 ) -> u8 {
     debug_validate_bug_on!(value.is_null());
@@ -222,7 +222,7 @@ pub unsafe extern "C" fn rs_ike_state_get_key_exchange_payload_length(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_ike_state_get_nonce_payload_length(
+pub unsafe extern fn rs_ike_state_get_nonce_payload_length(
     tx: &mut IKETransaction, value: *mut u32,
 ) -> u8 {
     debug_validate_bug_on!(value.is_null());

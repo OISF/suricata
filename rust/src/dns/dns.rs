@@ -722,7 +722,7 @@ pub fn probe_tcp(input: &[u8]) -> (bool, bool, bool) {
 
 /// Returns *mut DNSState
 #[no_mangle]
-pub extern "C" fn rs_dns_state_new(
+pub extern fn rs_dns_state_new(
     _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = DNSState::new();
@@ -732,7 +732,7 @@ pub extern "C" fn rs_dns_state_new(
 
 /// Returns *mut DNSState
 #[no_mangle]
-pub extern "C" fn rs_dns_state_tcp_new() -> *mut std::os::raw::c_void {
+pub extern fn rs_dns_state_tcp_new() -> *mut std::os::raw::c_void {
     let state = DNSState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
@@ -741,20 +741,20 @@ pub extern "C" fn rs_dns_state_tcp_new() -> *mut std::os::raw::c_void {
 /// Params:
 /// - state: *mut DNSState as void pointer
 #[no_mangle]
-pub extern "C" fn rs_dns_state_free(state: *mut std::os::raw::c_void) {
+pub extern fn rs_dns_state_free(state: *mut std::os::raw::c_void) {
     // Just unbox...
     std::mem::drop(unsafe { Box::from_raw(state as *mut DNSState) });
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern fn rs_dns_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, DNSState);
     state.free_tx(tx_id);
 }
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_parse_request(
+pub unsafe extern fn rs_dns_parse_request(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -764,7 +764,7 @@ pub unsafe extern "C" fn rs_dns_parse_request(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_parse_response(
+pub unsafe extern fn rs_dns_parse_response(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -775,7 +775,7 @@ pub unsafe extern "C" fn rs_dns_parse_response(
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_parse_request_tcp(
+pub unsafe extern fn rs_dns_parse_request_tcp(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -789,7 +789,7 @@ pub unsafe extern "C" fn rs_dns_parse_request_tcp(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_parse_response_tcp(
+pub unsafe extern fn rs_dns_parse_response_tcp(
     flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -803,7 +803,7 @@ pub unsafe extern "C" fn rs_dns_parse_response_tcp(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_alstate_progress(
+pub extern fn rs_dns_tx_get_alstate_progress(
     _tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     // This is a stateless parser, just the existence of a transaction
@@ -813,14 +813,14 @@ pub extern "C" fn rs_dns_tx_get_alstate_progress(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern fn rs_dns_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, DNSState);
     SCLogDebug!("rs_dns_state_get_tx_count: returning {}", state.tx_id);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_state_get_tx(
+pub unsafe extern fn rs_dns_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, DNSState);
@@ -835,16 +835,16 @@ pub unsafe extern "C" fn rs_dns_state_get_tx(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_is_request(tx: &mut DNSTransaction) -> bool {
+pub extern fn rs_dns_tx_is_request(tx: &mut DNSTransaction) -> bool {
     tx.request.is_some()
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_is_response(tx: &mut DNSTransaction) -> bool {
+pub extern fn rs_dns_tx_is_response(tx: &mut DNSTransaction) -> bool {
     tx.response.is_some()
 }
 
-pub unsafe extern "C" fn rs_dns_state_get_tx_data(
+pub unsafe extern fn rs_dns_state_get_tx_data(
     tx: *mut std::os::raw::c_void,
 ) -> *mut AppLayerTxData {
     let tx = cast_pointer!(tx, DNSTransaction);
@@ -855,7 +855,7 @@ export_state_data_get!(rs_dns_get_state_data, DNSState);
 
 /// Get the DNS query name at index i.
 #[no_mangle]
-pub unsafe extern "C" fn SCDnsTxGetQueryName(
+pub unsafe extern fn SCDnsTxGetQueryName(
     tx: &mut DNSTransaction, to_client: bool, i: u32, buf: *mut *const u8, len: *mut u32,
 ) -> bool {
     let queries = if to_client {
@@ -880,7 +880,7 @@ pub unsafe extern "C" fn SCDnsTxGetQueryName(
 
 /// Get the DNS response answer name and index i.
 #[no_mangle]
-pub unsafe extern "C" fn SCDnsTxGetAnswerName(
+pub unsafe extern fn SCDnsTxGetAnswerName(
     tx: &mut DNSTransaction, to_client: bool, i: u32, buf: *mut *const u8, len: *mut u32,
 ) -> bool {
     let answers = if to_client {
@@ -907,7 +907,7 @@ pub unsafe extern "C" fn SCDnsTxGetAnswerName(
 //
 /// extern uint16_t rs_dns_tx_get_tx_id(RSDNSTransaction *);
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_tx_id(tx: &mut DNSTransaction) -> u16 {
+pub extern fn rs_dns_tx_get_tx_id(tx: &mut DNSTransaction) -> u16 {
     return tx.tx_id();
 }
 
@@ -915,12 +915,12 @@ pub extern "C" fn rs_dns_tx_get_tx_id(tx: &mut DNSTransaction) -> u16 {
 ///
 /// extern uint16_t rs_dns_tx_get_response_flags(RSDNSTransaction *);
 #[no_mangle]
-pub extern "C" fn rs_dns_tx_get_response_flags(tx: &mut DNSTransaction) -> u16 {
+pub extern fn rs_dns_tx_get_response_flags(tx: &mut DNSTransaction) -> u16 {
     return tx.rcode();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_tx_get_query_rrtype(
+pub unsafe extern fn rs_dns_tx_get_query_rrtype(
     tx: &mut DNSTransaction, i: u16, rrtype: *mut u16,
 ) -> u8 {
     if let Some(request) = &tx.request {
@@ -936,7 +936,7 @@ pub unsafe extern "C" fn rs_dns_tx_get_query_rrtype(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_probe(
+pub unsafe extern fn rs_dns_probe(
     _flow: *const core::Flow, _dir: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
     if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 {
@@ -957,7 +957,7 @@ pub unsafe extern "C" fn rs_dns_probe(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_probe_tcp(
+pub unsafe extern fn rs_dns_probe_tcp(
     _flow: *const core::Flow, direction: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
     if len == 0 || len < std::mem::size_of::<DNSHeader>() as u32 + 2 {
@@ -981,7 +981,7 @@ pub unsafe extern "C" fn rs_dns_probe_tcp(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_apply_tx_config(
+pub unsafe extern fn rs_dns_apply_tx_config(
     _state: *mut std::os::raw::c_void, _tx: *mut std::os::raw::c_void, _mode: std::os::raw::c_int,
     config: AppLayerTxConfig,
 ) {
@@ -998,7 +998,7 @@ pub unsafe extern "C" fn rs_dns_apply_tx_config(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_udp_register_parser() {
+pub unsafe extern fn rs_dns_udp_register_parser() {
     let default_port = std::ffi::CString::new("[53]").unwrap();
     let parser = RustParser {
         name: b"dns\0".as_ptr() as *const std::os::raw::c_char,
@@ -1044,7 +1044,7 @@ pub unsafe extern "C" fn rs_dns_udp_register_parser() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_tcp_register_parser() {
+pub unsafe extern fn rs_dns_tcp_register_parser() {
     let default_port = std::ffi::CString::new("53").unwrap();
     let parser = RustParser {
         name: b"dns\0".as_ptr() as *const std::os::raw::c_char,

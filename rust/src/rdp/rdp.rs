@@ -72,7 +72,7 @@ impl RdpTransaction {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rdp_state_get_tx(
+pub unsafe extern fn rs_rdp_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, RdpState);
@@ -87,13 +87,13 @@ pub unsafe extern "C" fn rs_rdp_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rdp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern fn rs_rdp_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, RdpState);
     return state.next_id;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_tx_get_progress(
+pub extern fn rs_rdp_tx_get_progress(
     _tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     // tx complete when `rs_rdp_tx_get_progress(...) == rs_rdp_tx_get_progress_complete(...)`
@@ -375,19 +375,21 @@ impl RdpState {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern fn rs_rdp_state_new(
+    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+) -> *mut std::os::raw::c_void {
     let state = RdpState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_rdp_state_free(state: *mut std::os::raw::c_void) {
+pub extern fn rs_rdp_state_free(state: *mut std::os::raw::c_void) {
     std::mem::drop(unsafe { Box::from_raw(state as *mut RdpState) });
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rdp_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern fn rs_rdp_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, RdpState);
     state.free_tx(tx_id);
 }
@@ -403,7 +405,7 @@ fn probe_rdp(input: &[u8]) -> bool {
 
 /// probe for T.123 message, whether to client or to server
 #[no_mangle]
-pub unsafe extern "C" fn rs_rdp_probe_ts_tc(
+pub unsafe extern fn rs_rdp_probe_ts_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if !input.is_null() {
@@ -430,10 +432,9 @@ fn probe_tls_handshake(input: &[u8]) -> bool {
 //
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rdp_parse_ts(
+pub unsafe extern fn rs_rdp_parse_ts(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
     let buf = stream_slice.as_slice();
@@ -442,10 +443,9 @@ pub unsafe extern "C" fn rs_rdp_parse_ts(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rdp_parse_tc(
+pub unsafe extern fn rs_rdp_parse_tc(
     _flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, RdpState);
     let buf = stream_slice.as_slice();
@@ -463,7 +463,7 @@ export_state_data_get!(rs_rdp_get_state_data, RdpState);
 const PARSER_NAME: &[u8] = b"rdp\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rdp_register_parser() {
+pub unsafe extern fn rs_rdp_register_parser() {
     let default_port = std::ffi::CString::new("[3389]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,

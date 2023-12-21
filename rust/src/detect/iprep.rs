@@ -71,7 +71,7 @@ pub fn is_alphanumeric_or_slash(chr: char) -> bool {
     return false;
 }
 
-extern "C" {
+extern {
     pub fn SRepCatGetByShortname(name: *const c_char) -> u8;
 }
 
@@ -108,7 +108,7 @@ pub fn detect_parse_iprep(i: &str) -> IResult<&str, DetectIPRepData> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_iprep_parse(
+pub unsafe extern fn rs_detect_iprep_parse(
     ustr: *const std::os::raw::c_char,
 ) -> *mut DetectIPRepData {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
@@ -122,7 +122,7 @@ pub unsafe extern "C" fn rs_detect_iprep_parse(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_iprep_free(ctx: &mut DetectIPRepData) {
+pub unsafe extern fn rs_detect_iprep_free(ctx: &mut DetectIPRepData) {
     // Just unbox...
     std::mem::drop(Box::from_raw(ctx));
 }

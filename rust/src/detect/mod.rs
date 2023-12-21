@@ -21,7 +21,7 @@ pub mod byte_math;
 pub mod error;
 pub mod iprep;
 pub mod parser;
+pub mod requires;
 pub mod stream_size;
 pub mod uint;
 pub mod uri;
-pub mod requires;

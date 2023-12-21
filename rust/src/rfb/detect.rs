@@ -21,7 +21,7 @@ use crate::rfb::rfb::*;
 use std::ptr;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rfb_tx_get_name(
+pub unsafe extern fn rs_rfb_tx_get_name(
     tx: &mut RFBTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ref r) = tx.tc_server_init {
@@ -40,7 +40,7 @@ pub unsafe extern "C" fn rs_rfb_tx_get_name(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rfb_tx_get_sectype(tx: &mut RFBTransaction, sectype: *mut u32) -> u8 {
+pub unsafe extern fn rs_rfb_tx_get_sectype(tx: &mut RFBTransaction, sectype: *mut u32) -> u8 {
     if let Some(ref r) = tx.chosen_security_type {
         *sectype = *r;
         return 1;
@@ -52,9 +52,7 @@ pub unsafe extern "C" fn rs_rfb_tx_get_sectype(tx: &mut RFBTransaction, sectype:
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_rfb_tx_get_secresult(
-    tx: &mut RFBTransaction, secresult: *mut u32,
-) -> u8 {
+pub unsafe extern fn rs_rfb_tx_get_secresult(tx: &mut RFBTransaction, secresult: *mut u32) -> u8 {
     if let Some(ref r) = tx.tc_security_result {
         *secresult = r.status;
         return 1;

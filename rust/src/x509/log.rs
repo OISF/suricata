@@ -28,7 +28,7 @@ use std::os::raw::c_char;
 ///
 /// FFI function that dereferences pointers from C.
 #[no_mangle]
-pub unsafe extern "C" fn sc_x509_log_timestamp(
+pub unsafe extern fn sc_x509_log_timestamp(
     jb: &mut JsonBuilder, key: *const c_char, timestamp: i64,
 ) -> bool {
     if let Ok(key) = CStr::from_ptr(key).to_str() {

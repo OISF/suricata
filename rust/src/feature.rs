@@ -39,7 +39,7 @@ mod real {
     use std::ffi::CString;
     use std::os::raw::c_char;
 
-    extern "C" {
+    extern {
         fn RequiresFeature(feature: *const c_char) -> bool;
     }
 

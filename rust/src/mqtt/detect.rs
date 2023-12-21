@@ -50,7 +50,7 @@ fn check_flag_state(flag_state: MQTTFlagState, flag_value: bool, ok: &mut bool) 
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_has_type(tx: &MQTTTransaction, mtype: u8) -> u8 {
+pub extern fn rs_mqtt_tx_has_type(tx: &MQTTTransaction, mtype: u8) -> u8 {
     for msg in tx.msg.iter() {
         if mtype == msg.header.message_type as u8 {
             return 1;
@@ -60,7 +60,7 @@ pub extern "C" fn rs_mqtt_tx_has_type(tx: &MQTTTransaction, mtype: u8) -> u8 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_cstr_message_code(
+pub unsafe extern fn rs_mqtt_cstr_message_code(
     str: *const std::os::raw::c_char,
 ) -> std::os::raw::c_int {
     let msgtype: &CStr = CStr::from_ptr(str);
@@ -73,7 +73,7 @@ pub unsafe extern "C" fn rs_mqtt_cstr_message_code(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_has_flags(
+pub extern fn rs_mqtt_tx_has_flags(
     tx: &MQTTTransaction, qretain: MQTTFlagState, qdup: MQTTFlagState,
 ) -> u8 {
     for msg in tx.msg.iter() {
@@ -89,7 +89,7 @@ pub extern "C" fn rs_mqtt_tx_has_flags(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_has_qos(tx: &MQTTTransaction, qos: u8) -> u8 {
+pub extern fn rs_mqtt_tx_has_qos(tx: &MQTTTransaction, qos: u8) -> u8 {
     for msg in tx.msg.iter() {
         if qos == msg.header.qos_level {
             return 1;
@@ -99,12 +99,12 @@ pub extern "C" fn rs_mqtt_tx_has_qos(tx: &MQTTTransaction, qos: u8) -> u8 {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_get_protocol_version(state: &MQTTState) -> u8 {
+pub extern fn rs_mqtt_tx_get_protocol_version(state: &MQTTState) -> u8 {
     return state.protocol_version;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_has_connect_flags(
+pub extern fn rs_mqtt_tx_has_connect_flags(
     tx: &MQTTTransaction, username: MQTTFlagState, password: MQTTFlagState, will: MQTTFlagState,
     will_retain: MQTTFlagState, clean_session: MQTTFlagState,
 ) -> u8 {
@@ -125,7 +125,7 @@ pub extern "C" fn rs_mqtt_tx_has_connect_flags(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_connect_clientid(
+pub unsafe extern fn rs_mqtt_tx_get_connect_clientid(
     tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
@@ -145,7 +145,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_clientid(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_connect_username(
+pub unsafe extern fn rs_mqtt_tx_get_connect_username(
     tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
@@ -167,7 +167,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_username(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_connect_password(
+pub unsafe extern fn rs_mqtt_tx_get_connect_password(
     tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
@@ -188,7 +188,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_password(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_connect_willtopic(
+pub unsafe extern fn rs_mqtt_tx_get_connect_willtopic(
     tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
@@ -210,7 +210,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_willtopic(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_connect_willmessage(
+pub unsafe extern fn rs_mqtt_tx_get_connect_willmessage(
     tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
@@ -232,7 +232,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_willmessage(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_connect_protocol_string(
+pub unsafe extern fn rs_mqtt_tx_get_connect_protocol_string(
     tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
@@ -252,7 +252,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connect_protocol_string(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_connack_sessionpresent(
+pub unsafe extern fn rs_mqtt_tx_get_connack_sessionpresent(
     tx: &MQTTTransaction, session_present: *mut bool,
 ) -> u8 {
     for msg in tx.msg.iter() {
@@ -265,7 +265,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_connack_sessionpresent(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_publish_topic(
+pub unsafe extern fn rs_mqtt_tx_get_publish_topic(
     tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
@@ -286,7 +286,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_publish_topic(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_publish_message(
+pub unsafe extern fn rs_mqtt_tx_get_publish_message(
     tx: &MQTTTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     for msg in tx.msg.iter() {
@@ -307,7 +307,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_publish_message(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_subscribe_topic(
+pub unsafe extern fn rs_mqtt_tx_get_subscribe_topic(
     tx: &MQTTTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
 ) -> u8 {
     let mut offset = 0;
@@ -333,7 +333,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_subscribe_topic(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_unsubscribe_topic(
+pub unsafe extern fn rs_mqtt_tx_get_unsubscribe_topic(
     tx: &MQTTTransaction, i: u32, buf: *mut *const u8, len: *mut u32,
 ) -> u8 {
     let mut offset = 0;
@@ -359,7 +359,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_unsubscribe_topic(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_tx_get_reason_code(tx: &MQTTTransaction, result: *mut u8) -> u8 {
+pub unsafe extern fn rs_mqtt_tx_get_reason_code(tx: &MQTTTransaction, result: *mut u8) -> u8 {
     for msg in tx.msg.iter() {
         match msg.op {
             MQTTOperation::PUBACK(ref v)
@@ -392,7 +392,7 @@ pub unsafe extern "C" fn rs_mqtt_tx_get_reason_code(tx: &MQTTTransaction, result
 }
 
 #[no_mangle]
-pub extern "C" fn rs_mqtt_tx_unsuback_has_reason_code(tx: &MQTTTransaction, code: u8) -> u8 {
+pub extern fn rs_mqtt_tx_unsuback_has_reason_code(tx: &MQTTTransaction, code: u8) -> u8 {
     for msg in tx.msg.iter() {
         if let MQTTOperation::UNSUBACK(ref unsuback) = msg.op {
             if let Some(ref reason_codes) = unsuback.reason_codes {
@@ -410,28 +410,31 @@ pub extern "C" fn rs_mqtt_tx_unsuback_has_reason_code(tx: &MQTTTransaction, code
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::core::Direction;
     use crate::mqtt::mqtt::MQTTTransaction;
     use crate::mqtt::mqtt_message::*;
     use crate::mqtt::parser::FixedHeader;
-    use crate::core::Direction;
     use std;
 
     #[test]
     fn test_multi_unsubscribe() {
-        let mut t = MQTTTransaction::new(MQTTMessage {
-            header: FixedHeader {
-                message_type: MQTTTypeCode::UNSUBSCRIBE,
-                dup_flag: false,
-                qos_level: 0,
-                retain: false,
-                remaining_length: 0,
+        let mut t = MQTTTransaction::new(
+            MQTTMessage {
+                header: FixedHeader {
+                    message_type: MQTTTypeCode::UNSUBSCRIBE,
+                    dup_flag: false,
+                    qos_level: 0,
+                    retain: false,
+                    remaining_length: 0,
+                },
+                op: MQTTOperation::UNSUBSCRIBE(MQTTUnsubscribeData {
+                    message_id: 1,
+                    topics: vec!["foo".to_string(), "baar".to_string()],
+                    properties: None,
+                }),
             },
-            op: MQTTOperation::UNSUBSCRIBE(MQTTUnsubscribeData {
-                message_id: 1,
-                topics: vec!["foo".to_string(), "baar".to_string()],
-                properties: None,
-            }),
-        }, Direction::ToServer);
+            Direction::ToServer,
+        );
         t.msg.push(MQTTMessage {
             header: FixedHeader {
                 message_type: MQTTTypeCode::UNSUBSCRIBE,
@@ -470,29 +473,32 @@ mod test {
 
     #[test]
     fn test_multi_subscribe() {
-        let mut t = MQTTTransaction::new(MQTTMessage {
-            header: FixedHeader {
-                message_type: MQTTTypeCode::SUBSCRIBE,
-                dup_flag: false,
-                qos_level: 0,
-                retain: false,
-                remaining_length: 0,
+        let mut t = MQTTTransaction::new(
+            MQTTMessage {
+                header: FixedHeader {
+                    message_type: MQTTTypeCode::SUBSCRIBE,
+                    dup_flag: false,
+                    qos_level: 0,
+                    retain: false,
+                    remaining_length: 0,
+                },
+                op: MQTTOperation::SUBSCRIBE(MQTTSubscribeData {
+                    message_id: 1,
+                    topics: vec![
+                        MQTTSubscribeTopicData {
+                            topic_name: "foo".to_string(),
+                            qos: 0,
+                        },
+                        MQTTSubscribeTopicData {
+                            topic_name: "baar".to_string(),
+                            qos: 1,
+                        },
+                    ],
+                    properties: None,
+                }),
             },
-            op: MQTTOperation::SUBSCRIBE(MQTTSubscribeData {
-                message_id: 1,
-                topics: vec![
-                    MQTTSubscribeTopicData {
-                        topic_name: "foo".to_string(),
-                        qos: 0,
-                    },
-                    MQTTSubscribeTopicData {
-                        topic_name: "baar".to_string(),
-                        qos: 1,
-                    },
-                ],
-                properties: None,
-            }),
-        }, Direction::ToServer);
+            Direction::ToServer,
+        );
         t.msg.push(MQTTMessage {
             header: FixedHeader {
                 message_type: MQTTTypeCode::SUBSCRIBE,

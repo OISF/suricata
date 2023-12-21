@@ -297,7 +297,7 @@ fn log_mqtt(tx: &MQTTTransaction, flags: u32, js: &mut JsonBuilder) -> Result<()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mqtt_logger_log(
+pub unsafe extern fn rs_mqtt_logger_log(
     tx: *mut std::os::raw::c_void, flags: u32, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, MQTTTransaction);
