@@ -1097,7 +1097,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     }
 
     const DetectEngineAppInspectionEngine *engine = s->app_inspect;
-    while (engine != NULL) { // TODO could be do {} while as s->app_inspect cannot be null
+    do {
         TRACE_SID_TXS(s->id, tx, "engine %p inspect_flags %x", engine, inspect_flags);
         if (!(inspect_flags & BIT_U32(engine->id)) &&
                 direction == engine->dir)
@@ -1178,7 +1178,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             break;
         }
         engine = engine->next;
-    }
+    } while (engine != NULL);
     TRACE_SID_TXS(s->id, tx, "inspect_flags %x, total_matches %u, engine %p",
             inspect_flags, total_matches, engine);
 
