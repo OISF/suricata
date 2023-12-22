@@ -23,6 +23,7 @@ use proc_macro::TokenStream;
 
 mod applayerevent;
 mod applayerframetype;
+mod stringenum;
 
 /// The `AppLayerEvent` derive macro generates a `AppLayerEvent` trait
 /// implementation for enums that define AppLayerEvents.
@@ -49,4 +50,19 @@ pub fn derive_app_layer_event(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(AppLayerFrameType)]
 pub fn derive_app_layer_frame_type(input: TokenStream) -> TokenStream {
     applayerframetype::derive_app_layer_frame_type(input)
+}
+
+#[proc_macro_derive(EnumStringU8, attributes(name))]
+pub fn derive_enum_string_u8(input: TokenStream) -> TokenStream {
+    stringenum::derive_enum_string::<u8>(input, "u8")
+}
+
+#[proc_macro_derive(EnumStringU16, attributes(name))]
+pub fn derive_enum_string_u16(input: TokenStream) -> TokenStream {
+    stringenum::derive_enum_string::<u16>(input, "u16")
+}
+
+#[proc_macro_derive(EnumStringU32, attributes(name))]
+pub fn derive_enum_string_u32(input: TokenStream) -> TokenStream {
+    stringenum::derive_enum_string::<u32>(input, "u32")
 }
