@@ -1754,6 +1754,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterSNMPParsers();
     RegisterSIPParsers();
     RegisterQuicParsers();
+    rs_websocket_register_parser();
     rs_template_register_parser();
     RegisterRFBParsers();
     SCMqttRegisterParser();
