@@ -88,6 +88,9 @@ typedef struct AppLayerProtoDetectProbingParserElement_ {
 typedef struct AppLayerProtoDetectProbingParserPort_ {
     /* the port no for which probing parser(s) are invoked */
     uint16_t port;
+    /* wether to use this probing parser port-based */
+    // WebSocket has this set to false as it only works with protocol change
+    bool use_ports;
 
     uint32_t alproto_mask;
 
@@ -443,7 +446,7 @@ static AppLayerProtoDetectProbingParserPort *AppLayerProtoDetectGetProbingParser
 
     pp_port = pp->port;
     while (pp_port != NULL) {
-        if (pp_port->port == port || pp_port->port == 0) {
+        if (pp_port->port == port || (pp_port->port == 0 && pp_port->use_ports)) {
             break;
         }
         pp_port = pp_port->next;
@@ -579,7 +582,10 @@ again_midstream:
         }
     }
 
-    if (dir == STREAM_TOSERVER && f->alproto_tc != ALPROTO_UNKNOWN) {
+    if (f->alproto_expect != ALPROTO_UNKNOWN) {
+        // used for websocket which does not use ports
+        pe0 = AppLayerProtoDetectGetProbingParser(alpd_ctx.ctx_pp, ipproto, f->alproto_expect);
+    } else if (dir == STREAM_TOSERVER && f->alproto_tc != ALPROTO_UNKNOWN) {
         pe0 = AppLayerProtoDetectGetProbingParser(alpd_ctx.ctx_pp, ipproto, f->alproto_tc);
     } else if (dir == STREAM_TOCLIENT && f->alproto_ts != ALPROTO_UNKNOWN) {
         pe0 = AppLayerProtoDetectGetProbingParser(alpd_ctx.ctx_pp, ipproto, f->alproto_ts);
@@ -963,12 +969,13 @@ static void AppLayerProtoDetectProbingParserPortAppend(AppLayerProtoDetectProbin
         goto end;
     }
 
-    if ((*head_port)->port == 0) {
+    if ((*head_port)->port == 0 && (*head_port)->use_ports) {
         new_port->next = *head_port;
         *head_port = new_port;
     } else {
         AppLayerProtoDetectProbingParserPort *temp_port = *head_port;
-        while (temp_port->next != NULL && temp_port->next->port != 0) {
+        while (temp_port->next != NULL && temp_port->next->port != 0 &&
+                temp_port->next->use_ports) {
             temp_port = temp_port->next;
         }
         new_port->next = temp_port->next;
@@ -980,13 +987,9 @@ static void AppLayerProtoDetectProbingParserPortAppend(AppLayerProtoDetectProbin
 }
 
 static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbingParser **pp,
-                                                             uint8_t ipproto,
-                                                             uint16_t port,
-                                                             AppProto alproto,
-                                                             uint16_t min_depth, uint16_t max_depth,
-                                                             uint8_t direction,
-                                                             ProbingParserFPtr ProbingParser1,
-                                                             ProbingParserFPtr ProbingParser2)
+        uint8_t ipproto, bool use_ports, uint16_t port, AppProto alproto, uint16_t min_depth,
+        uint16_t max_depth, uint8_t direction, ProbingParserFPtr ProbingParser1,
+        ProbingParserFPtr ProbingParser2)
 {
     SCEnter();
 
@@ -1014,6 +1017,7 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
     if (curr_port == NULL) {
         AppLayerProtoDetectProbingParserPort *new_port = AppLayerProtoDetectProbingParserPortAlloc();
         new_port->port = port;
+        new_port->use_ports = use_ports;
         AppLayerProtoDetectProbingParserPortAppend(&curr_pp->port, new_port);
         curr_port = new_port;
         if (direction & STREAM_TOSERVER) {
@@ -1025,7 +1029,7 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
         AppLayerProtoDetectProbingParserPort *zero_port;
 
         zero_port = curr_pp->port;
-        while (zero_port != NULL && zero_port->port != 0) {
+        while (zero_port != NULL && zero_port->port != 0 && zero_port->use_ports) {
             zero_port = zero_port->next;
         }
         if (zero_port != NULL) {
@@ -1123,7 +1127,7 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
     }
     AppLayerProtoDetectProbingParserElementAppend(head_pe, new_pe);
 
-    if (curr_port->port == 0) {
+    if (curr_port->port == 0 && curr_port->use_ports) {
         AppLayerProtoDetectProbingParserPort *temp_port = curr_pp->port;
         while (temp_port != NULL && temp_port->port != 0) {
             if (direction & STREAM_TOSERVER) {
@@ -1153,7 +1157,7 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
             }
             temp_port = temp_port->next;
         } /* while */
-    } /* if */
+    }     /* if */
 
  error:
     SCReturn;
@@ -1574,6 +1578,13 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
     SCEnter();
 
     DetectPort *head = NULL;
+    if (portstr == NULL) {
+        // WebSocket has a probing parser, but no port
+        // as it works only on HTTP1 protocol upgrade
+        AppLayerProtoDetectInsertNewProbingParser(&alpd_ctx.ctx_pp, ipproto, false, 0, alproto,
+                min_depth, max_depth, direction, ProbingParser1, ProbingParser2);
+        return;
+    }
     DetectPortParse(NULL,&head, portstr);
     DetectPort *temp_dp = head;
     while (temp_dp != NULL) {
@@ -1581,14 +1592,8 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
         if (port == 0 && temp_dp->port2 != 0)
             port++;
         for (;;) {
-            AppLayerProtoDetectInsertNewProbingParser(&alpd_ctx.ctx_pp,
-                                                      ipproto,
-                                                      port,
-                                                      alproto,
-                                                      min_depth, max_depth,
-                                                      direction,
-                                                      ProbingParser1,
-                                                      ProbingParser2);
+            AppLayerProtoDetectInsertNewProbingParser(&alpd_ctx.ctx_pp, ipproto, true, port,
+                    alproto, min_depth, max_depth, direction, ProbingParser1, ProbingParser2);
             if (port == temp_dp->port2) {
                 break;
             } else {
