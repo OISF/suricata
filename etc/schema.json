@@ -3895,6 +3895,9 @@
                                 "tls": {
                                     "description": "Errors encountered parsing TLS protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "websocket": {
+                                    "$ref": "#/$defs/stats_applayer_error"
                                 }
                             },
                             "additionalProperties": false
@@ -4053,6 +4056,9 @@
                                 "tls": {
                                     "description": "Number of flows for TLS protocol",
                                     "type": "integer"
+                                },
+                                "websocket": {
+                                    "type": "integer"
                                 }
                             },
                             "additionalProperties": false
@@ -4166,6 +4172,9 @@
                                     "type": "integer"
                                 },
                                 "tls": {
+                                    "type": "integer"
+                                },
+                                "websocket": {
                                     "type": "integer"
                                 }
                             },
@@ -5644,6 +5653,21 @@
                 },
                 "src_port": {
                     "type": "integer"
+                }
+            },
+            "additionalProperties": false
+        },
+        "websocket": {
+            "type": "object",
+            "properties": {
+                "fin": {
+                    "type": "boolean"
+                },
+                "mask": {
+                    "type": "integer"
+                },
+                "opcode": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false

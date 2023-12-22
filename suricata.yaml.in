@@ -284,6 +284,7 @@ outputs:
             #md5: [body, subject]
 
         #- dnp3
+        - websocket
         - ftp
         - rdp
         - nfs
@@ -926,6 +927,10 @@ app-layer:
     ftp:
       enabled: yes
       # memcap: 64mb
+    websocket:
+      #enabled: yes
+      # Maximum used payload size, the rest is skipped
+      # max-payload-size: 65535
     rdp:
       #enabled: yes
     ssh:
