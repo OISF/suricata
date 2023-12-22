@@ -383,9 +383,9 @@ void DetectContentFree(DetectEngineCtx *de_ctx, void *ptr)
     SCReturn;
 }
 
-/*
+/**
  *  \brief Determine the size needed to accommodate the content
- *  elements of a signature
+ *         elements of a signature
  *  \param s signature to get dsize value from
  *  \param max_size Maximum buffer/data size allowed.
  *  \param list signature match list.
