@@ -53,6 +53,7 @@
 
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
+#include "app-layer-expectation.h"
 
 #include "app-layer.h"
 #include "app-layer-detect-proto.h"
@@ -979,11 +980,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
                 if (tx != NULL && tx->response_status_number == 101) {
                     htp_header_t *h =
                             (htp_header_t *)htp_table_get_c(tx->response_headers, "Upgrade");
-                    if (h == NULL || bstr_cmp_c(h->value, "h2c") != 0) {
-                        break;
-                    }
-                    if (AppLayerProtoDetectGetProtoName(ALPROTO_HTTP2) == NULL) {
-                        // if HTTP2 is disabled, keep the HTP_STREAM_TUNNEL mode
+                    if (h == NULL) {
                         break;
                     }
                     uint16_t dp = 0;
@@ -991,17 +988,39 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
                         dp = (uint16_t)tx->request_port_number;
                     }
                     consumed = htp_connp_res_data_consumed(hstate->connp);
-                    hstate->slice = NULL;
-                    if (!AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2)) {
-                        HTPSetEvent(hstate, NULL, STREAM_TOCLIENT,
-                                HTTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE);
+                    if (bstr_cmp_c(h->value, "h2c") == 0) {
+                        if (AppLayerProtoDetectGetProtoName(ALPROTO_HTTP2) == NULL) {
+                            // if HTTP2 is disabled, keep the HTP_STREAM_TUNNEL mode
+                            break;
+                        }
+                        hstate->slice = NULL;
+                        if (!AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_HTTP2)) {
+                            HTPSetEvent(hstate, NULL, STREAM_TOCLIENT,
+                                    HTTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE);
+                        }
+                        // During HTTP2 upgrade, we may consume the HTTP1 part of the data
+                        // and we need to parser the remaining part with HTTP2
+                        if (consumed > 0 && consumed < input_len) {
+                            SCReturnStruct(APP_LAYER_INCOMPLETE(consumed, input_len - consumed));
+                        }
+                        SCReturnStruct(APP_LAYER_OK);
+                    } else if (bstr_cmp_c_nocase(h->value, "WebSocket") == 0) {
+                        if (AppLayerProtoDetectGetProtoName(ALPROTO_WEBSOCKET) == NULL) {
+                            // if WS is disabled, keep the HTP_STREAM_TUNNEL mode
+                            break;
+                        }
+                        hstate->slice = NULL;
+                        if (!AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_WEBSOCKET)) {
+                            HTPSetEvent(hstate, NULL, STREAM_TOCLIENT,
+                                    HTTP_DECODER_EVENT_FAILED_PROTOCOL_CHANGE);
+                        }
+                        // During WS upgrade, we may consume the HTTP1 part of the data
+                        // and we need to parser the remaining part with WS
+                        if (consumed > 0 && consumed < input_len) {
+                            SCReturnStruct(APP_LAYER_INCOMPLETE(consumed, input_len - consumed));
+                        }
+                        SCReturnStruct(APP_LAYER_OK);
                     }
-                    // During HTTP2 upgrade, we may consume the HTTP1 part of the data
-                    // and we need to parser the remaining part with HTTP2
-                    if (consumed > 0 && consumed < input_len) {
-                        SCReturnStruct(APP_LAYER_INCOMPLETE(consumed, input_len - consumed));
-                    }
-                    SCReturnStruct(APP_LAYER_OK);
                 }
                 break;
             default:
