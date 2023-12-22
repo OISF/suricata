@@ -360,6 +360,7 @@ noinst_HEADERS = \
 	detect-urilen.h \
 	detect-within.h \
 	detect-xbits.h \
+	detect-websocket.h \
 	device-storage.h \
 	feature.h \
 	flow-bit.h \
@@ -966,6 +967,7 @@ libsuricata_c_a_SOURCES = \
 	detect-urilen.c \
 	detect-within.c \
 	detect-xbits.c \
+	detect-websocket.c \
 	device-storage.c \
 	feature.c \
 	flow-bit.c \
