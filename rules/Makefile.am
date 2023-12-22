@@ -22,4 +22,5 @@ smb-events.rules \
 smtp-events.rules \
 ssh-events.rules \
 stream-events.rules \
-tls-events.rules
+tls-events.rules \
+websocket-events.rules
