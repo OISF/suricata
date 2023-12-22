@@ -40,7 +40,7 @@
 /*prototypes*/
 static int DetectBsizeSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectBsizeFree (DetectEngineCtx *, void *);
-static int SigParseGetMaxBsize(DetectU64Data *bsz);
+static int SigParseGetMaxBsize(const DetectU64Data *bsz);
 #ifdef UNITTESTS
 static void DetectBsizeRegisterTests (void);
 #endif
@@ -48,10 +48,10 @@ static void DetectBsizeRegisterTests (void);
 bool DetectBsizeValidateContentCallback(Signature *s, const SignatureInitDataBuffer *b)
 {
     int bsize = -1;
-    DetectU64Data *bsz;
+    const DetectU64Data *bsz;
     for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_BSIZE) {
-            bsz = (DetectU64Data *)sm->ctx;
+            bsz = (const DetectU64Data *)sm->ctx;
             bsize = SigParseGetMaxBsize(bsz);
             break;
         }
@@ -171,7 +171,7 @@ static DetectU64Data *DetectBsizeParse(const char *str)
     return DetectU64Parse(str);
 }
 
-static int SigParseGetMaxBsize(DetectU64Data *bsz)
+static int SigParseGetMaxBsize(const DetectU64Data *bsz)
 {
     switch (bsz->mode) {
         case DETECT_UINT_LT:
