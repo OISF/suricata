@@ -25,3 +25,24 @@ pub mod stream_size;
 pub mod uint;
 pub mod uri;
 pub mod requires;
+
+use crate::detect::uint::DetectUintData;
+
+/// Enum trait that will be implemented on enums that
+/// derive StringEnum.
+pub trait Enum<T> {
+    /// Return the enum variant of the given numeric value.
+    fn from_u(v: T) -> Option<Self> where Self: Sized;
+
+    /// Convert the enum variant to the numeric value.
+    fn into_u(&self) -> T;
+
+    /// Return the string for logging the enum value.
+    fn to_str(&self) -> &'static str;
+
+    /// Get an enum variant from parsing a string.
+    fn from_str(s: &str) -> Option<Self> where Self: Sized;
+
+    /// Get a detect context for integer keyword.
+    fn to_detect_ctx(s: &str) -> Option<DetectUintData<T>>;
+}
