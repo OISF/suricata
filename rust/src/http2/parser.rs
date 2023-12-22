@@ -695,6 +695,8 @@ pub enum HTTP2SettingsId {
     InitialWindowSize = 4,
     MaxFrameSize = 5,
     MaxHeaderListSize = 6,
+    EnableConnectProtocol = 8, // rfc8441
+    NoRfc7540Priorities = 9, // rfc9218
 }
 
 impl fmt::Display for HTTP2SettingsId {
@@ -716,6 +718,8 @@ impl std::str::FromStr for HTTP2SettingsId {
             "SETTINGS_INITIAL_WINDOW_SIZE" => Ok(HTTP2SettingsId::InitialWindowSize),
             "SETTINGS_MAX_FRAME_SIZE" => Ok(HTTP2SettingsId::MaxFrameSize),
             "SETTINGS_MAX_HEADER_LIST_SIZE" => Ok(HTTP2SettingsId::MaxHeaderListSize),
+            "SETTINGS_ENABLE_CONNECT_PROTOCOL" => Ok(HTTP2SettingsId::EnableConnectProtocol),
+            "SETTINGS_NO_RFC7540_PRIORITIES" => Ok(HTTP2SettingsId::NoRfc7540Priorities),
             _ => Err(format!("'{}' is not a valid value for HTTP2SettingsId", s)),
         }
     }
