@@ -23,6 +23,8 @@ use nom7::error::{make_error, ErrorKind};
 use nom7::Err;
 use nom7::IResult;
 
+use super::Enum;
+
 use std::ffi::CStr;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -44,6 +46,27 @@ pub struct DetectUintData<T> {
     pub arg1: T,
     pub arg2: T,
     pub mode: DetectUintMode,
+}
+
+impl<T: DetectIntType> From<&dyn Enum<T>> for DetectUintData<T> {
+    fn from(value: &dyn Enum<T>) -> Self {
+        return DetectUintData::<T> {
+            arg1: value.into_u(),
+            arg2: T::min_value(),
+            mode: DetectUintMode::DetectUintModeEqual,
+        };
+    }
+}
+
+pub fn detect_parse_uint_enum<T1: DetectIntType, T2: Enum<T1>>(s: &str) -> Option<DetectUintData<T1>> where DetectUintData<T1>: From<T2> {
+    if let Ok((_, ctx)) = detect_parse_uint::<T1>(s) {
+        return Some(ctx);
+    }
+    if let Some(enum_val) = T2::from_str(s) {
+        let ctx: DetectUintData<T1> = enum_val.into();
+        return Some(ctx);
+    }
+    return None;
 }
 
 pub trait DetectIntType:
