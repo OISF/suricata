@@ -358,6 +358,7 @@ noinst_HEADERS = \
 	detect-urilen.h \
 	detect-within.h \
 	detect-xbits.h \
+	detect-websocket.h \
 	device-storage.h \
 	feature.h \
 	flow-bit.h \
@@ -431,6 +432,7 @@ noinst_HEADERS = \
 	output-json-snmp.h \
 	output-json-ssh.h \
 	output-json-stats.h \
+	output-json-websocket.h \
 	output-json-template.h \
 	output-json-tftp.h \
 	output-json-tls.h \
@@ -973,6 +975,7 @@ libsuricata_c_a_SOURCES = \
 	detect-urilen.c \
 	detect-within.c \
 	detect-xbits.c \
+	detect-websocket.c \
 	device-storage.c \
 	feature.c \
 	flow-bit.c \
@@ -1045,6 +1048,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-snmp.c \
 	output-json-ssh.c \
 	output-json-stats.c \
+	output-json-websocket.c \
 	output-json-template.c \
 	output-json-tftp.c \
 	output-json-tls.c \
