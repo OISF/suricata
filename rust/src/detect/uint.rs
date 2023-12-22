@@ -23,6 +23,8 @@ use nom7::error::{make_error, ErrorKind};
 use nom7::Err;
 use nom7::IResult;
 
+use super::EnumString;
+
 use std::ffi::CStr;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -44,6 +46,29 @@ pub struct DetectUintData<T> {
     pub arg1: T,
     pub arg2: T,
     pub mode: DetectUintMode,
+}
+
+/// Parses a string for detection with integers, using enumeration strings
+///
+/// Needs to specify T1 the integer type (like u8)
+/// And the Enumeration for the stringer.
+/// Will try to parse numerical value first, as any integer detection keyword
+/// And if this fails, will resort to using the enumeration strings.
+///
+/// Returns Some DetectUintData on success, None on failure
+pub fn detect_parse_uint_enum<T1: DetectIntType, T2: EnumString<T1>>(s: &str) -> Option<DetectUintData<T1>> {
+    if let Ok((_, ctx)) = detect_parse_uint::<T1>(s) {
+        return Some(ctx);
+    }
+    if let Some(enum_val) = T2::from_str(s) {
+        let ctx = DetectUintData::<T1> {
+            arg1: enum_val.into_u(),
+            arg2: T1::min_value(),
+            mode: DetectUintMode::DetectUintModeEqual,
+        };
+        return Some(ctx);
+    }
+    return None;
 }
 
 pub trait DetectIntType:
@@ -441,6 +466,26 @@ pub unsafe extern "C" fn rs_detect_u16_free(ctx: &mut DetectUintData<u16>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use suricata_derive::EnumStringU8;
+
+    #[derive(Clone, Debug, PartialEq, EnumStringU8)]
+    #[repr(u8)]
+    pub enum TestEnum {
+        Zero = 0,
+        BestValueEver = 42,
+    }
+
+    #[test]
+    fn test_detect_parse_uint_enum() {
+        let ctx = detect_parse_uint_enum::<u8, TestEnum>("best_value_ever").unwrap();
+        assert_eq!(ctx.arg1, 42);
+        assert_eq!(ctx.mode, DetectUintMode::DetectUintModeEqual);
+
+        let ctx = detect_parse_uint_enum::<u8, TestEnum>(">1").unwrap();
+        assert_eq!(ctx.arg1, 1);
+        assert_eq!(ctx.mode, DetectUintMode::DetectUintModeGt);
+    }
 
     #[test]
     fn test_parse_uint_hex() {
