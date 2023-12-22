@@ -597,6 +597,14 @@ void RegisterENIPTCPParsers(void)
                     proto_name, ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr),
                     ENIPProbingParser, ENIPProbingParser))
             {
+                SCLogDebug("no ENIP TCP config found enabling ENIP detection on port 44818.");
+
+                AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818", ALPROTO_ENIP, 0,
+                        sizeof(ENIPEncapHdr), STREAM_TOSERVER, ENIPProbingParser, NULL);
+
+                AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818", ALPROTO_ENIP, 0,
+                        sizeof(ENIPEncapHdr), STREAM_TOCLIENT, ENIPProbingParser, NULL);
+
                 return;
             }
         }
