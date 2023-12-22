@@ -243,7 +243,7 @@ int SigParseGetMaxDsize(const Signature *s)
 void SigParseSetDsizePair(Signature *s)
 {
     if (s->flags & SIG_FLAG_DSIZE && s->init_data->dsize_sm != NULL) {
-        DetectU16Data *dd = (DetectU16Data *)s->init_data->dsize_sm->ctx;
+        const DetectU16Data *dd = (const DetectU16Data *)s->init_data->dsize_sm->ctx;
 
         uint16_t low = 0;
         uint16_t high = 65535;
