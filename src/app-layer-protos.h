@@ -87,14 +87,16 @@ static inline bool AppProtoIsValid(AppProto a)
 // whether a signature AppProto matches a flow (or signature) AppProto
 static inline bool AppProtoEquals(AppProto sigproto, AppProto alproto)
 {
+    if (sigproto == alproto) {
+        return true;
+    }
     switch (sigproto) {
         case ALPROTO_HTTP:
-            return (alproto == ALPROTO_HTTP1) || (alproto == ALPROTO_HTTP2) ||
-                   (alproto == ALPROTO_HTTP);
+            return (alproto == ALPROTO_HTTP1) || (alproto == ALPROTO_HTTP2);
         case ALPROTO_DCERPC:
-            return (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB);
+            return (alproto == ALPROTO_SMB);
     }
-    return (sigproto == alproto);
+    return false;
 }
 
 /**
