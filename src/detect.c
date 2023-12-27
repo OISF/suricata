@@ -1062,7 +1062,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         RuleMatchCandidateTx *can,
         DetectRunScratchpad *scratch)
 {
-    uint8_t flow_flags = in_flow_flags;
+    const uint8_t flow_flags = in_flow_flags;
     const int direction = (flow_flags & STREAM_TOSERVER) ? 0 : 1;
     uint32_t inspect_flags = stored_flags ? *stored_flags : 0;
     int total_matches = 0;
