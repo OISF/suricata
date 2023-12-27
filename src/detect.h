@@ -1314,14 +1314,14 @@ enum {
     DETECT_EVENT_TOO_MANY_BUFFERS,
 };
 
-#define SIG_GROUP_HEAD_HAVERAWSTREAM    BIT_U32(0)
+#define SIG_GROUP_HEAD_HAVERAWSTREAM BIT_U16(0)
 #ifdef HAVE_MAGIC
-#define SIG_GROUP_HEAD_HAVEFILEMAGIC    BIT_U32(20)
+#define SIG_GROUP_HEAD_HAVEFILEMAGIC BIT_U16(1)
 #endif
-#define SIG_GROUP_HEAD_HAVEFILEMD5      BIT_U32(21)
-#define SIG_GROUP_HEAD_HAVEFILESIZE     BIT_U32(22)
-#define SIG_GROUP_HEAD_HAVEFILESHA1     BIT_U32(23)
-#define SIG_GROUP_HEAD_HAVEFILESHA256   BIT_U32(24)
+#define SIG_GROUP_HEAD_HAVEFILEMD5    BIT_U16(2)
+#define SIG_GROUP_HEAD_HAVEFILESIZE   BIT_U16(3)
+#define SIG_GROUP_HEAD_HAVEFILESHA1   BIT_U16(4)
+#define SIG_GROUP_HEAD_HAVEFILESHA256 BIT_U16(5)
 
 enum MpmBuiltinBuffers {
     MPMB_TCP_PKT_TS,
@@ -1443,8 +1443,14 @@ typedef struct SigGroupHeadInitData_ {
 
 /** \brief Container for matching data for a signature group */
 typedef struct SigGroupHead_ {
-    uint32_t flags;
+    uint16_t flags;
     /* coccinelle: SigGroupHead:flags:SIG_GROUP_HEAD_ */
+
+    /** the number of signatures in this sgh that have the filestore keyword
+     *  set. */
+    uint16_t filestore_cnt;
+
+    uint32_t id; /**< unique id used to index sgh_array for stats */
 
     /* non prefilter list excluding SYN rules */
     uint32_t non_pf_other_store_cnt;
@@ -1452,12 +1458,6 @@ typedef struct SigGroupHead_ {
     SignatureNonPrefilterStore *non_pf_other_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonPrefilterStore)
     /* non mpm list including SYN rules */
     SignatureNonPrefilterStore *non_pf_syn_store_array; // size is non_mpm_syn_store_cnt * sizeof(SignatureNonPrefilterStore)
-
-    /** the number of signatures in this sgh that have the filestore keyword
-     *  set. */
-    uint16_t filestore_cnt;
-
-    uint32_t id; /**< unique id used to index sgh_array for stats */
 
     PrefilterEngine *pkt_engines;
     PrefilterEngine *payload_engines;
