@@ -97,6 +97,7 @@ void PacketReinit(Packet *p)
     p->recursion_level = 0;
     PACKET_FREE_EXTDATA(p);
     p->app_update_direction = 0;
+    p->sig_mask = 0;
     p->flags = 0;
     p->flowflags = 0;
     p->pkt_src = 0;
