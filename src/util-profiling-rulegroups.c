@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2015 Open Information Security Foundation
+/* Copyright (C) 2007-2025 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -37,9 +37,6 @@
  */
 typedef struct SCProfileSghData_ {
     uint64_t checks;
-
-    uint64_t non_mpm_generic;
-    uint64_t non_mpm_syn;
 
     uint64_t post_prefilter_sigs_total;
     uint64_t post_prefilter_sigs_max;
@@ -133,8 +130,6 @@ static void DoDumpJSON(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *n
         if (jsm) {
             json_object_set_new(jsm, "id", json_integer(i));
             json_object_set_new(jsm, "checks", json_integer(d->checks));
-            json_object_set_new(jsm, "non_mpm_generic", json_integer(d->non_mpm_generic));
-            json_object_set_new(jsm, "non_mpm_syn", json_integer(d->non_mpm_syn));
             json_object_set_new(jsm, "avgmpms", json_real(avgmpms));
             json_object_set_new(jsm, "mpm_match_cnt_max", json_integer(d->mpm_match_cnt_max));
             json_object_set_new(jsm, "avgsigs", json_real(avgsigs));
@@ -203,16 +198,8 @@ static void DoDump(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *name)
             avgmpms = (double)((double)d->mpm_match_cnt_total / (double)d->checks);
         }
 
-        fprintf(fp,
-            "  %-16u %-15"PRIu64" %-15"PRIu64" %-15"PRIu64" %-15.2f %-15"PRIu64" %-15.2f %-15"PRIu64"\n",
-            i,
-            d->checks,
-            d->non_mpm_generic,
-            d->non_mpm_syn,
-            avgmpms,
-            d->mpm_match_cnt_max,
-            avgsigs,
-            d->post_prefilter_sigs_max);
+        fprintf(fp, "  %-16u %-15" PRIu64 " %-15.2f %-15" PRIu64 " %-15.2f %-15" PRIu64 "\n", i,
+                d->checks, avgmpms, d->mpm_match_cnt_max, avgsigs, d->post_prefilter_sigs_max);
     }
     fprintf(fp,"\n");
 }
@@ -264,12 +251,6 @@ SCProfilingSghUpdateCounter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *
         SCProfileSghData *p = &det_ctx->sgh_perf_data[sgh->id];
         p->checks++;
 
-        if (det_ctx->non_pf_store_cnt > 0) {
-            if (det_ctx->non_pf_store_ptr == sgh->non_pf_syn_store_array)
-                p->non_mpm_syn++;
-            else
-                p->non_mpm_generic++;
-        }
         p->post_prefilter_sigs_total += det_ctx->match_array_cnt;
         if (det_ctx->match_array_cnt > p->post_prefilter_sigs_max)
             p->post_prefilter_sigs_max = det_ctx->match_array_cnt;
@@ -334,8 +315,6 @@ static void SCProfilingSghThreadMerge(DetectEngineCtx *de_ctx, const DetectEngin
     uint32_t i;
     for (i = 0; i < de_ctx->sgh_array_cnt; i++) {
         ADD(checks);
-        ADD(non_mpm_generic);
-        ADD(non_mpm_syn);
         ADD(post_prefilter_sigs_total);
         ADD(mpm_match_cnt_total);
 
