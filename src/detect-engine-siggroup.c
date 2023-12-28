@@ -167,18 +167,6 @@ void SigGroupHeadFree(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
     SCLogDebug("sgh %p", sgh);
 
-    if (sgh->non_pf_other_store_array != NULL) {
-        SCFree(sgh->non_pf_other_store_array);
-        sgh->non_pf_other_store_array = NULL;
-        sgh->non_pf_other_store_cnt = 0;
-    }
-
-    if (sgh->non_pf_syn_store_array != NULL) {
-        SCFree(sgh->non_pf_syn_store_array);
-        sgh->non_pf_syn_store_array = NULL;
-        sgh->non_pf_syn_store_cnt = 0;
-    }
-
     if (sgh->init != NULL) {
         SigGroupHeadInitDataFree(sgh->init);
         sgh->init = NULL;
@@ -618,82 +606,6 @@ void SigGroupHeadSetupFiles(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             sgh->filestore_cnt++;
         }
     }
-}
-
-/** \brief build an array of rule id's for sigs with no prefilter
- *  Also updated de_ctx::non_pf_store_cnt_max to track the highest cnt
- */
-int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
-{
-    Signature *s = NULL;
-    uint32_t sig = 0;
-    uint32_t non_pf = 0;
-    uint32_t non_pf_syn = 0;
-
-    if (sgh == NULL)
-        return 0;
-
-    BUG_ON(sgh->non_pf_other_store_array != NULL);
-
-    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
-        s = sgh->init->match_array[sig];
-        if (s == NULL)
-            continue;
-
-        if (!(s->flags & SIG_FLAG_PREFILTER) || (s->flags & SIG_FLAG_MPM_NEG)) {
-            if (!(DetectFlagsSignatureNeedsSynPackets(s))) {
-                non_pf++;
-            }
-            non_pf_syn++;
-        }
-    }
-
-    if (non_pf == 0 && non_pf_syn == 0) {
-        sgh->non_pf_other_store_array = NULL;
-        sgh->non_pf_syn_store_array = NULL;
-        return 0;
-    }
-
-    if (non_pf > 0) {
-        sgh->non_pf_other_store_array = SCCalloc(non_pf, sizeof(SignatureNonPrefilterStore));
-        BUG_ON(sgh->non_pf_other_store_array == NULL);
-    }
-
-    if (non_pf_syn > 0) {
-        sgh->non_pf_syn_store_array = SCCalloc(non_pf_syn, sizeof(SignatureNonPrefilterStore));
-        BUG_ON(sgh->non_pf_syn_store_array == NULL);
-    }
-
-    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
-        s = sgh->init->match_array[sig];
-        if (s == NULL)
-            continue;
-
-        if (!(s->flags & SIG_FLAG_PREFILTER) || (s->flags & SIG_FLAG_MPM_NEG)) {
-            if (!(DetectFlagsSignatureNeedsSynPackets(s))) {
-                BUG_ON(sgh->non_pf_other_store_cnt >= non_pf);
-                BUG_ON(sgh->non_pf_other_store_array == NULL);
-                sgh->non_pf_other_store_array[sgh->non_pf_other_store_cnt].id = s->num;
-                sgh->non_pf_other_store_array[sgh->non_pf_other_store_cnt].mask = s->mask;
-                sgh->non_pf_other_store_array[sgh->non_pf_other_store_cnt].alproto = s->alproto;
-                sgh->non_pf_other_store_cnt++;
-            }
-
-            BUG_ON(sgh->non_pf_syn_store_cnt >= non_pf_syn);
-            BUG_ON(sgh->non_pf_syn_store_array == NULL);
-            sgh->non_pf_syn_store_array[sgh->non_pf_syn_store_cnt].id = s->num;
-            sgh->non_pf_syn_store_array[sgh->non_pf_syn_store_cnt].mask = s->mask;
-            sgh->non_pf_syn_store_array[sgh->non_pf_syn_store_cnt].alproto = s->alproto;
-            sgh->non_pf_syn_store_cnt++;
-        }
-    }
-
-    /* track highest cnt for any sgh in our de_ctx */
-    uint32_t max = MAX(sgh->non_pf_other_store_cnt, sgh->non_pf_syn_store_cnt);
-    if (max > de_ctx->non_pf_store_cnt_max)
-        de_ctx->non_pf_store_cnt_max = max;
-
-    return 0;
 }
 
 /**
