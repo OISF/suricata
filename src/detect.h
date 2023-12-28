@@ -316,9 +316,6 @@ typedef struct DetectPort_ {
 // vacancy 1x
 #define SIG_MASK_REQUIRE_ENGINE_EVENT       BIT_U8(7)
 
-/* for now a uint8_t is enough */
-#define SignatureMask uint8_t
-
 #define FILE_SIG_NEED_FILE          0x01
 #define FILE_SIG_NEED_FILENAME      0x02
 #define FILE_SIG_NEED_MAGIC         0x04    /**< need the start of the file */
@@ -890,10 +887,6 @@ typedef struct DetectEngineCtx_ {
 
     uint32_t signum;
 
-    /** Maximum value of all our sgh's non_mpm_store_cnt setting,
-     *  used to alloc det_ctx::non_mpm_id_array */
-    uint32_t non_pf_store_cnt_max;
-
     /* used by the signature ordering module */
     struct SCSigOrderFunc_ *sc_sig_order_funcs;
 
@@ -1078,6 +1071,10 @@ typedef struct DetectEngineCtx_ {
 
     /* number of signatures using filestore, limited as u16 */
     uint16_t filestore_cnt;
+
+    /* name store for non-prefilter engines. Used in profiling but
+     * part of the API, so hash is always used. */
+    HashTable *non_pf_engine_names;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
@@ -1132,11 +1129,6 @@ typedef struct DetectEngineThreadCtx_ {
 
     /* the thread to which this detection engine thread belongs */
     ThreadVars *tv;
-
-    /** Array of non-prefiltered sigs that need to be evaluated. Updated
-     *  per packet based on the rule group and traffic properties. */
-    SigIntId *non_pf_id_array;
-    uint32_t non_pf_id_cnt; // size is cnt * sizeof(uint32_t)
 
     uint32_t mt_det_ctxs_cnt;
     struct DetectEngineThreadCtx_ **mt_det_ctxs;
@@ -1224,9 +1216,6 @@ typedef struct DetectEngineThreadCtx_ {
 
     RuleMatchCandidateTx *tx_candidates;
     uint32_t tx_candidates_size;
-
-    SignatureNonPrefilterStore *non_pf_store_ptr;
-    uint32_t non_pf_store_cnt;
 
     MpmThreadCtx mtc; /**< thread ctx for the mpm */
     PrefilterRuleStore pmq;
@@ -1498,13 +1487,6 @@ typedef struct SigGroupHead_ {
     uint16_t filestore_cnt;
 
     uint32_t id; /**< unique id used to index sgh_array for stats */
-
-    /* non prefilter list excluding SYN rules */
-    uint32_t non_pf_other_store_cnt;
-    uint32_t non_pf_syn_store_cnt;
-    SignatureNonPrefilterStore *non_pf_other_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonPrefilterStore)
-    /* non mpm list including SYN rules */
-    SignatureNonPrefilterStore *non_pf_syn_store_array; // size is non_mpm_syn_store_cnt * sizeof(SignatureNonPrefilterStore)
 
     PrefilterEngine *pkt_engines;
     PrefilterEngine *payload_engines;
