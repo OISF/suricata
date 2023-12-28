@@ -263,13 +263,14 @@ SCProfilingSghUpdateCounter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *
     if (det_ctx != NULL && det_ctx->sgh_perf_data != NULL && sgh->id < det_ctx->de_ctx->sgh_array_cnt) {
         SCProfileSghData *p = &det_ctx->sgh_perf_data[sgh->id];
         p->checks++;
-
+#if 0 // TODO
         if (det_ctx->non_pf_store_cnt > 0) {
             if (det_ctx->non_pf_store_ptr == sgh->non_pf_syn_store_array)
                 p->non_mpm_syn++;
             else
                 p->non_mpm_generic++;
         }
+#endif
         p->post_prefilter_sigs_total += det_ctx->match_array_cnt;
         if (det_ctx->match_array_cnt > p->post_prefilter_sigs_max)
             p->post_prefilter_sigs_max = det_ctx->match_array_cnt;
