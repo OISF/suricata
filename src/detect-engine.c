@@ -749,7 +749,8 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
     const int files_id = DetectBufferTypeGetByName("files");
     bool head_is_mpm = false;
     uint8_t last_id = DE_STATE_FLAG_BASE;
-    SCLogNotice("%u: setup app inspect engines. %u buffers", s->id, s->init_data->buffer_index);
+    SCLogDebug("%u: setup app inspect engines. %u buffers", s->id, s->init_data->buffer_index);
+    SCLogDebug("s->id %u mpm_list %d", s->id, mpm_list);
 
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         SigMatchData *smd = SigMatchList2DataArray(s->init_data->buffers[x].head);
@@ -817,7 +818,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
             .progress = (uint16_t)s->init_data->hook.t.app.app_progress,
             .sm_list = (uint16_t)s->init_data->hook.sm_list,
             .sm_list_base = (uint16_t)s->init_data->hook.sm_list,
-            .dir = dir,
+            .dir = (uint8_t)dir,
         };
         AppendAppInspectEngine(de_ctx, &t, s, NULL, mpm_list, files_id, &last_id, &head_is_mpm);
     }
@@ -2754,6 +2755,9 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
         SCDetectRequiresStatusFree(de_ctx->requirements);
     }
 
+    if (de_ctx->non_pf_engine_names) {
+        HashTableFree(de_ctx->non_pf_engine_names);
+    }
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
@@ -3320,13 +3324,6 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         return TM_ECODE_FAILED;
     }
 
-    /* sized to the max of our sgh settings. A max setting of 0 implies that all
-     * sgh's have: sgh->non_pf_store_cnt == 0 */
-    if (de_ctx->non_pf_store_cnt_max > 0) {
-        det_ctx->non_pf_id_array =  SCCalloc(de_ctx->non_pf_store_cnt_max, sizeof(SigIntId));
-        BUG_ON(det_ctx->non_pf_id_array == NULL);
-    }
-
     /* DeState */
     if (de_ctx->sig_array_len > 0) {
         det_ctx->match_array_len = de_ctx->sig_array_len;
@@ -3579,10 +3576,6 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     if (det_ctx->spm_thread_ctx != NULL) {
         SpmDestroyThreadCtx(det_ctx->spm_thread_ctx);
     }
-
-    if (det_ctx->non_pf_id_array != NULL)
-        SCFree(det_ctx->non_pf_id_array);
-
     if (det_ctx->match_array != NULL)
         SCFree(det_ctx->match_array);
 
@@ -3633,7 +3626,7 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     }
 
     AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
-
+    PrefilterPktNonPFStatsDump();
     SCFree(det_ctx);
 
     ThresholdCacheThreadFree();

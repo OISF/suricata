@@ -51,12 +51,14 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-frame.h"
+#include "detect-engine-uint.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 
 #include "util-profiling.h"
 #include "util-validate.h"
+#include "util-hash-string.h"
 
 static int PrefilterStoreGetId(DetectEngineCtx *de_ctx,
         const char *name, void (*FreeFunc)(void *));
@@ -127,6 +129,9 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
         if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {
+            SCLogDebug("tx->tx_progress %d engine->ctx.tx_min_progress %d "
+                       "engine->is_last_for_progress %d",
+                    tx->tx_progress, engine->ctx.tx_min_progress, engine->is_last_for_progress);
             tx->prefilter_flags |= BIT_U64(engine->ctx.tx_min_progress);
         }
     next:
@@ -413,7 +418,187 @@ static int PrefilterSetupRuleGroupSortHelper(const void *a, const void *b)
     }
 }
 
-void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+struct PrefilterNonPFDataSig {
+    uint32_t sid : 30;
+    uint32_t type : 2; /**< type for `value` field below: 0:alproto 1:dport 2:dsize */
+    uint16_t value;
+    /* since we have 2 more bytes available due to padding, we can add some addition
+     * filters here. */
+    union {
+        struct {
+            SignatureMask sig_mask;
+        } pkt;
+        struct {
+            /* filter for frame type */
+            uint8_t type;
+        } frame;
+        struct {
+            uint8_t foo; // TODO unused
+        } app;
+    };
+};
+
+struct PrefilterNonPFData {
+    uint32_t size;
+    struct PrefilterNonPFDataSig array[];
+};
+
+static void PrefilterTxNonPF(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f,
+        void *tx, const uint64_t tx_id, const AppLayerTxData *tx_data, const uint8_t flags)
+{
+    const struct PrefilterNonPFData *data = (const struct PrefilterNonPFData *)pectx;
+    SCLogDebug("adding %u sids", data->size);
+    for (uint32_t i = 0; i < data->size; i++) {
+        const struct PrefilterNonPFDataSig *ds = &data->array[i];
+        DEBUG_VALIDATE_BUG_ON(ds->value == ALPROTO_UNKNOWN);
+        DEBUG_VALIDATE_BUG_ON(!AppProtoEquals(ds->value, f->alproto));
+        const uint32_t sid = ds->sid;
+        PrefilterAddSids(&det_ctx->pmq, &sid, 1);
+    }
+}
+
+#ifdef NONPF_PKT_STATS
+static thread_local uint64_t prefilter_pkt_nonpf_called = 0;
+static thread_local uint64_t prefilter_pkt_nonpf_mask_fail = 0;
+static thread_local uint64_t prefilter_pkt_nonpf_alproto_fail = 0;
+static thread_local uint64_t prefilter_pkt_nonpf_dsize_fail = 0;
+static thread_local uint64_t prefilter_pkt_nonpf_dport_fail = 0;
+static thread_local uint64_t prefilter_pkt_nonpf_sids = 0;
+#define NONPF_PKT_STATS_INCR(s) (s)++
+#else
+#define NONPF_PKT_STATS_INCR(s)
+#endif
+
+void PrefilterPktNonPFStatsDump(void)
+{
+#ifdef NONPF_PKT_STATS
+    SCLogNotice("prefilter non-pf: called:%" PRIu64 ", mask_fail:%" PRIu64 ", alproto fail:%" PRIu64
+                ", dport fail:%" PRIu64 ", dsize fail:%" PRIu64 ", sids:%" PRIu64
+                ", avg sids:%" PRIu64,
+            prefilter_pkt_nonpf_called, prefilter_pkt_nonpf_mask_fail,
+            prefilter_pkt_nonpf_alproto_fail, prefilter_pkt_nonpf_dport_fail,
+            prefilter_pkt_nonpf_dsize_fail, prefilter_pkt_nonpf_sids,
+            prefilter_pkt_nonpf_called ? prefilter_pkt_nonpf_sids / prefilter_pkt_nonpf_called : 0);
+#endif
+}
+
+static void PrefilterPktNonPF(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    const uint16_t alproto = p->flow ? p->flow->alproto : ALPROTO_UNKNOWN;
+    const SignatureMask mask = p->sig_mask;
+    const struct PrefilterNonPFData *data = (const struct PrefilterNonPFData *)pectx;
+    SCLogDebug("adding %u sids", data->size);
+    NONPF_PKT_STATS_INCR(prefilter_pkt_nonpf_called);
+    for (uint32_t i = 0; i < data->size; i++) {
+        const struct PrefilterNonPFDataSig *ds = &data->array[i];
+        const SignatureMask rule_mask = ds->pkt.sig_mask;
+        if ((rule_mask & mask) == rule_mask) {
+            switch (ds->type) {
+                case 0:
+                    if (ds->value == ALPROTO_UNKNOWN || AppProtoEquals(ds->value, alproto)) {
+                        const uint32_t sid = ds->sid;
+                        PrefilterAddSids(&det_ctx->pmq, &sid, 1);
+                        NONPF_PKT_STATS_INCR(prefilter_pkt_nonpf_sids);
+                    } else {
+                        NONPF_PKT_STATS_INCR(prefilter_pkt_nonpf_alproto_fail);
+                    }
+                    break;
+                case 1:
+                    if (ds->value == p->dp) {
+                        const uint32_t sid = ds->sid;
+                        PrefilterAddSids(&det_ctx->pmq, &sid, 1);
+                        NONPF_PKT_STATS_INCR(prefilter_pkt_nonpf_sids);
+                    } else {
+                        NONPF_PKT_STATS_INCR(prefilter_pkt_nonpf_dport_fail);
+                    }
+                    break;
+                case 2:
+                    if (ds->value == p->payload_len) {
+                        const uint32_t sid = ds->sid;
+                        PrefilterAddSids(&det_ctx->pmq, &sid, 1);
+                        NONPF_PKT_STATS_INCR(prefilter_pkt_nonpf_sids);
+                    } else {
+                        NONPF_PKT_STATS_INCR(prefilter_pkt_nonpf_dsize_fail);
+                    }
+                    break;
+            }
+        } else {
+            NONPF_PKT_STATS_INCR(prefilter_pkt_nonpf_mask_fail);
+        }
+    }
+}
+
+/** \internal
+ *  \brief engine to select the non-prefilter rules for frames
+ *  Checks the alproto and type as well.
+ *  Direction needs no checking as the rule groups are per direction. */
+static void PrefilterFrameNonPF(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
+        const Frames *frames, const Frame *frame)
+{
+    DEBUG_VALIDATE_BUG_ON(p->flow == NULL);
+    const uint16_t alproto = p->flow->alproto;
+    const struct PrefilterNonPFData *data = (const struct PrefilterNonPFData *)pectx;
+    SCLogDebug("adding %u sids", data->size);
+    for (uint32_t i = 0; i < data->size; i++) {
+        const struct PrefilterNonPFDataSig *ds = &data->array[i];
+        if (ds->frame.type == frame->type &&
+                (ds->value == ALPROTO_UNKNOWN || AppProtoEquals(ds->value, alproto))) {
+            const uint32_t sid = ds->sid;
+            PrefilterAddSids(&det_ctx->pmq, &sid, 1);
+        }
+    }
+}
+
+static uint32_t NonPFNamesHash(HashTable *h, void *data, uint16_t _len)
+{
+    const char *str = data;
+    return StringHashDjb2((const uint8_t *)str, (uint16_t)strlen(str)) % h->array_size;
+}
+
+static char NonPFNamesCompare(void *data1, uint16_t _len1, void *data2, uint16_t len2)
+{
+    const char *s1 = data1;
+    const char *s2 = data2;
+    return StringHashCompareFunc(data1, (uint16_t)strlen(s1), data2, (uint16_t)strlen(s2));
+}
+
+static void NonPFNamesFree(void *data)
+{
+    SCFree(data);
+}
+
+struct TxNonPFData {
+    AppProto alproto;
+    int dir; // 0 toserver 1 toclient
+    int sm_list;
+    int progress;
+    uint32_t sigs_cnt;
+    struct PrefilterNonPFDataSig *sigs;
+    const char *app_name;
+};
+
+static uint32_t TxNonPFHash(HashListTable *h, void *data, uint16_t _len)
+{
+    struct TxNonPFData *d = data;
+    return (d->alproto + d->sm_list + d->progress + d->dir) % h->array_size;
+}
+
+static char TxNonPFCompare(void *data1, uint16_t _len1, void *data2, uint16_t len2)
+{
+    struct TxNonPFData *d1 = data1;
+    struct TxNonPFData *d2 = data2;
+    return d1->alproto == d2->alproto && d1->sm_list == d2->sm_list &&
+           d1->progress == d2->progress && d1->dir == d2->dir;
+}
+
+static void TxNonPFFree(void *data)
+{
+    struct TxNonPFData *d = data;
+    SCFree(d->sigs);
+    SCFree(d);
+}
+
+int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     int r = PatternMatchPrepareGroup(de_ctx, sgh);
     if (r != 0) {
@@ -434,6 +619,250 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
     }
 
+    const uint32_t max_sids = DetectEngineGetMaxSigId(de_ctx);
+    SCLogDebug("max_sids %u", max_sids);
+    struct PrefilterNonPFDataSig *pkt_non_pf_array = SCCalloc(max_sids, sizeof(*pkt_non_pf_array));
+    uint32_t pkt_non_pf_array_size = 0;
+    struct PrefilterNonPFDataSig *frame_non_pf_array =
+            SCCalloc(max_sids, sizeof(*frame_non_pf_array));
+    uint32_t frame_non_pf_array_size = 0;
+
+    HashListTable *tx_engines_hash =
+            HashListTableInit(256, TxNonPFHash, TxNonPFCompare, TxNonPFFree);
+    if (tx_engines_hash == NULL) {
+        SCFree(pkt_non_pf_array);
+        SCFree(frame_non_pf_array);
+        return -1;
+    }
+
+    if (de_ctx->non_pf_engine_names == NULL) {
+        de_ctx->non_pf_engine_names =
+                HashTableInit(512, NonPFNamesHash, NonPFNamesCompare, NonPFNamesFree);
+        BUG_ON(de_ctx->non_pf_engine_names == NULL);
+    }
+
+#ifdef NONPF_PKT_STATS
+    uint32_t nonpf_pkt_alproto = 0;
+    uint32_t nonpf_pkt_dsize = 0;
+    uint32_t nonpf_pkt_dport = 0;
+#endif
+    for (uint32_t sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        Signature *s = sgh->init->match_array[sig];
+        if (s == NULL)
+            continue;
+        if (s->init_data->mpm_sm != NULL && (s->flags & SIG_FLAG_MPM_NEG) == 0)
+            continue;
+        if (s->init_data->prefilter_sm != NULL)
+            continue;
+        if ((s->flags & (SIG_FLAG_PREFILTER | SIG_FLAG_MPM_NEG)) == SIG_FLAG_PREFILTER)
+            continue;
+        SCLogDebug("setting up sid %u for non-prefilter", s->id);
+
+        uint8_t frame_type = 0; /**< only a single type per rule */
+        bool tx_non_pf = false;
+        bool frame_non_pf = false;
+        bool pkt_non_pf = false;
+        for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+            const int list_id = s->init_data->buffers[x].id;
+            const DetectBufferType *buf = DetectEngineBufferTypeGetById(de_ctx, list_id);
+            if (buf->frame) {
+                frame_non_pf = true;
+                for (DetectEngineFrameInspectionEngine *f = de_ctx->frame_inspect_engines;
+                        f != NULL; f = f->next) {
+                    if (!((((s->flags & SIG_FLAG_TOSERVER) != 0 && f->dir == 0) ||
+                                  ((s->flags & SIG_FLAG_TOCLIENT) != 0 && f->dir == 1)) &&
+                                list_id == (int)f->sm_list &&
+                                AppProtoEquals(s->alproto, f->alproto)))
+                        continue;
+
+                    SCLogDebug("frame '%s' type %u", buf->name, f->type);
+                    frame_type = f->type;
+                }
+
+            } else if (buf->packet) {
+                pkt_non_pf = true;
+            } else {
+                SCLogDebug("x %u list_id %d", x, list_id);
+                for (DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
+                        app != NULL; app = app->next) {
+                    if (!((((s->flags & SIG_FLAG_TOSERVER) != 0 && app->dir == 0) ||
+                                  ((s->flags & SIG_FLAG_TOCLIENT) != 0 && app->dir == 1)) &&
+                                list_id == (int)app->sm_list &&
+                                AppProtoEquals(s->alproto, app->alproto)))
+                        continue;
+
+                    struct TxNonPFData lookup = {
+                        .alproto = app->alproto,
+                        .dir = app->dir,
+                        .sm_list = app->sm_list,
+                        .progress = app->progress,
+                        .sigs_cnt = 0,
+                        .sigs = NULL,
+                        .app_name = NULL,
+                    };
+                    struct TxNonPFData *e = HashListTableLookup(tx_engines_hash, &lookup, 0);
+                    if (e != NULL) {
+                        BUG_ON(e->sigs_cnt == max_sids);
+                        e->sigs[e->sigs_cnt].sid = s->num;
+                        e->sigs[e->sigs_cnt].value = app->alproto;
+                        e->sigs_cnt++;
+                    } else {
+                        struct TxNonPFData *add = SCCalloc(1, sizeof(*add));
+                        if (add == NULL) {
+                            goto error;
+                        }
+                        add->dir = app->dir;
+                        add->alproto = app->alproto;
+                        add->sm_list = app->sm_list;
+                        add->progress = app->progress;
+                        add->sigs = SCCalloc(max_sids, sizeof(struct PrefilterNonPFDataSig));
+                        if (add->sigs == NULL) {
+                            SCFree(add);
+                            goto error;
+                        }
+                        add->sigs_cnt = 0;
+                        add->sigs[add->sigs_cnt].sid = s->num;
+                        add->sigs[add->sigs_cnt].value = app->alproto;
+                        add->sigs_cnt++;
+
+                        char engine_name[80];
+                        snprintf(engine_name, sizeof(engine_name), "%s:%s:non_pf",
+                                AppProtoToString(app->alproto), buf->name);
+                        char *engine_name_heap = SCStrdup(engine_name);
+                        BUG_ON(engine_name_heap == NULL);
+                        int result = HashTableAdd(de_ctx->non_pf_engine_names, engine_name_heap,
+                                (uint16_t)strlen(engine_name_heap));
+                        BUG_ON(result != 0);
+
+                        add->app_name = engine_name_heap;
+                        SCLogDebug("engine_name_heap %s", engine_name_heap);
+
+                        int ret = HashListTableAdd(tx_engines_hash, add, 0);
+                        if (ret != 0) {
+                            SCFree(add->sigs);
+                            SCFree(add);
+                            goto error;
+                        }
+                    }
+                    tx_non_pf = true;
+                }
+            }
+        }
+
+        if (!(tx_non_pf || frame_non_pf)) {
+            pkt_non_pf = true;
+        }
+
+        SCLogDebug("setting up sid %u for non-prefilter: %s", s->id,
+                tx_non_pf ? "tx engine" : (frame_non_pf ? "frame engine" : "pkt engine"));
+        if (tx_non_pf) {
+            // done above
+        } else if (pkt_non_pf) {
+            /* for pkt non prefilter, we have some space in the structure,
+             * so we can squeeze another filter */
+            uint8_t type;
+            uint16_t value;
+            if ((s->flags & SIG_FLAG_DSIZE) && s->dsize_mode == DETECT_UINT_EQ) {
+                type = 2;
+                value = s->dsize_low;
+#ifdef NONPF_PKT_STATS
+                nonpf_pkt_dsize++;
+#endif
+            } else if (s->dp != NULL && s->dp->next == NULL && s->dp->port == s->dp->port2) {
+                type = 1;
+                value = s->dp->port;
+#ifdef NONPF_PKT_STATS
+                nonpf_pkt_dport++;
+#endif
+            } else {
+                type = 0;
+                value = s->alproto;
+#ifdef NONPF_PKT_STATS
+                nonpf_pkt_alproto++;
+#endif
+            }
+
+            pkt_non_pf_array[pkt_non_pf_array_size].sid = s->num;
+            pkt_non_pf_array[pkt_non_pf_array_size].value = value;
+            pkt_non_pf_array[pkt_non_pf_array_size].type = type;
+            pkt_non_pf_array[pkt_non_pf_array_size].pkt.sig_mask = s->mask;
+            pkt_non_pf_array_size++;
+        } else if (frame_non_pf) {
+            frame_non_pf_array[frame_non_pf_array_size].sid = s->num;
+            frame_non_pf_array[frame_non_pf_array_size].value = s->alproto;
+            frame_non_pf_array[frame_non_pf_array_size].frame.type = frame_type;
+            frame_non_pf_array_size++;
+        } else {
+            BUG_ON(1);
+        }
+    }
+
+    /* for each unique sig set, add an engine */
+    for (HashListTableBucket *b = HashListTableGetListHead(tx_engines_hash); b != NULL;
+            b = HashListTableGetListNext(b)) {
+        struct TxNonPFData *t = HashListTableGetListData(b);
+        SCLogDebug("%s engine for %s list %d hook %d has %u non-pf sigs",
+                t->dir == 0 ? "toserver" : "toclient", AppProtoToString(t->alproto), t->sm_list,
+                t->progress, t->sigs_cnt);
+
+        struct PrefilterNonPFData *data =
+                SCCalloc(1, sizeof(*data) + t->sigs_cnt * sizeof(data->array[0]));
+        if (data == NULL)
+            goto error;
+        data->size = t->sigs_cnt;
+        memcpy((uint8_t *)&data->array, t->sigs, t->sigs_cnt * sizeof(data->array[0]));
+        // TODO proper free func
+        if (PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxNonPF, t->alproto, t->progress,
+                    (void *)data, free, t->app_name) < 0) {
+            SCFree(data);
+            goto error;
+        }
+    }
+    HashListTableFree(tx_engines_hash);
+    tx_engines_hash = NULL;
+
+    if (pkt_non_pf_array_size) {
+        //        SCLogNotice("sgh:%p: %u pkt non-pf sigs, with alproto:%u, dsize:%u, dport:%u",
+        //        sgh, pkt_non_pf_array_size, nonpf_pkt_alproto, nonpf_pkt_dsize, nonpf_pkt_dport);
+        struct PrefilterNonPFData *data =
+                SCCalloc(1, sizeof(*data) + pkt_non_pf_array_size * sizeof(data->array[0]));
+        if (data == NULL)
+            goto error;
+        data->size = pkt_non_pf_array_size;
+        memcpy((uint8_t *)&data->array, pkt_non_pf_array,
+                pkt_non_pf_array_size * sizeof(data->array[0]));
+        // TODO can we set a mask here?
+        // TODO name
+        // TODO free func
+        if (PrefilterAppendEngine(
+                    de_ctx, sgh, PrefilterPktNonPF, 0, (void *)data, free, "pkt::non_pf") < 0) {
+            SCFree(data);
+            goto error;
+        }
+    }
+    if (frame_non_pf_array_size) {
+        SCLogDebug("%u frame non-pf sigs", frame_non_pf_array_size);
+        struct PrefilterNonPFData *data =
+                SCCalloc(1, sizeof(*data) + frame_non_pf_array_size * sizeof(data->array[0]));
+        if (data == NULL)
+            goto error;
+        data->size = frame_non_pf_array_size;
+        memcpy((uint8_t *)&data->array, frame_non_pf_array,
+                frame_non_pf_array_size * sizeof(data->array[0]));
+        // TODO free func
+        // TODO engine name
+        if (PrefilterAppendFrameEngine(de_ctx, sgh, PrefilterFrameNonPF, ALPROTO_UNKNOWN,
+                    FRAME_ANY_TYPE, (void *)data, free, "frame::non_pf") < 0) {
+            SCFree(data);
+            goto error;
+        }
+    }
+
+    SCFree(pkt_non_pf_array);
+    pkt_non_pf_array = NULL;
+    SCFree(frame_non_pf_array);
+    frame_non_pf_array = NULL;
+
     /* we have lists of engines in sgh->init now. Lets setup the
      * match arrays */
     PrefilterEngineList *el;
@@ -444,7 +873,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
         sgh->pkt_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
         if (sgh->pkt_engines == NULL) {
-            return;
+            goto error;
         }
         memset(sgh->pkt_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
@@ -469,7 +898,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
         sgh->payload_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
         if (sgh->payload_engines == NULL) {
-            return;
+            goto error;
         }
         memset(sgh->payload_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
@@ -494,7 +923,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
         sgh->tx_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
         if (sgh->tx_engines == NULL) {
-            return;
+            goto error;
         }
         memset(sgh->tx_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
@@ -570,7 +999,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
         sgh->frame_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
         if (sgh->frame_engines == NULL) {
-            return;
+            goto error;
         }
         memset(sgh->frame_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
@@ -589,6 +1018,15 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             e++;
         }
     }
+    return 0;
+
+error:
+    if (tx_engines_hash) {
+        HashListTableFree(tx_engines_hash);
+    }
+    SCFree(pkt_non_pf_array);
+    SCFree(frame_non_pf_array);
+    return -1;
 }
 
 /* hash table for assigning a unique id to each engine type. */

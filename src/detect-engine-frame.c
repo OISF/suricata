@@ -76,8 +76,9 @@ void DetectRunPrefilterFrame(DetectEngineThreadCtx *det_ctx, const SigGroupHead 
     SCLogDebug("pcap_cnt %" PRIu64, p->pcap_cnt);
     PrefilterEngine *engine = sgh->frame_engines;
     do {
-        BUG_ON(engine->alproto == ALPROTO_UNKNOWN);
-        if (engine->alproto == alproto && engine->ctx.frame_type == frame->type) {
+        if ((engine->alproto == alproto || engine->alproto == ALPROTO_UNKNOWN) &&
+                (engine->ctx.frame_type == frame->type ||
+                        engine->ctx.frame_type == FRAME_ANY_TYPE)) {
             SCLogDebug("frame %p engine %p", frame, engine);
             PREFILTER_PROFILING_START(det_ctx);
             engine->cb.PrefilterFrame(det_ctx, engine->pectx, p, frames, frame);

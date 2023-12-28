@@ -94,6 +94,9 @@ enum PktSrcEnum {
 
 #include "util-validate.h"
 
+/* for now a uint8_t is enough -- here in decode as it's part of the packet */
+#define SignatureMask uint8_t
+
 /* forward declarations */
 struct DetectionEngineThreadCtx_;
 typedef struct AppLayerThreadCtx_ AppLayerThreadCtx;
@@ -508,6 +511,7 @@ typedef struct Packet_
     /* coccinelle: Packet:flowflags:FLOW_PKT_ */
 
     uint8_t app_update_direction; // enum StreamUpdateDir
+    SignatureMask sig_mask;
 
     /* Pkt Flags */
     uint32_t flags;

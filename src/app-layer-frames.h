@@ -26,6 +26,8 @@
 
 #include "rust.h"
 
+/** special value for matching any type */
+#define FRAME_ANY_TYPE 62
 /** max 63 to fit the 64 bit per protocol space */
 #define FRAME_STREAM_TYPE 63
 
