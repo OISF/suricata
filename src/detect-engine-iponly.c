@@ -82,16 +82,78 @@ static IPOnlyCIDRItem *IPOnlyCIDRItemNew(void)
     SCReturnPtr(item, "IPOnlyCIDRItem");
 }
 
-static uint8_t IPOnlyCIDRItemCompare(IPOnlyCIDRItem *head,
-                                         IPOnlyCIDRItem *item)
+/**
+ * \brief Compares two list items
+ *
+ * \retval An integer less than, equal to, or greater than zero if lhs is
+ *         considered to be respectively less than, equal to, or greater than
+ *         rhs.
+ */
+static int IPOnlyCIDRItemCompareReal(const IPOnlyCIDRItem *lhs, const IPOnlyCIDRItem *rhs)
 {
-    uint8_t i = 0;
-    for (; i < head->netmask / 32 || i < 1; i++) {
-        if (item->ip[i] < head->ip[i])
-        //if (*(uint8_t *)(item->ip + i) < *(uint8_t *)(head->ip + i))
-            return 1;
+    if (lhs->netmask == rhs->netmask) {
+        uint8_t i = 0;
+        for (; i < lhs->netmask / 32 || i < 1; i++) {
+            if (lhs->ip[i] < rhs->ip[i])
+                return -1;
+            if (lhs->ip[i] > rhs->ip[i])
+                return 1;
+        }
+        return 0;
     }
-    return 0;
+
+    return lhs->netmask < rhs->netmask ? -1 : 1;
+}
+
+static int IPOnlyCIDRItemCompare(const void *lhsv, const void *rhsv)
+{
+    const IPOnlyCIDRItem *lhs = *(const IPOnlyCIDRItem **)lhsv;
+    const IPOnlyCIDRItem *rhs = *(const IPOnlyCIDRItem **)rhsv;
+
+    return IPOnlyCIDRItemCompareReal(lhs, rhs);
+}
+
+static void IPOnlyCIDRListQSort(IPOnlyCIDRItem **head)
+{
+    if (unlikely(head == NULL || *head == NULL))
+        return;
+
+    // First count the number of elements in the list
+    size_t len = 0;
+    IPOnlyCIDRItem *curr = *head;
+
+    while (curr) {
+        curr = curr->next;
+        len++;
+    }
+
+    // Place a pointer to the list item in an array for sorting
+    IPOnlyCIDRItem **tmp = SCMalloc(len * sizeof(IPOnlyCIDRItem *));
+
+    if (unlikely(tmp == NULL)) {
+        SCLogError("Failed to allocate enough memory to sort IP-only CIDR items.");
+        return;
+    }
+
+    curr = *head;
+    for (size_t i = 0; i < len; i++) {
+        tmp[i] = curr;
+        curr = curr->next;
+    }
+
+    // Perform the sort using the qsort algorithm
+    qsort(tmp, len, sizeof(IPOnlyCIDRItem *), IPOnlyCIDRItemCompare);
+
+    // Update the links to the next element
+    *head = tmp[0];
+
+    for (size_t i = 0; i + 1 < len; i++) {
+        tmp[i]->next = tmp[i + 1];
+    }
+
+    tmp[len - 1]->next = NULL;
+
+    SCFree(tmp);
 }
 
 //declaration for using it already
@@ -349,11 +411,9 @@ error:
     return -1;
 }
 
-
 /**
  * \brief This function insert a IPOnlyCIDRItem
- *        to a list of IPOnlyCIDRItems sorted by netmask
- *        ascending
+ *        to a list of IPOnlyCIDRItems
  * \param head Pointer to the head of IPOnlyCIDRItems list
  * \param item Pointer to the item to insert in the list
  *
@@ -362,37 +422,12 @@ error:
 static IPOnlyCIDRItem *IPOnlyCIDRItemInsertReal(IPOnlyCIDRItem *head,
                                          IPOnlyCIDRItem *item)
 {
-    IPOnlyCIDRItem *it, *prev = NULL;
-
     if (item == NULL)
         return head;
 
-    /* Compare with the head */
-    if (item->netmask < head->netmask || (item->netmask == head->netmask && IPOnlyCIDRItemCompare(head, item))) {
-        item->next = head;
-        return item;
-    }
-
-    if (item->netmask == head->netmask && !IPOnlyCIDRItemCompare(head, item)) {
-        item->next = head->next;
-        head->next = item;
-        return head;
-    }
-
-    for (prev = it = head;
-         it != NULL && it->netmask < item->netmask;
-         it = it->next)
-        prev = it;
-
-    if (it == NULL) {
-        prev->next = item;
-        item->next = NULL;
-    } else {
-        item->next = it;
-        prev->next = item;
-    }
-
-    return head;
+    /* Always insert item as head */
+    item->next = head;
+    return item;
 }
 
 /**
@@ -1112,6 +1147,9 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
        IPOnlyCIDRListPrint((de_ctx->io_ctx).ip_dst);
      */
 
+    IPOnlyCIDRListQSort(&(de_ctx->io_ctx).ip_src);
+    IPOnlyCIDRListQSort(&(de_ctx->io_ctx).ip_dst);
+
     IPOnlyCIDRItem *src, *dst;
     SCRadixNode *node = NULL;
 
@@ -1729,64 +1767,124 @@ end:
 static int IPOnlyTestSig04 (void)
 {
     int result = 1;
-
     IPOnlyCIDRItem *head = NULL;
-    IPOnlyCIDRItem *new;
 
-    new = IPOnlyCIDRItemNew();
-    new->netmask= 10;
+    // Test a linked list of size 0, 1, 2, ..., 5
+    for (int size = 0; size < 6; size++) {
+        IPOnlyCIDRItem *new = NULL;
 
-    head = IPOnlyCIDRItemInsert(head, new);
+        if (size > 0) {
+            new = IPOnlyCIDRItemNew();
+            new->netmask = 10;
+            new->ip[0] = 3;
 
-    new = IPOnlyCIDRItemNew();
-    new->netmask= 11;
+            head = IPOnlyCIDRItemInsert(head, new);
+        }
 
-    head = IPOnlyCIDRItemInsert(head, new);
+        if (size > 1) {
+            new = IPOnlyCIDRItemNew();
+            new->netmask = 11;
 
-    new = IPOnlyCIDRItemNew();
-    new->netmask= 9;
+            head = IPOnlyCIDRItemInsert(head, new);
+        }
 
-    head = IPOnlyCIDRItemInsert(head, new);
+        if (size > 2) {
+            new = IPOnlyCIDRItemNew();
+            new->netmask = 9;
 
-    new = IPOnlyCIDRItemNew();
-    new->netmask= 10;
+            head = IPOnlyCIDRItemInsert(head, new);
+        }
 
-    head = IPOnlyCIDRItemInsert(head, new);
+        if (size > 3) {
+            new = IPOnlyCIDRItemNew();
+            new->netmask = 10;
+            new->ip[0] = 1;
 
-    new = IPOnlyCIDRItemNew();
-    new->netmask= 10;
+            head = IPOnlyCIDRItemInsert(head, new);
+        }
 
-    head = IPOnlyCIDRItemInsert(head, new);
+        if (size > 4) {
+            new = IPOnlyCIDRItemNew();
+            new->netmask = 10;
+            new->ip[0] = 2;
 
-    IPOnlyCIDRListPrint(head);
-    new = head;
-    if (new->netmask != 9) {
-        result = 0;
-        goto end;
-    }
-    new = new->next;
-    if (new->netmask != 10) {
-        result = 0;
-        goto end;
-    }
-    new = new->next;
-    if (new->netmask != 10) {
-        result = 0;
-        goto end;
-    }
-    new = new->next;
-    if (new->netmask != 10) {
-        result = 0;
-        goto end;
-    }
-    new = new->next;
-    if (new->netmask != 11) {
-        result = 0;
-        goto end;
+            head = IPOnlyCIDRItemInsert(head, new);
+        }
+
+        IPOnlyCIDRListPrint(head);
+
+        IPOnlyCIDRListQSort(&head);
+
+        if (size == 0) {
+            if (head != NULL) {
+                result = 0;
+                goto end;
+            }
+        }
+
+        /**
+         * Validate the following list entries for each size
+         * 1 - 10
+         * 2 - 10<3> 11
+         * 3 - 9     10<3> 11
+         * 4 - 9     10<1> 10<3> 11
+         * 5 - 9     10<1> 10<2> 10<3> 11
+         */
+        new = head;
+        if (size >= 3) {
+            if (new->netmask != 9) {
+                result = 0;
+                goto end;
+            }
+            new = new->next;
+        }
+
+        if (size >= 4) {
+            if (new->netmask != 10 || new->ip[0] != 1) {
+                result = 0;
+                goto end;
+            }
+            new = new->next;
+        }
+
+        if (size >= 5) {
+            if (new->netmask != 10 || new->ip[0] != 2) {
+                result = 0;
+                goto end;
+            }
+            new = new->next;
+        }
+
+        if (size >= 1) {
+            if (new->netmask != 10 || new->ip[0] != 3) {
+                result = 0;
+                goto end;
+            }
+            new = new->next;
+        }
+
+        if (size >= 2) {
+            if (new->netmask != 11) {
+                result = 0;
+                goto end;
+            }
+            new = new->next;
+        }
+
+        if (new != NULL) {
+            result = 0;
+            goto end;
+        }
+
+        IPOnlyCIDRListFree(head);
+        head = NULL;
     }
 
 end:
-    IPOnlyCIDRListFree(head);
+    if (head) {
+        IPOnlyCIDRListFree(head);
+        head = NULL;
+    }
     return result;
 }
 
