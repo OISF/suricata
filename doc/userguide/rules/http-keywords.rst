@@ -67,6 +67,7 @@ Request Keywords:
  * :ref:`http.accept_enc`
  * :ref:`http.referer`
  * :ref:`file.name`
+ * :ref:`urilen`
 
 Response Keywords:
  * :ref:`http.stat_msg`
@@ -210,34 +211,46 @@ Reference: `https://redmine.openinfosecfoundation.org/issues/2881 <https://redmi
 urilen
 ------
 
-The ``urilen`` keyword is used to match on the length of the request
+The ``urilen`` keyword is used to match on the length of the normalized request
 URI. It is possible to use the ``<`` and ``>`` operators, which
-indicate respectively *smaller than* and *larger than*.
+indicate respectively *less than* and *larger than*.
 
 urilen uses an :ref:`unsigned 64-bit integer <rules-integer-keywords>`.
 
-The format of ``urilen`` is::
+The ``urilen`` keyword does not require a content match on the :ref:`http.uri`
+buffer or the :ref:`http.uri.raw` buffer.
 
-  urilen:3;
+Example HTTP Request::
 
-Other possibilities are::
-
-  urilen:1;
-  urilen:>1;
-  urilen:<10;
-  urilen:10<>20;	(bigger than 10, smaller than 20)
-
-Example:
-
-
-Example of ``urilen`` in a signature:
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: suricata.io
 
 .. container:: example-rule
 
-    alert tcp $HOME_NET any -> $EXTERNAL_NET $HTTP_PORTS (msg:"ET TROJAN Possible Vundo Trojan Variant reporting to Controller"; flow:established,to_server; content:"POST "; depth:5; uricontent:"/frame.html?"; :example-rule-emphasis:`urilen: > 80;` classtype:trojan-activity; reference:url,doc.emergingthreats.net/2009173; reference:url,www.emergingthreats.net/cgi-bin/cvsweb.cgi/sigs/VIRUS/TROJAN_Vundo; sid:2009173; rev:2;)
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Request"; \
+  flow:established,to_server; :example-rule-options:`urilen:11;` \
+  http.method; content:"GET"; classtype:bad-unknown; sid:40; rev:1;)
 
-You can also append ``norm`` or ``raw`` to define what sort of buffer you want
-to use (normalized or raw buffer).
+The above signature would match on any HTTP GET request that has a URI
+length of 11, regardless of the content or structure of the URI.
+
+The following signatures would all alert on the example request above as well
+and show the different ``urilen`` options.
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"urilen greater than 10"; \
+  flow:established,to_server; :example-rule-options:`urilen:>10;` \
+  classtype:bad-unknown; sid:41; rev:1;)
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"urilen less than 12"; \
+  flow:established,to_server; :example-rule-options:`urilen:<12;` \
+  classtype:bad-unknown; sid:42; rev:1;)
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"urilen greater/less than \
+  example"; flow:established,to_server; :example-rule-options:`urilen:10<>12;` \
+  classtype:bad-unknown; sid:43; rev:1;)
 
 .. _http.protocol:
 
