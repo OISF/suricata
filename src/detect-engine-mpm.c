@@ -944,10 +944,8 @@ uint32_t PatternStrength(uint8_t *pat, uint16_t patlen)
     return s;
 }
 
-static void PopulateMpmHelperAddPattern(MpmCtx *mpm_ctx,
-                                        const DetectContentData *cd,
-                                        const Signature *s, uint8_t flags,
-                                        int chop)
+static void PopulateMpmHelperAddPattern(MpmCtx *mpm_ctx, const DetectContentData *cd,
+        const Signature *s, const uint8_t flags, const int chop)
 {
     uint16_t pat_offset = cd->offset;
     uint16_t pat_depth = cd->depth;
