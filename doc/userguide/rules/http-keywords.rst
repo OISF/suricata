@@ -1,5 +1,9 @@
 HTTP Keywords
 =============
+
+.. role:: example-rule-action
+.. role:: example-rule-header
+.. role:: example-rule-options
 .. role:: example-rule-emphasis
 
 Using the HTTP specific sticky buffers provides a way to efficiently
@@ -22,62 +26,6 @@ refresher:
 
   Content modifiers only apply to the preceding `content` keyword.
 
-The following **request** keywords are available:
-
-============================== ======================== ==================
-Keyword                        Legacy Content Modifier  Direction
-============================== ======================== ==================
-http.uri                       http_uri                 Request
-http.uri.raw                   http_raw_uri             Request
-http.method                    http_method              Request
-http.request_line              http_request_line (*)    Request
-http.request_body              http_client_body         Request
-http.header                    http_header              Both
-http.header.raw                http_raw_header          Both
-http.cookie                    http_cookie              Both
-http.user_agent                http_user_agent          Request
-http.host                      http_host                Request
-http.host.raw                  http_raw_host            Request
-http.accept                    http_accept (*)          Request
-http.accept_lang               http_accept_lang (*)     Request
-http.accept_enc                http_accept_enc (*)      Request
-http.referer                   http_referer (*)         Request
-http.connection                http_connection (*)      Both
-file.data                      file_data (*)            Both
-file.name                      filename (*)             Request
-http.content_type              http_content_type (*)    Both
-http.content_len               http_content_len (*)     Both
-http.start                     http_start (*)           Both
-http.protocol                  http_protocol (*)        Both
-http.header_names              http_header_names (*)    Both
-============================== ======================== ==================
-
-\*) sticky buffer
-
-The following **response** keywords are available:
-
-============================== ======================== ==================
-Keyword                        Legacy Content Modifier  Direction
-============================== ======================== ==================
-http.stat_msg                  http_stat_msg            Response
-http.stat_code                 http_stat_code           Response
-http.response_line             http_response_line (*)   Response
-http.header                    http_header              Both
-http.header.raw                http_raw_header          Both
-http.cookie                    http_cookie              Both
-http.response_body             http_server_body         Response
-http.server                    N/A                      Response
-http.location                  N/A                      Response
-file.data                      file_data (*)            Both
-http.content_type              http_content_type (*)    Both
-http.content_len               http_content_len (*)     Both
-http.start                     http_start (*)           Both
-http.protocol                  http_protocol (*)        Both
-http.header_names              http_header_names (*)    Both
-============================== ======================== ==================
-
-\*) sticky buffer
-
 HTTP Primer
 -----------
 It is important to understand the structure of HTTP requests and
@@ -97,31 +45,9 @@ today.
 
 Example request with keywords:
 
-+--------------------------------+------------------+
-| HTTP                           | Keyword          |
-+--------------------------------+------------------+
-| GET /index.html HTTP/1.1\\r\\n | http.request_line|
-+--------------------------------+------------------+
-| Host: www.oisf.net\\r\\n       | http.header      |
-+--------------------------------+------------------+
-| Cookie: **<cookie data>**      | http.cookie      |
-+--------------------------------+------------------+
 
 Example request with finer grained keywords:
 
-+------------------------------------------+---------------------+
-| HTTP                                     | Keyword             |
-+------------------------------------------+---------------------+
-| **GET** */index.html* **HTTP/1.1**\\r\\n | **http.method**     |
-|                                          | *http.uri*          |
-|                                          | **http.protocol**   |
-+------------------------------------------+---------------------+
-| Host: **www.oisf.net**\\r\\n             | **http.host**       |
-|                                          +---------------------+
-| User-Agent: **Mozilla/5.0**\\r\\n        | **http.user_agent** |
-+------------------------------------------+---------------------+
-| Cookie: **<cookie data>**                | **http.cookie**     |
-+------------------------------------------+---------------------+
 
 **HTTP response**
 
@@ -163,15 +89,9 @@ Examples of methods are: **GET**, **POST**, **PUT**, **HEAD**,
 
 Example of a method in a HTTP request:
 
-.. image:: http-keywords/method2.png
+
 
 Example of the purpose of method:
-
-.. image:: http-keywords/method.png
-
-.. image:: http-keywords/Legenda_rules.png
-
-.. image:: http-keywords/method1.png
 
 .. _rules-http-uri-normalization:
 
@@ -200,11 +120,11 @@ inspects the uri.raw buffer and can not inspect the normalized buffer.
 
 Example of the URI in a HTTP request:
 
-.. image:: http-keywords/uri1.png
+
 
 Example of the purpose of ``http.uri``:
 
-.. image:: http-keywords/uri.png
+
 
 uricontent
 ----------
@@ -222,9 +142,7 @@ Example of ``uricontent``:
 
 The difference between ``http.uri`` and ``uricontent`` is the syntax:
 
-.. image:: http-keywords/uricontent1.png
 
-.. image:: http-keywords/http_uri.png
 
 When authoring new rules, it is recommended that the ``http.uri``
 content sticky buffer be used rather than the deprecated ``uricontent``
@@ -252,7 +170,6 @@ Other possibilities are::
 
 Example:
 
-.. image:: http-keywords/urilen.png
 
 Example of ``urilen`` in a signature:
 
@@ -311,11 +228,11 @@ modifiers, like ``depth``, ``distance``, ``offset``, ``nocase`` and
 
 Example of a header in a HTTP request:
 
-.. image:: http-keywords/header.png
+
 
 Example of the purpose of ``http.header``:
 
-.. image:: http-keywords/header1.png
+
 
 http.cookie
 -----------
@@ -367,11 +284,9 @@ Normalization: leading spaces **are not** part of this buffer. So
 
 Example of the User-Agent header in a HTTP request:
 
-.. image:: http-keywords/user_agent.png
 
 Example of the purpose of ``http.user_agent``:
 
-.. image:: http-keywords/user_agent_match.png
 
 Notes
 ~~~~~
@@ -558,11 +473,8 @@ like ``distance``, ``offset``, ``nocase``, ``within``, etc.
 
 Example of ``http.request_body`` in a HTTP request:
 
-.. image:: http-keywords/client_body.png
 
 Example of the purpose of ``http.client_body``:
-
-.. image:: http-keywords/client_body1.png
 
 Note: how much of the request/client body is inspected is controlled
 in the :ref:`libhtp configuration section
@@ -583,11 +495,9 @@ like ``distance``, ``offset``, ``nocase``, ``within``, etc.
 
 Example of ``http.stat_code`` in a HTTP response:
 
-.. image:: http-keywords/stat_code.png
 
 Example of the purpose of ``http.stat_code``:
 
-.. image:: http-keywords/stat-code1.png
 
 http.stat_msg
 -------------
@@ -600,11 +510,8 @@ modifiers like ``depth``, ``distance``, ``offset``, ``nocase`` and
 
 Example of ``http.stat_msg`` in a HTTP response:
 
-.. image:: http-keywords/stat_msg.png
-
 Example of the purpose of ``http.stat_msg``:
 
-.. image:: http-keywords/stat_msg_1.png
 
 http.response_line
 ------------------
@@ -787,7 +694,6 @@ Example::
 
   alert http any any -> any any (file.data; content:"abc"; content:"xyz";)
 
-.. image:: http-keywords/file_data.png
 
 The ``file.data`` keyword affects all following content matches, until
 the ``pkt_data`` keyword is encountered or it reaches the end of the
