@@ -6,60 +6,88 @@ HTTP Keywords
 .. role:: example-rule-options
 .. role:: example-rule-emphasis
 
-Using the HTTP specific sticky buffers provides a way to efficiently
-inspect specific fields of the HTTP protocol. After specifying a
-sticky buffer in a rule it should be followed by one or more :doc:`payload-keywords`.
-
-Many of the sticky buffers have legacy variants in the older "content modifier"
-notation. See :ref:`rules-modifiers` for more information. As a
-refresher:
-
-* **'sticky buffers'** are placed first and all keywords following it apply to that buffer, for instance::
-
-      alert http any any -> any any (http.response_line; content:"403 Forbidden"; sid:1;)
-
-  Sticky buffers apply to all "payload" keywords following it. E.g. `content`, `isdataat`, `byte_test`, `pcre`.
-
-* **'content modifiers'** look back in the rule, e.g.::
-
-      alert http any any -> any any (content:"index.php"; http_uri; sid:1;)
-
-  Content modifiers only apply to the preceding `content` keyword.
+Using the HTTP specific sticky buffers (see :ref:`rules-modifiers`) provides a
+way to efficiently inspect the specific fields of HTTP protocol communications.
+After specifying a sticky buffer in a rule it should be followed by one or
+more :doc:`payload-keywords`.
 
 HTTP Primer
 -----------
-It is important to understand the structure of HTTP requests and
-responses. A simple example of a HTTP request and response follows:
+HTTP is considered a client-server or request-response protocol. A client
+requests resources from a server and a server responds to the request.
 
-**HTTP request**
+In versions of HTTP prior to version 2 a client request could look like:
 
-::
+Example HTTP Request::
 
-   GET /index.html HTTP/1.0\r\n
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: suricata.io
 
-GET is the request **method**.  Examples of methods are: GET, POST, PUT,
-HEAD, etc. The URI path is ``/index.html`` and the HTTP version is
-``HTTP/1.0``. Several HTTP versions have been used over the years; of
-the versions 0.9, 1.0 and 1.1, 1.0 and 1.1 are the most commonly used
-today.
+Example signature that would alert on the above request.
 
-Example request with keywords:
+.. container:: example-rule
 
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Request Example"; \
+  flow:established,to_server; :example-rule-options:`http.method; \
+  content:"GET"; http.uri; content:"/index.html"; bsize:11; http.protocol; \
+  content:"HTTP/1.1"; bsize:8; http.user_agent; content:"Mozilla/5.0"; bsize:11; \
+  http.host; content:"suricata.io"; bsize:11;` classtype:bad-unknown; sid:25; rev:1;)
 
-Example request with finer grained keywords:
+In versions of HTTP prior to version 2 a server response could look like:
 
+Example HTTP Response::
 
-**HTTP response**
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Content-Length: 258
+  Date: Thu, 14 Dec 2023 20:22:41 GMT
+  Server: nginx/0.8.54
+  Connection: Close
 
-::
+Example signature that would alert on the above response.
 
-   HTTP/1.0 200 OK\r\n
-   <html>
-   <title> some page </title>
-   </HTML>
+.. container:: example-rule
 
-In this example, HTTP/1.0 is the HTTP version, 200 the response status
-code and OK the response status message.
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Stat Code Example"; \
+  flow:established,to_client; :example-rule-options:`http.stat_code; \
+  content:"200"; bsize:8; http.content_type; content:"text/html"; bsize:9;` \
+  classtype:bad-unknown; sid:30; rev:1;)
+
+Request Keywords:
+ * http.uri
+ * http.uri.raw
+ * http.method
+ * http.request_line
+ * http.request_body
+ * http.cookie
+ * http.user_agent
+ * http.host
+ * http.host.raw
+ * http.accept
+ * http.accept_lang
+ * http.accept_enc
+ * http.referer
+ * file.name
+
+Response Keywords:
+ * http.stat_msg
+ * http.stat_code
+ * http.response_line
+ * http.response_body
+ * http.server
+ * http.location
+
+Request or Response Keywords:
+ * file.data
+ * http.content_type
+ * http.content_len
+ * http.start
+ * http.protocol
+ * http.header_names
+ * http.header
+ * http.header.raw
+ * http.cookie
 
 Although cookies are sent in an HTTP header, you can not match on them
 with the ``http.header`` keyword. Cookies are matched with their own
