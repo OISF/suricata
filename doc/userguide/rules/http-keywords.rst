@@ -205,28 +205,6 @@ Example Request::
 
 Reference: `https://redmine.openinfosecfoundation.org/issues/2881 <https://redmine.openinfosecfoundation.org/issues/2881>`_
 
-uricontent
-----------
-
-The ``uricontent`` keyword has the exact same effect as the
-``http.uri`` sticky buffer. ``uricontent`` is a deprecated
-(although still supported) way to match specifically and only on the
-request URI buffer.
-
-Example of ``uricontent``:
-
-.. container:: example-rule
-
-    alert tcp $HOME_NET any -> $EXTERNAL_NET $HTTP_PORTS (msg:"ET TROJAN Possible Vundo Trojan Variant reporting to Controller"; flow:established,to_server; content:"POST "; depth:5; :example-rule-emphasis:`uricontent:"/frame.html?";` urilen: > 80; classtype:trojan-activity; reference:url,doc.emergingthreats.net/2009173; reference:url,www.emergingthreats.net/cgi-bin/cvsweb.cgi/sigs/VIRUS/TROJAN_Vundo; sid:2009173; rev:2;)
-
-The difference between ``http.uri`` and ``uricontent`` is the syntax:
-
-
-
-When authoring new rules, it is recommended that the ``http.uri``
-content sticky buffer be used rather than the deprecated ``uricontent``
-keyword.
-
 .. _urilen:
 
 urilen
