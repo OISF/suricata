@@ -873,6 +873,7 @@ void SCHSDestroyCtx(MpmCtx *mpm_ctx)
     SCMutexUnlock(&g_db_table_mutex);
 
     SCFree(mpm_ctx->ctx);
+    mpm_ctx->ctx = NULL;
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(SCHSCtx);
 }
