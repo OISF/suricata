@@ -105,19 +105,32 @@ with relative modifiers.
 http.method
 -----------
 
-With the ``http.method`` sticky buffer, it is possible to match
-specifically and only on the HTTP method buffer. The keyword can be
-used in combination with all previously mentioned content modifiers
-such as: ``depth``, ``distance``, ``offset``, ``nocase`` and ``within``.
+The ``http.method`` keyword matches on the method/verb used in an HTTP request.
+HTTP request methods can be any of the following:
 
-Examples of methods are: **GET**, **POST**, **PUT**, **HEAD**,
-**DELETE**, **TRACE**, **OPTIONS**, **CONNECT** and **PATCH**.
+* GET
+* POST
+* HEAD
+* OPTIONS
+* PUT
+* DELETE
+* TRACE
+* CONNECT
+* PATCH
 
-Example of a method in a HTTP request:
+It is possible to use any of the :doc:`payload-keywords` with the ``http.method`` keyword.
 
+Example HTTP Request::
 
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: suricata.io
 
-Example of the purpose of method:
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Request Example"; \
+  flow:established,to_server; :example-rule-options:`http.method; \
+  content:"GET";` classtype:bad-unknown; sid:2; rev:1;)
 
 .. _rules-http-uri-normalization:
 
