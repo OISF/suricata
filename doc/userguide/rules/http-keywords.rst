@@ -56,6 +56,7 @@ Example signature that would alert on the above response.
 
 Request Keywords:
  * :ref:`http.uri`
+ * :ref:`http.uri.raw`
  * :ref:`http.method`
  * :ref:`http.request_line`
  * :ref:`http.request_body`
@@ -136,38 +137,73 @@ Example HTTP Request::
 
 .. _http.uri:
 
+http.uri 
+--------
+
+Matching on the HTTP URI buffer has two options in Suricata, the ``http.uri``
+and the ``http.uri.raw`` sticky buffers.
+
+It is possible to use any of the :doc:`payload-keywords` with the ``http.uri``
+keywords.
+
+The ``http.uri`` keyword normalizes the URI buffer. For example, if a URI has two
+leading ``//``, Suricata will normalize the URI to a single leading ``/``.
+
+Normalization Example::
+
+  GET //index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: suricata.io
+
+In this case :example-rule-emphasis:`//index.html` would be normalized to 
+:example-rule-emphasis:`/index.html`.
+
+Normalized HTTP Request Example::
+
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: suricata.io
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP URI Example"; \
+  flow:established,to_server; :example-rule-options:`http.uri; \
+  content:"/index.html";` bsize:11; classtype:bad-unknown; sid:3; rev:1;)
+
 .. _http.uri.raw:
 
-http.uri and http.uri.raw
--------------------------
+http.uri.raw
+------------
 
-With the ``http.uri`` and the ``http.uri.raw`` sticky buffers, it
-is possible to match specifically and only on the request URI
-buffer. The keyword can be used in combination with all previously
-mentioned content modifiers like ``depth``, ``distance``, ``offset``,
-``nocase`` and ``within``.
+The ``http.uri.raw`` buffer matches on HTTP URI content but does not
+have any normalization performed on the buffer contents.
+(see :ref:`rules-http-uri-normalization`)
 
-The uri has two appearances in Suricata: the uri.raw and the
-normalized uri. The space for example can be indicated with the
-heximal notation %20. To convert this notation in a space, means
-normalizing it. It is possible though to match specific on the
-characters %20 in a uri. This means matching on the uri.raw. The
-uri.raw and the normalized uri are separate buffers. So, the uri.raw
-inspects the uri.raw buffer and can not inspect the normalized buffer.
+Abnormal HTTP Request Example::
 
-.. note:: uri.raw never has any spaces in it.
-          With this request line ``GET /uid=0(root) gid=0(root) HTTP/1.1``,
-          the ``http.uri.raw`` will match ``/uid=0(root)``
-          and ``http.protocol`` will match ``gid=0(root) HTTP/1.1``
-          Reference: `https://redmine.openinfosecfoundation.org/issues/2881 <https://redmine.openinfosecfoundation.org/issues/2881>`_
+  GET //index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: suricata.io
 
-Example of the URI in a HTTP request:
+.. container:: example-rule
 
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP URI Raw Example"; \
+  flow:established,to_server; :example-rule-options:`http.uri.raw; \
+  content:"//index.html";` bsize:12; classtype:bad-unknown; sid:4; rev:1;)
 
+.. note:: The ``http.uri.raw`` keyword/buffer does not allow for spaces.
 
-Example of the purpose of ``http.uri``:
+Example Request::
 
+  GET /example spaces HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: suricata.io
 
+``http.uri.raw`` would be populated with :example-rule-header:`/example`
+
+:ref:`http.protocol` would be populated with :example-rule-header:`spaces HTTP/1.1`
+
+Reference: `https://redmine.openinfosecfoundation.org/issues/2881 <https://redmine.openinfosecfoundation.org/issues/2881>`_
 
 uricontent
 ----------
