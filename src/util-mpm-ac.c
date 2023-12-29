@@ -916,6 +916,7 @@ void SCACDestroyCtx(MpmCtx *mpm_ctx)
     }
 
     SCFree(mpm_ctx->ctx);
+    mpm_ctx->ctx = NULL;
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(SCACCtx);
 
