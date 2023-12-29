@@ -351,8 +351,7 @@ error:
 
 /**
  * \brief This function insert a IPOnlyCIDRItem
- *        to a list of IPOnlyCIDRItems sorted by netmask
- *        ascending
+ *        to a list of IPOnlyCIDRItems
  * \param head Pointer to the head of IPOnlyCIDRItems list
  * \param item Pointer to the item to insert in the list
  *
@@ -366,32 +365,9 @@ static IPOnlyCIDRItem *IPOnlyCIDRItemInsertReal(IPOnlyCIDRItem *head,
     if (item == NULL)
         return head;
 
-    /* Compare with the head */
-    if (item->netmask < head->netmask || (item->netmask == head->netmask && IPOnlyCIDRItemCompare(head, item))) {
-        item->next = head;
-        return item;
-    }
-
-    if (item->netmask == head->netmask && !IPOnlyCIDRItemCompare(head, item)) {
-        item->next = head->next;
-        head->next = item;
-        return head;
-    }
-
-    for (prev = it = head;
-         it != NULL && it->netmask < item->netmask;
-         it = it->next)
-        prev = it;
-
-    if (it == NULL) {
-        prev->next = item;
-        item->next = NULL;
-    } else {
-        item->next = it;
-        prev->next = item;
-    }
-
-    return head;
+    /* Always insert item as head */
+    item->next = head;
+    return item;
 }
 
 /**
