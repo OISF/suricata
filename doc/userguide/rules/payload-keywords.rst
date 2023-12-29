@@ -689,6 +689,7 @@ the reassembled stream.
 The checksums will be recalculated by Suricata and changed after the
 replace keyword is being used.
 
+.. _pcre:
 
 pcre (Perl Compatible Regular Expressions)
 ------------------------------------------
