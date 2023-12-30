@@ -67,8 +67,6 @@
 
 typedef struct AppLayerProtoDetectProbingParserElement_ {
     AppProto alproto;
-    /* \todo don't really need it.  See if you can get rid of it */
-    uint16_t port;
     /* \todo calculate at runtime and get rid of this var */
     uint32_t alproto_mask;
     /* the min length of data that has to be supplied to invoke the parser */
@@ -776,16 +774,12 @@ static void AppLayerProtoDetectProbingParserFree(AppLayerProtoDetectProbingParse
     SCReturn;
 }
 
-static AppLayerProtoDetectProbingParserElement *
-AppLayerProtoDetectProbingParserElementCreate(AppProto alproto,
-                                              uint16_t port,
-                                              uint16_t min_depth,
-                                              uint16_t max_depth)
+static AppLayerProtoDetectProbingParserElement *AppLayerProtoDetectProbingParserElementCreate(
+        AppProto alproto, uint16_t min_depth, uint16_t max_depth)
 {
     AppLayerProtoDetectProbingParserElement *pe = AppLayerProtoDetectProbingParserElementAlloc();
 
     pe->alproto = alproto;
-    pe->port = port;
     pe->alproto_mask = AppLayerProtoDetectProbingParserGetMask(alproto);
     pe->min_depth = min_depth;
     pe->max_depth = max_depth;
@@ -817,7 +811,6 @@ AppLayerProtoDetectProbingParserElementDuplicate(AppLayerProtoDetectProbingParse
     AppLayerProtoDetectProbingParserElement *new_pe = AppLayerProtoDetectProbingParserElementAlloc();
 
     new_pe->alproto = pe->alproto;
-    new_pe->port = pe->port;
     new_pe->alproto_mask = pe->alproto_mask;
     new_pe->min_depth = pe->min_depth;
     new_pe->max_depth = pe->max_depth;
@@ -860,7 +853,6 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                 for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
 
                     printf("            alproto: %s\n", AppProtoToString(pp_pe->alproto));
-                    printf("            port: %"PRIu16 "\n", pp_pe->port);
                     printf("            mask: %"PRIu32 "\n", pp_pe->alproto_mask);
                     printf("            min_depth: %"PRIu32 "\n", pp_pe->min_depth);
                     printf("            max_depth: %"PRIu32 "\n", pp_pe->max_depth);
@@ -881,7 +873,6 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
             for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
 
                 printf("            alproto: %s\n", AppProtoToString(pp_pe->alproto));
-                printf("            port: %"PRIu16 "\n", pp_pe->port);
                 printf("            mask: %"PRIu32 "\n", pp_pe->alproto_mask);
                 printf("            min_depth: %"PRIu32 "\n", pp_pe->min_depth);
                 printf("            max_depth: %"PRIu32 "\n", pp_pe->max_depth);
@@ -902,35 +893,14 @@ static void AppLayerProtoDetectProbingParserElementAppend(AppLayerProtoDetectPro
 
     if (*head_pe == NULL) {
         *head_pe = new_pe;
-        goto end;
+        SCReturn;
     }
 
-    if ((*head_pe)->port == 0) {
-        if (new_pe->port != 0) {
-            new_pe->next = *head_pe;
-            *head_pe = new_pe;
-        } else {
-            AppLayerProtoDetectProbingParserElement *temp_pe = *head_pe;
-            while (temp_pe->next != NULL)
-                temp_pe = temp_pe->next;
-            temp_pe->next = new_pe;
-        }
-    } else {
-        AppLayerProtoDetectProbingParserElement *temp_pe = *head_pe;
-        if (new_pe->port == 0) {
-            while (temp_pe->next != NULL)
-                temp_pe = temp_pe->next;
-            temp_pe->next = new_pe;
-        } else {
-            while (temp_pe->next != NULL && temp_pe->next->port != 0)
-                temp_pe = temp_pe->next;
-            new_pe->next = temp_pe->next;
-            temp_pe->next = new_pe;
+    AppLayerProtoDetectProbingParserElement *temp_pe = *head_pe;
+    while (temp_pe->next != NULL)
+        temp_pe = temp_pe->next;
+    temp_pe->next = new_pe;
 
-        }
-    }
-
- end:
     SCReturn;
 }
 
@@ -1087,9 +1057,7 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
     }
     /* Get a new parser element */
     AppLayerProtoDetectProbingParserElement *new_pe =
-        AppLayerProtoDetectProbingParserElementCreate(alproto,
-                                                      curr_port->port,
-                                                      min_depth, max_depth);
+            AppLayerProtoDetectProbingParserElementCreate(alproto, min_depth, max_depth);
     if (new_pe == NULL)
         goto error;
     curr_pe = new_pe;
@@ -2914,9 +2882,6 @@ static int AppLayerProtoDetectPPTestData(AppLayerProtoDetectProbingParser *pp,
                 if (pp_element->alproto != ip_proto[i].port[k].toserver_element[j].alproto) {
                     goto end;
                 }
-                if (pp_element->port != ip_proto[i].port[k].toserver_element[j].port) {
-                    goto end;
-                }
                 if (pp_element->alproto_mask != ip_proto[i].port[k].toserver_element[j].alproto_mask) {
                     goto end;
                 }
@@ -2936,9 +2901,6 @@ static int AppLayerProtoDetectPPTestData(AppLayerProtoDetectProbingParser *pp,
 #endif
             for (j = 0 ; j < ip_proto[i].port[k].tc_no_of_element; j++, pp_element = pp_element->next) {
                 if (pp_element->alproto != ip_proto[i].port[k].toclient_element[j].alproto) {
-                    goto end;
-                }
-                if (pp_element->port != ip_proto[i].port[k].toclient_element[j].port) {
                     goto end;
                 }
                 if (pp_element->alproto_mask != ip_proto[i].port[k].toclient_element[j].alproto_mask) {
