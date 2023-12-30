@@ -36,6 +36,8 @@ pub enum DetectUintMode {
     DetectUintModeRange,
     DetectUintModeNe,
     DetectUintModeNegRg,
+    DetectUintModeBitmask,
+    DetectUintModeNegBitmask,
 }
 
 #[derive(Debug)]
@@ -137,6 +139,33 @@ pub fn detect_parse_uint_start_interval<T: DetectIntType>(
         DetectUintMode::DetectUintModeNegRg
     } else {
         DetectUintMode::DetectUintModeRange
+    };
+    Ok((
+        i,
+        DetectUintData {
+            arg1,
+            arg2,
+            mode,
+        },
+    ))
+}
+
+pub fn detect_parse_uint_bitmask<T: DetectIntType>(
+    i: &str,
+) -> IResult<&str, DetectUintData<T>> {
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, _) = tag("&")(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, arg1) = detect_parse_uint_value(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, neg) = opt(tag("!"))(i)?;
+    let (i, _) = tag("=")(i)?;
+    let (i, _) = opt(is_a(" "))(i)?;
+    let (i, arg2) = detect_parse_uint_value(i)?;
+    let mode = if neg.is_none() {
+        DetectUintMode::DetectUintModeBitmask
+    } else {
+        DetectUintMode::DetectUintModeNegBitmask
     };
     Ok((
         i,
@@ -273,6 +302,16 @@ pub fn detect_match_uint<T: DetectIntType>(x: &DetectUintData<T>, val: T) -> boo
                 return true;
             }
         }
+        DetectUintMode::DetectUintModeBitmask => {
+            if val & x.arg1 == x.arg2 {
+                return true;
+            }
+        }
+        DetectUintMode::DetectUintModeNegBitmask => {
+            if val & x.arg1 != x.arg2 {
+                return true;
+            }
+        }
     }
     return false;
 }
@@ -280,6 +319,7 @@ pub fn detect_match_uint<T: DetectIntType>(x: &DetectUintData<T>, val: T) -> boo
 pub fn detect_parse_uint_notending<T: DetectIntType>(i: &str) -> IResult<&str, DetectUintData<T>> {
     let (i, _) = opt(is_a(" "))(i)?;
     let (i, uint) = alt((
+        detect_parse_uint_bitmask,
         detect_parse_uint_start_interval,
         detect_parse_uint_start_equal,
         detect_parse_uint_start_symbol,
@@ -442,6 +482,34 @@ pub unsafe extern "C" fn rs_detect_u16_free(ctx: &mut DetectUintData<u16>) {
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_parse_uint_bitmask() {
+        match detect_parse_uint::<u64>("&0x40!=0") {
+            Ok((_, val)) => {
+                assert_eq!(val.arg1, 0x40);
+                assert_eq!(val.arg2, 0);
+                assert_eq!(val.mode, DetectUintMode::DetectUintModeNegBitmask);
+                assert!(!detect_match_uint(&val, 0xBF));
+                assert!(detect_match_uint(&val, 0x40));
+            }
+            Err(_) => {
+                assert!(false);
+            }
+        }
+        match detect_parse_uint::<u64>("&0xc0=0x80") {
+            Ok((_, val)) => {
+                assert_eq!(val.arg1, 0xc0);
+                assert_eq!(val.arg2, 0x80);
+                assert_eq!(val.mode, DetectUintMode::DetectUintModeBitmask);
+                assert!(detect_match_uint(&val, 0x80));
+                assert!(!detect_match_uint(&val, 0x40));
+                assert!(!detect_match_uint(&val, 0xc0));
+            }
+            Err(_) => {
+                assert!(false);
+            }
+        }
+    }
     #[test]
     fn test_parse_uint_hex() {
         match detect_parse_uint::<u64>("0x100") {
