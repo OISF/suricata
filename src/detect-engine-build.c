@@ -392,7 +392,7 @@ deonly:
     SCReturnInt(1);
 }
 
-#define MASK_TCP_INITDEINIT_FLAGS   (TH_SYN|TH_RST|TH_FIN)
+#define MASK_TCP_DEINIT_FLAGS       (TH_RST | TH_FIN)
 #define MASK_TCP_UNUSUAL_FLAGS      (TH_URG|TH_ECN|TH_CWR)
 
 /* Create mask for this packet + it's flow if it has one
@@ -423,8 +423,12 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
 
     if (!(PKT_IS_PSEUDOPKT(p)) && PacketIsTCP(p)) {
         const TCPHdr *tcph = PacketGetTCP(p);
-        if ((tcph->th_flags & MASK_TCP_INITDEINIT_FLAGS) != 0) {
-            (*mask) |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
+        if (((tcph->th_flags & (TH_SYN | TH_ECN | TH_CWR)) != 0) && tcph->th_flags & TH_SYN) {
+            (*mask) |= SIG_MASK_REQUIRE_FLAGS_SYN;
+        }
+
+        if ((tcph->th_flags & MASK_TCP_DEINIT_FLAGS) != 0) {
+            (*mask) |= SIG_MASK_REQUIRE_FLAGS_DEINIT;
         }
         if ((tcph->th_flags & MASK_TCP_UNUSUAL_FLAGS) != 0) {
             (*mask) |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
@@ -489,11 +493,26 @@ static int SignatureCreateMask(Signature *s)
                 } else if (fl->mode == DetectUintModeEqual) {
                     arg = fl->arg1;
                 }
-                if (arg & MASK_TCP_INITDEINIT_FLAGS) {
-                    s->mask |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
-                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_INITDEINIT");
+                if (arg == TH_SYN) {
+                    s->mask |= SIG_MASK_REQUIRE_FLAGS_SYN;
                 }
-                if (arg & MASK_TCP_UNUSUAL_FLAGS) {
+                if (arg & TH_RST) {
+                    s->mask |= SIG_MASK_REQUIRE_FLAGS_DEINIT;
+                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_DEINIT");
+                }
+                if (arg & TH_FIN) {
+                    s->mask |= SIG_MASK_REQUIRE_FLAGS_DEINIT;
+                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_DEINIT");
+                }
+                if (arg & TH_URG) {
+                    s->mask |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
+                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_UNUSUAL");
+                }
+                if (arg & TH_ECN) {
+                    s->mask |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
+                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_UNUSUAL");
+                }
+                if (arg & TH_CWR) {
                     s->mask |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
                     SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_UNUSUAL");
                 }
