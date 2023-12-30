@@ -581,7 +581,10 @@ again_midstream:
         }
     }
 
-    if (dir == STREAM_TOSERVER && f->alproto_tc != ALPROTO_UNKNOWN) {
+    if (f->alproto_expect != ALPROTO_UNKNOWN) {
+        // needed for websocket which does not use ports
+        pe0 = AppLayerProtoDetectGetProbingParser(alpd_ctx.ctx_pp, ipproto, f->alproto_expect);
+    } else if (dir == STREAM_TOSERVER && f->alproto_tc != ALPROTO_UNKNOWN) {
         pe0 = AppLayerProtoDetectGetProbingParser(alpd_ctx.ctx_pp, ipproto, f->alproto_tc);
     } else if (dir == STREAM_TOCLIENT && f->alproto_ts != ALPROTO_UNKNOWN) {
         pe0 = AppLayerProtoDetectGetProbingParser(alpd_ctx.ctx_pp, ipproto, f->alproto_ts);
