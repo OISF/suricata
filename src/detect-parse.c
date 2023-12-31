@@ -1797,8 +1797,8 @@ static void SigBuildAddressMatchArray(Signature *s)
     /* source addresses */
     uint16_t cnt = 0;
     uint16_t idx = 0;
-    DetectAddress *da = s->init_data->src->ipv4_head;
-    for ( ; da != NULL; da = da->next) {
+
+    for (const DetectAddress *da = s->init_data->src->ipv4_head; da != NULL; da = da->next) {
         cnt++;
     }
     if (cnt > 0) {
@@ -1807,7 +1807,7 @@ static void SigBuildAddressMatchArray(Signature *s)
             exit(EXIT_FAILURE);
         }
 
-        for (da = s->init_data->src->ipv4_head; da != NULL; da = da->next) {
+        for (const DetectAddress *da = s->init_data->src->ipv4_head; da != NULL; da = da->next) {
             s->addr_src_match4[idx].ip = SCNtohl(da->ip.addr_data32[0]);
             s->addr_src_match4[idx].ip2 = SCNtohl(da->ip2.addr_data32[0]);
             idx++;
@@ -1818,8 +1818,7 @@ static void SigBuildAddressMatchArray(Signature *s)
     /* destination addresses */
     cnt = 0;
     idx = 0;
-    da = s->init_data->dst->ipv4_head;
-    for ( ; da != NULL; da = da->next) {
+    for (const DetectAddress *da = s->init_data->dst->ipv4_head; da != NULL; da = da->next) {
         cnt++;
     }
     if (cnt > 0) {
@@ -1828,7 +1827,7 @@ static void SigBuildAddressMatchArray(Signature *s)
             exit(EXIT_FAILURE);
         }
 
-        for (da = s->init_data->dst->ipv4_head; da != NULL; da = da->next) {
+        for (const DetectAddress *da = s->init_data->dst->ipv4_head; da != NULL; da = da->next) {
             s->addr_dst_match4[idx].ip = SCNtohl(da->ip.addr_data32[0]);
             s->addr_dst_match4[idx].ip2 = SCNtohl(da->ip2.addr_data32[0]);
             idx++;
@@ -1839,8 +1838,7 @@ static void SigBuildAddressMatchArray(Signature *s)
     /* source addresses IPv6 */
     cnt = 0;
     idx = 0;
-    da = s->init_data->src->ipv6_head;
-    for ( ; da != NULL; da = da->next) {
+    for (const DetectAddress *da = s->init_data->src->ipv6_head; da != NULL; da = da->next) {
         cnt++;
     }
     if (cnt > 0) {
@@ -1849,7 +1847,7 @@ static void SigBuildAddressMatchArray(Signature *s)
             exit(EXIT_FAILURE);
         }
 
-        for (da = s->init_data->src->ipv6_head; da != NULL; da = da->next) {
+        for (const DetectAddress *da = s->init_data->src->ipv6_head; da != NULL; da = da->next) {
             s->addr_src_match6[idx].ip[0] = SCNtohl(da->ip.addr_data32[0]);
             s->addr_src_match6[idx].ip[1] = SCNtohl(da->ip.addr_data32[1]);
             s->addr_src_match6[idx].ip[2] = SCNtohl(da->ip.addr_data32[2]);
@@ -1866,8 +1864,7 @@ static void SigBuildAddressMatchArray(Signature *s)
     /* destination addresses IPv6 */
     cnt = 0;
     idx = 0;
-    da = s->init_data->dst->ipv6_head;
-    for ( ; da != NULL; da = da->next) {
+    for (const DetectAddress *da = s->init_data->dst->ipv6_head; da != NULL; da = da->next) {
         cnt++;
     }
     if (cnt > 0) {
@@ -1876,7 +1873,7 @@ static void SigBuildAddressMatchArray(Signature *s)
             exit(EXIT_FAILURE);
         }
 
-        for (da = s->init_data->dst->ipv6_head; da != NULL; da = da->next) {
+        for (const DetectAddress *da = s->init_data->dst->ipv6_head; da != NULL; da = da->next) {
             s->addr_dst_match6[idx].ip[0] = SCNtohl(da->ip.addr_data32[0]);
             s->addr_dst_match6[idx].ip[1] = SCNtohl(da->ip.addr_data32[1]);
             s->addr_dst_match6[idx].ip[2] = SCNtohl(da->ip.addr_data32[2]);
