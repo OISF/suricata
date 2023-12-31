@@ -1786,6 +1786,64 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
     return 0;
 }
 
+static DetectMatchAddressIPv4 *SigBuildAddressMatchArrayIPv4(
+        const DetectAddress *head, uint16_t *match4_cnt)
+{
+    uint16_t cnt = 0;
+
+    for (const DetectAddress *da = head; da != NULL; da = da->next) {
+        cnt++;
+    }
+    if (cnt == 0) {
+        return NULL;
+    }
+    DetectMatchAddressIPv4 *addr_match4 = SCCalloc(cnt, sizeof(DetectMatchAddressIPv4));
+    if (addr_match4 == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    uint16_t idx = 0;
+    for (const DetectAddress *da = head; da != NULL; da = da->next) {
+        addr_match4[idx].ip = SCNtohl(da->ip.addr_data32[0]);
+        addr_match4[idx].ip2 = SCNtohl(da->ip2.addr_data32[0]);
+        idx++;
+    }
+    *match4_cnt = cnt;
+    return addr_match4;
+}
+
+static DetectMatchAddressIPv6 *SigBuildAddressMatchArrayIPv6(
+        const DetectAddress *head, uint16_t *match6_cnt)
+{
+    uint16_t cnt = 0;
+    for (const DetectAddress *da = head; da != NULL; da = da->next) {
+        cnt++;
+    }
+    if (cnt == 0) {
+        return NULL;
+    }
+
+    DetectMatchAddressIPv6 *addr_match6 = SCCalloc(cnt, sizeof(DetectMatchAddressIPv6));
+    if (addr_match6 == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    uint16_t idx = 0;
+    for (const DetectAddress *da = head; da != NULL; da = da->next) {
+        addr_match6[idx].ip[0] = SCNtohl(da->ip.addr_data32[0]);
+        addr_match6[idx].ip[1] = SCNtohl(da->ip.addr_data32[1]);
+        addr_match6[idx].ip[2] = SCNtohl(da->ip.addr_data32[2]);
+        addr_match6[idx].ip[3] = SCNtohl(da->ip.addr_data32[3]);
+        addr_match6[idx].ip2[0] = SCNtohl(da->ip2.addr_data32[0]);
+        addr_match6[idx].ip2[1] = SCNtohl(da->ip2.addr_data32[1]);
+        addr_match6[idx].ip2[2] = SCNtohl(da->ip2.addr_data32[2]);
+        addr_match6[idx].ip2[3] = SCNtohl(da->ip2.addr_data32[3]);
+        idx++;
+    }
+    *match6_cnt = cnt;
+    return addr_match6;
+}
+
 /**
  *  \internal
  *  \brief build address match array for cache efficient matching
@@ -1795,97 +1853,18 @@ int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
 static void SigBuildAddressMatchArray(Signature *s)
 {
     /* source addresses */
-    uint16_t cnt = 0;
-    uint16_t idx = 0;
-
-    for (const DetectAddress *da = s->init_data->src->ipv4_head; da != NULL; da = da->next) {
-        cnt++;
-    }
-    if (cnt > 0) {
-        s->addr_src_match4 = SCMalloc(cnt * sizeof(DetectMatchAddressIPv4));
-        if (s->addr_src_match4 == NULL) {
-            exit(EXIT_FAILURE);
-        }
-
-        for (const DetectAddress *da = s->init_data->src->ipv4_head; da != NULL; da = da->next) {
-            s->addr_src_match4[idx].ip = SCNtohl(da->ip.addr_data32[0]);
-            s->addr_src_match4[idx].ip2 = SCNtohl(da->ip2.addr_data32[0]);
-            idx++;
-        }
-        s->addr_src_match4_cnt = cnt;
-    }
-
+    s->addr_src_match4 =
+            SigBuildAddressMatchArrayIPv4(s->init_data->src->ipv4_head, &s->addr_src_match4_cnt);
     /* destination addresses */
-    cnt = 0;
-    idx = 0;
-    for (const DetectAddress *da = s->init_data->dst->ipv4_head; da != NULL; da = da->next) {
-        cnt++;
-    }
-    if (cnt > 0) {
-        s->addr_dst_match4 = SCMalloc(cnt * sizeof(DetectMatchAddressIPv4));
-        if (s->addr_dst_match4 == NULL) {
-            exit(EXIT_FAILURE);
-        }
-
-        for (const DetectAddress *da = s->init_data->dst->ipv4_head; da != NULL; da = da->next) {
-            s->addr_dst_match4[idx].ip = SCNtohl(da->ip.addr_data32[0]);
-            s->addr_dst_match4[idx].ip2 = SCNtohl(da->ip2.addr_data32[0]);
-            idx++;
-        }
-        s->addr_dst_match4_cnt = cnt;
-    }
+    s->addr_dst_match4 =
+            SigBuildAddressMatchArrayIPv4(s->init_data->dst->ipv4_head, &s->addr_dst_match4_cnt);
 
     /* source addresses IPv6 */
-    cnt = 0;
-    idx = 0;
-    for (const DetectAddress *da = s->init_data->src->ipv6_head; da != NULL; da = da->next) {
-        cnt++;
-    }
-    if (cnt > 0) {
-        s->addr_src_match6 = SCMalloc(cnt * sizeof(DetectMatchAddressIPv6));
-        if (s->addr_src_match6 == NULL) {
-            exit(EXIT_FAILURE);
-        }
-
-        for (const DetectAddress *da = s->init_data->src->ipv6_head; da != NULL; da = da->next) {
-            s->addr_src_match6[idx].ip[0] = SCNtohl(da->ip.addr_data32[0]);
-            s->addr_src_match6[idx].ip[1] = SCNtohl(da->ip.addr_data32[1]);
-            s->addr_src_match6[idx].ip[2] = SCNtohl(da->ip.addr_data32[2]);
-            s->addr_src_match6[idx].ip[3] = SCNtohl(da->ip.addr_data32[3]);
-            s->addr_src_match6[idx].ip2[0] = SCNtohl(da->ip2.addr_data32[0]);
-            s->addr_src_match6[idx].ip2[1] = SCNtohl(da->ip2.addr_data32[1]);
-            s->addr_src_match6[idx].ip2[2] = SCNtohl(da->ip2.addr_data32[2]);
-            s->addr_src_match6[idx].ip2[3] = SCNtohl(da->ip2.addr_data32[3]);
-            idx++;
-        }
-        s->addr_src_match6_cnt = cnt;
-    }
-
+    s->addr_src_match6 =
+            SigBuildAddressMatchArrayIPv6(s->init_data->src->ipv6_head, &s->addr_src_match6_cnt);
     /* destination addresses IPv6 */
-    cnt = 0;
-    idx = 0;
-    for (const DetectAddress *da = s->init_data->dst->ipv6_head; da != NULL; da = da->next) {
-        cnt++;
-    }
-    if (cnt > 0) {
-        s->addr_dst_match6 = SCMalloc(cnt * sizeof(DetectMatchAddressIPv6));
-        if (s->addr_dst_match6 == NULL) {
-            exit(EXIT_FAILURE);
-        }
-
-        for (const DetectAddress *da = s->init_data->dst->ipv6_head; da != NULL; da = da->next) {
-            s->addr_dst_match6[idx].ip[0] = SCNtohl(da->ip.addr_data32[0]);
-            s->addr_dst_match6[idx].ip[1] = SCNtohl(da->ip.addr_data32[1]);
-            s->addr_dst_match6[idx].ip[2] = SCNtohl(da->ip.addr_data32[2]);
-            s->addr_dst_match6[idx].ip[3] = SCNtohl(da->ip.addr_data32[3]);
-            s->addr_dst_match6[idx].ip2[0] = SCNtohl(da->ip2.addr_data32[0]);
-            s->addr_dst_match6[idx].ip2[1] = SCNtohl(da->ip2.addr_data32[1]);
-            s->addr_dst_match6[idx].ip2[2] = SCNtohl(da->ip2.addr_data32[2]);
-            s->addr_dst_match6[idx].ip2[3] = SCNtohl(da->ip2.addr_data32[3]);
-            idx++;
-        }
-        s->addr_dst_match6_cnt = cnt;
-    }
+    s->addr_dst_match6 =
+            SigBuildAddressMatchArrayIPv6(s->init_data->dst->ipv6_head, &s->addr_dst_match6_cnt);
 }
 
 static int SigMatchListLen(SigMatch *sm)
