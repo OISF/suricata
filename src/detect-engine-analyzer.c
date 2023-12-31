@@ -949,9 +949,6 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     if (s->mask & SIG_MASK_REQUIRE_FLAGS_UNUSUAL) {
         jb_append_string(ctx.js, "tcp_flags_unusual");
     }
-    if (s->mask & SIG_MASK_REQUIRE_DCERPC) {
-        jb_append_string(ctx.js, "dcerpc");
-    }
     if (s->mask & SIG_MASK_REQUIRE_ENGINE_EVENT) {
         jb_append_string(ctx.js, "engine_event");
     }
