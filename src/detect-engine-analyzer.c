@@ -904,6 +904,21 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                 jb_close(js); // object
                 break;
             }
+            case DETECT_FLOW: {
+                const DetectFlowData *cd = (const DetectFlowData *)smd->ctx;
+                jb_open_object(js, "flow");
+                if (cd->flags & DETECT_FLOW_FLAG_ESTABLISHED) {
+                    jb_set_bool(js, "established", true);
+                } else {
+                    jb_set_bool(js, "established", false);
+                }
+                if (cd->flags & DETECT_FLOW_FLAG_TOSERVER) {
+                    jb_set_bool(js, "to_server", true);
+                } else {
+                    jb_set_bool(js, "to_server", false);
+                }
+                jb_close(js);
+            }
         }
         jb_close(js);
 
