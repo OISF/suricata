@@ -693,6 +693,9 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
     }
 
     pcre2_match_data_free(match);
+    /* store the pcre string */
+    pd->pcre_str = SCStrdup(regexstr);
+
     return pd;
 
 error:
@@ -971,6 +974,8 @@ static void DetectPcreFree(DetectEngineCtx *de_ctx, void *ptr)
     for (uint8_t i = 0; i < pd->idx; i++) {
         VarNameStoreUnregister(pd->capids[i], pd->captypes[i]);
     }
+    if (pd->pcre_str)
+        SCFree(pd->pcre_str);
     SCFree(pd);
 
     return;

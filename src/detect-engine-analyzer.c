@@ -714,6 +714,7 @@ static void DumpContent(JsonBuilder *js, const DetectContentData *cd)
 
 static void DumpPcre(JsonBuilder *js, const DetectPcreData *cd)
 {
+    jb_set_string(js, "pattern", cd->pcre_str);
     jb_set_bool(js, "relative", cd->flags & DETECT_PCRE_RELATIVE);
     jb_set_bool(js, "relative_next", cd->flags & DETECT_PCRE_RELATIVE_NEXT);
     jb_set_bool(js, "nocase", cd->flags & DETECT_PCRE_CASELESS);
