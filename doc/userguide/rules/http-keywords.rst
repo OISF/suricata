@@ -280,11 +280,23 @@ Example HTTP Request::
 http.request_line
 -----------------
 
-The ``http.request_line`` forces the whole HTTP request line to be inspected.
+The ``http.request_line`` keyword is used to match on the entire contents of
+the HTTP request line.
 
-Example::
+Example HTTP Request::
 
-    alert http any any -> any any (http.request_line; content:"GET / HTTP/1.0"; sid:1;)
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: suricata.io
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Request Example"; \
+  flow:established,to_server; :example-rule-options:`http.request_line; \
+  content:"GET /index.html HTTP/1.1";` bsize:24; classtype:bad-unknown; \
+  sid:60; rev:1;)
+
+.. note:: ``http.request_line`` does not include the trailing \\r\\n
 
 .. _http.header:
 
