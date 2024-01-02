@@ -85,22 +85,8 @@ Request or Response Keywords:
  * :ref:`http.protocol`
  * :ref:`http.header_names`
  * :ref:`http.header`
+ * :ref:`http.header.raw`
  * :ref:`http.cookie`
-
-Although cookies are sent in an HTTP header, you can not match on them
-with the ``http.header`` keyword. Cookies are matched with their own
-keyword, namely ``http.cookie``.
-
-Each part of the table belongs to a so-called *buffer*. The HTTP
-method belongs to the method buffer, HTTP headers to the header buffer
-etc. A buffer is a specific portion of the request or response that
-Suricata extracts in memory for inspection.
-
-All previous described keywords can be used in combination with a
-buffer in a signature. The keywords ``distance`` and ``within`` are
-relative modifiers, so they may only be used within the same
-buffer. You can not relate content matches against different buffers
-with relative modifiers.
 
 .. _http.method:
 
@@ -300,10 +286,8 @@ Example HTTP Request::
 
 .. _http.header:
 
-.. _http.header.raw:
-
-http.header and http.header.raw
--------------------------------
+http.header
+-----------
 
 With the ``http.header`` sticky buffer, it is possible to match
 specifically and only on the HTTP header buffer. This contains all of
@@ -322,11 +306,14 @@ modifiers, like ``depth``, ``distance``, ``offset``, ``nocase`` and
     See RFC 2616 4.2 Message Headers.
     To avoid that, use the ``http.header.raw`` keyword.
 
-Example of a header in a HTTP request:
 
 
 
-Example of the purpose of ``http.header``:
+.. _http.header.raw:
+
+http.header.raw
+---------------
+
 
 .. _http.cookie:
 
