@@ -144,7 +144,7 @@ http.uri
 Matching on the HTTP URI buffer has two options in Suricata, the ``http.uri``
 and the ``http.uri.raw`` sticky buffers.
 
-It is possible to use any of the :doc:`payload-keywords` with the ``http.uri``
+It is possible to use any of the :doc:`payload-keywords` with both ``http.uri``
 keywords.
 
 The ``http.uri`` keyword normalizes the URI buffer. For example, if a URI has two
@@ -257,19 +257,23 @@ and show the different ``urilen`` options.
 http.protocol
 -------------
 
-The ``http.protocol`` inspects the protocol field from the HTTP request or
-response line. If the request line is 'GET / HTTP/1.0\r\n', then this buffer
-will contain 'HTTP/1.0'.
+The ``http.protocol`` keyword is used to match on the protocol field that is
+contained in HTTP requests and responses.
 
-Example::
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.protocol`` keyword.
 
-    alert http any any -> any any (flow:to_server; http.protocol; content:"HTTP/1.0"; sid:1;)
+Example HTTP Request::
 
-``http.protocol`` replaces the previous keyword name: ```http_protocol``. You may continue to use the previous name, but it's recommended that rules be converted to use the new name.
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: suricata.io
 
-Example::
+.. container:: example-rule
 
-    alert http any any -> any any (flow:to_server; http.protocol; content:"HTTP/1.0"; sid:1;)
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Protocol Example"; \
+  flow:established,to_server; :example-rule-options:`http.protocol; \
+  content:"HTTP/1.1";` bsize:9; classtype:bad-unknown; sid:50; rev:1;)
 
 .. _http.request_line:
 
