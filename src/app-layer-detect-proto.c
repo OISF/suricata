@@ -860,7 +860,6 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                 for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
 
                     printf("            alproto: %s\n", AppProtoToString(pp_pe->alproto));
-                    printf("            port: %"PRIu16 "\n", pp_pe->port);
                     printf("            mask: %"PRIu32 "\n", pp_pe->alproto_mask);
                     printf("            min_depth: %"PRIu32 "\n", pp_pe->min_depth);
                     printf("            max_depth: %"PRIu32 "\n", pp_pe->max_depth);
@@ -881,7 +880,6 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
             for ( ; pp_pe != NULL; pp_pe = pp_pe->next) {
 
                 printf("            alproto: %s\n", AppProtoToString(pp_pe->alproto));
-                printf("            port: %"PRIu16 "\n", pp_pe->port);
                 printf("            mask: %"PRIu32 "\n", pp_pe->alproto_mask);
                 printf("            min_depth: %"PRIu32 "\n", pp_pe->min_depth);
                 printf("            max_depth: %"PRIu32 "\n", pp_pe->max_depth);
