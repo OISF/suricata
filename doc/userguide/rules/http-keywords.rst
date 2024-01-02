@@ -327,12 +327,10 @@ Example HTTP Request::
   content:"Host|3a 20|suricata.io|0d 0a|";` classtype:bad-unknown; \
   sid:72; rev:1;)
 
-note::
-
-  There are headers that will not be included in the ``http.header`` keywords,
+.. note:: There are headers that will not be included in the ``http.header`` keywords,
   specifically the :ref:`http.cookie` buffer.
 
-  If there are multiple values for the same header name, they are concatenated
+.. note:: If there are multiple values for the same header name, they are concatenated
   with a comma and space (", ") between each value. More information can be
   found in RFC 2616 `<https://www.ietf.org/rfc/rfc2616.txt>`_ , section 4.2
   Message Headers.
