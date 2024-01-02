@@ -289,31 +289,79 @@ Example HTTP Request::
 http.header
 -----------
 
-With the ``http.header`` sticky buffer, it is possible to match
-specifically and only on the HTTP header buffer. This contains all of
-the extracted headers in a single buffer, except for those indicated
-in the documentation that are not able to match by this buffer and
-have their own sticky buffer (e.g. ``http.cookie``). The sticky buffer
-can be used in combination with all previously mentioned content
-modifiers, like ``depth``, ``distance``, ``offset``, ``nocase`` and
-``within``.
+Matching on HTTP headers has two options in Suricata, the ``http.header``
+and the ``http.header.raw``.
 
-    **Note**: the header buffer is *normalized*. Any trailing
-    whitespace and tab characters are removed. See:
-    https://lists.openinfosecfoundation.org/pipermail/oisf-users/2011-October/000935.html.
-    If there are multiple values for the same header name, they are
-    concatenated with a comma and space (", ") between each of them.
-    See RFC 2616 4.2 Message Headers.
-    To avoid that, use the ``http.header.raw`` keyword.
+It is possible to use any of the :doc:`payload-keywords` with both
+``http.header`` keywords.
 
+The ``http.header`` keyword normalizes the header contents. For example if
+header contents contain trailing white-space or tab characters, those would be
+removed.
 
+To match on non-normalized header data, use the :ref:`http.header.raw` keyword.
 
+Normalization Example::
+
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0     \r\n
+  Host: suricata.io
+
+Would be normalized to :example-rule-emphasis:`Mozilla/5.0\\r\\n`
+
+Example HTTP Request::
+
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: suricata.io
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Header Example 1"; \
+  flow:established,to_server; :example-rule-options:`http.header; \
+  content:"User-Agent|3a 20|Mozilla/5.0|0d 0a|";` classtype:bad-unknown; \
+  sid:70; rev:1;)
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Header Example 2"; \
+  flow:established,to_server; :example-rule-options:`http.header; \
+  content:"Host|3a 20|suricata.io|0d 0a|";` classtype:bad-unknown; \
+  sid:71; rev:1;)
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Header Example 3"; \
+  flow:established,to_server; :example-rule-options:`http.header; \
+  content:"User-Agent|3a 20|Mozilla/5.0|0d 0a|"; startswith; \
+  content:"Host|3a 20|suricata.io|0d 0a|";` classtype:bad-unknown; \
+  sid:72; rev:1;)
+
+.. note:: There are headers that will not be included in the ``http.header``
+  buffer, specifically the :ref:`http.cookie` buffer.
+
+.. note:: If there are multiple values for the same header name, they are
+  concatenated with a comma and space (", ") between each value.
+  More information can be found in RFC 2616
+  `<https://www.rfc-editor.org/rfc/rfc2616.html#section-4.2>`_
 
 .. _http.header.raw:
 
 http.header.raw
 ---------------
 
+The ``http.header.raw`` buffer matches on HTTP header content but does not have
+any normalization performed on the buffer contents (see :ref:`http.header`)
+
+Abnormal HTTP Header Example::
+
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  User-Agent: Chrome
+  Host: suricata.io
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Header Raw Example"; \
+  flow:established,to_server; :example-rule-options:`http.header.raw; \
+  content:"User-Agent|3a 20|Mozilla/5.0|0d 0a|"; \
+  content:"User-Agent|3a 20|Chrome|0d 0a|";` classtype:bad-unknown; sid:73; rev:1;)
 
 .. _http.cookie:
 
