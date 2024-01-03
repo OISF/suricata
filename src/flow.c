@@ -536,12 +536,10 @@ void FlowHandlePacket(ThreadVars *tv, FlowLookupStruct *fls, Packet *p)
      * a new flow if necessary. If we get NULL, we're out of flow memory.
      * The returned flow is locked. */
     Flow *f = FlowGetFlowFromHash(tv, fls, p, &p->flow);
-    if (f == NULL)
-        return;
-
-    /* set the flow in the packet */
-    p->flags |= PKT_HAS_FLOW;
-    return;
+    if (f != NULL) {
+        /* set the flow in the packet */
+        p->flags |= PKT_HAS_FLOW;
+    }
 }
 
 /** \brief initialize the configuration
