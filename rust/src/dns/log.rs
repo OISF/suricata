@@ -624,6 +624,7 @@ fn dns_log_query(
                 jb.set_uint("tx_id", tx.id - 1)?;
                 if request.header.flags & 0x0040 != 0 {
                     jb.set_bool("z", true)?;
+                    jb.set_bool("z", true)?;
                 }
                 let opcode = ((request.header.flags >> 11) & 0xf) as u8;
                 jb.set_uint("opcode", opcode as u64)?;
