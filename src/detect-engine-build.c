@@ -1825,10 +1825,7 @@ int SigPrepareStage4(DetectEngineCtx *de_ctx)
 
         SCLogDebug("sgh %p", sgh);
 
-        SigGroupHeadSetFilemagicFlag(de_ctx, sgh);
-        SigGroupHeadSetFileHashFlag(de_ctx, sgh);
-        SigGroupHeadSetFilesizeFlag(de_ctx, sgh);
-        SigGroupHeadSetFilestoreCount(de_ctx, sgh);
+        SigGroupHeadSetupFiles(de_ctx, sgh);
         SCLogDebug("filestore count %u", sgh->filestore_cnt);
 
         PrefilterSetupRuleGroup(de_ctx, sgh);

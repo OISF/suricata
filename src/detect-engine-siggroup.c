@@ -513,122 +513,41 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 }
 
 /**
- *  \brief Set the need magic flag in the sgh.
+ *  \brief Set the need hash flag in the sgh.
  *
  *  \param de_ctx detection engine ctx for the signatures
- *  \param sgh sig group head to set the flag in
+ *  \param sgh sig group head to update
  */
-void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+void SigGroupHeadSetupFiles(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-#ifdef HAVE_MAGIC
-    Signature *s = NULL;
-    uint32_t sig = 0;
-
     if (sgh == NULL)
         return;
 
-    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
-        s = sgh->init->match_array[sig];
-        if (s == NULL)
-            continue;
-
-        if (SignatureIsFilemagicInspecting(s)) {
-            sgh->flags |= SIG_GROUP_HEAD_HAVEFILEMAGIC;
-            break;
-        }
-    }
-#endif
-    return;
-}
-
-/**
- *  \brief Set the need size flag in the sgh.
- *
- *  \param de_ctx detection engine ctx for the signatures
- *  \param sgh sig group head to set the flag in
- */
-void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
-{
-    Signature *s = NULL;
-    uint32_t sig = 0;
-
-    if (sgh == NULL)
-        return;
-
-    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
-        s = sgh->init->match_array[sig];
+    for (uint32_t sig = 0; sig < sgh->init->sig_cnt; sig++) {
+        const Signature *s = sgh->init->match_array[sig];
         if (s == NULL)
             continue;
 
         if (SignatureIsFilesizeInspecting(s)) {
             sgh->flags |= SIG_GROUP_HEAD_HAVEFILESIZE;
-            break;
         }
-    }
-
-    return;
-}
-
-/**
- *  \brief Set the need hash flag in the sgh.
- *
- *  \param de_ctx detection engine ctx for the signatures
- *  \param sgh sig group head to set the flag in
- */
-void SigGroupHeadSetFileHashFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
-{
-    Signature *s = NULL;
-    uint32_t sig = 0;
-
-    if (sgh == NULL)
-        return;
-
-    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
-        s = sgh->init->match_array[sig];
-        if (s == NULL)
-            continue;
-
         if (SignatureIsFileMd5Inspecting(s)) {
             sgh->flags |= SIG_GROUP_HEAD_HAVEFILEMD5;
             SCLogDebug("sgh %p has filemd5", sgh);
-            break;
         }
-
         if (SignatureIsFileSha1Inspecting(s)) {
             sgh->flags |= SIG_GROUP_HEAD_HAVEFILESHA1;
             SCLogDebug("sgh %p has filesha1", sgh);
-            break;
         }
-
         if (SignatureIsFileSha256Inspecting(s)) {
             sgh->flags |= SIG_GROUP_HEAD_HAVEFILESHA256;
             SCLogDebug("sgh %p has filesha256", sgh);
-            break;
         }
-    }
-
-    return;
-}
-
-/**
- *  \brief Set the filestore_cnt in the sgh.
- *
- *  \param de_ctx detection engine ctx for the signatures
- *  \param sgh sig group head to set the counter in
- */
-void SigGroupHeadSetFilestoreCount(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
-{
-    Signature *s = NULL;
-    uint32_t sig = 0;
-
-    if (sgh == NULL)
-        return;
-
-    for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
-        s = sgh->init->match_array[sig];
-        if (s == NULL)
-            continue;
-
+#ifdef HAVE_MAGIC
+        if (SignatureIsFilemagicInspecting(s)) {
+            sgh->flags |= SIG_GROUP_HEAD_HAVEFILEMAGIC;
+        }
+#endif
         if (SignatureIsFilestoring(s)) {
             sgh->filestore_cnt++;
         }
