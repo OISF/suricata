@@ -587,10 +587,9 @@ static inline int DetectRunInspectRuleHeader(
     if ((p->flags & PKT_HAS_FLOW) && (sflags & SIG_FLAG_REQUIRE_FLOWVAR)) {
         DEBUG_VALIDATE_BUG_ON(f == NULL);
 
-        int m  = f->flowvar ? 1 : 0;
-
         /* no flowvars? skip this sig */
-        if (m == 0) {
+        const bool fv = f->flowvar != NULL;
+        if (fv == false) {
             SCLogDebug("skipping sig as the flow has no flowvars and sig "
                     "has SIG_FLAG_REQUIRE_FLOWVAR flag set.");
             return 0;
@@ -616,7 +615,7 @@ static inline int DetectRunInspectRuleHeader(
         if (!(sflags & SIG_FLAG_DP_ANY)) {
             if (p->flags & PKT_IS_FRAGMENT)
                 return 0;
-            DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
+            const DetectPort *dport = DetectPortLookupGroup(s->dp, p->dp);
             if (dport == NULL) {
                 SCLogDebug("dport didn't match.");
                 return 0;
@@ -625,7 +624,7 @@ static inline int DetectRunInspectRuleHeader(
         if (!(sflags & SIG_FLAG_SP_ANY)) {
             if (p->flags & PKT_IS_FRAGMENT)
                 return 0;
-            DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
+            const DetectPort *sport = DetectPortLookupGroup(s->sp, p->sp);
             if (sport == NULL) {
                 SCLogDebug("sport didn't match.");
                 return 0;
