@@ -462,14 +462,15 @@ impl MQTTState {
         }
 
         while !current.is_empty() {
-            SCLogDebug!("request: handling {}", current.len());
+            SCLogDebug!("request: handling {}; rem: {}", current.len(), input.len() - current.len());
             match parse_message(current, self.protocol_version, self.max_msg_len) {
                 Ok((rem, msg)) => {
+                    SCLogDebug!("request: handling {}; rem: {}", current.len(), input.len() - current.len());
                     let _pdu = Frame::new(
                         flow,
                         &stream_slice,
-                        input,
-                        current.len() as i64,
+                        current,
+                        (current.len() - rem.len()) as i64,
                         MQTTFrameType::Pdu as u8,
                     );
                     SCLogDebug!("request msg {:?}", msg);
@@ -550,11 +551,12 @@ impl MQTTState {
             SCLogDebug!("response: handling {}", current.len());
             match parse_message(current, self.protocol_version, self.max_msg_len) {
                 Ok((rem, msg)) => {
+                    SCLogDebug!("response: handling {}; rem: {}", current.len(), input.len() - current.len());
                     let _pdu = Frame::new(
                         flow,
                         &stream_slice,
-                        input,
-                        input.len() as i64,
+                        current,
+                        (current.len() - rem.len()) as i64,
                         MQTTFrameType::Pdu as u8,
                     );
 
