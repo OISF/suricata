@@ -150,7 +150,7 @@ static int DetectHttpCookieSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
 }
 
 /**
- * \brief this function setup the http.user_agent keyword used in the rule
+ * \brief this function setup the http.cookie keyword used in the rule
  *
  * \param de_ctx   Pointer to the Detection Engine Context
  * \param s        Pointer to the Signature to which the current keyword belongs
