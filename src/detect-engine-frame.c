@@ -224,7 +224,7 @@ int PrefilterGenericMpmFrameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     return r;
 }
 
-int DetectRunFrameInspectRule(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, const Signature *s,
+bool DetectRunFrameInspectRule(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, const Signature *s,
         Flow *f, Packet *p, const Frames *frames, const Frame *frame)
 {
     BUG_ON(s->frame_inspect == NULL);
