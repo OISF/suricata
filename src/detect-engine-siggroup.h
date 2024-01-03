@@ -53,10 +53,8 @@ void SigGroupHeadRegisterTests(void);
 void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 void SigGroupHeadStore(DetectEngineCtx *, SigGroupHead *);
-void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *, SigGroupHead *);
-void SigGroupHeadSetFilestoreCount(DetectEngineCtx *, SigGroupHead *);
-void SigGroupHeadSetFileHashFlag(DetectEngineCtx *, SigGroupHead *);
-void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *, SigGroupHead *);
+
+void SigGroupHeadSetupFiles(const DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
