@@ -468,7 +468,7 @@ impl MQTTState {
                     let _pdu = Frame::new(
                         flow,
                         &stream_slice,
-                        input,
+                        current,
                         current.len() as i64,
                         MQTTFrameType::Pdu as u8,
                     );
@@ -553,8 +553,8 @@ impl MQTTState {
                     let _pdu = Frame::new(
                         flow,
                         &stream_slice,
-                        input,
-                        input.len() as i64,
+                        current,
+                        current.len() as i64,
                         MQTTFrameType::Pdu as u8,
                     );
 
