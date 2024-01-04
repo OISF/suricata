@@ -242,41 +242,38 @@ mod tests {
         let pcap = include_bytes!("discover.pcap");
         let payload = &pcap[24 + 16 + 42..];
 
-        match dhcp_parse(payload) {
-            Ok((_rem, message)) => {
-                let header = message.header;
-                assert_eq!(header.opcode, BOOTP_REQUEST);
-                assert_eq!(header.htype, 1);
-                assert_eq!(header.hlen, 6);
-                assert_eq!(header.hops, 0);
-                assert_eq!(header.txid, 0x00003d1d);
-                assert_eq!(header.seconds, 0);
-                assert_eq!(header.flags, 0);
-                assert_eq!(header.clientip, &[0, 0, 0, 0]);
-                assert_eq!(header.yourip, &[0, 0, 0, 0]);
-                assert_eq!(header.serverip, &[0, 0, 0, 0]);
-                assert_eq!(header.giaddr, &[0, 0, 0, 0]);
-                assert_eq!(
-                    &header.clienthw[..(header.hlen as usize)],
-                    &[0x00, 0x0b, 0x82, 0x01, 0xfc, 0x42]
-                );
-                assert!(header.servername.iter().all(|&x| x == 0));
-                assert!(header.bootfilename.iter().all(|&x| x == 0));
-                assert_eq!(header.magic, &[0x63, 0x82, 0x53, 0x63]);
+        if let Ok((_rem, message)) = dhcp_parse(payload) {
+            let header = message.header;
+            assert_eq!(header.opcode, BOOTP_REQUEST);
+            assert_eq!(header.htype, 1);
+            assert_eq!(header.hlen, 6);
+            assert_eq!(header.hops, 0);
+            assert_eq!(header.txid, 0x00003d1d);
+            assert_eq!(header.seconds, 0);
+            assert_eq!(header.flags, 0);
+            assert_eq!(header.clientip, &[0, 0, 0, 0]);
+            assert_eq!(header.yourip, &[0, 0, 0, 0]);
+            assert_eq!(header.serverip, &[0, 0, 0, 0]);
+            assert_eq!(header.giaddr, &[0, 0, 0, 0]);
+            assert_eq!(
+                &header.clienthw[..(header.hlen as usize)],
+                &[0x00, 0x0b, 0x82, 0x01, 0xfc, 0x42]
+            );
+            assert!(header.servername.iter().all(|&x| x == 0));
+            assert!(header.bootfilename.iter().all(|&x| x == 0));
+            assert_eq!(header.magic, &[0x63, 0x82, 0x53, 0x63]);
 
-                assert!(!message.malformed_options);
-                assert!(!message.truncated_options);
+            assert!(!message.malformed_options);
+            assert!(!message.truncated_options);
 
-                assert_eq!(message.options.len(), 5);
-                assert_eq!(message.options[0].code, DHCP_OPT_TYPE);
-                assert_eq!(message.options[1].code, DHCP_OPT_CLIENT_ID);
-                assert_eq!(message.options[2].code, DHCP_OPT_REQUESTED_IP);
-                assert_eq!(message.options[3].code, DHCP_OPT_PARAMETER_LIST);
-                assert_eq!(message.options[4].code, DHCP_OPT_END);
-            }
-            _ => {
-                assert!(false);
-            }
+            assert_eq!(message.options.len(), 5);
+            assert_eq!(message.options[0].code, DHCP_OPT_TYPE);
+            assert_eq!(message.options[1].code, DHCP_OPT_CLIENT_ID);
+            assert_eq!(message.options[2].code, DHCP_OPT_REQUESTED_IP);
+            assert_eq!(message.options[3].code, DHCP_OPT_PARAMETER_LIST);
+            assert_eq!(message.options[4].code, DHCP_OPT_END);
+        } else {
+            panic!("Result shoud be ok");
         }
     }
 
