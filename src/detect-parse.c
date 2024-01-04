@@ -897,7 +897,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
 
     /* Check for options that are only to be processed during the
      * first "requires" pass. */
-    bool requires_only = strcmp(optname, "requires") == 0 || strcmp(optname, "sid") == 0;
+    bool requires_only = strcasecmp(optname, "requires") == 0 || strcasecmp(optname, "sid") == 0;
     if ((requires && !requires_only) || (!requires && requires_only)) {
         goto finish;
     }
