@@ -61,6 +61,8 @@ ike.exchtype
 
 Match on the value of the Exchange Type.
 
+ike.exchtype uses an :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
+
 This keyword takes a numeric argument after a colon and supports additional qualifiers, such as:
 
 * ``>`` (greater than)
@@ -106,6 +108,8 @@ ike.key_exchange_payload_length
 
 Match against the length of the public key exchange payload (e.g. Diffie-Hellman) of the server or client.
 
+ike.key_exchange_payload_length uses an :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
+
 This keyword takes a numeric argument after a colon and supports additional qualifiers, such as:
 
 * ``>`` (greater than)
@@ -137,6 +141,8 @@ ike.nonce_payload_length
 ------------------------
 
 Match against the length of the nonce of the server or client.
+
+ike.nonce_payload_length uses an :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
 
 This keyword takes a numeric argument after a colon and supports additional qualifiers, such as:
 

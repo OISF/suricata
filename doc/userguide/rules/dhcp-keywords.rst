@@ -6,6 +6,8 @@ dhcp.leasetime
 
 DHCP lease time (integer).
 
+dhcp.leasetime uses an :ref:`unsigned 64-bit integer <rules-integer-keywords>`.
+
 Syntax::
 
  dhcp.leasetime:[op]<number>
@@ -25,6 +27,8 @@ dhcp.rebinding_time
 
 DHCP rebinding time (integer).
 
+dhcp.rebinding_time uses an :ref:`unsigned 64-bit integer <rules-integer-keywords>`.
+
 Syntax::
 
  dhcp.rebinding_time:[op]<number>
@@ -43,6 +47,8 @@ dhcp.renewal_time
 -----------------
 
 DHCP renewal time (integer).
+
+dhcp.renewal_time uses an :ref:`unsigned 64-bit integer <rules-integer-keywords>`.
 
 Syntax::
 
