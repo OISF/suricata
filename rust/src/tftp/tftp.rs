@@ -225,13 +225,10 @@ mod test {
             tx_data: AppLayerTxData::new(),
         };
 
-        match parse_tftp_request(&READ_REQUEST[..]) {
-            Some(txp) => {
-                assert_eq!(tx, txp);
-            }
-            None => {
-                assert!(true);
-            }
+        if let Some(txp) = parse_tftp_request(&READ_REQUEST[..]) {
+            assert_eq!(tx, txp);
+        } else {
+            panic!("Result should not be None");
         }
     }
 
@@ -245,13 +242,10 @@ mod test {
             tx_data: AppLayerTxData::new(),
         };
 
-        match parse_tftp_request(&WRITE_REQUEST[..]) {
-            Some(txp) => {
-                assert_eq!(tx, txp);
-            }
-            None => {
-                assert!(true, "fadfasd");
-            }
+        if let Some(txp) = parse_tftp_request(&WRITE_REQUEST[..]) {
+            assert_eq!(tx, txp);
+        } else {
+            panic!("Result should not be None");
         }
     }
 
