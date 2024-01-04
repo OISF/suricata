@@ -517,13 +517,10 @@ mod tests {
             ..Default::default()
         };
 
-        match parse_bytemath(args) {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath(args) {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
     }
 
@@ -623,51 +620,37 @@ mod tests {
             ..Default::default()
         };
 
-        match parse_bytemath(
+        if let Ok((_, val)) = parse_bytemath(
             "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, string dec",
         ) {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
 
         bmd.flags = DETECT_BYTEMATH_FLAG_RVALUE_VAR;
         bmd.base = BASE_DEFAULT;
-        match parse_bytemath("bytes 4, offset 3933, oper +, rvalue myrvalue, result foo") {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset 3933, oper +, rvalue myrvalue, result foo") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
 
         bmd.flags = DETECT_BYTEMATH_FLAG_RVALUE_VAR | DETECT_BYTEMATH_FLAG_STRING;
         bmd.base = ByteMathBase::BaseHex;
-        match parse_bytemath(
-            "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, string hex",
-        ) {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, string hex") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
 
         bmd.base = ByteMathBase::BaseOct;
-        match parse_bytemath(
+        if let Ok((_, val)) = parse_bytemath(
             "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, string oct",
         ) {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
     }
 
@@ -774,40 +757,34 @@ mod tests {
         };
 
         bmd.bitmask_val = 0x12345678;
-        match parse_bytemath(
+        if let Ok((_, val)) = parse_bytemath(
             "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, bitmask 0x12345678",
         ) {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
 
+
         bmd.bitmask_val = 0xffff1234;
-        match parse_bytemath(
+        if let Ok((_, val)) = parse_bytemath(
             "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, bitmask ffff1234",
         ) {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
 
+
         bmd.bitmask_val = 0xffff1234;
-        match parse_bytemath(
+        if let Ok((_, val)) = parse_bytemath(
             "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, bitmask 0Xffff1234",
         ) {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
+
     }
     #[test]
     fn test_parser_endian_valid() {
@@ -824,49 +801,41 @@ mod tests {
             ..Default::default()
         };
 
-        match parse_bytemath(
+        if let Ok((_, val)) = parse_bytemath(
             "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, endian big",
         ) {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
+
 
         bmd.endian = ByteMathEndian::LittleEndian;
-        match parse_bytemath(
+        if let Ok((_, val)) = parse_bytemath(
             "bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, endian little",
         ) {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
 
+
         bmd.endian = ByteMathEndian::EndianDCE;
-        match parse_bytemath("bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, dce") {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset 3933, oper +, rvalue myrvalue, result foo, dce") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
+
 
         bmd.endian = DETECT_BYTEMATH_ENDIAN_DEFAULT;
         bmd.flags = DETECT_BYTEMATH_FLAG_RVALUE_VAR;
-        match parse_bytemath("bytes 4, offset 3933, oper +, rvalue myrvalue, result foo") {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset 3933, oper +, rvalue myrvalue, result foo") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
+
     }
 
     #[test]
@@ -920,61 +889,49 @@ mod tests {
             ..Default::default()
         };
 
-        match parse_bytemath("bytes 4, offset 3933, oper +, rvalue myrvalue, result foo") {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset 3933, oper +, rvalue myrvalue, result foo") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
+
 
         bmd.oper = ByteMathOperator::Subtraction;
-        match parse_bytemath("bytes 4, offset 3933, oper -, rvalue myrvalue, result foo") {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset 3933, oper -, rvalue myrvalue, result foo") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
 
+
         bmd.oper = ByteMathOperator::Multiplication;
-        match parse_bytemath("bytes 4, offset 3933, oper *, rvalue myrvalue, result foo") {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset 3933, oper *, rvalue myrvalue, result foo") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
+
         bmd.oper = ByteMathOperator::Division;
-        match parse_bytemath("bytes 4, offset 3933, oper /, rvalue myrvalue, result foo") {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset 3933, oper /, rvalue myrvalue, result foo") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
+
         bmd.oper = ByteMathOperator::RightShift;
-        match parse_bytemath("bytes 4, offset 3933, oper >>, rvalue myrvalue, result foo") {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset 3933, oper >>, rvalue myrvalue, result foo") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
+
         bmd.oper = ByteMathOperator::LeftShift;
-        match parse_bytemath("bytes 4, offset 3933, oper <<, rvalue myrvalue, result foo") {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset 3933, oper <<, rvalue myrvalue, result foo") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
+
     }
 
     #[test]
@@ -1013,33 +970,27 @@ mod tests {
             ..Default::default()
         };
 
-        match parse_bytemath("bytes 4, offset 47303, oper *, rvalue 4294967295      , result foo") {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset 47303, oper *, rvalue 4294967295      , result foo") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
 
+
         bmd.rvalue = 1;
-        match parse_bytemath("bytes 4, offset 47303, oper *, rvalue 1, result foo") {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset 47303, oper *, rvalue 1, result foo") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
+
         bmd.rvalue = 0;
-        match parse_bytemath("bytes 4, offset 47303, oper *, rvalue 0, result foo") {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset 47303, oper *, rvalue 0, result foo") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
+
     }
 
     #[test]
@@ -1064,24 +1015,20 @@ mod tests {
             ..Default::default()
         };
 
-        match parse_bytemath("bytes 4, offset -65535, oper *, rvalue myrvalue, result foo") {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset -65535, oper *, rvalue myrvalue, result foo") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
 
+
         bmd.offset = 65535;
-        match parse_bytemath("bytes 4, offset 65535, oper *, rvalue myrvalue, result foo") {
-            Ok((_, val)) => {
-                assert_eq!(val, bmd);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = parse_bytemath("bytes 4, offset 65535, oper *, rvalue myrvalue, result foo") {
+            assert_eq!(val, bmd);
+        } else {
+            panic!("Result shoud be ok");
         }
+
     }
 
     #[test]

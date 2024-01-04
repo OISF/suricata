@@ -477,34 +477,31 @@ mod tests {
 
         let (body, header) = dns_parse_header(pkt).unwrap();
         let res = dns_parse_body(body, pkt, header);
-        match res {
-            Ok((rem, request)) => {
-                // For now we have some remainder data as there is an
-                // additional record type we don't parse yet.
-                assert!(!rem.is_empty());
+        if let Ok((rem, request)) = res {
+            // For now we have some remainder data as there is an
+            // additional record type we don't parse yet.
+            assert!(!rem.is_empty());
 
-                assert_eq!(
-                    request.header,
-                    DNSHeader {
-                        tx_id: 0x8d32,
-                        flags: 0x0120,
-                        questions: 1,
-                        answer_rr: 0,
-                        authority_rr: 0,
-                        additional_rr: 1,
-                    }
-                );
+            assert_eq!(
+                request.header,
+                DNSHeader {
+                    tx_id: 0x8d32,
+                    flags: 0x0120,
+                    questions: 1,
+                    answer_rr: 0,
+                    authority_rr: 0,
+                    additional_rr: 1,
+                }
+            );
 
-                assert_eq!(request.queries.len(), 1);
+            assert_eq!(request.queries.len(), 1);
 
-                let query = &request.queries[0];
-                assert_eq!(query.name, "www.suricata-ids.org".as_bytes().to_vec());
-                assert_eq!(query.rrtype, 1);
-                assert_eq!(query.rrclass, 1);
-            }
-            _ => {
-                assert!(false);
-            }
+            let query = &request.queries[0];
+            assert_eq!(query.name, "www.suricata-ids.org".as_bytes().to_vec());
+            assert_eq!(query.rrtype, 1);
+            assert_eq!(query.rrclass, 1);
+        } else {
+            panic!("Result shoud be ok");
         }
     }
 
@@ -589,7 +586,7 @@ mod tests {
                 )
             }
             _ => {
-                assert!(false);
+                panic!("Result shoud be ok");
             }
         }
     }
@@ -657,7 +654,7 @@ mod tests {
                 );
             }
             _ => {
-                assert!(false);
+                panic!("Result shoud be ok");
             }
         }
     }
@@ -718,7 +715,7 @@ mod tests {
                 );
             }
             _ => {
-                assert!(false);
+                panic!("Result shoud be ok");
             }
         }
     }
@@ -740,19 +737,16 @@ mod tests {
                 // The data should be fully parsed.
                 assert_eq!(rem.len(), 0);
 
-                match rdata {
-                    DNSRData::SSHFP(sshfp) => {
-                        assert_eq!(sshfp.algo, 2);
-                        assert_eq!(sshfp.fp_type, 1);
-                        assert_eq!(sshfp.fingerprint, &data[2..]);
-                    }
-                    _ => {
-                        assert!(false);
-                    }
+                if let DNSRData::SSHFP(sshfp) = rdata {
+                    assert_eq!(sshfp.algo, 2);
+                    assert_eq!(sshfp.fp_type, 1);
+                    assert_eq!(sshfp.fingerprint, &data[2..]);
+                } else {
+                    panic!("Expected DNSRData::SSHFP");
                 }
             }
             _ => {
-                assert!(false);
+                panic!("Result shoud be ok");
             }
         }
     }
@@ -799,38 +793,32 @@ mod tests {
                 assert_eq!(response.answers.len(), 2);
 
                 let answer1 = &response.answers[0];
-                match &answer1.data {
-                    DNSRData::SRV(srv) => {
-                        assert_eq!(srv.priority, 20);
-                        assert_eq!(srv.weight, 1);
-                        assert_eq!(srv.port, 5060);
-                        assert_eq!(
-                            srv.target,
-                            "sip-anycast-2.voice.google.com".as_bytes().to_vec()
-                        );
-                    }
-                    _ => {
-                        assert!(false);
-                    }
+                if let DNSRData::SRV(srv) = &answer1.data {
+                    assert_eq!(srv.priority, 20);
+                    assert_eq!(srv.weight, 1);
+                    assert_eq!(srv.port, 5060);
+                    assert_eq!(
+                        srv.target,
+                        "sip-anycast-2.voice.google.com".as_bytes().to_vec()
+                    );
+                } else {
+                    panic!("Expected DNSRData::SRV");
                 }
                 let answer2 = &response.answers[1];
-                match &answer2.data {
-                    DNSRData::SRV(srv) => {
-                        assert_eq!(srv.priority, 10);
-                        assert_eq!(srv.weight, 1);
-                        assert_eq!(srv.port, 5060);
-                        assert_eq!(
-                            srv.target,
-                            "sip-anycast-1.voice.google.com".as_bytes().to_vec()
-                        );
-                    }
-                    _ => {
-                        assert!(false);
-                    }
+                if let DNSRData::SRV(srv) = &answer2.data {
+                    assert_eq!(srv.priority, 10);
+                    assert_eq!(srv.weight, 1);
+                    assert_eq!(srv.port, 5060);
+                    assert_eq!(
+                        srv.target,
+                        "sip-anycast-1.voice.google.com".as_bytes().to_vec()
+                    );
+                } else {
+                    panic!("Expected DNSRData::SRV");
                 }
             }
             _ => {
-                assert!(false);
+                panic!("Result shoud be ok");
             }
         }
     }

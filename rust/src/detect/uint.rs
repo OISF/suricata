@@ -409,27 +409,18 @@ mod tests {
 
     #[test]
     fn test_parse_uint_unit() {
-        match detect_parse_uint::<u64>(" 2kb") {
-            Ok((_, val)) => {
-                assert_eq!(val.arg1, 2048);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = detect_parse_uint::<u64>(" 2kb") {
+            assert_eq!(val.arg1, 2048);
+        } else {
+            panic!("Result shoud be ok");
         }
-        match detect_parse_uint::<u8>("2kb") {
-            Ok((_, _val)) => {
-                assert!(false);
-            }
-            Err(_) => {}
+        if detect_parse_uint::<u8>("2kb").is_ok() {
+            panic!("Result shoud not be ok");
         }
-        match detect_parse_uint::<u32>("3MB") {
-            Ok((_, val)) => {
-                assert_eq!(val.arg1, 3 * 1024 * 1024);
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        if let Ok((_, val)) = detect_parse_uint::<u32>("3MB") {
+            assert_eq!(val.arg1, 3 * 1024 * 1024);
+        } else {
+            panic!("Result shoud be ok");
         }
     }
 }

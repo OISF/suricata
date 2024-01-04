@@ -275,16 +275,13 @@ mod tests {
                           \r\n"
             .as_bytes();
 
-        match sip_parse_request(buf) {
-            Ok((_, req)) => {
-                assert_eq!(req.method, "REGISTER");
-                assert_eq!(req.path, "sip:sip.cybercity.dk");
-                assert_eq!(req.version, "SIP/2.0");
-                assert_eq!(req.headers["Content-Length"], "0");
-            }
-            _ => {
-                assert!(false);
-            }
+        if let Ok((_, req)) = sip_parse_request(buf) {
+            assert_eq!(req.method, "REGISTER");
+            assert_eq!(req.path, "sip:sip.cybercity.dk");
+            assert_eq!(req.version, "SIP/2.0");
+            assert_eq!(req.headers["Content-Length"], "0");
+        } else {
+            panic!("Result shoud be ok");
         }
     }
 
@@ -311,15 +308,12 @@ mod tests {
                           \r\n"
             .as_bytes();
 
-        match sip_parse_response(buf) {
-            Ok((_, resp)) => {
-                assert_eq!(resp.version, "SIP/2.0");
-                assert_eq!(resp.code, "401");
-                assert_eq!(resp.reason, "Unauthorized");
-            }
-            _ => {
-                assert!(false);
-            }
+        if let Ok((_, resp)) = sip_parse_response(buf) {
+            assert_eq!(resp.version, "SIP/2.0");
+            assert_eq!(resp.code, "401");
+            assert_eq!(resp.reason, "Unauthorized");
+        } else {
+            panic!("Result shoud be ok");
         }
     }
 }
