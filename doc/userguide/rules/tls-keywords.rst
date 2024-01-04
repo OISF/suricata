@@ -284,6 +284,8 @@ tls.cert_chain_len
 
 Matches on the TLS certificate chain length.
 
+tls.cert_chain_len uses an :ref:`unsigned 32-bits integer <rules-integer-keywords>`.
+
 tls.cert_chain_len supports `<, >, <>, !` and using an exact value.
 
 Example::
