@@ -15,6 +15,8 @@ For example::
 
   ttl:10;
 
+ttl uses an, :ref:` unsigned 8-bits integer <rules-integer-keywords>`.
+
 At the end of the ttl keyword you can enter the value on which you
 want to match. The Time-to-live value determines the maximal amount
 of time a packet can be in the Internet-system. If this field is set
@@ -431,6 +433,8 @@ tcp.mss
 Match on the TCP MSS option value. Will not match if the option is not
 present.
 
+tcp.mss uses an, :ref:` unsigned 16-bits integer <rules-integer-keywords>`.
+
 The format of the keyword::
 
   tcp.mss:<min>-<max>;
@@ -506,6 +510,8 @@ messages. The different messages are distinct by different names, but
 more important by numeric values. For more information see the table
 with message-types and codes.
 
+itype uses an, :ref:` unsigned 8-bits integer <rules-integer-keywords>`.
+
 The format of the itype keyword::
 
   itype:min<>max;
@@ -564,6 +570,8 @@ With the icode keyword you can match on a specific ICMP code. The
 code of a ICMP message clarifies the message. Together with the
 ICMP-type it indicates with what kind of problem you are dealing with.
 A code has a different purpose with every ICMP-type.
+
+icode uses an, :ref:` unsigned 8-bits integer <rules-integer-keywords>`.
 
 The format of the icode keyword::
 
@@ -718,6 +726,8 @@ icmpv6.mtu
 
 Match on the ICMPv6 MTU optional value. Will not match if the MTU is not
 present.
+
+icmpv6.mtu uses an, :ref:` unsigned 32-bits integer <rules-integer-keywords>`.
 
 The format of the keyword::
 

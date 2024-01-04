@@ -280,6 +280,8 @@ bsize
 With the ``bsize`` keyword, you can match on the length of the buffer. This adds
 precision to the content match, previously this could have been done with ``isdataat``.
 
+bsize uses an, :ref:` unsigned 64-bits integer <rules-integer-keywords>`.
+
 An optional operator can be specified; if no operator is present, the operator will
 default to '='. When a relational operator is used, e.g., '<', '>' or '<>' (range),
 the bsize value will be compared using the relational operator. Ranges are inclusive.
@@ -335,6 +337,8 @@ not equal 'dsize:!n' less than 'dsize:<n' or greater than 'dsize:>n'
 This may be convenient in detecting buffer overflows.
 
 dsize cannot be used when using app/streamlayer protocol keywords (i.e. http.uri)
+
+dsize uses an, :ref:` unsigned 16-bits integer <rules-integer-keywords>`.
 
 Format::
 
