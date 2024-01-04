@@ -244,6 +244,8 @@ filesize
 
 Match on the size of the file as it is being transferred.
 
+filesize uses an, :ref:` unsigned 64-bits integer <rules-integer-keywords>`.
+
 Syntax::
 
   filesize:<value>;
