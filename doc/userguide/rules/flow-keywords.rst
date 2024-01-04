@@ -292,6 +292,8 @@ flow.age
 Flow age in seconds (integer)
 This keyword does not wait for the end of the flow, but will be checked at each packet.
 
+flow.age uses an :ref:`unsigned 32-bits integer <rules-integer-keywords>`.
+
 Syntax::
 
  flow.age: [op]<number>
@@ -314,6 +316,8 @@ flow.pkts_toclient
 Flow number of packets to client (integer)
 This keyword does not wait for the end of the flow, but will be checked at each packet.
 
+flow.pkts_toclient uses an :ref:`unsigned 32-bits integer <rules-integer-keywords>`.
+
 Syntax::
 
  flow.pkts_toclient: [op]<number>
@@ -333,6 +337,8 @@ flow.pkts_toserver
 
 Flow number of packets to server (integer)
 This keyword does not wait for the end of the flow, but will be checked at each packet.
+
+flow.pkts_toserver uses an :ref:`unsigned 32-bits integer <rules-integer-keywords>`.
 
 Syntax::
 
@@ -354,6 +360,8 @@ flow.bytes_toclient
 Flow number of bytes to client (integer)
 This keyword does not wait for the end of the flow, but will be checked at each packet.
 
+flow.bytes_toclient uses an :ref:`unsigned 64-bits integer <rules-integer-keywords>`.
+
 Syntax::
 
  flow.bytes_toclient: [op]<number>
@@ -373,6 +381,8 @@ flow.bytes_toserver
 
 Flow number of bytes to server (integer)
 This keyword does not wait for the end of the flow, but will be checked at each packet.
+
+flow.bytes_toserver uses an :ref:`unsigned 64-bits integer <rules-integer-keywords>`.
 
 Syntax::
 
