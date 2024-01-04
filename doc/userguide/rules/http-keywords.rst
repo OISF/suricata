@@ -237,6 +237,8 @@ The ``urilen`` keyword is used to match on the length of the request
 URI. It is possible to use the ``<`` and ``>`` operators, which
 indicate respectively *smaller than* and *larger than*.
 
+urilen uses an :ref:`unsigned 64-bit integer <rules-integer-keywords>`.
+
 The format of ``urilen`` is::
 
   urilen:3;
