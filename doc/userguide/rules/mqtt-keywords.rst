@@ -8,6 +8,8 @@ mqtt.protocol_version
 
 Match on the value of the MQTT protocol version field in the fixed header.
 
+mqtt.protocol_version uses an :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
+
 The format of the keyword::
 
   mqtt.protocol_version:<min>-<max>;
