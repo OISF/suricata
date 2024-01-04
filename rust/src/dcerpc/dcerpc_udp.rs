@@ -410,12 +410,7 @@ mod tests {
             0x1c, 0x7d, 0xcf, 0x11,
         ];
 
-        match parser::parse_dcerpc_udp_header(request) {
-            Ok((_rem, _header)) => {
-                { assert!(false); }
-            }
-            _ => {}
-        }
+        assert!(parser::parse_dcerpc_udp_header(request).is_err());
     }
 
     #[test]
@@ -428,13 +423,9 @@ mod tests {
             0x79, 0xbe, 0x01, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0xff, 0xff, 0xff, 0xff, 0x68, 0x00, 0x00, 0x00, 0x0a, 0x00,
         ];
-        match parser::parse_dcerpc_udp_header(request) {
-            Ok((rem, header)) => {
-                assert_eq!(4, header.rpc_vers);
-                assert_eq!(80, request.len() - rem.len());
-            }
-            _ => { assert!(false); }
-        }
+        let (rem, header) = parser::parse_dcerpc_udp_header(request).unwrap();
+        assert_eq!(4, header.rpc_vers);
+        assert_eq!(80, request.len() - rem.len());
     }
 
     #[test]
@@ -447,14 +438,10 @@ mod tests {
             0x79, 0xbe, 0x01, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0xff, 0xff, 0xff, 0xff, 0x68, 0x00, 0x00, 0x00, 0x0a, 0x00,
         ];
-        match parser::parse_dcerpc_udp_header(request) {
-            Ok((rem, header)) => {
-                assert_eq!(4, header.rpc_vers);
-                assert_eq!(80, request.len() - rem.len());
-                assert_eq!(0, rem.len());
-            }
-            _ => { assert!(false); }
-        }
+        let (rem, header) = parser::parse_dcerpc_udp_header(request).unwrap();
+        assert_eq!(4, header.rpc_vers);
+        assert_eq!(80, request.len() - rem.len());
+        assert_eq!(0, rem.len());
     }
 
     #[test]
