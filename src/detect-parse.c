@@ -1645,12 +1645,6 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
     if (s == NULL)
         return;
 
-    if (s->cidr_dst != NULL)
-        IPOnlyCIDRListFree(s->cidr_dst);
-
-    if (s->cidr_src != NULL)
-        IPOnlyCIDRListFree(s->cidr_src);
-
     int i;
 
     if (s->init_data && s->init_data->transforms.cnt) {
@@ -1681,6 +1675,12 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
                 sm = nsm;
             }
         }
+        if (s->init_data->cidr_dst != NULL)
+            IPOnlyCIDRListFree(s->init_data->cidr_dst);
+
+        if (s->init_data->cidr_src != NULL)
+            IPOnlyCIDRListFree(s->init_data->cidr_src);
+
         SCFree(s->init_data->buffers);
         s->init_data->buffers = NULL;
     }
