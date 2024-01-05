@@ -772,18 +772,12 @@ int SignatureHasPacketContent(const Signature *s)
 {
     SCEnter();
 
-    if (s == NULL) {
-        SCReturnInt(0);
-    }
-
     if (!(s->proto.proto[IPPROTO_TCP / 8] & 1 << (IPPROTO_TCP % 8))) {
         SCReturnInt(1);
     }
 
-    if ((s->init_data != NULL && s->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL) ||
-        (s->init_data == NULL && s->sm_arrays[DETECT_SM_LIST_PMATCH] == NULL))
-    {
-        SCLogDebug("no mpm");
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL) {
+        SCLogDebug("no PMATCH");
         SCReturnInt(0);
     }
 
@@ -808,18 +802,12 @@ int SignatureHasStreamContent(const Signature *s)
 {
     SCEnter();
 
-    if (s == NULL) {
-        SCReturnInt(0);
-    }
-
     if (!(s->proto.proto[IPPROTO_TCP / 8] & 1 << (IPPROTO_TCP % 8))) {
         SCReturnInt(0);
     }
 
-    if ((s->init_data != NULL && s->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL) ||
-        (s->init_data == NULL && s->sm_arrays[DETECT_SM_LIST_PMATCH] == NULL))
-    {
-        SCLogDebug("no mpm");
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL) {
+        SCLogDebug("no PMATCH");
         SCReturnInt(0);
     }
 
