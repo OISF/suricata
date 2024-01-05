@@ -1197,11 +1197,7 @@ mod tests_core_49350 {
             typ: 0xc002,
             data: BYTES[0x16c..0x16c + 0x8].to_vec(),
         }));
-        let mut channels = Vec::new();
-        channels.push(String::from("rdpdr"));
-        channels.push(String::from("rdpsnd"));
-        channels.push(String::from("drdynvc"));
-        channels.push(String::from("cliprdr"));
+        let channels = vec![String::from("rdpdr"), String::from("rdpsnd"), String::from("drdynvc"), String::from("cliprdr")];
         children.push(McsConnectRequestChild::CsNet(CsNet { channels }));
         let t123_tpkt: T123Tpkt = T123Tpkt {
             child: T123TpktChild::Data(X223Data {
