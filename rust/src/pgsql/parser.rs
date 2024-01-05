@@ -1176,8 +1176,7 @@ mod tests {
             name: PgsqlParameters::Database,
             value: br#"mailstore"#.to_vec(),
         };
-        let mut database_param: Vec<PgsqlParameter> = Vec::new();
-        database_param.push(database);
+        let database_param: Vec<PgsqlParameter> = vec![database];
         let params = PgsqlStartupParameters {
             user,
             optional_params: Some(database_param),
@@ -2229,10 +2228,7 @@ mod tests {
             format_code: 0,
         };
 
-        let mut fields_vec = Vec::<RowField>::new();
-        fields_vec.push(field1);
-        fields_vec.push(field2);
-        fields_vec.push(field3);
+        let fields_vec = vec![field1, field2, field3];
 
         let ok_res = PgsqlBEMessage::RowDescription(RowDescriptionMessage {
             identifier: b'T',
