@@ -972,27 +972,23 @@ void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx)
     io_ctx->sig_mapping = NULL;
 }
 
-static inline
-int IPOnlyMatchCompatSMs(ThreadVars *tv,
-                         DetectEngineThreadCtx *det_ctx,
-                         Signature *s, Packet *p)
+static inline int IPOnlyMatchCompatSMs(
+        ThreadVars *tv, DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p)
 {
     KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_MATCH);
-    SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_MATCH];
-    if (smd) {
-        while (1) {
-            DEBUG_VALIDATE_BUG_ON(!(sigmatch_table[smd->type].flags & SIGMATCH_IPONLY_COMPAT));
-            KEYWORD_PROFILING_START;
-            if (sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx) > 0) {
-                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-                if (smd->is_last)
-                    break;
-                smd++;
-                continue;
-            }
-            KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
-            return 0;
+    const SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_MATCH];
+    while (smd) {
+        DEBUG_VALIDATE_BUG_ON(!(sigmatch_table[smd->type].flags & SIGMATCH_IPONLY_COMPAT));
+        KEYWORD_PROFILING_START;
+        if (sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx) > 0) {
+            KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+            if (smd->is_last)
+                break;
+            smd++;
+            continue;
         }
+        KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
+        return 0;
     }
     return 1;
 }
@@ -1036,8 +1032,7 @@ void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
     if (src == NULL || dst == NULL)
         SCReturn;
 
-    uint32_t u;
-    for (u = 0; u < src->size; u++) {
+    for (uint32_t u = 0; u < src->size; u++) {
         SCLogDebug("And %"PRIu8" & %"PRIu8, src->array[u], dst->array[u]);
 
         uint8_t bitarray = dst->array[u] & src->array[u];
@@ -1045,81 +1040,82 @@ void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
         /* We have to move the logic of the signature checking
          * to the main detect loop, in order to apply the
          * priority of actions (pass, drop, reject, alert) */
-        if (bitarray) {
-            /* We have a match :) Let's see from which signum's */
-            uint8_t i = 0;
+        if (!bitarray)
+            continue;
 
-            for (; i < 8; i++, bitarray = bitarray >> 1) {
-                if (bitarray & 0x01) {
-                    Signature *s = de_ctx->sig_array[io_ctx->sig_mapping[u * 8 + i]];
+        /* We have a match :) Let's see from which signum's */
 
-                    if ((s->proto.flags & DETECT_PROTO_IPV4) && !PKT_IS_IPV4(p)) {
-                        SCLogDebug("ip version didn't match");
-                        continue;
-                    }
-                    if ((s->proto.flags & DETECT_PROTO_IPV6) && !PKT_IS_IPV6(p)) {
-                        SCLogDebug("ip version didn't match");
-                        continue;
-                    }
+        for (uint8_t i = 0; i < 8; i++, bitarray = bitarray >> 1) {
+            if (bitarray & 0x01) {
+                const Signature *s = de_ctx->sig_array[io_ctx->sig_mapping[u * 8 + i]];
 
-                    if (DetectProtoContainsProto(&s->proto, IP_GET_IPPROTO(p)) == 0) {
-                        SCLogDebug("proto didn't match");
-                        continue;
-                    }
-
-                    /* check the source & dst port in the sig */
-                    if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP || p->proto == IPPROTO_SCTP) {
-                        if (!(s->flags & SIG_FLAG_DP_ANY)) {
-                            if (p->flags & PKT_IS_FRAGMENT)
-                                continue;
-
-                            DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
-                            if (dport == NULL) {
-                                SCLogDebug("dport didn't match.");
-                                continue;
-                            }
-                        }
-                        if (!(s->flags & SIG_FLAG_SP_ANY)) {
-                            if (p->flags & PKT_IS_FRAGMENT)
-                                continue;
-
-                            DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
-                            if (sport == NULL) {
-                                SCLogDebug("sport didn't match.");
-                                continue;
-                            }
-                        }
-                    } else if ((s->flags & (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) != (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) {
-                        SCLogDebug("port-less protocol and sig needs ports");
-                        continue;
-                    }
-
-                    if (!IPOnlyMatchCompatSMs(tv, det_ctx, s, p)) {
-                        continue;
-                    }
-
-                    SCLogDebug("Signum %"PRIu32" match (sid: %"PRIu32", msg: %s)",
-                               u * 8 + i, s->id, s->msg);
-
-                    if (s->sm_arrays[DETECT_SM_LIST_POSTMATCH] != NULL) {
-                        KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_POSTMATCH);
-                        SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
-
-                        SCLogDebug("running match functions, sm %p", smd);
-
-                        if (smd != NULL) {
-                            while (1) {
-                                KEYWORD_PROFILING_START;
-                                (void)sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx);
-                                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-                                if (smd->is_last)
-                                    break;
-                                smd++;
-                            }
-                        }
-                    }
-                    AlertQueueAppend(det_ctx, s, p, 0, 0);
+                if ((s->proto.flags & DETECT_PROTO_IPV4) && !PKT_IS_IPV4(p)) {
+                    SCLogDebug("ip version didn't match");
+                    continue;
                 }
+                if ((s->proto.flags & DETECT_PROTO_IPV6) && !PKT_IS_IPV6(p)) {
+                    SCLogDebug("ip version didn't match");
+                    continue;
+                }
+                if (DetectProtoContainsProto(&s->proto, IP_GET_IPPROTO(p)) == 0) {
+                    SCLogDebug("proto didn't match");
+                    continue;
+                }
+
+                /* check the source & dst port in the sig */
+                if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP ||
+                        p->proto == IPPROTO_SCTP) {
+                    if (!(s->flags & SIG_FLAG_DP_ANY)) {
+                        if (p->flags & PKT_IS_FRAGMENT)
+                            continue;
+
+                        const DetectPort *dport = DetectPortLookupGroup(s->dp, p->dp);
+                        if (dport == NULL) {
+                            SCLogDebug("dport didn't match.");
+                            continue;
+                        }
+                    }
+                    if (!(s->flags & SIG_FLAG_SP_ANY)) {
+                        if (p->flags & PKT_IS_FRAGMENT)
+                            continue;
+
+                        const DetectPort *sport = DetectPortLookupGroup(s->sp, p->sp);
+                        if (sport == NULL) {
+                            SCLogDebug("sport didn't match.");
+                            continue;
+                        }
+                    }
+                } else if ((s->flags & (SIG_FLAG_DP_ANY | SIG_FLAG_SP_ANY)) !=
+                           (SIG_FLAG_DP_ANY | SIG_FLAG_SP_ANY)) {
+                    SCLogDebug("port-less protocol and sig needs ports");
+                    continue;
+                }
+
+                if (!IPOnlyMatchCompatSMs(tv, det_ctx, s, p)) {
+                    continue;
+                }
+
+                SCLogDebug("Signum %" PRIu32 " match (sid: %" PRIu32 ", msg: %s)", u * 8 + i, s->id,
+                        s->msg);
+
+                if (s->sm_arrays[DETECT_SM_LIST_POSTMATCH] != NULL) {
+                    KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_POSTMATCH);
+                    const SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
+
+                    SCLogDebug("running match functions, sm %p", smd);
+
+                    if (smd != NULL) {
+                        while (1) {
+                            KEYWORD_PROFILING_START;
+                            (void)sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx);
+                            KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+                            if (smd->is_last)
+                                break;
+                            smd++;
+                        }
+                    }
+                }
+                AlertQueueAppend(det_ctx, s, p, 0, 0);
             }
         }
     }
