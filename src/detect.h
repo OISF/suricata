@@ -631,6 +631,9 @@ typedef struct SignatureInitData_ {
 
     DetectEngineTransforms transforms;
 
+    /** rule protocol settings */
+    DetectProto proto;
+
     /** score to influence rule grouping. A higher value leads to a higher
      *  likelihood of a rulegroup with this sig ending up as a contained
      *  group. */
@@ -684,8 +687,8 @@ typedef struct Signature_ {
     uint8_t action;
     uint8_t file_flags;
 
-    /** addresses, ports and proto this sig matches on */
-    DetectProto proto;
+    /** rule protocol: can be NULL if the check can be skipped */
+    DetectProto *proto;
 
     /* scope setting for the action: enum ActionScope */
     uint8_t action_scope;

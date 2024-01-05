@@ -1756,10 +1756,10 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         stream_buf += 1;
     }
 
-    if (s->proto.flags & DETECT_PROTO_IPV4) {
+    if (s->proto && s->proto->flags & DETECT_PROTO_IPV4) {
         rule_ipv4_only += 1;
     }
-    if (s->proto.flags & DETECT_PROTO_IPV6) {
+    if (s->proto && s->proto->flags & DETECT_PROTO_IPV6) {
         rule_ipv6_only += 1;
     }
 
@@ -1860,8 +1860,8 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     if (rule_content == 1) {
          //todo: warning if content is weak, separate warning for pcre + weak content
     }
-    if (rule_flow == 0 && rule_flags == 0 && !(s->proto.flags & DETECT_PROTO_ANY) &&
-            DetectProtoContainsProto(&s->proto, IPPROTO_TCP) &&
+    if (rule_flow == 0 && rule_flags == 0 && !(s->init_data->proto.flags & DETECT_PROTO_ANY) &&
+            DetectProtoContainsProto(&s->init_data->proto, IPPROTO_TCP) &&
             (rule_content || rule_content_http || rule_pcre || rule_pcre_http || rule_flowbits ||
                     rule_flowint)) {
         rule_warning += 1;
@@ -1914,7 +1914,8 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     }
 
     /* No warning about direction for ICMP protos */
-    if (!(DetectProtoContainsProto(&s->proto, IPPROTO_ICMPV6) && DetectProtoContainsProto(&s->proto, IPPROTO_ICMP))) {
+    if (!(DetectProtoContainsProto(&s->init_data->proto, IPPROTO_ICMPV6) &&
+                DetectProtoContainsProto(s->proto, IPPROTO_ICMP))) {
         if ((s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) {
             warn_both_direction += 1;
             rule_warning += 1;
