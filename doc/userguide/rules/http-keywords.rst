@@ -396,59 +396,50 @@ Example HTTP Request::
 http.user_agent
 ---------------
 
-The ``http.user_agent`` sticky buffer is part of the HTTP request
-header. It makes it possible to match specifically on the value of the
-User-Agent header. It is normalized in the sense that it does not
-include the _"User-Agent: "_ header name and separator, nor does it
-contain the trailing carriage return and line feed (CRLF). The keyword
-can be used in combination with all previously mentioned content
-modifiers like ``depth``, ``distance``, ``offset``, ``nocase`` and
-``within``. Note that the ``pcre`` keyword can also inspect this
-buffer when using the ``/V`` modifier.
+The ``http.user_agent`` keyword is used to match on the User-Agent field that
+can be present in HTTP request headers.
 
-Normalization: leading spaces **are not** part of this buffer. So
-"User-Agent: \r\n" will result in an empty ``http.user_agent`` buffer.
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.user_agent`` keyword.
 
-Example of the User-Agent header in a HTTP request:
+Example HTTP Request::
 
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Cookie: PHPSESSION=123
+  Host: suricata.io
 
-Example of the purpose of ``http.user_agent``:
+.. container:: example-rule
 
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP User-Agent Example"; \
+  flow:established,to_server; :example-rule-options:`http.user_agent; \
+  content:"Mozilla/5.0";` bsize:11; classtype:bad-unknown; sid:90; rev:1;)
 
-Notes
-~~~~~
+.. note:: The ``http.user_agent`` buffer does not include the header name (User-Agent),
+   colon, leading whitespace, or ending CRLF.
 
--  The ``http.user_agent`` buffer will NOT include the header name,
-   colon, or leading whitespace.  i.e. it will not include
-   "User-Agent: ".
+.. note:: Using the ``http.user_agent`` generally provides better performance
+   than using :ref:`http.header`.
 
--  The ``http.user_agent`` buffer does not include a CRLF (0x0D
-   0x0A) at the end.  If you want to match the end of the buffer, use a
-   relative ``isdataat`` or a PCRE (although PCRE will be worse on
-   performance).
-
--  If a request contains multiple "User-Agent" headers, the values will
+.. note:: If a request contains multiple "User-Agent" headers, the values will
    be concatenated in the ``http.user_agent`` buffer, in the order
    seen from top to bottom, with a comma and space (", ") between each
    of them.
 
-   Example request::
+Example Duplicate User-Agent Header Request::
 
-          GET /test.html HTTP/1.1
-          User-Agent: SuriTester/0.8
-          User-Agent: GGGG
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  User-Agent: Chrome/2.0
+  Cookie: PHPSESSION=123
+  Host: suricata.io
 
-   ``http.user_agent`` buffer contents::
+.. container:: example-rule
 
-          SuriTester/0.8, GGGG
-
--  Corresponding PCRE modifier: ``V``
-
--  Using the ``http.user_agent`` buffer is more efficient when it
-   comes to performance than using the ``http.header`` buffer (~10%
-   better).
-
--  `https://blog.inliniac.net/2012/07/09/suricata-http\_user\_agent-vs-http\_header/ <https://blog.inliniac.net/2012/07/09/suricata-http_user_agent-vs-http_header/>`_
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP User-Agent Example"; \
+  flow:established,to_server; :example-rule-options:`http.user_agent; \
+  content:"Mozilla/5.0, Chrome/2.0";` bsize:23; classtype:bad-unknown; sid:90; \
+  rev:1;)
 
 .. _http.accept:
 
