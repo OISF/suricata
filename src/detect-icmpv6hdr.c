@@ -83,8 +83,8 @@ void DetectICMPv6hdrRegister(void)
 static int DetectICMPv6hdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
     // ICMPv6 comes only with IPv6
-    s->proto.flags |= DETECT_PROTO_IPV6;
-    if (!(DetectProtoContainsProto(&s->proto, IPPROTO_ICMPV6)))
+    s->init_data->proto.flags |= DETECT_PROTO_IPV6;
+    if (!(DetectProtoContainsProto(&s->init_data->proto, IPPROTO_ICMPV6)))
         return -1;
 
     s->flags |= SIG_FLAG_REQUIRE_PACKET;

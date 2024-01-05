@@ -80,7 +80,7 @@ void DetectUdphdrRegister(void)
  */
 static int DetectUdphdrSetup (DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
-    if (!(DetectProtoContainsProto(&s->proto, IPPROTO_UDP)))
+    if (!(DetectProtoContainsProto(&s->init_data->proto, IPPROTO_UDP)))
         return -1;
 
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
