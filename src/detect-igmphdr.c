@@ -76,10 +76,10 @@ void DetectIGMPHdrRegister(void)
  */
 static int DetectIGMPHdrSetup(DetectEngineCtx *de_ctx, Signature *s, const char *_unused)
 {
-    if (!(DetectProtoContainsProto(&s->proto, IPPROTO_IGMP)))
+    if (!(DetectProtoContainsProto(&s->init_data->proto, IPPROTO_IGMP)))
         return -1;
 
-    s->proto.flags |= DETECT_PROTO_IPV4;
+    s->init_data->proto.flags |= DETECT_PROTO_IPV4;
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     if (SCDetectBufferSetActiveList(de_ctx, s, g_igmphdr_buffer_id) < 0)

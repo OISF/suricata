@@ -200,9 +200,9 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
      * will refined the protocol list and thus it needs to reset the bitfield to zero
      * before setting the value specified by the ip_proto keyword.
      */
-    if (s->proto.flags & (DETECT_PROTO_ANY | DETECT_PROTO_IPV6 | DETECT_PROTO_IPV4)) {
-        s->proto.flags &= ~DETECT_PROTO_ANY;
-        memset(s->proto.proto, 0x00, sizeof(s->proto.proto));
+    if (s->init_data->proto.flags & (DETECT_PROTO_ANY | DETECT_PROTO_IPV6 | DETECT_PROTO_IPV4)) {
+        s->init_data->proto.flags &= ~DETECT_PROTO_ANY;
+        memset(s->init_data->proto.proto, 0x00, sizeof(s->init_data->proto.proto));
         s->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     } else {
         /* The ipproto engine has a relationship with the protocol that is
@@ -233,7 +233,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                            "them in the same sig");
                 goto error;
             }
-            s->proto.proto[data->proto / 8] |= 1 << (data->proto % 8);
+            s->init_data->proto.proto[data->proto / 8] |= 1 << (data->proto % 8);
             break;
 
         case DETECT_IPPROTO_OP_GT:
@@ -244,9 +244,9 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                 goto error;
             }
             if (!lt_set && !not_set) {
-                s->proto.proto[data->proto / 8] = (uint8_t)(0xfe << (data->proto % 8));
+                s->init_data->proto.proto[data->proto / 8] = (uint8_t)(0xfe << (data->proto % 8));
                 for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
-                    s->proto.proto[i] = 0xff;
+                    s->init_data->proto.proto[i] = 0xff;
                 }
             } else if (lt_set && !not_set) {
                 SigMatch *temp_sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
@@ -265,21 +265,21 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                         goto error;
                     } else {
                         for (i = 0; i < (data->proto / 8); i++) {
-                            s->proto.proto[i] = 0;
+                            s->init_data->proto.proto[i] = 0;
                         }
-                        s->proto.proto[data->proto / 8] &= 0xfe << (data->proto % 8);
+                        s->init_data->proto.proto[data->proto / 8] &= 0xfe << (data->proto % 8);
                         for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
-                            s->proto.proto[i] &= 0xff;
+                            s->init_data->proto.proto[i] &= 0xff;
                         }
                     }
                 }
             } else if (!lt_set && not_set) {
                 for (i = 0; i < (data->proto / 8); i++) {
-                    s->proto.proto[i] = 0;
+                    s->init_data->proto.proto[i] = 0;
                 }
-                s->proto.proto[data->proto / 8] &= 0xfe << (data->proto % 8);
+                s->init_data->proto.proto[data->proto / 8] &= 0xfe << (data->proto % 8);
                 for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
-                    s->proto.proto[i] &= 0xff;
+                    s->init_data->proto.proto[i] &= 0xff;
                 }
             } else {
                 DetectIPProtoData *data_temp;
@@ -300,11 +300,11 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                         goto error;
                     } else {
                         for (i = 0; i < (data->proto / 8); i++) {
-                            s->proto.proto[i] = 0;
+                            s->init_data->proto.proto[i] = 0;
                         }
-                        s->proto.proto[data->proto / 8] &= 0xfe << (data->proto % 8);
+                        s->init_data->proto.proto[data->proto / 8] &= 0xfe << (data->proto % 8);
                         for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
-                            s->proto.proto[i] &= 0xff;
+                            s->init_data->proto.proto[i] &= 0xff;
                         }
                     }
                 }
@@ -320,9 +320,10 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
             }
             if (!gt_set && !not_set) {
                 for (i = 0; i < (data->proto / 8); i++) {
-                    s->proto.proto[i] = 0xff;
+                    s->init_data->proto.proto[i] = 0xff;
                 }
-                s->proto.proto[data->proto / 8] = (uint8_t)(~(0xff << (data->proto % 8)));
+                s->init_data->proto.proto[data->proto / 8] =
+                        (uint8_t)(~(0xff << (data->proto % 8)));
             } else if (gt_set && !not_set) {
                 SigMatch *temp_sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
                 while (temp_sm != NULL) {
@@ -340,21 +341,21 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                         goto error;
                     } else {
                         for (i = 0; i < (data->proto / 8); i++) {
-                            s->proto.proto[i] &= 0xff;
+                            s->init_data->proto.proto[i] &= 0xff;
                         }
-                        s->proto.proto[data->proto / 8] &= ~(0xff << (data->proto % 8));
+                        s->init_data->proto.proto[data->proto / 8] &= ~(0xff << (data->proto % 8));
                         for (i = (data->proto / 8) + 1; i < 256 / 8; i++) {
-                            s->proto.proto[i] = 0;
+                            s->init_data->proto.proto[i] = 0;
                         }
                     }
                 }
             } else if (!gt_set && not_set) {
                 for (i = 0; i < (data->proto / 8); i++) {
-                    s->proto.proto[i] &= 0xFF;
+                    s->init_data->proto.proto[i] &= 0xFF;
                 }
-                s->proto.proto[data->proto / 8] &= ~(0xff << (data->proto % 8));
+                s->init_data->proto.proto[data->proto / 8] &= ~(0xff << (data->proto % 8));
                 for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
-                    s->proto.proto[i] = 0;
+                    s->init_data->proto.proto[i] = 0;
                 }
             } else {
                 DetectIPProtoData *data_temp;
@@ -375,11 +376,11 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
                         goto error;
                     } else {
                         for (i = 0; i < (data->proto / 8); i++) {
-                            s->proto.proto[i] &= 0xFF;
+                            s->init_data->proto.proto[i] &= 0xFF;
                         }
-                        s->proto.proto[data->proto / 8] &= ~(0xff << (data->proto % 8));
+                        s->init_data->proto.proto[data->proto / 8] &= ~(0xff << (data->proto % 8));
                         for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
-                            s->proto.proto[i] = 0;
+                            s->init_data->proto.proto[i] = 0;
                         }
                     }
                 }
@@ -395,19 +396,19 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
             }
             if (!gt_set && !lt_set && !not_set) {
                 for (i = 0; i < (data->proto / 8); i++) {
-                    s->proto.proto[i] = 0xff;
+                    s->init_data->proto.proto[i] = 0xff;
                 }
-                s->proto.proto[data->proto / 8] = (uint8_t)(~(1 << (data->proto % 8)));
+                s->init_data->proto.proto[data->proto / 8] = (uint8_t)(~(1 << (data->proto % 8)));
                 for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
-                    s->proto.proto[i] = 0xff;
+                    s->init_data->proto.proto[i] = 0xff;
                 }
             } else {
                 for (i = 0; i < (data->proto / 8); i++) {
-                    s->proto.proto[i] &= 0xff;
+                    s->init_data->proto.proto[i] &= 0xff;
                 }
-                s->proto.proto[data->proto / 8] &= ~(1 << (data->proto % 8));
+                s->init_data->proto.proto[data->proto / 8] &= ~(1 << (data->proto % 8));
                 for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
-                    s->proto.proto[i] &= 0xff;
+                    s->init_data->proto.proto[i] &= 0xff;
                 }
             }
             break;
@@ -489,14 +490,14 @@ static int DetectIPProtoTestSetup01(void)
     FAIL_IF_NULL(sig);
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     DetectIPProtoSetup(NULL, sig, value_str);
     for (i = 0; i < (value / 8); i++) {
-        FAIL_IF(sig->proto.proto[i] != 0);
+        FAIL_IF(sig->init_data->proto.proto[i] != 0);
     }
-    FAIL_IF(sig->proto.proto[value / 8] != 0x40);
+    FAIL_IF(sig->init_data->proto.proto[value / 8] != 0x40);
     for (i = (value / 8) + 1; i < (256 / 8); i++) {
-        FAIL_IF(sig->proto.proto[i] != 0);
+        FAIL_IF(sig->init_data->proto.proto[i] != 0);
     }
     SigFree(NULL, sig);
     PASS;
@@ -521,17 +522,17 @@ static int DetectIPProtoTestSetup02(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     DetectIPProtoSetup(NULL, sig, value_str);
     for (i = 0; i < (value / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
-    if (sig->proto.proto[value / 8] != 0x40) {
+    if (sig->init_data->proto.proto[value / 8] != 0x40) {
         goto end;
     }
     for (i = (value / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
 
@@ -558,17 +559,17 @@ static int DetectIPProtoTestSetup03(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     DetectIPProtoSetup(NULL, sig, value_str);
     for (i = 0; i < (value / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
-    if (sig->proto.proto[value / 8] != 0x3F) {
+    if (sig->init_data->proto.proto[value / 8] != 0x3F) {
         goto end;
     }
     for (i = (value / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
 
@@ -594,17 +595,17 @@ static int DetectIPProtoTestSetup04(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     DetectIPProtoSetup(NULL, sig, value_str);
     for (i = 0; i < (value / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
-    if (sig->proto.proto[value / 8] != 0x80) {
+    if (sig->init_data->proto.proto[value / 8] != 0x80) {
         goto end;
     }
     for (i = (value / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
 
@@ -630,17 +631,17 @@ static int DetectIPProtoTestSetup05(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     DetectIPProtoSetup(NULL, sig, value_str);
     for (i = 0; i < (value / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
-    if (sig->proto.proto[value / 8] != 0xBF) {
+    if (sig->init_data->proto.proto[value / 8] != 0xBF) {
         goto end;
     }
     for (i = (value / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
 
@@ -665,7 +666,7 @@ static int DetectIPProtoTestSetup06(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != -1)
@@ -692,7 +693,7 @@ static int DetectIPProtoTestSetup07(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != -1)
@@ -719,7 +720,7 @@ static int DetectIPProtoTestSetup08(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != -1)
@@ -746,7 +747,7 @@ static int DetectIPProtoTestSetup09(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != -1)
@@ -773,7 +774,7 @@ static int DetectIPProtoTestSetup10(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != -1)
@@ -800,7 +801,7 @@ static int DetectIPProtoTestSetup11(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != -1)
@@ -827,7 +828,7 @@ static int DetectIPProtoTestSetup12(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != -1)
@@ -854,7 +855,7 @@ static int DetectIPProtoTestSetup13(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != -1)
@@ -878,7 +879,7 @@ static int DetectIPProtoTestSetup14(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != -1)
@@ -904,18 +905,18 @@ static int DetectIPProtoTestSetup15(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     for (i = 0; i < (value1 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
-    if (sig->proto.proto[value1 / 8] != 0x3F) {
+    if (sig->init_data->proto.proto[value1 / 8] != 0x3F) {
         goto end;
     }
     for (i = (value1 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value2_str) == 0)
@@ -941,18 +942,18 @@ static int DetectIPProtoTestSetup16(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     for (i = 0; i < (value2 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
-    if (sig->proto.proto[value2 / 8] != 0xF8) {
+    if (sig->init_data->proto.proto[value2 / 8] != 0xF8) {
         goto end;
     }
     for (i = (value2 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value1_str) == 0)
@@ -978,18 +979,18 @@ static int DetectIPProtoTestSetup17(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     for (i = 0; i < (value1 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
-    if (sig->proto.proto[value1 / 8] != 0x07) {
+    if (sig->init_data->proto.proto[value1 / 8] != 0x07) {
         goto end;
     }
     for (i = (value1 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value2_str) == 0)
@@ -1015,18 +1016,18 @@ static int DetectIPProtoTestSetup18(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     for (i = 0; i < (value2 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
-    if (sig->proto.proto[value2 / 8] != 0xC0) {
+    if (sig->init_data->proto.proto[value2 / 8] != 0xC0) {
         goto end;
     }
     for (i = (value2 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value1_str) == 0)
@@ -1053,20 +1054,20 @@ static int DetectIPProtoTestSetup19(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     for (i = 0; i < (value1 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
-    if (sig->proto.proto[value1 / 8] != 0x07) {
+    if (sig->init_data->proto.proto[value1 / 8] != 0x07) {
         goto end;
     }
     for (i = (value1 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value3_str) == 0)
@@ -1092,18 +1093,18 @@ static int DetectIPProtoTestSetup20(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     for (i = 0; i < (value1 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
-    if (sig->proto.proto[value1 / 8] != 0x07) {
+    if (sig->init_data->proto.proto[value1 / 8] != 0x07) {
         goto end;
     }
     for (i = (value1 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value3_str) == 0)
@@ -1130,20 +1131,20 @@ static int DetectIPProtoTestSetup21(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     for (i = 0; i < (value1 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
-    if (sig->proto.proto[value1 / 8] != 0x07) {
+    if (sig->init_data->proto.proto[value1 / 8] != 0x07) {
         goto end;
     }
     for (i = (value1 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value3_str) == 0)
@@ -1170,20 +1171,20 @@ static int DetectIPProtoTestSetup22(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
     for (i = 0; i < (value3 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
-    if (sig->proto.proto[value3 / 8] != 0xE0) {
+    if (sig->init_data->proto.proto[value3 / 8] != 0xE0) {
         goto end;
     }
     for (i = (value3 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value1_str) == 0)
@@ -1209,18 +1210,18 @@ static int DetectIPProtoTestSetup23(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
     for (i = 0; i < (value3 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
-    if (sig->proto.proto[value3 / 8] != 0xE0) {
+    if (sig->init_data->proto.proto[value3 / 8] != 0xE0) {
         goto end;
     }
     for (i = (value3 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value1_str) == 0)
@@ -1247,20 +1248,20 @@ static int DetectIPProtoTestSetup24(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     for (i = 0; i < (value3 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
-    if (sig->proto.proto[value3 / 8] != 0xE0) {
+    if (sig->init_data->proto.proto[value3 / 8] != 0xE0) {
         goto end;
     }
     for (i = (value3 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value1_str) == 0)
@@ -1287,20 +1288,20 @@ static int DetectIPProtoTestSetup33(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     for (i = 0; i < (value1 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
-    if (sig->proto.proto[value1 / 8] != 0x07) {
+    if (sig->init_data->proto.proto[value1 / 8] != 0x07) {
         goto end;
     }
     for (i = (value1 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value3_str) == 0)
@@ -1328,20 +1329,20 @@ static int DetectIPProtoTestSetup34(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
     for (i = 0; i < (value1 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
-    if (sig->proto.proto[value3 / 8] != 0xE0) {
+    if (sig->init_data->proto.proto[value3 / 8] != 0xE0) {
         goto end;
     }
     for (i = (value3 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value1_str) == 0)
@@ -1368,20 +1369,20 @@ static int DetectIPProtoTestSetup36(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     for (i = 0; i < (value3 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
-    if (sig->proto.proto[value3 / 8] != 0xE0) {
+    if (sig->init_data->proto.proto[value3 / 8] != 0xE0) {
         goto end;
     }
     for (i = (value3 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value1_str) == 0)
@@ -1409,23 +1410,23 @@ static int DetectIPProtoTestSetup43(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
-    if (sig->proto.proto[value1 / 8] != 0xEF) {
+    if (sig->init_data->proto.proto[value1 / 8] != 0xEF) {
         goto end;
     }
     for (i = (value1 / 8) + 1; i < (value2 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
-    if (sig->proto.proto[value2 / 8] != 0x1F) {
+    if (sig->init_data->proto.proto[value2 / 8] != 0x1F) {
         goto end;
     }
     for (i = (value2 / 8) + 1; i < 256 / 8; i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value3_str) == 0)
@@ -1452,20 +1453,20 @@ static int DetectIPProtoTestSetup44(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
     for (i = 0; i < (value3 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
-    if (sig->proto.proto[value3 / 8] != 0xF8) {
+    if (sig->init_data->proto.proto[value3 / 8] != 0xF8) {
         goto end;
     }
     for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value2_str) == 0)
@@ -1493,23 +1494,23 @@ static int DetectIPProtoTestSetup45(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
-    if (sig->proto.proto[value1 / 8] != 0xEF) {
+    if (sig->init_data->proto.proto[value1 / 8] != 0xEF) {
         goto end;
     }
     for (i = (value1 / 8) + 1; i < (value2 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
-    if (sig->proto.proto[value2 / 8] != 0x1F) {
+    if (sig->init_data->proto.proto[value2 / 8] != 0x1F) {
         goto end;
     }
     for (i = (value2 / 8) + 1; i < 256 / 8; i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value3_str) == 0)
@@ -1536,20 +1537,20 @@ static int DetectIPProtoTestSetup56(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
     for (i = 0; i < (value1 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
-    if (sig->proto.proto[value1 / 8] != 0x1F) {
+    if (sig->init_data->proto.proto[value1 / 8] != 0x1F) {
         goto end;
     }
     for (i = (value1 / 8) + 1; i < 256 / 8; i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value2_str) == 0)
@@ -1575,20 +1576,20 @@ static int DetectIPProtoTestSetup75(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     for (i = 0; i < (value2 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
-    if (sig->proto.proto[value2 / 8] != 0xF8) {
+    if (sig->init_data->proto.proto[value2 / 8] != 0xF8) {
         goto end;
     }
     for (i = (value2 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
 
@@ -1612,20 +1613,20 @@ static int DetectIPProtoTestSetup76(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     for (i = 0; i < (value2 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
-    if (sig->proto.proto[value2 / 8] != 0xF8) {
+    if (sig->init_data->proto.proto[value2 / 8] != 0xF8) {
         goto end;
     }
     for (i = (value2 / 8) + 1; i < (256 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
 
@@ -1649,18 +1650,18 @@ static int DetectIPProtoTestSetup129(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     for (i = 0; i < (value1 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
-    if (sig->proto.proto[value1 / 8] != 0x03) {
+    if (sig->init_data->proto.proto[value1 / 8] != 0x03) {
         goto end;
     }
     for (i = (value1 / 8) + 1; i < 256 / 8; i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
     if (DetectIPProtoSetup(NULL, sig, value2_str) == 0)
@@ -1686,20 +1687,20 @@ static int DetectIPProtoTestSetup130(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value1_str) == 0)
         goto end;
     for (i = 0; i < (value2 / 8); i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
-    if (sig->proto.proto[value2 / 8] != 0xF8) {
+    if (sig->init_data->proto.proto[value2 / 8] != 0xF8) {
         goto end;
     }
     for (i = (value2 / 8) + 1; i < 256 / 8; i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
 
@@ -1723,20 +1724,20 @@ static int DetectIPProtoTestSetup131(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     for (i = 0; i < (value1 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
-    if (sig->proto.proto[value1 / 8] != 0x03) {
+    if (sig->init_data->proto.proto[value1 / 8] != 0x03) {
         goto end;
     }
     for (i = (value1 / 8) + 1; i < 256 / 8; i++) {
-        if (sig->proto.proto[i] != 0x0)
+        if (sig->init_data->proto.proto[i] != 0x0)
             goto end;
     }
 
@@ -1760,20 +1761,20 @@ static int DetectIPProtoTestSetup132(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
     for (i = 0; i < (value1 / 8); i++) {
-        if (sig->proto.proto[i] != 0xFF)
+        if (sig->init_data->proto.proto[i] != 0xFF)
             goto end;
     }
-    if (sig->proto.proto[value1 / 8] != 0x03) {
+    if (sig->init_data->proto.proto[value1 / 8] != 0x03) {
         goto end;
     }
     for (i = (value1 / 8) + 1; i < 256 / 8; i++) {
-        if (sig->proto.proto[i] != 0x0)
+        if (sig->init_data->proto.proto[i] != 0x0)
             goto end;
     }
 
@@ -1806,7 +1807,7 @@ static int DetectIPProtoTestSetup145(void)
         goto end;
 
     sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
-    sig->proto.flags |= DETECT_PROTO_ANY;
+    sig->init_data->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value5_str) != 0)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value8_str) != 0)
@@ -1827,23 +1828,23 @@ static int DetectIPProtoTestSetup145(void)
         goto end;
     if (DetectIPProtoSetup(NULL, sig, value7_str) != 0)
         goto end;
-    if (sig->proto.proto[0] != 0) {
+    if (sig->init_data->proto.proto[0] != 0) {
         goto end;
     }
-    if (sig->proto.proto[1] != 0xBA) {
+    if (sig->init_data->proto.proto[1] != 0xBA) {
         goto end;
     }
-    if (sig->proto.proto[2] != 0xFF) {
+    if (sig->init_data->proto.proto[2] != 0xFF) {
         goto end;
     }
-    if (sig->proto.proto[3] != 0x97) {
+    if (sig->init_data->proto.proto[3] != 0x97) {
         goto end;
     }
-    if (sig->proto.proto[4] != 0x0B) {
+    if (sig->init_data->proto.proto[4] != 0x0B) {
         goto end;
     }
     for (i = (value10 / 8) + 1; i < 256 / 8; i++) {
-        if (sig->proto.proto[i] != 0)
+        if (sig->init_data->proto.proto[i] != 0)
             goto end;
     }
 
