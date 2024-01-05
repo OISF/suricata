@@ -851,7 +851,7 @@ int SignatureHasPacketContent(const Signature *s)
 {
     SCEnter();
 
-    if (!(s->proto.proto[IPPROTO_TCP / 8] & 1 << (IPPROTO_TCP % 8))) {
+    if (!DetectProtoContainsProto(&s->init_data->proto, IPPROTO_TCP)) {
         SCReturnInt(1);
     }
 
@@ -881,7 +881,7 @@ int SignatureHasStreamContent(const Signature *s)
 {
     SCEnter();
 
-    if (!(s->proto.proto[IPPROTO_TCP / 8] & 1 << (IPPROTO_TCP % 8))) {
+    if (!DetectProtoContainsProto(&s->init_data->proto, IPPROTO_TCP)) {
         SCReturnInt(0);
     }
 

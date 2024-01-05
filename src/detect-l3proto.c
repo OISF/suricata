@@ -76,26 +76,26 @@ static int DetectL3ProtoSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     const char *str = optstr;
 
     /* reset possible any value */
-    if (s->proto.flags & DETECT_PROTO_ANY) {
-        s->proto.flags &= ~DETECT_PROTO_ANY;
+    if (s->init_data->proto.flags & DETECT_PROTO_ANY) {
+        s->init_data->proto.flags &= ~DETECT_PROTO_ANY;
     }
 
     /* authorized value, ip, any, ip4, ipv4, ip6, ipv6 */
     if (strcasecmp(str,"ipv4") == 0 ||
             strcasecmp(str,"ip4") == 0 ) {
-        if (s->proto.flags & DETECT_PROTO_IPV6) {
+        if (s->init_data->proto.flags & DETECT_PROTO_IPV6) {
             SCLogError("Conflicting l3 proto specified");
             goto error;
         }
-        s->proto.flags |= DETECT_PROTO_IPV4;
+        s->init_data->proto.flags |= DETECT_PROTO_IPV4;
         SCLogDebug("IPv4 protocol detected");
     } else if (strcasecmp(str,"ipv6") == 0 ||
             strcasecmp(str,"ip6") == 0 ) {
-        if (s->proto.flags & DETECT_PROTO_IPV6) {
+        if (s->init_data->proto.flags & DETECT_PROTO_IPV6) {
             SCLogError("Conflicting l3 proto specified");
             goto error;
         }
-        s->proto.flags |= DETECT_PROTO_IPV6;
+        s->init_data->proto.flags |= DETECT_PROTO_IPV6;
         SCLogDebug("IPv6 protocol detected");
     } else {
         SCLogError("Invalid l3 proto: \"%s\"", str);
