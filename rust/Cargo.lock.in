@@ -945,7 +945,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "suricata"
-version = "7.0.3-dev"
+version = "8.0.0-dev"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -991,7 +991,7 @@ dependencies = [
 
 [[package]]
 name = "suricata-derive"
-version = "7.0.3-dev"
+version = "8.0.0-dev"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2 1.0.69",
@@ -1046,15 +1046,35 @@ dependencies = [
 
 [[package]]
 name = "test-case"
-version = "1.1.0"
+version = "3.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "956044ef122917dde830c19dec5f76d0670329fde4104836d62ebcb14f4865f1"
+checksum = "eb2550dd13afcd286853192af8601920d959b14c401fcece38071d53bf0768a8"
+dependencies = [
+ "test-case-macros",
+]
+
+[[package]]
+name = "test-case-core"
+version = "3.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "adcb7fd841cd518e279be3d5a3eb0636409487998a4aff22f3de87b81e88384f"
 dependencies = [
  "cfg-if",
  "proc-macro2 1.0.69",
  "quote 1.0.33",
- "syn 1.0.109",
- "version_check",
+ "syn 2.0.39",
+]
+
+[[package]]
+name = "test-case-macros"
+version = "3.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c89e72a01ed4c579669add59014b9a524d609c0c88c6a585ce37485879f6ffb"
+dependencies = [
+ "proc-macro2 1.0.69",
+ "quote 1.0.33",
+ "syn 2.0.39",
+ "test-case-core",
 ]
 
 [[package]]
