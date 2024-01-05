@@ -254,10 +254,10 @@ static int DetectDetectionFilterSetup(DetectEngineCtx *de_ctx, Signature *s, con
 
     /* unique_on requires a ported L4 protocol: tcp/udp/sctp */
     if (df->unique_on != DF_UNIQUE_NONE) {
-        const int has_tcp = DetectProtoContainsProto(&s->proto, IPPROTO_TCP);
-        const int has_udp = DetectProtoContainsProto(&s->proto, IPPROTO_UDP);
-        const int has_sctp = DetectProtoContainsProto(&s->proto, IPPROTO_SCTP);
-        if (!(has_tcp || has_udp || has_sctp) || (s->proto.flags & DETECT_PROTO_ANY)) {
+        const bool has_tcp = DetectProtoHasExplicitProto(&s->init_data->proto, IPPROTO_TCP);
+        const bool has_udp = DetectProtoHasExplicitProto(&s->init_data->proto, IPPROTO_UDP);
+        const bool has_sctp = DetectProtoHasExplicitProto(&s->init_data->proto, IPPROTO_SCTP);
+        if (!(has_tcp || has_udp || has_sctp)) {
             SCLogError("detection_filter unique_on requires protocol tcp/udp/sctp");
             goto error;
         }
