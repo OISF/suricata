@@ -547,6 +547,9 @@ typedef struct SignatureInitData_ {
     /* used at init to determine max dsize */
     SigMatch *dsize_sm;
 
+    /** netblocks and hosts specified at the sid, in CIDR format */
+    IPOnlyCIDRItem *cidr_src, *cidr_dst;
+
     /* list id for `mpm_sm`. Should always match `SigMatchListSMBelongsTo(s, mpm_sm)`. */
     int mpm_sm_list;
     /* the fast pattern added from this signature */
@@ -632,9 +635,6 @@ typedef struct Signature_ {
 #ifdef PROFILE_RULES
     uint16_t profiling_id;
 #endif
-
-    /** netblocks and hosts specified at the sid, in CIDR format */
-    IPOnlyCIDRItem *cidr_src, *cidr_dst;
 
     DetectEngineAppInspectionEngine *app_inspect;
     DetectEnginePktInspectionEngine *pkt_inspect;

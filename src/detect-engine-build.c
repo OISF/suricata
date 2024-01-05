@@ -1921,6 +1921,12 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
                 sm = nsm;
             }
         }
+        if (s->init_data->cidr_dst != NULL)
+            IPOnlyCIDRListFree(s->init_data->cidr_dst);
+
+        if (s->init_data->cidr_src != NULL)
+            IPOnlyCIDRListFree(s->init_data->cidr_src);
+
         SCFree(s->init_data->buffers);
         SCFree(s->init_data);
         s->init_data = NULL;
