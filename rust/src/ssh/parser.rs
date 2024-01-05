@@ -552,11 +552,8 @@ mod tests {
         ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00 ,0x00];
         let mut hassh_string: Vec<u8> = vec!();
         let mut hassh: Vec<u8> = vec!();
-        match ssh_parse_key_exchange(&client_key_exchange){
-            Ok((_, key_exchange)) => { 
-                key_exchange.generate_hassh(&mut hassh_string, &mut hassh, &true); 
-            }
-            Err(_) => { }
+        if let Ok((_, key_exchange)) = ssh_parse_key_exchange(&client_key_exchange){
+            key_exchange.generate_hassh(&mut hassh_string, &mut hassh, &true);
         }
 
         assert_eq!(hassh_string, "curve25519-sha256,curve25519-sha256@libssh.org,\
@@ -643,11 +640,8 @@ mod tests {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
         let mut hassh_server_string: Vec<u8> = vec!();
         let mut hassh_server: Vec<u8> = vec!();
-        match ssh_parse_key_exchange(&server_key_exchange){
-            Ok((_, key_exchange)) => { 
-                key_exchange.generate_hassh(&mut hassh_server_string, &mut hassh_server, &true);
-            }
-            Err(_) => { }
+        if let Ok((_, key_exchange)) = ssh_parse_key_exchange(&server_key_exchange){
+            key_exchange.generate_hassh(&mut hassh_server_string, &mut hassh_server, &true);
         }
         assert_eq!(hassh_server, "b12d2871a1189eff20364cf5333619ee".as_bytes().to_vec());
     }
