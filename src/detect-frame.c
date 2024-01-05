@@ -144,6 +144,7 @@ static int DetectFrameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *s
         return -1;
 
     FrameConfigEnable(keyword_alproto, frame_type);
+    s->init_data->init_flags |= SIG_FLAG_INIT_FRAME;
     return 0;
 }
 

@@ -304,6 +304,7 @@ typedef struct DetectPort_ {
     BIT_U32(12) /**< transactional signature uses a streaming buffer to server */
 #define SIG_FLAG_INIT_TXDIR_FAST_TOCLIENT                                                          \
     BIT_U32(13) /**< transactional signature uses a fast pattern to client */
+#define SIG_FLAG_INIT_FRAME BIT_U32(14) /**< signature uses frames */
 
 /* signature mask flags */
 /** \note: additions should be added to the rule analyzer as well */
