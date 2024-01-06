@@ -36,10 +36,30 @@ fn log_websocket(tx: &WebSocketTransaction, js: &mut JsonBuilder) -> Result<(), 
     Ok(())
 }
 
+fn log_websocket_details(tx: &WebSocketTransaction, js: &mut JsonBuilder, pp: bool, pb64: bool) -> Result<(), JsonError> {
+    js.unclose()?;
+    if pp {
+        js.set_string("payload_printable", &String::from_utf8_lossy(&tx.pdu.payload))?;
+    }
+    if pb64 {
+        js.set_base64("payload_base64", &tx.pdu.payload)?;
+    }
+    js.close()?;
+    Ok(())
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_websocket_logger_log(
     tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, WebSocketTransaction);
     log_websocket(tx, js).is_ok()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCWebSocketLogDetails(
+    tx: &WebSocketTransaction, js: &mut JsonBuilder,
+    pp: bool, pb64: bool,
+) -> bool {
+    log_websocket_details(tx, js, pp, pb64).is_ok()
 }

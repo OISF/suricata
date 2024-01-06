@@ -186,6 +186,15 @@ impl JsonBuilder {
         }
     }
 
+    // Unclose an object which must not be empty.
+    pub fn unclose(&mut self) -> Result<&mut Self, JsonError> {
+        match self.buf.pop() {
+            Some('}') => {}
+            _ => {return Err(JsonError::InvalidState);}
+        }
+        self.push_state(State::ObjectNth)?;
+        Ok(self)
+    }
     // Closes the currently open datatype (object or array).
     pub fn close(&mut self) -> Result<&mut Self, JsonError> {
         match self.current_state() {
