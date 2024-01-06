@@ -83,5 +83,5 @@ jobs:
               echo "::error ::Clippy --fix made changes, please fix"
               exit 1
           fi
-      - run: cargo clippy --all-features
+      - run: cargo clippy --all-features --all-targets
         working-directory: rust
