@@ -168,6 +168,8 @@ outputs:
             # metadata: no             # enable inclusion of app layer metadata with alert. Default yes
             # http-body: yes           # Requires metadata; enable dumping of HTTP body in Base64
             # http-body-printable: yes # Requires metadata; enable dumping of HTTP body in printable format
+            # websocket-payload: yes   # Requires metadata; enable dumping of WebSocket Payload in Base64
+            # websocket-payload-printable: yes # Requires metadata; enable dumping of WebSocket Payload in printable format
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
