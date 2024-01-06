@@ -85,12 +85,16 @@
 #define LOG_JSON_RULE_METADATA     BIT_U16(8)
 #define LOG_JSON_RULE              BIT_U16(9)
 #define LOG_JSON_VERDICT           BIT_U16(10)
+#define LOG_JSON_WEBSOCKET_PAYLOAD        BIT_U16(11)
+#define LOG_JSON_WEBSOCKET_PAYLOAD_BASE64 BIT_U16(12)
 
 #define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
             LOG_JSON_APP_LAYER  |                                  \
             LOG_JSON_RULE_METADATA)
 
-#define JSON_BODY_LOGGING  (LOG_JSON_HTTP_BODY | LOG_JSON_HTTP_BODY_BASE64)
+#define JSON_BODY_LOGGING                                                                          \
+    (LOG_JSON_HTTP_BODY | LOG_JSON_HTTP_BODY_BASE64 | LOG_JSON_WEBSOCKET_PAYLOAD |                 \
+            LOG_JSON_WEBSOCKET_PAYLOAD_BASE64)
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -293,6 +297,20 @@ static void AlertAddAppLayer(const Packet *p, JsonBuilder *jb,
             void *tx = AppLayerParserGetTx(p->flow->proto, proto, state, tx_id);
             if (tx) {
                 jb_get_mark(jb, &mark);
+                switch (proto) {
+                    // first check some protocols need special options for alerts logging
+                    case ALPROTO_WEBSOCKET:
+                        if (option_flags &
+                                (LOG_JSON_WEBSOCKET_PAYLOAD | LOG_JSON_WEBSOCKET_PAYLOAD_BASE64)) {
+                            bool pp = (option_flags & LOG_JSON_WEBSOCKET_PAYLOAD) != 0;
+                            bool pb64 = (option_flags & LOG_JSON_WEBSOCKET_PAYLOAD_BASE64) != 0;
+                            if (!SCWebSocketLogDetails(tx, jb, pp, pb64)) {
+                                jb_restore_mark(jb, &mark);
+                            }
+                            // nothing more to log or do
+                            return;
+                        }
+                }
                 if (!al->LogTx(tx, jb)) {
                     jb_restore_mark(jb, &mark);
                 }
@@ -874,6 +892,8 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &flags);
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &flags);
+        SetFlag(conf, "websocket-payload-printable", LOG_JSON_WEBSOCKET_PAYLOAD, &flags);
+        SetFlag(conf, "websocket-payload", LOG_JSON_WEBSOCKET_PAYLOAD_BASE64, &flags);
         SetFlag(conf, "verdict", LOG_JSON_VERDICT, &flags);
 
         /* Check for obsolete flags and warn that they have no effect. */
