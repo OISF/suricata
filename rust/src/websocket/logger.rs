@@ -21,7 +21,9 @@ use crate::detect::EnumString;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use std;
 
-fn log_websocket(tx: &WebSocketTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
+fn log_websocket(
+    tx: &WebSocketTransaction, js: &mut JsonBuilder, pp: bool, pb64: bool,
+) -> Result<(), JsonError> {
     js.open_object("websocket")?;
     js.set_bool("fin", tx.pdu.fin)?;
     if let Some(xorkey) = tx.pdu.mask {
@@ -32,6 +34,15 @@ fn log_websocket(tx: &WebSocketTransaction, js: &mut JsonBuilder) -> Result<(), 
     } else {
         js.set_string("opcode", &format!("unknown-{}", tx.pdu.opcode))?;
     }
+    if pp {
+        js.set_string(
+            "payload_printable",
+            &String::from_utf8_lossy(&tx.pdu.payload),
+        )?;
+    }
+    if pb64 {
+        js.set_base64("payload_base64", &tx.pdu.payload)?;
+    }
     js.close()?;
     Ok(())
 }
@@ -41,5 +52,12 @@ pub unsafe extern "C" fn rs_websocket_logger_log(
     tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, WebSocketTransaction);
-    log_websocket(tx, js).is_ok()
+    log_websocket(tx, js, false, false).is_ok()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCWebSocketLogDetails(
+    tx: &WebSocketTransaction, js: &mut JsonBuilder, pp: bool, pb64: bool,
+) -> bool {
+    log_websocket(tx, js, pp, pb64).is_ok()
 }
