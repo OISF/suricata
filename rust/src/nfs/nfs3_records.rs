@@ -480,17 +480,13 @@ mod tests {
 
         let (_, expected_handle) = parse_nfs3_handle(&buf[..36]).unwrap();
 
-        let result = parse_nfs3_request_create(buf).unwrap();
-        match result {
-            (r, request) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(request.handle, expected_handle);
-                assert_eq!(request.name_len, 1);
-                assert_eq!(request.create_mode, 0);
-                assert_eq!(request.verifier.len(), 44);
-                assert_eq!(request.name_vec, br#"h"#.to_vec());
-            }
-        }
+        let (r, request) = parse_nfs3_request_create(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(request.handle, expected_handle);
+        assert_eq!(request.name_len, 1);
+        assert_eq!(request.create_mode, 0);
+        assert_eq!(request.verifier.len(), 44);
+        assert_eq!(request.name_vec, br#"h"#.to_vec());
     }
 
     #[test]
@@ -511,15 +507,11 @@ mod tests {
 
         let (_, expected_handle) = parse_nfs3_handle(&buf[..36]).unwrap();
 
-        let result = parse_nfs3_request_remove(buf).unwrap();
-        match result {
-            (r, request) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(request.handle, expected_handle);
-                assert_eq!(request.name_len, 1);
-                assert_eq!(request.name_vec, br#"h"#.to_vec());
-            }
-        }
+        let (r, request) = parse_nfs3_request_remove(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(request.handle, expected_handle);
+        assert_eq!(request.name_len, 1);
+        assert_eq!(request.name_vec, br#"h"#.to_vec());
     }
 
     #[test]
@@ -540,14 +532,10 @@ mod tests {
 
         let (_, expected_handle) = parse_nfs3_handle(&buf[..36]).unwrap();
 
-        let result = parse_nfs3_request_rmdir(buf).unwrap();
-        match result {
-            (r, request) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(request.handle, expected_handle);
-                assert_eq!(request.name_vec, br#"d"#.to_vec());
-            }
-        }
+        let (r, request) = parse_nfs3_request_rmdir(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(request.handle, expected_handle);
+        assert_eq!(request.name_vec, br#"d"#.to_vec());
     }
 
     #[test]
@@ -573,13 +561,9 @@ mod tests {
 
         let (_, expected_handle) = parse_nfs3_handle(&buf[..36]).unwrap();
 
-        let result = parse_nfs3_request_mkdir(buf).unwrap();
-        match result {
-            (_r, request) => {
-                assert_eq!(request.handle, expected_handle);
-                assert_eq!(request.name_vec, br#"d"#.to_vec());
-            }
-        }
+        let (_r, request) = parse_nfs3_request_mkdir(buf).unwrap();
+        assert_eq!(request.handle, expected_handle);
+        assert_eq!(request.name_vec, br#"d"#.to_vec());
     }
 
     #[test]
@@ -611,18 +595,14 @@ mod tests {
         let (_, expected_from_handle) = parse_nfs3_handle(&buf[..36]).unwrap();
         let (_, expected_to_handle) = parse_nfs3_handle(&buf[44..80]).unwrap();
 
-        let result = parse_nfs3_request_rename(buf).unwrap();
-        match result {
-            (r, request) => {
-                assert_eq!(r.len(), 0);
+        let (r, request) = parse_nfs3_request_rename(buf).unwrap();
+        assert_eq!(r.len(), 0);
 
-                assert_eq!(request.from_handle, expected_from_handle);
-                assert_eq!(request.from_name_vec, br#"a"#.to_vec());
+        assert_eq!(request.from_handle, expected_from_handle);
+        assert_eq!(request.from_name_vec, br#"a"#.to_vec());
 
-                assert_eq!(request.to_handle, expected_to_handle);
-                assert_eq!(request.to_name_vec, br#"am"#.to_vec());
-            }
-        }
+        assert_eq!(request.to_handle, expected_to_handle);
+        assert_eq!(request.to_name_vec, br#"am"#.to_vec());
     }
 
     #[test]
@@ -638,13 +618,9 @@ mod tests {
 
         let (_, expected_handle) = parse_nfs3_handle(buf).unwrap();
 
-        let result = parse_nfs3_request_getattr(buf).unwrap();
-        match result {
-            (r, request) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(request.handle, expected_handle);
-            }
-        }
+        let (r, request) = parse_nfs3_request_getattr(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(request.handle, expected_handle);
     }
 
     #[test]
@@ -662,14 +638,10 @@ mod tests {
 
         let (_, expected_handle) = parse_nfs3_handle(&buf[..36]).unwrap();
 
-        let result = parse_nfs3_request_access(buf).unwrap();
-        match result {
-            (r, request) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(request.handle, expected_handle);
-                assert_eq!(request.check_access, 12);
-            }
-        }
+        let (r, request) = parse_nfs3_request_access(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(request.handle, expected_handle);
+        assert_eq!(request.check_access, 12);
     }
 
     #[test]
@@ -689,13 +661,9 @@ mod tests {
 
         let (_, expected_handle) = parse_nfs3_handle(&buf[..36]).unwrap();
 
-        let result = parse_nfs3_request_commit(buf).unwrap();
-        match result {
-            (r, request) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(request.handle, expected_handle);
-            }
-        }
+        let (r, request) = parse_nfs3_request_commit(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(request.handle, expected_handle);
     }
 
     #[test]
@@ -714,14 +682,10 @@ mod tests {
 
         let (_, expected_handle) = parse_nfs3_handle(&buf[..36]).unwrap();
 
-        let result = parse_nfs3_request_read(buf).unwrap();
-        match result {
-            (r, request) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(request.handle, expected_handle);
-                assert_eq!(request.offset, 0);
-            }
-        }
+        let (r, request) = parse_nfs3_request_read(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(request.handle, expected_handle);
+        assert_eq!(request.offset, 0);
     }
 
     #[test]
@@ -743,14 +707,10 @@ mod tests {
 
         let (_, expected_handle) = parse_nfs3_handle(&buf[..36]).unwrap();
 
-        let result = parse_nfs3_request_lookup(buf).unwrap();
-        match result {
-            (r, request) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(request.handle, expected_handle);
-                assert_eq!(request.name_vec, br#"bln"#);
-            }
-        }
+        let (r, request) = parse_nfs3_request_lookup(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(request.handle, expected_handle);
+        assert_eq!(request.name_vec, br#"bln"#);
     }
 
     #[test]
@@ -831,14 +791,10 @@ mod tests {
         let (_, entry0) = parse_nfs3_response_readdirplus_entry(entry0_buf).unwrap();
         let (_, entry1) = parse_nfs3_response_readdirplus_entry(entry1_buf).unwrap();
 
-        let response = many0_nfs3_response_readdirplus_entries(data_buf).unwrap();
-        match response {
-            (r, entries) => {
-                assert_eq!(r.len(), 4);
-                assert_eq!(entries[0], Nfs3ResponseReaddirplusEntry { entry: Some(entry0) });
-                assert_eq!(entries[1], Nfs3ResponseReaddirplusEntry { entry: Some(entry1) });
-            }
-        }
+        let (r, entries) = many0_nfs3_response_readdirplus_entries(data_buf).unwrap();
+        assert_eq!(r.len(), 4);
+        assert_eq!(entries[0], Nfs3ResponseReaddirplusEntry { entry: Some(entry0) });
+        assert_eq!(entries[1], Nfs3ResponseReaddirplusEntry { entry: Some(entry1) });
     }
 
     #[test]
@@ -904,18 +860,14 @@ mod tests {
         assert_eq!(expected_handle.len, 36);
         assert_eq!(expected_handle.value, &buf[4..40]);
 
-        let result = parse_nfs3_request_readdirplus(buf).unwrap();
-        match result {
-            (r, request) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(request.handle, expected_handle);
-                assert_eq!(request.cookie, 0);
-                assert_eq!(request.verifier, "\0\0\0\0\0\0\0\0".as_bytes());
-                assert_eq!(request.verifier.len(), 8);
-                assert_eq!(request.dircount, 512);
-                assert_eq!(request.maxcount, 4096);
-            }
-        }
+        let (r, request) = parse_nfs3_request_readdirplus(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(request.handle, expected_handle);
+        assert_eq!(request.cookie, 0);
+        assert_eq!(request.verifier, "\0\0\0\0\0\0\0\0".as_bytes());
+        assert_eq!(request.verifier.len(), 8);
+        assert_eq!(request.dircount, 512);
+        assert_eq!(request.maxcount, 4096);
     }
 
     #[test]
@@ -942,18 +894,14 @@ mod tests {
 
         let (_, expected_handle) = parse_nfs3_handle(&buf[..36]).unwrap();
 
-        let result = parse_nfs3_request_write(buf, true).unwrap();
-        match result {
-            (r, request) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(request.handle, expected_handle);
-                assert_eq!(request.offset, 0);
-                assert_eq!(request.count, 17);
-                assert_eq!(request.stable, 1);
-                assert_eq!(request.file_len, 17);
-                assert_eq!(request.file_data, "hallo\nthe b file\n".as_bytes());
-            }
-        }
+        let (r, request) = parse_nfs3_request_write(buf, true).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(request.handle, expected_handle);
+        assert_eq!(request.offset, 0);
+        assert_eq!(request.count, 17);
+        assert_eq!(request.stable, 1);
+        assert_eq!(request.file_len, 17);
+        assert_eq!(request.file_data, "hallo\nthe b file\n".as_bytes());
     }
 
     #[test]
@@ -983,18 +931,14 @@ mod tests {
             0x00, /*_data_padding*/
         ];
 
-        let result = parse_nfs3_reply_read(buf, true).unwrap();
-        match result {
-            (r, reply) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(reply.status, 0);
-                assert_eq!(reply.attr_follows, 1);
-                assert_eq!(reply.attr_blob.len(), 84);
-                assert_eq!(reply.count, 11);
-                assert!(reply.eof);
-                assert_eq!(reply.data_len, 11);
-                assert_eq!(reply.data, "the b file\n".as_bytes());
-            }
-        }
+        let (r, reply) = parse_nfs3_reply_read(buf, true).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(reply.status, 0);
+        assert_eq!(reply.attr_follows, 1);
+        assert_eq!(reply.attr_blob.len(), 84);
+        assert_eq!(reply.count, 11);
+        assert!(reply.eof);
+        assert_eq!(reply.data_len, 11);
+        assert_eq!(reply.data, "the b file\n".as_bytes());
     }
 }

@@ -113,13 +113,9 @@ mod tests {
             0x00, 0x00, 0xb2, 0x5a, 0x00, 0x00, 0x00, 0x29
         ];
 
-        let result = parse_nfs2_handle(buf).unwrap();
-        match result {
-            (r, res) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(res.value, buf);
-            }
-        }
+        let (r, res) = parse_nfs2_handle(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(res.value, buf);
     }
 
     #[test]
@@ -136,14 +132,10 @@ mod tests {
         let (_, handle) = parse_nfs2_handle(buf).unwrap();
         assert_eq!(handle.value, &buf[..32]);
 
-        let result = parse_nfs2_request_lookup(buf).unwrap();
-        match result {
-            (r, request) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(request.handle, handle);
-                assert_eq!(request.name_vec, b"am".to_vec());
-            }
-        }
+        let (r, request) = parse_nfs2_request_lookup(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(request.handle, handle);
+        assert_eq!(request.name_vec, b"am".to_vec());
     }
 
     #[test]
@@ -162,14 +154,10 @@ mod tests {
         let (_, handle) = parse_nfs2_handle(buf).unwrap();
         assert_eq!(handle.value, &buf[..32]);
 
-        let result = parse_nfs2_request_read(buf).unwrap();
-        match result {
-            (r, request) => {
-                assert_eq!(r.len(), 4);
-                assert_eq!(request.handle, handle);
-                assert_eq!(request.offset, 0);
-            }
-        }
+        let (r, request) = parse_nfs2_request_read(buf).unwrap();
+        assert_eq!(r.len(), 4);
+        assert_eq!(request.handle, handle);
+        assert_eq!(request.offset, 0);
     }
 
     #[test]
@@ -192,19 +180,15 @@ mod tests {
             0x00, /*_data_padding*/
         ];
 
-        let result = parse_nfs2_reply_read(buf).unwrap();
-        match result {
-            (r, response) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(response.status, 0);
-                assert_eq!(response.attr_follows, 1);
-                assert_eq!(response.attr_blob.len(), 68);
-                assert_eq!(response.count, response.data_len);
-                assert!(!response.eof);
-                assert_eq!(response.data_len, 11);
-                assert_eq!(response.data, &buf[76..87]);
-            }
-        }
+        let (r, response) = parse_nfs2_reply_read(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(response.status, 0);
+        assert_eq!(response.attr_follows, 1);
+        assert_eq!(response.attr_blob.len(), 68);
+        assert_eq!(response.count, response.data_len);
+        assert!(!response.eof);
+        assert_eq!(response.data_len, 11);
+        assert_eq!(response.data, &buf[76..87]);
     }
 
     #[test]
@@ -223,13 +207,9 @@ mod tests {
             0x00, 0x08, 0x16, 0x50
         ];
 
-        let result = parse_nfs2_attribs(buf).unwrap();
-        match result {
-            (r, res) => {
-                assert_eq!(r.len(), 0);
-                assert_eq!(res.atype, 1);
-                assert_eq!(res.asize, 0);
-            }
-        }
+        let (r, res) = parse_nfs2_attribs(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(res.atype, 1);
+        assert_eq!(res.asize, 0);
     }
 }
