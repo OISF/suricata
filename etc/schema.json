@@ -5674,6 +5674,12 @@
                 },
                 "opcode": {
                     "type": "string"
+                },
+                "payload_base64": {
+                    "type": "string"
+                },
+                "payload_printable": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false
