@@ -24,6 +24,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
+#include "detect.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "conf-yaml-loader.h"

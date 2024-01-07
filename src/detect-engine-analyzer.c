@@ -34,13 +34,9 @@
 #include "detect-engine-mpm.h"
 #include "conf.h"
 #include "detect-content.h"
-#include "detect-dataset.h"
 #include "detect-pcre.h"
-#include "detect-bytejump.h"
-#include "detect-bytetest.h"
 #include "detect-flow.h"
 #include "detect-tcp-flags.h"
-#include "detect-ipopts.h"
 #include "feature.h"
 #include "util-print.h"
 #include "util-time.h"
@@ -684,84 +680,6 @@ static bool LooksLikeHTTPUA(const uint8_t *buf, uint16_t len)
     return false;
 }
 
-static void DumpContent(JsonBuilder *js, const DetectContentData *cd)
-{
-    char pattern_str[1024] = "";
-    DetectContentPatternPrettyPrint(cd, pattern_str, sizeof(pattern_str));
-
-    jb_set_string(js, "pattern", pattern_str);
-    jb_set_uint(js, "length", cd->content_len);
-    jb_set_bool(js, "nocase", cd->flags & DETECT_CONTENT_NOCASE);
-    jb_set_bool(js, "negated", cd->flags & DETECT_CONTENT_NEGATED);
-    jb_set_bool(js, "starts_with", cd->flags & DETECT_CONTENT_STARTS_WITH);
-    jb_set_bool(js, "ends_with", cd->flags & DETECT_CONTENT_ENDS_WITH);
-    jb_set_bool(js, "is_mpm", cd->flags & DETECT_CONTENT_MPM);
-    jb_set_bool(js, "no_double_inspect", cd->flags & DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED);
-    if (cd->flags & DETECT_CONTENT_OFFSET) {
-        jb_set_uint(js, "offset", cd->offset);
-    }
-    if (cd->flags & DETECT_CONTENT_DEPTH) {
-        jb_set_uint(js, "depth", cd->depth);
-    }
-    if (cd->flags & DETECT_CONTENT_DISTANCE) {
-        jb_set_int(js, "distance", cd->distance);
-    }
-    if (cd->flags & DETECT_CONTENT_WITHIN) {
-        jb_set_int(js, "within", cd->within);
-    }
-    jb_set_bool(js, "fast_pattern", cd->flags & DETECT_CONTENT_FAST_PATTERN);
-    jb_set_bool(js, "relative_next", cd->flags & DETECT_CONTENT_RELATIVE_NEXT);
-}
-
-static void DumpPcre(JsonBuilder *js, const DetectPcreData *cd)
-{
-    jb_set_string(js, "pattern", cd->pcre_str);
-    jb_set_bool(js, "relative", cd->flags & DETECT_PCRE_RELATIVE);
-    jb_set_bool(js, "relative_next", cd->flags & DETECT_PCRE_RELATIVE_NEXT);
-    jb_set_bool(js, "nocase", cd->flags & DETECT_PCRE_CASELESS);
-    jb_set_bool(js, "negated", cd->flags & DETECT_PCRE_NEGATE);
-}
-
-static void DumpDataset(JsonBuilder *js, const DetectDatasetData *cd)
-{
-    jb_set_string(js, "name", cd->set->name);
-    switch (cd->set->type) {
-        case DATASET_TYPE_STRING:
-            jb_set_string(js, "type", "string");
-            break;
-        case DATASET_TYPE_MD5:
-            jb_set_string(js, "type", "md5");
-            break;
-        case DATASET_TYPE_SHA256:
-            jb_set_string(js, "type", "string");
-            break;
-        case DATASET_TYPE_IPV4:
-            jb_set_string(js, "type", "ipv4");
-            break;
-        case DATASET_TYPE_IPV6:
-            jb_set_string(js, "type", "ipv6");
-            break;
-    }
-    if (strlen(cd->set->load) != 0)
-        jb_set_string(js, "load", cd->set->load);
-    if (strlen(cd->set->save) != 0)
-        jb_set_string(js, "save", cd->set->save);
-    switch (cd->cmd) {
-        case DETECT_DATASET_CMD_SET:
-            jb_set_string(js, "cmd", "set");
-            break;
-        case DETECT_DATASET_CMD_UNSET:
-            jb_set_string(js, "cmd", "unset");
-            break;
-        case DETECT_DATASET_CMD_ISNOTSET:
-            jb_set_string(js, "cmd", "isnotset");
-            break;
-        case DETECT_DATASET_CMD_ISSET:
-            jb_set_string(js, "cmd", "isset");
-            break;
-    }
-}
-
 static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *smd)
 {
     if (smd == NULL)
@@ -773,12 +691,13 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
         const char *mname = sigmatch_table[smd->type].name;
         jb_set_string(js, "name", mname);
 
+        if (sigmatch_table[smd->type].JsonDump != NULL) {
+            sigmatch_table[smd->type].JsonDump(js, smd->ctx);
+        }
         switch (smd->type) {
             case DETECT_CONTENT: {
                 const DetectContentData *cd = (const DetectContentData *)smd->ctx;
 
-                jb_open_object(js, "content");
-                DumpContent(js, cd);
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
                     AnalyzerNote(ctx, (char *)"'fast_pattern:only' option is silently ignored and "
                                               "is interpreted as regular 'fast_pattern'");
@@ -801,172 +720,15 @@ static void DumpMatches(RuleAnalyzer *ctx, JsonBuilder *js, const SigMatchData *
                     AnalyzerNote(ctx, (char *)"'distance' option for pattern w/o previous content "
                                               "was converted to 'offset'");
                 }
-                jb_close(js);
                 break;
             }
             case DETECT_PCRE: {
                 const DetectPcreData *cd = (const DetectPcreData *)smd->ctx;
-
-                jb_open_object(js, "pcre");
-                DumpPcre(js, cd);
-                jb_close(js);
                 if (cd->flags & DETECT_PCRE_RAWBYTES) {
                     AnalyzerNote(ctx,
                             (char *)"'/B' (rawbytes) option is a no-op and is silently ignored");
                 }
                 break;
-            }
-            case DETECT_DATASET: {
-                const DetectDatasetData *cd = (const DetectDatasetData *)smd->ctx;
-
-                jb_open_object(js, "dataset");
-                DumpDataset(js, cd);
-                jb_close(js);
-                break;
-            }
-            case DETECT_BYTEJUMP: {
-                const DetectBytejumpData *cd = (const DetectBytejumpData *)smd->ctx;
-
-                jb_open_object(js, "byte_jump");
-                jb_set_uint(js, "nbytes", cd->nbytes);
-                jb_set_int(js, "offset", cd->offset);
-                jb_set_uint(js, "multiplier", cd->multiplier);
-                jb_set_int(js, "post_offset", cd->post_offset);
-                switch (cd->base) {
-                    case DETECT_BYTEJUMP_BASE_UNSET:
-                        jb_set_string(js, "base", "unset");
-                        break;
-                    case DETECT_BYTEJUMP_BASE_OCT:
-                        jb_set_string(js, "base", "oct");
-                        break;
-                    case DETECT_BYTEJUMP_BASE_DEC:
-                        jb_set_string(js, "base", "dec");
-                        break;
-                    case DETECT_BYTEJUMP_BASE_HEX:
-                        jb_set_string(js, "base", "hex");
-                        break;
-                }
-                jb_open_array(js, "flags");
-                if (cd->flags & DETECT_BYTEJUMP_BEGIN)
-                    jb_append_string(js, "from_beginning");
-                if (cd->flags & DETECT_BYTEJUMP_LITTLE)
-                    jb_append_string(js, "little_endian");
-                if (cd->flags & DETECT_BYTEJUMP_BIG)
-                    jb_append_string(js, "big_endian");
-                if (cd->flags & DETECT_BYTEJUMP_STRING)
-                    jb_append_string(js, "string");
-                if (cd->flags & DETECT_BYTEJUMP_RELATIVE)
-                    jb_append_string(js, "relative");
-                if (cd->flags & DETECT_BYTEJUMP_ALIGN)
-                    jb_append_string(js, "align");
-                if (cd->flags & DETECT_BYTEJUMP_DCE)
-                    jb_append_string(js, "dce");
-                if (cd->flags & DETECT_BYTEJUMP_OFFSET_BE)
-                    jb_append_string(js, "offset_be");
-                if (cd->flags & DETECT_BYTEJUMP_END)
-                    jb_append_string(js, "from_end");
-                jb_close(js);
-                jb_close(js);
-                break;
-            }
-            case DETECT_BYTETEST: {
-                const DetectBytetestData *cd = (const DetectBytetestData *)smd->ctx;
-
-                jb_open_object(js, "byte_test");
-                jb_set_uint(js, "nbytes", cd->nbytes);
-                jb_set_int(js, "offset", cd->offset);
-                switch (cd->base) {
-                    case DETECT_BYTETEST_BASE_UNSET:
-                        jb_set_string(js, "base", "unset");
-                        break;
-                    case DETECT_BYTETEST_BASE_OCT:
-                        jb_set_string(js, "base", "oct");
-                        break;
-                    case DETECT_BYTETEST_BASE_DEC:
-                        jb_set_string(js, "base", "dec");
-                        break;
-                    case DETECT_BYTETEST_BASE_HEX:
-                        jb_set_string(js, "base", "hex");
-                        break;
-                }
-                jb_open_array(js, "flags");
-                if (cd->flags & DETECT_BYTETEST_LITTLE)
-                    jb_append_string(js, "little_endian");
-                if (cd->flags & DETECT_BYTETEST_BIG)
-                    jb_append_string(js, "big_endian");
-                if (cd->flags & DETECT_BYTETEST_STRING)
-                    jb_append_string(js, "string");
-                if (cd->flags & DETECT_BYTETEST_RELATIVE)
-                    jb_append_string(js, "relative");
-                if (cd->flags & DETECT_BYTETEST_DCE)
-                    jb_append_string(js, "dce");
-                jb_close(js);
-                jb_close(js);
-                break;
-            }
-            case DETECT_IPOPTS: {
-                const DetectIpOptsData *cd = (const DetectIpOptsData *)smd->ctx;
-
-                jb_open_object(js, "ipopts");
-                const char *flag = IpOptsFlagToString(cd->ipopt);
-                jb_set_string(js, "option", flag);
-                jb_close(js);
-                break;
-            }
-            case DETECT_FLOWBITS: {
-                const DetectFlowbitsData *cd = (const DetectFlowbitsData *)smd->ctx;
-
-                jb_open_object(js, "flowbits");
-                switch (cd->cmd) {
-                    case DETECT_FLOWBITS_CMD_ISSET:
-                        jb_set_string(js, "cmd", "isset");
-                        break;
-                    case DETECT_FLOWBITS_CMD_ISNOTSET:
-                        jb_set_string(js, "cmd", "isnotset");
-                        break;
-                    case DETECT_FLOWBITS_CMD_SET:
-                        jb_set_string(js, "cmd", "set");
-                        break;
-                    case DETECT_FLOWBITS_CMD_UNSET:
-                        jb_set_string(js, "cmd", "unset");
-                        break;
-                    case DETECT_FLOWBITS_CMD_TOGGLE:
-                        jb_set_string(js, "cmd", "toggle");
-                        break;
-                }
-                bool is_or = false;
-                jb_open_array(js, "names");
-                if (cd->or_list_size == 0) {
-                    jb_append_string(js, VarNameStoreSetupLookup(cd->idx, VAR_TYPE_FLOW_BIT));
-                } else if (cd->or_list_size > 0) {
-                    is_or = true;
-                    for (uint8_t i = 0; i < cd->or_list_size; i++) {
-                        const char *varname =
-                                VarNameStoreSetupLookup(cd->or_list[i], VAR_TYPE_FLOW_BIT);
-                        jb_append_string(js, varname);
-                    }
-                }
-                jb_close(js); // array
-                if (is_or) {
-                    jb_set_string(js, "operator", "or");
-                }
-                jb_close(js); // object
-                break;
-            }
-            case DETECT_FLOW: {
-                const DetectFlowData *cd = (const DetectFlowData *)smd->ctx;
-                jb_open_object(js, "flow");
-                if (cd->flags & DETECT_FLOW_FLAG_ESTABLISHED) {
-                    jb_set_bool(js, "established", true);
-                } else {
-                    jb_set_bool(js, "established", false);
-                }
-                if (cd->flags & DETECT_FLOW_FLAG_TOSERVER) {
-                    jb_set_bool(js, "to_server", true);
-                } else {
-                    jb_set_bool(js, "to_server", false);
-                }
-                jb_close(js);
             }
         }
         jb_close(js);
@@ -1270,7 +1032,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
                 case DETECT_CONTENT: {
                     const DetectContentData *cd = (const DetectContentData *)smd->ctx;
                     if (cd->flags & DETECT_CONTENT_MPM) {
-                        DumpContent(ctx.js, cd);
+                        sigmatch_table[DETECT_CONTENT].JsonDump(ctx.js, smd->ctx);
                     }
                     break;
                 }

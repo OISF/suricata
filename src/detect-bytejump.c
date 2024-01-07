@@ -65,6 +65,7 @@ static DetectBytejumpData *DetectBytejumpParse(
         DetectEngineCtx *de_ctx, const char *optstr, char **nbytes, char **offset);
 static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr);
 static void DetectBytejumpFree(DetectEngineCtx*, void *ptr);
+static void DetectBytejumpDump (JsonBuilder *, const void *);
 #ifdef UNITTESTS
 static void DetectBytejumpRegisterTests(void);
 #endif
@@ -77,6 +78,7 @@ void DetectBytejumpRegister (void)
     sigmatch_table[DETECT_BYTEJUMP].Match = NULL;
     sigmatch_table[DETECT_BYTEJUMP].Setup = DetectBytejumpSetup;
     sigmatch_table[DETECT_BYTEJUMP].Free  = DetectBytejumpFree;
+    sigmatch_table[DETECT_BYTEJUMP].JsonDump = DetectBytejumpDump;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_BYTEJUMP].RegisterTests = DetectBytejumpRegisterTests;
 #endif
@@ -615,6 +617,50 @@ static void DetectBytejumpFree(DetectEngineCtx *de_ctx, void *ptr)
     SCFree(data);
 }
 
+static void DetectBytejumpDump (JsonBuilder *js, const void *gcd)
+{
+    DetectBytejumpData *cd = (DetectBytejumpData *) gcd;
+    jb_open_object(js, "byte_jump");
+    jb_set_uint(js, "nbytes", cd->nbytes);
+    jb_set_int(js, "offset", cd->offset);
+    jb_set_uint(js, "multiplier", cd->multiplier);
+    jb_set_int(js, "post_offset", cd->post_offset);
+    switch (cd->base) {
+        case DETECT_BYTEJUMP_BASE_UNSET:
+            jb_set_string(js, "base", "unset");
+            break;
+        case DETECT_BYTEJUMP_BASE_OCT:
+            jb_set_string(js, "base", "oct");
+            break;
+        case DETECT_BYTEJUMP_BASE_DEC:
+            jb_set_string(js, "base", "dec");
+            break;
+        case DETECT_BYTEJUMP_BASE_HEX:
+            jb_set_string(js, "base", "hex");
+            break;
+    }
+    jb_open_array(js, "flags");
+    if (cd->flags & DETECT_BYTEJUMP_BEGIN)
+        jb_append_string(js, "from_beginning");
+    if (cd->flags & DETECT_BYTEJUMP_LITTLE)
+        jb_append_string(js, "little_endian");
+    if (cd->flags & DETECT_BYTEJUMP_BIG)
+        jb_append_string(js, "big_endian");
+    if (cd->flags & DETECT_BYTEJUMP_STRING)
+        jb_append_string(js, "string");
+    if (cd->flags & DETECT_BYTEJUMP_RELATIVE)
+        jb_append_string(js, "relative");
+    if (cd->flags & DETECT_BYTEJUMP_ALIGN)
+        jb_append_string(js, "align");
+    if (cd->flags & DETECT_BYTEJUMP_DCE)
+        jb_append_string(js, "dce");
+    if (cd->flags & DETECT_BYTEJUMP_OFFSET_BE)
+        jb_append_string(js, "offset_be");
+    if (cd->flags & DETECT_BYTEJUMP_END)
+        jb_append_string(js, "from_end");
+    jb_close(js);
+    jb_close(js);
+}
 
 /* UNITTESTS */
 #ifdef UNITTESTS

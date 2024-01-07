@@ -89,6 +89,7 @@ static inline int DetectPcreExec(DetectEngineThreadCtx *det_ctx, const DetectPcr
 
 static int DetectPcreSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectPcreFree(DetectEngineCtx *, void *);
+static void DetectPcreDump(JsonBuilder *js, const void *gcd);
 #ifdef UNITTESTS
 static void DetectPcreRegisterTests(void);
 #endif
@@ -101,6 +102,7 @@ void DetectPcreRegister (void)
     sigmatch_table[DETECT_PCRE].Match = NULL;
     sigmatch_table[DETECT_PCRE].Setup = DetectPcreSetup;
     sigmatch_table[DETECT_PCRE].Free  = DetectPcreFree;
+    sigmatch_table[DETECT_PCRE].JsonDump = DetectPcreDump;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_PCRE].RegisterTests  = DetectPcreRegisterTests;
 #endif
@@ -979,6 +981,18 @@ static void DetectPcreFree(DetectEngineCtx *de_ctx, void *ptr)
     SCFree(pd);
 
     return;
+}
+
+static void DetectPcreDump(JsonBuilder *js, const void *gcd)
+{
+    DetectPcreData *cd = (DetectPcreData *) gcd;
+    jb_open_object(js, "pcre");
+    jb_set_string(js, "pattern", cd->pcre_str);
+    jb_set_bool(js, "relative", cd->flags & DETECT_PCRE_RELATIVE);
+    jb_set_bool(js, "relative_next", cd->flags & DETECT_PCRE_RELATIVE_NEXT);
+    jb_set_bool(js, "nocase", cd->flags & DETECT_PCRE_CASELESS);
+    jb_set_bool(js, "negated", cd->flags & DETECT_PCRE_NEGATE);
+    jb_close(js);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */

@@ -41,6 +41,8 @@
 #include "util-file.h"
 #include "reputation.h"
 
+#include "rust.h"
+
 #define DETECT_MAX_RULE_SIZE 8192
 
 #define DETECT_TRANSFORMS_MAX 16
@@ -1278,6 +1280,8 @@ typedef struct SigTableElmt_ {
     int (*SetupPrefilter)(DetectEngineCtx *de_ctx, struct SigGroupHead_ *sgh);
 
     void (*Free)(DetectEngineCtx *, void *);
+
+    void (*JsonDump)(JsonBuilder *js, const void *detectdata);
 #ifdef UNITTESTS
     void (*RegisterTests)(void);
 #endif

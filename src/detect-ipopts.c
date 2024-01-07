@@ -49,6 +49,7 @@ static int DetectIpOptsSetup (DetectEngineCtx *, Signature *, const char *);
 static void IpOptsRegisterTests(void);
 #endif
 void DetectIpOptsFree(DetectEngineCtx *, void *);
+static void DetectIpOptsDump(JsonBuilder *, const void *);
 
 /**
  * \brief Registration function for ipopts: keyword
@@ -61,6 +62,7 @@ void DetectIpOptsRegister (void)
     sigmatch_table[DETECT_IPOPTS].Match = DetectIpOptsMatch;
     sigmatch_table[DETECT_IPOPTS].Setup = DetectIpOptsSetup;
     sigmatch_table[DETECT_IPOPTS].Free  = DetectIpOptsFree;
+    sigmatch_table[DETECT_IPOPTS].JsonDump = DetectIpOptsDump;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_IPOPTS].RegisterTests = IpOptsRegisterTests;
 #endif
@@ -272,6 +274,16 @@ void DetectIpOptsFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
     DetectIpOptsData *de = (DetectIpOptsData *)de_ptr;
     if(de) SCFree(de);
+}
+
+
+static void DetectIpOptsDump (JsonBuilder *js, const void *gcd)
+{
+    DetectIpOptsData *cd = (DetectIpOptsData *)gcd;
+    jb_open_object(js, "ipopts");
+    const char *flag = IpOptsFlagToString(cd->ipopt);
+    jb_set_string(js, "option", flag);
+    jb_close(js);
 }
 
 /*
