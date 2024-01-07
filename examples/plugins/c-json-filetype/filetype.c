@@ -22,7 +22,7 @@
 
 #define FILETYPE_NAME "json-filetype-plugin"
 
-static int FiletypeThreadInit(void *ctx, int thread_id, void **thread_data);
+static int FiletypeThreadInit(void *ctx, ThreadId thread_id, void **thread_data);
 static int FiletypeThreadDeinit(void *ctx, void *thread_data);
 
 /**
@@ -30,7 +30,7 @@ static int FiletypeThreadDeinit(void *ctx, void *thread_data);
  */
 typedef struct ThreadData_ {
     /** The thread ID, for demonstration purposes only. */
-    int thread_id;
+    ThreadId thread_id;
 
     /** The number of records logged on this thread. */
     uint64_t count;
@@ -143,7 +143,7 @@ static void FiletypeDeinit(void *data)
  * Suricata, but instead this plugin chooses to use this method to create a
  * default (single) thread context.
  */
-static int FiletypeThreadInit(void *ctx, int thread_id, void **thread_data)
+static int FiletypeThreadInit(void *ctx, ThreadId thread_id, void **thread_data)
 {
     ThreadData *tdata = SCCalloc(1, sizeof(ThreadData));
     if (tdata == NULL) {

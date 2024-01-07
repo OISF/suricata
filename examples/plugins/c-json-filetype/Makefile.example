@@ -2,6 +2,7 @@ SRCS :=		filetype.c
 
 LIBSURICATA_CONFIG ?= libsuricata-config
 
+CPPFLAGS += -I../../../src
 CPPFLAGS +=	`$(LIBSURICATA_CONFIG) --cflags`
 CPPFLAGS +=	-DSURICATA_PLUGIN -I.
 CPPFLAGS +=	"-D__SCFILENAME__=\"$(*F)\""
