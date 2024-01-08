@@ -149,9 +149,7 @@ static int JsonEmailAddToJsonArray(const uint8_t *val, size_t len, void *data)
 
     if (ajs == NULL)
         return 0;
-    char *value = BytesToString((uint8_t *)val, len);
-    jb_append_string(ajs, value);
-    SCFree(value);
+    jb_append_string_from_bytes(ajs, val, (uint32_t)len);
     return 1;
 }
 
@@ -193,12 +191,8 @@ static void EveEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, JsonBuilder *js
             } else {
                 field = MimeDecFindField(entity, email_fields[f].email_field);
                 if (field != NULL) {
-                    char *s = BytesToString((uint8_t *)field->value,
-                            (size_t)field->value_len);
-                    if (likely(s != NULL)) {
-                        jb_set_string(js, email_fields[f].config_field, s);
-                        SCFree(s);
-                    }
+                    jb_set_string_from_bytes(
+                            js, email_fields[f].config_field, field->value, field->value_len);
                 }
             }
 
@@ -295,19 +289,14 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
             bool has_ipv4_url = false;
             bool has_exe_url = false;
             for (url = entity->url_list; url != NULL; url = url->next) {
-                char *s = BytesToString((uint8_t *)url->url,
-                                        (size_t)url->url_len);
-                if (s != NULL) {
-                    jb_append_string(js_url, s);
-                    if (url->url_flags & URL_IS_EXE)
-                        has_exe_url = true;
-                    if (url->url_flags & URL_IS_IP6)
-                        has_ipv6_url = true;
-                    if (url->url_flags & URL_IS_IP4)
-                        has_ipv6_url = true;
-                    SCFree(s);
-                    url_cnt += 1;
-                }
+                jb_append_string_from_bytes(js_url, url->url, url->url_len);
+                if (url->url_flags & URL_IS_EXE)
+                    has_exe_url = true;
+                if (url->url_flags & URL_IS_IP6)
+                    has_ipv6_url = true;
+                if (url->url_flags & URL_IS_IP4)
+                    has_ipv6_url = true;
+                url_cnt += 1;
             }
             jb_set_bool(sjs, "has_ipv6_url", has_ipv6_url);
             jb_set_bool(sjs, "has_ipv4_url", has_ipv4_url);
@@ -315,23 +304,14 @@ static bool EveEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t 
         }
         for (entity = entity->child; entity != NULL; entity = entity->next) {
             if (entity->ctnt_flags & CTNT_IS_ATTACHMENT) {
-
-                char *s = BytesToString((uint8_t *)entity->filename,
-                                        (size_t)entity->filename_len);
-                jb_append_string(js_attach, s);
-                SCFree(s);
+                jb_append_string_from_bytes(js_attach, entity->filename, entity->filename_len);
                 attach_cnt += 1;
             }
             if (entity->url_list != NULL) {
                 MimeDecUrl *url;
                 for (url = entity->url_list; url != NULL; url = url->next) {
-                    char *s = BytesToString((uint8_t *)url->url,
-                                            (size_t)url->url_len);
-                    if (s != NULL) {
-                        jb_append_string(js_url, s);
-                        SCFree(s);
-                        url_cnt += 1;
-                    }
+                    jb_append_string_from_bytes(js_url, url->url, url->url_len);
+                    url_cnt += 1;
                 }
             }
         }
