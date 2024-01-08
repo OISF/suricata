@@ -301,12 +301,12 @@ static void EveHttpLogJSONExtended(JsonBuilder *js, htp_tx_t *tx)
                 status_string, status_size);
         unsigned int val = strtoul(status_string, NULL, 10);
         jb_set_uint(js, "status", val);
+    }
 
-        htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
-        if (h_location != NULL) {
-            jb_set_string_from_bytes(
-                    js, "redirect", bstr_ptr(h_location->value), bstr_len(h_location->value));
-        }
+    htp_header_t *h_location = htp_table_get_c(tx->response_headers, "location");
+    if (h_location != NULL) {
+        jb_set_string_from_bytes(
+                js, "redirect", bstr_ptr(h_location->value), bstr_len(h_location->value));
     }
 
     /* length */
