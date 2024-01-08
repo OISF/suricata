@@ -288,8 +288,13 @@ static void EveHttpLogJSONExtended(JsonBuilder *js, htp_tx_t *tx)
                 js, "protocol", bstr_ptr(tx->request_protocol), bstr_len(tx->request_protocol));
     }
 
-    /* response status */
-    if (tx->response_status != NULL) {
+    /* response status: from libhtp:
+     * "Response status code, available only if we were able to parse it, HTP_STATUS_INVALID
+     *  otherwise. HTP_STATUS_UNKNOWN until parsing is attempted" .*/
+    const int resp = tx->response_status_number;
+    if (resp > 0) {
+        jb_set_uint(js, "status", (uint32_t)resp);
+    } else if (tx->response_status != NULL) {
         const size_t status_size = bstr_len(tx->response_status) * 2 + 1;
         char status_string[status_size];
         BytesToStringBuffer(bstr_ptr(tx->response_status), bstr_len(tx->response_status),
