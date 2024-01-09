@@ -47,6 +47,7 @@
 #include "util-debug.h"
 
 #include "threads.h"
+#include "detect-engine-threshold.h"
 
 #include "host-timeout.h"
 #include "defrag-timeout.h"
@@ -893,6 +894,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                 HostTimeoutHash(ts);
                 IPPairTimeoutHash(ts);
                 HttpRangeContainersTimeoutHash(ts);
+                ThresholdsExpire(ts);
                 other_last_sec = (uint32_t)SCTIME_SECS(ts);
             }
         }
