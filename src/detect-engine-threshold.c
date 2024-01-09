@@ -982,19 +982,18 @@ void ThresholdHashInit(DetectEngineCtx *de_ctx)
  */
 void ThresholdHashAllocate(DetectEngineCtx *de_ctx)
 {
-    Signature *s = de_ctx->sig_list;
+    const Signature *s = de_ctx->sig_list;
     bool has_by_rule_tracking = false;
-    const DetectThresholdData *td = NULL;
-    const SigMatchData *smd;
 
     /* Find the signature with the highest signature number that is using
        thresholding with by_rule tracking. */
     uint32_t highest_signum = 0;
     while (s != NULL) {
         if (s->sm_arrays[DETECT_SM_LIST_SUPPRESS] != NULL) {
-            smd = NULL;
+            const SigMatchData *smd = NULL;
             do {
-                td = SigGetThresholdTypeIter(s, &smd, DETECT_SM_LIST_SUPPRESS);
+                const DetectThresholdData *td =
+                        SigGetThresholdTypeIter(s, &smd, DETECT_SM_LIST_SUPPRESS);
                 if (td == NULL) {
                     continue;
                 }
@@ -1009,9 +1008,10 @@ void ThresholdHashAllocate(DetectEngineCtx *de_ctx)
         }
 
         if (s->sm_arrays[DETECT_SM_LIST_THRESHOLD] != NULL) {
-            smd = NULL;
+            const SigMatchData *smd = NULL;
             do {
-                td = SigGetThresholdTypeIter(s, &smd, DETECT_SM_LIST_THRESHOLD);
+                const DetectThresholdData *td =
+                        SigGetThresholdTypeIter(s, &smd, DETECT_SM_LIST_THRESHOLD);
                 if (td == NULL) {
                     continue;
                 }
