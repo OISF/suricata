@@ -729,7 +729,6 @@ static inline void DetectRulePacketRules(
     const DetectRunScratchpad *scratch
 )
 {
-    const Signature *s = NULL;
     const Signature *next_s = NULL;
 
     /* inspect the sigs against the packet */
@@ -760,7 +759,7 @@ static inline void DetectRulePacketRules(
 #ifdef PROFILE_RULES
         bool smatch = false; /* signature match */
 #endif
-        s = next_s;
+        const Signature *s = next_s;
         sflags = next_sflags;
         if (match_cnt) {
             next_s = *match_array++;
