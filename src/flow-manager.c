@@ -52,7 +52,7 @@
 
 #include "threads.h"
 #include "detect.h"
-#include "detect-engine-state.h"
+#include "detect-engine-threshold.h"
 #include "stream.h"
 
 #include "app-layer-parser.h"
@@ -905,6 +905,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                 HostTimeoutHash(ts);
                 IPPairTimeoutHash(ts);
                 HttpRangeContainersTimeoutHash(ts);
+                ThresholdsExpire(ts);
                 other_last_sec = (uint32_t)SCTIME_SECS(ts);
             }
         }
