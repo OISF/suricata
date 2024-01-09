@@ -248,7 +248,7 @@ It is possible to use any of the :doc:`payload-keywords` with the
 ``http.protocol`` keyword.
 
 .. note:: ``http.protocol`` does not include the leading space or trailing
-\\r\\n 
+   \\r\\n 
 
 Example HTTP Request::
 
@@ -423,7 +423,7 @@ Example HTTP Request::
    \\r\\n
 
 .. note:: Using the ``http.user_agent`` buffer is more efficient when it comes
-to performance than using the :ref:`http.header` buffer (~10% better).
+   to performance than using the :ref:`http.header` buffer (~10% better).
 
 .. note:: If a request contains multiple "User-Agent" headers, the values will
    be concatenated in the ``http.user_agent`` buffer, in the order seen from
@@ -475,12 +475,27 @@ Example HTTP Request::
 http.accept_enc
 ---------------
 
-Sticky buffer to match on the HTTP Accept-Encoding header. Only contains the
-header value. The \\r\\n after the header are not part of the buffer.
+The ``http.accept_enc`` keyword is used to match on the Accept field that
+can be present in HTTP request headers.
 
-Example::
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.accept_enc`` keyword.
 
-    alert http any any -> any any (http.accept_enc; content:"gzip"; sid:1;)
+Example HTTP Request::
+
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Accept-Encoding: gzip, deflate
+  Host: suricata.io
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Accept-Encoding Example"; \
+  flow:established,to_server; :example-rule-options:`http.accept_enc; \ 
+  content:"gzip, deflate";` bsize:13; classtype:bad-unknown; sid:92; rev:1;)
+
+.. note:: ``http.accept_enc`` does not include the leading space or trailing
+   \\r\\n
 
 .. _http.accept_lang:
 
