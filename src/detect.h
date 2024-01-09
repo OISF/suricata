@@ -788,17 +788,6 @@ typedef struct DetectEngineLookupFlow_ {
     struct SigGroupHead_ *sgh[256];
 } DetectEngineLookupFlow;
 
-#include "detect-threshold.h"
-
-/** \brief threshold ctx */
-typedef struct ThresholdCtx_    {
-    SCMutex threshold_table_lock;                   /**< Mutex for hash table */
-
-    /** to support rate_filter "by_rule" option */
-    DetectThresholdEntry **th_entry;
-    uint32_t th_size;
-} ThresholdCtx;
-
 typedef struct SigString_ {
     char *filename;
     char *sig_str;
@@ -889,7 +878,6 @@ typedef struct DetectEngineCtx_ {
     HashListTable *dup_sig_hash_table;
 
     DetectEngineIPOnlyCtx io_ctx;
-    ThresholdCtx ths_ctx;
 
     /* maximum recursion depth for content inspection */
     int inspection_recursion_limit;
