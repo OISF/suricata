@@ -61,6 +61,7 @@ typedef struct DetectThresholdData_ {
     DetectAddressHead addrs;
 } DetectThresholdData;
 
+#if 0
 typedef struct DetectThresholdEntry_ {
     uint32_t sid;           /**< Signature id */
     uint32_t gid;           /**< Signature group id */
@@ -74,7 +75,7 @@ typedef struct DetectThresholdEntry_ {
     SCTime_t tv1; /**< Var for time control */
     struct DetectThresholdEntry_ *next;
 } DetectThresholdEntry;
-
+#endif
 
 /**
  * Registration function for threshold: keyword

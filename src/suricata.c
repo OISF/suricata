@@ -368,6 +368,7 @@ void GlobalsInitPreConfig(void)
 void GlobalsDestroy(void)
 {
     SCInstance *suri = &suricata;
+    ThresholdDestroy();
     HostShutdown();
     HTPFreeConfig();
     HTPAtExitPrintStats();
