@@ -124,7 +124,7 @@ Example HTTP Request::
 
 .. _http.uri:
 
-http.uri 
+http.uri
 --------
 
 Matching on the HTTP URI buffer has two options in Suricata, the ``http.uri``
@@ -142,7 +142,7 @@ Normalization Example::
   User-Agent: Mozilla/5.0
   Host: suricata.io
 
-In this case :example-rule-emphasis:`//index.html` would be normalized to 
+In this case :example-rule-emphasis:`//index.html` would be normalized to
 :example-rule-emphasis:`/index.html`.
 
 Normalized HTTP Request Example::
@@ -376,8 +376,8 @@ present in HTTP request (Cookie) or HTTP response (Set-Cookie) headers.
 It is possible to use any of the :doc:`payload-keywords` with both ``http.header``
 keywords.
 
-.. note:: Cookies are passed in HTTP headers but Suricata extracts the cookie 
-  data to ``http.cookie`` and will not match cookie content put in the 
+.. note:: Cookies are passed in HTTP headers but Suricata extracts the cookie
+  data to ``http.cookie`` and will not match cookie content put in the
   :ref:`http.header` sticky buffer.
 
 .. note:: ``http.cookie`` does not include the leading space or trailing \\r\\n
@@ -465,7 +465,7 @@ Example HTTP Request::
 .. container:: example-rule
 
   alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Accept Example"; \
-  flow:established,to_server; :example-rule-options:`http.accept; 
+  flow:established,to_server; :example-rule-options:`http.accept; \
   content:"*/*";` bsize:3; classtype:bad-unknown; sid:91; rev:1;)
 
 .. note:: ``http.accept`` does not include the leading space or trailing \\r\\n
@@ -475,12 +475,27 @@ Example HTTP Request::
 http.accept_enc
 ---------------
 
-Sticky buffer to match on the HTTP Accept-Encoding header. Only contains the
-header value. The \\r\\n after the header are not part of the buffer.
+The ``http.accept_enc`` keyword is used to match on the Accept-Encoding field
+that can be present in HTTP request headers.
 
-Example::
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.accept_enc`` keyword.
 
-    alert http any any -> any any (http.accept_enc; content:"gzip"; sid:1;)
+Example HTTP Request::
+
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Accept-Encoding: gzip, deflate
+  Host: suricata.io
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Accept-Encoding Example"; \
+  flow:established,to_server; :example-rule-options:`http.accept_enc; \
+  content:"gzip, deflate";` bsize:13; classtype:bad-unknown; sid:92; rev:1;)
+
+.. note:: ``http.accept_enc`` does not include the leading space or trailing
+   \\r\\n
 
 .. _http.accept_lang:
 
