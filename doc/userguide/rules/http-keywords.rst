@@ -249,6 +249,8 @@ contained in HTTP requests and responses.
 It is possible to use any of the :doc:`payload-keywords` with the
 ``http.protocol`` keyword.
 
+.. note:: ``http.protocol`` does not include the leading space or trailing \\r\\n
+
 Example HTTP Request::
 
   GET /index.html HTTP/1.1
@@ -378,6 +380,8 @@ keywords.
   data to ``http.cookie`` and will not match cookie content put in the 
   :ref:`http.header` sticky buffer.
 
+.. note:: ``http.cookie`` does not include the leading space or trailing \\r\\n
+
 Example HTTP Request::
 
   GET /index.html HTTP/1.1
@@ -415,16 +419,15 @@ Example HTTP Request::
   flow:established,to_server; :example-rule-options:`http.user_agent; \
   content:"Mozilla/5.0";` bsize:11; classtype:bad-unknown; sid:90; rev:1;)
 
-.. note:: The ``http.user_agent`` buffer does not include the header name (User-Agent),
-   colon, leading whitespace, or ending CRLF.
+.. note:: ``http.user_agent`` does not include the leading space or trailing
+   \\r\\n
 
 .. note:: Using the ``http.user_agent`` generally provides better performance
    than using :ref:`http.header`.
 
 .. note:: If a request contains multiple "User-Agent" headers, the values will
-   be concatenated in the ``http.user_agent`` buffer, in the order
-   seen from top to bottom, with a comma and space (", ") between each
-   of them.
+   be concatenated in the ``http.user_agent`` buffer, in the order seen from
+   top to bottom, with a comma and space (", ") between each of them.
 
 Example Duplicate User-Agent Header Request::
 
@@ -464,6 +467,8 @@ Example HTTP Request::
   alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Accept Example"; \
   flow:established,to_server; :example-rule-options:`http.accept; 
   content:"*/*";` bsize:3; classtype:bad-unknown; sid:91; rev:1;)
+
+.. note:: ``http.accept`` does not include the leading space or trailing \\r\\n
 
 .. _http.accept_enc:
 
