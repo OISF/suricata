@@ -446,12 +446,24 @@ Example Duplicate User-Agent Header Request::
 http.accept
 -----------
 
-Sticky buffer to match on the HTTP Accept header. Only contains the header
-value. The \\r\\n after the header are not part of the buffer.
+The ``http.accept`` keyword is used to match on the Accept field that
+can be present in HTTP request headers.
 
-Example::
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.accept`` keyword.
 
-    alert http any any -> any any (http.accept; content:"image/gif"; sid:1;)
+Example HTTP Request::
+
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Accept: */*
+  Host: suricata.io
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Accept Example"; \
+  flow:established,to_server; :example-rule-options:`http.accept; 
+  content:"*/*";` bsize:3; classtype:bad-unknown; sid:91; rev:1;)
 
 .. _http.accept_enc:
 
