@@ -561,7 +561,7 @@ static int ThresholdHandlePacketSuppress(Packet *p,
     return ret;
 }
 
-static inline void RateFilterSetAction(Packet *p, PacketAlert *pa, uint8_t new_action)
+static inline void RateFilterSetAction(PacketAlert *pa, uint8_t new_action)
 {
     switch (new_action) {
         case TH_ACTION_ALERT:
@@ -797,7 +797,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
             SCLogDebug("rate_filter");
             ret = 1;
             if (lookup_tsh && IsThresholdReached(lookup_tsh, td, p->ts)) {
-                RateFilterSetAction(p, pa, td->new_action);
+                RateFilterSetAction(pa, td->new_action);
             } else if (!lookup_tsh) {
                 *new_tsh = DetectThresholdEntryAlloc(td, sid, gid);
             }
