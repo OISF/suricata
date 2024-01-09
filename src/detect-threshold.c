@@ -509,7 +509,7 @@ static int DetectThresholdTestSig1(void)
     int result = 0;
     int alerts = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -587,8 +587,8 @@ static int DetectThresholdTestSig1(void)
 
     UTHFreePackets(&p, 1);
 
-    HostShutdown();
 end:
+    ThresholdDestroy();
     return result;
 }
 
@@ -610,7 +610,7 @@ static int DetectThresholdTestSig2(void)
     int result = 0;
     int alerts = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -658,15 +658,12 @@ static int DetectThresholdTestSig2(void)
         goto cleanup;
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -681,94 +678,49 @@ end:
 
 static int DetectThresholdTestSig3(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
-    int result = 0;
-    int alerts = 0;
-    DetectThresholdEntry *lookup_tsh = NULL;
-
-    HostInitConfig(HOST_QUIET);
-
     memset(&th_v, 0, sizeof(th_v));
 
-    p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    ThresholdInit();
+    Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:10;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any 80 (msg:\"Threshold limit\"; threshold: type limit, "
+            "track by_dst, count 5, seconds 60; sid:10;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
+    DetectEngineThreadCtx *det_ctx;
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-
-    Host *host = HostLookupHostFromHash(&p->dst);
-    if (host == NULL) {
-        printf("host not found: ");
-        goto cleanup;
-    }
-
-    if (!(ThresholdHostHasThreshold(host))) {
-        HostRelease(host);
-        printf("host has no threshold: ");
-        goto cleanup;
-    }
-    HostRelease(host);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
 
     TimeSetIncrementTime(200);
     p->ts = TimeGet();
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-
-    host = HostLookupHostFromHash(&p->dst);
-    if (host == NULL) {
-        printf("host not found: ");
-        goto cleanup;
-    }
-    HostRelease(host);
-
-    lookup_tsh = HostGetStorageById(host, ThresholdHostStorageId());
-    if (lookup_tsh == NULL) {
-        HostRelease(host);
-        printf("lookup_tsh is NULL: ");
-        goto cleanup;
-    }
-
-    alerts = lookup_tsh->current_count;
-
-    if (alerts == 3)
-        result = 1;
-    else {
-        printf("alerts %u != 3: ", alerts);
-        goto cleanup;
-    }
-
-cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
-    return result;
+    ThresholdDestroy();
+    PASS;
 }
 
 /**
@@ -789,7 +741,7 @@ static int DetectThresholdTestSig4(void)
     int result = 0;
     int alerts = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -834,14 +786,11 @@ static int DetectThresholdTestSig4(void)
         goto cleanup;
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -863,7 +812,7 @@ static int DetectThresholdTestSig5(void)
     int result = 0;
     int alerts = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
     p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
@@ -921,15 +870,12 @@ static int DetectThresholdTestSig5(void)
     }
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -942,7 +888,7 @@ static int DetectThresholdTestSig6Ticks(void)
     int result = 0;
     int alerts = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
     p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
@@ -1004,15 +950,12 @@ static int DetectThresholdTestSig6Ticks(void)
         goto cleanup;
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -1029,7 +972,7 @@ static int DetectThresholdTestSig7(void)
     int alerts = 0;
     int drops = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -1095,14 +1038,11 @@ static int DetectThresholdTestSig7(void)
     }
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -1119,7 +1059,7 @@ static int DetectThresholdTestSig8(void)
     int alerts = 0;
     int drops = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -1185,14 +1125,11 @@ static int DetectThresholdTestSig8(void)
     }
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -1209,7 +1146,7 @@ static int DetectThresholdTestSig9(void)
     int alerts = 0;
     int drops = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -1275,14 +1212,11 @@ static int DetectThresholdTestSig9(void)
     }
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -1299,7 +1233,7 @@ static int DetectThresholdTestSig10(void)
     int alerts = 0;
     int drops = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -1365,14 +1299,11 @@ static int DetectThresholdTestSig10(void)
     }
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -1389,7 +1320,7 @@ static int DetectThresholdTestSig11(void)
     int alerts = 0;
     int drops = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -1455,14 +1386,11 @@ static int DetectThresholdTestSig11(void)
     }
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -1479,7 +1407,7 @@ static int DetectThresholdTestSig12(void)
     int alerts = 0;
     int drops = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -1545,14 +1473,12 @@ static int DetectThresholdTestSig12(void)
     }
 
 cleanup:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void*)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
     HostShutdown();
+    ThresholdDestroy();
     return result;
 }
 
@@ -1573,7 +1499,7 @@ static int DetectThresholdTestSig13(void)
     DetectEngineThreadCtx *det_ctx;
     int alerts = 0;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
     p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
@@ -1616,12 +1542,10 @@ static int DetectThresholdTestSig13(void)
 
     FAIL_IF(alerts != 4);
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
     PASS;
 }
 
@@ -1644,8 +1568,7 @@ static int DetectThresholdTestSig14(void)
     int alerts1 = 0;
     int alerts2 = 0;
 
-    HostInitConfig(HOST_QUIET);
-    IPPairInitConfig(IPPAIR_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
     p1 = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
@@ -1699,13 +1622,11 @@ static int DetectThresholdTestSig14(void)
     FAIL_IF(alerts1 != 3);
     FAIL_IF(alerts2 != 3);
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
-    HostShutdown();
+    ThresholdDestroy();
     PASS;
 }
 
