@@ -132,10 +132,8 @@ static inline bool ContainerValueRangeTimeout(void *data, const SCTime_t ts)
     HttpRangeContainerFile *cu = data;
     // we only timeout if we have no flow referencing us
     if (SCTIME_CMP_GT(ts, cu->expire) || cu->error) {
-        if (SC_ATOMIC_GET(cu->hdata->use_cnt) == 0) {
-            DEBUG_VALIDATE_BUG_ON(cu->files == NULL);
-            return true;
-        }
+        DEBUG_VALIDATE_BUG_ON(cu->files == NULL);
+        return true;
     }
     return false;
 }
@@ -188,49 +186,7 @@ void HttpRangeContainersDestroy(void)
 
 uint32_t HttpRangeContainersTimeoutHash(const SCTime_t ts)
 {
-    SCLogDebug("timeout: starting");
-    uint32_t cnt = 0;
-
-    for (uint32_t i = 0; i < ContainerUrlRangeList.ht->config.hash_size; i++) {
-        THashHashRow *hb = &ContainerUrlRangeList.ht->array[i];
-
-        if (HRLOCK_TRYLOCK(hb) != 0)
-            continue;
-        /* hash bucket is now locked */
-        THashData *h = hb->head;
-        while (h) {
-            DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(h->use_cnt) > (uint32_t)INT_MAX);
-            THashData *n = h->next;
-            THashDataLock(h);
-            if (ContainerValueRangeTimeout(h->data, ts)) {
-                /* remove from the hash */
-                if (h->prev != NULL)
-                    h->prev->next = h->next;
-                if (h->next != NULL)
-                    h->next->prev = h->prev;
-                if (hb->head == h)
-                    hb->head = h->next;
-                if (hb->tail == h)
-                    hb->tail = h->prev;
-                h->next = NULL;
-                h->prev = NULL;
-                // we should log the timed out file somehow...
-                // but it does not belong to any flow...
-                SCLogDebug("timeout: removing range %p", h);
-                ContainerUrlRangeFree(h->data); // TODO do we need a "RECYCLE" func?
-                DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(h->use_cnt) > (uint32_t)INT_MAX);
-                THashDataUnlock(h);
-                THashDataMoveToSpare(ContainerUrlRangeList.ht, h);
-            } else {
-                THashDataUnlock(h);
-            }
-            h = n;
-        }
-        HRLOCK_UNLOCK(hb);
-    }
-
-    SCLogDebug("timeout: ending");
-    return cnt;
+    return THashExpire(ContainerUrlRangeList.ht, ts);
 }
 
 /**
