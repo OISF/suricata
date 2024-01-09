@@ -2500,7 +2500,6 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
 
     SigGroupHeadHashInit(de_ctx);
     MpmStoreInit(de_ctx);
-    ThresholdHashInit(de_ctx);
     DetectParseDupSigHashInit(de_ctx);
     DetectAddressMapInit(de_ctx);
     DetectMetadataHashInit(de_ctx);
@@ -2615,7 +2614,6 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     MpmStoreFree(de_ctx);
     DetectParseDupSigHashFree(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
-    ThresholdContextDestroy(de_ctx);
     SigCleanSignatures(de_ctx);
     if (de_ctx->sig_array)
         SCFree(de_ctx->sig_array);

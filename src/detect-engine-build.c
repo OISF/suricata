@@ -2208,8 +2208,6 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
     SCProfilingRuleInitCounters(de_ctx);
 #endif
 
-    ThresholdHashAllocate(de_ctx);
-
     if (!DetectEngineMultiTenantEnabled()) {
         VarNameStoreActivate();
     }
