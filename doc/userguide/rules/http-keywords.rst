@@ -502,12 +502,27 @@ Example HTTP Request::
 http.accept_lang
 ----------------
 
-Sticky buffer to match on the HTTP Accept-Language header. Only contains the
-header value. The \\r\\n after the header are not part of the buffer.
+The ``http.accept_lang`` keyword is used to match on the Accept-Language field
+that can be present in HTTP request headers.
 
-Example::
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.accept_lang`` keyword.
 
-    alert http any any -> any any (http.accept_lang; content:"en-us"; sid:1;)
+Example HTTP Request::
+
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Accept-Language: en-US
+  Host: suricata.io
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Accept-Encoding Example"; \
+  flow:established,to_server; :example-rule-options:`http.accept_lang; \
+  content:"en-US";` bsize:5; classtype:bad-unknown; sid:93; rev:1;)
+
+.. note:: ``http.accept_lang`` does not include the leading space or
+  trailing \\r\\n
 
 .. _http.connection:
 
