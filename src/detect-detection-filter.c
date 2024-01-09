@@ -375,7 +375,7 @@ static int DetectDetectionFilterTestSig1(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -415,7 +415,7 @@ static int DetectDetectionFilterTestSig1(void)
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
 
     PASS;
 }
@@ -432,7 +432,7 @@ static int DetectDetectionFilterTestSig2(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -477,7 +477,7 @@ static int DetectDetectionFilterTestSig2(void)
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
 
     PASS;
 }
@@ -490,7 +490,7 @@ static int DetectDetectionFilterTestSig3(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
-    HostInitConfig(HOST_QUIET);
+    ThresholdInit();
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -553,7 +553,7 @@ static int DetectDetectionFilterTestSig3(void)
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
-    HostShutdown();
+    ThresholdDestroy();
 
     PASS;
 }
