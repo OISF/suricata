@@ -415,9 +415,8 @@ int ThresholdIPPairTimeoutCheck(IPPair *pair, SCTime_t ts)
     return new_head == NULL;
 }
 
-static DetectThresholdEntry *
-DetectThresholdEntryAlloc(const DetectThresholdData *td, Packet *p,
-                          uint32_t sid, uint32_t gid)
+static DetectThresholdEntry *DetectThresholdEntryAlloc(
+        const DetectThresholdData *td, uint32_t sid, uint32_t gid)
 {
     SCEnter();
 
@@ -629,7 +628,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
                     ret = 1;
                 }
             } else {
-                *new_tsh = DetectThresholdEntryAlloc(td, p, sid, gid);
+                *new_tsh = DetectThresholdEntryAlloc(td, sid, gid);
 
                 ret = 1;
             }
@@ -656,7 +655,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
                 if (td->count == 1)  {
                     ret = 1;
                 } else {
-                    *new_tsh = DetectThresholdEntryAlloc(td, p, sid, gid);
+                    *new_tsh = DetectThresholdEntryAlloc(td, sid, gid);
                 }
             }
             break;
@@ -692,7 +691,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
                     }
                 }
             } else {
-                *new_tsh = DetectThresholdEntryAlloc(td, p, sid, gid);
+                *new_tsh = DetectThresholdEntryAlloc(td, sid, gid);
 
                 /* for the first match we return 1 to
                  * indicate we should alert */
@@ -721,7 +720,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
                     lookup_tsh->current_count = 1;
                 }
             } else {
-                *new_tsh = DetectThresholdEntryAlloc(td, p, sid, gid);
+                *new_tsh = DetectThresholdEntryAlloc(td, sid, gid);
             }
             break;
         }
@@ -733,7 +732,7 @@ static int ThresholdHandlePacket(Packet *p, DetectThresholdEntry *lookup_tsh,
             if (lookup_tsh && IsThresholdReached(lookup_tsh, td, p->ts)) {
                 RateFilterSetAction(p, pa, td->new_action);
             } else if (!lookup_tsh) {
-                *new_tsh = DetectThresholdEntryAlloc(td, p, sid, gid);
+                *new_tsh = DetectThresholdEntryAlloc(td, sid, gid);
             }
             break;
         }
