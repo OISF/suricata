@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -294,7 +294,8 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
 
 THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
         int (*DataSet)(void *, void *), void (*DataFree)(void *), uint32_t (*DataHash)(void *),
-        bool (*DataCompare)(void *, void *), bool reset_memcap, uint64_t memcap, uint32_t hashsize)
+        bool (*DataCompare)(void *, void *), bool (*DataExpired)(void *, SCTime_t),
+        bool reset_memcap, uint64_t memcap, uint32_t hashsize)
 {
     THashTableContext *ctx = SCCalloc(1, sizeof(*ctx));
     BUG_ON(!ctx);
@@ -304,6 +305,7 @@ THashTableContext *THashInit(const char *cnf_prefix, size_t data_size,
     ctx->config.DataFree = DataFree;
     ctx->config.DataHash = DataHash;
     ctx->config.DataCompare = DataCompare;
+    ctx->config.DataExpired = DataExpired;
 
     /* set defaults */
     ctx->config.hash_rand = (uint32_t)RandomGet();
@@ -406,6 +408,59 @@ int THashWalk(THashTableContext *ctx, THashFormatFunc FormatterFunc, THashOutput
             return -1;
     }
     return 0;
+}
+
+/** \brief expire data from the hash
+ *  Walk the hash table and remove data that is exprired according to the
+ *  DataExpired callback.
+ *  \retval cnt number of items successfully expired/removed
+ */
+uint32_t THashExpire(THashTableContext *ctx, const SCTime_t ts)
+{
+    if (ctx->config.DataExpired == NULL)
+        return 0;
+
+    SCLogDebug("timeout: starting");
+    uint32_t cnt = 0;
+
+    for (uint32_t i = 0; i < ctx->config.hash_size; i++) {
+        THashHashRow *hb = &ctx->array[i];
+        if (HRLOCK_TRYLOCK(hb) != 0)
+            continue;
+        /* hash bucket is now locked */
+        THashData *h = hb->head;
+        while (h) {
+            THashData *next = h->next;
+            THashDataLock(h);
+            DEBUG_VALIDATE_BUG_ON(SC_ATOMIC_GET(h->use_cnt) > (uint32_t)INT_MAX);
+            /* only consider items with no references to it */
+            if (SC_ATOMIC_GET(h->use_cnt) == 0 && ctx->config.DataExpired(h->data, ts)) {
+                /* remove from the hash */
+                if (h->prev != NULL)
+                    h->prev->next = h->next;
+                if (h->next != NULL)
+                    h->next->prev = h->prev;
+                if (hb->head == h)
+                    hb->head = h->next;
+                if (hb->tail == h)
+                    hb->tail = h->prev;
+                h->next = NULL;
+                h->prev = NULL;
+                SCLogDebug("timeout: removing data %p", h);
+                ctx->config.DataFree(h->data);
+                THashDataUnlock(h);
+                THashDataMoveToSpare(ctx, h);
+                cnt++;
+            } else {
+                THashDataUnlock(h);
+            }
+            h = next;
+        }
+        HRLOCK_UNLOCK(hb);
+    }
+
+    SCLogDebug("timeout: ending: %u entries expired", cnt);
+    return cnt;
 }
 
 /** \brief Cleanup the thash engine
