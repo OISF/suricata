@@ -709,7 +709,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
             break;
         case DATASET_TYPE_STRING:
             set->hash = THashInit(cnf_name, sizeof(StringType), StringSet, StringFree, StringHash,
-                    StringCompare, StringGetLength, load != NULL ? 1 : 0,
+                    StringCompare, NULL, StringGetLength, load != NULL ? 1 : 0,
                     memcap > 0 ? memcap : default_memcap,
                     hashsize > 0 ? hashsize : default_hashsize);
             if (set->hash == NULL)
