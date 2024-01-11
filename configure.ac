@@ -239,7 +239,7 @@
     AC_MSG_CHECKING([host os])
 
     # Default lua libname if not detected otherwise.
-    LUA_LIB_NAME="lua5.1"
+    LUA_LIB_NAME="lua5.4"
 
     # If no host os was detected, try with uname
     if test -z "$host" ; then
@@ -253,7 +253,7 @@
     e_magic_file_comment="#"
     case "$host" in
         *-*-*freebsd*)
-            LUA_LIB_NAME="lua-5.1"
+            LUA_LIB_NAME="lua-5.4"
             CFLAGS="${CFLAGS} -DOS_FREEBSD"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
             LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
@@ -266,7 +266,7 @@
             RUST_LDADD="-lm -lc++ -lc++abi"
             ;;
         *darwin*|*Darwin*)
-            LUA_LIB_NAME="lua-5.1"
+            LUA_LIB_NAME="lua-5.4"
             CFLAGS="${CFLAGS} -DOS_DARWIN"
             CPPFLAGS="${CPPFLAGS} -I/opt/local/include"
             LDFLAGS="${LDFLAGS} -L/opt/local/lib -framework Security"
@@ -1925,11 +1925,11 @@
         if test "$with_liblua_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_liblua_includes}"
         else
-            # lua lua51 lua5.1 lua-5.1
+            # lua lua54 lua5.4 lua-5.4
             PKG_CHECK_MODULES([LUA], [lua], [LUA="yes"], [
-                PKG_CHECK_MODULES([LUA], [lua5.1], [LUA="yes"], [
-                    PKG_CHECK_MODULES([LUA], [lua-5.1], [LUA="yes"], [
-                        PKG_CHECK_MODULES([LUA], [lua51], [LUA="yes"], [
+                PKG_CHECK_MODULES([LUA], [lua5.4], [LUA="yes"], [
+                    PKG_CHECK_MODULES([LUA], [lua-5.4], [LUA="yes"], [
+                        PKG_CHECK_MODULES([LUA], [lua54], [LUA="yes"], [
                             LUA="no"
                         ])
                     ])
@@ -1948,7 +1948,7 @@
                     echo "   ERROR!  liblua library not found, go get it"
                     echo "   from http://lua.org/index.html or your distribution:"
                     echo
-                    echo "   Ubuntu: apt-get install liblua5.1-dev"
+                    echo "   Ubuntu: apt-get install liblua5.4-dev"
                     echo "   Fedora: dnf install lua-devel"
                     echo "   CentOS/RHEL: yum install lua-devel"
                     echo
@@ -1959,11 +1959,11 @@
                     exit 1
                 fi
             else
-                # lua lua51 lua5.1 lua-5.1
+                # lua lua54 lua5.4 lua-5.4
                 PKG_CHECK_MODULES([LUA], [lua], [LUA="yes"], [
-                    PKG_CHECK_MODULES([LUA], [lua5.1], [LUA="yes"], [
-                        PKG_CHECK_MODULES([LUA], [lua-5.1], [LUA="yes"], [
-                            PKG_CHECK_MODULES([LUA], [lua51], [LUA="yes"], [
+                    PKG_CHECK_MODULES([LUA], [lua5.4], [LUA="yes"], [
+                        PKG_CHECK_MODULES([LUA], [lua-5.4], [LUA="yes"], [
+                            PKG_CHECK_MODULES([LUA], [lua54], [LUA="yes"], [
                                 LUA="no"
                             ])
                         ])
@@ -1985,7 +1985,7 @@
                 echo "   ERROR!  liblua headers not found, go get them"
                 echo "   from http://lua.org/index.html or your distribution:"
                 echo
-                echo "   Ubuntu: apt-get install liblua5.1-dev"
+                echo "   Ubuntu: apt-get install liblua5.4-dev"
                 echo "   Fedora: dnf install lua-devel"
                 echo "   CentOS/RHEL: yum install lua-devel"
                 echo

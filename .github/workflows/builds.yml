@@ -1407,7 +1407,7 @@ jobs:
                 libnuma-dev \
                 libhiredis-dev \
                 libhyperscan-dev \
-                liblua5.1-dev \
+                liblua5.4-dev \
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
@@ -1525,7 +1525,7 @@ jobs:
                 libnfnetlink0 \
                 libnuma-dev \
                 libhiredis-dev \
-                liblua5.1-dev \
+                liblua5.4-dev \
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
@@ -2100,7 +2100,7 @@ jobs:
               libmaxminddb-dev \
               libjansson-dev \
               libjansson4 \
-              liblua5.1-dev \
+              liblua5.4-dev \
               libnspr4-dev \
               libnuma-dev \
               liblz4-dev \
@@ -2263,7 +2263,7 @@ jobs:
               libmaxminddb-dev \
               libjansson-dev \
               libjansson4 \
-              liblua5.1-dev \
+              liblua5.4-dev \
               libnspr4-dev \
               libnuma-dev \
               liblz4-dev \
@@ -2344,7 +2344,7 @@ jobs:
                 libmagic-dev \
                 libjansson-dev \
                 libgeoip-dev \
-                liblua5.1-dev \
+                liblua5.4-dev \
                 libhiredis-dev \
                 libevent-dev \
                 libtool \
@@ -2419,7 +2419,7 @@ jobs:
                 libmagic-dev \
                 libjansson-dev \
                 libgeoip-dev \
-                liblua5.1-dev \
+                liblua5.4-dev \
                 libhiredis-dev \
                 libevent-dev \
                 libtool \
