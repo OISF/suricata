@@ -412,8 +412,7 @@ TmEcode ReceiveIPFWThreadDeinit(ThreadVars *tv, void *data)
 
     SCEnter();
 
-    /* Attempt to shut the socket down...close instead? */
-    if (shutdown(nq->fd, SHUT_RD) < 0) {
+    if (close(nq->fd) < 0) {
         SCLogWarning("Unable to disable ipfw socket: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
