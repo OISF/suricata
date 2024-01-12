@@ -1138,6 +1138,8 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
 
     const Signature *s = de_ctx->sig_list;
     DetectPort *list = NULL;
+    bool unique_port_points[65536] = { false };
+    uint16_t size_unique_port_arr = 0;
     while (s) {
         /* IP Only rules are handled separately */
         if (s->type == SIG_TYPE_IPONLY)
@@ -1190,6 +1192,14 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                 SigGroupHeadAppendSig(de_ctx, &tmp2->sh, s);
                 tmp2->sh->init->score = pwl;
                 DetectPortHashAdd(de_ctx, tmp2);
+                if (!unique_port_points[tmp2->port]) {
+                    unique_port_points[tmp2->port] = true;
+                    size_unique_port_arr++;
+                }
+                if (!unique_port_points[tmp2->port2]) {
+                    unique_port_points[tmp2->port2] = true;
+                    size_unique_port_arr++;
+                }
             }
 
             p = p->next;
@@ -1198,6 +1208,19 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         s = s->next;
     }
 
+    uint16_t *final_unique_points = (uint16_t *)SCCalloc(size_unique_port_arr, sizeof(uint16_t));
+    for (uint16_t i = 0, j = 0; i < 65535; i++) {
+        DEBUG_VALIDATE_BUG_ON(j > size_unique_port_arr);
+        if (unique_port_points[i]) {
+            final_unique_points[j++] = i;
+        }
+    }
+
+#if 0
+    for (uint16_t i = 0; i < size_unique_port_arr; i++) {
+        SCLogNotice("arr[%d] := %d", i, final_unique_points[i]);
+    }
+#endif
     /* step 2: create a list of DetectPort objects */
     HashListTableBucket *htb = NULL;
     for (htb = HashListTableGetListHead(de_ctx->dport_hash_table);
