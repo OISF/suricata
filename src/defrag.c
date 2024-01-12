@@ -1149,7 +1149,7 @@ error:
 }
 
 static Packet *BuildIpv6TestPacket(
-        uint8_t proto, uint32_t id, uint16_t off, int mf, const char content, int content_len)
+        uint8_t proto, uint32_t id, uint16_t off, int mf, const uint8_t content, int content_len)
 {
     Packet *p = NULL;
     uint8_t *pcontent;
@@ -1423,8 +1423,7 @@ static int DefragReverseSimpleIpv6Test(void)
     PASS;
 }
 
-static int DefragDoSturgesNovakTest(int policy, u_char *expected,
-        size_t expected_len)
+static int DefragDoSturgesNovakTest(int policy, uint8_t *expected, size_t expected_len)
 {
     int i;
 
@@ -1536,7 +1535,7 @@ static int DefragDoSturgesNovakTest(int policy, u_char *expected,
     PASS;
 }
 
-static int DefragDoSturgesNovakIpv6Test(int policy, u_char *expected, size_t expected_len)
+static int DefragDoSturgesNovakIpv6Test(int policy, uint8_t *expected, size_t expected_len)
 {
     int i;
 
@@ -1653,7 +1652,7 @@ static int DefragDoSturgesNovakIpv6Test(int policy, u_char *expected, size_t exp
  * and uses these to diagram the input fragments and the resulting
  * policies. We build test cases for the papers scenario but assign
  * specific values to each segment.
-*/
+ */
 #define D_1   'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'
 #define D_2   'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'
 #define D_3   'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C'
@@ -1676,7 +1675,7 @@ static int
 DefragSturgesNovakBsdTest(void)
 {
     /* Expected data. */
-    u_char expected[] = {
+    uint8_t expected[] = {
         D_1,
         D_1,
         D_1,
@@ -1711,7 +1710,7 @@ DefragSturgesNovakBsdTest(void)
 static int DefragSturgesNovakBsdIpv6Test(void)
 {
     /* Expected data. */
-    u_char expected[] = {
+    uint8_t expected[] = {
         D_1,
         D_1,
         D_1,
@@ -1745,7 +1744,7 @@ static int DefragSturgesNovakBsdIpv6Test(void)
 static int DefragSturgesNovakLinuxIpv4Test(void)
 {
     /* Expected data. */
-    u_char expected[] = {
+    uint8_t expected[] = {
         D_1,
         D_1,
         D_1,
@@ -1780,7 +1779,7 @@ static int DefragSturgesNovakLinuxIpv4Test(void)
 static int DefragSturgesNovakLinuxIpv6Test(void)
 {
     /* Expected data. */
-    u_char expected[] = {
+    uint8_t expected[] = {
         D_1,
         D_1,
         D_1,
@@ -1814,7 +1813,7 @@ static int DefragSturgesNovakLinuxIpv6Test(void)
 static int DefragSturgesNovakWindowsIpv4Test(void)
 {
     /* Expected data. */
-    u_char expected[] = {
+    uint8_t expected[] = {
         D_1,
         D_1,
         D_1,
@@ -1849,7 +1848,7 @@ static int DefragSturgesNovakWindowsIpv4Test(void)
 static int DefragSturgesNovakWindowsIpv6Test(void)
 {
     /* Expected data. */
-    u_char expected[] = {
+    uint8_t expected[] = {
         D_1,
         D_1,
         D_1,
@@ -1883,7 +1882,7 @@ static int DefragSturgesNovakWindowsIpv6Test(void)
 static int DefragSturgesNovakSolarisTest(void)
 {
     /* Expected data. */
-    u_char expected[] = {
+    uint8_t expected[] = {
         D_1,
         D_1,
         D_1,
@@ -1918,7 +1917,7 @@ static int DefragSturgesNovakSolarisTest(void)
 static int DefragSturgesNovakSolarisIpv6Test(void)
 {
     /* Expected data. */
-    u_char expected[] = {
+    uint8_t expected[] = {
         D_1,
         D_1,
         D_1,
@@ -1952,7 +1951,7 @@ static int DefragSturgesNovakSolarisIpv6Test(void)
 static int DefragSturgesNovakFirstTest(void)
 {
     /* Expected data. */
-    u_char expected[] = {
+    uint8_t expected[] = {
         D_1,
         D_1,
         D_1,
@@ -1987,7 +1986,7 @@ static int DefragSturgesNovakFirstTest(void)
 static int DefragSturgesNovakFirstIpv6Test(void)
 {
     /* Expected data. */
-    u_char expected[] = {
+    uint8_t expected[] = {
         D_1,
         D_1,
         D_1,
@@ -2021,7 +2020,7 @@ static int
 DefragSturgesNovakLastTest(void)
 {
     /* Expected data. */
-    u_char expected[] = {
+    uint8_t expected[] = {
         D_1,
         D_4,
         D_4,
@@ -2056,7 +2055,7 @@ DefragSturgesNovakLastTest(void)
 static int DefragSturgesNovakLastIpv6Test(void)
 {
     /* Expected data. */
-    u_char expected[] = {
+    uint8_t expected[] = {
         D_1,
         D_4,
         D_4,
@@ -2425,19 +2424,19 @@ static int DefragTestBadProto(void)
  */
 static int DefragTestJeremyLinux(void)
 {
-    char expected[] = "AAAAAAAA"
-        "AAAAAAAA"
-        "AAAAAAAA"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "CCCCCCCC"
-        "BBBBBBBB"
-        "BBBBBBBB"
-        "DDDDDDDD"
-        "DDDDDD";
+    uint8_t expected[] = "AAAAAAAA"
+                         "AAAAAAAA"
+                         "AAAAAAAA"
+                         "CCCCCCCC"
+                         "CCCCCCCC"
+                         "CCCCCCCC"
+                         "CCCCCCCC"
+                         "CCCCCCCC"
+                         "CCCCCCCC"
+                         "BBBBBBBB"
+                         "BBBBBBBB"
+                         "DDDDDDDD"
+                         "DDDDDD";
 
     DefragInit();
     default_policy = DEFRAG_POLICY_LINUX;
