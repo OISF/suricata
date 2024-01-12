@@ -104,7 +104,6 @@
 
 #include "util-streaming-buffer.h"
 #include "util-lua.h"
-#include "util-luajit.h"
 #include "tm-modules.h"
 #include "tmqh-packetpool.h"
 #include "decode-chdlc.h"
@@ -234,12 +233,6 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     GlobalsInitPreConfig();
     EngineModeSetIDS();
 
-#ifdef HAVE_LUAJIT
-    if (LuajitSetupStatesPool() != 0) {
-        exit(EXIT_FAILURE);
-    }
-#endif
-
     default_packet_size = DEFAULT_PACKET_SIZE;
     /* load the pattern matchers */
     MpmTableSetup();
@@ -290,10 +283,6 @@ void RunUnittests(int list_unittests, const char *regex_arg)
             exit(EXIT_FAILURE);
         }
     }
-
-#ifdef HAVE_LUAJIT
-    LuajitFreeStatesPool();
-#endif
 
     exit(EXIT_SUCCESS);
 #else
