@@ -27,11 +27,11 @@
  *
  *  Set drop (+reject) flags in both current and root packet.
  *
- *  \param action action bit flags. Must be limited to ACTION_DROP_REJECT
+ *  \param action action bit flags. Must be limited to ACTION_DROP_REJECT|ACTION_ALERT
  */
 void PacketDrop(Packet *p, const uint8_t action, enum PacketDropReason r)
 {
-    DEBUG_VALIDATE_BUG_ON((action & ~ACTION_DROP_REJECT) != 0);
+    DEBUG_VALIDATE_BUG_ON((action & ~(ACTION_DROP_REJECT | ACTION_ALERT)) != 0);
 
     if (p->drop_reason == PKT_DROP_REASON_NOT_SET)
         p->drop_reason = (uint8_t)r;
