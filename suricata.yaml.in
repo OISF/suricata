@@ -1788,15 +1788,6 @@ threading:
   # Generally, the per-thread stack-size should not exceed 8MB.
   #stack-size: 8mb
 
-# Luajit has a strange memory requirement, its 'states' need to be in the
-# first 2G of the process' memory.
-#
-# 'luajit.states' is used to control how many states are preallocated.
-# State use: per detect script: 1 per detect thread. Per output script: 1 per
-# script.
-luajit:
-  states: 128
-
 # Profiling settings. Only effective if Suricata has been built with
 # the --enable-profiling configure flag.
 #
