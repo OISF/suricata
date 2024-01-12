@@ -50,6 +50,15 @@
 #define DETECT_PGSCORE_RULE_NO_MPM           55  /* Rule does not contain MPM */
 #define DETECT_PGSCORE_RULE_SYN_ONLY         33  /* Rule needs SYN check */
 
+RB_GENERATE(PI, PortInterval, rb, PICompare);
+
+int PICompare(PortInterval  *a, PortInterval *b) {
+//    SCLogNotice("a: [%d, %d, %p, %d]", a->port, a->port2, a->sh, a->flags);
+//    SCLogNotice("b: [%d, %d, %p, %d]", b->port, b->port2, b->sh, b->flags);
+    // STODO figure out how to compare
+    return 1;
+}
+
 void SigCleanSignatures(DetectEngineCtx *de_ctx)
 {
     if (de_ctx == NULL)
@@ -1129,6 +1138,68 @@ static int RuleSetWhitelist(Signature *s)
     return wl;
 }
 
+static inline PortIntervals *InitPortIntervals(void)
+{
+    PortIntervals *pis = SCCalloc(1, sizeof(PortIntervals));
+    if (pis == NULL) {
+        return NULL;
+    }
+
+    return pis;
+}
+
+static inline void PIFree(PortIntervals *pis)
+{
+    PortInterval *pi = NULL, *safe = NULL;
+    RB_FOREACH_SAFE(pi, PI, &pis->tree, safe) {
+        PI_RB_REMOVE(&pis->tree, pi);
+        SCFree(pi);
+    }
+    pis->head = NULL;
+}
+
+static inline void FreePortIntervals(PortIntervals *pis)
+{
+    if (pis) {
+        PIFree(pis);
+        SCFree(pis);
+    }
+}
+
+// STODO add a cleaning fn for calloc above
+
+#if 1
+static void PIPrintList(PortIntervals *pis)
+{
+    PortInterval *pi = NULL;
+    RB_FOREACH(pi, PI, &pis->tree) {
+        SCLogNotice("pi => port: %d, port2: %d, sgh: %p, color: %d", pi->port, pi->port2, pi->sh, RB_COLOR(pi, rb));
+    }
+}
+#endif
+
+
+static int PIInsert(PortIntervals *pis, DetectPort *p)
+{
+//    DEBUG_VALIDATE_BUG_ON(!RB_EMPTY(&pis->tree)); Should only be true in the first run
+    DEBUG_VALIDATE_BUG_ON(p->port > p->port2);
+
+    PortInterval *pi = SCCalloc(1, sizeof(*pi));
+    if (pi == NULL) {
+        return -1;
+    }
+    pi->port = p->port;
+    pi->port2 = p->port2;
+    pi->flags = p->flags;
+//    pi->sh = p->sh; // STODO this is likely wrong, we should prob copy the sgh
+// update indeed wrong, ASAN flagged it
+    if (PI_RB_INSERT(&pis->tree, pi) != NULL) {
+        SCFree(pi);
+        return SC_EINVAL;
+    }
+    return SC_OK;
+}
+
 int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx);
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b);
 
@@ -1138,6 +1209,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
      *         rules. Each object will have a SGH with the sigs added
      *         that belong to the SGH. */
     DetectPortHashInit(de_ctx);
+    PortIntervals *pis = InitPortIntervals();
 
     uint32_t max_idx = 0;
     const Signature *s = de_ctx->sig_list;
@@ -1204,6 +1276,10 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                     unique_port_points[tmp2->port2] = true;
                     size_unique_port_arr++;
                 }
+                int ret = 0;
+                if ((ret = PIInsert(pis, tmp2)) != SC_OK) {
+                    return NULL;
+                }
             }
 
             p = p->next;
@@ -1226,6 +1302,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         SCLogNotice("arr[%d] := %d", i, final_unique_points[i]);
     }
 #endif
+
     /* step 2: create a list of DetectPort objects */
     HashListTableBucket *htb = NULL;
     for (htb = HashListTableGetListHead(de_ctx->dport_hash_table);
@@ -1295,6 +1372,10 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             ipproto == 6 ? "TCP" : "UDP",
             direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
             cnt, own, ref);
+#if 1
+    PIPrintList(pis);
+#endif
+    FreePortIntervals(pis);
     return list;
 }
 

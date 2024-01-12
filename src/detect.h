@@ -32,6 +32,7 @@
 #include "detect-metadata.h"
 #include "detect-engine-register.h"
 
+#include "tree.h"
 #include "util-prefilter.h"
 #include "util-mpm.h"
 #include "util-spm.h"
@@ -227,6 +228,26 @@ typedef struct DetectPort_ {
     struct DetectPort_ *prev;
     struct DetectPort_ *next;
 } DetectPort;
+
+/** \brief Port Interval structure */
+typedef struct PortInterval {
+    uint16_t port;
+    uint16_t port2;
+    uint8_t flags;
+    struct SigGroupHead_ *sh;
+    RB_ENTRY(PortInterval) rb;
+} __attribute__((__packed__)) PortInterval;
+
+int PICompare(struct PortInterval *a, struct PortInterval *b);
+
+/* red-black tree prototype for Port Groups */
+RB_HEAD(PI, PortInterval);
+RB_PROTOTYPE(PI, PortInterval, rb, PICompare);
+
+typedef struct PortIntervals_ {
+    struct PI tree;   /* red black tree of Port Intervals */
+    PortInterval *head;   /* rbtree head; should always be same as RB_MIN */
+} PortIntervals;
 
 /* Signature flags */
 /** \note: additions should be added to the rule analyzer as well */
