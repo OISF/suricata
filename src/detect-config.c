@@ -58,7 +58,9 @@
 /**
  * \brief Regex for parsing our flow options
  */
-#define PARSE_REGEX  "^\\s*([A-z_]+)\\s*\\s*([A-z_]+)\\s*(?:,\\s*([A-z_]+)\\s+([A-z_]+))?\\s*(?:,\\s*([A-z_]+)\\s+([A-z_]+))?$"
+#define PARSE_REGEX                                                                                \
+    "^\\s*([A-z_-]+)\\s*\\s*([A-z_-]+)\\s*(?:,\\s*([A-z_-]+)\\s+([A-z_-]+))?\\s*(?:,\\s*([A-z_-]+" \
+    ")\\s+([A-z_-]+))?$"
 
 static DetectParseRegex parse_regex;
 
@@ -94,6 +96,26 @@ static void ConfigApplyTx(Flow *f,
     }
 }
 
+static void ConfigApplyFlowStream(Flow *f)
+{
+    if (f && f->proto == IPPROTO_TCP && f->protoctx) {
+        TcpSession *ssn = f->protoctx;
+        StreamTcpDisableAppLayer(f);
+        ssn->client.flags |= STREAMTCP_STREAM_FLAG_DISABLE_RAW;
+        ssn->server.flags |= STREAMTCP_STREAM_FLAG_DISABLE_RAW;
+    }
+}
+
+static void ConfigApplyFlowApp(Flow *f)
+{
+    if (f) {
+        if (f->proto == IPPROTO_TCP) {
+            StreamTcpDisableAppLayer(f);
+        } else if (f->proto == IPPROTO_UDP) {
+            // TODO
+        }
+    }
+}
 /**
  *  \brief apply the post match filestore with options
  */
@@ -117,6 +139,13 @@ static int ConfigApply(DetectEngineThreadCtx *det_ctx,
         ConfigApplyTx(p->flow, det_ctx->tx_id, config);
     } else if (this_flow) {
         SCLogDebug("flow logic here");
+        if (p->flow) {
+            if (config->subsys == CONFIG_SUBSYS_STREAM) {
+                ConfigApplyFlowStream(p->flow);
+            } else if (config->subsys == CONFIG_SUBSYS_APPLAYER) {
+                ConfigApplyFlowApp(p->flow);
+            }
+        }
     }
 
     SCReturnInt(0);
@@ -146,7 +175,6 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 {
     SCEnter();
 
-    DetectConfigData *fd = NULL;
     int res = 0;
     size_t pcre2len;
     pcre2_match_data *match = NULL;
@@ -163,6 +191,10 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     char scopeval[32];
     SCLogDebug("str %s", str);
 
+    enum ConfigSubsys cnf_subsys;
+    enum ConfigType cnf_type;
+    enum ConfigScope cnf_scope;
+
     int ret = DetectParsePcreExec(&parse_regex, &match, str, 0, 0);
     if (ret != 7) {
         SCLogError("config keyword value '%s' failed to parse", str);
@@ -175,7 +207,13 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
         goto error;
     }
 
-    if (strcmp(subsys, "logging") != 0) {
+    if (strcmp(subsys, "logging") == 0) {
+        cnf_subsys = CONFIG_SUBSYS_LOGGING;
+    } else if (strcmp(subsys, "stream") == 0) {
+        cnf_subsys = CONFIG_SUBSYS_STREAM;
+    } else if (strcmp(subsys, "app-layer") == 0) {
+        cnf_subsys = CONFIG_SUBSYS_APPLAYER;
+    } else {
         SCLogError("only 'logging' supported at this time");
         goto error;
     }
@@ -214,8 +252,9 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
         goto error;
     }
 
-    if (!(strcmp(typeval, "tx") == 0 ||strcmp(typeval, "flow") == 0)) {
-        SCLogError("only 'tx' and 'flow' supported at this time");
+    if (!(strcmp(typeval, "tx") == 0 || strcmp(typeval, "reassembly") == 0 ||
+                strcmp(typeval, "parser") == 0)) {
+        SCLogError("only 'tx', 'parser' and 'reassembly' supported at this time: %s", typeval);
         goto error;
     }
     SCLogDebug("typeval %s", typeval);
@@ -241,29 +280,60 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     }
 
     if (!(strcmp(scopeval, "tx") == 0 ||strcmp(scopeval, "flow") == 0)) {
-        SCLogError("only 'tx' and 'flow' supported at this time");
+        SCLogError("only 'tx' and 'flow' supported at this time: %s", scopeval);
         goto error;
     }
     SCLogDebug("scopeval %s", scopeval);
 
-    fd = SCCalloc(1, sizeof(DetectConfigData));
+    if (strcmp(typeval, "tx") == 0) {
+        cnf_type = CONFIG_TYPE_TX;
+    } else if (strcmp(typeval, "reassembly") == 0) {
+        cnf_type = CONFIG_TYPE_REASSEMBLY;
+    } else if (strcmp(typeval, "parser") == 0) {
+        cnf_type = CONFIG_TYPE_APP_PARSER;
+    } else {
+        goto error;
+    }
+
+    if (strcmp(scopeval, "tx") == 0) {
+        cnf_scope = CONFIG_SCOPE_TX;
+    } else if (strcmp(scopeval, "flow") == 0) {
+        cnf_scope = CONFIG_SCOPE_FLOW;
+    } else {
+        goto error;
+    }
+
+    if (cnf_subsys == CONFIG_SUBSYS_STREAM && cnf_scope != CONFIG_SCOPE_FLOW) {
+        SCLogError("only 'flow'-scope supported for subsystem 'stream'");
+        goto error;
+    }
+    if (cnf_subsys == CONFIG_SUBSYS_STREAM && cnf_type != CONFIG_TYPE_REASSEMBLY) {
+        SCLogError("only 'reassembly'-type supported for subsystem 'stream'");
+        goto error;
+    }
+    if (cnf_subsys == CONFIG_SUBSYS_APPLAYER && cnf_scope != CONFIG_SCOPE_FLOW) {
+        SCLogError("only 'flow'-scope supported for subsystem 'app-layer'");
+        goto error;
+    }
+    if (cnf_subsys == CONFIG_SUBSYS_APPLAYER && cnf_type != CONFIG_TYPE_APP_PARSER) {
+        SCLogError("only 'parser'-type supported for subsystem 'app-layer'");
+        goto error;
+    }
+
+    DetectConfigData *fd = SCCalloc(1, sizeof(DetectConfigData));
     if (unlikely(fd == NULL))
         goto error;
-
-    if (strcmp(typeval, "tx") == 0) {
-        fd->type = CONFIG_TYPE_TX;
-    }
-    if (strcmp(scopeval, "tx") == 0) {
-        fd->scope = CONFIG_SCOPE_TX;
-    }
-
-    if (fd->scope == CONFIG_SCOPE_TX) {
-        s->flags |= SIG_FLAG_APPLAYER;
-    }
+    fd->subsys = cnf_subsys;
+    fd->scope = cnf_scope;
+    fd->type = cnf_type;
 
     if (SigMatchAppendSMToList(
                 de_ctx, s, DETECT_CONFIG, (SigMatchCtx *)fd, DETECT_SM_LIST_POSTMATCH) == NULL) {
         goto error;
+    }
+
+    if (cnf_scope == CONFIG_SCOPE_TX) {
+        s->flags |= SIG_FLAG_APPLAYER;
     }
 
     pcre2_match_data_free(match);
@@ -318,8 +388,23 @@ static int DetectConfigTest01(void)
     PASS;
 }
 
+static int DetectConfigReassemblyTest01(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF(de_ctx == NULL);
+    de_ctx->flags |= DE_QUIET;
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "config tcp 5.6.7.8 any -> 1.2.3.4 445 ("
+                                          "config:stream disable, type reassembly, scope flow; "
+                                          "sid:1;)");
+    FAIL_IF_NULL(s);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 void DetectConfigRegisterTests(void)
 {
     UtRegisterTest("DetectConfigTest01", DetectConfigTest01);
+    UtRegisterTest("DetectConfigReassemblyTest01", DetectConfigReassemblyTest01);
 }
 #endif /* UNITTESTS */

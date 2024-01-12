@@ -30,6 +30,8 @@ enum ConfigAction {
 
 enum ConfigSubsys {
     CONFIG_SUBSYS_LOGGING = 0,
+    CONFIG_SUBSYS_STREAM = 1,   /**< stream engine */
+    CONFIG_SUBSYS_APPLAYER = 2, /**< app parsers */
 };
 
 enum ConfigType {
@@ -40,6 +42,9 @@ enum ConfigType {
     CONFIG_TYPE_FILE,       /* file logging */
     CONFIG_TYPE_PCAP,       /* pcap logging */
     CONFIG_TYPE_DROP,       /* drop logging */
+    CONFIG_TYPE_REASSEMBLY, /**< stream reassembly */
+    CONFIG_TYPE_APP_PARSER, /**< app parsing */
+    CONFIG_TYPE_APP_FILES,  /**< app files */
 #define CONFIG_TYPE_DEFAULT CONFIG_TYPE_TX
 };
 
