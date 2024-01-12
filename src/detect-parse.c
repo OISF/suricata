@@ -1215,7 +1215,7 @@ static int SigParseAction(Signature *s, const char *action)
     if (strcasecmp(action, "alert") == 0) {
         s->action = ACTION_ALERT;
     } else if (strcasecmp(action, "drop") == 0) {
-        s->action = ACTION_DROP;
+        s->action = ACTION_DROP | ACTION_ALERT;
     } else if (strcasecmp(action, "pass") == 0) {
         s->action = ACTION_PASS;
     } else if (strcasecmp(action, "reject") == 0 ||
@@ -1223,18 +1223,17 @@ static int SigParseAction(Signature *s, const char *action)
     {
         if (!(SigParseActionRejectValidate(action)))
             return -1;
-        s->action = ACTION_REJECT|ACTION_DROP;
+        s->action = ACTION_REJECT | ACTION_DROP | ACTION_ALERT;
     } else if (strcasecmp(action, "rejectdst") == 0) {
         if (!(SigParseActionRejectValidate(action)))
             return -1;
-        s->action = ACTION_REJECT_DST|ACTION_DROP;
+        s->action = ACTION_REJECT_DST | ACTION_DROP | ACTION_ALERT;
     } else if (strcasecmp(action, "rejectboth") == 0) {
         if (!(SigParseActionRejectValidate(action)))
             return -1;
-        s->action = ACTION_REJECT_BOTH|ACTION_DROP;
+        s->action = ACTION_REJECT_BOTH | ACTION_DROP | ACTION_ALERT;
     } else if (strcasecmp(action, "config") == 0) {
         s->action = ACTION_CONFIG;
-        s->flags |= SIG_FLAG_NOALERT;
     } else {
         SCLogError("An invalid action \"%s\" was given", action);
         return -1;

@@ -208,7 +208,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
             // nothing to set in the packet
         } else if (pa->action & (ACTION_ALERT | ACTION_CONFIG)) {
             // nothing to set in the packet
-        } else {
+        } else if (pa->action != 0) {
             DEBUG_VALIDATE_BUG_ON(1); // should be unreachable
         }
 
@@ -409,7 +409,9 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         }
 
         /* Thresholding removes this alert */
-        if (res == 0 || res == 2 || (s->flags & SIG_FLAG_NOALERT)) {
+        if (res == 0 || res == 2 || (s->action & (ACTION_ALERT | ACTION_PASS)) == 0) {
+            SCLogDebug("sid:%u: skipping alert because of thresholding (res=%d) or NOALERT (%02x)",
+                    s->id, res, s->action);
             /* we will not copy this to the AlertQueue */
             p->alerts.suppressed++;
         } else if (p->alerts.cnt < packet_alert_max) {
