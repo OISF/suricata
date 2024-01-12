@@ -377,10 +377,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     qsort(det_ctx->alert_queue, det_ctx->alert_queue_size, sizeof(PacketAlert),
             AlertQueueSortHelper);
 
-    uint16_t i = 0;
-    uint16_t max_pos = det_ctx->alert_queue_size;
-
-    while (i < max_pos) {
+    for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
         PacketAlert *pa = &det_ctx->alert_queue[i];
         const Signature *s = de_ctx->sig_array[pa->num];
         int res = PacketAlertHandle(de_ctx, det_ctx, s, p, pa);
@@ -421,13 +418,13 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
             /* pass "alert" found, we're done */
             if (pa->action & ACTION_PASS) {
+                SCLogDebug("sid:%u: is a pass rule, so break out of loop", s->id);
                 break;
             }
             p->alerts.cnt++;
         } else {
             p->alerts.discarded++;
         }
-        i++;
     }
 
     /* At this point, we should have all the new alerts. Now check the tag
