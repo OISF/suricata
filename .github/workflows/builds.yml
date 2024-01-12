@@ -2434,7 +2434,6 @@ jobs:
                 libmagic-dev \
                 libjansson-dev \
                 libgeoip-dev \
-                liblua5.4-dev \
                 libhiredis-dev \
                 libevent-dev \
                 libtool \
