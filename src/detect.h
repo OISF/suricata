@@ -233,6 +233,7 @@ typedef struct DetectPort_ {
 typedef struct PortInterval {
     uint16_t port;
     uint16_t port2;
+    uint16_t max;
     uint8_t flags;
     struct SigGroupHead_ *sh;
     RB_ENTRY(PortInterval) rb;

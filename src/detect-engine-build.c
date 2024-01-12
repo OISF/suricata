@@ -1178,11 +1178,14 @@ static void PIPrintList(PortIntervals *pis)
 
 
 static int PIInsert(PortIntervals *pis, DetectPort *p)
+static int PIInsert(PortIntervals *pis, struct PI *head, DetectPort *p)
 {
 //    DEBUG_VALIDATE_BUG_ON(!RB_EMPTY(&pis->tree)); Should only be true in the first run
     DEBUG_VALIDATE_BUG_ON(p->port > p->port2);
 
     PortInterval *pi = SCCalloc(1, sizeof(*pi));
+    PortInterval *left = NULL;
+    PortInterval *right = NULL;
     if (pi == NULL) {
         return -1;
     }
@@ -1192,9 +1195,19 @@ static int PIInsert(PortIntervals *pis, DetectPort *p)
 //    pi->sh = p->sh; // STODO this is likely wrong, we should prob copy the sgh
 // update indeed wrong, ASAN flagged it
     if (PI_RB_INSERT(&pis->tree, pi) != NULL) {
+        SCLogNotice("Node wasn't added to the tree: port: %d, port2: %d", pi->port, pi->port2);
         SCFree(pi);
         return SC_EINVAL;
     }
+    left = RB_LEFT(pi, rb);
+    right = RB_RIGHT(pi, rb);
+    pi->max = pi->port2;
+    if (left && right)
+        pi->max = MAX(pi->max, MAX(left->max, right->max));
+    if (left)
+        pi->max = MAX(pi->max, left->max);
+    if (right)
+        pi->max = MAX(pi->max, right->max);
     return SC_OK;
 }
 
@@ -1275,8 +1288,8 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                     size_unique_port_arr++;
                 }
                 int ret = 0;
-                if ((ret = PIInsert(pis, tmp2)) != SC_OK) {
-                    return NULL;
+                if ((ret = PIInsert(pis, &pis->tree, tmp2)) != SC_OK) {
+                    SCLogNotice("ret: %d", ret);
                 }
             }
 
