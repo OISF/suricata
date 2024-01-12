@@ -34,7 +34,6 @@
 
 #include "util-print.h"
 #include "util-unittest.h"
-#include "util-luajit.h"
 
 #include "util-debug.h"
 
@@ -59,11 +58,7 @@
 lua_State *LuaGetState(void)
 {
     lua_State *s = NULL;
-#ifdef HAVE_LUAJIT
-    s = LuajitGetState();
-#else
     s = luaL_newstate();
-#endif
     return s;
 }
 
@@ -74,11 +69,7 @@ void LuaReturnState(lua_State *s)
         while (lua_gettop(s) > 0) {
             lua_pop(s, 1);
         }
-#ifdef HAVE_LUAJIT
-        LuajitReturnState(s);
-#else
         lua_close(s);
-#endif
     }
 }
 
