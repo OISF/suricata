@@ -1878,23 +1878,8 @@
   # liblua
     AC_ARG_ENABLE(lua,
             AS_HELP_STRING([--enable-lua],[Enable Lua support]),
-            [ enable_lua="$enableval"],
-            [ enable_lua="no"])
-    AC_ARG_ENABLE(luajit,
-            AS_HELP_STRING([--enable-luajit],[Enable Luajit support]),
-            [ enable_luajit="$enableval"],
-            [ enable_luajit="no"])
-    if test "$enable_lua" = "yes"; then
-        if test "$enable_luajit" = "yes"; then
-            echo "ERROR: can't enable liblua and luajit at the same time."
-            echo "For LuaJIT, just use --enable-luajit. For liblua (no jit)"
-            echo "support, use just --enable-lua."
-            echo "Both options will enable the Lua scripting capabilities"
-            echo "in Suricata".
-            echo
-            exit 1
-        fi
-    fi
+                [ enable_lua="$enableval"],
+                [ enable_lua="no"])
 
     AC_ARG_WITH(liblua_includes,
             [  --with-liblua-includes=DIR  liblua include directory],
@@ -1974,67 +1959,6 @@
                 echo "   If you installed software in a non-standard prefix"
                 echo "   consider adjusting the PKG_CONFIG_PATH environment variable"
                 echo "   or use --with-liblua-includes and --with-liblua-libraries"
-                echo "   configure option."
-                echo
-                exit 1
-        fi
-    fi
-
-  # libluajit
-    AC_ARG_WITH(libluajit_includes,
-            [  --with-libluajit-includes=DIR  libluajit include directory],
-            [with_libluajit_includes="$withval"],[with_libluajit_includes="no"])
-    AC_ARG_WITH(libluajit_libraries,
-            [  --with-libluajit-libraries=DIR    libluajit library directory],
-            [with_libluajit_libraries="$withval"],[with_libluajit_libraries="no"])
-
-    if test "$enable_luajit" = "yes"; then
-        if test "$with_libluajit_includes" != "no"; then
-            CPPFLAGS="${CPPFLAGS} -I${with_libluajit_includes}"
-        else
-            PKG_CHECK_MODULES([LUAJIT], [luajit], , LUAJIT="no")
-            CPPFLAGS="${CPPFLAGS} ${LUAJIT_CFLAGS}"
-        fi
-
-        AC_CHECK_HEADER(lualib.h,LUAJIT="yes",LUAJIT="no")
-        if test "$LUAJIT" = "yes"; then
-            if test "$with_libluajit_libraries" != "no"; then
-                LDFLAGS="${LDFLAGS}  -L${with_libluajit_libraries}"
-            else
-                PKG_CHECK_MODULES([LUAJIT], [luajit])
-                LIBS="${LIBS} ${LUAJIT_LIBS}"
-            fi
-
-            AC_CHECK_LIB(luajit-5.1, luaL_openlibs,, LUAJIT="no")
-
-            if test "$LUAJIT" = "no"; then
-                echo
-                echo "   ERROR!  libluajit library not found, go get it"
-                echo "   from http://luajit.org/index.html or your distribution:"
-                echo
-                echo "   Ubuntu: apt-get install libluajit-5.1-dev"
-                echo
-                echo "   If you installed software in a non-standard prefix"
-                echo "   consider adjusting the PKG_CONFIG_PATH environment variable"
-                echo "   or use --with-libluajit-libraries configure option."
-                echo
-                exit 1
-            fi
-
-            AC_DEFINE([HAVE_LUA],[1],[lua support available])
-            AC_DEFINE([HAVE_LUAJIT],[1],[libluajit available])
-            enable_lua="yes, through luajit"
-            enable_luajit="yes"
-        else
-            echo
-                echo "   ERROR!  libluajit headers not found, go get them"
-                echo "   from http://luajit.org/index.html or your distribution:"
-                echo
-                echo "   Ubuntu: apt-get install libluajit-5.1-dev"
-                echo
-                echo "   If you installed software in a non-standard prefix"
-                echo "   consider adjusting the PKG_CONFIG_PATH environment variable"
-                echo "   or use --with-libluajit-includes and --with-libluajit-libraries"
                 echo "   configure option."
                 echo
                 exit 1
@@ -2658,7 +2582,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   hiredis async with libevent:             ${enable_hiredis_async}
   PCRE jit:                                ${pcre2_jit_available}
   LUA support:                             ${enable_lua}
-  libluajit:                               ${enable_luajit}
   GeoIP2 support:                          ${enable_geoip}
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Hyperscan support:                       ${enable_hyperscan}

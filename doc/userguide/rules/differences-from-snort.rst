@@ -524,7 +524,7 @@ File Extraction
 Lua Scripting
 -------------
 
--  Suricata has the ``lua`` (or ``luajit``) keyword which allows for a
+-  Suricata has the ``lua`` keyword which allows for a
    rule to reference a Lua script that can access the packet, payload,
    HTTP buffers, etc.
 -  Provides powerful flexibility and capabilities that Snort does
