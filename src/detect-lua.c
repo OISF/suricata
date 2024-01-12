@@ -2423,4 +2423,4 @@ void DetectLuaRegisterTests(void)
     UtRegisterTest("LuaMatchTest06a", LuaMatchTest06a);
 }
 #endif
-#endif /* HAVE_LUAJIT */
+#endif /* HAVE_LUA */
