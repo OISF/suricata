@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "decode.h"
+#include "action-globals.h"
 #include "detect.h"
 #include "threads.h"
 #include "flow.h"
@@ -342,7 +343,7 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
         return -1;
     } else if (cd == NULL) {
         /* noalert doesn't use a cd/sm struct. It flags the sig. We're done. */
-        s->flags |= SIG_FLAG_NOALERT;
+        s->action &= ~ACTION_ALERT;
         return 0;
     }
 
