@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "action-globals.h"
 #include "detect.h"
 #include "detect-noalert.h"
 #include "util-debug.h"
@@ -33,7 +34,7 @@ static int DetectNoalertSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
 {
     DEBUG_VALIDATE_BUG_ON(nullstr != NULL);
 
-    s->flags |= SIG_FLAG_NOALERT;
+    s->action &= ~ACTION_ALERT;
     return 0;
 }
 

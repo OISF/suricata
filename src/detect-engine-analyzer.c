@@ -27,6 +27,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "rust.h"
+#include "action-globals.h"
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -1023,7 +1024,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     if (s->flags & SIG_FLAG_DP_ANY) {
         jb_append_string(ctx.js, "dp_any");
     }
-    if (s->flags & SIG_FLAG_NOALERT) {
+    if ((s->action & ACTION_ALERT) == 0) {
         jb_append_string(ctx.js, "noalert");
     }
     if (s->flags & SIG_FLAG_DSIZE) {
