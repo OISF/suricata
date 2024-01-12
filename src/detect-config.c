@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -61,29 +61,6 @@
 #define PARSE_REGEX  "^\\s*([A-z_]+)\\s*\\s*([A-z_]+)\\s*(?:,\\s*([A-z_]+)\\s+([A-z_]+))?\\s*(?:,\\s*([A-z_]+)\\s+([A-z_]+))?$"
 
 static DetectParseRegex parse_regex;
-
-static int DetectConfigPostMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
-        const Signature *s, const SigMatchCtx *ctx);
-static int DetectConfigSetup (DetectEngineCtx *, Signature *, const char *);
-static void DetectConfigFree(DetectEngineCtx *, void *);
-#ifdef UNITTESTS
-static void DetectConfigRegisterTests(void);
-#endif
-
-/**
- * \brief Registration function for keyword: filestore
- */
-void DetectConfigRegister(void)
-{
-    sigmatch_table[DETECT_CONFIG].name = "config";
-    sigmatch_table[DETECT_CONFIG].Match = DetectConfigPostMatch;
-    sigmatch_table[DETECT_CONFIG].Setup = DetectConfigSetup;
-    sigmatch_table[DETECT_CONFIG].Free  = DetectConfigFree;
-#ifdef UNITTESTS
-    sigmatch_table[DETECT_CONFIG].RegisterTests = DetectConfigRegisterTests;
-#endif
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
-}
 
 static void ConfigApplyTx(Flow *f,
         const uint64_t tx_id, const DetectConfigData *config)
@@ -172,14 +149,6 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     DetectConfigData *fd = NULL;
     int res = 0;
     size_t pcre2len;
-#if 0
-    /* filestore and bypass keywords can't work together */
-    if (s->flags & SIG_FLAG_BYPASS) {
-        SCLogError(
-                   "filestore can't work with bypass keyword");
-        return -1;
-    }
-#endif
     pcre2_match_data *match = NULL;
 
     if (str == NULL || strlen(str) == 0) {
@@ -196,7 +165,7 @@ static int DetectConfigSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
 
     int ret = DetectParsePcreExec(&parse_regex, &match, str, 0, 0);
     if (ret != 7) {
-        SCLogError("config is rather picky at this time");
+        SCLogError("config keyword value '%s' failed to parse", str);
         goto error;
     }
     pcre2len = sizeof(subsys);
@@ -315,11 +284,25 @@ static void DetectConfigFree(DetectEngineCtx *de_ctx, void *ptr)
 }
 
 #ifdef UNITTESTS
-/*
- * The purpose of this test is to confirm that
- * filestore and bypass keywords can't
- * can't work together
+static void DetectConfigRegisterTests(void);
+#endif
+
+/**
+ * \brief Registration function for keyword: filestore
  */
+void DetectConfigRegister(void)
+{
+    sigmatch_table[DETECT_CONFIG].name = "config";
+    sigmatch_table[DETECT_CONFIG].Match = DetectConfigPostMatch;
+    sigmatch_table[DETECT_CONFIG].Setup = DetectConfigSetup;
+    sigmatch_table[DETECT_CONFIG].Free = DetectConfigFree;
+#ifdef UNITTESTS
+    sigmatch_table[DETECT_CONFIG].RegisterTests = DetectConfigRegisterTests;
+#endif
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
+}
+
+#ifdef UNITTESTS
 static int DetectConfigTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
