@@ -417,12 +417,18 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             p->alerts.alerts[p->alerts.cnt] = *pa;
             SCLogDebug("Appending sid %" PRIu32 " alert to Packet::alerts at pos %u", s->id, i);
 
-            /* pass "alert" found, we're done */
-            if (pa->action & ACTION_PASS) {
+            /* pass w/o alert found, we're done. Alert is not logged. */
+            if ((pa->action & (ACTION_PASS | ACTION_ALERT)) == ACTION_PASS) {
                 SCLogDebug("sid:%u: is a pass rule, so break out of loop", s->id);
                 break;
             }
             p->alerts.cnt++;
+
+            /* pass with alert, we're done. Alert is logged. */
+            if (pa->action & ACTION_PASS) {
+                SCLogDebug("sid:%u: is a pass rule, so break out of loop", s->id);
+                break;
+            }
         } else {
             p->alerts.discarded++;
         }
