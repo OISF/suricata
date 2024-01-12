@@ -247,7 +247,8 @@ static Packet *Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet 
              * fragment.  We have a hole. */
             goto done;
         } else {
-            len += frag->data_len;
+            /* Update the packet length to the largest known data offset. */
+            len = MAX(len, frag->offset + frag->data_len);
         }
     }
 
@@ -397,7 +398,7 @@ static Packet *Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet 
                  * fragment.  We have a hole. */
                 goto done;
             } else {
-                len += frag->data_len;
+                len = MAX(len, frag->offset + frag->data_len);
             }
         }
     }
@@ -2922,6 +2923,115 @@ static int DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test(void)
     PASS;
 }
 
+/**
+ * Reassembly should fail.
+ *
+ * |0       |8       |16      |24      |32      |40      |48      |
+ * |========|========|========|========|========|========|========|
+ * |        |        |AABBCCDD|AABBDDCC|        |        |        |
+ * |        |        |        |        |        |AACCBBDD|        |
+ * |        |AACCDDBB|AADDBBCC|        |        |        |        |
+ * |ZZZZZZZZ|        |        |        |        |        |        |
+ * |        |        |        |        |        |        |DDCCBBAA|
+ */
+static int DefragBsdPeose173Ipv4Test(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[5];
+
+    packets[0] = BuildIpv4TestPacketWithContent(
+            IPPROTO_ICMP, 189, 16 >> 3, 1, (uint8_t *)"AABBCCDDAABBDDCC", 16);
+
+    packets[1] =
+            BuildIpv4TestPacketWithContent(IPPROTO_ICMP, 189, 40 >> 3, 1, (uint8_t *)"AACCBBDD", 8);
+
+    packets[2] = BuildIpv4TestPacketWithContent(
+            IPPROTO_ICMP, 189, 8 >> 3, 1, (uint8_t *)"AACCDDBBAADDBBCC", 16);
+
+    /* ICMP header. */
+    packets[3] = BuildIpv4TestPacketWithContent(IPPROTO_ICMP, 189, 0, 1, (uint8_t *)"ZZZZZZZZ", 8);
+
+    packets[4] =
+            BuildIpv4TestPacketWithContent(IPPROTO_ICMP, 189, 48 >> 3, 0, (uint8_t *)"DDCCBBAA", 8);
+
+    Packet *r = Defrag(NULL, NULL, packets[0]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[1]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[2]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[3]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[4]);
+    FAIL_IF_NOT_NULL(r);
+
+#if 0
+    PrintRawDataFp(stdout, GET_PKT_DATA(r) + 20, GET_PKT_LEN(r) - 20);
+#endif
+
+    for (int i = 0; i < 5; i++) {
+        SCFree(packets[i]);
+    }
+
+    DefragDestroy();
+
+    PASS;
+}
+
+static int DefragBsdPeose173Ipv6Test(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[5];
+
+    packets[0] = BuildIpv6TestPacketWithContent(
+            IPPROTO_ICMP, 189, 16 >> 3, 1, (uint8_t *)"AABBCCDDAABBDDCC", 16);
+
+    packets[1] =
+            BuildIpv6TestPacketWithContent(IPPROTO_ICMP, 189, 40 >> 3, 1, (uint8_t *)"AACCBBDD", 8);
+
+    packets[2] = BuildIpv6TestPacketWithContent(
+            IPPROTO_ICMP, 189, 8 >> 3, 1, (uint8_t *)"AACCDDBBAADDBBCC", 16);
+
+    /* ICMP header. */
+    packets[3] = BuildIpv6TestPacketWithContent(IPPROTO_ICMP, 189, 0, 1, (uint8_t *)"ZZZZZZZZ", 8);
+
+    packets[4] =
+            BuildIpv6TestPacketWithContent(IPPROTO_ICMP, 189, 48 >> 3, 0, (uint8_t *)"DDCCBBAA", 8);
+
+    Packet *r = Defrag(NULL, NULL, packets[0]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[1]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[2]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[3]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[4]);
+    FAIL_IF_NOT_NULL(r);
+
+#if 0
+    PrintRawDataFp(stdout, GET_PKT_DATA(r) + 40, GET_PKT_LEN(r) - 40);
+#endif
+
+    for (int i = 0; i < 5; i++) {
+        SCFree(packets[i]);
+    }
+
+    DefragDestroy();
+
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void DefragRegisterTests(void)
@@ -2968,5 +3078,7 @@ void DefragRegisterTests(void)
             DefragBsdSubsequentOverlapsStartOfOriginalIpv4Test_2);
     UtRegisterTest("DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test_2",
             DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test_2);
+    UtRegisterTest("DefragBsdPeose173Ipv4Test", DefragBsdPeose173Ipv4Test);
+    UtRegisterTest("DefragBsdPeose173Ipv6Test", DefragBsdPeose173Ipv6Test);
 #endif /* UNITTESTS */
 }
