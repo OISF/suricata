@@ -1176,8 +1176,6 @@ static void PIPrintList(PortIntervals *pis)
 }
 #endif
 
-
-static int PIInsert(PortIntervals *pis, DetectPort *p)
 static int PIInsert(PortIntervals *pis, struct PI *head, DetectPort *p)
 {
 //    DEBUG_VALIDATE_BUG_ON(!RB_EMPTY(&pis->tree)); Should only be true in the first run
@@ -1209,6 +1207,27 @@ static int PIInsert(PortIntervals *pis, struct PI *head, DetectPort *p)
     if (right)
         pi->max = MAX(pi->max, right->max);
     return SC_OK;
+}
+
+static bool PISearchOverlap(uint16_t port, uint16_t port2, struct PI *head, SigGroupHead **sgh_array)
+{
+    PortInterval *ptr = RB_ROOT(head);
+    PortInterval *left = NULL;
+    PortInterval *right = NULL;
+    bool overlaps = false;
+    while (ptr) {
+        SCLogNotice("comparing with port: %d, port2: %d", ptr->port, ptr->port2);
+        left = RB_LEFT(ptr, rb);
+        right = RB_RIGHT(ptr, rb);
+        SCLogNotice("Left: [%d, %d]; Right: [%d, %d]", left->port, left->port2, right->port, right->port2);
+        // STODO following is incomplete, untested
+        if (port >= ptr->port && port2 < ptr->max && port2 < ptr->port2) {
+            // Should check left
+        } else {
+            // Should check right
+        }
+    }
+    return overlaps;
 }
 
 int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx);
@@ -1313,7 +1332,23 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         SCLogNotice("arr[%d] := %d", i, final_unique_points[i]);
     }
 #endif
-
+// free SGH stuff
+    for (uint16_t i = 0; i < size_unique_port_arr; i++) {
+        uint16_t port = final_unique_points[i];
+        // STODO fix interval overlap on boundaries
+        uint16_t port2 = final_unique_points[i + 1];
+        SigGroupHead *sgh_array = NULL;
+        bool overlaps = PISearchOverlap(port, port2, &pis->tree, &sgh_array);
+        if (overlaps) {
+#if 0
+            // STODO move all this to detect-engine-port.c
+            DetectPort *dp = DetectPortInit();
+            dp->port = port;
+            dp->port2 = port2;
+            SigGroupHeadCopySigs(de_ctx, sgh_array, &dp->sh);
+#endif
+        }
+    }
     /* step 2: create a list of DetectPort objects */
     HashListTableBucket *htb = NULL;
     for (htb = HashListTableGetListHead(de_ctx->dport_hash_table);
