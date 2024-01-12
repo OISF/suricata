@@ -1076,7 +1076,7 @@ static int PortIsWhitelisted(const DetectEngineCtx *de_ctx,
     while (w) {
         /* Make sure the whitelist port falls in the port range of a */
         DEBUG_VALIDATE_BUG_ON(a->port > a->port2);
-        if (w->port >= a->port && w->port <= a->port2) {
+        if (a->port == w->port && w->port2 == a->port2) {
             return 1;
         }
         w = w->next;
