@@ -30,6 +30,7 @@
 
 #include "suricata-common.h"
 
+#include "action-globals.h"
 #include "host.h"
 #include "ippair.h"
 
@@ -254,7 +255,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
         for (s = de_ctx->sig_list; s != NULL; s = s->next) {
             /* tag the rule as noalert */
             if (parsed_track == TRACK_RULE) {
-                s->flags |= SIG_FLAG_NOALERT;
+                s->action &= ~ACTION_ALERT;
                 continue;
             }
 
@@ -278,7 +279,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
 
             /* tag the rule as noalert */
             if (parsed_track == TRACK_RULE) {
-                s->flags |= SIG_FLAG_NOALERT;
+                s->action &= ~ACTION_ALERT;
                 continue;
             }
 
@@ -304,7 +305,7 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
                     id, gid);
         } else {
             if (parsed_track == TRACK_RULE) {
-                s->flags |= SIG_FLAG_NOALERT;
+                s->action &= ~ACTION_ALERT;
                 goto end;
             }
 
