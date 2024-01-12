@@ -53,10 +53,10 @@
 RB_GENERATE(PI, PortInterval, rb, PICompare);
 
 int PICompare(PortInterval  *a, PortInterval *b) {
-//    SCLogNotice("a: [%d, %d, %p, %d]", a->port, a->port2, a->sh, a->flags);
-//    SCLogNotice("b: [%d, %d, %p, %d]", b->port, b->port2, b->sh, b->flags);
-    // STODO figure out how to compare
-    return 1;
+    if (a->port > b->port) {
+        SCReturnInt(1);
+    }
+    SCReturnInt(-1);
 }
 
 void SigCleanSignatures(DetectEngineCtx *de_ctx)
@@ -1166,14 +1166,12 @@ static inline void FreePortIntervals(PortIntervals *pis)
     }
 }
 
-// STODO add a cleaning fn for calloc above
-
 #if 1
 static void PIPrintList(PortIntervals *pis)
 {
     PortInterval *pi = NULL;
     RB_FOREACH(pi, PI, &pis->tree) {
-        SCLogNotice("pi => port: %d, port2: %d, sgh: %p, color: %d", pi->port, pi->port2, pi->sh, RB_COLOR(pi, rb));
+        SCLogNotice("pi => port: %d, port2: %d, sgh: %p, color: %d, max: %d", pi->port, pi->port2, pi->sh, RB_COLOR(pi, rb), pi->max);
     }
 }
 #endif
