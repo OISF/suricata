@@ -939,7 +939,6 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     PrefilterRuleStore *pmq, const uint8_t *buf, uint32_t buflen)
 {
     const SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
-    uint32_t i = 0;
     int matches = 0;
 
     /* \todo tried loop unrolling with register var, with no perf increase.  Need
@@ -952,30 +951,26 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
     if (ctx->state_count < 32767) {
         register SC_AC_STATE_TYPE_U16 state = 0;
-        SC_AC_STATE_TYPE_U16 (*state_table_u16)[256] = ctx->state_table_u16;
-        for (i = 0; i < buflen; i++) {
+        const SC_AC_STATE_TYPE_U16(*state_table_u16)[256] = ctx->state_table_u16;
+        for (uint32_t i = 0; i < buflen; i++) {
             state = state_table_u16[state & 0x7FFF][u8_tolower(buf[i])];
             if (state & 0x8000) {
-                uint32_t no_of_entries = ctx->output_table[state & 0x7FFF].no_of_entries;
-                uint32_t *pids = ctx->output_table[state & 0x7FFF].pids;
-                uint32_t k;
-                for (k = 0; k < no_of_entries; k++) {
+                const uint32_t no_of_entries = ctx->output_table[state & 0x7FFF].no_of_entries;
+                const uint32_t *pids = ctx->output_table[state & 0x7FFF].pids;
+                for (uint32_t k = 0; k < no_of_entries; k++) {
                     if (pids[k] & AC_CASE_MASK) {
-                        uint32_t lower_pid = pids[k] & AC_PID_MASK;
+                        const uint32_t lower_pid = pids[k] & AC_PID_MASK;
                         const SCACPatternList *pat = &pid_pat_list[lower_pid];
                         const int offset = i - pat->patlen + 1;
 
                         if (offset < (int)pat->offset || (pat->depth && i > pat->depth))
                             continue;
 
-                        if (SCMemcmp(pat->cs, buf + offset, pat->patlen) != 0)
-                        {
+                        if (SCMemcmp(pat->cs, buf + offset, pat->patlen) != 0) {
                             /* inside loop */
                             continue;
                         }
-                        if (bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8))) {
-                            ;
-                        } else {
+                        if (!(bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8)))) {
                             bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
                             PrefilterAddSids(pmq, pat->sids, pat->sids_size);
                             matches++;
@@ -987,32 +982,26 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         if (offset < (int)pat->offset || (pat->depth && i > pat->depth))
                             continue;
 
-                        if (bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
-                            ;
-                        } else {
+                        if (!(bitarray[pids[k] / 8] & (1 << (pids[k] % 8)))) {
                             bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
                             PrefilterAddSids(pmq, pat->sids, pat->sids_size);
                             matches++;
                         }
                     }
-                    //loop1:
-                    //;
                 }
             }
-        } /* for (i = 0; i < buflen; i++) */
-
+        }
     } else {
         register SC_AC_STATE_TYPE_U32 state = 0;
-        SC_AC_STATE_TYPE_U32 (*state_table_u32)[256] = ctx->state_table_u32;
-        for (i = 0; i < buflen; i++) {
+        const SC_AC_STATE_TYPE_U32(*state_table_u32)[256] = ctx->state_table_u32;
+        for (uint32_t i = 0; i < buflen; i++) {
             state = state_table_u32[state & 0x00FFFFFF][u8_tolower(buf[i])];
             if (state & 0xFF000000) {
-                uint32_t no_of_entries = ctx->output_table[state & 0x00FFFFFF].no_of_entries;
-                uint32_t *pids = ctx->output_table[state & 0x00FFFFFF].pids;
-                uint32_t k;
-                for (k = 0; k < no_of_entries; k++) {
+                const uint32_t no_of_entries = ctx->output_table[state & 0x00FFFFFF].no_of_entries;
+                const uint32_t *pids = ctx->output_table[state & 0x00FFFFFF].pids;
+                for (uint32_t k = 0; k < no_of_entries; k++) {
                     if (pids[k] & AC_CASE_MASK) {
-                        uint32_t lower_pid = pids[k] & 0x0000FFFF;
+                        const uint32_t lower_pid = pids[k] & 0x0000FFFF;
                         const SCACPatternList *pat = &pid_pat_list[lower_pid];
                         const int offset = i - pat->patlen + 1;
 
@@ -1024,9 +1013,7 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                             /* inside loop */
                             continue;
                         }
-                        if (bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8))) {
-                            ;
-                        } else {
+                        if (!(bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8)))) {
                             bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
                             PrefilterAddSids(pmq, pat->sids, pat->sids_size);
                             matches++;
@@ -1038,21 +1025,16 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         if (offset < (int)pat->offset || (pat->depth && i > pat->depth))
                             continue;
 
-                        if (bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
-                            ;
-                        } else {
+                        if (!(bitarray[pids[k] / 8] & (1 << (pids[k] % 8)))) {
                             bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
                             PrefilterAddSids(pmq, pat->sids, pat->sids_size);
                             matches++;
                         }
                     }
-                    //loop1:
-                    //;
                 }
             }
-        } /* for (i = 0; i < buflen; i++) */
+        }
     }
-
     return matches;
 }
 
