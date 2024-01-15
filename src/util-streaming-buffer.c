@@ -334,7 +334,10 @@ static int WARN_UNUSED SBBInit(StreamingBuffer *sb, const StreamingBufferConfig 
     }
     sbb->offset = sb->region.stream_offset;
     sbb->len = sb->region.buf_offset;
-    (void)SBB_RB_INSERT(&sb->sbb_tree, sbb);
+    if (SBB_RB_INSERT(&sb->sbb_tree, sbb) != NULL) {
+        FREE(cfg, sbb, sizeof(*sbb));
+        return SC_EINVAL;
+    }
     sb->head = sbb;
     sb->sbb_size = sbb->len;
 
@@ -378,7 +381,10 @@ static int WARN_UNUSED SBBInitLeadingGap(StreamingBuffer *sb, const StreamingBuf
 
     sb->head = sbb;
     sb->sbb_size = sbb->len;
-    (void)SBB_RB_INSERT(&sb->sbb_tree, sbb);
+    if (SBB_RB_INSERT(&sb->sbb_tree, sbb) != NULL) {
+        FREE(cfg, sbb, sizeof(*sbb));
+        return SC_EINVAL;
+    }
 
     SCLogDebug("sbb %" PRIu64 ", len %u", sbb->offset, sbb->len);
 #ifdef DEBUG
