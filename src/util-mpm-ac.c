@@ -781,6 +781,8 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
         }
         ctx->pid_pat_list[ctx->parray[i]->id].offset = ctx->parray[i]->offset;
         ctx->pid_pat_list[ctx->parray[i]->id].depth = ctx->parray[i]->depth;
+        ctx->pid_pat_list[ctx->parray[i]->id].endswith =
+                (ctx->parray[i]->flags & MPM_PATTERN_FLAG_ENDSWITH) != 0;
 
         /* ACPatternList now owns this memory */
         //SCLogInfo("ctx->parray[i]->sids_size %u", ctx->parray[i]->sids_size);
@@ -965,6 +967,8 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
                         if (offset < (int)pat->offset || (pat->depth && i > pat->depth))
                             continue;
+                        if (pat->endswith && (uint32_t)offset + pat->patlen != buflen)
+                            continue;
 
                         if (SCMemcmp(pat->cs, buf + offset, pat->patlen) != 0) {
                             /* inside loop */
@@ -980,6 +984,8 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         const int offset = i - pat->patlen + 1;
 
                         if (offset < (int)pat->offset || (pat->depth && i > pat->depth))
+                            continue;
+                        if (pat->endswith && (uint32_t)offset + pat->patlen != buflen)
                             continue;
 
                         if (!(bitarray[pids[k] / 8] & (1 << (pids[k] % 8)))) {
@@ -1007,6 +1013,8 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
                         if (offset < (int)pat->offset || (pat->depth && i > pat->depth))
                             continue;
+                        if (pat->endswith && (uint32_t)offset + pat->patlen != buflen)
+                            continue;
 
                         if (SCMemcmp(pat->cs, buf + offset,
                                      pat->patlen) != 0) {
@@ -1023,6 +1031,8 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         const int offset = i - pat->patlen + 1;
 
                         if (offset < (int)pat->offset || (pat->depth && i > pat->depth))
+                            continue;
+                        if (pat->endswith && (uint32_t)offset + pat->patlen != buflen)
                             continue;
 
                         if (!(bitarray[pids[k] / 8] & (1 << (pids[k] % 8)))) {
