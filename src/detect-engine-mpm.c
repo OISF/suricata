@@ -1559,6 +1559,9 @@ static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
 
     MpmInitCtx(ms->mpm_ctx, de_ctx->mpm_matcher);
 
+    const bool mpm_supports_endswith =
+            (mpm_table[de_ctx->mpm_matcher].feature_flags & MPM_FEATURE_FLAG_ENDSWITH) != 0;
+
     /* add the patterns */
     for (sig = 0; sig < (ms->sid_array_size * 8); sig++) {
         if (ms->sid_array[sig / 8] & (1 << (sig % 8))) {
@@ -1585,8 +1588,11 @@ static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
             }
 
             if (!skip) {
-                PopulateMpmHelperAddPattern(ms->mpm_ctx,
-                        cd, s, 0, (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP));
+                uint8_t flags = 0;
+                if ((cd->flags & DETECT_CONTENT_ENDS_WITH) && mpm_supports_endswith)
+                    flags = MPM_PATTERN_FLAG_ENDSWITH;
+                PopulateMpmHelperAddPattern(
+                        ms->mpm_ctx, cd, s, flags, (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP));
             }
         }
     }
