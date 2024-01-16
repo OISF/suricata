@@ -1437,6 +1437,8 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
         if (s_mode != NULL) {
             if (strcasecmp(s_mode, "sguil") == 0) {
                 pl->mode = LOGMODE_SGUIL;
+                SCLogWarning("sguil mode is deprecated and will be removed from Suricata 8; see "
+                             "issue 6688");
             } else if (strcasecmp(s_mode, "multi") == 0) {
                 pl->mode = LOGMODE_MULTI;
             } else if (strcasecmp(s_mode, "normal") != 0) {
