@@ -358,8 +358,8 @@ outputs:
       enabled: no
       #certs-log-dir: certs # directory to store the certificates files
 
-  # Packet log... log packets in pcap format. 3 modes of operation: "normal"
-  # "multi" and "sguil".
+  # Packet log... log packets in pcap format. 2 modes of operation: "normal"
+  # and "multi".
   #
   # In normal mode a pcap file "filename" is created in the default-log-dir,
   # or as specified by "dir".
@@ -379,11 +379,6 @@ outputs:
   # So the size limit when using 8 threads with 1000mb files and 2000 files
   # is: 8*1000*2000 ~ 16TiB.
   #
-  # In Sguil mode "dir" indicates the base directory. In this base dir the
-  # pcaps are created in the directory structure Sguil expects:
-  #
-  # $sguil-base-dir/YYYY-MM-DD/$filename.<timestamp>
-  #
   # By default all packets are logged except:
   # - TCP streams beyond stream.reassembly.depth
   # - encrypted streams after the key exchange
@@ -401,8 +396,7 @@ outputs:
       max-files: 2000
 
       # Compression algorithm for pcap files. Possible values: none, lz4.
-      # Enabling compression is incompatible with the sguil mode. Note also
-      # that on Windows, enabling compression will *increase* disk I/O.
+      # Note also that on Windows, enabling compression will *increase* disk I/O.
       compression: none
 
       # Further options for lz4 compression. The compression level can be set
@@ -411,10 +405,10 @@ outputs:
       #lz4-checksum: no
       #lz4-level: 0
 
-      mode: normal # normal, multi or sguil.
+      mode: normal # normal or multi
 
       # Directory to place pcap files. If not provided the default log
-      # directory will be used. Required for "sguil" mode.
+      # directory will be used.
       #dir: /nsm_data/
 
       #ts-format: usec # sec or usec second format (default) is filename.sec usec is filename.sec.usec
