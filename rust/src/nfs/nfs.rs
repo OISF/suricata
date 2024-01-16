@@ -464,27 +464,11 @@ impl NFSState {
     }
 
     pub fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&NFSTransaction> {
-        SCLogDebug!("get_tx_by_id: tx_id={}", tx_id);
-        for tx in &mut self.transactions {
-            if tx.id == tx_id + 1 {
-                SCLogDebug!("Found NFS TX with ID {}", tx_id);
-                return Some(tx);
-            }
-        }
-        SCLogDebug!("Failed to find NFS TX with ID {}", tx_id);
-        return None;
+        return self.transactions.iter().find(|&tx| tx.id == tx_id + 1);
     }
 
     pub fn get_tx_by_xid(&mut self, tx_xid: u32) -> Option<&mut NFSTransaction> {
-        SCLogDebug!("get_tx_by_xid: tx_xid={}", tx_xid);
-        for tx in &mut self.transactions {
-            if !tx.is_file_tx && tx.xid == tx_xid {
-                SCLogDebug!("Found NFS TX with ID {} XID {:04X}", tx.id, tx.xid);
-                return Some(tx);
-            }
-        }
-        SCLogDebug!("Failed to find NFS TX with XID {:04X}", tx_xid);
-        return None;
+        return self.transactions.iter_mut().find(|tx| !tx.is_file_tx && tx.xid == tx_xid);
     }
 
     /// Set an event. The event is set on the most recent transaction.
@@ -689,15 +673,11 @@ impl NFSState {
     }
 
     pub fn xidmap_handle2name(&mut self, xidmap: &mut NFSRequestXidMap) {
-        match self.namemap.get(&xidmap.file_handle) {
-            Some(n) => {
-                SCLogDebug!("xidmap_handle2name: name {:?}", n);
-                xidmap.file_name = n.to_vec();
-            },
-            _ => {
-                SCLogDebug!("xidmap_handle2name: object {:?} not found",
-                        xidmap.file_handle);
-            },
+        if let Some(n) = self.namemap.get(&xidmap.file_handle) {
+            SCLogDebug!("xidmap_handle2name: name {:?}", n);
+            xidmap.file_name = n.to_vec();
+        } else {
+            SCLogDebug!("xidmap_handle2name: object {:?} not found", xidmap.file_handle);
         }
     }
 

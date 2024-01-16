@@ -105,21 +105,20 @@ fn parse_secblob_spnego(blob: &[u8]) -> Option<SpnegoRequest>
             BerObjectContent::Sequence(ref seq) => {
                 for se in seq {
                     SCLogDebug!("SEQ {:?}", se);
-                    match se.content {
-                        BerObjectContent::OID(ref oid) => {
-                            SCLogDebug!("OID {:?}", oid);
-                            match oid.to_string().as_str() {
-                                "1.2.840.48018.1.2.2" => { SCLogDebug!("Microsoft Kerberos 5"); },
-                                "1.2.840.113554.1.2.2" => { SCLogDebug!("Kerberos 5"); have_kerberos = true; },
-                                "1.2.840.113554.1.2.2.1" => { SCLogDebug!("krb5-name"); },
-                                "1.2.840.113554.1.2.2.2" => { SCLogDebug!("krb5-principal"); },
-                                "1.2.840.113554.1.2.2.3" => { SCLogDebug!("krb5-user-to-user-mech"); },
-                                "1.3.6.1.4.1.311.2.2.10" => { SCLogDebug!("NTLMSSP"); have_ntlmssp = true; },
-                                "1.3.6.1.4.1.311.2.2.30" => { SCLogDebug!("NegoEx"); },
-                                _ => { SCLogDebug!("unexpected OID {:?}", oid); },
-                            }
-                        },
-                        _ => { SCLogDebug!("expected OID, got {:?}", se); },
+                    if let BerObjectContent::OID(ref oid) = se.content {
+                        SCLogDebug!("OID {:?}", oid);
+                        match oid.to_string().as_str() {
+                            "1.2.840.48018.1.2.2" => { SCLogDebug!("Microsoft Kerberos 5"); },
+                            "1.2.840.113554.1.2.2" => { SCLogDebug!("Kerberos 5"); have_kerberos = true; },
+                            "1.2.840.113554.1.2.2.1" => { SCLogDebug!("krb5-name"); },
+                            "1.2.840.113554.1.2.2.2" => { SCLogDebug!("krb5-principal"); },
+                            "1.2.840.113554.1.2.2.3" => { SCLogDebug!("krb5-user-to-user-mech"); },
+                            "1.3.6.1.4.1.311.2.2.10" => { SCLogDebug!("NTLMSSP"); have_ntlmssp = true; },
+                            "1.3.6.1.4.1.311.2.2.30" => { SCLogDebug!("NegoEx"); },
+                            _ => { SCLogDebug!("unexpected OID {:?}", oid); },
+                        }
+                    } else {
+                        SCLogDebug!("expected OID, got {:?}", se);
                     }
                 }
             },

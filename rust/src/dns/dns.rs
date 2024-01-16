@@ -385,15 +385,7 @@ impl DNSState {
     }
 
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&DNSTransaction> {
-        SCLogDebug!("get_tx: tx_id={}", tx_id);
-        for tx in &mut self.transactions {
-            if tx.id == tx_id + 1 {
-                SCLogDebug!("Found DNS TX with ID {}", tx_id);
-                return Some(tx);
-            }
-        }
-        SCLogDebug!("Failed to find DNS TX with ID {}", tx_id);
-        return None;
+        return self.transactions.iter().find(|&tx| tx.id == tx_id + 1);
     }
 
     /// Set an event. The event is set on the most recent transaction.

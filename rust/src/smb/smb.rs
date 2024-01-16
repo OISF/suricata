@@ -2036,57 +2036,51 @@ fn smb_probe_tcp_midstream(direction: Direction, slice: &[u8], rdir: *mut u8, be
     } else {
         search_smb_record(slice)
     };
-    match r {
-        Ok((_, data)) => {
-            SCLogDebug!("smb found");
-            match parse_smb_version(data) {
-                Ok((_, ref smb)) => {
-                    SCLogDebug!("SMB {:?}", smb);
-                    if smb.version == 0xff_u8 { // SMB1
-                        SCLogDebug!("SMBv1 record");
-                        if let Ok((_, ref smb_record)) = parse_smb_record(data) {
-                            if smb_record.flags & 0x80 != 0 {
-                                SCLogDebug!("RESPONSE {:02x}", smb_record.flags);
-                                if direction == Direction::ToServer {
-                                    unsafe { *rdir = Direction::ToClient as u8; }
-                                }
-                            } else {
-                                SCLogDebug!("REQUEST {:02x}", smb_record.flags);
-                                if direction == Direction::ToClient {
-                                    unsafe { *rdir = Direction::ToServer as u8; }
-                                }
-                            }
-                            return 1;
+    if let Ok((_, data)) = r {
+        SCLogDebug!("smb found");
+        if let Ok((_, ref smb)) = parse_smb_version(data) {
+            SCLogDebug!("SMB {:?}", smb);
+            if smb.version == 0xff_u8 { // SMB1
+                SCLogDebug!("SMBv1 record");
+                if let Ok((_, ref smb_record)) = parse_smb_record(data) {
+                    if smb_record.flags & 0x80 != 0 {
+                        SCLogDebug!("RESPONSE {:02x}", smb_record.flags);
+                        if direction == Direction::ToServer {
+                            unsafe { *rdir = Direction::ToClient as u8; }
                         }
-                    } else if smb.version == 0xfe_u8 { // SMB2
-                        SCLogDebug!("SMB2 record");
-                        if let Ok((_, ref smb_record)) = parse_smb2_record_direction(data) {
-                            if direction == Direction::ToServer {
-                                SCLogDebug!("direction Direction::ToServer smb_record {:?}", smb_record);
-                                if !smb_record.request {
-                                    unsafe { *rdir = Direction::ToClient as u8; }
-                                }
-                            } else {
-                                SCLogDebug!("direction Direction::ToClient smb_record {:?}", smb_record);
-                                if smb_record.request {
-                                    unsafe { *rdir = Direction::ToServer as u8; }
-                                }
-                            }
+                    } else {
+                        SCLogDebug!("REQUEST {:02x}", smb_record.flags);
+                        if direction == Direction::ToClient {
+                            unsafe { *rdir = Direction::ToServer as u8; }
                         }
-                    }
-                    else if smb.version == 0xfd_u8 { // SMB3 transform
-                        SCLogDebug!("SMB3 record");
                     }
                     return 1;
-                },
-                    _ => {
-                        SCLogDebug!("smb not found in {:?}", slice);
-                    },
+                }
+            } else if smb.version == 0xfe_u8 { // SMB2
+                SCLogDebug!("SMB2 record");
+                if let Ok((_, ref smb_record)) = parse_smb2_record_direction(data) {
+                    if direction == Direction::ToServer {
+                        SCLogDebug!("direction Direction::ToServer smb_record {:?}", smb_record);
+                        if !smb_record.request {
+                            unsafe { *rdir = Direction::ToClient as u8; }
+                        }
+                    } else {
+                        SCLogDebug!("direction Direction::ToClient smb_record {:?}", smb_record);
+                        if smb_record.request {
+                            unsafe { *rdir = Direction::ToServer as u8; }
+                        }
+                    }
+                }
             }
-        },
-        _ => {
-            SCLogDebug!("no dice");
-        },
+            else if smb.version == 0xfd_u8 { // SMB3 transform
+                SCLogDebug!("SMB3 record");
+            }
+            return 1;
+        } else {
+            SCLogDebug!("smb not found in {:?}", slice);
+        }
+    } else {
+        SCLogDebug!("no dice");
     }
     return 0;
 }
