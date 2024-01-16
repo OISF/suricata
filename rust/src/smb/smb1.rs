@@ -725,19 +725,16 @@ fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, an
                         SCLogDebug!("Create AndX {:?}", cr);
 
                         let guid_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_FILENAME);
-                        match state.ssn2vec_map.remove(&guid_key) {
-                            Some(mut p) => {
-                                p.retain(|&i|i != 0x00);
+                        if let Some(mut p) = state.ssn2vec_map.remove(&guid_key) {
+                            p.retain(|&i|i != 0x00);
 
-                                let mut fid = cr.fid.to_vec();
-                                fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
-                                SCLogDebug!("SMB1_COMMAND_NT_CREATE_ANDX fid {:?}", fid);
-                                SCLogDebug!("fid {:?} name {:?}", fid, p);
-                                state.guid2name_map.insert(fid, p);
-                            },
-                            _ => {
-                                SCLogDebug!("SMBv1 response: GUID NOT FOUND");
-                            },
+                            let mut fid = cr.fid.to_vec();
+                            fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+                            SCLogDebug!("SMB1_COMMAND_NT_CREATE_ANDX fid {:?}", fid);
+                            SCLogDebug!("fid {:?} name {:?}", fid, p);
+                            state.guid2name_map.insert(fid, p);
+                        } else {
+                            SCLogDebug!("SMBv1 response: GUID NOT FOUND");
                         }
 
                         let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
