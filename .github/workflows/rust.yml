@@ -85,3 +85,6 @@ jobs:
           fi
       - run: cargo clippy --all-features --all-targets
         working-directory: rust
+      # especially without debug feature
+      - run: cargo clippy
+        working-directory: rust
