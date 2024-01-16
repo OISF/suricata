@@ -63,8 +63,7 @@
 #define DEFAULT_FILE_LIMIT              0
 
 #define LOGMODE_NORMAL                  0
-#define LOGMODE_SGUIL                   1
-#define LOGMODE_MULTI                   2
+#define LOGMODE_MULTI                   1
 
 typedef enum LogModeConditionalType_ {
     LOGMODE_COND_ALL,
@@ -145,7 +144,7 @@ typedef struct PcapLogData_ {
     uint64_t pkt_cnt;		    /**< total number of packets */
     struct pcap_pkthdr *h;      /**< pcap header struct */
     char *filename;             /**< current filename */
-    int mode;                   /**< normal or sguil */
+    int mode;                   /**< normal or multi */
     int prev_day;               /**< last day, for finding out when */
     uint64_t size_current;      /**< file current size */
     uint64_t size_limit;        /**< file size limit */
@@ -341,7 +340,6 @@ static void PcapFileNameFree(PcapFileName *pf)
 static int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
 {
     PcapFileName *pf;
-    PcapFileName *pfnext;
 
     PCAPLOG_PROFILE_START;
 
@@ -358,25 +356,6 @@ static int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
             // VJ remove can fail because file is already gone
             // SCLogWarning("failed to remove log file %s: %s",
             //           pf->filename, strerror( errno ));
-        }
-
-        /* Remove directory if Sguil mode and no files left in sguil dir */
-        if (pl->mode == LOGMODE_SGUIL) {
-            pfnext = TAILQ_NEXT(pf,next);
-
-            if (strcmp(pf->dirname, pfnext->dirname) == 0) {
-                SCLogDebug("Current entry dir %s and next entry %s "
-                        "are equal: not removing dir",
-                        pf->dirname, pfnext->dirname);
-            } else {
-                SCLogDebug("current entry %s and %s are "
-                        "not equal: removing dir",
-                        pf->dirname, pfnext->dirname);
-
-                if (remove(pf->dirname) != 0) {
-                    SCLogWarning("failed to remove sguil log %s: %s", pf->dirname, strerror(errno));
-                }
-            }
         }
 
         TAILQ_REMOVE(&pl->pcap_file_list, pf, next);
@@ -627,15 +606,6 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
             return TM_ECODE_FAILED;
         }
         SCLogDebug("Opening PCAP log file %s", pl->filename);
-    }
-
-    if (pl->mode == LOGMODE_SGUIL) {
-        struct tm local_tm;
-        struct tm *tms = SCLocalTime(SCTIME_SECS(p->ts), &local_tm);
-        if (tms->tm_mday != pl->prev_day) {
-            rotate = 1;
-            pl->prev_day = tms->tm_mday;
-        }
     }
 
     PcapLogCompressionData *comp = &pl->compression;
@@ -1426,35 +1396,23 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
         const char *s_mode = NULL;
         s_mode = ConfNodeLookupChildValue(conf, "mode");
         if (s_mode != NULL) {
-            if (strcasecmp(s_mode, "sguil") == 0) {
-                pl->mode = LOGMODE_SGUIL;
-            } else if (strcasecmp(s_mode, "multi") == 0) {
+            if (strcasecmp(s_mode, "multi") == 0) {
                 pl->mode = LOGMODE_MULTI;
             } else if (strcasecmp(s_mode, "normal") != 0) {
-                SCLogError("log-pcap: invalid mode \"%s\". Valid options: \"normal\", "
-                           "\"sguil\", or \"multi\" mode ",
+                FatalError("log-pcap: invalid mode \"%s\". Valid options: \"normal\""
+                           "or \"multi\" mode ",
                         s_mode);
-                exit(EXIT_FAILURE);
             }
         }
 
         const char *s_dir = NULL;
         s_dir = ConfNodeLookupChildValue(conf, "dir");
         if (s_dir == NULL) {
-            s_dir = ConfNodeLookupChildValue(conf, "sguil-base-dir");
-        }
-        if (s_dir == NULL) {
-            if (pl->mode == LOGMODE_SGUIL) {
-                FatalError("log-pcap \"sguil\" mode requires \"sguil-base-dir\" "
-                           "option to be set.");
-            } else {
-                const char *log_dir = NULL;
-                log_dir = ConfigGetLogDirectory();
+            const char *log_dir = NULL;
+            log_dir = ConfigGetLogDirectory();
 
-                strlcpy(pl->dir,
-                    log_dir, sizeof(pl->dir));
-                    SCLogInfo("Using log dir %s", pl->dir);
-            }
+            strlcpy(pl->dir, log_dir, sizeof(pl->dir));
+            SCLogInfo("Using log dir %s", pl->dir);
         } else {
             if (PathIsAbsolute(s_dir)) {
                 strlcpy(pl->dir,
@@ -1469,10 +1427,9 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
 
             struct stat stat_buf;
             if (stat(pl->dir, &stat_buf) != 0) {
-                SCLogError("The sguil-base-dir directory \"%s\" "
+                FatalError("The dir directory \"%s\" "
                            "supplied doesn't exist. Shutting down the engine",
                         pl->dir);
-                exit(EXIT_FAILURE);
             }
             SCLogInfo("Using log dir %s", pl->dir);
         }
@@ -1491,13 +1448,6 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
             comp->pcap_buf_wrapper = NULL;
         } else if (strcmp(compression_str, "lz4") == 0) {
 #ifdef HAVE_LIBLZ4
-            if (pl->mode == LOGMODE_SGUIL) {
-                SCLogError("Compressed pcap "
-                           "logs are not possible in sguil mode");
-                SCFree(pl->h);
-                SCFree(pl);
-                return result;
-            }
             pl->compression.format = PCAP_LOG_COMPRESSION_FORMAT_LZ4;
 
             /* Use SCFmemopen so we can make pcap_dump write to a buffer. */
@@ -1606,8 +1556,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
     if (ParseFilename(pl, filename) != 0)
         exit(EXIT_FAILURE);
 
-    SCLogInfo("using %s logging", pl->mode == LOGMODE_SGUIL ?
-              "Sguil compatible" : (pl->mode == LOGMODE_MULTI ? "multi" : "normal"));
+    SCLogInfo("using %s logging", (pl->mode == LOGMODE_MULTI ? "multi" : "normal"));
 
     uint32_t max_file_limit = DEFAULT_FILE_LIMIT;
     if (conf != NULL) {
@@ -1741,44 +1690,7 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
         return -1;
     }
 
-    if (pl->mode == LOGMODE_SGUIL) {
-        struct tm local_tm;
-        struct tm *tms = SCLocalTime(SCTIME_SECS(ts), &local_tm);
-
-        char dirname[32], dirfull[PATH_MAX] = "";
-
-        snprintf(dirname, sizeof(dirname), "%04d-%02d-%02d",
-                tms->tm_year + 1900, tms->tm_mon + 1, tms->tm_mday);
-
-        /* create the filename to use */
-        int ret = snprintf(dirfull, sizeof(dirfull), "%s/%s", pl->dir, dirname);
-        if (ret < 0 || (size_t)ret >= sizeof(dirfull)) {
-            SCLogError("failed to construct path");
-            goto error;
-        }
-
-        /* if mkdir fails file open will fail, so deal with errors there */
-        (void)SCMkDir(dirfull, 0700);
-
-        if ((pf->dirname = SCStrdup(dirfull)) == NULL) {
-            SCLogError("Error allocating memory for "
-                       "directory name");
-            goto error;
-        }
-
-        int written;
-        if (pl->timestamp_format == TS_FORMAT_SEC) {
-            written = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 "%s", dirfull, pl->prefix,
-                    (uint32_t)SCTIME_SECS(ts), pl->suffix);
-        } else {
-            written = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 ".%" PRIu32 "%s", dirfull,
-                    pl->prefix, (uint32_t)SCTIME_SECS(ts), (uint32_t)SCTIME_USECS(ts), pl->suffix);
-        }
-        if (written == PATH_MAX) {
-            SCLogError("log-pcap path overflow");
-            goto error;
-        }
-    } else if (pl->mode == LOGMODE_NORMAL) {
+    if (pl->mode == LOGMODE_NORMAL) {
         int ret;
         /* create the filename to use */
         if (pl->timestamp_format == TS_FORMAT_SEC) {
