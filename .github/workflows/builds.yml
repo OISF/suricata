@@ -269,7 +269,7 @@ jobs:
           CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j2 distcheck
         env:
-          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
       - run: test -e doc/userguide/suricata.1
       - name: Checking includes
         run: |
@@ -914,7 +914,7 @@ jobs:
         # Set the concurrency level for cocci.
         run: CONCURRENCY_LEVEL=2 make check
       - run: make distclean
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-lua
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -1100,7 +1100,7 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-lua
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -1518,6 +1518,7 @@ jobs:
                 libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
+                liblua5.4-dev \
                 libmagic-dev \
                 libnetfilter-queue-dev \
                 libnetfilter-queue1 \
@@ -1559,7 +1560,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: ./configure --with-gnu-ld --enable-fuzztargets --disable-shared --enable-gccprotect
+      - run: ./configure --with-gnu-ld --enable-fuzztargets --disable-shared  --enable-gccprotect
         env:
           LIB_FUZZING_ENGINE: "fail_to_onefile_driver"
           CC: "clang-14"
@@ -1648,7 +1649,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CFLAGS="$DEFAULT_CFLAGS -DNDEBUG" ./configure --enable-unittests
+      - run: CFLAGS="$DEFAULT_CFLAGS -DNDEBUG" ./configure --enable-unittests --disable-lua
       - run: make -j2
       - run: make check
       - run: make dist
@@ -1762,6 +1763,7 @@ jobs:
                 libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
+                liblua5.4-dev \
                 libmagic-dev \
                 libnetfilter-queue-dev \
                 libnetfilter-queue1 \
@@ -1841,6 +1843,7 @@ jobs:
                 libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
+                liblua5.4-dev \
                 libmagic-dev \
                 libnetfilter-queue-dev \
                 libnetfilter-queue1 \
@@ -1902,6 +1905,7 @@ jobs:
                   libyaml-dev \
                   libcap-ng-dev \
                   libcap-ng0 \
+                  liblua5.4-dev \
                   libmagic-dev \
                   libnetfilter-queue-dev \
                   libnetfilter-queue1 \
@@ -1995,6 +1999,7 @@ jobs:
                 libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
+                liblua5.4-dev \
                 libmagic-dev \
                 libnetfilter-queue-dev \
                 libnetfilter-queue1 \
@@ -2133,7 +2138,7 @@ jobs:
         # -j2 caused random failures during cargo vendor
       - run: make distcheck
         env:
-          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
       - run: test -e doc/userguide/suricata.1
       - run: test -e doc/userguide/userguide.pdf
       - name: Building Rust documentation
@@ -2182,6 +2187,7 @@ jobs:
               libyaml-dev \
               libcap-ng-dev \
               libcap-ng0 \
+              liblua5.4-dev \
               libmagic-dev \
               libjansson-dev \
               libjansson4 \
@@ -2297,7 +2303,7 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk
       - run: make -j2
       - run: make check
       - name: Building Rust documentation
@@ -2447,7 +2453,7 @@ jobs:
           cp prep/cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets --disable-lua
       - run: make -j2
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
@@ -2554,7 +2560,7 @@ jobs:
       - name: Build
         run: |
           ./autogen.sh
-          CFLAGS="-ggdb -Werror" ./configure --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared --with-libpcap-includes=/npcap/Include --with-libpcap-libraries=/npcap/Lib/x64
+          CFLAGS="-ggdb -Werror" ./configure --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared --disable-lua --with-libpcap-includes=/npcap/Include --with-libpcap-libraries=/npcap/Lib/x64
           make -j3
       - name: Run
         run: |
@@ -2599,7 +2605,7 @@ jobs:
       - name: Build
         run: |
           ./autogen.sh
-          CFLAGS="-ggdb -Werror" ./configure --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared --with-libpcap-includes=/npcap/Include --with-libpcap-libraries=/npcap/Lib/x64
+          CFLAGS="-ggdb -Werror" ./configure --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared --disable-lua --with-libpcap-includes=/npcap/Include --with-libpcap-libraries=/npcap/Lib/x64
           make -j3
       - name: Run
         run: |
@@ -2648,7 +2654,7 @@ jobs:
       - name: Build
         run: |
           ./autogen.sh
-          CFLAGS="-ggdb -Werror" ./configure --enable-gccprotect --disable-gccmarch-native --disable-shared --enable-windivert --with-windivert-include=/windivert/WinDivert-1.4.3-A/include --with-windivert-libraries=/windivert/WinDivert-1.4.3-A/x86_64
+          CFLAGS="-ggdb -Werror" ./configure --enable-gccprotect --disable-gccmarch-native --disable-shared --disable-lua --enable-windivert --with-windivert-include=/windivert/WinDivert-1.4.3-A/include --with-windivert-libraries=/windivert/WinDivert-1.4.3-A/x86_64
           make -j3
       - name: Run
         run: |
