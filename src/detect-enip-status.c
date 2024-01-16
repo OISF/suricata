@@ -58,7 +58,7 @@ static int DetectEnipStatusSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
     if (DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0)
         return -1;
 
-    DetectU32Data *du32 = DetectU32Parse(rulestr);
+    DetectU32Data *du32 = SCEnipParseStatus(rulestr);
     if (du32 == NULL) {
         return -1;
     }

@@ -24,30 +24,6 @@ use nom7::IResult;
 use super::constant::EnipCommand;
 use crate::detect::Enum;
 
-pub const ENIP_STATUS_SUCCESS: u32 = 0;
-pub const ENIP_STATUS_INVALID_CMD: u32 = 1;
-pub const ENIP_STATUS_NO_RESOURCES: u32 = 2;
-pub const ENIP_STATUS_INCORRECT_DATA: u32 = 3;
-pub const ENIP_STATUS_INVALID_SESSION: u32 = 0x64;
-pub const ENIP_STATUS_INVALID_LENGTH: u32 = 0x65;
-pub const ENIP_STATUS_UNSUPPORTED_PROT_REV: u32 = 0x69;
-//Found in wireshark
-pub const ENIP_STATUS_ENCAP_HEADER_ERROR: u32 = 0x6A;
-
-pub fn enip_status_string(v: u32) -> Option<&'static str> {
-    match v {
-        ENIP_STATUS_SUCCESS => Some("Success"),
-        ENIP_STATUS_INVALID_CMD => Some("InvalidCmd"),
-        ENIP_STATUS_NO_RESOURCES => Some("NoResources"),
-        ENIP_STATUS_INCORRECT_DATA => Some("IncorrectData"),
-        ENIP_STATUS_INVALID_SESSION => Some("InvalidSession"),
-        ENIP_STATUS_INVALID_LENGTH => Some("InvalidLength"),
-        ENIP_STATUS_UNSUPPORTED_PROT_REV => Some("UnsupportedProtRev"),
-        ENIP_STATUS_ENCAP_HEADER_ERROR => Some("EncapHeaderError"),
-        _ => None,
-    }
-}
-
 #[derive(Clone, Debug, Default)]
 pub struct EnipHeader {
     pub cmd: u16,

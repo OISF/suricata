@@ -18,11 +18,11 @@
 use crate::detect::Enum;
 use super::enip::EnipTransaction;
 use super::parser::{
-    cip_segment_type_string, enip_status_string, CipData, CipDir, EnipCIP,
+    cip_segment_type_string, CipData, CipDir, EnipCIP,
     EnipCipPathSegment, EnipCipRequestPayload, EnipCipResponsePayload, EnipHeader, EnipItemPayload,
     EnipPayload,
 };
-use super::constant::EnipCommand;
+use super::constant::{EnipCommand, EnipStatus};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use std;
 
@@ -32,13 +32,10 @@ fn log_enip_header(h: &EnipHeader, js: &mut JsonBuilder) -> Result<(), JsonError
     } else {
         js.set_string("command", &format!("unknown-{}", h.cmd))?;
     }
-    match enip_status_string(h.status) {
-        Some(val) => {
-            js.set_string("status", val)?;
-        }
-        None => {
-            js.set_string("status", &format!("unknown-{}", h.status))?;
-        }
+    if let Some(status) = EnipStatus::from_u(h.status) {
+        js.set_string("status", status.to_str())?;
+    } else {
+        js.set_string("status", &format!("unknown-{}", h.status))?;
     }
     if h.options != 0 {
         js.set_uint("options", h.options.into())?;

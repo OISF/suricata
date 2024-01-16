@@ -12,6 +12,7 @@ Examples::
   enip_command:ListIdentity;
 
 enip_command uses an :ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+It can also be specified by text from the enumeration.
 
 cip_service
 -----------
@@ -39,11 +40,13 @@ For the ENIP status, we are matching against the status field found in the ENIP 
 It uses a 32-bit unsigned integer as value.
 
 enip.status uses an :ref:`unsigned 32-bits integer <rules-integer-keywords>`.
+It can also be specified by text from the enumeration.
 
 Examples::
 
   enip.status:100;
   enip.status:>106;
+  enip.status:invalid_cmd;
 
 enip.protocol_version
 ---------------------

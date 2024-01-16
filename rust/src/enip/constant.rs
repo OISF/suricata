@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use suricata_derive::EnumStringU16;
+use suricata_derive::{EnumStringU16, EnumStringU32};
 
 #[derive(Clone, Debug, Default, EnumStringU16)]
 #[repr(u16)]
@@ -31,4 +31,19 @@ pub enum EnipCommand {
     SendUnitData = 0x70,
     IndicateStatus = 0x72,
     Cancel = 0x73,
+}
+
+#[derive(Clone, Debug, Default, EnumStringU32)]
+#[repr(u32)]
+pub enum EnipStatus {
+    #[default]
+    Success = 0,
+    InvalidCmd = 1,
+    NoResources = 2,
+    IncorrectData = 3,
+    InvalidSession = 0x64,
+    InvalidLength = 0x65,
+    UnsupportedProtRev = 0x69,
+//Found in wireshark
+    EncapHeaderError = 0x6A,
 }

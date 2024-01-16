@@ -22,7 +22,7 @@ use nom7::IResult;
 
 use std::ffi::c_void;
 
-use crate::enip::constant::EnipCommand;
+use crate::enip::constant::{EnipCommand, EnipStatus};
 use crate::enip::enip::EnipTransaction;
 use crate::enip::parser::{
     CipData, CipDir, EnipCipRequestPayload, EnipCipResponsePayload, EnipItemPayload, EnipPayload,
@@ -42,6 +42,20 @@ pub unsafe extern "C" fn SCEnipParseCommand(
     let raw: &CStr = CStr::from_ptr(raw); //unsafe
     if let Ok(s) = raw.to_str() {
         if let Some(ctx) = detect_parse_uint_enum::<u16, EnipCommand>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCEnipParseStatus(
+    raw: *const std::os::raw::c_char,
+) -> *mut DetectUintData<u32> {
+    let raw: &CStr = CStr::from_ptr(raw); //unsafe
+    if let Ok(s) = raw.to_str() {
+        if let Some(ctx) = detect_parse_uint_enum::<u32, EnipStatus>(s) {
             let boxed = Box::new(ctx);
             return Box::into_raw(boxed) as *mut _;
         }

@@ -16,7 +16,7 @@
  */
 
 use super::parser;
-use super::constant::EnipCommand;
+use super::constant::{EnipCommand, EnipStatus};
 use crate::detect::Enum;
 use crate::applayer::{self, *};
 use crate::conf::conf_get;
@@ -373,18 +373,8 @@ fn response_matches_request(req: &parser::EnipPdu, resp: &parser::EnipPdu) -> bo
 fn probe(input: &[u8]) -> bool {
     match parser::parse_enip_header(input) {
         Ok((rem, header)) => {
-            match header.status {
-                parser::ENIP_STATUS_SUCCESS
-                | parser::ENIP_STATUS_INVALID_CMD
-                | parser::ENIP_STATUS_NO_RESOURCES
-                | parser::ENIP_STATUS_INCORRECT_DATA
-                | parser::ENIP_STATUS_INVALID_SESSION
-                | parser::ENIP_STATUS_INVALID_LENGTH
-                | parser::ENIP_STATUS_UNSUPPORTED_PROT_REV
-                | parser::ENIP_STATUS_ENCAP_HEADER_ERROR => {} // Ok so far, continue
-                _ => {
-                    return false;
-                }
+            if EnipStatus::from_u(header.status).is_none() {
+                return false;
             }
 
             match EnipCommand::from_u(header.cmd) {
