@@ -1361,13 +1361,9 @@ int SigPrepareStage1(DetectEngineCtx *de_ctx)
     }
 
     de_ctx->sig_array_len = DetectEngineGetMaxSigId(de_ctx);
-    de_ctx->sig_array_size = (de_ctx->sig_array_len * sizeof(Signature *));
     de_ctx->sig_array = (Signature **)SCCalloc(de_ctx->sig_array_len, sizeof(Signature *));
     if (de_ctx->sig_array == NULL)
         goto error;
-
-    SCLogDebug("signature lookup array: %" PRIu32 " sigs, %" PRIu32 " bytes",
-               de_ctx->sig_array_len, de_ctx->sig_array_size);
 
     /* now for every rule add the source group */
     for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
