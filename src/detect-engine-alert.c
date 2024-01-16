@@ -319,8 +319,7 @@ static int AlertQueueSortHelper(const void *a, const void *b)
     const PacketAlert *pa1 = b;
     if (pa1->num == pa0->num)
         return pa0->tx_id < pa1->tx_id ? 1 : -1;
-    else
-        return pa0->num > pa1->num ? 1 : -1;
+    return pa0->num > pa1->num ? 1 : -1;
 }
 
 /** \internal
