@@ -2035,7 +2035,6 @@ static int SCACTest27(void)
 
 static int SCACTest28(void)
 {
-    int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
     PrefilterRuleStore pmq;
@@ -2053,69 +2052,51 @@ static int SCACTest28(void)
     const char *buf = "tONE";
     uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                (uint8_t *)buf, strlen(buf));
-
-    if (cnt == 0)
-        result = 1;
-    else
-        printf("0 != %" PRIu32 " ",cnt);
+    FAIL_IF_NOT(cnt == 0);
 
     SCACDestroyCtx(&mpm_ctx);
     PmqFree(&pmq);
-    return result;
+    PASS;
 }
 
 static int SCACTest29(void)
 {
     uint8_t buf[] = "onetwothreefourfivesixseveneightnine";
     uint16_t buflen = sizeof(buf) - 1;
-    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+    Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"onetwothreefourfivesixseveneightnine\"; sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
-    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"onetwothreefourfivesixseveneightnine\"; fast_pattern:3,3; sid:2;)");
-    if (de_ctx->sig_list->next == NULL)
-        goto end;
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
+            "(content:\"onetwothreefourfivesixseveneightnine\"; sid:1;)");
+    FAIL_IF_NULL(s);
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any "
+            "(content:\"onetwothreefourfivesixseveneightnine\"; fast_pattern:3,3; sid:2;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1) != 1) {
-        printf("if (PacketAlertCheck(p, 1) != 1) failure\n");
-        goto end;
-    }
-    if (PacketAlertCheck(p, 2) != 1) {
-        printf("if (PacketAlertCheck(p, 1) != 2) failure\n");
-        goto end;
-    }
 
-    result = 1;
-end:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
+    FAIL_IF(PacketAlertCheck(p, 1) != 1);
+    FAIL_IF(PacketAlertCheck(p, 2) != 1);
 
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StatsThreadCleanup(&th_v);
 
     UTHFreePackets(&p, 1);
-    return result;
+    PASS;
 }
 
 /** \test endswith logic */
