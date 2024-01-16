@@ -8,7 +8,8 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
 	     lua \
 	     acsite.m4 \
 	     scripts/generate-images.sh \
-		 .github/workflows/builds.yml \
+	     scripts/docs-almalinux9-minimal-build.sh \
+	     scripts/docs-ubuntu-debian-minimal-build.sh \
 	     examples/plugins
 SUBDIRS = $(HTP_DIR) rust src qa rules doc contrib etc python ebpf \
           $(SURICATA_UPDATE_DIR)
