@@ -70,16 +70,13 @@ pub fn smb2_session_setup_response(state: &mut SMBState, r: &Smb2Record)
     };
     // otherwise try match with ssn id 0 (e.g. NTLMSSP_NEGOTIATE)
     if !found {
-        match state.get_sessionsetup_tx(
+        if let Some(tx) = state.get_sessionsetup_tx(
                 SMBCommonHdr::new(SMBHDR_TYPE_HEADER, 0, 0, r.message_id))
         {
-            Some(tx) => {
-                smb2_session_setup_update_tx(tx, r);
-                SCLogDebug!("smb2_session_setup_response: tx {:?}", tx);
-            },
-            None => {
-                SCLogDebug!("smb2_session_setup_response: tx not found for {:?}", r);
-            },
+            smb2_session_setup_update_tx(tx, r);
+            SCLogDebug!("smb2_session_setup_response: tx {:?}", tx);
+        } else {
+            SCLogDebug!("smb2_session_setup_response: tx not found for {:?}", r);
         }
     }
 }
