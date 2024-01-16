@@ -457,8 +457,8 @@ look at all packets whenever you want.  In the normal mode a pcap file
 is created in the default-log-dir. It can also be created elsewhere if
 a absolute path is set in the yaml-file.
 
-The file that is saved in example the default -log-dir
-/var/log/suricata, can be be opened with every program which supports
+The file that is saved in example the ``default-log-dir``
+`/var/log/suricata`, can be be opened with every program which supports
 the pcap file format. This can be Wireshark, TCPdump, Suricata, Snort
 and many others.
 
@@ -466,25 +466,13 @@ The pcap-log option can be enabled and disabled.
 
 There is a size limit for the pcap-log file that can be set. The
 default limit is 32 MB. If the log-file reaches this limit, the file
-will be rotated and a new one will be created. The pcap-log option
-has an extra functionality for "Sguil":http://sguil.sourceforge.net/
-that can be enabled in the 'mode' option. In the sguil mode the
-"sguil_base_dir" indicates the base directory. In this base dir the
-pcaps are created in a Sguil-specific directory structure that is
-based on the day:
-
-::
-
-  $sguil_base_dir/YYYY-MM-DD/$filename.<timestamp>
-
-If you would like to use Suricata with Sguil, do not forget to enable
-(and if necessary modify) the base dir in the suricata.yaml file.
+will be rotated and a new one will be created.
 Remember that in the 'normal' mode, the file will be saved in
 default-log-dir or in the absolute path (if set).
 
 The pcap files can be compressed before being written to disk by setting
-the compression option to lz4. This option is incompatible with sguil
-mode. Note: On Windows, this option increases disk I/O instead of
+the compression option to lz4.
+Note: On Windows, this option increases disk I/O instead of
 reducing it. When using lz4 compression, you can enable checksums using
 the lz4-checksum option, and you can set the compression level lz4-level
 to a value between 0 and 16, where higher levels result in higher
@@ -514,8 +502,7 @@ the alert.
       # Limit in MB.
       limit: 32
 
-      mode: sguil # "normal" (default) or sguil.
-      sguil_base_dir: /nsm_data/
+      mode: normal # "normal" or multi
       conditional: alerts
 
 Verbose Alerts Log (alert-debug.log)
