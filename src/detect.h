@@ -850,7 +850,6 @@ typedef struct DetectEngineCtx_ {
     SRepCIDRTree *srepCIDR_ctx;
 
     Signature **sig_array;
-    uint32_t sig_array_size; /* size in bytes */
     uint32_t sig_array_len;  /* size in array members */
 
     uint32_t signum;
