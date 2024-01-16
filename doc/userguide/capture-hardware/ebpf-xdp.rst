@@ -80,15 +80,14 @@ Make sure you have ``clang`` (>=3.9) installed on the system  ::
 
  sudo apt install clang
 
-Some i386 headers will also be needed as eBPF is not x86_64 and some included headers
-are architecture specific ::
-
- sudo apt install libc6-dev-i386 --no-install-recommends
-
 libbpf
 ~~~~~~
 
 Suricata uses libbpf to interact with eBPF and XDP ::
+
+  sudo apt install libbpf-dev
+
+If the libbpf package is unavailable, it can cloned from the repository ::
 
  git clone https://github.com/libbpf/libbpf.git
 
@@ -100,6 +99,11 @@ Now, you can build and install the library ::
  sudo make install_headers
  sudo ldconfig
 
+You may miss some i386 headers (as eBPF is not x86_64 and some included headers
+are architecture specific) ::
+
+ sudo apt install libc6-dev-i386 --no-install-recommends
+
 In some cases your system will not find the libbpf library that is installed under
 ``/usr/lib64`` so you may need to modify your ldconfig configuration.
 
@@ -109,7 +113,7 @@ Compile and install Suricata
 To get Suricata source, you can use the usual ::
 
  git clone https://github.com/OISF/suricata.git
- cd suricata && git clone https://github.com/OISF/libhtp.git -b 0.5.x
+ cd suricata && ./scripts/bundle.sh
 
  ./autogen.sh
 
