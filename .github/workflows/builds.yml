@@ -266,7 +266,7 @@ jobs:
           CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j ${{ env.CPUS }} distcheck
         env:
-          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
           MAKEFLAGS: "-j ${{ env.CPUS }}"
       - run: test -e doc/userguide/suricata.1
       - name: Checking includes
@@ -458,7 +458,6 @@ jobs:
                 git \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libtool \
                 libyaml-devel \
                 libnfnetlink-devel \
@@ -514,7 +513,7 @@ jobs:
       - name: Configuring
         run: |
           ./autogen.sh
-          CFLAGS="${DEFAULT_CFLAGS}" ./configure
+          CFLAGS="${DEFAULT_CFLAGS}" ./configure --disable-lua
       - run: make -j ${{ env.CPUS }} check
       - name: Checking includes
         run: |
@@ -654,7 +653,6 @@ jobs:
                 git \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libtool \
                 libyaml-devel \
                 libnfnetlink-devel \
@@ -681,7 +679,7 @@ jobs:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
       - name: ./configure
-        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
+        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --disable-lua
       - run: make -j ${{ env.CPUS }}
       - run: make install
       - run: make install-conf
@@ -877,7 +875,7 @@ jobs:
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow" ./configure --disable-shared
       - run: make check
       - run: make distclean
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-lua
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -1728,7 +1726,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CFLAGS="$DEFAULT_CFLAGS -DNDEBUG" ./configure --enable-unittests
+      - run: CFLAGS="$DEFAULT_CFLAGS -DNDEBUG" ./configure --enable-unittests --disable-lua
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: make dist
@@ -1858,6 +1856,7 @@ jobs:
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
+                liblua5.4-dev \
                 libpython2.7 \
                 make \
                 parallel \
@@ -1948,6 +1947,7 @@ jobs:
                 libnfnetlink0 \
                 libhiredis-dev \
                 libjansson-dev \
+                liblua5.4-dev \
                 libpython2.7 \
                 make \
                 rustc \
@@ -2018,6 +2018,7 @@ jobs:
                   libjansson-dev \
                   libevent-dev \
                   libevent-pthreads-2.1-7 \
+                  liblua5.4-dev \
                   libpython2.7 \
                   make \
                   parallel \
@@ -2109,6 +2110,7 @@ jobs:
                 libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
+                liblua5.4-dev \
                 libmagic-dev \
                 libnetfilter-queue-dev \
                 libnetfilter-queue1 \
@@ -2268,7 +2270,7 @@ jobs:
         # -j2 caused random failures during cargo vendor
       - run: make distcheck
         env:
-          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
       - run: test -e doc/userguide/suricata.1
       - run: test -e doc/userguide/userguide.pdf
       - name: Building Rust documentation
@@ -2323,6 +2325,7 @@ jobs:
               libmagic-dev \
               libjansson-dev \
               libjansson4 \
+              liblua5.4-dev \
               liblz4-dev \
               libssl-dev \
               liblzma-dev \
@@ -2442,7 +2445,7 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - name: Building Rust documentation
@@ -2608,7 +2611,7 @@ jobs:
           cp prep/cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets --disable-lua
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
@@ -2689,7 +2692,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 mingw-w64-x86_64-lua
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
@@ -2745,7 +2748,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap mingw-w64-x86_64-lua
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
@@ -2789,7 +2792,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-jq mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap mingw-w64-x86_64-lua
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen

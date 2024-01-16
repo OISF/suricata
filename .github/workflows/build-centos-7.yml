@@ -57,7 +57,6 @@ jobs:
                 git \
                 jansson-devel \
                 jq \
-                lua-devel \
                 libtool \
                 libyaml-devel \
                 libnfnetlink-devel \
@@ -169,7 +168,7 @@ jobs:
           git -c advice.detachedHead=false checkout FETCH_HEAD
 
       - run: ./autogen.sh
-      - run: ./configure
+      - run: ./configure --disable-lua
       - run: make -j ${{ env.CPUS }}
       - run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install-full
