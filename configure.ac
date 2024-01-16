@@ -1879,9 +1879,9 @@
 
   # liblua
     AC_ARG_ENABLE(lua,
-            AS_HELP_STRING([--enable-lua],[Enable Lua support]),
+            AS_HELP_STRING([--disable-lua],[Disable Lua support]),
                 [ enable_lua="$enableval"],
-                [ enable_lua="no"])
+                [ enable_lua="yes"])
 
     AC_ARG_WITH(liblua_includes,
             [  --with-liblua-includes=DIR  liblua include directory],

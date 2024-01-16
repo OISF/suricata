@@ -88,7 +88,7 @@ jobs:
               git checkout $rev
               echo "Building rev ${rev}" | tee -a build_log.txt
               ./autogen.sh >> build_log.txt 2>&1
-              CC="sccache gcc" ./configure --enable-unittests >> build_log.txt 2>&1
+              CC="sccache gcc" ./configure --enable-unittests --disable-lua >> build_log.txt 2>&1
               if ! make -j2 >> build_log.txt 2>&1; then
                   echo "::error ::Failed to build rev ${rev}"
                   tail -n 50 build_log.txt
