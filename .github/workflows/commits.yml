@@ -43,6 +43,7 @@ jobs:
                 libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
+                liblua5.4-dev \
                 libmagic-dev \
                 libnetfilter-queue-dev \
                 libnetfilter-queue1 \
