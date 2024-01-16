@@ -2118,6 +2118,35 @@ end:
     return result;
 }
 
+/** \test endswith logic */
+static int SCACTest30(void)
+{
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+    PrefilterRuleStore pmq;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC);
+
+    /* 0 match */
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)"xyz", 3, 0, 0, 0, 0, MPM_PATTERN_FLAG_ENDSWITH);
+    PmqSetup(&pmq);
+
+    SCACPreparePatterns(&mpm_ctx);
+
+    const char *buf1 = "abcdefghijklmnopqrstuvwxyz";
+    uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf1, strlen(buf1));
+    FAIL_IF_NOT(cnt == 1);
+    const char *buf2 = "xyzxyzxyzxyzxyzxyzxyza";
+    cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf2, strlen(buf2));
+    FAIL_IF_NOT(cnt == 0);
+
+    SCACDestroyCtx(&mpm_ctx);
+    PmqFree(&pmq);
+    PASS;
+}
+
 void SCACRegisterTests(void)
 {
     UtRegisterTest("SCACTest01", SCACTest01);
@@ -2149,5 +2178,6 @@ void SCACRegisterTests(void)
     UtRegisterTest("SCACTest27", SCACTest27);
     UtRegisterTest("SCACTest28", SCACTest28);
     UtRegisterTest("SCACTest29", SCACTest29);
+    UtRegisterTest("SCACTest30", SCACTest30);
 }
 #endif /* UNITTESTS */
