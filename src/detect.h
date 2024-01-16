@@ -354,7 +354,7 @@ typedef struct SigMatch_ {
 /** \brief Data needed for Match() */
 typedef struct SigMatchData_ {
     uint16_t type;   /**< match type */
-    uint8_t is_last; /**< Last element of the list */
+    bool is_last;    /**< Last element of the list */
     SigMatchCtx *ctx; /**< plugin specific data */
 } SigMatchData;
 
