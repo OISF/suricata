@@ -878,7 +878,7 @@ typedef struct DetectEngineCtx_ {
     ThresholdCtx ths_ctx;
 
     /* maximum recursion depth for content inspection */
-    int inspection_recursion_limit;
+    uint32_t inspection_recursion_limit;
 
     /* registration id for per thread ctx for the filemagic/file.magic keywords */
     int filemagic_thread_ctx_id;

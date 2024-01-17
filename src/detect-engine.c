@@ -89,7 +89,7 @@
 
 #include "reputation.h"
 
-#define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
+#define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000U
 
 static int DetectEngineCtxLoadConf(DetectEngineCtx *);
 
@@ -2861,11 +2861,11 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             }
 
             if (insp_recursion_limit != NULL) {
-                if (StringParseInt32(&de_ctx->inspection_recursion_limit, 10,
-                                     0, (const char *)insp_recursion_limit) < 0) {
+                if (StringParseUint32(&de_ctx->inspection_recursion_limit, 10, 0,
+                            (const char *)insp_recursion_limit) < 0) {
                     SCLogWarning("Invalid value for "
                                  "detect-engine.inspection-recursion-limit: %s "
-                                 "resetting to %d",
+                                 "resetting to %u",
                             insp_recursion_limit, DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT);
                     de_ctx->inspection_recursion_limit =
                         DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT;
