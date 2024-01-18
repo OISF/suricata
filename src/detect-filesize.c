@@ -133,6 +133,17 @@ static int DetectFilesizeSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     }
 
     s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_SIZE);
+    if ((s->init_data->init_flags & SIG_FLAG_INIT_BIDIR_TOCLIENT) == 0) {
+        // we cannot use a bidirectional rule with a fast pattern to client and this
+        if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIR_FAST_TOCLIENT) {
+            SCLogError("fast_pattern cannot be used on to_client keyword for "
+                       "bidirectional rule with a streaming buffer to server %u",
+                    s->id);
+            DetectFilesizeFree(de_ctx, fsd);
+            SCReturnInt(-1);
+        }
+        s->init_data->init_flags |= SIG_FLAG_INIT_BIDIR_STREAMING_TOSERVER;
+    }
     SCReturnInt(0);
 }
 
