@@ -1394,6 +1394,8 @@ static int SigParseBasics(DetectEngineCtx *de_ctx, Signature *s, const char *sig
 
     if (strcmp(parser->direction, "<>") == 0) {
         s->init_data->init_flags |= SIG_FLAG_INIT_BIDIREC;
+    } else if (strcmp(parser->direction, "=>") == 0) {
+        s->flags |= SIG_FLAG_BOTHDIR;
     } else if (strcmp(parser->direction, "->") != 0) {
         SCLogError("\"%s\" is not a valid direction modifier, "
                    "\"->\" and \"<>\" are supported.",
@@ -2013,8 +2015,21 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCLogDebug("%s/%d: %d/%d", DetectEngineBufferTypeGetNameById(de_ctx, x), x, bufdir[x].ts,
                 bufdir[x].tc);
     }
-    if (ts_excl && tc_excl) {
-        SCLogError("rule %u mixes keywords with conflicting directions", s->id);
+    if (s->flags & SIG_FLAG_BOTHDIR) {
+        if (!ts_excl || !tc_excl) {
+            SCLogError("rule %u should use both directions, but does not", s->id);
+            SCReturnInt(0);
+        }
+        if (dir_amb) {
+            SCLogError("rule %u means to use both directions, cannot have keywords ambiguous about "
+                       "directions",
+                    s->id);
+            SCReturnInt(0);
+        }
+    } else if (ts_excl && tc_excl) {
+        SCLogError("rule %u mixes keywords with conflicting directions, a bidirection rule with => "
+                   "should be used",
+                s->id);
         SCReturnInt(0);
     } else if (ts_excl) {
         SCLogDebug("%u: implied rule direction is toserver", s->id);

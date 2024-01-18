@@ -29,6 +29,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-content.h"
+#include "detect-engine-mpm.h"
 #include "detect-prefilter.h"
 #include "util-debug.h"
 
@@ -75,6 +76,15 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     /* if the sig match is content, prefilter should act like
      * 'fast_pattern' w/o options. */
     if (sm->type == DETECT_CONTENT) {
+        if (s->flags & SIG_FLAG_BOTHDIR && s->init_data->curbuf != NULL) {
+            if (DetectBufferToClient(de_ctx, s->init_data->curbuf->id, s->alproto)) {
+                SCLogError("prefilter cannot be used on to_client keyword for "
+                           "bidirectional rule %u",
+                        s->id);
+                SCReturnInt(-1);
+            }
+        }
+
         DetectContentData *cd = (DetectContentData *)sm->ctx;
         if ((cd->flags & DETECT_CONTENT_NEGATED) &&
                 ((cd->flags & DETECT_CONTENT_DISTANCE) ||

@@ -135,5 +135,7 @@ struct MpmListIdDataArgs {
 
 void EngineAnalysisAddAllRulePatterns(DetectEngineCtx *de_ctx, const Signature *s);
 
+bool DetectBufferToClient(const DetectEngineCtx *de_ctx, int buf_id, AppProto alproto);
+
 #endif /* __DETECT_ENGINE_MPM_H__ */
 
