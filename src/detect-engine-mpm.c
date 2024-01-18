@@ -1049,6 +1049,19 @@ static SigMatch *GetMpmForList(const Signature *s, SigMatch *list, SigMatch *mpm
 
 int g_skip_prefilter = 0;
 
+bool DetectBufferToClient(const DetectEngineCtx *de_ctx, int buf_id, AppProto alproto)
+{
+    const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
+    for (; app != NULL; app = app->next) {
+        if (app->sm_list == buf_id && (AppProtoEquals(alproto, app->alproto) || alproto == 0)) {
+            if (app->dir == 1) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
 {
     if (g_skip_prefilter)
@@ -1151,6 +1164,11 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
              tmp != NULL && priority == tmp->priority;
              tmp = tmp->next)
         {
+            if (s->flags & SIG_FLAG_BOTHDIR) {
+                if (DetectBufferToClient(de_ctx, tmp->list_id, s->alproto)) {
+                    continue;
+                }
+            }
             SCLogDebug("tmp->list_id %d tmp->priority %d", tmp->list_id, tmp->priority);
             if (tmp->list_id >= nlists)
                 continue;
