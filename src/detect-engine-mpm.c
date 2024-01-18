@@ -1168,6 +1168,22 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
              tmp != NULL && priority == tmp->priority;
              tmp = tmp->next)
         {
+            if (s->init_data->init_flags & SIG_FLAG_INIT_BOTHDIR) {
+                const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
+                bool skip = false;
+                for (; app != NULL; app = app->next) {
+                    if (app->sm_list == tmp->list_id &&
+                            (AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
+                        if (app->dir == 1) {
+                            skip = true;
+                            break;
+                        }
+                    }
+                }
+                if (skip) {
+                    continue;
+                }
+            }
             SCLogDebug("tmp->list_id %d tmp->priority %d", tmp->list_id, tmp->priority);
             if (tmp->list_id >= nlists)
                 continue;

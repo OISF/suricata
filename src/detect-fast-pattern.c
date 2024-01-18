@@ -238,6 +238,23 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
         pm = pm2;
     }
 
+    if (s->init_data->init_flags & SIG_FLAG_INIT_BOTHDIR) {
+        if (s->init_data->curbuf != NULL) {
+            const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
+            for (; app != NULL; app = app->next) {
+                if (app->sm_list == s->init_data->curbuf->id &&
+                        (AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
+                    if (app->dir == 1) {
+                        SCLogError("fast_pattern cannot be used on to_client keyword for "
+                                   "bidirectional rule %u",
+                                s->id);
+                        goto error;
+                    }
+                }
+            }
+        }
+    }
+
     cd = (DetectContentData *)pm->ctx;
     if ((cd->flags & DETECT_CONTENT_NEGATED) &&
         ((cd->flags & DETECT_CONTENT_DISTANCE) ||

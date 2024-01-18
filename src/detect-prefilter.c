@@ -75,6 +75,23 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     /* if the sig match is content, prefilter should act like
      * 'fast_pattern' w/o options. */
     if (sm->type == DETECT_CONTENT) {
+        if (s->init_data->init_flags & SIG_FLAG_INIT_BOTHDIR) {
+            if (s->init_data->curbuf != NULL) {
+                const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
+                for (; app != NULL; app = app->next) {
+                    if (app->sm_list == s->init_data->curbuf->id &&
+                            (AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
+                        if (app->dir == 1) {
+                            SCLogError("prefilter cannot be used on to_client keyword for "
+                                       "bidirectional rule %u",
+                                    s->id);
+                            SCReturnInt(-1);
+                        }
+                    }
+                }
+            }
+        }
+
         DetectContentData *cd = (DetectContentData *)sm->ctx;
         if ((cd->flags & DETECT_CONTENT_NEGATED) &&
                 ((cd->flags & DETECT_CONTENT_DISTANCE) ||
