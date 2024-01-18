@@ -1173,7 +1173,22 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 inspect_flags |= BIT_U32(engine->id);
             }
             break;
+        } else if (!(inspect_flags & BIT_U32(engine->id)) && s->flags & SIG_FLAG_BOTHDIR &&
+                   direction != engine->dir) {
+            const bool skip_engine = (engine->alproto != 0 && engine->alproto != f->alproto);
+            /* special case: 'alert http' will have engines
+             * for both HTTP1 and HTTP2. */
+            if (unlikely(skip_engine)) {
+                engine = engine->next;
+                continue;
+            }
+            // for bidirectional rules, for engines on the opposite direction
+            // as the current packet, check if we have enough progress in the tx.
+            // That means, do not return a full match, if we have only the request
+            // as there are response engines to inspect later.
+            break;
         }
+
         engine = engine->next;
     } while (engine != NULL);
     TRACE_SID_TXS(s->id, tx, "inspect_flags %x, total_matches %u, engine %p",
@@ -1232,7 +1247,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
 
 #define NO_TX                                                                                      \
     {                                                                                              \
-        NULL, 0, NULL, NULL, 0, 0, 0, 0, 0,                                                        \
+        NULL, 0, NULL, NULL, NULL, 0, 0, 0, 0, 0,                                                  \
     }
 
 /** \internal
@@ -1272,16 +1287,18 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
     DEBUG_VALIDATE_BUG_ON(prefilter_flags & APP_LAYER_TX_RESERVED_FLAGS);
 
     DetectTransaction tx = {
-                            .tx_ptr = tx_ptr,
-                            .tx_id = tx_id,
-                            .tx_data_ptr = (struct AppLayerTxData *)txd,
-                            .de_state = tx_dir_state,
-                            .detect_flags = detect_flags,
-                            .prefilter_flags = prefilter_flags,
-                            .prefilter_flags_orig = prefilter_flags,
-                            .tx_progress = tx_progress,
-                            .tx_end_state = tx_end_state,
-                           };
+        .tx_ptr = tx_ptr,
+        .tx_id = tx_id,
+        .tx_data_ptr = (struct AppLayerTxData *)txd,
+        .de_state = tx_dir_state,
+        .de_state_bidir =
+                tx_de_state ? &tx_de_state->dir_state[DETECT_ENGINE_STATE_DIRECTION_BOTHDIR] : NULL,
+        .detect_flags = detect_flags,
+        .prefilter_flags = prefilter_flags,
+        .prefilter_flags_orig = prefilter_flags,
+        .tx_progress = tx_progress,
+        .tx_end_state = tx_end_state,
+    };
     return tx;
 }
 
@@ -1296,6 +1313,52 @@ static inline void StoreDetectFlags(DetectTransaction *tx, const uint8_t flow_fl
             txd->detect_flags_tc = detect_flags;
         }
     }
+}
+
+static bool RuleMatchCandidateMergeStoredState(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, DetectTransaction tx, DetectEngineStateDirection *de_state,
+        uint32_t *array_idx)
+{
+    if (de_state == NULL) {
+        return false;
+    }
+    const uint32_t old = *array_idx;
+
+    /* if de_state->flags has 'new file' set and sig below has
+     * 'file inspected' flag, reset the file part of the state */
+    const bool have_new_file = (de_state->flags & DETECT_ENGINE_STATE_FLAG_FILE_NEW);
+    if (have_new_file) {
+        SCLogDebug("%p/%" PRIu64 " destate: need to consider new file", tx.tx_ptr, tx.tx_id);
+        de_state->flags &= ~DETECT_ENGINE_STATE_FLAG_FILE_NEW;
+    }
+
+    SigIntId state_cnt = 0;
+    DeStateStore *tx_store = de_state->head;
+    for (; tx_store != NULL; tx_store = tx_store->next) {
+        SCLogDebug("tx_store %p", tx_store);
+
+        SigIntId store_cnt = 0;
+        for (store_cnt = 0; store_cnt < DE_STATE_CHUNK_SIZE && state_cnt < de_state->cnt;
+                store_cnt++, state_cnt++) {
+            DeStateStoreItem *item = &tx_store->store[store_cnt];
+            SCLogDebug("rule id %u, inspect_flags %u", item->sid, item->flags);
+            if (have_new_file && (item->flags & DE_STATE_FLAG_FILE_INSPECT)) {
+                /* remove part of the state. File inspect engine will now
+                 * be able to run again */
+                item->flags &= ~(DE_STATE_FLAG_SIG_CANT_MATCH | DE_STATE_FLAG_FULL_INSPECT |
+                                 DE_STATE_FLAG_FILE_INSPECT);
+                SCLogDebug("rule id %u, post file reset inspect_flags %u", item->sid, item->flags);
+            }
+            det_ctx->tx_candidates[*array_idx].s = de_ctx->sig_array[item->sid];
+            det_ctx->tx_candidates[*array_idx].id = item->sid;
+            det_ctx->tx_candidates[*array_idx].flags = &item->flags;
+            det_ctx->tx_candidates[*array_idx].stream_reset = 0;
+            (*array_idx)++;
+        }
+    }
+    SCLogDebug("%p/%" PRIu64 " rules added from 'continue' list: %u", tx.tx_ptr, tx.tx_id,
+            *array_idx - old);
+    return (old && old != *array_idx); // sort if continue list adds sids
 }
 
 // Merge 'state' rules from the regular prefilter
@@ -1414,6 +1477,7 @@ static void DetectRunTx(ThreadVars *tv,
         uint32_t array_idx = 0;
         uint32_t total_rules = det_ctx->match_array_cnt;
         total_rules += (tx.de_state ? tx.de_state->cnt : 0);
+        total_rules += (tx.de_state_bidir ? tx.de_state_bidir->cnt : 0);
 
         /* run prefilter engines and merge results into a candidates array */
         if (sgh->tx_engines) {
@@ -1452,47 +1516,9 @@ static void DetectRunTx(ThreadVars *tv,
         RuleMatchCandidateMergeStateRules(det_ctx, &array_idx);
 
         /* merge stored state into results */
-        if (tx.de_state != NULL) {
-            const uint32_t old = array_idx;
-
-            /* if tx.de_state->flags has 'new file' set and sig below has
-             * 'file inspected' flag, reset the file part of the state */
-            const bool have_new_file = (tx.de_state->flags & DETECT_ENGINE_STATE_FLAG_FILE_NEW);
-            if (have_new_file) {
-                SCLogDebug("%p/%"PRIu64" destate: need to consider new file",
-                        tx.tx_ptr, tx.tx_id);
-                tx.de_state->flags &= ~DETECT_ENGINE_STATE_FLAG_FILE_NEW;
-            }
-
-            SigIntId state_cnt = 0;
-            DeStateStore *tx_store = tx.de_state->head;
-            for (; tx_store != NULL; tx_store = tx_store->next) {
-                SCLogDebug("tx_store %p", tx_store);
-
-                SigIntId store_cnt = 0;
-                for (store_cnt = 0;
-                        store_cnt < DE_STATE_CHUNK_SIZE && state_cnt < tx.de_state->cnt;
-                        store_cnt++, state_cnt++)
-                {
-                    DeStateStoreItem *item = &tx_store->store[store_cnt];
-                    SCLogDebug("rule id %u, inspect_flags %u", item->sid, item->flags);
-                    if (have_new_file && (item->flags & DE_STATE_FLAG_FILE_INSPECT)) {
-                        /* remove part of the state. File inspect engine will now
-                         * be able to run again */
-                        item->flags &= ~(DE_STATE_FLAG_SIG_CANT_MATCH|DE_STATE_FLAG_FULL_INSPECT|DE_STATE_FLAG_FILE_INSPECT);
-                        SCLogDebug("rule id %u, post file reset inspect_flags %u", item->sid, item->flags);
-                    }
-                    det_ctx->tx_candidates[array_idx].s = de_ctx->sig_array[item->sid];
-                    det_ctx->tx_candidates[array_idx].id = item->sid;
-                    det_ctx->tx_candidates[array_idx].flags = &item->flags;
-                    det_ctx->tx_candidates[array_idx].stream_reset = 0;
-                    array_idx++;
-                }
-            }
-            do_sort |= (old && old != array_idx); // sort if continue list adds sids
-            SCLogDebug("%p/%" PRIu64 " rules added from 'continue' list: %u", tx.tx_ptr, tx.tx_id,
-                    array_idx - old);
-        }
+        do_sort |= RuleMatchCandidateMergeStoredState(de_ctx, det_ctx, tx, tx.de_state, &array_idx);
+        do_sort |= RuleMatchCandidateMergeStoredState(
+                de_ctx, det_ctx, tx, tx.de_state_bidir, &array_idx);
         if (do_sort) {
             qsort(det_ctx->tx_candidates, array_idx, sizeof(RuleMatchCandidateTx),
                     DetectRunTxSortHelper);

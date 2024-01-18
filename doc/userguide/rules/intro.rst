@@ -226,10 +226,15 @@ Direction
 
 The directional arrow indicates which way the signature will be evaluated.
 In most signatures an arrow to the right (``->``) is used. This means that only
-packets with the same direction can match. However, it is also possible to
-have a rule match both directions (``<>``)::
+packets with the same direction can match.
+It is also possible to have a double arrow (``=>``) which means that the
+directionality for adresses and ports is used,
+but such a rule can match a bidirectional transaction, using keywords
+matching in each direction.
+However, it is also possible to have a rule match both directions (``<>``)::
 
   source -> destination
+  source => destination
   source <> destination  (both directions)
 
 The following example illustrates direction. In this example there is a client
@@ -249,6 +254,25 @@ as the direction specifies that we do not want to evaluate the response packet.
 .. warning::
 
    There is no 'reverse' style direction, i.e. there is no ``<-``.
+
+Here is an example of a bidirectional rule:
+
+.. container:: example-rule
+
+    alert http any any :example-rule-emphasis:`=>` 5.6.7.8 80 (msg:"matching both uri and status"; sid: 1; http.uri; content: "/download"; http.stat_code; content: "200";)
+
+It will match on flows to 5.6.7.8 and port 80.
+And it will match on a full transaction, using both the uri from the request,
+and the stat_code from the response.
+As such, it will match only when Suricata got both request and response.
+
+Bidirectional rules have some limitations :
+- They are only meant to work on transactions with first a request to the server,
+and then a response to the client, and not the other way around.
+- They cannot have ``fast_pattern`` or ``prefilter`` on a keyword which is on
+the direction to client.
+- They will not work with ambiguous keywords, which work for both directions.
+- They will refuse to load if a single directional rule is enough.
 
 Rule options
 ------------
