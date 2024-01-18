@@ -1418,6 +1418,8 @@ static int SigParseBasics(DetectEngineCtx *de_ctx, Signature *s, const char *sig
 
     if (strcmp(parser->direction, "<>") == 0) {
         s->init_data->init_flags |= SIG_FLAG_INIT_BIDIREC;
+    } else if (strcmp(parser->direction, "=>") == 0) {
+        s->flags |= SIG_FLAG_TXBOTHDIR;
     } else if (strcmp(parser->direction, "->") != 0) {
         SCLogError("\"%s\" is not a valid direction modifier, "
                    "\"->\" and \"<>\" are supported.",
@@ -2142,6 +2144,9 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     } bufdir[nlists + 1];
     memset(&bufdir, 0, (nlists + 1) * sizeof(struct BufferVsDir));
 
+    int ts_excl = 0;
+    int tc_excl = 0;
+
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         SignatureInitDataBuffer *b = &s->init_data->buffers[x];
         const DetectBufferType *bt = DetectEngineBufferTypeGetById(de_ctx, b->id);
@@ -2179,8 +2184,16 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                         DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list), app->dir,
                         app->alproto);
                 SCLogDebug("b->id %d nlists %d", b->id, nlists);
-                bufdir[b->id].ts += (app->dir == 0);
-                bufdir[b->id].tc += (app->dir == 1);
+                if (b->only_tc) {
+                    if (app->dir == 1)
+                        tc_excl++;
+                } else if (b->only_ts) {
+                    if (app->dir == 0)
+                        ts_excl++;
+                } else {
+                    bufdir[b->id].ts += (app->dir == 0);
+                    bufdir[b->id].tc += (app->dir == 1);
+                }
             }
         }
 
@@ -2196,8 +2209,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    int ts_excl = 0;
-    int tc_excl = 0;
     int dir_amb = 0;
     for (int x = 0; x < nlists; x++) {
         if (bufdir[x].ts == 0 && bufdir[x].tc == 0)
@@ -2209,8 +2220,22 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCLogDebug("%s/%d: %d/%d", DetectEngineBufferTypeGetNameById(de_ctx, x), x, bufdir[x].ts,
                 bufdir[x].tc);
     }
-    if (ts_excl && tc_excl) {
-        SCLogError("rule %u mixes keywords with conflicting directions", s->id);
+    if (s->flags & SIG_FLAG_TXBOTHDIR) {
+        if (!ts_excl || !tc_excl) {
+            SCLogError("rule %u should use both directions, but does not", s->id);
+            SCReturnInt(0);
+        }
+        if (dir_amb) {
+            SCLogError("rule %u means to use both directions, cannot have keywords ambiguous about "
+                       "directions",
+                    s->id);
+            SCReturnInt(0);
+        }
+    } else if (ts_excl && tc_excl) {
+        SCLogError(
+                "rule %u mixes keywords with conflicting directions, a transactional rule with => "
+                "should be used",
+                s->id);
         SCReturnInt(0);
     } else if (ts_excl) {
         SCLogDebug("%u: implied rule direction is toserver", s->id);
@@ -3006,6 +3031,42 @@ void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *detect_par
     }
 }
 
+/**
+ * \brief Parse and setup a direction
+ *
+ * \param s siganture
+ * \param str argument to the keyword
+ *
+ * \retval 0 on success, -1 on failure
+ */
+int DetectSetupDirection(Signature *s, const char *str)
+{
+    if (str) {
+        if (strcmp(str, "to_client") == 0) {
+            s->init_data->init_flags |= SIG_FLAG_INIT_FORCE_TOCLIENT;
+            if ((s->flags & SIG_FLAG_TXBOTHDIR) == 0) {
+                if (s->flags & SIG_FLAG_TOSERVER) {
+                    SCLogError("contradictory directions");
+                    return -1;
+                }
+                s->flags |= SIG_FLAG_TOCLIENT;
+            }
+        } else if (strcmp(str, "to_server") == 0) {
+            s->init_data->init_flags |= SIG_FLAG_INIT_FORCE_TOSERVER;
+            if ((s->flags & SIG_FLAG_TXBOTHDIR) == 0) {
+                if (s->flags & SIG_FLAG_TOCLIENT) {
+                    SCLogError("contradictory directions");
+                    return -1;
+                }
+                s->flags |= SIG_FLAG_TOSERVER;
+            }
+        } else {
+            SCLogError("unknown option: only accepts to_server or to_client");
+            return -1;
+        }
+    }
+    return 0;
+}
 
 /*
  * TESTS
