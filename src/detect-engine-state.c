@@ -89,9 +89,9 @@ static DeStateStore *DeStateStoreAlloc(void)
 }
 
 #ifdef DEBUG_VALIDATION
-static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIntId num)
+static int DeStateSearchState(DetectEngineState *state, uint8_t dsi, SigIntId num)
 {
-    DetectEngineStateDirection *dir_state = &state->dir_state[direction & STREAM_TOSERVER ? 0 : 1];
+    DetectEngineStateDirection *dir_state = &state->dir_state[dsi];
     DeStateStore *tx_store = dir_state->head;
     SigIntId store_cnt;
     SigIntId state_cnt = 0;
@@ -120,11 +120,15 @@ static void DeStateSignatureAppend(DetectEngineState *state,
 {
     SCEnter();
 
-    DetectEngineStateDirection *dir_state =
-            &state->dir_state[(direction & STREAM_TOSERVER) ? 0 : 1];
+    uint8_t dsi = (direction & STREAM_TOSERVER) ? 0 : 1;
+    if (s->flags & SIG_FLAG_BOTHDIR) {
+        dsi = DETECT_ENGINE_STATE_DIRECTION_BOTHDIR;
+    }
+
+    DetectEngineStateDirection *dir_state = &state->dir_state[dsi];
 
 #ifdef DEBUG_VALIDATION
-    BUG_ON(DeStateSearchState(state, direction, s->num));
+    BUG_ON(DeStateSearchState(state, dsi, s->num));
 #endif
     DeStateStore *store = dir_state->tail;
     if (store == NULL) {
@@ -172,7 +176,7 @@ void DetectEngineStateFree(DetectEngineState *state)
     DeStateStore *store_next;
     int i = 0;
 
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < DETECT_ENGINE_STATE_DIRECTIONS; i++) {
         store = state->dir_state[i].head;
         while (store != NULL) {
             store_next = store->next;
@@ -239,17 +243,13 @@ void DetectRunStoreStateTx(
 static inline void ResetTxState(DetectEngineState *s)
 {
     if (s) {
-        s->dir_state[0].cnt = 0;
-        s->dir_state[0].filestore_cnt = 0;
-        s->dir_state[0].flags = 0;
-        /* reset 'cur' back to the list head */
-        s->dir_state[0].cur = s->dir_state[0].head;
-
-        s->dir_state[1].cnt = 0;
-        s->dir_state[1].filestore_cnt = 0;
-        s->dir_state[1].flags = 0;
-        /* reset 'cur' back to the list head */
-        s->dir_state[1].cur = s->dir_state[1].head;
+        for (int i = 0; i < DETECT_ENGINE_STATE_DIRECTIONS; i++) {
+            s->dir_state[i].cnt = 0;
+            s->dir_state[i].filestore_cnt = 0;
+            s->dir_state[i].flags = 0;
+            /* reset 'cur' back to the list head */
+            s->dir_state[i].cur = s->dir_state[0].head;
+        }
     }
 }
 
