@@ -391,8 +391,16 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
     bool appendsm = true;
     /* set the signature direction flags */
     if (fd->flags & DETECT_FLOW_FLAG_TOSERVER) {
+        if (s->init_data->init_flags & SIG_FLAG_INIT_BOTHDIR) {
+            SCLogError("rule %u means to use both directions, cannot specify a flow direction", s->id);
+            return -1;
+        }
         s->flags |= SIG_FLAG_TOSERVER;
     } else if (fd->flags & DETECT_FLOW_FLAG_TOCLIENT) {
+        if (s->init_data->init_flags & SIG_FLAG_INIT_BOTHDIR) {
+            SCLogError("rule %u means to use both directions, cannot specify a flow direction", s->id);
+            return -1;
+        }
         s->flags |= SIG_FLAG_TOCLIENT;
     } else {
         s->flags |= SIG_FLAG_TOSERVER;

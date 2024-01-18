@@ -2032,6 +2032,16 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     } else if (dir_amb) {
         SCLogDebug("%u: rule direction cannot be deduced from keywords", s->id);
     }
+    if (s->init_data->init_flags & SIG_FLAG_INIT_BOTHDIR) {
+        if (!ts_excl || !tc_excl) {
+            SCLogError("rule %u should use both directions, but does not", s->id);
+            SCReturnInt(0);
+        }
+        if (dir_amb) {
+            SCLogError("rule %u means to use both directions, cannot have keywords ambiguous about directions", s->id);
+            SCReturnInt(0);
+        }
+    }
 
     if ((s->flags & SIG_FLAG_REQUIRE_PACKET) &&
         (s->flags & SIG_FLAG_REQUIRE_STREAM)) {
