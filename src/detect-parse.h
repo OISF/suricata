@@ -121,4 +121,6 @@ int SC_Pcre2SubstringCopy(
 int SC_Pcre2SubstringGet(pcre2_match_data *match_data, uint32_t number, PCRE2_UCHAR **bufferptr,
         PCRE2_SIZE *bufflen);
 
+int DetectSetupDirection(Signature *s, const char *str);
+
 #endif /* SURICATA_DETECT_PARSE_H */
