@@ -2038,7 +2038,9 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             SCReturnInt(0);
         }
         if (dir_amb) {
-            SCLogError("rule %u means to use both directions, cannot have keywords ambiguous about directions", s->id);
+            SCLogError("rule %u means to use both directions, cannot have keywords ambiguous about "
+                       "directions",
+                    s->id);
             SCReturnInt(0);
         }
     }
