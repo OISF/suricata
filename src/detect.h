@@ -246,6 +246,7 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_DSIZE                  BIT_U32(5)  /**< signature has a dsize setting */
 #define SIG_FLAG_APPLAYER               BIT_U32(6) /**< signature applies to app layer instead of packets */
+#define SIG_FLAG_TXBOTHDIR              BIT_U32(7) /**< signature needs tx with both directions to match */
 
 // vacancy
 
@@ -295,7 +296,14 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_NEED_FLUSH            BIT_U32(7)
 #define SIG_FLAG_INIT_PRIO_EXPLICIT                                                                \
     BIT_U32(8) /**< priority is explicitly set by the priority keyword */
-#define SIG_FLAG_INIT_FILEDATA BIT_U32(9) /**< signature has filedata keyword */
+#define SIG_FLAG_INIT_FILEDATA       BIT_U32(9)  /**< signature has filedata keyword */
+#define SIG_FLAG_INIT_FORCE_TOCLIENT BIT_U32(10) /**< signature now takes keywords toclient */
+#define SIG_FLAG_INIT_FORCE_TOSERVER BIT_U32(11) /**< signature now takes keywords toserver */
+// Two following flags are meant to be mutually exclusive
+#define SIG_FLAG_INIT_TXDIR_STREAMING_TOSERVER                                                     \
+    BIT_U32(12) /**< transactional signature uses a streaming buffer to server */
+#define SIG_FLAG_INIT_TXDIR_FAST_TOCLIENT                                                          \
+    BIT_U32(13) /**< transactional signature uses a fast pattern to client */
 
 /* signature mask flags */
 /** \note: additions should be added to the rule analyzer as well */
@@ -534,6 +542,8 @@ typedef struct SignatureInitDataBuffer_ {
                      set up. */
     bool multi_capable; /**< true if we can have multiple instances of this buffer, so e.g. for
                            http.uri. */
+    bool only_tc;       /**< true if we can only used toclient. */
+    bool only_ts;       /**< true if we can only used toserver. */
     /* sig match list */
     SigMatch *head;
     SigMatch *tail;
