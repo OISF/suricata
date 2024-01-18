@@ -1083,6 +1083,21 @@
                                     }
                                 },
                                 "additionalProperties": false
+                            },
+                            "sshfp": {
+                                "type": "object",
+                                "properties": {
+                                    "fingerprint": {
+                                        "type": "string"
+                                    },
+                                    "algo": {
+                                        "type": "integer"
+                                    },
+                                    "type": {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false
                             }
                         },
                         "additionalProperties": false
@@ -1156,6 +1171,15 @@
                         "opcode": {
                             "description": "DNS opcode as an integer",
                             "type": "integer"
+                        },
+                        "aa": {
+                            "type": "boolean"
+                        },
+                        "tc": {
+                            "type": "boolean"
+                        },
+                        "z": {
+                            "type": "boolean"
                         }
                     },
                     "additionalProperties": false
