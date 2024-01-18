@@ -46,7 +46,7 @@ Auto
 ''''
 
 **In IPS mode**, the default behavior for most of the exception policies is to
-fail close. This means droping the flow, or the packet, when the flow action is
+fail close. This means dropping the flow, or the packet, when the flow action is
 not supported. The default policy for the midstream exception will be ignore if
 midstream flows are accepted.
 
@@ -131,7 +131,7 @@ midstream pick-ups enabled or not and the various exception policy values:
      - Midstream pick-up sessions ENABLED (stream.midstream=true)
      - Midstream pick-up sessions DISABLED (stream.midstream=false)
    * - Ignore
-     - Session tracket and parsed.
+     - Session tracked and parsed, inspect and log app-layer traffic, do detection.
      - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
    * - Drop-flow
      - Not valid.*
@@ -169,7 +169,7 @@ whole flow.
      - Midstream pick-up sessions ENABLED (stream.midstream=true)
      - Midstream pick-up sessions DISABLED (stream.midstream=false)
    * - Ignore
-     - Session tracket and parsed.
+     - Session tracked and parsed, inspect and log app-layer traffic, do detection.
      - Session not tracked. No app-layer inspection or logging. No detection. No stream reassembly.
    * - Drop-flow
      - Not valid.*
