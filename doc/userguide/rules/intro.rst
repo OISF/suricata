@@ -228,11 +228,14 @@ Direction
 
 The directional arrow indicates which way the signature will be evaluated.
 In most signatures an arrow to the right (``->``) is used. This means that only
-packets with the same direction can match. However, it is also possible to
-have a rule match both directions (``<>``)::
+packets with the same direction can match.
+There is also the double arrow (``=>``), which respects the directionality as ``->``,
+but allows matching on bidirectional transactions, used with keywords matching each direction.
+Finally, it is also possible to have a rule match either directions (``<>``)::
 
   source -> destination
-  source <> destination  (both directions)
+  source => destination
+  source <> destination  (either directions)
 
 The following example illustrates direction. In this example there is a client
 with IP address 1.2.3.4 using port 1024. A server with IP address 5.6.7.8,
@@ -248,9 +251,55 @@ Now, let's say we have a rule with the following header::
 Only the traffic from the client to the server will be matched by this rule,
 as the direction specifies that we do not want to evaluate the response packet.
 
+Now, if we have a rule with the following header::
+
+    alert tcp 1.2.3.4 any <> 5.6.7.8 80
+
+Suricata will duplicate it and use the same rule with headers in both directions :
+
+    alert tcp 1.2.3.4 any -> 5.6.7.8 80
+    alert tcp 5.6.7.8 80 -> 1.2.3.4 any
+
 .. warning::
 
    There is no 'reverse' style direction, i.e. there is no ``<-``.
+
+Transactional rules
+~~~~~~~~~~~~~~~~~~~
+
+Here is an example of a transactional rule:
+
+.. container:: example-rule
+
+    alert http any any :example-rule-emphasis:`=>` 5.6.7.8 80 (msg:"matching both uri and status"; sid: 1; http.uri; content: "/download"; http.stat_code; content: "200";)
+
+It will match on flows to 5.6.7.8 and port 80.
+And it will match on a full transaction, using both the uri from the request,
+and the stat_code from the response.
+As such, it will match only when Suricata got both request and response.
+
+Transactional rules can use direction-ambiguous keywords, by specifying the direction.
+
+.. container:: example-rule
+
+    alert http any any => 5.6.7.8 80 (msg:"matching json to server and xml to client"; sid: 1; http.content_type: :example-rule-emphasis:`to_server`; content: "json"; http.content_type: :example-rule-emphasis:`to_client`; content: "xml";)
+
+Transactional rules have some limitations :
+
+* They cannot use direction-ambiguous keywords
+* They are only meant to work on transactions with first a request to the server,
+  and then a response to the client, and not the other way around (not tested).
+* They cannot have ``fast_pattern`` or ``prefilter`` the direction to client
+  if they also have a streaming buffer on the direction to server, see example below.
+* They will refuse to load if a single directional rule is enough.
+
+This rule cannot have the ``fast_pattern`` to client, as ``file.data`` is a streaming buffer and will refuse to load.
+
+.. container:: example-rule
+
+    alert http any any => any any (file.data: to_server; content: "123";  http.stat_code; content: "500"; fast_patten;)
+
+If not explicit, a transactional rule will choose a fast_pattern to server by default
 
 Rule options
 ------------

@@ -1071,6 +1071,26 @@ static SigMatch *GetMpmForList(const Signature *s, SigMatch *list, SigMatch *mpm
 
 int g_skip_prefilter = 0;
 
+// tells if a buffer id is only used to client
+bool DetectBufferToClient(const DetectEngineCtx *de_ctx, int buf_id, AppProto alproto)
+{
+    bool r = false;
+    const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
+    for (; app != NULL; app = app->next) {
+        if (app->sm_list == buf_id &&
+                (AppProtoEquals(alproto, app->alproto) || alproto == ALPROTO_UNKNOWN)) {
+            if (app->dir == 1) {
+                // do not return yet in case we have app engines on both sides
+                r = true;
+            } else {
+                // ambiguous keywords have a app-engine to server
+                return false;
+            }
+        }
+    }
+    return r;
+}
+
 void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
 {
     if (g_skip_prefilter)
@@ -1168,6 +1188,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
     memset(&final_sm_list, 0, (nlists * sizeof(int)));
 
     int count_final_sm_list = 0;
+    int count_txbidir_toclient_sm_list = 0;
     int priority;
 
     const SCFPSupportSMList *tmp = de_ctx->fp_support_smlist_list;
@@ -1181,6 +1202,17 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
                 continue;
             if (curr_sm_list[tmp->list_id] == 0)
                 continue;
+            if (s->flags & SIG_FLAG_TXBOTHDIR) {
+                // prefer to choose a fast_pattern to server by default
+                if (DetectBufferToClient(de_ctx, tmp->list_id, s->alproto)) {
+                    if (count_final_sm_list == 0) {
+                        // still put it in in the case we do not have toserver buffer
+                        final_sm_list[count_txbidir_toclient_sm_list++] = tmp->list_id;
+                    }
+                    continue;
+                }
+            }
+            // we may erase tx bidir toclient buffers here as intended if we have a better choice
             final_sm_list[count_final_sm_list++] = tmp->list_id;
             SCLogDebug("tmp->list_id %d", tmp->list_id);
         }
@@ -1188,6 +1220,10 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
             break;
     }
 
+    if ((s->flags & SIG_FLAG_TXBOTHDIR) && count_final_sm_list == 0) {
+        // forced to pick a fast_pattern to client for tx bidir signature
+        count_final_sm_list = count_txbidir_toclient_sm_list;
+    }
     BUG_ON(count_final_sm_list == 0);
     SCLogDebug("count_final_sm_list %d skip_negated_content %d", count_final_sm_list,
             skip_negated_content);
@@ -1211,7 +1247,12 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
             }
         } else {
             for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+                if (s->init_data->buffers[x].only_tc) {
+                    // prefer to choose a fast_pattern to server by default
+                    continue;
+                }
                 const int list_id = s->init_data->buffers[x].id;
+
                 if (final_sm_list[i] == list_id) {
                     SCLogDebug("%u: list_id %d: %s", s->id, list_id,
                             DetectEngineBufferTypeGetNameById(de_ctx, list_id));
