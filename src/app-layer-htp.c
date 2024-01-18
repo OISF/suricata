@@ -1167,6 +1167,8 @@ static void FlagDetectStateNewFile(HtpTxUserData *tx, int dir)
             SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
             tx->tx_data.de_state->dir_state[1].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
         }
+        tx->tx_data.de_state->dir_state[DETECT_ENGINE_STATE_DIRECTION_BOTHDIR].flags |=
+                DETECT_ENGINE_STATE_FLAG_FILE_NEW;
     }
 }
 
