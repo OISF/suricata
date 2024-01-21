@@ -257,7 +257,7 @@ jobs:
   alma-8:
     name: AlmaLinux 8
     runs-on: ubuntu-latest
-    container: almalinux:8.4
+    container: almalinux:8
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       # Cache Rust stuff.
