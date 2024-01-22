@@ -815,7 +815,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q --debug-failed
 
   ubuntu-20-04-ndebug:
     name: Ubuntu 20.04 (-DNDEBUG)
@@ -883,7 +883,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
@@ -1011,7 +1011,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q --debug-failed
 
   ubuntu-22-04:
     name: Ubuntu 22.04 (Cocci)
@@ -1108,7 +1108,7 @@ jobs:
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q --debug-failed
 
   # test build with afl and fuzztargets
   ubuntu-22-04-fuzz:
@@ -1303,7 +1303,7 @@ jobs:
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
@@ -1359,7 +1359,7 @@ jobs:
       - run: rm libhtp/VERSION && make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
-        run: python3 ./suricata-verify/run.py
+        run: python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
       - run: suricatasc -h
@@ -1411,7 +1411,7 @@ jobs:
           ./src/suricata --build-info
           ./src/suricata -u -l /tmp/
           # need cwd in path due to npcap dlls (see above)
-          PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py
+          PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
 
