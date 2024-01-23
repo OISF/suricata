@@ -239,6 +239,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_NOALERT                BIT_U32(4)  /**< no alert flag is set */
 #define SIG_FLAG_DSIZE                  BIT_U32(5)  /**< signature has a dsize setting */
 #define SIG_FLAG_APPLAYER               BIT_U32(6) /**< signature applies to app layer instead of packets */
+#define SIG_FLAG_BOTHDIR BIT_U32(7) /**< signature needs both directions to match */
 
 // vacancy
 
@@ -284,7 +285,6 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_BIDIREC               BIT_U32(3)  /**< signature has bidirectional operator */
 #define SIG_FLAG_INIT_FIRST_IPPROTO_SEEN                                                           \
     BIT_U32(4) /** < signature has seen the first ip_proto keyword */
-#define SIG_FLAG_INIT_BOTHDIR BIT_U32(5) /**< signature needs both directions to match */
 #define SIG_FLAG_INIT_STATE_MATCH           BIT_U32(6)  /**< signature has matches that require stateful inspection */
 #define SIG_FLAG_INIT_NEED_FLUSH            BIT_U32(7)
 #define SIG_FLAG_INIT_PRIO_EXPLICIT                                                                \

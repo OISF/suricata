@@ -1181,7 +1181,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
              tmp != NULL && priority == tmp->priority;
              tmp = tmp->next)
         {
-            if (s->init_data->init_flags & SIG_FLAG_INIT_BOTHDIR) {
+            if (s->flags & SIG_FLAG_BOTHDIR) {
                 if (DetectBufferToClient(de_ctx, tmp->list_id, s->alproto)) {
                     continue;
                 }

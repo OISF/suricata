@@ -1168,7 +1168,16 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 inspect_flags |= BIT_U32(engine->id);
             }
             break;
+        } else if(!(inspect_flags & BIT_U32(engine->id)) &&
+                  s->flags & SIG_FLAG_BOTHDIR && direction != engine->dir)
+        {
+            // for bidirectional rules, for engines on the opposite direction
+            // as the current packet, check if we have enough progress in the tx.
+            // That means, do not return a full match, if we have only the request
+            // as there are response engines to inspect later.
+            break;
         }
+
         engine = engine->next;
     } while (engine != NULL);
     TRACE_SID_TXS(s->id, tx, "inspect_flags %x, total_matches %u, engine %p",

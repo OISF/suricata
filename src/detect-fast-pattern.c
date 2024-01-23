@@ -238,7 +238,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
         pm = pm2;
     }
 
-    if (s->init_data->init_flags & SIG_FLAG_INIT_BOTHDIR && s->init_data->curbuf != NULL) {
+    if (s->flags & SIG_FLAG_BOTHDIR && s->init_data->curbuf != NULL) {
         if (DetectBufferToClient(de_ctx, s->init_data->curbuf->id, s->alproto)) {
             SCLogError("fast_pattern cannot be used on to_client keyword for "
                        "bidirectional rule %u",

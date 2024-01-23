@@ -1395,7 +1395,7 @@ static int SigParseBasics(DetectEngineCtx *de_ctx, Signature *s, const char *sig
     if (strcmp(parser->direction, "<>") == 0) {
         s->init_data->init_flags |= SIG_FLAG_INIT_BIDIREC;
     } else if (strcmp(parser->direction, "=>") == 0) {
-        s->init_data->init_flags |= SIG_FLAG_INIT_BOTHDIR;
+        s->flags |= SIG_FLAG_BOTHDIR;
     } else if (strcmp(parser->direction, "->") != 0) {
         SCLogError("\"%s\" is not a valid direction modifier, "
                    "\"->\" and \"<>\" are supported.",
@@ -2014,7 +2014,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCLogDebug("%s/%d: %d/%d", DetectEngineBufferTypeGetNameById(de_ctx, x), x, bufdir[x].ts,
                 bufdir[x].tc);
     }
-    if (s->init_data->init_flags & SIG_FLAG_INIT_BOTHDIR) {
+    if (s->flags & SIG_FLAG_BOTHDIR) {
         if (!ts_excl || !tc_excl) {
             SCLogError("rule %u should use both directions, but does not", s->id);
             SCReturnInt(0);
