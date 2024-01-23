@@ -1168,9 +1168,8 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 inspect_flags |= BIT_U32(engine->id);
             }
             break;
-        } else if(!(inspect_flags & BIT_U32(engine->id)) &&
-                  s->flags & SIG_FLAG_BOTHDIR && direction != engine->dir)
-        {
+        } else if (!(inspect_flags & BIT_U32(engine->id)) && s->flags & SIG_FLAG_BOTHDIR &&
+                   direction != engine->dir) {
             const bool skip_engine = (engine->alproto != 0 && engine->alproto != f->alproto);
             /* special case: 'alert http' will have engines
              * for both HTTP1 and HTTP2. */
@@ -1208,16 +1207,14 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             if (tx_data->de_state == NULL) {
                 goto out;
             }
-            DetectEngineStateDirection *dir_state =
-                    &tx_data->de_state->dir_state[1 - direction];
+            DetectEngineStateDirection *dir_state = &tx_data->de_state->dir_state[1 - direction];
             DeStateStore *tx_store = dir_state->head;
-            //TODO looks like it will be slow
+            // TODO looks like it will be slow
             SigIntId state_cnt = 0;
             for (; tx_store != NULL; tx_store = tx_store->next) {
                 for (SigIntId store_cnt = 0;
-                     store_cnt < DE_STATE_CHUNK_SIZE && state_cnt < dir_state->cnt;
-                     store_cnt++, state_cnt++)
-                {
+                        store_cnt < DE_STATE_CHUNK_SIZE && state_cnt < dir_state->cnt;
+                        store_cnt++, state_cnt++) {
                     DeStateStoreItem *item = &tx_store->store[store_cnt];
                     if (item->sid == s->num) {
                         item->flags = inspect_flags;
@@ -1226,7 +1223,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 }
             }
         }
-out:
+    out:
         TRACE_SID_TXS(s->id, tx, "continue inspect flags %08x", inspect_flags);
     } else {
         // store... or? If tx is done we might not want to come back to this tx
