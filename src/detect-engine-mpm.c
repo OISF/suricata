@@ -1066,7 +1066,7 @@ static SigMatch *GetMpmForList(const Signature *s, SigMatch *list, SigMatch *mpm
 
 int g_skip_prefilter = 0;
 
-bool DetectBufferToClient(DetectEngineCtx *de_ctx, int buf_id, AppProto alproto)
+bool DetectBufferToClient(const DetectEngineCtx *de_ctx, int buf_id, AppProto alproto)
 {
     const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
     for (; app != NULL; app = app->next) {
