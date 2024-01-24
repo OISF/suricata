@@ -57,6 +57,39 @@ Match on DNS requests where the **opcode** is not between 7 and 15:
 
   dns.opcode:!7-15;
 
+dns.rcode
+---------
+
+This keyword matches on the **rcode** field found in the DNS header flags.
+
+dns.rcode uses an :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
+
+Currently, Suricata only supports rcode values in the range [0-15], while
+the current DNS version supports rcode values from [0-23] as specified in
+`RFC 6895 <https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-6>`_.
+
+We plan to extend the rcode values supported by Suricata according to RFC 6895
+as tracked by the ticket: https://redmine.openinfosecfoundation.org/issues/6650
+
+Syntax
+~~~~~~
+
+::
+
+   dns.rcode:[!]<number>
+   dns.rcode:[!]<number1>-<number2>
+
+Examples
+~~~~~~~~
+
+Match on DNS requests and responses with **rcode** 4::
+
+  dns.rcode:4;
+
+Match on DNS requests and responses where the **rcode** is NOT 0::
+
+  dns.rcode:!0;
+
 dns.rrtype
 ----------
 
