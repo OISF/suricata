@@ -258,3 +258,4 @@ default to 0.
 The ``version`` may only be specified once, if specified more than
 once the rule will log an error and not be loaded.
 
+The ``requires`` keyword was introduced in Suricata 7.0.3 and 8.0.0.
