@@ -1,4 +1,4 @@
-/* Copyright (C) 2019 Open Information Security Foundation
+/* Copyright (C) 2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -16,7 +16,8 @@
  */
 
 use super::dns::DNSTransaction;
-use crate::core::*;
+use crate::core::Direction;
+use crate::detect::uint::{detect_match_uint, DetectUintData};
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 
@@ -114,9 +115,42 @@ pub unsafe extern "C" fn rs_dns_detect_opcode_free(ptr: *mut c_void) {
     }
 }
 
+/// Perform the DNS rcode match.
+///
+/// 1 will be returned on match, otherwise 0 will be returned.
+#[no_mangle]
+pub extern "C" fn rs_dns_rcode_match(
+    tx: &mut DNSTransaction, detect: &mut DetectUintData<u8>, flags: u8,
+) -> u8 {
+    let header_flags = if flags & Direction::ToServer as u8 != 0 {
+        if let Some(request) = &tx.request {
+            request.header.flags
+        } else {
+            return 0;
+        }
+    } else if flags & Direction::ToClient as u8 != 0 {
+        if let Some(response) = &tx.response {
+            response.header.flags
+        } else {
+            return 0;
+        }
+    } else {
+        // Not to server or to client??
+        return 0;
+    };
+
+    let rcode = (header_flags & 0xf) as u8;
+
+    if detect_match_uint(detect, rcode) {
+        return 1;
+    }
+    return 0;
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::detect::uint::{detect_parse_uint, DetectUintMode};
 
     #[test]
     fn parse_opcode_good() {
@@ -186,6 +220,84 @@ mod test {
                 opcode: 4,
             },
             0b0010_0000_0000_0000,
+        ));
+    }
+    #[test]
+    fn parse_rcode_good() {
+        assert_eq!(
+            detect_parse_uint::<u8>("1").unwrap().1,
+            DetectUintData {
+                mode: DetectUintMode::DetectUintModeEqual,
+                arg1: 1,
+                arg2: 0,
+            }
+        );
+        assert_eq!(
+            detect_parse_uint::<u8>("123").unwrap().1,
+            DetectUintData {
+                mode: DetectUintMode::DetectUintModeEqual,
+                arg1: 123,
+                arg2: 0,
+            }
+        );
+        assert_eq!(
+            detect_parse_uint::<u8>("!123").unwrap().1,
+            DetectUintData {
+                mode: DetectUintMode::DetectUintModeNe,
+                arg1: 123,
+                arg2: 0,
+            }
+        );
+        assert_eq!(
+            detect_parse_uint::<u8>("7-15").unwrap().1,
+            DetectUintData {
+                mode: DetectUintMode::DetectUintModeRange,
+                arg1: 7,
+                arg2: 15,
+            }
+        );
+        assert!(detect_parse_uint::<u8>("").is_err());
+        assert!(detect_parse_uint::<u8>("!").is_err());
+        assert!(detect_parse_uint::<u8>("!   ").is_err());
+        assert!(detect_parse_uint::<u8>("!asdf").is_err());
+    }
+
+    #[test]
+    fn test_match_rcode() {
+        assert!(detect_match_uint(
+            &DetectUintData {
+                mode: DetectUintMode::DetectUintModeEqual,
+                arg1: 0,
+                arg2: 0,
+            },
+            0b0000_0000_0000_0000,
+        ));
+
+        assert!(!detect_match_uint(
+            &DetectUintData {
+                mode: DetectUintMode::DetectUintModeNe,
+                arg1: 0,
+                arg2: 0,
+            },
+            0b0000_0000_0000_0000,
+        ));
+
+        assert!(detect_match_uint(
+            &DetectUintData {
+                mode: DetectUintMode::DetectUintModeEqual,
+                arg1: 4,
+                arg2: 0,
+            },
+            (0b0000_0000_0000_0100 & 0xf) as u8,
+        ));
+
+        assert!(!detect_match_uint(
+            &DetectUintData {
+                mode: DetectUintMode::DetectUintModeNe,
+                arg1: 4,
+                arg2: 0,
+            },
+            (0b0000_0000_0000_0100 & 0xf) as u8,
         ));
     }
 }

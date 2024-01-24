@@ -39,6 +39,7 @@ pub enum DetectUintMode {
 
 #[derive(Debug)]
 #[repr(C)]
+#[derive(PartialEq)]
 pub struct DetectUintData<T> {
     pub arg1: T,
     pub arg2: T,
