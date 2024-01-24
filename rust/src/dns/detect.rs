@@ -50,6 +50,33 @@ pub extern "C" fn rs_dns_opcode_match(
     return 0;
 }
 
+/// Perform the DNS rcode match.
+///
+/// 1 will be returned on match, otherwise 0 will be returned.
+#[no_mangle]
+pub extern "C" fn rs_dns_rcode_match(
+    tx: &mut DNSTransaction, detect: &mut DetectUintData<u8>, flags: u8,
+) -> u8 {
+    let header_flags = if flags & Direction::ToServer as u8 != 0 {
+        if let Some(request) = &tx.request {
+            request.header.flags
+        } else {
+            return 0;
+        }
+    } else if let Some(response) = &tx.response {
+        response.header.flags
+    } else {
+        return 0;
+    };
+
+    let rcode = (header_flags & 0xf) as u8;
+
+    if detect_match_uint(detect, rcode) {
+        return 1;
+    }
+    return 0;
+}
+
 /// Perform the DNS rrtype match.
 /// 1 will be returned on match, otherwise 0 will be returned.
 #[no_mangle]
@@ -149,6 +176,85 @@ mod test {
                 arg2: 0,
             },
             ((0b0010_0000_0000_0000 >> 11) & 0xf) as u8,
+        ));
+    }
+
+    #[test]
+    fn parse_rcode_good() {
+        assert_eq!(
+            detect_parse_uint::<u8>("1").unwrap().1,
+            DetectUintData {
+                mode: DetectUintMode::DetectUintModeEqual,
+                arg1: 1,
+                arg2: 0,
+            }
+        );
+        assert_eq!(
+            detect_parse_uint::<u8>("123").unwrap().1,
+            DetectUintData {
+                mode: DetectUintMode::DetectUintModeEqual,
+                arg1: 123,
+                arg2: 0,
+            }
+        );
+        assert_eq!(
+            detect_parse_uint::<u8>("!123").unwrap().1,
+            DetectUintData {
+                mode: DetectUintMode::DetectUintModeNe,
+                arg1: 123,
+                arg2: 0,
+            }
+        );
+        assert_eq!(
+            detect_parse_uint::<u8>("7-15").unwrap().1,
+            DetectUintData {
+                mode: DetectUintMode::DetectUintModeRange,
+                arg1: 7,
+                arg2: 15,
+            }
+        );
+        assert!(detect_parse_uint::<u16>("").is_err());
+        assert!(detect_parse_uint::<u16>("!").is_err());
+        assert!(detect_parse_uint::<u16>("!   ").is_err());
+        assert!(detect_parse_uint::<u16>("!asdf").is_err());
+    }
+
+    #[test]
+    fn test_match_rcode() {
+        assert!(detect_match_uint(
+            &DetectUintData {
+                mode: DetectUintMode::DetectUintModeEqual,
+                arg1: 0,
+                arg2: 0,
+            },
+            0b0000_0000_0000_0000,
+        ));
+
+        assert!(!detect_match_uint(
+            &DetectUintData {
+                mode: DetectUintMode::DetectUintModeNe,
+                arg1: 0,
+                arg2: 0,
+            },
+            0b0000_0000_0000_0000,
+        ));
+
+        assert!(detect_match_uint(
+            &DetectUintData {
+                mode: DetectUintMode::DetectUintModeEqual,
+                arg1: 4,
+                arg2: 0,
+            },
+            4u8,
+        ));
+
+        assert!(!detect_match_uint(
+            &DetectUintData {
+                mode: DetectUintMode::DetectUintModeNe,
+                arg1: 4,
+                arg2: 0,
+            },
+            4u8,
         ));
     }
 
