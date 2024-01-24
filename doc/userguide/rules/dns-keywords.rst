@@ -46,6 +46,32 @@ Match on DNS requests where the **opcode** is NOT 0::
 
   dns.opcode:!0;
 
+dns.rcode
+---------
+
+This keyword matches on the **rcode** found in the DNS header flags.
+It uses an 8-bit unsigned integer as value.
+It has a range of values from [0-23] which are assigned as shown here: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-6
+
+Syntax
+~~~~~~
+
+::
+
+   dns.rcode:[!]<number>
+   dns.rcode:[!]<number1>-<number2>
+
+Examples
+~~~~~~~~
+
+Match on DNS requests and responses with **rcode** 4::
+
+  dns.rcode:4;
+
+Match on DNS requests where the **rcode** is NOT 0::
+
+  dns.rcode:!0;
+
 dns.query
 ---------
 
