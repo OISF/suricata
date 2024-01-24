@@ -2315,7 +2315,9 @@ Signature *SigInit(DetectEngineCtx *de_ctx, const char *sigstr)
     SCEnter();
 
     uint32_t oldsignum = de_ctx->signum;
+    de_ctx->sigerror_ok = false;
     de_ctx->sigerror_silent = false;
+    de_ctx->sigerror_requires = false;
 
     Signature *sig;
 

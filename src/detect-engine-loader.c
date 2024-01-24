@@ -122,6 +122,7 @@ static int DetectLoadSigFile(
 
     (*goodsigs) = 0;
     (*badsigs) = 0;
+    (*skippedsigs) = 0;
 
     FILE *fp = fopen(sig_file, "r");
     if (fp == NULL) {
