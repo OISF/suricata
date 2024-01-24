@@ -282,7 +282,7 @@ precision to the content match, previously this could have been done with ``isda
 
 An optional operator can be specified; if no operator is present, the operator will
 default to '='. When a relational operator is used, e.g., '<', '>' or '<>' (range),
-the bsize value will be compared using the relational operator. Ranges are inclusive.
+the bsize value will be compared using the relational operator. Ranges are exclusive.
 
 If one or more ``content`` keywords precedes ``bsize``, each occurrence of ``content``
 will be inspected and an error will be raised if the content length and the bsize
@@ -324,6 +324,9 @@ Examples of ``bsize`` in a rule:
 .. container:: example-rule
 
    alert dns any any -> any any (msg:"test bsize rule"; dns.query; content:"middle"; bsize:6<>15; sid:126; rev:1;)
+
+To emphasize how range works: in the example above, a match will occur if
+``bsize`` is greater than 6 and less than 15.
 
 dsize
 -----
