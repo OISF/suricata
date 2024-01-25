@@ -118,7 +118,8 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
     switch (filestore->direction) {
         case FILESTORE_DIR_DEFAULT:
             rule_dir = 1;
-            break;
+            // will use both sides if scope is not default
+            // fallthrough
         case FILESTORE_DIR_BOTH:
             toserver_dir = 1;
             toclient_dir = 1;
@@ -160,16 +161,28 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, const DetectFilesto
             AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
             DEBUG_VALIDATE_BUG_ON(txd == NULL);
             if (txd != NULL) {
-                txd->file_flags |= FLOWFILE_STORE;
+                if (toclient_dir) {
+                    txd->file_flags |= FLOWFILE_STORE_TC;
+                }
+                if (toserver_dir) {
+                    txd->file_flags |= FLOWFILE_STORE_TS;
+                }
             }
         }
     } else if (this_flow) {
         /* set in flow and AppLayerStateData */
-        f->file_flags |= FLOWFILE_STORE;
-
         AppLayerStateData *sd = AppLayerParserGetStateData(f->proto, f->alproto, f->alstate);
-        if (sd != NULL) {
-            sd->file_flags |= FLOWFILE_STORE;
+        if (toclient_dir) {
+            f->file_flags |= FLOWFILE_STORE_TC;
+            if (sd != NULL) {
+                sd->file_flags |= FLOWFILE_STORE_TC;
+            }
+        }
+        if (toserver_dir) {
+            f->file_flags |= FLOWFILE_STORE_TS;
+            if (sd != NULL) {
+                sd->file_flags |= FLOWFILE_STORE_TS;
+            }
         }
     } else {
         FileStoreFileById(fc, file_id);
