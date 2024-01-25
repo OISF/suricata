@@ -235,8 +235,11 @@ uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
     uint16_t flags = 0;
 
     if (direction == STREAM_TOSERVER) {
-        if ((flow_file_flags & (FLOWFILE_NO_STORE_TS | FLOWFILE_STORE)) == FLOWFILE_NO_STORE_TS) {
+        if ((flow_file_flags & (FLOWFILE_NO_STORE_TS | FLOWFILE_STORE_TS)) ==
+                FLOWFILE_NO_STORE_TS) {
             flags |= FILE_NOSTORE;
+        } else if (flow_file_flags & FLOWFILE_STORE_TS) {
+            flags |= FILE_STORE;
         }
 
         if (flow_file_flags & FLOWFILE_NO_MAGIC_TS) {
@@ -255,8 +258,11 @@ uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
             flags |= FILE_NOSHA256;
         }
     } else {
-        if ((flow_file_flags & (FLOWFILE_NO_STORE_TC | FLOWFILE_STORE)) == FLOWFILE_NO_STORE_TC) {
+        if ((flow_file_flags & (FLOWFILE_NO_STORE_TC | FLOWFILE_STORE_TC)) ==
+                FLOWFILE_NO_STORE_TC) {
             flags |= FILE_NOSTORE;
+        } else if (flow_file_flags & FLOWFILE_STORE_TC) {
+            flags |= FILE_STORE;
         }
 
         if (flow_file_flags & FLOWFILE_NO_MAGIC_TC) {
@@ -274,9 +280,6 @@ uint16_t FileFlowFlagsToFlags(const uint16_t flow_file_flags, uint8_t direction)
         if (flow_file_flags & FLOWFILE_NO_SHA256_TC) {
             flags |= FILE_NOSHA256;
         }
-    }
-    if (flow_file_flags & FLOWFILE_STORE) {
-        flags |= FILE_STORE;
     }
     DEBUG_VALIDATE_BUG_ON((flags & (FILE_STORE | FILE_NOSTORE)) == (FILE_STORE | FILE_NOSTORE));
 
