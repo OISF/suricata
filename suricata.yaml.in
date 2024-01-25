@@ -929,6 +929,8 @@ app-layer:
       #max-streams: 4096
       # Maximum headers table size
       #max-table-size: 65536
+      # Maximum reassembly size for header + continuation frames
+      #max-reassembly-size: 102400
     smtp:
       enabled: yes
       raw-extraction: no
