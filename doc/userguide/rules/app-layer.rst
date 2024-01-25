@@ -8,17 +8,30 @@ Match on the detected app-layer protocol.
 
 Syntax::
 
-    app-layer-protocol:[!]<protocol>;
+    app-layer-protocol:[!]<protocol>(,<mode>);
 
 Examples::
 
     app-layer-protocol:ssh;
     app-layer-protocol:!tls;
     app-layer-protocol:failed;
+    app-layer-protocol:!http,final;
+    app-layer-protocol:http,toserver; app-layer-protocol:tls,toclient;
+    app-layer-protocol:http2,final; app-layer-protocol:http1,original;
 
 A special value 'failed' can be used for matching on flows in which
 protocol detection failed. This can happen if Suricata doesn't know
 the protocol or when certain 'bail out' conditions happen.
+
+The different modes are
+* toserver : protocol recognized in the direction to server
+* toclient : protocol recognized in the direction to client
+* either : tries to match protocols found on both sides
+* final : final protocol chosen by Suricata for parsing
+* original : original protocol (in case of protocol change)
+
+By default, the mode is to use the protocol recognized on the direction
+of the current packet.
 
 .. _proto-detect-bail-out:
 
