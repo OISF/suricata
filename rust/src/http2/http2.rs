@@ -20,6 +20,7 @@ use super::files::*;
 use super::decompression;
 use super::parser;
 use crate::applayer::{self, *};
+use crate::conf::conf_get;
 use crate::core::{
     self, AppProto, Flow, SuricataFileContext, ALPROTO_FAILED, ALPROTO_UNKNOWN, IPPROTO_TCP,
     STREAM_TOCLIENT, STREAM_TOSERVER,
@@ -64,6 +65,8 @@ const HTTP2_FRAME_PRIORITY_LEN: usize = 5;
 const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
 //TODO make this configurable
 pub const HTTP2_MAX_TABLESIZE: u32 = 0x10000; // 65536
+// maximum size of reassembly for header + continuation
+static mut HTTP2_MAX_REASS: usize = 102400;
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
@@ -361,6 +364,7 @@ pub enum HTTP2Event {
     FailedDecompression,
     AuthorityHostMismatch,
     UserinfoInUri,
+    ReassemblyLimitReached,
 }
 
 impl HTTP2Event {
@@ -401,6 +405,12 @@ impl HTTP2DynTable {
     }
 }
 
+#[derive(Default)]
+struct HTTP2HeaderReassemblyBuffer {
+    data: Vec<u8>,
+    stream_id: u32,
+}
+
 pub struct HTTP2State {
     tx_id: u64,
     request_frame_size: u32,
@@ -410,6 +420,9 @@ pub struct HTTP2State {
     transactions: VecDeque<HTTP2Transaction>,
     progress: HTTP2ConnectionState,
     pub files: HTTP2Files,
+
+    c2s_buf: HTTP2HeaderReassemblyBuffer,
+    s2c_buf: HTTP2HeaderReassemblyBuffer,
 }
 
 impl HTTP2State {
@@ -426,6 +439,8 @@ impl HTTP2State {
             transactions: VecDeque::new(),
             progress: HTTP2ConnectionState::Http2StateInit,
             files: HTTP2Files::new(),
+            c2s_buf: HTTP2HeaderReassemblyBuffer::default(),
+            s2c_buf: HTTP2HeaderReassemblyBuffer::default(),
         }
     }
 
@@ -574,8 +589,11 @@ impl HTTP2State {
     }
 
     fn parse_frame_data(
-        &mut self, ftype: u8, input: &[u8], complete: bool, hflags: u8, dir: u8,
+        &mut self, head: &parser::HTTP2FrameHeader, input: &[u8], complete: bool, dir: u8,
+        reass_limit_reached: &mut bool,
     ) -> HTTP2FrameTypeData {
+        let ftype = head.ftype;
+        let hflags = head.flags;
         match num::FromPrimitive::from_u8(ftype) {
             Some(parser::HTTP2FrameType::GOAWAY) => {
                 if input.len() < HTTP2_FRAME_GOAWAY_LEN {
@@ -735,17 +753,47 @@ impl HTTP2State {
                 return HTTP2FrameTypeData::DATA;
             }
             Some(parser::HTTP2FrameType::CONTINUATION) => {
+                let buf = if dir == STREAM_TOCLIENT {
+                    &mut self.s2c_buf
+                } else {
+                    &mut self.c2s_buf
+                };
+                if head.stream_id == buf.stream_id {
+                    let max_reass = unsafe { HTTP2_MAX_REASS };
+                    if buf.data.len() + input.len() < max_reass {
+                        buf.data.extend(input);
+                    } else if buf.data.len() < max_reass {
+                        buf.data.extend(&input[..max_reass - buf.data.len()]);
+                        *reass_limit_reached = true;
+                    }
+                    if head.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS == 0 {
+                        let hs = parser::HTTP2FrameContinuation {
+                            blocks: Vec::new(),
+                        };
+                        return HTTP2FrameTypeData::CONTINUATION(hs);
+                    }
+                } // else try to parse anyways
+                let input_reass = if head.stream_id == buf.stream_id { &buf.data } else { input };
+
                 let dyn_headers = if dir == STREAM_TOCLIENT {
                     &mut self.dynamic_headers_tc
                 } else {
                     &mut self.dynamic_headers_ts
                 };
-                match parser::http2_parse_frame_continuation(input, dyn_headers) {
+                match parser::http2_parse_frame_continuation(input_reass, dyn_headers) {
                     Ok((_, hs)) => {
+                        if head.stream_id == buf.stream_id {
+                            buf.stream_id = 0;
+                            buf.data.clear();
+                        }
                         self.process_headers(&hs.blocks, dir);
                         return HTTP2FrameTypeData::CONTINUATION(hs);
                     }
                     Err(nom::Err::Incomplete(_)) => {
+                        if head.stream_id == buf.stream_id {
+                            buf.stream_id = 0;
+                            buf.data.clear();
+                        }
                         if complete {
                             self.set_event(HTTP2Event::InvalidFrameData);
                             return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
@@ -758,6 +806,10 @@ impl HTTP2State {
                         }
                     }
                     Err(_) => {
+                        if head.stream_id == buf.stream_id {
+                            buf.stream_id = 0;
+                            buf.data.clear();
+                        }
                         self.set_event(HTTP2Event::InvalidFrameData);
                         return HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
                             reason: HTTP2FrameUnhandledReason::ParsingError,
@@ -766,6 +818,22 @@ impl HTTP2State {
                 }
             }
             Some(parser::HTTP2FrameType::HEADERS) => {
+                if head.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS == 0 {
+                    let buf = if dir == STREAM_TOCLIENT {
+                        &mut self.s2c_buf
+                    } else {
+                        &mut self.c2s_buf
+                    };
+                    buf.data.clear();
+                    buf.data.extend(input);
+                    buf.stream_id = head.stream_id;
+                    let hs = parser::HTTP2FrameHeaders {
+                        padlength: None,
+                        priority: None,
+                        blocks: Vec::new(),
+                    };
+                    return HTTP2FrameTypeData::HEADERS(hs);
+                }
                 let dyn_headers = if dir == STREAM_TOCLIENT {
                     &mut self.dynamic_headers_tc
                 } else {
@@ -847,15 +915,19 @@ impl HTTP2State {
                         input = &rem[hlsafe..];
                         continue;
                     }
+                    let mut reass_limit_reached = false;
                     let txdata = self.parse_frame_data(
-                        head.ftype,
+                        &head,
                         &rem[..hlsafe],
                         complete,
-                        head.flags,
                         dir,
+                        &mut reass_limit_reached,
                     );
 
                     let tx = self.find_or_create_tx(&head, &txdata, dir);
+                    if reass_limit_reached {
+                        tx.set_event(HTTP2Event::ReassemblyLimitReached);
+                    }
                     tx.handle_frame(&head, &txdata, dir);
                     let over = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
                     let ftype = head.ftype;
@@ -1206,6 +1278,7 @@ pub extern "C" fn rs_http2_state_get_event_info_by_id(
             HTTP2Event::FailedDecompression => "failed_decompression\0",
             HTTP2Event::AuthorityHostMismatch => "authority_host_mismatch\0",
             HTTP2Event::UserinfoInUri => "userinfo_in_uri\0",
+            HTTP2Event::ReassemblyLimitReached => "reassembly_limit_reached\0",
         };
         unsafe {
             *event_name = estr.as_ptr() as *const std::os::raw::c_char;
@@ -1291,6 +1364,13 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         ALPROTO_HTTP2 = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        if let Some(val) = conf_get("app-layer.protocols.http2.max-reassembly-size") {
+            if let Ok(v) = val.parse::<u32>() {
+                HTTP2_MAX_REASS = v as usize;
+            } else {
+                SCLogError!("Invalid value for http2.max-reassembly-size");
+            }
         }
         SCLogDebug!("Rust http2 parser registered.");
     } else {

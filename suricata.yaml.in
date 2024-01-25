@@ -791,6 +791,8 @@ app-layer:
       enabled: no
       # use http keywords on HTTP2 traffic
       http1-rules: no
+      # Maximum reassembly size for header + continuation frames
+      #max-reassembly-size: 102400
     smtp:
       enabled: yes
       raw-extraction: no
