@@ -38,9 +38,19 @@
 static void DetectAppLayerProtocolRegisterTests(void);
 #endif
 
+enum {
+    DETECT_ALPROTO_DIRECTION = 0,
+    DETECT_ALPROTO_FINAL = 1,
+    DETECT_ALPROTO_EITHER = 2,
+    DETECT_ALPROTO_TOSERVER = 3,
+    DETECT_ALPROTO_TOCLIENT = 4,
+    DETECT_ALPROTO_ORIG = 5,
+};
+
 typedef struct DetectAppLayerProtocolData_ {
     AppProto alproto;
     uint8_t negated;
+    uint8_t mode;
 } DetectAppLayerProtocolData;
 
 static int DetectAppLayerProtocolPacketMatch(
@@ -65,27 +75,30 @@ static int DetectAppLayerProtocolPacketMatch(
         SCReturnInt(0);
     }
 
-    /* unknown means protocol detection isn't ready yet */
-
-    if ((f->alproto_ts != ALPROTO_UNKNOWN) && (p->flowflags & FLOW_PKT_TOSERVER))
-    {
-        SCLogDebug("toserver packet %"PRIu64": looking for %u/neg %u, got %u",
-                p->pcap_cnt, data->alproto, data->negated, f->alproto_ts);
-
-        r = AppProtoEquals(data->alproto, f->alproto_ts);
-
-    } else if ((f->alproto_tc != ALPROTO_UNKNOWN) && (p->flowflags & FLOW_PKT_TOCLIENT))
-    {
-        SCLogDebug("toclient packet %"PRIu64": looking for %u/neg %u, got %u",
-                p->pcap_cnt, data->alproto, data->negated, f->alproto_tc);
-
-        r = AppProtoEquals(data->alproto, f->alproto_tc);
-    }
-    else {
-        SCLogDebug("packet %"PRIu64": default case: direction %02x, approtos %u/%u/%u",
-            p->pcap_cnt,
-            p->flowflags & (FLOW_PKT_TOCLIENT|FLOW_PKT_TOSERVER),
-            f->alproto, f->alproto_ts, f->alproto_tc);
+    switch (data->mode) {
+        case DETECT_ALPROTO_DIRECTION:
+            if (p->flowflags & FLOW_PKT_TOSERVER) {
+                r = AppProtoEquals(data->alproto, f->alproto_ts);
+            } else {
+                r = AppProtoEquals(data->alproto, f->alproto_tc);
+            }
+            break;
+        case DETECT_ALPROTO_ORIG:
+            r = AppProtoEquals(data->alproto, f->alproto_orig);
+            break;
+        case DETECT_ALPROTO_FINAL:
+            r = AppProtoEquals(data->alproto, f->alproto);
+            break;
+        case DETECT_ALPROTO_TOSERVER:
+            r = AppProtoEquals(data->alproto, f->alproto_ts);
+            break;
+        case DETECT_ALPROTO_TOCLIENT:
+            r = AppProtoEquals(data->alproto, f->alproto_tc);
+            break;
+        case DETECT_ALPROTO_EITHER:
+            r = AppProtoEquals(data->alproto, f->alproto_tc) ||
+                AppProtoEquals(data->alproto, f->alproto_ts);
+            break;
     }
     r = r ^ data->negated;
     if (r) {
@@ -94,19 +107,50 @@ static int DetectAppLayerProtocolPacketMatch(
     SCReturnInt(0);
 }
 
+#define MAX_ALPROTO_NAME 50
 static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg, bool negate)
 {
     DetectAppLayerProtocolData *data;
     AppProto alproto = ALPROTO_UNKNOWN;
 
-    if (strcmp(arg, "failed") == 0) {
+    char alproto_copy[MAX_ALPROTO_NAME];
+    char *sep = strchr(arg, ',');
+    char *alproto_name;
+    if (sep && sep - arg < MAX_ALPROTO_NAME) {
+        strlcpy(alproto_copy, arg, sep - arg + 1);
+        alproto_name = alproto_copy;
+    } else {
+        alproto_name = (char *)arg;
+    }
+    if (strcmp(alproto_name, "failed") == 0) {
         alproto = ALPROTO_FAILED;
     } else {
-        alproto = AppLayerGetProtoByName((char *)arg);
+        alproto = AppLayerGetProtoByName(alproto_name);
         if (alproto == ALPROTO_UNKNOWN) {
             SCLogError("app-layer-protocol "
                        "keyword supplied with unknown protocol \"%s\"",
-                    arg);
+                    alproto_name);
+            return NULL;
+        }
+    }
+    uint8_t mode = DETECT_ALPROTO_DIRECTION;
+    if (sep) {
+        if (strcmp(sep + 1, "final") == 0) {
+            mode = DETECT_ALPROTO_FINAL;
+        } else if (strcmp(sep + 1, "original") == 0) {
+            mode = DETECT_ALPROTO_ORIG;
+        } else if (strcmp(sep + 1, "either") == 0) {
+            mode = DETECT_ALPROTO_EITHER;
+        } else if (strcmp(sep + 1, "to_server") == 0) {
+            mode = DETECT_ALPROTO_TOSERVER;
+        } else if (strcmp(sep + 1, "to_client") == 0) {
+            mode = DETECT_ALPROTO_TOCLIENT;
+        } else if (strcmp(sep + 1, "direction") == 0) {
+            mode = DETECT_ALPROTO_DIRECTION;
+        } else {
+            SCLogError("app-layer-protocol "
+                       "keyword supplied with unknown mode \"%s\"",
+                    sep + 1);
             return NULL;
         }
     }
@@ -116,6 +160,7 @@ static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg, 
         return NULL;
     data->alproto = alproto;
     data->negated = negate;
+    data->mode = mode;
 
     return data;
 }
@@ -124,13 +169,13 @@ static bool HasConflicts(const DetectAppLayerProtocolData *us,
                           const DetectAppLayerProtocolData *them)
 {
     /* mixing negated and non negated is illegal */
-    if (them->negated ^ us->negated)
+    if ((them->negated ^ us->negated) && them->mode == us->mode)
         return true;
     /* multiple non-negated is illegal */
-    if (!us->negated)
+    if (!us->negated && them->mode == us->mode)
         return true;
     /* duplicate option */
-    if (us->alproto == them->alproto)
+    if (us->alproto == them->alproto && them->mode == us->mode)
         return true;
 
     /* all good */
@@ -209,16 +254,43 @@ PrefilterPacketAppProtoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const vo
         SCReturn;
     }
 
-    if ((p->flags & PKT_PROTO_DETECT_TS_DONE) && (p->flowflags & FLOW_PKT_TOSERVER))
-    {
-        int r = (ctx->v1.u16[0] == p->flow->alproto_ts) ^ ctx->v1.u8[2];
-        if (r) {
-            PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
-        }
-    } else if ((p->flags & PKT_PROTO_DETECT_TC_DONE) && (p->flowflags & FLOW_PKT_TOCLIENT))
-    {
-        int r = (ctx->v1.u16[0] == p->flow->alproto_tc) ^ ctx->v1.u8[2];
-        if (r) {
+    Flow *f = p->flow;
+    AppProto alproto = ALPROTO_UNKNOWN;
+    bool negated = (bool)ctx->v1.u8[2];
+    switch (ctx->v1.u8[3]) {
+        case DETECT_ALPROTO_DIRECTION:
+            if (p->flowflags & FLOW_PKT_TOSERVER) {
+                alproto = f->alproto_ts;
+            } else {
+                alproto = f->alproto_tc;
+            }
+            break;
+        case DETECT_ALPROTO_ORIG:
+            alproto = f->alproto_orig;
+            break;
+        case DETECT_ALPROTO_FINAL:
+            alproto = f->alproto;
+            break;
+        case DETECT_ALPROTO_TOSERVER:
+            alproto = f->alproto_ts;
+            break;
+        case DETECT_ALPROTO_TOCLIENT:
+            alproto = f->alproto_tc;
+            break;
+        case DETECT_ALPROTO_EITHER:
+            // check if either protocol toclient or toserver matches
+            // the one in the signature ctx
+            if (AppProtoEquals(ctx->v1.u16[0], f->alproto_tc) ^ negated) {
+                PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+            } else if (AppProtoEquals(ctx->v1.u16[0], f->alproto_ts) ^ negated) {
+                PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+            }
+            // We return right away to avoid calling PrefilterAddSids again
+            return;
+    }
+
+    if (alproto != ALPROTO_UNKNOWN) {
+        if (AppProtoEquals(ctx->v1.u16[0], alproto) ^ negated) {
             PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
         }
     }
@@ -230,14 +302,14 @@ PrefilterPacketAppProtoSet(PrefilterPacketHeaderValue *v, void *smctx)
     const DetectAppLayerProtocolData *a = smctx;
     v->u16[0] = a->alproto;
     v->u8[2] = (uint8_t)a->negated;
+    v->u8[3] = a->mode;
 }
 
 static bool
 PrefilterPacketAppProtoCompare(PrefilterPacketHeaderValue v, void *smctx)
 {
     const DetectAppLayerProtocolData *a = smctx;
-    if (v.u16[0] == a->alproto &&
-        v.u8[2] == (uint8_t)a->negated)
+    if (v.u16[0] == a->alproto && v.u8[2] == (uint8_t)a->negated && v.u8[3] == a->mode)
         return true;
     return false;
 }
