@@ -117,6 +117,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_TS_APP_UPDATED BIT_U32(29)
 #define FLOW_TC_APP_UPDATED BIT_U32(30)
 
+#define FLOW_TS_APP_UPDATE_NEXT BIT_U32(31)
+#define FLOW_TC_APP_UPDATE_NEXT BIT_U32(2)
+
 /* File flags */
 
 #define FLOWFILE_INIT                   0
