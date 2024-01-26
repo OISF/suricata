@@ -523,19 +523,19 @@ static void PacketAppUpdate2FlowFlags(Packet *p)
             break;
         case UPDATE_DIR_BOTH:
             if (PKT_IS_TOSERVER(p)) {
-                p->flow->flags |= FLOW_TS_APP_UPDATED;
+                p->flow->flags |= FLOW_TS_APP_UPDATED | FLOW_TC_APP_UPDATE_NEXT;
                 SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TS_APP_UPDATED set", p->pcap_cnt);
             } else {
-                p->flow->flags |= FLOW_TC_APP_UPDATED;
+                p->flow->flags |= FLOW_TC_APP_UPDATED | FLOW_TS_APP_UPDATE_NEXT;
                 SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TC_APP_UPDATED set", p->pcap_cnt);
             }
             /* fall through */
         case UPDATE_DIR_OPPOSING:
             if (PKT_IS_TOSERVER(p)) {
-                p->flow->flags |= FLOW_TC_APP_UPDATED;
+                p->flow->flags |= FLOW_TC_APP_UPDATED | FLOW_TS_APP_UPDATE_NEXT;
                 SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TC_APP_UPDATED set", p->pcap_cnt);
             } else {
-                p->flow->flags |= FLOW_TS_APP_UPDATED;
+                p->flow->flags |= FLOW_TS_APP_UPDATED | FLOW_TC_APP_UPDATE_NEXT;
                 SCLogDebug("pcap_cnt %" PRIu64 ", FLOW_TS_APP_UPDATED set", p->pcap_cnt);
             }
             break;
@@ -583,6 +583,14 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
     /* handle TCP and app layer */
     if (p->flow) {
+        if (PKT_IS_TOSERVER(p) && (p->flow->flags & FLOW_TS_APP_UPDATE_NEXT)) {
+            p->flow->flags |= FLOW_TS_APP_UPDATED;
+            p->flow->flags &= ~FLOW_TS_APP_UPDATE_NEXT;
+        } else if (PKT_IS_TOCLIENT(p) && (p->flow->flags & FLOW_TC_APP_UPDATE_NEXT)) {
+            p->flow->flags |= FLOW_TC_APP_UPDATED;
+            p->flow->flags &= ~FLOW_TC_APP_UPDATE_NEXT;
+        }
+
         if (PacketIsTCP(p)) {
             SCLogDebug("packet %" PRIu64 " is TCP. Direction %s", p->pcap_cnt,
                     PKT_IS_TOSERVER(p) ? "TOSERVER" : "TOCLIENT");
