@@ -124,7 +124,7 @@ static int GetFlowVarById(lua_State *luastate, Flow *f,
         LUA_ERROR("flowvar id not a number");
     }
     int id = lua_tonumber(luastate, 1);
-    if (id < 0 || id >= DETECT_LUAJIT_MAX_FLOWVARS) {
+    if (id < 0 || id >= DETECT_LUA_MAX_FLOWVARS) {
         LUA_ERROR("flowvar id out of range");
     }
     uint32_t idx = ld->flowvar[id];
@@ -185,7 +185,7 @@ static int GetFlowIntById(lua_State *luastate, Flow *f,
         LUA_ERROR("flowvar id not a number");
     }
     int id = lua_tonumber(luastate, 1);
-    if (id < 0 || id >= DETECT_LUAJIT_MAX_FLOWVARS) {
+    if (id < 0 || id >= DETECT_LUA_MAX_FLOWVARS) {
         LUA_ERROR("flowvar id out of range");
     }
     uint32_t idx = ld->flowint[id];
@@ -391,7 +391,7 @@ static int LuaSetFlowint(lua_State *luastate)
         LUA_ERROR("1st arg not a number");
     }
     int id = lua_tonumber(luastate, 1);
-    if (id < 0 || id >= DETECT_LUAJIT_MAX_FLOWVARS) {
+    if (id < 0 || id >= DETECT_LUA_MAX_FLOWVARS) {
         LUA_ERROR("flowint id out of range");
     }
 
@@ -496,7 +496,7 @@ static int LuaGetByteVar(lua_State *luastate)
         LUA_ERROR("bytevar id not a number");
     }
     int id = lua_tonumber(luastate, 1);
-    if (id < 0 || id >= DETECT_LUAJIT_MAX_BYTEVARS) {
+    if (id < 0 || id >= DETECT_LUA_MAX_BYTEVARS) {
         LUA_ERROR("bytevar id out of range");
     }
     uint32_t idx = ld->bytevar[id];
