@@ -52,7 +52,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** At least one packet from the destination address was seen */
 #define FLOW_TO_DST_SEEN                BIT_U32(1)
 
-// vacancy
+/** next packet in toclient direction will act on updated app-layer state */
+#define FLOW_TC_APP_UPDATE_NEXT BIT_U32(2)
 
 /** Flow was inspected against IP-Only sigs in the toserver direction */
 #define FLOW_TOSERVER_IPONLY_SET        BIT_U32(3)
@@ -116,6 +117,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 
 #define FLOW_TS_APP_UPDATED BIT_U32(29)
 #define FLOW_TC_APP_UPDATED BIT_U32(30)
+
+/** next packet in toserver direction will act on updated app-layer state */
+#define FLOW_TS_APP_UPDATE_NEXT BIT_U32(31)
 
 /* File flags */
 
