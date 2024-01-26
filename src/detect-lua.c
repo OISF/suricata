@@ -67,7 +67,7 @@
 
 static int DetectLuaSetupNoSupport (DetectEngineCtx *a, Signature *b, const char *c)
 {
-    SCLogError("no Lua support built in, needed for lua/luajit keyword");
+    SCLogError("no Lua support built in, needed for lua keyword");
     return -1;
 }
 
@@ -77,7 +77,6 @@ static int DetectLuaSetupNoSupport (DetectEngineCtx *a, Signature *b, const char
 void DetectLuaRegister(void)
 {
     sigmatch_table[DETECT_LUA].name = "lua";
-    sigmatch_table[DETECT_LUA].alias = "luajit";
     sigmatch_table[DETECT_LUA].desc = "support for lua scripting";
     sigmatch_table[DETECT_LUA].url = "/rules/rule-lua-scripting.html";
     sigmatch_table[DETECT_LUA].Setup = DetectLuaSetupNoSupport;
@@ -111,7 +110,6 @@ static int g_smtp_generic_list_id = 0;
 void DetectLuaRegister(void)
 {
     sigmatch_table[DETECT_LUA].name = "lua";
-    sigmatch_table[DETECT_LUA].alias = "luajit";
     sigmatch_table[DETECT_LUA].desc = "match via a lua script";
     sigmatch_table[DETECT_LUA].url = "/rules/rule-lua-scripting.html";
     sigmatch_table[DETECT_LUA].Match = DetectLuaMatch;
@@ -786,7 +784,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                     /* removes 'value'; keeps 'key' for next iteration */
                     lua_pop(luastate, 1);
 
-                    if (ld->flowvars == DETECT_LUAJIT_MAX_FLOWVARS) {
+                    if (ld->flowvars == DETECT_LUA_MAX_FLOWVARS) {
                         SCLogError("too many flowvars registered");
                         goto error;
                     }
@@ -808,7 +806,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                     /* removes 'value'; keeps 'key' for next iteration */
                     lua_pop(luastate, 1);
 
-                    if (ld->flowints == DETECT_LUAJIT_MAX_FLOWINTS) {
+                    if (ld->flowints == DETECT_LUA_MAX_FLOWINTS) {
                         SCLogError("too many flowints registered");
                         goto error;
                     }
@@ -830,7 +828,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                     /* removes 'value'; keeps 'key' for next iteration */
                     lua_pop(luastate, 1);
 
-                    if (ld->bytevars == DETECT_LUAJIT_MAX_BYTEVARS) {
+                    if (ld->bytevars == DETECT_LUA_MAX_BYTEVARS) {
                         SCLogError("too many bytevars registered");
                         goto error;
                     }
