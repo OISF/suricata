@@ -1636,6 +1636,7 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
                 p->pcap_cnt, PKT_IS_TOSERVER(p) ? "toserver" : "toclient");
         return;
     }
+
     FramesContainer *frames_container = AppLayerFramesGetContainer(f);
     if (frames_container == NULL) {
         return;
