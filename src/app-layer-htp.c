@@ -1571,7 +1571,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
 #endif
 
                 result = HTPFileOpen(hstate, htud, filename, filename_len, filedata, filedata_len,
-                        HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
+                        STREAM_TOSERVER);
                 if (result == -1) {
                     goto end;
                 } else if (result == -2) {
@@ -1633,7 +1633,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                         filedata_len = 0;
                     }
                     result = HTPFileOpen(hstate, htud, filename, filename_len, filedata,
-                            filedata_len, HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
+                            filedata_len, STREAM_TOSERVER);
                     if (result == -1) {
                         goto end;
                     } else if (result == -2) {
@@ -1648,7 +1648,7 @@ static int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, 
                     SCLogDebug("filedata_len %u", filedata_len);
 
                     result = HTPFileOpen(hstate, htud, filename, filename_len, filedata,
-                            filedata_len, HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
+                            filedata_len, STREAM_TOSERVER);
                     if (result == -1) {
                         goto end;
                     } else if (result == -2) {
@@ -1725,7 +1725,7 @@ static int HtpRequestBodyHandlePOSTorPUT(HtpState *hstate, HtpTxUserData *htud,
                 HTPSetEvent(hstate, htud, STREAM_TOSERVER, HTTP_DECODER_EVENT_FILE_NAME_TOO_LONG);
             }
             result = HTPFileOpen(hstate, htud, filename, (uint16_t)filename_len, data, data_len,
-                    HtpGetActiveRequestTxID(hstate), STREAM_TOSERVER);
+                    STREAM_TOSERVER);
             if (result == -1) {
                 goto end;
             } else if (result == -2) {
@@ -1802,10 +1802,10 @@ static int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
             }
             if (h_content_range != NULL) {
                 result = HTPFileOpenWithRange(hstate, htud, filename, (uint16_t)filename_len, data,
-                        data_len, HtpGetActiveResponseTxID(hstate), h_content_range->value, htud);
+                        data_len, tx, h_content_range->value, htud);
             } else {
                 result = HTPFileOpen(hstate, htud, filename, (uint16_t)filename_len, data, data_len,
-                        HtpGetActiveResponseTxID(hstate), STREAM_TOCLIENT);
+                        STREAM_TOCLIENT);
             }
             SCLogDebug("result %d", result);
             if (result == -1) {

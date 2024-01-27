@@ -48,7 +48,7 @@ extern StreamingBufferConfig htp_sbcfg;
  *  \retval -2 not handling files on this flow
  */
 int HTPFileOpen(HtpState *s, HtpTxUserData *tx, const uint8_t *filename, uint16_t filename_len,
-        const uint8_t *data, uint32_t data_len, uint64_t txid, uint8_t direction)
+        const uint8_t *data, uint32_t data_len, uint8_t direction)
 {
     int retval = 0;
     uint16_t flags = 0;
@@ -147,8 +147,8 @@ static int HTPParseAndCheckContentRange(
  *  \retval -1 error
  */
 int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filename,
-        uint16_t filename_len, const uint8_t *data, uint32_t data_len, uint64_t txid,
-        bstr *rawvalue, HtpTxUserData *htud)
+        uint16_t filename_len, const uint8_t *data, uint32_t data_len, htp_tx_t *tx, bstr *rawvalue,
+        HtpTxUserData *htud)
 {
     SCEnter();
     uint16_t flags;
@@ -159,7 +159,7 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     HTTPContentRange crparsed;
     if (HTPParseAndCheckContentRange(rawvalue, &crparsed, s, htud) != 0) {
         // range is invalid, fall back to classic open
-        return HTPFileOpen(s, txud, filename, filename_len, data, data_len, txid, STREAM_TOCLIENT);
+        return HTPFileOpen(s, txud, filename, filename_len, data, data_len, STREAM_TOCLIENT);
     }
     flags = FileFlowToFlags(s->f, STREAM_TOCLIENT);
     FileContainer *files = &txud->files_tc;
@@ -179,11 +179,6 @@ int HTPFileOpenWithRange(HtpState *s, HtpTxUserData *txud, const uint8_t *filena
     }
 
     // Then, we will try to handle reassembly of different ranges of the same file
-    // TODO have the caller pass directly the tx
-    htp_tx_t *tx = htp_list_get(s->conn->transactions, txid - s->tx_freed);
-    if (!tx) {
-        SCReturnInt(-1);
-    }
     uint8_t *keyurl;
     uint32_t keylen;
     if (tx->request_hostname != NULL) {
