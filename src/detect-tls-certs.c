@@ -70,6 +70,7 @@ static int g_tls_certs_buffer_id = 0;
 struct TlsCertsGetDataArgs {
     uint32_t local_id; /**< used as index into thread inspect array */
     SSLCertsChain *cert;
+    const uint8_t flags;
 };
 
 typedef struct PrefilterMpmTlsCerts {
@@ -148,7 +149,7 @@ static InspectionBuffer *TlsCertsGetData(DetectEngineThreadCtx *det_ctx,
     const SSLState *ssl_state = (SSLState *)f->alstate;
     const SSLStateConnp *connp;
 
-    if (f->flags & STREAM_TOSERVER) {
+    if (cbdata->flags & STREAM_TOSERVER) {
         connp = &ssl_state->client_connp;
     } else {
         connp = &ssl_state->server_connp;
@@ -183,7 +184,7 @@ static uint8_t DetectEngineInspectTlsCerts(DetectEngineCtx *de_ctx, DetectEngine
         transforms = engine->v2.transforms;
     }
 
-    struct TlsCertsGetDataArgs cbdata = { 0, NULL };
+    struct TlsCertsGetDataArgs cbdata = { .local_id = 0, .cert = NULL, .flags = flags };
 
     while (1)
     {
@@ -214,7 +215,7 @@ static void PrefilterTxTlsCerts(DetectEngineThreadCtx *det_ctx, const void *pect
     const MpmCtx *mpm_ctx = ctx->mpm_ctx;
     const int list_id = ctx->list_id;
 
-    struct TlsCertsGetDataArgs cbdata = { 0, NULL };
+    struct TlsCertsGetDataArgs cbdata = { .local_id = 0, .cert = NULL, .flags = flags };
 
     while (1)
     {
