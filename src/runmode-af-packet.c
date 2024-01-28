@@ -547,6 +547,18 @@ static void *ParseAFPConfig(const char *iface)
 #else
         SCLogWarning("%s: XDP filter set but XDP support is not built-in", iface);
 #endif
+    }
+
+    if (ConfGetChildValueWithDefault(if_root, if_default, "xdp-syncookie-file", &ebpf_file) != 1) {
+        aconf->xdp_syncookie_file = NULL;
+    } else {
+#ifdef HAVE_PACKET_XDP
+        aconf->ebpf_t_config.mode = AFP_MODE_XDP_SYNPROXY;
+        aconf->ebpf_t_config.flags |= EBPF_XDP_CODE;
+        aconf->xdp_syncookie_file = ebpf_file;
+#else
+        SCLogWarning("%s: XDP filter set but XDP support is not built-in", iface);
+#endif
 #ifdef HAVE_PACKET_XDP
         const char *xdp_mode;
         if (ConfGetChildValueWithDefault(if_root, if_default, "xdp-mode", &xdp_mode) != 1) {
@@ -611,6 +623,28 @@ static void *ParseAFPConfig(const char *iface)
                 /* we have a peer and we use bypass so we can set up XDP iface redirect */
                 if (aconf->out_iface) {
                     EBPFSetPeerIface(aconf->iface, aconf->out_iface);
+                }
+        }
+#else
+        SCLogError("%s: XDP support is not built-in", iface);
+#endif
+    }
+
+    if (aconf->xdp_syncookie_file) {
+#ifdef HAVE_PACKET_XDP
+        int ret = EBPFLoadFile(aconf->iface, aconf->xdp_syncookie_file, "xdp",
+                &aconf->xdp_syncookie_fd, &aconf->ebpf_t_config);
+        switch (ret) {
+            case 1:
+                SCLogInfo("%s: loaded pinned maps from sysfs", iface);
+                break;
+            case -1:
+                SCLogWarning("%s: failed to load XDP filter file", iface);
+                break;
+            case 0:
+                ret = EBPFSetupXDP(aconf->iface, aconf->xdp_syncookie_fd, aconf->xdp_mode);
+                if (ret != 0) {
+                    SCLogWarning("%s: failed to set up XDP", iface);
                 }
         }
 #else

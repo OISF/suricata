@@ -182,7 +182,7 @@ static int EBPFLoadPinnedMapsFile(LiveDevice *livedev, const char *file)
 
 static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *config)
 {
-    int fd_v4 = -1, fd_v6 = -1;
+    int fd_v4 = -1, fd_v6 = -1, fd_allowed_ports = -1;
 
     /* First try to load the eBPF check map and return if found */
     if (config->pinned_maps_name) {
@@ -208,6 +208,14 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
         }
     }
 
+    if (config->mode == AFP_MODE_XDP_SYNPROXY) {
+        /* Get flow v4 table */
+        fd_allowed_ports = EBPFLoadPinnedMapsFile(livedev, "allowed_ports");
+        if (fd_allowed_ports < 0) {
+            return fd_allowed_ports;
+        }
+    }
+
     struct bpf_maps_info *bpf_map_data = SCCalloc(1, sizeof(*bpf_map_data));
     if (bpf_map_data == NULL) {
         SCLogError("Can't allocate bpf map array");
@@ -226,6 +234,17 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
             goto alloc_error;
         }
         bpf_map_data->last = 2;
+    } else {
+        bpf_map_data->last = 0;
+    }
+
+    if (config->mode == AFP_MODE_XDP_SYNPROXY) {
+        bpf_map_data->array[0].fd = fd_allowed_ports;
+        bpf_map_data->array[0].name = SCStrdup("allowed_ports");
+        if (bpf_map_data->array[0].name == NULL) {
+            goto alloc_error;
+        }
+        bpf_map_data->last = 1;
     } else {
         bpf_map_data->last = 0;
     }
