@@ -46,6 +46,7 @@
 #ifdef HAVE_PACKET_EBPF
 #define AFP_MODE_XDP_BYPASS 1
 #define AFP_MODE_EBPF_BYPASS 2
+#define AFP_MODE_XDP_SYNPROXY 3
 struct ebpf_timeout_config {
     const char *pinned_maps_name;
     uint16_t cpus_count;
@@ -106,6 +107,8 @@ typedef struct AFPIfaceConfig_
     int ebpf_filter_fd;
     const char *xdp_filter_file;
     int xdp_filter_fd;
+    const char *xdp_syncookie_file;
+    int xdp_syncookie_fd;
     uint8_t xdp_mode;
     const char *out_iface;
 #ifdef HAVE_PACKET_EBPF
