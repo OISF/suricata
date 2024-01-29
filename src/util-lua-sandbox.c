@@ -132,16 +132,17 @@ LUALIB_API void sb_loadrestricted(lua_State *L)
 lua_State *sb_newstate(uint64_t alloclimit, uint64_t instructionlimit)
 {
     sb_lua_state *sb = SCMalloc(sizeof(sb_lua_state));
+    if (sb == NULL) {
+        // Out of memory.  Error code?
+        return NULL;
+    }
+
     sb->alloc_limit = alloclimit;
     sb->alloc_bytes = 0;
     sb->hook_instruction_count = 100;
     sb->instruction_limit = instructionlimit;
 
     sb->L = lua_newstate(sb_alloc, sb); /* create state */
-    if (sb == NULL) {
-        // Out of memory.  Error code?
-        return NULL;
-    }
     if (sb->L == NULL) {
         // TODO: log or error code?
         SCFree(sb);
