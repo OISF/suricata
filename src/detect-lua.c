@@ -98,9 +98,6 @@ static void DetectLuaRegisterTests(void);
 static void DetectLuaFree(DetectEngineCtx *, void *);
 static int g_smtp_generic_list_id = 0;
 
-// TODO: move to config
-static const uint64_t g_lua_alloc_limit = 500000, g_lua_instruction_limit = 500000;
-
 /**
  * \brief Registration function for keyword: lua
  */
@@ -152,6 +149,10 @@ void DetectLuaRegister(void)
 #define FLAG_DATATYPE_DNP3                      BIT_U32(21)
 #define FLAG_DATATYPE_BUFFER                    BIT_U32(22)
 #define FLAG_ERROR_LOGGED                       BIT_U32(23)
+
+// TODO: move to config
+#define DEFAULT_LUA_ALLOC_LIMIT       500000
+#define DEFAULT_LUA_INSTRUCTION_LIMIT 500000
 
 #if 0
 /** \brief dump stack from lua state to screen */
@@ -483,7 +484,7 @@ static void *DetectLuaThreadInit(void *data)
     t->alproto = lua->alproto;
     t->flags = lua->flags;
 
-    t->luastate = sb_newstate(g_lua_alloc_limit, g_lua_instruction_limit);
+    t->luastate = sb_newstate(lua->alloc_limit, lua->instruction_limit);
     if (t->luastate == NULL) {
         SCLogError("luastate pool depleted");
         goto error;
@@ -585,7 +586,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
 {
     int status;
 
-    lua_State *luastate = sb_newstate(g_lua_alloc_limit, g_lua_instruction_limit);
+    lua_State *luastate = sb_newstate(ld->alloc_limit, ld->instruction_limit);
     if (luastate == NULL)
         return -1;
     luaL_openlibs(luastate); // TODO: get sandbox config and load appropriate libs
@@ -901,6 +902,14 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
     lua = DetectLuaParse(de_ctx, str);
     if (lua == NULL)
         goto error;
+
+    /* Load lua sandbox configurations */
+    intmax_t lua_alloc_limit = DEFAULT_LUA_ALLOC_LIMIT;
+    intmax_t lua_instruction_limit = DEFAULT_LUA_INSTRUCTION_LIMIT;
+    (void)ConfGetInt("security.lua.max-bytes", &lua_alloc_limit);
+    (void)ConfGetInt("security.lua.max-instructions", &lua_instruction_limit);
+    lua->alloc_limit = lua_alloc_limit;
+    lua->instruction_limit = lua_instruction_limit;
 
     if (DetectLuaSetupPrime(de_ctx, lua, s) == -1) {
         goto error;
