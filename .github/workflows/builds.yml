@@ -479,7 +479,7 @@ jobs:
       - name: Configuring
         run: |
           ./autogen.sh
-          CFLAGS="${DEFAULT_CFLAGS}" ./configure
+          CFLAGS="${DEFAULT_CFLAGS}" ./configure --disable-lua
       - run: make -j2 check
       - name: Checking includes
         run: |
@@ -642,7 +642,7 @@ jobs:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
       - name: ./configure
-        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
+        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --disable-lua
       - run: make -j2
       - run: make install
       - run: make install-conf
@@ -728,7 +728,7 @@ jobs:
       # works.
       - name: Test autoreconf
         run: autoreconf -fv --install
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --disable-lua
       - run: make -j2
       - run: make install
       - run: make install-conf
