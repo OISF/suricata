@@ -506,6 +506,7 @@ noinst_HEADERS = \
 	tm-threads-common.h \
 	tm-threads.h \
 	tree.h \
+	interval-tree.h \
 	unix-manager.h \
 	util-action.h \
 	util-affinity.h \
