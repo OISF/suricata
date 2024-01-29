@@ -39,9 +39,10 @@
 #endif
 
 /*
- * This file defines data structures for red-black trees.
+ * This file defines data structures for interval trees which are
+ * implemented using red-black trees.
  *
- * A red-black tree is a binary search interval-tree with the node color as an
+ * A red-black tree is a binary search tree with the node color as an
  * extra attribute.  It fulfills a set of conditions:
  *	- every search path from the root to a leaf consists of the
  *	  same number of black nodes,
@@ -98,9 +99,23 @@
         IRB_COLOR(red, field) = IRB_RED;                                                           \
     } while (/*CONSTCOND*/ 0)
 
+/*
+ * The implementation of the following macro has been updated.
+ * In order to incorporte it properly, the call sites of this
+ * function have also been updated compared to the standard
+ * Red Black tree implementation in tree.h of BSD */
 #ifndef IRB_AUGMENT
-#define IRB_AUGMENT(x)                                                                             \
+#define IRB_AUGMENT(x, field)                                                                      \
     do {                                                                                           \
+        if (x != NULL) {                                                                           \
+            x->max = x->port2;                                                                     \
+            if (IRB_LEFT(x, field) != NULL) {                                                      \
+                x->max = MAX(x->max, IRB_LEFT(x, field)->max);                                     \
+            }                                                                                      \
+            if (IRB_RIGHT(x, field) != NULL) {                                                     \
+                x->max = MAX(x->max, IRB_RIGHT(x, field)->max);                                    \
+            }                                                                                      \
+        }                                                                                          \
     } while (0)
 #endif
 
@@ -110,7 +125,6 @@
         if ((IRB_RIGHT(elm, field) = IRB_LEFT(tmp, field)) != NULL) {                              \
             IRB_PARENT(IRB_LEFT(tmp, field), field) = (elm);                                       \
         }                                                                                          \
-        IRB_AUGMENT(elm);                                                                          \
         if ((IRB_PARENT(tmp, field) = IRB_PARENT(elm, field)) != NULL) {                           \
             if ((elm) == IRB_LEFT(IRB_PARENT(elm, field), field))                                  \
                 IRB_LEFT(IRB_PARENT(elm, field), field) = (tmp);                                   \
@@ -120,9 +134,10 @@
             (head)->rbh_root = (tmp);                                                              \
         IRB_LEFT(tmp, field) = (elm);                                                              \
         IRB_PARENT(elm, field) = (tmp);                                                            \
-        IRB_AUGMENT(tmp);                                                                          \
+        IRB_AUGMENT(elm, field);                                                                   \
+        IRB_AUGMENT(tmp, field);                                                                   \
         if ((IRB_PARENT(tmp, field)))                                                              \
-            IRB_AUGMENT(IRB_PARENT(tmp, field));                                                   \
+            IRB_AUGMENT(IRB_PARENT(tmp, field), field);                                            \
     } while (/*CONSTCOND*/ 0)
 
 #define IRB_ROTATE_RIGHT(head, elm, tmp, field)                                                    \
@@ -131,7 +146,6 @@
         if ((IRB_LEFT(elm, field) = IRB_RIGHT(tmp, field)) != NULL) {                              \
             IRB_PARENT(IRB_RIGHT(tmp, field), field) = (elm);                                      \
         }                                                                                          \
-        IRB_AUGMENT(elm);                                                                          \
         if ((IRB_PARENT(tmp, field) = IRB_PARENT(elm, field)) != NULL) {                           \
             if ((elm) == IRB_LEFT(IRB_PARENT(elm, field), field))                                  \
                 IRB_LEFT(IRB_PARENT(elm, field), field) = (tmp);                                   \
@@ -141,9 +155,10 @@
             (head)->rbh_root = (tmp);                                                              \
         IRB_RIGHT(tmp, field) = (elm);                                                             \
         IRB_PARENT(elm, field) = (tmp);                                                            \
-        IRB_AUGMENT(tmp);                                                                          \
+        IRB_AUGMENT(elm, field);                                                                   \
+        IRB_AUGMENT(tmp, field);                                                                   \
         if ((IRB_PARENT(tmp, field)))                                                              \
-            IRB_AUGMENT(IRB_PARENT(tmp, field));                                                   \
+            IRB_AUGMENT(IRB_PARENT(tmp, field), field);                                            \
     } while (/*CONSTCOND*/ 0)
 
 /* Generates prototypes and inline functions */
@@ -339,7 +354,7 @@
                     IRB_LEFT(parent, field) = child;                                               \
                 else                                                                               \
                     IRB_RIGHT(parent, field) = child;                                              \
-                IRB_AUGMENT(parent);                                                               \
+                IRB_AUGMENT(parent, field);                                                        \
             } else                                                                                 \
                 IRB_ROOT(head) = child;                                                            \
             if (IRB_PARENT(elm, field) == old)                                                     \
@@ -351,7 +366,7 @@
                     IRB_LEFT(IRB_PARENT(old, field), field) = elm;                                 \
                 else                                                                               \
                     IRB_RIGHT(IRB_PARENT(old, field), field) = elm;                                \
-                IRB_AUGMENT(IRB_PARENT(old, field));                                               \
+                IRB_AUGMENT(IRB_PARENT(old, field), field);                                        \
             } else                                                                                 \
                 IRB_ROOT(head) = elm;                                                              \
             _T_ASSERT(old);                                                                        \
@@ -362,7 +377,7 @@
             if (parent) {                                                                          \
                 left = parent;                                                                     \
                 do {                                                                               \
-                    IRB_AUGMENT(left);                                                             \
+                    IRB_AUGMENT(left, field);                                                      \
                 } while ((left = IRB_PARENT(left, field)) != NULL);                                \
             }                                                                                      \
             goto color;                                                                            \
@@ -376,7 +391,7 @@
                 IRB_LEFT(parent, field) = child;                                                   \
             else                                                                                   \
                 IRB_RIGHT(parent, field) = child;                                                  \
-            IRB_AUGMENT(parent);                                                                   \
+            IRB_AUGMENT(parent, field);                                                            \
         } else                                                                                     \
             IRB_ROOT(head) = child;                                                                \
     color:                                                                                         \
@@ -396,11 +411,11 @@
         while (tmp) {                                                                              \
             parent = tmp;                                                                          \
             comp = (cmp)(elm, parent);                                                             \
-            if (comp < 0)                                                                          \
+            if (comp < 0) {                                                                        \
                 tmp = IRB_LEFT(tmp, field);                                                        \
-            else if (comp > 0)                                                                     \
+            } else if (comp > 0) {                                                                 \
                 tmp = IRB_RIGHT(tmp, field);                                                       \
-            else                                                                                   \
+            } else                                                                                 \
                 return (tmp);                                                                      \
         }                                                                                          \
         IRB_SET(elm, parent, field);                                                               \
@@ -409,9 +424,9 @@
                 IRB_LEFT(parent, field) = elm;                                                     \
             else                                                                                   \
                 IRB_RIGHT(parent, field) = elm;                                                    \
-            IRB_AUGMENT(parent);                                                                   \
         } else                                                                                     \
             IRB_ROOT(head) = elm;                                                                  \
+        IRB_AUGMENT(elm, field);                                                                   \
         name##_IRB_INSERT_COLOR(head, elm);                                                        \
         return (NULL);                                                                             \
     }
