@@ -5,6 +5,8 @@ if BUILD_EBPF
 
 # Maintaining a local copy of UAPI linux/bpf.h
 BPF_CFLAGS = -Iinclude
+CLANG_FLAGS = -g -O2 -Wall -Werror $(BPF_CFLAGS)
+CLANG_LFLAGS = -lbpf -lelf -lz
 
 BPF_TARGETS  = lb.bpf
 BPF_TARGETS += filter.bpf
@@ -14,8 +16,10 @@ BPF_TARGETS += xdp_lb.bpf
 BPF_TARGETS += vlan_filter.bpf
 BPF_TARGETS += xdp_synproxy_kern.bpf
 
-all: $(BPF_TARGETS)
+all: $(BPF_TARGETS) xdp_synproxy
 
+xdp_synproxy: xdp_synproxy.c
+	$(CLANG) -static $(CLANG_FLAGS) -o $@ $< $(CLANG_LFLAGS)
 
 $(BPF_TARGETS): %.bpf: %.c
 #      From C-code to LLVM-IR format suffix .ll (clang -S -emit-llvm)
@@ -29,6 +33,6 @@ $(BPF_TARGETS): %.bpf: %.c
 	${LLC} -march=bpf -filetype=obj ${@:.bpf=.ll} -o $@
 	${RM} ${@:.bpf=.ll}
 
-CLEANFILES = *.bpf *.ll
+CLEANFILES = *.bpf *.ll xdp_synproxy
 
 endif
