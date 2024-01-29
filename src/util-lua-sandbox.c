@@ -64,8 +64,9 @@ static void *sb_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
             return NULL;
         }
         void *nptr = SCRealloc(ptr, nsize);
-
-        ctx->alloc_bytes += nsize;
+        if (nptr != NULL) {
+            ctx->alloc_bytes += nsize;
+        }
         return nptr;
     }
 }
@@ -77,7 +78,7 @@ static const luaL_Reg sb_restrictedlibs[] = { { LUA_GNAME, luaopen_base },
     //  {LUA_LOADLIBNAME, luaopen_package},
     //  {LUA_COLIBNAME, luaopen_coroutine},
     { LUA_TABLIBNAME, luaopen_table },
-    //{LUA_IOLIBNAME, luaopen_io},
+    //  {LUA_IOLIBNAME, luaopen_io},
     //  {LUA_OSLIBNAME, luaopen_os},
     { LUA_STRLIBNAME, luaopen_string }, { LUA_MATHLIBNAME, luaopen_math },
     { LUA_UTF8LIBNAME, luaopen_utf8 },
@@ -144,7 +145,7 @@ lua_State *sb_newstate(uint64_t alloclimit, uint64_t instructionlimit)
     sb->L = lua_newstate(sb_alloc, sb); /* create state */
     if (sb->L == NULL) {
         // TODO: log or error code?
-        free(sb);
+        SCFree(sb);
         return NULL;
     }
 
