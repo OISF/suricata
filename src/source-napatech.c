@@ -908,6 +908,7 @@ TmEcode NapatechPacketLoop(ThreadVars *tv, void *data, void *slot)
             NAPATECH_ERROR(status);
             SCLogInfo("Failed to read from Napatech Stream %d: %s",
                     ntv->stream_id, error_buffer);
+            NapatechStreamThreadDeinit(tv, ntv);
             break;
         }
 
