@@ -490,7 +490,7 @@ jobs:
       - name: Configuring
         run: |
           ./autogen.sh
-          CFLAGS="${DEFAULT_CFLAGS}" ./configure
+          CFLAGS="${DEFAULT_CFLAGS}" ./configure --disable-lua
       - run: make -j ${{ env.CPUS }} check
       - name: Checking includes
         run: |
@@ -657,7 +657,7 @@ jobs:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
       - name: ./configure
-        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
+        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --disable-lua
       - run: make -j ${{ env.CPUS }}
       - run: make install
       - run: make install-conf
@@ -2307,13 +2307,8 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
-<<<<<<< HEAD
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk
-      - run: make -j ${{ env.CPUS }}
-=======
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk
-      - run: make -j2
->>>>>>> 6475e13fd (github-ci: Handle switch to lua by default)
+      - run: make -j ${{ env.CPUS }}
       - run: make check
       - name: Building Rust documentation
         run: make doc
@@ -2476,13 +2471,8 @@ jobs:
           cp prep/cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
-<<<<<<< HEAD
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets
-      - run: make -j ${{ env.CPUS }}
-=======
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets --disable-lua
-      - run: make -j2
->>>>>>> 6475e13fd (github-ci: Handle switch to lua by default)
+      - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
