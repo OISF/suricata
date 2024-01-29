@@ -42,6 +42,7 @@
 #include "util-validate.h"
 #include "util-var-name.h"
 #include "util-conf.h"
+#include "util-interval-tree.h"
 
 /* Magic numbers to make the rules of a certain order fall in the same group */
 #define DETECT_PGSCORE_RULE_PORT_WHITELISTED 111 /* Rule port group contains a whitelisted port */
@@ -49,6 +50,7 @@
 #define DETECT_PGSCORE_RULE_MPM_NEGATED      77  /* Rule contains a negated MPM */
 #define DETECT_PGSCORE_RULE_NO_MPM           55  /* Rule does not contain MPM */
 #define DETECT_PGSCORE_RULE_SYN_ONLY         33  /* Rule needs SYN check */
+
 
 void SigCleanSignatures(DetectEngineCtx *de_ctx)
 {
@@ -1138,6 +1140,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
      *         rules. Each object will have a SGH with the sigs added
      *         that belong to the SGH. */
     DetectPortHashInit(de_ctx);
+    SCIntervalTree *it = SCIntervalTreeInit();
 
     uint32_t max_idx = 0;
     const Signature *s = de_ctx->sig_list;
@@ -1204,6 +1207,10 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                     unique_port_points[tmp2->port2] = true;
                     size_unique_port_arr++;
                 }
+                int ret = 0;
+                if ((ret = PIInsertPort(it, &it->tree, tmp2)) != SC_OK) {
+                    SCLogNotice("ret: %d", ret);
+                }
             }
 
             p = p->next;
@@ -1212,6 +1219,8 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     next:
         s = s->next;
     }
+    SCLogNotice("FINAL TREE");
+    printIT(RB_ROOT(&it->tree), 0);
 
     uint16_t *final_unique_points = (uint16_t *)SCCalloc(size_unique_port_arr, sizeof(uint16_t));
     for (uint16_t i = 0, j = 0; i < 65535; i++) {
@@ -1226,6 +1235,23 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         SCLogNotice("arr[%d] := %d", i, final_unique_points[i]);
     }
 #endif
+// free SGH stuff
+    for (uint16_t i = 1; i < size_unique_port_arr; i++) {
+        uint16_t port = final_unique_points[i - 1];
+        // STODO fix interval overlap on boundaries
+        uint16_t port2 = final_unique_points[i];
+        SigGroupHead *sgh_array = NULL;
+        bool overlaps = PISearchOverlappingPortRanges(port, port2, &it->tree, &sgh_array);
+        if (overlaps) {
+#if 0
+            // STODO move all this to detect-engine-port.c
+            DetectPort *dp = DetectPortInit();
+            dp->port = port;
+            dp->port2 = port2;
+            SigGroupHeadCopySigs(de_ctx, sgh_array, &dp->sh);
+#endif
+        }
+    }
     /* step 2: create a list of DetectPort objects */
     HashListTableBucket *htb = NULL;
     for (htb = HashListTableGetListHead(de_ctx->dport_hash_table);
@@ -1295,6 +1321,10 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             ipproto == 6 ? "TCP" : "UDP",
             direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
             cnt, own, ref);
+#if 0
+    PIPrintList(pis);
+#endif
+    SCIntervalTreeFree(it);
     return list;
 }
 

@@ -32,6 +32,7 @@
 #include "detect-metadata.h"
 #include "detect-engine-register.h"
 
+#include "tree.h"
 #include "util-prefilter.h"
 #include "util-mpm.h"
 #include "util-spm.h"
