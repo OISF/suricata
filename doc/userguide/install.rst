@@ -152,7 +152,7 @@ Recommended::
                    jansson-devel jq libcap-ng-devel libevent-devel \
                    libmaxminddb-devel libnet-devel libnetfilter_queue-devel \
                    libnfnetlink-devel libpcap-devel libtool libyaml-devel \
-                   lua-devel lz4-devel make nss-devel pcre2-devel pkgconfig \
+                   lua-devel lz4-devel make pcre2-devel pkgconfig \
                    python3-devel python3-sphinx python3-yaml sudo which \
                    zlib-devel
     cargo install --force cbindgen
