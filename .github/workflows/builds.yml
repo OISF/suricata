@@ -235,7 +235,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nss-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-devel \
@@ -363,7 +362,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nss-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-devel \
@@ -467,7 +465,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nss-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-devel \
@@ -539,7 +536,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nss-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-devel \
@@ -627,7 +623,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nss-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-devel \
@@ -709,7 +704,6 @@ jobs:
                 libpcap-devel \
                 lz4-devel \
                 make \
-                nss-devel \
                 pcre2-devel \
                 pkgconfig \
                 python36-PyYAML \
@@ -796,7 +790,6 @@ jobs:
                 llvm-devel \
                 lz4-devel \
                 make \
-                nss-softokn-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -892,7 +885,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nss-softokn-devel \
                 pcre2-devel \
                 pkgconfig \
                 python \
@@ -987,7 +979,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nss-softokn-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -1084,7 +1075,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nss-softokn-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -1173,7 +1163,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nss-softokn-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -1255,7 +1244,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nss-softokn-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
@@ -1347,7 +1335,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nss-softokn-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-yaml \
