@@ -71,6 +71,10 @@ Some of these bits have a string/meaning associated to it.
 Rules can be written using a list (comma-separated) of these strings,
 where each item can be negated.
 
+There is no right shift for trailing zeros applied here (even if there is one
+for ``byte_test`` and ``byte_math``). That means a rule with
+``websocket.flags:&0xc0=2`` will be rejected as invalid as it can never match.
+
 Examples::
 
     websocket.flags:fin,!comp;
