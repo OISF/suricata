@@ -130,7 +130,6 @@
 #include "util-hugepages.h"
 #include "util-ioctl.h"
 #include "util-landlock.h"
-#include "util-luajit.h"
 #include "util-macset.h"
 #include "util-misc.h"
 #include "util-mpm-hs.h"
@@ -407,9 +406,7 @@ static void GlobalsDestroy(SCInstance *suri)
 #endif
 
     ConfDeInit();
-#ifdef HAVE_LUAJIT
-    LuajitFreeStatesPool();
-#endif
+
     DetectParseFreeRegexes();
 
     SCPidfileRemove(suri->pid_filename);
@@ -740,9 +737,6 @@ static void PrintBuildInfo(void)
     strlcat(features, "HTTP2_DECOMPRESSION ", sizeof(features));
 #ifdef HAVE_LUA
     strlcat(features, "HAVE_LUA ", sizeof(features));
-#endif
-#ifdef HAVE_LUAJIT
-    strlcat(features, "HAVE_LUAJIT ", sizeof(features));
 #endif
     strlcat(features, "HAVE_LIBJANSSON ", sizeof(features));
 #ifdef PROFILING
@@ -2621,13 +2615,6 @@ static void SetupUserMode(SCInstance *suri)
  */
 int PostConfLoadedSetup(SCInstance *suri)
 {
-    /* do this as early as possible #1577 #1955 */
-#ifdef HAVE_LUAJIT
-    if (LuajitSetupStatesPool() != 0) {
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-#endif
-
     /* load the pattern matchers */
     MpmTableSetup();
     SpmTableSetup();

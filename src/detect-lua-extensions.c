@@ -124,7 +124,7 @@ static int GetFlowVarById(lua_State *luastate, Flow *f,
         LUA_ERROR("flowvar id not a number");
     }
     int id = lua_tonumber(luastate, 1);
-    if (id < 0 || id >= DETECT_LUAJIT_MAX_FLOWVARS) {
+    if (id < 0 || id >= DETECT_LUA_MAX_FLOWVARS) {
         LUA_ERROR("flowvar id out of range");
     }
     uint32_t idx = ld->flowvar[id];
@@ -160,7 +160,7 @@ static int GetFlowVarByKey(lua_State *luastate, Flow *f, FlowVar **ret_fv)
         LUA_ERROR("key len out of range: max 256");
     }
 
-    FlowVar *fv = FlowVarGetByKey(f, (const uint8_t *)keystr, keylen);
+    FlowVar *fv = FlowVarGetByKey(f, (const uint8_t *)keystr, (uint16_t)keylen);
     if (fv == NULL) {
         LUA_ERROR("no flow var");
     }
@@ -185,7 +185,7 @@ static int GetFlowIntById(lua_State *luastate, Flow *f,
         LUA_ERROR("flowvar id not a number");
     }
     int id = lua_tonumber(luastate, 1);
-    if (id < 0 || id >= DETECT_LUAJIT_MAX_FLOWVARS) {
+    if (id < 0 || id >= DETECT_LUA_MAX_FLOWVARS) {
         LUA_ERROR("flowvar id out of range");
     }
     uint32_t idx = ld->flowint[id];
@@ -272,7 +272,7 @@ static int LuaSetFlowvarById(lua_State *luastate)
     memcpy(buffer, str, len);
     buffer[len] = '\0';
 
-    FlowVarAddIdValue(f, idx, buffer, len);
+    FlowVarAddIdValue(f, idx, buffer, (uint16_t)len);
     return 0;
 }
 
@@ -333,7 +333,7 @@ static int LuaSetFlowvarByKey(lua_State *luastate)
     }
     memcpy(keybuf, keystr, keylen);
     keybuf[keylen] = '\0';
-    FlowVarAddKeyValue(f, keybuf, keylen, buffer, len);
+    FlowVarAddKeyValue(f, keybuf, (uint16_t)keylen, buffer, (uint16_t)len);
 
     return 0;
 }
@@ -391,7 +391,7 @@ static int LuaSetFlowint(lua_State *luastate)
         LUA_ERROR("1st arg not a number");
     }
     int id = lua_tonumber(luastate, 1);
-    if (id < 0 || id >= DETECT_LUAJIT_MAX_FLOWVARS) {
+    if (id < 0 || id >= DETECT_LUA_MAX_FLOWVARS) {
         LUA_ERROR("flowint id out of range");
     }
 
@@ -496,7 +496,7 @@ static int LuaGetByteVar(lua_State *luastate)
         LUA_ERROR("bytevar id not a number");
     }
     int id = lua_tonumber(luastate, 1);
-    if (id < 0 || id >= DETECT_LUAJIT_MAX_BYTEVARS) {
+    if (id < 0 || id >= DETECT_LUA_MAX_BYTEVARS) {
         LUA_ERROR("bytevar id out of range");
     }
     uint32_t idx = ld->bytevar[id];
