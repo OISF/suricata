@@ -48,7 +48,6 @@ jobs:
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
-                libjansson-dev \
                 libpython2.7 \
                 libssl-dev \
                 make \

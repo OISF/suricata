@@ -54,7 +54,6 @@ jobs:
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
-                libjansson-dev \
                 liblz4-dev \
                 llvm-16-dev \
                 make \
