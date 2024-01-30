@@ -53,7 +53,6 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
-                nss-devel \
                 pcre2-devel \
                 pkgconfig \
                 python3-devel \
