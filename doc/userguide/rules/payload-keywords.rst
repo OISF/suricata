@@ -365,6 +365,8 @@ Examples of dsize values:
 
    alert tcp any any -> any any (msg:"dsize not equal value"; dsize:!9; sid:7; rev:1;)
 
+.. _byte_test:
+
 byte_test
 ---------
 
