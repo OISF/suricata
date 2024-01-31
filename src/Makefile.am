@@ -43,6 +43,7 @@ noinst_HEADERS = \
 	app-layer-ssh.h \
 	app-layer-ssl.h \
 	app-layer-tftp.h \
+	app-layer-imap.h \
 	build-info.h \
 	conf.h \
 	conf-yaml-loader.h \
@@ -627,6 +628,7 @@ libsuricata_c_a_SOURCES = \
 	app-layer-ssh.c \
 	app-layer-ssl.c \
 	app-layer-tftp.c \
+	app-layer-imap.c \
 	conf.c \
 	conf-yaml-loader.c \
 	counters.c \
