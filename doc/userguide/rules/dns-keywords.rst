@@ -46,6 +46,31 @@ Match on DNS requests where the **opcode** is NOT 0::
 
   dns.opcode:!0;
 
+dns.rrtype
+----------
+
+This keyword matches on the **rrtype** (integer) found in the DNS message.
+
+dns.rrtype uses an :ref:`unsigned 16-bit integer <rules-integer-keywords>`.
+
+Syntax
+~~~~~~
+
+::
+
+   dns.rrtype:[!]<number>
+
+Examples
+~~~~~~~~
+
+Match on DNS requests and responses with **rrtype** 4::
+
+  dns.rrtype:4;
+
+Match on DNS requests where the **rrtype** is NOT 0::
+
+  dns.rrtype:!0;
+
 dns.query
 ---------
 
