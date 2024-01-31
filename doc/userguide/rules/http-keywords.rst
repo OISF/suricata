@@ -649,14 +649,29 @@ than 100 we could use the following signature.
 .. _http.referer:
 
 http.referer
----------------
+------------
 
-Sticky buffer to match on the HTTP Referer header. Only contains the
-header value. The \\r\\n after the header are not part of the buffer.
+The ``http.referer`` keyword is used to match on the Referer field that
+can be present in HTTP request headers.
 
-Example::
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.referer`` keyword.
 
-    alert http any any -> any any (http.referer; content:".php"; sid:1;)
+Example HTTP Request::
+
+  GET / HTTP/1.1
+  Host: suricata.io
+  Referer: https://suricata.io
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Referer Example"; \
+  flow:established,to_server; :example-rule-options:`http.referer; \
+  content:"http|3a 2f 2f|suricata.io";` bsize:19; classtype:bad-unknown; \
+  sid:200; rev:1;)
+
+.. note:: ``http.referer`` does not include the leading space or trailing
+   \\r\\n
 
 .. _http.start:
 
