@@ -557,18 +557,41 @@ Example HTTP Request::
 http.content_type
 -----------------
 
-Sticky buffer to match on the HTTP Content-Type headers. Only contains the
-header value. The \\r\\n after the header are not part of the buffer.
+The ``http.content_type`` keyword is used to match on the Content-Type field that
+can be present in HTTP request or response headers. Use ``flow:to_server`` or
+``flow:to_client`` to force inspection of the request or response respectively.
 
-Use flow:to_server or flow:to_client to force inspection of request or response.
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.content_type`` keyword.
 
-Examples::
+Example HTTP Request::
 
-    alert http any any -> any any (flow:to_server; \
-            http.content_type; content:"x-www-form-urlencoded"; sid:1;)
+  POST /suricata.php HTTP/1.1
+  Content-Type: multipart/form-data; boundary=---------------123
+  Host: suricata.io
+  Content-Length: 100
+  Connection: Keep-Alive
 
-    alert http any any -> any any (flow:to_client; \
-            http.content_type; content:"text/javascript"; sid:2;)
+Example HTTP Response::
+
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Server: nginx/0.8.54
+  Connection: Close
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Content-Type Request \
+  Example"; flow:established,to_server; :example-rule-options:`http.content_type; \
+  content:"multipart/form-data|3b 20|";` startswith; classtype:bad-unknown; \
+  sid:95; rev:1;)
+
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Content-Type Response \
+  Example"; flow:established,to_client; :example-rule-options:`http.content_type; \
+  content:"text/html";` bsize:9; classtype:bad-unknown; sid:96; rev:1;)
+
+.. note:: ``http.content_type`` does not include the leading space or trailing
+   \\r\\n
 
 .. _http.content_len:
 
