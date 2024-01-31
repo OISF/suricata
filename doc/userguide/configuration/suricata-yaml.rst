@@ -505,6 +505,26 @@ the alert.
       mode: normal # "normal" or multi
       conditional: alerts
 
+In normal mode a pcap file "filename" is created in the default-log-dir or as
+specified by "dir".
+
+In multi mode, a file is created per thread. This will perform much better but
+will create multiple files where 'normal' would create a single file.
+
+In multi mode the filename takes a few special variables:
+  - %n representing the thread number
+  - %i representing the thread id
+  - %t representing the timestamp (secs or secs.usecs based on 'ts-format'
+  
+  Example: filename: pcap.%n.%t
+
+.. note:: It is possible to use directories but the directories are not
+  created by Suricata. For example ``filename: pcaps/%n/log.%s`` will log into
+  the per thread directory.
+  
+.. note:: that the limit and max-files settings are enforced per thread. So the
+  size limit using 8 threads with 1000mb files and 2000 files is about 16TiB.
+
 Verbose Alerts Log (alert-debug.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
