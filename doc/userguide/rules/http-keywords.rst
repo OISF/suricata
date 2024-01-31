@@ -678,16 +678,40 @@ Example HTTP Request::
 http.start
 ----------
 
-Inspect the start of a HTTP request or response. This will contain the
-request/response line plus the request/response headers. Use flow:to_server
-or flow:to_client to force inspection of request or response.
+The ``http.start`` keyword is used to match on the start of an HTTP request
+or response. This will contain the request/response line plus the request/response
+headers. Use ``flow:to_server`` or ``flow:to_client`` to force inspection of the
+request or response respectively.
 
-Example::
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.start`` keyword.
 
-    alert http any any -> any any (http.start; content:"HTTP/1.1|0d 0a|User-Agent"; sid:1;)
+Example HTTP Request::
 
-The buffer contains the normalized headers and is terminated by an extra
-\\r\\n to indicate the end of the headers.
+  GET / HTTP/1.1
+  Host: suricata.io
+  Connection: Keep-Alive
+
+Example HTTP Response::
+
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Server: nginx/0.8.54
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Start Request \
+  Example"; flow:established,to_server; :example-rule-options:`http.start; \
+  content:"POST / HTTP/1.1|0d 0a|Host|0d 0a|Connection|0d 0a 0d 0a|";` \
+  classtype:bad-unknown; sid:101; rev:1;)
+
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Start Response \
+  Example"; flow:established,to_client; :example-rule-options:`http.start; \
+  content:"HTTP/1.1 200 OK|0d 0a|Content-Type|0d 0a|Server|0d 0a 0d a0|";` \
+  classtype:bad-unknown; sid:102; rev:1;)
+
+.. note:: ``http.start`` contains the normalized headers and is terminated by
+  an extra \\r\\n to indicate the end of the headers.
 
 .. _http.header_names:
 
