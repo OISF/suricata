@@ -529,12 +529,28 @@ Example HTTP Request::
 http.connection
 ---------------
 
-Sticky buffer to match on the HTTP Connection header. Only contains the
-header value. The \\r\\n after the header are not part of the buffer.
+The ``http.connection`` keyword is used to match on the Connection field that
+can be present in HTTP request headers.
 
-Example::
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.connection`` keyword.
 
-    alert http any any -> any any (http.connection; content:"keep-alive"; sid:1;)
+Example HTTP Request::
+
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Accept-Language: en-US
+  Host: suricata.io
+  Connection: Keep-Alive
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Connection Example"; \
+  flow:established,to_server; :example-rule-options:`http.connection; \
+  content:"Keep-Alive";` bsize:10; classtype:bad-unknown; sid:94; rev:1;)
+
+.. note:: ``http.connection`` does not include the leading space or trailing
+   \\r\\n
 
 .. _http.content_type:
 
