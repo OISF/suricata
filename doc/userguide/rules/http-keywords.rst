@@ -598,25 +598,53 @@ Example HTTP Response::
 http.content_len
 ----------------
 
-Sticky buffer to match on the HTTP Content-Length headers. Only contains the
-header value. The \\r\\n after the header are not part of the buffer.
+The ``http.content_len`` keyword is used to match on the Content-Length field that
+can be present in HTTP request or response headers. Use ``flow:to_server`` or
+``flow:to_client`` to force inspection of the request or response respectively.
 
-Use flow:to_server or flow:to_client to force inspection of request or response.
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.content_len`` keyword.
 
-Examples::
+Example HTTP Request::
 
-    alert http any any -> any any (flow:to_server; \
-            http.content_len; content:"666"; sid:1;)
+  POST /suricata.php HTTP/1.1
+  Content-Type: multipart/form-data; boundary=---------------123
+  Host: suricata.io
+  Content-Length: 100
+  Connection: Keep-Alive
 
-    alert http any any -> any any (flow:to_client; \
-            http.content_len; content:"555"; sid:2;)
+Example HTTP Response::
 
-To do a numeric inspection of the content length, ``byte_test`` can be used.
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Server: nginx/0.8.54
+  Connection: Close
+  Content-Length: 20
 
-Example, match if C-L is equal to or bigger than 8079::
+.. container:: example-rule
 
-    alert http any any -> any any (flow:to_client; \
-            http.content_len; byte_test:0,>=,8079,0,string,dec; sid:3;)
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Content-Length Request \
+  Example"; flow:established,to_server; :example-rule-options:`http.content_len; \
+  content:"100";` bsize:3; classtype:bad-unknown; sid:97; rev:1;)
+
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Content-Length Response \
+  Example"; flow:established,to_client; :example-rule-options:`http.content_len; \
+  content:"20";` bsize:2; classtype:bad-unknown; sid:98; rev:1;)
+
+To do numeric evaluation of the content length, :ref:`byte_test` can be used.
+
+If we want to match on an HTTP request content length equal to and greater
+than 100 we could use the following signature.
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Content-Length Request \
+  Byte Test Example"; flow:established,to_server; \
+  :example-rule-options:`http.content_len; byte_test:0,>=,100,0,string,dec;` \
+  classtype:bad-unknown; sid:99; rev:1;)
+
+.. note:: ``http.content_len`` does not include the leading space or trailing
+   \\r\\n
 
 .. _http.referer:
 
