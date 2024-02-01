@@ -1434,9 +1434,6 @@ typedef struct SigGroupHeadInitData_ {
 
     /** Array with sig ptrs... size is sig_cnt * sizeof(Signature *) */
     Signature **match_array;
-
-    /* port ptr */
-    struct DetectPort_ *port;
 } SigGroupHeadInitData;
 
 /** \brief Container for matching data for a signature group */
