@@ -347,7 +347,7 @@ int SigGroupHeadAppendSig(const DetectEngineCtx *de_ctx, SigGroupHead **sgh,
 
     /* enable the sig in the bitarray */
     (*sgh)->init->sig_array[s->num / 8] |= 1 << (s->num % 8);
-
+    (*sgh)->init->max_sig_id = MAX(s->num, (*sgh)->init->max_sig_id);
     return 0;
 
 error:
@@ -405,6 +405,8 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
     if (src->init->score)
         (*dst)->init->score = MAX((*dst)->init->score, src->init->score);
 
+    if (src->init->max_sig_id)
+        (*dst)->init->max_sig_id = MAX((*dst)->init->max_sig_id, src->init->max_sig_id);
     return 0;
 
 error:
@@ -422,9 +424,9 @@ error:
 void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx)
 {
     uint32_t sig;
-
+    sgh->init->max_sig_id = MAX(max_idx, sgh->init->max_sig_id);
     sgh->init->sig_cnt = 0;
-    for (sig = 0; sig < max_idx + 1; sig++) {
+    for (sig = 0; sig < sgh->init->max_sig_id + 1; sig++) {
         if (sgh->init->sig_array[sig / 8] & (1 << (sig % 8)))
             sgh->init->sig_cnt++;
     }
@@ -492,12 +494,13 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         return 0;
 
     BUG_ON(sgh->init->match_array != NULL);
+    sgh->init->max_sig_id = MAX(sgh->init->max_sig_id, max_idx);
 
     sgh->init->match_array = SCCalloc(sgh->init->sig_cnt, sizeof(Signature *));
     if (sgh->init->match_array == NULL)
         return -1;
 
-    for (sig = 0; sig < max_idx + 1; sig++) {
+    for (sig = 0; sig < sgh->init->max_sig_id + 1; sig++) {
         if (!(sgh->init->sig_array[(sig / 8)] & (1 << (sig % 8))) )
             continue;
 
