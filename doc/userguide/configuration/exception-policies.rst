@@ -62,33 +62,40 @@ Specific settings
 Exception policies are implemented for:
 
 .. list-table:: Exception Policy configuration variables
-   :widths: 20, 18, 62
+   :widths: 18, 18, 18, 44
    :header-rows: 1
 
    * - Config setting
      - Policy variable
+     - Affects
      - Expected behavior
    * - stream.memcap
      - memcap-policy
+     - Flow or packet
      - If a stream memcap limit is reached, apply the memcap policy to the packet and/or
        flow.
    * - stream.midstream
      - midstream-policy
+     - Flow
      - If a session is picked up midstream, apply the midstream policy to the flow.
    * - stream.reassembly.memcap
      - memcap-policy
+     - Flow or packet
      - If stream reassembly reaches memcap limit, apply memcap policy to the
        packet and/or flow.
    * - flow.memcap
      - memcap-policy
+     - Packet
      - Apply policy when the memcap limit for flows is reached and no flow could
        be freed up. **Policy can only be applied to the packet.**
    * - defrag.memcap
      - memcap-policy
+     - Packet
      - Apply policy when the memcap limit for defrag is reached and no tracker
        could be picked up. **Policy can only be applied to the packet.**
    * - app-layer
      - error-policy
+     - Flow or packet
      - Apply policy if a parser reaches an error state. Policy can be applied to packet and/or flow.
 
 To change any of these, go to the specific section in the suricata.yaml file
