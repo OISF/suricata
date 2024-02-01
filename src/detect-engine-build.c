@@ -1009,8 +1009,8 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
         if (lookup_sgh == NULL) {
             SCLogDebug("proto group %d sgh %p is the original", p, sgh_ts[p]);
 
-            SigGroupHeadSetSigCnt(sgh_ts[p], max_idx);
-            SigGroupHeadBuildMatchArray(de_ctx, sgh_ts[p], max_idx);
+            SigGroupHeadSetSigCnt(sgh_ts[p], 0);
+            SigGroupHeadBuildMatchArray(de_ctx, sgh_ts[p], 0);
 
             SigGroupHeadHashAdd(de_ctx, sgh_ts[p]);
             SigGroupHeadStore(de_ctx, sgh_ts[p]);
@@ -1041,8 +1041,8 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
         if (lookup_sgh == NULL) {
             SCLogDebug("proto group %d sgh %p is the original", p, sgh_tc[p]);
 
-            SigGroupHeadSetSigCnt(sgh_tc[p], max_idx);
-            SigGroupHeadBuildMatchArray(de_ctx, sgh_tc[p], max_idx);
+            SigGroupHeadSetSigCnt(sgh_tc[p], 0);
+            SigGroupHeadBuildMatchArray(de_ctx, sgh_tc[p], 0);
 
             SigGroupHeadHashAdd(de_ctx, sgh_tc[p]);
             SigGroupHeadStore(de_ctx, sgh_tc[p]);
@@ -1129,7 +1129,8 @@ static int RuleSetWhitelist(Signature *s)
     return wl;
 }
 
-int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx);
+int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead,
+        uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *));
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b);
 
 static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, uint32_t direction)
@@ -1223,7 +1224,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     DetectPort *newlist = NULL;
     uint16_t groupmax = (direction == SIG_FLAG_TOCLIENT) ? de_ctx->max_uniq_toclient_groups :
                                                            de_ctx->max_uniq_toserver_groups;
-    CreateGroupedPortList(de_ctx, list, &newlist, groupmax, CreateGroupedPortListCmpCnt, max_idx);
+    CreateGroupedPortList(de_ctx, list, &newlist, groupmax, CreateGroupedPortListCmpCnt);
     list = newlist;
 
     /* step 4: deduplicate the SGH's */
@@ -1243,8 +1244,8 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         if (lookup_sgh == NULL) {
             SCLogDebug("port group %p sgh %p is the original", iter, iter->sh);
 
-            SigGroupHeadSetSigCnt(iter->sh, max_idx);
-            SigGroupHeadBuildMatchArray(de_ctx, iter->sh, max_idx);
+            SigGroupHeadSetSigCnt(iter->sh, 0);
+            SigGroupHeadBuildMatchArray(de_ctx, iter->sh, 0);
             SigGroupHeadSetProtoAndDirection(iter->sh, ipproto, direction);
             SigGroupHeadHashAdd(de_ctx, iter->sh);
             SigGroupHeadStore(de_ctx, iter->sh);
@@ -1541,7 +1542,8 @@ int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b)
  *  The joingr is meant to be a catch all.
  *
  */
-int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx)
+int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead,
+        uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *))
 {
     DetectPort *tmplist = NULL, *joingr = NULL;
     char insert = 0;
@@ -1560,8 +1562,7 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, Detect
         list->next = NULL;
 
         groups++;
-
-        SigGroupHeadSetSigCnt(list->sh, max_idx);
+        SigGroupHeadSetSigCnt(list->sh, 0);
 
         /* insert it */
         DetectPort *tmpgr = tmplist, *prevtmpgr = NULL;
