@@ -718,35 +718,75 @@ Example HTTP Response::
 http.header_names
 -----------------
 
-Inspect a buffer only containing the names of the HTTP headers. Useful
-for making sure a header is not present or testing for a certain order
-of headers.
+The ``http.header_names`` keyword is used to match on the names of the headers
+in an HTTP request or response. This is useful for checking for a headers
+presence, absence and/or header order. Use ``flow:to_server`` or
+``flow:to_client`` to force inspection of the request or response respectively.
 
-Buffer starts with a \\r\\n and ends with an extra \\r\\n.
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.header_names`` keyword.
 
-Example buffer::
+Example HTTP Request::
 
-    \\r\\nHost\\r\\n\\r\\n
+  GET / HTTP/1.1
+  Host: suricata.io
+  Connection: Keep-Alive
 
-Example rule::
+Example HTTP Response::
 
-    alert http any any -> any any (http.header_names; content:"|0d 0a|Host|0d 0a|"; sid:1;)
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Server: nginx/0.8.54
 
-Example to make sure *only* Host is present::
+Examples to match exactly on header order:
 
-    alert http any any -> any any (http.header_names; \
-            content:"|0d 0a|Host|0d 0a 0d 0a|"; sid:1;)
+.. container:: example-rule
 
-Example to make sure *User-Agent* is directly after *Host*::
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Header Names Request \
+  Example"; flow:established,to_server; :example-rule-options:`http.header_names; \
+  content:"|0d 0a|Host|0d 0a|Connection|0d 0a 0d 0a|";` bsize:22; \
+  classtype:bad-unknown; sid:110; rev:1;)
 
-    alert http any any -> any any (http.header_names; \
-            content:"|0d 0a|Host|0d 0a|User-Agent|0d 0a|"; sid:1;)
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Header Names Response \
+  Example"; flow:established,to_client; :example-rule-options:`http.header_names; \
+  content:"|0d 0a|Content-Type|0d 0a|Server|0d 0a 0d a0|";` bsize:26; \
+  classtype:bad-unknown; sid:111; rev:1;)
 
-Example to make sure *User-Agent* is after *Host*, but not necessarily directly after::
+Examples to match on header existence:
 
-    alert http any any -> any any (http.header_names; \
-            content:"|0d 0a|Host|0d 0a|"; content:"|0a 0d|User-Agent|0d 0a|"; \
-            distance:-2; sid:1;)
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Header Names Request \
+  Example 2"; flow:established,to_server; :example-rule-options:`http.header_names; \
+  content:"|0d 0a|Host|0d 0a|";` classtype:bad-unknown; sid:112; rev:1;)
+
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Header Names Response \
+  Example 2"; flow:established,to_client; :example-rule-options:`http.header_names; \
+  content:"|0d 0a|Content-Type|0d 0a|";` classtype:bad-unknown; sid:113; rev:1;)
+
+Examples to match on header absence:
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Header Names Request \
+  Example 3"; flow:established,to_server; :example-rule-options:`http.header_names; \
+  content:!"|0d 0a|User-Agent|0d 0a|";` classtype:bad-unknown; sid:114; rev:1;)
+
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Header Names Response \
+  Example 3"; flow:established,to_client; :example-rule-options:`http.header_names; \
+  content:!"|0d 0a|Date|0d 0a|";` classtype:bad-unknown; sid:115; rev:1;)
+
+Example to check for the ``User-Agent`` header and that the ``Host`` header is
+after ``User-Agent`` but not necessarily directly after.
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Header Names Request \
+  Example 4"; flow:established,to_server; :example-rule-options:`http.header_names; \
+  content:"|0d 0a|Host|0d 0a|";` content:"User-Agent|0d 0a|"; distance:-2; \
+  classtype:bad-unknown; sid:114; rev:1;)
+
+.. note:: ``http.header_names`` starts with a \\r\\n and ends with an extra \\r\\n.
 
 .. _http.request_body:
 
