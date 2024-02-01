@@ -960,7 +960,6 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
 {
     Signature *s = de_ctx->sig_list;
 
-    uint32_t max_idx = 0;
     SigGroupHead *sgh_ts[256] = {NULL};
     SigGroupHead *sgh_tc[256] = {NULL};
 
@@ -979,15 +978,12 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
 
             if (s->flags & SIG_FLAG_TOCLIENT) {
                 SigGroupHeadAppendSig(de_ctx, &sgh_tc[p], s);
-                max_idx = s->num;
             }
             if (s->flags & SIG_FLAG_TOSERVER) {
                 SigGroupHeadAppendSig(de_ctx, &sgh_ts[p], s);
-                max_idx = s->num;
             }
         }
     }
-    SCLogDebug("max_idx %u", max_idx);
 
     /* lets look at deduplicating this list */
     SigGroupHeadHashFree(de_ctx);
@@ -1140,7 +1136,6 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
      *         that belong to the SGH. */
     DetectPortHashInit(de_ctx);
 
-    uint32_t max_idx = 0;
     const Signature *s = de_ctx->sig_list;
     DetectPort *list = NULL;
     while (s) {
@@ -1199,7 +1194,6 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
 
             p = p->next;
         }
-        max_idx = s->num;
     next:
         s = s->next;
     }
