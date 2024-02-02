@@ -146,6 +146,9 @@ static void DetectRun(ThreadVars *th_v,
     /* run tx/state inspection. Don't call for ICMP error msgs. */
     if (pflow && pflow->alstate && likely(pflow->proto == p->proto)) {
         if (p->proto == IPPROTO_TCP) {
+            if ((p->flags & PKT_STREAM_EST) == 0) {
+                goto end;
+            }
             const TcpSession *ssn = p->flow->protoctx;
             if (ssn && (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) == 0) {
                 // PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX);
