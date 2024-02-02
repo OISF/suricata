@@ -317,6 +317,13 @@ the global config is documented.
       #decoder-events-prefix: "decoder.event"
       # Add stream events as stats.
       #stream-events: false
+      # Don't log stats counters that are zero. Default: true
+      #zero-valued-counters: false    # False will NOT log stats counters: 0
+      # Exception policy stats counters options
+      # (Note: if exception policy: ignore, counters are not logged)
+      exception-policy:
+        #per-app-proto-errors: false  # default: false. True will log errors for
+                                        # each app-proto. Warning: VERY verbose
 
 Statistics can be `enabled` or disabled here.
 
@@ -342,6 +349,10 @@ default.
 To reduce log file size, one may set `zero-valued-counters` to false. This may
 impact on the visibility of information for which a stats counter as zero is
 relevant.
+
+If any exception policy is enabled, stats counters are logged. To control
+verbosity for application layer protocol errors, leave `per-app-proto-errors`
+as false.
 
 Outputs
 ~~~~~~~
