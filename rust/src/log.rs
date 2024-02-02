@@ -41,9 +41,7 @@ pub enum Level {
 pub static mut LEVEL: i32 = Level::NotSet as i32;
 
 pub fn get_log_level() -> i32 {
-    unsafe {
-        LEVEL
-    }
+    unsafe { LEVEL }
 }
 
 pub fn log_set_level(level: i32) {
@@ -53,7 +51,7 @@ pub fn log_set_level(level: i32) {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_log_set_level(level: i32) {
+pub extern fn rs_log_set_level(level: i32) {
     log_set_level(level);
 }
 
@@ -67,17 +65,10 @@ fn basename(filename: &str) -> &str {
     return filename;
 }
 
-pub fn sclog(level: Level, file: &str, line: u32, function: &str,
-         message: &str)
-{
+pub fn sclog(level: Level, file: &str, line: u32, function: &str, message: &str) {
     let filename = basename(file);
     let noext = &filename[0..filename.len() - 3];
-    sc_log_message(level,
-                   filename,
-                   line,
-                   function,
-                   noext,
-                   message);
+    sc_log_message(level, filename, line, function, noext, message);
 }
 
 // This macro returns the function name.
@@ -86,16 +77,16 @@ pub fn sclog(level: Level, file: &str, line: u32, function: &str,
 // is released under the MIT license as there is currently no macro in Rust
 // to provide the function name.
 #[macro_export(local_inner_macros)]
-macro_rules!function {
+macro_rules! function {
     () => {{
-         // Okay, this is ugly, I get it. However, this is the best we can get on a stable rust.
-         fn __f() {}
-         fn type_name_of<T>(_: T) -> &'static str {
-             std::any::type_name::<T>()
-         }
-         let name = type_name_of(__f);
-         &name[..name.len() - 5]
-    }}
+        // Okay, this is ugly, I get it. However, this is the best we can get on a stable rust.
+        fn __f() {}
+        fn type_name_of<T>(_: T) -> &'static str {
+            std::any::type_name::<T>()
+        }
+        let name = type_name_of(__f);
+        &name[..name.len() - 5]
+    }};
 }
 
 #[macro_export]
@@ -165,20 +156,17 @@ macro_rules!SCLogDebug {
 // about unused variables, but is otherwise the equivalent to a no-op.
 #[cfg(not(feature = "debug"))]
 #[macro_export]
-macro_rules!SCLogDebug {
-    ($($arg:tt)*) => ()
+macro_rules! SCLogDebug {
+    ($($arg:tt)*) => {};
 }
 
 /// SCLogMessage wrapper. If the Suricata C context is not registered
 /// a more basic log format will be used (for example, when running
 /// Rust unit tests).
-pub fn sc_log_message(level: Level,
-                      filename: &str,
-                      line: std::os::raw::c_uint,
-                      function: &str,
-                      module: &str,
-                      message: &str) -> std::os::raw::c_int
-{
+pub fn sc_log_message(
+    level: Level, filename: &str, line: std::os::raw::c_uint, function: &str, module: &str,
+    message: &str,
+) -> std::os::raw::c_int {
     unsafe {
         if let Some(c) = SC {
             return (c.SCLogMessage)(
@@ -187,7 +175,8 @@ pub fn sc_log_message(level: Level,
                 line,
                 to_safe_cstring(function).as_ptr(),
                 to_safe_cstring(module).as_ptr(),
-                to_safe_cstring(message).as_ptr());
+                to_safe_cstring(message).as_ptr(),
+            );
         }
     }
 
@@ -212,8 +201,6 @@ fn to_safe_cstring(val: &str) -> CString {
     }
     match CString::new(safe) {
         Ok(cstr) => cstr,
-        _ => {
-            CString::new("<failed to encode string>").unwrap()
-        }
+        _ => CString::new("<failed to encode string>").unwrap(),
     }
 }

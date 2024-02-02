@@ -16,12 +16,12 @@
  */
 
 use crate::common::nom7::take_until_and_consume;
-use nom7::combinator::peek;
 use nom7::bytes::complete::take;
-use nom7::{IResult};
-use nom7::number::streaming::le_u8;
 use nom7::bytes::streaming::tag;
-use nom7::bytes::streaming::{take_until};
+use nom7::bytes::streaming::take_until;
+use nom7::combinator::peek;
+use nom7::number::streaming::le_u8;
+use nom7::IResult;
 
 pub fn peek_message_is_ctl(i: &[u8]) -> IResult<&[u8], bool> {
     let (i, v) = peek(le_u8)(i)?;
@@ -33,11 +33,11 @@ pub enum TelnetMessageType<'a> {
     Data(&'a [u8]),
 }
 
-pub fn parse_ctl_suboption<'a>(i: &'a[u8], full: &'a[u8]) -> IResult<&'a[u8], &'a[u8]> {
+pub fn parse_ctl_suboption<'a>(i: &'a [u8], full: &'a [u8]) -> IResult<&'a [u8], &'a [u8]> {
     let (i, _sc) = le_u8(i)?;
     let tag: &[u8] = b"\xff\xf0";
     let (i, x) = take_until(tag)(i)?;
-    let o = &full[..(x.len()+3)];
+    let o = &full[..(x.len() + 3)];
     Ok((i, o))
 }
 

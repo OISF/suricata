@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
- //! Module for building JSON documents.
+//! Module for building JSON documents.
 
 #![allow(clippy::missing_safety_doc)]
 
@@ -765,7 +765,7 @@ fn try_string_from_bytes(input: &[u8]) -> Result<String, JsonError> {
 }
 
 #[no_mangle]
-pub extern "C" fn jb_new_object() -> *mut JsonBuilder {
+pub extern fn jb_new_object() -> *mut JsonBuilder {
     match JsonBuilder::try_new_object() {
         Ok(js) => {
             let boxed = Box::new(js);
@@ -776,7 +776,7 @@ pub extern "C" fn jb_new_object() -> *mut JsonBuilder {
 }
 
 #[no_mangle]
-pub extern "C" fn jb_new_array() -> *mut JsonBuilder {
+pub extern fn jb_new_array() -> *mut JsonBuilder {
     match JsonBuilder::try_new_array() {
         Ok(js) => {
             let boxed = Box::new(js);
@@ -787,28 +787,28 @@ pub extern "C" fn jb_new_array() -> *mut JsonBuilder {
 }
 
 #[no_mangle]
-pub extern "C" fn jb_clone(js: &mut JsonBuilder) -> *mut JsonBuilder {
+pub extern fn jb_clone(js: &mut JsonBuilder) -> *mut JsonBuilder {
     let clone = Box::new(js.clone());
     Box::into_raw(clone)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_free(js: &mut JsonBuilder) {
+pub unsafe extern fn jb_free(js: &mut JsonBuilder) {
     let _ = Box::from_raw(js);
 }
 
 #[no_mangle]
-pub extern "C" fn jb_capacity(jb: &mut JsonBuilder) -> usize {
+pub extern fn jb_capacity(jb: &mut JsonBuilder) -> usize {
     jb.capacity()
 }
 
 #[no_mangle]
-pub extern "C" fn jb_reset(jb: &mut JsonBuilder) {
+pub extern fn jb_reset(jb: &mut JsonBuilder) {
     jb.reset();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_open_object(js: &mut JsonBuilder, key: *const c_char) -> bool {
+pub unsafe extern fn jb_open_object(js: &mut JsonBuilder, key: *const c_char) -> bool {
     if let Ok(s) = CStr::from_ptr(key).to_str() {
         js.open_object(s).is_ok()
     } else {
@@ -817,12 +817,12 @@ pub unsafe extern "C" fn jb_open_object(js: &mut JsonBuilder, key: *const c_char
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_start_object(js: &mut JsonBuilder) -> bool {
+pub unsafe extern fn jb_start_object(js: &mut JsonBuilder) -> bool {
     js.start_object().is_ok()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_open_array(js: &mut JsonBuilder, key: *const c_char) -> bool {
+pub unsafe extern fn jb_open_array(js: &mut JsonBuilder, key: *const c_char) -> bool {
     if let Ok(s) = CStr::from_ptr(key).to_str() {
         js.open_array(s).is_ok()
     } else {
@@ -831,7 +831,7 @@ pub unsafe extern "C" fn jb_open_array(js: &mut JsonBuilder, key: *const c_char)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_set_string(
+pub unsafe extern fn jb_set_string(
     js: &mut JsonBuilder, key: *const c_char, val: *const c_char,
 ) -> bool {
     if val.is_null() {
@@ -846,7 +846,7 @@ pub unsafe extern "C" fn jb_set_string(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_set_string_from_bytes(
+pub unsafe extern fn jb_set_string_from_bytes(
     js: &mut JsonBuilder, key: *const c_char, bytes: *const u8, len: u32,
 ) -> bool {
     if bytes.is_null() || len == 0 {
@@ -860,7 +860,7 @@ pub unsafe extern "C" fn jb_set_string_from_bytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_set_base64(
+pub unsafe extern fn jb_set_base64(
     js: &mut JsonBuilder, key: *const c_char, bytes: *const u8, len: u32,
 ) -> bool {
     if bytes.is_null() || len == 0 {
@@ -874,7 +874,7 @@ pub unsafe extern "C" fn jb_set_base64(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_set_hex(
+pub unsafe extern fn jb_set_hex(
     js: &mut JsonBuilder, key: *const c_char, bytes: *const u8, len: u32,
 ) -> bool {
     if bytes.is_null() || len == 0 {
@@ -888,7 +888,7 @@ pub unsafe extern "C" fn jb_set_hex(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_set_formatted(js: &mut JsonBuilder, formatted: *const c_char) -> bool {
+pub unsafe extern fn jb_set_formatted(js: &mut JsonBuilder, formatted: *const c_char) -> bool {
     if let Ok(formatted) = CStr::from_ptr(formatted).to_str() {
         return js.set_formatted(formatted).is_ok();
     }
@@ -896,12 +896,12 @@ pub unsafe extern "C" fn jb_set_formatted(js: &mut JsonBuilder, formatted: *cons
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_append_object(jb: &mut JsonBuilder, obj: &JsonBuilder) -> bool {
+pub unsafe extern fn jb_append_object(jb: &mut JsonBuilder, obj: &JsonBuilder) -> bool {
     jb.append_object(obj).is_ok()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_set_object(
+pub unsafe extern fn jb_set_object(
     js: &mut JsonBuilder, key: *const c_char, val: &mut JsonBuilder,
 ) -> bool {
     if let Ok(key) = CStr::from_ptr(key).to_str() {
@@ -911,7 +911,7 @@ pub unsafe extern "C" fn jb_set_object(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_append_string(js: &mut JsonBuilder, val: *const c_char) -> bool {
+pub unsafe extern fn jb_append_string(js: &mut JsonBuilder, val: *const c_char) -> bool {
     if val.is_null() {
         return false;
     }
@@ -922,7 +922,7 @@ pub unsafe extern "C" fn jb_append_string(js: &mut JsonBuilder, val: *const c_ch
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_append_string_from_bytes(
+pub unsafe extern fn jb_append_string_from_bytes(
     js: &mut JsonBuilder, bytes: *const u8, len: u32,
 ) -> bool {
     if bytes.is_null() || len == 0 {
@@ -933,9 +933,7 @@ pub unsafe extern "C" fn jb_append_string_from_bytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_append_base64(
-    js: &mut JsonBuilder, bytes: *const u8, len: u32,
-) -> bool {
+pub unsafe extern fn jb_append_base64(js: &mut JsonBuilder, bytes: *const u8, len: u32) -> bool {
     if bytes.is_null() || len == 0 {
         return false;
     }
@@ -944,17 +942,17 @@ pub unsafe extern "C" fn jb_append_base64(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_append_uint(js: &mut JsonBuilder, val: u64) -> bool {
+pub unsafe extern fn jb_append_uint(js: &mut JsonBuilder, val: u64) -> bool {
     return js.append_uint(val).is_ok();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_append_float(js: &mut JsonBuilder, val: f64) -> bool {
+pub unsafe extern fn jb_append_float(js: &mut JsonBuilder, val: f64) -> bool {
     return js.append_float(val).is_ok();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_set_uint(js: &mut JsonBuilder, key: *const c_char, val: u64) -> bool {
+pub unsafe extern fn jb_set_uint(js: &mut JsonBuilder, key: *const c_char, val: u64) -> bool {
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         return js.set_uint(key, val).is_ok();
     }
@@ -962,7 +960,7 @@ pub unsafe extern "C" fn jb_set_uint(js: &mut JsonBuilder, key: *const c_char, v
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_set_int(js: &mut JsonBuilder, key: *const c_char, val: i64) -> bool {
+pub unsafe extern fn jb_set_int(js: &mut JsonBuilder, key: *const c_char, val: i64) -> bool {
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         return js.set_int(key, val).is_ok();
     }
@@ -970,7 +968,7 @@ pub unsafe extern "C" fn jb_set_int(js: &mut JsonBuilder, key: *const c_char, va
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_set_float(js: &mut JsonBuilder, key: *const c_char, val: f64) -> bool {
+pub unsafe extern fn jb_set_float(js: &mut JsonBuilder, key: *const c_char, val: f64) -> bool {
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         return js.set_float(key, val).is_ok();
     }
@@ -978,7 +976,7 @@ pub unsafe extern "C" fn jb_set_float(js: &mut JsonBuilder, key: *const c_char, 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_set_bool(js: &mut JsonBuilder, key: *const c_char, val: bool) -> bool {
+pub unsafe extern fn jb_set_bool(js: &mut JsonBuilder, key: *const c_char, val: bool) -> bool {
     if let Ok(key) = CStr::from_ptr(key).to_str() {
         return js.set_bool(key, val).is_ok();
     }
@@ -986,22 +984,22 @@ pub unsafe extern "C" fn jb_set_bool(js: &mut JsonBuilder, key: *const c_char, v
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_close(js: &mut JsonBuilder) -> bool {
+pub unsafe extern fn jb_close(js: &mut JsonBuilder) -> bool {
     js.close().is_ok()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_len(js: &JsonBuilder) -> usize {
+pub unsafe extern fn jb_len(js: &JsonBuilder) -> usize {
     js.buf.len()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_ptr(js: &mut JsonBuilder) -> *const u8 {
+pub unsafe extern fn jb_ptr(js: &mut JsonBuilder) -> *const u8 {
     js.buf.as_ptr()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_get_mark(js: &mut JsonBuilder, mark: &mut JsonBuilderMark) {
+pub unsafe extern fn jb_get_mark(js: &mut JsonBuilder, mark: &mut JsonBuilderMark) {
     let m = js.get_mark();
     mark.position = m.position;
     mark.state_index = m.state_index;
@@ -1009,7 +1007,7 @@ pub unsafe extern "C" fn jb_get_mark(js: &mut JsonBuilder, mark: &mut JsonBuilde
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn jb_restore_mark(js: &mut JsonBuilder, mark: &mut JsonBuilderMark) -> bool {
+pub unsafe extern fn jb_restore_mark(js: &mut JsonBuilder, mark: &mut JsonBuilderMark) -> bool {
     js.restore_mark(mark).is_ok()
 }
 

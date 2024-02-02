@@ -18,14 +18,14 @@
 use crate::applayer::{self, *};
 use crate::core::{self, Direction, DIR_BOTH};
 use crate::dcerpc::dcerpc::{
-    DCERPCTransaction, DCERPC_MAX_TX, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PFCL1_FRAG, PFCL1_LASTFRAG,
-    rs_dcerpc_get_alstate_progress, ALPROTO_DCERPC, PARSER_NAME,
+    rs_dcerpc_get_alstate_progress, DCERPCTransaction, ALPROTO_DCERPC, DCERPC_MAX_TX,
+    DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PARSER_NAME, PFCL1_FRAG, PFCL1_LASTFRAG,
 };
+use crate::dcerpc::parser;
 use nom7::Err;
 use std;
-use std::ffi::CString;
 use std::collections::VecDeque;
-use crate::dcerpc::parser;
+use std::ffi::CString;
 
 // Constant DCERPC UDP Header length
 pub const DCERPC_UDP_HDR_LEN: i32 = 80;
@@ -76,7 +76,7 @@ impl DCERPCUDPState {
         Default::default()
     }
 
-    fn create_tx(&mut self,  hdr: &DCERPCHdrUdp) -> DCERPCTransaction {
+    fn create_tx(&mut self, hdr: &DCERPCHdrUdp) -> DCERPCTransaction {
         let mut tx = DCERPCTransaction::new();
         tx.id = self.tx_id;
         tx.endianness = hdr.drep[0] & 0x10;
@@ -99,13 +99,14 @@ impl DCERPCUDPState {
     }
 
     pub fn free_tx(&mut self, tx_id: u64) {
-        SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id+1);
+        SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id + 1);
         let len = self.transactions.len();
         let mut found = false;
         let mut index = 0;
         for i in 0..len {
             let tx = &self.transactions[i];
-            if tx.id == tx_id { //+ 1 {
+            if tx.id == tx_id {
+                //+ 1 {
                 found = true;
                 index = i;
                 SCLogDebug!("tx {} progress {}/{}", tx.id, tx.req_done, tx.resp_done);
@@ -113,8 +114,14 @@ impl DCERPCUDPState {
             }
         }
         if found {
-            SCLogDebug!("freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
-                            tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
+            SCLogDebug!(
+                "freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
+                tx_id,
+                tx_id + 1,
+                index,
+                self.transactions.len(),
+                self.tx_id
+            );
             self.tx_index_completed = 0;
             self.transactions.remove(index);
         }
@@ -158,7 +165,13 @@ impl DCERPCUDPState {
         let mut otx = self.find_incomplete_tx(hdr);
         if otx.is_none() {
             let ntx = self.create_tx(hdr);
-            SCLogDebug!("new tx id {}, last tx_id {}, {} {}", ntx.id, self.tx_id, ntx.seqnum, ntx.activityuuid[0]);
+            SCLogDebug!(
+                "new tx id {}, last tx_id {}, {} {}",
+                ntx.id,
+                self.tx_id,
+                ntx.seqnum,
+                ntx.activityuuid[0]
+            );
             self.transactions.push_back(ntx);
             otx = self.transactions.back_mut();
         }
@@ -205,7 +218,11 @@ impl DCERPCUDPState {
                     return AppLayerResult::err();
                 }
                 if leftover_bytes.len() < header.fraglen as usize {
-                    SCLogDebug!("Insufficient data: leftover_bytes {}, fraglen {}", leftover_bytes.len(), header.fraglen);
+                    SCLogDebug!(
+                        "Insufficient data: leftover_bytes {}, fraglen {}",
+                        leftover_bytes.len(),
+                        header.fraglen
+                    );
                     return AppLayerResult::err();
                 }
                 if !self.handle_fragment_data(&header, &leftover_bytes[..header.fraglen as usize]) {
@@ -228,10 +245,9 @@ impl DCERPCUDPState {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_parse(
+pub unsafe extern fn rs_dcerpc_udp_parse(
     _flow: *const core::Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
-    stream_slice: StreamSlice,
-    _data: *const std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DCERPCUDPState);
     if !stream_slice.is_gap() {
@@ -241,19 +257,21 @@ pub unsafe extern "C" fn rs_dcerpc_udp_parse(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_state_free(state: *mut std::os::raw::c_void) {
+pub extern fn rs_dcerpc_udp_state_free(state: *mut std::os::raw::c_void) {
     std::mem::drop(unsafe { Box::from_raw(state as *mut DCERPCUDPState) });
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dcerpc_udp_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto) -> *mut std::os::raw::c_void {
+pub extern fn rs_dcerpc_udp_state_new(
+    _orig_state: *mut std::os::raw::c_void, _orig_proto: core::AppProto,
+) -> *mut std::os::raw::c_void {
     let state = DCERPCUDPState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut _;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_state_transaction_free(
+pub unsafe extern fn rs_dcerpc_udp_state_transaction_free(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) {
     let dce_state = cast_pointer!(state, DCERPCUDPState);
@@ -262,31 +280,30 @@ pub unsafe extern "C" fn rs_dcerpc_udp_state_transaction_free(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_data(
-    tx: *mut std::os::raw::c_void)
-    -> *mut AppLayerTxData
-{
+pub unsafe extern fn rs_dcerpc_udp_get_tx_data(
+    tx: *mut std::os::raw::c_void,
+) -> *mut AppLayerTxData {
     let tx = cast_pointer!(tx, DCERPCTransaction);
     return &mut tx.tx_data;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_get_tx(
+pub unsafe extern fn rs_dcerpc_udp_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let dce_state = cast_pointer!(state, DCERPCUDPState);
     match dce_state.get_tx(tx_id) {
         Some(tx) => {
             return tx as *const _ as *mut _;
-        },
+        }
         None => {
             return std::ptr::null_mut();
         }
-    } 
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern fn rs_dcerpc_udp_get_tx_cnt(vtx: *mut std::os::raw::c_void) -> u64 {
     let dce_state = cast_pointer!(vtx, DCERPCUDPState);
     dce_state.tx_id
 }
@@ -296,19 +313,19 @@ fn probe(input: &[u8]) -> (bool, bool) {
     match parser::parse_dcerpc_udp_header(input) {
         Ok((_, hdr)) => {
             let is_request = hdr.pkt_type == 0x00;
-            let is_dcerpc = hdr.rpc_vers == 0x04 &&
-                (hdr.flags2 & 0xfc == 0) &&
-                (hdr.drep[0] & 0xee == 0) &&
-                (hdr.drep[1] <= 3);
+            let is_dcerpc = hdr.rpc_vers == 0x04
+                && (hdr.flags2 & 0xfc == 0)
+                && (hdr.drep[0] & 0xee == 0)
+                && (hdr.drep[1] <= 3);
             return (is_dcerpc, is_request);
-        },
+        }
         Err(_) => (false, false),
     }
 }
 
-pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const core::Flow, direction: u8, input: *const u8,
-                                      len: u32, rdir: *mut u8) -> core::AppProto
-{
+pub unsafe extern fn rs_dcerpc_probe_udp(
+    _f: *const core::Flow, direction: u8, input: *const u8, len: u32, rdir: *mut u8,
+) -> core::AppProto {
     SCLogDebug!("Probing the packet for DCERPC/UDP");
     if len == 0 {
         return core::ALPROTO_UNKNOWN;
@@ -332,9 +349,18 @@ pub unsafe extern "C" fn rs_dcerpc_probe_udp(_f: *const core::Flow, direction: u
 
 fn register_pattern_probe() -> i8 {
     unsafe {
-        if AppLayerProtoDetectPMRegisterPatternCSwPP(core::IPPROTO_UDP, ALPROTO_DCERPC,
-                                                     b"|04 00|\0".as_ptr() as *const std::os::raw::c_char, 2, 0,
-                                                     Direction::ToServer.into(), rs_dcerpc_probe_udp, 0, 0) < 0 {
+        if AppLayerProtoDetectPMRegisterPatternCSwPP(
+            core::IPPROTO_UDP,
+            ALPROTO_DCERPC,
+            b"|04 00|\0".as_ptr() as *const std::os::raw::c_char,
+            2,
+            0,
+            Direction::ToServer.into(),
+            rs_dcerpc_probe_udp,
+            0,
+            0,
+        ) < 0
+        {
             SCLogDebug!("TOSERVER => AppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
             return -1;
         }
@@ -345,7 +371,7 @@ fn register_pattern_probe() -> i8 {
 export_state_data_get!(rs_dcerpc_udp_get_state_data, DCERPCUDPState);
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
+pub unsafe extern fn rs_dcerpc_udp_register_parser() {
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: std::ptr::null(),
@@ -393,7 +419,6 @@ pub unsafe extern "C" fn rs_dcerpc_udp_register_parser() {
         SCLogDebug!("Protocol detecter and parser disabled for DCERPC/UDP.");
     }
 }
-
 
 #[cfg(test)]
 mod tests {

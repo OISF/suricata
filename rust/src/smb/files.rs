@@ -15,10 +15,10 @@
  * 02110-1301, USA.
  */
 
-use std;
 use crate::core::*;
-use crate::filetracker::*;
 use crate::filecontainer::*;
+use crate::filetracker::*;
+use std;
 
 use crate::smb::smb::*;
 
@@ -41,41 +41,42 @@ impl SMBTransactionFile {
         return Self {
             file_tracker: FileTransferTracker::new(),
             ..Default::default()
-        }
+        };
     }
 
     pub fn update_file_flags(&mut self, flow_file_flags: u16) {
-        let dir_flag = if self.direction == Direction::ToServer { STREAM_TOSERVER } else { STREAM_TOCLIENT };
+        let dir_flag = if self.direction == Direction::ToServer {
+            STREAM_TOSERVER
+        } else {
+            STREAM_TOCLIENT
+        };
         self.file_tracker.file_flags = unsafe { FileFlowFlagsToFlags(flow_file_flags, dir_flag) };
     }
 }
 
 /// little wrapper around the FileTransferTracker::new_chunk method
-pub fn filetracker_newchunk(ft: &mut FileTransferTracker, name: &[u8], data: &[u8],
-        chunk_offset: u64, chunk_size: u32, is_last: bool, xid: &u32)
-{
+pub fn filetracker_newchunk(
+    ft: &mut FileTransferTracker, name: &[u8], data: &[u8], chunk_offset: u64, chunk_size: u32,
+    is_last: bool, xid: &u32,
+) {
     if let Some(sfcm) = unsafe { SURICATA_SMB_FILE_CONFIG } {
-        ft.new_chunk(sfcm, name, data, chunk_offset,
-                chunk_size, 0, is_last, xid);
+        ft.new_chunk(sfcm, name, data, chunk_offset, chunk_size, 0, is_last, xid);
     }
 }
 
-pub fn filetracker_trunc(ft: &mut FileTransferTracker)
-{
+pub fn filetracker_trunc(ft: &mut FileTransferTracker) {
     if let Some(sfcm) = unsafe { SURICATA_SMB_FILE_CONFIG } {
         ft.trunc(sfcm);
     }
 }
 
-pub fn filetracker_close(ft: &mut FileTransferTracker)
-{
+pub fn filetracker_close(ft: &mut FileTransferTracker) {
     if let Some(sfcm) = unsafe { SURICATA_SMB_FILE_CONFIG } {
         ft.close(sfcm);
     }
 }
 
-fn filetracker_update(ft: &mut FileTransferTracker, data: &[u8], gap_size: u32) -> u32
-{
+fn filetracker_update(ft: &mut FileTransferTracker, data: &[u8], gap_size: u32) -> u32 {
     if let Some(sfcm) = unsafe { SURICATA_SMB_FILE_CONFIG } {
         ft.update(sfcm, data, gap_size)
     } else {
@@ -84,9 +85,9 @@ fn filetracker_update(ft: &mut FileTransferTracker, data: &[u8], gap_size: u32) 
 }
 
 impl SMBState {
-    pub fn new_file_tx(&mut self, fuid: &[u8], file_name: &[u8], direction: Direction)
-        -> &mut SMBTransaction
-    {
+    pub fn new_file_tx(
+        &mut self, fuid: &[u8], file_name: &[u8], direction: Direction,
+    ) -> &mut SMBTransaction {
         let mut tx = self.new_tx();
         tx.type_data = Some(SMBTransactionTypeData::FILE(SMBTransactionFile::new()));
         if let Some(SMBTransactionTypeData::FILE(ref mut d)) = tx.type_data {
@@ -98,9 +99,16 @@ impl SMBState {
             d.update_file_flags(tx.tx_data.file_flags);
         }
         tx.tx_data.init_files_opened();
-        tx.tx_data.file_tx = if direction == Direction::ToServer { STREAM_TOSERVER } else { STREAM_TOCLIENT }; // TODO direction to flag func?
-        SCLogDebug!("SMB: new_file_tx: TX FILE created: ID {} NAME {}",
-                tx.id, String::from_utf8_lossy(file_name));
+        tx.tx_data.file_tx = if direction == Direction::ToServer {
+            STREAM_TOSERVER
+        } else {
+            STREAM_TOCLIENT
+        }; // TODO direction to flag func?
+        SCLogDebug!(
+            "SMB: new_file_tx: TX FILE created: ID {} NAME {}",
+            tx.id,
+            String::from_utf8_lossy(file_name)
+        );
         self.transactions.push_back(tx);
         let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
@@ -108,16 +116,16 @@ impl SMBState {
 
     /// get file tx for a open file. Returns None if a file for the fuid exists,
     /// but has already been closed.
-    pub fn get_file_tx_by_fuid_with_open_file(&mut self, fuid: &[u8], direction: Direction)
-        -> Option<&mut SMBTransaction>
-    {
+    pub fn get_file_tx_by_fuid_with_open_file(
+        &mut self, fuid: &[u8], direction: Direction,
+    ) -> Option<&mut SMBTransaction> {
         let f = fuid.to_vec();
         for tx in &mut self.transactions {
             let found = match tx.type_data {
                 Some(SMBTransactionTypeData::FILE(ref mut d)) => {
                     direction == d.direction && f == d.fuid && !d.file_tracker.is_done()
-                },
-                _ => { false },
+                }
+                _ => false,
             };
 
             if found {
@@ -134,16 +142,16 @@ impl SMBState {
     }
 
     /// get file tx for a fuid. File may already have been closed.
-    pub fn get_file_tx_by_fuid(&mut self, fuid: &[u8], direction: Direction)
-        -> Option<&mut SMBTransaction>
-    {
+    pub fn get_file_tx_by_fuid(
+        &mut self, fuid: &[u8], direction: Direction,
+    ) -> Option<&mut SMBTransaction> {
         let f = fuid.to_vec();
         for tx in &mut self.transactions {
             let found = match tx.type_data {
                 Some(SMBTransactionTypeData::FILE(ref mut d)) => {
                     direction == d.direction && f == d.fuid
-                },
-                _ => { false },
+                }
+                _ => false,
             };
 
             if found {
@@ -168,7 +176,7 @@ impl SMBState {
             self.file_tc_left
         };
         if chunk_left == 0 {
-            return 0
+            return 0;
         }
         SCLogDebug!("chunk_left {} data {}", chunk_left, data.len());
         let file_handle = if direction == Direction::ToServer {
@@ -202,8 +210,12 @@ impl SMBState {
                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                     if ssn_gap {
                         let queued_data = tdf.file_tracker.get_queued_size();
-                        if queued_data > 2000000 { // TODO should probably be configurable
-                            SCLogDebug!("QUEUED size {} while we've seen GAPs. Truncating file.", queued_data);
+                        if queued_data > 2000000 {
+                            // TODO should probably be configurable
+                            SCLogDebug!(
+                                "QUEUED size {} while we've seen GAPs. Truncating file.",
+                                queued_data
+                            );
                             filetracker_trunc(&mut tdf.file_tracker);
                         }
                     }
@@ -218,10 +230,11 @@ impl SMBState {
                 } else {
                     0
                 }
-            },
+            }
             None => {
                 SCLogDebug!("not found for handle {:?}", file_handle);
-                0 },
+                0
+            }
         };
 
         return consumed;
@@ -230,13 +243,18 @@ impl SMBState {
 
 use crate::applayer::AppLayerGetFileState;
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_gettxfiles(_state: *mut std::ffi::c_void, tx: *mut std::ffi::c_void, direction: u8) -> AppLayerGetFileState {
+pub unsafe extern fn rs_smb_gettxfiles(
+    _state: *mut std::ffi::c_void, tx: *mut std::ffi::c_void, direction: u8,
+) -> AppLayerGetFileState {
     let tx = cast_pointer!(tx, SMBTransaction);
     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-        let tx_dir : u8 = tdf.direction.into();
+        let tx_dir: u8 = tdf.direction.into();
         if direction & tx_dir != 0 {
             if let Some(sfcm) = { SURICATA_SMB_FILE_CONFIG } {
-                return AppLayerGetFileState { fc: &mut tdf.file_tracker.file, cfg: sfcm.files_sbcfg }
+                return AppLayerGetFileState {
+                    fc: &mut tdf.file_tracker.file,
+                    cfg: sfcm.files_sbcfg,
+                };
             }
         }
     }

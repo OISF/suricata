@@ -114,7 +114,9 @@ impl TemplateState {
     }
 
     fn find_request(&mut self) -> Option<&mut TemplateTransaction> {
-        self.transactions.iter_mut().find(|tx| tx.response.is_none())
+        self.transactions
+            .iter_mut()
+            .find(|tx| tx.response.is_none())
     }
 
     fn parse_request(&mut self, input: &[u8]) -> AppLayerResult {
@@ -188,7 +190,7 @@ impl TemplateState {
                 Ok((rem, response)) => {
                     start = rem;
 
-                    if let Some(tx) =  self.find_request() {
+                    if let Some(tx) = self.find_request() {
                         tx.response = Some(response);
                         SCLogNotice!("Found response for request:");
                         SCLogNotice!("- Request: {:?}", tx.request);
@@ -237,7 +239,7 @@ fn probe(input: &[u8]) -> nom::IResult<&[u8], ()> {
 // C exports.
 
 /// C entry point for a probing parser.
-unsafe extern "C" fn rs_template_probing_parser(
+unsafe extern fn rs_template_probing_parser(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     // Need at least 2 bytes.
@@ -250,24 +252,22 @@ unsafe extern "C" fn rs_template_probing_parser(
     return ALPROTO_UNKNOWN;
 }
 
-extern "C" fn rs_template_state_new(
-    _orig_state: *mut c_void, _orig_proto: AppProto,
-) -> *mut c_void {
+extern fn rs_template_state_new(_orig_state: *mut c_void, _orig_proto: AppProto) -> *mut c_void {
     let state = TemplateState::new();
     let boxed = Box::new(state);
     return Box::into_raw(boxed) as *mut c_void;
 }
 
-unsafe extern "C" fn rs_template_state_free(state: *mut c_void) {
+unsafe extern fn rs_template_state_free(state: *mut c_void) {
     std::mem::drop(Box::from_raw(state as *mut TemplateState));
 }
 
-unsafe extern "C" fn rs_template_state_tx_free(state: *mut c_void, tx_id: u64) {
+unsafe extern fn rs_template_state_tx_free(state: *mut c_void, tx_id: u64) {
     let state = cast_pointer!(state, TemplateState);
     state.free_tx(tx_id);
 }
 
-unsafe extern "C" fn rs_template_parse_request(
+unsafe extern fn rs_template_parse_request(
     _flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
@@ -291,7 +291,7 @@ unsafe extern "C" fn rs_template_parse_request(
     }
 }
 
-unsafe extern "C" fn rs_template_parse_response(
+unsafe extern fn rs_template_parse_response(
     _flow: *const Flow, state: *mut c_void, pstate: *mut c_void, stream_slice: StreamSlice,
     _data: *const c_void,
 ) -> AppLayerResult {
@@ -309,7 +309,7 @@ unsafe extern "C" fn rs_template_parse_response(
     }
 }
 
-unsafe extern "C" fn rs_template_state_get_tx(state: *mut c_void, tx_id: u64) -> *mut c_void {
+unsafe extern fn rs_template_state_get_tx(state: *mut c_void, tx_id: u64) -> *mut c_void {
     let state = cast_pointer!(state, TemplateState);
     match state.get_tx(tx_id) {
         Some(tx) => {
@@ -321,12 +321,12 @@ unsafe extern "C" fn rs_template_state_get_tx(state: *mut c_void, tx_id: u64) ->
     }
 }
 
-unsafe extern "C" fn rs_template_state_get_tx_count(state: *mut c_void) -> u64 {
+unsafe extern fn rs_template_state_get_tx_count(state: *mut c_void) -> u64 {
     let state = cast_pointer!(state, TemplateState);
     return state.tx_id;
 }
 
-unsafe extern "C" fn rs_template_tx_get_alstate_progress(tx: *mut c_void, _direction: u8) -> c_int {
+unsafe extern fn rs_template_tx_get_alstate_progress(tx: *mut c_void, _direction: u8) -> c_int {
     let tx = cast_pointer!(tx, TemplateTransaction);
 
     // Transaction is done if we have a response.
@@ -341,7 +341,7 @@ unsafe extern "C" fn rs_template_tx_get_alstate_progress(tx: *mut c_void, _direc
 /// No required for parsing, but an example function for retrieving a
 /// pointer to the request buffer from C for detection.
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_get_request_buffer(
+pub unsafe extern fn rs_template_get_request_buffer(
     tx: *mut c_void, buf: *mut *const u8, len: *mut u32,
 ) -> u8 {
     let tx = cast_pointer!(tx, TemplateTransaction);
@@ -357,7 +357,7 @@ pub unsafe extern "C" fn rs_template_get_request_buffer(
 
 /// Get the response buffer for a transaction from C.
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_get_response_buffer(
+pub unsafe extern fn rs_template_get_response_buffer(
     tx: *mut c_void, buf: *mut *const u8, len: *mut u32,
 ) -> u8 {
     let tx = cast_pointer!(tx, TemplateTransaction);
@@ -378,7 +378,7 @@ export_state_data_get!(rs_template_get_state_data, TemplateState);
 const PARSER_NAME: &[u8] = b"template\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_template_register_parser() {
+pub unsafe extern fn rs_template_register_parser() {
     /* TEMPLATE_START_REMOVE */
     if crate::conf::conf_get_node("app-layer.protocols.template").is_none() {
         return;

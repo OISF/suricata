@@ -57,7 +57,7 @@ fn parse_opcode(opcode: &str) -> Result<DetectDnsOpcode, ()> {
 ///
 /// 1 will be returned on match, otherwise 0 will be returned.
 #[no_mangle]
-pub extern "C" fn rs_dns_opcode_match(
+pub extern fn rs_dns_opcode_match(
     tx: &mut DNSTransaction, detect: &mut DetectDnsOpcode, flags: u8,
 ) -> u8 {
     let header_flags = if flags & Direction::ToServer as u8 != 0 {
@@ -90,7 +90,7 @@ fn match_opcode(detect: &DetectDnsOpcode, flags: u16) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_detect_dns_opcode_parse(carg: *const c_char) -> *mut c_void {
+pub unsafe extern fn rs_detect_dns_opcode_parse(carg: *const c_char) -> *mut c_void {
     if carg.is_null() {
         return std::ptr::null_mut();
     }
@@ -108,7 +108,7 @@ pub unsafe extern "C" fn rs_detect_dns_opcode_parse(carg: *const c_char) -> *mut
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_dns_detect_opcode_free(ptr: *mut c_void) {
+pub unsafe extern fn rs_dns_detect_opcode_free(ptr: *mut c_void) {
     if !ptr.is_null() {
         std::mem::drop(Box::from_raw(ptr as *mut DetectDnsOpcode));
     }

@@ -26,34 +26,34 @@
 // written by Victor Julien
 
 use std;
-use std::str;
 use std::ffi::{self, CString};
+use std::str;
 
 use std::collections::HashMap;
 use std::collections::VecDeque;
- 
-use nom7::{Err, Needed};
-use nom7::error::{make_error, ErrorKind};
 
-use crate::core::*;
+use nom7::error::{make_error, ErrorKind};
+use nom7::{Err, Needed};
+
 use crate::applayer;
 use crate::applayer::*;
-use crate::frames::*;
+use crate::applayer::{AppLayerEvent, AppLayerResult, AppLayerTxData};
 use crate::conf::*;
-use crate::applayer::{AppLayerResult, AppLayerTxData, AppLayerEvent};
+use crate::core::*;
+use crate::frames::*;
 
 use crate::smb::nbss_records::*;
 use crate::smb::smb1_records::*;
 use crate::smb::smb2_records::*;
 
-use crate::smb::smb1::*;
-use crate::smb::smb2::*;
-use crate::smb::smb3::*;
 use crate::smb::dcerpc::*;
-use crate::smb::session::*;
 use crate::smb::events::*;
 use crate::smb::files::*;
+use crate::smb::session::*;
+use crate::smb::smb1::*;
+use crate::smb::smb2::*;
 use crate::smb::smb2_ioctl::*;
+use crate::smb::smb3::*;
 
 #[derive(AppLayerFrameType)]
 pub enum SMBFrameType {
@@ -88,62 +88,70 @@ static mut SMB_MAX_TX: usize = 1024;
 pub static mut SURICATA_SMB_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
 #[no_mangle]
-pub extern "C" fn rs_smb_init(context: &'static mut SuricataFileContext)
-{
+pub extern fn rs_smb_init(context: &'static mut SuricataFileContext) {
     unsafe {
         SURICATA_SMB_FILE_CONFIG = Some(context);
     }
 }
 
-pub const SMB_SRV_ERROR:                u16 = 1;
-pub const SMB_SRV_BADPW:                u16 = 2;
-pub const SMB_SRV_BADTYPE:              u16 = 3;
-pub const SMB_SRV_ACCESS:               u16 = 4;
-pub const SMB_SRV_BADUID:               u16 = 91;
+pub const SMB_SRV_ERROR: u16 = 1;
+pub const SMB_SRV_BADPW: u16 = 2;
+pub const SMB_SRV_BADTYPE: u16 = 3;
+pub const SMB_SRV_ACCESS: u16 = 4;
+pub const SMB_SRV_BADUID: u16 = 91;
 
 pub fn smb_srv_error_string(c: u16) -> String {
     match c {
-        SMB_SRV_ERROR           => "SRV_ERROR",
-        SMB_SRV_BADPW           => "SRV_BADPW",
-        SMB_SRV_BADTYPE         => "SRV_BADTYPE",
-        SMB_SRV_ACCESS          => "SRV_ACCESS",
-        SMB_SRV_BADUID          => "SRV_BADUID",
-        _ => { return (c).to_string(); },
-    }.to_string()
+        SMB_SRV_ERROR => "SRV_ERROR",
+        SMB_SRV_BADPW => "SRV_BADPW",
+        SMB_SRV_BADTYPE => "SRV_BADTYPE",
+        SMB_SRV_ACCESS => "SRV_ACCESS",
+        SMB_SRV_BADUID => "SRV_BADUID",
+        _ => {
+            return (c).to_string();
+        }
+    }
+    .to_string()
 }
 
-pub const SMB_DOS_SUCCESS:                u16 = 0;
-pub const SMB_DOS_BAD_FUNC:               u16 = 1;
-pub const SMB_DOS_BAD_FILE:               u16 = 2;
-pub const SMB_DOS_BAD_PATH:               u16 = 3;
-pub const SMB_DOS_TOO_MANY_OPEN_FILES:    u16 = 4;
-pub const SMB_DOS_ACCESS_DENIED:          u16 = 5;
+pub const SMB_DOS_SUCCESS: u16 = 0;
+pub const SMB_DOS_BAD_FUNC: u16 = 1;
+pub const SMB_DOS_BAD_FILE: u16 = 2;
+pub const SMB_DOS_BAD_PATH: u16 = 3;
+pub const SMB_DOS_TOO_MANY_OPEN_FILES: u16 = 4;
+pub const SMB_DOS_ACCESS_DENIED: u16 = 5;
 
 pub fn smb_dos_error_string(c: u16) -> String {
     match c {
-        SMB_DOS_SUCCESS           => "DOS_SUCCESS",
-        SMB_DOS_BAD_FUNC          => "DOS_BAD_FUNC",
-        SMB_DOS_BAD_FILE          => "DOS_BAD_FILE",
-        SMB_DOS_BAD_PATH          => "DOS_BAD_PATH",
+        SMB_DOS_SUCCESS => "DOS_SUCCESS",
+        SMB_DOS_BAD_FUNC => "DOS_BAD_FUNC",
+        SMB_DOS_BAD_FILE => "DOS_BAD_FILE",
+        SMB_DOS_BAD_PATH => "DOS_BAD_PATH",
         SMB_DOS_TOO_MANY_OPEN_FILES => "DOS_TOO_MANY_OPEN_FILES",
-        SMB_DOS_ACCESS_DENIED     => "DOS_ACCESS_DENIED",
-        _ => { return (c).to_string(); },
-    }.to_string()
+        SMB_DOS_ACCESS_DENIED => "DOS_ACCESS_DENIED",
+        _ => {
+            return (c).to_string();
+        }
+    }
+    .to_string()
 }
 
-pub const NTLMSSP_NEGOTIATE:               u32 = 1;
+pub const NTLMSSP_NEGOTIATE: u32 = 1;
 #[cfg(feature = "debug")]
-pub const NTLMSSP_CHALLENGE:               u32 = 2;
-pub const NTLMSSP_AUTH:                    u32 = 3;
+pub const NTLMSSP_CHALLENGE: u32 = 2;
+pub const NTLMSSP_AUTH: u32 = 3;
 
 #[cfg(feature = "debug")]
 pub fn ntlmssp_type_string(c: u32) -> String {
     match c {
-        NTLMSSP_NEGOTIATE   => "NTLMSSP_NEGOTIATE",
-        NTLMSSP_CHALLENGE   => "NTLMSSP_CHALLENGE",
-        NTLMSSP_AUTH        => "NTLMSSP_AUTH",
-        _ => { return (c).to_string(); },
-    }.to_string()
+        NTLMSSP_NEGOTIATE => "NTLMSSP_NEGOTIATE",
+        NTLMSSP_CHALLENGE => "NTLMSSP_CHALLENGE",
+        NTLMSSP_AUTH => "NTLMSSP_AUTH",
+        _ => {
+            return (c).to_string();
+        }
+    }
+    .to_string()
 }
 
 #[derive(Default, Eq, PartialEq, Debug, Clone)]
@@ -167,7 +175,7 @@ impl SMBVerCmdStat {
             smb_ver: 1,
             smb1_cmd: cmd,
             ..Default::default()
-        }
+        };
     }
     pub fn new1_with_ntstatus(cmd: u8, status: u32) -> Self {
         return Self {
@@ -176,14 +184,14 @@ impl SMBVerCmdStat {
             status_set: true,
             status,
             ..Default::default()
-        }
+        };
     }
     pub fn new2(cmd: u16) -> Self {
         return Self {
             smb_ver: 2,
             smb2_cmd: cmd,
             ..Default::default()
-        }
+        };
     }
 
     pub fn new2_with_ntstatus(cmd: u16, status: u32) -> Self {
@@ -193,7 +201,7 @@ impl SMBVerCmdStat {
             status_set: true,
             status,
             ..Default::default()
-        }
+        };
     }
 
     pub fn set_smb1_cmd(&mut self, cmd: u8) -> bool {
@@ -237,11 +245,14 @@ impl SMBVerCmdStat {
     }
 
     pub fn get_dos_error(&self) -> (bool, u8, u16) {
-        (self.status_set && self.status_is_dos_error, self.status_error_class, self.status as u16)
+        (
+            self.status_set && self.status_is_dos_error,
+            self.status_error_class,
+            self.status as u16,
+        )
     }
 
-    fn set_status(&mut self, status: u32, is_dos_error: bool)
-    {
+    fn set_status(&mut self, status: u32, is_dos_error: bool) {
         if is_dos_error {
             self.status_is_dos_error = true;
             self.status_error_class = (status & 0x0000_00ff) as u8;
@@ -252,13 +263,11 @@ impl SMBVerCmdStat {
         self.status_set = true;
     }
 
-    pub fn set_ntstatus(&mut self, status: u32)
-    {
+    pub fn set_ntstatus(&mut self, status: u32) {
         self.set_status(status, false)
     }
 
-    pub fn set_status_dos_error(&mut self, status: u32)
-    {
+    pub fn set_status_dos_error(&mut self, status: u32) {
         self.set_status(status, true)
     }
 }
@@ -268,14 +277,12 @@ impl SMBVerCmdStat {
 /// Coordinated Universal Time (UTC)."
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct SMBFiletime {
-    ts: u64, 
+    ts: u64,
 }
 
 impl SMBFiletime {
     pub fn new(raw: u64) -> Self {
-        Self {
-            ts: raw,
-        }
+        Self { ts: raw }
     }
 
     /// inspired by Bro, convert FILETIME to secs since unix epoch
@@ -313,11 +320,12 @@ pub struct SMBTransactionSetFilePathInfo {
 }
 
 impl SMBTransactionSetFilePathInfo {
-    pub fn new(filename: Vec<u8>, fid: Vec<u8>, subcmd: u16, loi: u16, delete_on_close: bool)
-        -> Self
-    {
+    pub fn new(
+        filename: Vec<u8>, fid: Vec<u8>, subcmd: u16, loi: u16, delete_on_close: bool,
+    ) -> Self {
         return Self {
-            filename, fid,
+            filename,
+            fid,
             subcmd,
             loi,
             delete_on_close,
@@ -326,15 +334,14 @@ impl SMBTransactionSetFilePathInfo {
 }
 
 impl SMBState {
-    pub fn new_setfileinfo_tx(&mut self, filename: Vec<u8>, fid: Vec<u8>,
-            subcmd: u16, loi: u16, delete_on_close: bool)
-        -> &mut SMBTransaction
-    {
+    pub fn new_setfileinfo_tx(
+        &mut self, filename: Vec<u8>, fid: Vec<u8>, subcmd: u16, loi: u16, delete_on_close: bool,
+    ) -> &mut SMBTransaction {
         let mut tx = self.new_tx();
 
         tx.type_data = Some(SMBTransactionTypeData::SETFILEPATHINFO(
-                    SMBTransactionSetFilePathInfo::new(
-                        filename, fid, subcmd, loi, delete_on_close)));
+            SMBTransactionSetFilePathInfo::new(filename, fid, subcmd, loi, delete_on_close),
+        ));
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
@@ -344,16 +351,15 @@ impl SMBState {
         return tx_ref.unwrap();
     }
 
-    pub fn new_setpathinfo_tx(&mut self, filename: Vec<u8>,
-            subcmd: u16, loi: u16, delete_on_close: bool)
-        -> &mut SMBTransaction
-    {
+    pub fn new_setpathinfo_tx(
+        &mut self, filename: Vec<u8>, subcmd: u16, loi: u16, delete_on_close: bool,
+    ) -> &mut SMBTransaction {
         let mut tx = self.new_tx();
 
-        let fid : Vec<u8> = Vec::new();
+        let fid: Vec<u8> = Vec::new();
         tx.type_data = Some(SMBTransactionTypeData::SETFILEPATHINFO(
-                    SMBTransactionSetFilePathInfo::new(filename, fid,
-                        subcmd, loi, delete_on_close)));
+            SMBTransactionSetFilePathInfo::new(filename, fid, subcmd, loi, delete_on_close),
+        ));
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
@@ -374,19 +380,22 @@ pub struct SMBTransactionRename {
 impl SMBTransactionRename {
     pub fn new(fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>) -> Self {
         return Self {
-            fuid, oldname, newname,
+            fuid,
+            oldname,
+            newname,
         };
     }
 }
 
 impl SMBState {
-    pub fn new_rename_tx(&mut self, fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>)
-        -> &mut SMBTransaction
-    {
+    pub fn new_rename_tx(
+        &mut self, fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>,
+    ) -> &mut SMBTransaction {
         let mut tx = self.new_tx();
 
-        tx.type_data = Some(SMBTransactionTypeData::RENAME(
-                    SMBTransactionRename::new(fuid, oldname, newname)));
+        tx.type_data = Some(SMBTransactionTypeData::RENAME(SMBTransactionRename::new(
+            fuid, oldname, newname,
+        )));
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
@@ -421,7 +430,7 @@ impl SMBTransactionCreate {
             directory: dir,
             filename,
             ..Default::default()
-        }
+        };
     }
 }
 
@@ -469,7 +478,8 @@ impl SMBTransactionTreeConnect {
 
 #[derive(Debug)]
 pub struct SMBTransaction {
-    pub id: u64,    /// internal id
+    pub id: u64,
+    /// internal id
 
     /// version, command and status
     pub vercmd: SMBVerCmdStat,
@@ -502,18 +512,17 @@ impl Default for SMBTransaction {
 impl SMBTransaction {
     pub fn new() -> Self {
         return Self {
-              id: 0,
-              vercmd: SMBVerCmdStat::new(),
-              hdr: SMBCommonHdr::default(),
-              request_done: false,
-              response_done: false,
-              type_data: None,
-              tx_data: AppLayerTxData::new(),
-        }
+            id: 0,
+            vercmd: SMBVerCmdStat::new(),
+            hdr: SMBCommonHdr::default(),
+            request_done: false,
+            response_done: false,
+            type_data: None,
+            tx_data: AppLayerTxData::new(),
+        };
     }
 
-    pub fn set_status(&mut self, status: u32, is_dos_error: bool)
-    {
+    pub fn set_status(&mut self, status: u32, is_dos_error: bool) {
         if is_dos_error {
             self.vercmd.set_status_dos_error(status);
         } else {
@@ -547,25 +556,22 @@ pub struct SMBFileGUIDOffset {
 
 impl SMBFileGUIDOffset {
     pub fn new(guid: Vec<u8>, offset: u64) -> Self {
-        Self {
-            guid,
-            offset,
-        }
+        Self { guid, offset }
     }
 }
 
 /// type values to make sure we're not mixing things
 /// up in hashmap lookups
-pub const SMBHDR_TYPE_GUID:        u32 = 1;
-pub const SMBHDR_TYPE_SHARE:       u32 = 2;
-pub const SMBHDR_TYPE_FILENAME:    u32 = 3;
-pub const SMBHDR_TYPE_OFFSET:      u32 = 4;
-pub const SMBHDR_TYPE_GENERICTX:   u32 = 5;
-pub const SMBHDR_TYPE_HEADER:      u32 = 6;
+pub const SMBHDR_TYPE_GUID: u32 = 1;
+pub const SMBHDR_TYPE_SHARE: u32 = 2;
+pub const SMBHDR_TYPE_FILENAME: u32 = 3;
+pub const SMBHDR_TYPE_OFFSET: u32 = 4;
+pub const SMBHDR_TYPE_GENERICTX: u32 = 5;
+pub const SMBHDR_TYPE_HEADER: u32 = 6;
 //unused pub const SMBHDR_TYPE_MAX_SIZE:    u32 = 7; // max resp size for SMB1_COMMAND_TRANS
-pub const SMBHDR_TYPE_TRANS_FRAG:  u32 = 8;
-pub const SMBHDR_TYPE_TREE:        u32 = 9;
-pub const SMBHDR_TYPE_DCERPCTX:    u32 = 10;
+pub const SMBHDR_TYPE_TRANS_FRAG: u32 = 8;
+pub const SMBHDR_TYPE_TREE: u32 = 9;
+pub const SMBHDR_TYPE_DCERPCTX: u32 = 10;
 
 #[derive(Default, Hash, Eq, PartialEq, Debug)]
 pub struct SMBCommonHdr {
@@ -586,21 +592,20 @@ impl SMBCommonHdr {
     }
     pub fn from2(r: &Smb2Record, rec_type: u32) -> SMBCommonHdr {
         let tree_id = match rec_type {
-            SMBHDR_TYPE_TREE => { 0 },
+            SMBHDR_TYPE_TREE => 0,
             _ => r.tree_id,
         };
         let msg_id = match rec_type {
-            SMBHDR_TYPE_TRANS_FRAG | SMBHDR_TYPE_SHARE => { 0 },
-            _ => { r.message_id },
+            SMBHDR_TYPE_TRANS_FRAG | SMBHDR_TYPE_SHARE => 0,
+            _ => r.message_id,
         };
 
         SMBCommonHdr {
             rec_type,
-            ssn_id : r.session_id,
+            ssn_id: r.session_id,
             tree_id,
             msg_id,
         }
-
     }
     pub fn from2_notree(r: &Smb2Record, rec_type: u32) -> SMBCommonHdr {
         // async responses do not have a tree id (even if the request has it)
@@ -609,30 +614,30 @@ impl SMBCommonHdr {
         // across all messages that are sent on the same SMB2 Protocol transport connection.
         // cf https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/ea4560b7-90da-4803-82b5-344754b92a79
         let msg_id = match rec_type {
-            SMBHDR_TYPE_TRANS_FRAG | SMBHDR_TYPE_SHARE => { 0 },
-            _ => { r.message_id },
+            SMBHDR_TYPE_TRANS_FRAG | SMBHDR_TYPE_SHARE => 0,
+            _ => r.message_id,
         };
 
         SMBCommonHdr {
             rec_type,
-            ssn_id : r.session_id,
-            tree_id : 0,
+            ssn_id: r.session_id,
+            tree_id: 0,
             msg_id,
         }
     }
     pub fn from1(r: &SmbRecord, rec_type: u32) -> SMBCommonHdr {
         let tree_id = match rec_type {
-            SMBHDR_TYPE_TREE => { 0 },
+            SMBHDR_TYPE_TREE => 0,
             _ => r.tree_id as u32,
         };
         let msg_id = match rec_type {
-            SMBHDR_TYPE_TRANS_FRAG | SMBHDR_TYPE_SHARE => { 0 },
-            _ => { r.multiplex_id as u64 },
+            SMBHDR_TYPE_TRANS_FRAG | SMBHDR_TYPE_SHARE => 0,
+            _ => r.multiplex_id as u64,
         };
 
         SMBCommonHdr {
             rec_type,
-            ssn_id : r.ssn_id as u64,
+            ssn_id: r.ssn_id as u64,
             tree_id,
             msg_id,
         }
@@ -640,8 +645,7 @@ impl SMBCommonHdr {
 
     // don't include tree id
     pub fn compare(&self, hdr: &SMBCommonHdr) -> bool {
-        self.rec_type == hdr.rec_type && self.ssn_id == hdr.ssn_id &&
-            self.msg_id == hdr.msg_id
+        self.rec_type == hdr.rec_type && self.ssn_id == hdr.ssn_id && self.msg_id == hdr.msg_id
     }
 }
 
@@ -653,9 +657,7 @@ pub struct SMBHashKeyHdrGuid {
 
 impl SMBHashKeyHdrGuid {
     pub fn new(hdr: SMBCommonHdr, guid: Vec<u8>) -> Self {
-        Self {
-            hdr, guid,
-        }
+        Self { hdr, guid }
     }
 }
 
@@ -667,23 +669,20 @@ pub struct SMBTree {
 
 impl SMBTree {
     pub fn new(name: Vec<u8>, is_pipe: bool) -> Self {
-        Self {
-            name,
-            is_pipe,
-        }
+        Self { name, is_pipe }
     }
 }
 
-pub fn u32_as_bytes(i: u32) -> [u8;4] {
+pub fn u32_as_bytes(i: u32) -> [u8; 4] {
     let o1: u8 = ((i >> 24) & 0xff) as u8;
     let o2: u8 = ((i >> 16) & 0xff) as u8;
-    let o3: u8 = ((i >> 8)  & 0xff) as u8;
-    let o4: u8 =  (i        & 0xff) as u8;
-    return [o1, o2, o3, o4]
+    let o3: u8 = ((i >> 8) & 0xff) as u8;
+    let o4: u8 = (i & 0xff) as u8;
+    return [o1, o2, o3, o4];
 }
 
 #[derive(Default, Debug)]
-pub struct SMBState<> {
+pub struct SMBState {
     pub state_data: AppLayerStateData,
 
     /// map ssn/tree/msgid to vec (guid/name/share)
@@ -702,10 +701,10 @@ pub struct SMBState<> {
     skip_ts: u32,
     skip_tc: u32,
 
-    pub file_ts_left : u32,
-    pub file_tc_left : u32,
-    pub file_ts_guid : Vec<u8>,
-    pub file_tc_guid : Vec<u8>,
+    pub file_ts_left: u32,
+    pub file_tc_left: u32,
+    pub file_ts_guid: Vec<u8>,
+    pub file_tc_guid: Vec<u8>,
 
     pub ts_ssn_gap: bool,
     pub tc_ssn_gap: bool,
@@ -759,18 +758,18 @@ impl SMBState {
     /// Allocation function for a new TLS parser instance
     pub fn new() -> Self {
         Self {
-            state_data:AppLayerStateData::new(),
-            ssn2vec_map:HashMap::new(),
-            guid2name_map:HashMap::new(),
-            ssn2vecoffset_map:HashMap::new(),
-            ssn2tree_map:HashMap::new(),
-            ssnguid2vec_map:HashMap::new(),
-            skip_ts:0,
-            skip_tc:0,
-            file_ts_left:0,
-            file_tc_left:0,
-            file_ts_guid:Vec::new(),
-            file_tc_guid:Vec::new(),
+            state_data: AppLayerStateData::new(),
+            ssn2vec_map: HashMap::new(),
+            guid2name_map: HashMap::new(),
+            ssn2vecoffset_map: HashMap::new(),
+            ssn2tree_map: HashMap::new(),
+            ssnguid2vec_map: HashMap::new(),
+            skip_ts: 0,
+            skip_tc: 0,
+            file_ts_left: 0,
+            file_tc_left: 0,
+            file_ts_guid: Vec::new(),
+            file_tc_guid: Vec::new(),
             ts_ssn_gap: false,
             tc_ssn_gap: false,
             ts_gap: false,
@@ -781,8 +780,8 @@ impl SMBState {
             post_gap_files_checked: false,
             transactions: VecDeque::new(),
             tx_index_completed: 0,
-            tx_id:0,
-            dialect:0,
+            tx_id: 0,
+            dialect: 0,
             dialect_vec: None,
             dcerpc_ifaces: None,
             ts: 0,
@@ -812,13 +811,12 @@ impl SMBState {
                 }
             }
             self.tx_index_completed = index;
-
         }
         return tx;
     }
 
     pub fn free_tx(&mut self, tx_id: u64) {
-        SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id+1);
+        SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id + 1);
         let len = self.transactions.len();
         let mut found = false;
         let mut index = 0;
@@ -827,26 +825,37 @@ impl SMBState {
             if tx.id == tx_id + 1 {
                 found = true;
                 index = i;
-                SCLogDebug!("tx {} progress {}/{}", tx.id, tx.request_done, tx.response_done);
+                SCLogDebug!(
+                    "tx {} progress {}/{}",
+                    tx.id,
+                    tx.request_done,
+                    tx.response_done
+                );
                 break;
             }
         }
         if found {
-            SCLogDebug!("freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
-                    tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
+            SCLogDebug!(
+                "freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
+                tx_id,
+                tx_id + 1,
+                index,
+                self.transactions.len(),
+                self.tx_id
+            );
             self.tx_index_completed = 0;
             self.transactions.remove(index);
         }
     }
 
     pub fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&SMBTransaction> {
-/*
-        if self.transactions.len() > 100 {
-            SCLogNotice!("get_tx_by_id: tx_id={} in list={}", tx_id, self.transactions.len());
-            self._dump_txs();
-            panic!("txs exploded");
-        }
-*/
+        /*
+                if self.transactions.len() > 100 {
+                    SCLogNotice!("get_tx_by_id: tx_id={} in list={}", tx_id, self.transactions.len());
+                    self._dump_txs();
+                    panic!("txs exploded");
+                }
+        */
         for tx in &mut self.transactions {
             if tx.id == tx_id + 1 {
                 let ver = tx.vercmd.get_version();
@@ -858,8 +867,15 @@ impl SMBState {
                     let (_, cmd) = tx.vercmd.get_smb1_cmd();
                     _smbcmd = cmd as u16;
                 }
-                SCLogDebug!("Found SMB TX: id {} ver:{} cmd:{} progress {}/{} type_data {:?}",
-                        tx.id, ver, _smbcmd, tx.request_done, tx.response_done, tx.type_data);
+                SCLogDebug!(
+                    "Found SMB TX: id {} ver:{} cmd:{} progress {}/{} type_data {:?}",
+                    tx.id,
+                    ver,
+                    _smbcmd,
+                    tx.request_done,
+                    tx.response_done,
+                    tx.type_data
+                );
                 /* hack: apply flow file flags to file tx here to make sure its propagated */
                 if let Some(SMBTransactionTypeData::FILE(ref mut d)) = tx.type_data {
                     tx.tx_data.update_file_flags(self.state_data.file_flags);
@@ -882,9 +898,9 @@ impl SMBState {
     /* generic TX has no type_data and is only used to
      * track a single cmd request/reply pair. */
 
-    pub fn new_generic_tx(&mut self, smb_ver: u8, smb_cmd: u16, key: SMBCommonHdr)
-        -> &mut SMBTransaction
-    {
+    pub fn new_generic_tx(
+        &mut self, smb_ver: u8, smb_cmd: u16, key: SMBCommonHdr,
+    ) -> &mut SMBTransaction {
         let mut tx = self.new_tx();
         if smb_ver == 1 && smb_cmd <= 255 {
             tx.vercmd.set_smb1_cmd(smb_cmd as u8);
@@ -897,16 +913,18 @@ impl SMBState {
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
         tx.hdr = key;
 
-        SCLogDebug!("SMB: TX GENERIC created: ID {} tx list {} {:?}",
-                tx.id, self.transactions.len(), &tx);
+        SCLogDebug!(
+            "SMB: TX GENERIC created: ID {} tx list {} {:?}",
+            tx.id,
+            self.transactions.len(),
+            &tx
+        );
         self.transactions.push_back(tx);
         let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 
-    pub fn get_last_tx(&mut self, smb_ver: u8, smb_cmd: u16)
-        -> Option<&mut SMBTransaction>
-    {
+    pub fn get_last_tx(&mut self, smb_ver: u8, smb_cmd: u16) -> Option<&mut SMBTransaction> {
         let tx_ref = self.transactions.back_mut();
         if let Some(tx) = tx_ref {
             let found = if tx.vercmd.get_version() == smb_ver {
@@ -929,9 +947,9 @@ impl SMBState {
         return None;
     }
 
-    pub fn get_generic_tx(&mut self, smb_ver: u8, smb_cmd: u16, key: &SMBCommonHdr)
-        -> Option<&mut SMBTransaction>
-    {
+    pub fn get_generic_tx(
+        &mut self, smb_ver: u8, smb_cmd: u16, key: &SMBCommonHdr,
+    ) -> Option<&mut SMBTransaction> {
         for tx in &mut self.transactions {
             let found = if tx.vercmd.get_version() == smb_ver {
                 if smb_ver == 1 {
@@ -953,9 +971,7 @@ impl SMBState {
         return None;
     }
 
-    pub fn new_negotiate_tx(&mut self, smb_ver: u8)
-        -> &mut SMBTransaction
-    {
+    pub fn new_negotiate_tx(&mut self, smb_ver: u8) -> &mut SMBTransaction {
         let mut tx = self.new_tx();
         if smb_ver == 1 {
             tx.vercmd.set_smb1_cmd(SMB1_COMMAND_NEGOTIATE_PROTOCOL);
@@ -964,25 +980,26 @@ impl SMBState {
         }
 
         tx.type_data = Some(SMBTransactionTypeData::NEGOTIATE(
-                    SMBTransactionNegotiate::new(smb_ver)));
+            SMBTransactionNegotiate::new(smb_ver),
+        ));
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
-        SCLogDebug!("SMB: TX NEGOTIATE created: ID {} SMB ver {}", tx.id, smb_ver);
+        SCLogDebug!(
+            "SMB: TX NEGOTIATE created: ID {} SMB ver {}",
+            tx.id,
+            smb_ver
+        );
         self.transactions.push_back(tx);
         let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 
-    pub fn get_negotiate_tx(&mut self, smb_ver: u8)
-        -> Option<&mut SMBTransaction>
-    {
+    pub fn get_negotiate_tx(&mut self, smb_ver: u8) -> Option<&mut SMBTransaction> {
         for tx in &mut self.transactions {
             let found = match tx.type_data {
-                Some(SMBTransactionTypeData::NEGOTIATE(ref x)) => {
-                    x.smb_ver == smb_ver
-                },
-                _ => { false },
+                Some(SMBTransactionTypeData::NEGOTIATE(ref x)) => x.smb_ver == smb_ver,
+                _ => false,
             };
             if found {
                 return Some(tx);
@@ -991,32 +1008,33 @@ impl SMBState {
         return None;
     }
 
-    pub fn new_treeconnect_tx(&mut self, hdr: SMBCommonHdr, name: Vec<u8>)
-        -> &mut SMBTransaction
-    {
+    pub fn new_treeconnect_tx(&mut self, hdr: SMBCommonHdr, name: Vec<u8>) -> &mut SMBTransaction {
         let mut tx = self.new_tx();
 
         tx.hdr = hdr;
         tx.type_data = Some(SMBTransactionTypeData::TREECONNECT(
-                    SMBTransactionTreeConnect::new(name.to_vec())));
+            SMBTransactionTreeConnect::new(name.to_vec()),
+        ));
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
-        SCLogDebug!("SMB: TX TREECONNECT created: ID {} NAME {}",
-                tx.id, String::from_utf8_lossy(&name));
+        SCLogDebug!(
+            "SMB: TX TREECONNECT created: ID {} NAME {}",
+            tx.id,
+            String::from_utf8_lossy(&name)
+        );
         self.transactions.push_back(tx);
         let tx_ref = self.transactions.back_mut();
         return tx_ref.unwrap();
     }
 
-    pub fn get_treeconnect_tx(&mut self, hdr: SMBCommonHdr)
-        -> Option<&mut SMBTransaction>
-    {
+    pub fn get_treeconnect_tx(&mut self, hdr: SMBCommonHdr) -> Option<&mut SMBTransaction> {
         for tx in &mut self.transactions {
-            let hit = tx.hdr.compare(&hdr) && match tx.type_data {
-                Some(SMBTransactionTypeData::TREECONNECT(_)) => { true },
-                _ => { false },
-            };
+            let hit = tx.hdr.compare(&hdr)
+                && match tx.type_data {
+                    Some(SMBTransactionTypeData::TREECONNECT(_)) => true,
+                    _ => false,
+                };
             if hit {
                 return Some(tx);
             }
@@ -1024,17 +1042,17 @@ impl SMBState {
         return None;
     }
 
-    pub fn new_create_tx(&mut self, file_name: &[u8],
-            disposition: u32, del: bool, dir: bool,
-            hdr: SMBCommonHdr)
-        -> &mut SMBTransaction
-    {
+    pub fn new_create_tx(
+        &mut self, file_name: &[u8], disposition: u32, del: bool, dir: bool, hdr: SMBCommonHdr,
+    ) -> &mut SMBTransaction {
         let mut tx = self.new_tx();
         tx.hdr = hdr;
-        tx.type_data = Some(SMBTransactionTypeData::CREATE(
-                            SMBTransactionCreate::new(
-                                file_name.to_vec(), disposition,
-                                del, dir)));
+        tx.type_data = Some(SMBTransactionTypeData::CREATE(SMBTransactionCreate::new(
+            file_name.to_vec(),
+            disposition,
+            del,
+            dir,
+        )));
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
@@ -1043,8 +1061,7 @@ impl SMBState {
         return tx_ref.unwrap();
     }
 
-    pub fn get_service_for_guid(&self, guid: &[u8]) -> (&'static str, bool)
-    {
+    pub fn get_service_for_guid(&self, guid: &[u8]) -> (&'static str, bool) {
         let (name, is_dcerpc) = match self.guid2name_map.get(&guid.to_vec()) {
             Some(n) => {
                 let mut s = n.as_slice();
@@ -1066,17 +1083,16 @@ impl SMBState {
                     Ok(&_) => {
                         SCLogDebug!("don't know {}", String::from_utf8_lossy(n));
                         ("UNKNOWN", false)
-                    },
+                    }
                 }
-            },
-            _ => { ("UNKNOWN", false) },
+            }
+            _ => ("UNKNOWN", false),
         };
         SCLogDebug!("service {} is_dcerpc {}", name, is_dcerpc);
         (name, is_dcerpc)
     }
 
-    fn post_gap_housekeeping_for_files(&mut self)
-    {
+    fn post_gap_housekeeping_for_files(&mut self) {
         let mut post_gap_txs = false;
         for tx in &mut self.transactions {
             if let Some(SMBTransactionTypeData::FILE(ref mut f)) = tx.type_data {
@@ -1099,8 +1115,7 @@ impl SMBState {
      * can handle gaps. For the file transactions we set the current
      * (flow) time and prune them in 60 seconds if no update for them
      * was received. */
-    fn post_gap_housekeeping(&mut self, dir: Direction)
-    {
+    fn post_gap_housekeeping(&mut self, dir: Direction) {
         if self.ts_ssn_gap && dir == Direction::ToServer {
             for tx in &mut self.transactions {
                 if tx.id >= self.tx_id {
@@ -1138,12 +1153,12 @@ impl SMBState {
                     tx.response_done = true;
                 }
             }
-
         }
     }
 
-    pub fn set_file_left(&mut self, direction: Direction, rec_size: u32, data_size: u32, fuid: Vec<u8>)
-    {
+    pub fn set_file_left(
+        &mut self, direction: Direction, rec_size: u32, data_size: u32, fuid: Vec<u8>,
+    ) {
         let left = rec_size.saturating_sub(data_size);
         if direction == Direction::ToServer {
             self.file_ts_left = left;
@@ -1154,8 +1169,7 @@ impl SMBState {
         }
     }
 
-    pub fn set_skip(&mut self, direction: Direction, nbss_remaining: u32)
-    {
+    pub fn set_skip(&mut self, direction: Direction, nbss_remaining: u32) {
         if direction == Direction::ToServer {
             self.skip_ts = nbss_remaining;
         } else {
@@ -1171,7 +1185,7 @@ impl SMBState {
             self.skip_tc
         };
         if skip_left == 0 {
-            return 0
+            return 0;
         }
         SCLogDebug!("skip_left {} input_size {}", skip_left, input_size);
 
@@ -1195,61 +1209,149 @@ impl SMBState {
         return consumed;
     }
 
-    fn add_nbss_ts_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> (Option<Frame>, Option<Frame>, Option<Frame>) {
-        let nbss_pdu = Frame::new(flow, stream_slice, input, nbss_len + 4, SMBFrameType::NBSSPdu as u8);
+    fn add_nbss_ts_frames(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
+    ) -> (Option<Frame>, Option<Frame>, Option<Frame>) {
+        let nbss_pdu = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            nbss_len + 4,
+            SMBFrameType::NBSSPdu as u8,
+        );
         SCLogDebug!("NBSS PDU frame {:?}", nbss_pdu);
-        let nbss_hdr_frame = Frame::new(flow, stream_slice, input, 4_i64, SMBFrameType::NBSSHdr as u8);
+        let nbss_hdr_frame = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            4_i64,
+            SMBFrameType::NBSSHdr as u8,
+        );
         SCLogDebug!("NBSS HDR frame {:?}", nbss_hdr_frame);
-        let nbss_data_frame = Frame::new(flow, stream_slice, &input[4..], nbss_len, SMBFrameType::NBSSData as u8);
+        let nbss_data_frame = Frame::new(
+            flow,
+            stream_slice,
+            &input[4..],
+            nbss_len,
+            SMBFrameType::NBSSData as u8,
+        );
         SCLogDebug!("NBSS DATA frame {:?}", nbss_data_frame);
         (nbss_pdu, nbss_hdr_frame, nbss_data_frame)
     }
 
-    fn add_smb1_ts_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
-        let smb_pdu = Frame::new(flow, stream_slice, input, nbss_len, SMBFrameType::SMB1Pdu as u8);
+    fn add_smb1_ts_pdu_frame(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
+    ) -> Option<Frame> {
+        let smb_pdu = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            nbss_len,
+            SMBFrameType::SMB1Pdu as u8,
+        );
         SCLogDebug!("SMB PDU frame {:?}", smb_pdu);
         smb_pdu
     }
-    fn add_smb1_ts_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
-        let _smb1_hdr = Frame::new(flow, stream_slice, input, 32_i64, SMBFrameType::SMB1Hdr as u8);
+    fn add_smb1_ts_hdr_data_frames(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
+    ) {
+        let _smb1_hdr = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            32_i64,
+            SMBFrameType::SMB1Hdr as u8,
+        );
         SCLogDebug!("SMBv1 HDR frame {:?}", _smb1_hdr);
         if input.len() > 32 {
-            let _smb1_data = Frame::new(flow, stream_slice, &input[32..], nbss_len - 32, SMBFrameType::SMB1Data as u8);
+            let _smb1_data = Frame::new(
+                flow,
+                stream_slice,
+                &input[32..],
+                nbss_len - 32,
+                SMBFrameType::SMB1Data as u8,
+            );
             SCLogDebug!("SMBv1 DATA frame {:?}", _smb1_data);
         }
     }
 
-    fn add_smb2_ts_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
-        let smb_pdu = Frame::new(flow, stream_slice, input, nbss_len, SMBFrameType::SMB2Pdu as u8);
+    fn add_smb2_ts_pdu_frame(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
+    ) -> Option<Frame> {
+        let smb_pdu = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            nbss_len,
+            SMBFrameType::SMB2Pdu as u8,
+        );
         SCLogDebug!("SMBv2 PDU frame {:?}", smb_pdu);
         smb_pdu
     }
-    fn add_smb2_ts_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64, hdr_len: i64) {
-        let _smb2_hdr = Frame::new(flow, stream_slice, input, hdr_len, SMBFrameType::SMB2Hdr as u8);
+    fn add_smb2_ts_hdr_data_frames(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
+        hdr_len: i64,
+    ) {
+        let _smb2_hdr = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            hdr_len,
+            SMBFrameType::SMB2Hdr as u8,
+        );
         SCLogDebug!("SMBv2 HDR frame {:?}", _smb2_hdr);
         if input.len() > hdr_len as usize {
-            let _smb2_data = Frame::new(flow, stream_slice, &input[hdr_len as usize..], nbss_len - hdr_len, SMBFrameType::SMB2Data as u8);
+            let _smb2_data = Frame::new(
+                flow,
+                stream_slice,
+                &input[hdr_len as usize..],
+                nbss_len - hdr_len,
+                SMBFrameType::SMB2Data as u8,
+            );
             SCLogDebug!("SMBv2 DATA frame {:?}", _smb2_data);
         }
     }
 
-    fn add_smb3_ts_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
-        let smb_pdu = Frame::new(flow, stream_slice, input, nbss_len, SMBFrameType::SMB3Pdu as u8);
+    fn add_smb3_ts_pdu_frame(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
+    ) -> Option<Frame> {
+        let smb_pdu = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            nbss_len,
+            SMBFrameType::SMB3Pdu as u8,
+        );
         SCLogDebug!("SMBv3 PDU frame {:?}", smb_pdu);
         smb_pdu
     }
-    fn add_smb3_ts_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
-        let _smb3_hdr = Frame::new(flow, stream_slice, input, 52_i64, SMBFrameType::SMB3Hdr as u8);
+    fn add_smb3_ts_hdr_data_frames(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
+    ) {
+        let _smb3_hdr = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            52_i64,
+            SMBFrameType::SMB3Hdr as u8,
+        );
         SCLogDebug!("SMBv3 HDR frame {:?}", _smb3_hdr);
         if input.len() > 52 {
-            let _smb3_data = Frame::new(flow, stream_slice, &input[52..], nbss_len - 52, SMBFrameType::SMB3Data as u8);
+            let _smb3_data = Frame::new(
+                flow,
+                stream_slice,
+                &input[52..],
+                nbss_len - 52,
+                SMBFrameType::SMB3Data as u8,
+            );
             SCLogDebug!("SMBv3 DATA frame {:?}", _smb3_data);
         }
     }
 
     /// return bytes consumed
-    pub fn parse_tcp_data_ts_partial(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8]) -> usize
-    {
+    pub fn parse_tcp_data_ts_partial(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8],
+    ) -> usize {
         SCLogDebug!("incomplete of size {}", input.len());
         if input.len() < 512 {
             // check for malformed data. Wireshark reports as
@@ -1258,7 +1360,10 @@ impl SMBState {
             if input.len() > 8 {
                 if let Ok((_, ref hdr)) = parse_nbss_record_partial(input) {
                     if !hdr.is_smb() {
-                        SCLogDebug!("partial NBSS, not SMB and no known msg type {}", hdr.message_type);
+                        SCLogDebug!(
+                            "partial NBSS, not SMB and no known msg type {}",
+                            hdr.message_type
+                        );
                         self.trunc_ts();
                         return 0;
                     }
@@ -1272,14 +1377,19 @@ impl SMBState {
             if nbss_part_hdr.message_type == NBSS_MSGTYPE_SESSION_MESSAGE {
                 if let Ok((_, ref smb)) = parse_smb_version(nbss_part_hdr.data) {
                     SCLogDebug!("SMB {:?}", smb);
-                    if smb.version == 0xff_u8 { // SMB1
+                    if smb.version == 0xff_u8 {
+                        // SMB1
                         SCLogDebug!("SMBv1 record");
                         if let Ok((_, ref r)) = parse_smb_record(nbss_part_hdr.data) {
                             if r.command == SMB1_COMMAND_WRITE_ANDX {
                                 // see if it's a write to a pipe. We only handle those
                                 // if complete.
-                                let tree_key = SMBCommonHdr::new(SMBHDR_TYPE_SHARE,
-                                                                 r.ssn_id as u64, r.tree_id as u32, 0);
+                                let tree_key = SMBCommonHdr::new(
+                                    SMBHDR_TYPE_SHARE,
+                                    r.ssn_id as u64,
+                                    r.tree_id as u32,
+                                    0,
+                                );
                                 let is_pipe = match self.ssn2tree_map.get(&tree_key) {
                                     Some(n) => n.is_pipe,
                                     None => false,
@@ -1290,33 +1400,77 @@ impl SMBState {
                                 // how many more bytes are expected within this NBSS record
                                 // So that we can check that further parsed offsets and lengths
                                 // stay within the NBSS record.
-                                let nbss_remaining = nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
-                                smb1_write_request_record(self, r, SMB1_HEADER_SIZE, SMB1_COMMAND_WRITE_ANDX, nbss_remaining);
+                                let nbss_remaining =
+                                    nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
+                                smb1_write_request_record(
+                                    self,
+                                    r,
+                                    SMB1_HEADER_SIZE,
+                                    SMB1_COMMAND_WRITE_ANDX,
+                                    nbss_remaining,
+                                );
 
-                                self.add_nbss_ts_frames(flow, stream_slice, input, nbss_part_hdr.length as i64);
-                                self.add_smb1_ts_pdu_frame(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
-                                self.add_smb1_ts_hdr_data_frames(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
-                                
+                                self.add_nbss_ts_frames(
+                                    flow,
+                                    stream_slice,
+                                    input,
+                                    nbss_part_hdr.length as i64,
+                                );
+                                self.add_smb1_ts_pdu_frame(
+                                    flow,
+                                    stream_slice,
+                                    nbss_part_hdr.data,
+                                    nbss_part_hdr.length as i64,
+                                );
+                                self.add_smb1_ts_hdr_data_frames(
+                                    flow,
+                                    stream_slice,
+                                    nbss_part_hdr.data,
+                                    nbss_part_hdr.length as i64,
+                                );
+
                                 let consumed = input.len() - output.len();
                                 return consumed;
                             }
                         }
-                    } else if smb.version == 0xfe_u8 { // SMB2
+                    } else if smb.version == 0xfe_u8 {
+                        // SMB2
                         SCLogDebug!("SMBv2 record");
-                        if let Ok((_, ref smb_record)) = parse_smb2_request_record(nbss_part_hdr.data) {
-                            SCLogDebug!("SMB2: partial record {}",
-                                        &smb2_command_string(smb_record.command));
+                        if let Ok((_, ref smb_record)) =
+                            parse_smb2_request_record(nbss_part_hdr.data)
+                        {
+                            SCLogDebug!(
+                                "SMB2: partial record {}",
+                                &smb2_command_string(smb_record.command)
+                            );
                             if smb_record.command == SMB2_COMMAND_WRITE {
                                 // how many more bytes are expected within this NBSS record
                                 // So that we can check that further parsed offsets and lengths
                                 // stay within the NBSS record.
-                                let nbss_remaining = nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
+                                let nbss_remaining =
+                                    nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
                                 smb2_write_request_record(self, smb_record, nbss_remaining);
 
-                                self.add_nbss_ts_frames(flow, stream_slice, input, nbss_part_hdr.length as i64);
-                                self.add_smb2_ts_pdu_frame(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
-                                self.add_smb2_ts_hdr_data_frames(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64, smb_record.header_len as i64);
-                                
+                                self.add_nbss_ts_frames(
+                                    flow,
+                                    stream_slice,
+                                    input,
+                                    nbss_part_hdr.length as i64,
+                                );
+                                self.add_smb2_ts_pdu_frame(
+                                    flow,
+                                    stream_slice,
+                                    nbss_part_hdr.data,
+                                    nbss_part_hdr.length as i64,
+                                );
+                                self.add_smb2_ts_hdr_data_frames(
+                                    flow,
+                                    stream_slice,
+                                    nbss_part_hdr.data,
+                                    nbss_part_hdr.length as i64,
+                                    smb_record.header_len as i64,
+                                );
+
                                 let consumed = input.len() - output.len();
                                 SCLogDebug!("consumed {}", consumed);
                                 return consumed;
@@ -1332,8 +1486,9 @@ impl SMBState {
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_ts(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult
-    {
+    pub fn parse_tcp_data_ts(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice,
+    ) -> AppLayerResult {
         let mut cur_i = stream_slice.as_slice();
         let consumed = self.handle_skip(Direction::ToServer, cur_i.len() as u32);
         if consumed > 0 {
@@ -1359,13 +1514,14 @@ impl SMBState {
         // gap
         if self.ts_gap {
             SCLogDebug!("TS trying to catch up after GAP (input {})", cur_i.len());
-            while !cur_i.is_empty() { // min record size
+            while !cur_i.is_empty() {
+                // min record size
                 match search_smb_record(cur_i) {
                     Ok((_, pg)) => {
                         SCLogDebug!("smb record found");
                         let smb2_offset = cur_i.len() - pg.len();
                         if smb2_offset < 4 {
-                            cur_i = &cur_i[smb2_offset+4..];
+                            cur_i = &cur_i[smb2_offset + 4..];
                             continue; // see if we have another record in our data
                         }
                         let nbss_offset = smb2_offset - 4;
@@ -1373,7 +1529,7 @@ impl SMBState {
 
                         self.ts_gap = false;
                         break;
-                    },
+                    }
                     _ => {
                         let mut consumed = stream_slice.len();
                         if consumed < 4 {
@@ -1383,113 +1539,174 @@ impl SMBState {
                         }
                         SCLogDebug!("smb record NOT found");
                         return AppLayerResult::incomplete(consumed, 8);
-                    },
+                    }
                 }
             }
         }
-        while !cur_i.is_empty() { // min record size
+        while !cur_i.is_empty() {
+            // min record size
             match parse_nbss_record(cur_i) {
                 Ok((rem, ref nbss_hdr)) => {
-                    SCLogDebug!("nbss frame offset {} len {}", stream_slice.offset_from(cur_i), cur_i.len() - rem.len());
-                    let (_, _, nbss_data_frame) = self.add_nbss_ts_frames(flow, stream_slice, cur_i, nbss_hdr.length as i64);
+                    SCLogDebug!(
+                        "nbss frame offset {} len {}",
+                        stream_slice.offset_from(cur_i),
+                        cur_i.len() - rem.len()
+                    );
+                    let (_, _, nbss_data_frame) =
+                        self.add_nbss_ts_frames(flow, stream_slice, cur_i, nbss_hdr.length as i64);
 
                     if nbss_hdr.message_type == NBSS_MSGTYPE_SESSION_MESSAGE {
                         // we have the full records size worth of data,
                         // let's parse it
                         match parse_smb_version(nbss_hdr.data) {
                             Ok((_, ref smb)) => {
-
                                 SCLogDebug!("SMB {:?}", smb);
-                                if smb.version == 0xff_u8 { // SMB1
+                                if smb.version == 0xff_u8 {
+                                    // SMB1
 
                                     SCLogDebug!("SMBv1 record");
                                     match parse_smb_record(nbss_hdr.data) {
                                         Ok((_, ref smb_record)) => {
-                                            let pdu_frame = self.add_smb1_ts_pdu_frame(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
-                                            self.add_smb1_ts_hdr_data_frames(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
+                                            let pdu_frame = self.add_smb1_ts_pdu_frame(
+                                                flow,
+                                                stream_slice,
+                                                nbss_hdr.data,
+                                                nbss_hdr.length as i64,
+                                            );
+                                            self.add_smb1_ts_hdr_data_frames(
+                                                flow,
+                                                stream_slice,
+                                                nbss_hdr.data,
+                                                nbss_hdr.length as i64,
+                                            );
                                             if smb_record.is_request() {
                                                 smb1_request_record(self, smb_record);
                                             } else {
                                                 // If we received a response when expecting a request, set an event
                                                 // on the PDU frame instead of handling the response.
-                                                SCLogDebug!("SMB1 reply seen from client to server");
+                                                SCLogDebug!(
+                                                    "SMB1 reply seen from client to server"
+                                                );
                                                 if let Some(frame) = pdu_frame {
-                                                    frame.add_event(flow, SMBEvent::ResponseToServer as u8);
+                                                    frame.add_event(
+                                                        flow,
+                                                        SMBEvent::ResponseToServer as u8,
+                                                    );
                                                 }
                                             }
-                                        },
+                                        }
                                         _ => {
                                             if let Some(frame) = nbss_data_frame {
-                                                frame.add_event(flow, SMBEvent::MalformedData as u8);
+                                                frame
+                                                    .add_event(flow, SMBEvent::MalformedData as u8);
                                             }
                                             self.set_event(SMBEvent::MalformedData);
                                             return AppLayerResult::err();
-                                        },
+                                        }
                                     }
-                                } else if smb.version == 0xfe_u8 { // SMB2
+                                } else if smb.version == 0xfe_u8 {
+                                    // SMB2
                                     let mut nbss_data = nbss_hdr.data;
                                     while !nbss_data.is_empty() {
                                         SCLogDebug!("SMBv2 record");
                                         match parse_smb2_request_record(nbss_data) {
                                             Ok((nbss_data_rem, ref smb_record)) => {
-                                                let record_len = (nbss_data.len() - nbss_data_rem.len()) as i64;
-                                                let pdu_frame = self.add_smb2_ts_pdu_frame(flow, stream_slice, nbss_data, record_len);
-                                                self.add_smb2_ts_hdr_data_frames(flow, stream_slice, nbss_data, record_len, smb_record.header_len as i64);
-                                                SCLogDebug!("nbss_data_rem {}", nbss_data_rem.len());
+                                                let record_len =
+                                                    (nbss_data.len() - nbss_data_rem.len()) as i64;
+                                                let pdu_frame = self.add_smb2_ts_pdu_frame(
+                                                    flow,
+                                                    stream_slice,
+                                                    nbss_data,
+                                                    record_len,
+                                                );
+                                                self.add_smb2_ts_hdr_data_frames(
+                                                    flow,
+                                                    stream_slice,
+                                                    nbss_data,
+                                                    record_len,
+                                                    smb_record.header_len as i64,
+                                                );
+                                                SCLogDebug!(
+                                                    "nbss_data_rem {}",
+                                                    nbss_data_rem.len()
+                                                );
                                                 if smb_record.is_request() {
                                                     smb2_request_record(self, smb_record);
                                                 } else {
                                                     // If we received a response when expecting a request, set an event
                                                     // on the PDU frame instead of handling the response.
-                                                    SCLogDebug!("SMB2 reply seen from client to server");
+                                                    SCLogDebug!(
+                                                        "SMB2 reply seen from client to server"
+                                                    );
                                                     if let Some(frame) = pdu_frame {
-                                                        frame.add_event(flow, SMBEvent::ResponseToServer as u8);
+                                                        frame.add_event(
+                                                            flow,
+                                                            SMBEvent::ResponseToServer as u8,
+                                                        );
                                                     }
                                                 }
                                                 nbss_data = nbss_data_rem;
-                                            },
+                                            }
                                             _ => {
                                                 if let Some(frame) = nbss_data_frame {
-                                                    frame.add_event(flow, SMBEvent::MalformedData as u8);
+                                                    frame.add_event(
+                                                        flow,
+                                                        SMBEvent::MalformedData as u8,
+                                                    );
                                                 }
                                                 self.set_event(SMBEvent::MalformedData);
                                                 return AppLayerResult::err();
-                                            },
+                                            }
                                         }
                                     }
-                                } else if smb.version == 0xfd_u8 { // SMB3 transform
+                                } else if smb.version == 0xfd_u8 {
+                                    // SMB3 transform
 
                                     let mut nbss_data = nbss_hdr.data;
                                     while !nbss_data.is_empty() {
                                         SCLogDebug!("SMBv3 transform record");
                                         match parse_smb3_transform_record(nbss_data) {
                                             Ok((nbss_data_rem, ref _smb3_record)) => {
-                                                let record_len = (nbss_data.len() - nbss_data_rem.len()) as i64;
-                                                self.add_smb3_ts_pdu_frame(flow, stream_slice, nbss_data, record_len);
-                                                self.add_smb3_ts_hdr_data_frames(flow, stream_slice, nbss_data, record_len);
+                                                let record_len =
+                                                    (nbss_data.len() - nbss_data_rem.len()) as i64;
+                                                self.add_smb3_ts_pdu_frame(
+                                                    flow,
+                                                    stream_slice,
+                                                    nbss_data,
+                                                    record_len,
+                                                );
+                                                self.add_smb3_ts_hdr_data_frames(
+                                                    flow,
+                                                    stream_slice,
+                                                    nbss_data,
+                                                    record_len,
+                                                );
                                                 nbss_data = nbss_data_rem;
-                                            },
+                                            }
                                             _ => {
                                                 if let Some(frame) = nbss_data_frame {
-                                                    frame.add_event(flow, SMBEvent::MalformedData as u8);
+                                                    frame.add_event(
+                                                        flow,
+                                                        SMBEvent::MalformedData as u8,
+                                                    );
                                                 }
                                                 self.set_event(SMBEvent::MalformedData);
                                                 return AppLayerResult::err();
-                                            },
+                                            }
                                         }
                                     }
                                 }
-                            },
+                            }
                             _ => {
                                 self.set_event(SMBEvent::MalformedData);
                                 return AppLayerResult::err();
-                            },
+                            }
                         }
                     } else {
                         SCLogDebug!("NBSS message {:X}", nbss_hdr.message_type);
                     }
                     cur_i = rem;
-                },
+                }
                 Err(Err::Incomplete(needed)) => {
                     if let Needed::Size(n) = needed {
                         let n = usize::from(n) + cur_i.len();
@@ -1502,8 +1719,13 @@ impl SMBState {
                         if consumed == 0 {
                             // if we consumed none we will buffer the entire record
                             let total_consumed = stream_slice.offset_from(cur_i);
-                            SCLogDebug!("setting consumed {} need {} needed {:?} total input {}",
-                                    total_consumed, n, needed, stream_slice.len());
+                            SCLogDebug!(
+                                "setting consumed {} need {} needed {:?} total input {}",
+                                total_consumed,
+                                n,
+                                needed,
+                                stream_slice.len()
+                            );
                             let need = n;
                             return AppLayerResult::incomplete(total_consumed, need as u32);
                         }
@@ -1515,13 +1737,13 @@ impl SMBState {
                         self.set_event(SMBEvent::InternalError);
                         return AppLayerResult::err();
                     }
-                },
+                }
                 Err(_) => {
                     self.set_event(SMBEvent::MalformedData);
                     return AppLayerResult::err();
-                },
+                }
             }
-        };
+        }
 
         self.post_gap_housekeeping(Direction::ToServer);
         if self.check_post_gap_file_txs && !self.post_gap_files_checked {
@@ -1531,61 +1753,148 @@ impl SMBState {
         AppLayerResult::ok()
     }
 
-    fn add_nbss_tc_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> (Option<Frame>, Option<Frame>, Option<Frame>) {
-        let nbss_pdu = Frame::new(flow, stream_slice, input, nbss_len + 4, SMBFrameType::NBSSPdu as u8);
+    fn add_nbss_tc_frames(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
+    ) -> (Option<Frame>, Option<Frame>, Option<Frame>) {
+        let nbss_pdu = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            nbss_len + 4,
+            SMBFrameType::NBSSPdu as u8,
+        );
         SCLogDebug!("NBSS PDU frame {:?}", nbss_pdu);
-        let nbss_hdr_frame = Frame::new(flow, stream_slice, input, 4_i64, SMBFrameType::NBSSHdr as u8);
+        let nbss_hdr_frame = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            4_i64,
+            SMBFrameType::NBSSHdr as u8,
+        );
         SCLogDebug!("NBSS HDR frame {:?}", nbss_hdr_frame);
-        let nbss_data_frame = Frame::new(flow, stream_slice, &input[4..], nbss_len, SMBFrameType::NBSSData as u8);
+        let nbss_data_frame = Frame::new(
+            flow,
+            stream_slice,
+            &input[4..],
+            nbss_len,
+            SMBFrameType::NBSSData as u8,
+        );
         SCLogDebug!("NBSS DATA frame {:?}", nbss_data_frame);
         (nbss_pdu, nbss_hdr_frame, nbss_data_frame)
     }
 
-    fn add_smb1_tc_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
-        let smb_pdu = Frame::new(flow, stream_slice, input, nbss_len, SMBFrameType::SMB1Pdu as u8);
+    fn add_smb1_tc_pdu_frame(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
+    ) -> Option<Frame> {
+        let smb_pdu = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            nbss_len,
+            SMBFrameType::SMB1Pdu as u8,
+        );
         SCLogDebug!("SMB PDU frame {:?}", smb_pdu);
         smb_pdu
     }
-    fn add_smb1_tc_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
-        let _smb1_hdr = Frame::new(flow, stream_slice, input, SMB1_HEADER_SIZE as i64, SMBFrameType::SMB1Hdr as u8);
+    fn add_smb1_tc_hdr_data_frames(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
+    ) {
+        let _smb1_hdr = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            SMB1_HEADER_SIZE as i64,
+            SMBFrameType::SMB1Hdr as u8,
+        );
         SCLogDebug!("SMBv1 HDR frame {:?}", _smb1_hdr);
         if input.len() > SMB1_HEADER_SIZE {
-            let _smb1_data = Frame::new(flow, stream_slice, &input[SMB1_HEADER_SIZE..], nbss_len - SMB1_HEADER_SIZE as i64,
-                    SMBFrameType::SMB1Data as u8);
+            let _smb1_data = Frame::new(
+                flow,
+                stream_slice,
+                &input[SMB1_HEADER_SIZE..],
+                nbss_len - SMB1_HEADER_SIZE as i64,
+                SMBFrameType::SMB1Data as u8,
+            );
             SCLogDebug!("SMBv1 DATA frame {:?}", _smb1_data);
         }
     }
 
-    fn add_smb2_tc_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) -> Option<Frame> {
-        let smb_pdu = Frame::new(flow, stream_slice, input, nbss_len, SMBFrameType::SMB2Pdu as u8);
+    fn add_smb2_tc_pdu_frame(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
+    ) -> Option<Frame> {
+        let smb_pdu = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            nbss_len,
+            SMBFrameType::SMB2Pdu as u8,
+        );
         SCLogDebug!("SMBv2 PDU frame {:?}", smb_pdu);
         smb_pdu
     }
-    fn add_smb2_tc_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64, hdr_len: i64) {
-        let _smb2_hdr = Frame::new(flow, stream_slice, input, hdr_len, SMBFrameType::SMB2Hdr as u8);
+    fn add_smb2_tc_hdr_data_frames(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
+        hdr_len: i64,
+    ) {
+        let _smb2_hdr = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            hdr_len,
+            SMBFrameType::SMB2Hdr as u8,
+        );
         SCLogDebug!("SMBv2 HDR frame {:?}", _smb2_hdr);
         if input.len() > hdr_len as usize {
-            let _smb2_data = Frame::new(flow, stream_slice, &input[hdr_len as usize ..], nbss_len - hdr_len, SMBFrameType::SMB2Data as u8);
+            let _smb2_data = Frame::new(
+                flow,
+                stream_slice,
+                &input[hdr_len as usize..],
+                nbss_len - hdr_len,
+                SMBFrameType::SMB2Data as u8,
+            );
             SCLogDebug!("SMBv2 DATA frame {:?}", _smb2_data);
         }
     }
 
-    fn add_smb3_tc_pdu_frame(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
-        let _smb_pdu = Frame::new(flow, stream_slice, input, nbss_len, SMBFrameType::SMB3Pdu as u8);
+    fn add_smb3_tc_pdu_frame(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
+    ) {
+        let _smb_pdu = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            nbss_len,
+            SMBFrameType::SMB3Pdu as u8,
+        );
         SCLogDebug!("SMBv3 PDU frame {:?}", _smb_pdu);
     }
-    fn add_smb3_tc_hdr_data_frames(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64) {
-        let _smb3_hdr = Frame::new(flow, stream_slice, input, 52_i64, SMBFrameType::SMB3Hdr as u8);
+    fn add_smb3_tc_hdr_data_frames(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8], nbss_len: i64,
+    ) {
+        let _smb3_hdr = Frame::new(
+            flow,
+            stream_slice,
+            input,
+            52_i64,
+            SMBFrameType::SMB3Hdr as u8,
+        );
         SCLogDebug!("SMBv3 HDR frame {:?}", _smb3_hdr);
         if input.len() > 52 {
-            let _smb3_data = Frame::new(flow, stream_slice, &input[52..], nbss_len - 52, SMBFrameType::SMB3Data as u8);
+            let _smb3_data = Frame::new(
+                flow,
+                stream_slice,
+                &input[52..],
+                nbss_len - 52,
+                SMBFrameType::SMB3Data as u8,
+            );
             SCLogDebug!("SMBv3 DATA frame {:?}", _smb3_data);
         }
     }
 
     /// return bytes consumed
-    pub fn parse_tcp_data_tc_partial(&mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8]) -> usize
-    {
+    pub fn parse_tcp_data_tc_partial(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice, input: &[u8],
+    ) -> usize {
         SCLogDebug!("incomplete of size {}", input.len());
         if input.len() < 512 {
             // check for malformed data. Wireshark reports as
@@ -1594,7 +1903,10 @@ impl SMBState {
             if input.len() > 8 {
                 if let Ok((_, ref hdr)) = parse_nbss_record_partial(input) {
                     if !hdr.is_smb() {
-                        SCLogDebug!("partial NBSS, not SMB and no known msg type {}", hdr.message_type);
+                        SCLogDebug!(
+                            "partial NBSS, not SMB and no known msg type {}",
+                            hdr.message_type
+                        );
                         self.trunc_tc();
                         return 0;
                     }
@@ -1608,17 +1920,21 @@ impl SMBState {
             if nbss_part_hdr.message_type == NBSS_MSGTYPE_SESSION_MESSAGE {
                 if let Ok((_, ref smb)) = parse_smb_version(nbss_part_hdr.data) {
                     SCLogDebug!("SMB {:?}", smb);
-                    if smb.version == 255u8 { // SMB1
+                    if smb.version == 255u8 {
+                        // SMB1
                         SCLogDebug!("SMBv1 record");
                         if let Ok((_, ref r)) = parse_smb_record(nbss_part_hdr.data) {
-                            SCLogDebug!("SMB1: partial record {}",
-                                    r.command);
+                            SCLogDebug!("SMB1: partial record {}", r.command);
                             if r.command == SMB1_COMMAND_READ_ANDX {
-                                let tree_key = SMBCommonHdr::new(SMBHDR_TYPE_SHARE,
-                                        r.ssn_id as u64, r.tree_id as u32, 0);
+                                let tree_key = SMBCommonHdr::new(
+                                    SMBHDR_TYPE_SHARE,
+                                    r.ssn_id as u64,
+                                    r.tree_id as u32,
+                                    0,
+                                );
                                 let is_pipe = match self.ssn2tree_map.get(&tree_key) {
                                     Some(n) => n.is_pipe,
-                                        None => false,
+                                    None => false,
                                 };
                                 if is_pipe {
                                     return 0;
@@ -1626,35 +1942,78 @@ impl SMBState {
 
                                 // create NBSS frames here so we don't get double frames
                                 // when we don't consume the data now.
-                                self.add_nbss_tc_frames(flow, stream_slice, input, nbss_part_hdr.length as i64);
-                                self.add_smb1_tc_pdu_frame(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
-                                self.add_smb1_tc_hdr_data_frames(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
+                                self.add_nbss_tc_frames(
+                                    flow,
+                                    stream_slice,
+                                    input,
+                                    nbss_part_hdr.length as i64,
+                                );
+                                self.add_smb1_tc_pdu_frame(
+                                    flow,
+                                    stream_slice,
+                                    nbss_part_hdr.data,
+                                    nbss_part_hdr.length as i64,
+                                );
+                                self.add_smb1_tc_hdr_data_frames(
+                                    flow,
+                                    stream_slice,
+                                    nbss_part_hdr.data,
+                                    nbss_part_hdr.length as i64,
+                                );
 
                                 // how many more bytes are expected within this NBSS record
                                 // So that we can check that further parsed offsets and lengths
                                 // stay within the NBSS record.
-                                let nbss_remaining = nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
-                                smb1_read_response_record(self, r, SMB1_HEADER_SIZE, nbss_remaining);
+                                let nbss_remaining =
+                                    nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
+                                smb1_read_response_record(
+                                    self,
+                                    r,
+                                    SMB1_HEADER_SIZE,
+                                    nbss_remaining,
+                                );
                                 let consumed = input.len() - output.len();
                                 return consumed;
                             }
                         }
-                    } else if smb.version == 254u8 { // SMB2
+                    } else if smb.version == 254u8 {
+                        // SMB2
                         SCLogDebug!("SMBv2 record");
-                        if let Ok((_, ref smb_record)) = parse_smb2_response_record(nbss_part_hdr.data) {
-                            SCLogDebug!("SMB2: partial record {}",
-                                    &smb2_command_string(smb_record.command));
+                        if let Ok((_, ref smb_record)) =
+                            parse_smb2_response_record(nbss_part_hdr.data)
+                        {
+                            SCLogDebug!(
+                                "SMB2: partial record {}",
+                                &smb2_command_string(smb_record.command)
+                            );
                             if smb_record.command == SMB2_COMMAND_READ {
                                 // create NBSS frames here so we don't get double frames
                                 // when we don't consume the data now.
-                                self.add_nbss_tc_frames(flow, stream_slice, input, nbss_part_hdr.length as i64);
-                                self.add_smb2_tc_pdu_frame(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64);
-                                self.add_smb2_tc_hdr_data_frames(flow, stream_slice, nbss_part_hdr.data, nbss_part_hdr.length as i64, smb_record.header_len as i64);
+                                self.add_nbss_tc_frames(
+                                    flow,
+                                    stream_slice,
+                                    input,
+                                    nbss_part_hdr.length as i64,
+                                );
+                                self.add_smb2_tc_pdu_frame(
+                                    flow,
+                                    stream_slice,
+                                    nbss_part_hdr.data,
+                                    nbss_part_hdr.length as i64,
+                                );
+                                self.add_smb2_tc_hdr_data_frames(
+                                    flow,
+                                    stream_slice,
+                                    nbss_part_hdr.data,
+                                    nbss_part_hdr.length as i64,
+                                    smb_record.header_len as i64,
+                                );
 
                                 // how many more bytes are expected within this NBSS record
                                 // So that we can check that further parsed offsets and lengths
                                 // stay within the NBSS record.
-                                let nbss_remaining = nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
+                                let nbss_remaining =
+                                    nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
                                 smb2_read_response_record(self, smb_record, nbss_remaining);
                                 let consumed = input.len() - output.len();
                                 return consumed;
@@ -1669,8 +2028,9 @@ impl SMBState {
     }
 
     /// Parsing function, handling TCP chunks fragmentation
-    pub fn parse_tcp_data_tc(&mut self, flow: *const Flow, stream_slice: &StreamSlice) -> AppLayerResult
-    {
+    pub fn parse_tcp_data_tc(
+        &mut self, flow: *const Flow, stream_slice: &StreamSlice,
+    ) -> AppLayerResult {
         let mut cur_i = stream_slice.as_slice();
         let consumed = self.handle_skip(Direction::ToClient, cur_i.len() as u32);
         if consumed > 0 {
@@ -1696,13 +2056,14 @@ impl SMBState {
         // gap
         if self.tc_gap {
             SCLogDebug!("TC trying to catch up after GAP (input {})", cur_i.len());
-            while !cur_i.is_empty() { // min record size
+            while !cur_i.is_empty() {
+                // min record size
                 match search_smb_record(cur_i) {
                     Ok((_, pg)) => {
                         SCLogDebug!("smb record found");
                         let smb2_offset = cur_i.len() - pg.len();
                         if smb2_offset < 4 {
-                            cur_i = &cur_i[smb2_offset+4..];
+                            cur_i = &cur_i[smb2_offset + 4..];
                             continue; // see if we have another record in our data
                         }
                         let nbss_offset = smb2_offset - 4;
@@ -1710,7 +2071,7 @@ impl SMBState {
 
                         self.tc_gap = false;
                         break;
-                    },
+                    }
                     _ => {
                         let mut consumed = stream_slice.len();
                         if consumed < 4 {
@@ -1720,14 +2081,19 @@ impl SMBState {
                         }
                         SCLogDebug!("smb record NOT found");
                         return AppLayerResult::incomplete(consumed, 8);
-                    },
+                    }
                 }
             }
         }
-        while !cur_i.is_empty() { // min record size
+        while !cur_i.is_empty() {
+            // min record size
             match parse_nbss_record(cur_i) {
                 Ok((rem, ref nbss_hdr)) => {
-                    SCLogDebug!("nbss record offset {} len {}", stream_slice.offset_from(cur_i), cur_i.len() - rem.len());
+                    SCLogDebug!(
+                        "nbss record offset {} len {}",
+                        stream_slice.offset_from(cur_i),
+                        cur_i.len() - rem.len()
+                    );
                     self.add_nbss_tc_frames(flow, stream_slice, cur_i, nbss_hdr.length as i64);
                     SCLogDebug!("nbss frames added");
 
@@ -1737,84 +2103,130 @@ impl SMBState {
                         match parse_smb_version(nbss_hdr.data) {
                             Ok((_, ref smb)) => {
                                 SCLogDebug!("SMB {:?}", smb);
-                                if smb.version == 0xff_u8 { // SMB1
+                                if smb.version == 0xff_u8 {
+                                    // SMB1
                                     SCLogDebug!("SMBv1 record");
                                     match parse_smb_record(nbss_hdr.data) {
                                         Ok((_, ref smb_record)) => {
-                                            let pdu_frame = self.add_smb1_tc_pdu_frame(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
-                                            self.add_smb1_tc_hdr_data_frames(flow, stream_slice, nbss_hdr.data, nbss_hdr.length as i64);
+                                            let pdu_frame = self.add_smb1_tc_pdu_frame(
+                                                flow,
+                                                stream_slice,
+                                                nbss_hdr.data,
+                                                nbss_hdr.length as i64,
+                                            );
+                                            self.add_smb1_tc_hdr_data_frames(
+                                                flow,
+                                                stream_slice,
+                                                nbss_hdr.data,
+                                                nbss_hdr.length as i64,
+                                            );
                                             if smb_record.is_response() {
                                                 smb1_response_record(self, smb_record);
                                             } else {
-                                                SCLogDebug!("SMB1 request seen from server to client");
+                                                SCLogDebug!(
+                                                    "SMB1 request seen from server to client"
+                                                );
                                                 if let Some(frame) = pdu_frame {
-                                                    frame.add_event(flow, SMBEvent::RequestToClient as u8);
+                                                    frame.add_event(
+                                                        flow,
+                                                        SMBEvent::RequestToClient as u8,
+                                                    );
                                                 }
                                             }
-                                        },
+                                        }
                                         _ => {
                                             self.set_event(SMBEvent::MalformedData);
                                             return AppLayerResult::err();
-                                        },
+                                        }
                                     }
-                                } else if smb.version == 0xfe_u8 { // SMB2
+                                } else if smb.version == 0xfe_u8 {
+                                    // SMB2
                                     let mut nbss_data = nbss_hdr.data;
                                     while !nbss_data.is_empty() {
                                         SCLogDebug!("SMBv2 record");
                                         match parse_smb2_response_record(nbss_data) {
                                             Ok((nbss_data_rem, ref smb_record)) => {
-                                                let record_len = (nbss_data.len() - nbss_data_rem.len()) as i64;
-                                                let pdu_frame = self.add_smb2_tc_pdu_frame(flow, stream_slice, nbss_data, record_len);
-                                                self.add_smb2_tc_hdr_data_frames(flow, stream_slice, nbss_data, record_len, smb_record.header_len as i64);
+                                                let record_len =
+                                                    (nbss_data.len() - nbss_data_rem.len()) as i64;
+                                                let pdu_frame = self.add_smb2_tc_pdu_frame(
+                                                    flow,
+                                                    stream_slice,
+                                                    nbss_data,
+                                                    record_len,
+                                                );
+                                                self.add_smb2_tc_hdr_data_frames(
+                                                    flow,
+                                                    stream_slice,
+                                                    nbss_data,
+                                                    record_len,
+                                                    smb_record.header_len as i64,
+                                                );
                                                 if smb_record.is_response() {
                                                     smb2_response_record(self, smb_record);
                                                 } else {
-                                                    SCLogDebug!("SMB2 request seen from server to client");
+                                                    SCLogDebug!(
+                                                        "SMB2 request seen from server to client"
+                                                    );
                                                     if let Some(frame) = pdu_frame {
-                                                        frame.add_event(flow, SMBEvent::RequestToClient as u8);
+                                                        frame.add_event(
+                                                            flow,
+                                                            SMBEvent::RequestToClient as u8,
+                                                        );
                                                     }
                                                 }
                                                 nbss_data = nbss_data_rem;
-                                            },
+                                            }
                                             _ => {
                                                 self.set_event(SMBEvent::MalformedData);
                                                 return AppLayerResult::err();
-                                            },
+                                            }
                                         }
                                     }
-                                } else if smb.version == 0xfd_u8 { // SMB3 transform
+                                } else if smb.version == 0xfd_u8 {
+                                    // SMB3 transform
                                     let mut nbss_data = nbss_hdr.data;
                                     while !nbss_data.is_empty() {
                                         SCLogDebug!("SMBv3 transform record");
                                         match parse_smb3_transform_record(nbss_data) {
                                             Ok((nbss_data_rem, ref _smb3_record)) => {
-                                                let record_len = (nbss_data.len() - nbss_data_rem.len()) as i64;
-                                                self.add_smb3_tc_pdu_frame(flow, stream_slice, nbss_data, record_len);
-                                                self.add_smb3_tc_hdr_data_frames(flow, stream_slice, nbss_data, record_len);
+                                                let record_len =
+                                                    (nbss_data.len() - nbss_data_rem.len()) as i64;
+                                                self.add_smb3_tc_pdu_frame(
+                                                    flow,
+                                                    stream_slice,
+                                                    nbss_data,
+                                                    record_len,
+                                                );
+                                                self.add_smb3_tc_hdr_data_frames(
+                                                    flow,
+                                                    stream_slice,
+                                                    nbss_data,
+                                                    record_len,
+                                                );
                                                 nbss_data = nbss_data_rem;
-                                            },
+                                            }
                                             _ => {
                                                 self.set_event(SMBEvent::MalformedData);
                                                 return AppLayerResult::err();
-                                            },
+                                            }
                                         }
                                     }
                                 }
-                            },
+                            }
                             Err(Err::Incomplete(_)) => {
                                 // not enough data to contain basic SMB hdr
                                 // TODO event: empty NBSS_MSGTYPE_SESSION_MESSAGE
-                            },
+                            }
                             Err(_) => {
                                 self.set_event(SMBEvent::MalformedData);
                                 return AppLayerResult::err();
-                            },
+                            }
                         }
                     } else {
                         SCLogDebug!("NBSS message {:X}", nbss_hdr.message_type);
                     }
                     cur_i = rem;
-                },
+                }
                 Err(Err::Incomplete(needed)) => {
                     SCLogDebug!("INCOMPLETE have {} needed {:?}", cur_i.len(), needed);
                     if let Needed::Size(n) = needed {
@@ -1828,8 +2240,13 @@ impl SMBState {
                         if consumed == 0 {
                             // if we consumed none we will buffer the entire record
                             let total_consumed = stream_slice.offset_from(cur_i);
-                            SCLogDebug!("setting consumed {} need {} needed {:?} total input {}",
-                                    total_consumed, n, needed, stream_slice.len());
+                            SCLogDebug!(
+                                "setting consumed {} need {} needed {:?} total input {}",
+                                total_consumed,
+                                n,
+                                needed,
+                                stream_slice.len()
+                            );
                             let need = n;
                             return AppLayerResult::incomplete(total_consumed, need as u32);
                         }
@@ -1841,13 +2258,13 @@ impl SMBState {
                         self.set_event(SMBEvent::InternalError);
                         return AppLayerResult::err();
                     }
-                },
+                }
                 Err(_) => {
                     self.set_event(SMBEvent::MalformedData);
                     return AppLayerResult::err();
-                },
+                }
             }
-        };
+        }
         self.post_gap_housekeeping(Direction::ToClient);
         if self.check_post_gap_file_txs && !self.post_gap_files_checked {
             self.post_gap_housekeeping_for_files();
@@ -1867,7 +2284,11 @@ impl SMBState {
 
             let consumed2 = self.filetracker_update(Direction::ToServer, &gap, new_gap_size);
             if consumed2 > new_gap_size {
-                SCLogDebug!("consumed more than GAP size: {} > {}", consumed2, new_gap_size);
+                SCLogDebug!(
+                    "consumed more than GAP size: {} > {}",
+                    consumed2,
+                    new_gap_size
+                );
                 self.set_event(SMBEvent::InternalError);
                 return AppLayerResult::err();
             }
@@ -1888,7 +2309,11 @@ impl SMBState {
 
             let consumed2 = self.filetracker_update(Direction::ToClient, &gap, new_gap_size);
             if consumed2 > new_gap_size {
-                SCLogDebug!("consumed more than GAP size: {} > {}", consumed2, new_gap_size);
+                SCLogDebug!(
+                    "consumed more than GAP size: {} > {}",
+                    consumed2,
+                    new_gap_size
+                );
                 self.set_event(SMBEvent::InternalError);
                 return AppLayerResult::err();
             }
@@ -1908,7 +2333,7 @@ impl SMBState {
                 SCLogDebug!("TRUNCATING TX {} in TOSERVER direction", tx.id);
                 tx.request_done = true;
             }
-       }
+        }
     }
     pub fn trunc_tc(&mut self) {
         SCLogDebug!("TRUNC TC");
@@ -1925,7 +2350,9 @@ impl SMBState {
 
 /// Returns *mut SMBState
 #[no_mangle]
-pub extern "C" fn rs_smb_state_new(_orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto) -> *mut std::os::raw::c_void {
+pub extern fn rs_smb_state_new(
+    _orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
+) -> *mut std::os::raw::c_void {
     let state = SMBState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
@@ -1935,7 +2362,7 @@ pub extern "C" fn rs_smb_state_new(_orig_state: *mut std::os::raw::c_void, _orig
 /// Params:
 /// - state: *mut SMBState as void pointer
 #[no_mangle]
-pub extern "C" fn rs_smb_state_free(state: *mut std::os::raw::c_void) {
+pub extern fn rs_smb_state_free(state: *mut std::os::raw::c_void) {
     SCLogDebug!("freeing state");
     let mut smb_state = unsafe { Box::from_raw(state as *mut SMBState) };
     smb_state.free();
@@ -1943,14 +2370,10 @@ pub extern "C" fn rs_smb_state_free(state: *mut std::os::raw::c_void) {
 
 /// C binding parse a SMB request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
-                                       state: *mut ffi::c_void,
-                                       _pstate: *mut std::os::raw::c_void,
-                                       stream_slice: StreamSlice,
-                                       _data: *const std::os::raw::c_void,
-                                       )
-                                       -> AppLayerResult
-{
+pub unsafe extern fn rs_smb_parse_request_tcp(
+    flow: *const Flow, state: *mut ffi::c_void, _pstate: *mut std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+) -> AppLayerResult {
     let state = cast_pointer!(state, SMBState);
     let flow = cast_pointer!(flow, Flow);
 
@@ -1961,7 +2384,8 @@ pub unsafe extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
     SCLogDebug!("parsing {} bytes of request data", stream_slice.len());
 
     /* START with MISTREAM set: record might be starting the middle. */
-    if stream_slice.flags() & (STREAM_START|STREAM_MIDSTREAM) == (STREAM_START|STREAM_MIDSTREAM) {
+    if stream_slice.flags() & (STREAM_START | STREAM_MIDSTREAM) == (STREAM_START | STREAM_MIDSTREAM)
+    {
         state.ts_gap = true;
     }
 
@@ -1970,24 +2394,15 @@ pub unsafe extern "C" fn rs_smb_parse_request_tcp(flow: *const Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_parse_request_tcp_gap(
-                                        state: &mut SMBState,
-                                        input_len: u32)
-                                        -> AppLayerResult
-{
+pub extern fn rs_smb_parse_request_tcp_gap(state: &mut SMBState, input_len: u32) -> AppLayerResult {
     state.parse_tcp_data_ts_gap(input_len)
 }
 
-
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
-                                        state: *mut ffi::c_void,
-                                        _pstate: *mut std::os::raw::c_void,
-                                        stream_slice: StreamSlice,
-                                        _data: *const ffi::c_void,
-                                        )
-                                        -> AppLayerResult
-{
+pub unsafe extern fn rs_smb_parse_response_tcp(
+    flow: *const Flow, state: *mut ffi::c_void, _pstate: *mut std::os::raw::c_void,
+    stream_slice: StreamSlice, _data: *const ffi::c_void,
+) -> AppLayerResult {
     let state = cast_pointer!(state, SMBState);
     let flow = cast_pointer!(flow, Flow);
 
@@ -1996,7 +2411,8 @@ pub unsafe extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
     }
 
     /* START with MISTREAM set: record might be starting the middle. */
-    if stream_slice.flags() & (STREAM_START|STREAM_MIDSTREAM) == (STREAM_START|STREAM_MIDSTREAM) {
+    if stream_slice.flags() & (STREAM_START | STREAM_MIDSTREAM) == (STREAM_START | STREAM_MIDSTREAM)
+    {
         state.tc_gap = true;
     }
 
@@ -2005,16 +2421,13 @@ pub unsafe extern "C" fn rs_smb_parse_response_tcp(flow: *const Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_smb_parse_response_tcp_gap(
-                                        state: &mut SMBState,
-                                        input_len: u32)
-                                        -> AppLayerResult
-{
+pub extern fn rs_smb_parse_response_tcp_gap(
+    state: &mut SMBState, input_len: u32,
+) -> AppLayerResult {
     state.parse_tcp_data_tc_gap(input_len)
 }
 
-fn smb_probe_tcp_midstream(direction: Direction, slice: &[u8], rdir: *mut u8, begins: bool) -> i8
-{
+fn smb_probe_tcp_midstream(direction: Direction, slice: &[u8], rdir: *mut u8, begins: bool) -> i8 {
     let r = if begins {
         // if pattern was found in the beginning, just check first byte
         if slice[0] == NBSS_MSGTYPE_SESSION_MESSAGE {
@@ -2029,39 +2442,49 @@ fn smb_probe_tcp_midstream(direction: Direction, slice: &[u8], rdir: *mut u8, be
         SCLogDebug!("smb found");
         if let Ok((_, ref smb)) = parse_smb_version(data) {
             SCLogDebug!("SMB {:?}", smb);
-            if smb.version == 0xff_u8 { // SMB1
+            if smb.version == 0xff_u8 {
+                // SMB1
                 SCLogDebug!("SMBv1 record");
                 if let Ok((_, ref smb_record)) = parse_smb_record(data) {
                     if smb_record.flags & 0x80 != 0 {
                         SCLogDebug!("RESPONSE {:02x}", smb_record.flags);
                         if direction == Direction::ToServer {
-                            unsafe { *rdir = Direction::ToClient as u8; }
+                            unsafe {
+                                *rdir = Direction::ToClient as u8;
+                            }
                         }
                     } else {
                         SCLogDebug!("REQUEST {:02x}", smb_record.flags);
                         if direction == Direction::ToClient {
-                            unsafe { *rdir = Direction::ToServer as u8; }
+                            unsafe {
+                                *rdir = Direction::ToServer as u8;
+                            }
                         }
                     }
                     return 1;
                 }
-            } else if smb.version == 0xfe_u8 { // SMB2
+            } else if smb.version == 0xfe_u8 {
+                // SMB2
                 SCLogDebug!("SMB2 record");
                 if let Ok((_, ref smb_record)) = parse_smb2_record_direction(data) {
                     if direction == Direction::ToServer {
                         SCLogDebug!("direction Direction::ToServer smb_record {:?}", smb_record);
                         if !smb_record.request {
-                            unsafe { *rdir = Direction::ToClient as u8; }
+                            unsafe {
+                                *rdir = Direction::ToClient as u8;
+                            }
                         }
                     } else {
                         SCLogDebug!("direction Direction::ToClient smb_record {:?}", smb_record);
                         if smb_record.request {
-                            unsafe { *rdir = Direction::ToServer as u8; }
+                            unsafe {
+                                *rdir = Direction::ToServer as u8;
+                            }
                         }
                     }
                 }
-            }
-            else if smb.version == 0xfd_u8 { // SMB3 transform
+            } else if smb.version == 0xfd_u8 {
+                // SMB3 transform
                 SCLogDebug!("SMB3 record");
             }
             return 1;
@@ -2074,47 +2497,54 @@ fn smb_probe_tcp_midstream(direction: Direction, slice: &[u8], rdir: *mut u8, be
     return 0;
 }
 
-fn smb_probe_tcp(flags: u8, slice: &[u8], rdir: *mut u8, begins: bool) -> AppProto
-{
-    if flags & STREAM_MIDSTREAM == STREAM_MIDSTREAM && smb_probe_tcp_midstream(flags.into(), slice, rdir, begins) == 1 {
-        unsafe { return ALPROTO_SMB; }
+fn smb_probe_tcp(flags: u8, slice: &[u8], rdir: *mut u8, begins: bool) -> AppProto {
+    if flags & STREAM_MIDSTREAM == STREAM_MIDSTREAM
+        && smb_probe_tcp_midstream(flags.into(), slice, rdir, begins) == 1
+    {
+        unsafe {
+            return ALPROTO_SMB;
+        }
     }
     if let Ok((_, ref hdr)) = parse_nbss_record_partial(slice) {
         if hdr.is_smb() {
             SCLogDebug!("smb found");
-            unsafe { return ALPROTO_SMB; }
-        } else if hdr.needs_more(){
+            unsafe {
+                return ALPROTO_SMB;
+            }
+        } else if hdr.needs_more() {
             return 0;
-        } else if hdr.is_valid() &&
-            hdr.message_type != NBSS_MSGTYPE_SESSION_MESSAGE {
-                //we accept a first small netbios message before real SMB
-                let hl = hdr.length as usize;
-                if hdr.data.len() >= hl + 8 {
-                    // 8 is 4 bytes NBSS + 4 bytes SMB0xFX magic
-                    if let Ok((_, ref hdr2)) = parse_nbss_record_partial(&hdr.data[hl..]) {
-                        if hdr2.is_smb() {
-                            SCLogDebug!("smb found");
-                            unsafe { return ALPROTO_SMB; }
+        } else if hdr.is_valid() && hdr.message_type != NBSS_MSGTYPE_SESSION_MESSAGE {
+            //we accept a first small netbios message before real SMB
+            let hl = hdr.length as usize;
+            if hdr.data.len() >= hl + 8 {
+                // 8 is 4 bytes NBSS + 4 bytes SMB0xFX magic
+                if let Ok((_, ref hdr2)) = parse_nbss_record_partial(&hdr.data[hl..]) {
+                    if hdr2.is_smb() {
+                        SCLogDebug!("smb found");
+                        unsafe {
+                            return ALPROTO_SMB;
                         }
                     }
-                } else if hdr.length < 256 {
-                    // we want more data, 256 is some random value
-                    return 0;
                 }
-                // default is failure
+            } else if hdr.length < 256 {
+                // we want more data, 256 is some random value
+                return 0;
             }
+            // default is failure
+        }
     }
     SCLogDebug!("no smb");
-    unsafe { return ALPROTO_FAILED; }
+    unsafe {
+        return ALPROTO_FAILED;
+    }
 }
 
 // probing confirmation parser
 // return 1 if found, 0 is not found
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_probe_begins_tcp(_f: *const Flow,
-                                   flags: u8, input: *const u8, len: u32, rdir: *mut u8)
-    -> AppProto
-{
+pub unsafe extern fn rs_smb_probe_begins_tcp(
+    _f: *const Flow, flags: u8, input: *const u8, len: u32, rdir: *mut u8,
+) -> AppProto {
     if len < MIN_REC_SIZE as u32 {
         return ALPROTO_UNKNOWN;
     }
@@ -2125,10 +2555,9 @@ pub unsafe extern "C" fn rs_smb_probe_begins_tcp(_f: *const Flow,
 // probing parser
 // return 1 if found, 0 is not found
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
-                                   flags: u8, input: *const u8, len: u32, rdir: *mut u8)
-    -> AppProto
-{
+pub unsafe extern fn rs_smb_probe_tcp(
+    _f: *const Flow, flags: u8, input: *const u8, len: u32, rdir: *mut u8,
+) -> AppProto {
     if len < MIN_REC_SIZE as u32 {
         return ALPROTO_UNKNOWN;
     }
@@ -2137,19 +2566,14 @@ pub unsafe extern "C" fn rs_smb_probe_tcp(_f: *const Flow,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_get_tx_count(state: *mut ffi::c_void)
-                                            -> u64
-{
+pub unsafe extern fn rs_smb_state_get_tx_count(state: *mut ffi::c_void) -> u64 {
     let state = cast_pointer!(state, SMBState);
     SCLogDebug!("rs_smb_state_get_tx_count: returning {}", state.tx_id);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_get_tx(state: *mut ffi::c_void,
-                                      tx_id: u64)
-                                      -> *mut ffi::c_void
-{
+pub unsafe extern fn rs_smb_state_get_tx(state: *mut ffi::c_void, tx_id: u64) -> *mut ffi::c_void {
     let state = cast_pointer!(state, SMBState);
     match state.get_tx_by_id(tx_id) {
         Some(tx) => {
@@ -2162,19 +2586,14 @@ pub unsafe extern "C" fn rs_smb_state_get_tx(state: *mut ffi::c_void,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_tx_free(state: *mut ffi::c_void,
-                                       tx_id: u64)
-{
+pub unsafe extern fn rs_smb_state_tx_free(state: *mut ffi::c_void, tx_id: u64) {
     let state = cast_pointer!(state, SMBState);
     SCLogDebug!("freeing tx {}", tx_id);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_tx_get_alstate_progress(tx: *mut ffi::c_void,
-                                                  direction: u8)
-                                                  -> i32
-{
+pub unsafe extern fn rs_smb_tx_get_alstate_progress(tx: *mut ffi::c_void, direction: u8) -> i32 {
     let tx = cast_pointer!(tx, SMBTransaction);
 
     if direction == Direction::ToServer as u8 && tx.request_done {
@@ -2184,29 +2603,26 @@ pub unsafe extern "C" fn rs_smb_tx_get_alstate_progress(tx: *mut ffi::c_void,
         SCLogDebug!("tx {} TOCLIENT progress 1 => {:?}", tx.id, tx);
         return 1;
     } else {
-        SCLogDebug!("tx {} direction {} progress 0 => {:?}", tx.id, direction, tx);
+        SCLogDebug!(
+            "tx {} direction {} progress 0 => {:?}",
+            tx.id,
+            direction,
+            tx
+        );
         return 0;
     }
 }
 
-
 export_state_data_get!(rs_smb_get_state_data, SMBState);
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_get_tx_data(
-    tx: *mut std::os::raw::c_void)
-    -> *mut AppLayerTxData
-{
+pub unsafe extern fn rs_smb_get_tx_data(tx: *mut std::os::raw::c_void) -> *mut AppLayerTxData {
     let tx = cast_pointer!(tx, SMBTransaction);
     return &mut tx.tx_data;
 }
 
-
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_truncate(
-        state: *mut std::ffi::c_void,
-        direction: u8)
-{
+pub unsafe extern fn rs_smb_state_truncate(state: *mut std::ffi::c_void, direction: u8) {
     let state = cast_pointer!(state, SMBState);
     match direction.into() {
         Direction::ToServer => {
@@ -2219,24 +2635,24 @@ pub unsafe extern "C" fn rs_smb_state_truncate(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_get_event_info_by_id(
-    event_id: std::os::raw::c_int,
-    event_name: *mut *const std::os::raw::c_char,
+pub unsafe extern fn rs_smb_state_get_event_info_by_id(
+    event_id: std::os::raw::c_int, event_name: *mut *const std::os::raw::c_char,
     event_type: *mut AppLayerEventType,
 ) -> i8 {
     SMBEvent::get_event_info_by_id(event_id, event_name, event_type)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_state_get_event_info(
-    event_name: *const std::os::raw::c_char,
-    event_id: *mut std::os::raw::c_int,
+pub unsafe extern fn rs_smb_state_get_event_info(
+    event_name: *const std::os::raw::c_char, event_id: *mut std::os::raw::c_int,
     event_type: *mut AppLayerEventType,
 ) -> std::os::raw::c_int {
     SMBEvent::get_event_info(event_name, event_id, event_type)
 }
 
-pub unsafe extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u8, len: u32, rdir: *mut u8) -> u16 {
+pub unsafe extern fn smb3_probe_tcp(
+    f: *const Flow, dir: u8, input: *const u8, len: u32, rdir: *mut u8,
+) -> u16 {
     let retval = rs_smb_probe_tcp(f, dir, input, len, rdir);
     let f = cast_pointer!(f, Flow);
     if retval != ALPROTO_SMB {
@@ -2244,8 +2660,16 @@ pub unsafe extern "C" fn smb3_probe_tcp(f: *const Flow, dir: u8, input: *const u
     }
     let (sp, dp) = f.get_ports();
     let flags = f.get_flags();
-    let fsp = if (flags & FLOW_DIR_REVERSED) != 0 { dp } else { sp };
-    let fdp = if (flags & FLOW_DIR_REVERSED) != 0 { sp } else { dp };
+    let fsp = if (flags & FLOW_DIR_REVERSED) != 0 {
+        dp
+    } else {
+        sp
+    };
+    let fdp = if (flags & FLOW_DIR_REVERSED) != 0 {
+        sp
+    } else {
+        dp
+    };
     if fsp == 445 && fdp != 445 {
         match dir.into() {
             Direction::ToServer => {
@@ -2263,26 +2687,74 @@ fn register_pattern_probe() -> i8 {
     let mut r = 0;
     unsafe {
         // SMB1
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-                                                     b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToServer as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-                                                     b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToClient as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(
+            IPPROTO_TCP,
+            ALPROTO_SMB,
+            b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char,
+            8,
+            4,
+            Direction::ToServer as u8,
+            rs_smb_probe_begins_tcp,
+            MIN_REC_SIZE,
+            MIN_REC_SIZE,
+        );
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(
+            IPPROTO_TCP,
+            ALPROTO_SMB,
+            b"|ff|SMB\0".as_ptr() as *const std::os::raw::c_char,
+            8,
+            4,
+            Direction::ToClient as u8,
+            rs_smb_probe_begins_tcp,
+            MIN_REC_SIZE,
+            MIN_REC_SIZE,
+        );
         // SMB2/3
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-                                                     b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToServer as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-                                                     b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToClient as u8, rs_smb_probe_begins_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(
+            IPPROTO_TCP,
+            ALPROTO_SMB,
+            b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char,
+            8,
+            4,
+            Direction::ToServer as u8,
+            rs_smb_probe_begins_tcp,
+            MIN_REC_SIZE,
+            MIN_REC_SIZE,
+        );
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(
+            IPPROTO_TCP,
+            ALPROTO_SMB,
+            b"|fe|SMB\0".as_ptr() as *const std::os::raw::c_char,
+            8,
+            4,
+            Direction::ToClient as u8,
+            rs_smb_probe_begins_tcp,
+            MIN_REC_SIZE,
+            MIN_REC_SIZE,
+        );
         // SMB3 encrypted records
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-                                                     b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToServer as u8, smb3_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
-        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SMB,
-                                                     b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char, 8, 4,
-                                                     Direction::ToClient as u8, smb3_probe_tcp, MIN_REC_SIZE, MIN_REC_SIZE);
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(
+            IPPROTO_TCP,
+            ALPROTO_SMB,
+            b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char,
+            8,
+            4,
+            Direction::ToServer as u8,
+            smb3_probe_tcp,
+            MIN_REC_SIZE,
+            MIN_REC_SIZE,
+        );
+        r |= AppLayerProtoDetectPMRegisterPatternCSwPP(
+            IPPROTO_TCP,
+            ALPROTO_SMB,
+            b"|fd|SMB\0".as_ptr() as *const std::os::raw::c_char,
+            8,
+            4,
+            Direction::ToClient as u8,
+            smb3_probe_tcp,
+            MIN_REC_SIZE,
+            MIN_REC_SIZE,
+        );
     }
 
     if r == 0 {
@@ -2296,7 +2768,7 @@ fn register_pattern_probe() -> i8 {
 const PARSER_NAME: &[u8] = b"smb\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_smb_register_parser() {
+pub unsafe extern fn rs_smb_register_parser() {
     let default_port = CString::new("445").unwrap();
     let mut stream_depth = SMB_CONFIG_DEFAULT_STREAM_DEPTH;
     let parser = RustParser {
@@ -2318,7 +2790,7 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
         tx_comp_st_tc: 1,
         tx_get_progress: rs_smb_tx_get_alstate_progress,
         get_eventinfo: Some(rs_smb_state_get_event_info),
-        get_eventinfo_byid : Some(rs_smb_state_get_event_info_by_id),
+        get_eventinfo_byid: Some(rs_smb_state_get_event_info_by_id),
         localstorage_new: None,
         localstorage_free: None,
         get_tx_files: Some(rs_smb_gettxfiles),
@@ -2334,82 +2806,117 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if AppLayerProtoDetectConfProtoDetectionEnabled(
-        ip_proto_str.as_ptr(),
-        parser.name,
-    ) != 0
-    {
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
         ALPROTO_SMB = alproto;
         if register_pattern_probe() < 0 {
             return;
         }
 
-        let have_cfg = AppLayerProtoDetectPPParseConfPorts(ip_proto_str.as_ptr(),
-                    IPPROTO_TCP, parser.name, ALPROTO_SMB, 0,
-                    MIN_REC_SIZE, rs_smb_probe_tcp, rs_smb_probe_tcp);
+        let have_cfg = AppLayerProtoDetectPPParseConfPorts(
+            ip_proto_str.as_ptr(),
+            IPPROTO_TCP,
+            parser.name,
+            ALPROTO_SMB,
+            0,
+            MIN_REC_SIZE,
+            rs_smb_probe_tcp,
+            rs_smb_probe_tcp,
+        );
 
         if have_cfg == 0 {
-            AppLayerProtoDetectPPRegister(IPPROTO_TCP, default_port.as_ptr(), ALPROTO_SMB,
-                                          0, MIN_REC_SIZE, Direction::ToServer as u8, rs_smb_probe_tcp, rs_smb_probe_tcp);
+            AppLayerProtoDetectPPRegister(
+                IPPROTO_TCP,
+                default_port.as_ptr(),
+                ALPROTO_SMB,
+                0,
+                MIN_REC_SIZE,
+                Direction::ToServer as u8,
+                rs_smb_probe_tcp,
+                rs_smb_probe_tcp,
+            );
         }
 
-        if AppLayerParserConfParserEnabled(
-            ip_proto_str.as_ptr(),
-            parser.name,
-        ) != 0
-        {
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust SMB parser registered.");
         let retval = conf_get("app-layer.protocols.smb.stream-depth");
         if let Some(val) = retval {
             match get_memval(val) {
-                Ok(retval) => { stream_depth = retval as u32; }
-                Err(_) => { SCLogError!("Invalid depth value"); }
+                Ok(retval) => {
+                    stream_depth = retval as u32;
+                }
+                Err(_) => {
+                    SCLogError!("Invalid depth value");
+                }
             }
         }
         AppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_SMB, stream_depth);
         let retval = conf_get("app-layer.protocols.smb.max-read-size");
         if let Some(val) = retval {
             match get_memval(val) {
-                Ok(retval) => { SMB_CFG_MAX_READ_SIZE = retval as u32; }
-                Err(_) => { SCLogError!("Invalid max-read-size value"); }
+                Ok(retval) => {
+                    SMB_CFG_MAX_READ_SIZE = retval as u32;
+                }
+                Err(_) => {
+                    SCLogError!("Invalid max-read-size value");
+                }
             }
         }
         let retval = conf_get("app-layer.protocols.smb.max-write-size");
         if let Some(val) = retval {
             match get_memval(val) {
-                Ok(retval) => { SMB_CFG_MAX_WRITE_SIZE = retval as u32; }
-                Err(_) => { SCLogError!("Invalid max-write-size value"); }
+                Ok(retval) => {
+                    SMB_CFG_MAX_WRITE_SIZE = retval as u32;
+                }
+                Err(_) => {
+                    SCLogError!("Invalid max-write-size value");
+                }
             }
         }
         let retval = conf_get("app-layer.protocols.smb.max-write-queue-size");
         if let Some(val) = retval {
             match get_memval(val) {
-                Ok(retval) => { SMB_CFG_MAX_WRITE_QUEUE_SIZE = retval as u32; }
-                Err(_) => { SCLogError!("Invalid max-write-queue-size value"); }
+                Ok(retval) => {
+                    SMB_CFG_MAX_WRITE_QUEUE_SIZE = retval as u32;
+                }
+                Err(_) => {
+                    SCLogError!("Invalid max-write-queue-size value");
+                }
             }
         }
         let retval = conf_get("app-layer.protocols.smb.max-write-queue-cnt");
         if let Some(val) = retval {
             match get_memval(val) {
-                Ok(retval) => { SMB_CFG_MAX_WRITE_QUEUE_CNT = retval as u32; }
-                Err(_) => { SCLogError!("Invalid max-write-queue-cnt value"); }
+                Ok(retval) => {
+                    SMB_CFG_MAX_WRITE_QUEUE_CNT = retval as u32;
+                }
+                Err(_) => {
+                    SCLogError!("Invalid max-write-queue-cnt value");
+                }
             }
         }
         let retval = conf_get("app-layer.protocols.smb.max-read-queue-size");
         if let Some(val) = retval {
             match get_memval(val) {
-                Ok(retval) => { SMB_CFG_MAX_READ_QUEUE_SIZE = retval as u32; }
-                Err(_) => { SCLogError!("Invalid max-read-queue-size value"); }
+                Ok(retval) => {
+                    SMB_CFG_MAX_READ_QUEUE_SIZE = retval as u32;
+                }
+                Err(_) => {
+                    SCLogError!("Invalid max-read-queue-size value");
+                }
             }
         }
         let retval = conf_get("app-layer.protocols.smb.max-read-queue-cnt");
         if let Some(val) = retval {
             match get_memval(val) {
-                Ok(retval) => { SMB_CFG_MAX_READ_QUEUE_CNT = retval as u32; }
-                Err(_) => { SCLogError!("Invalid max-read-queue-cnt value"); }
+                Ok(retval) => {
+                    SMB_CFG_MAX_READ_QUEUE_CNT = retval as u32;
+                }
+                Err(_) => {
+                    SCLogError!("Invalid max-read-queue-cnt value");
+                }
             }
         }
         if let Some(val) = conf_get("app-layer.protocols.smb.max-tx") {
@@ -2419,10 +2926,18 @@ pub unsafe extern "C" fn rs_smb_register_parser() {
                 SCLogError!("Invalid value for smb.max-tx");
             }
         }
-        SCLogConfig!("read: max record size: {}, max queued chunks {}, max queued size {}",
-                SMB_CFG_MAX_READ_SIZE, SMB_CFG_MAX_READ_QUEUE_CNT, SMB_CFG_MAX_READ_QUEUE_SIZE);
-        SCLogConfig!("write: max record size: {}, max queued chunks {}, max queued size {}",
-                SMB_CFG_MAX_WRITE_SIZE, SMB_CFG_MAX_WRITE_QUEUE_CNT, SMB_CFG_MAX_WRITE_QUEUE_SIZE);
+        SCLogConfig!(
+            "read: max record size: {}, max queued chunks {}, max queued size {}",
+            SMB_CFG_MAX_READ_SIZE,
+            SMB_CFG_MAX_READ_QUEUE_CNT,
+            SMB_CFG_MAX_READ_QUEUE_SIZE
+        );
+        SCLogConfig!(
+            "write: max record size: {}, max queued chunks {}, max queued size {}",
+            SMB_CFG_MAX_WRITE_SIZE,
+            SMB_CFG_MAX_WRITE_QUEUE_CNT,
+            SMB_CFG_MAX_WRITE_QUEUE_SIZE
+        );
     } else {
         SCLogDebug!("Protocol detector and parser disabled for SMB.");
     }

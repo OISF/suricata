@@ -40,17 +40,11 @@ pub fn mime_parse_value_delimited(input: &[u8]) -> IResult<&[u8], &[u8]> {
 
 pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], (&[u8], &[u8])> {
     // from RFC2047 : like ch.is_ascii_whitespace but without 0x0c FORM-FEED
-    let (input, _) = take_while(|ch: u8| ch == 0x20
-        || ch == 0x09
-        || ch == 0x0a
-        || ch == 0x0d)(input)?;
+    let (input, _) =
+        take_while(|ch: u8| ch == 0x20 || ch == 0x09 || ch == 0x0a || ch == 0x0d)(input)?;
     let (input, name) = take_until("=")(input)?;
     let (input, _) = tag("=")(input)?;
-    let (input, value) = alt((
-        mime_parse_value_delimited,
-        complete(take_until(";")),
-        rest
-    ))(input)?;
+    let (input, value) = alt((mime_parse_value_delimited, complete(take_until(";")), rest))(input)?;
     let (input, _) = opt(complete(tag(";")))(input)?;
     return Ok((input, (name, value)));
 }
@@ -133,7 +127,7 @@ fn mime_find_header_token<'a>(
 pub const RS_MIME_MAX_TOKEN_LEN: usize = 255;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_mime_find_header_token(
+pub unsafe extern fn rs_mime_find_header_token(
     hinput: *const u8, hlen: u32, tinput: *const u8, tlen: u32, outbuf: &mut [u8; 255],
     outlen: *mut u32,
 ) -> bool {

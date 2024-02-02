@@ -41,7 +41,7 @@ const HTTP2_MIN_HANDLED_FRAME_SIZE: usize = 256;
 pub static mut SURICATA_HTTP2_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
 #[no_mangle]
-pub extern "C" fn rs_http2_init(context: &'static mut SuricataFileContext) {
+pub extern fn rs_http2_init(context: &'static mut SuricataFileContext) {
     unsafe {
         SURICATA_HTTP2_FILE_CONFIG = Some(context);
     }
@@ -184,13 +184,13 @@ impl HTTP2Transaction {
                 if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
                     //TODO get a file container instead of NULL
                     (c.HTPFileCloseHandleRange)(
-                            sfcm.files_sbcfg,
-                            std::ptr::null_mut(),
-                            0,
-                            self.file_range,
-                            std::ptr::null_mut(),
-                            0,
-                            );
+                        sfcm.files_sbcfg,
+                        std::ptr::null_mut(),
+                        0,
+                        self.file_range,
+                        std::ptr::null_mut(),
+                        0,
+                    );
                     (c.HttpRangeFreeBlock)(self.file_range);
                     self.file_range = std::ptr::null_mut();
                 }
@@ -237,7 +237,8 @@ impl HTTP2Transaction {
     }
 
     fn decompress<'a>(
-        &'a mut self, input: &'a [u8], dir: Direction, sfcm: &'static SuricataFileContext, over: bool, flow: *const Flow,
+        &'a mut self, input: &'a [u8], dir: Direction, sfcm: &'static SuricataFileContext,
+        over: bool, flow: *const Flow,
     ) -> io::Result<()> {
         let mut output = Vec::with_capacity(decompression::HTTP2_DECOMPRESSION_CHUNK_SIZE);
         let decompressed = self.decoder.decompress(input, &mut output, dir)?;
@@ -256,7 +257,14 @@ impl HTTP2Transaction {
                 ) {
                     match range::http2_parse_check_content_range(&value) {
                         Ok((_, v)) => {
-                            range::http2_range_open(self, &v, flow, sfcm, Direction::ToClient, decompressed);
+                            range::http2_range_open(
+                                self,
+                                &v,
+                                flow,
+                                sfcm,
+                                Direction::ToClient,
+                                decompressed,
+                            );
                             if over && !self.file_range.is_null() {
                                 range::http2_range_close(self, Direction::ToClient, &[])
                             }
@@ -589,7 +597,7 @@ impl HTTP2State {
         tx.state = HTTP2TransactionState::HTTP2StateGlobal;
         tx.tx_data.update_file_flags(self.state_data.file_flags);
         // TODO can this tx hold files?
-        tx.tx_data.file_tx = STREAM_TOSERVER|STREAM_TOCLIENT; // might hold files in both directions
+        tx.tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // might hold files in both directions
         tx.update_file_flags(tx.tx_data.file_flags);
         self.transactions.push_back(tx);
         return self.transactions.back_mut().unwrap();
@@ -650,7 +658,7 @@ impl HTTP2State {
             }
             tx.tx_data.update_file_flags(self.state_data.file_flags);
             tx.update_file_flags(tx.tx_data.file_flags);
-            tx.tx_data.file_tx = STREAM_TOSERVER|STREAM_TOCLIENT; // might hold files in both directions
+            tx.tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // might hold files in both directions
             self.transactions.push_back(tx);
             return self.transactions.back_mut().unwrap();
         }
@@ -661,9 +669,7 @@ impl HTTP2State {
         for block in blocks {
             if block.error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
                 self.set_event(HTTP2Event::InvalidHeader);
-            } else if block.error
-                == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
-            {
+            } else if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate {
                 update = true;
                 if block.sizeupdate > sizeup {
                     sizeup = block.sizeupdate;
@@ -999,15 +1005,10 @@ impl HTTP2State {
                                         tx_same.ft_ts.tx_id = tx_same.tx_id - 1;
                                     };
                                     let mut dinput = &rem[..hlsafe];
-                                    if padded && !rem.is_empty() && usize::from(rem[0]) < hlsafe{
+                                    if padded && !rem.is_empty() && usize::from(rem[0]) < hlsafe {
                                         dinput = &rem[1..hlsafe - usize::from(rem[0])];
                                     }
-                                    if tx_same.decompress(
-                                        dinput,
-                                        dir,
-                                        sfcm,
-                                        over,
-                                        flow).is_err() {
+                                    if tx_same.decompress(dinput, dir, sfcm, over, flow).is_err() {
                                         self.set_event(HTTP2Event::FailedDecompression);
                                     }
                                 }
@@ -1108,7 +1109,7 @@ export_state_data_get!(rs_http2_get_state_data, HTTP2State);
 
 /// C entry point for a probing parser.
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_probing_parser_tc(
+pub unsafe extern fn rs_http2_probing_parser_tc(
     _flow: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
     if !input.is_null() {
@@ -1136,7 +1137,7 @@ pub unsafe extern "C" fn rs_http2_probing_parser_tc(
 }
 
 // Extern functions operating on HTTP2.
-extern "C" {
+extern {
     pub fn HTTP2MimicHttp1Request(
         orig_state: *mut std::os::raw::c_void, new_state: *mut std::os::raw::c_void,
     );
@@ -1146,7 +1147,7 @@ extern "C" {
 // is typically not unsafe.
 #[no_mangle]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn rs_http2_state_new(
+pub extern fn rs_http2_state_new(
     orig_state: *mut std::os::raw::c_void, _orig_proto: AppProto,
 ) -> *mut std::os::raw::c_void {
     let state = HTTP2State::new();
@@ -1162,19 +1163,19 @@ pub extern "C" fn rs_http2_state_new(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_free(state: *mut std::os::raw::c_void) {
+pub unsafe extern fn rs_http2_state_free(state: *mut std::os::raw::c_void) {
     let mut state: Box<HTTP2State> = Box::from_raw(state as _);
     state.free();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
+pub unsafe extern fn rs_http2_state_tx_free(state: *mut std::os::raw::c_void, tx_id: u64) {
     let state = cast_pointer!(state, HTTP2State);
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_parse_ts(
+pub unsafe extern fn rs_http2_parse_ts(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -1184,7 +1185,7 @@ pub unsafe extern "C" fn rs_http2_parse_ts(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_parse_tc(
+pub unsafe extern fn rs_http2_parse_tc(
     flow: *const Flow, state: *mut std::os::raw::c_void, _pstate: *mut std::os::raw::c_void,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
@@ -1194,7 +1195,7 @@ pub unsafe extern "C" fn rs_http2_parse_tc(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_get_tx(
+pub unsafe extern fn rs_http2_state_get_tx(
     state: *mut std::os::raw::c_void, tx_id: u64,
 ) -> *mut std::os::raw::c_void {
     let state = cast_pointer!(state, HTTP2State);
@@ -1209,37 +1210,40 @@ pub unsafe extern "C" fn rs_http2_state_get_tx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
+pub unsafe extern fn rs_http2_state_get_tx_count(state: *mut std::os::raw::c_void) -> u64 {
     let state = cast_pointer!(state, HTTP2State);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_tx_get_state(
-    tx: *mut std::os::raw::c_void,
-) -> HTTP2TransactionState {
+pub unsafe extern fn rs_http2_tx_get_state(tx: *mut std::os::raw::c_void) -> HTTP2TransactionState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     return tx.state;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_tx_get_alstate_progress(
+pub unsafe extern fn rs_http2_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     return rs_http2_tx_get_state(tx) as i32;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_getfiles(
-    _state: *mut std::os::raw::c_void,
-    tx: *mut std::os::raw::c_void, direction: u8,
+pub unsafe extern fn rs_http2_getfiles(
+    _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void, direction: u8,
 ) -> AppLayerGetFileState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     if let Some(sfcm) = { SURICATA_HTTP2_FILE_CONFIG } {
         if direction & STREAM_TOSERVER != 0 {
-            return AppLayerGetFileState { fc: &mut tx.ft_ts.file, cfg: sfcm.files_sbcfg }
+            return AppLayerGetFileState {
+                fc: &mut tx.ft_ts.file,
+                cfg: sfcm.files_sbcfg,
+            };
         } else {
-            return AppLayerGetFileState { fc: &mut tx.ft_tc.file, cfg: sfcm.files_sbcfg }
+            return AppLayerGetFileState {
+                fc: &mut tx.ft_tc.file,
+                cfg: sfcm.files_sbcfg,
+            };
         }
     }
     AppLayerGetFileState::err()
@@ -1249,7 +1253,7 @@ pub unsafe extern "C" fn rs_http2_getfiles(
 const PARSER_NAME: &[u8] = b"http2\0";
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_http2_register_parser() {
+pub unsafe extern fn rs_http2_register_parser() {
     let default_port = CString::new("[80]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,

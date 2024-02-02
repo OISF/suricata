@@ -21,16 +21,18 @@ pub mod byte_math;
 pub mod error;
 pub mod iprep;
 pub mod parser;
+pub mod requires;
 pub mod stream_size;
 pub mod uint;
 pub mod uri;
-pub mod requires;
 
 /// EnumString trait that will be implemented on enums that
 /// derive StringEnum.
 pub trait EnumString<T> {
     /// Return the enum variant of the given numeric value.
-    fn from_u(v: T) -> Option<Self> where Self: Sized;
+    fn from_u(v: T) -> Option<Self>
+    where
+        Self: Sized;
 
     /// Convert the enum variant to the numeric value.
     fn into_u(self) -> T;
@@ -39,7 +41,9 @@ pub trait EnumString<T> {
     fn to_str(&self) -> &'static str;
 
     /// Get an enum variant from parsing a string.
-    fn from_str(s: &str) -> Option<Self> where Self: Sized;
+    fn from_str(s: &str) -> Option<Self>
+    where
+        Self: Sized;
 }
 
 #[cfg(test)]
@@ -65,6 +69,9 @@ mod test {
         assert_eq!(TestEnum::BestValueEver.to_str(), "best_value_ever");
         assert_eq!(TestEnum::from_str("zero"), Some(TestEnum::Zero));
         assert_eq!(TestEnum::from_str("nope"), None);
-        assert_eq!(TestEnum::from_str("best_value_ever"), Some(TestEnum::BestValueEver));
+        assert_eq!(
+            TestEnum::from_str("best_value_ever"),
+            Some(TestEnum::BestValueEver)
+        );
     }
 }

@@ -480,12 +480,10 @@ fn take_4_4_bits(input: &[u8]) -> IResult<&[u8], (u8, u8), RdpError> {
 }
 
 fn parse_class_options(i: &[u8]) -> IResult<&[u8], (u8, u8)> {
-    bits(
-        tuple((
-            verify(take_bits(4u8), |&x| x <= 4),
-            verify(take_bits(4u8), |&x| x <= 3)
-        ))
-    )(i)
+    bits(tuple((
+        verify(take_bits(4u8), |&x| x <= 4),
+        verify(take_bits(4u8), |&x| x <= 3),
+    )))(i)
 }
 
 /// rdp-spec, section 2.2.1.1
@@ -576,14 +574,19 @@ fn parse_rdp_cookie(i: &[u8]) -> IResult<&[u8], RdpCookie, RdpError> {
     let (i, _name) = tag(b"mstshash=")(i)?;
     let (i, bytes) = take_until_and_consume(b"\r\n")(i)?;
     // let (i, s) = map_res(value!(bytes), std::str::from_utf8)(i)?;
-    let s = std::str::from_utf8(bytes).map_err(|_| Err::Error(make_error(bytes, ErrorKind::MapRes)))?;
-    let cookie = RdpCookie{ mstshash: String::from(s) };
+    let s =
+        std::str::from_utf8(bytes).map_err(|_| Err::Error(make_error(bytes, ErrorKind::MapRes)))?;
+    let cookie = RdpCookie {
+        mstshash: String::from(s),
+    };
     Ok((i, cookie))
 }
 
 // rdp-spec, section 2.2.1.1.1
 fn parse_negotiation_request(i: &[u8]) -> IResult<&[u8], NegotiationRequest, RdpError> {
-    let (i, _typ) = verify(le_u8, |&x| x == X224ConnectionRequestType::NegotiationRequest as u8)(i)?;
+    let (i, _typ) = verify(le_u8, |&x| {
+        x == X224ConnectionRequestType::NegotiationRequest as u8
+    })(i)?;
     let (i, flags) = map_opt(le_u8, NegotiationRequestFlags::from_bits)(i)?;
     // u8, u8, u16, and u32 give _length of 8
     let (i, _length) = verify(le_u16, |&x| x == 8)(i)?;
@@ -665,7 +668,9 @@ fn parse_x224_connection_confirm_class_0(
 
 // rdp-spec, section 2.2.1.1.1
 fn parse_negotiation_response(i: &[u8]) -> IResult<&[u8], NegotiationResponse, RdpError> {
-    let (i, _typ) = verify(le_u8, |&x| x == X224ConnectionRequestType::NegotiationResponse as u8)(i)?;
+    let (i, _typ) = verify(le_u8, |&x| {
+        x == X224ConnectionRequestType::NegotiationResponse as u8
+    })(i)?;
     let (i, flags) = map_opt(le_u8, NegotiationResponseFlags::from_bits)(i)?;
     // u8, u8, u16, and u32 give _length of 8
     let (i, _length) = verify(le_u16, |&x| x == 8)(i)?;
@@ -675,7 +680,9 @@ fn parse_negotiation_response(i: &[u8]) -> IResult<&[u8], NegotiationResponse, R
 
 // rdp-spec, section 2.2.1.1.1
 fn parse_negotiation_failure(i: &[u8]) -> IResult<&[u8], NegotiationFailure, RdpError> {
-    let (i, _typ) = verify(le_u8, |&x| x == X224ConnectionRequestType::NegotiationFailure as u8)(i)?;
+    let (i, _typ) = verify(le_u8, |&x| {
+        x == X224ConnectionRequestType::NegotiationFailure as u8
+    })(i)?;
     let (i, _flags) = le_u8(i)?;
     // u8, u8, u16, and u32 give _length of 8
     let (i, _length) = verify(le_u16, |&x| x == 8)(i)?;
@@ -686,13 +693,11 @@ fn parse_negotiation_failure(i: &[u8]) -> IResult<&[u8], NegotiationFailure, Rdp
 /// x224-spec, section 13.7
 fn parse_x223_data_class_0(input: &[u8]) -> IResult<&[u8], X223Data, RdpError> {
     fn parser(i: &[u8]) -> IResult<&[u8], (u8, u8, u8)> {
-        bits(
-            tuple((
-                verify(take_bits(4u8), |&x| x == 0xf),
-                verify(take_bits(3u8), |&x| x == 0),
-                verify(take_bits(1u8), |&x| x == 0)
-            ))
-        )(i)
+        bits(tuple((
+            verify(take_bits(4u8), |&x| x == 0xf),
+            verify(take_bits(3u8), |&x| x == 0),
+            verify(take_bits(1u8), |&x| x == 0),
+        )))(i)
     }
     let (i1, _length) = verify(be_u8, |&x| x == 2)(input)?;
     let (i2, _dt_x_roa) = parser(i1).map_err(Err::convert)?;
@@ -728,10 +733,9 @@ fn parse_mcs_connect(input: &[u8]) -> IResult<&[u8], McsConnectRequest, RdpError
     let (i1, _ber_type) = verify(
         le_u8,
         // BER: 0b01=application, 0b1=non-primitive, 0b11111
-        |&x| x == 0x7f
+        |&x| x == 0x7f,
     )(input)?;
-    let (i2, _t125_type) = verify(le_u8, |&x| x
-        == T125Type::T125TypeMcsConnectRequest as u8)(i1)?;
+    let (i2, _t125_type) = verify(le_u8, |&x| x == T125Type::T125TypeMcsConnectRequest as u8)(i1)?;
 
     // skip to, and consume, H.221 client-to-server key
     let (i3, _skipped) = take_until_and_consume(b"Duca")(i2)?;
@@ -769,9 +773,7 @@ fn parse_mcs_connect(input: &[u8]) -> IResult<&[u8], McsConnectRequest, RdpError
                                         break;
                                     }
                                 },
-                                Err(Err::Incomplete(i)) => {
-                                    return Err(Err::Incomplete(i))
-                                }
+                                Err(Err::Incomplete(i)) => return Err(Err::Incomplete(i)),
                                 Err(Err::Failure(_)) | Err(Err::Error(_)) => break,
                             }
                         }
@@ -859,8 +861,7 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
     let (j18, early_capability_flags) = match supported_color_depth {
         None => (j17, None),
         Some(_) => {
-            match opt(map_opt(le_u16, EarlyCapabilityFlags::from_bits))(j17) as IResult<&[u8], _>
-            {
+            match opt(map_opt(le_u16, EarlyCapabilityFlags::from_bits))(j17) as IResult<&[u8], _> {
                 Ok((rem, obj)) => (rem, obj),
                 _ => (j17, None),
             }
@@ -897,12 +898,10 @@ fn parse_cs_client_core_data(input: &[u8]) -> IResult<&[u8], CsClientCoreData> {
 
     let (j22, server_selected_protocol) = match pad {
         None => (j21, None),
-        Some(_) => {
-            match opt(map_opt(le_u32, ProtocolFlags::from_bits))(j21) as IResult<&[u8], _> {
-                Ok((rem, obj)) => (rem, obj),
-                _ => (j21, None),
-            }
-        }
+        Some(_) => match opt(map_opt(le_u32, ProtocolFlags::from_bits))(j21) as IResult<&[u8], _> {
+            Ok((rem, obj)) => (rem, obj),
+            _ => (j21, None),
+        },
     };
 
     let (j23, desktop_physical_width) = match server_selected_protocol {
@@ -1017,7 +1016,13 @@ fn parse_cs_unknown(i: &[u8]) -> IResult<&[u8], CsUnknown> {
     // less u16, u16
     let (i, sz) = map_opt(le_u16, |x: u16| x.checked_sub(4))(i)?;
     let (i, data) = take(sz)(i)?;
-    Ok((i, CsUnknown { typ, data: data.to_vec() }))
+    Ok((
+        i,
+        CsUnknown {
+            typ,
+            data: data.to_vec(),
+        },
+    ))
 }
 
 // rdp-spec, section 2.2.1.4
@@ -1025,7 +1030,8 @@ fn parse_mcs_connect_response(i: &[u8]) -> IResult<&[u8], McsConnectResponse, Rd
     let (i, _ber_type) = verify(
         le_u8,
         // BER: 0b01=application, 0b1=non-primitive, 0b11111
-        |&x| x == 0x7f)(i)?;
+        |&x| x == 0x7f,
+    )(i)?;
     let (i, _t125_type) = verify(le_u8, |&x| x == T125Type::T125TypeMcsConnectResponse as u8)(i)?;
     Ok((i, McsConnectResponse {}))
 }
@@ -1090,7 +1096,9 @@ mod tests_negotiate_49350 {
                 cookie: None,
                 negotiation_request: Some(NegotiationRequest {
                     flags: NegotiationRequestFlags::empty(),
-                    protocols: ProtocolFlags { bits: Protocol::ProtocolRdp as u32 },
+                    protocols: ProtocolFlags {
+                        bits: Protocol::ProtocolRdp as u32,
+                    },
                 }),
                 data: Vec::new(),
             }),
@@ -1180,7 +1188,9 @@ mod tests_core_49350 {
             ),
             client_dig_product_id: Some(String::from("")),
             connection_hint: Some(ConnectionHint::ConnectionHintNotProvided),
-            server_selected_protocol: Some(ProtocolFlags { bits: Protocol::ProtocolRdp as u32 }),
+            server_selected_protocol: Some(ProtocolFlags {
+                bits: Protocol::ProtocolRdp as u32,
+            }),
             desktop_physical_width: None,
             desktop_physical_height: None,
             desktop_orientation: None,
@@ -1197,7 +1207,12 @@ mod tests_core_49350 {
             typ: 0xc002,
             data: BYTES[0x16c..0x16c + 0x8].to_vec(),
         }));
-        let channels = vec![String::from("rdpdr"), String::from("rdpsnd"), String::from("drdynvc"), String::from("cliprdr")];
+        let channels = vec![
+            String::from("rdpdr"),
+            String::from("rdpsnd"),
+            String::from("drdynvc"),
+            String::from("cliprdr"),
+        ];
         children.push(McsConnectRequestChild::CsNet(CsNet { channels }));
         let t123_tpkt: T123Tpkt = T123Tpkt {
             child: T123TpktChild::Data(X223Data {
@@ -1347,7 +1362,7 @@ mod tests_negotiate_incomplete_49350 {
         assert_eq!(
             // fails: expr_opt!(i5, length.checked_sub(6))?
             // not counting a u8 length read, which was also successful
-            Err(Err::Incomplete(Needed::new( 1))),
+            Err(Err::Incomplete(Needed::new(1))),
             parse_x224_connection_request_class_0(x224_bytes)
         )
     }

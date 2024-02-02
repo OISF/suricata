@@ -131,7 +131,7 @@ fn log_bittorrent_dht(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_bittorrent_dht_logger_log(
+pub unsafe extern fn rs_bittorrent_dht_logger_log(
     tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, BitTorrentDHTTransaction);

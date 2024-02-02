@@ -19,7 +19,7 @@ use crate::quic::quic::QuicTransaction;
 use std::ptr;
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_tx_get_ua(
+pub unsafe extern fn rs_quic_tx_get_ua(
     tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ua) = &tx.ua {
@@ -34,7 +34,7 @@ pub unsafe extern "C" fn rs_quic_tx_get_ua(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_tx_get_sni(
+pub unsafe extern fn rs_quic_tx_get_sni(
     tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(sni) = &tx.sni {
@@ -49,7 +49,7 @@ pub unsafe extern "C" fn rs_quic_tx_get_sni(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_tx_get_ja3(
+pub unsafe extern fn rs_quic_tx_get_ja3(
     tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Some(ja3) = &tx.ja3 {
@@ -64,7 +64,7 @@ pub unsafe extern "C" fn rs_quic_tx_get_ja3(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_tx_get_version(
+pub unsafe extern fn rs_quic_tx_get_version(
     tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if tx.header.flags.is_long {
@@ -80,7 +80,7 @@ pub unsafe extern "C" fn rs_quic_tx_get_version(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_tx_get_cyu_hash(
+pub unsafe extern fn rs_quic_tx_get_cyu_hash(
     tx: &QuicTransaction, i: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if (i as usize) < tx.cyu.len() {
@@ -101,7 +101,7 @@ pub unsafe extern "C" fn rs_quic_tx_get_cyu_hash(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rs_quic_tx_get_cyu_string(
+pub unsafe extern fn rs_quic_tx_get_cyu_string(
     tx: &QuicTransaction, i: u32, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if (i as usize) < tx.cyu.len() {

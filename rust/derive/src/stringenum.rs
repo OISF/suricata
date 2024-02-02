@@ -19,10 +19,15 @@ extern crate proc_macro;
 use super::applayerevent::transform_name;
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{self, parse_macro_input, DeriveInput};
 use std::str::FromStr;
+use syn::{self, parse_macro_input, DeriveInput};
 
-pub fn derive_enum_string<T: std::str::FromStr + quote::ToTokens>(input: TokenStream, ustr: &str) -> TokenStream where <T as FromStr>::Err: std::fmt::Display {
+pub fn derive_enum_string<T: std::str::FromStr + quote::ToTokens>(
+    input: TokenStream, ustr: &str,
+) -> TokenStream
+where
+    <T as FromStr>::Err: std::fmt::Display,
+{
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
     let mut values = Vec::new();
@@ -56,7 +61,9 @@ pub fn derive_enum_string<T: std::str::FromStr + quote::ToTokens>(input: TokenSt
         panic!("EnumString can only be derived for enums");
     }
 
-    let is_suricata = std::env::var("CARGO_PKG_NAME").map(|var| var == "suricata").unwrap_or(false);
+    let is_suricata = std::env::var("CARGO_PKG_NAME")
+        .map(|var| var == "suricata")
+        .unwrap_or(false);
     let crate_id = if is_suricata {
         syn::Ident::new("crate", proc_macro2::Span::call_site())
     } else {

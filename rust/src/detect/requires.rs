@@ -342,19 +342,19 @@ pub struct SCDetectRequiresStatus {
 }
 
 #[no_mangle]
-pub extern "C" fn SCDetectRequiresStatusNew() -> *mut SCDetectRequiresStatus {
+pub extern fn SCDetectRequiresStatusNew() -> *mut SCDetectRequiresStatus {
     Box::into_raw(Box::default())
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCDetectRequiresStatusFree(status: *mut SCDetectRequiresStatus) {
+pub unsafe extern fn SCDetectRequiresStatusFree(status: *mut SCDetectRequiresStatus) {
     if !status.is_null() {
         std::mem::drop(Box::from_raw(status));
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCDetectRequiresStatusLog(
+pub unsafe extern fn SCDetectRequiresStatusLog(
     status: &mut SCDetectRequiresStatus, suricata_version: *const c_char, tenant_id: u32,
 ) {
     let suricata_version = CStr::from_ptr(suricata_version)
@@ -437,7 +437,7 @@ pub unsafe extern "C" fn SCDetectRequiresStatusLog(
 ///          value is chosen so it can be passed back to the options parser
 ///          as its treated as a non-fatal silent error.
 #[no_mangle]
-pub unsafe extern "C" fn SCDetectCheckRequires(
+pub unsafe extern fn SCDetectCheckRequires(
     requires: *const c_char, suricata_version_string: *const c_char, errstr: *mut *const c_char,
     status: &mut SCDetectRequiresStatus,
 ) -> c_int {
