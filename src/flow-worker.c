@@ -620,7 +620,9 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
                 StreamTcpSessionCleanup(p->flow->protoctx);
             }
         } else if (p->proto == IPPROTO_TCP && p->flow->protoctx) {
-            FramesPrune(p->flow, p);
+            if (p->flags & PKT_STREAM_EST) {
+                FramesPrune(p->flow, p);
+            }
             FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_TCPPRUNE);
             StreamTcpPruneSession(p->flow, p->flowflags & FLOW_PKT_TOSERVER ?
                     STREAM_TOSERVER : STREAM_TOCLIENT);
@@ -631,18 +633,19 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
 
         if ((PKT_IS_PSEUDOPKT(p)) ||
                 (p->flow->flags & (FLOW_TS_APP_UPDATED | FLOW_TC_APP_UPDATED))) {
-            if (PKT_IS_TOSERVER(p)) {
-                if (PKT_IS_PSEUDOPKT(p) || (p->flow->flags & (FLOW_TS_APP_UPDATED))) {
-                    AppLayerParserTransactionsCleanup(p->flow, STREAM_TOSERVER);
-                    p->flow->flags &= ~FLOW_TS_APP_UPDATED;
-                }
-            } else {
-                if (PKT_IS_PSEUDOPKT(p) || (p->flow->flags & (FLOW_TC_APP_UPDATED))) {
-                    AppLayerParserTransactionsCleanup(p->flow, STREAM_TOCLIENT);
-                    p->flow->flags &= ~FLOW_TC_APP_UPDATED;
+            if ((p->flags & PKT_STREAM_EST) || p->proto != IPPROTO_TCP) {
+                if (PKT_IS_TOSERVER(p)) {
+                    if (PKT_IS_PSEUDOPKT(p) || (p->flow->flags & (FLOW_TS_APP_UPDATED))) {
+                        AppLayerParserTransactionsCleanup(p->flow, STREAM_TOSERVER);
+                        p->flow->flags &= ~FLOW_TS_APP_UPDATED;
+                    }
+                } else {
+                    if (PKT_IS_PSEUDOPKT(p) || (p->flow->flags & (FLOW_TC_APP_UPDATED))) {
+                        AppLayerParserTransactionsCleanup(p->flow, STREAM_TOCLIENT);
+                        p->flow->flags &= ~FLOW_TC_APP_UPDATED;
+                    }
                 }
             }
-
         } else {
             SCLogDebug("not pseudo, no app update: skip");
         }
