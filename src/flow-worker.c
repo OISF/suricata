@@ -629,8 +629,9 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
             FramesPrune(p->flow, p);
         }
 
-        if ((PKT_IS_PSEUDOPKT(p)) ||
-                (p->flow->flags & (FLOW_TS_APP_UPDATED | FLOW_TC_APP_UPDATED))) {
+        if ((p->flags & PKT_STREAM_EST) &&
+                ((PKT_IS_PSEUDOPKT(p)) ||
+                        (p->flow->flags & (FLOW_TS_APP_UPDATED | FLOW_TC_APP_UPDATED)))) {
             if (PKT_IS_TOSERVER(p)) {
                 if (PKT_IS_PSEUDOPKT(p) || (p->flow->flags & (FLOW_TS_APP_UPDATED))) {
                     AppLayerParserTransactionsCleanup(p->flow, STREAM_TOSERVER);
