@@ -5430,8 +5430,12 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         }
 
         /* handle the per 'state' logic */
-        if (StreamTcpStateDispatch(tv, p, stt, ssn, ssn->state) < 0)
+        if (StreamTcpStateDispatch(tv, p, stt, ssn, ssn->state) < 0) {
+            if (ssn->state >= TCP_ESTABLISHED) {
+                p->flags |= PKT_STREAM_EST;
+            }
             goto error;
+        }
 
     skip:
         StreamTcpPacketCheckPostRst(ssn, p);
