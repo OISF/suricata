@@ -829,15 +829,25 @@ Example HTTP Request::
 http.stat_code
 --------------
 
-With the ``http.stat_code`` sticky buffer, it is possible to match
-specifically and only on the HTTP status code buffer. The keyword can
-be used in combination with all previously mentioned content modifiers
-like ``distance``, ``offset``, ``nocase``, ``within``, etc.
+The ``http.stat_code`` keyword is used to match on the HTTP status code
+that can be present in an HTTP response.
 
-Example of ``http.stat_code`` in a HTTP response:
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.stat_code`` keyword.
 
+Example HTTP Response::
 
-Example of the purpose of ``http.stat_code``:
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Server: nginx/0.8.54
+
+.. container:: example-rule
+
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Stat Code Response \
+  Example"; flow:established,to_client; :example-rule-options:`http.stat_code; \
+  content:"200";` classtype:bad-unknown; sid:117; rev:1;)
+
+.. note:: ``http.stat_code`` does not include the leading or trailing space
 
 .. _http.stat_msg:
 
