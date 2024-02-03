@@ -793,24 +793,36 @@ after ``User-Agent`` but not necessarily directly after.
 http.request_body
 -----------------
 
-With the ``http.request_body`` sticky buffer, it is possible to
-match specifically and only on the HTTP request body. The keyword can
-be used in combination with all previously mentioned content modifiers
-like ``distance``, ``offset``, ``nocase``, ``within``, etc.
+The ``http.request_body`` keyword is used to match on the HTTP request body
+that can be present in an HTTP request.
 
-Example of ``http.request_body`` in a HTTP request:
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.request_body`` keyword.
 
+Example HTTP Request::
 
-Example of the purpose of ``http.client_body``:
+  POST /suricata.php HTTP/1.1
+  Content-Type: application/x-www-form-urlencoded
+  Host: suricata.io
+  Content-Length: 23
+  Connection: Keep-Alive
 
-Note: how much of the request/client body is inspected is controlled
-in the :ref:`libhtp configuration section
-<suricata-yaml-configure-libhtp>` via the ``request-body-limit``
-setting.
+  Suricata request body
 
-``http.request_body`` replaces the previous keyword name: ```http_client_body``. You may continue
-+to use the previous name, but it's recommended that rules be converted to use
-+the new name.
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Request Body Example"; \
+  flow:established,to_server; :example-rule-options:`http.request_body; \
+  content:"Suricata request body";` classtype:bad-unknown; sid:115; rev:1;)
+
+.. note:: How much of the request/client body is inspected is controlled
+  in the :ref:`libhtp configuration section
+  <suricata-yaml-configure-libhtp>` via the ``request-body-limit``
+  setting.
+
+.. note:: ``http.request_body`` replaces the previous keyword name,
+  ``http_client_body``. ``http_client_body`` can still be used but it is
+  recommended that rules be converted to use ``http.request_body``.
 
 .. _http.stat_code:
 
