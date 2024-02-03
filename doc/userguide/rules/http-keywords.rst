@@ -966,13 +966,26 @@ Example HTTP Response::
 http.location
 -------------
 
-Sticky buffer to match on the HTTP Location headers. Only contains the
-header value. The \\r\\n after the header are not part of the buffer.
+The ``http.location`` keyword is used to match on the HTTP response location
+header contents.
 
-Example::
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.location`` keyword.
 
-    alert http any any -> any any (flow:to_client; \
-            http.location; content:"http://www.google.com"; sid:1;)
+Example HTTP Response::
+
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Server: nginx/0.8.54
+  Location: suricata.io
+
+.. container:: example-rule
+
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Location Example"; \
+  flow:established,to_client; :example-rule-options:`http.location; \
+  content:"suricata.io";` bsize:11; classtype:bad-unknown; sid:122; rev:1;)
+
+.. note:: ``http.location`` does not include the leading space or trailing \\r\\n
 
 .. _http.host:
 
