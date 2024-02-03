@@ -881,11 +881,25 @@ Example HTTP Response::
 http.response_line
 ------------------
 
-The ``http.response_line`` forces the whole HTTP response line to be inspected.
+The ``http.response_line`` keyword is used to match on the entire HTTP
+response line.
 
-Example::
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.response_line`` keyword.
 
-    alert http any any -> any any (http.response_line; content:"HTTP/1.0 200 OK"; sid:1;)
+Example HTTP Response::
+
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Server: nginx/0.8.54
+
+.. container:: example-rule
+
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Response Line \
+  Example"; flow:established,to_client; :example-rule-options:`http.response_line; \
+  content:"HTTP/1.1 200 OK";` classtype:bad-unknown; sid:119; rev:1;)
+
+.. note:: ``http.response_line`` does not include the trailing \\r\\n
 
 .. _http.response_body:
 
