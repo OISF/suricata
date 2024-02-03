@@ -906,38 +906,36 @@ Example HTTP Response::
 http.response_body
 ------------------
 
-With the ``http.response_body`` sticky buffer, it is possible to
-match specifically and only on the HTTP response body. The keyword can
-be used in combination with all previously mentioned content modifiers
-like ``distance``, ``offset``, ``nocase``, ``within``, etc.
+The ``http.response_body`` keyword is used to match on the HTTP response body.
 
-Note: how much of the response/server body is inspected is controlled
-in your :ref:`libhtp configuration section
-<suricata-yaml-configure-libhtp>` via the ``response-body-limit``
-setting.
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.response_body`` keyword.
 
-Notes
-~~~~~
+Example HTTP Response::
 
--  Using ``http.response_body`` is similar to having content matches
-   that come after ``file.data`` except that it doesn't permanently
-   (unless reset) set the detection pointer to the beginning of the
-   server response body. i.e. it is not a sticky buffer.
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Server: nginx/0.8.54
 
--  ``http.response_body`` will match on gzip decoded data just like
-   ``file.data`` does.
+  Server response body
 
--  Since ``http.response_body`` matches on a server response, it
-   can't be used with the ``to_server`` or ``from_client`` flow
-   directives.
+.. container:: example-rule
 
--  Corresponding PCRE modifier: ``Q``
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Response Body \
+  Example"; flow:established,to_client; :example-rule-options:`http.response_body; \
+  content:"Server response body";` classtype:bad-unknown; sid:120; rev:1;)
 
--  further notes at the ``file.data`` section below.
+.. note:: ``http.response_body`` will match on gzip decoded data just like
+  :ref:`file.data` does.
 
-``http.response_body`` replaces the previous keyword name: ```http_server_body``. You may continue
-+to use the previous name, but it's recommended that rules be converted to use
-+the new name.
+.. note:: How much of the response/server body is inspected is controlled
+  in your :ref:`libhtp configuration section
+  <suricata-yaml-configure-libhtp>` via the ``response-body-limit``
+  setting.
+
+.. note:: ``http.response_body`` replaces the previous keyword name,
+  ``http_server_body``. ``http_server_body`` can still be used but it is
+  recommended that rules be converted to use ``http.response_body``.
 
 .. _http.server:
 
