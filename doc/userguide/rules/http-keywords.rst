@@ -989,20 +989,110 @@ Example HTTP Response::
 
 .. _http.host:
 
+http.host
+---------
+
+Matching on the HTTP host name has two options in Suricata, the ``http.host``
+and the ``http.host.raw`` sticky buffers.
+
+It is possible to use any of the :doc:`payload-keywords` with both ``http.host``
+keywords.
+
+.. note:: The ``http.host`` keyword normalizes the host header contents. If a
+  host name has uppercase characters, those would be changed to lowercase.
+
+Normalization Example::
+
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: SuRiCaTa.Io
+
+In the above example the host buffer would contain `suricata.io`.
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Host Example"; \
+  flow:established,to_server; :example-rule-options:`http.host; \
+  content:"suricata.io";` bsize:11; classtype:bad-unknown; sid:123; rev:1;)
+
+.. note:: The ``nocase`` keyword is no longer allowed since the host names
+  are normalized to contain only lowercase letters.
+
+.. note:: ``http.host`` does not contain the port associated with the host
+  (i.e. suricata.io:1234). To match on the host and port or negate a host
+  and port use :ref:`http.host.raw`.
+
+.. note:: ``http.host`` does not include the leading space or trailing \\r\\n
+
+.. note:: The ``http.host`` and ``http.host.raw`` buffers are populated
+  from either the URI (if the full URI is present in the request like
+  in a proxy request) or the HTTP Host header. If both are present, the
+  URI is used.
+
+.. note:: If a request contains multiple "Host" headers, the values will be
+  concatenated in the ``http.host`` and ``http.host.raw``
+  buffers, in the order seen from top to bottom, with a comma and space
+  (", ") between each of them.
+
+Example Duplicate Host Header Request::
+
+  GET /index.html HTTP/1.1
+  User-Agent: Chrome/2.0
+  Cookie: PHPSESSION=123
+  Host: suricata.io
+  Host: oisf.net
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Two Host Example"; \
+  flow:established,to_server; :example-rule-options:`http.host; \
+  content:"suricata.io, oisf.net";` classtype:bad-unknown; sid:125; rev:1;)
+
 .. _http.host.raw:
 
-http.host and http.host.raw
----------------------------
+http.host.raw
+-------------
 
-With the ``http.host`` sticky buffer, it is possible to
-match specifically and only the normalized hostname.
-The ``http.host.raw`` inspects the raw hostname.
+The ``http.host.raw`` buffer matches on HTTP host content but does not have
+any normalization performed on the buffer contents (see :ref:`http.host`)
 
-The keyword can be used in combination with most of the content modifiers
-like ``distance``, ``offset``, ``within``, etc.
+Example HTTP Request::
 
-The ``nocase`` keyword is not allowed anymore. Keep in mind that you need
-to specify a lowercase pattern.
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: SuRiCaTa.Io:8445
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Host Raw Example"; \
+  flow:established,to_server; :example-rule-options:`http.host.raw; \
+  content:"SuRiCaTa.Io|3a|8445";` bsize:16; classtype:bad-unknown; sid:124; rev:1;)
+
+.. note:: ``http.host.raw`` does not include the leading space or trailing \\r\\n
+
+.. note:: The ``http.host`` and ``http.host.raw`` buffers are populated
+  from either the URI (if the full URI is present in the request like
+  in a proxy request) or the HTTP Host header. If both are present, the
+  URI is used.
+
+.. note:: If a request contains multiple "Host" headers, the values will be
+  concatenated in the ``http.host`` and ``http.host.raw`` buffers, in the
+  order seen from top to bottom, with a comma and space (", ") between each
+  of them.
+
+Example Duplicate Host Header Request::
+
+  GET /index.html HTTP/1.1
+  User-Agent: Chrome/2.0
+  Cookie: PHPSESSION=123
+  Host: suricata.io
+  Host: oisf.net
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Two Host Example"; \
+  flow:established,to_server; :example-rule-options:`http.host.raw; \
+  content:"suricata.io, oisf.net";` classtype:bad-unknown; sid:125; rev:1;)
 
 .. _http.request_header:
 
@@ -1043,58 +1133,6 @@ Examples::
 ``http.response_header`` is a 'sticky buffer'.
 
 ``http.response_header`` can be used as ``fast_pattern``.
-
-Notes
-~~~~~
-
--  ``http.host`` does not contain the port associated with
-   the host (i.e. abc.com:1234). To match on the host and port
-   or negate a host and port use ``http.host.raw``.
-
--  The ``http.host`` and ``http.host.raw`` buffers are populated
-   from either the URI (if the full URI is present in the request like
-   in a proxy request) or the HTTP Host header. If both are present, the
-   URI is used.
-
--  The ``http.host`` and ``http.host.raw`` buffers will NOT
-   include the header name, colon, or leading whitespace if populated
-   from the Host header.  i.e. they will not include "Host: ".
-
--  The ``http.host`` and ``http.host.raw`` buffers do not
-   include a CRLF (0x0D 0x0A) at the end.  If you want to match the end
-   of the buffer, use a relative 'isdataat' or a PCRE (although PCRE
-   will be worse on performance).
-
--  The ``http.host`` buffer is normalized to be all lower case.
-
--  The content match that ``http.host`` applies to must be all lower
-   case or have the ``nocase`` flag set.
-
--  ``http.host.raw`` matches the unnormalized buffer so matching
-   will be case-sensitive (unless ``nocase`` is set).
-
--  If a request contains multiple "Host" headers, the values will be
-   concatenated in the ``http.host`` and ``http.host.raw``
-   buffers, in the order seen from top to bottom, with a comma and space
-   (", ") between each of them.
-
-   Example request::
-
-          GET /test.html HTTP/1.1
-          Host: ABC.com
-          Accept: */*
-          Host: efg.net
-
-   ``http.host`` buffer contents::
-
-          abc.com, efg.net
-
-   ``http.host.raw`` buffer contents::
-
-          ABC.com, efg.net
-
--  Corresponding PCRE modifier (``http_host``): ``W``
--  Corresponding PCRE modifier (``http_raw_host``): ``Z``
 
 .. _file.data:
 
