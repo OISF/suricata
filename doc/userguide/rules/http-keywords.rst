@@ -854,15 +854,27 @@ Example HTTP Response::
 http.stat_msg
 -------------
 
-With the ``http.stat_msg`` sticky buffer, it is possible to match
-specifically and only on the HTTP status message buffer. The keyword
-can be used in combination with all previously mentioned content
-modifiers like ``depth``, ``distance``, ``offset``, ``nocase`` and
-``within``.
+The ``http.stat_msg`` keyword is used to match on the HTTP status message
+that can be present in an HTTP response.
 
-Example of ``http.stat_msg`` in a HTTP response:
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.stat_msg`` keyword.
 
-Example of the purpose of ``http.stat_msg``:
+Example HTTP Response::
+
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Server: nginx/0.8.54
+
+.. container:: example-rule
+
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Stat Message Response \
+  Example"; flow:established,to_client; :example-rule-options:`http.stat_msg; \
+  content:"OK";` classtype:bad-unknown; sid:118; rev:1;)
+
+.. note:: ``http.stat_msg`` does not include the leading space or trailing \\r\\n
+
+.. note:: ``http.stat_msg`` will always be empty when used with HTTP/2
 
 .. _http.response_line:
 
