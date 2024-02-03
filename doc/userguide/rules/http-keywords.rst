@@ -942,13 +942,24 @@ Example HTTP Response::
 http.server
 -----------
 
-Sticky buffer to match on the HTTP Server headers. Only contains the
-header value. The \\r\\n after the header are not part of the buffer.
+The ``http.server`` keyword is used to match on the HTTP response server
+header contents.
 
-Example::
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.server`` keyword.
 
-    alert http any any -> any any (flow:to_client; \
-            http.server; content:"Microsoft-IIS/6.0"; sid:1;)
+Example HTTP Response::
+
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Server: nginx/0.8.54
+
+.. container:: example-rule
+
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Server Example"; flow:established,to_client; :example-rule-options:`http.server; \
+  content:"nginx/0.8.54";` bsize:12; classtype:bad-unknown; sid:121; rev:1;)
+
+.. note:: ``http.server`` does not include the leading space or trailing \\r\\n
 
 .. _http.location:
 
