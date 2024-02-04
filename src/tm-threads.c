@@ -1239,7 +1239,9 @@ static int TmThreadKillThread(ThreadVars *tv)
         }
         if (tv->inq != NULL) {
             for (int i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
+                SCMutexLock(&tv->inq->pq->mutex_q);
                 SCCondSignal(&tv->inq->pq->cond_q);
+                SCMutexUnlock(&tv->inq->pq->mutex_q);
             }
             SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
         }
@@ -1425,7 +1427,9 @@ again:
 
             if (tv->inq != NULL) {
                 for (int i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
+                    SCMutexLock(&tv->inq->pq->mutex_q);
                     SCCondSignal(&tv->inq->pq->cond_q);
+                    SCMutexUnlock(&tv->inq->pq->mutex_q);
                 }
                 SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
             }
@@ -1505,7 +1509,9 @@ again:
          * THV_KILL flag. */
         if (tv->inq != NULL) {
             for (int i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
+                SCMutexLock(&tv->inq->pq->mutex_q);
                 SCCondSignal(&tv->inq->pq->cond_q);
+                SCMutexUnlock(&tv->inq->pq->mutex_q);
             }
             SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
         }
@@ -2296,7 +2302,9 @@ void TmThreadsInjectFlowById(Flow *f, const int id)
 
     /* wake up listening thread(s) if necessary */
     if (tv->inq != NULL) {
+        SCMutexLock(&tv->inq->pq->mutex_q);
         SCCondSignal(&tv->inq->pq->cond_q);
+        SCMutexUnlock(&tv->inq->pq->mutex_q);
     } else if (tv->break_loop) {
         TmThreadsCaptureBreakLoop(tv);
     }

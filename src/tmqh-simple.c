@@ -77,7 +77,9 @@ void TmqhInputSimpleShutdownHandler(ThreadVars *tv)
     }
 
     for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++)
+        SCMutexLock(&tv->inq->pq->mutex_q);
         SCCondSignal(&tv->inq->pq->cond_q);
+        SCMutexUnlock(&tv->inq->pq->mutex_q);
 }
 
 void TmqhOutputSimple(ThreadVars *t, Packet *p)
