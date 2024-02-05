@@ -36,6 +36,7 @@
 #include "util-print.h"
 #include "util-time.h"
 #include "util-unittest.h"
+#include "util-validate.h"
 
 #include "util-debug.h"
 #include "output.h"
@@ -279,7 +280,8 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
                     continue;
 
                 // Seems this holds, but assert in debug builds.
-                assert(strcmp(st->tstats[offset].tm_name, st->tstats[u].tm_name) == 0);
+                DEBUG_VALIDATE_BUG_ON(
+                        strcmp(st->tstats[offset].tm_name, st->tstats[u].tm_name) != 0);
 
                 json_t *js_type = NULL;
                 const char *stat_name = st->tstats[u].short_name;
