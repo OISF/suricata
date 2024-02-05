@@ -3690,108 +3690,143 @@
                             "type": "object",
                             "properties": {
                                 "bittorrent-dht": {
+                                    "description": "Errors encountered parsing BitTorrent DHT protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "dcerpc_tcp": {
+                                    "description": "Errors encountered parsing DCERPC/TCP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "dcerpc_udp": {
+                                    "description": "Errors encountered parsing DCERPC/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "dhcp": {
+                                    "description": "Errors encountered parsing DHCP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "dnp3": {
+                                    "description": "Errors encountered parsing DNP3",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "dns_tcp": {
+                                    "description": "Errors encountered parsing DNS/TCP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "dns_udp": {
+                                    "description": "Errors encountered parsing DNS/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "enip_tcp": {
+                                    "description": "Errors encounterd parsing ENIP/TCP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "enip_udp": {
+                                    "description": "Errors encountered parsing ENIP/UDP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "failed_tcp": {
+                                    "description": "Errors encountered parsing TCP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "ftp": {
+                                    "description": "Errors encountered parsing FTP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "ftp-data": {
+                                    "description": "Errors encountered parsing FTP data",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "http": {
+                                    "description": "Errors encountered parsing HTTP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "http2": {
+                                    "description": "Errors encountered parsing HTTP/2",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "ike": {
+                                    "description": "Errors encountered parsing IKE protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "imap": {
+                                    "description": "Errors encountered parsing IMAP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "krb5_tcp": {
+                                    "description": "Errors encountered parsing Kerberos v5/TCP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "krb5_udp": {
+                                    "description": "Errors encountered parsing Kerberos v5/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "modbus": {
+                                    "description": "Errors encountered parsing Modbus protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "mqtt": {
+                                    "description": "Errors encountered parsing MQTT protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "nfs_tcp": {
+                                    "description": "Errors encountered parsing NFS/TCP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "nfs_udp": {
+                                    "description": "Errors encountered parsing NFS/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "ntp": {
+                                    "description": "Errors encountered parsing NTP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "pgsql": {
+                                    "description": "Errors encountered parsing PostgreSQL protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "quic": {
+                                    "description": "Errors encountered parsing QUIC protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "rdp": {
+                                    "description": "Errors encountered parsing RDP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "rfb": {
+                                    "description": "Errors encountered parsing RFB protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "sip": {
+                                    "description": "Errors encountered parsing SIP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "smb": {
+                                    "description": "Errors encountered parsing SMB protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "smtp": {
+                                    "description": "Errors encountered parsing SMTP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "snmp": {
+                                    "description": "Errors encountered parsing SNMP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "ssh": {
+                                    "description": "Errors encountered parsing SSH protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "telnet": {
+                                    "description": "Errors encountered parsing Telnet protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "tftp": {
+                                    "description": "Errors encountered parsing TFTP",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
                                 "tls": {
+                                    "description": "Errors encountered parsing TLS protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 }
                             },
@@ -5517,15 +5552,19 @@
             "type": "object",
             "properties": {
                 "gap": {
+                    "description": "Number of errors processing gaps",
                     "type": "integer"
                 },
                 "alloc": {
+                    "description": "Number of errors allocating memory",
                     "type": "integer"
                 },
                 "parser": {
+                    "description": "Number of errors reported by parser",
                     "type": "integer"
                 },
                 "internal": {
+                    "description": "Number of internal parser errors",
                     "type": "integer"
                 }
             },
