@@ -279,7 +279,7 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
                     continue;
 
                 // Seems this holds, but assert in debug builds.
-                assert(strcmp(st->tstats[u].tm_name, st->tstats[u].tm_name) == 0);
+                assert(strcmp(st->tstats[offset].tm_name, st->tstats[u].tm_name) == 0);
 
                 json_t *js_type = NULL;
                 const char *stat_name = st->tstats[u].short_name;
