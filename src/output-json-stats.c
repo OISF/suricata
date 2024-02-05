@@ -265,10 +265,21 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
         for (x = 0; x < st->ntstats; x++) {
             uint32_t offset = x * st->nstats;
 
+            // Stats for for this thread.
+            json_t *thread = json_object();
+            if (unlikely(thread == NULL)) {
+                json_decref(js_stats);
+                json_decref(threads);
+                return NULL;
+            }
+
             /* for each counter */
             for (u = offset; u < (offset + st->nstats); u++) {
                 if (st->tstats[u].name == NULL)
                     continue;
+
+                // Seems this holds, but assert in debug builds.
+                assert(strcmp(st->tstats[u].tm_name, st->tstats[u].tm_name) == 0);
 
                 json_t *js_type = NULL;
                 const char *stat_name = st->tstats[u].short_name;
@@ -276,9 +287,7 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
                     stat_name = st->tstats[u].name;
                     js_type = threads;
                 } else {
-                    char str[256];
-                    snprintf(str, sizeof(str), "%s.%s", st->tstats[u].tm_name, st->tstats[u].name);
-                    js_type = OutputStats2Json(threads, str);
+                    js_type = OutputStats2Json(thread, st->tstats[u].name);
                 }
 
                 if (js_type != NULL) {
@@ -292,6 +301,7 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
                     }
                 }
             }
+            json_object_set_new(threads, st->tstats[offset].tm_name, thread);
         }
         json_object_set_new(js_stats, "threads", threads);
     }
