@@ -671,9 +671,6 @@ jobs:
           test -e /usr/local/lib/suricata/python/suricata/update/configs/modify.conf
           test -e /usr/local/lib/suricata/python/suricata/update/configs/threshold.in
           test -e /usr/local/lib/suricata/python/suricata/update/configs/update.yaml
-<<<<<<< HEAD
-      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
-=======
       - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
@@ -754,7 +751,6 @@ jobs:
       - run: make clean
       - run: make -j2
       - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
->>>>>>> 3687ee2a6 (github-ci: Fix centos7 distcheck using lua 5.1)
         with:
           name: prep
           path: prep
