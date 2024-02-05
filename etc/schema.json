@@ -3669,13 +3669,16 @@
             "optional": true,
             "properties": {
                 "uptime": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Suricata engine's uptime"
                 },
                 "memcap_pressure": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Percentage of memcaps used by flow, stream, stream-reassembly and app-layer-http"
                 },
                 "memcap_pressure_max": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Maximum memcap_pressure seen by the engine"
                 },
                 "app_layer": {
                     "type": "object",
