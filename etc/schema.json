@@ -3684,8 +3684,9 @@
                     "type": "object",
                     "properties": {
                         "expectations": {
-                            "type": "integer"
-                        },
+                            "type": "integer",
+                            "description": "Expectation (dynamic parallel flow) counter"
+            },
                         "error": {
                             "type": "object",
                             "properties": {
