@@ -57,6 +57,7 @@ typedef struct DetectLuaData {
     uint32_t gid;
     uint64_t alloc_limit;
     uint64_t instruction_limit;
+    int allow_restricted_functions;
 } DetectLuaData;
 
 #endif /* HAVE_LUA */

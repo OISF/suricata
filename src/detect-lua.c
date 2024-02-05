@@ -614,7 +614,11 @@ static void *DetectLuaThreadInit(void *data)
         goto error;
     }
 
-    luaL_openlibs(t->luastate);
+    if (lua->allow_restricted_functions) {
+        luaL_openlibs(t->luastate);
+    } else {
+        sb_loadrestricted(t->luastate);
+    }
 
     LuaRegisterExtensions(t->luastate);
 
@@ -713,7 +717,11 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
     lua_State *luastate = sb_newstate(ld->alloc_limit, ld->instruction_limit);
     if (luastate == NULL)
         return -1;
-    luaL_openlibs(luastate); // TODO: get sandbox config and load appropriate libs
+    if (ld->allow_restricted_functions) {
+        luaL_openlibs(luastate);
+    } else {
+        sb_loadrestricted(luastate);
+    }
 
     /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
 #ifdef UNITTESTS
@@ -1034,6 +1042,10 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
     (void)ConfGetInt("security.lua.max-instructions", &lua_instruction_limit);
     lua->alloc_limit = lua_alloc_limit;
     lua->instruction_limit = lua_instruction_limit;
+
+    int allow_restricted_functions = 0;
+    (void)ConfGetBool("security.lua.allow-restricted-functions", &allow_restricted_functions);
+    lua->allow_restricted_functions = allow_restricted_functions;
 
     if (DetectLuaSetupPrime(de_ctx, lua, s) == -1) {
         goto error;
