@@ -1131,20 +1131,31 @@ Example HTTP/1 Request::
 http.response_header
 --------------------
 
-Match on the name and value of a HTTP response header (HTTP1 or HTTP2).
+The ``http.response_header`` keyword is used to match on the name and value
+of an HTTP/1 or HTTP/2 request.
 
-For HTTP2, name and value get concatenated by ": ", colon and space.
-To detect if a http2 header name contains ':',
-the keyword ``http2.header_name`` can be used.
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.response_header`` keyword.
 
-Examples::
+For HTTP/2, the header name and value get concatenated by ": " (colon and space).
+The colon and space are commonly noted with the hexadecimal format `|3a 20|`
+within signatures.
 
-  http.response_header; content:"server: nghttp2";
-  http.response_header; content:"custom-header: I love::colons";
+To detect if an HTTP/2 header name contains a ":" (colon), the keyword
+:ref:`http2.header_name` can be used.
 
-``http.response_header`` is a 'sticky buffer'.
+Example HTTP Response::
 
-``http.response_header`` can be used as ``fast_pattern``.
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Server: nginx/0.8.54
+  Location: suricata.io
+
+.. container:: example-rule
+
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP Response Example"; \
+  flow:established,to_client; :example-rule-options:`http.response_header; \
+  content:"Location|3a 20|suricata.io";` classtype:bad-unknown; sid:127; rev:1;)
 
 .. _file.data:
 
