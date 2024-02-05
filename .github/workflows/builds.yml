@@ -291,15 +291,22 @@ jobs:
           test -e /usr/local/lib/suricata/python/suricata/update/configs/modify.conf
           test -e /usr/local/lib/suricata/python/suricata/update/configs/threshold.in
           test -e /usr/local/lib/suricata/python/suricata/update/configs/update.yaml
-      - name: Build C json filetype plugin
+
+      - name: Test library build in tree
+        working-directory: examples/lib/simple
+        run: make clean all
+
+      - name: Test plugin build in tree
         working-directory: examples/plugins/c-json-filetype
-        run: make
-      - name: Check C json filetype plugin
-        run: test -e examples/plugins/c-json-filetype/filetype.so
-      - name: Installing headers and library
-        run: |
-          make install-headers
-          make install-library
+        run: make clean all
+
+      - name: Install Suricata and library
+        run: make install install-headers install-library
+
+      - name: Test library build out of tree
+        working-directory: examples/lib/simple
+        run: PATH=/usr/local/bin:$PATH make -f Makefile.example clean all
+
       - name: Cleaning source directory for standalone plugin test.
         run: make clean
       - name: Test plugin against installed headers
@@ -312,7 +319,7 @@ jobs:
           sed -i 's/^CPPFLAGS.*HAVE_CONFIG_H//' Makefile
 
           # And build.
-          PATH=/usr/local/bin:$PATH make
+          PATH=/usr/local/bin:$PATH make clean all
 
   almalinux-9-templates:
     name: AlmaLinux 9 Test Templates
