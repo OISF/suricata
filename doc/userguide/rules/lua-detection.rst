@@ -15,7 +15,8 @@ Syntax:
 
 The script filename will be appended to your default rules location.
 
-The script has 2 parts, an init function and a match function. First, the init.
+The script has 2 parts, an init function and a match function. First, the init.  
+Additionally, the script will run in a limited sandbox by default.
 
 Init function
 -------------
@@ -99,6 +100,29 @@ Entire script:
   end
 
   return 0
+
+Sandbox and Available functions
+-------------------------------
+
+By default, the maximum memory and lua instruction count per execution of a detection rule will be limited.  Additionally,
+The following libraries and functions are blocked:
+* package
+* coroutine
+* io
+* os
+* collectgarbage
+* dofile
+* getmetatable
+* loadfile
+* load
+* pcall
+* setmetatable
+* xpcall
+* string.rep
+
+This behavior can be modified via the ``security.lua`` section of :ref:`suricata-yaml-lua-config`
+
+.. note:: Suricata 8.0 has moved to Lua 5.4 and has builtin support for bitwise and utf8 operations now.
 
 A comprehensive list of existing lua functions -  with examples - can be found at :ref:`lua-functions` (some of them, however,
 work only for the lua-output functionality).
