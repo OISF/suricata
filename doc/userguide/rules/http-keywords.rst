@@ -1163,34 +1163,39 @@ file.data
 ---------
 
 With ``file.data``, the HTTP response body is inspected, just like
-with ``http.response_body``. The ``file.data`` keyword is a sticky buffer.
-``file.data`` also works for HTTP request body and can be used in other
-protocols than HTTP1.
+with ``http.response_body``. ``file.data`` also works for HTTP request
+body and can be used in protocols other than HTTP.
 
-Example::
+It is possible to use any of the :doc:`payload-keywords` with the
+``file.data`` keyword.
 
-  alert http any any -> any any (file.data; content:"abc"; content:"xyz";)
+Example HTTP Response::
 
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Server: nginx/0.8.54
 
-The ``file.data`` keyword affects all following content matches, until
-the ``pkt_data`` keyword is encountered or it reaches the end of the
-rule. This makes it a useful shortcut for applying many content
-matches to the HTTP response body, eliminating the need to modify each
-content match individually.
+  Server response body
 
-As the body of a HTTP response can be very large, it is inspected in
-smaller chunks.
+.. container:: example-rule
+
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP file.data Example"; \
+  flow:established,to_client; :example-rule-options:`file.data; \
+  content:"Server response body";` classtype:bad-unknown; sid:128; rev:1;)
+
+The body of an HTTP responses can be very large, therefore the response body is
+inspected in definable chunks.
 
 How much of the response/server body is inspected is controlled
-in your :ref:`libhtp configuration section
+in the :ref:`libhtp configuration section
 <suricata-yaml-configure-libhtp>` via the ``response-body-limit``
 setting.
 
-If the HTTP body is a flash file compressed with 'deflate' or 'lzma',
-it can be decompressed and ``file.data`` can match on the decompress data.
-Flash decompression must be enabled under ``libhtp`` configuration:
+.. note:: If the HTTP body is a flash file compressed with 'deflate' or 'lzma',
+  it can be decompressed and ``file.data`` can match on the decompressed data.
+  Flash decompression must be enabled under 'libhtp' configuration:
 
-::
+  ::
 
     # Decompress SWF files.
     # 2 types: 'deflate', 'lzma', 'both' will decompress deflate and lzma
@@ -1206,29 +1211,25 @@ Flash decompression must be enabled under ``libhtp`` configuration:
       compress-depth: 0
       decompress-depth: 0
 
-Notes
-~~~~~
+.. note:: ``file.data`` replaces the previous keyword name, ``file_data``.
+  ``file_data`` can still be used but it is recommended that rules be converted
+  to use ``file.data``.
 
--  file.data is the preferred notation, however, file_data is still
-   recognized by the engine and works as well.
+.. note:: If an HTTP body is using gzip or deflate, ``file.data`` will match on
+  the decompressed data.
 
--  If a HTTP body is using gzip or deflate, ``file.data`` will match
-   on the decompressed data.
-
--  Negated matching is affected by the chunked inspection. E.g.
+.. note:: Negated matching is affected by the chunked inspection. E.g.
    'content:!"<html";' could not match on the first chunk, but would
    then possibly match on the 2nd. To avoid this, use a depth setting.
-   The depth setting takes the body size into account.
-   Assuming that the ``response-body-minimal-inspect-size`` is bigger
-   than 1k, 'content:!"<html"; depth:1024;' can only match if the
-   pattern '<html' is absent from the first inspected chunk.
+   The depth setting takes the body size into account. Assuming that
+   the ``response-body-minimal-inspect-size`` is bigger than 1k,
+   'content:!"<html"; depth:1024;' can only match if the pattern '<html'
+   is absent from the first inspected chunk.
 
--  Refer to :doc:`file-keywords` for additional information.
+.. note:: Additional information can be found at :doc:`file-keywords`
 
-Multiple Buffer Matching
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-``file.data`` supports multiple buffer matching, see :doc:`multi-buffer-matching`.
+.. note:: ``file.data`` supports multiple buffer matching, see
+  :doc:`multi-buffer-matching`.
 
 .. _file.name:
 
