@@ -102,6 +102,8 @@ Examples::
   http2.settings:SETTINGS_ENABLE_PUSH=0;
   http2.settings:SETTINGS_HEADER_TABLE_SIZE>4096;
 
+.. _http2.header_name:
+
 http2.header_name
 -----------------
 
