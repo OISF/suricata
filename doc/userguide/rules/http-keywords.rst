@@ -1099,20 +1099,32 @@ Example Duplicate Host Header Request::
 http.request_header
 -------------------
 
-Match on the name and value of a HTTP request header (HTTP1 or HTTP2).
+The ``http.request_header`` keyword is used to match on the name and value
+of a HTTP/1 or HTTP/2 request.
 
-For HTTP2, name and value get concatenated by ": ", colon and space.
-To detect if a http2 header name contains ':',
-the keyword ``http2.header_name`` can be used.
+It is possible to use any of the :doc:`payload-keywords` with the
+``http.request_header`` keyword.
 
-Examples::
+For HTTP/2, the header name and value get concatenated by ": " (colon and space).
+The colon and space are commonly noted with the hexadecimal format `|3a 20|`
+within signatures.
 
-  http.request_header; content:"agent: nghttp2";
-  http.request_header; content:"custom-header: I love::colons";
+To detect if an HTTP/2 header name contains a ":" (colon), the keyword
+:ref:`http2.header_name` can be used.
 
-``http.request_header`` is a 'sticky buffer'.
+Example HTTP/1 Request::
 
-``http.request_header`` can be used as ``fast_pattern``.
+  GET /index.html HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: suricata.io
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Request Example"; \
+  flow:established,to_server; :example-rule-options:`http.request_header; \
+  content:"Host|3a 20|suricata.io";` classtype:bad-unknown; sid:126; rev:1;)
+
+.. note:: ``http.request_header`` does not include the trailing \\r\\n
 
 .. _http.response_header:
 
