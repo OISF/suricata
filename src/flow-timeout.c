@@ -211,7 +211,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(
     }
 
     p->tcph->th_offx2 = 0x50;
-    p->tcph->th_flags |= TH_ACK;
+    p->tcph->th_flags = 0;
     p->tcph->th_win = 10;
     p->tcph->th_urp = 0;
 
