@@ -1236,11 +1236,21 @@ setting.
 file.name
 ---------
 
-The ``file.name`` keyword can be used at the HTTP application level.
+The ``file.name`` keyword can be used with HTTP requests.
 
-Example::
+It is possible to use any of the :doc:`payload-keywords` with the
+``file.name`` keyword.
 
-  alert http any any -> any any (msg:"http layer file.name keyword usage"; \
-  file.name; content:"picture.jpg"; classtype:bad-unknown; sid:1; rev:1;)
+Example HTTP Request::
 
-For additional information on the ``file.name`` keyword, see :doc:`file-keywords`.
+  GET /picture.jpg HTTP/1.1
+  User-Agent: Mozilla/5.0
+  Host: suricata.io
+
+.. container:: example-rule
+
+  alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"HTTP file.name Example"; \
+  flow:established,to_client; :example-rule-options:`file.name; \
+  content:"picture.jpg";` classtype:bad-unknown; sid:129; rev:1;)
+
+.. note:: Additional information can be found at :doc:`file-keywords`
