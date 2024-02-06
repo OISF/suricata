@@ -31,7 +31,7 @@ enum ExceptionPolicy g_eps_master_switch = EXCEPTION_POLICY_NOT_SET;
 /** true if exception policy was defined in config */
 static bool g_eps_have_exception_policy = false;
 
-static const char *ExceptionPolicyEnumToString(enum ExceptionPolicy policy)
+const char *ExceptionPolicyEnumToString(enum ExceptionPolicy policy)
 {
     switch (policy) {
         case EXCEPTION_POLICY_NOT_SET:
