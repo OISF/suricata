@@ -537,7 +537,7 @@ fn http2_tx_get_resp_line(tx: &mut HTTP2Transaction) {
         return;
     }
     let empty = Vec::new();
-    let mut resp_line : Vec<u8> = Vec::new();
+    let mut resp_line: Vec<u8> = Vec::new();
 
     let status =
         if let Ok(value) = http2_frames_get_header_firstvalue(tx, Direction::ToClient, ":status") {
@@ -616,7 +616,7 @@ fn http2_lower(value: &[u8]) -> Option<Vec<u8>> {
 fn http2_normalize_host(value: &[u8]) -> &[u8] {
     match value.iter().position(|&x| x == b'@') {
         Some(i) => {
-            let value = &value[i+1..];
+            let value = &value[i + 1..];
             match value.iter().position(|&x| x == b':') {
                 Some(i) => {
                     return &value[..i];
@@ -626,16 +626,14 @@ fn http2_normalize_host(value: &[u8]) -> &[u8] {
                 }
             }
         }
-        None => {
-            match value.iter().position(|&x| x == b':') {
-                Some(i) => {
-                    return &value[..i];
-                }
-                None => {
-                    return value;
-                }
+        None => match value.iter().position(|&x| x == b':') {
+            Some(i) => {
+                return &value[..i];
             }
-        }
+            None => {
+                return value;
+            }
+        },
     }
 }
 

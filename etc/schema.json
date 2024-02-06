@@ -3707,6 +3707,9 @@
                                 "dns_udp": {
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "doh2": {
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "enip_tcp": {
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
@@ -3816,6 +3819,9 @@
                                     "type": "integer"
                                 },
                                 "dns_udp": {
+                                    "type": "integer"
+                                },
+                                "doh2": {
                                     "type": "integer"
                                 },
                                 "enip_tcp": {
@@ -3933,6 +3939,9 @@
                                     "type": "integer"
                                 },
                                 "dns_udp": {
+                                    "type": "integer"
+                                },
+                                "doh2": {
                                     "type": "integer"
                                 },
                                 "enip_tcp": {

@@ -505,7 +505,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         PACKET_PROFILING_APP_START(app_tctx, f->alproto);
         int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                 flags, data, data_len);
-        PACKET_PROFILING_APP_END(app_tctx, f->alproto);
+        PACKET_PROFILING_APP_END(app_tctx);
         p->app_update_direction = (uint8_t)dir;
         if (r != 1) {
             StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
@@ -593,7 +593,7 @@ static int TCPProtoDetect(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f,
                             f->alproto, flags,
                             data, data_len);
-                    PACKET_PROFILING_APP_END(app_tctx, f->alproto);
+                    PACKET_PROFILING_APP_END(app_tctx);
                     p->app_update_direction = (uint8_t)dir;
                     if (r != 1) {
                         StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
@@ -701,7 +701,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet
         PACKET_PROFILING_APP_START(app_tctx, f->alproto);
         r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                 flags, data, data_len);
-        PACKET_PROFILING_APP_END(app_tctx, f->alproto);
+        PACKET_PROFILING_APP_END(app_tctx);
         p->app_update_direction = (uint8_t)dir;
         /* ignore parser result for gap */
         StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
@@ -786,7 +786,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, Packet
             PACKET_PROFILING_APP_START(app_tctx, f->alproto);
             r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                                     flags, data, data_len);
-            PACKET_PROFILING_APP_END(app_tctx, f->alproto);
+            PACKET_PROFILING_APP_END(app_tctx);
             p->app_update_direction = (uint8_t)dir;
             if (r != 1) {
                 StreamTcpUpdateAppLayerProgress(ssn, direction, data_len);
@@ -911,7 +911,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
             PACKET_PROFILING_APP_START(tctx, f->alproto);
             r = AppLayerParserParse(tv, tctx->alp_tctx, f, f->alproto,
                                     flags, p->payload, p->payload_len);
-            PACKET_PROFILING_APP_END(tctx, f->alproto);
+            PACKET_PROFILING_APP_END(tctx);
             p->app_update_direction = (uint8_t)UPDATE_DIR_PACKET;
         }
         PACKET_PROFILING_APP_STORE(tctx, p);
@@ -927,7 +927,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
         PACKET_PROFILING_APP_START(tctx, f->alproto);
         r = AppLayerParserParse(tv, tctx->alp_tctx, f, f->alproto,
                 flags, p->payload, p->payload_len);
-        PACKET_PROFILING_APP_END(tctx, f->alproto);
+        PACKET_PROFILING_APP_END(tctx);
         PACKET_PROFILING_APP_STORE(tctx, p);
         p->app_update_direction = (uint8_t)UPDATE_DIR_PACKET;
     }

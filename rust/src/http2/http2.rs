@@ -25,6 +25,9 @@ use crate::conf::conf_get;
 use crate::core::*;
 use crate::filecontainer::*;
 use crate::filetracker::*;
+
+use crate::dns::dns::{dns_parse_request, dns_parse_response, DNSTransaction};
+
 use nom7::Err;
 use std;
 use std::collections::VecDeque;
@@ -33,6 +36,7 @@ use std::fmt;
 use std::io;
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
+static mut ALPROTO_DOH2: AppProto = ALPROTO_UNKNOWN;
 
 const HTTP2_DEFAULT_MAX_FRAME_SIZE: u32 = 16384;
 const HTTP2_MAX_HANDLED_FRAME_SIZE: usize = 65536;
@@ -144,6 +148,12 @@ pub struct HTTP2Transaction {
     pub escaped: Vec<Vec<u8>>,
     pub req_line: Vec<u8>,
     pub resp_line: Vec<u8>,
+
+    is_doh_response: bool,
+    // dns response buffer
+    pub doh_response_buf: Vec<u8>,
+    pub dns_request_tx: Option<DNSTransaction>,
+    pub dns_response_tx: Option<DNSTransaction>,
 }
 
 impl Transaction for HTTP2Transaction {
@@ -175,6 +185,10 @@ impl HTTP2Transaction {
             escaped: Vec::with_capacity(16),
             req_line: Vec::new(),
             resp_line: Vec::new(),
+            is_doh_response: false,
+            doh_response_buf: Vec::new(),
+            dns_request_tx: None,
+            dns_response_tx: None,
         }
     }
 
@@ -184,13 +198,13 @@ impl HTTP2Transaction {
                 if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
                     //TODO get a file container instead of NULL
                     (c.HTPFileCloseHandleRange)(
-                            sfcm.files_sbcfg,
-                            std::ptr::null_mut(),
-                            0,
-                            self.file_range,
-                            std::ptr::null_mut(),
-                            0,
-                            );
+                        sfcm.files_sbcfg,
+                        std::ptr::null_mut(),
+                        0,
+                        self.file_range,
+                        std::ptr::null_mut(),
+                        0,
+                    );
                     (c.HttpRangeFreeBlock)(self.file_range);
                     self.file_range = std::ptr::null_mut();
                 }
@@ -202,12 +216,27 @@ impl HTTP2Transaction {
         self.tx_data.set_event(event as u8);
     }
 
-    fn handle_headers(&mut self, blocks: &[parser::HTTP2FrameHeaderBlock], dir: Direction) {
+    fn handle_headers(
+        &mut self, blocks: &[parser::HTTP2FrameHeaderBlock], dir: Direction,
+    ) -> Option<Vec<u8>> {
         let mut authority = None;
+        let mut path = None;
+        let mut doh = false;
         let mut host = None;
         for block in blocks {
             if block.name == b"content-encoding" {
                 self.decoder.http2_encoding_fromvec(&block.value, dir);
+            } else if block.name == b"accept" {
+                //TODO? faster pattern matching
+                if block.value == b"application/dns-message" {
+                    doh = true;
+                }
+            } else if block.name == b"content-type" {
+                if block.value == b"application/dns-message" {
+                    self.is_doh_response = true;
+                }
+            } else if block.name == b":path" {
+                path = Some(&block.value);
             } else if block.name.eq_ignore_ascii_case(b":authority") {
                 authority = Some(&block.value);
                 if block.value.iter().any(|&x| x == b'@') {
@@ -229,6 +258,14 @@ impl HTTP2Transaction {
                 }
             }
         }
+        if doh && unsafe {ALPROTO_DOH2} != ALPROTO_UNKNOWN {
+            if let Some(p) = path {
+                if let Ok((_, dns_req)) = parser::doh_extract_request(p) {
+                    return Some(dns_req);
+                }
+            }
+        }
+        return None;
     }
 
     pub fn update_file_flags(&mut self, flow_file_flags: u16) {
@@ -237,10 +274,10 @@ impl HTTP2Transaction {
     }
 
     fn decompress<'a>(
-        &'a mut self, input: &'a [u8], dir: Direction, sfcm: &'static SuricataFileContext, over: bool, flow: *const Flow,
+        &'a mut self, input: &'a [u8], output: &'a mut Vec<u8>, dir: Direction,
+        sfcm: &'static SuricataFileContext, over: bool, flow: *const Flow,
     ) -> io::Result<()> {
-        let mut output = Vec::with_capacity(decompression::HTTP2_DECOMPRESSION_CHUNK_SIZE);
-        let decompressed = self.decoder.decompress(input, &mut output, dir)?;
+        let decompressed = self.decoder.decompress(input, output, dir)?;
         let xid: u32 = self.tx_id as u32;
         if dir == Direction::ToClient {
             self.ft_tc.tx_id = self.tx_id - 1;
@@ -256,7 +293,14 @@ impl HTTP2Transaction {
                 ) {
                     match range::http2_parse_check_content_range(&value) {
                         Ok((_, v)) => {
-                            range::http2_range_open(self, &v, flow, sfcm, Direction::ToClient, decompressed);
+                            range::http2_range_open(
+                                self,
+                                &v,
+                                flow,
+                                sfcm,
+                                Direction::ToClient,
+                                decompressed,
+                            );
                             if over && !self.file_range.is_null() {
                                 range::http2_range_close(self, Direction::ToClient, &[])
                             }
@@ -299,13 +343,21 @@ impl HTTP2Transaction {
                 &xid,
             );
         };
+        if unsafe {ALPROTO_DOH2} != ALPROTO_UNKNOWN {
+            // we store DNS response, and process it when complete
+            if self.is_doh_response && self.doh_response_buf.len() < 0xFFFF {
+                // a DNS message is U16_MAX
+                self.doh_response_buf.extend_from_slice(decompressed);
+            }
+        }
         return Ok(());
     }
 
     fn handle_frame(
         &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: Direction,
-    ) {
+    ) -> Option<Vec<u8>> {
         //handle child_stream_id changes
+        let mut r = None;
         match data {
             HTTP2FrameTypeData::PUSHPROMISE(hs) => {
                 if dir == Direction::ToClient {
@@ -315,7 +367,7 @@ impl HTTP2Transaction {
                     }
                     self.state = HTTP2TransactionState::HTTP2StateReserved;
                 }
-                self.handle_headers(&hs.blocks, dir);
+                r = self.handle_headers(&hs.blocks, dir);
             }
             HTTP2FrameTypeData::CONTINUATION(hs) => {
                 if dir == Direction::ToClient
@@ -323,13 +375,13 @@ impl HTTP2Transaction {
                 {
                     self.child_stream_id = 0;
                 }
-                self.handle_headers(&hs.blocks, dir);
+                r = self.handle_headers(&hs.blocks, dir);
             }
             HTTP2FrameTypeData::HEADERS(hs) => {
                 if dir == Direction::ToClient {
                     self.child_stream_id = 0;
                 }
-                self.handle_headers(&hs.blocks, dir);
+                r = self.handle_headers(&hs.blocks, dir);
             }
             HTTP2FrameTypeData::RSTSTREAM(_) => {
                 self.child_stream_id = 0;
@@ -376,6 +428,7 @@ impl HTTP2Transaction {
             }
             _ => {}
         }
+        return r;
     }
 }
 
@@ -589,7 +642,7 @@ impl HTTP2State {
         tx.state = HTTP2TransactionState::HTTP2StateGlobal;
         tx.tx_data.update_file_flags(self.state_data.file_flags);
         // TODO can this tx hold files?
-        tx.tx_data.file_tx = STREAM_TOSERVER|STREAM_TOCLIENT; // might hold files in both directions
+        tx.tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // might hold files in both directions
         tx.update_file_flags(tx.tx_data.file_flags);
         self.transactions.push_back(tx);
         return self.transactions.back_mut().unwrap();
@@ -650,7 +703,7 @@ impl HTTP2State {
             }
             tx.tx_data.update_file_flags(self.state_data.file_flags);
             tx.update_file_flags(tx.tx_data.file_flags);
-            tx.tx_data.file_tx = STREAM_TOSERVER|STREAM_TOCLIENT; // might hold files in both directions
+            tx.tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // might hold files in both directions
             self.transactions.push_back(tx);
             return self.transactions.back_mut().unwrap();
         }
@@ -661,9 +714,7 @@ impl HTTP2State {
         for block in blocks {
             if block.error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
                 self.set_event(HTTP2Event::InvalidHeader);
-            } else if block.error
-                == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate
-            {
+            } else if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate {
                 update = true;
                 if block.sizeupdate > sizeup {
                     sizeup = block.sizeupdate;
@@ -970,7 +1021,15 @@ impl HTTP2State {
                     );
 
                     let tx = self.find_or_create_tx(&head, &txdata, dir);
-                    tx.handle_frame(&head, &txdata, dir);
+                    if let Some(doh_req_buf) = tx.handle_frame(&head, &txdata, dir) {
+                        if let Ok(mut dtx) = dns_parse_request(&doh_req_buf) {
+                            dtx.id = 1;
+                            tx.dns_request_tx = Some(dtx);
+                            unsafe {
+                                AppLayerForceProtocolChange(flow, ALPROTO_DOH2);
+                            }
+                        }
+                    }
                     let over = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
                     let ftype = head.ftype;
                     let sid = head.stream_id;
@@ -999,16 +1058,39 @@ impl HTTP2State {
                                         tx_same.ft_ts.tx_id = tx_same.tx_id - 1;
                                     };
                                     let mut dinput = &rem[..hlsafe];
-                                    if padded && !rem.is_empty() && usize::from(rem[0]) < hlsafe{
+                                    if padded && !rem.is_empty() && usize::from(rem[0]) < hlsafe {
                                         dinput = &rem[1..hlsafe - usize::from(rem[0])];
                                     }
-                                    if tx_same.decompress(
+                                    let mut output = Vec::with_capacity(
+                                        decompression::HTTP2_DECOMPRESSION_CHUNK_SIZE,
+                                    );
+                                    match tx_same.decompress(
                                         dinput,
+                                        &mut output,
                                         dir,
                                         sfcm,
                                         over,
-                                        flow).is_err() {
-                                        self.set_event(HTTP2Event::FailedDecompression);
+                                        flow,
+                                    ) {
+                                        Ok(_) => {
+                                            if !tx_same.doh_response_buf.is_empty() && over {
+                                                if let Ok(mut dtx) =
+                                                    dns_parse_response(&tx_same.doh_response_buf)
+                                                {
+                                                    dtx.id = 1;
+                                                    tx_same.dns_response_tx = Some(dtx);
+                                                    unsafe {
+                                                        AppLayerForceProtocolChange(
+                                                            flow,
+                                                            ALPROTO_DOH2,
+                                                        );
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        _ => {
+                                            self.set_event(HTTP2Event::FailedDecompression);
+                                        }
                                     }
                                 }
                             }
@@ -1102,6 +1184,22 @@ impl HTTP2State {
 }
 
 // C exports.
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDoH2GetDnsTx(
+    tx: &HTTP2Transaction, flags: u8,
+) -> *mut std::os::raw::c_void {
+    if flags & Direction::ToServer as u8 != 0 {
+        if let Some(ref dtx) = &tx.dns_request_tx {
+            return dtx as *const _ as *mut _;
+        }
+    } else if flags & Direction::ToClient as u8 != 0 {
+        if let Some(ref dtx) = &tx.dns_response_tx {
+            return dtx as *const _ as *mut _;
+        }
+    }
+    std::ptr::null_mut()
+}
 
 export_tx_data_get!(rs_http2_get_tx_data, HTTP2Transaction);
 export_state_data_get!(rs_http2_get_state_data, HTTP2State);
@@ -1231,15 +1329,20 @@ pub unsafe extern "C" fn rs_http2_tx_get_alstate_progress(
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_getfiles(
-    _state: *mut std::os::raw::c_void,
-    tx: *mut std::os::raw::c_void, direction: u8,
+    _state: *mut std::os::raw::c_void, tx: *mut std::os::raw::c_void, direction: u8,
 ) -> AppLayerGetFileState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
     if let Some(sfcm) = { SURICATA_HTTP2_FILE_CONFIG } {
         if direction & STREAM_TOSERVER != 0 {
-            return AppLayerGetFileState { fc: &mut tx.ft_ts.file, cfg: sfcm.files_sbcfg }
+            return AppLayerGetFileState {
+                fc: &mut tx.ft_ts.file,
+                cfg: sfcm.files_sbcfg,
+            };
         } else {
-            return AppLayerGetFileState { fc: &mut tx.ft_tc.file, cfg: sfcm.files_sbcfg }
+            return AppLayerGetFileState {
+                fc: &mut tx.ft_tc.file,
+                cfg: sfcm.files_sbcfg,
+            };
         }
     }
     AppLayerGetFileState::err()
@@ -1251,7 +1354,7 @@ const PARSER_NAME: &[u8] = b"http2\0";
 #[no_mangle]
 pub unsafe extern "C" fn rs_http2_register_parser() {
     let default_port = CString::new("[80]").unwrap();
-    let parser = RustParser {
+    let mut parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
         ipproto: IPPROTO_TCP,
@@ -1309,5 +1412,22 @@ pub unsafe extern "C" fn rs_http2_register_parser() {
         SCLogDebug!("Rust http2 parser registered.");
     } else {
         SCLogNotice!("Protocol detector and parser disabled for HTTP2.");
+    }
+
+    // doh2 is just http2 wrapped in another name
+    parser.name = b"doh2\0".as_ptr() as *const std::os::raw::c_char;
+    parser.probe_tc = None;
+    parser.default_port = std::ptr::null();
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        ALPROTO_DOH2 = alproto;
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+            let _ = AppLayerRegisterParser(&parser, alproto);
+        } else {
+            SCLogWarning!("DOH2 is not meant to be detection-only.");
+        }
+        SCLogDebug!("Rust doh2 parser registered.");
+    } else {
+        SCLogNotice!("Protocol detector and parser disabled for DOH2.");
     }
 }
