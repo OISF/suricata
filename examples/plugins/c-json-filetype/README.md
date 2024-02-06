@@ -2,15 +2,8 @@
 
 ## Building
 
-If in the Suricata source directory, this plugin can be built by
-running `make` and installed with `make install`.
-
-Note that Suricata must have been built without `--disable-shared`.
-
-## Building Standalone
-
-The file `Makefile.example` is an example of how you might build a
-plugin that is distributed separately from the Suricata source code.
+A `Makefile` is generated for you, however it still requires that the
+Suricata library and header files are installed.
 
 It has the following dependencies:
 
@@ -19,8 +12,6 @@ It has the following dependencies:
 - The Suricata development headers are installed: `make install-headers`
 - The program `libsuricata-config` is in your path (installed with
   `make install-library`)
-
-The run: `make -f Makefile.example`
 
 Before building this plugin you will need to build and install Suricata from the
 git master branch and install the development tools and headers:

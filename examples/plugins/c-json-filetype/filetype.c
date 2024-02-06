@@ -15,10 +15,10 @@
  * 02110-1301, USA.
  */
 
-#include "suricata-common.h"
-#include "suricata-plugin.h"
-#include "util-mem.h"
-#include "util-debug.h"
+#include "libsuricata/suricata-common.h"
+#include "libsuricata/suricata-plugin.h"
+#include "libsuricata/util-mem.h"
+#include "libsuricata/util-debug.h"
 
 #define FILETYPE_NAME "json-filetype-plugin"
 

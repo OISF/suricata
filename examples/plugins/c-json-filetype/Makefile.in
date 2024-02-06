@@ -1,0 +1,31 @@
+SRCS :=		filetype.c
+
+# If not building from the Suricata source directory, this is likely
+# what you want.
+#
+#LIBSURICATA_CONFIG ?= @CONFIGURE_PREFIX@/bin/libsuricata-config
+
+# But for the purposes of this example, we'll setup for building from
+# the source tree.
+LIBSURICATA_CONFIG ?= sh ../../../libsuricata-config
+CPPFLAGS +=	-I../../..
+
+CPPFLAGS +=	`$(LIBSURICATA_CONFIG) --cflags`
+CPPFLAGS +=	-DSURICATA_PLUGIN -I.
+CPPFLAGS +=	"-D__SCFILENAME__=\"$(*F)\""
+
+OBJS :=		$(SRCS:.c=.o)
+
+all: Makefile filetype.so
+
+filetype.so: $(OBJS)
+	$(CC) -fPIC -shared -o $@ $(OBJS)
+
+%.o: %.c
+	$(CC) -fPIC $(CPPFLAGS) -c -o $@ $<
+
+clean:
+	rm -f *.o *.so *~
+
+Makefile: Makefile.in
+	../../../config.status $@
