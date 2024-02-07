@@ -8,20 +8,16 @@ jobs:
     name: New Author Check
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
       - run: sudo apt -y install git
-      - run: git clone https://github.com/${{ github.repository }}
-      - run: git remote add author ${{ github.event.pull_request.head.repo.html_url }}
-        working-directory: suricata
-      - run: git fetch author
-        working-directory: suricata
-      - run: git checkout author/${{ github.event.pull_request.head.ref }}
-        working-directory: suricata
       - name: Export known authors from master branch
-        run: git log --format="%an <%ae>" origin/master | sort | uniq > ../authors.txt
-        working-directory: suricata
+        run: git log --format="%an <%ae>" origin/master | sort | uniq > authors.txt
       - name: Export authors from new commits
-        run: git log --format="%an <%ae>" origin/${GITHUB_BASE_REF}... | sort | uniq > ../commit-authors.txt
-        working-directory: suricata
+        run: git log --format="%an <%ae>" origin/${GITHUB_BASE_REF}... | sort | uniq > commit-authors.txt
       - name: Check new authors
         run: |
           touch new-authors.txt
