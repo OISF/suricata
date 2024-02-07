@@ -76,7 +76,7 @@ typedef struct TcpSegment {
     RB_ENTRY(TcpSegment) rb;
     StreamingBufferSegment sbseg;
     TcpSegmentPcapHdrStorage *pcap_hdr_storage;
-} __attribute__((__packed__)) TcpSegment;
+} TcpSegment;
 
 /** \brief compare function for the Segment tree
  *

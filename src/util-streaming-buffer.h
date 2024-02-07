@@ -97,7 +97,7 @@ typedef struct StreamingBufferBlock {
     uint64_t offset;
     RB_ENTRY(StreamingBufferBlock) rb;
     uint32_t len;
-} __attribute__((__packed__)) StreamingBufferBlock;
+} StreamingBufferBlock;
 
 int SBBCompare(struct StreamingBufferBlock *a, struct StreamingBufferBlock *b);
 
