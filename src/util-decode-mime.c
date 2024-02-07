@@ -2439,6 +2439,7 @@ MimeDecParseState * MimeDecInitParser(void *data,
     PushStack(state->stack);
     if (state->stack->top == NULL) {
         SCFree(state->stack);
+        SCFree(state->msg);
         SCFree(state);
         return NULL;
     }
