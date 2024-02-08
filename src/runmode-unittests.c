@@ -114,6 +114,8 @@
 #include "decode-vntag.h"
 #include "decode-vxlan.h"
 
+#include "output-json-stats.h"
+
 #ifdef OS_WIN32
 #include "win32-syscall.h"
 #endif
@@ -215,6 +217,7 @@ static void RegisterUnittests(void)
 #endif
     SCProtoNameRegisterTests();
     UtilCIDRTests();
+    OutputJsonStatsRegisterTests();
 }
 #endif
 

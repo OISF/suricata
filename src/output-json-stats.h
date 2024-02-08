@@ -35,4 +35,6 @@ TmEcode OutputEngineStatsReloadTime(json_t **jdata);
 TmEcode OutputEngineStatsRuleset(json_t **jdata);
 void JsonStatsLogRegister(void);
 
+void OutputJsonStatsRegisterTests(void);
+
 #endif /* __OUTPUT_JSON_COUNTERS_H__ */
