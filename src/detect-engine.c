@@ -234,6 +234,10 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
         SCLogError("Invalid arguments: must register "
                    "GetData with DetectEngineInspectBufferGeneric");
         BUG_ON(1);
+    } else if (Callback == DetectEngineInspectMultiBufferGeneric && GetData == NULL) {
+        SCLogError("Invalid arguments: must register "
+                   "GetData with DetectEngineInspectMultiBufferGeneric");
+        BUG_ON(1);
     }
 
     uint8_t direction;
@@ -2209,6 +2213,45 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
         return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH :
                      DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
+}
+
+// wrapper for both DetectAppLayerInspectEngineRegister and DetectAppLayerMpmRegister
+// with cast of callback function
+void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, int progress,
+        InspectionMultiBufferGetDataPtr GetData, int priority, int tx_min_progress)
+{
+    DetectAppLayerInspectEngineRegister(name, alproto, dir, progress,
+            DetectEngineInspectMultiBufferGeneric, (InspectionBufferGetDataPtr)GetData);
+    DetectAppLayerMpmRegister(name, dir, priority, PrefilterMultiGenericMpmRegister,
+            (InspectionBufferGetDataPtr)GetData, alproto, tx_min_progress);
+}
+
+uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+{
+    uint32_t local_id = 0;
+    const DetectEngineTransforms *transforms = NULL;
+    if (!engine->mpm) {
+        transforms = engine->v2.transforms;
+    }
+
+    while (1) {
+        InspectionBuffer *buffer = ((InspectionMultiBufferGetDataPtr)engine->v2.GetData)(
+                det_ctx, transforms, f, flags, txv, engine->sm_list, local_id);
+
+        if (buffer == NULL || buffer->inspect == NULL)
+            break;
+
+        const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
+                buffer->inspect, buffer->inspect_len, buffer->inspect_offset,
+                DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+        if (match) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
+        local_id++;
+    }
+    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
 /**
