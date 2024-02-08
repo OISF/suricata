@@ -600,6 +600,11 @@ typedef struct HttpMultiBufHeaderThreadData {
 static void *HttpMultiBufHeaderThreadDataInit(void *data)
 {
     HttpMultiBufHeaderThreadData *td = SCCalloc(1, sizeof(*td));
+
+    /* This return value check to satisfy our Cocci malloc checks. */
+    if (td == NULL) {
+        return NULL;
+    }
     return td;
 }
 
