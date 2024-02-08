@@ -1,3 +1,26 @@
+6.0.16 -- 2024-02-08
+
+Security #6751: http2: evasion by splitting header fields over frames (6.0.x backport)
+Security #6660: http2: quadratic complexity in find_or_create_tx not bounded by max-tx (6.0.x backport)
+Security #6659: SMTP: quadratic complexity from unbounded number of transaction per flow (6.0.x backport)
+Security #6658: http1: configurable limit for maximum number of live transactions per flow (6.0.x backport)
+Security #6528: http1: quadratic complexity from infinite folded headers (6.0.x backport)
+Bug #6598: ebpf: llc detection failure (6.0.x backport)
+Bug #6549: multi-tenancy: ASAN error on engine analysis
+Bug #6529: http.header, http.header.raw and http.request_header buffers not populated when malformed header value exists (6.0.x backport)
+Bug #6437: host: ip rep prevents tag/threshold/hostbits cleanup (6.0.x backport)
+Bug #6421: dns/eve: an empty format section results in no response details being logged (6.0.x backport)
+Bug #6378: byte_jump with negative post_offset value fails at the end of the buffer (6.0.x backport)
+Feature #6602: ci: add eBPF to Github workflow for Suricata 6.0.x
+Feature #6430: HTTP/2 - app-layer-event and normalization when userinfo is in the :authority pseudo header for the http.host header (6.0.x backport)
+Feature #6429: HTTP/2 - new app-layer-event when `:authority` and `host` headers do not match (6.0.x backport)
+Task #6563: doc: document file.data (6.0.x backport)
+Task #6517: libhtp 0.5.46 (6.0.x backport)
+Documentation #6630: Fix byte_test examples (6.0.x backport)
+Documentation #6512: userguide: update tls eve-log fields 'not_before' and 'not_after' (6.0.x backport)
+Documentation #6505: userguide: update tls eve-log fields 'not_before' and 'not_after' (6.0.x backport)
+Documentation #5988: doc: update build instructions (6.0.x backport)
+
 6.0.15 -- 2023-10-18
 
 Security #6363: mime: quadratic complexity in MimeDecAddEntity (6.0.x backport)
