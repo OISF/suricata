@@ -52,7 +52,7 @@ fn fuid_to_string(fuid: &Vec<u8>) -> String {
     }
 }
 
-fn guid_to_string(guid: &Vec<u8>) -> String {
+fn guid_to_string(guid: &[u8]) -> String {
     if guid.len() == 16 {
         let output = format!("{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
                 guid[3],  guid[2],  guid[1],  guid[0],
