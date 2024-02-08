@@ -1281,7 +1281,8 @@ EXTRA_DIST = \
 	tests/detect-tls-version.c \
 	tests/detect-ipaddr.c \
 	tests/detect.c \
-	tests/stream-tcp.c
+	tests/stream-tcp.c \
+	tests/output-json-stats.c
 
 install-headers:
 	mkdir -p $(DESTDIR)${includedir}/suricata

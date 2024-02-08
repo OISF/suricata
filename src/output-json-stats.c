@@ -483,3 +483,7 @@ void JsonStatsLogRegister(void) {
         "eve-log.stats", OutputStatsLogInitSub, JsonStatsLogger,
         JsonStatsLogThreadInit, JsonStatsLogThreadDeinit, NULL);
 }
+
+#ifdef UNITTESTS
+#include "tests/output-json-stats.c"
+#endif
