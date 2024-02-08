@@ -663,10 +663,11 @@ static InspectionBuffer *GetHttp1HeaderData(DetectEngineThreadCtx *det_ctx, cons
             size_t size = size1 + size2 + 2;
             if (hdr_td->items[i].len < size) {
                 // Use realloc, as this pointer is not freed until HttpMultiBufHeaderThreadDataFree
-                hdr_td->items[i].buffer = SCRealloc(hdr_td->items[i].buffer, size);
-                if (unlikely(hdr_td->items[i].buffer == NULL)) {
+                void *tmp = SCRealloc(hdr_td->items[i].buffer, size);
+                if (unlikely(tmp == NULL)) {
                     return NULL;
                 }
+                hdr_td->items[i].buffer = tmp;
             }
             memcpy(hdr_td->items[i].buffer, bstr_ptr(h->name), size1);
             hdr_td->items[i].buffer[size1] = ':';
