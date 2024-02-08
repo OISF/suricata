@@ -52,6 +52,7 @@
 #include "detect-base64-data.h"
 #include "detect-dataset.h"
 #include "detect-datarep.h"
+#include "detect-file-hash-common.h"
 
 #include "util-spm.h"
 #include "util-debug.h"
@@ -769,6 +770,7 @@ bool DetectContentInspectionMatchOnAbsentBuffer(const SigMatchData *smd)
         DetectPcreData *pe;
         DetectIsdataatData *ida;
         DetectBytetestData *btd;
+        DetectFileHashData *fh;
         switch (smd->type) {
             case DETECT_CONTENT:
                 cd = (DetectContentData *)smd->ctx;
@@ -814,13 +816,29 @@ bool DetectContentInspectionMatchOnAbsentBuffer(const SigMatchData *smd)
             case DETECT_BYTE_EXTRACT:
                 // fallthrough
             case DETECT_BYTEJUMP:
+                // fallthrough
+                match_on_null = false;
+                break;
+                // also file keywords that are not on content
+            case DETECT_FILESHA1:
+                // fallthrough
+            case DETECT_FILESHA256:
+                // fallthrough
+            case DETECT_FILEMD5:
+                fh = (DetectFileHashData *)smd->ctx;
+                if (!fh->negated) {
+                    match_on_null = false;
+                }
+                break;
+            case DETECT_FILESIZE:
+                // fallthrough
+            case DETECT_FILESTORE:
                 // no negation, no match
                 match_on_null = false;
                 break;
             default:
-                // unreachable as list is meant to be exhaustive
-                SCLogDebug("sm->type %u", smd->type);
-                DEBUG_VALIDATE_BUG_ON(1);
+                match_on_null = false;
+                break;
         }
         if (smd->is_last || !match_on_null) {
             break;

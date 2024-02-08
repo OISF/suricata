@@ -564,6 +564,7 @@ static void AppendFrameInspectEngine(DetectEngineCtx *de_ctx,
     new_engine->sm_list = u->sm_list;
     new_engine->sm_list_base = u->sm_list_base;
     new_engine->smd = smd;
+    new_engine->match_on_null = DetectContentInspectionMatchOnAbsentBuffer(smd);
     new_engine->v1 = u->v1;
     SCLogDebug("sm_list %d new_engine->v1 %p/%p", new_engine->sm_list, new_engine->v1.Callback,
             new_engine->v1.transforms);
@@ -659,9 +660,7 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     new_engine->sm_list = t->sm_list;
     new_engine->sm_list_base = t->sm_list_base;
     new_engine->smd = smd;
-    if (t->v2.Callback == DetectEngineInspectBufferGeneric) {
-        new_engine->match_on_null = DetectContentInspectionMatchOnAbsentBuffer(smd);
-    }
+    new_engine->match_on_null = DetectContentInspectionMatchOnAbsentBuffer(smd);
     new_engine->progress = t->progress;
     new_engine->v2 = t->v2;
     SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p", new_engine->sm_list, new_engine->v2.Callback,
@@ -2222,6 +2221,13 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
         }
         local_id++;
     } while (1);
+    if (local_id == 0) {
+        const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) >
+                          engine->progress);
+        if (eof && engine->match_on_null) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
+    }
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
