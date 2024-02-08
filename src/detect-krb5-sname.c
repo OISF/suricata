@@ -38,11 +38,6 @@
 
 static int g_krb5_sname_buffer_id = 0;
 
-struct Krb5PrincipalNameDataArgs {
-    uint32_t local_id; /**< used as index into thread inspect array */
-    void *txv;
-};
-
 static int DetectKrb5SNameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     if (DetectBufferSetActiveList(de_ctx, s, g_krb5_sname_buffer_id) < 0)
@@ -55,13 +50,12 @@ static int DetectKrb5SNameSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
 }
 
 static InspectionBuffer *GetKrb5SNameData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *_f,
-        const struct Krb5PrincipalNameDataArgs *cbdata, int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flags, void *txv,
+        int list_id, uint32_t local_id)
 {
     SCEnter();
 
-    InspectionBuffer *buffer =
-            InspectionBufferMultipleForListGet(det_ctx, list_id, cbdata->local_id);
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_id);
     if (buffer == NULL)
         return NULL;
     if (buffer->initialized)
@@ -70,7 +64,7 @@ static InspectionBuffer *GetKrb5SNameData(DetectEngineThreadCtx *det_ctx,
     uint32_t b_len = 0;
     const uint8_t *b = NULL;
 
-    if (rs_krb5_tx_get_sname(cbdata->txv, cbdata->local_id, &b, &b_len) != 1) {
+    if (rs_krb5_tx_get_sname(txv, local_id, &b, &b_len) != 1) {
         InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
@@ -85,98 +79,6 @@ static InspectionBuffer *GetKrb5SNameData(DetectEngineThreadCtx *det_ctx,
     SCReturnPtr(buffer, "InspectionBuffer");
 }
 
-static uint8_t DetectEngineInspectKrb5SName(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
-        void *alstate, void *txv, uint64_t tx_id)
-{
-    uint32_t local_id = 0;
-
-    const DetectEngineTransforms *transforms = NULL;
-    if (!engine->mpm) {
-        transforms = engine->v2.transforms;
-    }
-
-    while (1) {
-        struct Krb5PrincipalNameDataArgs cbdata = { local_id, txv, };
-        InspectionBuffer *buffer =
-                GetKrb5SNameData(det_ctx, transforms, f, &cbdata, engine->sm_list);
-        if (buffer == NULL || buffer->inspect == NULL)
-            break;
-
-        const bool match = DetectEngineContentInspectionBuffer(de_ctx, det_ctx, s, engine->smd,
-                NULL, f, buffer, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-        if (match) {
-            return DETECT_ENGINE_INSPECT_SIG_MATCH;
-        }
-        local_id++;
-    }
-
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-}
-
-typedef struct PrefilterMpmKrb5Name {
-    int list_id;
-    const MpmCtx *mpm_ctx;
-    const DetectEngineTransforms *transforms;
-} PrefilterMpmKrb5Name;
-
-/** \brief Krb5SName Krb5SName Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxKrb5SName(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
-        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
-{
-    SCEnter();
-
-    const PrefilterMpmKrb5Name *ctx = (const PrefilterMpmKrb5Name *)pectx;
-    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
-    const int list_id = ctx->list_id;
-
-    uint32_t local_id = 0;
-
-    while(1) {
-        // loop until we get a NULL
-
-        struct Krb5PrincipalNameDataArgs cbdata = { local_id, txv };
-        InspectionBuffer *buffer = GetKrb5SNameData(det_ctx, ctx->transforms, f, &cbdata, list_id);
-        if (buffer == NULL)
-            break;
-
-        if (buffer->inspect_len >= mpm_ctx->minlen) {
-            (void)mpm_table[mpm_ctx->mpm_type].Search(
-                    mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, buffer->inspect, buffer->inspect_len);
-            PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
-        }
-
-        local_id++;
-    }
-}
-
-static void PrefilterMpmKrb5NameFree(void *ptr)
-{
-    SCFree(ptr);
-}
-
-static int PrefilterMpmKrb5SNameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
-{
-    PrefilterMpmKrb5Name *pectx = SCCalloc(1, sizeof(*pectx));
-    if (pectx == NULL)
-        return -1;
-    pectx->list_id = list_id;
-    pectx->mpm_ctx = mpm_ctx;
-    pectx->transforms = &mpm_reg->transforms;
-
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxKrb5SName,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-            pectx, PrefilterMpmKrb5NameFree, mpm_reg->name);
-}
-
 void DetectKrb5SNameRegister(void)
 {
     sigmatch_table[DETECT_AL_KRB5_SNAME].name = "krb5.sname";
@@ -186,11 +88,8 @@ void DetectKrb5SNameRegister(void)
     sigmatch_table[DETECT_AL_KRB5_SNAME].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
     sigmatch_table[DETECT_AL_KRB5_SNAME].desc = "sticky buffer to match on Kerberos 5 server name";
 
-    DetectAppLayerMpmRegister("krb5_sname", SIG_FLAG_TOCLIENT, 2, PrefilterMpmKrb5SNameRegister,
-            NULL, ALPROTO_KRB5, 1);
-
-    DetectAppLayerInspectEngineRegister(
-            "krb5_sname", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectKrb5SName, NULL);
+    DetectAppLayerMultiRegister(
+            "krb5_sname", ALPROTO_KRB5, SIG_FLAG_TOCLIENT, 0, GetKrb5SNameData, 2, 1);
 
     DetectBufferTypeSetDescriptionByName("krb5_sname",
             "Kerberos 5 ticket server name");

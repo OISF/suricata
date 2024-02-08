@@ -166,8 +166,9 @@ void DetectPktInspectEngineRegister(const char *name,
 /** \brief register inspect engine at start up time
  *
  *  \note errors are fatal */
-void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData)
+static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alproto, uint32_t dir,
+        int progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData,
+        InspectionMultiBufferGetDataPtr GetMultiData)
 {
     BUG_ON(progress >= 48);
 
@@ -186,6 +187,10 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
     } else if (Callback == DetectEngineInspectBufferGeneric && GetData == NULL) {
         SCLogError("Invalid arguments: must register "
                    "GetData with DetectEngineInspectBufferGeneric");
+        BUG_ON(1);
+    } else if (Callback == DetectEngineInspectMultiBufferGeneric && GetMultiData == NULL) {
+        SCLogError("Invalid arguments: must register "
+                   "GetData with DetectEngineInspectMultiBufferGeneric");
         BUG_ON(1);
     }
 
@@ -207,7 +212,11 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
     new_engine->sm_list_base = (uint16_t)sm_list;
     new_engine->progress = (int16_t)progress;
     new_engine->v2.Callback = Callback;
-    new_engine->v2.GetData = GetData;
+    if (Callback == DetectEngineInspectBufferGeneric) {
+        new_engine->v2.GetData = GetData;
+    } else if (Callback == DetectEngineInspectMultiBufferGeneric) {
+        new_engine->v2.GetMultiData = GetMultiData;
+    }
 
     if (g_app_inspect_engines == NULL) {
         g_app_inspect_engines = new_engine;
@@ -219,6 +228,12 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
 
         t->next = new_engine;
     }
+}
+
+void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
+        int progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData)
+{
+    AppLayerInspectEngineRegisterInternal(name, alproto, dir, progress, Callback, GetData, NULL);
 }
 
 /* copy an inspect engine with transforms to a new list id. */
@@ -2162,6 +2177,45 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
         return eof ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH :
                      DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
+}
+
+// wrapper for both DetectAppLayerInspectEngineRegister and DetectAppLayerMpmRegister
+// with cast of callback function
+void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, int progress,
+        InspectionMultiBufferGetDataPtr GetData, int priority, int tx_min_progress)
+{
+    AppLayerInspectEngineRegisterInternal(
+            name, alproto, dir, progress, DetectEngineInspectMultiBufferGeneric, NULL, GetData);
+    DetectAppLayerMpmMultiRegister(name, dir, priority, PrefilterMultiGenericMpmRegister, GetData,
+            alproto, tx_min_progress);
+}
+
+uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
+        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+{
+    uint32_t local_id = 0;
+    const DetectEngineTransforms *transforms = NULL;
+    if (!engine->mpm) {
+        transforms = engine->v2.transforms;
+    }
+
+    do {
+        InspectionBuffer *buffer = engine->v2.GetMultiData(
+                det_ctx, transforms, f, flags, txv, engine->sm_list, local_id);
+
+        if (buffer == NULL || buffer->inspect == NULL)
+            break;
+
+        // With DETECT_CI_FLAGS_SINGLE, this is not meant for streaming buffers
+        const bool match = DetectEngineContentInspectionBuffer(de_ctx, det_ctx, s, engine->smd,
+                NULL, f, buffer, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
+        if (match) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
+        local_id++;
+    } while (1);
+    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
 /**
