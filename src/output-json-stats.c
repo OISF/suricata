@@ -205,6 +205,51 @@ static json_t *OutputStats2Json(json_t *js, const char *key)
     return value;
 }
 
+#ifdef UNITTESTS
+static int OutputJsonStatsTest01(void)
+{
+    StatsRecord global_records[] = { { 0 }, { 0 } };
+    StatsRecord thread_records[2];
+    thread_records[0].name = "capture.kernel_packets";
+    thread_records[0].short_name = "kernel_packets";
+    thread_records[0].tm_name = "W#01-bond0.30";
+    thread_records[0].value = 42;
+    thread_records[1].name = "capture.kernel_drops";
+    thread_records[1].short_name = "kernel_drops";
+    thread_records[1].tm_name = "W#01-bond0.30";
+    thread_records[1].value = 4711;
+
+    StatsTable table = {
+        .nstats = 2,
+        .stats = &global_records[0],
+        .ntstats = 1,
+        .tstats = &thread_records[0],
+    };
+
+    json_t *r = StatsToJSON(&table, JSON_STATS_TOTALS | JSON_STATS_THREADS);
+    if (!r)
+        return 0;
+
+    // Remove variable content
+    json_object_del(r, "uptime");
+
+    char *serialized = json_dumps(r, 0);
+
+    // Cheesy comparison
+    const char *expected = "{\"threads\": {\"W#01-bond0.30\": {\"capture\": {\"kernel_packets\": "
+                           "42, \"kernel_drops\": 4711}}}}";
+
+    int cmp_result = strcmp(expected, serialized);
+    if (cmp_result != 0)
+        printf("unexpected result\nexpected=%s\ngot=%s\n", expected, serialized);
+
+    free(serialized);
+    json_decref(r);
+
+    return cmp_result == 0;
+}
+#endif /* UNITTESTS */
+
 /** \brief turn StatsTable into a json object
  *  \param flags JSON_STATS_* flags for controlling output
  */
@@ -482,4 +527,11 @@ void JsonStatsLogRegister(void) {
     OutputRegisterStatsSubModule(LOGGER_JSON_STATS, "eve-log", MODULE_NAME,
         "eve-log.stats", OutputStatsLogInitSub, JsonStatsLogger,
         JsonStatsLogThreadInit, JsonStatsLogThreadDeinit, NULL);
+}
+
+void OutputJsonStatsRegisterTests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("OutputJsonStatsTest01", OutputJsonStatsTest01);
+#endif /* UNITTESTS */
 }
