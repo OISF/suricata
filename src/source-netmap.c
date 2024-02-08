@@ -453,6 +453,7 @@ retry:
             }
         }
 
+        SCMutexUnlock(&netmap_devlist_lock);
         NetmapCloseAll();
         FatalError("opening devname %s failed: %s", devname, strerror(errno));
     }
