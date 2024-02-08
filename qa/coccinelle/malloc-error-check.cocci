@@ -58,6 +58,8 @@ FAIL_IF(x == NULL)
 FAIL_IF(unlikely(x == NULL))
 |
 FAIL_IF_NULL(x)
+|
+return x;
 )
 
 
