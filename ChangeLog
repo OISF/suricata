@@ -1,3 +1,71 @@
+7.0.3 -- 2024-02-08
+
+Security #6717: http2: evasion by splitting header fields over frames (7.0.x backport)
+Security #6657: detect: heap use after free with http.request_header keyword (7.0.x backport)
+Security #6540: http1: configurable limit for maximum number of live transactions per flow (7.0.x backport)
+Security #6539: mqtt pcap with anomalies takes too long to process (7.0.x backport)
+Security #6536: pgsql: quadratic complexity leads to over consumption of memory (7.0.x backport)
+Security #6533: http1: quadratic complexity from infinite folded headers (7.0.x backport)
+Security #6532: SMTP: quadratic complexity from unbounded number of transaction per flow (7.0.x backport)
+Security #6531: http2: quadratic complexity in find_or_create_tx not bounded by max-tx (7.0.x backport)
+Bug #6711: rules: failed rules after a skipped rule are recorded as skipped, not failed (7.0.x backport)
+Bug #6700: detect/requires: assertion failed !(ret == -4) (7.0.x backport)
+Bug #6697: dpdk: Analyze hugepage allocation on startup more thoroughly (7.0.x backport)
+Bug #6688: log-pcap: crash with suricata.yaml setting max-file to 1 (7.0.x backport)
+Bug #6665: eve/smtp: attachment filenames not logged (7.0.x backport)
+Bug #6662: content-inspect: FN on negative distance (7.0.x backport)
+Bug #6636: stats: flows with a detection-only alproto not accounted in this protocol (7.0.x backport)
+Bug #6635: Profiling takes much longer to run than it used to (7.0.x backport)
+Bug #6620: Endace: timestamp fixes (7.0.x backport)
+Bug #6616: detect/analyzer: misrepresenting negative distance value (7.0.x backport)
+Bug #6596: SCTIME_ADD_SECS() macro zeros out ts.usec part (7.0.x backport)
+Bug #6595: SCTIME_FROM_TIMESPEC() creates incorrect timestamps (7.0.x backport)
+Bug #6558: HTTP/2 - http.response_line has leading space (7.0.x backport)
+Bug #6556: Invalid registration of prefiltering in stream size (7.0.x backport)
+Bug #6535: http.header, http.header.raw and http.request_header buffers not populated when malformed header value exists (7.0.x backport)
+Bug #6521: pgsql: u16 overflow found by oss-fuzz w/ quadfuzz (7.0.x backport)
+Bug #6508: pgsql/probe: TCP on 5432 traffic incorrectly tagged as PGSQL  (7.0.x backport)
+Bug #6479: HTTP/2 - when userinfo is in the :authority pseudo header it breaks http.host
+Bug #6448: detect: flow:established,not_established considered as valid even if it can never match
+Bug #6438: eve filetype plugins: file type plugins do not de-initialize properly
+Bug #6436: host: ip rep prevents tag/threshold/hostbits cleanup
+Bug #6435: packetpool: fix single packet return logic
+Bug #6423: detect-filesize no longer supports units in value
+Bug #6420: dns/eve: an empty format section results in no response details being logged
+Bug #6294: http2/brotli: subtract with overflow found by sydr-Fuzz
+Bug #6292: Flow manager stuck forever on race condition for return stack
+Bug #6278: add a hint if user/group name is not set
+Bug #6272: dpdk: big mempool leads to an error with suricatasc unix socket
+Bug #4623: byte_jump with negative post_offset value fails at the end of the buffer
+Feature #6614: transformation - strip_pseudo_headers (7.0.x backport)
+Feature #6613: support case insensitive testing of HTTP header name existence (7.0.x backport)
+Feature #6612: New Transformation: to_lowercase (7.0.x backport)
+Feature #6524: rules: "requires" keyword representing the minimum version of suricata to support the rule (7.0.x backport)
+Feature #6507: HTTP/2 - app-layer-event and normalization when userinfo is in the :authority pseudo header for the http.host header (7.0.x backport)
+Feature #6425: HTTP/2 - new app-layer-event when `:authority` and `host` headers do not match
+Task #6606: flash decompression: update/remove deprecation warnings (7.0.x backport)
+Task #6604: pgsql: don't log password msg if password disabled (7.0.x backport)
+Task #6581: pgsql: add cancel request message (7.0.x backport)
+Task #6564: doc: document file.data (7.0.x backport)
+Task #6534: runmodes: remove reference to auto modes (7.0.x backport)
+Task #6523: libhtp 0.5.46 (7.0.x backport)
+Task #6345: Convert unittests to new FAIL/PASS API - util-misc.c
+Task #6339: Convert unittests to new FAIL/PASS API - detect-tcp-window.c
+Task #6332: Convert unittests to new FAIL/PASS API - detect-bytetest.c
+Task #6329: Convert unittests to new FAIL/PASS API - flow-bit.c
+Task #6328: Convert unittests to new FAIL/PASS API - detect-bytejump.c
+Documentation #6699: remove references in docs mentioning prehistoric Suricata versions (7.0.x backport)
+Documentation #6631: Fix byte_test examples (7.0.x backport)
+Documentation #6594: docs: fix broken bulleted list style on rtd (7.0.x backport)
+Documentation #6513: userguide: update tls eve-log fields 'not_before' and 'not_after' (7.0.x backport)
+Documentation #6511: userguide: document "tag" keyword (7.0.x backport)
+Documentation #6504: userguide: explain what flow_id is (7.0.x backport)
+Documentation #6383: misc: improve code documentation
+Documentation #6371: spelling error in the docs
+Documentation #5720: Install: Be consistent with use of the "sudo"
+Documentation #5473: doc: upgrade guide for upgrading from 6 to 7
+Documentation #4584: Rust doc: add docstring to rust module files 
+
 7.0.2 -- 2023-10-18
 
 Security #6306: mime: quadratic complexity in MimeDecAddEntity
