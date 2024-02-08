@@ -763,6 +763,59 @@ int PrefilterGenericMpmRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmC
     return r;
 }
 
+static void PrefilterMultiGenericMpmFree(void *ptr)
+{
+    // PrefilterMpmListId
+    SCFree(ptr);
+}
+
+static void PrefilterMultiMpm(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f,
+        void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
+{
+    SCEnter();
+
+    const PrefilterMpmListId *ctx = (const PrefilterMpmListId *)pectx;
+    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
+    SCLogDebug("running on list %d", ctx->list_id);
+    uint32_t local_id = 0;
+
+    do {
+        // loop until we get a NULL
+        InspectionBuffer *buffer =
+                ctx->GetData(det_ctx, ctx->transforms, f, flags, txv, ctx->list_id, local_id);
+        if (buffer == NULL)
+            break;
+
+        if (buffer->inspect_len >= mpm_ctx->minlen) {
+            (void)mpm_table[mpm_ctx->mpm_type].Search(
+                    mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, buffer->inspect, buffer->inspect_len);
+            PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
+        }
+
+        local_id++;
+    } while (1);
+}
+
+int PrefilterMultiGenericMpmRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectBufferMpmRegistry *mpm_reg, int list_id)
+{
+    SCEnter();
+    PrefilterMpmListId *pectx = SCCalloc(1, sizeof(*pectx));
+    if (pectx == NULL)
+        return -1;
+    pectx->list_id = list_id;
+    pectx->GetData = mpm_reg->app_v2.GetMultiData;
+    pectx->mpm_ctx = mpm_ctx;
+    pectx->transforms = &mpm_reg->transforms;
+
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMultiMpm, mpm_reg->app_v2.alproto,
+            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMultiGenericMpmFree, mpm_reg->pname);
+    if (r != 0) {
+        SCFree(pectx);
+    }
+    return r;
+}
+
 /* generic mpm for pkt engines */
 
 typedef struct PrefilterMpmPktCtx {
