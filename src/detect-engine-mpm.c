@@ -86,9 +86,9 @@ static int g_mpm_list_cnt[DETECT_BUFFER_MPM_TYPE_SIZE] = { 0, 0, 0 };
  *
  *  \note to be used at start up / registration only. Errors are fatal.
  */
-void DetectAppLayerMpmRegister(const char *name, int direction, int priority,
+static void RegisterInternal(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionBufferGetDataPtr GetData,
-        AppProto alproto, int tx_min_progress)
+        InspectionMultiBufferGetDataPtr GetMultiData, AppProto alproto, int tx_min_progress)
 {
     SCLogDebug("registering %s/%d/%d/%p/%p/%u/%d", name, direction, priority,
             PrefilterRegister, GetData, alproto, tx_min_progress);
@@ -119,7 +119,11 @@ void DetectAppLayerMpmRegister(const char *name, int direction, int priority,
     am->type = DETECT_BUFFER_MPM_TYPE_APP;
 
     am->PrefilterRegisterWithListId = PrefilterRegister;
-    am->app_v2.GetData = GetData;
+    if (GetData != NULL) {
+        am->app_v2.GetData = GetData;
+    } else if (GetMultiData != NULL) {
+        am->app_v2.GetMultiData = GetMultiData;
+    }
     am->app_v2.alproto = alproto;
     am->app_v2.tx_min_progress = tx_min_progress;
 
@@ -137,6 +141,22 @@ void DetectAppLayerMpmRegister(const char *name, int direction, int priority,
     g_mpm_list_cnt[DETECT_BUFFER_MPM_TYPE_APP]++;
 
     SupportFastPatternForSigMatchList(sm_list, priority);
+}
+
+void DetectAppLayerMpmRegister(const char *name, int direction, int priority,
+        PrefilterRegisterFunc PrefilterRegister, InspectionBufferGetDataPtr GetData,
+        AppProto alproto, int tx_min_progress)
+{
+    RegisterInternal(
+            name, direction, priority, PrefilterRegister, GetData, NULL, alproto, tx_min_progress);
+}
+
+void DetectAppLayerMpmMultiRegister(const char *name, int direction, int priority,
+        PrefilterRegisterFunc PrefilterRegister, InspectionMultiBufferGetDataPtr GetData,
+        AppProto alproto, int tx_min_progress)
+{
+    RegisterInternal(
+            name, direction, priority, PrefilterRegister, NULL, GetData, alproto, tx_min_progress);
 }
 
 /** \brief copy a mpm engine from parent_id, add in transforms */

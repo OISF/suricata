@@ -59,19 +59,16 @@ static int g_mqtt_unsubscribe_topic_buffer_id = 0;
 
 static uint32_t unsubscribe_topic_match_limit = 100;
 
-struct MQTTUnsubscribeTopicGetDataArgs {
-    uint32_t local_id;
-    void *txv;
-};
-
 static InspectionBuffer *MQTTUnsubscribeTopicGetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f,
-        struct MQTTUnsubscribeTopicGetDataArgs *cbdata, int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flags, void *txv,
+        int list_id, uint32_t local_id)
 {
     SCEnter();
 
-    InspectionBuffer *buffer =
-            InspectionBufferMultipleForListGet(det_ctx, list_id, cbdata->local_id);
+    if (unsubscribe_topic_match_limit > 0 && local_id >= unsubscribe_topic_match_limit)
+        return NULL;
+
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_id);
     if (buffer == NULL)
         return NULL;
     if (buffer->initialized)
@@ -79,105 +76,15 @@ static InspectionBuffer *MQTTUnsubscribeTopicGetData(DetectEngineThreadCtx *det_
 
     const uint8_t *data;
     uint32_t data_len;
-    if (rs_mqtt_tx_get_unsubscribe_topic(cbdata->txv, cbdata->local_id, &data, &data_len) == 0) {
+    if (rs_mqtt_tx_get_unsubscribe_topic(txv, local_id, &data, &data_len) == 0) {
         InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
 
     InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    buffer->flags = DETECT_CI_FLAGS_SINGLE;
 
     SCReturnPtr(buffer, "InspectionBuffer");
-}
-
-static uint8_t DetectEngineInspectMQTTUnsubscribeTopic(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    uint32_t local_id = 0;
-
-    const DetectEngineTransforms *transforms = NULL;
-    if (!engine->mpm) {
-        transforms = engine->v2.transforms;
-    }
-
-    while ((unsubscribe_topic_match_limit == 0) || local_id < unsubscribe_topic_match_limit) {
-        struct MQTTUnsubscribeTopicGetDataArgs cbdata = { local_id, txv, };
-        InspectionBuffer *buffer =
-                MQTTUnsubscribeTopicGetData(det_ctx, transforms, f, &cbdata, engine->sm_list);
-        if (buffer == NULL || buffer->inspect == NULL)
-            break;
-
-        const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
-                buffer->inspect, buffer->inspect_len, buffer->inspect_offset,
-                DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-        if (match) {
-            return DETECT_ENGINE_INSPECT_SIG_MATCH;
-        }
-        local_id++;
-    }
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-}
-
-typedef struct PrefilterMpmMQTTUnsubscribeTopic {
-    int list_id;
-    const MpmCtx *mpm_ctx;
-    const DetectEngineTransforms *transforms;
-} PrefilterMpmMQTTUnsubscribeTopic;
-
-/** \brief MQTTUnsubscribeTopic MQTTUnsubscribeTopic Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxMQTTUnsubscribeTopic(DetectEngineThreadCtx *det_ctx, const void *pectx,
-        Packet *p, Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd,
-        const uint8_t flags)
-{
-    SCEnter();
-
-    const PrefilterMpmMQTTUnsubscribeTopic *ctx = (const PrefilterMpmMQTTUnsubscribeTopic *)pectx;
-    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
-    const int list_id = ctx->list_id;
-
-    uint32_t local_id = 0;
-    while ((unsubscribe_topic_match_limit == 0) || local_id < unsubscribe_topic_match_limit) {
-        struct MQTTUnsubscribeTopicGetDataArgs cbdata = { local_id, txv };
-        InspectionBuffer *buffer =
-                MQTTUnsubscribeTopicGetData(det_ctx, ctx->transforms, f, &cbdata, list_id);
-        if (buffer == NULL)
-            break;
-
-        if (buffer->inspect_len >= mpm_ctx->minlen) {
-            (void)mpm_table[mpm_ctx->mpm_type].Search(
-                    mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, buffer->inspect, buffer->inspect_len);
-            PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
-        }
-        local_id++;
-    }
-}
-
-static void PrefilterMpmMQTTUnsubscribeTopicFree(void *ptr)
-{
-    if (ptr != NULL)
-        SCFree(ptr);
-}
-
-static int PrefilterMpmMQTTUnsubscribeTopicRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
-{
-    PrefilterMpmMQTTUnsubscribeTopic *pectx = SCCalloc(1, sizeof(*pectx));
-    if (pectx == NULL)
-        return -1;
-    pectx->list_id = list_id;
-    pectx->mpm_ctx = mpm_ctx;
-    pectx->transforms = &mpm_reg->transforms;
-
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxMQTTUnsubscribeTopic,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-            pectx, PrefilterMpmMQTTUnsubscribeTopicFree, mpm_reg->pname);
 }
 
 /**
@@ -203,11 +110,8 @@ void DetectMQTTUnsubscribeTopicRegister (void)
                 unsubscribe_topic_match_limit);
     }
 
-    DetectAppLayerMpmRegister("mqtt.unsubscribe.topic", SIG_FLAG_TOSERVER, 1,
-            PrefilterMpmMQTTUnsubscribeTopicRegister, NULL, ALPROTO_MQTT, 1);
-
-    DetectAppLayerInspectEngineRegister("mqtt.unsubscribe.topic", ALPROTO_MQTT, SIG_FLAG_TOSERVER,
-            1, DetectEngineInspectMQTTUnsubscribeTopic, NULL);
+    DetectAppLayerMultiRegister("mqtt.unsubscribe.topic", ALPROTO_MQTT, SIG_FLAG_TOSERVER, 1,
+            MQTTUnsubscribeTopicGetData, 1, 1);
 
     DetectBufferTypeSetDescriptionByName("mqtt.unsubscribe.topic",
             "unsubscribe topic query");

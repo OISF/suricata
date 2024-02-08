@@ -41,27 +41,15 @@ typedef struct {
     char *vendor;
 } DetectIkeVendorData;
 
-struct IkeVendorGetDataArgs {
-    uint32_t local_id;
-    void *txv;
-};
-
-typedef struct PrefilterMpmIkeVendor {
-    int list_id;
-    const MpmCtx *mpm_ctx;
-    const DetectEngineTransforms *transforms;
-} PrefilterMpmIkeVendor;
-
 static int g_ike_vendor_buffer_id = 0;
 
 static InspectionBuffer *IkeVendorGetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, struct IkeVendorGetDataArgs *cbdata,
-        int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flags, void *txv,
+        int list_id, uint32_t local_id)
 {
     SCEnter();
 
-    InspectionBuffer *buffer =
-            InspectionBufferMultipleForListGet(det_ctx, list_id, cbdata->local_id);
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_id);
     if (buffer == NULL)
         return NULL;
     if (buffer->initialized)
@@ -69,101 +57,15 @@ static InspectionBuffer *IkeVendorGetData(DetectEngineThreadCtx *det_ctx,
 
     const uint8_t *data;
     uint32_t data_len;
-    if (rs_ike_tx_get_vendor(cbdata->txv, cbdata->local_id, &data, &data_len) == 0) {
+    if (rs_ike_tx_get_vendor(txv, local_id, &data, &data_len) == 0) {
         InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
 
     InspectionBufferSetupMulti(buffer, transforms, data, data_len);
+    buffer->flags = DETECT_CI_FLAGS_SINGLE;
 
     SCReturnPtr(buffer, "InspectionBuffer");
-}
-
-/** \brief IkeVendor Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxIkeVendor(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
-        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
-{
-    SCEnter();
-
-    const PrefilterMpmIkeVendor *ctx = (const PrefilterMpmIkeVendor *)pectx;
-    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
-    const int list_id = ctx->list_id;
-
-    uint32_t local_id = 0;
-    while (1) {
-        struct IkeVendorGetDataArgs cbdata = { local_id, txv };
-        InspectionBuffer *buffer = IkeVendorGetData(det_ctx, ctx->transforms, f, &cbdata, list_id);
-        if (buffer == NULL)
-            break;
-
-        if (buffer->inspect_len >= mpm_ctx->minlen) {
-            (void)mpm_table[mpm_ctx->mpm_type].Search(
-                    mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, buffer->inspect, buffer->inspect_len);
-            PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
-        }
-        local_id++;
-    }
-
-    SCReturn;
-}
-
-static void PrefilterMpmIkeVendorFree(void *ptr)
-{
-    if (ptr != NULL)
-        SCFree(ptr);
-}
-
-static int PrefilterMpmIkeVendorRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
-{
-    PrefilterMpmIkeVendor *pectx = SCCalloc(1, sizeof(*pectx));
-    if (pectx == NULL)
-        return -1;
-    pectx->list_id = list_id;
-    pectx->mpm_ctx = mpm_ctx;
-    pectx->transforms = &mpm_reg->transforms;
-
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxIkeVendor, mpm_reg->app_v2.alproto,
-            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmIkeVendorFree, mpm_reg->pname);
-}
-
-static uint8_t DetectEngineInspectIkeVendor(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
-        void *alstate, void *txv, uint64_t tx_id)
-{
-    uint32_t local_id = 0;
-
-    const DetectEngineTransforms *transforms = NULL;
-    if (!engine->mpm) {
-        transforms = engine->v2.transforms;
-    }
-
-    while (1) {
-        struct IkeVendorGetDataArgs cbdata = {
-            local_id,
-            txv,
-        };
-        InspectionBuffer *buffer =
-                IkeVendorGetData(det_ctx, transforms, f, &cbdata, engine->sm_list);
-        if (buffer == NULL || buffer->inspect == NULL)
-            break;
-
-        const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
-                buffer->inspect, buffer->inspect_len, buffer->inspect_offset,
-                DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-        if (match) {
-            return DETECT_ENGINE_INSPECT_SIG_MATCH;
-        }
-        local_id++;
-    }
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
 /**
@@ -178,11 +80,8 @@ void DetectIkeVendorRegister(void)
     sigmatch_table[DETECT_AL_IKE_VENDOR].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_IKE_VENDOR].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerMpmRegister("ike.vendor", SIG_FLAG_TOSERVER, 1, PrefilterMpmIkeVendorRegister,
-            NULL, ALPROTO_IKE, 1);
-
-    DetectAppLayerInspectEngineRegister(
-            "ike.vendor", ALPROTO_IKE, SIG_FLAG_TOSERVER, 1, DetectEngineInspectIkeVendor, NULL);
+    DetectAppLayerMultiRegister(
+            "ike.vendor", ALPROTO_IKE, SIG_FLAG_TOSERVER, 1, IkeVendorGetData, 1, 1);
 
     g_ike_vendor_buffer_id = DetectBufferTypeGetByName("ike.vendor");
 
