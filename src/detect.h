@@ -413,6 +413,9 @@ typedef InspectionBuffer *(*InspectionBufferGetDataPtr)(
         const DetectEngineTransforms *transforms,
         Flow *f, const uint8_t flow_flags,
         void *txv, const int list_id);
+typedef InspectionBuffer *(*InspectionMultiBufferGetDataPtr)(struct DetectEngineThreadCtx_ *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id, const uint32_t local_id);
 struct DetectEngineAppInspectionEngine_;
 
 typedef uint8_t (*InspectEngineFuncPtr)(struct DetectEngineCtx_ *de_ctx,
@@ -431,7 +434,10 @@ typedef struct DetectEngineAppInspectionEngine_ {
     int16_t progress;
 
     struct {
-        InspectionBufferGetDataPtr GetData;
+        union {
+            InspectionBufferGetDataPtr GetData;
+            InspectionMultiBufferGetDataPtr GetMultiData;
+        };
         InspectEngineFuncPtr Callback;
         /** pointer to the transforms in the 'DetectBuffer entry for this list */
         const DetectEngineTransforms *transforms;
@@ -691,7 +697,10 @@ typedef struct DetectBufferMpmRegistry_ {
     union {
         /* app-layer matching: use if type == DETECT_BUFFER_MPM_TYPE_APP */
         struct {
-            InspectionBufferGetDataPtr GetData;
+            union {
+                InspectionBufferGetDataPtr GetData;
+                InspectionMultiBufferGetDataPtr GetMultiData;
+            };
             AppProto alproto;
             int tx_min_progress;
         } app_v2;

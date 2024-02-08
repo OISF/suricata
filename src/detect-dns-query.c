@@ -67,19 +67,13 @@ static void DetectDnsQueryRegisterTests(void);
 #endif
 static int g_dns_query_buffer_id = 0;
 
-struct DnsQueryGetDataArgs {
-    uint32_t local_id; /**< used as index into thread inspect array */
-    void *txv;
-};
-
 static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, struct DnsQueryGetDataArgs *cbdata,
-        int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flags, void *txv,
+        int list_id, uint32_t local_id)
 {
     SCEnter();
 
-    InspectionBuffer *buffer =
-            InspectionBufferMultipleForListGet(det_ctx, list_id, cbdata->local_id);
+    InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, local_id);
     if (buffer == NULL)
         return NULL;
     if (buffer->initialized)
@@ -87,7 +81,7 @@ static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
 
     const uint8_t *data;
     uint32_t data_len;
-    if (SCDnsTxGetQueryName(cbdata->txv, false, cbdata->local_id, &data, &data_len) == 0) {
+    if (SCDnsTxGetQueryName(txv, false, local_id, &data, &data_len) == 0) {
         InspectionBufferSetupMultiEmpty(buffer);
         return NULL;
     }
@@ -95,96 +89,6 @@ static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
     buffer->flags = DETECT_CI_FLAGS_SINGLE;
 
     SCReturnPtr(buffer, "InspectionBuffer");
-}
-
-static uint8_t DetectEngineInspectDnsQuery(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,
-        void *alstate, void *txv, uint64_t tx_id)
-{
-    uint32_t local_id = 0;
-
-    const DetectEngineTransforms *transforms = NULL;
-    if (!engine->mpm) {
-        transforms = engine->v2.transforms;
-    }
-
-    while(1) {
-        struct DnsQueryGetDataArgs cbdata = { local_id, txv, };
-        InspectionBuffer *buffer =
-                DnsQueryGetData(det_ctx, transforms, f, &cbdata, engine->sm_list);
-        if (buffer == NULL || buffer->inspect == NULL)
-            break;
-
-        const bool match = DetectEngineContentInspectionBuffer(de_ctx, det_ctx, s, engine->smd,
-                NULL, f, buffer, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-        if (match) {
-            return DETECT_ENGINE_INSPECT_SIG_MATCH;
-        }
-        local_id++;
-    }
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-}
-
-typedef struct PrefilterMpmDnsQuery {
-    int list_id;
-    const MpmCtx *mpm_ctx;
-    const DetectEngineTransforms *transforms;
-} PrefilterMpmDnsQuery;
-
-/** \brief DnsQuery DnsQuery Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
-        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
-{
-    SCEnter();
-
-    const PrefilterMpmDnsQuery *ctx = (const PrefilterMpmDnsQuery *)pectx;
-    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
-    const int list_id = ctx->list_id;
-
-    uint32_t local_id = 0;
-    while(1) {
-        // loop until we get a NULL
-
-        struct DnsQueryGetDataArgs cbdata = { local_id, txv };
-        InspectionBuffer *buffer = DnsQueryGetData(det_ctx, ctx->transforms, f, &cbdata, list_id);
-        if (buffer == NULL)
-            break;
-
-        if (buffer->inspect_len >= mpm_ctx->minlen) {
-            (void)mpm_table[mpm_ctx->mpm_type].Search(
-                    mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, buffer->inspect, buffer->inspect_len);
-            PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
-        }
-
-        local_id++;
-    }
-}
-
-static void PrefilterMpmDnsQueryFree(void *ptr)
-{
-    SCFree(ptr);
-}
-
-static int PrefilterMpmDnsQueryRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
-        const DetectBufferMpmRegistry *mpm_reg, int list_id)
-{
-    PrefilterMpmDnsQuery *pectx = SCCalloc(1, sizeof(*pectx));
-    if (pectx == NULL)
-        return -1;
-    pectx->list_id = list_id;
-    pectx->mpm_ctx = mpm_ctx;
-    pectx->transforms = &mpm_reg->transforms;
-
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxDnsQuery,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-            pectx, PrefilterMpmDnsQueryFree, mpm_reg->pname);
 }
 
 /**
@@ -203,11 +107,8 @@ void DetectDnsQueryRegister (void)
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerMpmRegister(
-            "dns_query", SIG_FLAG_TOSERVER, 2, PrefilterMpmDnsQueryRegister, NULL, ALPROTO_DNS, 1);
-
-    DetectAppLayerInspectEngineRegister(
-            "dns_query", ALPROTO_DNS, SIG_FLAG_TOSERVER, 1, DetectEngineInspectDnsQuery, NULL);
+    DetectAppLayerMultiRegister(
+            "dns_query", ALPROTO_DNS, SIG_FLAG_TOSERVER, 1, DnsQueryGetData, 2, 1);
 
     DetectBufferTypeSetDescriptionByName("dns_query",
             "dns request query");
