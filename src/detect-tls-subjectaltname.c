@@ -52,19 +52,11 @@
 #include "util-profiling.h"
 
 static int DetectTlsSubjectAltNameSetup(DetectEngineCtx *, Signature *, const char *);
-static uint8_t DetectEngineInspectTlsSubjectAltName(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-static int PrefilterMpmTlsSubjectAltNameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id);
+static InspectionBuffer *TlsSubjectAltNameGetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, uint8_t flags, void *txv, int list_id,
+        uint32_t index);
 
 static int g_tls_subjectaltname_buffer_id = 0;
-
-typedef struct PrefilterMpmTlsSubjectAltName {
-    int list_id;
-    const MpmCtx *mpm_ctx;
-    const DetectEngineTransforms *transforms;
-} PrefilterMpmTlsSubjectAltName;
 
 /**
  * \brief Registration function for keyword: tls.subjectaltname
@@ -80,11 +72,8 @@ void DetectTlsSubjectAltNameRegister(void)
     sigmatch_table[DETECT_AL_TLS_SUBJECTALTNAME].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_TLS_SUBJECTALTNAME].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
-    DetectAppLayerInspectEngineRegister("tls.subjectaltname", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
-            TLS_STATE_CERT_READY, DetectEngineInspectTlsSubjectAltName, NULL);
-
-    DetectAppLayerMpmRegister("tls.subjectaltname", SIG_FLAG_TOCLIENT, 2,
-            PrefilterMpmTlsSubjectAltNameRegister, NULL, ALPROTO_TLS, TLS_STATE_CERT_READY);
+    DetectAppLayerMultiRegister("tls.subjectaltname", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
+            TlsSubjectAltNameGetData, 2, TLS_STATE_CERT_READY);
 
     DetectBufferTypeSetDescriptionByName("tls.subjectaltname", "TLS Subject Alternative Name");
 
@@ -115,7 +104,8 @@ static int DetectTlsSubjectAltNameSetup(DetectEngineCtx *de_ctx, Signature *s, c
 }
 
 static InspectionBuffer *TlsSubjectAltNameGetData(DetectEngineThreadCtx *det_ctx,
-        const DetectEngineTransforms *transforms, Flow *f, uint8_t flags, uint16_t idx, int list_id)
+        const DetectEngineTransforms *transforms, Flow *f, uint8_t flags, void *txv, int list_id,
+        uint32_t idx)
 {
     SCEnter();
     InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, idx);
@@ -133,76 +123,7 @@ static InspectionBuffer *TlsSubjectAltNameGetData(DetectEngineThreadCtx *det_ctx
 
     InspectionBufferSetupMulti(buffer, transforms, (const uint8_t *)connp->cert0_sans[idx],
             strlen(connp->cert0_sans[idx]));
+    buffer->flags = DETECT_CI_FLAGS_SINGLE;
 
     SCReturnPtr(buffer, "InspectionBuffer");
-}
-
-static uint8_t DetectEngineInspectTlsSubjectAltName(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const DetectEngineAppInspectionEngine *engine,
-        const Signature *s, Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    const DetectEngineTransforms *transforms = NULL;
-    if (!engine->mpm) {
-        transforms = engine->v2.transforms;
-    }
-
-    for (uint16_t i = 0;; i++) {
-        InspectionBuffer *buffer =
-                TlsSubjectAltNameGetData(det_ctx, transforms, f, flags, i, engine->sm_list);
-        if (buffer == NULL || buffer->inspect == NULL)
-            break;
-        const bool match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd, NULL, f,
-                buffer->inspect, buffer->inspect_len, buffer->inspect_offset,
-                DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
-        if (match) {
-            return DETECT_ENGINE_INSPECT_SIG_MATCH;
-        }
-    }
-
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-}
-
-static void PrefilterTxTlsSubjectAltName(DetectEngineThreadCtx *det_ctx, const void *pectx,
-        Packet *p, Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd,
-        const uint8_t flags)
-{
-    SCEnter();
-
-    const PrefilterMpmTlsSubjectAltName *ctx = (const PrefilterMpmTlsSubjectAltName *)pectx;
-    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
-    const int list_id = ctx->list_id;
-
-    for (uint16_t i = 0;; i++) {
-        InspectionBuffer *buffer =
-                TlsSubjectAltNameGetData(det_ctx, ctx->transforms, f, flags, i, list_id);
-        if (buffer == NULL)
-            break;
-
-        if (buffer->inspect_len >= mpm_ctx->minlen) {
-            (void)mpm_table[mpm_ctx->mpm_type].Search(
-                    mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, buffer->inspect, buffer->inspect_len);
-            PREFILTER_PROFILING_ADD_BYTES(det_ctx, buffer->inspect_len);
-        }
-    }
-}
-
-static void PrefilterMpmTlsSubjectAltNameFree(void *ptr)
-{
-    SCFree(ptr);
-}
-
-static int PrefilterMpmTlsSubjectAltNameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
-{
-    PrefilterMpmTlsSubjectAltName *pectx = SCCalloc(1, sizeof(*pectx));
-    if (pectx == NULL)
-        return -1;
-
-    pectx->list_id = list_id;
-    pectx->mpm_ctx = mpm_ctx;
-    pectx->transforms = &mpm_reg->transforms;
-
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxTlsSubjectAltName,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress, pectx,
-            PrefilterMpmTlsSubjectAltNameFree, mpm_reg->name);
 }
