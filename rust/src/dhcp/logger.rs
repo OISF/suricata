@@ -229,7 +229,7 @@ impl DHCPLogger {
     fn log_opt_dns_server(&self, js: &mut JsonBuilder, option: &DHCPOptGeneric) -> Result<(), JsonError> {
         js.open_array("dns_servers")?;
         for i in 0..(option.data.len() / 4) {
-            let val = dns_print_addr(&option.data[(i * 4)..(i * 4) + 4].to_vec());
+            let val = dns_print_addr(&option.data[(i * 4)..(i * 4) + 4]);
             js.append_string(&val)?;
         }
         js.close()?;
@@ -239,7 +239,7 @@ impl DHCPLogger {
     fn log_opt_routers(&self, js: &mut JsonBuilder, option: &DHCPOptGeneric) -> Result<(), JsonError> {
         js.open_array("routers")?;
         for i in 0..(option.data.len() / 4) {
-            let val = dns_print_addr(&option.data[(i * 4)..(i * 4) + 4].to_vec());
+            let val = dns_print_addr(&option.data[(i * 4)..(i * 4) + 4]);
             js.append_string(&val)?;
         }
         js.close()?;

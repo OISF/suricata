@@ -481,7 +481,7 @@ impl NFSState {
     }
 
     // TODO maybe not enough users to justify a func
-    pub fn mark_response_tx_done(&mut self, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &Vec<u8>)
+    pub fn mark_response_tx_done(&mut self, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &[u8])
     {
         if let Some(mytx) = self.get_tx_by_xid(xid) {
             mytx.response_done = true;
