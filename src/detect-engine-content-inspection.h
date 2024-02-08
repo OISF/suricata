@@ -54,19 +54,6 @@ bool DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCt
         const uint32_t buffer_len, const uint32_t stream_start_offset, const uint8_t flags,
         const enum DetectContentInspectionType inspection_mode);
 
-/** \brief content inspect entry for inspection buffers
- *  \param de_ctx detection engine
- *  \param det_ctx detect engine thread ctx
- *  \param s signature being inspected
- *  \param smd array of content inspection matches
- *  \param p packet
- *  \param f flow
- *  \param b inspection buffer to inspect
- *  \param inspection_mode inspection mode to use
- *  \retval bool true if smd matched the buffer b, false otherwise */
-bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd, Packet *p, Flow *f, const InspectionBuffer *b,
-        const enum DetectContentInspectionType inspection_mode);
 
 void DetectEngineContentInspectionRegisterTests(void);
 
