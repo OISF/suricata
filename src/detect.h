@@ -516,6 +516,8 @@ typedef struct DetectEngineFrameInspectionEngine {
     uint8_t dir;
     uint8_t type;
     bool mpm;
+    /** will match on a NULL buffer (for example with one negated content) */
+    bool match_on_null;
     uint16_t sm_list;
     uint16_t sm_list_base;
     struct {
