@@ -38,7 +38,7 @@ fn debug_add_progress(jsb: &mut JsonBuilder, tx: &SMBTransaction) -> Result<(), 
 
 /// take in a file GUID (16 bytes) or FID (2 bytes). Also deal
 /// with our frankenFID (2 bytes + 4 user_id)
-fn fuid_to_string(fuid: &Vec<u8>) -> String {
+fn fuid_to_string(fuid: &[u8]) -> String {
     let fuid_len = fuid.len();
     if fuid_len == 16 {
         guid_to_string(fuid)
@@ -52,7 +52,7 @@ fn fuid_to_string(fuid: &Vec<u8>) -> String {
     }
 }
 
-fn guid_to_string(guid: &Vec<u8>) -> String {
+fn guid_to_string(guid: &[u8]) -> String {
     if guid.len() == 16 {
         let output = format!("{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
                 guid[3],  guid[2],  guid[1],  guid[0],

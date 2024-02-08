@@ -368,7 +368,7 @@ pub fn dns_rcode_string(flags: u16) -> String {
 }
 
 /// Format bytes as an IP address string.
-pub fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
+pub fn dns_print_addr(addr: &[u8]) -> std::string::String {
     if addr.len() == 4 {
         return format!("{}.{}.{}.{}", addr[0], addr[1], addr[2], addr[3]);
     } else if addr.len() == 16 {
