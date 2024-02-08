@@ -114,6 +114,8 @@
 #include "decode-vntag.h"
 #include "decode-vxlan.h"
 
+#include "output-json-stats.h"
+
 #ifdef OS_WIN32
 #include "win32-syscall.h"
 #endif
@@ -129,6 +131,7 @@ void TmqhSetup (void);
 #ifdef UNITTESTS
 static void RegisterUnittests(void)
 {
+    OutputJsonStatsRegisterTests();
     UTHRegisterTests();
     StreamTcpRegisterTests();
     SigRegisterTests();
