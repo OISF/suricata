@@ -157,8 +157,9 @@ static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
             goto error;
         }
 
-        sscanf(token, "%2" SCNu8, &var);
-        input[i++] = var;
+        if (sscanf(token, "%2" SCNu8, &var) == 1) {
+            input[i++] = var;
+        }
 
         token = strtok_r(NULL, delims, &save);
     }
