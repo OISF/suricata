@@ -40,6 +40,9 @@ jobs:
           path: /var/cache/yum
           key: ${{ github.job }}-yum
 
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
       - run: |
           yum -y install epel-release
           yum -y install \

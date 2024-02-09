@@ -193,6 +193,9 @@ jobs:
           key: ${{ github.job }}-dnf
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
 
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
       - uses: actions/checkout@v3.5.3
 
       # Download and extract dependency archives created during prep
@@ -266,9 +269,10 @@ jobs:
         run: |
           ./autogen.sh
           CFLAGS="${DEFAULT_CFLAGS}" ./configure
-      - run: make -j2 distcheck
+      - run: make -j ${{ env.CPUS }} distcheck
         env:
           DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
+          MAKEFLAGS: "-j ${{ env.CPUS }}"
       - run: test -e doc/userguide/suricata.1
       - name: Checking includes
         run: |
@@ -320,6 +324,9 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - uses: actions/checkout@v3.5.3
 
@@ -378,9 +385,9 @@ jobs:
         run: |
           ./autogen.sh
           CFLAGS="${DEFAULT_CFLAGS}" ./configure
-          make -j2
+          make -j ${{ env.CPUS }}
       - run: ./scripts/setup-app-layer.py --parser --logger --detect FooBar payload
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: ./src/suricata --list-app-layer-protos | grep foobar
       - name: Verify rustfmt
         run: rustfmt -v --check src/applayerfoobar/*.rs
@@ -408,6 +415,9 @@ jobs:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - uses: actions/checkout@v3.5.3
 
@@ -477,7 +487,7 @@ jobs:
         run: |
           ./autogen.sh
           CFLAGS="${DEFAULT_CFLAGS}" ./configure
-      - run: make -j2 check
+      - run: make -j ${{ env.CPUS }} check
       - name: Checking includes
         run: |
           cppclean src/*.h | grep "does not need to be #included" | python3 scripts/cppclean_check.py
@@ -504,6 +514,9 @@ jobs:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - name: Install system packages
         run: |
@@ -552,7 +565,7 @@ jobs:
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
       - name: ./configure
         run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: make install
       - run: make install-conf
       - run: suricatasc -h
@@ -593,6 +606,9 @@ jobs:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - name: Install system packages
         run: |
@@ -638,7 +654,7 @@ jobs:
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
       - name: ./configure
         run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: make install
       - run: make install-conf
       - run: suricatasc -h
@@ -680,6 +696,9 @@ jobs:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - run: |
           dnf -y install \
@@ -735,7 +754,7 @@ jobs:
           CC: "clang"
           RUSTFLAGS: "-C instrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
         env:
           CC: "clang"
           RUSTFLAGS: "-C instrument-coverage"
@@ -773,6 +792,9 @@ jobs:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - run: |
           dnf -y install \
@@ -833,7 +855,7 @@ jobs:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
           ac_cv_func_malloc_0_nonnull: "yes"
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: ASAN_OPTIONS="detect_leaks=0" ./src/suricata -u -l .
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
@@ -871,6 +893,9 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - run: |
           dnf -y install \
@@ -921,7 +946,7 @@ jobs:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
           ac_cv_func_malloc_0_nonnull: "yes"
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: ASAN_OPTIONS="detect_leaks=0" ./src/suricata -u -l .
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
@@ -964,6 +989,9 @@ jobs:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - run: |
           dnf -y install \
@@ -1017,7 +1045,7 @@ jobs:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
           ac_cv_func_malloc_0_nonnull: "yes"
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: ASAN_OPTIONS="detect_leaks=0" ./src/suricata -u -l .
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
@@ -1055,6 +1083,9 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - run: |
           dnf -y install \
@@ -1105,7 +1136,7 @@ jobs:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
           ac_cv_func_malloc_0_nonnull: "yes"
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: ASAN_OPTIONS="detect_leaks=0" ./src/suricata -u -l .
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
@@ -1136,6 +1167,9 @@ jobs:
     container: fedora:39
     needs: [prepare-deps]
     steps:
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
       - run: |
           dnf -y install \
                 autoconf \
@@ -1198,7 +1232,7 @@ jobs:
           CC: "clang"
           CFLAGS: "${{ env.DEFAULT_CFLAGS }} -Wshadow -fsanitize=address -fno-omit-frame-pointer"
 
-      - run: sudo -u suricata -s env PATH="/home/suricata/.cargo/bin:$PATH" make -j2
+      - run: sudo -u suricata -s env PATH="/home/suricata/.cargo/bin:$PATH" make -j ${{ env.CPUS }}
         working-directory: /home/suricata/suricata
 
       - run: sudo -u suricata -s make check
@@ -1228,6 +1262,9 @@ jobs:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
       - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - run: |
           dnf -y install dnf-plugins-core epel-release
@@ -1289,6 +1326,9 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
       - name: Install dependencies
         run: |
           apt update
@@ -1354,7 +1394,7 @@ jobs:
           RUSTFLAGS: "-C instrument-coverage"
           CFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0"
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
         env:
           CC: "clang-14"
           CXX: "clang++-14"
@@ -1405,6 +1445,9 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
       - name: Install dependencies
         run: |
           apt update
@@ -1476,7 +1519,7 @@ jobs:
           CXXFLAGS: "-fprofile-instr-generate -fcoverage-mapping -O0 -g -fno-strict-aliasing -fsanitize=address -fno-omit-frame-pointer -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -stdlib=libc++ -Wimplicit-int-float-conversion -Wimplicit-int-conversion"
           ac_cv_func_malloc_0_nonnull: "yes"
           ac_cv_func_realloc_0_nonnull: "yes"
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
         env:
           CC: "clang-14"
           CXX: "clang++-14"
@@ -1501,6 +1544,9 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - name: Install dependencies
         run: |
@@ -1555,7 +1601,7 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: CFLAGS="$DEFAULT_CFLAGS -DNDEBUG" ./configure --enable-unittests
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: make dist
       - name: Extracting suricata-verify
@@ -1589,6 +1635,9 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
       - name: Install dependencies
         run: |
           apt update
@@ -1649,6 +1698,9 @@ jobs:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
       - name: Install dependencies
         run: |
           apt update
@@ -1704,7 +1756,7 @@ jobs:
           LDFLAGS: "-fsanitize=address" 
           ac_cv_func_malloc_0_nonnull: "yes"
           ac_cv_func_realloc_0_nonnull: "yes"
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: make check
       - name: Extracting suricata-verify
         run: tar xf prep/suricata-verify.tar.gz
@@ -1725,6 +1777,9 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - name: Install dependencies
         run: |
@@ -1773,7 +1828,7 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: AFL_HARDEN=1 ac_cv_func_realloc_0_nonnull=yes ac_cv_func_malloc_0_nonnull=yes CFLAGS="-fsanitize=address -fno-omit-frame-pointer" CXXFLAGS=$CFLAGS CC=afl-clang-fast CXX=afl-clang-fast++ LDFLAGS="-fsanitize=address" ./configure --enable-fuzztargets --disable-shared
-      - run: AFL_HARDEN=1 make -j2
+      - run: AFL_HARDEN=1 make -j ${{ env.CPUS }}
 
   ubuntu-22-04-netmap-build:
     name: Ubuntu 22.04 (Netmap build)
@@ -1786,6 +1841,9 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - name: Install dependencies
         run: |
@@ -1842,7 +1900,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/netmap/LINUX
           ./configure --no-drivers
-          make -j2
+          make -j ${{ env.CPUS }}
           sudo make install
 
       - uses: actions/checkout@v3.5.3
@@ -1859,7 +1917,7 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-netmap
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: ./src/suricata --build-info | grep -E "Netmap support:\s+yes"
 
   ubuntu-22-04-dpdk-build:
@@ -1878,6 +1936,9 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - name: Install dependencies
         run: |
@@ -1956,7 +2017,7 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-dpdk
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: make check
 
   debian-12:
@@ -1971,6 +2032,9 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - run: apt update
       - run: |
@@ -2028,7 +2092,7 @@ jobs:
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: make check
         # -j2 caused random failures during cargo vendor
       - run: make distcheck
@@ -2057,6 +2121,9 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - run: apt update
       - run: |
@@ -2135,6 +2202,9 @@ jobs:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
       - run: apt update
       - run: |
           apt -y install \
@@ -2196,7 +2266,7 @@ jobs:
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: make check
       - name: Building Rust documentation
         run: make doc
@@ -2219,6 +2289,9 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - run: |
           echo "deb http://deb.debian.org/debian bullseye-backports main" >> /etc/apt/sources.list
@@ -2274,7 +2347,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets --enable-ebpf --enable-ebpf-build
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
@@ -2295,6 +2368,9 @@ jobs:
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
+
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
 
       - run: |
           apt update
@@ -2347,7 +2423,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
       - name: Running suricata-verify
@@ -2398,7 +2474,7 @@ jobs:
       - run: tar xvf prep/suricata-update.tar.gz
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests
-      - run: make -j2
+      - run: make -j ${{ env.CPUS }}
       # somehow it gets included by some C++ stdlib header (case unsensitive)
       - run: rm libhtp/VERSION && make check
       - run: tar xf prep/suricata-verify.tar.gz
