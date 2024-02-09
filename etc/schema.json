@@ -3837,114 +3837,151 @@
                             "type": "object",
                             "properties": {
                                 "bittorrent-dht": {
+                                    "description": "Number of flows for BitTorrent DHT protocol",
                                     "type": "integer"
                                 },
                                 "dcerpc_tcp": {
+                                    "description": "Number of flows for DCERPC/TCP protocol",
                                     "type": "integer"
                                 },
                                 "dcerpc_udp": {
+                                    "description": "Number of flows for DCERPC/UDP protocol",
                                     "type": "integer"
                                 },
                                 "dhcp": {
+                                    "description": "Number of flows for DHCP",
                                     "type": "integer"
                                 },
                                 "dnp3": {
+                                    "description": "Number of flows for DNP3",
                                     "type": "integer"
                                 },
                                 "dns_tcp": {
+                                    "description": "Number of flows for DNS/TCP protocol",
                                     "type": "integer"
                                 },
                                 "dns_udp": {
+                                    "description": "Number of flows for DNS/UDP protocol",
                                     "type": "integer"
                                 },
                                 "enip_tcp": {
+                                    "description": "Number of flows for ENIP/TCP",
                                     "type": "integer"
                                 },
                                 "enip_udp": {
+                                    "description": "Number of flows for ENIP/UDP",
                                     "type": "integer"
                                 },
                                 "failed_tcp": {
+                                    "description": "Number of failed flows for TCP",
                                     "type": "integer"
                                 },
                                 "failed_udp": {
+                                    "description": "Number of failed flows for UDP",
                                     "type": "integer"
                                 },
                                 "ftp": {
+                                    "description": "Number of flows for FTP",
                                     "type": "integer"
                                 },
                                 "ftp-data": {
+                                    "description": "Number of flows for FTP data protocol",
                                     "type": "integer"
                                 },
                                 "http": {
+                                    "description": "Number of flows for HTTP",
                                     "type": "integer"
                                 },
                                 "http2": {
+                                    "description": "Number of flows for HTTP2",
                                     "type": "integer"
                                 },
                                 "ike": {
+                                    "description": "Number of flows for IKE protocol",
                                     "type": "integer"
                                 },
                                 "ikev2": {
+                                    "description": "Number of flows for IKE v2 protocol",
                                     "type": "integer"
                                 },
                                 "imap": {
+                                    "description": "Number of flows for IMAP",
                                     "type": "integer"
                                 },
                                 "krb5_tcp": {
+                                    "description": "Number of flows for Kerberos5/TCP protocol",
                                     "type": "integer"
                                 },
                                 "krb5_udp": {
+                                    "description": "Number of flows for Kerberos5/UDP protocol",
                                     "type": "integer"
                                 },
                                 "modbus": {
+                                    "description": "Number of flows for Modbus protocol",
                                     "type": "integer"
                                 },
                                 "mqtt": {
+                                    "description": "Number of flows for MQTT protocol",
                                     "type": "integer"
                                 },
                                 "nfs_tcp": {
+                                    "description": "Number of flows for NFS/TCP protocol",
                                     "type": "integer"
                                 },
                                 "nfs_udp": {
+                                    "description": "Number of flows for NFS/UDP protocol",
                                     "type": "integer"
                                 },
                                 "ntp": {
+                                    "description": "Number of flows for NTP",
                                     "type": "integer"
                                 },
                                 "pgsql": {
+                                    "description": "Number of flows for PostgreSQL protocol",
                                     "type": "integer"
                                 },
                                 "quic": {
+                                    "description": "Number of flows for QUIC protocol",
                                     "type": "integer"
                                 },
                                 "rdp": {
+                                    "description": "Number of flows for RDP",
                                     "type": "integer"
                                 },
                                 "rfb": {
+                                    "description": "Number of flows for RFB protocol",
                                     "type": "integer"
                                 },
                                 "sip": {
+                                    "description": "Number of flows for SIP",
                                     "type": "integer"
                                 },
                                 "smb": {
+                                    "description": "Number of flows for SMB protocol",
                                     "type": "integer"
                                 },
                                 "smtp": {
+                                    "description": "Number of flows for SMTP",
                                     "type": "integer"
                                 },
                                 "snmp": {
+                                    "description": "Number of flows for SNMP",
                                     "type": "integer"
                                 },
                                 "ssh": {
+                                    "description": "Number of flows for SSH protocol",
                                     "type": "integer"
                                 },
                                 "telnet": {
+                                    "description": "Number of flows for Telnet protocol",
                                     "type": "integer"
                                 },
                                 "tftp": {
+                                    "description": "Number of flows for TFTP",
                                     "type": "integer"
                                 },
                                 "tls": {
+                                    "description": "Number of flows for TLS protocol",
                                     "type": "integer"
                                 }
                             },
