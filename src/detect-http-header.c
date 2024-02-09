@@ -603,6 +603,8 @@ static void *HttpMultiBufHeaderThreadDataInit(void *data)
 
     /* This return value check to satisfy our Cocci malloc checks. */
     if (td == NULL) {
+        SCLogError("failed to allocate %" PRIuMAX " bytes: %s", (uintmax_t)sizeof(*td),
+                strerror(errno));
         return NULL;
     }
     return td;
