@@ -45,6 +45,12 @@ releases.
 Note that we'll be refining the levels based on our experiences with applying them
 to actual issues.
 
+## CVE ID's
+
+We will request a CVE ID for an issue if appropriate. Note that multiple
+issues may share the same CVE ID.
+
+We work with the Github CNA, through the Github Security Advisory facility.
 
 ## Support Status of affected code
 
@@ -69,7 +75,7 @@ a public release addressing the issue.
 We will acknowledge you in the release notes and the release announcement. If you
 do not want this, please clearly state this.
 
-We will not request a CVE, but if you do please let us know the CVE ID.
+Please let us if you've requested a CVE ID. If you haven't, we can do it.
 
 OISF does not participate in bug bounty programs, or offer any other rewards
 for reporting issues.
