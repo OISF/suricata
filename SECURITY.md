@@ -45,6 +45,15 @@ releases.
 Note that we'll be refining the levels based on our experiences with applying them
 to actual issues.
 
+## CVE ID's and Github Security Advisories (GHSA)
+
+We will request a CVE ID for an issue if appropriate. Note that multiple
+issues may share the same CVE ID.
+
+We work with the Github CNA, through the Github Security Advisory (GHSA) facility.
+
+The GHSA's will be published at least 2 weeks after the public release addressing
+the issue, together with the redmine security tickets.
 
 ## Support Status of affected code
 
@@ -63,13 +72,14 @@ other data, please clearly state if these can (eventually) enter our public CI/Q
 
 We will assign a severity and will share our assessment with you.
 
-We will create a security ticket, which will be private until a few weeks after
+We will create a security ticket, which will be private until at least 2 weeks after
 a public release addressing the issue.
 
-We will acknowledge you in the release notes and the release announcement. If you
-do not want this, please clearly state this.
+We will acknowledge you in the release notes, release announcement and GHSA. If you
+do not want this, please clearly state this. For the GHSA credits, please give us
+your github handle.
 
-We will not request a CVE, but if you do please let us know the CVE ID.
+Please let us know if you've requested a CVE ID. If you haven't, we can do it.
 
 OISF does not participate in bug bounty programs, or offer any other rewards
 for reporting issues.
