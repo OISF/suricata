@@ -24,6 +24,7 @@
 #include "suricata.h"
 #include "util-debug.h"
 #include "util-hugepages.h"
+#include "util-path.h"
 
 static uint16_t SystemHugepageSizesCntPerNodeGet(uint16_t node_index);
 static uint16_t SystemNodeCountGet(void);
@@ -36,17 +37,27 @@ static void SystemHugepageNodeInfoDestroy(NodeInfo *n);
 static void SystemHugepageNodeInfoDump(NodeInfo *n);
 static void SystemHugepageSnapshotDump(SystemHugepageSnapshot *s);
 
-static bool SystemHugepageSupported(void)
+typedef enum OSHugepageAction_ {
+    OS_UNKNOWN, // unknown/unsupported OS
+    OS_LINUX_SYS_DEVICES,
+} OSHugepageAction;
+
+static OSHugepageAction SystemHugepageDetermineOS(void)
 {
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
-    return true;
-#else
-    return false;
-#endif /* !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun */
+    // try Linux
+    if (SCPathExists("/sys/devices/system/node/")) {
+        return OS_LINUX_SYS_DEVICES;
+    }
+
+    return OS_UNKNOWN;
 }
 
-// block of all hugepage-specific internal functions
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
+static bool SystemHugepageSupported(void)
+{
+    if (SystemHugepageDetermineOS() != OS_UNKNOWN)
+        return true;
+    return false;
+}
 
 /**
  * \brief Linux-specific function to detect number of NUMA nodes on the system
@@ -56,16 +67,14 @@ static uint16_t SystemNodeCountGetLinux(void)
 {
     char dir_path[] = "/sys/devices/system/node/";
     DIR *dir = opendir(dir_path);
-    if (dir == NULL) {
-        SCLogError("unable to open %s", dir_path);
-        return 0;
-    }
+    if (dir == NULL)
+        FatalError("unable to open %s", dir_path);
 
     uint16_t count = 0;
     struct dirent *entry;
     while ((entry = readdir(dir)) != NULL) {
         char d_name[] = "node";
-        if (entry->d_type == DT_DIR && strncmp(entry->d_name, d_name, strlen(d_name)) == 0)
+        if (SCIsRegularDirectory(entry) && strncmp(entry->d_name, d_name, strlen(d_name)) == 0)
             count++;
     }
     closedir(dir);
@@ -83,7 +92,7 @@ static uint16_t SystemHugepageSizesCntPerNodeGetLinux(uint16_t node_index)
     snprintf(dir_path, sizeof(dir_path), "/sys/devices/system/node/node%d/hugepages/", node_index);
     DIR *dir = opendir(dir_path);
     if (dir == NULL) {
-        SCLogError("unable to open %s", dir_path);
+        SCLogInfo("unable to open %s", dir_path);
         return 0;
     }
 
@@ -91,7 +100,7 @@ static uint16_t SystemHugepageSizesCntPerNodeGetLinux(uint16_t node_index)
     struct dirent *entry;
     while ((entry = readdir(dir)) != NULL) {
         char d_name[] = "hugepages-";
-        if (entry->d_type == DT_DIR && strncmp(entry->d_name, d_name, strlen(d_name)) == 0)
+        if (SCIsRegularDirectory(entry) && strncmp(entry->d_name, d_name, strlen(d_name)) == 0)
             count++;
     }
     closedir(dir);
@@ -111,14 +120,13 @@ static void SystemHugepagePerNodeGetHugepageSizesLinux(
     char dir_path[256];
     snprintf(dir_path, sizeof(dir_path), "/sys/devices/system/node/node%d/hugepages/", node_index);
     DIR *dir = opendir(dir_path);
-    if (dir == NULL) {
-        SCLogError("unable to open %s", dir_path);
-        return;
-    }
+    if (dir == NULL)
+        FatalError("unable to open %s", dir_path);
+
     uint16_t index = 0;
     struct dirent *entry;
     while ((entry = readdir(dir)) != NULL) {
-        if (entry->d_type == DT_DIR && strncmp(entry->d_name, "hugepages-", 10) == 0) {
+        if (SCIsRegularDirectory(entry) && strncmp(entry->d_name, "hugepages-", 10) == 0) {
             sscanf(entry->d_name, "hugepages-%ukB", &(hp_sizes[index]));
             index++;
         }
@@ -146,11 +154,11 @@ static int16_t SystemHugepagePerNodeGetHugepageInfoLinux(
                 node_index, hp_sizes[i]);
         FILE *f = fopen(path, "r");
         if (!f) {
-            SCLogError("unable to open %s", path);
-            return -SC_EEXIST;
+            SCLogInfo("unable to open %s", path);
+            return -SC_ENOENT;
         }
         if (fscanf(f, "%hu", &hugepages[i].allocated) != 1) {
-            SCLogError("failed to read the total number of allocated hugepages (%ukB) on node %hu",
+            SCLogInfo("failed to read the total number of allocated hugepages (%ukB) on node %hu",
                     hp_sizes[i], node_index);
             fclose(f);
             return -SC_EINVAL;
@@ -162,11 +170,11 @@ static int16_t SystemHugepagePerNodeGetHugepageInfoLinux(
                 node_index, hp_sizes[i]);
         f = fopen(path, "r");
         if (!f) {
-            SCLogError("unable to open %s", path);
-            return -SC_EEXIST;
+            SCLogInfo("unable to open %s", path);
+            return -SC_ENOENT;
         }
         if (fscanf(f, "%hu", &hugepages[i].free) != 1) {
-            SCLogError("failed to read the total number of free hugepages (%ukB) on node %hu",
+            SCLogInfo("failed to read the total number of free hugepages (%ukB) on node %hu",
                     hp_sizes[i], node_index);
             fclose(f);
             return -SC_EINVAL;
@@ -176,8 +184,6 @@ static int16_t SystemHugepagePerNodeGetHugepageInfoLinux(
 
     return 0;
 }
-
-#endif /* !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun */
 
 /**
  * \brief The function gathers information about hugepages on a given node
@@ -189,8 +195,8 @@ static int16_t SystemHugepagePerNodeGetHugepageInfo(uint16_t node_index, NodeInf
 {
     uint16_t hp_sizes_cnt = SystemHugepageSizesCntPerNodeGet(node_index);
     if (hp_sizes_cnt == 0) {
-        SCLogError("hugepages not found for node %d", node_index);
-        return -SC_EEXIST;
+        SCLogInfo("hugepages not found for node %d", node_index);
+        return -SC_ENOENT;
     }
     uint32_t *hp_sizes = SCCalloc(hp_sizes_cnt, sizeof(*hp_sizes));
     if (hp_sizes == NULL) {
@@ -202,10 +208,9 @@ static int16_t SystemHugepagePerNodeGetHugepageInfo(uint16_t node_index, NodeInf
     node->num_hugepage_sizes = hp_sizes_cnt;
 
     int16_t ret = 0;
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
-    ret = SystemHugepagePerNodeGetHugepageInfoLinux(
-            node->hugepages, hp_sizes, node->num_hugepage_sizes, node_index);
-#endif /* !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun */
+    if (SystemHugepageDetermineOS() == OS_LINUX_SYS_DEVICES)
+        ret = SystemHugepagePerNodeGetHugepageInfoLinux(
+                node->hugepages, hp_sizes, node->num_hugepage_sizes, node_index);
 
     SCFree(hp_sizes);
     return ret;
@@ -217,9 +222,8 @@ static int16_t SystemHugepagePerNodeGetHugepageInfo(uint16_t node_index, NodeInf
  */
 static uint16_t SystemNodeCountGet(void)
 {
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
-    return SystemNodeCountGetLinux();
-#endif /* !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun */
+    if (SystemHugepageDetermineOS() == OS_LINUX_SYS_DEVICES)
+        return SystemNodeCountGetLinux();
     return 0;
 }
 
@@ -229,9 +233,8 @@ static uint16_t SystemNodeCountGet(void)
  */
 static uint16_t SystemHugepageSizesCntPerNodeGet(uint16_t node_index)
 {
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
-    return SystemHugepageSizesCntPerNodeGetLinux(node_index);
-#endif /* !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun */
+    if (SystemHugepageDetermineOS() == OS_LINUX_SYS_DEVICES)
+        return SystemHugepageSizesCntPerNodeGetLinux(node_index);
     return 0;
 }
 
@@ -245,9 +248,8 @@ static uint16_t SystemHugepageSizesCntPerNodeGet(uint16_t node_index)
 static void SystemHugepagePerNodeGetHugepageSizes(
         uint16_t node_index, uint16_t hp_sizes_cnt, uint32_t *hp_sizes)
 {
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
-    return SystemHugepagePerNodeGetHugepageSizesLinux(node_index, hp_sizes_cnt, hp_sizes);
-#endif /* !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun */
+    if (SystemHugepageDetermineOS() == OS_LINUX_SYS_DEVICES)
+        SystemHugepagePerNodeGetHugepageSizesLinux(node_index, hp_sizes_cnt, hp_sizes);
 }
 
 static HugepageInfo *SystemHugepageHugepageInfoCreate(uint16_t hp_size_cnt)
@@ -325,7 +327,7 @@ SystemHugepageSnapshot *SystemHugepageSnapshotCreate(void)
 
     uint16_t node_cnt = SystemNodeCountGet();
     if (node_cnt == 0) {
-        SCLogError("failed to obtain number of NUMA nodes in the system");
+        SCLogInfo("hugepage snapshot failed - cannot obtain number of NUMA nodes in the system");
         return NULL;
     }
     NodeInfo *nodes = SCCalloc(node_cnt, sizeof(*nodes));
@@ -386,7 +388,8 @@ void SystemHugepageEvaluateHugepages(SystemHugepageSnapshot *pre_s, SystemHugepa
                 SCLogWarning(
                         "Hugepage usage decreased while it should only increase/stay the same");
             } else if (prerun_hp->free > 0 && prerun_hp->free == postrun_hp->free) {
-                SCLogPerf("Hugepages on NUMA node %u are unused and can be deallocated", i);
+                SCLogPerf("%ukB hugepages on NUMA node %u are unused and can be deallocated",
+                        postrun_hp->size_kb, i);
             } else { // assumes this is an active NUMA node because at least some hugepages were
                      // used
                 // speculative hint only for 2048kB pages as e.g. 1 GB pages can leave a lot of room

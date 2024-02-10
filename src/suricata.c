@@ -2971,7 +2971,10 @@ int SuricataMain(int argc, char **argv)
         goto out;
     }
 
-    SystemHugepageSnapshot *prerun_snap = SystemHugepageSnapshotCreate();
+    SystemHugepageSnapshot *prerun_snap = NULL;
+    if (run_mode == RUNMODE_DPDK)
+        prerun_snap = SystemHugepageSnapshotCreate();
+
     SCSetStartTime(&suricata);
     RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode,
             suricata.capture_plugin_name, suricata.capture_plugin_args);
@@ -3029,13 +3032,12 @@ int SuricataMain(int argc, char **argv)
     OnNotifyRunning();
 
     PostRunStartedDetectSetup(&suricata);
-
-    SystemHugepageSnapshot *postrun_snap = SystemHugepageSnapshotCreate();
-    if (run_mode == RUNMODE_DPDK) // only DPDK uses hpages at the moment
+    if (run_mode == RUNMODE_DPDK) { // only DPDK uses hpages at the moment
+        SystemHugepageSnapshot *postrun_snap = SystemHugepageSnapshotCreate();
         SystemHugepageEvaluateHugepages(prerun_snap, postrun_snap);
-    SystemHugepageSnapshotDestroy(prerun_snap);
-    SystemHugepageSnapshotDestroy(postrun_snap);
-
+        SystemHugepageSnapshotDestroy(prerun_snap);
+        SystemHugepageSnapshotDestroy(postrun_snap);
+    }
     SCPledge();
     SuricataMainLoop(&suricata);
 
