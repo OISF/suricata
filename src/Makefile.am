@@ -548,6 +548,7 @@ noinst_HEADERS = \
 	util-enum.h \
 	util-error.h \
 	util-exception-policy.h \
+	util-exception-policy-types.h \
 	util-file-decompression.h \
 	util-file.h \
 	util-file-swf-decompression.h \

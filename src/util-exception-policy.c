@@ -1,4 +1,4 @@
-/* Copyright (C) 2022-2023 Open Information Security Foundation
+/* Copyright (C) 2022-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -32,7 +32,7 @@ enum ExceptionPolicy g_eps_master_switch = EXCEPTION_POLICY_NOT_SET;
 /** true if exception policy was defined in config */
 static bool g_eps_have_exception_policy = false;
 
-static const char *ExceptionPolicyEnumToString(enum ExceptionPolicy policy)
+const char *ExceptionPolicyEnumToString(enum ExceptionPolicy policy, bool is_json)
 {
     switch (policy) {
         case EXCEPTION_POLICY_NOT_SET:
@@ -44,13 +44,13 @@ static const char *ExceptionPolicyEnumToString(enum ExceptionPolicy policy)
         case EXCEPTION_POLICY_BYPASS_FLOW:
             return "bypass";
         case EXCEPTION_POLICY_DROP_FLOW:
-            return "drop-flow";
+            return is_json ? "drop_flow" : "drop-flow";
         case EXCEPTION_POLICY_DROP_PACKET:
-            return "drop-packet";
+            return is_json ? "drop_packet" : "drop-packet";
         case EXCEPTION_POLICY_PASS_PACKET:
-            return "pass-packet";
+            return is_json ? "pass_packet" : "pass-packet";
         case EXCEPTION_POLICY_PASS_FLOW:
-            return "pass-flow";
+            return is_json ? "pass_flow" : "pass-flow";
     }
     // TODO we shouldn't reach this, but if we do, better not to leave this as simply null...
     return "not set";
@@ -198,7 +198,7 @@ static enum ExceptionPolicy ExceptionPolicyMasterParse(const char *value)
     }
     g_eps_have_exception_policy = true;
 
-    SCLogInfo("master exception-policy set to: %s", ExceptionPolicyEnumToString(policy));
+    SCLogInfo("master exception-policy set to: %s", ExceptionPolicyEnumToString(policy, false));
 
     return policy;
 }
@@ -218,13 +218,13 @@ static enum ExceptionPolicy ExceptionPolicyGetDefault(
             p = PickPacketAction(option, p);
         }
         SCLogConfig("%s: %s (defined via 'exception-policy' master switch)", option,
-                ExceptionPolicyEnumToString(p));
+                ExceptionPolicyEnumToString(p, false));
         return p;
     } else if (EngineModeIsIPS() && !midstream) {
         p = EXCEPTION_POLICY_DROP_FLOW;
     }
     SCLogConfig("%s: %s (defined via 'built-in default' for %s-mode)", option,
-            ExceptionPolicyEnumToString(p), EngineModeIsIPS() ? "IPS" : "IDS");
+            ExceptionPolicyEnumToString(p, false), EngineModeIsIPS() ? "IPS" : "IDS");
 
     return p;
 }
@@ -245,7 +245,7 @@ enum ExceptionPolicy ExceptionPolicyParse(const char *option, bool support_flow)
             if (!support_flow) {
                 policy = PickPacketAction(option, policy);
             }
-            SCLogConfig("%s: %s", option, ExceptionPolicyEnumToString(policy));
+            SCLogConfig("%s: %s", option, ExceptionPolicyEnumToString(policy, false));
         }
     } else {
         policy = ExceptionPolicyGetDefault(option, support_flow, false);
