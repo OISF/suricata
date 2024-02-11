@@ -2130,7 +2130,11 @@ size of the cache is covered in the YAML file.
 To be able to run DPDK on Intel cards, it is required to change the default
 Intel driver to either `vfio-pci` or `igb_uio` driver. The process is
 described in `DPDK manual page regarding Linux drivers
-<https://doc.dpdk.org/guides/linux_gsg/linux_drivers.html>`_.
+<https://doc.dpdk.org/guides/linux_gsg/linux_drivers.html>`_. 
+The Intel NICs have the amount of RX/TX descriptors capped at 4096.
+This should be possible to change by manually compiling the DPDK while
+changing the value of respective macros for the desired drivers
+(e.g. IXGBE_MAX_RING_DESC/I40E_MAX_RING_DESC).
 DPDK is natively supported by Mellanox and thus their NICs should work
 "out of the box".
 
