@@ -464,6 +464,9 @@ static int ConfigSetMempoolSize(DPDKIfaceConfig *iconf, intmax_t entry_int)
     if (entry_int <= 0) {
         SCLogError("%s: positive memory pool size is required", iconf->iface);
         SCReturnInt(-ERANGE);
+    } else if (entry_int > UINT32_MAX) {
+        SCLogError("%s: memory pool size cannot exceed %" PRIu32, iconf->iface, UINT32_MAX);
+        SCReturnInt(-ERANGE);
     }
 
     iconf->mempool_size = entry_int;
@@ -510,6 +513,9 @@ static int ConfigSetRxDescriptors(DPDKIfaceConfig *iconf, intmax_t entry_int)
     if (entry_int <= 0) {
         SCLogError("%s: positive number of RX descriptors is required", iconf->iface);
         SCReturnInt(-ERANGE);
+    } else if (entry_int > UINT16_MAX) {
+        SCLogError("%s: number of RX descriptors cannot exceed %" PRIu16, iconf->iface, UINT16_MAX);
+        SCReturnInt(-ERANGE);
     }
 
     iconf->nb_rx_desc = entry_int;
@@ -521,6 +527,9 @@ static int ConfigSetTxDescriptors(DPDKIfaceConfig *iconf, intmax_t entry_int)
     SCEnter();
     if (entry_int <= 0) {
         SCLogError("%s: positive number of TX descriptors is required", iconf->iface);
+        SCReturnInt(-ERANGE);
+    } else if (entry_int > UINT16_MAX) {
+        SCLogError("%s: number of TX descriptors cannot exceed %" PRIu16, iconf->iface, UINT16_MAX);
         SCReturnInt(-ERANGE);
     }
 
