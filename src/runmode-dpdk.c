@@ -1039,6 +1039,7 @@ static void DumpRXOffloadCapabilities(const uint64_t rx_offld_capa)
 
 static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
 {
+    SCEnter();
     if (iconf->mtu > dev_info->max_mtu || iconf->mtu < dev_info->min_mtu) {
         SCLogError("%s: MTU out of bounds. "
                    "Min MTU: %" PRIu16 " Max MTU: %" PRIu16,
@@ -1333,6 +1334,7 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
 static int32_t DeviceVerifyPostConfigure(
         const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
 {
+    SCEnter();
     struct rte_eth_dev_info post_conf_dev_info = { 0 };
     int32_t ret = rte_eth_dev_info_get(iconf->port_id, &post_conf_dev_info);
     if (ret < 0) {
