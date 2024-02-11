@@ -44,6 +44,7 @@ typedef struct DetectLoaderTask_ {
 typedef struct DetectLoaderControl_ {
     int id;
     int result;     /* 0 for ok, error otherwise */
+    ThreadVars *tv; /* loader threads threadvars - for waking them up */
     SCMutex m;
     TAILQ_HEAD(, DetectLoaderTask_) task_list;
 } DetectLoaderControl;
