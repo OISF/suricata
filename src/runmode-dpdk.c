@@ -300,7 +300,7 @@ static void InitEal(void)
     SCFree(eal_argv);
 
     if (retval < 0) { // retval bound to the result of rte_eal_init
-        FatalError("DPDK EAL initialization error (err: %s)", rte_strerror(-retval));
+        FatalError("DPDK EAL initialization error: %s", rte_strerror(-retval));
     }
     DPDKSetTimevalOfMachineStart();
 }
@@ -1238,7 +1238,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
             iconf->mempool_cache_size, 0, mbuf_size, (int)iconf->socket_id);
     if (iconf->pkt_mempool == NULL) {
         retval = -rte_errno;
-        SCLogError("%s: rte_pktmbuf_pool_create failed with code %d (mempool: %s) - (err: %s)",
+        SCLogError("%s: rte_pktmbuf_pool_create failed with code %d (mempool: %s): %s",
                 iconf->iface, rte_errno, mempool_name, rte_strerror(rte_errno));
         SCReturnInt(retval);
     }
@@ -1262,7 +1262,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
                 iconf->socket_id, &rxq_conf, iconf->pkt_mempool);
         if (retval < 0) {
             rte_mempool_free(iconf->pkt_mempool);
-            SCLogError("%s: failed to setup RX queue %u - (err: %s)", iconf->iface, queue_id,
+            SCLogError("%s: failed to setup RX queue %u: %s", iconf->iface, queue_id,
                     rte_strerror(-retval));
             SCReturnInt(retval);
         }
@@ -1282,7 +1282,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
                 iconf->port_id, queue_id, iconf->nb_tx_desc, iconf->socket_id, &txq_conf);
         if (retval < 0) {
             rte_mempool_free(iconf->pkt_mempool);
-            SCLogError("%s: failed to setup TX queue %u - (err: %s)", iconf->iface, queue_id,
+            SCLogError("%s: failed to setup TX queue %u: %s", iconf->iface, queue_id,
                     rte_strerror(-retval));
             SCReturnInt(retval);
         }
@@ -1346,7 +1346,7 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
     if (iconf->out_iface != NULL) {
         retval = rte_eth_dev_get_port_by_name(iconf->out_iface, &iconf->out_port_id);
         if (retval != 0) {
-            SCLogError("%s: failed to obtain out iface %s port id - (err: %s)", iconf->iface,
+            SCLogError("%s: failed to obtain out iface %s port id: %s", iconf->iface,
                     iconf->out_iface, rte_strerror(-retval));
             SCReturnInt(retval);
         }
@@ -1354,8 +1354,7 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
         int32_t out_port_socket_id;
         retval = DeviceSetSocketID(iconf->port_id, &out_port_socket_id);
         if (retval < 0) {
-            SCLogError(
-                    "%s: invalid socket id - (err: %s)", iconf->out_iface, rte_strerror(-retval));
+            SCLogError("%s: invalid socket id: %s", iconf->out_iface, rte_strerror(-retval));
             SCReturnInt(retval);
         }
 
@@ -1397,7 +1396,7 @@ static int32_t DeviceVerifyPostConfigure(
     struct rte_eth_dev_info post_conf_dev_info = { 0 };
     int32_t ret = rte_eth_dev_info_get(iconf->port_id, &post_conf_dev_info);
     if (ret < 0) {
-        SCLogError("%s: getting device info failed (err: %s)", iconf->iface, rte_strerror(-ret));
+        SCLogError("%s: getting device info failed: %s", iconf->iface, rte_strerror(-ret));
         SCReturnInt(ret);
     }
 
@@ -1440,14 +1439,14 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
 
     retval = DeviceSetSocketID(iconf->port_id, &iconf->socket_id);
     if (retval < 0) {
-        SCLogError("%s: invalid socket id (err: %s)", iconf->iface, rte_strerror(-retval));
+        SCLogError("%s: invalid socket id: %s", iconf->iface, rte_strerror(-retval));
         SCReturnInt(retval);
     }
 
     struct rte_eth_dev_info dev_info = { 0 };
     retval = rte_eth_dev_info_get(iconf->port_id, &dev_info);
     if (retval < 0) {
-        SCLogError("%s: getting device info failed (err: %s)", iconf->iface, rte_strerror(-retval));
+        SCLogError("%s: getting device info failed: %s", iconf->iface, rte_strerror(-retval));
         SCReturnInt(retval);
     }
 
@@ -1477,8 +1476,7 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
     retval = rte_eth_dev_configure(
             iconf->port_id, iconf->nb_rx_queues, iconf->nb_tx_queues, &port_conf);
     if (retval < 0) {
-        SCLogError("%s: failed to configure the device - (err: %s)", iconf->iface,
-                rte_strerror(-retval));
+        SCLogError("%s: failed to configure the device: %s", iconf->iface, rte_strerror(-retval));
         SCReturnInt(retval);
     }
 
@@ -1486,12 +1484,17 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
     if (retval < 0)
         return retval;
 
+    uint16_t tmp_nb_rx_desc = iconf->nb_rx_desc;
+    uint16_t tmp_nb_tx_desc = iconf->nb_tx_desc;
     retval = rte_eth_dev_adjust_nb_rx_tx_desc(
             iconf->port_id, &iconf->nb_rx_desc, &iconf->nb_tx_desc);
     if (retval != 0) {
-        SCLogError("%s: failed to adjust device queue descriptors (port %u, err %d)", iconf->iface,
-                iconf->port_id, retval);
+        SCLogError("%s: failed to adjust device queue descriptors: %s", iconf->iface,
+                rte_strerror(-retval));
         SCReturnInt(retval);
+    } else if (tmp_nb_rx_desc != iconf->nb_rx_desc || tmp_nb_tx_desc != iconf->nb_tx_desc) {
+        SCLogWarning("%s: device queue descriptors adjusted (RX: from %u to %u, TX: from %u to %u)",
+                iconf->iface, tmp_nb_rx_desc, iconf->nb_rx_desc, tmp_nb_tx_desc, iconf->nb_tx_desc);
     }
 
     retval = iconf->flags & DPDK_MULTICAST ? rte_eth_allmulticast_enable(iconf->port_id)
@@ -1504,12 +1507,11 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
             SCLogWarning("%s: cannot configure allmulticast, the port is %sin allmulticast mode",
                     iconf->iface, retval == 1 ? "" : "not ");
         } else if (retval < 0) {
-            SCLogError("%s: failed to get multicast mode - (err: %s)", iconf->iface,
-                    rte_strerror(-retval));
+            SCLogError("%s: failed to get multicast mode: %s", iconf->iface, rte_strerror(-retval));
             SCReturnInt(retval);
         }
     } else if (retval < 0) {
-        SCLogError("%s: error when changing multicast setting - (err: %s)", iconf->iface,
+        SCLogError("%s: error when changing multicast setting: %s", iconf->iface,
                 rte_strerror(-retval));
         SCReturnInt(retval);
     }
@@ -1524,12 +1526,12 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
                     iconf->iface, retval == 1 ? "" : "non-");
             SCReturnInt(TM_ECODE_FAILED);
         } else if (retval < 0) {
-            SCLogError("%s: failed to get promiscuous mode - (err: %s)", iconf->iface,
-                    rte_strerror(-retval));
+            SCLogError(
+                    "%s: failed to get promiscuous mode: %s", iconf->iface, rte_strerror(-retval));
             SCReturnInt(retval);
         }
     } else if (retval < 0) {
-        SCLogError("%s: error when changing promiscuous setting - (err: %s)", iconf->iface,
+        SCLogError("%s: error when changing promiscuous setting: %s", iconf->iface,
                 rte_strerror(-retval));
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -1541,14 +1543,14 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         // if it is not possible to set the MTU, retrieve it
         retval = rte_eth_dev_get_mtu(iconf->port_id, &iconf->mtu);
         if (retval < 0) {
-            SCLogError("%s: failed to retrieve MTU (err: %s)", iconf->iface, rte_strerror(-retval));
+            SCLogError("%s: failed to retrieve MTU: %s", iconf->iface, rte_strerror(-retval));
             SCReturnInt(retval);
         }
         SCLogWarning(
                 "%s: changing MTU is not supported, current MTU: %u", iconf->iface, iconf->mtu);
     } else if (retval < 0) {
-        SCLogError("%s: failed to set MTU to %u (err: %s)", iconf->iface, iconf->mtu,
-                rte_strerror(-retval));
+        SCLogError(
+                "%s: failed to set MTU to %u: %s", iconf->iface, iconf->mtu, rte_strerror(-retval));
         SCReturnInt(retval);
     }
 
@@ -1582,7 +1584,7 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
     if (retval < 0) { // handles both configure attempts
         iconf->DerefFunc(iconf);
         if (rte_eal_cleanup() != 0)
-            FatalError("EAL cleanup failed (err: %s)", strerror(-retval));
+            FatalError("EAL cleanup failed: %s", rte_strerror(-retval));
 
         if (retval == -ENOMEM) {
             FatalError("%s: memory allocation failed - consider"
