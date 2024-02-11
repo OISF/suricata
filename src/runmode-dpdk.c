@@ -484,7 +484,7 @@ static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_s
             SCReturnInt(-EINVAL);
         }
 
-        uint32_t max_cache_size = MAX(RTE_MEMPOOL_CACHE_MAX_SIZE, iconf->mempool_size / 1.5);
+        uint32_t max_cache_size = MIN(RTE_MEMPOOL_CACHE_MAX_SIZE, iconf->mempool_size / 1.5);
         iconf->mempool_cache_size = GreatestDivisorUpTo(iconf->mempool_size, max_cache_size);
         SCReturnInt(0);
     }
