@@ -298,7 +298,7 @@ static void InitEal(void)
     SCFree(eal_argv);
 
     if (retval < 0) { // retval bound to the result of rte_eal_init
-        FatalError("DPDK EAL initialization error: %s", rte_strerror(-retval));
+        FatalError("DPDK EAL initialization error (err: %s)", rte_strerror(-retval));
     }
     DPDKSetTimevalOfMachineStart();
 }
@@ -347,7 +347,7 @@ static void ConfigSetIface(DPDKIfaceConfig *iconf, const char *entry_str)
 
     retval = rte_eth_dev_get_port_by_name(entry_str, &iconf->port_id);
     if (retval < 0)
-        FatalError("Interface \"%s\": %s", entry_str, rte_strerror(-retval));
+        FatalError("%s: interface not found: %s", entry_str, rte_strerror(-retval));
 
     strlcpy(iconf->iface, entry_str, sizeof(iconf->iface));
     SCReturn;
@@ -606,8 +606,8 @@ static int ConfigSetCopyIface(DPDKIfaceConfig *iconf, const char *entry_str)
 
     retval = rte_eth_dev_get_port_by_name(entry_str, &iconf->out_port_id);
     if (retval < 0) {
-        SCLogError("%s: name of the copy interface (%s) is invalid (err %s)", iconf->iface,
-                entry_str, rte_strerror(-retval));
+        SCLogError("%s: copy interface (%s) not found: %s", iconf->iface, entry_str,
+                rte_strerror(-retval));
         SCReturnInt(retval);
     }
 
@@ -1197,7 +1197,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
             iconf->mempool_cache_size, 0, mbuf_size, (int)iconf->socket_id);
     if (iconf->pkt_mempool == NULL) {
         retval = -rte_errno;
-        SCLogError("%s: rte_pktmbuf_pool_create failed with code %d (mempool: %s) - %s",
+        SCLogError("%s: rte_pktmbuf_pool_create failed with code %d (mempool: %s) - (err: %s)",
                 iconf->iface, rte_errno, mempool_name, rte_strerror(rte_errno));
         SCReturnInt(retval);
     }
@@ -1210,19 +1210,19 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
         rxq_conf.rx_thresh.wthresh = 0;
         rxq_conf.rx_free_thresh = 0;
         rxq_conf.rx_drop_en = 0;
-        SCLogConfig("%s: rx queue setup: queue:%d port:%d rx_desc:%d tx_desc:%d rx: hthresh: %d "
-                    "pthresh %d wthresh %d free_thresh %d drop_en %d offloads %lu",
-                iconf->iface, queue_id, iconf->port_id, iconf->nb_rx_desc, iconf->nb_tx_desc,
+        SCLogConfig("%s: setting up RX queue %d: rx_desc: %u offloads: 0x%" PRIx64
+                    " hthresh: %" PRIu8 " pthresh: %" PRIu8 " wthresh: %" PRIu8
+                    " free_thresh: %" PRIu16 " drop_en: %" PRIu8,
+                iconf->iface, queue_id, iconf->nb_rx_desc, rxq_conf.offloads,
                 rxq_conf.rx_thresh.hthresh, rxq_conf.rx_thresh.pthresh, rxq_conf.rx_thresh.wthresh,
-                rxq_conf.rx_free_thresh, rxq_conf.rx_drop_en, rxq_conf.offloads);
+                rxq_conf.rx_free_thresh, rxq_conf.rx_drop_en);
 
         retval = rte_eth_rx_queue_setup(iconf->port_id, queue_id, iconf->nb_rx_desc,
                 iconf->socket_id, &rxq_conf, iconf->pkt_mempool);
         if (retval < 0) {
             rte_mempool_free(iconf->pkt_mempool);
-            SCLogError(
-                    "%s: rte_eth_rx_queue_setup failed with code %d for device queue %u of port %u",
-                    iconf->iface, retval, queue_id, iconf->port_id);
+            SCLogError("%s: failed to setup RX queue %u - (err: %s)", iconf->iface, queue_id,
+                    rte_strerror(-retval));
             SCReturnInt(retval);
         }
     }
@@ -1230,14 +1230,19 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     for (uint16_t queue_id = 0; queue_id < iconf->nb_tx_queues; queue_id++) {
         txq_conf = dev_info->default_txconf;
         txq_conf.offloads = port_conf->txmode.offloads;
-        SCLogConfig("%s: tx queue setup: queue:%d port:%d", iconf->iface, queue_id, iconf->port_id);
+        SCLogConfig("%s: setting up TX queue %d: tx_desc: %" PRIu16 " tx: offloads: 0x%" PRIx64
+                    " hthresh: %" PRIu8 " pthresh: %" PRIu8 " wthresh: %" PRIu8
+                    " tx_free_thresh: %" PRIu16 " tx_rs_thresh: %" PRIu16
+                    " txq_deferred_start: %" PRIu8,
+                iconf->iface, queue_id, iconf->nb_tx_desc, txq_conf.offloads,
+                txq_conf.tx_thresh.hthresh, txq_conf.tx_thresh.pthresh, txq_conf.tx_thresh.wthresh,
+                txq_conf.tx_free_thresh, txq_conf.tx_rs_thresh, txq_conf.tx_deferred_start);
         retval = rte_eth_tx_queue_setup(
                 iconf->port_id, queue_id, iconf->nb_tx_desc, iconf->socket_id, &txq_conf);
         if (retval < 0) {
             rte_mempool_free(iconf->pkt_mempool);
-            SCLogError(
-                    "%s: rte_eth_tx_queue_setup failed with code %d for device queue %u of port %u",
-                    iconf->iface, retval, queue_id, iconf->port_id);
+            SCLogError("%s: failed to setup TX queue %u - (err: %s)", iconf->iface, queue_id,
+                    rte_strerror(-retval));
             SCReturnInt(retval);
         }
     }
@@ -1300,21 +1305,24 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
     if (iconf->out_iface != NULL) {
         retval = rte_eth_dev_get_port_by_name(iconf->out_iface, &iconf->out_port_id);
         if (retval != 0) {
-            SCLogError("%s: failed to obtain out iface %s port id (err=%d)", iconf->iface,
-                    iconf->out_iface, retval);
+            SCLogError("%s: failed to obtain out iface %s port id - (err: %s)", iconf->iface,
+                    iconf->out_iface, rte_strerror(-retval));
             SCReturnInt(retval);
         }
 
         int32_t out_port_socket_id;
         retval = DeviceSetSocketID(iconf->port_id, &out_port_socket_id);
         if (retval < 0) {
-            SCLogError("%s: invalid socket id (err=%d)", iconf->out_iface, retval);
+            SCLogError(
+                    "%s: invalid socket id - (err: %s)", iconf->out_iface, rte_strerror(-retval));
             SCReturnInt(retval);
         }
 
         if (iconf->socket_id != out_port_socket_id) {
-            SCLogWarning("%s: out iface %s is not on the same NUMA node", iconf->iface,
-                    iconf->out_iface);
+            SCLogWarning(
+                    "%s: out iface %s is not on the same NUMA node (%s - NUMA %d, %s - NUMA %d)",
+                    iconf->iface, iconf->out_iface, iconf->iface, iconf->socket_id,
+                    iconf->out_iface, out_port_socket_id);
         }
 
         retval = DeviceValidateOutIfaceConfig(iconf);
@@ -1379,12 +1387,13 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
     SCEnter();
     int32_t retval = rte_eth_dev_get_port_by_name(iconf->iface, &(iconf->port_id));
     if (retval < 0) {
-        SCLogError("%s: getting port id failed (err: %s)", iconf->iface, rte_strerror(-retval));
+        SCLogError("%s: interface not found: %s", iconf->iface, rte_strerror(-retval));
         SCReturnInt(retval);
     }
 
     if (!rte_eth_dev_is_valid_port(iconf->port_id)) {
-        SCLogError("%s: specified port %d is invalid", iconf->iface, iconf->port_id);
+        SCLogError("%s: retrieved port ID \"%d\" is invalid or the device is not attached ",
+                iconf->iface, iconf->port_id);
         SCReturnInt(retval);
     }
 
@@ -1427,8 +1436,8 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
     retval = rte_eth_dev_configure(
             iconf->port_id, iconf->nb_rx_queues, iconf->nb_tx_queues, &port_conf);
     if (retval < 0) {
-        SCLogError("%s: failed to configure the device (port %u, err %s)", iconf->iface,
-                iconf->port_id, rte_strerror(-retval));
+        SCLogError("%s: failed to configure the device - (err: %s)", iconf->iface,
+                rte_strerror(-retval));
         SCReturnInt(retval);
     }
 
@@ -1451,17 +1460,16 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         // when multicast is enabled but set to disable or vice versa
         if ((retval == 1 && !(iconf->flags & DPDK_MULTICAST)) ||
                 (retval == 0 && (iconf->flags & DPDK_MULTICAST))) {
-            SCLogError("%s: Allmulticast setting of port (%" PRIu16
-                       ") can not be configured. Set it to %s",
-                    iconf->iface, iconf->port_id, retval == 1 ? "true" : "false");
+            SCLogWarning("%s: cannot configure allmulticast, the port is %sin allmulticast mode",
+                    iconf->iface, retval == 1 ? "" : "not ");
         } else if (retval < 0) {
-            SCLogError("%s: failed to get multicast mode (port %u, err %d)", iconf->iface,
-                    iconf->port_id, retval);
+            SCLogError("%s: failed to get multicast mode - (err: %s)", iconf->iface,
+                    rte_strerror(-retval));
             SCReturnInt(retval);
         }
     } else if (retval < 0) {
-        SCLogError("%s: error when changing multicast setting (port %u err %d)", iconf->iface,
-                iconf->port_id, retval);
+        SCLogError("%s: error when changing multicast setting - (err: %s)", iconf->iface,
+                rte_strerror(-retval));
         SCReturnInt(retval);
     }
 
@@ -1471,18 +1479,17 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         retval = rte_eth_promiscuous_get(iconf->port_id);
         if ((retval == 1 && !(iconf->flags & DPDK_PROMISC)) ||
                 (retval == 0 && (iconf->flags & DPDK_PROMISC))) {
-            SCLogError("%s: promiscuous setting of port (%" PRIu16
-                       ") can not be configured. Set it to %s",
-                    iconf->iface, iconf->port_id, retval == 1 ? "true" : "false");
+            SCLogError("%s: cannot configure promiscuous mode, the port is in %spromiscuous mode",
+                    iconf->iface, retval == 1 ? "" : "non-");
             SCReturnInt(TM_ECODE_FAILED);
         } else if (retval < 0) {
-            SCLogError("%s: failed to get promiscuous mode (port %u, err=%d)", iconf->iface,
-                    iconf->port_id, retval);
+            SCLogError("%s: failed to get promiscuous mode - (err: %s)", iconf->iface,
+                    rte_strerror(-retval));
             SCReturnInt(retval);
         }
     } else if (retval < 0) {
-        SCLogError("%s: error when changing promiscuous setting (port %u, err %d)", iconf->iface,
-                iconf->port_id, retval);
+        SCLogError("%s: error when changing promiscuous setting - (err: %s)", iconf->iface,
+                rte_strerror(-retval));
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -1490,18 +1497,17 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
     SCLogConfig("%s: setting MTU to %d", iconf->iface, iconf->mtu);
     retval = rte_eth_dev_set_mtu(iconf->port_id, iconf->mtu);
     if (retval == -ENOTSUP) {
-        SCLogWarning("%s: changing MTU on port %u is not supported, ignoring the setting",
-                iconf->iface, iconf->port_id);
         // if it is not possible to set the MTU, retrieve it
         retval = rte_eth_dev_get_mtu(iconf->port_id, &iconf->mtu);
         if (retval < 0) {
-            SCLogError("%s: failed to retrieve MTU (port %u, err %d)", iconf->iface, iconf->port_id,
-                    retval);
+            SCLogError("%s: failed to retrieve MTU (err: %s)", iconf->iface, rte_strerror(-retval));
             SCReturnInt(retval);
         }
+        SCLogWarning(
+                "%s: changing MTU is not supported, current MTU: %u", iconf->iface, iconf->mtu);
     } else if (retval < 0) {
-        SCLogError("%s: failed to set MTU to %u (port %u, err %d)", iconf->iface, iconf->mtu,
-                iconf->port_id, retval);
+        SCLogError("%s: failed to set MTU to %u (err: %s)", iconf->iface, iconf->mtu,
+                rte_strerror(-retval));
         SCReturnInt(retval);
     }
 
@@ -1535,7 +1541,7 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
     if (retval < 0) { // handles both configure attempts
         iconf->DerefFunc(iconf);
         if (rte_eal_cleanup() != 0)
-            FatalError("EAL cleanup failed: %s", strerror(-retval));
+            FatalError("EAL cleanup failed (err: %s)", strerror(-retval));
 
         if (retval == -ENOMEM) {
             FatalError("%s: memory allocation failed - consider"
