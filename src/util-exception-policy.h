@@ -1,4 +1,4 @@
-/* Copyright (C) 2022-2023 Open Information Security Foundation
+/* Copyright (C) 2022-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -23,18 +23,9 @@
 #define __UTIL_EXCEPTION_POLICY_H__
 
 #include "decode.h"
+#include "util-exception-policy-types.h"
 
-enum ExceptionPolicy {
-    EXCEPTION_POLICY_NOT_SET = 0,
-    EXCEPTION_POLICY_AUTO,
-    EXCEPTION_POLICY_PASS_PACKET,
-    EXCEPTION_POLICY_PASS_FLOW,
-    EXCEPTION_POLICY_BYPASS_FLOW,
-    EXCEPTION_POLICY_DROP_PACKET,
-    EXCEPTION_POLICY_DROP_FLOW,
-    EXCEPTION_POLICY_REJECT,
-};
-
+const char *ExceptionPolicyEnumToString(enum ExceptionPolicy policy, bool is_json);
 void SetMasterExceptionPolicy(void);
 void ExceptionPolicyApply(
         Packet *p, enum ExceptionPolicy policy, enum PacketDropReason drop_reason);
