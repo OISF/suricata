@@ -469,6 +469,12 @@ int DetectLoadersSync(void)
                 done = true;
             }
             SCMutexUnlock(&loader->m);
+            if (!done) {
+                /* nudge thread in case it's sleeping */
+                SCCtrlMutexLock(loader->tv->ctrl_mutex);
+                pthread_cond_broadcast(loader->tv->ctrl_cond);
+                SCCtrlMutexUnlock(loader->tv->ctrl_mutex);
+            }
         }
         SCMutexLock(&loader->m);
         if (loader->result != 0) {
@@ -524,7 +530,9 @@ static void TmThreadWakeupDetectLoaderThreads(void)
         while (tv != NULL) {
             if (strncmp(tv->name,"DL#",3) == 0) {
                 BUG_ON(tv->ctrl_cond == NULL);
+                SCCtrlMutexLock(tv->ctrl_mutex);
                 pthread_cond_broadcast(tv->ctrl_cond);
+                SCCtrlMutexUnlock(tv->ctrl_mutex);
             }
             tv = tv->next;
         }
@@ -567,6 +575,11 @@ static TmEcode DetectLoaderThreadInit(ThreadVars *t, const void *initdata, void 
 
     /* pass thread data back to caller */
     *data = ftd;
+
+    DetectLoaderControl *loader = &loaders[ftd->instance];
+    SCMutexLock(&loader->m);
+    loader->tv = t;
+    SCMutexUnlock(&loader->m);
 
     return TM_ECODE_OK;
 }
