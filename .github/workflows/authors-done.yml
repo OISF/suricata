@@ -12,7 +12,7 @@ jobs:
       - run: echo "Author check is complete"
 
       - name: Download artifact new authors
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
@@ -38,7 +38,7 @@ jobs:
           fi
       - name: Comment on PR
         if: ${{ env.new_authors == 'yes' }}
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
