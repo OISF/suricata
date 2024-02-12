@@ -8,6 +8,10 @@ on:
     paths-ignore:
       - "doc/**"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   scan-build:
     name: Scan-build
