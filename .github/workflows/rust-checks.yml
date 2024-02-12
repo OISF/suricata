@@ -1,0 +1,179 @@
+name: Cargo Audit and Update
+
+on:
+  schedule:
+    # Run on Monday mornings, 11AM UTC.
+    - cron: '0 11 * * 1'
+  # Enable push for testing when working on this file.
+  #push:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+env:
+  RUST_VERSION_MIN: "1.63.0"
+
+jobs:
+
+  # This job runs `cargo audit` and will exit with a failure code if
+  # any warnings are raised.
+  audit:
+    name: Cargo Audit
+    runs-on: ubuntu-latest
+    container: almalinux:9
+    steps:
+      - name: Cache cargo registry
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - name: Install system packages
+        run: |
+          dnf -y install dnf-plugins-core epel-release
+          dnf config-manager --set-enabled crb
+          dnf -y install \
+                autoconf \
+                automake \
+                cbindgen \
+                diffutils \
+                numactl-devel \
+                dpdk-devel \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                lz4-devel \
+                make \
+                pcre2-devel \
+                pkgconfig \
+                python3-devel \
+                python3-sphinx \
+                python3-yaml \
+                sudo \
+                which \
+                zlib-devel
+      - name: Install Rust
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Install Cargo Audit
+        run: cargo install cargo-audit
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - name: Configure Suricata
+        run: |
+          ./scripts/bundle.sh libhtp
+          ./autogen.sh
+          ./configure
+      - name: Run Cargo Audit
+        working-directory: rust
+        run: |
+          IGNORES=()
+
+          # failure, via bendy
+          IGNORES+=(--ignore RUSTSEC-2020-0036)
+          # failure, via bendy
+          IGNORES+=(--ignore RUSTSEC-2019-0036)
+
+          cargo audit -D warnings "${IGNORES[@]}"
+
+  # This job uses our MSRV and does a `cargo update` with the idea
+  # that it should catch early any dependencies that have done a patch
+  # update pulling in a new MSRV. This would be an indicator that we
+  # have to more tightly pin the dependency, or even attempt to pin a
+  # transitive dependency.
+  update:
+    name: Cargo Update
+    runs-on: ubuntu-latest
+    container: almalinux:9
+    steps:
+      - name: Cache cargo registry
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        with:
+          path: /var/cache/dnf
+          key: ${{ github.job }}-dnf
+      - run: echo "keepcache=1" >> /etc/dnf/dnf.conf
+
+      - name: Install system packages
+        run: |
+          dnf -y install dnf-plugins-core epel-release
+          dnf config-manager --set-enabled crb
+          dnf -y install \
+                autoconf \
+                automake \
+                cbindgen \
+                diffutils \
+                numactl-devel \
+                dpdk-devel \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                git \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                libtool \
+                lz4-devel \
+                make \
+                pcre2-devel \
+                pkgconfig \
+                python3-devel \
+                python3-sphinx \
+                python3-yaml \
+                sudo \
+                which \
+                zlib-devel
+      - name: Install Minimum Supported Rust Version
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION_MIN} -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - name: Configure Suricata
+        run: |
+          ./scripts/bundle.sh libhtp
+          ./autogen.sh
+          ./configure
+      - name: Cargo Update and Build
+        working-directory: rust
+        run: |
+          cargo update
+          cargo build --all-features --all-targets
