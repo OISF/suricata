@@ -62,7 +62,7 @@ jobs:
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
-      - uses: actions/checkout@v3.5.3
+      - uses: actions/checkout@v4
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
       - run: scan-build-16 ./configure --enable-dpdk --enable-nfqueue --enable-nflog
