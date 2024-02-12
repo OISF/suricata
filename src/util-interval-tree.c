@@ -23,6 +23,7 @@
 
 #include "util-interval-tree.h"
 #include "util-validate.h"
+#include "detect-engine-siggroup.h"
 
 static int PICompare(SCIntervalNode *a, SCIntervalNode *b)
 {
@@ -104,8 +105,7 @@ int PIInsertPort(SCIntervalTree *it, struct PI *head, DetectPort *p)
     pi->port = p->port;
     pi->port2 = p->port2;
     pi->flags = p->flags;
-    //    pi->sh = p->sh; // STODO this is likely wrong, we should prob copy the sgh
-    // update indeed wrong, ASAN flagged it
+    //    SigGroupHeadCopySigs(de_ctx, p->sh, &pi->sh);
     if (PI_IRB_INSERT(&it->tree, pi) != NULL) {
         SCLogNotice("Node wasn't added to the tree: port: %d, port2: %d", pi->port, pi->port2);
         SCFree(pi);
@@ -118,28 +118,28 @@ int PIInsertPort(SCIntervalTree *it, struct PI *head, DetectPort *p)
     return SC_OK;
 }
 
+static void FindOverlaps(uint16_t port, uint16_t port2, SCIntervalNode *ptr)
+{
+    if (ptr == NULL) {
+        return;
+    }
+    if ((port <= ptr->port2) && (ptr->port < port2)) {
+        SCLogNotice("Found overlap with [%d, %d]", ptr->port, ptr->port2);
+    }
+    SCIntervalNode *node = IRB_LEFT(ptr, irb);
+    if ((node != NULL) && (node->max >= port)) {
+        FindOverlaps(port, port2, node);
+    }
+    node = IRB_RIGHT(ptr, irb);
+    FindOverlaps(port, port2, node);
+}
+
 bool PISearchOverlappingPortRanges(
         uint16_t port, uint16_t port2, struct PI *head, SigGroupHead **sgh_array)
 {
     SCIntervalNode *ptr = IRB_ROOT(head);
-    SCIntervalNode *tmp = NULL;
     bool overlaps = false;
-    SCLogNotice("Finding overlaps for the range [%d, %d]", port, port2);
-    // Only finds single overlap for now, needs to be changed and accomodate SGHs
-    while ((ptr != NULL) && (port2 <= ptr->max)) {
-        tmp = ptr;
-        SCLogNotice("comparing with port: %d, port2: %d", ptr->port, ptr->port2);
-        if ((port <= ptr->port2) && (ptr->port <= port2)) {
-            overlaps = true;
-            SCLogNotice("Found overlap with [%d, %d]", tmp->port, tmp->port2);
-            break;
-        }
-        SCIntervalNode *node = IRB_LEFT(ptr, irb);
-        if ((node != NULL) && (node->max >= port)) {
-            ptr = node;
-        } else {
-            ptr = IRB_RIGHT(ptr, irb);
-        }
-    }
+    SCLogNotice("Finding overlaps for the range [%d, %d)", port, port2);
+    FindOverlaps(port, port2, ptr);
     return overlaps;
 }
