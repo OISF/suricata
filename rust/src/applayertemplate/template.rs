@@ -17,6 +17,7 @@
 
 use super::parser;
 use crate::applayer::{self, *};
+use crate::conf::conf_get;
 use crate::core::{AppProto, Flow, ALPROTO_UNKNOWN, IPPROTO_TCP};
 use nom7 as nom;
 use std;
@@ -24,10 +25,14 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 
+static mut TEMPLATE_MAX_TX: usize = 256;
+
 static mut ALPROTO_TEMPLATE: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerEvent)]
-enum TemplateEvent {}
+enum TemplateEvent {
+    TooManyTransactions,
+}
 
 pub struct TemplateTransaction {
     tx_id: u64,
@@ -145,7 +150,13 @@ impl TemplateState {
                     SCLogNotice!("Request: {}", request);
                     let mut tx = self.new_tx();
                     tx.request = Some(request);
+                    if self.transactions.len() >= unsafe {TEMPLATE_MAX_TX} {
+                        tx.tx_data.set_event(TemplateEvent::TooManyTransactions as u8);
+                    }
                     self.transactions.push_back(tx);
+                    if self.transactions.len() >= unsafe {TEMPLATE_MAX_TX} {
+                        return AppLayerResult::err();
+                    }
                 }
                 Err(nom::Err::Incomplete(_)) => {
                     // Not enough data. This parser doesn't give us a good indication
@@ -428,6 +439,13 @@ pub unsafe extern "C" fn rs_template_register_parser() {
         ALPROTO_TEMPLATE = alproto;
         if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+        if let Some(val) = conf_get("app-layer.protocols.template.max-tx") {
+            if let Ok(v) = val.parse::<usize>() {
+                TEMPLATE_MAX_TX = v;
+            } else {
+                SCLogError!("Invalid value for template.max-tx");
+            }
         }
         SCLogNotice!("Rust template parser registered.");
     } else {
