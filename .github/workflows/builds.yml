@@ -977,7 +977,7 @@ jobs:
     name: Fedora 39 (clang, debug, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
     container: fedora:39
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [prepare-deps]
     steps:
 
       # Cache Rust stuff.
@@ -1078,7 +1078,7 @@ jobs:
     name: Fedora 39 (gcc, debug, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
     container: fedora:39
-    needs: [prepare-deps, prepare-cbindgen]
+    needs: [prepare-deps]
     steps:
 
       # Cache Rust stuff.
