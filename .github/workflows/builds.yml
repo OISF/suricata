@@ -141,7 +141,7 @@ jobs:
           cd ..
           tar zcf suricata-verify.tar.gz suricata-verify
       - name: Uploading prep archive
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
         with:
           name: prep
           path: |
@@ -168,9 +168,9 @@ jobs:
           cargo install --target x86_64-unknown-linux-musl --debug cbindgen
           cp $HOME/.cargo/bin/cbindgen .
       - name: Uploading prep archive
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
         with:
-          name: prep
+          name: cbindgen
           path: .
 
   almalinux-9:
@@ -200,7 +200,7 @@ jobs:
 
       # Download and extract dependency archives created during prep
       # job.
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -332,7 +332,7 @@ jobs:
 
       # Download and extract dependency archives created during prep
       # job.
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -432,13 +432,17 @@ jobs:
 
       # Download and extract dependency archives created during prep
       # job.
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
       - run: tar xvf prep/libhtp.tar.gz
       - run: tar xvf prep/suricata-update.tar.gz
       - run: tar xvf prep/suricata-verify.tar.gz
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+        with:
+          name: cbindgen
+          path: prep
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -559,7 +563,7 @@ jobs:
                 which \
                 zlib-devel
       - name: Download suricata.tar.gz
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
@@ -578,7 +582,7 @@ jobs:
           test -e /usr/local/lib/suricata/python/suricata/update/configs/modify.conf
           test -e /usr/local/lib/suricata/python/suricata/update/configs/threshold.in
           test -e /usr/local/lib/suricata/python/suricata/update/configs/update.yaml
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -648,7 +652,7 @@ jobs:
                 which \
                 zlib-devel
       - name: Download suricata.tar.gz
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
@@ -667,7 +671,7 @@ jobs:
           test -e /usr/local/lib/suricata/python/suricata/update/configs/modify.conf
           test -e /usr/local/lib/suricata/python/suricata/update/configs/threshold.in
           test -e /usr/local/lib/suricata/python/suricata/update/configs/update.yaml
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -742,7 +746,7 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -838,7 +842,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -933,7 +937,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -1033,7 +1037,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -1123,7 +1127,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -1209,7 +1213,7 @@ jobs:
                 zlib-devel
       - run: adduser suricata
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -1301,7 +1305,7 @@ jobs:
                 which \
                 zlib-devel
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -1375,11 +1379,15 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+        with:
+          name: cbindgen
+          path: prep
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -1497,11 +1505,15 @@ jobs:
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+        with:
+          name: cbindgen
+          path: prep
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -1587,12 +1599,16 @@ jobs:
                 exuberant-ctags \
                 dpdk-dev
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+        with:
+          name: cbindgen
+          path: prep
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -1672,7 +1688,7 @@ jobs:
       - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.62.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
@@ -1738,11 +1754,15 @@ jobs:
                 zlib1g-dev \
                 exuberant-ctags
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+        with:
+          name: cbindgen
+          path: prep
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -1815,11 +1835,15 @@ jobs:
                 zlib1g-dev
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+        with:
+          name: cbindgen
+          path: prep
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -1904,11 +1928,15 @@ jobs:
           sudo make install
 
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+        with:
+          name: cbindgen
+          path: prep
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -2004,11 +2032,15 @@ jobs:
           ldconfig
           cd $HOME
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+        with:
+          name: cbindgen
+          path: prep
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -2083,7 +2115,7 @@ jobs:
               zlib1g \
               zlib1g-dev
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -2168,7 +2200,7 @@ jobs:
               zlib1g \
               zlib1g-dev
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -2183,7 +2215,7 @@ jobs:
         run: |
           mkdir dist
           mv suricata-*.tar.gz dist
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      - uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
         name: Uploading distribution
         with:
           name: dist
@@ -2252,9 +2284,13 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION_MIN} -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
+          path: prep
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+        with:
+          name: cbindgen
           path: prep
       - name: Setup cbindgen
         run: |
@@ -2334,12 +2370,16 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+        with:
+          name: cbindgen
+          path: prep
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -2410,12 +2450,16 @@ jobs:
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION_KNOWN -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+        with:
+          name: cbindgen
+          path: prep
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
@@ -2466,7 +2510,7 @@ jobs:
       - run: pip3 install PyYAML
       - uses: actions/checkout@v3.5.3
       - name: Downloading prep archive
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -2508,7 +2552,7 @@ jobs:
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -2564,7 +2608,7 @@ jobs:
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
@@ -2608,7 +2652,7 @@ jobs:
       - name: cbindgen
         run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
       - uses: actions/checkout@v3.5.3
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
         with:
           name: prep
           path: prep
