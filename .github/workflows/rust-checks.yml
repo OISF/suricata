@@ -27,13 +27,13 @@ jobs:
     container: almalinux:9
     steps:
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@a2ed59d39b352305bdd2f628719a53b2cc4f9613
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
       - name: Cache RPMs
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@a2ed59d39b352305bdd2f628719a53b2cc4f9613
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
@@ -112,13 +112,13 @@ jobs:
     container: almalinux:9
     steps:
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@a2ed59d39b352305bdd2f628719a53b2cc4f9613
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
       - name: Cache RPMs
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+        uses: actions/cache@a2ed59d39b352305bdd2f628719a53b2cc4f9613
         with:
           path: /var/cache/dnf
           key: ${{ github.job }}-dnf
