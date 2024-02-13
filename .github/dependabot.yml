@@ -12,3 +12,8 @@ updates:
       interval: "daily"
     commit-message:
       prefix: "github-actions:"
+    ignore:
+      - dependency-name: "actions/cache"
+        versions: ["3.x"]
+      - dependency-name: "actions/checkout"
+        versions: ["3.x"]
