@@ -999,6 +999,9 @@
                     "description": "DNS opcode as an integer",
                     "type": "integer"
                 },
+                "tc": {
+                    "type": "boolean"
+                },
                 "answers": {
                     "type": "array",
                     "minItems": 1,
@@ -1030,6 +1033,21 @@
                                         "type": "integer"
                                     },
                                     "weight": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "sshfp": {
+                                "type": "object",
+                                "properties": {
+                                    "fingerprint": {
+                                        "type": "string"
+                                    },
+                                    "algo": {
+                                        "type": "integer"
+                                    },
+                                    "type": {
                                         "type": "integer"
                                     }
                                 },
@@ -1189,6 +1207,25 @@
                             "minItems": 1,
                             "items": {
                                 "type": "string"
+                            }
+                        },
+                        "SSHFP": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "fingerprint": {
+                                        "type": "string"
+                                    },
+                                    "algo": {
+                                        "type": "integer"
+                                    },
+                                    "type": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "additionalProperties": false
                             }
                         }
                     },
