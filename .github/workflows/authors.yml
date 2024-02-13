@@ -29,7 +29,7 @@ jobs:
           touch new-authors.txt
           while read -r author; do
              echo "Checking author: ${author}"
-             if ! grep -q "^${author}\$" authors.txt; then
+             if ! grep -qFx "${author}" authors.txt; then
                  echo "ERROR: ${author} NOT FOUND"
                  echo "::warning ::New author found: ${author}"
                  echo "${author}" >> new-authors.txt
