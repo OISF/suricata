@@ -578,8 +578,8 @@ static TmEcode DetectLoaderThreadInit(ThreadVars *t, const void *initdata, void 
 
     DetectLoaderControl *loader = &loaders[ftd->instance];
     SCMutexLock(&loader->m);
-    loader->tv = t;
     SCMutexUnlock(&loader->m);
+    loader->tv = t;
 
     return TM_ECODE_OK;
 }
