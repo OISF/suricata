@@ -3,6 +3,8 @@ name: New Authors Check
 on:
   pull_request:
 
+permissions: read-all
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
