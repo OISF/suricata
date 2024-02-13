@@ -999,6 +999,10 @@
                     "description": "DNS opcode as an integer",
                     "type": "integer"
                 },
+                "tc": {
+                    "description": "A 1-bit subfield for truncated response that specifies if the length of the message exceeds the allowed length",
+                    "type": "boolean"
+                },
                 "answers": {
                     "type": "array",
                     "minItems": 1,
@@ -1030,6 +1034,22 @@
                                         "type": "integer"
                                     },
                                     "weight": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "sshfp": {
+                                "description": "A Secure Shell fingerprint is used to verify the system’s authenticity",
+                                "type": "object",
+                                "properties": {
+                                    "fingerprint": {
+                                        "type": "string"
+                                    },
+                                    "algo": {
+                                        "type": "integer"
+                                    },
+                                    "type": {
                                         "type": "integer"
                                     }
                                 },
@@ -1189,6 +1209,26 @@
                             "minItems": 1,
                             "items": {
                                 "type": "string"
+                            }
+                        },
+                        "SSHFP": {
+                            "description": "A Secure Shell fingerprint is used to verify the system’s authenticity",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "fingerprint": {
+                                        "type": "string"
+                                    },
+                                    "algo": {
+                                        "type": "integer"
+                                    },
+                                    "type": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "additionalProperties": false
                             }
                         }
                     },
