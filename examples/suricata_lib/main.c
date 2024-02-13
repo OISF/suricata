@@ -39,38 +39,6 @@ void packetHandler(u_char *tv, const struct pcap_pkthdr *pkthdr, const u_char *p
     i++;
 }
 
-void callbackAlert(void *user_ctx, AlertEvent *event)
-{
-    printf("Alert!, sid %d\n", event->alert.sid);
-
-    if (event->common.app_proto && strcmp(event->common.app_proto, "http") == 0) {
-        if (event->app_layer.http && event->app_layer.http->hostname) {
-            printf("Alert HTTP hostname %s\n", event->app_layer.http->hostname);
-        }
-    }
-}
-
-void callbackFile(void *user_ctx, FileinfoEvent *event)
-{
-    printf("File!, name %s\n", event->fileinfo.filename);
-
-    if (event->common.app_proto && strcmp(event->common.app_proto, "http") == 0) {
-        if (event->app_layer.http && event->app_layer.http->hostname) {
-            printf("Fileinfo HTTP hostname %s\n", event->app_layer.http->hostname);
-        }
-    }
-}
-
-void callbackHttp(void *user_ctx, HttpEvent *event)
-{
-    printf("Http!, hostname %s\n", event->http.hostname);
-}
-
-void callbackFlow(void *user_ctx, FlowEvent *event)
-{
-    printf("Flow!, state %s\n", event->flow.state);
-}
-
 void *suricataWorker(void *td)
 {
     thread_args *ta = (thread_args *)td;
@@ -184,10 +152,12 @@ int main(int argc, char **argv)
     ctx = suricata_create_ctx(n_workers);
 
     /* Register callbacks. */
+#if 0
     suricata_register_alert_cb(ctx, NULL, callbackAlert);
     suricata_register_fileinfo_cb(ctx, NULL, callbackFile);
     suricata_register_http_cb(ctx, NULL, callbackHttp);
     suricata_register_flow_cb(ctx, NULL, callbackFlow);
+#endif
 
     /* Init suricata engine. */
     suricata_init(config);

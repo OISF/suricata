@@ -90,24 +90,6 @@ static char **split_config_string(const char *config, int *argc)
 }
 
 /**
- * \brief Utility method to register the callback id into the suricata instance.
- *
- * \param id    Id of the callback to register.
- */
-static void setCallbackId(uint32_t id)
-{
-    SCInstance *suri = GetInstance();
-    int i = 0;
-
-    while (suri->callback_ids[i]) {
-        i++;
-    }
-    assert(i < MAX_CALLBACKS);
-
-    suri->callback_ids[i] = id;
-}
-
-/**
  * \brief Create a Suricata context.
  *
  * \param n_workers    Number of worker threads that will be allocated.
@@ -138,69 +120,6 @@ SuricataCtx *suricata_create_ctx(int n_workers)
     SuricataPreInit("suricata");
 
     return ctx;
-}
-
-/**
- * \brief Register a callback that is invoked for every alert.
- *
- * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
- * \param callback       Pointer to a callback function.
- */
-void suricata_register_alert_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncAlert callback)
-{
-    ctx->callbacks.alert.func = callback;
-    ctx->callbacks.alert.user_ctx = user_ctx;
-
-    /* Set the callback id into the suricata array to later register the output module. */
-    setCallbackId(LOGGER_CALLBACK_ALERT);
-}
-
-/**
- * \brief Register a callback that is invoked for every fileinfo event.
- *
- * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
- * \param callback       Pointer to a callback function.
- */
-void suricata_register_fileinfo_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncFileinfo callback)
-{
-    ctx->callbacks.fileinfo.func = callback;
-    ctx->callbacks.fileinfo.user_ctx = user_ctx;
-
-    /* Set the callback id into the suricata array to later register the output module. */
-    setCallbackId(LOGGER_CALLBACK_FILE);
-}
-/**
- * \brief Register a callback that is invoked for every flow.
- *
- * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
- * \param callback       Pointer to a callback function.
- */
-void suricata_register_flow_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncFlow callback)
-{
-    ctx->callbacks.flow.func = callback;
-    ctx->callbacks.flow.user_ctx = user_ctx;
-
-    /* Set the callback id into the suricata array to later register the output module. */
-    setCallbackId(LOGGER_CALLBACK_FLOW);
-}
-
-/**
- * \brief Register a callback that is invoked for every HTTP event.
- *
- * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
- * \param callback       Pointer to a callback function.
- */
-void suricata_register_http_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncHttp callback)
-{
-    ctx->callbacks.http.func = callback;
-    ctx->callbacks.http.user_ctx = user_ctx;
-
-    /* Set the callback id into the suricata array to later register the output module. */
-    setCallbackId(LOGGER_CALLBACK_TX);
 }
 
 /**
@@ -240,7 +159,6 @@ ThreadVars *suricata_create_worker_thread(SuricataCtx *ctx)
     }
 
     ThreadVars *tv = RunModeCreateWorker();
-    tv->callbacks = &ctx->callbacks;
     ctx->n_workers_created++;
     pthread_mutex_unlock(&ctx->lock);
 

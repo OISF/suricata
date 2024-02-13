@@ -20,9 +20,6 @@ typedef struct SuricataCtx {
     /* Number of worker threads that are done processing. */
     int n_workers_done;
 
-    /* Callbacks to invoke for each event. */
-    Callbacks callbacks;
-
     /* Mutex to access the fields. */
     pthread_mutex_t lock;
 } SuricataCtx;
@@ -34,42 +31,6 @@ typedef struct SuricataCtx {
  * \return SuricataCtx Pointer to the initialized Suricata context.
  */
 SuricataCtx *suricata_create_ctx(int n_workers);
-
-/**
- * \brief Register a callback that is invoked for every alert.
- *
- * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
- * \param callback       Pointer to a callback function.
- */
-void suricata_register_alert_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncAlert callback);
-
-/**
- * \brief Register a callback that is invoked for every fileinfo event.
- *
- * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
- * \param callback       Pointer to a callback function.
- */
-void suricata_register_fileinfo_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncFileinfo callback);
-
-/**
- * \brief Register a callback that is invoked for every flow.
- *
- * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
- * \param callback       Pointer to a callback function.
- */
-void suricata_register_flow_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncFlow callback);
-
-/**
- * \brief Register a callback that is invoked for every HTTP event.
- *
- * \param ctx            Pointer to SuricataCtx.
- * \param user_ctx       Pointer to a user-defined context object.
- * \param callback       Pointer to a callback function.
- */
-void suricata_register_http_cb(SuricataCtx *ctx, void *user_ctx, CallbackFuncHttp callback);
 
 /**
  * \brief Initialize a Suricata context.

@@ -87,7 +87,6 @@ void RunModeRegisterRunModes(void);
 void RunModeRegisterNewRunMode(enum RunModes, const char *, const char *, int (*RunModeFunc)(void),
         void (*RunModeIsIPSEnabled)(void));
 void RunModeInitializeThreadSettings(void);
-void RunModeInitializeCallbacks(uint32_t *);
 void RunModeInitializeOutputs(void);
 void RunModeShutDown(void);
 

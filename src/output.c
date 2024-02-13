@@ -44,17 +44,14 @@
 #include "alert-debuglog.h"
 #include "alert-syslog.h"
 #include "output-json.h"
-#include "output-callback-alert.h"
 #include "output-json-alert.h"
 #include "output-json-anomaly.h"
-#include "output-callback-flow.h"
 #include "output-json-flow.h"
 #include "output-json-netflow.h"
 #include "log-cf-common.h"
 #include "output-json-drop.h"
 #include "output-eve-stream.h"
 #include "log-httplog.h"
-#include "output-callback-http.h"
 #include "output-json-http.h"
 #include "output-json-dns.h"
 #include "output-json-modbus.h"
@@ -63,7 +60,6 @@
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
 #include "log-pcap.h"
-#include "output-callback-file.h"
 #include "output-json-file.h"
 #include "output-json-smtp.h"
 #include "output-json-stats.h"
@@ -1062,7 +1058,6 @@ void OutputRegisterLoggers(void)
     /* http log */
     LogHttpLogRegister();
     JsonHttpLogRegister();
-    CallbackHttpLogRegister();
     JsonHttp2LogRegister();
     /* tls log */
     LogTlsLogRegister();
@@ -1074,7 +1069,6 @@ void OutputRegisterLoggers(void)
     PcapLogRegister();
     /* file log */
     JsonFileLogRegister();
-    CallbackFileLogRegister();
     OutputFilestoreRegister();
     /* dns */
     JsonDnsLogRegister();
@@ -1086,10 +1080,8 @@ void OutputRegisterLoggers(void)
     LogStatsLogRegister();
 
     JsonAlertLogRegister();
-    CallbackAlertLogRegister();
     JsonAnomalyLogRegister();
     /* flow/netflow */
-    CallbackFlowLogRegister();
     JsonFlowLogRegister();
     JsonNetFlowLogRegister();
     /* json stats */

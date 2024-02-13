@@ -118,10 +118,6 @@ enum {
 
 #define IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) ((host_mode) == SURI_HOST_IS_SNIFFER_ONLY)
 
-/* Not sure where to put this.
- * Change this whenever a new callback is added */
-#define MAX_CALLBACKS 4
-
 #include "runmodes.h"
 
 typedef struct SCInstance_ {
@@ -167,8 +163,6 @@ typedef struct SCInstance_ {
 
     const char *capture_plugin_name;
     const char *capture_plugin_args;
-
-    uint32_t callback_ids[MAX_CALLBACKS];
 } SCInstance;
 
 
