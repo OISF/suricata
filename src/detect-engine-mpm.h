@@ -125,6 +125,7 @@ int PrefilterGenericMpmFrameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 typedef struct PrefilterMpmListId {
     int list_id;
     const MpmCtx *mpm_ctx;
+    InspectionMultiBufferGetDataPtr GetData;
     const DetectEngineTransforms *transforms;
 } PrefilterMpmListId;
 

@@ -413,6 +413,9 @@ typedef InspectionBuffer *(*InspectionBufferGetDataPtr)(
         const DetectEngineTransforms *transforms,
         Flow *f, const uint8_t flow_flags,
         void *txv, const int list_id);
+typedef InspectionBuffer *(*InspectionMultiBufferGetDataPtr)(struct DetectEngineThreadCtx_ *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *f, const uint8_t flow_flags, void *txv,
+        const int list_id, const uint32_t local_id);
 struct DetectEngineAppInspectionEngine_;
 
 typedef uint8_t (*InspectEngineFuncPtr)(struct DetectEngineCtx_ *de_ctx,
@@ -426,6 +429,8 @@ typedef struct DetectEngineAppInspectionEngine_ {
     uint8_t id;     /**< per sig id used in state keeping */
     bool mpm;
     bool stream;
+    /** will match on a NULL buffer (for example with one negated content) */
+    bool match_on_null;
     uint16_t sm_list;
     uint16_t sm_list_base; /**< base buffer being transformed */
     int16_t progress;
@@ -504,6 +509,8 @@ typedef struct DetectEngineFrameInspectionEngine {
     uint8_t dir;
     uint8_t type;
     bool mpm;
+    /** will match on a NULL buffer (for example with one negated content) */
+    bool match_on_null;
     uint16_t sm_list;
     uint16_t sm_list_base;
     struct {

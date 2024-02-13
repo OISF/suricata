@@ -293,8 +293,12 @@ static int DetectFrameInspectUdp(DetectEngineThreadCtx *det_ctx,
 
     // TODO can we use single here? Could it conflict with TCP?
     InspectionBuffer *buffer = InspectionBufferMultipleForListGet(det_ctx, list_id, 0);
-    if (buffer == NULL)
+    if (buffer == NULL) {
+        if (engine->match_on_null) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
 
     DEBUG_VALIDATE_BUG_ON(frame->offset >= p->payload_len);
     if (frame->offset >= p->payload_len)
@@ -434,6 +438,9 @@ static int FrameStreamDataInspectFunc(
     InspectionBuffer *buffer =
             InspectionBufferMultipleForListGet(fsd->det_ctx, fsd->list_id, fsd->idx++);
     if (buffer == NULL) {
+        if (fsd->inspect_engine->match_on_null && fsd->idx == 0) {
+            fsd->inspect_result = DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
         return 0;
     }
     SCLogDebug("buffer %p idx %u", buffer, fsd->idx);

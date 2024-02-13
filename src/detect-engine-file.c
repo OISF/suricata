@@ -192,6 +192,11 @@ uint8_t DetectFileInspectGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx 
     SCLogDebug("tx %p tx_id %" PRIu64 " ffc %p ffc->head %p sid %u", tx, tx_id, ffc,
             ffc ? ffc->head : NULL, s->id);
     if (ffc == NULL) {
+        const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, tx, flags) >
+                          engine->progress);
+        if (eof && engine->match_on_null) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
         SCReturnInt(DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES);
     } else if (ffc->head == NULL) {
         SCReturnInt(DETECT_ENGINE_INSPECT_SIG_NO_MATCH);
