@@ -777,7 +777,7 @@ jobs:
 
   # Fedora 38 build using Clang.
   fedora-38-clang:
-    name: Fedora 38 (clang, debug, asan, wshadow, rust-strict, systemd)
+    name: Fedora 38 (clang, cocci, debug, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
     container: fedora:38
     needs: [prepare-deps]
@@ -833,6 +833,7 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
+                parallel \
                 pcre2-devel \
                 pkgconfig \
                 python \
@@ -852,7 +853,7 @@ jobs:
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow" ./configure --disable-shared  --enable-coccinelle
       - name: Running unit tests and cocci checks
         # Set the concurrency level for cocci.
-        run: CONCURRENCY_LEVEL=2 make check
+        run: CONCURRENCY_LEVEL=${{ env.CPUS }} make check
       - run: make distclean
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-lua
         env:
