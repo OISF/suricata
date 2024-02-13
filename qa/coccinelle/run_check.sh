@@ -29,9 +29,12 @@ else
 	BUILT_COCCI_FILES=""
 fi
 
-if [ -z "$CONCURRENCY_LEVEL" ]; then
+if ! command -v parallel > /dev/null; then
+	echo "Concurrency disabled, command 'parallel' not available"
 	CONCURRENCY_LEVEL=1
-	echo "No concurrency"
+elif [ -z "$CONCURRENCY_LEVEL" ]; then
+        echo "No concurrency"
+	CONCURRENCY_LEVEL=1
 else
 	echo "Using concurrency level $CONCURRENCY_LEVEL"
 fi
