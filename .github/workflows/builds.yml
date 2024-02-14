@@ -295,14 +295,24 @@ jobs:
         working-directory: examples/plugins/c-json-filetype
         run: make
       - name: Check C json filetype plugin
-        run: test -e examples/plugins/c-json-filetype/.libs/json-filetype.so.0.0.0
+        run: test -e examples/plugins/c-json-filetype/filetype.so
       - name: Installing headers and library
         run: |
           make install-headers
           make install-library
-      - name: Test plugin build with Makefile.example
+      - name: Cleaning source directory for standalone plugin test.
+        run: make clean
+      - name: Test plugin against installed headers
         working-directory: examples/plugins/c-json-filetype
-        run: PATH=/usr/local/bin:$PATH make -f Makefile.example
+        run: |
+          # First use sed to pretend we are q user following our
+          # directions for building a standalone plugin.
+          sed -i 's/^#LIBSURICATA_CONFIG/LIBSURICATA_CONFIG/' Makefile
+          sed -i 's/^#CPPFLAGS/CPPFLAGS/' Makefile
+          sed -i 's/^CPPFLAGS.*HAVE_CONFIG_H//' Makefile
+
+          # And build.
+          PATH=/usr/local/bin:$PATH make
 
   almalinux-9-templates:
     name: AlmaLinux 9 Test Templates
