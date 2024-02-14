@@ -6,6 +6,10 @@
  */
 
 #include "suricata-interface.h"
+#include "suricata-common.h"
+#include "suricata-plugin.h"
+#include "flow.h"
+#include "output-flow.h"
 
 #include <getopt.h>
 #include <pcap.h>
@@ -27,6 +31,17 @@ typedef struct {
     SuricataCtx *ctx;
     const char *pcap_filename;
 } thread_args;
+
+static TmEcode AppFlowLoggerThreadInit(ThreadVars *tv, const void *a, void **b)
+{
+    return TM_ECODE_OK;
+}
+
+static int AppFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
+{
+    SCLogNotice("LOG FLOW");
+    return 0;
+}
 
 void packetHandler(u_char *tv, const struct pcap_pkthdr *pkthdr, const u_char *packet)
 {
@@ -158,6 +173,9 @@ int main(int argc, char **argv)
     suricata_register_http_cb(ctx, NULL, callbackHttp);
     suricata_register_flow_cb(ctx, NULL, callbackFlow);
 #endif
+
+    OutputRegisterFlowLogger(
+            "app-flow-logger", AppFlowLogger, NULL, AppFlowLoggerThreadInit, NULL, NULL);
 
     /* Init suricata engine. */
     suricata_init(config);
