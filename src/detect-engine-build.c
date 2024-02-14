@@ -1230,23 +1230,12 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         SCLogNotice("arr[%d] := %d", i, final_unique_points[i]);
     }
 #endif
-// free SGH stuff
     for (uint16_t i = 1; i < size_unique_port_arr; i++) {
         uint16_t port = final_unique_points[i - 1];
-        // STODO fix interval overlap on boundaries
         uint16_t port2 = final_unique_points[i];
-        SigGroupHead *sgh_array = NULL;
-        bool overlaps = PISearchOverlappingPortRanges(port, port2, &it->tree, &sgh_array);
-        if (overlaps) {
-#if 0
-            // STODO move all this to detect-engine-port.c
-            DetectPort *dp = DetectPortInit();
-            dp->port = port;
-            dp->port2 = port2;
-            SigGroupHeadCopySigs(de_ctx, sgh_array, &dp->sh);
-#endif
-        }
+        PISearchOverlappingPortRanges(de_ctx, port, port2, &it->tree, &list);
     }
+    list = NULL;
     /* step 2: create a list of DetectPort objects */
     HashListTableBucket *htb = NULL;
     for (htb = HashListTableGetListHead(de_ctx->dport_hash_table);
