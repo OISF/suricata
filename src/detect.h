@@ -227,6 +227,7 @@ typedef struct DetectPort_ {
 
     struct DetectPort_ *prev;
     struct DetectPort_ *next;
+    struct DetectPort_ *last;
 } DetectPort;
 
 /* Signature flags */
