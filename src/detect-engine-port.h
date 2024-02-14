@@ -38,6 +38,7 @@ bool DetectPortListsAreEqual(DetectPort *list1, DetectPort *list2);
 void DetectPortPrint(DetectPort *);
 void DetectPortPrintList(DetectPort *head);
 int DetectPortCmp(DetectPort *, DetectPort *);
+DetectPort *DetectPortInit(void);
 void DetectPortFree(const DetectEngineCtx *de_ctx, DetectPort *);
 
 int DetectPortTestConfVars(void);
