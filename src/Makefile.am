@@ -1113,7 +1113,6 @@ libsuricata_c_a_SOURCES = \
 	stream-tcp-sack.c \
 	stream-tcp-util.c \
 	suricata.c \
-	suricata-interface.c \
 	threads.c \
 	tm-modules.c \
 	tmqh-flow.c \
@@ -1247,8 +1246,7 @@ libsuricata_c_a_SOURCES = \
 include_HEADERS = \
 	runmodes.h \
 	suricata-plugin.h \
-	suricata.h \
-	suricata-interface.h
+	suricata.h
 
 EXTRA_DIST = \
 	tests/stream-tcp-inline.c \
