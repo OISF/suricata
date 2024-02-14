@@ -118,20 +118,31 @@ int PIInsertPort(SCIntervalTree *it, struct PI *head, DetectPort *p)
     return SC_OK;
 }
 
-static void FindOverlaps(uint16_t port, uint16_t port2, SCIntervalNode *ptr)
+static void IsOverlap(uint16_t port, uint16_t port2, SCIntervalNode *ptr)
 {
-    if (ptr == NULL) {
-        return;
-    }
     if ((port <= ptr->port2) && (ptr->port < port2)) {
         SCLogNotice("Found overlap with [%d, %d]", ptr->port, ptr->port2);
+    } else {
+        SCLogDebug("No overlap found for [%d, %d) w [%d, %d]", port, port2, ptr->port, ptr->port2);
     }
-    SCIntervalNode *node = IRB_LEFT(ptr, irb);
-    if ((node != NULL) && (node->max >= port)) {
-        FindOverlaps(port, port2, node);
+}
+
+static void FindOverlaps(uint16_t port, uint16_t port2, SCIntervalNode *ptr)
+{
+    SCIntervalNode *prev_ptr = NULL;
+    while (ptr != prev_ptr) {
+        prev_ptr = ptr;
+        IsOverlap(port, port2, ptr);
+        SCIntervalNode *node = IRB_LEFT(ptr, irb);
+        if ((node != NULL) && (node->max >= port)) {
+            ptr = node;
+        } else {
+            node = IRB_RIGHT(ptr, irb);
+            if ((node != NULL) && (ptr->port < port2) && (node->max >= port)) {
+                ptr = node;
+            }
+        }
     }
-    node = IRB_RIGHT(ptr, irb);
-    FindOverlaps(port, port2, node);
 }
 
 bool PISearchOverlappingPortRanges(
