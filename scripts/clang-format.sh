@@ -304,10 +304,10 @@ function RequireProgram {
 # We could probably use git rev-parse --show-toplevel to do so, as long as we
 # handle the libhtp subfolder correctly.
 function SetTopLevelDir {
-    if [ -e ./src/suricata.c ]; then
+    if [ -e ./libsuricata/suricata.c ]; then
         # Do nothing.
         true
-    elif [ -e ./suricata.c -o -e ../src/suricata.c ]; then
+    elif [ -e ./suricata.c -o -e ../libsuricata/suricata.c ]; then
         cd ..
     else
         Die "This does not appear to be a suricata source directory."

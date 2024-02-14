@@ -1464,9 +1464,9 @@ AM_LDFLAGS = ${SECLDFLAGS}
 if BUILD_UNITTESTS
 check-am:
 	-mkdir $(top_builddir)/qa/log/
-	$(top_builddir)/src/suricata -u -l $(top_builddir)/qa/log/
+	$(top_builddir)/libsuricata/suricata -u -l $(top_builddir)/qa/log/
 	-rm -rf $(top_builddir)/qa/log
 endif
 
 distclean-local:
-	-rm -rf $(top_builddir)/src/build-info.h
+	-rm -rf $(top_builddir)/libsuricata/build-info.h

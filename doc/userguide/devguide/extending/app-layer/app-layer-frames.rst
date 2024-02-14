@@ -159,7 +159,7 @@ Implementing Frame support in C involves a bit more manual work, as one cannot m
 
 Defining the frame types with the enum means:
 
-.. literalinclude:: ../../../../../src/app-layer-htp.c
+.. literalinclude:: ../../../../../libsuricata/app-layer-htp.c
     :caption: src/app-layer-htp.c
     :start-after: /* app-layer-frame-documentation tag start: HttpFrameTypes
     :end-before: /* app-layer-frame-documentation tag end: HttpFrameTypes
@@ -167,7 +167,7 @@ Defining the frame types with the enum means:
 
 The HTTP parser uses the Frame registration functions from the C API (``app-layer-frames.c``) directly for registering request Frames. Here we also don't know the length yet. The ``0`` indicates flow direction: ``toserver``, and ``1`` would be used for ``toclient``:
 
-.. literalinclude:: ../../../../../src/app-layer-htp.c
+.. literalinclude:: ../../../../../libsuricata/app-layer-htp.c
     :caption: src/app-layer-htp.c
     :start-after: /* app-layer-frame-documentation tag start: frame registration http request
     :end-before: /* app-layer-frame-documentation tag end: frame registration http request
@@ -175,7 +175,7 @@ The HTTP parser uses the Frame registration functions from the C API (``app-laye
 
 Updating ``frame->len`` later:
 
-.. literalinclude:: ../../../../../src/app-layer-htp.c
+.. literalinclude:: ../../../../../libsuricata/app-layer-htp.c
     :caption: src/app-layer-htp.c
     :start-after: /* app-layer-frame-documentation tag start: updating frame->len
     :end-before: /* app-layer-frame-documentation tag end: updating frame->len
@@ -183,7 +183,7 @@ Updating ``frame->len`` later:
 
 Register relevant callbacks (note that the actual functions will also have to be written, for C):
 
-.. literalinclude:: ../../../../../src/app-layer-htp.c
+.. literalinclude:: ../../../../../libsuricata/app-layer-htp.c
     :caption: src/app-layer-htp.c
     :language: c
     :start-after: /* app-layer-frame-documentation tag start: registering relevant callbacks

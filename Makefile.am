@@ -8,7 +8,7 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
 	     lua \
 	     acsite.m4 \
 	     scripts/generate-images.sh
-SUBDIRS = $(HTP_DIR) rust src qa rules doc contrib etc python ebpf \
+SUBDIRS = $(HTP_DIR) rust libsuricata qa rules doc contrib etc python ebpf \
           $(SURICATA_UPDATE_DIR)
 DIST_SUBDIRS = examples/plugins/c-json-filetype $(SUBDIRS)
 
@@ -60,9 +60,9 @@ endif
 	@echo ""
 
 install-library:
-	cd src && $(MAKE) $@
+	cd libsuricata && $(MAKE) $@
 	cd rust && $(MAKE) $@
 	$(INSTALL) libsuricata-config "$(DESTDIR)$(bindir)/libsuricata-config"
 
 install-headers:
-	cd src && $(MAKE) $@
+	cd libsuricata && $(MAKE) $@
