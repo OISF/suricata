@@ -2990,16 +2990,13 @@ int SuricataInit(int argc, char **argv)
 
     PostConfLoadedDetectSetup(&suricata);
     if (suricata.run_mode == RUNMODE_ENGINE_ANALYSIS) {
-        GlobalsDestroy(&suricata);
-        exit(EXIT_SUCCESS);
+        goto done;
     } else if (suricata.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
-        GlobalsDestroy(&suricata);
-        exit(EXIT_SUCCESS);
+        goto done;
     } else if (suricata.run_mode == RUNMODE_DUMP_FEATURES) {
         FeatureDump();
-        GlobalsDestroy(&suricata);
-        exit(EXIT_SUCCESS);
+        goto done;
     }
 
     prerun_snap = SystemHugepageSnapshotCreate();
@@ -3008,6 +3005,10 @@ int SuricataInit(int argc, char **argv)
             suricata.capture_plugin_args);
 
     return 0;
+
+done:
+    GlobalsDestroy(&suricata);
+    exit(EXIT_SUCCESS);
 }
 
 void SuricataPostInit(void)
