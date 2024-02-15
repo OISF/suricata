@@ -36,7 +36,7 @@ typedef struct SCIntervalNode {
     struct SigGroupHead_ *sh;
 
     IRB_ENTRY(SCIntervalNode) irb;
-} __attribute__((__packed__)) SCIntervalNode;
+} SCIntervalNode;
 
 IRB_HEAD(PI, SCIntervalNode);
 IRB_PROTOTYPE(PI, SCIntervalNode, irb, SCIntervalCompare);
@@ -49,8 +49,8 @@ typedef struct SCIntervalTree_ {
 SCIntervalTree *SCIntervalTreeInit(void);
 void SCIntervalNodeFree(SCIntervalTree *);
 void SCIntervalTreeFree(SCIntervalTree *);
-int PIInsertPort(SCIntervalTree *, struct PI *, DetectPort *);
-void PISearchOverlappingPortRanges(DetectEngineCtx *, uint16_t, uint16_t, struct PI *, DetectPort **);
+int PIInsertPort(DetectEngineCtx *, SCIntervalTree *, struct PI *, DetectPort *);
+void PISearchOverlappingPortRanges(DetectEngineCtx *, uint16_t, uint16_t, struct PI *, DetectPort *);
 #if 1
 void printIT(struct SCIntervalNode *node, int space);
 #endif

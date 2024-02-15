@@ -1204,7 +1204,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                     size_unique_port_arr++;
                 }
                 int ret = 0;
-                if ((ret = PIInsertPort(it, &it->tree, tmp2)) != SC_OK) {
+                if ((ret = PIInsertPort(de_ctx, it, &it->tree, tmp2)) != SC_OK) {
                     SCLogNotice("ret: %d", ret);
                 }
             }
@@ -1233,7 +1233,10 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     for (uint16_t i = 1; i < size_unique_port_arr; i++) {
         uint16_t port = final_unique_points[i - 1];
         uint16_t port2 = final_unique_points[i];
-        PISearchOverlappingPortRanges(de_ctx, port, port2, &it->tree, &list);
+        PISearchOverlappingPortRanges(de_ctx, port, port2, &it->tree, list);
+    }
+    for (DetectPort *tmp = list; tmp != NULL; tmp = tmp->next) {
+        SCLogNotice("List item: [%d, %d]", tmp->port, tmp->port2);
     }
     list = NULL;
     /* step 2: create a list of DetectPort objects */

@@ -95,7 +95,7 @@ void printIT(SCIntervalNode *node, int space)
 }
 #endif
 
-int PIInsertPort(SCIntervalTree *it, struct PI *head, DetectPort *p)
+int PIInsertPort(DetectEngineCtx *de_ctx, SCIntervalTree *it, struct PI *head, DetectPort *p)
 {
     DEBUG_VALIDATE_BUG_ON(p->port > p->port2);
 
@@ -106,16 +106,18 @@ int PIInsertPort(SCIntervalTree *it, struct PI *head, DetectPort *p)
     pi->port = p->port;
     pi->port2 = p->port2;
     pi->flags = p->flags;
-    //    SigGroupHeadCopySigs(de_ctx, p->sh, &pi->sh);
+    SigGroupHeadCopySigs(de_ctx, p->sh, &pi->sh);
     if (PI_IRB_INSERT(&it->tree, pi) != NULL) {
         SCLogNotice("Node wasn't added to the tree: port: %d, port2: %d", pi->port, pi->port2);
         SCFree(pi);
         return SC_EINVAL;
     }
+#if 0
     SCIntervalNode *root = IRB_ROOT(&it->tree);
     SCLogNotice("Inserted [%d, %d]; %d, ROOT: [%d, %d]; %d", pi->port, pi->port2,
             IRB_COLOR(pi, irb), root->port, root->port2, IRB_COLOR(root, irb));
     printIT(IRB_ROOT(&it->tree), 0);
+#endif
     return SC_OK;
 }
 
@@ -148,6 +150,8 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
             }
             new_port->port = port;
             new_port->port2 = port2 - 1; // As we're checking against right open interval
+            SigGroupHeadCopySigs(de_ctx, ptr->sh, &new_port->sh);
+
             if (*list == NULL) {
                 *list = new_port;
             } else {
@@ -157,9 +161,6 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
                 (*list)->last->next = new_port;
                 (*list)->last = new_port;
             }
-        }
-        if (new_port != NULL) {
-            SigGroupHeadCopySigs(de_ctx, ptr->sh, &new_port->sh);
         }
         SCIntervalNode *node = IRB_LEFT(ptr, irb);
         if ((node != NULL) && (node->max >= port)) {
@@ -171,6 +172,7 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
             }
         }
     }
+    return;
 error:
     if (new_port != NULL)
         DetectPortFree(de_ctx, new_port);
@@ -178,10 +180,10 @@ error:
 }
 
 void PISearchOverlappingPortRanges(DetectEngineCtx *de_ctx,
-        uint16_t port, uint16_t port2, struct PI *head, DetectPort **list)
+        uint16_t port, uint16_t port2, struct PI *head, DetectPort *list)
 {
     SCIntervalNode *ptr = IRB_ROOT(head);
     SCLogNotice("Finding overlaps for the range [%d, %d)", port, port2);
     // STODO pass list correctly
-    FindOverlaps(de_ctx, port, port2, ptr, list);
+    FindOverlaps(de_ctx, port, port2, ptr, &list);
 }
