@@ -1242,7 +1242,8 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         SCLogNotice("List item: [%d, %d]", tmp->port, tmp->port2);
     }
 #endif
-    list = NULL;
+
+#if 0
     /* step 2: create a list of DetectPort objects */
     HashListTableBucket *htb = NULL;
     for (htb = HashListTableGetListHead(de_ctx->dport_hash_table);
@@ -1255,6 +1256,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         int r = DetectPortInsert(de_ctx, &list , tmp);
         BUG_ON(r == -1);
     }
+#endif
     DetectPortHashFree(de_ctx);
 
     SCLogDebug("rules analyzed");
