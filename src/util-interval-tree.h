@@ -47,8 +47,7 @@ typedef struct SCIntervalTree_ {
 } SCIntervalTree;
 
 SCIntervalTree *SCIntervalTreeInit(void);
-void SCIntervalNodeFree(SCIntervalTree *);
-void SCIntervalTreeFree(SCIntervalTree *);
+void SCIntervalTreeFree(DetectEngineCtx *, SCIntervalTree *);
 int PIInsertPort(DetectEngineCtx *, SCIntervalTree *, struct PI *, DetectPort *);
 void PISearchOverlappingPortRanges(DetectEngineCtx *, uint16_t, uint16_t, struct PI *, DetectPort **);
 #if 1

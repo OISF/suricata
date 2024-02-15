@@ -1219,14 +1219,14 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
 
     uint16_t *final_unique_points = (uint16_t *)SCCalloc(size_unique_port_arr, sizeof(uint16_t));
     // STODO use the bit array construct here to avoid 65k arr
-    for (uint16_t i = 0, j = 0; i < 65535; i++) {
+    for (int i = 0, j = 0; i < 65536; i++) {
         DEBUG_VALIDATE_BUG_ON(j > size_unique_port_arr);
         if (unique_port_points[i]) {
             final_unique_points[j++] = i;
         }
     }
 
-#if 0
+#if 1
     for (uint16_t i = 0; i < size_unique_port_arr; i++) {
         SCLogNotice("arr[%d] := %d", i, final_unique_points[i]);
     }
@@ -1236,6 +1236,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         uint16_t port2 = final_unique_points[i];
         PISearchOverlappingPortRanges(de_ctx, port, port2, &it->tree, &list);
     }
+    SCFree(final_unique_points);
 #if 1
     for (DetectPort *tmp = list; tmp != NULL; tmp = tmp->next) {
         SCLogNotice("List item: [%d, %d]", tmp->port, tmp->port2);
@@ -1314,7 +1315,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
 #if 0
     PIPrintList(pis);
 #endif
-    SCIntervalTreeFree(it);
+    SCIntervalTreeFree(de_ctx, it);
     return list;
 }
 
