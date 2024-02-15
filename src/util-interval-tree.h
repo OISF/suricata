@@ -50,7 +50,7 @@ SCIntervalTree *SCIntervalTreeInit(void);
 void SCIntervalNodeFree(SCIntervalTree *);
 void SCIntervalTreeFree(SCIntervalTree *);
 int PIInsertPort(DetectEngineCtx *, SCIntervalTree *, struct PI *, DetectPort *);
-void PISearchOverlappingPortRanges(DetectEngineCtx *, uint16_t, uint16_t, struct PI *, DetectPort *);
+void PISearchOverlappingPortRanges(DetectEngineCtx *, uint16_t, uint16_t, struct PI *, DetectPort **);
 #if 1
 void printIT(struct SCIntervalNode *node, int space);
 #endif
