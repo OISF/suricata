@@ -48,7 +48,7 @@
 #endif
 
 #if HAVE_CONFIG_H
-#include <autoconf.h>
+#include "autoconf.h"
 #endif
 
 #ifndef CLS

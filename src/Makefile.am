@@ -51,7 +51,6 @@ noinst_HEADERS = \
 	app-layer-ssh.h \
 	app-layer-ssl.h \
 	app-layer-tftp.h \
-	autoconf.h \
 	build-info.h \
 	conf.h \
 	conf-yaml-loader.h \
@@ -1297,6 +1296,10 @@ install-headers:
 	for header in $(noinst_HEADERS); do \
 		$(INSTALL_DATA) $$header "$(DESTDIR)${includedir}/suricata"; \
 	done
+
+# Until we can remove autoconf.h from our headers, we need to to
+# provide this for library/plugin users.
+	$(INSTALL_DATA) autoconf.h "$(DESTDIR)${includedir}/suricata"
 
 # set the include path found by configure
 AM_CPPFLAGS = $(all_includes)
