@@ -49,21 +49,22 @@ SCIntervalTree *SCIntervalTreeInit(void)
     return it;
 }
 
-void SCIntervalNodeFree(SCIntervalTree *it)
+static void SCIntervalNodeFree(DetectEngineCtx *de_ctx, SCIntervalTree *it)
 {
     SCIntervalNode *node = NULL, *safe = NULL;
     IRB_FOREACH_SAFE(node, PI, &it->tree, safe)
     {
+        SigGroupHeadFree(de_ctx, node->sh);
         PI_IRB_REMOVE(&it->tree, node);
         SCFree(node);
     }
     it->head = NULL;
 }
 
-void SCIntervalTreeFree(SCIntervalTree *it)
+void SCIntervalTreeFree(DetectEngineCtx *de_ctx, SCIntervalTree *it)
 {
     if (it) {
-        SCIntervalNodeFree(it);
+        SCIntervalNodeFree(de_ctx, it);
         SCFree(it);
     }
 }
@@ -152,7 +153,6 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
             new_port->port = port;
             new_port->port2 = port2 - 1; // As we're checking against right open interval
             SigGroupHeadCopySigs(de_ctx, ptr->sh, &new_port->sh);
-
             if (*list == NULL) {
                 *list = new_port;
                 (*list)->last = new_port;
