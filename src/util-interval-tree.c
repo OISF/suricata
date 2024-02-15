@@ -157,9 +157,6 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
                 *list = new_port;
                 (*list)->last = new_port;
             } else {
-                // STODO last is good to have as the list is already sorted
-                // but figure out how to ensure the linked list is correctly set up
-                // such that the regular traversal works as well
                 (*list)->last->next = new_port;
                 (*list)->last = new_port;
             }
