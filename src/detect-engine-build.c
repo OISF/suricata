@@ -1218,6 +1218,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     printIT(RB_ROOT(&it->tree), 0);
 
     uint16_t *final_unique_points = (uint16_t *)SCCalloc(size_unique_port_arr, sizeof(uint16_t));
+    // STODO use the bit array construct here to avoid 65k arr
     for (uint16_t i = 0, j = 0; i < 65535; i++) {
         DEBUG_VALIDATE_BUG_ON(j > size_unique_port_arr);
         if (unique_port_points[i]) {
@@ -1233,11 +1234,13 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     for (uint16_t i = 1; i < size_unique_port_arr; i++) {
         uint16_t port = final_unique_points[i - 1];
         uint16_t port2 = final_unique_points[i];
-        PISearchOverlappingPortRanges(de_ctx, port, port2, &it->tree, list);
+        PISearchOverlappingPortRanges(de_ctx, port, port2, &it->tree, &list);
     }
+#if 1
     for (DetectPort *tmp = list; tmp != NULL; tmp = tmp->next) {
         SCLogNotice("List item: [%d, %d]", tmp->port, tmp->port2);
     }
+#endif
     list = NULL;
     /* step 2: create a list of DetectPort objects */
     HashListTableBucket *htb = NULL;
