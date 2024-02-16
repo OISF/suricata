@@ -42,6 +42,7 @@
 #include "runmode-erf-dag.h"
 #include "runmode-erf-file.h"
 #include "runmode-ipfw.h"
+#include "runmode-lib.h"
 #include "runmode-napatech.h"
 #include "runmode-netmap.h"
 #include "runmode-nflog.h"
@@ -131,6 +132,8 @@ static TAILQ_HEAD(, OutputFreeList_) output_free_list =
 static const char *RunModeTranslateModeToName(int runmode)
 {
     switch (runmode) {
+        case RUNMODE_LIB:
+            return "LIB";
         case RUNMODE_PCAP_DEV:
             return "PCAP_DEV";
         case RUNMODE_PCAP_FILE:
@@ -240,6 +243,7 @@ void RunModeRegisterRunModes(void)
 {
     memset(runmodes, 0, sizeof(runmodes));
 
+    RunModeIdsLibRegister();
     RunModeIdsPcapRegister();
     RunModeFilePcapRegister();
     RunModeIdsPfringRegister();
@@ -579,6 +583,7 @@ bool IsRunModeOffline(enum RunModes run_mode_to_check)
         case RUNMODE_ERF_FILE:
         case RUNMODE_ENGINE_ANALYSIS:
         case RUNMODE_UNIX_SOCKET:
+        case RUNMODE_LIB:
             return true;
             break;
         default:

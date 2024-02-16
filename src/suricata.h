@@ -191,8 +191,13 @@ int SuriHasSigFile(void);
 
 extern int run_mode;
 
+void SuricataPreInit(const char *argv);
+int SuricataInit(int argc, char **argv);
+void SuricataPostInit(void);
 int SuricataMain(int argc, char **argv);
+void SuricataShutdown(void);
 int InitGlobal(void);
+void GlobalsDestroy(SCInstance *suri);
 int PostConfLoadedSetup(SCInstance *suri);
 void PostConfLoadedDetectSetup(SCInstance *suri);
 
@@ -202,6 +207,7 @@ void PostRunDeinit(const int runmode, struct timeval *start_time);
 void RegisterAllModules(void);
 
 const char *GetProgramVersion(void);
+SCInstance *GetInstance(void);
 
 #endif /* __SURICATA_H__ */
 

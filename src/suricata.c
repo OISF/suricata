@@ -94,6 +94,7 @@
 #include "source-nfq-prototypes.h"
 #include "source-nflog.h"
 #include "source-ipfw.h"
+#include "source-lib.h"
 #include "source-pcap.h"
 #include "source-pcap-file.h"
 #include "source-pcap-file-helper.h"
@@ -215,6 +216,9 @@ bool g_disable_hashing = false;
 
 /** Suricata instance */
 SCInstance suricata;
+
+SystemHugepageSnapshot *prerun_snap;
+SystemHugepageSnapshot *postrun_snap;
 
 int SuriHasSigFile(void)
 {
@@ -360,7 +364,7 @@ void GlobalsInitPreConfig(void)
     FrameConfigInit();
 }
 
-static void GlobalsDestroy(SCInstance *suri)
+void GlobalsDestroy(SCInstance *suri)
 {
     HostShutdown();
     HTPFreeConfig();
@@ -946,6 +950,9 @@ void RegisterAllModules(void)
     /* Dpdk */
     TmModuleReceiveDPDKRegister();
     TmModuleDecodeDPDKRegister();
+
+    /* lib */
+    TmModuleDecodeLibRegister();
 }
 
 static TmEcode LoadYamlConfig(SCInstance *suri)
@@ -1133,6 +1140,11 @@ const char *GetProgramVersion(void)
         return PROG_VER;
 #endif
     }
+}
+
+SCInstance *GetInstance(void)
+{
+    return &suricata;
 }
 
 static TmEcode PrintVersion(void)
@@ -1391,6 +1403,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_NFLOG
         {"nflog", optional_argument, 0, 0},
 #endif
+        {"lib", optional_argument, 0, 0},
+
         {"simulate-packet-flow-memcap", required_argument, 0, 0},
         {"simulate-applayer-error-at-offset-ts", required_argument, 0, 0},
         {"simulate-applayer-error-at-offset-tc", required_argument, 0, 0},
@@ -1800,6 +1814,14 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                             break;
                         }
                     }
+                }
+            } else if (strcmp((long_opts[option_index]).name, "lib") == 0) {
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_LIB;
+                } else {
+                    SCLogError("more than one run mode has been specified");
+                    PrintUsage(argv[0]);
+                    return TM_ECODE_FAILED;
                 }
             } else {
                 int r = ExceptionSimulationCommandLineParser(
@@ -2875,10 +2897,13 @@ int InitGlobal(void)
     return 0;
 }
 
-int SuricataMain(int argc, char **argv)
+void SuricataPreInit(const char *progname)
 {
-    SCInstanceInit(&suricata, argv[0]);
+    SCInstanceInit(&suricata, progname);
+}
 
+int SuricataInit(int argc, char **argv)
+{
     if (InitGlobal() != 0) {
         exit(EXIT_FAILURE);
     }
@@ -2965,19 +2990,29 @@ int SuricataMain(int argc, char **argv)
 
     PostConfLoadedDetectSetup(&suricata);
     if (suricata.run_mode == RUNMODE_ENGINE_ANALYSIS) {
-        goto out;
+        goto done;
     } else if (suricata.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
-        goto out;
+        goto done;
     } else if (suricata.run_mode == RUNMODE_DUMP_FEATURES) {
         FeatureDump();
-        goto out;
+        goto done;
     }
 
-    SystemHugepageSnapshot *prerun_snap = SystemHugepageSnapshotCreate();
+    prerun_snap = SystemHugepageSnapshotCreate();
     SCSetStartTime(&suricata);
-    RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode,
-            suricata.capture_plugin_name, suricata.capture_plugin_args);
+    RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode, suricata.capture_plugin_name,
+            suricata.capture_plugin_args);
+
+    return 0;
+
+done:
+    GlobalsDestroy(&suricata);
+    exit(EXIT_SUCCESS);
+}
+
+void SuricataPostInit(void)
+{
     if (suricata.run_mode != RUNMODE_UNIX_SOCKET) {
         UnixManagerThreadSpawnNonRunmode(suricata.unix_socket_enabled);
     }
@@ -3033,25 +3068,47 @@ int SuricataMain(int argc, char **argv)
 
     PostRunStartedDetectSetup(&suricata);
 
-    SystemHugepageSnapshot *postrun_snap = SystemHugepageSnapshotCreate();
+    postrun_snap = SystemHugepageSnapshotCreate();
     if (run_mode == RUNMODE_DPDK) // only DPDK uses hpages at the moment
         SystemHugepageEvaluateHugepages(prerun_snap, postrun_snap);
     SystemHugepageSnapshotDestroy(prerun_snap);
     SystemHugepageSnapshotDestroy(postrun_snap);
 
     SCPledge();
-    SuricataMainLoop(&suricata);
+}
 
+void SuricataShutdown(void)
+{
     /* Update the engine stage/status flag */
     SC_ATOMIC_SET(engine_stage, SURICATA_DEINIT);
 
     UnixSocketKillSocketThread();
     PostRunDeinit(suricata.run_mode, &suricata.start_time);
+
     /* kill remaining threads */
     TmThreadKillThreads();
 
-out:
     GlobalsDestroy(&suricata);
+    return;
+}
+
+int SuricataMain(int argc, char **argv)
+{
+    /* Initialize engine. */
+    SuricataPreInit(argv[0]);
+
+    if (SuricataInit(argc, argv) == EXIT_FAILURE) {
+        GlobalsDestroy(&suricata);
+        exit(EXIT_FAILURE);
+    }
+
+    /* Post initialization tasks */
+    SuricataPostInit();
+
+    SuricataMainLoop(&suricata);
+
+    /* Shutdown engine. */
+    SuricataShutdown();
 
     exit(EXIT_SUCCESS);
 }

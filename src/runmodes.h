@@ -43,6 +43,7 @@ enum RunModes {
     RUNMODE_UNIX_SOCKET,
     RUNMODE_WINDIVERT,
     RUNMODE_PLUGIN,
+    RUNMODE_LIB,
     RUNMODE_USER_MAX, /* Last standard running mode */
     RUNMODE_LIST_KEYWORDS,
     RUNMODE_LIST_APP_LAYERS,
