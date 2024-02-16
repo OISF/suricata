@@ -1221,6 +1221,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         int ret = 0;
         if ((ret = PIInsertPort(de_ctx, it, &it->tree, p)) != SC_OK) {
             SCLogDebug("Port was not inserted in the tree. ret: %d", ret);
+            (void)ret;
             abort();
         }
         SCLogDebug("Inserted in tree a node w sig_size: %d", p->sh->init->sig_size);
