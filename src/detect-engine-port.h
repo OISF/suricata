@@ -24,6 +24,34 @@
 #ifndef __DETECT_PORT_H__
 #define __DETECT_PORT_H__
 
+#include "interval-tree.h"
+#include "detect.h"
+
+typedef struct SCPortIntervalNode {
+    uint16_t port;  /* low port of a port range */
+    uint16_t port2; /* high port of a port range */
+    uint16_t max;   /* max value of the high port in the subtree rooted at this node */
+
+    struct SigGroupHead_ *sh; /* SGHs corresponding to this port */
+
+    IRB_ENTRY(SCPortIntervalNode) irb; /* parent entry of the interval tree */
+} SCPortIntervalNode;
+
+IRB_HEAD(PI, SCPortIntervalNode); /* head of the interval tree */
+IRB_PROTOTYPE(PI, SCPortIntervalNode, irb,
+        SCPortIntervalCompare); /* prototype definition of the interval tree */
+
+typedef struct SCPortIntervalTree_ {
+    struct PI tree;
+    SCPortIntervalNode *head;
+} SCPortIntervalTree;
+
+SCPortIntervalTree *SCPortIntervalTreeInit(void);
+void SCPortIntervalTreeFree(DetectEngineCtx *, SCPortIntervalTree *);
+int SCPortIntervalInsert(DetectEngineCtx *, SCPortIntervalTree *, const DetectPort *);
+void SCPortIntervalFindOverlappingRanges(
+        DetectEngineCtx *, const uint16_t, const uint16_t, const struct PI *, DetectPort **);
+
 /* prototypes */
 int DetectPortParse(const DetectEngineCtx *, DetectPort **head, const char *str);
 
