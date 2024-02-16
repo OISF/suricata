@@ -126,7 +126,7 @@ static uint16_t cnt_overlaps = 0;
 
 static bool IsOverlap(uint16_t port, uint16_t port2, SCIntervalNode *ptr)
 {
-    if ((port <= ptr->port2) && (ptr->port < port2)) {
+    if ((port <= ptr->port2) && (ptr->port <= port2)) {
         SCLogNotice("Found overlap with [%d, %d]", ptr->port, ptr->port2);
         cnt_overlaps++;
         return true;
@@ -150,11 +150,7 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
                 goto error;
             }
             new_port->port = port;
-            if (port2 != 65535) {
-                new_port->port2 = port2 - 1; // As we're checking against right open interval
-            } else {
-                new_port->port2 = port2;
-            }
+            new_port->port2 = port2;
             SigGroupHeadCopySigs(de_ctx, ptr->sh, &new_port->sh);
             if (*list == NULL) {
                 *list = new_port;

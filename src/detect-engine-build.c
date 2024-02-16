@@ -1247,9 +1247,14 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         SCLogNotice("arr[%d] := %d", i, final_unique_points[i]);
     }
 #endif
+    uint16_t port, port2;
+    if (size_unique_port_arr == 1) {
+        port = port2 = final_unique_points[0];
+        PISearchOverlappingPortRanges(de_ctx, port, port2, &it->tree, &list);
+    }
     for (uint16_t i = 1; i < size_unique_port_arr; i++) {
-        uint16_t port = final_unique_points[i - 1];
-        uint16_t port2 = final_unique_points[i];
+        port = final_unique_points[i - 1];
+        port2 = final_unique_points[i];
         PISearchOverlappingPortRanges(de_ctx, port, port2, &it->tree, &list);
     }
     SCFree(final_unique_points);
