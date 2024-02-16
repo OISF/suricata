@@ -626,6 +626,7 @@ noinst_HEADERS = \
 	util-validate.h \
 	util-var.h \
 	util-var-name.h \
+	util-interval-tree.h \
 	win32-misc.h \
 	win32-service.h \
 	win32-syscall.h \
@@ -1235,6 +1236,7 @@ libsuricata_c_a_SOURCES = \
 	util-unittest-helper.c \
 	util-var.c \
 	util-var-name.c \
+	util-interval-tree.c \
 	win32-misc.c \
 	win32-service.c \
 	win32-syscall.c
