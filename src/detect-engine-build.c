@@ -1137,9 +1137,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
      *         that belong to the SGH. */
     DetectPortHashInit(de_ctx);
 
-    bool unique_port_points[65536] = {
-        false
-    }; // TODO convert this to bit array so it takes less space
+    bool unique_port_points[65536] = { false };
     uint16_t size_unique_port_arr = 0;
     const Signature *s = de_ctx->sig_list;
     DetectPort *list = NULL;
@@ -1226,6 +1224,46 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         }
         SCLogDebug("Inserted in tree a node w sig_size: %d", p->sh->init->sig_size);
     }
+
+    /* Only do the operations if there is at least one unique port */
+    if (size_unique_port_arr > 0) {
+        uint16_t *final_unique_points =
+                (uint16_t *)SCCalloc(size_unique_port_arr, sizeof(uint16_t));
+        // TODO use the bit array construct here to avoid 65k arr
+        for (int i = 0, j = 0; i < 65536; i++) {
+            DEBUG_VALIDATE_BUG_ON(j > size_unique_port_arr);
+            if (unique_port_points[i]) {
+                final_unique_points[j++] = i;
+            }
+        }
+#if 0
+        for (uint16_t i = 0; i < size_unique_port_arr; i++) {
+            SCLogDebug("arr[%d] := %d", i, final_unique_points[i]);
+        }
+#endif
+        uint16_t port, port2;
+        /* Handle edge case when there is just one unique port */
+        if (size_unique_port_arr == 1) {
+            port = port2 = final_unique_points[0];
+            PISearchOverlappingPortRanges(de_ctx, port, port2, &it->tree, &list);
+        }
+        for (uint16_t i = 1; i < size_unique_port_arr; i++) {
+            port = final_unique_points[i - 1];
+            port2 = final_unique_points[i];
+            PISearchOverlappingPortRanges(de_ctx, port, port2, &it->tree, &list);
+        }
+        /* We no longer need the unique points array */
+        SCFree(final_unique_points);
+    }
+#if 0
+    for (DetectPort *tmp = list; tmp != NULL; tmp = tmp->next) {
+        int sig_cnt = tmp->sh->init->sig_cnt;
+        uint32_t max_sig_id = tmp->sh->init->max_sig_id;
+        SCLogDebug("List item: [%d, %d]; sig_cnt: %d, max_sig_id: %d", tmp->port, tmp->port2,
+                sig_cnt, max_sig_id);
+        SigGroupHeadPrintSigs(de_ctx, tmp->sh);
+    }
+#endif
 
     /* step 2: create a list of DetectPort objects */
     for (htb = HashListTableGetListHead(de_ctx->dport_hash_table);
