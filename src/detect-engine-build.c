@@ -1212,6 +1212,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     SCIntervalTree *it = SCIntervalTreeInit();
     if (it == NULL)
         goto error;
+
     /* Create the interval tree of all the ports */
     HashListTableBucket *htb = NULL;
     for (htb = HashListTableGetListHead(de_ctx->dport_hash_table); htb != NULL;
@@ -1225,6 +1226,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         SCLogDebug("Inserted in tree a node w sig_size: %d", p->sh->init->sig_size);
     }
 
+    // SCLogNotice("size_unique_port_arr %d", size_unique_port_arr);
     /* Only do the operations if there is at least one unique port */
     if (size_unique_port_arr > 0) {
         uint16_t *final_unique_points =
@@ -1233,7 +1235,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         for (int i = 0, j = 0; i < 65536; i++) {
             DEBUG_VALIDATE_BUG_ON(j > size_unique_port_arr);
             if (unique_port_points[i]) {
-                final_unique_points[j++] = i;
+                final_unique_points[j++] = (uint16_t)i;
             }
         }
 #if 0
@@ -1251,6 +1253,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             port = final_unique_points[i - 1];
             port2 = final_unique_points[i];
             PISearchOverlappingPortRanges(de_ctx, port, port2, &it->tree, &list);
+            // SCLogNotice("i %u from %d", i, size_unique_port_arr);
         }
         /* We no longer need the unique points array */
         SCFree(final_unique_points);
