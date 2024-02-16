@@ -1136,6 +1136,10 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     /* step 1: create a hash of 'DetectPort' objects based on all the
      *         rules. Each object will have a SGH with the sigs added
      *         that belong to the SGH. */
+    if (direction == SIG_FLAG_TOSERVER)
+        SCLogNotice(">>>>>>>>>>>>>> TOSERVER, Proto: %s", ipproto == IPPROTO_TCP ? "tcp" : "udp");
+    else
+        SCLogNotice("<<<<<<<<<<<<<< TOCLIENT, Proto: %s", ipproto == IPPROTO_TCP ? "tcp" : "udp");
     DetectPortHashInit(de_ctx);
     SCIntervalTree *it = SCIntervalTreeInit();
 
@@ -1203,11 +1207,6 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                     unique_port_points[tmp2->port2] = true;
                     size_unique_port_arr++;
                 }
-                int ret = 0;
-                if ((ret = PIInsertPort(de_ctx, it, &it->tree, tmp2)) != SC_OK) {
-                    SCLogNotice("ret: %d", ret);
-                }
-                SCLogNotice("Inserted in tree a node w sig_size: %d", tmp2->sh->init->sig_size);
             }
 
             p = p->next;
@@ -1215,6 +1214,21 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     next:
         s = s->next;
     }
+
+    // Creating the interval tree
+    HashListTableBucket *htb = NULL;
+    for (htb = HashListTableGetListHead(de_ctx->dport_hash_table);
+            htb != NULL;
+            htb = HashListTableGetListNext(htb))
+    {
+        DetectPort *p = HashListTableGetListData(htb);
+        int ret = 0;
+        if ((ret = PIInsertPort(de_ctx, it, &it->tree, p)) != SC_OK) {
+            SCLogNotice("ret: %d", ret);
+        }
+        SCLogNotice("Inserted in tree a node w sig_size: %d", p->sh->init->sig_size);
+    }
+
     SCLogNotice("FINAL TREE");
     printIT(RB_ROOT(&it->tree), 0);
 
@@ -1240,8 +1254,10 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     SCFree(final_unique_points);
 #if 1
     for (DetectPort *tmp = list; tmp != NULL; tmp = tmp->next) {
+        int sig_cnt = tmp->sh->init->sig_cnt;
+        uint32_t max_sig_id = tmp->sh->init->max_sig_id;
         SCLogNotice("List item: [%d, %d]; sig_cnt: %d, max_sig_id: %d", tmp->port, tmp->port2,
-                tmp->sh->init->sig_cnt, tmp->sh->init->max_sig_id);
+                sig_cnt, max_sig_id);
         SigGroupHeadPrintSigs(de_ctx, tmp->sh);
     }
 #endif

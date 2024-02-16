@@ -107,7 +107,6 @@ int PIInsertPort(DetectEngineCtx *de_ctx, SCIntervalTree *it, struct PI *head, D
     pi->port = p->port;
     pi->port2 = p->port2;
     pi->flags = p->flags;
-    // STODO see if the cleanup of these SGHs will be done automatically
     SigGroupHeadCopySigs(de_ctx, p->sh, &pi->sh);
     if (PI_IRB_INSERT(&it->tree, pi) != NULL) {
         SCLogNotice("Node wasn't added to the tree: port: %d, port2: %d", pi->port, pi->port2);
