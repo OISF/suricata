@@ -1217,9 +1217,8 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     for (htb = HashListTableGetListHead(de_ctx->dport_hash_table); htb != NULL;
             htb = HashListTableGetListNext(htb)) {
         DetectPort *p = HashListTableGetListData(htb);
-        int ret = 0;
-        if ((ret = PIInsertPort(de_ctx, it, &it->tree, p)) != SC_OK) {
-            SCLogDebug("Port was not inserted in the tree. ret: %d", ret);
+        if (PIInsertPort(de_ctx, it, &it->tree, p) != SC_OK) {
+            SCLogDebug("Port was not inserted in the tree.");
             abort();
         }
         SCLogDebug("Inserted in tree a node w sig_size: %d", p->sh->init->sig_size);
