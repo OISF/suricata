@@ -1136,6 +1136,10 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
      *         that belong to the SGH. */
     DetectPortHashInit(de_ctx);
 
+    bool unique_port_points[65536] = {
+        false
+    }; // TODO convert this to bit array so it takes less space
+    uint16_t size_unique_port_arr = 0;
     const Signature *s = de_ctx->sig_list;
     DetectPort *list = NULL;
     while (s) {
@@ -1190,6 +1194,14 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                 SigGroupHeadAppendSig(de_ctx, &tmp2->sh, s);
                 tmp2->sh->init->score = pwl;
                 DetectPortHashAdd(de_ctx, tmp2);
+                if (!unique_port_points[tmp2->port]) {
+                    unique_port_points[tmp2->port] = true;
+                    size_unique_port_arr++;
+                }
+                if (!unique_port_points[tmp2->port2]) {
+                    unique_port_points[tmp2->port2] = true;
+                    size_unique_port_arr++;
+                }
             }
 
             p = p->next;
