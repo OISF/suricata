@@ -38,6 +38,7 @@
 #include "detect-config.h"
 #include "detect-flowbits.h"
 
+#include "util-port-interval-tree.h"
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "util-var-name.h"
@@ -1272,8 +1273,23 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         s = s->next;
     }
 
-    /* step 2: create a list of DetectPort objects */
+    /* Create an interval tree of all the given ports to make the search
+     * for overlaps later on easier */
+    SCPortIntervalTree *it = SCPortIntervalTreeInit();
+    if (it == NULL)
+        goto error;
+
     HashListTableBucket *htb = NULL;
+    for (htb = HashListTableGetListHead(de_ctx->dport_hash_table); htb != NULL;
+            htb = HashListTableGetListNext(htb)) {
+        DetectPort *p = HashListTableGetListData(htb);
+        if (SCPortIntervalInsert(de_ctx, it, p) != SC_OK) {
+            SCLogDebug("Port was not inserted in the tree");
+            goto error;
+        }
+    }
+
+    /* step 2: create a list of DetectPort objects */
     for (htb = HashListTableGetListHead(de_ctx->dport_hash_table);
             htb != NULL;
             htb = HashListTableGetListNext(htb))
@@ -1341,11 +1357,16 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             ipproto == 6 ? "TCP" : "UDP",
             direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
             cnt, own, ref);
+    SCPortIntervalTreeFree(de_ctx, it);
     return list;
 
 error:
     if (unique_port_points != NULL)
         SCFree(unique_port_points);
+    if (it != NULL)
+        SCPortIntervalTreeFree(de_ctx, it);
+
+    return NULL;
 }
 
 void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s)
