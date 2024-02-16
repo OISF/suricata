@@ -1300,18 +1300,15 @@ static int DeviceValidateOutIfaceConfig(DPDKIfaceConfig *iconf)
 static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
 {
     SCEnter();
-    int retval;
-
     if (iconf->out_iface != NULL) {
-        retval = rte_eth_dev_get_port_by_name(iconf->out_iface, &iconf->out_port_id);
-        if (retval != 0) {
-            SCLogError("%s: failed to obtain out iface %s port id: %s", iconf->iface,
-                    iconf->out_iface, rte_strerror(-retval));
-            SCReturnInt(retval);
+        if (!rte_eth_dev_is_valid_port(iconf->out_port_id)) {
+            SCLogError("%s: retrieved copy interface port ID \"%d\" is invalid or the device is "
+                       "not attached ",
+                    iconf->iface, iconf->out_port_id);
+            SCReturnInt(-ENODEV);
         }
-
         int32_t out_port_socket_id;
-        retval = DeviceSetSocketID(iconf->port_id, &out_port_socket_id);
+        int retval = DeviceSetSocketID(iconf->out_port_id, &out_port_socket_id);
         if (retval < 0) {
             SCLogError("%s: invalid socket id: %s", iconf->out_iface, rte_strerror(-retval));
             SCReturnInt(retval);
@@ -1384,19 +1381,13 @@ static int32_t DeviceVerifyPostConfigure(
 static int DeviceConfigure(DPDKIfaceConfig *iconf)
 {
     SCEnter();
-    int32_t retval = rte_eth_dev_get_port_by_name(iconf->iface, &(iconf->port_id));
-    if (retval < 0) {
-        SCLogError("%s: interface not found: %s", iconf->iface, rte_strerror(-retval));
-        SCReturnInt(retval);
-    }
-
     if (!rte_eth_dev_is_valid_port(iconf->port_id)) {
         SCLogError("%s: retrieved port ID \"%d\" is invalid or the device is not attached ",
                 iconf->iface, iconf->port_id);
-        SCReturnInt(retval);
+        SCReturnInt(-ENODEV);
     }
 
-    retval = DeviceSetSocketID(iconf->port_id, &iconf->socket_id);
+    int32_t retval = DeviceSetSocketID(iconf->port_id, &iconf->socket_id);
     if (retval < 0) {
         SCLogError("%s: invalid socket id: %s", iconf->iface, rte_strerror(-retval));
         SCReturnInt(retval);
