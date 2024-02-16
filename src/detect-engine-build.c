@@ -1207,6 +1207,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                 if ((ret = PIInsertPort(de_ctx, it, &it->tree, tmp2)) != SC_OK) {
                     SCLogNotice("ret: %d", ret);
                 }
+                SCLogNotice("Inserted in tree a node w sig_size: %d", tmp2->sh->init->sig_size);
             }
 
             p = p->next;
@@ -1239,7 +1240,9 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     SCFree(final_unique_points);
 #if 1
     for (DetectPort *tmp = list; tmp != NULL; tmp = tmp->next) {
-        SCLogNotice("List item: [%d, %d]", tmp->port, tmp->port2);
+        SCLogNotice("List item: [%d, %d]; sig_cnt: %d, max_sig_id: %d", tmp->port, tmp->port2,
+                tmp->sh->init->sig_cnt, tmp->sh->init->max_sig_id);
+        SigGroupHeadPrintSigs(de_ctx, tmp->sh);
     }
 #endif
 
@@ -1283,7 +1286,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
 
         SigGroupHead *lookup_sgh = SigGroupHeadHashLookup(de_ctx, iter->sh);
         if (lookup_sgh == NULL) {
-            SCLogDebug("port group %p sgh %p is the original", iter, iter->sh);
+            SCLogNotice("port group %p sgh %p is the original", iter, iter->sh);
 
             SigGroupHeadSetSigCnt(iter->sh, 0);
             SigGroupHeadBuildMatchArray(de_ctx, iter->sh, 0);
@@ -1293,7 +1296,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             iter->flags |= PORT_SIGGROUPHEAD_COPY;
             own++;
         } else {
-            SCLogDebug("port group %p sgh %p is a copy", iter, iter->sh);
+            SCLogNotice("port group %p sgh %p is a copy", iter, iter->sh);
 
             SigGroupHeadFree(de_ctx, iter->sh);
             iter->sh = lookup_sgh;

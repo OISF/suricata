@@ -276,7 +276,10 @@ error:
 int SigGroupHeadHashAdd(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     int ret = HashListTableAdd(de_ctx->sgh_hash_table, (void *)sgh, 0);
-
+    if (ret == 0)
+        SCLogNotice("hash was successfully added");
+    else
+        SCLogNotice("hash failed");
     return ret;
 }
 
@@ -403,11 +406,11 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
     for (idx = 0; idx < src->init->sig_size; idx++)
         (*dst)->init->sig_array[idx] = (*dst)->init->sig_array[idx] | src->init->sig_array[idx];
 
+    SCLogNotice("Copied %d sigs to dst", idx);
     if (src->init->score)
         (*dst)->init->score = MAX((*dst)->init->score, src->init->score);
 
-    if (src->init->max_sig_id)
-        (*dst)->init->max_sig_id = MAX((*dst)->init->max_sig_id, src->init->max_sig_id);
+    (*dst)->init->max_sig_id = MAX((*dst)->init->max_sig_id, src->init->max_sig_id);
     return 0;
 
 error:
@@ -426,11 +429,13 @@ void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx)
 {
     uint32_t sig;
     sgh->init->max_sig_id = MAX(max_idx, sgh->init->max_sig_id);
+    SCLogNotice("max sig id: %d", sgh->init->max_sig_id);
     sgh->init->sig_cnt = 0;
     for (sig = 0; sig < sgh->init->max_sig_id + 1; sig++) {
         if (sgh->init->sig_array[sig / 8] & (1 << (sig % 8)))
             sgh->init->sig_cnt++;
     }
+    SCLogNotice("sig cnt: %d", sgh->init->sig_cnt);
 
     return;
 }
@@ -462,10 +467,10 @@ void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
     uint32_t u;
 
-    SCLogDebug("The Signatures present in this SigGroupHead are: ");
+    SCLogNotice("The Signatures present in this SigGroupHead are: ");
     for (u = 0; u < (sgh->init->sig_size * 8); u++) {
         if (sgh->init->sig_array[u / 8] & (1 << (u % 8))) {
-            SCLogDebug("%" PRIu32, u);
+            SCLogNotice("%" PRIu32, u);
             printf("s->num %"PRIu32" ", u);
         }
     }
@@ -510,6 +515,7 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
             continue;
 
         sgh->init->match_array[idx] = s;
+        SCLogNotice("sgh %p will check for sid %d", sgh, s->num);
         idx++;
     }
 
@@ -606,6 +612,7 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
         BUG_ON(sgh->non_pf_syn_store_array == NULL);
     }
 
+    SCLogNotice("sig_cnt: %d", sgh->init->sig_cnt);
     for (sig = 0; sig < sgh->init->sig_cnt; sig++) {
         s = sgh->init->match_array[sig];
         if (s == NULL)

@@ -151,7 +151,11 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
                 goto error;
             }
             new_port->port = port;
-            new_port->port2 = port2 - 1; // As we're checking against right open interval
+            if (port2 != 65535) {
+                new_port->port2 = port2 - 1; // As we're checking against right open interval
+            } else {
+                new_port->port2 = port2;
+            }
             SigGroupHeadCopySigs(de_ctx, ptr->sh, &new_port->sh);
             if (*list == NULL) {
                 *list = new_port;
