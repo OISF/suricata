@@ -1232,14 +1232,15 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     SCLogNotice("FINAL TREE");
     printIT(RB_ROOT(&it->tree), 0);
 
-    uint16_t *final_unique_points = (uint16_t *)SCCalloc(size_unique_port_arr, sizeof(uint16_t));
-    // STODO use the bit array construct here to avoid 65k arr
-    for (int i = 0, j = 0; i < 65536; i++) {
-        DEBUG_VALIDATE_BUG_ON(j > size_unique_port_arr);
-        if (unique_port_points[i]) {
-            final_unique_points[j++] = i;
+    if (size_unique_port_arr > 0) {
+        uint16_t *final_unique_points = (uint16_t *)SCCalloc(size_unique_port_arr, sizeof(uint16_t));
+        // STODO use the bit array construct here to avoid 65k arr
+        for (int i = 0, j = 0; i < 65536; i++) {
+            DEBUG_VALIDATE_BUG_ON(j > size_unique_port_arr);
+            if (unique_port_points[i]) {
+                final_unique_points[j++] = i;
+            }
         }
-    }
 
 #if 1
     for (uint16_t i = 0; i < size_unique_port_arr; i++) {
@@ -1252,6 +1253,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         PISearchOverlappingPortRanges(de_ctx, port, port2, &it->tree, &list);
     }
     SCFree(final_unique_points);
+    }
 #if 1
     for (DetectPort *tmp = list; tmp != NULL; tmp = tmp->next) {
         int sig_cnt = tmp->sh->init->sig_cnt;
