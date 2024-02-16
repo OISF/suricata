@@ -1156,6 +1156,44 @@ static int RuleSetWhitelist(Signature *s)
 int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx);
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b);
 
+#define RANGE_PORT  1
+#define SINGLE_PORT 2
+
+/**
+ * \brief Function to set unique port points. Consider all the ports
+ *        flattened out on one line, set the points that correspond
+ *        to a valid port. Also store whether the port point stored
+ *        was a single port or part of a range.
+ *
+ * \param p Port object to be set
+ * \param unique_list List of unique port points to be updated
+ * \param size_list Current size of the list
+ *
+ * \return Updated size of the list
+ */
+static inline uint32_t SetUniquePortPoints(
+        const DetectPort *p, uint8_t *unique_list, uint32_t size_list)
+{
+    if (unique_list[p->port] == 0) {
+        if (p->port == p->port2) {
+            unique_list[p->port] = SINGLE_PORT;
+        } else {
+            unique_list[p->port] = RANGE_PORT;
+        }
+        size_list++;
+    }
+
+    /* Treat right boundary as single point to avoid creating unneeded
+     * ranges later on
+     * TODO merge the extra entry created in the rulegroup
+     * for such points in *CreateGroupedPortList* fn */
+    if (unique_list[p->port2] == 0) {
+        size_list++;
+    }
+    unique_list[p->port2] = SINGLE_PORT;
+    return size_list;
+}
+
 static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, uint32_t direction)
 {
     /* step 1: create a hash of 'DetectPort' objects based on all the
@@ -1164,8 +1202,14 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     DetectPortHashInit(de_ctx);
 
     uint32_t max_idx = 0;
+    uint32_t size_unique_port_arr = 0;
     const Signature *s = de_ctx->sig_list;
     DetectPort *list = NULL;
+
+    uint8_t *unique_port_points = (uint8_t *)SCCalloc(UINT16_MAX + 1, sizeof(uint8_t));
+    if (unique_port_points == NULL)
+        return NULL;
+
     while (s) {
         /* IP Only rules are handled separately */
         if (s->type == SIG_TYPE_IPONLY)
@@ -1217,6 +1261,8 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                 SigGroupHeadAppendSig(de_ctx, &tmp2->sh, s);
                 tmp2->sh->init->whitelist = pwl;
                 DetectPortHashAdd(de_ctx, tmp2);
+                size_unique_port_arr =
+                        SetUniquePortPoints(tmp2, unique_port_points, size_unique_port_arr);
             }
 
             p = p->next;
@@ -1296,6 +1342,10 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
             cnt, own, ref);
     return list;
+
+error:
+    if (unique_port_points != NULL)
+        SCFree(unique_port_points);
 }
 
 void SignatureSetType(DetectEngineCtx *de_ctx, Signature *s)
