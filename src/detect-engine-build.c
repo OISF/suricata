@@ -1264,18 +1264,6 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         SigGroupHeadPrintSigs(de_ctx, tmp->sh);
     }
 #endif
-
-    /* step 2: create a list of DetectPort objects */
-    for (htb = HashListTableGetListHead(de_ctx->dport_hash_table);
-            htb != NULL;
-            htb = HashListTableGetListNext(htb))
-    {
-        DetectPort *p = HashListTableGetListData(htb);
-        DetectPort *tmp = DetectPortCopySingle(de_ctx, p);
-        BUG_ON(tmp == NULL);
-        int r = DetectPortInsert(de_ctx, &list , tmp);
-        BUG_ON(r == -1);
-    }
     DetectPortHashFree(de_ctx);
 
     SCLogDebug("rules analyzed");
