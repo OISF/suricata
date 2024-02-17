@@ -544,7 +544,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
 
     if (cfile->tenant_id > 0) {
         char tstr[16];
-        snprintf(tstr, sizeof(tstr), "%d", cfile->tenant_id);
+        snprintf(tstr, sizeof(tstr), "%u", cfile->tenant_id);
         if (ConfSetFinal("pcap-file.tenant-id", tstr) != 1) {
             SCLogError("Can not set working tenant-id to '%s'", tstr);
             PcapFilesFree(cfile);
@@ -1037,7 +1037,7 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
     /* setup the yaml in this loop so that it's not done by the loader
      * threads. ConfYamlLoadFileWithPrefix is not thread safe. */
     char prefix[64];
-    snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
+    snprintf(prefix, sizeof(prefix), "multi-detect.%u", tenant_id);
     if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
         SCLogError("failed to load yaml %s", filename);
         json_object_set_new(answer, "message", json_string("failed to load yaml"));
@@ -1186,7 +1186,7 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
 
     /* 2 remove it from the system */
     char prefix[64];
-    snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
+    snprintf(prefix, sizeof(prefix), "multi-detect.%u", tenant_id);
 
     DetectEngineCtx *de_ctx = DetectEngineGetByTenantId(tenant_id);
     if (de_ctx == NULL) {
