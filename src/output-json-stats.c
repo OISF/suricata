@@ -265,23 +265,30 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
         uint32_t x;
         for (x = 0; x < st->ntstats; x++) {
             uint32_t offset = x * st->nstats;
-
-            // Stats for for this thread.
-            json_t *thread = json_object();
-            if (unlikely(thread == NULL)) {
-                json_decref(js_stats);
-                json_decref(threads);
-                return NULL;
-            }
+            const char *tm_name = NULL;
+            json_t *thread = NULL;
 
             /* for each counter */
             for (u = offset; u < (offset + st->nstats); u++) {
                 if (st->tstats[u].name == NULL)
                     continue;
 
-                // Seems this holds, but assert in debug builds.
-                DEBUG_VALIDATE_BUG_ON(
-                        strcmp(st->tstats[offset].tm_name, st->tstats[u].tm_name) != 0);
+                DEBUG_VALIDATE_BUG_ON(st->tstats[u].tm_name == NULL);
+
+                if (tm_name == NULL) {
+                    // First time we see a set tm_name. Remember it
+                    // and allocate the stats object for this thread.
+                    tm_name = st->tstats[u].tm_name;
+                    thread = json_object();
+                    if (unlikely(thread == NULL)) {
+                        json_decref(js_stats);
+                        json_decref(threads);
+                        return NULL;
+                    }
+                } else {
+                    DEBUG_VALIDATE_BUG_ON(strcmp(tm_name, st->tstats[u].tm_name) != 0);
+                    DEBUG_VALIDATE_BUG_ON(thread == NULL);
+                }
 
                 json_t *js_type = NULL;
                 const char *stat_name = st->tstats[u].short_name;
@@ -303,7 +310,10 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
                     }
                 }
             }
-            json_object_set_new(threads, st->tstats[offset].tm_name, thread);
+            if (tm_name != NULL) {
+                DEBUG_VALIDATE_BUG_ON(thread == NULL);
+                json_object_set_new(threads, tm_name, thread);
+            }
         }
         json_object_set_new(js_stats, "threads", threads);
     }
