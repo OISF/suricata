@@ -147,7 +147,7 @@ int PIInsertPort(DetectEngineCtx *de_ctx, SCIntervalTree *it, struct PI *head, c
  */
 static bool IsOverlap(const uint16_t port, const uint16_t port2, const SCIntervalNode *ptr)
 {
-    if (port <= ptr->port && port2 > ptr->port) {
+    if (port <= ptr->port && port2 >= ptr->port) {
         SCLogDebug("range [%u:%u] overlaps tree range [%u:%u]", port, port2, ptr->port, ptr->port2);
         return true;
     } else if (port > ptr->port && port2 <= ptr->port2) {
@@ -289,12 +289,17 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
                 if (*list == NULL) {
                     *list = new_port;
                     (*list)->last = new_port;
-                } else {
+                } else if (((*list)->last->port != new_port->port) &&
+                           ((*list)->last->port2 != new_port->port)) {
                     DEBUG_VALIDATE_BUG_ON(new_port->port < (*list)->last->port);
                     (*list)->last->next = new_port;
                     (*list)->last = new_port;
+                } else {
+                    DetectPortFree(de_ctx, new_port);
+                    new_port = NULL;
+                    return;
                 }
-            } else if (new_port != NULL && is_overlap && cnt_overlaps > 1) {
+            } else if (new_port != NULL && is_overlap) {
                 SCLogDebug("find overlaps for [%u:%u]: adding sigs to new_port [%u:%u]", port,
                         port2, port, port2);
                 // Only copy the relevant SGHs on later overlaps
@@ -327,7 +332,7 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
 
     SCIntervalNode *prev_ptr = NULL;
     while (ptr && ptr != prev_ptr) {
-        SCLogNotice("find overlaps for [%u:%u] => tree node [%u:%u]", port, port2, ptr->port, ptr->port2);
+        SCLogDebug("find overlaps for [%u:%u] => tree node [%u:%u]", port, port2, ptr->port, ptr->port2);
         prev_ptr = ptr;
 
         const bool is_overlap = IsOverlap(port, port2, ptr);
@@ -342,7 +347,7 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
                 goto error;
             }
 
-            SCLogNotice("find overlaps for [%u:%u]: creating new_port for [%u:%u]", port, port2, port, port2);
+            SCLogDebug("find overlaps for [%u:%u]: creating new_port for [%u:%u]", port, port2, port, port2);
             new_port->port = port;
             new_port->port2 = port2;
 
@@ -362,7 +367,7 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
                 (*list)->last = new_port;
             }
         } else if (new_port != NULL && is_overlap && cnt_overlaps > 1) {
-            SCLogNotice("find overlaps for [%u:%u]: adding sigs to new_port [%u:%u]", port, port2, port, port2);
+            SCLogDebug("find overlaps for [%u:%u]: adding sigs to new_port [%u:%u]", port, port2, port, port2);
             // Only copy the relevant SGHs on later overlaps
             PrintSigGroupHeadSigs(de_ctx, ptr->sh);
             SigGroupHeadCopySigs(de_ctx, ptr->sh, &new_port->sh);
@@ -374,14 +379,14 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
         if ((node != NULL) && (node->max >= port)) {
             ptr = node;
             if (ptr)
-                SCLogNotice("find overlaps for [%u:%u] => LEFT tree node [%u:%u, max:%u]", port, port2, ptr->port, ptr->port2, ptr->max);
+                SCLogDebug("find overlaps for [%u:%u] => LEFT tree node [%u:%u, max:%u]", port, port2, ptr->port, ptr->port2, ptr->max);
         }
 
         node = IRB_RIGHT(pptr, irb);
         if (node != NULL && (node->max >= port)) {
             ptr = node;
             if (ptr)
-                SCLogNotice("find overlaps for [%u:%u] => RIGHT tree node [%u:%u, max:%u]", port, port2, ptr->port, ptr->port2, ptr->max);
+                SCLogDebug("find overlaps for [%u:%u] => RIGHT tree node [%u:%u, max:%u]", port, port2, ptr->port, ptr->port2, ptr->max);
 #if 0
             if ((node != NULL) && (ptr->port < port2) && (node->max >= port)) {
                 ptr = node;
@@ -389,7 +394,7 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
 #endif
         }
     }
-    SCLogNotice("find overlaps for [%u:%u] DONE", port, port2);
+    SCLogDebug("find overlaps for [%u:%u] DONE", port, port2);
     return;
 #endif
     return;
