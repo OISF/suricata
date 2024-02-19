@@ -527,6 +527,22 @@ impl JsonBuilder {
         }
     }
 
+    /// Set a key and a string value (from bytes) on an object, with a limited size
+    pub fn set_string_from_bytes_limited(&mut self, key: &str, val: &[u8], limit: usize) -> Result<&mut Self, JsonError> {
+        let mut valtrunc = Vec::new();
+        let val = if val.len() > limit {
+            valtrunc.extend_from_slice(&val[..limit]);
+            valtrunc.extend_from_slice(b"[truncated]");
+            &valtrunc
+        } else {
+            val
+        };
+        match std::str::from_utf8(val) {
+            Ok(s) => self.set_string(key, s),
+            Err(_) => self.set_string(key, &try_string_from_bytes(val)?),
+        }
+    }
+
     /// Set a key and a string field as the base64 encoded string of the value.
     pub fn set_base64(&mut self, key: &str, val: &[u8]) -> Result<&mut Self, JsonError> {
         match self.current_state() {

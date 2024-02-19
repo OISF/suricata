@@ -46,7 +46,7 @@ pub enum SSHConnectionState {
     SshStateFinished = 3,
 }
 
-const SSH_MAX_BANNER_LEN: usize = 256;
+pub const SSH_MAX_BANNER_LEN: usize = 256;
 const SSH_RECORD_HEADER_LEN: usize = 6;
 const SSH_MAX_REASSEMBLED_RECORD_LEN: usize = 65535;
 
