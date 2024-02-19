@@ -53,6 +53,8 @@ int PIInsertPort(DetectEngineCtx *, SCIntervalTree *, struct PI *, const DetectP
 void PISearchOverlappingPortRanges(
         DetectEngineCtx *, uint16_t, uint16_t, struct PI *, DetectPort **);
 #if 0
-void printIT(struct SCIntervalNode *node, int space);
+void printIT(DetectEngineCtx *de_ctx, SCIntervalNode *node, int space,
+        void (*Print)(DetectEngineCtx *, SigGroupHead *));
+void printIT_SigGroupHeadSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 #endif
 #endif /* __UTIL_INTERVAL_TREE_H__ */

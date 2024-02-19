@@ -40,12 +40,12 @@ static int PICompareAndUpdate(const SCIntervalNode *a, SCIntervalNode *b)
     SCLogDebug("a: [%u:%u, max %u] b: [%u:%u, max %u]", a->port, a->port2, a->max, b->port,
             b->port2, b->max);
 
+    if (a->port2 > b->max) {
+        b->max = a->port2;
+        SCLogDebug("a: [%u:%u, max %u] b: [%u:%u, max %u] MAX UPDATED", a->port, a->port2, a->max,
+                b->port, b->port2, b->max);
+    }
     if (a->port >= b->port) {
-        if (a->port2 > b->max) {
-            b->max = a->port2;
-            SCLogDebug("a: [%u:%u, max %u] b: [%u:%u, max %u] MAX UPDATED", a->port, a->port2,
-                    a->max, b->port, b->port2, b->max);
-        }
         SCLogDebug("a: [%u:%u, max %u] b: [%u:%u, max %u] => 1", a->port, a->port2, a->max, b->port,
                 b->port2, b->max);
         SCReturnInt(1);
@@ -147,6 +147,10 @@ int PIInsertPort(DetectEngineCtx *de_ctx, SCIntervalTree *it, struct PI *head, c
  */
 static bool IsOverlap(const uint16_t port, const uint16_t port2, const SCIntervalNode *ptr)
 {
+    if (port <= ptr->port2 && ptr->port <= port2) {
+        return true;
+    }
+#if 0
     if (port <= ptr->port && port2 >= ptr->port) {
         SCLogDebug("range [%u:%u] overlaps tree range [%u:%u]", port, port2, ptr->port, ptr->port2);
         return true;
@@ -160,7 +164,7 @@ static bool IsOverlap(const uint16_t port, const uint16_t port2, const SCInterva
         SCLogDebug("range [%u:%u] overlaps tree range [%u:%u]", port, port2, ptr->port, ptr->port2);
         return true;
     }
-
+#endif
 #if 0
     if ((port < ptr->port2) && (ptr->port < port2)) {
         SCLogDebug("Found overlap with [%d, %d] vs [%u:%u]", ptr->port, ptr->port2, port, port2);
@@ -171,6 +175,7 @@ static bool IsOverlap(const uint16_t port, const uint16_t port2, const SCInterva
     return false;
 }
 
+#if 0
 void PrintSigGroupHeadSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 void PrintSigGroupHeadSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
@@ -181,7 +186,6 @@ void PrintSigGroupHeadSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     }
 }
 
-void printIT_SigGroupHeadSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 void printIT_SigGroupHeadSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     for (uint32_t sig = 0; sig < sgh->init->max_sig_id + 1; sig++) {
@@ -191,9 +195,7 @@ void printIT_SigGroupHeadSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     }
 }
 
-int COUNT = 4;
-void printIT(DetectEngineCtx *de_ctx, SCIntervalNode *node, int space,
-        void (*Print)(DetectEngineCtx *, SigGroupHead *));
+int COUNT = 10;
 void printIT(DetectEngineCtx *de_ctx, SCIntervalNode *node, int space,
         void (*Print)(DetectEngineCtx *, SigGroupHead *))
 {
@@ -221,6 +223,7 @@ void printIT(DetectEngineCtx *de_ctx, SCIntervalNode *node, int space,
     // Process left child
     printIT(de_ctx, IRB_LEFT(node, irb), space, Print);
 }
+#endif
 
 /**
  * \brief Function to find all the overlaps of given ports with the existing
@@ -238,15 +241,9 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
     SCIntervalNode *ptr = root;
     DetectPort *new_port = NULL;
     int cnt_overlaps = 0;
-#if 0
-    printIT(de_ctx, root, 1, printIT_SigGroupHeadSigs);
-#endif
     SCIntervalNode *stack[100], *current = root;
     memset(&stack, 0, sizeof(stack));
     int stack_depth = 0;
-    //            stack[stack_depth++] = current;
-
-    //    SCLogDebug("ROOT! [%u:%u]: current:%p", current->port, current->port2, current);
     while (current || stack_depth) {
         SCLogDebug("stack_depth %d", stack_depth);
         for (int x = 0; x < stack_depth && x < 100 && stack[x] != NULL; x++)
@@ -260,7 +257,6 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
                 current = NULL;
                 break;
             }
-
             ptr = current;
             const bool is_overlap = IsOverlap(port, port2, ptr);
             if (is_overlap) {
@@ -328,75 +324,6 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, uint16_t port, uint16_t port2,
         BUG_ON(popped == NULL);
         current = IRB_RIGHT(popped, irb);
     }
-#if 0
-
-    SCIntervalNode *prev_ptr = NULL;
-    while (ptr && ptr != prev_ptr) {
-        SCLogDebug("find overlaps for [%u:%u] => tree node [%u:%u]", port, port2, ptr->port, ptr->port2);
-        prev_ptr = ptr;
-
-        const bool is_overlap = IsOverlap(port, port2, ptr);
-        if (is_overlap) {
-            cnt_overlaps++;
-        }
-
-        if (is_overlap && (cnt_overlaps == 1)) {
-            // Allocate memory for port obj only if it's first overlap
-            new_port = DetectPortInit();
-            if (new_port == NULL) {
-                goto error;
-            }
-
-            SCLogDebug("find overlaps for [%u:%u]: creating new_port for [%u:%u]", port, port2, port, port2);
-            new_port->port = port;
-            new_port->port2 = port2;
-
-            PrintSigGroupHeadSigs(de_ctx, ptr->sh);
-            SigGroupHeadCopySigs(de_ctx, ptr->sh, &new_port->sh);
-            PrintSigGroupHeadSigs(de_ctx, new_port->sh);
-
-            // Since it is guaranteed that the ports received by this stage
-            // will be sorted, insert any new ports to the end of the list
-            // and avoid walking the entire list
-            if (*list == NULL) {
-                *list = new_port;
-                (*list)->last = new_port;
-            } else {
-                DEBUG_VALIDATE_BUG_ON(new_port->port < (*list)->last->port);
-                (*list)->last->next = new_port;
-                (*list)->last = new_port;
-            }
-        } else if (new_port != NULL && is_overlap && cnt_overlaps > 1) {
-            SCLogDebug("find overlaps for [%u:%u]: adding sigs to new_port [%u:%u]", port, port2, port, port2);
-            // Only copy the relevant SGHs on later overlaps
-            PrintSigGroupHeadSigs(de_ctx, ptr->sh);
-            SigGroupHeadCopySigs(de_ctx, ptr->sh, &new_port->sh);
-            PrintSigGroupHeadSigs(de_ctx, new_port->sh);
-        }
-
-        SCIntervalNode *pptr = ptr;
-        SCIntervalNode *node = IRB_LEFT(ptr, irb);
-        if ((node != NULL) && (node->max >= port)) {
-            ptr = node;
-            if (ptr)
-                SCLogDebug("find overlaps for [%u:%u] => LEFT tree node [%u:%u, max:%u]", port, port2, ptr->port, ptr->port2, ptr->max);
-        }
-
-        node = IRB_RIGHT(pptr, irb);
-        if (node != NULL && (node->max >= port)) {
-            ptr = node;
-            if (ptr)
-                SCLogDebug("find overlaps for [%u:%u] => RIGHT tree node [%u:%u, max:%u]", port, port2, ptr->port, ptr->port2, ptr->max);
-#if 0
-            if ((node != NULL) && (ptr->port < port2) && (node->max >= port)) {
-                ptr = node;
-            }
-#endif
-        }
-    }
-    SCLogDebug("find overlaps for [%u:%u] DONE", port, port2);
-    return;
-#endif
     return;
 error:
     if (new_port != NULL)

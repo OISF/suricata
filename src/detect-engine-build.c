@@ -1206,7 +1206,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                     size_unique_port_arr++;
                 }
                 if (unique_port_points[tmp2->port2] == 0) {
-                    unique_port_points[tmp2->port2] = 1;
+                    unique_port_points[tmp2->port2] = 2;
                     size_unique_port_arr++;
                 }
             }
@@ -1236,6 +1236,11 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                 p->sh->init->sig_size);
     }
 
+#if 0
+    SCLogNotice("FINAL TREE");
+    SCIntervalNode *root = IRB_ROOT(&it->tree);
+    printIT(de_ctx, root, 1, printIT_SigGroupHeadSigs);
+#endif
     // SCLogNotice("size_unique_port_arr %d", size_unique_port_arr);
     /* Only do the operations if there is at least one unique port */
     if (size_unique_port_arr > 0) {
@@ -1266,7 +1271,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             UniquePortPoint *p1 = NULL, *p2 = NULL;
             p1 = &final_unique_points[0];
             p2 = &final_unique_points[1];
-            port = p1->port;
+            port = p1 ? p1->port : 0; // just for cppcheck
             port2 = p2->port;
             for (uint16_t i = 1; i < size_unique_port_arr;) {
                 DEBUG_VALIDATE_BUG_ON(port > port2);
@@ -1277,13 +1282,12 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                         continue;
                     }
                 } else if (p2 && p2->single) {
-                    if ((port2 > port + 1) &&
-                            (i != size_unique_port_arr - 1)) // To avoid cases where port == port2
+                    if ((port2 >= port + 1)) // To avoid cases where port == port2
                         PISearchOverlappingPortRanges(de_ctx, port, port2 - 1, &it->tree, &list);
                     PISearchOverlappingPortRanges(de_ctx, port2, port2, &it->tree, &list);
                     port = port2 + 1;
                 } else {
-                    if ((port2 > port + 1 && (i != size_unique_port_arr - 1))) {
+                    if ((port2 > port + 1)) {
                         PISearchOverlappingPortRanges(de_ctx, port, port2 - 1, &it->tree, &list);
                         port = port2;
                     } else {
