@@ -1236,6 +1236,11 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                 p->sh->init->sig_size);
     }
 
+#if 0
+    SCLogNotice("FINAL TREE");
+    SCIntervalNode *root = IRB_ROOT(&it->tree);
+    printIT(de_ctx, root, 1, printIT_SigGroupHeadSigs);
+#endif
     // SCLogNotice("size_unique_port_arr %d", size_unique_port_arr);
     /* Only do the operations if there is at least one unique port */
     if (size_unique_port_arr > 0) {
@@ -1266,7 +1271,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
             UniquePortPoint *p1 = NULL, *p2 = NULL;
             p1 = &final_unique_points[0];
             p2 = &final_unique_points[1];
-            port = p1->port;
+            port = p1 ? p1->port : 0; // just for cppcheck
             port2 = p2->port;
             for (uint16_t i = 1; i < size_unique_port_arr;) {
                 DEBUG_VALIDATE_BUG_ON(port > port2);
