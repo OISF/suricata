@@ -83,7 +83,7 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     /* parse any tags we have in the packet */
 
     uint32_t tag_length = 0;
-    PPPOEDiscoveryTag* pppoedt = (PPPOEDiscoveryTag*) (p->pppoedh +  PPPOE_DISCOVERY_HEADER_MIN_LEN);
+    const uint8_t* pkt_pppoedt = pkt + PPPOE_DISCOVERY_HEADER_MIN_LEN;
 
     uint32_t pppoe_length = SCNtohs(p->pppoedh->pppoe_length);
     uint32_t packet_length = len - PPPOE_DISCOVERY_HEADER_MIN_LEN ;
@@ -97,11 +97,13 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         return TM_ECODE_OK;
     }
 
-    while (pppoedt < (PPPOEDiscoveryTag*) (pkt + (len - sizeof(PPPOEDiscoveryTag))) && pppoe_length >=4 && packet_length >=4)
+    while (pkt_pppoedt < pkt_pppoedt + (len - sizeof(PPPOEDiscoveryTag)) && pppoe_length >=4 && packet_length >=4)
     {
+        PPPOEDiscoveryTag* pppoedt = (PPPOEDiscoveryTag*)pkt_pppoedt;
 #ifdef DEBUG
         uint16_t tag_type = SCNtohs(pppoedt->pppoe_tag_type);
 #endif
+        // upgrade to u32 to avoid u16 overflow
         tag_length = SCNtohs(pppoedt->pppoe_tag_length);
 
         SCLogDebug ("PPPoE Tag type %x, length %"PRIu32, tag_type, tag_length);
@@ -118,7 +120,7 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             packet_length = 0; // don't want an underflow
         }
 
-        pppoedt = pppoedt + (4 + tag_length);
+        pkt_pppoedt = pkt_pppoedt + (4 + tag_length);
     }
 
     return TM_ECODE_OK;
