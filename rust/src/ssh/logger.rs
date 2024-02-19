@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use super::ssh::SSHTransaction;
+use super::ssh::{SSHTransaction, SSH_MAX_BANNER_LEN};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
 fn log_ssh(tx: &SSHTransaction, js: &mut JsonBuilder) -> Result<bool, JsonError> {
@@ -24,9 +24,9 @@ fn log_ssh(tx: &SSHTransaction, js: &mut JsonBuilder) -> Result<bool, JsonError>
     }
     if tx.cli_hdr.protover.len() > 0 {
         js.open_object("client")?;
-        js.set_string_from_bytes("proto_version", &tx.cli_hdr.protover)?;
-        if tx.cli_hdr.swver.len() > 0 {
-            js.set_string_from_bytes("software_version", &tx.cli_hdr.swver)?;
+        js.set_string_from_bytes_limited("proto_version", &tx.cli_hdr.protover, SSH_MAX_BANNER_LEN)?;
+        if !tx.cli_hdr.swver.is_empty() {
+            js.set_string_from_bytes_limited("software_version", &tx.cli_hdr.swver, SSH_MAX_BANNER_LEN)?;
         }
         if tx.cli_hdr.hassh.len() > 0 || tx.cli_hdr.hassh_string.len() > 0 {
             js.open_object("hassh")?;
@@ -42,9 +42,9 @@ fn log_ssh(tx: &SSHTransaction, js: &mut JsonBuilder) -> Result<bool, JsonError>
     }
     if tx.srv_hdr.protover.len() > 0 {
         js.open_object("server")?;
-        js.set_string_from_bytes("proto_version", &tx.srv_hdr.protover)?;
-        if tx.srv_hdr.swver.len() > 0 {
-            js.set_string_from_bytes("software_version", &tx.srv_hdr.swver)?;
+        js.set_string_from_bytes_limited("proto_version", &tx.srv_hdr.protover, SSH_MAX_BANNER_LEN)?;
+        if !tx.srv_hdr.swver.is_empty() {
+            js.set_string_from_bytes_limited("software_version", &tx.srv_hdr.swver, SSH_MAX_BANNER_LEN)?;
         }
         if tx.srv_hdr.hassh.len() > 0 || tx.srv_hdr.hassh_string.len() > 0 {
             js.open_object("hassh")?;
