@@ -1354,6 +1354,9 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         s = s->next;
     }
 
+    /* step 2: create a list of the smallest port ranges with
+     * appropriate SGHs */
+
     /* Create an interval tree of all the given ports to make the search
      * for overlaps later on easier */
     SCPortIntervalTree *it = SCPortIntervalTreeInit();
@@ -1370,17 +1373,6 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         }
     }
 
-    /* step 2: create a list of DetectPort objects */
-    for (htb = HashListTableGetListHead(de_ctx->dport_hash_table);
-            htb != NULL;
-            htb = HashListTableGetListNext(htb))
-    {
-        DetectPort *p = HashListTableGetListData(htb);
-        DetectPort *tmp = DetectPortCopySingle(de_ctx, p);
-        BUG_ON(tmp == NULL);
-        int r = DetectPortInsert(de_ctx, &list , tmp);
-        BUG_ON(r == -1);
-    }
     /* Create a sorted list of ports in ascending order after resolving overlaps
      * and corresponding SGHs */
     if (CreatePortList(de_ctx, unique_port_points, size_unique_port_arr, it, &list) < 0)
