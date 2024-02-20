@@ -580,6 +580,7 @@ static inline ssize_t WakeupSocket(void *data)
 
     /* Assuming kernel >= 5.11 in use if xdp_busy_poll is enabled */
     if (ptv->xsk.enable_busy_poll || xsk_ring_prod__needs_wakeup(&ptv->umem.fq)) {
+        // cppcheck-suppress nullPointer
         res = recvfrom(xsk_socket__fd(ptv->xsk.xsk), NULL, 0, MSG_DONTWAIT, NULL, NULL);
     }
 
