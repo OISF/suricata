@@ -1541,6 +1541,7 @@ Signature *SigAlloc (void)
 
     sig->init_data->buffers = SCCalloc(8, sizeof(SignatureInitDataBuffer));
     if (sig->init_data->buffers == NULL) {
+        SCFree(sig->init_data);
         SCFree(sig);
         return NULL;
     }
