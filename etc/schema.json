@@ -51,6 +51,9 @@
         "icmp_type": {
             "type": "integer"
         },
+        "in_iface": {
+            "type": "string"
+        },
         "log_level": {
             "type": "string"
         },
@@ -3714,6 +3717,20 @@
                 "uptime": {
                     "description": "Suricata engine's uptime",
                     "type": "integer"
+                },
+                "capture": {
+                    "type": "object",
+                    "properties": {
+                        "kernel_packets": {
+                            "type": "integer"
+                        },
+                        "kernel_drops": {
+                            "type": "integer"
+                        },
+                        "kernel_ifdrops": {
+                            "type": "integer"
+                        }
+                    }
                 },
                 "memcap_pressure": {
                     "description": "Percentage of memcaps used by flow, stream, stream-reassembly and app-layer-http",
