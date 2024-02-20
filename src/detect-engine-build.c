@@ -1133,6 +1133,11 @@ int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b);
 #define RANGE_PORT  1
 #define SINGLE_PORT 2
 
+typedef struct UniquePortPoint_ {
+    uint16_t port; /* value of the port */
+    bool single;   /* is the port single or part of a range */
+} UniquePortPoint;
+
 /**
  * \brief Function to set unique port points. Consider all the ports
  *        flattened out on one line, set the points that correspond
@@ -1166,6 +1171,110 @@ static inline uint32_t SetUniquePortPoints(
     }
     unique_list[p->port2] = SINGLE_PORT;
     return size_list;
+}
+
+/**
+ * \brief Function to set the *final* unique port points and save them
+ *        for later use. The points are already sorted because of the way
+ *        they have been retrieved and saved earlier for use at this point.
+ *
+ * \param unique_list List of the unique port points to be used
+ * \param size_unique_arr Number of unique port points
+ * \param final_arr List of the final unique port points to be created
+ */
+static inline void SetFinalUniquePortPoints(
+        const uint8_t *unique_list, const uint32_t size_unique_arr, UniquePortPoint *final_arr)
+{
+    for (uint32_t i = 0, j = 0; i < (UINT16_MAX + 1); i++) {
+        DEBUG_VALIDATE_BUG_ON(j > size_unique_arr);
+        if (unique_list[i] == RANGE_PORT) {
+            final_arr[j].port = (uint16_t)i;
+            final_arr[j++].single = false;
+        } else if (unique_list[i] == SINGLE_PORT) {
+            final_arr[j].port = (uint16_t)i;
+            final_arr[j++].single = true;
+        }
+    }
+}
+
+/**
+ * \brief Function to create the list of ports with the smallest ranges
+ *        by resolving overlaps and end point conditions. These contain the
+ *        correct SGHs as well after going over the interval tree to find
+ *        any range overlaps.
+ *
+ * \param de_ctx Detection Engine Context
+ * \param unique_list Final list of unique port points
+ * \param size_list Size of the unique_list
+ * \param it Pointer to the interval tree
+ * \param list Pointer to the list where final ports will be stored
+ *
+ * \return 0 on success, -1 otherwise
+ */
+static inline int CreatePortList(DetectEngineCtx *de_ctx, const uint8_t *unique_list,
+        const uint32_t size_list, SCPortIntervalTree *it, DetectPort **list)
+{
+    /* Only do the operations if there is at least one unique port */
+    if (size_list == 0)
+        return 0;
+    UniquePortPoint *final_unique_points =
+            (UniquePortPoint *)SCCalloc(size_list, sizeof(UniquePortPoint));
+    if (final_unique_points == NULL)
+        return -1;
+    SetFinalUniquePortPoints(unique_list, size_list, final_unique_points);
+    /* Handle edge case when there is just one unique port */
+    if (size_list == 1) {
+        SCPortIntervalFindOverlappingRanges(
+                de_ctx, final_unique_points[0].port, final_unique_points[0].port, &it->tree, list);
+    } else {
+        UniquePortPoint *p1 = &final_unique_points[0];
+        UniquePortPoint *p2 = &final_unique_points[1];
+        uint16_t port = p1 ? p1->port : 0; // just for cppcheck
+        uint16_t port2 = p2->port;
+        for (uint32_t i = 1; i < size_list; i++) {
+            DEBUG_VALIDATE_BUG_ON(port > port2);
+            if ((p1 && p1->single) && p2->single) {
+                SCPortIntervalFindOverlappingRanges(de_ctx, port, port, &it->tree, list);
+                SCPortIntervalFindOverlappingRanges(de_ctx, port2, port2, &it->tree, list);
+                port = port2 + 1;
+            } else if (p1 && p1->single) {
+                SCPortIntervalFindOverlappingRanges(de_ctx, port, port, &it->tree, list);
+                port = port + 1;
+            } else if (p2->single) {
+                /* If port2 is boundary and less or equal to port + 1, create a range
+                 * keeping the boundary away as it is single port */
+                if ((port2 >= port + 1)) {
+                    SCPortIntervalFindOverlappingRanges(de_ctx, port, port2 - 1, &it->tree, list);
+                }
+                /* Deal with port2 as it is a single port */
+                SCPortIntervalFindOverlappingRanges(de_ctx, port2, port2, &it->tree, list);
+                port = port2 + 1;
+            } else {
+                if ((port2 > port + 1)) {
+                    SCPortIntervalFindOverlappingRanges(de_ctx, port, port2 - 1, &it->tree, list);
+                    port = port2;
+                } else {
+                    SCPortIntervalFindOverlappingRanges(de_ctx, port, port2, &it->tree, list);
+                    port = port2 + 1;
+                }
+            }
+            /* if the current port matches the p2->port, assign it to p1 so that
+             * there is a UniquePortPoint object to check other info like whether
+             * the port with this value is single */
+            if (port == p2->port) {
+                p1 = p2;
+            } else {
+                p1 = NULL;
+            }
+            if (i + 1 < size_list) {
+                p2 = &final_unique_points[i + 1];
+                port2 = p2->port;
+            }
+        }
+    }
+    /* final_unique_points array is no longer needed */
+    SCFree(final_unique_points);
+    return 0;
 }
 
 static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, uint32_t direction)
@@ -1272,6 +1381,15 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         int r = DetectPortInsert(de_ctx, &list , tmp);
         BUG_ON(r == -1);
     }
+    /* Create a sorted list of ports in ascending order after resolving overlaps
+     * and corresponding SGHs */
+    if (CreatePortList(de_ctx, unique_port_points, size_unique_port_arr, it, &list) < 0)
+        goto error;
+
+    /* unique_port_points array is no longer needed */
+    SCFree(unique_port_points);
+
+    /* Port hashes are no longer needed */
     DetectPortHashFree(de_ctx);
 
     SCLogDebug("rules analyzed");
