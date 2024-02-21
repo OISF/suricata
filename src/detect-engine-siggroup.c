@@ -438,6 +438,28 @@ void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx)
     return;
 }
 
+/**
+ * \brief Finds if two Signature Group Heads are the same.
+ *
+ * \param sgha First SGH to be compared
+ * \param sghb Secornd SGH to be compared
+ *
+ * \return true if they're a match, false otherwise
+ */
+bool SigGroupHeadEqual(const SigGroupHead *sgha, const SigGroupHead *sghb)
+{
+    if (sgha == NULL || sghb == NULL)
+        return false;
+
+    if (sgha->init->sig_size != sghb->init->sig_size)
+        return false;
+
+    if (SCMemcmp(sgha->init->sig_array, sghb->init->sig_array, sgha->init->sig_size) != 0)
+        return false;
+
+    return true;
+}
+
 void SigGroupHeadSetProtoAndDirection(SigGroupHead *sgh,
                                       uint8_t ipproto, int dir)
 {
