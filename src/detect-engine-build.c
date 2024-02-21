@@ -1163,9 +1163,7 @@ static inline uint32_t SetUniquePortPoints(
     }
     if (unique_list[p->port2] != SINGLE_PORT) {
         /* Treat right boundary as single point to avoid creating unneeded
-         * ranges later on.
-         * TODO merge the extra entry created in the rulegroup
-         * for such points in *CreateGroupedPortList* fn */
+         * ranges later on */
         unique_list[p->port2] = SINGLE_PORT;
         size_list++;
     }
