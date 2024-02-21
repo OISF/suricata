@@ -213,6 +213,9 @@ uint16_t g_livedev_mask = 0xffff;
  * support */
 bool g_disable_hashing = false;
 
+/* snapshot of the system's hugepages before system intitialization. */
+SystemHugepageSnapshot *prerun_snap = NULL;
+
 /** Suricata instance */
 SCInstance suricata;
 
@@ -2875,14 +2878,17 @@ int InitGlobal(void)
     return 0;
 }
 
-int SuricataMain(int argc, char **argv)
+void SuricataPreInit(const char *progname)
 {
-    SCInstanceInit(&suricata, argv[0]);
+    SCInstanceInit(&suricata, progname);
 
     if (InitGlobal() != 0) {
         exit(EXIT_FAILURE);
     }
+}
 
+void SuricataInit(int argc, char **argv)
+{
 #ifdef OS_WIN32
     /* service initialization */
     if (WindowsInitService(argc, argv) != 0) {
@@ -2974,7 +2980,7 @@ int SuricataMain(int argc, char **argv)
         goto out;
     }
 
-    SystemHugepageSnapshot *prerun_snap = SystemHugepageSnapshotCreate();
+    prerun_snap = SystemHugepageSnapshotCreate();
     SCSetStartTime(&suricata);
     RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode,
             suricata.capture_plugin_name, suricata.capture_plugin_args);
@@ -2982,8 +2988,29 @@ int SuricataMain(int argc, char **argv)
         UnixManagerThreadSpawnNonRunmode(suricata.unix_socket_enabled);
     }
 
+    return;
+
+out:
+    GlobalsDestroy(&suricata);
+    exit(EXIT_SUCCESS);
+}
+
+void SuricataShutdown()
+{
+    /* Update the engine stage/status flag */
+    SC_ATOMIC_SET(engine_stage, SURICATA_DEINIT);
+
+    UnixSocketKillSocketThread();
+    PostRunDeinit(suricata.run_mode, &suricata.start_time);
+    /* kill remaining threads */
+    TmThreadKillThreads();
+}
+
+void SuricataPostInit()
+{
     /* Wait till all the threads have been initialized */
     if (TmThreadWaitOnThreadInit() == TM_ECODE_FAILED) {
+        SystemHugepageSnapshotDestroy(prerun_snap);
         FatalError("Engine initialization failed, "
                    "aborting...");
     }
@@ -3025,6 +3052,7 @@ int SuricataMain(int argc, char **argv)
 
     /* Must ensure all threads are fully operational before continuing with init process */
     if (TmThreadWaitOnThreadRunning() != TM_ECODE_OK) {
+        SystemHugepageSnapshotDestroy(prerun_snap);
         exit(EXIT_FAILURE);
     }
 
@@ -3040,17 +3068,23 @@ int SuricataMain(int argc, char **argv)
     SystemHugepageSnapshotDestroy(postrun_snap);
 
     SCPledge();
+}
+
+int SuricataMain(int argc, char **argv)
+{
+    /* Pre-initialization tasks: initialize global context and variables. */
+    SuricataPreInit(argv[0]);
+
+    /* Initialization tasks: parse command line options, load yaml, start runmode... */
+    SuricataInit(argc, argv);
+
+    /* Post-initialization tasks: wait on thread start/running and get ready fpr the main loop. */
+    SuricataPostInit();
+
     SuricataMainLoop(&suricata);
 
-    /* Update the engine stage/status flag */
-    SC_ATOMIC_SET(engine_stage, SURICATA_DEINIT);
-
-    UnixSocketKillSocketThread();
-    PostRunDeinit(suricata.run_mode, &suricata.start_time);
-    /* kill remaining threads */
-    TmThreadKillThreads();
-
-out:
+    /* Shutdown engine. */
+    SuricataShutdown();
     GlobalsDestroy(&suricata);
 
     exit(EXIT_SUCCESS);
