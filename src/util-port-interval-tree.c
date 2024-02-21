@@ -128,6 +128,35 @@ int SCPortIntervalInsert(DetectEngineCtx *de_ctx, SCPortIntervalTree *it, const 
 }
 
 /**
+ * \brief Function to remove multiple sig entries corresponding to the same
+ *        signature group and merge them into one.
+ *
+ * \param de_ctx Detection Engine Context
+ * \param list Pointer to the list to be modified
+ */
+static void SCPortIntervalSanitizeList(DetectEngineCtx *de_ctx, DetectPort **list)
+{
+    DetectPort *cur = (*list)->last;
+    if (cur == NULL)
+        return;
+
+    DetectPort *prev = (*list)->last->prev;
+    if (prev == NULL)
+        return;
+
+    /* rulegroup IDs are assigned much later so, compare SGHs */
+    if (SigGroupHeadEqual(prev->sh, cur->sh)) {
+        if (prev->port2 == (cur->port - 1)) {
+            /* Merge the port objects */
+            prev->port2 = cur->port2;
+            (*list)->last = prev;
+            (*list)->last->next = NULL;
+            DetectPortFree(de_ctx, cur);
+        }
+    }
+}
+
+/**
  * \brief Function to check if a port range overlaps with a given set of ports
  *
  * \param port Given low port
@@ -226,6 +255,7 @@ static void SCPortIntervalFindOverlaps(DetectEngineCtx *de_ctx, const uint16_t p
                            ((*list)->last->port2 != new_port->port)) {
                     DEBUG_VALIDATE_BUG_ON(new_port->port < (*list)->last->port);
                     (*list)->last->next = new_port;
+                    new_port->prev = (*list)->last;
                     (*list)->last = new_port;
                 } else {
                     SCLogDebug("Port already exists in the list");
@@ -260,6 +290,8 @@ static void SCPortIntervalFindOverlaps(DetectEngineCtx *de_ctx, const uint16_t p
         BUG_ON(popped == NULL);
         current = IRB_RIGHT(popped, irb);
     }
+    if (new_port != NULL)
+        SCPortIntervalSanitizeList(de_ctx, list);
     if (stack != NULL)
         SCFree(stack);
     return;
