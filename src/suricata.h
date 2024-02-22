@@ -195,8 +195,10 @@ void SuricataPreInit(const char *progname);
 void SuricataInit(int argc, char **argv);
 void SuricataPostInit(void);
 int SuricataMain(int argc, char **argv);
+void SuricataMainLoop(void);
 void SuricataShutdown(void);
 int InitGlobal(void);
+void GlobalsDestroy(void);
 int PostConfLoadedSetup(SCInstance *suri);
 void PostConfLoadedDetectSetup(SCInstance *suri);
 
