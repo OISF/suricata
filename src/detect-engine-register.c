@@ -260,6 +260,7 @@
 #include "detect-transform-xor.h"
 #include "detect-transform-casechange.h"
 #include "detect-transform-header-lowercase.h"
+#include "detect-transform-base64.h"
 
 #include "util-rule-vars.h"
 
@@ -765,6 +766,7 @@ void SigTableSetup(void)
     DetectTransformToLowerRegister();
     DetectTransformToUpperRegister();
     DetectTransformHeaderLowercaseRegister();
+    DetectTransformFromBase64DecodeRegister();
 
     DetectFileHandlerRegister();
 

@@ -355,6 +355,7 @@ noinst_HEADERS = \
 	detect-tls-version.h \
 	detect-tls-random.h \
 	detect-tos.h \
+	detect-transform-base64.h \
 	detect-transform-casechange.h \
 	detect-transform-compress-whitespace.h \
 	detect-transform-dotprefix.h \
@@ -980,6 +981,7 @@ libsuricata_c_a_SOURCES = \
 	detect-tls-version.c \
 	detect-tls-random.c \
 	detect-tos.c \
+	detect-transform-base64.c \
 	detect-transform-casechange.c \
 	detect-transform-compress-whitespace.c \
 	detect-transform-dotprefix.c \
