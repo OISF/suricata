@@ -17,6 +17,7 @@
 
 //! Module for rule parsing.
 
+pub mod transform_base64;
 pub mod byte_math;
 pub mod error;
 pub mod iprep;
