@@ -363,8 +363,9 @@ void GlobalsInitPreConfig(void)
     FrameConfigInit();
 }
 
-static void GlobalsDestroy(SCInstance *suri)
+void GlobalsDestroy(void)
 {
+    SCInstance *suri = &suricata;
     HostShutdown();
     HTPFreeConfig();
     HTPAtExitPrintStats();
@@ -2807,8 +2808,9 @@ int PostConfLoadedSetup(SCInstance *suri)
     SCReturnInt(TM_ECODE_OK);
 }
 
-static void SuricataMainLoop(SCInstance *suri)
+void SuricataMainLoop(void)
 {
+    SCInstance *suri = &suricata;
     while(1) {
         if (sigterm_count || sigint_count) {
             suricata_ctl_flags |= SURICATA_STOP;
@@ -3001,7 +3003,7 @@ void SuricataInit(int argc, char **argv)
     return;
 
 out:
-    GlobalsDestroy(&suricata);
+    GlobalsDestroy();
     exit(EXIT_SUCCESS);
 }
 
@@ -3090,11 +3092,11 @@ int SuricataMain(int argc, char **argv)
     /* Post-initialization tasks: wait on thread start/running and get ready for the main loop. */
     SuricataPostInit();
 
-    SuricataMainLoop(&suricata);
+    SuricataMainLoop();
 
     /* Shutdown engine. */
     SuricataShutdown();
-    GlobalsDestroy(&suricata);
+    GlobalsDestroy();
 
     exit(EXIT_SUCCESS);
 }
