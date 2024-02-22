@@ -363,7 +363,7 @@ void GlobalsInitPreConfig(void)
     FrameConfigInit();
 }
 
-static void GlobalsDestroy(SCInstance *suri)
+void GlobalsDestroy(void)
 {
     HostShutdown();
     HTPFreeConfig();
@@ -415,9 +415,9 @@ static void GlobalsDestroy(SCInstance *suri)
 #endif
     DetectParseFreeRegexes();
 
-    SCPidfileRemove(suri->pid_filename);
-    SCFree(suri->pid_filename);
-    suri->pid_filename = NULL;
+    SCPidfileRemove(suricata.pid_filename);
+    SCFree(suricata.pid_filename);
+    suricata.pid_filename = NULL;
 
     VarNameStoreDestroy();
     SCLogDeInitLogModule();
@@ -2803,7 +2803,7 @@ int PostConfLoadedSetup(SCInstance *suri)
     SCReturnInt(TM_ECODE_OK);
 }
 
-static void SuricataMainLoop(SCInstance *suri)
+void SuricataMainLoop(void)
 {
     while(1) {
         if (sigterm_count || sigint_count) {
@@ -2825,13 +2825,13 @@ static void SuricataMainLoop(SCInstance *suri)
         if (sigusr2_count > 0) {
             if (!(DetectEngineReloadIsStart())) {
                 DetectEngineReloadStart();
-                DetectEngineReload(suri);
+                DetectEngineReload(&suricata);
                 DetectEngineReloadSetIdle();
                 sigusr2_count--;
             }
 
         } else if (DetectEngineReloadIsStart()) {
-            DetectEngineReload(suri);
+            DetectEngineReload(&suricata);
             DetectEngineReloadSetIdle();
         }
 
@@ -2993,7 +2993,7 @@ void SuricataInit(int argc, char **argv)
     return;
 
 out:
-    GlobalsDestroy(&suricata);
+    GlobalsDestroy();
     exit(EXIT_SUCCESS);
 }
 
@@ -3082,11 +3082,11 @@ int SuricataMain(int argc, char **argv)
     /* Post-initialization tasks: wait on thread start/running and get ready fpr the main loop. */
     SuricataPostInit();
 
-    SuricataMainLoop(&suricata);
+    SuricataMainLoop();
 
     /* Shutdown engine. */
     SuricataShutdown();
-    GlobalsDestroy(&suricata);
+    GlobalsDestroy();
 
     exit(EXIT_SUCCESS);
 }
