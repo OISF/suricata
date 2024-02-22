@@ -10,7 +10,8 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
 	     scripts/generate-images.sh \
 	     examples/plugins
 SUBDIRS = $(HTP_DIR) rust src qa rules doc contrib etc python ebpf \
-          $(SURICATA_UPDATE_DIR) examples/lib/simple
+          $(SURICATA_UPDATE_DIR)
+DIST_SUBDIRS = $(SUBDIRS) examples/lib/simple
 
 CLEANFILES = stamp-h[0-9]*
 
