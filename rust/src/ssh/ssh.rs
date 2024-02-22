@@ -292,7 +292,9 @@ impl SSHState {
                     return r;
                 }
                 Err(nom::Err::Incomplete(_)) => {
-                    return AppLayerResult::incomplete(0 as u32, (input.len() + 1) as u32);
+                    // we do not need to retain these bytes
+                    // we parsed them, we skip them
+                    return AppLayerResult::ok();
                 }
                 Err(_e) => {
                     SCLogDebug!("SSH invalid banner {}", _e);
