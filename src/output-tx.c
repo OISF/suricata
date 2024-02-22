@@ -339,7 +339,9 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
     if (p->flow == NULL)
         return TM_ECODE_OK;
-    if (!((PKT_IS_PSEUDOPKT(p)) || p->flow->flags & (FLOW_TS_APP_UPDATED | FLOW_TC_APP_UPDATED))) {
+    if (!PKT_IS_PSEUDOPKT(p) && p->app_update_direction == 0 &&
+            ((PKT_IS_TOSERVER(p) && (p->flow->flags & FLOW_TS_APP_UPDATED) == 0) ||
+                    (PKT_IS_TOCLIENT(p) && (p->flow->flags & FLOW_TC_APP_UPDATED) == 0))) {
         SCLogDebug("not pseudo, no app update: skip");
         return TM_ECODE_OK;
     }
