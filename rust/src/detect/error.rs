@@ -20,9 +20,12 @@ use nom7::error::{ErrorKind, ParseError};
 /// Custom rule parse errors.
 ///
 /// Implemented based on the Nom example for implementing custom errors.
+/// The string is an error message provided by the parsing logic, e.g.,
+///      Incorrect usage because of "x", "y" and "z"
 #[derive(Debug, PartialEq, Eq)]
 pub enum RuleParseError<I> {
     InvalidByteMath(String),
+    InvalidTransformBase64(String),
 
     Nom(I, ErrorKind),
 }
