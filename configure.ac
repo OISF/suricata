@@ -1660,6 +1660,7 @@
         fi
     fi
 
+    AM_CONDITIONAL([HTP_LDADD], [test "x${HTP_LDADD}" != "x"])
 
   # Check for libcap-ng
     case $host in
