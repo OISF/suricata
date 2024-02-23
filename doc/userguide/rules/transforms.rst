@@ -188,3 +188,48 @@ Example::
 
     alert http any any -> any any (msg:"HTTP ua only"; http.header_names; \
        bsize:16; content:"|0d 0a|User-Agent|0d 0a 0d 0a|"; nocase; sid:1;)
+
+from_base64
+-----------
+
+This transform is similar to the keyword ``base64_decode``: the buffer is decoded using
+the optional values for ``mode``, ``offset`` and ``bytes`` and is available for matching
+on the decoded data.
+
+The option values must be ``,`` separated and can appear in any order.
+
+Format::
+
+    from_base64: [[bytes <value>] [, offset <offset_value> [, mode: strict|rfc4648|rfc2045]]]
+
+There are defaults for each of the options:
+- ``bytes`` defaults to the length of the input buffer
+- ``offset`` defaults to ``0`` and must be less than ``65536``
+- ``mode`` defaults to ``rfc4648``
+
+Mode ``rfc4648`` applies RFC 4648 decoding logic which is suitable for encoding binary
+data that can be safely sent by email, used in a URL, or included with HTTP POST requests.
+
+Mode ``rfc2045`` applies RFC 2045 decoding logic which supports strings, including those with embedded spaces.
+
+Mode ``strict`` will fail if an invalid character is found in the encoded bytes.
+
+The following examples will alert when the buffer contents match (see the
+last ``content`` value for the expected strings).
+
+Example::
+
+   # "VGhpcyBpcyBTdXJpY2F0YQ==" is "This is Suricata"
+   alert http any any -> any any (msg:"from_base64 example"; file.data; \
+       content: "VGhpcyBpcyBTdXJpY2F0YQ=="; from_base64;
+       content:"This is Suricata"; sid:1;)
+
+   # "dGhpc2lzYXRlc3QK" is "thisisatest"
+   alert http any any -> any any (msg:"from_base64: offset #1 [mode rfc4648]"; \
+       http.uri; content:"/?arg=dGhpc2lzYXRlc3QK"; from_base64: offset 6; \
+       content:"thisisatest"; sid:2; rev:1;)
+
+   # "Zm 9v Ym Fy" is "foobar" with mode RFC2045
+   alert http any any -> any any (msg:"from_base64: RFC2045 - will succeed"; \
+       http.uri; content:"/?arg=Zm 9v Ym Fy"; from_base64: offset 6, mode rfc2045; \
+       content:"foobar"; sid:3; rev:1;)
