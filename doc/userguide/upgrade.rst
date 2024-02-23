@@ -52,6 +52,8 @@ Major changes
   for the ``stats`` event.
 - Stats counters that are 0 can now be hidden from EVE logs. Default behavior
   still logs those (see :ref:`EVE Output - Stats <eve-json-output-stats>` for configuration setting).
+- New transform ``from_base64`` that base64 decodes a buffer and passes the
+  decoded buffer. It's recommended that ``from_base64`` be used instead of ``base64_decode``
 
 Upgrading 6.0 to 7.0
 --------------------
