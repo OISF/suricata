@@ -1126,10 +1126,6 @@ static int RuleSetWhitelist(Signature *s)
     return wl;
 }
 
-int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead,
-        uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *));
-int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b);
-
 typedef enum {
     RULE_WHITELISTED = 0,
     RULE_MPM_FAST_PATTERN,
@@ -1140,6 +1136,223 @@ typedef enum {
 } WhitelistGroupType;
 
 #define RULE_GROUP_MAX 6
+
+static int CreateGroupedPortListCmpCnt(const DetectPort *a, const DetectPort *b)
+{
+    if (a->sh->init->sig_cnt >= b->sh->init->sig_cnt) {
+        SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)", a->port, a->port2,
+                a->sh->init->sig_cnt, a->sh->init->score, b->port, b->port2, b->sh->init->sig_cnt,
+                b->sh->init->score);
+        return 1;
+    }
+    return -1;
+}
+
+static inline void SortGroupList(
+        DetectPort **list, int (*CompareFunc)(const DetectPort *, const DetectPort *))
+{
+    DetectPort head_ph;
+    head_ph.next = *list;
+    DetectPort *cur = *list;
+
+    while (cur != NULL && cur->next != NULL) {
+        if (CompareFunc(cur, cur->next) > 0) {
+            cur = cur->next;
+        } else {
+            DetectPort *tmp = cur->next;
+            cur->next = tmp->next;
+
+            DetectPort *insert = &head_ph;
+            while (insert != cur && CompareFunc(insert->next, tmp) > 0) {
+                insert = insert->next;
+            }
+            tmp->next = insert->next;
+            insert->next = tmp;
+
+            if (insert == cur) {
+                cur = tmp;
+            }
+        }
+    }
+
+    *list = head_ph.next;
+
+    SCLogDebug("SORTED LIST:");
+    for (DetectPort *tmp = *list; tmp != NULL; tmp = tmp->next) {
+        SCLogDebug("item:= [%u:%u]; score: %d; sig_cnt: %d", tmp->port, tmp->port2,
+                tmp->sh->init->score, tmp->sh->init->sig_cnt);
+    }
+}
+
+static inline void SortGroupLists(DetectPort **list_group)
+{
+    for (uint8_t i = 0; i < RULE_GROUP_MAX; i++) {
+        if (list_group[i] != NULL) {
+            SortGroupList(&list_group[i], CreateGroupedPortListCmpCnt);
+        }
+    }
+}
+
+static inline void MergeGroupLists(DetectPort **tmplist, DetectPort **list_group)
+{
+    for (uint8_t i = 0; i < RULE_GROUP_MAX; i++) {
+        if (list_group[i] != NULL) {
+            if (*tmplist == NULL) {
+                *tmplist = list_group[i];
+            } else {
+                (*tmplist)->last->next = list_group[i];
+            }
+            DetectPort *tmp = NULL;
+            for (tmp = list_group[i]; tmp->next != NULL; tmp = tmp->next)
+                ;
+            (*tmplist)->last = tmp;
+        }
+    }
+}
+
+static inline void UpdateGroupList(
+        DetectPort **list_group, uint32_t *list_size, DetectPort *item, const uint8_t idx)
+{
+    if (list_group[idx] == NULL) {
+        list_group[idx] = item;
+    } else {
+        list_group[idx]->last->next = item;
+    }
+    list_group[idx]->last = item;
+    list_group[idx]->last->next = NULL;
+    *list_size += 1;
+}
+
+static int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list,
+        DetectPort **newhead, uint32_t unique_groups)
+{
+    DetectPort *tmplist = NULL, *joingr = NULL;
+    uint32_t groups = 0;
+    DetectPort *list_group[RULE_GROUP_MAX] = { NULL };
+    uint32_t list_size[RULE_GROUP_MAX] = { 0 };
+
+    DetectPort *oldhead = port_list;
+    WhitelistGroupType wl_type;
+    while (oldhead) {
+        /* Get the current node out */
+        DetectPort *cur = oldhead;
+        oldhead = oldhead->next;
+        cur->next = NULL;
+
+        SCLogDebug("cur: [%u:%u]; score: %d; sig_cnt: %d", cur->port, cur->port2,
+                cur->sh->init->score, cur->sh->init->sig_cnt);
+        groups++;
+        SigGroupHeadSetSigCnt(cur->sh, 0);
+
+        switch (cur->sh->init->score) {
+            case DETECT_PGSCORE_RULE_PORT_WHITELISTED:
+                wl_type = RULE_WHITELISTED;
+                UpdateGroupList(list_group, &list_size[wl_type], cur, wl_type);
+                continue;
+            case DETECT_PGSCORE_RULE_MPM_FAST_PATTERN:
+                wl_type = RULE_MPM_FAST_PATTERN;
+                UpdateGroupList(list_group, &list_size[wl_type], cur, wl_type);
+                continue;
+            case DETECT_PGSCORE_RULE_MPM_NEGATED:
+                wl_type = RULE_MPM_NEGATED;
+                UpdateGroupList(list_group, &list_size[wl_type], cur, wl_type);
+                continue;
+            case DETECT_PGSCORE_RULE_NO_MPM:
+                wl_type = RULE_NO_MPM;
+                UpdateGroupList(list_group, &list_size[wl_type], cur, wl_type);
+                continue;
+            case DETECT_PGSCORE_RULE_SYN_ONLY:
+                wl_type = RULE_NO_MPM;
+                UpdateGroupList(list_group, &list_size[wl_type], cur, wl_type);
+                continue;
+            default:
+                wl_type = RULE_NO_GROUP;
+                UpdateGroupList(list_group, &list_size[wl_type], cur, wl_type);
+                continue;
+        }
+    }
+
+    SortGroupLists(list_group);
+    MergeGroupLists(&tmplist, list_group);
+
+    for (DetectPort *tmp = tmplist; tmp != NULL; tmp = tmp->next)
+        SCLogDebug("tmplist item: [%u:%u]; score: %d; sig_cnt: %d", tmp->port, tmp->port2,
+                tmp->sh->init->score, tmp->sh->init->sig_cnt);
+
+    uint32_t left = unique_groups;
+    if (left == 0)
+        left = groups;
+
+    /* create another list: take the port groups from above
+     * and add them to the 2nd list until we have met our
+     * count. The rest is added to the 'join' group. */
+    DetectPort *tmplist2 = NULL, *tmplist2_tail = NULL;
+    DetectPort *gr, *next_gr;
+    for (gr = tmplist; gr != NULL;) {
+        next_gr = gr->next;
+
+        SCLogDebug("temp list gr %p %u:%u", gr, gr->port, gr->port2);
+        DetectPortPrint(gr);
+
+        /* if we've set up all the unique groups, add the rest to the
+         * catch-all joingr */
+        if (left == 0) {
+            if (joingr == NULL) {
+                DetectPortParse(de_ctx, &joingr, "0:65535");
+                if (joingr == NULL) {
+                    goto error;
+                }
+                SCLogDebug("joingr => %u-%u", joingr->port, joingr->port2);
+                joingr->next = NULL;
+            }
+            SigGroupHeadCopySigs(de_ctx, gr->sh, &joingr->sh);
+
+            /* when a group's sigs are added to the joingr, we can free it */
+            gr->next = NULL;
+            DetectPortFree(de_ctx, gr);
+            /* append */
+        } else {
+            gr->next = NULL;
+
+            if (tmplist2 == NULL) {
+                tmplist2 = gr;
+                tmplist2_tail = gr;
+            } else {
+                tmplist2_tail->next = gr;
+                tmplist2_tail = gr;
+            }
+        }
+
+        if (left > 0)
+            left--;
+
+        gr = next_gr;
+    }
+
+    /* if present, append the joingr that covers the rest */
+    if (joingr != NULL) {
+        SCLogDebug("appending joingr %p %u:%u", joingr, joingr->port, joingr->port2);
+
+        if (tmplist2 == NULL) {
+            tmplist2 = joingr;
+            // tmplist2_tail = joingr;
+        } else {
+            tmplist2_tail->next = joingr;
+            // tmplist2_tail = joingr;
+        }
+    } else {
+        SCLogDebug("no joingr");
+    }
+
+    /* pass back our new list to the caller */
+    *newhead = tmplist2;
+    DetectPortPrintList(*newhead);
+
+    return 0;
+error:
+    return -1;
+}
+
 #define RANGE_PORT  1
 #define SINGLE_PORT 2
 
@@ -1397,7 +1610,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
     DetectPort *newlist = NULL;
     uint16_t groupmax = (direction == SIG_FLAG_TOCLIENT) ? de_ctx->max_uniq_toclient_groups :
                                                            de_ctx->max_uniq_toserver_groups;
-    CreateGroupedPortList(de_ctx, list, &newlist, groupmax, CreateGroupedPortListCmpCnt);
+    CreateGroupedPortList(de_ctx, list, &newlist, groupmax);
     list = newlist;
 
     /* step 4: deduplicate the SGH's */
@@ -1673,179 +1886,6 @@ int SigPrepareStage1(DetectEngineCtx *de_ctx)
 
     return 0;
 
-error:
-    return -1;
-}
-
-static int PortGroupWhitelist(const DetectPort *a)
-{
-    return a->sh->init->score;
-}
-
-int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b)
-{
-    if (PortGroupWhitelist(a) && !PortGroupWhitelist(b)) {
-        SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)", a->port, a->port2,
-                a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2,
-                b->sh->init->sig_cnt, PortGroupWhitelist(b));
-        return 1;
-    } else if (!PortGroupWhitelist(a) && PortGroupWhitelist(b)) {
-        SCLogDebug("%u:%u (cnt %u, wl %d) loses against %u:%u (cnt %u, wl %d)", a->port, a->port2,
-                a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2,
-                b->sh->init->sig_cnt, PortGroupWhitelist(b));
-        return 0;
-    } else if (PortGroupWhitelist(a) > PortGroupWhitelist(b)) {
-        SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)", a->port, a->port2,
-                a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2,
-                b->sh->init->sig_cnt, PortGroupWhitelist(b));
-        return 1;
-    } else if (PortGroupWhitelist(a) == PortGroupWhitelist(b)) {
-        if (a->sh->init->sig_cnt > b->sh->init->sig_cnt) {
-            SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)", a->port,
-                    a->port2, a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2,
-                    b->sh->init->sig_cnt, PortGroupWhitelist(b));
-            return 1;
-        }
-    }
-
-    SCLogDebug("%u:%u (cnt %u, wl %d) loses against %u:%u (cnt %u, wl %d)", a->port, a->port2,
-            a->sh->init->sig_cnt, PortGroupWhitelist(a), b->port, b->port2, b->sh->init->sig_cnt,
-            PortGroupWhitelist(b));
-    return 0;
-}
-
-/** \internal
- *  \brief Create a list of DetectPort objects sorted based on CompareFunc's
- *         logic.
- *
- *  List can limit the number of groups. In this case an extra "join" group
- *  is created that contains the sigs belonging to that. It's *appended* to
- *  the list, meaning that if the list is walked linearly it's found last.
- *  The joingr is meant to be a catch all.
- *
- */
-int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead,
-        uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *))
-{
-    DetectPort *tmplist = NULL, *joingr = NULL;
-    char insert = 0;
-    uint32_t groups = 0;
-    DetectPort *list;
-
-    /* insert the ports into the tmplist, where it will
-     * be sorted descending on 'cnt' and on whether a group
-     * is whitelisted. */
-
-    DetectPort *oldhead = port_list;
-    while (oldhead) {
-        /* take the top of the list */
-        list = oldhead;
-        oldhead = oldhead->next;
-        list->next = NULL;
-
-        groups++;
-        SigGroupHeadSetSigCnt(list->sh, 0);
-
-        /* insert it */
-        DetectPort *tmpgr = tmplist, *prevtmpgr = NULL;
-        if (tmplist == NULL) {
-            /* empty list, set head */
-            tmplist = list;
-        } else {
-            /* look for the place to insert */
-            for ( ; tmpgr != NULL && !insert; tmpgr = tmpgr->next) {
-                if (CompareFunc(list, tmpgr) == 1) {
-                    if (tmpgr == tmplist) {
-                        list->next = tmplist;
-                        tmplist = list;
-                        SCLogDebug("new list top: %u:%u", tmplist->port, tmplist->port2);
-                    } else {
-                        list->next = prevtmpgr->next;
-                        prevtmpgr->next = list;
-                    }
-                    insert = 1;
-                    break;
-                }
-                prevtmpgr = tmpgr;
-            }
-            if (insert == 0) {
-                list->next = NULL;
-                prevtmpgr->next = list;
-            }
-            insert = 0;
-        }
-    }
-
-    uint32_t left = unique_groups;
-    if (left == 0)
-        left = groups;
-
-    /* create another list: take the port groups from above
-     * and add them to the 2nd list until we have met our
-     * count. The rest is added to the 'join' group. */
-    DetectPort *tmplist2 = NULL, *tmplist2_tail = NULL;
-    DetectPort *gr, *next_gr;
-    for (gr = tmplist; gr != NULL; ) {
-        next_gr = gr->next;
-
-        SCLogDebug("temp list gr %p %u:%u", gr, gr->port, gr->port2);
-        DetectPortPrint(gr);
-
-        /* if we've set up all the unique groups, add the rest to the
-         * catch-all joingr */
-        if (left == 0) {
-            if (joingr == NULL) {
-                DetectPortParse(de_ctx, &joingr, "0:65535");
-                if (joingr == NULL) {
-                    goto error;
-                }
-                SCLogDebug("joingr => %u-%u", joingr->port, joingr->port2);
-                joingr->next = NULL;
-            }
-            SigGroupHeadCopySigs(de_ctx,gr->sh,&joingr->sh);
-
-            /* when a group's sigs are added to the joingr, we can free it */
-            gr->next = NULL;
-            DetectPortFree(de_ctx, gr);
-        /* append */
-        } else {
-            gr->next = NULL;
-
-            if (tmplist2 == NULL) {
-                tmplist2 = gr;
-                tmplist2_tail = gr;
-            } else {
-                tmplist2_tail->next = gr;
-                tmplist2_tail = gr;
-            }
-        }
-
-        if (left > 0)
-            left--;
-
-        gr = next_gr;
-    }
-
-    /* if present, append the joingr that covers the rest */
-    if (joingr != NULL) {
-        SCLogDebug("appending joingr %p %u:%u", joingr, joingr->port, joingr->port2);
-
-        if (tmplist2 == NULL) {
-            tmplist2 = joingr;
-            //tmplist2_tail = joingr;
-        } else {
-            tmplist2_tail->next = joingr;
-            //tmplist2_tail = joingr;
-        }
-    } else {
-        SCLogDebug("no joingr");
-    }
-
-    /* pass back our new list to the caller */
-    *newhead = tmplist2;
-    DetectPortPrintList(*newhead);
-
-    return 0;
 error:
     return -1;
 }
