@@ -60,6 +60,8 @@ Major changes
 - It is possible to see an increase of alerts, for the same rule-sets, if you
   use many stream/payload rules, due to Suricata triggering TCP stream
   reassembly earlier.
+- New transform ``from_base64`` that base64 decodes a buffer and passes the
+  decoded buffer. It's recommended that ``from_base64`` be used instead of ``base64_decode``
 
 Upgrading 6.0 to 7.0
 --------------------
