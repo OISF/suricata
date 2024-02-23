@@ -1130,6 +1130,16 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, Detect
         uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *));
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b);
 
+typedef enum {
+    RULE_WHITELISTED = 0,
+    RULE_MPM_FAST_PATTERN,
+    RULE_MPM_NEGATED,
+    RULE_NO_MPM,
+    RULE_SYN_ONLY,
+    RULE_NO_GROUP,
+} WhitelistGroupType;
+
+#define RULE_GROUP_MAX 6
 #define RANGE_PORT  1
 #define SINGLE_PORT 2
 
