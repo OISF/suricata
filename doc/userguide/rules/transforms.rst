@@ -188,3 +188,56 @@ Example::
 
     alert http any any -> any any (msg:"HTTP ua only"; http.header_names; \
        bsize:16; content:"|0d 0a|User-Agent|0d 0a 0d 0a|"; nocase; sid:1;)
+
+.. _from_base64:
+
+from_base64
+-----------
+
+This transform is similar to the keyword ``base64_decode``: the buffer is decoded using
+the optional values for ``mode``, ``offset`` and ``bytes`` and is available for matching
+on the decoded data.
+
+After this transform completes, the buffer will contain only bytes that could be bases64-decoded.
+If the decoding process encountered invalid bytes, those will not be included in the buffer.
+
+The option values must be ``,`` separated and can appear in any order.
+
+.. note:: ``from_base64`` follows RFC 4648 by default i.e. encounter with any character
+   that is not found in the base64 alphabet leads to rejection of that character and the
+   rest of the string.
+
+Format::
+
+    from_base64: [[bytes <value>] [, offset <offset_value> [, mode: strict|rfc4648|rfc2045]]]
+
+There are defaults for each of the options:
+- ``bytes`` defaults to the length of the input buffer
+- ``offset`` defaults to ``0`` and must be less than ``65536``
+- ``mode`` defaults to ``rfc4648``
+
+Note that both ``bytes`` and ``offset`` may be variables from `byte_extract` and/or `byte_math`.
+
+Mode ``rfc4648`` applies RFC 4648 decoding logic which is suitable for encoding binary
+data that can be safely sent by email, used in a URL, or included with HTTP POST requests.
+
+Mode ``rfc2045`` applies RFC 2045 decoding logic which supports strings, including those with embedded spaces.
+
+Mode ``strict`` will fail if an invalid character is found in the encoded bytes.
+
+The following examples will alert when the buffer contents match (see the
+last ``content`` value for the expected strings).
+
+This example uses the defaults and transforms `"VGhpcyBpcyBTdXJpY2F0YQ=="` to `"This is Suricata"`::
+
+       content: "VGhpcyBpcyBTdXJpY2F0YQ=="; from_base64; content:"This is Suricata";
+
+This example transforms `"dGhpc2lzYXRlc3QK"` to `"thisisatest"`::
+
+       content:"/?arg=dGhpc2lzYXRlc3QK"; from_base64: offset 6, mode rfc4648; \
+       content:"thisisatest";
+
+This example transforms `"Zm 9v Ym Fy"` to `"foobar"`::
+
+       content:"/?arg=Zm 9v Ym Fy"; from_base64: offset 6, mode rfc2045; \
+       content:"foobar";
