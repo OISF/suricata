@@ -55,6 +55,8 @@ Major changes
 - SDP parser and logger have been introduced.
   Due to SDP being encapsulated within other protocols, such as SIP, they cannot be directly enabled or disabled.
   Instead, both the SDP parser and logger depend on being invoked by another parser (or logger).
+- New transform ``from_base64`` that base64 decodes a buffer and passes the
+  decoded buffer. It's recommended that ``from_base64`` be used instead of ``base64_decode``
 
 Upgrading 6.0 to 7.0
 --------------------
