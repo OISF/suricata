@@ -188,3 +188,36 @@ Example::
 
     alert http any any -> any any (msg:"HTTP ua only"; http.header_names; \
        bsize:16; content:"|0d 0a|User-Agent|0d 0a 0d 0a|"; nocase; sid:1;)
+
+from_base64
+-----------
+
+This transform is similar to the keyword ``base64_decode``: the buffer is decoded using
+the optional values for ``mode``, ``offset`` and ``bytes`` and is available for matching
+on the decoded data.
+
+The option values must be ``,`` separated and can appear in any order.
+
+Format::
+
+    from_base64: [[bytes <value>] [, offset <offset_value> [, mode: strict|rfc4648|rfc2045]]]
+
+There are defaults for each of the options:
+- bytes defaults to the length of the input buffer
+- offset defaults to ``0`` and must be less than 65536.
+- mode defaults to ``strict``
+
+Mode ``rfc4648`` applies RFC 4648 decoding logic which is suitable for encoding binary
+data that can be safely sent by email, used in a URL, or included with HTTP POST requests.
+
+Mode ``rfc2045`` applies RFC 2045 decoding logic which supports strings, including those with embedded spaces.
+
+Mode ``strict`` will fail if an invalid character is found in the encoded bytes.
+
+This example alerts if the buffer contains `"VGhpcyBpcyBTdXJpY2F0YQ=="``
+
+Example::
+
+    alert http any any -> any any (msg:"from_base64 example"; file.data; \
+       content: "VGhpcyBpcyBTdXJpY2F0YQ=="; from_base64;
+       content:"This is Suricata"; sid:1;)
