@@ -1234,8 +1234,8 @@ static inline void MergeGroupLists(DetectPort **tmplist, DetectPort **list_group
     }
 }
 
-static inline void UpdateGroupList(
-        DetectPort **list_group, uint32_t *list_size, DetectPort *item, const uint8_t idx)
+static inline void UpdateGroupList(DetectPort **list_group, uint32_t *list_size, DetectPort *item,
+        const WhitelistGroupType idx)
 {
     if (list_group[idx] == NULL) {
         list_group[idx] = item;
