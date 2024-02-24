@@ -16,6 +16,7 @@
  */
 
 use super::error::QuicError;
+use crate::ja4::*;
 use crate::quic::parser::quic_var_uint;
 use nom7::bytes::complete::take;
 use nom7::combinator::{all_consuming, complete};
@@ -137,6 +138,7 @@ pub(crate) struct Crypto {
     // the lifetime of TlsExtension due to references to the slice used for parsing
     pub extv: Vec<QuicTlsExtension>,
     pub ja3: Option<String>,
+    pub ja4: Option<JA4>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -235,7 +237,7 @@ fn quic_tls_ja3_client_extends(ja3: &mut String, exts: Vec<TlsExtension>) {
 
 // get interesting stuff out of parsed tls extensions
 fn quic_get_tls_extensions(
-    input: Option<&[u8]>, ja3: &mut String, client: bool,
+    input: Option<&[u8]>, ja3: &mut String, mut ja4: Option<&mut JA4>, client: bool,
 ) -> Vec<QuicTlsExtension> {
     let mut extv = Vec::new();
     if let Some(extr) = input {
@@ -249,8 +251,21 @@ fn quic_get_tls_extensions(
                     dash = true;
                 }
                 ja3.push_str(&u16::from(etype).to_string());
+                if let Some(ref mut ja4) = ja4 {
+                    ja4.add_extension(etype)
+                }
                 let mut values = Vec::new();
                 match e {
+                    TlsExtension::SupportedVersions(x) => {
+                        for version in x {
+                            let mut value = Vec::new();
+                            value.extend_from_slice(version.to_string().as_bytes());
+                            values.push(value);
+                            if let Some(ref mut ja4) = ja4 {
+                                ja4.set_tls_version(*version);
+                            }
+                        }
+                    }
                     TlsExtension::SNI(x) => {
                         for sni in x {
                             let mut value = Vec::new();
@@ -258,7 +273,22 @@ fn quic_get_tls_extensions(
                             values.push(value);
                         }
                     }
+                    TlsExtension::SignatureAlgorithms(x) => {
+                        for sigalgo in x {
+                            let mut value = Vec::new();
+                            value.extend_from_slice(sigalgo.to_string().as_bytes());
+                            values.push(value);
+                            if let Some(ref mut ja4) = ja4 {
+                                ja4.add_signature_algorithm(*sigalgo)
+                            }
+                        }
+                    }
                     TlsExtension::ALPN(x) => {
+                        if !x.is_empty() {
+                            if let Some(ref mut ja4) = ja4 {
+                                ja4.set_alpn(x[0]);
+                            }
+                        }
                         for alpn in x {
                             let mut value = Vec::new();
                             value.extend_from_slice(alpn);
@@ -284,6 +314,8 @@ fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
                 let mut ja3 = String::with_capacity(256);
                 ja3.push_str(&u16::from(ch.version).to_string());
                 ja3.push(',');
+                let mut ja4 = JA4::new();
+                ja4.set_quic();
                 let mut dash = false;
                 for c in &ch.ciphers {
                     if dash {
@@ -292,15 +324,21 @@ fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
                         dash = true;
                     }
                     ja3.push_str(&u16::from(*c).to_string());
+                    ja4.add_cipher_suite(*c);
                 }
                 ja3.push(',');
                 let ciphers = ch.ciphers;
-                let extv = quic_get_tls_extensions(ch.ext, &mut ja3, true);
+                let extv = quic_get_tls_extensions(ch.ext, &mut ja3, Some(&mut ja4), true);
                 return Some(Frame::Crypto(Crypto {
                     ciphers,
                     extv,
                     ja3: if cfg!(feature = "ja3") {
                         Some(ja3)
+                    } else {
+                        None
+                    },
+                    ja4: if cfg!(feature = "ja4") {
+                        Some(ja4)
                     } else {
                         None
                     },
@@ -313,7 +351,7 @@ fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
                 ja3.push_str(&u16::from(sh.cipher).to_string());
                 ja3.push(',');
                 let ciphers = vec![sh.cipher];
-                let extv = quic_get_tls_extensions(sh.ext, &mut ja3, false);
+                let extv = quic_get_tls_extensions(sh.ext, &mut ja3, None, false);
                 return Some(Frame::Crypto(Crypto {
                     ciphers,
                     extv,
@@ -322,6 +360,7 @@ fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
                     } else {
                         None
                     },
+                    ja4: None,
                 }));
             }
             _ => {}
@@ -520,8 +559,7 @@ impl Frame {
             let mut d = vec![0; crypto_max_size as usize];
             for f in &frames {
                 if let Frame::CryptoFrag(c) = f {
-                    d[c.offset as usize..(c.offset + c.length) as usize]
-                        .clone_from_slice(&c.data);
+                    d[c.offset as usize..(c.offset + c.length) as usize].clone_from_slice(&c.data);
                 }
             }
             if let Ok((_, msg)) = parse_tls_message_handshake(&d) {

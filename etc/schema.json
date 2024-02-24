@@ -564,7 +564,7 @@
                 "renewal_time": {
                     "type": "integer"
                 },
-                "requested_ip":{
+                "requested_ip": {
                     "type": "string"
                 },
                 "subnet_mask": {
@@ -573,7 +573,7 @@
                 "type": {
                     "type": "string"
                 },
-                "vendor_class_identifier":{
+                "vendor_class_identifier": {
                     "type": "string"
                 },
                 "dns_servers": {
@@ -3044,6 +3044,9 @@
                     },
                     "additionalProperties": false
                 },
+                "ja4": {
+                    "type": "string"
+                },
                 "sni": {
                     "type": "string"
                 },
@@ -5445,6 +5448,9 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "ja4": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false
