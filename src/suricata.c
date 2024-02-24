@@ -2691,6 +2691,9 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     SetMasterExceptionPolicy();
 
+    /* Must occur prior to output mod registration
+       and app layer setup. */
+    FeatureTrackingRegister();
     AppLayerSetup();
 
     /* Suricata will use this umask if provided. By default it will use the
@@ -2748,7 +2751,6 @@ int PostConfLoadedSetup(SCInstance *suri)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    FeatureTrackingRegister(); /* must occur prior to output mod registration */
     RegisterAllModules();
     AppLayerHtpNeedFileInspection();
 
