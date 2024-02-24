@@ -3044,6 +3044,9 @@
                     },
                     "additionalProperties": false
                 },
+                "ja4": {
+                    "type": "string"
+                },
                 "sni": {
                     "type": "string"
                 },
@@ -5445,6 +5448,9 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "ja4": {
+                    "type": "string"
                 }
             },
             "additionalProperties": false

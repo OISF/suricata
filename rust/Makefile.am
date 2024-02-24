@@ -16,6 +16,14 @@ if HAVE_LUA
 RUST_FEATURES +=	lua $(LUA_INT8)
 endif
 
+if HAVE_JA3
+RUST_FEATURES +=	ja3
+endif
+
+if HAVE_JA4
+RUST_FEATURES +=	ja4
+endif
+
 if DEBUG
 RUST_FEATURES +=	debug
 endif
