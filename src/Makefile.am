@@ -232,6 +232,7 @@ noinst_HEADERS = \
 	detect-ipv6hdr.h \
 	detect-isdataat.h \
 	detect-itype.h \
+	detect-ja4-hash.h \
 	detect-krb5-cname.h \
 	detect-krb5-errcode.h \
 	detect-krb5-msgtype.h \
@@ -564,6 +565,7 @@ noinst_HEADERS = \
 	util-ioctl.h \
 	util-ip.h \
 	util-ja3.h \
+	util-ja4.h \
 	util-landlock.h \
 	util-logopenfile.h \
 	util-log-redis.h \
@@ -855,6 +857,7 @@ libsuricata_c_a_SOURCES = \
 	detect-ipv6hdr.c \
 	detect-isdataat.c \
 	detect-itype.c \
+	detect-ja4-hash.c \
 	detect-krb5-cname.c \
 	detect-krb5-errcode.c \
 	detect-krb5-msgtype.c \

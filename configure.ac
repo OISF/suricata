@@ -2243,6 +2243,17 @@
     fi
     AM_CONDITIONAL([HAVE_JA3], [test "x$enable_ja3" != "xno"])
 
+    AC_ARG_ENABLE(ja4,
+           AS_HELP_STRING([--disable-ja4], [Disable JA4 support]),
+           [enable_ja4="$enableval"],
+           [enable_ja4=yes])
+    if test "$enable_ja4" = "yes"; then
+        AC_DEFINE([HAVE_JA4],[1],[JA4 enabled])
+        enable_ja4="yes"
+    fi
+    AM_CONDITIONAL([HAVE_JA4], [test "x$enable_ja4" != "xno"])
+
+
 # Check for lz4
 enable_liblz4="yes"
 AC_CHECK_LIB(lz4, LZ4F_createCompressionContext, , enable_liblz4="no")
@@ -2688,6 +2699,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libluajit:                               ${enable_luajit}
   GeoIP2 support:                          ${enable_geoip}
   JA3 support:                             ${enable_ja3}
+  JA4 support:                             ${enable_ja4}
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
