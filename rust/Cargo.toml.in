@@ -22,6 +22,7 @@ strict = []
 debug = []
 debug-validate = []
 ja3 = []
+ja4 = []
 
 [dependencies]
 nom7 = { version="7.0", package="nom" }
