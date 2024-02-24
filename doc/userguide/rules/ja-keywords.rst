@@ -1,9 +1,16 @@
-JA3 Keywords
-============
+JA3/JA4 Keywords
+================
 
-Suricata comes with a JA3 integration (https://github.com/salesforce/ja3). JA3 is used to fingerprint TLS clients.
+Suricata comes with JA3 (https://github.com/salesforce/ja3) and 
+JA4 (https://github.com/FoxIO-LLC/ja4) integration.
+JA3 and JA4 are used to fingerprint TLS and QUIC clients.
 
-JA3 must be enabled in the Suricata config file (set 'app-layer.protocols.tls.ja3-fingerprints' to 'yes').
+Support must be enabled in the Suricata config file (set
+``app-layer.protocols.tls.ja{3,4}-fingerprints`` to ``yes``). If it is not
+explicitly disabled (``no``) , it will be enabled if a loaded rule requires it.
+Note that JA3/JA4 support can also be disabled at compile time; it is possible to
+use the ``requires: feature ja{3,4};`` keyword to skip rules if no JA3/JA4 support is
+present.
 
 ja3.hash
 --------
@@ -71,3 +78,19 @@ Example::
 ``ja3s.string`` is a 'sticky buffer'.
 
 ``ja3s.string`` can be used as ``fast_pattern``.
+
+ja4.hash
+--------
+
+Match on JA4 hash (e.g. ``q13d0310h3_55b375c5d22e_cd85d2d88918``).
+
+Example::
+
+  alert quic any any -> any any (msg:"match JA4 hash"; \
+      ja4.hash; content:"q13d0310h3_55b375c5d22e_cd85d2d88918"; \
+      sid:100001;)
+
+``ja4.hash`` is a 'sticky buffer'.
+
+``ja4.hash`` can be used as ``fast_pattern``.
+
