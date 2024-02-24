@@ -56,6 +56,26 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
+#ifndef HAVE_JA3
+
+static int DetectJA3SetupNoSupport(DetectEngineCtx *a, Signature *b, const char *c)
+{
+    SCLogError("no JA3 support built in");
+    return -1;
+}
+
+void DetectTlsJa3SHashRegister(void)
+{
+    sigmatch_table[DETECT_AL_TLS_JA3S_HASH].name = "ja3s.hash";
+    sigmatch_table[DETECT_AL_TLS_JA3S_HASH].desc = "sticky buffer to match the JA3S hash buffer";
+    sigmatch_table[DETECT_AL_TLS_JA3S_HASH].url = "/rules/ja3-keywords.html#ja3s-hash";
+    sigmatch_table[DETECT_AL_TLS_JA3S_HASH].Setup = DetectJA3SetupNoSupport;
+    sigmatch_table[DETECT_AL_TLS_JA3S_HASH].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_AL_TLS_JA3S_HASH].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+}
+
+#else /* HAVE_JA3 */
+
 static int DetectTlsJa3SHashSetup(DetectEngineCtx *, Signature *, const char *);
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
        const DetectEngineTransforms *transforms,
@@ -223,3 +243,5 @@ static void DetectTlsJa3SHashSetupCallback(const DetectEngineCtx *de_ctx,
         }
     }
 }
+
+#endif /* HAVE_JA3 */
