@@ -1139,48 +1139,72 @@ typedef enum {
 
 static int CreateGroupedPortListCmpCnt(const DetectPort *a, const DetectPort *b)
 {
-    if (a->sh->init->sig_cnt >= b->sh->init->sig_cnt) {
+    if (a->sh->init->sig_cnt < b->sh->init->sig_cnt) {
         SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)", a->port, a->port2,
                 a->sh->init->sig_cnt, a->sh->init->score, b->port, b->port2, b->sh->init->sig_cnt,
                 b->sh->init->score);
         return 1;
+    } else if (a->sh->init->sig_cnt > b->sh->init->sig_cnt) {
+        return -1;
     }
-    return -1;
+    // TODO sort by other factors here? Like score, non-mpm sigs, etc?
+    return 0;
+}
+static int SortCompare(const void *a, const void *b)
+{
+    const DetectPort *pa = *(const DetectPort **)a;
+    const DetectPort *pb = *(const DetectPort **)b;
+
+    return CreateGroupedPortListCmpCnt(pa, pb);
 }
 
 static inline void SortGroupList(
         DetectPort **list, int (*CompareFunc)(const DetectPort *, const DetectPort *))
 {
-    DetectPort head_ph;
-    head_ph.next = *list;
-    DetectPort *cur = *list;
+    int cnt = 0;
+    for (DetectPort *x = *list; x != NULL; x = x->next) {
+        BUG_ON(x->port > x->port2);
+        cnt++;
+    }
+    if (cnt <= 1)
+        return;
 
-    while (cur != NULL && cur->next != NULL) {
-        if (CompareFunc(cur, cur->next) > 0) {
-            cur = cur->next;
-        } else {
-            DetectPort *tmp = cur->next;
-            cur->next = tmp->next;
+    DetectPort *array[cnt];
+    int idx = 0;
+    for (DetectPort *x = *list; x != NULL;) {
+        DetectPort *next = x->next;
+        x->next = x->prev = x->last = NULL;
+        BUG_ON(x->port > x->port2);
+        array[idx++] = x;
+        x = next;
+    }
+    BUG_ON(cnt != idx);
 
-            DetectPort *insert = &head_ph;
-            while (insert != cur && CompareFunc(insert->next, tmp) > 0) {
-                insert = insert->next;
-            }
-            tmp->next = insert->next;
-            insert->next = tmp;
+    qsort(array, idx, sizeof(DetectPort *), SortCompare);
 
-            if (insert == cur) {
-                cur = tmp;
-            }
+    DetectPort *new_list = NULL, *tail = NULL;
+    for (int i = 0; i < idx; i++) {
+        DetectPort *p = array[i];
+
+        if (new_list == NULL) {
+            new_list = p;
         }
+        if (tail != NULL) {
+            tail->next = p;
+        }
+        p->prev = tail;
+        tail = p;
     }
 
-    *list = head_ph.next;
+    *list = new_list;
 
+    int dbgcnt = 0;
     SCLogDebug("SORTED LIST:");
     for (DetectPort *tmp = *list; tmp != NULL; tmp = tmp->next) {
         SCLogDebug("item:= [%u:%u]; score: %d; sig_cnt: %d", tmp->port, tmp->port2,
                 tmp->sh->init->score, tmp->sh->init->sig_cnt);
+        dbgcnt++;
+        BUG_ON(dbgcnt > cnt);
     }
 }
 
