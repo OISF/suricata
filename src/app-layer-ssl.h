@@ -141,6 +141,8 @@ enum {
 #define SSL_EXTENSION_SNI                       0x0000
 #define SSL_EXTENSION_ELLIPTIC_CURVES           0x000a
 #define SSL_EXTENSION_EC_POINT_FORMATS          0x000b
+#define SSL_EXTENSION_SIGNATURE_ALGORITHMS      0x000d
+#define SSL_EXTENSION_ALPN                      0x0010
 #define SSL_EXTENSION_SESSION_TICKET            0x0023
 #define SSL_EXTENSION_EARLY_DATA                0x002a
 #define SSL_EXTENSION_SUPPORTED_VERSIONS        0x002b
@@ -267,6 +269,8 @@ typedef struct SSLStateConnp_ {
     JA3Buffer *ja3_str;
     char *ja3_hash;
 
+    JA4 *ja4;
+
     /* handshake tls fragmentation buffer. Handshake messages can be fragmented over multiple
      * TLS records. */
     uint8_t *hs_buffer;
@@ -307,5 +311,7 @@ void RegisterSSLParsers(void);
 void SSLVersionToString(uint16_t, char *);
 void SSLEnableJA3(void);
 bool SSLJA3IsEnabled(void);
+void SSLEnableJA4(void);
+bool SSLJA4IsEnabled(void);
 
 #endif /* __APP_LAYER_SSL_H__ */
