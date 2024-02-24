@@ -2091,9 +2091,9 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     DetectLuaPostSetup(s);
 #endif
 
-    if (s->init_data->init_flags & SIG_FLAG_INIT_JA3 && s->alproto != ALPROTO_UNKNOWN &&
+    if ((s->init_data->init_flags & SIG_FLAG_INIT_JA) && s->alproto != ALPROTO_UNKNOWN &&
             s->alproto != ALPROTO_TLS && s->alproto != ALPROTO_QUIC) {
-        SCLogError("Cannot have ja3 with protocol %s.", AppProtoToString(s->alproto));
+        SCLogError("Cannot have ja3/ja4 with protocol %s.", AppProtoToString(s->alproto));
         SCReturnInt(0);
     }
     if ((s->flags & SIG_FLAG_FILESTORE) || s->file_flags != 0 ||
