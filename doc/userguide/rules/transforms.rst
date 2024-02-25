@@ -96,7 +96,7 @@ to_uppercase
 
 Converts the buffer to uppercase and passes the value on.
 
-This example alerts if ``http.uri`` contains ``THIS TEXT HAS BEEN CONVERTED TO LOWERCASE``
+This example alerts if ``http.uri`` contains ``THIS TEXT HAS BEEN CONVERTED TO UPPERCASE``
 
 Example::
 
