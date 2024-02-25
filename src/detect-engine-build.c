@@ -1139,6 +1139,14 @@ typedef enum {
 
 static int CreateGroupedPortListCmpCnt(const DetectPort *a, const DetectPort *b)
 {
+    if (a->sh->init->score < b->sh->init->score) {
+        return 1;
+    } else if (a->sh->init->score > b->sh->init->score) {
+        return -1;
+    }
+
+    /* if scores are equal, check sig cnt */
+
     if (a->sh->init->sig_cnt < b->sh->init->sig_cnt) {
         SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)", a->port, a->port2,
                 a->sh->init->sig_cnt, a->sh->init->score, b->port, b->port2, b->sh->init->sig_cnt,
