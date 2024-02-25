@@ -96,7 +96,7 @@ to_uppercase
 
 Converts the buffer to uppercase and passes the value on.
 
-This example alerts if ``http.uri`` contains ``THIS TEXT HAS BEEN CONVERTED TO LOWERCASE``
+This example alerts if ``http.uri`` contains ``THIS TEXT HAS BEEN CONVERTED TO UPPERCASE``
 
 Example::
 
@@ -216,12 +216,14 @@ There are defaults for each of the options:
 - ``offset`` defaults to ``0`` and must be less than ``65536``
 - ``mode`` defaults to ``rfc4648``
 
-Note that both ``bytes`` and ``offset`` may be variables from `byte_extract` and/or `byte_math`.
+Note that both ``bytes`` and ``offset`` may be variables from `byte_extract` and/or `byte_math` in
+later versions of Suricata. They are not supported yet.
 
 Mode ``rfc4648`` applies RFC 4648 decoding logic which is suitable for encoding binary
 data that can be safely sent by email, used in a URL, or included with HTTP POST requests.
 
-Mode ``rfc2045`` applies RFC 2045 decoding logic which supports strings, including those with embedded spaces.
+Mode ``rfc2045`` applies RFC 2045 decoding logic which supports strings, including those with embedded spaces,
+line breaks, and any non base64 alphabet.
 
 Mode ``strict`` will fail if an invalid character is found in the encoded bytes.
 
