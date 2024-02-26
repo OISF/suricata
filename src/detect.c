@@ -1188,18 +1188,15 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             break;
         } else if (!(inspect_flags & BIT_U32(engine->id)) && s->flags & SIG_FLAG_BOTHDIR &&
                    direction != engine->dir) {
-            const bool skip_engine = (engine->alproto != 0 && engine->alproto != f->alproto);
-            /* special case: 'alert http' will have engines
-             * for both HTTP1 and HTTP2. */
-            if (unlikely(skip_engine)) {
-                engine = engine->next;
-                continue;
+            // for bidirectional rules, the engines on the opposite direction
+            // are ordered by progress on the different side
+            // so we have a two mixed-up lists, and we skip the elements
+            if (direction == 0 && engine->next == NULL) {
+                // do not match yet on request only
+                break;
             }
-            // for bidirectional rules, for engines on the opposite direction
-            // as the current packet, check if we have enough progress in the tx.
-            // That means, do not return a full match, if we have only the request
-            // as there are response engines to inspect later.
-            break;
+            engine = engine->next;
+            continue;
         }
 
         engine = engine->next;

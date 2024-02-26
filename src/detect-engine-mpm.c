@@ -1068,15 +1068,20 @@ int g_skip_prefilter = 0;
 
 bool DetectBufferToClient(const DetectEngineCtx *de_ctx, int buf_id, AppProto alproto)
 {
+    bool r = false;
     const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
     for (; app != NULL; app = app->next) {
         if (app->sm_list == buf_id && (AppProtoEquals(alproto, app->alproto) || alproto == 0)) {
             if (app->dir == 1) {
-                return true;
+                // do not return yet in case we have app engines on both sides
+                r = true;
+            } else {
+                // ambiguous keywords have a app-engine to server
+                return false;
             }
         }
     }
-    return false;
+    return r;
 }
 
 void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
