@@ -238,6 +238,7 @@
 #include "detect-quic-version.h"
 #include "detect-quic-cyu-hash.h"
 #include "detect-quic-cyu-string.h"
+#include "detect-websocket.h"
 
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
@@ -703,6 +704,7 @@ void SigTableSetup(void)
     DetectQuicVersionRegister();
     DetectQuicCyuHashRegister();
     DetectQuicCyuStringRegister();
+    DetectWebsocketRegister();
 
     DetectBypassRegister();
     DetectConfigRegister();

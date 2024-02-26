@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2023 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,12 +18,12 @@
 /**
  * \file
  *
- * \author Giuseppe Longo <giuseppe@glongo.it>
+ * \author Philippe Antoine
  */
 
-#ifndef __OUTPUT_JSON_SIP_H__
-#define __OUTPUT_JSON_SIP_H__
+#ifndef __DETECT_WEBSOCKET_H__
+#define __DETECT_WEBSOCKET_H__
 
-void JsonSIPLogRegister(void);
+void DetectWebsocketRegister(void);
 
-#endif /* __OUTPUT_JSON_SIP_H__ */
+#endif /* __DETECT_WEBSOCKET_H__ */

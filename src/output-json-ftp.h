@@ -24,7 +24,6 @@
 #ifndef __OUTPUT_JSON_FTP_H__
 #define __OUTPUT_JSON_FTP_H__
 
-void JsonFTPLogRegister(void);
 bool EveFTPLogCommand(void *vtx, JsonBuilder *js);
 
 #endif /* __OUTPUT_JSON_FTP_H__ */
