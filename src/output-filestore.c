@@ -194,10 +194,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
 
     SCLogDebug("ff %p, data %p, data_len %u", ff, data, data_len);
 
-    char base_filename[PATH_MAX] = "";
-    snprintf(base_filename, sizeof(base_filename), "%s/file.%u",
-            ctx->tmpdir, ff->file_store_id);
-    snprintf(filename, sizeof(filename), "%s", base_filename);
+    snprintf(filename, sizeof(filename), "%s/file.%u", ctx->tmpdir, ff->file_store_id);
 
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
         file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY,
