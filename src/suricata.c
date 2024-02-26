@@ -2899,13 +2899,6 @@ void SuricataPreInit(const char *progname)
 
 void SuricataInit(int argc, char **argv)
 {
-#ifdef OS_WIN32
-    /* service initialization */
-    if (WindowsInitService(argc, argv) != 0) {
-        exit(EXIT_FAILURE);
-    }
-#endif /* OS_WIN32 */
-
     if (ParseCommandLine(argc, argv, &suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
@@ -3085,6 +3078,13 @@ int SuricataMain(int argc, char **argv)
 {
     /* Pre-initialization tasks: initialize global context and variables. */
     SuricataPreInit(argv[0]);
+
+#ifdef OS_WIN32
+    /* service initialization */
+    if (WindowsInitService(argc, argv) != 0) {
+        exit(EXIT_FAILURE);
+    }
+#endif /* OS_WIN32 */
 
     /* Initialization tasks: parse command line options, load yaml, start runmode... */
     SuricataInit(argc, argv);
