@@ -3712,6 +3712,11 @@
                         "error": {
                             "type": "object",
                             "properties": {
+                                "exception_policy": {
+                                    "description":
+                                            "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
+                                    "$ref": "#/$defs/exceptionPolicy"
+                                },
                                 "bittorrent-dht": {
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
@@ -5508,6 +5513,11 @@
                 },
                 "internal": {
                     "type": "integer"
+                },
+                "exception_policy": {
+                    "description":
+                            "How many times app-layer error exception policy was applied, and which one",
+                    "$ref": "#/$defs/exceptionPolicy"
                 }
             },
             "additionalProperties": false
