@@ -1286,7 +1286,7 @@ static int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list,
                 UpdateGroupList(list_group, &list_size[wl_type], cur, wl_type);
                 continue;
             case DETECT_PGSCORE_RULE_SYN_ONLY:
-                wl_type = RULE_NO_MPM;
+                wl_type = RULE_SYN_ONLY;
                 UpdateGroupList(list_group, &list_size[wl_type], cur, wl_type);
                 continue;
             default:
