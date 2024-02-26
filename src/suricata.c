@@ -2368,11 +2368,11 @@ static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
     return TM_ECODE_OK;
 }
 
-static int FinalizeRunMode(SCInstance *suri, char **argv)
+static int FinalizeRunMode(SCInstance *suri)
 {
     switch (suri->run_mode) {
         case RUNMODE_UNKNOWN:
-            PrintUsage(argv[0]);
+            PrintUsage(suri->progname);
             return TM_ECODE_FAILED;
         default:
             break;
@@ -2904,7 +2904,7 @@ void SuricataInit(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    if (FinalizeRunMode(&suricata, argv) != TM_ECODE_OK) {
+    if (FinalizeRunMode(&suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
