@@ -64,7 +64,7 @@ void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid)
         sghid->match_array = NULL;
     }
     if (sghid->sig_array != NULL) {
-        SCFree(sghid->sig_array);
+        SCFreeAligned(sghid->sig_array);
         sghid->sig_array = NULL;
     }
     if (sghid->app_mpms != NULL) {
@@ -94,9 +94,12 @@ static SigGroupHeadInitData *SigGroupHeadInitDataAlloc(uint32_t size)
     memset(sghid, 0x00, sizeof(SigGroupHeadInitData));
 
     /* initialize the signature bitarray */
-    sghid->sig_size = size;
-    if ( (sghid->sig_array = SCMalloc(sghid->sig_size)) == NULL)
+    size = sghid->sig_size = size + 16 - (size % 16);
+    void *ptr = SCMallocAligned(sghid->sig_size, 16);
+    if (ptr == NULL)
         goto error;
+    memset(ptr, 0, size);
+    sghid->sig_array = ptr;
 
     memset(sghid->sig_array, 0, sghid->sig_size);
 
