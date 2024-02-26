@@ -507,7 +507,7 @@ jobs:
       - name: Configuring
         run: |
           ./autogen.sh
-          CFLAGS="${DEFAULT_CFLAGS}" ./configure
+          CFLAGS="${DEFAULT_CFLAGS}" ./configure --disable-lua
       - run: make -j ${{ env.CPUS }} check
       - name: Checking includes
         run: |
@@ -674,7 +674,7 @@ jobs:
           name: dist
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
       - name: ./configure
-        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
+        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --disable-lua
       - run: make -j ${{ env.CPUS }}
       - run: make install
       - run: make install-conf
@@ -688,7 +688,86 @@ jobs:
           test -e /usr/local/lib/suricata/python/suricata/update/configs/modify.conf
           test -e /usr/local/lib/suricata/python/suricata/update/configs/threshold.in
           test -e /usr/local/lib/suricata/python/suricata/update/configs/update.yaml
-      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/suricata-verify.tar.gz
+      - run: python3 ./suricata-verify/run.py -q --debug-failed
+      - run: suricata-update -V
+      - run: suricatasc -h
+
+  centos-7:
+    name: CentOS 7
+    runs-on: ubuntu-latest
+    container: centos:7
+    needs: [prepare-deps, debian-12-dist]
+    steps:
+      - name: Cache ~/.cargo
+        uses: actions/cache@v3.3.1
+        with:
+          path: ~/.cargo
+          key: ${{ github.job }}-cargo
+
+      - name: Cache RPMs
+        uses: actions/cache@v3.3.1
+        with:
+          path: /var/cache/yum
+          key: ${{ github.job }}-yum
+      - run: echo "keepcache=1" >> /etc/yum.conf
+
+      - name: Install system dependencies
+        run: |
+          yum -y install epel-release
+          yum -y install \
+                autoconf \
+                automake \
+                cargo \
+                diffutils \
+                file-devel \
+                gcc \
+                gcc-c++ \
+                jansson-devel \
+                jq \
+                lua-devel \
+                libtool \
+                libyaml-devel \
+                libnfnetlink-devel \
+                libnetfilter_queue-devel \
+                libnet-devel \
+                libcap-ng-devel \
+                libevent-devel \
+                libmaxminddb-devel \
+                libpcap-devel \
+                lz4-devel \
+                make \
+                nss-devel \
+                pcre2-devel \
+                pkgconfig \
+                python36-PyYAML \
+                rust \
+                sudo \
+                which \
+                zlib-devel
+      - name: Download suricata.tar.gz
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+        with:
+          name: dist
+      - run: tar zxvf suricata-*.tar.gz --strip-components=1
+      # This isn't really needed as we are building from a prepared
+      # package, but some package managers like RPM and Debian like to
+      # run this command even on prepared packages, so make sure it
+      # works.
+      - name: Test autoreconf
+        run: autoreconf -fv --install
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --disable-lua
+      - run: make -j2
+      - run: make install
+      - run: make install-conf
+      - run: DISTCHECK_CONFIGURE_FLAGS="${DISTCHECK_CONFIGURE_FLAGS} --disable-lua" make distcheck
+      - run: make clean
+      - run: make -j2
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
@@ -872,7 +951,7 @@ jobs:
         # Set the concurrency level for cocci.
         run: CONCURRENCY_LEVEL=${{ env.CPUS }} make check
       - run: make distclean
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-lua
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -1062,7 +1141,7 @@ jobs:
       - run: tar xf prep/libhtp.tar.gz
       - run: tar xf prep/suricata-update.tar.gz
       - run: ./autogen.sh
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-lua
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-debug --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -1378,7 +1457,7 @@ jobs:
                 libnuma-dev \
                 libhiredis-dev \
                 libhyperscan-dev \
-                liblua5.1-dev \
+                liblua5.4-dev \
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
@@ -1495,6 +1574,7 @@ jobs:
                 libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
+                liblua5.4-dev \
                 libmagic-dev \
                 libnetfilter-queue-dev \
                 libnetfilter-queue1 \
@@ -1502,7 +1582,6 @@ jobs:
                 libnfnetlink0 \
                 libnuma-dev \
                 libhiredis-dev \
-                liblua5.1-dev \
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
@@ -1539,7 +1618,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: ./configure --with-gnu-ld --enable-fuzztargets --disable-shared --enable-gccprotect
+      - run: ./configure --with-gnu-ld --enable-fuzztargets --disable-shared  --enable-gccprotect
         env:
           LIB_FUZZING_ENGINE: "fail_to_onefile_driver"
           CC: "clang-14"
@@ -1634,7 +1713,7 @@ jobs:
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - run: ./autogen.sh
-      - run: CFLAGS="$DEFAULT_CFLAGS -DNDEBUG" ./configure --enable-unittests
+      - run: CFLAGS="$DEFAULT_CFLAGS -DNDEBUG" ./configure --enable-unittests --disable-lua
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: make dist
@@ -1753,6 +1832,7 @@ jobs:
                 libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
+                liblua5.4-dev \
                 libmagic-dev \
                 libnetfilter-queue-dev \
                 libnetfilter-queue1 \
@@ -1838,6 +1918,7 @@ jobs:
                 libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
+                liblua5.4-dev \
                 libmagic-dev \
                 libnetfilter-queue-dev \
                 libnetfilter-queue1 \
@@ -1905,6 +1986,7 @@ jobs:
                   libyaml-dev \
                   libcap-ng-dev \
                   libcap-ng0 \
+                  liblua5.4-dev \
                   libmagic-dev \
                   libnetfilter-queue-dev \
                   libnetfilter-queue1 \
@@ -2004,6 +2086,7 @@ jobs:
                 libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
+                liblua5.4-dev \
                 libmagic-dev \
                 libnetfilter-queue-dev \
                 libnetfilter-queue1 \
@@ -2115,7 +2198,7 @@ jobs:
               libmaxminddb-dev \
               libjansson-dev \
               libjansson4 \
-              liblua5.1-dev \
+              liblua5.4-dev \
               libnuma-dev \
               liblz4-dev \
               libssl-dev \
@@ -2147,7 +2230,7 @@ jobs:
         # -j2 caused random failures during cargo vendor
       - run: make distcheck
         env:
-          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
+          DISTCHECK_CONFIGURE_FLAGS: "--enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk"
       - run: test -e doc/userguide/suricata.1
       - run: test -e doc/userguide/userguide.pdf
       - name: Building Rust documentation
@@ -2199,6 +2282,7 @@ jobs:
               libyaml-dev \
               libcap-ng-dev \
               libcap-ng0 \
+              liblua5.4-dev \
               libmagic-dev \
               libjansson-dev \
               libjansson4 \
@@ -2282,7 +2366,7 @@ jobs:
               libmaxminddb-dev \
               libjansson-dev \
               libjansson4 \
-              liblua5.1-dev \
+              liblua5.4-dev \
               libnuma-dev \
               liblz4-dev \
               libssl-dev \
@@ -2319,7 +2403,7 @@ jobs:
       - run: tar xf prep/suricata-update.tar.gz
       - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-debug --enable-lua --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-debug --enable-geoip --enable-profiling --enable-profiling-locks --enable-dpdk
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - name: Building Rust documentation
@@ -2369,7 +2453,7 @@ jobs:
                 libmagic-dev \
                 libjansson-dev \
                 libgeoip-dev \
-                liblua5.1-dev \
+                liblua5.4-dev \
                 libhiredis-dev \
                 libevent-dev \
                 libtool \
@@ -2451,7 +2535,6 @@ jobs:
                 libmagic-dev \
                 libjansson-dev \
                 libgeoip-dev \
-                liblua5.1-dev \
                 libhiredis-dev \
                 libevent-dev \
                 libtool \
@@ -2484,7 +2567,7 @@ jobs:
           cp prep/cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-unittests --enable-fuzztargets --disable-lua
       - run: make -j ${{ env.CPUS }}
       - run: make check
       - run: tar xf prep/suricata-verify.tar.gz
@@ -2591,7 +2674,7 @@ jobs:
       - name: Build
         run: |
           ./autogen.sh
-          CFLAGS="-ggdb -Werror" ./configure --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared --with-libpcap-includes=/npcap/Include --with-libpcap-libraries=/npcap/Lib/x64
+          CFLAGS="-ggdb -Werror" ./configure --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared --disable-lua --with-libpcap-includes=/npcap/Include --with-libpcap-libraries=/npcap/Lib/x64
           make -j3
       - name: Run
         run: |
@@ -2636,7 +2719,7 @@ jobs:
       - name: Build
         run: |
           ./autogen.sh
-          CFLAGS="-ggdb -Werror" ./configure --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared --with-libpcap-includes=/npcap/Include --with-libpcap-libraries=/npcap/Lib/x64
+          CFLAGS="-ggdb -Werror" ./configure --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared --disable-lua --with-libpcap-includes=/npcap/Include --with-libpcap-libraries=/npcap/Lib/x64
           make -j3
       - name: Run
         run: |
@@ -2685,7 +2768,7 @@ jobs:
       - name: Build
         run: |
           ./autogen.sh
-          CFLAGS="-ggdb -Werror" ./configure --enable-gccprotect --disable-gccmarch-native --disable-shared --enable-windivert --with-windivert-include=/windivert/WinDivert-1.4.3-A/include --with-windivert-libraries=/windivert/WinDivert-1.4.3-A/x86_64
+          CFLAGS="-ggdb -Werror" ./configure --enable-gccprotect --disable-gccmarch-native --disable-shared --disable-lua --enable-windivert --with-windivert-include=/windivert/WinDivert-1.4.3-A/include --with-windivert-libraries=/windivert/WinDivert-1.4.3-A/x86_64
           make -j3
       - name: Run
         run: |

@@ -67,7 +67,7 @@
 
 static int DetectLuaSetupNoSupport (DetectEngineCtx *a, Signature *b, const char *c)
 {
-    SCLogError("no Lua support built in, needed for lua/luajit keyword");
+    SCLogError("no Lua support built in, needed for lua keyword");
     return -1;
 }
 
@@ -77,7 +77,6 @@ static int DetectLuaSetupNoSupport (DetectEngineCtx *a, Signature *b, const char
 void DetectLuaRegister(void)
 {
     sigmatch_table[DETECT_LUA].name = "lua";
-    sigmatch_table[DETECT_LUA].alias = "luajit";
     sigmatch_table[DETECT_LUA].desc = "support for lua scripting";
     sigmatch_table[DETECT_LUA].url = "/rules/rule-lua-scripting.html";
     sigmatch_table[DETECT_LUA].Setup = DetectLuaSetupNoSupport;
@@ -91,6 +90,7 @@ void DetectLuaRegister(void)
 #else /* HAVE_LUA */
 
 #include "util-lua.h"
+#include "util-lua-sandbox.h"
 
 static int DetectLuaMatch (DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
@@ -111,7 +111,6 @@ static int g_smtp_generic_list_id = 0;
 void DetectLuaRegister(void)
 {
     sigmatch_table[DETECT_LUA].name = "lua";
-    sigmatch_table[DETECT_LUA].alias = "luajit";
     sigmatch_table[DETECT_LUA].desc = "match via a lua script";
     sigmatch_table[DETECT_LUA].url = "/rules/rule-lua-scripting.html";
     sigmatch_table[DETECT_LUA].Match = DetectLuaMatch;
@@ -164,6 +163,10 @@ void DetectLuaRegister(void)
 #define DATATYPE_DNP3 BIT_U32(21)
 
 #define DATATYPE_BUFFER BIT_U32(22)
+
+// TODO: move to config
+#define DEFAULT_LUA_ALLOC_LIMIT       500000
+#define DEFAULT_LUA_INSTRUCTION_LIMIT 500000
 
 #if 0
 /** \brief dump stack from lua state to screen */
@@ -605,13 +608,17 @@ static void *DetectLuaThreadInit(void *data)
     t->alproto = lua->alproto;
     t->flags = lua->flags;
 
-    t->luastate = LuaGetState();
+    t->luastate = sb_newstate(lua->alloc_limit, lua->instruction_limit);
     if (t->luastate == NULL) {
         SCLogError("luastate pool depleted");
         goto error;
     }
 
-    luaL_openlibs(t->luastate);
+    if (lua->allow_restricted_functions) {
+        luaL_openlibs(t->luastate);
+    } else {
+        sb_loadrestricted(t->luastate);
+    }
 
     LuaRegisterExtensions(t->luastate);
 
@@ -651,7 +658,7 @@ static void *DetectLuaThreadInit(void *data)
 
 error:
     if (t->luastate != NULL)
-        LuaReturnState(t->luastate);
+        sb_close(t->luastate);
     SCFree(t);
     return NULL;
 }
@@ -661,7 +668,7 @@ static void DetectLuaThreadFree(void *ctx)
     if (ctx != NULL) {
         DetectLuaThreadData *t = (DetectLuaThreadData *)ctx;
         if (t->luastate != NULL)
-            LuaReturnState(t->luastate);
+            sb_close(t->luastate);
         SCFree(t);
     }
 }
@@ -707,10 +714,14 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
 {
     int status;
 
-    lua_State *luastate = luaL_newstate();
+    lua_State *luastate = sb_newstate(ld->alloc_limit, ld->instruction_limit);
     if (luastate == NULL)
         return -1;
-    luaL_openlibs(luastate);
+    if (ld->allow_restricted_functions) {
+        luaL_openlibs(luastate);
+    } else {
+        sb_loadrestricted(luastate);
+    }
 
     /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
 #ifdef UNITTESTS
@@ -786,7 +797,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                     /* removes 'value'; keeps 'key' for next iteration */
                     lua_pop(luastate, 1);
 
-                    if (ld->flowvars == DETECT_LUAJIT_MAX_FLOWVARS) {
+                    if (ld->flowvars == DETECT_LUA_MAX_FLOWVARS) {
                         SCLogError("too many flowvars registered");
                         goto error;
                     }
@@ -808,7 +819,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                     /* removes 'value'; keeps 'key' for next iteration */
                     lua_pop(luastate, 1);
 
-                    if (ld->flowints == DETECT_LUAJIT_MAX_FLOWINTS) {
+                    if (ld->flowints == DETECT_LUA_MAX_FLOWINTS) {
                         SCLogError("too many flowints registered");
                         goto error;
                     }
@@ -830,7 +841,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
                     /* removes 'value'; keeps 'key' for next iteration */
                     lua_pop(luastate, 1);
 
-                    if (ld->bytevars == DETECT_LUAJIT_MAX_BYTEVARS) {
+                    if (ld->bytevars == DETECT_LUA_MAX_BYTEVARS) {
                         SCLogError("too many bytevars registered");
                         goto error;
                     }
@@ -989,10 +1000,10 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
 
     /* pop the table */
     lua_pop(luastate, 1);
-    lua_close(luastate);
+    sb_close(luastate);
     return 0;
 error:
-    lua_close(luastate);
+    sb_close(luastate);
     return -1;
 }
 
@@ -1023,6 +1034,18 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
     lua = DetectLuaParse(de_ctx, str);
     if (lua == NULL)
         goto error;
+
+    /* Load lua sandbox configurations */
+    intmax_t lua_alloc_limit = DEFAULT_LUA_ALLOC_LIMIT;
+    intmax_t lua_instruction_limit = DEFAULT_LUA_INSTRUCTION_LIMIT;
+    (void)ConfGetInt("security.lua.max-bytes", &lua_alloc_limit);
+    (void)ConfGetInt("security.lua.max-instructions", &lua_instruction_limit);
+    lua->alloc_limit = lua_alloc_limit;
+    lua->instruction_limit = lua_instruction_limit;
+
+    int allow_restricted_functions = 0;
+    (void)ConfGetBool("security.lua.allow-restricted-functions", &allow_restricted_functions);
+    lua->allow_restricted_functions = allow_restricted_functions;
 
     if (DetectLuaSetupPrime(de_ctx, lua, s) == -1) {
         goto error;
@@ -2546,4 +2569,4 @@ void DetectLuaRegisterTests(void)
     UtRegisterTest("LuaMatchTest06a", LuaMatchTest06a);
 }
 #endif
-#endif /* HAVE_LUAJIT */
+#endif /* HAVE_LUA */

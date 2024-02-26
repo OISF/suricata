@@ -2749,24 +2749,6 @@ to display the diagnostic message if a signal unexpectedly terminates Suricata -
         # message with the offending stacktrace if enabled.
         #stacktrace-on-signal: on
 
-luajit
-~~~~~~
-
-states
-^^^^^^
-
-Luajit has a strange memory requirement, it's 'states' need to be in the
-first 2G of the process' memory. For this reason when luajit is used the
-states are allocated at the process startup. This option controls how many
-states are preallocated.
-
-If the pool is depleted a warning is generated. Suricata will still try to
-continue, but may fail if other parts of the engine take too much memory.
-If the pool was depleted a hint will be printed at the engines exit.
-
-States are allocated as follows: for each detect script a state is used per
-detect thread. For each output script, a single state is used. Keep in
-mind that a rule reload temporary doubles the states requirement.
 
 .. _deprecation policy: https://suricata.io/about/deprecation-policy/
 
@@ -2792,11 +2774,14 @@ Beyond suricata.yaml, other ways to harden Suricata are
 - compilation : enabling ASLR and other exploit mitigation techniques.
 - environment : running Suricata on a device that has no direct access to Internet.
 
+.. _suricata-yaml-lua-config:
+
 Lua
 ~~~
 
-Suricata 7.0 disables Lua rules by default. Lua rules can be enabled
-in the ``security.lua`` section of the configuration file:
+Suricata 8.0 sandboxes Lua rules by default. The restrictions on the sandbox for Lua rules can be
+modified in the ``security.lua`` section of the configuration file.  Additionally, Lua rules 
+can be completely disabled the same as the Suricata 7.0 default:
 
 ::
 
@@ -2804,4 +2789,13 @@ in the ``security.lua`` section of the configuration file:
      lua:
        # Allow Lua rules. Disabled by default.
        #allow-rules: false
+
+       # Upper bound of allocations by a Lua rule before it will fail
+       #max-bytes: 500000 
+
+       # Upper bound of lua instructions by a Lua rule before it will fail
+       #max-instructions: 500000
+
+       # Allow dangerous lua operations like external packages and file io
+       #allow-restricted-functions: false
 
