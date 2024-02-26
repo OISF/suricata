@@ -20,9 +20,6 @@
 
 #include "app-layer-dnp3.h"
 
-void JsonDNP3LogRequest(JsonBuilder *js, DNP3Transaction *);
-void JsonDNP3LogResponse(JsonBuilder *js, DNP3Transaction *);
-
 void JsonDNP3LogRegister(void);
 bool AlertJsonDnp3(void *vtx, JsonBuilder *js);
 

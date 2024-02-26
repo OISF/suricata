@@ -17,8 +17,6 @@ noinst_HEADERS = \
 	app-layer-detect-proto.h \
 	app-layer-dnp3.h \
 	app-layer-dnp3-objects.h \
-	app-layer-enip-common.h \
-	app-layer-enip.h \
 	app-layer-events.h \
 	app-layer-expectation.h \
 	app-layer-frames.h \
@@ -132,7 +130,6 @@ noinst_HEADERS = \
 	detect-engine-build.h \
 	detect-engine-content-inspection.h \
 	detect-engine-dcepayload.h \
-	detect-engine-enip.h \
 	detect-engine-event.h \
 	detect-engine-file.h \
 	detect-engine-frame.h \
@@ -153,6 +150,24 @@ noinst_HEADERS = \
 	detect-engine-tag.h \
 	detect-engine-threshold.h \
 	detect-engine-uint.h \
+	detect-enip-command.h \
+	detect-enip-status.h \
+	detect-enip-product-name.h \
+	detect-enip-protocol-version.h \
+	detect-enip-cip-attribute.h \
+	detect-enip-cip-instance.h \
+	detect-enip-cip-class.h \
+	detect-enip-cip-extendedstatus.h \
+	detect-enip-cip-status.h \
+	detect-enip-service-name.h \
+	detect-enip-capabilities.h \
+	detect-enip-revision.h \
+	detect-enip-identity-status.h \
+	detect-enip-state.h \
+	detect-enip-serial.h \
+	detect-enip-product-code.h \
+	detect-enip-device-type.h \
+	detect-enip-vendor-id.h \
 	detect-fast-pattern.h \
 	detect-file-data.h \
 	detect-file-hash-common.h \
@@ -400,7 +415,6 @@ noinst_HEADERS = \
 	output.h \
 	output-json-alert.h \
 	output-json-anomaly.h \
-	output-json-bittorrent-dht.h \
 	output-json-dcerpc.h \
 	output-json-dhcp.h \
 	output-json-dnp3.h \
@@ -413,27 +427,16 @@ noinst_HEADERS = \
 	output-json-frame.h \
 	output-json-ftp.h \
 	output-json.h \
-	output-json-http2.h \
 	output-json-http.h \
 	output-json-ike.h \
-	output-json-krb5.h \
 	output-json-metadata.h \
-	output-json-modbus.h \
-	output-json-quic.h \
 	output-json-mqtt.h \
 	output-json-netflow.h \
 	output-json-nfs.h \
 	output-json-pgsql.h \
-	output-json-rdp.h \
-	output-json-rfb.h \
-	output-json-sip.h \
 	output-json-smb.h \
 	output-json-smtp.h \
-	output-json-snmp.h \
-	output-json-ssh.h \
 	output-json-stats.h \
-	output-json-template.h \
-	output-json-tftp.h \
 	output-json-tls.h \
 	output-eve-syslog.h \
 	output-lua.h \
@@ -638,8 +641,6 @@ libsuricata_c_a_SOURCES = \
 	app-layer-detect-proto.c \
 	app-layer-dnp3.c \
 	app-layer-dnp3-objects.c \
-	app-layer-enip.c \
-	app-layer-enip-common.c \
 	app-layer-events.c \
 	app-layer-expectation.c \
 	app-layer-ftp.c \
@@ -753,7 +754,6 @@ libsuricata_c_a_SOURCES = \
 	detect-engine.c \
 	detect-engine-content-inspection.c \
 	detect-engine-dcepayload.c \
-	detect-engine-enip.c \
 	detect-engine-event.c \
 	detect-engine-file.c \
 	detect-engine-frame.c \
@@ -773,6 +773,24 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-tag.c \
 	detect-engine-threshold.c \
 	detect-engine-uint.c \
+	detect-enip-command.c \
+	detect-enip-status.c \
+	detect-enip-product-name.c \
+	detect-enip-protocol-version.c \
+	detect-enip-cip-attribute.c \
+	detect-enip-cip-instance.c \
+	detect-enip-cip-class.c \
+	detect-enip-cip-extendedstatus.c \
+	detect-enip-cip-status.c \
+	detect-enip-service-name.c \
+	detect-enip-capabilities.c \
+	detect-enip-revision.c \
+	detect-enip-identity-status.c \
+	detect-enip-state.c \
+	detect-enip-serial.c \
+	detect-enip-product-code.c \
+	detect-enip-device-type.c \
+	detect-enip-vendor-id.c \
 	detect-fast-pattern.c \
 	detect-file-data.c \
 	detect-file-hash-common.c \
@@ -1016,7 +1034,6 @@ libsuricata_c_a_SOURCES = \
 	output-flow.c \
 	output-json-alert.c \
 	output-json-anomaly.c \
-	output-json-bittorrent-dht.c \
 	output-json.c \
 	output-json-common.c \
 	output-json-dcerpc.c \
@@ -1030,27 +1047,16 @@ libsuricata_c_a_SOURCES = \
 	output-json-flow.c \
 	output-json-frame.c \
 	output-json-ftp.c \
-	output-json-http2.c \
 	output-json-http.c \
 	output-json-ike.c \
-	output-json-krb5.c \
 	output-json-metadata.c \
-	output-json-modbus.c \
-	output-json-quic.c \
 	output-json-mqtt.c \
 	output-json-netflow.c \
 	output-json-nfs.c \
 	output-json-pgsql.c \
-	output-json-rdp.c \
-	output-json-rfb.c \
-	output-json-sip.c \
 	output-json-smb.c \
 	output-json-smtp.c \
-	output-json-snmp.c \
-	output-json-ssh.c \
 	output-json-stats.c \
-	output-json-template.c \
-	output-json-tftp.c \
 	output-json-tls.c \
 	output-eve-syslog.c \
 	output-eve-null.c \

@@ -24,48 +24,6 @@
 #ifndef _DETECT_CIPSERVICE_H
 #define	_DETECT_CIPSERVICE_H
 
-/**
- * CIP Service rule data structure
- */
-typedef struct DetectCipServiceData_
-{
-    uint8_t cipservice;     /* cip service type */
-    uint16_t cipclass;
-    uint16_t cipattribute;
-    uint8_t matchattribute; /* whether to match on attribute*/
-    uint8_t tokens;         /* number of parameters*/
-} DetectCipServiceData;
-
-/**
- * ENIP Command rule data structure
- */
-typedef struct DetectEnipCommandData_
-{
-    uint16_t enipcommand; /* enip command */
-} DetectEnipCommandData;
-
 void DetectCipServiceRegister(void);
-void DetectEnipCommandRegister(void);
-
-/**
- * link list node for storing CIP service data
- */
-typedef struct CIPServiceData_
-{
-    uint8_t service; //cip service
-    union
-    {
-        struct
-        {
-            uint8_t path_size; //cip path size
-            uint16_t path_offset; //offset to cip path
-        } request;
-        struct
-        {
-            uint8_t status;
-        } response;
-    };
-    struct CIPServiceData* next;
-} CIPServiceData;
 
 #endif	/* _DETECT_CIPSERVICE_H */
