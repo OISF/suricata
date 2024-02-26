@@ -1308,7 +1308,7 @@ static bool IsLogDirectoryWritable(const char* str)
 
 extern int g_skip_prefilter;
 
-static TmEcode ParseCommandLine(int argc, char **argv)
+TmEcode SCParseCommandLine(int argc, char **argv)
 {
     int opt;
 
@@ -1480,7 +1480,7 @@ static TmEcode ParseCommandLine(int argc, char **argv)
                 }
             } else if (strcmp((long_opts[option_index]).name, "netmap") == 0) {
 #ifdef HAVE_NETMAP
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                if (suricata.run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_NETMAP;
                     if (optarg) {
                         LiveRegisterDeviceName(optarg);
@@ -1489,7 +1489,7 @@ static TmEcode ParseCommandLine(int argc, char **argv)
                                 ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
                                  (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
                     }
-                } else if (suri->run_mode == RUNMODE_NETMAP) {
+                } else if (suricata.run_mode == RUNMODE_NETMAP) {
                     if (optarg) {
                         LiveRegisterDeviceName(optarg);
                     } else {
@@ -1868,7 +1868,7 @@ static TmEcode ParseCommandLine(int argc, char **argv)
                     ,
                     optarg);
 #endif /* have faster methods */
-            if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
+            if (ParseCommandLinePcapLive(&suricata, optarg) != TM_ECODE_OK) {
                 return TM_ECODE_FAILED;
             }
 #endif
@@ -2362,19 +2362,19 @@ static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
     return TM_ECODE_OK;
 }
 
-static int FinalizeRunMode(SCInstance *suri)
+int SCFinalizeRunMode(void)
 {
-    switch (suri->run_mode) {
+    switch (suricata.run_mode) {
         case RUNMODE_UNKNOWN:
-            PrintUsage(suri->progname);
+            PrintUsage(suricata.progname);
             return TM_ECODE_FAILED;
         default:
             break;
     }
     /* Set the global run mode and offline flag. */
-    run_mode = suri->run_mode;
+    run_mode = suricata.run_mode;
 
-    if (!CheckValidDaemonModes(suri->daemon, suri->run_mode)) {
+    if (!CheckValidDaemonModes(suricata.daemon, suricata.run_mode)) {
         return TM_ECODE_FAILED;
     }
 
@@ -2886,23 +2886,8 @@ void SuricataPreInit(const char *progname)
     }
 }
 
-void SuricataInit(int argc, char **argv)
+void SuricataInit(void)
 {
-    if (ParseCommandLine(argc, argv) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
-
-    if (FinalizeRunMode(&suricata) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
-
-    switch (StartInternalRunMode(&suricata, argc, argv)) {
-        case TM_ECODE_DONE:
-            exit(EXIT_SUCCESS);
-        case TM_ECODE_FAILED:
-            exit(EXIT_FAILURE);
-    }
-
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
     GlobalsInitPreConfig();
 
@@ -3075,8 +3060,23 @@ int SuricataMain(int argc, char **argv)
     }
 #endif /* OS_WIN32 */
 
-    /* Initialization tasks: parse command line options, load yaml, start runmode... */
-    SuricataInit(argc, argv);
+    if (SCParseCommandLine(argc, argv) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (SCFinalizeRunMode() != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
+    switch (StartInternalRunMode(&suricata, argc, argv)) {
+        case TM_ECODE_DONE:
+            exit(EXIT_SUCCESS);
+        case TM_ECODE_FAILED:
+            exit(EXIT_FAILURE);
+    }
+
+    /* Initialization tasks: Loading config, setup logging */
+    SuricataInit();
 
     /* Post-initialization tasks: wait on thread start/running and get ready fpr the main loop. */
     SuricataPostInit();
