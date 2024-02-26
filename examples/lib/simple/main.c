@@ -30,6 +30,16 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    /* Handle internal runmodes. Typically you wouldn't do this as a
+     * library user, however this example is showing how to replicate
+     * the Suricata application with the library. */
+    switch (SCStartInternalRunMode(argc, argv)) {
+        case TM_ECODE_DONE:
+            exit(EXIT_SUCCESS);
+        case TM_ECODE_FAILED:
+            exit(EXIT_FAILURE);
+    }
+
     SuricataInit();
     SuricataPostInit();
 

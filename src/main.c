@@ -19,5 +19,42 @@
 
 int main(int argc, char **argv)
 {
-    return SuricataMain(argc, argv);
+    /* Pre-initialization tasks: initialize global context and variables. */
+    SuricataPreInit(argv[0]);
+
+#ifdef OS_WIN32
+    /* service initialization */
+    if (WindowsInitService(argc, argv) != 0) {
+        exit(EXIT_FAILURE);
+    }
+#endif /* OS_WIN32 */
+
+    if (SCParseCommandLine(argc, argv) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (SCFinalizeRunMode() != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
+    switch (SCStartInternalRunMode(argc, argv)) {
+        case TM_ECODE_DONE:
+            exit(EXIT_SUCCESS);
+        case TM_ECODE_FAILED:
+            exit(EXIT_FAILURE);
+    }
+
+    /* Initialization tasks: Loading config, setup logging */
+    SuricataInit();
+
+    /* Post-initialization tasks: wait on thread start/running and get ready for the main loop. */
+    SuricataPostInit();
+
+    SuricataMainLoop();
+
+    /* Shutdown engine. */
+    SuricataShutdown();
+    GlobalsDestroy();
+
+    exit(EXIT_SUCCESS);
 }
