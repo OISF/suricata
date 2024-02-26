@@ -3,6 +3,7 @@
 int main(int argc, char **argv)
 {
     SuricataPreInit(argv[0]);
+
     SuricataInit(argc, argv);
     SuricataPostInit();
 
