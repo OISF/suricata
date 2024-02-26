@@ -3753,6 +3753,11 @@
                         "error": {
                             "type": "object",
                             "properties": {
+                                "exception_policy": {
+                                    "description":
+                                            "Consolidated stats on how many times app-layer error exception policy was applied, and which one",
+                                    "$ref": "#/$defs/exceptionPolicy"
+                                },
                                 "bittorrent-dht": {
                                     "description":
                                             "Errors encountered parsing BitTorrent DHT protocol",
@@ -5691,6 +5696,11 @@
                 "internal": {
                     "description": "Number of internal parser errors",
                     "type": "integer"
+                },
+                "exception_policy": {
+                    "description":
+                            "How many times app-layer error exception policy was applied, and which one",
+                    "$ref": "#/$defs/exceptionPolicy"
                 }
             },
             "additionalProperties": false
