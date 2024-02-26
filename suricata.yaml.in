@@ -74,6 +74,9 @@ stats:
   #decoder-events-prefix: "decoder.event"
   # Add stream events as stats.
   #stream-events: false
+  exception-policy:
+    #per-app-proto-errors: false  # default: false. True will log errors for
+                                  # each app-proto. Warning: VERY verbose
 
 # Plugins -- Experimental -- specify the filename for each plugin shared object
 plugins:

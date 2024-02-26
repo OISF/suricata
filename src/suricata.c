@@ -215,6 +215,9 @@ bool g_disable_hashing = false;
 /* snapshot of the system's hugepages before system intitialization. */
 SystemHugepageSnapshot *prerun_snap = NULL;
 
+/** add per-proto app-layer error counters for exception policies stats? disabled by default */
+bool g_stats_eps_per_app_proto_errors = false;
+
 /** Suricata instance */
 SCInstance suricata;
 
@@ -2697,6 +2700,13 @@ int PostConfLoadedSetup(SCInstance *suri)
     }
 
     SetMasterExceptionPolicy();
+
+    ConfNode *eps = ConfGetNode("stats.exception-policy");
+    if (eps != NULL) {
+        if (ConfNodeChildValueIsTrue(eps, "per-app-proto-errors")) {
+            g_stats_eps_per_app_proto_errors = true;
+        }
+    }
 
     AppLayerSetup();
 
