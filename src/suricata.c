@@ -1308,7 +1308,7 @@ static bool IsLogDirectoryWritable(const char* str)
 
 extern int g_skip_prefilter;
 
-static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
+static TmEcode ParseCommandLine(int argc, char **argv)
 {
     int opt;
 
@@ -1461,21 +1461,21 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif /* HAVE_PFRING */
             }
             else if (strcmp((long_opts[option_index]).name , "capture-plugin") == 0){
-                suri->run_mode = RUNMODE_PLUGIN;
-                suri->capture_plugin_name = optarg;
+                suricata.run_mode = RUNMODE_PLUGIN;
+                suricata.capture_plugin_name = optarg;
             }
             else if (strcmp((long_opts[option_index]).name , "capture-plugin-args") == 0){
-                suri->capture_plugin_args = optarg;
+                suricata.capture_plugin_args = optarg;
             } else if (strcmp((long_opts[option_index]).name, "dpdk") == 0) {
-                if (ParseCommandLineDpdk(suri, optarg) != TM_ECODE_OK) {
+                if (ParseCommandLineDpdk(&suricata, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
             } else if (strcmp((long_opts[option_index]).name, "af-packet") == 0) {
-                if (ParseCommandLineAfpacket(suri, optarg) != TM_ECODE_OK) {
+                if (ParseCommandLineAfpacket(&suricata, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
             } else if (strcmp((long_opts[option_index]).name, "af-xdp") == 0) {
-                if (ParseCommandLineAfxdp(suri, optarg) != TM_ECODE_OK) {
+                if (ParseCommandLineAfxdp(&suricata, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
             } else if (strcmp((long_opts[option_index]).name, "netmap") == 0) {
@@ -1517,7 +1517,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 return TM_ECODE_FAILED;
 #endif /* HAVE_NFLOG */
             } else if (strcmp((long_opts[option_index]).name, "pcap") == 0) {
-                if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
+                if (ParseCommandLinePcapLive(&suricata, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
             } else if (strcmp((long_opts[option_index]).name, "simulate-ips") == 0) {
@@ -1530,8 +1530,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 }
 #ifdef BUILD_UNIX_SOCKET
             } else if (strcmp((long_opts[option_index]).name , "unix-socket") == 0) {
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_UNIX_SOCKET;
+                if (suricata.run_mode == RUNMODE_UNKNOWN) {
+                    suricata.run_mode = RUNMODE_UNIX_SOCKET;
                     if (optarg) {
                         if (ConfSetFinal("unix-command.filename", optarg) != 1) {
                             SCLogError("failed to set unix-command.filename");
@@ -1552,49 +1552,49 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if(strcmp((long_opts[option_index]).name, "list-unittests") == 0) {
 #ifdef UNITTESTS
-                suri->run_mode = RUNMODE_LIST_UNITTEST;
+                suricata.run_mode = RUNMODE_LIST_UNITTEST;
 #else
                 SCLogError("unit tests not enabled. Make sure to pass --enable-unittests to "
                            "configure when building");
                 return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
             } else if (strcmp((long_opts[option_index]).name, "list-runmodes") == 0) {
-                suri->run_mode = RUNMODE_LIST_RUNMODES;
+                suricata.run_mode = RUNMODE_LIST_RUNMODES;
                 return TM_ECODE_OK;
             } else if (strcmp((long_opts[option_index]).name, "list-keywords") == 0) {
                 if (optarg) {
                     if (strcmp("short",optarg)) {
-                        suri->keyword_info = optarg;
+                        suricata.keyword_info = optarg;
                     }
                 }
             } else if (strcmp((long_opts[option_index]).name, "runmode") == 0) {
-                suri->runmode_custom_mode = optarg;
+                suricata.runmode_custom_mode = optarg;
             } else if(strcmp((long_opts[option_index]).name, "engine-analysis") == 0) {
                 // do nothing for now
             }
 #ifdef OS_WIN32
             else if(strcmp((long_opts[option_index]).name, "service-install") == 0) {
-                suri->run_mode = RUNMODE_INSTALL_SERVICE;
+                suricata.run_mode = RUNMODE_INSTALL_SERVICE;
                 return TM_ECODE_OK;
             }
             else if(strcmp((long_opts[option_index]).name, "service-remove") == 0) {
-                suri->run_mode = RUNMODE_REMOVE_SERVICE;
+                suricata.run_mode = RUNMODE_REMOVE_SERVICE;
                 return TM_ECODE_OK;
             }
             else if(strcmp((long_opts[option_index]).name, "service-change-params") == 0) {
-                suri->run_mode = RUNMODE_CHANGE_SERVICE_PARAMS;
+                suricata.run_mode = RUNMODE_CHANGE_SERVICE_PARAMS;
                 return TM_ECODE_OK;
             }
 #endif /* OS_WIN32 */
             else if(strcmp((long_opts[option_index]).name, "pidfile") == 0) {
-                suri->pid_filename = SCStrdup(optarg);
-                if (suri->pid_filename == NULL) {
+                suricata.pid_filename = SCStrdup(optarg);
+                if (suricata.pid_filename == NULL) {
                     SCLogError("strdup failed: %s", strerror(errno));
                     return TM_ECODE_FAILED;
                 }
             }
             else if(strcmp((long_opts[option_index]).name, "disable-detection") == 0) {
-                g_detect_disabled = suri->disabled_detect = 1;
+                g_detect_disabled = suricata.disabled_detect = 1;
             } else if (strcmp((long_opts[option_index]).name, "disable-hashing") == 0) {
                 g_disable_hashing = true;
             } else if (strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
@@ -1611,8 +1611,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                            " drop privileges, but it was not compiled into Suricata.");
                 return TM_ECODE_FAILED;
 #else
-                suri->user_name = optarg;
-                suri->do_setuid = true;
+                suricata.user_name = optarg;
+                suricata.do_setuid = true;
 #endif /* HAVE_LIBCAP_NG */
             } else if (strcmp((long_opts[option_index]).name, "group") == 0) {
 #ifndef HAVE_LIBCAP_NG
@@ -1620,21 +1620,20 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                            " drop privileges, but it was not compiled into Suricata.");
                 return TM_ECODE_FAILED;
 #else
-                suri->group_name = optarg;
-                suri->do_setgid = true;
+                suricata.group_name = optarg;
+                suricata.do_setgid = true;
 #endif /* HAVE_LIBCAP_NG */
             } else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
-                suri->run_mode = RUNMODE_ERF_FILE;
+                suricata.run_mode = RUNMODE_ERF_FILE;
                 if (ConfSetFinal("erf-file.file", optarg) != 1) {
                     SCLogError("failed to set erf-file.file");
                     return TM_ECODE_FAILED;
                 }
             } else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
 #ifdef HAVE_DAG
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_DAG;
-                }
-                else if (suri->run_mode != RUNMODE_DAG) {
+                if (suricata.run_mode == RUNMODE_UNKNOWN) {
+                    suricata.run_mode = RUNMODE_DAG;
+                } else if (suricata.run_mode != RUNMODE_DAG) {
                     SCLogError("more than one run mode has been specified");
                     PrintUsage(argv[0]);
                     return TM_ECODE_FAILED;
@@ -1647,7 +1646,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif /* HAVE_DAG */
             } else if (strcmp((long_opts[option_index]).name, "napatech") == 0) {
 #ifdef HAVE_NAPATECH
-                suri->run_mode = RUNMODE_NAPATECH;
+                suricata.run_mode = RUNMODE_NAPATECH;
 #else
                 SCLogError("libntapi and a Napatech adapter are required"
                            " to capture packets using --napatech.");
@@ -1664,16 +1663,16 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                            " doesn't support setting buffer size.");
 #endif /* HAVE_PCAP_SET_BUFF */
             } else if (strcmp((long_opts[option_index]).name, "build-info") == 0) {
-                suri->run_mode = RUNMODE_PRINT_BUILDINFO;
+                suricata.run_mode = RUNMODE_PRINT_BUILDINFO;
                 return TM_ECODE_OK;
             } else if (strcmp((long_opts[option_index]).name, "windivert-forward") == 0) {
 #ifdef WINDIVERT
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_WINDIVERT;
+                if (suricata.run_mode == RUNMODE_UNKNOWN) {
+                    suricata.run_mode = RUNMODE_WINDIVERT;
                     if (WinDivertRegisterQueue(true, optarg) == -1) {
                         exit(EXIT_FAILURE);
                     }
-                } else if (suri->run_mode == RUNMODE_WINDIVERT) {
+                } else if (suricata.run_mode == RUNMODE_WINDIVERT) {
                     if (WinDivertRegisterQueue(true, optarg) == -1) {
                         exit(EXIT_FAILURE);
                     }
@@ -1685,12 +1684,12 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 }
             }
             else if(strcmp((long_opts[option_index]).name, "windivert") == 0) {
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_WINDIVERT;
+                if (suricata.run_mode == RUNMODE_UNKNOWN) {
+                    suricata.run_mode = RUNMODE_WINDIVERT;
                     if (WinDivertRegisterQueue(false, optarg) == -1) {
                         exit(EXIT_FAILURE);
                     }
-                } else if (suri->run_mode == RUNMODE_WINDIVERT) {
+                } else if (suricata.run_mode == RUNMODE_WINDIVERT) {
                     if (WinDivertRegisterQueue(false, optarg) == -1) {
                         exit(EXIT_FAILURE);
                     }
@@ -1767,39 +1766,39 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                             optarg, optarg);
                     return TM_ECODE_FAILED;
                 }
-                suri->set_datadir = true;
+                suricata.set_datadir = true;
             } else if (strcmp((long_opts[option_index]).name , "strict-rule-keywords") == 0){
                 if (optarg == NULL) {
-                    suri->strict_rule_parsing_string = SCStrdup("all");
+                    suricata.strict_rule_parsing_string = SCStrdup("all");
                 } else {
-                    suri->strict_rule_parsing_string = SCStrdup(optarg);
+                    suricata.strict_rule_parsing_string = SCStrdup(optarg);
                 }
-                if (suri->strict_rule_parsing_string == NULL) {
+                if (suricata.strict_rule_parsing_string == NULL) {
                     FatalError("failed to duplicate 'strict' string");
                 }
             } else if (strcmp((long_opts[option_index]).name, "include") == 0) {
-                if (suri->additional_configs == NULL) {
-                    suri->additional_configs = SCCalloc(2, sizeof(char *));
-                    if (suri->additional_configs == NULL) {
+                if (suricata.additional_configs == NULL) {
+                    suricata.additional_configs = SCCalloc(2, sizeof(char *));
+                    if (suricata.additional_configs == NULL) {
                         FatalError(
                                 "Failed to allocate memory for additional configuration files: %s",
                                 strerror(errno));
                     }
-                    suri->additional_configs[0] = optarg;
+                    suricata.additional_configs[0] = optarg;
                 } else {
                     for (int i = 0;; i++) {
-                        if (suri->additional_configs[i] == NULL) {
-                            const char **additional_configs =
-                                    SCRealloc(suri->additional_configs, (i + 2) * sizeof(char *));
+                        if (suricata.additional_configs[i] == NULL) {
+                            const char **additional_configs = SCRealloc(
+                                    suricata.additional_configs, (i + 2) * sizeof(char *));
                             if (additional_configs == NULL) {
                                 FatalError("Failed to allocate memory for additional configuration "
                                            "files: %s",
                                         strerror(errno));
                             } else {
-                                suri->additional_configs = additional_configs;
+                                suricata.additional_configs = additional_configs;
                             }
-                            suri->additional_configs[i] = optarg;
-                            suri->additional_configs[i + 1] = NULL;
+                            suricata.additional_configs[i] = optarg;
+                            suricata.additional_configs[i + 1] = NULL;
                             break;
                         }
                     }
@@ -1812,7 +1811,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             break;
         case 'c':
-            suri->conf_filename = optarg;
+            suricata.conf_filename = optarg;
             break;
         case 'T':
             conf_test = 1;
@@ -1823,11 +1822,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             break;
 #ifndef OS_WIN32
         case 'D':
-            suri->daemon = 1;
+            suricata.daemon = 1;
             break;
 #endif /* OS_WIN32 */
         case 'h':
-            suri->run_mode = RUNMODE_PRINT_USAGE;
+            suricata.run_mode = RUNMODE_PRINT_USAGE;
             return TM_ECODE_OK;
         case 'i':
             if (optarg == NULL) {
@@ -1835,7 +1834,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 return TM_ECODE_FAILED;
             }
 #ifdef HAVE_AF_PACKET
-            if (ParseCommandLineAfpacket(suri, optarg) != TM_ECODE_OK) {
+            if (ParseCommandLineAfpacket(&suricata, optarg) != TM_ECODE_OK) {
                 return TM_ECODE_FAILED;
             }
 #else /* not afpacket */
@@ -1898,17 +1897,17 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                         optarg, optarg);
                 return TM_ECODE_FAILED;
             }
-            suri->set_logdir = true;
+            suricata.set_logdir = true;
 
             break;
         case 'q':
 #ifdef NFQ
-            if (suri->run_mode == RUNMODE_UNKNOWN) {
-                suri->run_mode = RUNMODE_NFQ;
+            if (suricata.run_mode == RUNMODE_UNKNOWN) {
+                suricata.run_mode = RUNMODE_NFQ;
                 EngineModeSetIPS();
                 if (NFQParseAndRegisterQueues(optarg) == -1)
                     return TM_ECODE_FAILED;
-            } else if (suri->run_mode == RUNMODE_NFQ) {
+            } else if (suricata.run_mode == RUNMODE_NFQ) {
                 if (NFQParseAndRegisterQueues(optarg) == -1)
                     return TM_ECODE_FAILED;
             } else {
@@ -1925,12 +1924,12 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             break;
         case 'd':
 #ifdef IPFW
-            if (suri->run_mode == RUNMODE_UNKNOWN) {
-                suri->run_mode = RUNMODE_IPFW;
+            if (suricata.run_mode == RUNMODE_UNKNOWN) {
+                suricata.run_mode = RUNMODE_IPFW;
                 EngineModeSetIPS();
                 if (IPFWRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
-            } else if (suri->run_mode == RUNMODE_IPFW) {
+            } else if (suricata.run_mode == RUNMODE_IPFW) {
                 if (IPFWRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
             } else {
@@ -1947,8 +1946,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             break;
         case 'r':
             BUG_ON(optarg == NULL); /* for static analysis */
-            if (suri->run_mode == RUNMODE_UNKNOWN) {
-                suri->run_mode = RUNMODE_PCAP_FILE;
+            if (suricata.run_mode == RUNMODE_UNKNOWN) {
+                suricata.run_mode = RUNMODE_PCAP_FILE;
             } else {
                 SCLogError("more than one run mode "
                            "has been specified");
@@ -1967,24 +1966,24 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 
             break;
         case 's':
-            if (suri->sig_file != NULL) {
+            if (suricata.sig_file != NULL) {
                 SCLogError("can't have multiple -s options or mix -s and -S.");
                 return TM_ECODE_FAILED;
             }
-            suri->sig_file = optarg;
+            suricata.sig_file = optarg;
             break;
         case 'S':
-            if (suri->sig_file != NULL) {
+            if (suricata.sig_file != NULL) {
                 SCLogError("can't have multiple -S options or mix -s and -S.");
                 return TM_ECODE_FAILED;
             }
-            suri->sig_file = optarg;
-            suri->sig_file_exclusive = true;
+            suricata.sig_file = optarg;
+            suricata.sig_file_exclusive = true;
             break;
         case 'u':
 #ifdef UNITTESTS
-            if (suri->run_mode == RUNMODE_UNKNOWN) {
-                suri->run_mode = RUNMODE_UNITTEST;
+            if (suricata.run_mode == RUNMODE_UNKNOWN) {
+                suricata.run_mode = RUNMODE_UNITTEST;
             } else {
                 SCLogError("more than one run mode has"
                            " been specified");
@@ -1999,14 +1998,14 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             break;
         case 'U':
 #ifdef UNITTESTS
-            suri->regex_arg = optarg;
+            suricata.regex_arg = optarg;
 
-            if(strlen(suri->regex_arg) == 0)
-                suri->regex_arg = NULL;
+            if (strlen(suricata.regex_arg) == 0)
+                suricata.regex_arg = NULL;
 #endif
             break;
         case 'V':
-            suri->run_mode = RUNMODE_PRINT_VERSION;
+            suricata.run_mode = RUNMODE_PRINT_VERSION;
             return TM_ECODE_OK;
         case 'F':
             if (optarg == NULL) {
@@ -2017,7 +2016,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             SetBpfStringFromFile(optarg);
             break;
         case 'v':
-            suri->verbose++;
+            suricata.verbose++;
             break;
         case 'k':
             if (optarg == NULL) {
@@ -2025,9 +2024,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 return TM_ECODE_FAILED;
             }
             if (!strcmp("all", optarg))
-                suri->checksum_validation = 1;
+                suricata.checksum_validation = 1;
             else if (!strcmp("none", optarg))
-                suri->checksum_validation = 0;
+                suricata.checksum_validation = 0;
             else {
                 SCLogError("option '%s' invalid for -k", optarg);
                 return TM_ECODE_FAILED;
@@ -2039,31 +2038,31 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         }
     }
 
-    if (suri->disabled_detect && suri->sig_file != NULL) {
+    if (suricata.disabled_detect && suricata.sig_file != NULL) {
         SCLogError("can't use -s/-S when detection is disabled");
         return TM_ECODE_FAILED;
     }
 
     /* save the runmode from the command-line (if any) */
-    suri->aux_run_mode = suri->run_mode;
+    suricata.aux_run_mode = suricata.run_mode;
 
     if (list_app_layer_protocols)
-        suri->run_mode = RUNMODE_LIST_APP_LAYERS;
+        suricata.run_mode = RUNMODE_LIST_APP_LAYERS;
     if (list_keywords)
-        suri->run_mode = RUNMODE_LIST_KEYWORDS;
+        suricata.run_mode = RUNMODE_LIST_KEYWORDS;
     if (list_unittests)
-        suri->run_mode = RUNMODE_LIST_UNITTEST;
+        suricata.run_mode = RUNMODE_LIST_UNITTEST;
     if (dump_config)
-        suri->run_mode = RUNMODE_DUMP_CONFIG;
+        suricata.run_mode = RUNMODE_DUMP_CONFIG;
     if (dump_features)
-        suri->run_mode = RUNMODE_DUMP_FEATURES;
+        suricata.run_mode = RUNMODE_DUMP_FEATURES;
     if (conf_test)
-        suri->run_mode = RUNMODE_CONF_TEST;
+        suricata.run_mode = RUNMODE_CONF_TEST;
     if (engine_analysis)
-        suri->run_mode = RUNMODE_ENGINE_ANALYSIS;
+        suricata.run_mode = RUNMODE_ENGINE_ANALYSIS;
 
-    suri->offline = IsRunModeOffline(suri->run_mode);
-    g_system = suri->system = IsRunModeSystem(suri->run_mode);
+    suricata.offline = IsRunModeOffline(suricata.run_mode);
+    g_system = suricata.system = IsRunModeSystem(suricata.run_mode);
 
     ret = SetBpfString(optind, argv);
     if (ret != TM_ECODE_OK)
@@ -2889,7 +2888,7 @@ void SuricataPreInit(const char *progname)
 
 void SuricataInit(int argc, char **argv)
 {
-    if (ParseCommandLine(argc, argv, &suricata) != TM_ECODE_OK) {
+    if (ParseCommandLine(argc, argv) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
