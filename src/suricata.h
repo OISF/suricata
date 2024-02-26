@@ -194,7 +194,6 @@ extern int run_mode;
 void SuricataPreInit(const char *progname);
 void SuricataInit(void);
 void SuricataPostInit(void);
-int SuricataMain(int argc, char **argv);
 void SuricataMainLoop(void);
 void SuricataShutdown(void);
 int InitGlobal(void);
@@ -203,11 +202,16 @@ int PostConfLoadedSetup(SCInstance *suri);
 void PostConfLoadedDetectSetup(SCInstance *suri);
 int SCFinalizeRunMode(void);
 TmEcode SCParseCommandLine(int argc, char **argv);
+int SCStartInternalRunMode(int argc, char **argv);
 
 void PreRunInit(const int runmode);
 void PreRunPostPrivsDropInit(const int runmode);
 void PostRunDeinit(const int runmode, struct timeval *start_time);
 void RegisterAllModules(void);
+
+#ifdef OS_WIN32
+int WindowsInitService(int argc, char **argv);
+#endif
 
 const char *GetProgramVersion(void);
 
