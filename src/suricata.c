@@ -1312,8 +1312,9 @@ static bool IsLogDirectoryWritable(const char* str)
 
 extern int g_skip_prefilter;
 
-static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
+static TmEcode ParseCommandLine(int argc, char **argv)
 {
+    SCInstance *suri = &suricata;
     int opt;
 
     int dump_config = 0;
@@ -2899,7 +2900,7 @@ void SuricataPreInit(const char *progname)
 
 void SuricataInit(int argc, char **argv)
 {
-    if (ParseCommandLine(argc, argv, &suricata) != TM_ECODE_OK) {
+    if (ParseCommandLine(argc, argv) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
