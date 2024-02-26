@@ -20,7 +20,17 @@
 int main(int argc, char **argv)
 {
     SuricataPreInit(argv[0]);
-    SuricataInit(argc, argv);
+
+    /* Parse command line options. This is optional, you could
+     * directly configure Suricata through the Conf API. */
+    SCParseCommandLine(argc, argv);
+
+    /* Validate/finalize the runmode. */
+    if (SCFinalizeRunMode() != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
+    SuricataInit();
     SuricataPostInit();
 
     /* Suricata is now running, but we enter a loop to keep it running
