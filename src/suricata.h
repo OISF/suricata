@@ -192,7 +192,7 @@ int SuriHasSigFile(void);
 extern int run_mode;
 
 void SuricataPreInit(const char *progname);
-void SuricataInit(int argc, char **argv);
+void SuricataInit(void);
 void SuricataPostInit(void);
 int SuricataMain(int argc, char **argv);
 void SuricataMainLoop(void);
@@ -201,6 +201,8 @@ int InitGlobal(void);
 void GlobalsDestroy(void);
 int PostConfLoadedSetup(SCInstance *suri);
 void PostConfLoadedDetectSetup(SCInstance *suri);
+int SCFinalizeRunMode(void);
+TmEcode SCParseCommandLine(int argc, char **argv);
 
 void PreRunInit(const int runmode);
 void PreRunPostPrivsDropInit(const int runmode);
