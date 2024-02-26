@@ -44,5 +44,7 @@ int DetectFlowSetupImplicit(Signature *s, uint32_t flags);
 /* prototypes */
 void DetectFlowRegister (void);
 
+void DetectBidirRegister(void);
+
 #endif /* __DETECT_FLOW_H__ */
 

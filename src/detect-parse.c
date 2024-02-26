@@ -1951,6 +1951,9 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     } bufdir[nlists + 1];
     memset(&bufdir, 0, (nlists + 1) * sizeof(struct BufferVsDir));
 
+    int ts_excl = 0;
+    int tc_excl = 0;
+
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         SignatureInitDataBuffer *b = &s->init_data->buffers[x];
         const DetectBufferType *bt = DetectEngineBufferTypeGetById(de_ctx, b->id);
@@ -1988,8 +1991,16 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                         DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list), app->dir,
                         app->alproto);
                 SCLogDebug("b->id %d nlists %d", b->id, nlists);
-                bufdir[b->id].ts += (app->dir == 0);
-                bufdir[b->id].tc += (app->dir == 1);
+                if (b->only_tc) {
+                    if (app->dir == 1)
+                        tc_excl++;
+                } else if (b->only_ts) {
+                    if (app->dir == 0)
+                        ts_excl++;
+                } else {
+                    bufdir[b->id].ts += (app->dir == 0);
+                    bufdir[b->id].tc += (app->dir == 1);
+                }
             }
         }
 
@@ -2002,8 +2013,6 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    int ts_excl = 0;
-    int tc_excl = 0;
     int dir_amb = 0;
     for (int x = 0; x < nlists; x++) {
         if (bufdir[x].ts == 0 && bufdir[x].tc == 0)
