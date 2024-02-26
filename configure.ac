@@ -219,6 +219,11 @@
         [], [
             #include <sys/random.h> 
             ])
+    AC_CHECK_DECL([_popcnt64],
+        AC_DEFINE([HAVE_POPCNT64], [1], [Use _popcnt64]),
+        [], [
+            #include <x86intrin.h> 
+            ])
 
     AC_CHECK_HEADERS([malloc.h])
     AC_CHECK_DECL([malloc_trim],
