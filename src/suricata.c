@@ -1312,7 +1312,7 @@ static bool IsLogDirectoryWritable(const char* str)
 
 extern int g_skip_prefilter;
 
-static TmEcode ParseCommandLine(int argc, char **argv)
+TmEcode SCParseCommandLine(int argc, char **argv)
 {
     SCInstance *suri = &suricata;
     int opt;
@@ -2368,8 +2368,9 @@ static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
     return TM_ECODE_OK;
 }
 
-static int FinalizeRunMode(SCInstance *suri)
+int SCFinalizeRunMode(void)
 {
+    SCInstance *suri = &suricata;
     switch (suri->run_mode) {
         case RUNMODE_UNKNOWN:
             PrintUsage(suri->progname);
@@ -2898,23 +2899,8 @@ void SuricataPreInit(const char *progname)
     }
 }
 
-void SuricataInit(int argc, char **argv)
+void SuricataInit(void)
 {
-    if (ParseCommandLine(argc, argv) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
-
-    if (FinalizeRunMode(&suricata) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
-
-    switch (StartInternalRunMode(&suricata, argc, argv)) {
-        case TM_ECODE_DONE:
-            exit(EXIT_SUCCESS);
-        case TM_ECODE_FAILED:
-            exit(EXIT_FAILURE);
-    }
-
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
     GlobalsInitPreConfig();
 
@@ -3087,8 +3073,23 @@ int SuricataMain(int argc, char **argv)
     }
 #endif /* OS_WIN32 */
 
-    /* Initialization tasks: parse command line options, load yaml, start runmode... */
-    SuricataInit(argc, argv);
+    if (SCParseCommandLine(argc, argv) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (SCFinalizeRunMode() != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
+    switch (StartInternalRunMode(&suricata, argc, argv)) {
+        case TM_ECODE_DONE:
+            exit(EXIT_SUCCESS);
+        case TM_ECODE_FAILED:
+            exit(EXIT_FAILURE);
+    }
+
+    /* Initialization tasks: Loading config, setup logging */
+    SuricataInit();
 
     /* Post-initialization tasks: wait on thread start/running and get ready for the main loop. */
     SuricataPostInit();
