@@ -267,12 +267,18 @@ And it will match on a full transaction, using both the uri from the request,
 and the stat_code from the response.
 As such, it will match only when Suricata got both request and response.
 
+Bidirectional rules can use direction-abmibuous keywords, by first using
+``bidir.toclient`` or ``bidir.toserver`` keywords.
+
+.. container:: example-rule
+
+    alert http any any => 5.6.7.8 80 (msg:"matching json to server and xml to client"; sid: 1;  :example-rule-emphasis:`bidir.toserver;` http.content_type; content: "json";  :example-rule-emphasis:`bidir.toclient;` http.content_type; content: "xml";)
+
 Bidirectional rules have some limitations :
 - They are only meant to work on transactions with first a request to the server,
 and then a response to the client, and not the other way around.
 - They cannot have ``fast_pattern`` or ``prefilter`` on a keyword which is on
 the direction to client.
-- They will not work with ambiguous keywords, which work for both directions.
 - They will refuse to load if a single directional rule is enough.
 
 Rule options
