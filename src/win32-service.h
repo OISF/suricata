@@ -28,7 +28,7 @@
 int SCRunningAsService(void);
 int SCServiceInit(int argc, char **argv);
 int SCServiceInstall(int argc, char **argv);
-int SCServiceRemove(int argc, char **argv);
+int SCServiceRemove(void);
 int SCServiceChangeParams(int argc, char **argv);
 #endif /* OS_WIN32 */
 
