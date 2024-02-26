@@ -44,4 +44,6 @@ int DetectFlowSetupImplicit(Signature *s, uint32_t flags);
 /* prototypes */
 void DetectFlowRegister (void);
 
+void DetectBidirRegister(void);
+
 #endif /* SURICATA_DETECT_FLOW_H */

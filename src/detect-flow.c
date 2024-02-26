@@ -79,6 +79,48 @@ void DetectFlowRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
+static int DetectBidirToClientSetup(DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
+{
+    if (!(s->flags & SIG_FLAG_BOTHDIR)) {
+        SCLogError("Cannot have bidir keyword in a non bidirectional signature");
+        return -1;
+    }
+    s->init_data->init_flags |= SIG_FLAG_INIT_BIDIR_TOCLIENT;
+    s->init_data->init_flags &= ~SIG_FLAG_INIT_BIDIR_TOSERVER;
+    return 0;
+}
+
+static int DetectBidirToServerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
+{
+    if (!(s->flags & SIG_FLAG_BOTHDIR)) {
+        SCLogError("Cannot have bidir keyword in a non bidirectional signature");
+        return -1;
+    }
+    s->init_data->init_flags |= SIG_FLAG_INIT_BIDIR_TOSERVER;
+    s->init_data->init_flags &= ~SIG_FLAG_INIT_BIDIR_TOCLIENT;
+    return 0;
+}
+
+/**
+ * \brief Registration function for flow: keyword
+ */
+void DetectBidirRegister(void)
+{
+    sigmatch_table[DETECT_BIDIR_TOCLIENT].name = "bidir.toclient";
+    sigmatch_table[DETECT_BIDIR_TOCLIENT].desc =
+            "match next keywords only toclient side for bidirectional rules";
+    sigmatch_table[DETECT_BIDIR_TOCLIENT].url = "/rules/flow-keywords.html#TODO";
+    sigmatch_table[DETECT_BIDIR_TOCLIENT].Setup = DetectBidirToClientSetup;
+    sigmatch_table[DETECT_BIDIR_TOCLIENT].flags |= SIGMATCH_NOOPT;
+
+    sigmatch_table[DETECT_BIDIR_TOSERVER].name = "bidir.toserver";
+    sigmatch_table[DETECT_BIDIR_TOSERVER].desc =
+            "match next keywords only toclient side for bidirectional rules";
+    sigmatch_table[DETECT_BIDIR_TOSERVER].url = "/rules/flow-keywords.html#TODO";
+    sigmatch_table[DETECT_BIDIR_TOSERVER].Setup = DetectBidirToServerSetup;
+    sigmatch_table[DETECT_BIDIR_TOSERVER].flags |= SIGMATCH_NOOPT;
+}
+
 /**
  * \param pflags packet flags (p->flags)
  * \param pflowflags packet flow flags (p->flowflags)
