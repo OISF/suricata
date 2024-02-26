@@ -279,7 +279,7 @@ int SCServiceInstall(int argc, char **argv)
  * \param argc num of arguments
  * \param argv passed arguments
  */
-int SCServiceRemove(int argc, char **argv)
+int SCServiceRemove(void)
 {
     SERVICE_STATUS status;
     SC_HANDLE service = NULL;
