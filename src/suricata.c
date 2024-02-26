@@ -2349,7 +2349,7 @@ static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
             SCLogInfo("Suricata service has been successfully installed.");
             return TM_ECODE_DONE;
         case RUNMODE_REMOVE_SERVICE:
-            if (SCServiceRemove(argc, argv)) {
+            if (SCServiceRemove()) {
                 return TM_ECODE_FAILED;
             }
             SCLogInfo("Suricata service has been successfully removed.");
