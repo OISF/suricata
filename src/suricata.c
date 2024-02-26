@@ -2078,7 +2078,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 }
 
 #ifdef OS_WIN32
-static int WindowsInitService(int argc, char **argv)
+int WindowsInitService(int argc, char **argv)
 {
     if (SCRunningAsService()) {
         char path[MAX_PATH];
@@ -2312,11 +2312,11 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
 #endif
 }
 
-
-static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
+int SCStartInternalRunMode(int argc, char **argv)
 {
+    SCInstance *suri = &suricata;
     /* Treat internal running mode */
-    switch(suri->run_mode) {
+    switch (suri->run_mode) {
         case RUNMODE_LIST_KEYWORDS:
             return ListKeywords(suri->keyword_info);
         case RUNMODE_LIST_APP_LAYERS:
@@ -3059,46 +3059,4 @@ void SuricataPostInit(void)
         SystemHugepageSnapshotDestroy(postrun_snap);
     }
     SCPledge();
-}
-
-int SuricataMain(int argc, char **argv)
-{
-    /* Pre-initialization tasks: initialize global context and variables. */
-    SuricataPreInit(argv[0]);
-
-#ifdef OS_WIN32
-    /* service initialization */
-    if (WindowsInitService(argc, argv) != 0) {
-        exit(EXIT_FAILURE);
-    }
-#endif /* OS_WIN32 */
-
-    if (SCParseCommandLine(argc, argv) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
-
-    if (SCFinalizeRunMode() != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
-
-    switch (StartInternalRunMode(&suricata, argc, argv)) {
-        case TM_ECODE_DONE:
-            exit(EXIT_SUCCESS);
-        case TM_ECODE_FAILED:
-            exit(EXIT_FAILURE);
-    }
-
-    /* Initialization tasks: Loading config, setup logging */
-    SuricataInit();
-
-    /* Post-initialization tasks: wait on thread start/running and get ready for the main loop. */
-    SuricataPostInit();
-
-    SuricataMainLoop();
-
-    /* Shutdown engine. */
-    SuricataShutdown();
-    GlobalsDestroy();
-
-    exit(EXIT_SUCCESS);
 }
