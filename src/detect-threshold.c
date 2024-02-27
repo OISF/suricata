@@ -60,7 +60,12 @@
 #include "util-cpu.h"
 #endif
 
-#define PARSE_REGEX "^\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|\\d+)\\s*"
+#define PARSE_REGEX                                                                                \
+    "^\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_both|by_rule|by_"   \
+    "flow|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_dst|by_src|by_"     \
+    "both|by_rule|by_flow|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|threshold|by_"   \
+    "dst|by_src|by_both|by_rule|by_flow|\\d+)\\s*,\\s*(track|type|count|seconds)\\s+(limit|both|"  \
+    "threshold|by_dst|by_src|by_both|by_rule|by_flow|\\d+)\\s*"
 
 static DetectParseRegex parse_regex;
 
@@ -183,6 +188,8 @@ static DetectThresholdData *DetectThresholdParse(const char *rawstr)
             de->track = TRACK_BOTH;
         if (strncasecmp(args[i],"by_rule",strlen("by_rule")) == 0)
             de->track = TRACK_RULE;
+        if (strncasecmp(args[i], "by_flow", strlen("by_flow")) == 0)
+            de->track = TRACK_FLOW;
         if (strncasecmp(args[i],"count",strlen("count")) == 0)
             count_pos = i+1;
         if (strncasecmp(args[i],"seconds",strlen("seconds")) == 0)
@@ -342,6 +349,7 @@ error:
 #include "util-hashlist.h"
 #include "packet.h"
 #include "action-globals.h"
+
 /**
  * \test ThresholdTestParse01 is a test for a valid threshold options
  *
@@ -358,6 +366,18 @@ static int ThresholdTestParse01(void)
     }
 
     return 0;
+}
+
+static int ThresholdTestParseByFlow01(void)
+{
+    DetectThresholdData *de = DetectThresholdParse("type limit,track by_flow,count 1,seconds 60");
+    FAIL_IF_NULL(de);
+    FAIL_IF_NOT(de->type == TYPE_LIMIT);
+    FAIL_IF_NOT(de->track == TRACK_FLOW);
+    FAIL_IF_NOT(de->count == 1);
+    FAIL_IF_NOT(de->seconds == 60);
+    DetectThresholdFree(NULL, de);
+    PASS;
 }
 
 /**
@@ -1692,6 +1712,7 @@ static int DetectThresholdTestSig14(void)
 static void ThresholdRegisterTests(void)
 {
     UtRegisterTest("ThresholdTestParse01", ThresholdTestParse01);
+    UtRegisterTest("ThresholdTestParseByFlow01", ThresholdTestParseByFlow01);
     UtRegisterTest("ThresholdTestParse02", ThresholdTestParse02);
     UtRegisterTest("ThresholdTestParse03", ThresholdTestParse03);
     UtRegisterTest("ThresholdTestParse04", ThresholdTestParse04);

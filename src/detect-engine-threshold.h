@@ -51,4 +51,6 @@ int ThresholdHostTimeoutCheck(Host *, SCTime_t);
 int ThresholdIPPairTimeoutCheck(IPPair *, SCTime_t);
 void ThresholdListFree(void *ptr);
 
+void FlowThresholdVarFree(void *ptr);
+
 #endif /* __DETECT_ENGINE_THRESHOLD_H__ */

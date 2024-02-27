@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "detect.h"
+#include "detect-engine-threshold.h"
 
 #include "util-var.h"
 
@@ -65,6 +66,10 @@ void GenericVarFree(GenericVar *gv)
             XBit *fb = (XBit *)gv;
             //printf("GenericVarFree: fb %p, removing\n", fb);
             XBitFree(fb);
+            break;
+        }
+        case DETECT_THRESHOLD: {
+            FlowThresholdVarFree(gv);
             break;
         }
         case DETECT_FLOWVAR:
