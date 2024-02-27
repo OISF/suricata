@@ -200,6 +200,7 @@ static void *ParsePfringConfig(const char *iface)
     cluster_type default_ctype = CLUSTER_FLOW;
     int getctype = 0;
     int bool_val;
+    const char *active_runmode = RunmodeGetActive();
 
     if (unlikely(pfconf == NULL)) {
         return NULL;
@@ -244,7 +245,9 @@ static void *ParsePfringConfig(const char *iface)
         if_default = NULL;
     }
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
+    if (active_runmode && !strcmp("single", active_runmode)) {
+        pfconf->threads = 1;
+    } else if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
         pfconf->threads = 1;
     } else if (threadsstr != NULL) {
         if (strcmp(threadsstr, "auto") == 0) {
