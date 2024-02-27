@@ -79,7 +79,7 @@ void DetectFlowRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
-int DetectBidirToClientSetup(DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
+static int DetectBidirToClientSetup(DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
 {
     if (!(s->flags & SIG_FLAG_BOTHDIR)) {
         SCLogError("Cannot have bidir keyword in a non bidirectional signature");
@@ -90,7 +90,7 @@ int DetectBidirToClientSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
     return 0;
 }
 
-int DetectBidirToServerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
+static int DetectBidirToServerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
 {
     if (!(s->flags & SIG_FLAG_BOTHDIR)) {
         SCLogError("Cannot have bidir keyword in a non bidirectional signature");
