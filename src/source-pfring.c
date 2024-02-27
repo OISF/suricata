@@ -430,6 +430,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             }
         } else if (unlikely(r == 0)) {
             if (suricata_ctl_flags & SURICATA_STOP) {
+                TmqhOutputPacketpool(ptv->tv, p);
                 SCReturnInt(TM_ECODE_OK);
             }
 
