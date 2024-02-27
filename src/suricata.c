@@ -2672,6 +2672,10 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     MacSetRegisterFlowStorage();
 
+#ifdef HAVE_PLUGINS
+    SCPluginsLoad(suri->capture_plugin_name, suri->capture_plugin_args);
+#endif
+
     LiveDeviceFinalize(); // must be after EBPF extension registration
 
     RunModeEngineIsIPS(
@@ -2743,9 +2747,6 @@ int PostConfLoadedSetup(SCInstance *suri)
 
     FeatureTrackingRegister(); /* must occur prior to output mod registration */
     RegisterAllModules();
-#ifdef HAVE_PLUGINS
-    SCPluginsLoad(suri->capture_plugin_name, suri->capture_plugin_args);
-#endif
     AppLayerHtpNeedFileInspection();
 
     StorageFinalize();
