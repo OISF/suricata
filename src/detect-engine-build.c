@@ -1161,7 +1161,8 @@ static inline void SortGroupList(uint32_t *groups, DetectPort **list,
     if (cnt <= 1)
         return;
 
-    DetectPort *array[cnt];
+    DetectPort **array = (DetectPort **)SCCalloc(cnt, sizeof(DetectPort *));
+
     int idx = 0;
     for (DetectPort *x = *list; x != NULL;) {
         SigGroupHeadSetSigCnt(x->sh, 0);
@@ -1202,6 +1203,8 @@ static inline void SortGroupList(uint32_t *groups, DetectPort **list,
         BUG_ON(dbgcnt > cnt);
     }
 #endif
+    if (array != NULL)
+        SCFree(array);
 }
 /** \internal
  *  \brief Create a list of DetectPort objects sorted based on CompareFunc's
