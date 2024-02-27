@@ -195,6 +195,20 @@ static bool IsOverlap(const uint16_t port, const uint16_t port2, const SCInterva
     return false;
 }
 
+#define STACK_SIZE      100
+#define MAX_STACK_BLOCK 10
+
+static SCIntervalNode **StackRealloc(SCIntervalNode **ptr, uint8_t block_number)
+{
+    SCIntervalNode **rptr =
+            (SCIntervalNode **)SCRealloc(ptr, block_number * STACK_SIZE * sizeof(SCIntervalNode *));
+
+    if (rptr == NULL)
+        return NULL;
+
+    return rptr;
+}
+
 /**
  * \brief Function to find all the overlaps of given ports with the existing
  *        port ranges in the interval tree. This function takes in a low and
@@ -215,8 +229,9 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, const uint16_t port, const uin
 {
     DetectPort *new_port = NULL;
     int stack_depth = 0;
-    SCIntervalNode *stack[100], *current = root;
-    memset(&stack, 0, sizeof(stack));
+    SCIntervalNode **stack = (SCIntervalNode **)SCCalloc(STACK_SIZE, sizeof(SCIntervalNode *));
+    SCIntervalNode *current = root;
+    uint8_t cur_stack_block = 1;
 
     while (current || stack_depth) {
         while (current != NULL) {
@@ -261,6 +276,17 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, const uint16_t port, const uin
             }
 
             stack[stack_depth++] = current;
+            if ((stack_depth % STACK_SIZE) == 0) {
+                SCLogDebug("Stack depth was maxed out, realloc'ing..");
+                cur_stack_block++;
+                if (cur_stack_block > MAX_STACK_BLOCK) {
+                    FatalError("Can't realloc. Stack requested was too big.");
+                }
+                stack = StackRealloc(stack, cur_stack_block);
+                if (stack == NULL) {
+                    FatalError("Couldn't realloc the interval tree stack");
+                }
+            }
             current = IRB_LEFT(current, irb);
         }
 
@@ -276,10 +302,14 @@ static void FindOverlaps(DetectEngineCtx *de_ctx, const uint16_t port, const uin
     }
     if (new_port != NULL)
         SanitizePortList(de_ctx, list);
+    if (stack != NULL)
+        SCFree(stack);
     return;
 error:
     if (new_port != NULL)
         DetectPortFree(de_ctx, new_port);
+    if (stack != NULL)
+        SCFree(stack);
     return;
 }
 
