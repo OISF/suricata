@@ -194,9 +194,8 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
 
     SCLogDebug("ff %p, data %p, data_len %u", ff, data, data_len);
 
-    snprintf(filename, sizeof(filename), "%s/file.%u", ctx->tmpdir, ff->file_store_id);
-
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
+        snprintf(filename, sizeof(filename), "%s/file.%u", ctx->tmpdir, ff->file_store_id);
         file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY,
                 0644);
         if (file_fd == -1) {
@@ -217,6 +216,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
     /* we can get called with a NULL ffd when we need to close */
     } else if (data != NULL) {
         if (ff->fd == -1) {
+            snprintf(filename, sizeof(filename), "%s/file.%u", ctx->tmpdir, ff->file_store_id);
             file_fd = open(filename, O_APPEND | O_NOFOLLOW | O_WRONLY);
             if (file_fd == -1) {
                 StatsIncr(tv, aft->fs_error_counter);
@@ -232,6 +232,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
     if (file_fd != -1) {
         ssize_t r = write(file_fd, (const void *)data, (size_t)data_len);
         if (r == -1) {
+            snprintf(filename, sizeof(filename), "%s/file.%u", ctx->tmpdir, ff->file_store_id);
             StatsIncr(tv, aft->fs_error_counter);
             WARN_ONCE(WOT_WRITE, "Filestore (v2) failed to write to %s: %s", filename,
                     strerror(errno));
