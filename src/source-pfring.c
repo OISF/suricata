@@ -701,6 +701,7 @@ TmEcode ReceivePfringThreadDeinit(ThreadVars *tv, void *data)
     }
 
     pfring_close(ptv->pd);
+    SCFree(ptv);
     return TM_ECODE_OK;
 }
 
