@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -69,6 +69,7 @@
 #include "tm-threads.h"
 
 #include "action-globals.h"
+#include "util-validate.h"
 
 static HostStorageId host_threshold_id = { .id = -1 };     /**< host storage id for thresholds */
 static IPPairStorageId ippair_threshold_id = { .id = -1 }; /**< ip pair storage id for thresholds */
@@ -239,6 +240,71 @@ static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h,
     }
 
     return e;
+}
+
+/** struct for storing per flow thresholds. This will be stored in the Flow::flowvar list, so it
+ * needs to follow the GenericVar header format. */
+typedef struct FlowVarThreshold_ {
+    uint8_t type;
+    uint8_t pad[7];
+    struct GenericVar_ *next;
+    DetectThresholdEntry *thresholds;
+} FlowVarThreshold;
+
+void FlowThresholdVarFree(void *ptr)
+{
+    FlowVarThreshold *t = ptr;
+    ThresholdListFree(t->thresholds);
+    SCFree(t);
+}
+
+static FlowVarThreshold *FlowThresholdVarGet(Flow *f)
+{
+    if (f == NULL)
+        return NULL;
+
+    for (GenericVar *gv = f->flowvar; gv != NULL; gv = gv->next) {
+        if (gv->type == DETECT_THRESHOLD)
+            return (FlowVarThreshold *)gv;
+    }
+
+    return NULL;
+}
+
+static DetectThresholdEntry *ThresholdFlowLookupEntry(Flow *f, uint32_t sid, uint32_t gid)
+{
+    FlowVarThreshold *t = FlowThresholdVarGet(f);
+    if (t == NULL)
+        return NULL;
+
+    for (DetectThresholdEntry *e = t->thresholds; e != NULL; e = e->next) {
+        if (e->sid == sid && e->gid == gid) {
+            return e;
+        }
+    }
+    return NULL;
+}
+
+static int AddEntryToFlow(Flow *f, DetectThresholdEntry *e, SCTime_t packet_time)
+{
+    DEBUG_VALIDATE_BUG_ON(e == NULL);
+
+    FlowVarThreshold *t = FlowThresholdVarGet(f);
+    if (t == NULL) {
+        t = SCCalloc(1, sizeof(*t));
+        if (t == NULL) {
+            return -1;
+        }
+        t->type = DETECT_THRESHOLD;
+        GenericVarAppend(&f->flowvar, (GenericVar *)t);
+    }
+
+    e->current_count = 1;
+    e->tv1 = packet_time;
+    e->tv_timeout = 0;
+    e->next = t->thresholds;
+    t->thresholds = e;
+    return 0;
 }
 
 static DetectThresholdEntry *ThresholdIPPairLookupEntry(IPPair *pair,
@@ -588,6 +654,28 @@ static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p,
 }
 
 /**
+ *  \retval 2 silent match (no alert but apply actions)
+ *  \retval 1 normal match
+ *  \retval 0 no match
+ */
+static int ThresholdHandlePacketFlow(Flow *f, Packet *p, const DetectThresholdData *td,
+        uint32_t sid, uint32_t gid, PacketAlert *pa)
+{
+    int ret = 0;
+    DetectThresholdEntry *lookup_tsh = ThresholdFlowLookupEntry(f, sid, gid);
+    SCLogDebug("lookup_tsh %p sid %u gid %u", lookup_tsh, sid, gid);
+
+    DetectThresholdEntry *new_tsh = NULL;
+    ret = ThresholdHandlePacket(p, lookup_tsh, &new_tsh, td, sid, gid, pa);
+    if (new_tsh != NULL) {
+        if (AddEntryToFlow(f, new_tsh, p->ts) == -1) {
+            SCFree(new_tsh);
+        }
+    }
+    return ret;
+}
+
+/**
  * \brief Make the threshold logic for signatures
  *
  * \param de_ctx Detection Context
@@ -633,6 +721,10 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         SCMutexLock(&de_ctx->ths_ctx.threshold_table_lock);
         ret = ThresholdHandlePacketRule(de_ctx,p,td,s,pa);
         SCMutexUnlock(&de_ctx->ths_ctx.threshold_table_lock);
+    } else if (td->track == TRACK_FLOW) {
+        if (p->flow) {
+            ret = ThresholdHandlePacketFlow(p->flow, p, td, s->id, s->gid, pa);
+        }
     }
 
     SCReturnInt(ret);
