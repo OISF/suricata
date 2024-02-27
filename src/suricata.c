@@ -879,9 +879,6 @@ int g_ut_covered;
 
 void RegisterAllModules(void)
 {
-    // zero all module storage
-    memset(tmm_modules, 0, TMM_SIZE * sizeof(TmModule));
-
     /* commanders */
     TmModuleUnixManagerRegister();
     /* managers */
@@ -2872,6 +2869,10 @@ int InitGlobal(void)
     ConfInit();
 
     VarNameStoreInit();
+
+    // zero all module storage
+    memset(tmm_modules, 0, TMM_SIZE * sizeof(TmModule));
+
     return 0;
 }
 
