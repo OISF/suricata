@@ -26,6 +26,7 @@
 
 #include "tm-threads-common.h"
 #include "threadvars.h"
+#include "decode.h"
 
 /* thread flags */
 #define TM_FLAG_RECEIVE_TM      0x01
