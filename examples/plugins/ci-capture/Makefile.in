@@ -1,0 +1,41 @@
+SRCS :=		plugin.c \
+		runmode.c \
+		source.c
+
+# If building a plugin out of the Suricata source tree, you can use
+# libsuricata-config --cflags.
+#LIBSURICATA_CONFIG ?=	libsuricata-config
+#CPPFLAGS +=		`$(LIBSURICATA_CONFIG) --cflags`
+
+# But as this is an example in the Suricata source tree we'll look for
+# includes in the source tree.
+CPPFLAGS +=	-I@top_srcdir@/src -DHAVE_CONFIG_H
+
+# Currently the Suricata logging system requires this to be even for
+# plugins.
+CPPFLAGS +=    "-D__SCFILENAME__=\"$(*F)\""
+
+OBJS :=		$(SRCS:.c=.o)
+
+all: Makefile capture.so
+
+%.o: %.c
+	$(CC) $(CPPFLAGS) -fPIC -c $< -o $@
+
+capture.so: $(OBJS)
+	$(CC) $(CPPFLAGS) -fPIC -shared -o $@ $(OBJS)
+
+clean:
+	rm -f *.so *.o *.lo
+	rm -rf .deps
+
+distclean: clean
+	rm -f Makefile.am
+
+# Regenerate Makefile on change of Makefile.in since we're not using
+# Makefile.am.
+Makefile: Makefile.in
+	cd @top_builddir@ && ./config.status examples/plugins/ci-capture/Makefile
+
+# Dummy rules to satisfy make dist.
+dist distdir:
