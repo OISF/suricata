@@ -173,7 +173,6 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head,
                 SCLogDebug("PORT_EQ %p %p", cur, new);
                 /* exact overlap/match */
                 if (cur != new) {
-                    SigGroupHeadCopySigs(de_ctx, new->sh, &cur->sh);
                     DetectPortFree(de_ctx, new);
                     return 0;
                 }
@@ -303,9 +302,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
         tmp_c->port = a_port2 + 1;
         tmp_c->port2 = b_port2;
 
-        SigGroupHeadCopySigs(de_ctx,b->sh,&tmp_c->sh); /* copy old b to c */
-        SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh); /* copy a to b */
-
     /**
      * We have 3 parts: [bbb[baba]aaa]
      * part a: b_port1 <-> a_port1 - 1
@@ -328,19 +324,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
         tmp_c->port = b_port2 + 1;
         tmp_c->port2 = a_port2;
-
-        /**
-         * 'a' gets clean and then 'b' sigs
-         * 'b' gets clean, then 'a' then 'b' sigs
-         * 'c' gets 'a' sigs
-         */
-        SigGroupHeadCopySigs(de_ctx,a->sh,&tmp->sh); /* store old a list */
-        SigGroupHeadClearSigs(a->sh); /* clean a list */
-        SigGroupHeadCopySigs(de_ctx,tmp->sh,&tmp_c->sh); /* copy old b to c */
-        SigGroupHeadCopySigs(de_ctx,b->sh,&a->sh); /* copy old b to a */
-        SigGroupHeadCopySigs(de_ctx,tmp->sh,&b->sh);/* prepend old a before b */
-
-        SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
 
     /**
      * We have 2 or three parts:
@@ -368,10 +351,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
             b->port  = a_port2 + 1;
             b->port2 = b_port2;
-
-            /** 'b' overlaps 'a' so 'a' needs the 'b' sigs */
-            SigGroupHeadCopySigs(de_ctx,b->sh,&a->sh);
-
         } else if (a_port2 == b_port2) {
             SCLogDebug("2");
             a->port = b_port1;
@@ -379,18 +358,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
             b->port = a_port1;
             b->port2 = a_port2;
-
-            /* [bbb[baba]] will be transformed into
-             * [aaa][bbb]
-             * steps: copy b sigs to tmp
-             *        a overlaps b, so copy a to b
-             *        clear a
-             *        copy tmp to a */
-            SigGroupHeadCopySigs(de_ctx,b->sh,&tmp->sh); /* store old a list */
-            SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
-            SigGroupHeadClearSigs(a->sh); /* clean a list */
-            SigGroupHeadCopySigs(de_ctx,tmp->sh,&a->sh);/* merge old a with b */
-            SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
         } else {
             SCLogDebug("3");
             a->port = b_port1;
@@ -407,19 +374,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
             tmp_c->port = a_port2 + 1;
             tmp_c->port2 = b_port2;
-
-            /**
-             * 'a' gets clean and then 'b' sigs
-             * 'b' gets clean, then 'a' then 'b' sigs
-             * 'c' gets 'b' sigs
-             */
-            SigGroupHeadCopySigs(de_ctx,a->sh,&tmp->sh); /* store old a list */
-            SigGroupHeadClearSigs(a->sh); /* clean a list */
-            SigGroupHeadCopySigs(de_ctx,b->sh,&tmp_c->sh); /* copy old b to c */
-            SigGroupHeadCopySigs(de_ctx,b->sh,&a->sh); /* copy old b to a */
-            SigGroupHeadCopySigs(de_ctx,tmp->sh,&b->sh);/* merge old a with b */
-
-            SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
         }
     /**
      * We have 2 or three parts:
@@ -447,15 +401,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
             b->port = b_port2 + 1;
             b->port2 = a_port2;
-
-            /** 'b' overlaps 'a' so 'a' needs the 'b' sigs */
-            SigGroupHeadCopySigs(de_ctx,b->sh,&tmp->sh);
-            SigGroupHeadClearSigs(b->sh);
-            SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
-            SigGroupHeadCopySigs(de_ctx,tmp->sh,&a->sh);
-
-            SigGroupHeadClearSigs(tmp->sh);
-
         } else if (a_port2 == b_port2) {
             SCLogDebug("2");
 
@@ -464,9 +409,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
             b->port = b_port1;
             b->port2 = b_port2;
-
-            /** 'a' overlaps 'b' so 'b' needs the 'a' sigs */
-            SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
 
         } else {
             SCLogDebug("3");
@@ -484,9 +426,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
             tmp_c->port = b_port2 + 1;
             tmp_c->port2 = a_port2;
-
-            SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
-            SigGroupHeadCopySigs(de_ctx,a->sh,&tmp_c->sh);
         }
     }
 
@@ -1994,162 +1933,6 @@ end:
 /**
  * \test Test general functions
  */
-static int PortTestFunctions05(void)
-{
-    DetectPort *dp1 = NULL;
-    DetectPort *dp2 = NULL;
-    DetectPort *dp3 = NULL;
-    int result = 0;
-    int r = 0;
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    Signature s[2];
-    memset(s,0x00,sizeof(s));
-
-    s[0].num = 0;
-    s[1].num = 1;
-
-    r = DetectPortParse(NULL, &dp1, "1024:65535");
-    if (r != 0) {
-        printf("r != 0 but %d: ", r);
-        goto end;
-    }
-    SigGroupHeadAppendSig(de_ctx, &dp1->sh, &s[0]);
-
-    r = DetectPortParse(NULL, &dp2, "any");
-    if (r != 0) {
-        printf("r != 0 but %d: ", r);
-        goto end;
-    }
-    SigGroupHeadAppendSig(de_ctx, &dp2->sh, &s[1]);
-
-    SCLogDebug("dp1");
-    DetectPortPrint(dp1);
-    SCLogDebug("dp2");
-    DetectPortPrint(dp2);
-
-    DetectPortInsert(de_ctx, &dp3, dp1);
-    DetectPortInsert(de_ctx, &dp3, dp2);
-
-    if (dp3 == NULL)
-        goto end;
-
-    SCLogDebug("dp3");
-    DetectPort *x = dp3;
-    for ( ; x != NULL; x = x->next) {
-        DetectPortPrint(x);
-        //SigGroupHeadPrintSigs(de_ctx, x->sh);
-    }
-
-    DetectPort *one = dp3;
-    DetectPort *two = dp3->next;
-
-    int sig = 0;
-    if ((one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'one', but it shouldn't: ", sig);
-        goto end;
-    }
-    sig = 1;
-    if (!(one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'one', but it shouldn't: ", sig);
-        goto end;
-    }
-    sig = 1;
-    if (!(two->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'two', but it shouldn't: ", sig);
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (dp1 != NULL)
-        DetectPortFree(NULL, dp1);
-    if (dp2 != NULL)
-        DetectPortFree(NULL, dp2);
-    return result;
-}
-
-/**
- * \test Test general functions
- */
-static int PortTestFunctions06(void)
-{
-    DetectPort *dp1 = NULL;
-    DetectPort *dp2 = NULL;
-    DetectPort *dp3 = NULL;
-    int result = 0;
-    int r = 0;
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    Signature s[2];
-    memset(s,0x00,sizeof(s));
-
-    s[0].num = 0;
-    s[1].num = 1;
-
-    r = DetectPortParse(NULL, &dp1, "1024:65535");
-    if (r != 0) {
-        printf("r != 0 but %d: ", r);
-        goto end;
-    }
-    SigGroupHeadAppendSig(de_ctx, &dp1->sh, &s[0]);
-
-    r = DetectPortParse(NULL, &dp2, "any");
-    if (r != 0) {
-        printf("r != 0 but %d: ", r);
-        goto end;
-    }
-    SigGroupHeadAppendSig(de_ctx, &dp2->sh, &s[1]);
-
-    SCLogDebug("dp1");
-    DetectPortPrint(dp1);
-    SCLogDebug("dp2");
-    DetectPortPrint(dp2);
-
-    DetectPortInsert(de_ctx, &dp3, dp2);
-    DetectPortInsert(de_ctx, &dp3, dp1);
-
-    if (dp3 == NULL)
-        goto end;
-
-    SCLogDebug("dp3");
-    DetectPort *x = dp3;
-    for ( ; x != NULL; x = x->next) {
-        DetectPortPrint(x);
-        //SigGroupHeadPrintSigs(de_ctx, x->sh);
-    }
-
-    DetectPort *one = dp3;
-    DetectPort *two = dp3->next;
-
-    int sig = 0;
-    if ((one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'one', but it shouldn't: ", sig);
-        goto end;
-    }
-    sig = 1;
-    if (!(one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'one', but it shouldn't: ", sig);
-        goto end;
-    }
-    sig = 1;
-    if (!(two->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'two', but it shouldn't: ", sig);
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (dp1 != NULL)
-        DetectPortFree(NULL, dp1);
-    if (dp2 != NULL)
-        DetectPortFree(NULL, dp2);
-    return result;
-}
-
-/**
- * \test Test general functions
- */
 static int PortTestFunctions07(void)
 {
     DetectPort *dd = NULL;
@@ -2566,8 +2349,6 @@ void DetectPortTests(void)
     UtRegisterTest("PortTestFunctions02", PortTestFunctions02);
     UtRegisterTest("PortTestFunctions03", PortTestFunctions03);
     UtRegisterTest("PortTestFunctions04", PortTestFunctions04);
-    UtRegisterTest("PortTestFunctions05", PortTestFunctions05);
-    UtRegisterTest("PortTestFunctions06", PortTestFunctions06);
     UtRegisterTest("PortTestFunctions07", PortTestFunctions07);
     UtRegisterTest("PortTestMatchReal01", PortTestMatchReal01);
     UtRegisterTest("PortTestMatchReal02", PortTestMatchReal02);
