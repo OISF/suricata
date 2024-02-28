@@ -280,7 +280,7 @@ jobs:
       - name: Building Rust documentation
         run: make doc
         working-directory: rust
-      - run: make install
+      - run: make install install-conf
       - run: suricatasc -h
       - run: suricata-update -V
       - name: Check if Suricata-Update example configuration files are installed
@@ -291,6 +291,14 @@ jobs:
           test -e /usr/local/lib/suricata/python/suricata/update/configs/modify.conf
           test -e /usr/local/lib/suricata/python/suricata/update/configs/threshold.in
           test -e /usr/local/lib/suricata/python/suricata/update/configs/update.yaml
+
+      - name: Test capture plugin
+        working-directory: examples/plugins/ci-capture
+        run: |
+          make
+          ../../../src/suricata -S /dev/null --set plugins.0=./capture.so --capture-plugin=ci-capture --runmode=single -l . -c ../../../suricata.yaml
+          cat eve.json | jq -c 'select(.dns)'
+          test $(cat eve.json | jq -c 'select(.dns)' | wc -l) = "1"
 
       - name: Test library build in tree
         working-directory: examples/lib/simple
