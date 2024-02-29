@@ -30,10 +30,10 @@ env:
   # A recent version of stable Rust that is known to pass build, test and other
   # verification steps in this workflow. This was added because using "stable"
   # could cause some steps to fail.
-  RUST_VERSION_KNOWN: "1.76.0"
+  RUST_VERSION_KNOWN: "1.70.0"
 
   # The minimum version of Rust supported.
-  RUST_VERSION_MIN: "1.67.0"
+  RUST_VERSION_MIN: "1.63.0"
 
 jobs:
 
@@ -760,7 +760,7 @@ jobs:
                 zlib-devel
       # packaged Rust version has no profiler support built in, so get from rustup
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.67.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       - uses: actions/download-artifact@87c55149d96e628cc2ef7e6fc2aab372015aec85
@@ -1395,7 +1395,7 @@ jobs:
                 dpdk-dev
       # packaged Rust version is too old for coverage, so get from rustup
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.67.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       - uses: actions/download-artifact@87c55149d96e628cc2ef7e6fc2aab372015aec85
         with:
@@ -1521,7 +1521,7 @@ jobs:
                 dpdk-dev
       # packaged Rust version is too old for coverage, so get from rustup
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.67.0 -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.63.0 -y
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       - uses: actions/download-artifact@87c55149d96e628cc2ef7e6fc2aab372015aec85
         with:
