@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2021 Open Information Security Foundation
+/* Copyright (C) 2017-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,7 +24,8 @@ use nom7::number::streaming::be_u32;
 use der_parser::der::der_read_element_header;
 use der_parser::ber::Class;
 use kerberos_parser::krb5_parser;
-use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,Realm};
+use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,Realm,KrbError};
+use asn1_rs::FromDer;
 use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,Direction};
@@ -203,7 +204,7 @@ impl KRB5State {
                         self.req_id = 0;
                     },
                     30 => {
-                        let res = krb5_parser::parse_krb_error(i);
+                        let res = KrbError::from_der(i);
                         if let Ok((_,error)) = res {
                             let mut tx = self.new_tx(direction);
                             if self.req_id > 0 {
