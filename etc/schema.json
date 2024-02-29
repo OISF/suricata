@@ -1549,6 +1549,9 @@
                 },
                 "state": {
                     "type": "string"
+                },
+                "wrong_thread": {
+                    "type": "boolean"
                 }
             },
             "additionalProperties": false
