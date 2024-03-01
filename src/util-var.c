@@ -33,7 +33,7 @@
 #include "pkt-var.h"
 #include "host-bit.h"
 #include "ippair-bit.h"
-
+#include "util-validate.h"
 #include "util-debug.h"
 
 void XBitFree(XBit *fb)
@@ -81,7 +81,8 @@ void GenericVarFree(GenericVar *gv)
         }
         default:
         {
-            printf("ERROR: GenericVarFree unknown type %" PRIu32 "\n", gv->type);
+            SCLogDebug("GenericVarFree unknown type %" PRIu32, gv->type);
+            DEBUG_VALIDATE_BUG_ON(1);
             break;
         }
     }
