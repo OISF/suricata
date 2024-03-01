@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,11 +20,11 @@
 use nom7::IResult;
 use nom7::error::{ErrorKind, ParseError};
 use nom7::number::streaming::le_u16;
-use der_parser6;
-use der_parser6::der::parse_der_oid;
-use der_parser6::error::BerError;
+use der_parser;
+use der_parser::der::parse_der_oid;
+use der_parser::error::BerError;
 use kerberos_parser::krb5::{ApReq, PrincipalName, Realm};
-use kerberos_parser::krb5_parser::parse_ap_req;
+use asn1_rs::FromDer;
 
 #[derive(Debug)]
 pub enum SecBlobError {
@@ -57,14 +57,14 @@ pub struct Kerberos5Ticket {
 
 fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq, SecBlobError>
 {
-    let (_,b) = der_parser6::parse_der(blob).map_err(nom7::Err::convert)?;
+    let (_,b) = der_parser::parse_der(blob).map_err(nom7::Err::convert)?;
     let blob = b.as_slice().or(
         Err(nom7::Err::Error(SecBlobError::KrbFmtError))
     )?;
     let parser = |i| {
         let (i, _base_o) = parse_der_oid(i)?;
         let (i, _tok_id) = le_u16(i)?;
-        let (i, ap_req) = parse_ap_req(i)?;
+        let (i, ap_req) = ApReq::from_der(i)?;
         Ok((i, ap_req))
     };
     parser(blob).map_err(nom7::Err::convert)
