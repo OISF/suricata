@@ -564,7 +564,7 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
         if (inconsistent_numa_cnt > 0 && ptv->port_socket_id != SOCKET_ID_ANY) {
             SCLogWarning("%s: NIC is on NUMA %d, %u threads on different NUMA node(s)",
                     dpdk_config->iface, ptv->port_socket_id, inconsistent_numa_cnt);
-        } else if (ptv->port_socket_id == SOCKET_ID_ANY) {
+        } else if (ptv->port_socket_id == SOCKET_ID_ANY && rte_socket_count() > 1) {
             SCLogNotice(
                     "%s: unable to determine NIC's NUMA node, degraded performance can be expected",
                     dpdk_config->iface);
