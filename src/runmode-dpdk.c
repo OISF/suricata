@@ -1092,22 +1092,9 @@ static int32_t DeviceSetSocketID(uint16_t port_id, int32_t *socket_id)
     return retval;
 }
 
-static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
+static void PortConfSetRSSConf(const DPDKIfaceConfig *iconf,
         const struct rte_eth_dev_info *dev_info, struct rte_eth_conf *port_conf)
 {
-    DumpRXOffloadCapabilities(dev_info->rx_offload_capa);
-    *port_conf = (struct rte_eth_conf){
-            .rxmode = {
-                    .mq_mode = RTE_ETH_MQ_RX_NONE,
-                    .offloads = 0, // turn every offload off to prevent any packet modification
-            },
-            .txmode = {
-                    .mq_mode = RTE_ETH_MQ_TX_NONE,
-                    .offloads = 0,
-            },
-    };
-
-    // configure RX offloads
     if (dev_info->rx_offload_capa & RTE_ETH_RX_OFFLOAD_RSS_HASH) {
         if (iconf->nb_rx_queues > 1) {
             SCLogConfig("%s: RSS enabled for %d queues", iconf->iface, iconf->nb_rx_queues);
@@ -1143,7 +1130,11 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
     } else {
         SCLogConfig("%s: RSS not supported", iconf->iface);
     }
+}
 
+static void PortConfSetChsumOffload(const DPDKIfaceConfig *iconf,
+        const struct rte_eth_dev_info *dev_info, struct rte_eth_conf *port_conf)
+{
     if (iconf->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
         SCLogConfig("%s: checksum validation disabled", iconf->iface);
     } else if ((dev_info->rx_offload_capa & RTE_ETH_RX_OFFLOAD_CHECKSUM) ==
@@ -1157,7 +1148,26 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
             SCLogConfig("%s: checksum validation enabled (but can be offloaded)", iconf->iface);
         }
     }
+}
 
+static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
+        const struct rte_eth_dev_info *dev_info, struct rte_eth_conf *port_conf)
+{
+    DumpRXOffloadCapabilities(dev_info->rx_offload_capa);
+    *port_conf = (struct rte_eth_conf){
+            .rxmode = {
+                    .mq_mode = RTE_ETH_MQ_RX_NONE,
+                    .offloads = 0, // turn every offload off to prevent any packet modification
+            },
+            .txmode = {
+                    .mq_mode = RTE_ETH_MQ_TX_NONE,
+                    .offloads = 0,
+            },
+    };
+
+    // configure RX offloads
+    PortConfSetRSSConf(iconf, dev_info, port_conf);
+    PortConfSetChsumOffload(iconf, dev_info, port_conf);
     DeviceSetMTU(port_conf, iconf->mtu);
 
     if (dev_info->tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE) {
