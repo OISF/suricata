@@ -297,6 +297,9 @@ enum {
     STREAM_REASSEMBLY_INSERT_LIMIT,
     STREAM_REASSEMBLY_INSERT_INVALID,
 
+    /* ARP EVENTS */
+    ARP_PKT_TOO_SMALL, /**< arp packet smaller than minimum size */
+
     /* should always be last! */
     DECODE_EVENT_MAX,
 };
