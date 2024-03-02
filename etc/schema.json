@@ -4579,6 +4579,33 @@
                         "event": {
                             "type": "object",
                             "properties": {
+                                "arp": {
+                                    "type": "object",
+                                    "properties": {
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "unsupported_hardware": {
+                                            "type": "integer"
+                                        },
+                                        "unsupported_protocol": {
+                                            "type": "integer"
+                                        },
+                                        "unsupported_pkt": {
+                                            "type": "integer"
+                                        },
+                                        "invalid_hardware_size": {
+                                            "type": "integer"
+                                        },
+                                        "invalid_protocol_size": {
+                                            "type": "integer"
+                                        },
+                                        "unsupported_opcode": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
                                 "chdlc": {
                                     "type": "object",
                                     "properties": {
