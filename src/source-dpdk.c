@@ -134,6 +134,7 @@ typedef struct DPDKThreadVars_ {
     int32_t port_socket_id;
     struct rte_mempool *pkt_mempool;
     struct rte_mbuf *received_mbufs[BURST_SIZE];
+    DPDKWorkerSync *workers_sync;
 } DPDKThreadVars;
 
 static TmEcode ReceiveDPDKThreadInit(ThreadVars *, const void *, void **);
@@ -427,10 +428,22 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
     while (1) {
         if (unlikely(suricata_ctl_flags != 0)) {
             SCLogDebug("Stopping Suricata!");
+            SC_ATOMIC_ADD(ptv->workers_sync->worker_checked_in, 1);
+            while (SC_ATOMIC_GET(ptv->workers_sync->worker_checked_in) <
+                    ptv->workers_sync->worker_cnt) {
+                rte_delay_us(10);
+            }
             if (ptv->queue_id == 0) {
-                rte_eth_dev_stop(ptv->port_id);
+                rte_delay_us(20); // wait for all threads to get out of the sync loop
+                SC_ATOMIC_SET(ptv->workers_sync->worker_checked_in, 0);
+                // If Suricata runs in peered mode, the peer threads might still want to send
+                // packets to our port. Instead, we know, that we are done with the peered port, so
+                // we stop it. The peered threads will stop our port.
                 if (ptv->copy_mode == DPDK_COPY_MODE_TAP || ptv->copy_mode == DPDK_COPY_MODE_IPS) {
                     rte_eth_dev_stop(ptv->out_port_id);
+                } else {
+                    // in IDS we stop our port - no peer threads are running
+                    rte_eth_dev_stop(ptv->port_id);
                 }
             }
             DPDKDumpCounters(ptv);
@@ -605,6 +618,7 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
                 ptv->port_socket_id, thread_numa);
     }
 
+    ptv->workers_sync = dpdk_config->workers_sync;
     uint16_t queue_id = SC_ATOMIC_ADD(dpdk_config->queue_id, 1);
     ptv->queue_id = queue_id;
 
@@ -748,6 +762,10 @@ static TmEcode ReceiveDPDKThreadDeinit(ThreadVars *tv, void *data)
         }
 
         DevicePreClosePMDSpecificActions(ptv, dev_info.driver_name);
+
+        if (ptv->workers_sync) {
+            SCFree(ptv->workers_sync);
+        }
     }
 
     ptv->pkt_mempool = NULL; // MP is released when device is closed

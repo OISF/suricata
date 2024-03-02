@@ -43,6 +43,12 @@ typedef enum { DPDK_COPY_MODE_NONE, DPDK_COPY_MODE_TAP, DPDK_COPY_MODE_IPS } Dpd
 #define DPDK_RX_CHECKSUM_OFFLOAD (1 << 4) /**< Enable chsum offload */
 
 void DPDKSetTimevalOfMachineStart(void);
+
+typedef struct DPDKWorkerSync_ {
+    uint16_t worker_cnt;
+    SC_ATOMIC_DECLARE(uint16_t, worker_checked_in);
+} DPDKWorkerSync;
+
 typedef struct DPDKIfaceConfig_ {
 #ifdef HAVE_DPDK
     char iface[RTE_ETH_NAME_MAX_LEN];
@@ -71,6 +77,7 @@ typedef struct DPDKIfaceConfig_ {
     /* threads bind queue id one by one */
     SC_ATOMIC_DECLARE(uint16_t, queue_id);
     SC_ATOMIC_DECLARE(uint16_t, inconsitent_numa_cnt);
+    DPDKWorkerSync *workers_sync;
     void (*DerefFunc)(void *);
 
     struct rte_flow *flow[100];
