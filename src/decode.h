@@ -97,6 +97,7 @@ enum PktSrcEnum {
 #include "decode-esp.h"
 #include "decode-vlan.h"
 #include "decode-mpls.h"
+#include "decode-arp.h"
 
 #include "util-validate.h"
 
@@ -416,6 +417,7 @@ enum PacketL3Types {
     PACKET_L3_UNKNOWN = 0,
     PACKET_L3_IPV4,
     PACKET_L3_IPV6,
+    PACKET_L3_ARP,
 };
 
 struct PacketL3 {
@@ -426,6 +428,7 @@ struct PacketL3 {
     union Hdrs {
         IPV4Hdr *ip4h;
         IPV6Hdr *ip6h;
+        ARPHdr *arph;
     } hdrs;
     /* IPv4 and IPv6 are mutually exclusive */
     union {
@@ -928,6 +931,25 @@ static inline bool PacketIsESP(const Packet *p)
     return p->l4.type == PACKET_L4_ESP;
 }
 
+static inline const ARPHdr *PacketGetARP(const Packet *p)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l3.type != PACKET_L3_ARP);
+    return p->l3.hdrs.arph;
+}
+
+static inline ARPHdr *PacketSetARP(Packet *p, const uint8_t *buf)
+{
+    DEBUG_VALIDATE_BUG_ON(p->l3.type != PACKET_L3_UNKNOWN);
+    p->l3.type = PACKET_L3_ARP;
+    p->l3.hdrs.arph = (ARPHdr *)buf;
+    return p->l3.hdrs.arph;
+}
+
+static inline bool PacketIsARP(const Packet *p)
+{
+    return p->l3.type == PACKET_L3_ARP;
+}
+
 /** \brief Structure to hold thread specific data for all decode modules */
 typedef struct DecodeThreadVars_
 {
@@ -1126,6 +1148,7 @@ int DecodeERSPANTypeI(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t 
 int DecodeCHDLC(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeTEMPLATE(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeNSH(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
+int DecodeARP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 
 #ifdef UNITTESTS
 void DecodeIPV6FragHeader(Packet *p, const uint8_t *pkt,
@@ -1475,7 +1498,7 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             DecodeIEEE8021ah(tv, dtv, p, data, len);
             break;
         case ETHERNET_TYPE_ARP:
-            StatsIncr(tv, dtv->counter_arp);
+            DecodeARP(tv, dtv, p, data, len);
             break;
         case ETHERNET_TYPE_MPLS_UNICAST:
         case ETHERNET_TYPE_MPLS_MULTICAST:

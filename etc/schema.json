@@ -4579,6 +4579,15 @@
                         "event": {
                             "type": "object",
                             "properties": {
+                                "arp": {
+                                    "type": "object",
+                                    "properties": {
+                                        "pkt_too_small": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
                                 "chdlc": {
                                     "type": "object",
                                     "properties": {
