@@ -343,6 +343,7 @@ static int ThresholdHandlePacketSuppress(Packet *p,
             }
             break;
         case TRACK_RULE:
+        case TRACK_FLOW:
         default:
             SCLogError("track mode %d is not supported", td->track);
             break;
