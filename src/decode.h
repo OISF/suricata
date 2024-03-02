@@ -97,7 +97,7 @@ enum PktSrcEnum {
 #include "decode-esp.h"
 #include "decode-vlan.h"
 #include "decode-mpls.h"
-
+#include "decode-arp.h"
 
 /* forward declarations */
 struct DetectionEngineThreadCtx_;
@@ -250,6 +250,7 @@ typedef uint16_t Port;
 #define PKT_IS_ICMPV6(p)    (((p)->icmpv6h != NULL))
 #define PKT_IS_TOSERVER(p)  (((p)->flowflags & FLOW_PKT_TOSERVER))
 #define PKT_IS_TOCLIENT(p)  (((p)->flowflags & FLOW_PKT_TOCLIENT))
+#define PKT_IS_ARP(p)       (((p)->arph != NULL))
 
 #define IPH_IS_VALID(p) (PKT_IS_IPV4((p)) || PKT_IS_IPV6((p)))
 
@@ -581,6 +582,8 @@ typedef struct Packet_
 
     GREHdr *greh;
 
+    ArpHdr *arph;
+
     /* ptr to the payload of the packet
      * with it's length. */
     uint8_t *payload;
@@ -884,6 +887,7 @@ int DecodeERSPANTypeI(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t 
 int DecodeCHDLC(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeTEMPLATE(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeNSH(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
+int DecodeARP(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 
 #ifdef UNITTESTS
 void DecodeIPV6FragHeader(Packet *p, const uint8_t *pkt,
@@ -1231,7 +1235,7 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             DecodeIEEE8021ah(tv, dtv, p, data, len);
             break;
         case ETHERNET_TYPE_ARP:
-            StatsIncr(tv, dtv->counter_arp);
+            DecodeARP(tv, dtv, p, data, len);
             break;
         case ETHERNET_TYPE_MPLS_UNICAST:
         case ETHERNET_TYPE_MPLS_MULTICAST:
