@@ -1592,6 +1592,12 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
     // This counter is increased by worker threads that individually pick queue IDs.
     SC_ATOMIC_RESET(iconf->queue_id);
     SC_ATOMIC_RESET(iconf->inconsitent_numa_cnt);
+    iconf->workers_sync = SCCalloc(1, sizeof(*iconf->workers_sync));
+    if (iconf->workers_sync == NULL) {
+        FatalError("Failed to allocate memory for workers_sync");
+    }
+    SC_ATOMIC_RESET(iconf->workers_sync->worker_checked_in);
+    iconf->workers_sync->worker_cnt = iconf->threads;
 
     // initialize LiveDev DPDK values
     LiveDevice *ldev_instance = LiveGetDevice(iface);
