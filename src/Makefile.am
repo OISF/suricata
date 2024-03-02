@@ -62,6 +62,7 @@ noinst_HEADERS = \
 	datasets-reputation.h \
 	datasets-sha256.h \
 	datasets-string.h \
+	decode-arp.h \
 	decode-chdlc.h \
 	decode-erspan.h \
 	decode-esp.h \
@@ -682,6 +683,7 @@ libsuricata_c_a_SOURCES = \
 	datasets-sha256.c \
 	datasets-string.c \
 	decode.c \
+	decode-arp.c \
 	decode-chdlc.c \
 	decode-erspan.c \
 	decode-esp.c \
