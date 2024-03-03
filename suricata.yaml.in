@@ -294,6 +294,8 @@ outputs:
         - rfb
         - sip
         - quic
+        - arp:
+            enabled: no
         - dhcp:
             enabled: yes
             # When extended mode is on, all DHCP messages are logged
