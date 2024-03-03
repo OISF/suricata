@@ -81,6 +81,7 @@
 #include "output-json-frame.h"
 #include "app-layer-parser.h"
 #include "output-filestore.h"
+#include "output-json-arp.h"
 
 typedef struct RootLogger_ {
     OutputLogFunc LogFunc;
@@ -1107,6 +1108,8 @@ void OutputRegisterLoggers(void)
                 "eve-log.bittorrent-dht", OutputJsonLogInitSub, ALPROTO_BITTORRENT_DHT,
                 JsonGenericDirPacketLogger, JsonLogThreadInit, JsonLogThreadDeinit, NULL);
     }
+    /* ARP JSON logger */
+    JsonArpLogRegister();
 }
 
 static EveJsonSimpleAppLayerLogger simple_json_applayer_loggers[ALPROTO_MAX] = {
