@@ -714,8 +714,7 @@ void CreateEveFlowId(JsonBuilder *js, const Flow *f)
     }
 }
 
-static inline void JSONFormatAndAddMACAddr(JsonBuilder *js, const char *key,
-                                   uint8_t *val, bool is_array)
+void JSONFormatAndAddMACAddr(JsonBuilder *js, const char *key, uint8_t *val, bool is_array)
 {
     char eth_addr[19];
     (void) snprintf(eth_addr, 19, "%02x:%02x:%02x:%02x:%02x:%02x",
