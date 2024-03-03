@@ -491,6 +491,7 @@ typedef enum {
     LOGGER_JSON_FRAME,
     LOGGER_JSON_STREAM,
     LOGGER_SIZE,
+    LOGGER_JSON_ARP,
 } LoggerId;
 
 #ifndef HAVE_LUA
