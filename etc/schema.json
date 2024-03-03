@@ -334,6 +334,41 @@
             },
             "additionalProperties": false
         },
+        "arp": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+                "hw_type": {
+                    "type": "string",
+                    "description": "Network link protocol type"
+                },
+                "proto_type": {
+                    "type": "string",
+                    "description": "Internetwork protocol for which the ARP request is intended"
+                },
+                "opcode": {
+                    "type": "string",
+                    "description": "Specifies the operation that the sender is performing"
+                },
+                "src_mac": {
+                    "type": "string",
+                    "description": "Physical address of the sender"
+                },
+                "src_ip": {
+                    "type": "string",
+                    "description": "Logical address of the sender"
+                },
+                "dest_mac": {
+                    "type": "string",
+                    "description": "Physical address of the intended receiver"
+                },
+                "dest_ip": {
+                    "type": "string",
+                    "description": "Logical address of the intended receiver"
+                }
+            },
+            "additionalProperties": false
+        },
         "bittorrent_dht": {
             "type": "object",
             "properties": {
@@ -4583,6 +4618,21 @@
                                     "type": "object",
                                     "properties": {
                                         "pkt_too_small": {
+                                            "type": "integer"
+                                        },
+                                        "unsupported_hardware": {
+                                            "type": "integer"
+                                        },
+                                        "unsupported_protocol": {
+                                            "type": "integer"
+                                        },
+                                        "unsupported_pkt": {
+                                            "type": "integer"
+                                        },
+                                        "invalid_hardware_size": {
+                                            "type": "integer"
+                                        },
+                                        "invalid_protocol_size": {
                                             "type": "integer"
                                         }
                                     },
