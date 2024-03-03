@@ -93,6 +93,9 @@ outputs:
       enabled: @e_enable_evelog@
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
+      # Enable GeoIP on source ip and destination ip, default is disabled
+      # Make sure that you have set geoip-database path
+      #geoip-enrichment: yes
       # Enable for multi-threaded eve.json output; output files are amended with
       # an identifier, e.g., eve.9.json
       #threaded: false
@@ -1297,6 +1300,8 @@ unix-command:
 
 # GeoIP2 database file. Specify path and filename of GeoIP2 database
 # if using rules with "geoip" rule option.
+# This database is also used by geoip-enrichment in EVE output.
+# If you wish to enrich in city level please use GeoLite2 City database.
 #geoip-database: /usr/local/share/GeoLite2/GeoLite2-Country.mmdb
 
 legacy:

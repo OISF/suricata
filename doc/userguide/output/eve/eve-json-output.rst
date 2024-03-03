@@ -27,6 +27,9 @@ Output types::
 
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
+      # Enable GeoIP on source ip and destination ip, default is disabled
+      # Make sure that you have set geoip-database path
+      #geoip-enrichment: yes
       # Enable for multi-threaded eve.json output; output files are amended
       # with an identifier, e.g., eve.9.json. Default: off
       #threaded: off

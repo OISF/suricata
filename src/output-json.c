@@ -77,6 +77,82 @@
 
 #define MAX_JSON_SIZE 2048
 
+#ifdef HAVE_GEOIP
+#include <maxminddb.h>
+
+static MMDB_s mmdb;
+static int mmdb_status = MMDB_FILE_OPEN_ERROR;
+
+void GeoIPGet(JsonBuilder *js, const MMDB_s *const mmdb, const char *ip_address, const char *key);
+
+#define GeoIPSetString(js, entry_data, key)                                                        \
+    {                                                                                              \
+        if (entry_data.has_data && entry_data.utf8_string != NULL) {                               \
+            jb_set_string_from_bytes(                                                              \
+                    js, key, (const uint8_t *)entry_data.utf8_string, entry_data.data_size);       \
+        }                                                                                          \
+    }
+
+void GeoIPGet(JsonBuilder *js, const MMDB_s *const mmdb, const char *ip_address, const char *key)
+{
+    int gai_error, mmdb_error;
+    MMDB_entry_data_s entry_data;
+
+    if (mmdb_status != MMDB_SUCCESS) {
+        return;
+    }
+    MMDB_lookup_result_s result = MMDB_lookup_string(mmdb, ip_address, &gai_error, &mmdb_error);
+    if (MMDB_SUCCESS != gai_error) {
+        return;
+    }
+
+    if (!result.found_entry) {
+        return;
+    }
+
+    jb_open_object(js, key);
+    jb_set_string(js, "ip", ip_address);
+
+    /* Create geo object */
+    jb_open_object(js, "geo");
+
+    if (MMDB_get_value(&result.entry, &entry_data, "continent", "code", NULL) == MMDB_SUCCESS) {
+        GeoIPSetString(js, entry_data, "continent_code");
+    }
+    if (MMDB_get_value(&result.entry, &entry_data, "country", "iso_code", NULL) == MMDB_SUCCESS) {
+        GeoIPSetString(js, entry_data, "country_iso_code");
+    }
+    if (MMDB_get_value(&result.entry, &entry_data, "city", "names", "en", NULL) == MMDB_SUCCESS) {
+        GeoIPSetString(js, entry_data, "city_name");
+    }
+    if (MMDB_get_value(&result.entry, &entry_data, "country", "names", "en", NULL) ==
+            MMDB_SUCCESS) {
+        GeoIPSetString(js, entry_data, "country_name");
+    }
+    if (MMDB_get_value(&result.entry, &entry_data, "continent", "names", "en", NULL) ==
+            MMDB_SUCCESS) {
+        GeoIPSetString(js, entry_data, "continent_name");
+    }
+    if (MMDB_get_value(&result.entry, &entry_data, "location", "time_zone", NULL) == MMDB_SUCCESS) {
+        GeoIPSetString(js, entry_data, "timezone");
+    }
+
+    /* Create location object */
+    jb_open_object(js, "location");
+    if (MMDB_get_value(&result.entry, &entry_data, "location", "latitude", NULL) == MMDB_SUCCESS) {
+        if (entry_data.has_data)
+            jb_set_float(js, "lat", entry_data.double_value);
+    }
+    if (MMDB_get_value(&result.entry, &entry_data, "location", "longitude", NULL) == MMDB_SUCCESS) {
+        if (entry_data.has_data)
+            jb_set_float(js, "lon", entry_data.double_value);
+    }
+    jb_close(js); /* close location */
+    jb_close(js); /* close geo */
+    jb_close(js); /* close key */
+}
+#endif /* HAVE_GEOIP */
+
 static void OutputJsonDeInitCtx(OutputCtx *);
 static void CreateEveCommunityFlowId(JsonBuilder *js, const Flow *f, const uint16_t seed);
 static int CreateJSONEther(JsonBuilder *parent, const Packet *p, const Flow *f);
@@ -839,6 +915,14 @@ JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
         JsonAddrInfoInit(p, dir, &addr_info);
         addr = &addr_info;
     }
+
+#ifdef HAVE_GEOIP
+    if (mmdb_status == MMDB_SUCCESS) {
+        GeoIPGet(js, &mmdb, addr->src_ip, "geoip_src");
+        GeoIPGet(js, &mmdb, addr->dst_ip, "geoip_dst");
+    }
+#endif /* HAVE_GEOIP */
+
     jb_set_string(js, "src_ip", addr->src_ip);
     jb_set_uint(js, "src_port", addr->sp);
     jb_set_string(js, "dest_ip", addr->dst_ip);
@@ -1096,6 +1180,31 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                 FatalError("Invalid JSON output option: %s", output_s);
         }
 
+#ifdef HAVE_GEOIP
+        const ConfNode *geoip_enrichment = ConfNodeLookupChild(conf, "geoip-enrichment");
+        if (geoip_enrichment && geoip_enrichment->val && ConfValIsFalse(geoip_enrichment->val)) {
+            SCLogConfig("GeoIP enrichment is disabled.");
+        } else {
+            const char *geoip_db_s = NULL;
+
+            SCLogConfig("GeoIP enrichment is enabled.");
+            (void)ConfGet("geoip-database", &geoip_db_s);
+            if (geoip_db_s == NULL) {
+                mmdb_status = MMDB_FILE_OPEN_ERROR;
+                SCLogWarning("Set geoip-database path if you wish to enable geoip-enrichment");
+            } else {
+                /* Attempt to open MaxMind DB and save file handle if successful */
+                int status = MMDB_open(geoip_db_s, MMDB_MODE_MMAP, &mmdb);
+                mmdb_status = status;
+                if (mmdb_status == MMDB_SUCCESS) {
+                    SCLogNotice("Open GeoLite2 database successfully, path %s", geoip_db_s);
+                } else {
+                    SCLogWarning("Failed to open GeoLite2 database, path %s, error message %s",
+                            geoip_db_s, MMDB_strerror(mmdb_status));
+                }
+            }
+        }
+#endif /* HAVE_GEOIP */
         const char *prefix = ConfNodeLookupChildValue(conf, "prefix");
         if (prefix != NULL)
         {
@@ -1214,6 +1323,12 @@ static void OutputJsonDeInitCtx(OutputCtx *output_ctx)
                      "disconnected socket",
                 logfile_ctx->dropped);
     }
+#ifdef HAVE_GEOIP
+    if (mmdb_status == MMDB_SUCCESS) {
+        MMDB_close(&mmdb);
+        SCLogDebug("GeoLite2 database is closed");
+    }
+#endif /* HAVE_GEOIP */
     if (json_ctx->xff_cfg != NULL) {
         SCFree(json_ctx->xff_cfg);
     }
