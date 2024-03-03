@@ -300,6 +300,8 @@ outputs:
         - rfb
         - sip
         - quic
+        - arp:
+            enabled: no        # Many events can be logged. Disabled by default
         - dhcp:
             enabled: yes
             # When extended mode is on, all DHCP messages are logged
