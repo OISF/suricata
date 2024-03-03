@@ -50,6 +50,8 @@ Major changes
 - ``SIP_PORTS`` variable has been introduced in suricata.yaml
 - Application layer's ``sip`` counter has been split into ``sip_tcp`` and ``sip_udp``
   for the ``stats`` event.
+- Decoder and logger for ARP protocol has been introduced.
+  Given that ARP can be quite verbose and produce many events, it is disabled by default.
 
 Upgrading 6.0 to 7.0
 --------------------
