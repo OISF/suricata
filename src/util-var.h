@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,6 +24,7 @@
 #ifndef SURICATA_UTIL_VAR_H
 #define SURICATA_UTIL_VAR_H
 
+/** variable types: these are used to track variable names */
 enum VarTypes {
     VAR_TYPE_NOT_SET,
 
@@ -46,7 +47,7 @@ enum VarTypes {
 };
 
 typedef struct GenericVar_ {
-    uint8_t type;
+    uint8_t type; /**< variable type, uses detection sm_type */
     uint8_t pad[3];
     uint32_t idx;
     struct GenericVar_ *next;
