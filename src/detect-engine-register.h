@@ -54,7 +54,18 @@ enum DetectKeywordId {
     DETECT_FLOW,
     /* end prefilter sort */
 
+    /* values used in util-var.c go here, to avoid int overflows
+     * TODO update var logic to use a larger type. */
     DETECT_THRESHOLD,
+    DETECT_FLOWBITS,
+    DETECT_FLOWVAR,
+    DETECT_FLOWVAR_POSTMATCH,
+    DETECT_FLOWINT,
+    DETECT_HOSTBITS,
+    DETECT_XBITS,
+    DETECT_PKTVAR,
+    /* end util-var.c logic */
+
     DETECT_METADATA,
     DETECT_REFERENCE,
     DETECT_TAG,
@@ -82,13 +93,7 @@ enum DetectKeywordId {
     DETECT_ISDATAAT,
     DETECT_ID,
     DETECT_RPC,
-    DETECT_FLOWVAR,
-    DETECT_FLOWVAR_POSTMATCH,
-    DETECT_FLOWINT,
-    DETECT_PKTVAR,
     DETECT_NOALERT,
-    DETECT_FLOWBITS,
-    DETECT_HOSTBITS,
     DETECT_IPV4_CSUM,
     DETECT_TCPV4_CSUM,
     DETECT_TCPV6_CSUM,
@@ -259,7 +264,6 @@ enum DetectKeywordId {
     DETECT_AL_DNP3IND,
     DETECT_AL_DNP3OBJ,
 
-    DETECT_XBITS,
     DETECT_BASE64_DECODE,
     DETECT_BASE64_DATA,
 
