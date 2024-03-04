@@ -8,3 +8,4 @@ Suricata Developer Guide
    contributing/index.rst
    internals/index.rst
    extending/index.rst
+   libsuricata/index.rst
