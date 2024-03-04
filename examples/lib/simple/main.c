@@ -40,6 +40,13 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
     }
 
+    /* Load configuration file, could be done earlier but must be done
+     * before SuricataInit, but even then its still optional as you
+     * may be programmatically configuration Suricata. */
+    if (SCLoadYamlConfig() != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
     SuricataInit();
     SuricataPostInit();
 

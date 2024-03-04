@@ -955,9 +955,11 @@ void RegisterAllModules(void)
     TmModuleDecodeDPDKRegister();
 }
 
-static TmEcode LoadYamlConfig(SCInstance *suri)
+TmEcode SCLoadYamlConfig(void)
 {
     SCEnter();
+
+    SCInstance *suri = &suricata;
 
     if (suri->conf_filename == NULL)
         suri->conf_filename = DEFAULT_CONF_FILE;
@@ -2903,11 +2905,6 @@ void SuricataInit(void)
 {
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
     GlobalsInitPreConfig();
-
-    /* Load yaml configuration file if provided. */
-    if (LoadYamlConfig(&suricata) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
 
     if (suricata.run_mode == RUNMODE_DUMP_CONFIG) {
         ConfDump();
