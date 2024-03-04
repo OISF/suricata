@@ -203,6 +203,7 @@ void PostConfLoadedDetectSetup(SCInstance *suri);
 int SCFinalizeRunMode(void);
 TmEcode SCParseCommandLine(int argc, char **argv);
 int SCStartInternalRunMode(int argc, char **argv);
+TmEcode SCLoadYamlConfig(void);
 
 void PreRunInit(const int runmode);
 void PreRunPostPrivsDropInit(const int runmode);
