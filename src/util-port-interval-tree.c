@@ -47,6 +47,7 @@ static int SCPortIntervalCompareAndUpdate(const SCPortIntervalNode *a, SCPortInt
     SCReturnInt(-1);
 }
 
+// cppcheck-suppress nullPointerRedundantCheck
 IRB_GENERATE(PI, SCPortIntervalNode, irb, SCPortIntervalCompareAndUpdate);
 
 /**
