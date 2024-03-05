@@ -440,6 +440,24 @@ error:
     return -1;
 }
 
+#ifdef HAVE_POPCNT64
+#include <x86intrin.h>
+static uint32_t Popcnt(const uint8_t *array, const uint32_t size)
+{
+    /* input needs to be a multiple of 8 for u64 casts to work */
+    DEBUG_VALIDATE_BUG_ON(size < 8);
+    DEBUG_VALIDATE_BUG_ON(size % 8);
+
+    uint32_t cnt = 0;
+    uint64_t *ptr = (uint64_t *)array;
+    for (uint64_t idx = 0; idx < size; idx += 8) {
+        cnt += _popcnt64(*ptr);
+        ptr++;
+    }
+    return cnt;
+}
+#endif
+
 /**
  * \brief Updates the SigGroupHead->sig_cnt with the total count of all the
  *        Signatures present in this SigGroupHead.
@@ -450,14 +468,16 @@ error:
  */
 void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx)
 {
-    uint32_t sig;
-
-    sgh->init->sig_cnt = 0;
-    for (sig = 0; sig < max_idx + 1; sig++) {
+#ifdef HAVE_POPCNT64
+    sgh->init->sig_cnt = Popcnt(sgh->init->sig_array, sgh->init->sig_size);
+#else
+    uint32_t cnt = 0;
+    for (uint32_t sig = 0; sig < max_idx + 1; sig++) {
         if (sgh->init->sig_array[sig / 8] & (1 << (sig % 8)))
-            sgh->init->sig_cnt++;
+            cnt++;
     }
-
+    sgh->init->sig_cnt = cnt;
+#endif
     return;
 }
 
