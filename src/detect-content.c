@@ -556,7 +556,7 @@ static void PropagateLimits(Signature *s, SigMatch *sm_head)
                 SCLogDebug("stored: offset %u depth %u offset_plus_pat %u", offset, depth,
                         offset_plus_pat);
 
-                if ((cd->flags & (DETECT_DEPTH | DETECT_CONTENT_WITHIN)) == 0) {
+                if ((cd->flags & (DETECT_CONTENT_DEPTH | DETECT_CONTENT_WITHIN)) == 0) {
                     if (depth)
                         SCLogDebug("no within, reset depth");
                     depth = 0;
