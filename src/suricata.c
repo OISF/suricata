@@ -785,6 +785,9 @@ static void PrintBuildInfo(void)
 #if defined(__SSE3__)
     strlcat(features, "SSE_3 ", sizeof(features));
 #endif
+#if defined(__SSE2__)
+    strlcat(features, "SSE_2 ", sizeof(features));
+#endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
     }
