@@ -383,6 +383,24 @@ int SigGroupHeadClearSigs(SigGroupHead *sgh)
     return 0;
 }
 
+#ifdef __SSE2__
+#include <emmintrin.h>
+static void MergeBitarrays(const uint8_t *src, uint8_t *dst, const uint32_t size)
+{
+#define BYTES 16
+    const uint8_t *srcptr = src;
+    uint8_t *dstptr = dst;
+    for (uint32_t i = 0; i < size; i += 16) {
+        __m128i s = _mm_load_si128((const __m128i *)srcptr);
+        __m128i d = _mm_load_si128((const __m128i *)dstptr);
+        d = _mm_or_si128(s, d);
+        _mm_store_si128((__m128i *)dstptr, d);
+        srcptr += BYTES;
+        dstptr += BYTES;
+    }
+}
+#endif
+
 /**
  * \brief Copies the bitarray holding the sids from the source SigGroupHead to
  *        the destination SigGroupHead.
@@ -396,8 +414,6 @@ int SigGroupHeadClearSigs(SigGroupHead *sgh)
  */
 int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHead **dst)
 {
-    uint32_t idx = 0;
-
     if (src == NULL || de_ctx == NULL)
         return 0;
 
@@ -406,11 +422,15 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
         if (*dst == NULL)
             goto error;
     }
+    DEBUG_VALIDATE_BUG_ON(src->init->sig_size != (*dst)->init->sig_size);
 
+#ifdef __SSE2__
+    MergeBitarrays(src->init->sig_array, (*dst)->init->sig_array, src->init->sig_size);
+#else
     /* do the copy */
-    for (idx = 0; idx < src->init->sig_size; idx++)
+    for (uint32_t idx = 0; idx < src->init->sig_size; idx++)
         (*dst)->init->sig_array[idx] = (*dst)->init->sig_array[idx] | src->init->sig_array[idx];
-
+#endif
     if (src->init->whitelist)
         (*dst)->init->whitelist = MAX((*dst)->init->whitelist, src->init->whitelist);
 
