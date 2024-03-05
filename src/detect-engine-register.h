@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -66,10 +66,7 @@ enum DetectKeywordId {
     DETECT_PKTVAR,
     /* end util-var.c logic */
 
-    DETECT_METADATA,
-    DETECT_REFERENCE,
-    DETECT_TAG,
-    DETECT_MSG,
+    /* content inspection */
     DETECT_CONTENT,
     DETECT_URICONTENT,
     DETECT_PCRE,
@@ -86,11 +83,26 @@ enum DetectKeywordId {
     DETECT_BYTETEST,
     DETECT_BYTEJUMP,
     DETECT_BYTEMATH,
+    DETECT_BYTE_EXTRACT,
+    DETECT_DATASET,
+    DETECT_DATAREP,
+    DETECT_BASE64_DECODE,
+    DETECT_BASE64_DATA,
+    DETECT_BSIZE,
+    DETECT_ASN1,
+    DETECT_LUA,
+    DETECT_ISDATAAT,
+    DETECT_AL_URILEN,
+    /* end of content inspection */
+
+    DETECT_METADATA,
+    DETECT_REFERENCE,
+    DETECT_TAG,
+    DETECT_MSG,
     DETECT_SAMEIP,
     DETECT_GEOIP,
     DETECT_IPPROTO,
     DETECT_FTPBOUNCE,
-    DETECT_ISDATAAT,
     DETECT_ID,
     DETECT_RPC,
     DETECT_NOALERT,
@@ -103,14 +115,10 @@ enum DetectKeywordId {
     DETECT_ICMPV6_CSUM,
     DETECT_STREAM_SIZE,
     DETECT_DETECTION_FILTER,
-    DETECT_DATASET,
-    DETECT_DATAREP,
 
     DETECT_DECODE_EVENT,
     DETECT_GID,
     DETECT_MARK,
-
-    DETECT_BSIZE,
 
     DETECT_FRAME,
 
@@ -139,7 +147,6 @@ enum DetectKeywordId {
     DETECT_HTTP_METHOD,
     DETECT_AL_HTTP_PROTOCOL,
     DETECT_AL_HTTP_START,
-    DETECT_AL_URILEN,
     DETECT_AL_HTTP_CLIENT_BODY,
     DETECT_HTTP_REQUEST_BODY,
     DETECT_AL_HTTP_SERVER_BODY,
@@ -186,7 +193,6 @@ enum DetectKeywordId {
     DETECT_AL_SSH_HASSH_SERVER_STRING,
     DETECT_AL_SSL_VERSION,
     DETECT_AL_SSL_STATE,
-    DETECT_BYTE_EXTRACT,
     DETECT_FILE_DATA,
     DETECT_PKT_DATA,
     DETECT_AL_APP_LAYER_EVENT,
@@ -210,8 +216,6 @@ enum DetectKeywordId {
     DETECT_SMB_NTLMSSP_DOMAIN,
     DETECT_SMB_VERSION,
 
-    DETECT_ASN1,
-
     DETECT_ENGINE_EVENT,
     DETECT_STREAM_EVENT,
 
@@ -230,7 +234,6 @@ enum DetectKeywordId {
     DETECT_FILESIZE,
 
     DETECT_L3PROTO,
-    DETECT_LUA,
     DETECT_IPREP,
 
     DETECT_AL_DNS_QUERY,
@@ -262,9 +265,6 @@ enum DetectKeywordId {
     DETECT_AL_DNP3FUNC,
     DETECT_AL_DNP3IND,
     DETECT_AL_DNP3OBJ,
-
-    DETECT_BASE64_DECODE,
-    DETECT_BASE64_DATA,
 
     DETECT_AL_KRB5_ERRCODE,
     DETECT_AL_KRB5_MSGTYPE,
