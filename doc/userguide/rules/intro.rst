@@ -280,6 +280,30 @@ keywords.
 
 Some generic details about keywords follow.
 
+Disabling Alerts
+~~~~~~~~~~~~~~~~
+There is a way to disable alert generation for a rule using the keyword ``noalert``.
+When this keyword is part of a rule, no alert is generated if the other
+portions of the rule match. That is, the other rule actions will *still be
+applied.* Using ``noalert`` can be helpful when a rule is
+collecting or setting state using `flowbits`, `datasets` or other
+state maintenance constructs of the rule language.
+
+Also, ``noalert`` is commonly used when Suricata is in `ips` mode to
+`drop` network packets without generating alerts (example below).
+
+The following rules demonstrate one use of the ``noalert`` keyword. The first rule will set state
+with ``xbits`` but not generate an alert. The second rule will generate an alert if the ``xbit`` is set
+and other conditions are met:
+
+.. container:: example-rule
+
+    :example-rule-action:`alert` :example-rule-header:`1http any any -> $HOME_NET any` :example-rule-options:`(msg:"noalert example: set state"; flow:established,to_server; xbits:set,SC.EXAMPLE,track ip_dst, expire 10; noalert; http.method; content:"GET"; sid:1; )`
+
+    :example-rule-action:`alert` :example-rule-header:`http any any -> $HOME_NET any` :example-rule-options:`(msg:"noalert example: state use"; flow:established,to_server; xbits:isset,SC.EXAMPLE,track ip_dst; http.method; content:"POST"; sid: 2; )`
+
+    :example-rule-action:`drop` :example-rule-header:`tcp any any -> any 22` :example-rule-options:`(msg:"Drop inbound SSH traffic"; sid: 3)`
+
 .. _rules-modifiers:
 
 Modifier Keywords
