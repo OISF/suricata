@@ -280,6 +280,14 @@ keywords.
 
 Some generic details about keywords follow.
 
+Disabling Alerts
+~~~~~~~~~~~~~~~~
+There is a way to disable alert generation for a rule using the keyword ``noalert``.
+When this keyword is part of a rule, no alert is generated if the other
+portions of the rule match. Using ``noalert`` can be helpful when a rule is
+collecting or setting state using `flowbits`, `datasets` or other
+state maintenance constructs of the rule language.
+
 .. _rules-modifiers:
 
 Modifier Keywords
