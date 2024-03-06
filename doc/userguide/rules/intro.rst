@@ -280,6 +280,36 @@ keywords.
 
 Some generic details about keywords follow.
 
+Disabling Alerts
+~~~~~~~~~~~~~~~~
+There is a way to disable alert generation for a rule using the keyword ``noalert``.
+When this keyword is part of a rule, no alert is generated if the other
+portions of the rule match. That is, the other rule actions will *still be
+applied.* Using ``noalert`` can be helpful when a rule is
+collecting or setting state using `flowbits`, `datasets` or other
+state maintenance constructs of the rule language. See :doc:`thresholding`
+for other ways to control alert frequency.
+
+The following rules demonstrate ``noalert`` with a familiar pattern:
+
+* The first rule marks state without generating an alert.
+* The second rule generates an alert if the state is set and additional
+  qualifications are met.
+
+.. container:: example-rule
+
+    :example-rule-action:`alert` :example-rule-header:`http any any -> $HOME_NET any` :example-rule-options:`(msg:"noalert example: set state"; flow:established,to_server; xbits:set,SC.EXAMPLE,track ip_dst, expire 10; noalert; http.method; content:"GET"; sid:1; )`
+
+    :example-rule-action:`alert` :example-rule-header:`http any any -> $HOME_NET any` :example-rule-options:`(msg:"noalert example: state use"; flow:established,to_server; xbits:isset,SC.EXAMPLE,track ip_dst; http.method; content:"POST"; sid: 2; )`
+
+In IPS mode, ``noalert`` is commonly used in when Suricata should `drop` network packets
+without generating alerts (example below).  The following rule is a simplified example
+showing how ``noalert`` could be used with IPS deployments to drop inbound SSH requests.
+
+.. container:: example-rule
+
+    :example-rule-action:`drop` :example-rule-header:`tcp any any -> any 22` :example-rule-options:`(msg:"Drop inbound SSH traffic"; noalert; sid: 3)`
+
 .. _rules-modifiers:
 
 Modifier Keywords
