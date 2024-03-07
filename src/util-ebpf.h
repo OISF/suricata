@@ -25,6 +25,7 @@
 #define SURICATA_UTIL_EBPF_H
 
 #include "flow-bypass.h"
+#include "conf.h"
 
 #ifdef HAVE_PACKET_EBPF
 
