@@ -31,6 +31,7 @@
 #include "util-checksum.h"
 #include "runmode-unix-socket.h"
 #include "suricata.h"
+#include "conf.h"
 
 extern uint16_t max_pending_packets;
 PcapFileGlobalVars pcap_g;
