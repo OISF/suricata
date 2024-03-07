@@ -27,6 +27,7 @@
 
 #include "output.h" /* DEFAULT_LOG_* */
 #include "output-eve-null.h"
+#include "output-eve.h"
 
 #ifdef OS_WIN32
 void NullLogInitialize(void)
