@@ -26,6 +26,7 @@
 #include "util-misc.h"
 #include "stream-tcp-reassemble.h"
 #include "action-globals.h"
+#include "conf.h"
 
 enum ExceptionPolicy g_eps_master_switch = EXCEPTION_POLICY_NOT_SET;
 /** true if exception policy was defined in config */
