@@ -65,15 +65,12 @@
 #include "util-log-redis.h"
 #include "util-device.h"
 #include "util-validate.h"
-#include "util-plugin.h"
 
 #include "flow-var.h"
 #include "flow-bit.h"
 #include "flow-storage.h"
 
 #include "source-pcap-file-helper.h"
-
-#include "suricata-plugin.h"
 
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define MODULE_NAME "OutputJSON"
@@ -1088,13 +1085,11 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 
         enum LogFileType log_filetype = FileTypeFromConf(output_s);
         if (log_filetype == LOGFILE_TYPE_NOTSET) {
-#ifdef HAVE_PLUGINS
-            SCEveFileType *plugin = SCPluginFindFileType(output_s);
+            SCEveFileType *plugin = SCEveFindFileType(output_s);
             if (plugin != NULL) {
                 log_filetype = LOGFILE_TYPE_PLUGIN;
                 json_ctx->plugin = plugin;
             } else
-#endif
                 FatalError("Invalid JSON output option: %s", output_s);
         }
 

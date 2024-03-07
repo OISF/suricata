@@ -21,7 +21,6 @@
 #include "suricata-plugin.h"
 
 void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_args);
-SCEveFileType *SCPluginFindFileType(const char *name);
 SCCapturePlugin *SCPluginFindCaptureByName(const char *name);
 
 bool RegisterPlugin(SCPlugin *, void *);
