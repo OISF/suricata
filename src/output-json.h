@@ -28,10 +28,8 @@
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 #include "output.h"
-#include "rust.h"
 
 #include "app-layer-htp-xff.h"
-#include "suricata-plugin.h"
 
 void OutputJsonRegister(void);
 
@@ -83,7 +81,7 @@ typedef struct OutputJsonCtx_ {
     enum LogFileType json_out;
     OutputJsonCommonSettings cfg;
     HttpXFFCfg *xff_cfg;
-    SCEveFileType *plugin;
+    SCEveFileType *filetype;
 } OutputJsonCtx;
 
 typedef struct OutputJsonThreadCtx_ {

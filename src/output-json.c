@@ -1008,7 +1008,7 @@ static int LogFileTypePrepare(
         }
     }
 #endif
-    else if (log_filetype == LOGFILE_TYPE_PLUGIN) {
+    else if (log_filetype == LOGFILE_TYPE_FILETYPE) {
         if (json_ctx->file_ctx->threaded) {
             /* Prepare for threaded log output. */
             if (!SCLogOpenThreadedFile(NULL, NULL, json_ctx->file_ctx)) {
@@ -1016,11 +1016,11 @@ static int LogFileTypePrepare(
             }
         }
         void *init_data = NULL;
-        if (json_ctx->plugin->Init(conf, json_ctx->file_ctx->threaded, &init_data) < 0) {
+        if (json_ctx->filetype->Init(conf, json_ctx->file_ctx->threaded, &init_data) < 0) {
             return -1;
         }
-        json_ctx->file_ctx->plugin.plugin = json_ctx->plugin;
-        json_ctx->file_ctx->plugin.init_data = init_data;
+        json_ctx->file_ctx->filetype.filetype = json_ctx->filetype;
+        json_ctx->file_ctx->filetype.init_data = init_data;
     }
 
     return 0;
@@ -1085,10 +1085,10 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 
         enum LogFileType log_filetype = FileTypeFromConf(output_s);
         if (log_filetype == LOGFILE_TYPE_NOTSET) {
-            SCEveFileType *plugin = SCEveFindFileType(output_s);
-            if (plugin != NULL) {
-                log_filetype = LOGFILE_TYPE_PLUGIN;
-                json_ctx->plugin = plugin;
+            SCEveFileType *filetype = SCEveFindFileType(output_s);
+            if (filetype != NULL) {
+                log_filetype = LOGFILE_TYPE_FILETYPE;
+                json_ctx->filetype = filetype;
             } else
                 FatalError("Invalid JSON output option: %s", output_s);
         }
