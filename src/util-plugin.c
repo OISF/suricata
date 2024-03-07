@@ -21,6 +21,7 @@
 #include "runmodes.h"
 #include "util-plugin.h"
 #include "util-debug.h"
+#include "conf.h"
 
 #ifdef HAVE_PLUGINS
 

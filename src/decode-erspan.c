@@ -39,6 +39,7 @@
 #include "util-validate.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "conf.h"
 
 /**
  * \brief Functions to decode ERSPAN Type I and II packets

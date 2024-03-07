@@ -25,6 +25,7 @@
 #define __UTIL_EBPF_H__
 
 #include "flow-bypass.h"
+#include "conf.h"
 
 #ifdef HAVE_PACKET_EBPF
 
