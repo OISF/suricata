@@ -33,7 +33,6 @@
 #include "util-log-redis.h"
 #endif /* HAVE_LIBHIREDIS */
 
-#include "suricata-plugin.h"
 #include "output-eve.h"
 
 enum LogFileType {
@@ -41,7 +40,8 @@ enum LogFileType {
     LOGFILE_TYPE_UNIX_DGRAM,
     LOGFILE_TYPE_UNIX_STREAM,
     LOGFILE_TYPE_REDIS,
-    LOGFILE_TYPE_PLUGIN,
+    /** New style or modular filetypes. */
+    LOGFILE_TYPE_FILETYPE,
     LOGFILE_TYPE_NOTSET
 };
 
@@ -66,11 +66,11 @@ typedef struct LogThreadedFileCtx_ {
     char *append;
 } LogThreadedFileCtx;
 
-typedef struct LogFilePluginCtx_ {
-    SCEveFileType *plugin;
+typedef struct LogFileTypeCtx_ {
+    SCEveFileType *filetype;
     void *init_data;
     void *thread_data;
-} LogFilePluginCtx;
+} LogFileTypeCtx;
 
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
@@ -91,7 +91,7 @@ typedef struct LogFileCtx_ {
     int (*Write)(const char *buffer, int buffer_len, struct LogFileCtx_ *fp);
     void (*Close)(struct LogFileCtx_ *fp);
 
-    LogFilePluginCtx plugin;
+    LogFileTypeCtx filetype;
 
     /** It will be locked if the log/alert
      * record cannot be written to the file in one call */
