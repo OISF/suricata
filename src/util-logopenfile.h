@@ -34,6 +34,7 @@
 #endif /* HAVE_LIBHIREDIS */
 
 #include "suricata-plugin.h"
+#include "output-eve.h"
 
 enum LogFileType {
     LOGFILE_TYPE_FILE,

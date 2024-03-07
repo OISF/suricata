@@ -17,6 +17,7 @@
 
 #include "suricata-common.h"
 #include "suricata-plugin.h"
+#include "output-eve.h"
 #include "util-mem.h"
 #include "util-debug.h"
 
