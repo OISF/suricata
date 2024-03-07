@@ -344,7 +344,9 @@ static void *ParseNetmapConfig(const char *iface_name)
         }
     }
 
-    int ring_count = NetmapGetRSSCount(aconf->iface_name);
+    int ring_count = 0;
+    if (aconf->in.real)
+		ring_count = NetmapGetRSSCount(aconf->iface_name);
     if (strlen(aconf->iface_name) > 0 &&
             (aconf->iface_name[strlen(aconf->iface_name) - 1] == '^' ||
                     aconf->iface_name[strlen(aconf->iface_name) - 1] == '*')) {
