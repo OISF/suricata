@@ -21,6 +21,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "queue.h"
+
 #include "conf.h"
 
 /**
@@ -40,30 +42,6 @@ typedef struct SCPlugin_ {
 } SCPlugin;
 
 typedef SCPlugin *(*SCPluginRegisterFunc)(void);
-typedef uint32_t ThreadId;
-
-/**
- * Structure used to define an Eve output file type plugin.
- */
-typedef struct SCEveFileType_ {
-    /* The name of the output, used to specify the output in the filetype section
-     * of the eve-log configuration. */
-    const char *name;
-    /* Init Called on first access */
-    int (*Init)(ConfNode *conf, bool threaded, void **init_data);
-    /* Write - Called on each write to the object */
-    int (*Write)(const char *buffer, int buffer_len, void *init_data, void *thread_data);
-    /* Close - Called on final close */
-    void (*Deinit)(void *init_data);
-    /* ThreadInit - Called for each thread using file object; non-zero thread_ids correlate
-     * to Suricata's worker threads; 0 correlates to the Suricata main thread */
-    int (*ThreadInit)(void *init_data, ThreadId thread_id, void **thread_data);
-    /* ThreadDeinit - Called for each thread using file object */
-    int (*ThreadDeinit)(void *init_data, void *thread_data);
-    TAILQ_ENTRY(SCEveFileType_) entries;
-} SCEveFileType;
-
-bool SCRegisterEveFileType(SCEveFileType *);
 
 typedef struct SCCapturePlugin_ {
     char *name;
