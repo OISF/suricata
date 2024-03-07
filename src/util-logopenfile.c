@@ -833,12 +833,12 @@ static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, 
         thread->Write = SCLogFileWriteNoLock;
         thread->Close = SCLogFileCloseNoLock;
         OutputRegisterFileRotationFlag(&thread->rotation_flag);
-    } else if (parent_ctx->type == LOGFILE_TYPE_PLUGIN) {
+    } else if (parent_ctx->type == LOGFILE_TYPE_FILETYPE) {
         entry->slot_number = SC_ATOMIC_ADD(eve_file_id, 1);
         SCLogDebug("%s - thread %d [slot %d]", log_path, entry->internal_thread_id,
                 entry->slot_number);
-        thread->plugin.plugin->ThreadInit(
-                thread->plugin.init_data, entry->internal_thread_id, &thread->plugin.thread_data);
+        thread->filetype.filetype->ThreadInit(thread->filetype.init_data, entry->internal_thread_id,
+                &thread->filetype.thread_data);
     }
     thread->threaded = false;
     thread->parent = parent_ctx;
@@ -871,8 +871,9 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCReturnInt(0);
     }
 
-    if (lf_ctx->type == LOGFILE_TYPE_PLUGIN && lf_ctx->parent != NULL) {
-        lf_ctx->plugin.plugin->ThreadDeinit(lf_ctx->plugin.init_data, lf_ctx->plugin.thread_data);
+    if (lf_ctx->type == LOGFILE_TYPE_FILETYPE && lf_ctx->parent != NULL) {
+        lf_ctx->filetype.filetype->ThreadDeinit(
+                lf_ctx->filetype.init_data, lf_ctx->filetype.thread_data);
     }
 
     if (lf_ctx->threaded) {
@@ -885,7 +886,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         }
         SCFree(lf_ctx->threads);
     } else {
-        if (lf_ctx->type != LOGFILE_TYPE_PLUGIN) {
+        if (lf_ctx->type != LOGFILE_TYPE_FILETYPE) {
             if (lf_ctx->fp != NULL) {
                 lf_ctx->Close(lf_ctx);
             }
@@ -908,11 +909,11 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         OutputUnregisterFileRotationFlag(&lf_ctx->rotation_flag);
     }
 
-    /* Deinitialize output plugins. We only want to call this for the
-     * parent of threaded output, or always for non-threaded
+    /* Deinitialize output filetypes. We only want to call this for
+     * the parent of threaded output, or always for non-threaded
      * output. */
-    if (lf_ctx->type == LOGFILE_TYPE_PLUGIN && lf_ctx->parent == NULL) {
-        lf_ctx->plugin.plugin->Deinit(lf_ctx->plugin.init_data);
+    if (lf_ctx->type == LOGFILE_TYPE_FILETYPE && lf_ctx->parent == NULL) {
+        lf_ctx->filetype.filetype->Deinit(lf_ctx->filetype.init_data);
     }
 
     memset(lf_ctx, 0, sizeof(*lf_ctx));
@@ -929,9 +930,10 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
         MemBufferWriteString(buffer, "\n");
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
                         MEMBUFFER_OFFSET(buffer), file_ctx);
-    } else if (file_ctx->type == LOGFILE_TYPE_PLUGIN) {
-        file_ctx->plugin.plugin->Write((const char *)MEMBUFFER_BUFFER(buffer),
-                MEMBUFFER_OFFSET(buffer), file_ctx->plugin.init_data, file_ctx->plugin.thread_data);
+    } else if (file_ctx->type == LOGFILE_TYPE_FILETYPE) {
+        file_ctx->filetype.filetype->Write((const char *)MEMBUFFER_BUFFER(buffer),
+                MEMBUFFER_OFFSET(buffer), file_ctx->filetype.init_data,
+                file_ctx->filetype.thread_data);
     }
 #ifdef HAVE_LIBHIREDIS
     else if (file_ctx->type == LOGFILE_TYPE_REDIS) {
