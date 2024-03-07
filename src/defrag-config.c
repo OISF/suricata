@@ -26,6 +26,7 @@
 #include "defrag-config.h"
 #include "util-misc.h"
 #include "util-radix-tree.h"
+#include "conf.h"
 
 static SCRadixTree *defrag_tree = NULL;
 

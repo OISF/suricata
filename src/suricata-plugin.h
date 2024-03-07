@@ -23,8 +23,6 @@
 
 #include "queue.h"
 
-#include "conf.h"
-
 /**
  * The size of the data chunk inside each packet structure a plugin
  * has for private data (Packet->plugin_v).
