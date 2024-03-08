@@ -1015,12 +1015,15 @@ static int LogFileTypePrepare(
                 return -1;
             }
         }
-        void *init_data = NULL;
-        if (json_ctx->filetype->Init(conf, json_ctx->file_ctx->threaded, &init_data) < 0) {
+        if (json_ctx->filetype->Init(conf, json_ctx->file_ctx->threaded,
+                    &json_ctx->file_ctx->filetype.init_data) < 0) {
+            return -1;
+        }
+        if (json_ctx->filetype->ThreadInit(json_ctx->file_ctx->filetype.init_data, 0,
+                    &json_ctx->file_ctx->filetype.thread_data) < 0) {
             return -1;
         }
         json_ctx->file_ctx->filetype.filetype = json_ctx->filetype;
-        json_ctx->file_ctx->filetype.init_data = init_data;
     }
 
     return 0;

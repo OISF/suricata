@@ -871,7 +871,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCReturnInt(0);
     }
 
-    if (lf_ctx->type == LOGFILE_TYPE_FILETYPE && lf_ctx->parent != NULL) {
+    if (lf_ctx->type == LOGFILE_TYPE_FILETYPE) {
         lf_ctx->filetype.filetype->ThreadDeinit(
                 lf_ctx->filetype.init_data, lf_ctx->filetype.thread_data);
     }
