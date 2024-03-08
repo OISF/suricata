@@ -1,4 +1,4 @@
-/* Copyright (C) 2020-2023 Open Information Security Foundation
+/* Copyright (C) 2020-2024 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -43,9 +43,6 @@ typedef struct ThreadData_ {
 typedef struct Context_ {
     /** Verbose, or print to stdout. */
     int verbose;
-
-    /** A thread context to use when not running in threaded mode. */
-    ThreadData *thread;
 } Context;
 
 /**
@@ -59,9 +56,9 @@ typedef struct Context_ {
  * \param data A pointer where context data can be stored relevant to this
  *      output.
  *
- * Eve output plugins need to be thread aware as the threading happens at lower
- * level than the EVE output, so a flag is provided here to notify the plugin if
- * threading is enabled or not.
+ * Eve output plugins need to be thread aware as the threading happens
+ * at a lower level than the EVE output, so a flag is provided here to
+ * notify the plugin if threading is enabled or not.
  *
  * If the plugin does not work with threads disabled, or enabled, this function
  * should return -1.
@@ -92,15 +89,6 @@ static int FiletypeInit(ConfNode *conf, bool threaded, void **data)
     }
     context->verbose = verbose;
 
-    if (!threaded) {
-        /* We're not running in threaded mode so allocate a thread context here
-         * to avoid duplication of context data such as file pointers, database
-         * connections, etc. */
-        if (FiletypeThreadInit(context, 0, (void **)&context->thread) != 0) {
-            SCFree(context);
-            return -1;
-        }
-    }
     *data = context;
     return 0;
 }
@@ -115,12 +103,9 @@ static int FiletypeInit(ConfNode *conf, bool threaded, void **data)
  */
 static void FiletypeDeinit(void *data)
 {
-    printf("TemplateClose\n");
+    SCLogNotice("data=%p", data);
     Context *ctx = data;
     if (ctx != NULL) {
-        if (ctx->thread) {
-            FiletypeThreadDeinit(ctx, (void *)ctx->thread);
-        }
         SCFree(ctx);
     }
 }
@@ -140,12 +125,12 @@ static void FiletypeDeinit(void *data)
  * of "eve.<thread_id>.json". This plugin may want to do similar, or open
  * multiple connections to whatever the final logging location might be.
  *
- * In the case of non-threaded EVE logging this function is NOT called by
- * Suricata, but instead this plugin chooses to use this method to create a
- * default (single) thread context.
+ * In the case of non-threaded EVE logging this function is called
+ * once with a thread_id of 0.
  */
 static int FiletypeThreadInit(void *ctx, ThreadId thread_id, void **thread_data)
 {
+    SCLogNotice("thread_id=%d", thread_id);
     ThreadData *tdata = SCCalloc(1, sizeof(ThreadData));
     if (tdata == NULL) {
         SCLogError("Failed to allocate thread data");
@@ -166,6 +151,7 @@ static int FiletypeThreadInit(void *ctx, ThreadId thread_id, void **thread_data)
  */
 static int FiletypeThreadDeinit(void *ctx, void *thread_data)
 {
+    SCLogNotice("thread_data=%p", thread_data);
     if (thread_data == NULL) {
         // Nothing to do.
         return 0;
@@ -194,11 +180,7 @@ static int FiletypeWrite(const char *buffer, int buffer_len, void *data, void *t
     Context *ctx = data;
     ThreadData *thread = thread_data;
 
-    /* The thread_data could be null which is valid, or it could be that we are
-     * in single threaded mode. */
-    if (thread == NULL) {
-        thread = ctx->thread;
-    }
+    SCLogNotice("thread_id=%d, data=%p, thread_data=%p", thread->thread_id, data, thread_data);
 
     thread->count++;
 
