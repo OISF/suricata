@@ -16,7 +16,7 @@ frequency. It has 3 modes: threshold, limit and both.
 
 Syntax::
 
-  threshold: type <threshold|limit|both>, track <by_src|by_dst|by_rule|by_both>, count <N>, seconds <T>
+  threshold: type <threshold|limit|both>, track <by_src|by_dst|by_rule|by_both|by_flow>, count <N>, seconds <T>
 
 type "threshold"
 ~~~~~~~~~~~~~~~~
@@ -84,6 +84,27 @@ If a signature sets a flowbit, flowint, etc. those actions are still
 performed for each of the matches.
 
   *Rule actions drop (IPS mode) and reject are applied to each packet.*
+
+
+track
+~~~~~
+
+.. table::
+
+   +------------------+--------------------------+
+   |Option            |Tracks By                 |
+   +==================+==========================+
+   |by_src            |source IP                 |
+   +------------------+--------------------------+
+   |by_dst            |destination IP            |
+   +------------------+--------------------------+
+   |by_both           |pair of src IP and dst IP |
+   +------------------+--------------------------+
+   |by_rule           |signature id              |
+   +------------------+--------------------------+
+   |by_flow           |flow                      |
+   +------------------+--------------------------+
+
 
 detection_filter
 ----------------
