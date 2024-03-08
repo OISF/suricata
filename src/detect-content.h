@@ -111,6 +111,7 @@ typedef struct DetectContentData_ {
     SpmCtx *spm_ctx;
     /* pointer to replacement data */
     uint8_t *replace;
+    bool is_base64_decoded;
 } DetectContentData;
 
 /* prototypes */
