@@ -918,6 +918,9 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *r
     if (sm_list == -1)
         goto error;
 
+    if ((sm_list == DETECT_SM_LIST_BASE64_DATA) && (s->base64_decoded_cnt > 0)) {
+        s->base64_decoded_cnt -= 1;
+    }
     SigMatch *sm = SigMatchAppendSMToList(de_ctx, s, DETECT_PCRE, (SigMatchCtx *)pd, sm_list);
     if (sm == NULL) {
         goto error;
