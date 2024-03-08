@@ -597,6 +597,8 @@ typedef struct Signature_ {
 
     AppProto alproto;
 
+    int base64_decoded_cnt; /* number of base64_data in the rule */
+
     uint16_t dsize_low;
     uint16_t dsize_high;
     uint8_t dsize_mode;
