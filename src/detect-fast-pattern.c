@@ -272,6 +272,10 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
                 }
             }
         }
+        if (cd->is_base64_decoded) {
+            SCLogError("fast_pattern cannot be used with base64_data");
+            goto error;
+        }
         cd->flags |= DETECT_CONTENT_FAST_PATTERN;
         return 0;
     }
@@ -361,7 +365,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
          pcre2_match_data_free(match);
      }
     return -1;
-}
+ }
 
 /*----------------------------------Unittests---------------------------------*/
 

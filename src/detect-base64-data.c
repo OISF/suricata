@@ -57,6 +57,7 @@ static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
         return -1;
     }
 
+    s->base64_decoded_cnt += 1;
     s->init_data->list = DETECT_SM_LIST_BASE64_DATA;
     return 0;
 }

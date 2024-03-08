@@ -333,6 +333,7 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
     if (s->init_data->negated == true) {
         cd->flags |= DETECT_CONTENT_NEGATED;
     }
+    cd->is_base64_decoded = false;
 
     DetectContentPrint(cd);
 
@@ -353,6 +354,10 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
         }
     }
 
+    if (s->base64_decoded_cnt && (s->init_data->list == DETECT_SM_LIST_BASE64_DATA)) {
+        cd->is_base64_decoded = true;
+        s->base64_decoded_cnt -= 1;
+    }
     if (SigMatchAppendSMToList(de_ctx, s, DETECT_CONTENT, (SigMatchCtx *)cd, sm_list) == NULL) {
         goto error;
     }
