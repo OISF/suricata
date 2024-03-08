@@ -1498,6 +1498,7 @@ static int SigParse(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr,
         }
     }
 
+    DEBUG_VALIDATE_BUG_ON(s->base64_decoded_cnt != 0);
 end:
     DetectIPProtoRemoveAllSMs(de_ctx, s);
 
