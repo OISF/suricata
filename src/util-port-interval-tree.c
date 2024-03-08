@@ -252,7 +252,7 @@ static void SCPortIntervalFindOverlaps(DetectEngineCtx *de_ctx, const uint16_t p
                     *list = new_port;
                     (*list)->last = new_port;
                 } else if (((*list)->last->port != new_port->port) &&
-                           ((*list)->last->port2 != new_port->port)) {
+                           ((*list)->last->port2 != new_port->port2)) {
                     DEBUG_VALIDATE_BUG_ON(new_port->port < (*list)->last->port);
                     (*list)->last->next = new_port;
                     new_port->prev = (*list)->last;
