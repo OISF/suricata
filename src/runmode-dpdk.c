@@ -1433,12 +1433,17 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
     if (retval < 0)
         return retval;
 
+    uint16_t tmp_nb_rx_desc = iconf->nb_rx_desc;
+    uint16_t tmp_nb_tx_desc = iconf->nb_tx_desc;
     retval = rte_eth_dev_adjust_nb_rx_tx_desc(
             iconf->port_id, &iconf->nb_rx_desc, &iconf->nb_tx_desc);
     if (retval != 0) {
         SCLogError("%s: failed to adjust device queue descriptors (port %u, err %d)", iconf->iface,
                 iconf->port_id, retval);
         SCReturnInt(retval);
+    } else if (tmp_nb_rx_desc != iconf->nb_rx_desc || tmp_nb_tx_desc != iconf->nb_tx_desc) {
+        SCLogWarning("%s: device queue descriptors adjusted (RX: from %u to %u, TX: from %u to %u)",
+                iconf->iface, tmp_nb_rx_desc, iconf->nb_rx_desc, tmp_nb_tx_desc, iconf->nb_tx_desc);
     }
 
     retval = iconf->flags & DPDK_MULTICAST ? rte_eth_allmulticast_enable(iconf->port_id)
