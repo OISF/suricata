@@ -21,8 +21,8 @@
  * \author Kevin Wong <kwong@solananetworks.com>
  */
 
-#ifndef __APP_LAYER_ENIP_COMMON_H__
-#define __APP_LAYER_ENIP_COMMON_H__
+#ifndef SURICATA_APP_LAYER_ENIP_COMMON_H
+#define SURICATA_APP_LAYER_ENIP_COMMON_H
 
 #include "rust.h"
 
@@ -242,4 +242,4 @@ int DecodeCIPRequestMSPPDU(const uint8_t *input, uint32_t input_len,
 int DecodeCIPResponseMSPPDU(const uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset);
 
-#endif /* __APP_LAYER_ENIP_COMMON_H__ */
+#endif /* SURICATA_APP_LAYER_ENIP_COMMON_H */

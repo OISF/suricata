@@ -21,8 +21,8 @@
  * \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __APP_LAYER_EXPECTATION__H__
-#define __APP_LAYER_EXPECTATION__H__
+#ifndef SURICATA_APP_LAYER_EXPECTATION__H
+#define SURICATA_APP_LAYER_EXPECTATION__H
 
 #include "flow-storage.h"
 
@@ -36,4 +36,4 @@ void AppLayerExpectationClean(Flow *f);
 
 uint64_t ExpectationGetCounter(void);
 
-#endif /* __APP_LAYER_EXPECTATION__H__ */
+#endif /* SURICATA_APP_LAYER_EXPECTATION__H */

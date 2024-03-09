@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __IPPAIR_H__
-#define __IPPAIR_H__
+#ifndef SURICATA_IPPAIR_H
+#define SURICATA_IPPAIR_H
 
 #include "decode.h"
 #include "util-storage.h"
@@ -140,4 +140,4 @@ int IPPairSetMemcap(uint64_t size);
 uint64_t IPPairGetMemcap(void);
 uint64_t IPPairGetMemuse(void);
 
-#endif /* __IPPAIR_H__ */
+#endif /* SURICATA_IPPAIR_H */

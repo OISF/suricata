@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_PROFILE_LOCKS_H__
-#define __UTIL_PROFILE_LOCKS_H__
+#ifndef SURICATA_UTIL_PROFILE_LOCKS_H
+#define SURICATA_UTIL_PROFILE_LOCKS_H
 
 #ifdef PROFILING
 
@@ -32,5 +32,4 @@ int LockRecordInitHash(void);
 void LockRecordFreeHash(void);
 
 #endif /* PROFILING */
-#endif /* __UTIL_PROFILE_LOCKS_H__ */
-
+#endif /* SURICATA_UTIL_PROFILE_LOCKS_H */

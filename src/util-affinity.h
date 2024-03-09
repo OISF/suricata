@@ -21,8 +21,8 @@
  * \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __UTIL_AFFINITY_H__
-#define __UTIL_AFFINITY_H__
+#ifndef SURICATA_UTIL_AFFINITY_H
+#define SURICATA_UTIL_AFFINITY_H
 #include "suricata-common.h"
 #include "conf.h"
 #include "threads.h"
@@ -97,4 +97,4 @@ void BuildCpusetWithCallback(const char *name, ConfNode *node,
                              void (*Callback)(int i, void * data),
                              void *data);
 
-#endif /* __UTIL_AFFINITY_H__ */
+#endif /* SURICATA_UTIL_AFFINITY_H */

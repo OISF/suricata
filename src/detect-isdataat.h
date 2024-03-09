@@ -21,8 +21,8 @@
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  */
 
-#ifndef __DETECT_ISDATAAT_H__
-#define __DETECT_ISDATAAT_H__
+#ifndef SURICATA_DETECT_ISDATAAT_H
+#define SURICATA_DETECT_ISDATAAT_H
 
 #define ISDATAAT_RELATIVE   0x01
 #define ISDATAAT_RAWBYTES   0x02
@@ -37,5 +37,4 @@ typedef struct DetectIsdataatData_ {
 /* prototypes */
 void DetectIsdataatRegister (void);
 
-#endif /* __DETECT_ISDATAAT_H__ */
-
+#endif /* SURICATA_DETECT_ISDATAAT_H */

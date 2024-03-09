@@ -21,9 +21,9 @@
  * \author Zach Kelly <zach.kelly@lmco.com>
  */
 
-#ifndef __APP_LAYER_RDP_H__
-#define __APP_LAYER_RDP_H__
+#ifndef SURICATA_APP_LAYER_RDP_H
+#define SURICATA_APP_LAYER_RDP_H
 
 void RegisterRdpParsers(void);
 
-#endif /* __APP_LAYER_RDP_H__ */
+#endif /* SURICATA_APP_LAYER_RDP_H */

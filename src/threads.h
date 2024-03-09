@@ -24,8 +24,8 @@
  * Threading functions defined as macros
  */
 
-#ifndef __THREADS_H__
-#define __THREADS_H__
+#ifndef SURICATA_THREADS_H
+#define SURICATA_THREADS_H
 
 #include "suricata-common.h"
 
@@ -308,5 +308,4 @@ extern thread_local char t_thread_name[THREAD_NAME_LEN + 1];
 
 void ThreadMacrosRegisterTests(void);
 
-#endif /* __THREADS_H__ */
-
+#endif /* SURICATA_THREADS_H */

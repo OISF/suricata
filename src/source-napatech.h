@@ -21,8 +21,8 @@
  * \author nPulse Technologies, LLC.
  * \author Matt Keeler <mk@npulsetech.com>
  */
-#ifndef __SOURCE_NAPATECH_H__
-#define __SOURCE_NAPATECH_H__
+#ifndef SURICATA_SOURCE_NAPATECH_H
+#define SURICATA_SOURCE_NAPATECH_H
 
 void TmModuleNapatechStreamRegister(void);
 TmEcode NapatechStreamThreadDeinit(ThreadVars *tv, void *data);
@@ -40,4 +40,4 @@ int NapatechSetPortmap(int port, int peer);
 int NapatechGetAdapter(uint8_t port);
 
 #endif /* HAVE_NAPATECH */
-#endif /* __SOURCE_NAPATECH_H__ */
+#endif /* SURICATA_SOURCE_NAPATECH_H */

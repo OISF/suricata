@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DETECT_SNMP_USM_H__
-#define __DETECT_SNMP_USM_H__
+#ifndef SURICATA_DETECT_SNMP_USM_H
+#define SURICATA_DETECT_SNMP_USM_H
 
 void DetectSNMPUsmRegister(void);
 
-#endif /* __DETECT_SNMP_USM_H__ */
+#endif /* SURICATA_DETECT_SNMP_USM_H */

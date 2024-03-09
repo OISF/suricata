@@ -21,9 +21,9 @@
  * \author Giuseppe Longo <giuseppe@glongo.it>
  */
 
-#ifndef __APP_LAYER_SIP_H__
-#define __APP_LAYER_SIP_H__
+#ifndef SURICATA_APP_LAYER_SIP_H
+#define SURICATA_APP_LAYER_SIP_H
 
 void RegisterSIPParsers(void);
 
-#endif /* __APP_LAYER_SIP_H__ */
+#endif /* SURICATA_APP_LAYER_SIP_H */

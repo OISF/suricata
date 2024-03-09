@@ -21,8 +21,8 @@
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
  */
 
-#ifndef __APP_LAYER_NTP_H__
-#define __APP_LAYER_NTP_H__
+#ifndef SURICATA_APP_LAYER_NTP_H
+#define SURICATA_APP_LAYER_NTP_H
 
 void RegisterNTPParsers(void);
 void NTPParserRegisterTests(void);
@@ -31,4 +31,4 @@ void NTPParserRegisterTests(void);
 typedef struct NTPState_ NTPState;
 typedef struct NTPTransaction_ NTPTransaction;
 
-#endif /* __APP_LAYER_NTP_H__ */
+#endif /* SURICATA_APP_LAYER_NTP_H */

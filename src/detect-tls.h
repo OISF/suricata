@@ -31,8 +31,8 @@
  * \author Pierre Chifflier <pierre.chifflier@ssi.gouv.fr>
  */
 
-#ifndef __DETECT_TLS_H__
-#define __DETECT_TLS_H__
+#ifndef SURICATA_DETECT_TLS_H
+#define SURICATA_DETECT_TLS_H
 
 typedef struct DetectTlsData_ {
     uint16_t ver; /** tls version to match */
@@ -44,4 +44,4 @@ typedef struct DetectTlsData_ {
 /* prototypes */
 void DetectTlsRegister (void);
 
-#endif /* __DETECT_TLS_H__ */
+#endif /* SURICATA_DETECT_TLS_H */

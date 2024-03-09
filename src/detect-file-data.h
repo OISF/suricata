@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_FILEDATA_H__
-#define __DETECT_FILEDATA_H__
+#ifndef SURICATA_DETECT_FILEDATA_H
+#define SURICATA_DETECT_FILEDATA_H
 
 /* prototypes */
 void DetectFiledataRegister (void);
@@ -40,4 +40,4 @@ uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadC
 int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectBufferMpmRegistry *mpm_reg, int list_id);
 
-#endif /* __DETECT_FILEDATA_H__ */
+#endif /* SURICATA_DETECT_FILEDATA_H */

@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DATASETS_REPUTATION_H__
-#define __DATASETS_REPUTATION_H__
+#ifndef SURICATA_DATASETS_REPUTATION_H
+#define SURICATA_DATASETS_REPUTATION_H
 
 typedef struct DataRepType {
     uint16_t value;
@@ -33,4 +33,4 @@ typedef struct DataRepResultType {
     DataRepType rep;
 } DataRepResultType;
 
-#endif /* __DATASETS_REPUTATION_H__ */
+#endif /* SURICATA_DATASETS_REPUTATION_H */

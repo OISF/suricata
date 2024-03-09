@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_PREFILTER_H__
-#define __DETECT_ENGINE_PREFILTER_H__
+#ifndef SURICATA_DETECT_ENGINE_PREFILTER_H
+#define SURICATA_DETECT_ENGINE_PREFILTER_H
 
 #include "detect.h"
 #include "detect-engine-state.h"

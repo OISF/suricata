@@ -15,11 +15,11 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DETECT_BASE64_DECODE_H__
-#define __DETECT_BASE64_DECODE_H__
+#ifndef SURICATA_DETECT_BASE64_DECODE_H
+#define SURICATA_DETECT_BASE64_DECODE_H
 
 void DetectBase64DecodeRegister(void);
 int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *, const Signature *,
     const SigMatchData *, const uint8_t *, uint32_t);
 
-#endif /* __DETECT_BASE64_DECODE_H__ */
+#endif /* SURICATA_DETECT_BASE64_DECODE_H */

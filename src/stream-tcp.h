@@ -22,8 +22,8 @@
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  */
 
-#ifndef __STREAM_TCP_H__
-#define __STREAM_TCP_H__
+#ifndef SURICATA_STREAM_TCP_H
+#define SURICATA_STREAM_TCP_H
 
 #include "stream-tcp-private.h"
 
@@ -205,5 +205,4 @@ uint64_t StreamDataRightEdge(const TcpStream *stream, const bool eof);
 void StreamTcpThreadCacheEnable(void);
 void StreamTcpThreadCacheCleanup(void);
 
-#endif /* __STREAM_TCP_H__ */
-
+#endif /* SURICATA_STREAM_TCP_H */

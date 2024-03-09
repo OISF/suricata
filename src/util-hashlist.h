@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __HASHLIST_H__
-#define __HASHLIST_H__
+#ifndef SURICATA_HASHLIST_H
+#define SURICATA_HASHLIST_H
 
 /* hash bucket structure */
 typedef struct HashListTableBucket_ {
@@ -59,5 +59,4 @@ char HashListTableDefaultCompare(void *, uint16_t, void *, uint16_t);
 
 void HashListTableRegisterTests(void);
 
-#endif /* __HASHLIST_H__ */
-
+#endif /* SURICATA_HASHLIST_H */

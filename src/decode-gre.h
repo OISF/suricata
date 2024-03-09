@@ -23,8 +23,8 @@
  * Generic Route Encapsulation (GRE) from RFC 1701.
  */
 
-#ifndef __DECODE_GRE_H__
-#define __DECODE_GRE_H__
+#ifndef SURICATA_DECODE_GRE_H
+#define SURICATA_DECODE_GRE_H
 
 #ifndef IPPROTO_GRE
 #define IPPROTO_GRE 47
@@ -84,5 +84,4 @@ typedef struct GRESreHdr_
 
 void DecodeGRERegisterTests(void);
 
-#endif /* __DECODE_GRE_H__ */
-
+#endif /* SURICATA_DECODE_GRE_H */

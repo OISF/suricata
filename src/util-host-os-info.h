@@ -21,8 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __UTIL_HOST_OS_INFO_H__
-#define __UTIL_HOST_OS_INFO_H__
+#ifndef SURICATA_UTIL_HOST_OS_INFO_H
+#define SURICATA_UTIL_HOST_OS_INFO_H
 
 #define SC_HINFO_IS_IPV6 0
 #define SC_HINFO_IS_IPV4 1
@@ -35,4 +35,4 @@ void SCHInfoCleanResources(void);
 void SCHInfoLoadFromConfig(void);
 void SCHInfoRegisterTests(void);
 
-#endif /* __UTIL_HOST_OS_INFO_H__ */
+#endif /* SURICATA_UTIL_HOST_OS_INFO_H */

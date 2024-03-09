@@ -21,8 +21,8 @@
  * \author Giuseppe Longo <giuseppelng@gmail.com>
  */
 
-#ifndef __SOURCE_NFLOG_H__
-#define __SOURCE_NFLOG_H__
+#ifndef SURICATA_SOURCE_NFLOG_H
+#define SURICATA_SOURCE_NFLOG_H
 
 #ifdef HAVE_NFLOG
 #include <libnetfilter_log/libnetfilter_log.h>
@@ -63,4 +63,4 @@ typedef struct NFLOGPacketVars_
 void TmModuleReceiveNFLOGRegister(void);
 void TmModuleDecodeNFLOGRegister(void);
 
-#endif /* __SOURCE_NFLOG_H__ */
+#endif /* SURICATA_SOURCE_NFLOG_H */

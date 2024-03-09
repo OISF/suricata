@@ -21,9 +21,9 @@
  * \author Shivani Bhardwaj <shivani@oisf.net>
  */
 
-#ifndef __UTIL_INTERVAL_TREE_H__
-#define __UTIL_INTERVAL_TREE_H__
+#ifndef SURICATA_UTIL_INTERVAL_TREE_H
+#define SURICATA_UTIL_INTERVAL_TREE_H
 
 #include "detect-engine-port.h"
 
-#endif /* __UTIL_INTERVAL_TREE_H__ */
+#endif /* SURICATA_UTIL_INTERVAL_TREE_H */

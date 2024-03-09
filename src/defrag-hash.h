@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DEFRAG_HASH_H__
-#define __DEFRAG_HASH_H__
+#ifndef SURICATA_DEFRAG_HASH_H
+#define SURICATA_DEFRAG_HASH_H
 
 #include "decode.h"
 #include "defrag.h"
@@ -102,5 +102,4 @@ int DefragTrackerSetMemcap(uint64_t);
 uint64_t DefragTrackerGetMemcap(void);
 uint64_t DefragTrackerGetMemuse(void);
 
-#endif /* __DEFRAG_HASH_H__ */
-
+#endif /* SURICATA_DEFRAG_HASH_H */

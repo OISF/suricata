@@ -21,11 +21,11 @@
  * \author Eric Leblond <el@stamus-networks.com>
  */
 
-#ifndef __UTIL_LANDLOCK_H__
-#define __UTIL_LANDLOCK_H__
+#ifndef SURICATA_UTIL_LANDLOCK_H
+#define SURICATA_UTIL_LANDLOCK_H
 
 #include "suricata.h"
 
 void LandlockSandboxing(SCInstance *suri);
 
-#endif /* __UTIL_LANDLOCK_H__ */
+#endif /* SURICATA_UTIL_LANDLOCK_H */

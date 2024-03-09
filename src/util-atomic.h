@@ -30,9 +30,8 @@
  * uses "somevar", internally "somevar_sc_atomic__" is used.
  */
 
-
-#ifndef __UTIL_ATOMIC_H__
-#define __UTIL_ATOMIC_H__
+#ifndef SURICATA_UTIL_ATOMIC_H
+#define SURICATA_UTIL_ATOMIC_H
 
 #if HAVE_STDATOMIC_H==1
 
@@ -393,5 +392,4 @@
 
 void SCAtomicRegisterTests(void);
 
-#endif /* __UTIL_ATOMIC_H__ */
-
+#endif /* SURICATA_UTIL_ATOMIC_H */

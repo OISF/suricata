@@ -23,11 +23,11 @@
  * VXLAN decoder.
  */
 
-#ifndef __DECODE_VXLAN_H__
-#define __DECODE_VXLAN_H__
+#ifndef SURICATA_DECODE_VXLAN_H
+#define SURICATA_DECODE_VXLAN_H
 
 void DecodeVXLANRegisterTests(void);
 void DecodeVXLANConfig(void);
 bool DecodeVXLANEnabledForPort(const uint16_t sp, const uint16_t dp);
 
-#endif /* !__DECODE_VXLAN_H__ */
+#endif /* !SURICATA_DECODE_VXLAN_H */

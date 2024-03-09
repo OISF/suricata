@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_FLOWVAR_H__
-#define __DETECT_FLOWVAR_H__
+#ifndef SURICATA_DETECT_FLOWVAR_H
+#define SURICATA_DETECT_FLOWVAR_H
 
 typedef struct DetectFlowvarData_ {
     char *name;
@@ -56,4 +56,4 @@ static inline void DetectVarProcessList(DetectEngineThreadCtx *det_ctx, Flow *f,
     }
 }
 
-#endif /* __DETECT_FLOWVAR_H__ */
+#endif /* SURICATA_DETECT_FLOWVAR_H */

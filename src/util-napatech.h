@@ -20,8 +20,8 @@
  * \author Phil Young <py@napatech.com>
  *
  */
-#ifndef __UTIL_NAPATECH_H__
-#define __UTIL_NAPATECH_H__
+#ifndef SURICATA_UTIL_NAPATECH_H
+#define SURICATA_UTIL_NAPATECH_H
 
 #ifdef HAVE_NAPATECH
 #include <nt.h>
@@ -118,4 +118,4 @@ int NapatechIsBypassSupported(void);
 
 #endif /* NAPATECH_ENABLE_BYPASS */
 #endif /* HAVE_NAPATECH */
-#endif /* __UTIL_NAPATECH_H__ */
+#endif /* SURICATA_UTIL_NAPATECH_H */

@@ -21,10 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-
-
-#ifndef __UTIL_PRINT_H__
-#define __UTIL_PRINT_H__
+#ifndef SURICATA_UTIL_PRINT_H
+#define SURICATA_UTIL_PRINT_H
 
 #define PrintBufferData(buf, buf_offset_ptr, buf_size, ...) do {         \
         int cw = snprintf((buf) + *(buf_offset_ptr),                    \
@@ -55,5 +53,4 @@ void PrintRawLineHexBuf(char *, uint32_t, const uint8_t *, uint32_t );
 const char *PrintInet(int , const void *, char *, socklen_t);
 void PrintHexString(char *str, size_t size, uint8_t *buf, size_t buf_len);
 
-#endif /* __UTIL_PRINT_H__ */
-
+#endif /* SURICATA_UTIL_PRINT_H */

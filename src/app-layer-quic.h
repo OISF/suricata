@@ -20,9 +20,9 @@
  *
  */
 
-#ifndef __APP_LAYER_QUIC_H__
-#define __APP_LAYER_QUIC_H__
+#ifndef SURICATA_APP_LAYER_QUIC_H
+#define SURICATA_APP_LAYER_QUIC_H
 
 void RegisterQuicParsers(void);
 
-#endif /* __APP_LAYER_QUIC_H__ */
+#endif /* SURICATA_APP_LAYER_QUIC_H */

@@ -21,12 +21,11 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __SOURCE_NFQ_PROTOTYPES_H__
-#define __SOURCE_NFQ_PROTOTYPES_H__
+#ifndef SURICATA_SOURCE_NFQ_PROTOTYPES_H
+#define SURICATA_SOURCE_NFQ_PROTOTYPES_H
 
 void TmModuleReceiveNFQRegister (void);
 void TmModuleVerdictNFQRegister (void);
 void TmModuleDecodeNFQRegister (void);
 
-#endif /* __SOURCE_NFQ_PROTOTYPES_H__ */
-
+#endif /* SURICATA_SOURCE_NFQ_PROTOTYPES_H */

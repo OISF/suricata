@@ -36,8 +36,8 @@
  *  from thread Y.
  */
 
-#ifndef __UTIL_POOL_THREAD_H__
-#define __UTIL_POOL_THREAD_H__
+#ifndef SURICATA_UTIL_POOL_THREAD_H
+#define SURICATA_UTIL_POOL_THREAD_H
 
 #include "threads.h"
 #include "util-pool.h"
@@ -100,7 +100,7 @@ void PoolThreadUnlock(PoolThread *pt, PoolThreadId id);
  *  \retval size or -1 on error */
 int PoolThreadSize(PoolThread *pt);
 
-#endif /* __UTIL_POOL_THREAD_H__ */
+#endif /* SURICATA_UTIL_POOL_THREAD_H */
 
 /**
  * @}

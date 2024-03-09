@@ -24,9 +24,9 @@
  *
  */
 
-#ifndef __OUTPUT_JSON_METADATA_H__
-#define __OUTPUT_JSON_METADATA_H__
+#ifndef SURICATA_OUTPUT_JSON_METADATA_H
+#define SURICATA_OUTPUT_JSON_METADATA_H
 
 void JsonMetadataLogRegister(void);
 
-#endif /* __OUTPUT_JSON_METADATA_H__ */
+#endif /* SURICATA_OUTPUT_JSON_METADATA_H */

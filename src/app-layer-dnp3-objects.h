@@ -23,8 +23,8 @@
  * This file contains the types (definitions) of the DNP3 objects.
  */
 
-#ifndef __APP_LAYER_DNP3_OBJECTS_H__
-#define __APP_LAYER_DNP3_OBJECTS_H__
+#ifndef SURICATA_APP_LAYER_DNP3_OBJECTS_H
+#define SURICATA_APP_LAYER_DNP3_OBJECTS_H
 
 #define DNP3_OBJECT_CODE(group, variation) (group << 8 | variation)
 
@@ -1461,4 +1461,4 @@ int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
 DNP3PointList *DNP3PointListAlloc(void);
 void DNP3FreeObjectPointList(int group, int variation, DNP3PointList *);
 
-#endif /* __APP_LAYER_DNP3_OBJECTS_H__ */
+#endif /* SURICATA_APP_LAYER_DNP3_OBJECTS_H */

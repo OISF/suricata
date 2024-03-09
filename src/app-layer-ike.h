@@ -22,8 +22,8 @@
  * \author Frank Honza <frank.honza@dcso.de>
  */
 
-#ifndef __APP_LAYER_IKE_H__
-#define __APP_LAYER_IKE_H__
+#ifndef SURICATA_APP_LAYER_IKE_H
+#define SURICATA_APP_LAYER_IKE_H
 
 void RegisterIKEParsers(void);
 void IKEParserRegisterTests(void);
@@ -32,4 +32,4 @@ void IKEParserRegisterTests(void);
 typedef struct IKEState_ IKEState;
 typedef struct IKETransaction_ IKETransaction;
 
-#endif /* __APP_LAYER_IKE_H__ */
+#endif /* SURICATA_APP_LAYER_IKE_H */

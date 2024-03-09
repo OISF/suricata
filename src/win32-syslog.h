@@ -33,8 +33,8 @@
  *	@(#)syslog.h	8.1 (Berkeley) 6/2/93
  */
 
-#ifndef __WIN32_SYSLOG_H__
-#define __WIN32_SYSLOG_H__
+#ifndef SURICATA_WIN32_SYSLOG_H
+#define SURICATA_WIN32_SYSLOG_H
 
 #define	LOG_EMERG	0	/* system is unusable */
 #define	LOG_ALERT	1	/* action must be taken immediately */

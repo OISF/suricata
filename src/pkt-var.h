@@ -21,13 +21,12 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __PKT_VAR_H__
-#define __PKT_VAR_H__
+#ifndef SURICATA_PKT_VAR_H
+#define SURICATA_PKT_VAR_H
 
 int WARN_UNUSED PktVarAddKeyValue(Packet *, uint8_t *, uint16_t, uint8_t *, uint16_t);
 int WARN_UNUSED PktVarAdd(Packet *, uint32_t id, uint8_t *, uint16_t);
 PktVar *PktVarGet(Packet *, uint32_t id);
 void PktVarFree(PktVar *);
 
-#endif /* __PKT_VAR_H__ */
-
+#endif /* SURICATA_PKT_VAR_H */

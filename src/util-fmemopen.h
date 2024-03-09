@@ -22,8 +22,8 @@
  *         Based on FMem.c of Alexandre Flori (2008/10/17 AF)
  */
 
-#ifndef __FMEMOPEN_H__
-#define __FMEMOPEN_H__
+#ifndef SURICATA_FMEMOPEN_H
+#define SURICATA_FMEMOPEN_H
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,4 +52,4 @@ FILE *SCFmemopen(void *, size_t, const char *);
 #define SCFmemopen fmemopen
 #endif
 
-#endif /* __FMEMOPEN_H__ */
+#endif /* SURICATA_FMEMOPEN_H */

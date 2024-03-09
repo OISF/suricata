@@ -21,8 +21,8 @@
  * \author Sascha Steinbiss <sascha.steinbiss@dcso.de>
  */
 
-#ifndef __UTIL_MACSET_H__
-#define __UTIL_MACSET_H__
+#ifndef SURICATA_UTIL_MACSET_H
+#define SURICATA_UTIL_MACSET_H
 
 typedef struct MacSet_ MacSet;
 typedef enum {
@@ -45,4 +45,4 @@ FlowStorageId MacSetGetFlowStorageID(void);
 bool    MacSetFlowStorageEnabled(void);
 void    MacSetRegisterTests(void);
 
-#endif /* __UTIL_MACSET_H__ */
+#endif /* SURICATA_UTIL_MACSET_H */

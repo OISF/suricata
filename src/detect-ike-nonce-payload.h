@@ -20,9 +20,9 @@
  * \author Frank Honza <frank.honza@dcso.de>
  */
 
-#ifndef __DETECT_IKE_NONCE_PAYLOAD_H__
-#define __DETECT_IKE_NONCE_PAYLOAD_H__
+#ifndef SURICATA_DETECT_IKE_NONCE_PAYLOAD_H
+#define SURICATA_DETECT_IKE_NONCE_PAYLOAD_H
 
 void DetectIkeNonceRegister(void);
 
-#endif /* __DETECT_IKE_NONCE_PAYLOAD_H__ */
+#endif /* SURICATA_DETECT_IKE_NONCE_PAYLOAD_H */

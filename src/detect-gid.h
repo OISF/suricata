@@ -23,9 +23,8 @@
  * Implements the gid keyword
  */
 
-#ifndef __DETECT_GID_H__
-#define __DETECT_GID_H__
-
+#ifndef SURICATA_DETECT_GID_H
+#define SURICATA_DETECT_GID_H
 
 /**
  * Registration function for gid: keyword
@@ -33,4 +32,4 @@
 
 void DetectGidRegister (void);
 
-#endif /*__DETECT_GID_H__ */
+#endif /*SURICATA_DETECT_GID_H */

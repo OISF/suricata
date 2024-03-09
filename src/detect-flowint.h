@@ -21,8 +21,8 @@
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  */
 
-#ifndef __DETECT_FLOWINT_H__
-#define __DETECT_FLOWINT_H__
+#ifndef SURICATA_DETECT_FLOWINT_H
+#define SURICATA_DETECT_FLOWINT_H
 
 /** Flowint operations allowed */
 enum {
@@ -81,5 +81,4 @@ typedef struct DetectFlowintData_ {
 /* prototypes */
 void DetectFlowintRegister (void);
 
-#endif /* __DETECT_FLOWINT_H__ */
-
+#endif /* SURICATA_DETECT_FLOWINT_H */

@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_TIME_H__
-#define __UTIL_TIME_H__
+#ifndef SURICATA_UTIL_TIME_H
+#define SURICATA_UTIL_TIME_H
 
 /*
  * The SCTime_t member is broken up as
@@ -162,5 +162,4 @@ uint64_t SCGetSecondsUntil (const char *str, time_t epoch);
 uint64_t SCTimespecAsEpochMillis(const struct timespec *ts);
 uint64_t TimeDifferenceMicros(struct timeval t0, struct timeval t1);
 
-#endif /* __UTIL_TIME_H__ */
-
+#endif /* SURICATA_UTIL_TIME_H */

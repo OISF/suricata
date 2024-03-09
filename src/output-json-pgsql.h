@@ -21,9 +21,9 @@
  * \author Juliana Fajardini <jufajardini@oisf.net>
  */
 
-#ifndef __OUTPUT_JSON_PGSQL_H__
-#define __OUTPUT_JSON_PGSQL_H__
+#ifndef SURICATA_OUTPUT_JSON_PGSQL_H
+#define SURICATA_OUTPUT_JSON_PGSQL_H
 
 void JsonPgsqlLogRegister(void);
 
-#endif /* __OUTPUT_JSON_PGSQL_H__ */
+#endif /* SURICATA_OUTPUT_JSON_PGSQL_H */

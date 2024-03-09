@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __HOST_QUEUE_H__
-#define __HOST_QUEUE_H__
+#ifndef SURICATA_HOST_QUEUE_H
+#define SURICATA_HOST_QUEUE_H
 
 #include "suricata-common.h"
 #include "host.h"
@@ -80,5 +80,4 @@ void HostEnqueue (HostQueue *, Host *);
 Host *HostDequeue (HostQueue *);
 uint32_t HostQueueLen(HostQueue *);
 
-#endif /* __HOST_QUEUE_H__ */
-
+#endif /* SURICATA_HOST_QUEUE_H */

@@ -23,8 +23,8 @@
  *
  */
 
-#ifndef __SOURCE_WINDIVERT_H__
-#define __SOURCE_WINDIVERT_H__
+#ifndef SURICATA_SOURCE_WINDIVERT_H
+#define SURICATA_SOURCE_WINDIVERT_H
 
 #ifdef WINDIVERT
 
@@ -79,4 +79,4 @@ void *WinDivertGetQueue(int queue);
 void SourceWinDivertRegisterTests(void);
 
 #endif /* WINDIVERT */
-#endif /* __SOURCE_WINDIVERT_H__ */
+#endif /* SURICATA_SOURCE_WINDIVERT_H */

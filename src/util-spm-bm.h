@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef __UTIL_SPM_BM__
-#define __UTIL_SPM_BM__
+#ifndef SURICATA_UTIL_SPM_BM
+#define SURICATA_UTIL_SPM_BM
 
 #include "suricata-common.h"
 
@@ -49,5 +49,4 @@ void BoyerMooreCtxDeInit(BmCtx *);
 
 void SpmBMRegister(void);
 
-#endif /* __UTIL_SPM_BM__ */
-
+#endif /* SURICATA_UTIL_SPM_BM */

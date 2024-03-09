@@ -23,8 +23,8 @@
  * Lock profiling wrappers
  */
 
-#ifndef __THREADS_PROFILE_H__
-#define __THREADS_PROFILE_H__
+#ifndef SURICATA_THREADS_PROFILE_H
+#define SURICATA_THREADS_PROFILE_H
 
 // UtilCpuGetTicks
 #include "util-cpu.h"

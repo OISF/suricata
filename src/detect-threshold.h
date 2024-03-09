@@ -21,9 +21,8 @@
  * \author Breno Silva <breno.silva@gmail.com>
  */
 
-#ifndef __DETECT_THRESHOLD_H__
-#define __DETECT_THRESHOLD_H__
-
+#ifndef SURICATA_DETECT_THRESHOLD_H
+#define SURICATA_DETECT_THRESHOLD_H
 
 #define TYPE_LIMIT     1
 #define TYPE_BOTH      2
@@ -84,4 +83,4 @@ typedef struct DetectThresholdEntry_ {
 void DetectThresholdRegister(void);
 DetectThresholdData *DetectThresholdDataCopy(DetectThresholdData *);
 
-#endif /*__DETECT_THRESHOLD_H__ */
+#endif /*SURICATA_DETECT_THRESHOLD_H */

@@ -21,8 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __UTIL_RADIX_TREE_H__
-#define __UTIL_RADIX_TREE_H__
+#ifndef SURICATA_UTIL_RADIX_TREE_H
+#define SURICATA_UTIL_RADIX_TREE_H
 
 #define SC_RADIX_BITTEST(x, y) ((x) & (y))
 
@@ -124,4 +124,4 @@ void SCRadixPrintNodeInfo(SCRadixNode *, int,  void (*PrintData)(void*));
 
 void SCRadixRegisterTests(void);
 
-#endif /* __UTIL_RADIX_TREE_H__ */
+#endif /* SURICATA_UTIL_RADIX_TREE_H */

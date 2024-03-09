@@ -21,9 +21,9 @@
  * \author Frank Honza <frank.honza@dcso.de>
  */
 
-#ifndef __OUTPUT_JSON_RFB_H__
-#define __OUTPUT_JSON_RFB_H__
+#ifndef SURICATA_OUTPUT_JSON_RFB_H
+#define SURICATA_OUTPUT_JSON_RFB_H
 
 void JsonRFBLogRegister(void);
 
-#endif /* __OUTPUT_JSON_RFB_H__ */
+#endif /* SURICATA_OUTPUT_JSON_RFB_H */

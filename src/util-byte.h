@@ -21,8 +21,8 @@
  * \author Brian Rectanus <brectanu@gmail.com>
  */
 
-#ifndef __UTIL_BYTE_H__
-#define __UTIL_BYTE_H__
+#ifndef SURICATA_UTIL_BYTE_H
+#define SURICATA_UTIL_BYTE_H
 
 #include <stdint.h>
 
@@ -503,4 +503,4 @@ static inline int WARN_UNUSED ByteExtract(uint64_t *res, int e, uint16_t len, co
     return len;
 }
 
-#endif /* __UTIL_BYTE_H__ */
+#endif /* SURICATA_UTIL_BYTE_H */

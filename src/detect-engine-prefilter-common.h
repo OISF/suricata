@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DETECT_ENGINE_PREFILTER_COMMON_H__
-#define __DETECT_ENGINE_PREFILTER_COMMON_H__
+#ifndef SURICATA_DETECT_ENGINE_PREFILTER_COMMON_H
+#define SURICATA_DETECT_ENGINE_PREFILTER_COMMON_H
 
 #include "rust.h"
 
@@ -107,4 +107,4 @@ static inline bool PrefilterIsPrefilterableById(const Signature *s, enum DetectK
     return false;
 }
 
-#endif /* __DETECT_ENGINE_PREFILTER_COMMON_H__ */
+#endif /* SURICATA_DETECT_ENGINE_PREFILTER_COMMON_H */

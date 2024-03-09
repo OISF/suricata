@@ -21,8 +21,8 @@
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
  */
 
-#ifndef __DETECT_KRB5_MSGTYPE_H__
-#define __DETECT_KRB5_MSGTYPE_H__
+#ifndef SURICATA_DETECT_KRB5_MSGTYPE_H
+#define SURICATA_DETECT_KRB5_MSGTYPE_H
 
 typedef struct DetectKrb5MsgTypeData_ {
     uint8_t msg_type;
@@ -30,4 +30,4 @@ typedef struct DetectKrb5MsgTypeData_ {
 
 void DetectKrb5MsgTypeRegister(void);
 
-#endif /* __DETECT_KRB5_MSGTYPE_H__ */
+#endif /* SURICATA_DETECT_KRB5_MSGTYPE_H */

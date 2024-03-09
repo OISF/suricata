@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __STREAM_H__
-#define __STREAM_H__
+#ifndef SURICATA_STREAM_H
+#define SURICATA_STREAM_H
 
 #include "decode.h"
 #include "stream-tcp-private.h"
@@ -41,5 +41,4 @@ int StreamSegmentForEach(const Packet *p, uint8_t flag,
 int StreamSegmentForSession(
         const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data);
 
-#endif /* __STREAM_H__ */
-
+#endif /* SURICATA_STREAM_H */

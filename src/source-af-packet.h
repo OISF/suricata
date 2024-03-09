@@ -21,8 +21,8 @@
  * \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __SOURCE_AFP_H__
-#define __SOURCE_AFP_H__
+#ifndef SURICATA_SOURCE_AFP_H
+#define SURICATA_SOURCE_AFP_H
 
 #ifndef HAVE_PACKET_FANOUT /* not defined if linux/if_packet.h trying to force */
 #define HAVE_PACKET_FANOUT 1
@@ -193,4 +193,4 @@ int AFPGetLinkType(const char *ifname);
 
 int AFPIsFanoutSupported(uint16_t cluster_id);
 
-#endif /* __SOURCE_AFP_H__ */
+#endif /* SURICATA_SOURCE_AFP_H */

@@ -23,8 +23,8 @@
  * Common includes, etc.
  */
 
-#ifndef __SURICATA_COMMON_H__
-#define __SURICATA_COMMON_H__
+#ifndef SURICATA_SURICATA_COMMON_H
+#define SURICATA_SURICATA_COMMON_H
 
 #ifdef DEBUG
 #define DBG_PERF
@@ -546,4 +546,4 @@ extern int g_ut_covered;
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
-#endif /* __SURICATA_COMMON_H__ */
+#endif /* SURICATA_SURICATA_COMMON_H */

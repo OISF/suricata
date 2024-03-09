@@ -22,8 +22,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __TM_THREADS_COMMON_H__
-#define __TM_THREADS_COMMON_H__
+#ifndef SURICATA_TM_THREADS_COMMON_H
+#define SURICATA_TM_THREADS_COMMON_H
 
 /** \brief Thread Model Module id's.
  *
@@ -94,5 +94,4 @@ enum {
     TVT_MAX,
 };
 
-#endif /* __TM_THREADS_COMMON_H__ */
-
+#endif /* SURICATA_TM_THREADS_COMMON_H */

@@ -21,10 +21,9 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __DETECT_CSUM_H__
-#define __DETECT_CSUM_H__
+#ifndef SURICATA_DETECT_CSUM_H
+#define SURICATA_DETECT_CSUM_H
 
 void DetectCsumRegister(void);
 
-#endif /* __DETECT_CSUM_H__ */
-
+#endif /* SURICATA_DETECT_CSUM_H */

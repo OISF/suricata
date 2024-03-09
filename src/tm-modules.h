@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __TM_MODULES_H__
-#define __TM_MODULES_H__
+#ifndef SURICATA_TM_MODULES_H
+#define SURICATA_TM_MODULES_H
 
 #include "tm-threads-common.h"
 #include "threadvars.h"
@@ -106,5 +106,4 @@ const char * TmModuleTmmIdToString(TmmId id);
 void TmModuleRunInit(void);
 void TmModuleRunDeInit(void);
 
-#endif /* __TM_MODULES_H__ */
-
+#endif /* SURICATA_TM_MODULES_H */

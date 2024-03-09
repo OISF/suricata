@@ -22,8 +22,8 @@
  *  \author Breno Silva <breno.silva@gmail.com>
  */
 
-#ifndef __DETECT_FLOWBITS_H__
-#define __DETECT_FLOWBITS_H__
+#ifndef SURICATA_DETECT_FLOWBITS_H
+#define SURICATA_DETECT_FLOWBITS_H
 
 #define DETECT_FLOWBITS_CMD_SET      0
 #define DETECT_FLOWBITS_CMD_TOGGLE   1
@@ -42,5 +42,4 @@ typedef struct DetectFlowbitsData_ {
 /* prototypes */
 void DetectFlowbitsRegister (void);
 
-#endif /* __DETECT_FLOWBITS_H__ */
-
+#endif /* SURICATA_DETECT_FLOWBITS_H */

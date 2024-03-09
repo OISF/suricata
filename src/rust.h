@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-#ifndef __RUST_H__
-#define __RUST_H__
+#ifndef SURICATA_RUST_H
+#define SURICATA_RUST_H
 
 // hack for include orders cf SCSha256
 typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
@@ -27,4 +27,4 @@ typedef struct HttpRangeContainerBlock HttpRangeContainerBlock;
 #define JB_SET_TRUE(jb, key) jb_set_formatted((jb), "\"" key "\":true")
 #define JB_SET_FALSE(jb, key) jb_set_formatted((jb), "\"" key "\":false")
 
-#endif /* !__RUST_H__ */
+#endif /* !SURICATA_RUST_H */

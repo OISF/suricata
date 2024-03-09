@@ -20,8 +20,8 @@
  *  \author Lukas Sismis <lukas.sismis@gmail.com>
  */
 
-#ifndef __RUNMODE_DPDK_H__
-#define __RUNMODE_DPDK_H__
+#ifndef SURICATA_RUNMODE_DPDK_H
+#define SURICATA_RUNMODE_DPDK_H
 
 typedef struct DPDKIfaceConfigAttributes_ {
     const char *threads;
@@ -44,4 +44,4 @@ int RunModeIdsDpdkWorkers(void);
 void RunModeDpdkRegister(void);
 const char *RunModeDpdkGetDefaultMode(void);
 
-#endif /* __RUNMODE_DPDK_H__ */
+#endif /* SURICATA_RUNMODE_DPDK_H */

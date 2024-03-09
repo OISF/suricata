@@ -21,9 +21,9 @@
  * \author FirstName LastName <yourname@domain>
  */
 
-#ifndef __DETECT_TEMPLATE_RUST_BUFFER_H__
-#define __DETECT_TEMPLATE_RUST_BUFFER_H__
+#ifndef SURICATA_DETECT_TEMPLATE_RUST_BUFFER_H
+#define SURICATA_DETECT_TEMPLATE_RUST_BUFFER_H
 
 void DetectTemplateRustBufferRegister(void);
 
-#endif /* __DETECT_TEMPLATE_RUST_BUFFER_H__ */
+#endif /* SURICATA_DETECT_TEMPLATE_RUST_BUFFER_H */

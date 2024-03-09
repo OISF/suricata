@@ -21,8 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __DETECT_BYTEEXTRACT_H__
-#define __DETECT_BYTEEXTRACT_H__
+#ifndef SURICATA_DETECT_BYTEEXTRACT_H
+#define SURICATA_DETECT_BYTEEXTRACT_H
 
 /* flags */
 #define DETECT_BYTE_EXTRACT_FLAG_RELATIVE   0x01
@@ -65,4 +65,4 @@ SigMatch *DetectByteExtractRetrieveSMVar(const char *, const Signature *);
 int DetectByteExtractDoMatch(DetectEngineThreadCtx *, const SigMatchData *, const Signature *,
         const uint8_t *, uint32_t, uint64_t *, uint8_t);
 
-#endif /* __DETECT_BYTEEXTRACT_H__ */
+#endif /* SURICATA_DETECT_BYTEEXTRACT_H */

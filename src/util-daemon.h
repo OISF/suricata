@@ -21,8 +21,8 @@
  * \author Gerardo Iglesias Galvan <iglesiasg@gmail.com>
  */
 
-#ifndef __UTIL_DAEMON_H__
-#define __UTIL_DAEMON_H__
+#ifndef SURICATA_UTIL_DAEMON_H
+#define SURICATA_UTIL_DAEMON_H
 
 #ifdef OS_WIN32
 #define Daemonize()
@@ -32,4 +32,4 @@ void Daemonize (void);
 
 int CheckValidDaemonModes (int, int);
 
-#endif /* __UTIL_DAEMON_H__ */
+#endif /* SURICATA_UTIL_DAEMON_H */

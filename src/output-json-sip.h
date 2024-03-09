@@ -21,9 +21,9 @@
  * \author Giuseppe Longo <giuseppe@glongo.it>
  */
 
-#ifndef __OUTPUT_JSON_SIP_H__
-#define __OUTPUT_JSON_SIP_H__
+#ifndef SURICATA_OUTPUT_JSON_SIP_H
+#define SURICATA_OUTPUT_JSON_SIP_H
 
 void JsonSIPLogRegister(void);
 
-#endif /* __OUTPUT_JSON_SIP_H__ */
+#endif /* SURICATA_OUTPUT_JSON_SIP_H */

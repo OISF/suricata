@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_IPONLY_H__
-#define __DETECT_ENGINE_IPONLY_H__
+#ifndef SURICATA_DETECT_ENGINE_IPONLY_H
+#define SURICATA_DETECT_ENGINE_IPONLY_H
 
 void IPOnlyCIDRListFree(IPOnlyCIDRItem *tmphead);
 int IPOnlySigParseAddress(const DetectEngineCtx *, Signature *, const char *, char);
@@ -36,5 +36,4 @@ SigIntId IPOnlyTrackSigNum(DetectEngineIPOnlyCtx *, SigIntId);
 void IPOnlyAddSignature(DetectEngineCtx *, DetectEngineIPOnlyCtx *, Signature *);
 void IPOnlyRegisterTests(void);
 
-#endif /* __DETECT_ENGINE_IPONLY_H__ */
-
+#endif /* SURICATA_DETECT_ENGINE_IPONLY_H */

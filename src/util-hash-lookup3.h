@@ -34,8 +34,8 @@ on 1 byte), but shoehorning those bytes into integers efficiently is messy.
 -------------------------------------------------------------------------------
 */
 
-#ifndef __UTIL_HASH_LOOKUP3_H__
-#define __UTIL_HASH_LOOKUP3_H__
+#ifndef SURICATA_UTIL_HASH_LOOKUP3_H
+#define SURICATA_UTIL_HASH_LOOKUP3_H
 
 #define hashsize(n) ((uint32_t)1<<(n))
 #define hashmask(n) (hashsize(n)-1)
@@ -64,5 +64,4 @@ void hashlittle2(const void *key,       /* the key to hash */
 
 uint32_t hashbig( const void *key, size_t length, uint32_t initval);
 
-#endif /* __UTIL_HASH_LOOKUP3_H__ */
-
+#endif /* SURICATA_UTIL_HASH_LOOKUP3_H */

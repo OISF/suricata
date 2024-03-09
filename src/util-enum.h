@@ -21,8 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __UTIL_ENUM_H__
-#define __UTIL_ENUM_H__
+#ifndef SURICATA_UTIL_ENUM_H
+#define SURICATA_UTIL_ENUM_H
 
 typedef struct SCEnumCharMap_ {
     const char *enum_name;
@@ -33,4 +33,4 @@ int SCMapEnumNameToValue(const char *, SCEnumCharMap *);
 
 const char * SCMapEnumValueToName(int, SCEnumCharMap *);
 
-#endif /* __UTIL_ENUM_H__ */
+#endif /* SURICATA_UTIL_ENUM_H */

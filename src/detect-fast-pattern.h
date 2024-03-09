@@ -21,8 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __DETECT_FAST_PATTERN_H__
-#define __DETECT_FAST_PATTERN_H__
+#ifndef SURICATA_DETECT_FAST_PATTERN_H
+#define SURICATA_DETECT_FAST_PATTERN_H
 
 void SupportFastPatternForSigMatchList(int list_id, int priority);
 int FastPatternSupportEnabledForSigMatchList(const DetectEngineCtx *de_ctx,
@@ -36,5 +36,4 @@ void DetectEngineFreeFastPatternList(DetectEngineCtx *de_ctx);
 
 void DetectFastPatternRegister(void);
 
-#endif /* __DETECT_FAST_PATTERN_H__ */
-
+#endif /* SURICATA_DETECT_FAST_PATTERN_H */

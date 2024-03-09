@@ -21,8 +21,8 @@
  * \author Tom DeCanio <td@npulsetech.com>
  */
 
-#ifndef __OUTPUT_JSON_HTTP_H__
-#define __OUTPUT_JSON_HTTP_H__
+#ifndef SURICATA_OUTPUT_JSON_HTTP_H
+#define SURICATA_OUTPUT_JSON_HTTP_H
 
 void JsonHttpLogRegister(void);
 
@@ -30,5 +30,4 @@ bool EveHttpAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
 void EveHttpLogJSONBodyPrintable(JsonBuilder *js, Flow *f, uint64_t tx_id);
 void EveHttpLogJSONBodyBase64(JsonBuilder *js, Flow *f, uint64_t tx_id);
 
-#endif /* __OUTPUT_JSON_HTTP_H__ */
-
+#endif /* SURICATA_OUTPUT_JSON_HTTP_H */

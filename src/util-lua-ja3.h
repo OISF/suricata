@@ -21,8 +21,8 @@
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  */
 
-#ifndef __UTIL_LUA_JA3_H__
-#define __UTIL_LUA_JA3_H__
+#ifndef SURICATA_UTIL_LUA_JA3_H
+#define SURICATA_UTIL_LUA_JA3_H
 
 #ifdef HAVE_LUA
 
@@ -30,4 +30,4 @@ int LuaRegisterJa3Functions(lua_State *luastate);
 
 #endif /* HAVE_LUA */
 
-#endif /* __UTIL_LUA_JA3_H__ */
+#endif /* SURICATA_UTIL_LUA_JA3_H */

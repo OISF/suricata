@@ -21,9 +21,9 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_SSH_PROTOCOL_H__
-#define __DETECT_SSH_PROTOCOL_H__
+#ifndef SURICATA_DETECT_SSH_PROTOCOL_H
+#define SURICATA_DETECT_SSH_PROTOCOL_H
 
 void DetectSshProtocolRegister(void);
 
-#endif /* __DETECT_SSH_PROTOCOL_H__ */
+#endif /* SURICATA_DETECT_SSH_PROTOCOL_H */

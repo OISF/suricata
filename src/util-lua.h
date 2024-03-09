@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_LUA_H__
-#define __UTIL_LUA_H__
+#ifndef SURICATA_UTIL_LUA_H
+#define SURICATA_UTIL_LUA_H
 
 #ifndef HAVE_LUA
 
@@ -105,4 +105,4 @@ int LuaPushInteger(lua_State *luastate, lua_Integer n);
 
 #endif /* HAVE_LUA */
 
-#endif /* __UTIL_LUA_H__ */
+#endif /* SURICATA_UTIL_LUA_H */

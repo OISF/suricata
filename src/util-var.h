@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_VAR_H__
-#define __UTIL_VAR_H__
+#ifndef SURICATA_UTIL_VAR_H
+#define SURICATA_UTIL_VAR_H
 
 enum VarTypes {
     VAR_TYPE_NOT_SET,
@@ -78,5 +78,4 @@ void GenericVarRemove(GenericVar **, GenericVar *);
 int AddVariableToResolveList(ResolvedVariablesList *list, const char *var);
 void CleanVariableResolveList(ResolvedVariablesList *var_list);
 
-#endif /* __UTIL_VAR_H__ */
-
+#endif /* SURICATA_UTIL_VAR_H */

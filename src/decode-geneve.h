@@ -23,11 +23,11 @@
  * Geneve decoder.
  */
 
-#ifndef __DECODE_GENEVE_H__
-#define __DECODE_GENEVE_H__
+#ifndef SURICATA_DECODE_GENEVE_H
+#define SURICATA_DECODE_GENEVE_H
 
 void DecodeGeneveRegisterTests(void);
 void DecodeGeneveConfig(void);
 bool DecodeGeneveEnabledForPort(const uint16_t sp, const uint16_t dp);
 
-#endif /* !__DECODE_GENEVE_H__ */
+#endif /* !SURICATA_DECODE_GENEVE_H */

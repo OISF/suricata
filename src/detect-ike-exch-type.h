@@ -21,9 +21,9 @@
  * \author Frank Honza <frank.honza@dcso.de>
  */
 
-#ifndef __DETECT_IKE_EXCH_TYPE_H__
-#define __DETECT_IKE_EXCH_TYPE_H__
+#ifndef SURICATA_DETECT_IKE_EXCH_TYPE_H
+#define SURICATA_DETECT_IKE_EXCH_TYPE_H
 
 void DetectIkeExchTypeRegister(void);
 
-#endif /* __DETECT_IKE_EXCH_TYPE_H__ */
+#endif /* SURICATA_DETECT_IKE_EXCH_TYPE_H */

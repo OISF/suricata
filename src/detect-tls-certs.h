@@ -21,10 +21,10 @@
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  */
 
-#ifndef __DETECT_TLS_CERTS_H__
-#define __DETECT_TLS_CERTS_H__
+#ifndef SURICATA_DETECT_TLS_CERTS_H
+#define SURICATA_DETECT_TLS_CERTS_H
 
 void DetectTlsCertsRegister(void);
 void DetectTlsCertChainLenRegister(void);
 
-#endif /* __DETECT_TLS_CERTS_H__ */
+#endif /* SURICATA_DETECT_TLS_CERTS_H */

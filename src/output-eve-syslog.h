@@ -21,9 +21,9 @@
  * \author Jeff Lucovsky <jeff@lucovsky.org>
  */
 
-#ifndef __OUTPUT_EVE_SYSLOG_H__
-#define __OUTPUT_EVE_SYSLOG_H__
+#ifndef SURICATA_OUTPUT_EVE_SYSLOG_H
+#define SURICATA_OUTPUT_EVE_SYSLOG_H
 
 void SyslogInitialize(void);
 
-#endif /* __OUTPUT_EVE_SYSLOG_H__ */
+#endif /* SURICATA_OUTPUT_EVE_SYSLOG_H */

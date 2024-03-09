@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __TMQH_FLOW_H__
-#define __TMQH_FLOW_H__
+#ifndef SURICATA_TMQH_FLOW_H
+#define SURICATA_TMQH_FLOW_H
 
 typedef struct TmqhFlowMode_ {
     PacketQueue *q;
@@ -43,4 +43,4 @@ void TmqhFlowRegisterTests(void);
 
 void TmqhFlowPrintAutofpHandler(void);
 
-#endif /* __TMQH_FLOW_H__ */
+#endif /* SURICATA_TMQH_FLOW_H */

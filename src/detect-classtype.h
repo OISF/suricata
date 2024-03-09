@@ -21,11 +21,10 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __DETECT_CLASSTYPE_H__
-#define __DETECT_CLASSTYPE_H__
+#ifndef SURICATA_DETECT_CLASSTYPE_H
+#define SURICATA_DETECT_CLASSTYPE_H
 
 /* prototypes */
 void DetectClasstypeRegister(void);
 
-#endif /* __DETECT_CLASSTYPE_H__ */
-
+#endif /* SURICATA_DETECT_CLASSTYPE_H */

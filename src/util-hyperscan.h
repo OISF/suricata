@@ -23,9 +23,9 @@
  * Support functions for Hyperscan library integration.
  */
 
-#ifndef __UTIL_HYPERSCAN__H__
-#define __UTIL_HYPERSCAN__H__
+#ifndef SURICATA_UTIL_HYPERSCAN__H
+#define SURICATA_UTIL_HYPERSCAN__H
 
 char *HSRenderPattern(const uint8_t *pat, uint16_t pat_len);
 
-#endif /* __UTIL_HYPERSCAN__H__ */
+#endif /* SURICATA_UTIL_HYPERSCAN__H */

@@ -21,8 +21,8 @@
  *  \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __FLOW_H__
-#define __FLOW_H__
+#ifndef SURICATA_FLOW_H
+#define SURICATA_FLOW_H
 
 /* forward declaration for macset include */
 typedef struct FlowStorageId FlowStorageId;
@@ -700,4 +700,4 @@ uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags);
 
 void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars *dtv);
 
-#endif /* __FLOW_H__ */
+#endif /* SURICATA_FLOW_H */

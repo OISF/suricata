@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_FILESTORE_H__
-#define __DETECT_FILESTORE_H__
+#ifndef SURICATA_DETECT_FILESTORE_H
+#define SURICATA_DETECT_FILESTORE_H
 
 #define FILESTORE_DIR_DEFAULT   0   /* rule dir */
 #define FILESTORE_DIR_TOSERVER  1
@@ -41,4 +41,4 @@ typedef struct DetectFilestoreData_ {
 /* prototypes */
 void DetectFilestoreRegister (void);
 
-#endif /* __DETECT_FILESTORE_H__ */
+#endif /* SURICATA_DETECT_FILESTORE_H */

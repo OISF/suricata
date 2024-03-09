@@ -24,8 +24,8 @@
  * Threading functions defined as macros: debug variants
  */
 
-#ifndef __THREADS_DEBUG_H__
-#define __THREADS_DEBUG_H__
+#ifndef SURICATA_THREADS_DEBUG_H
+#define SURICATA_THREADS_DEBUG_H
 
 /* mutex */
 

@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef __UTIL_UTIL_CONF_H__
-#define __UTIL_UTIL_CONF_H__
+#ifndef SURICATA_UTIL_UTIL_CONF_H
+#define SURICATA_UTIL_UTIL_CONF_H
 
 #include "conf.h"
 
@@ -39,4 +39,4 @@ ConfNode *ConfFindDeviceConfig(ConfNode *node, const char *iface);
 
 int ConfUnixSocketIsEnable(void);
 
-#endif /* __UTIL_UTIL_CONF_H__ */
+#endif /* SURICATA_UTIL_UTIL_CONF_H */

@@ -26,8 +26,8 @@
  * 1 on a failed match.
  */
 
-#ifndef __UTIL_MEMCMP_H__
-#define __UTIL_MEMCMP_H__
+#ifndef SURICATA_UTIL_MEMCMP_H
+#define SURICATA_UTIL_MEMCMP_H
 
 #include "suricata-common.h"
 #include "util-optimize.h"
@@ -308,5 +308,4 @@ static inline int SCBufferCmp(const void *s1, size_t len1, const void *s2, size_
     return 1;
 }
 
-#endif /* __UTIL_MEMCMP_H__ */
-
+#endif /* SURICATA_UTIL_MEMCMP_H */

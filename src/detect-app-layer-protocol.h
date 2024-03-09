@@ -21,9 +21,9 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __DETECT_APP_LAYER_PROTOCOL__H__
-#define __DETECT_APP_LAYER_PROTOCOL__H__
+#ifndef SURICATA_DETECT_APP_LAYER_PROTOCOL__H
+#define SURICATA_DETECT_APP_LAYER_PROTOCOL__H
 
 void DetectAppLayerProtocolRegister(void);
 
-#endif /* __DETECT_APP_LAYER_PROTOCOL__H__ */
+#endif /* SURICATA_DETECT_APP_LAYER_PROTOCOL__H */

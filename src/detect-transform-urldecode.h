@@ -21,10 +21,10 @@
  * \author Philippe Antoine <p.antoine@catenacyber.fr>
  */
 
-#ifndef __DETECT_TRANSFORM_URLDECODE_H__
-#define __DETECT_TRANSFORM_URLDECODE_H__
+#ifndef SURICATA_DETECT_TRANSFORM_URLDECODE_H
+#define SURICATA_DETECT_TRANSFORM_URLDECODE_H
 
 /* prototypes */
 void DetectTransformUrlDecodeRegister (void);
 
-#endif /* __DETECT_TRANSFORM_URLDECODE_H__ */
+#endif /* SURICATA_DETECT_TRANSFORM_URLDECODE_H */

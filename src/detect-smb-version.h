@@ -15,11 +15,11 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DETECT_SMB_VERSION_H__
-#define __DETECT_SMB_VERSION_H__
+#ifndef SURICATA_DETECT_SMB_VERSION_H
+#define SURICATA_DETECT_SMB_VERSION_H
 
 /** \brief registers the keyword into the engine. Called from
  *         detect.c::SigTableSetup() */
 void DetectSmbVersionRegister(void);
 
-#endif /* __DETECT_SMB_VERSION_H__ */
+#endif /* SURICATA_DETECT_SMB_VERSION_H */

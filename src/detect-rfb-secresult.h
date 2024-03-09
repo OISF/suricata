@@ -21,9 +21,9 @@
  * \author Sascha Steinbiss <sascha.steinbiss@dcso.de>
  */
 
-#ifndef __DETECT_RFB_SECRESULT_H__
-#define __DETECT_RFB_SECRESULT_H__
+#ifndef SURICATA_DETECT_RFB_SECRESULT_H
+#define SURICATA_DETECT_RFB_SECRESULT_H
 
 void DetectRfbSecresultRegister(void);
 
-#endif /*__DETECT_RFB_SECRESULT_H__ */
+#endif /*SURICATA_DETECT_RFB_SECRESULT_H */

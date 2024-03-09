@@ -20,8 +20,8 @@
  *  \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __RUNMODES_H__
-#define __RUNMODES_H__
+#ifndef SURICATA_RUNMODES_H
+#define SURICATA_RUNMODES_H
 
 /* Run mode */
 enum RunModes {
@@ -106,4 +106,4 @@ extern uint64_t threading_set_stack_size;
 
 extern int debuglog_enabled;
 
-#endif /* __RUNMODES_H__ */
+#endif /* SURICATA_RUNMODES_H */

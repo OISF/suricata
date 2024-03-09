@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef __UTIL_FILE_H__
-#define __UTIL_FILE_H__
+#ifndef SURICATA_UTIL_FILE_H
+#define SURICATA_UTIL_FILE_H
 
 #include "conf.h"
 #include "util-streaming-buffer.h"
@@ -252,4 +252,4 @@ void FilePrintFlags(const File *file);
 
 void FilesPrune(FileContainer *fc, const StreamingBufferConfig *sbcfg, const bool trunc);
 
-#endif /* __UTIL_FILE_H__ */
+#endif /* SURICATA_UTIL_FILE_H */

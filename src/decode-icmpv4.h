@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DECODE_ICMPV4_H__
-#define __DECODE_ICMPV4_H__
+#ifndef SURICATA_DECODE_ICMPV4_H
+#define SURICATA_DECODE_ICMPV4_H
 
 #include "decode-tcp.h"
 #include "decode-udp.h"
@@ -346,4 +346,4 @@ static inline uint16_t ICMPV4CalculateChecksum(const uint16_t *pkt, uint16_t tle
 
 int ICMPv4GetCounterpart(uint8_t type);
 
-#endif /* __DECODE_ICMPV4_H__ */
+#endif /* SURICATA_DECODE_ICMPV4_H */

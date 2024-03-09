@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_VAR_NAME_H__
-#define __UTIL_VAR_NAME_H__
+#ifndef SURICATA_UTIL_VAR_NAME_H
+#define SURICATA_UTIL_VAR_NAME_H
 
 void VarNameStoreInit(void);
 void VarNameStoreDestroy(void);

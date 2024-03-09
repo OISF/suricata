@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __SOURCE_NFQ_H__
-#define __SOURCE_NFQ_H__
+#ifndef SURICATA_SOURCE_NFQ_H
+#define SURICATA_SOURCE_NFQ_H
 
 #ifdef NFQ
 
@@ -96,5 +96,4 @@ void *NFQGetQueue(int number);
 void *NFQGetThread(int number);
 void NFQContextsClean(void);
 #endif /* NFQ */
-#endif /* __SOURCE_NFQ_H__ */
-
+#endif /* SURICATA_SOURCE_NFQ_H */

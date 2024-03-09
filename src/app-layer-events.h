@@ -22,8 +22,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __APP_LAYER_EVENTS_H__
-#define __APP_LAYER_EVENTS_H__
+#ifndef SURICATA_APP_LAYER_EVENTS_H
+#define SURICATA_APP_LAYER_EVENTS_H
 
 /* contains fwd declaration of AppLayerDecoderEvents_ */
 #include "decode.h"
@@ -78,5 +78,4 @@ void AppLayerDecoderEventsResetEvents(AppLayerDecoderEvents *events);
 void AppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events);
 int DetectEngineGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type);
 
-#endif /* __APP_LAYER_EVENTS_H__ */
-
+#endif /* SURICATA_APP_LAYER_EVENTS_H */

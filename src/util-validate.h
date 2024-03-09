@@ -27,9 +27,8 @@
  * used for testing.
  */
 
-
-#ifndef __UTIL_VALIDATE_H__
-#define __UTIL_VALIDATE_H__
+#ifndef SURICATA_UTIL_VALIDATE_H
+#define SURICATA_UTIL_VALIDATE_H
 
 #ifdef DEBUG_VALIDATION
 
@@ -105,5 +104,4 @@
 
 #endif /* DEBUG_VALIDATE */
 
-#endif /* __UTIL_VALIDATE_H__ */
-
+#endif /* SURICATA_UTIL_VALIDATE_H */

@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_PREFILTER_H__
-#define __UTIL_PREFILTER_H__
+#ifndef SURICATA_UTIL_PREFILTER_H
+#define SURICATA_UTIL_PREFILTER_H
 
 #include "util-debug.h"
 
@@ -87,4 +87,4 @@ void PmqReset(PrefilterRuleStore *);
 void PmqCleanup(PrefilterRuleStore *);
 void PmqFree(PrefilterRuleStore *);
 
-#endif /* __UTIL_PREFILTER_H__ */
+#endif /* SURICATA_UTIL_PREFILTER_H */

@@ -21,11 +21,11 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_BSIZE_H__
-#define	__DETECT_BSIZE_H__
+#ifndef SURICATA_DETECT_BSIZE_H
+#define SURICATA_DETECT_BSIZE_H
 
 void DetectBsizeRegister(void);
 int DetectBsizeMatch(const SigMatchCtx *ctx, const uint64_t buffer_size, bool eof);
 bool DetectBsizeValidateContentCallback(Signature *s, const SignatureInitDataBuffer *);
 
-#endif /* __DETECT_BSIZE_H__ */
+#endif /* SURICATA_DETECT_BSIZE_H */

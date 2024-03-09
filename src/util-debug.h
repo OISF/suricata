@@ -21,8 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __UTIL_DEBUG_H__
-#define __UTIL_DEBUG_H__
+#ifndef SURICATA_UTIL_DEBUG_H
+#define SURICATA_UTIL_DEBUG_H
 
 #include "suricata-common.h"
 
@@ -547,4 +547,4 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
 
 SCLogLevel SCLogGetLogLevel(void);
 
-#endif /* __UTIL_DEBUG_H__ */
+#endif /* SURICATA_UTIL_DEBUG_H */

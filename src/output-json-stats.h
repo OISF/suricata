@@ -21,8 +21,8 @@
  * \author Tom DeCanio <td@npulsetech.com>
  */
 
-#ifndef __OUTPUT_JSON_COUNTERS_H__
-#define __OUTPUT_JSON_COUNTERS_H__
+#ifndef SURICATA_OUTPUT_JSON_COUNTERS_H
+#define SURICATA_OUTPUT_JSON_COUNTERS_H
 
 #include "output-stats.h"
 
@@ -37,4 +37,4 @@ void JsonStatsLogRegister(void);
 
 void OutputJsonStatsRegisterTests(void);
 
-#endif /* __OUTPUT_JSON_COUNTERS_H__ */
+#endif /* SURICATA_OUTPUT_JSON_COUNTERS_H */

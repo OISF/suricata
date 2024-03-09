@@ -21,9 +21,8 @@
  * \author James Riden <jamesr@europe.com>
  */
 
-#ifndef __DECODE_PPPOE_H__
-#define __DECODE_PPPOE_H__
-
+#ifndef SURICATA_DECODE_PPPOE_H
+#define SURICATA_DECODE_PPPOE_H
 
 // Session header length minus the protocol field
 #define PPPOE_SESSION_HEADER_MIN_LEN     7
@@ -77,5 +76,4 @@ typedef struct PPPOEDiscoveryHdr_
 
 void DecodePPPOERegisterTests(void);
 
-#endif /* __DECODE_PPPOE_H__ */
-
+#endif /* SURICATA_DECODE_PPPOE_H */

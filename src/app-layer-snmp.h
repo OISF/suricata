@@ -21,8 +21,8 @@
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
  */
 
-#ifndef __APP_LAYER_SNMP_H__
-#define __APP_LAYER_SNMP_H__
+#ifndef SURICATA_APP_LAYER_SNMP_H
+#define SURICATA_APP_LAYER_SNMP_H
 
 void RegisterSNMPParsers(void);
 
@@ -30,4 +30,4 @@ void RegisterSNMPParsers(void);
 typedef struct SNMPState_ SNMPState;
 typedef struct SNMPTransaction_ SNMPTransaction;
 
-#endif /* __APP_LAYER_SNMP_H__ */
+#endif /* SURICATA_APP_LAYER_SNMP_H */

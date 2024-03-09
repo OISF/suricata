@@ -19,8 +19,8 @@
  * \file
  */
 
-#ifndef __UTIL_EXCEPTION_POLICY_H__
-#define __UTIL_EXCEPTION_POLICY_H__
+#ifndef SURICATA_UTIL_EXCEPTION_POLICY_H
+#define SURICATA_UTIL_EXCEPTION_POLICY_H
 
 #include "decode.h"
 

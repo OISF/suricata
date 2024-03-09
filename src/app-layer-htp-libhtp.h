@@ -43,11 +43,11 @@
  * APIs from libhtp 0.5.x.
  */
 
-#ifndef __APP_LAYER_HTP_LIBHTP__H__
-#define __APP_LAYER_HTP_LIBHTP__H__
+#ifndef SURICATA_APP_LAYER_HTP_LIBHTP__H
+#define SURICATA_APP_LAYER_HTP_LIBHTP__H
 
 #include "suricata-common.h"
 
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, bool uri_include_all);
 
-#endif /* __APP_LAYER_HTP_LIBHTP__H__ */
+#endif /* SURICATA_APP_LAYER_HTP_LIBHTP__H */

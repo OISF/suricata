@@ -22,8 +22,8 @@
  * \author Duarte Silva <duarte.silva@serializing.me>
  */
 
-#ifndef __APP_LAYER_HTP_XFF_H__
-#define __APP_LAYER_HTP_XFF_H__
+#ifndef SURICATA_APP_LAYER_HTP_XFF_H
+#define SURICATA_APP_LAYER_HTP_XFF_H
 
 /** XFF is disabled */
 #define XFF_DISABLED 1
@@ -51,4 +51,4 @@ int HttpXFFGetIP(const Flow *f, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen
 
 void HTPXFFParserRegisterTests(void);
 
-#endif /* __APP_LAYER_HTP_XFF_H__ */
+#endif /* SURICATA_APP_LAYER_HTP_XFF_H */

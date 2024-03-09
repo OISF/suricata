@@ -31,10 +31,10 @@
  * \author David DIALLO <diallo@et.esiea.fr>
  */
 
-#ifndef __DETECT_MODBUS_H__
-#define __DETECT_MODBUS_H__
+#ifndef SURICATA_DETECT_MODBUS_H
+#define SURICATA_DETECT_MODBUS_H
 
 /* prototypes */
 void DetectModbusRegister(void);
 
-#endif /* __DETECT_MODBUS_H__ */
+#endif /* SURICATA_DETECT_MODBUS_H */

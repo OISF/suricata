@@ -20,10 +20,10 @@
  *  \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __UTIL_RUNNING_MODES_H__
-#define __UTIL_RUNNING_MODES_H__
+#ifndef SURICATA_UTIL_RUNNING_MODES_H
+#define SURICATA_UTIL_RUNNING_MODES_H
 
 int ListKeywords(const char *keyword_info);
 int ListAppLayerProtocols(const char *conf_filename);
 
-#endif /* __UTIL_RUNNING_MODES_H__ */
+#endif /* SURICATA_UTIL_RUNNING_MODES_H */

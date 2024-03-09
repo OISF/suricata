@@ -21,9 +21,9 @@
  *  \author Giuseppe Longo <glongo@stamus-networks.com>
  */
 
-#ifndef __DETECT_BYPASS_H__
-#define __DETECT_BYPASS_H__
+#ifndef SURICATA_DETECT_BYPASS_H
+#define SURICATA_DETECT_BYPASS_H
 
 void DetectBypassRegister(void);
 
-#endif /* __DETECT_BYPASS_H__ */
+#endif /* SURICATA_DETECT_BYPASS_H */

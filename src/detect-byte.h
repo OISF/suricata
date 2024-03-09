@@ -21,12 +21,12 @@
  * \author Jeff Lucovsky <jeff@lucovsky.org>
  */
 
-#ifndef __DETECT_BYTE_H__
-#define __DETECT_BYTE_H__
+#ifndef SURICATA_DETECT_BYTE_H
+#define SURICATA_DETECT_BYTE_H
 #include "detect.h"
 
 typedef uint8_t DetectByteIndexType;
 
 bool DetectByteRetrieveSMVar(const char *, const Signature *, DetectByteIndexType *);
 
-#endif /* __DETECT_BYTE_H__ */
+#endif /* SURICATA_DETECT_BYTE_H */
