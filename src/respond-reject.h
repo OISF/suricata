@@ -21,9 +21,8 @@
  * \author William Metcalf <william.metcalf@gmail.com>
  */
 
-#ifndef __RESPOND_REJECT_H__
-#define __RESPOND_REJECT_H__
-
+#ifndef SURICATA_RESPOND_REJECT_H
+#define SURICATA_RESPOND_REJECT_H
 
 enum RejectDirection {
     REJECT_DIR_SRC = 0,
@@ -32,4 +31,4 @@ enum RejectDirection {
 
 void TmModuleRespondRejectRegister (void);
 
-#endif /* __RESPOND_REJECT_H__ */
+#endif /* SURICATA_RESPOND_REJECT_H */

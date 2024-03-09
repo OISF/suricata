@@ -20,10 +20,10 @@
  *
  * \author Giuseppe Longo <giuseppelng@gmail.com>
  */
-#ifndef __RUNMODE_NFLOG_H__
-#define __RUNMODE_NFLOG_H__
+#ifndef SURICATA_RUNMODE_NFLOG_H
+#define SURICATA_RUNMODE_NFLOG_H
 
 void RunModeIdsNflogRegister(void);
 const char *RunModeIdsNflogGetDefaultMode(void);
 
-#endif /* __RUNMODE_NFLOG_H__ */
+#endif /* SURICATA_RUNMODE_NFLOG_H */

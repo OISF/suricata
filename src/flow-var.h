@@ -22,8 +22,8 @@
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  */
 
-#ifndef __FLOW_VAR_H__
-#define __FLOW_VAR_H__
+#ifndef SURICATA_FLOW_VAR_H
+#define SURICATA_FLOW_VAR_H
 
 #include "flow.h"
 #include "util-var.h"
@@ -72,5 +72,4 @@ FlowVar *FlowVarGetByKey(Flow *f, const uint8_t *key, uint16_t keylen);
 void FlowVarFree(FlowVar *);
 void FlowVarPrint(GenericVar *);
 
-#endif /* __FLOW_VAR_H__ */
-
+#endif /* SURICATA_FLOW_VAR_H */

@@ -21,9 +21,8 @@
  * \author Breno Silva <breno.silva@gmail.com>
  */
 
-#ifndef __DETECT_IPOPTS_H__
-#define __DETECT_IPOPTS_H__
-
+#ifndef SURICATA_DETECT_IPOPTS_H
+#define SURICATA_DETECT_IPOPTS_H
 
 /**
  * \struct DetectIpOptsData_
@@ -47,5 +46,4 @@ void DetectIpOptsRegister (void);
 
 const char *IpOptsFlagToString(uint16_t flag);
 
-#endif /*__DETECT_IPOPTS_H__ */
-
+#endif /*SURICATA_DETECT_IPOPTS_H */

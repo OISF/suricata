@@ -23,8 +23,8 @@
  *  Storage API
  */
 
-#ifndef __UTIL_STORAGE_H__
-#define __UTIL_STORAGE_H__
+#ifndef SURICATA_UTIL_STORAGE_H
+#define SURICATA_UTIL_STORAGE_H
 
 typedef enum StorageEnum_ {
     STORAGE_HOST,

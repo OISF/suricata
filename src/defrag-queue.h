@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DEFRAG_QUEUE_H__
-#define __DEFRAG_QUEUE_H__
+#ifndef SURICATA_DEFRAG_QUEUE_H
+#define SURICATA_DEFRAG_QUEUE_H
 
 #include "suricata-common.h"
 #include "defrag.h"
@@ -80,5 +80,4 @@ void DefragTrackerEnqueue (DefragTrackerQueue *, DefragTracker *);
 DefragTracker *DefragTrackerDequeue (DefragTrackerQueue *);
 uint32_t DefragTrackerQueueLen(DefragTrackerQueue *);
 
-#endif /* __DEFRAG_QUEUE_H__ */
-
+#endif /* SURICATA_DEFRAG_QUEUE_H */

@@ -21,10 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ADDRESS_H__
-#define __DETECT_ADDRESS_H__
-
-
+#ifndef SURICATA_DETECT_ADDRESS_H
+#define SURICATA_DETECT_ADDRESS_H
 
 DetectAddress *DetectAddressInit(void);
 void DetectAddressFree(DetectAddress *);
@@ -54,4 +52,4 @@ const DetectAddressHead *DetectParseAddress(DetectEngineCtx *de_ctx,
 void DetectAddressPrintList(DetectAddress *);
 #endif
 
-#endif /* __DETECT_ADDRESS_H__ */
+#endif /* SURICATA_DETECT_ADDRESS_H */

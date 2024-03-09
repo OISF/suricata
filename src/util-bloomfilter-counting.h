@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __BLOOMFILTERCOUNTING_H__
-#define __BLOOMFILTERCOUNTING_H__
+#ifndef SURICATA_BLOOMFILTERCOUNTING_H
+#define SURICATA_BLOOMFILTERCOUNTING_H
 
 /* Bloom filter structure */
 typedef struct BloomFilterCounting_ {
@@ -43,5 +43,4 @@ int BloomFilterCountingTest(BloomFilterCounting *, const void *, uint16_t);
 
 void BloomFilterCountingRegisterTests(void);
 
-#endif /* __BLOOMFILTERCOUNTING_H__ */
-
+#endif /* SURICATA_BLOOMFILTERCOUNTING_H */

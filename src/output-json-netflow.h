@@ -21,8 +21,8 @@
  * Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __OUTPUT_JSON_NETFLOW_H__
-#define __OUTPUT_JSON_NETFLOW_H__
+#ifndef SURICATA_OUTPUT_JSON_NETFLOW_H
+#define SURICATA_OUTPUT_JSON_NETFLOW_H
 
 void JsonNetFlowLogRegister(void);
 

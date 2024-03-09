@@ -21,8 +21,8 @@
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
  */
 
-#ifndef __UTIL_SPM_H__
-#define __UTIL_SPM_H__
+#ifndef SURICATA_UTIL_SPM_H
+#define SURICATA_UTIL_SPM_H
 
 #include "util-spm-bs.h"
 
@@ -121,4 +121,4 @@ uint8_t *BoyerMooreNocaseSearch(const uint8_t *text, uint32_t textlen, uint8_t *
 #ifdef UNITTESTS
 void UtilSpmSearchRegistertests(void);
 #endif
-#endif /* __UTIL_SPM_H__ */
+#endif /* SURICATA_UTIL_SPM_H */

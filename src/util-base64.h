@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef __UTIL_BASE64_H_
-#define __UTIL_BASE64_H_
+#ifndef SURICATA_UTIL_BASE64_H_
+#define SURICATA_UTIL_BASE64_H_
 
 #include "suricata-common.h"
 

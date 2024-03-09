@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DETECT_HTTP_ACCEPT_H__
-#define __DETECT_HTTP_ACCEPT_H__
+#ifndef SURICATA_DETECT_HTTP_ACCEPT_H
+#define SURICATA_DETECT_HTTP_ACCEPT_H
 
 void RegisterHttpHeadersAccept(void);
 
-#endif /* __DETECT_HTTP_ACCEPT_H__ */
+#endif /* SURICATA_DETECT_HTTP_ACCEPT_H */

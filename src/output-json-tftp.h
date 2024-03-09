@@ -21,9 +21,9 @@
  * \author Clément Galland <clement.galland@epita.fr>
  */
 
-#ifndef __OUTPUT_JSON_TFTP_H__
-#define __OUTPUT_JSON_TFTP_H__
+#ifndef SURICATA_OUTPUT_JSON_TFTP_H
+#define SURICATA_OUTPUT_JSON_TFTP_H
 
 void JsonTFTPLogRegister(void);
 
-#endif /* __OUTPUT_JSON_TFTP_H__ */
+#endif /* SURICATA_OUTPUT_JSON_TFTP_H */

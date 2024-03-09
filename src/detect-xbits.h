@@ -21,8 +21,8 @@
  *  \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_XBITS_H__
-#define __DETECT_XBITS_H__
+#ifndef SURICATA_DETECT_XBITS_H
+#define SURICATA_DETECT_XBITS_H
 
 #define DETECT_XBITS_CMD_SET      0
 #define DETECT_XBITS_CMD_TOGGLE   1
@@ -49,4 +49,4 @@ typedef struct DetectXbitsData_ {
 /* prototypes */
 void DetectXbitsRegister (void);
 
-#endif /* __DETECT_XBITS_H__ */
+#endif /* SURICATA_DETECT_XBITS_H */

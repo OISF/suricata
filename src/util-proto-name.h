@@ -21,8 +21,8 @@
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  */
 
-#ifndef __UTIL_PROTO_NAME_H__
-#define	__UTIL_PROTO_NAME_H__
+#ifndef SURICATA_UTIL_PROTO_NAME_H
+#define SURICATA_UTIL_PROTO_NAME_H
 
 /** Lookup array to hold the information related to known protocol
  *  values
@@ -38,5 +38,4 @@ void SCProtoNameRelease(void);
 void SCProtoNameRegisterTests(void);
 #endif
 
-#endif	/* __UTIL_PROTO_NAME_H__ */
-
+#endif /* SURICATA_UTIL_PROTO_NAME_H */

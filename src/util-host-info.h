@@ -21,9 +21,9 @@
  * \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __UTIL_HOST_INFO_H__
-#define __UTIL_HOST_INFO_H__
+#ifndef SURICATA_UTIL_HOST_INFO_H
+#define SURICATA_UTIL_HOST_INFO_H
 
 int SCKernelVersionIsAtLeast(int major, int minor);
 
-#endif /* __UTIL_HOST_INFO_H__ */
+#endif /* SURICATA_UTIL_HOST_INFO_H */

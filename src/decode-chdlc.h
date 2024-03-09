@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DECODE_CHDLC_H__
-#define __DECODE_CHDLC_H__
+#ifndef SURICATA_DECODE_CHDLC_H
+#define SURICATA_DECODE_CHDLC_H
 
 #define CHDLC_HEADER_LEN           4
 
@@ -34,4 +34,4 @@ typedef struct CHDLCHdr_ {
 
 void DecodeCHDLCRegisterTests(void);
 
-#endif /* __DECODE_CHDLC_H__ */
+#endif /* SURICATA_DECODE_CHDLC_H */

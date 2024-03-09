@@ -21,8 +21,8 @@
  * \author Philippe Antoine <p.antoine@catenacyber.fr>
  */
 
-#ifndef __DETECT_ENGINE_UINT_H
-#define __DETECT_ENGINE_UINT_H
+#ifndef SURICATA_DETECT_ENGINE_UINT_H
+#define SURICATA_DETECT_ENGINE_UINT_H
 
 #include "rust.h"
 #include "detect-engine-prefilter-common.h"
@@ -60,4 +60,4 @@ DetectUintData_u16 *DetectU16Parse(const char *u16str);
 void PrefilterPacketU16Set(PrefilterPacketHeaderValue *v, void *smctx);
 bool PrefilterPacketU16Compare(PrefilterPacketHeaderValue v, void *smctx);
 
-#endif /* __DETECT_ENGINE_UINT_H */
+#endif /* SURICATA_DETECT_ENGINE_UINT_H */

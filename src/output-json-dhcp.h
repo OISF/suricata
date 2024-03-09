@@ -21,9 +21,9 @@
  * \author Jason Ish <jason.ish@oisf.net>
  */
 
-#ifndef __OUTPUT_JSON_DHCP_H__
-#define __OUTPUT_JSON_DHCP_H__
+#ifndef SURICATA_OUTPUT_JSON_DHCP_H
+#define SURICATA_OUTPUT_JSON_DHCP_H
 
 void JsonDHCPLogRegister(void);
 
-#endif /* __OUTPUT_JSON_DHCP_H__ */
+#endif /* SURICATA_OUTPUT_JSON_DHCP_H */

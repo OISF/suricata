@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __STREAM_TCP_UTIL_H__
-#define __STREAM_TCP_UTIL_H__
+#ifndef SURICATA_STREAM_TCP_UTIL_H
+#define SURICATA_STREAM_TCP_UTIL_H
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -44,5 +44,4 @@ int StreamTcpUTAddPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpSes
 
 void StreamTcpUtilRegisterTests(void);
 
-#endif /* __STREAM_TCP_UTIL_H__ */
-
+#endif /* SURICATA_STREAM_TCP_UTIL_H */

@@ -21,8 +21,8 @@
  * \author Lukas Sismis <lukas.sismis@gmail.com>
  */
 
-#ifndef __SOURCE_DPDK_H__
-#define __SOURCE_DPDK_H__
+#ifndef SURICATA_SOURCE_DPDK_H
+#define SURICATA_SOURCE_DPDK_H
 
 #include "suricata-common.h"
 
@@ -92,4 +92,4 @@ typedef struct DPDKPacketVars_ {
 void TmModuleReceiveDPDKRegister(void);
 void TmModuleDecodeDPDKRegister(void);
 
-#endif /* __SOURCE_DPDK_H__ */
+#endif /* SURICATA_SOURCE_DPDK_H */

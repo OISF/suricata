@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __STREAM_TCP_INLINE_H__
-#define __STREAM_TCP_INLINE_H__
+#ifndef SURICATA_STREAM_TCP_INLINE_H
+#define SURICATA_STREAM_TCP_INLINE_H
 
 #include "stream-tcp-private.h"
 
@@ -33,5 +33,4 @@ void StreamTcpInlineSegmentReplacePacket(const TcpStream *,
 
 void StreamTcpInlineRegisterTests(void);
 
-#endif /* __STREAM_TCP_INLINE_H__ */
-
+#endif /* SURICATA_STREAM_TCP_INLINE_H */

@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DETECT_REQUIRES_H__
-#define __DETECT_REQUIRES_H__
+#ifndef SURICATA_DETECT_REQUIRES_H
+#define SURICATA_DETECT_REQUIRES_H
 
 void DetectRequiresRegister(void);
 
-#endif /* __DETECT_REQUIRES_H__ */
+#endif /* SURICATA_DETECT_REQUIRES_H */

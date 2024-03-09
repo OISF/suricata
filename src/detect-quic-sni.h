@@ -20,9 +20,9 @@
  *
  */
 
-#ifndef __DETECT_QUIC_SNI_H__
-#define __DETECT_QUIC_SNI_H__
+#ifndef SURICATA_DETECT_QUIC_SNI_H
+#define SURICATA_DETECT_QUIC_SNI_H
 
 void DetectQuicSniRegister(void);
 
-#endif /* __DETECT_QUIC_SNI_H__ */
+#endif /* SURICATA_DETECT_QUIC_SNI_H */

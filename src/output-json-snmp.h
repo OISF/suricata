@@ -21,9 +21,9 @@
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
  */
 
-#ifndef __OUTPUT_JSON_SNMP_H__
-#define __OUTPUT_JSON_SNMP_H__
+#ifndef SURICATA_OUTPUT_JSON_SNMP_H
+#define SURICATA_OUTPUT_JSON_SNMP_H
 
 void JsonSNMPLogRegister(void);
 
-#endif /* __OUTPUT_JSON_SNMP_H__ */
+#endif /* SURICATA_OUTPUT_JSON_SNMP_H */

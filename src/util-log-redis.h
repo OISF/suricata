@@ -21,8 +21,8 @@
  * \author Paulo Pacheco <fooinha@gmail.com>
  */
 
-#ifndef __UTIL_LOG_REDIS_H__
-#define __UTIL_LOG_REDIS_H__
+#ifndef SURICATA_UTIL_LOG_REDIS_H
+#define SURICATA_UTIL_LOG_REDIS_H
 
 #ifdef HAVE_LIBHIREDIS
 #include <hiredis/hiredis.h>
@@ -63,4 +63,4 @@ int SCConfLogOpenRedis(ConfNode *, void *);
 int LogFileWriteRedis(void *, const char *, size_t);
 
 #endif /* HAVE_LIBHIREDIS */
-#endif /* __UTIL_LOG_REDIS_H__ */
+#endif /* SURICATA_UTIL_LOG_REDIS_H */

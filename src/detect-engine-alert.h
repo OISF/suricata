@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_ALERT_H__
-#define __DETECT_ENGINE_ALERT_H__
+#ifndef SURICATA_DETECT_ENGINE_ALERT_H
+#define SURICATA_DETECT_ENGINE_ALERT_H
 
 #include "suricata-common.h"
 #include "decode.h"
@@ -39,4 +39,4 @@ int PacketAlertCheck(Packet *, uint32_t);
 void PacketAlertTagInit(void);
 void DetectEngineAlertRegisterTests(void);
 
-#endif /* __DETECT_ENGINE_ALERT_H__ */
+#endif /* SURICATA_DETECT_ENGINE_ALERT_H */

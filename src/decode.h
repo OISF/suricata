@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DECODE_H__
-#define __DECODE_H__
+#ifndef SURICATA_DECODE_H
+#define SURICATA_DECODE_H
 
 //#define DBG_THREADS
 #define COUNTERS
@@ -1218,4 +1218,4 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
     return true;
 }
 
-#endif /* __DECODE_H__ */
+#endif /* SURICATA_DECODE_H */

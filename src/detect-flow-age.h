@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DETECT_FLOW_AGE_H__
-#define __DETECT_FLOW_AGE_H__
+#ifndef SURICATA_DETECT_FLOW_AGE_H
+#define SURICATA_DETECT_FLOW_AGE_H
 
 void DetectFlowAgeRegister(void);
 
-#endif /* __DETECT_FLOW_AGE_H__ */
+#endif /* SURICATA_DETECT_FLOW_AGE_H */

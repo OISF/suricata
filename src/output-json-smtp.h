@@ -21,10 +21,10 @@
  * \author Tom DeCanio <td@npulsetech.com>
  */
 
-#ifndef __OUTPUT_JSON_SMTP_H__
-#define __OUTPUT_JSON_SMTP_H__
+#ifndef SURICATA_OUTPUT_JSON_SMTP_H
+#define SURICATA_OUTPUT_JSON_SMTP_H
 
 void JsonSmtpLogRegister(void);
 bool EveSMTPAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
 
-#endif /* __OUTPUT_JSON_SMTP_H__ */
+#endif /* SURICATA_OUTPUT_JSON_SMTP_H */

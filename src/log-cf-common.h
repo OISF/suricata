@@ -25,8 +25,8 @@
  * Common custom logging format
  */
 
-#ifndef __LOG_CF_COMMON_H__
-#define __LOG_CF_COMMON_H__
+#ifndef SURICATA_LOG_CF_COMMON_H
+#define SURICATA_LOG_CF_COMMON_H
 
 #define LOG_MAXN_NODES 64
 #define LOG_NODE_STRLEN 256
@@ -85,4 +85,4 @@ int LogCustomFormatParse(LogCustomFormat *cf, const char *format);
 void LogCustomFormatWriteTimestamp(MemBuffer *buffer, const char *fmt, const SCTime_t ts);
 void LogCustomFormatRegister(void);
 
-#endif /* __LOG_CF_COMMON_H__ */
+#endif /* SURICATA_LOG_CF_COMMON_H */

@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_MAGIC_H__
-#define __UTIL_MAGIC_H__
+#ifndef SURICATA_UTIL_MAGIC_H
+#define SURICATA_UTIL_MAGIC_H
 
 #ifdef HAVE_MAGIC
 magic_t MagicInitContext(void);

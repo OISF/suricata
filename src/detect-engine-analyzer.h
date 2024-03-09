@@ -21,8 +21,8 @@
  * \author Eileen Donlon <emdonlo@gmail.com>
  */
 
-#ifndef __DETECT_ENGINE_ANALYZER_H__
-#define __DETECT_ENGINE_ANALYZER_H__
+#ifndef SURICATA_DETECT_ENGINE_ANALYZER_H
+#define SURICATA_DETECT_ENGINE_ANALYZER_H
 
 #include <stdint.h>
 
@@ -39,4 +39,4 @@ void EngineAnalysisRulesFailure(
 
 void EngineAnalysisRules2(const struct DetectEngineCtx_ *de_ctx, const Signature *s);
 
-#endif /* __DETECT_ENGINE_ANALYZER_H__ */
+#endif /* SURICATA_DETECT_ENGINE_ANALYZER_H */

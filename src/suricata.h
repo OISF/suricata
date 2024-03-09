@@ -61,8 +61,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __SURICATA_H__
-#define __SURICATA_H__
+#ifndef SURICATA_SURICATA_H
+#define SURICATA_SURICATA_H
 
 #include "suricata-common.h"
 
@@ -203,5 +203,4 @@ void RegisterAllModules(void);
 
 const char *GetProgramVersion(void);
 
-#endif /* __SURICATA_H__ */
-
+#endif /* SURICATA_SURICATA_H */

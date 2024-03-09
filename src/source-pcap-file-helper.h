@@ -24,8 +24,8 @@
 #include "suricata-common.h"
 #include "tm-threads.h"
 
-#ifndef __SOURCE_PCAP_FILE_HELPER_H__
-#define __SOURCE_PCAP_FILE_HELPER_H__
+#ifndef SURICATA_SOURCE_PCAP_FILE_HELPER_H
+#define SURICATA_SOURCE_PCAP_FILE_HELPER_H
 
 typedef struct PcapFileGlobalVars_ {
     uint64_t cnt; /** packet counter */
@@ -114,4 +114,4 @@ TmEcode ValidateLinkType(int datalink, DecoderFunc *decoder);
 
 const char *PcapFileGetFilename(void);
 
-#endif /* __SOURCE_PCAP_FILE_HELPER_H__ */
+#endif /* SURICATA_SOURCE_PCAP_FILE_HELPER_H */

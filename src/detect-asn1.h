@@ -20,8 +20,8 @@
  *
  * Implements "asn1" keyword
  */
-#ifndef __DETECT_ASN1_H__
-#define __DETECT_ASN1_H__
+#ifndef SURICATA_DETECT_ASN1_H
+#define SURICATA_DETECT_ASN1_H
 
 /* prototypes */
 void DetectAsn1Register (void);
@@ -29,4 +29,4 @@ void DetectAsn1Register (void);
 bool DetectAsn1Match(const SigMatchData *smd, const uint8_t *buffer, const uint32_t buffer_len,
         const uint32_t offset);
 
-#endif /* __DETECT_ASN1_H__ */
+#endif /* SURICATA_DETECT_ASN1_H */

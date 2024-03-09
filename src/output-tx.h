@@ -23,8 +23,8 @@
  * AppLayer TX Logger Output registration functions
  */
 
-#ifndef __OUTPUT_TX_H__
-#define __OUTPUT_TX_H__
+#ifndef SURICATA_OUTPUT_TX_H
+#define SURICATA_OUTPUT_TX_H
 
 #include "decode.h"
 #include "flow.h"
@@ -49,4 +49,4 @@ void OutputTxLoggerRegister (void);
 
 void OutputTxShutdown(void);
 
-#endif /* __OUTPUT_TX_H__ */
+#endif /* SURICATA_OUTPUT_TX_H */

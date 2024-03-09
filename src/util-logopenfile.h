@@ -21,8 +21,8 @@
  * \author Mike Pomraning <mpomraning@qualys.com>
  */
 
-#ifndef __UTIL_LOGOPENFILE_H__
-#define __UTIL_LOGOPENFILE_H__
+#ifndef SURICATA_UTIL_LOGOPENFILE_H
+#define SURICATA_UTIL_LOGOPENFILE_H
 
 #include "threads.h"
 #include "conf.h"            /* ConfNode   */
@@ -173,4 +173,4 @@ int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
 int SCConfLogReopen(LogFileCtx *);
 bool SCLogOpenThreadedFile(const char *log_path, const char *append, LogFileCtx *parent_ctx);
 
-#endif /* __UTIL_LOGOPENFILE_H__ */
+#endif /* SURICATA_UTIL_LOGOPENFILE_H */

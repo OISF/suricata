@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __ACTION_GLOBALS_H__
-#define __ACTION_GLOBALS_H__
+#ifndef SURICATA_ACTION_GLOBALS_H
+#define SURICATA_ACTION_GLOBALS_H
 
 /* Changing them as flags, so later we can have alerts
  * and drop simultaneously */
@@ -38,4 +38,4 @@
 
 #define ACTION_DROP_REJECT (ACTION_REJECT_ANY | ACTION_DROP)
 
-#endif /* __ACTION_GLOBALS_H__ */
+#endif /* SURICATA_ACTION_GLOBALS_H */

@@ -20,9 +20,9 @@
  *
  */
 
-#ifndef __DETECT_QUIC_UA_H__
-#define __DETECT_QUIC_UA_H__
+#ifndef SURICATA_DETECT_QUIC_UA_H
+#define SURICATA_DETECT_QUIC_UA_H
 
 void DetectQuicUaRegister(void);
 
-#endif /* __DETECT_QUIC_UA_H__ */
+#endif /* SURICATA_DETECT_QUIC_UA_H */

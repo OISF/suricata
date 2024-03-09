@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DATASETS_SHA256_H__
-#define __DATASETS_SHA256_H__
+#ifndef SURICATA_DATASETS_SHA256_H
+#define SURICATA_DATASETS_SHA256_H
 
 #include "datasets-reputation.h"
 
@@ -36,4 +36,4 @@ bool Sha256StrCompare(void *a, void *b);
 uint32_t Sha256StrHash(void *s);
 void Sha256StrFree(void *s);
 
-#endif /* __DATASETS_SHA256_H__ */
+#endif /* SURICATA_DATASETS_SHA256_H */

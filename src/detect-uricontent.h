@@ -22,10 +22,10 @@
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  */
 
-#ifndef __DETECT_URICONTENT_H__
-#define __DETECT_URICONTENT_H__
+#ifndef SURICATA_DETECT_URICONTENT_H
+#define SURICATA_DETECT_URICONTENT_H
 
 /* prototypes */
 void DetectUricontentRegister (void);
 
-#endif /* __DETECT_URICONTENT_H__ */
+#endif /* SURICATA_DETECT_URICONTENT_H */

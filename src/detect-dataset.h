@@ -21,8 +21,8 @@
  *  \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_DATASET_H__
-#define __DETECT_DATASET_H__
+#ifndef SURICATA_DETECT_DATASET_H
+#define SURICATA_DETECT_DATASET_H
 
 #include "datasets.h"
 
@@ -43,4 +43,4 @@ int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
 /* prototypes */
 void DetectDatasetRegister (void);
 
-#endif /* __DETECT_DATASET_H__ */
+#endif /* SURICATA_DETECT_DATASET_H */

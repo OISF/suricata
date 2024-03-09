@@ -21,9 +21,9 @@
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
  */
 
-#ifndef __OUTPUT_JSON_KRB5_H__
-#define __OUTPUT_JSON_KRB5_H__
+#ifndef SURICATA_OUTPUT_JSON_KRB5_H
+#define SURICATA_OUTPUT_JSON_KRB5_H
 
 void JsonKRB5LogRegister(void);
 
-#endif /* __OUTPUT_JSON_KRB5_H__ */
+#endif /* SURICATA_OUTPUT_JSON_KRB5_H */

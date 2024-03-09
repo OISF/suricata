@@ -21,9 +21,8 @@
  * \author Breno Silva <breno.silva@gmail.com>
  */
 
-#ifndef __DETECT_REFERENCE_H__
-#define __DETECT_REFERENCE_H__
-
+#ifndef SURICATA_DETECT_REFERENCE_H
+#define SURICATA_DETECT_REFERENCE_H
 
 /**
  * \brief Signature reference list.
@@ -47,4 +46,4 @@ void DetectReferenceRegister(void);
  */
 void DetectReferenceFree(DetectReference *);
 
-#endif /*__DETECT_REFERENCE_H__ */
+#endif /*SURICATA_DETECT_REFERENCE_H */

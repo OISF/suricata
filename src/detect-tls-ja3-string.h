@@ -21,10 +21,10 @@
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  */
 
-#ifndef __DETECT_TLS_JA3_STRING_H__
-#define __DETECT_TLS_JA3_STRING_H__
+#ifndef SURICATA_DETECT_TLS_JA3_STRING_H
+#define SURICATA_DETECT_TLS_JA3_STRING_H
 
 /* Prototypes */
 void DetectTlsJa3StringRegister(void);
 
-#endif /* __DETECT_TLS_JA3_STRING_H__ */
+#endif /* SURICATA_DETECT_TLS_JA3_STRING_H */

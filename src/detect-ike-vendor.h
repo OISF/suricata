@@ -21,9 +21,9 @@
  * \author Frank Honza <frank.honza@dcso.de>
  */
 
-#ifndef __DETECT_IKE_VENDOR_H__
-#define __DETECT_IKE_VENDOR_H__
+#ifndef SURICATA_DETECT_IKE_VENDOR_H
+#define SURICATA_DETECT_IKE_VENDOR_H
 
 void DetectIkeVendorRegister(void);
 
-#endif /* __DETECT_IKE_VENDOR_H__ */
+#endif /* SURICATA_DETECT_IKE_VENDOR_H */

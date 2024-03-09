@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __IPPAIR_TIMEOUT_H__
-#define __IPPAIR_TIMEOUT_H__
+#ifndef SURICATA_IPPAIR_TIMEOUT_H
+#define SURICATA_IPPAIR_TIMEOUT_H
 
 uint32_t IPPairTimeoutHash(SCTime_t ts);
 

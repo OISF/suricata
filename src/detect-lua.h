@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_LUA_H__
-#define __DETECT_LUA_H__
+#ifndef SURICATA_DETECT_LUA_H
+#define SURICATA_DETECT_LUA_H
 
 #ifdef HAVE_LUA
 
@@ -67,4 +67,4 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
 
 void DetectLuaPostSetup(Signature *s);
 
-#endif /* __DETECT_LUA_H__ */
+#endif /* SURICATA_DETECT_LUA_H */

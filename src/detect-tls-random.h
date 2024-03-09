@@ -15,11 +15,11 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DETECT_TLS_RANDOM_H__
-#define __DETECT_TLS_RANDOM_H__
+#ifndef SURICATA_DETECT_TLS_RANDOM_H
+#define SURICATA_DETECT_TLS_RANDOM_H
 
 void DetectTlsRandomTimeRegister(void);
 void DetectTlsRandomBytesRegister(void);
 void DetectTlsRandomRegister(void);
 
-#endif /* __DETECT_TLS_RANDOM_H__ */
+#endif /* SURICATA_DETECT_TLS_RANDOM_H */

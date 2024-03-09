@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_SIGGROUP_H__
-#define __DETECT_ENGINE_SIGGROUP_H__
+#ifndef SURICATA_DETECT_ENGINE_SIGGROUP_H
+#define SURICATA_DETECT_ENGINE_SIGGROUP_H
 
 int SigGroupHeadAppendSig(const DetectEngineCtx *, SigGroupHead **, const Signature *);
 int SigGroupHeadClearSigs(SigGroupHead *);
@@ -59,4 +59,4 @@ void SigGroupHeadSetupFiles(const DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
-#endif /* __DETECT_ENGINE_SIGGROUP_H__ */
+#endif /* SURICATA_DETECT_ENGINE_SIGGROUP_H */

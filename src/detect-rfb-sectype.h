@@ -21,9 +21,9 @@
  * \author Sascha Steinbiss <sascha.steinbiss@dcso.de>
  */
 
-#ifndef __DETECT_RFB_SECTYPE_H__
-#define __DETECT_RFB_SECTYPE_H__
+#ifndef SURICATA_DETECT_RFB_SECTYPE_H
+#define SURICATA_DETECT_RFB_SECTYPE_H
 
 void DetectRfbSectypeRegister(void);
 
-#endif /* __DETECT_RFB_SECTYPE_H__ */
+#endif /* SURICATA_DETECT_RFB_SECTYPE_H */

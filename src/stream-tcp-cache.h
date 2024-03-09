@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __STREAM_TCP_CACHE_H__
-#define __STREAM_TCP_CACHE_H__
+#ifndef SURICATA_STREAM_TCP_CACHE_H
+#define SURICATA_STREAM_TCP_CACHE_H
 
 #include "stream-tcp-private.h"
 
@@ -34,4 +34,4 @@ void StreamTcpThreadCacheCleanup(void);
 TcpSegment *StreamTcpThreadCacheGetSegment(void);
 TcpSession *StreamTcpThreadCacheGetSession(void);
 
-#endif /* __STREAM_TCP_CACHE_H__ */
+#endif /* SURICATA_STREAM_TCP_CACHE_H */

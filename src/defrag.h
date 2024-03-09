@@ -21,8 +21,8 @@
  * \author Endace Technology Limited, Jason Ish <jason.ish@endace.com>
  */
 
-#ifndef __DEFRAG_H__
-#define __DEFRAG_H__
+#ifndef SURICATA_DEFRAG_H
+#define SURICATA_DEFRAG_H
 
 #include "threads.h"
 #include "util-pool.h"
@@ -131,4 +131,4 @@ void DefragTrackerFreeFrags(DefragTracker *);
 Packet *Defrag(ThreadVars *, DecodeThreadVars *, Packet *);
 void DefragRegisterTests(void);
 
-#endif /* __DEFRAG_H__ */
+#endif /* SURICATA_DEFRAG_H */

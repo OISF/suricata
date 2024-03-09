@@ -21,11 +21,10 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_MSG_H__
-#define __DETECT_MSG_H__
+#ifndef SURICATA_DETECT_MSG_H
+#define SURICATA_DETECT_MSG_H
 
 /* prototypes */
 void DetectMsgRegister (void);
 
-#endif /* __DETECT_MSG_H__ */
-
+#endif /* SURICATA_DETECT_MSG_H */

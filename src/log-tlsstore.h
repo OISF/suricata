@@ -21,9 +21,9 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __LOG_TLSSTORE_H__
-#define __LOG_TLSSTORE_H__
+#ifndef SURICATA_LOG_TLSSTORE_H
+#define SURICATA_LOG_TLSSTORE_H
 
 void LogTlsStoreRegister(void);
 
-#endif /* __LOG_TLSSTORE_H__ */
+#endif /* SURICATA_LOG_TLSSTORE_H */

@@ -21,9 +21,9 @@
  * \author Eric Leblond <el@stamus-networks.com>
  */
 
-#ifndef __DETECT_IPADDR_BUFFER_H__
-#define __DETECT_IPADDR_BUFFER_H__
+#ifndef SURICATA_DETECT_IPADDR_BUFFER_H
+#define SURICATA_DETECT_IPADDR_BUFFER_H
 
 void DetectIPAddrBufferRegister(void);
 
-#endif /* __DETECT_IPADDR_BUFFER_H__ */
+#endif /* SURICATA_DETECT_IPADDR_BUFFER_H */

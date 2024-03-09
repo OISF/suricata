@@ -24,8 +24,8 @@
  *  Application layer handling and protocols implementation
  */
 
-#ifndef __APP_LAYER_H__
-#define __APP_LAYER_H__
+#ifndef SURICATA_APP_LAYER_H
+#define SURICATA_APP_LAYER_H
 
 #include "threadvars.h"
 #include "decode.h"

@@ -31,9 +31,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-
-#ifndef __DETECT_ENGINE_STATE_H__
-#define __DETECT_ENGINE_STATE_H__
+#ifndef SURICATA_DETECT_ENGINE_STATE_H
+#define SURICATA_DETECT_ENGINE_STATE_H
 
 #define DETECT_ENGINE_INSPECT_SIG_NO_MATCH 0
 #define DETECT_ENGINE_INSPECT_SIG_MATCH 1
@@ -108,7 +107,7 @@ DetectEngineState *DetectEngineStateAlloc(void);
  */
 void DetectEngineStateFree(DetectEngineState *state);
 
-#endif /* __DETECT_ENGINE_STATE_H__ */
+#endif /* SURICATA_DETECT_ENGINE_STATE_H */
 
 /**
  * @}

@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_REGISTER_H__
-#define __DETECT_ENGINE_REGISTER_H__
+#ifndef SURICATA_DETECT_ENGINE_REGISTER_H
+#define SURICATA_DETECT_ENGINE_REGISTER_H
 
 enum DetectKeywordId {
     DETECT_SID,
@@ -356,4 +356,4 @@ int SigTableList(const char *keyword);
 void SigTableSetup(void);
 void SigTableRegisterTests(void);
 
-#endif /* __DETECT_ENGINE_REGISTER_H__ */
+#endif /* SURICATA_DETECT_ENGINE_REGISTER_H */

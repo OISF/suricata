@@ -21,10 +21,9 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __ALERT_DEBUGLOG_H__
-#define __ALERT_DEBUGLOG_H__
+#ifndef SURICATA_ALERT_DEBUGLOG_H
+#define SURICATA_ALERT_DEBUGLOG_H
 
 void AlertDebugLogRegister(void);
 
-#endif /* __ALERT_DEBUGLOG_H__ */
-
+#endif /* SURICATA_ALERT_DEBUGLOG_H */

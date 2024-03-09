@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_PAYLOAD_H__
-#define __DETECT_ENGINE_PAYLOAD_H__
+#ifndef SURICATA_DETECT_ENGINE_PAYLOAD_H
+#define SURICATA_DETECT_ENGINE_PAYLOAD_H
 
 int PrefilterPktPayloadRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx);
@@ -40,5 +40,4 @@ uint8_t DetectEngineInspectStream(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
 void PayloadRegisterTests(void);
 
-#endif /* __DETECT_ENGINE_PAYLOAD_H__ */
-
+#endif /* SURICATA_DETECT_ENGINE_PAYLOAD_H */

@@ -21,10 +21,9 @@
  * \author FirstName LastName <yourname@domain>
  */
 
-#ifndef __DETECT_SNMP_COMMUNITY_H__
-#define __DETECT_SNMP_COMMUNITY_H__
-
+#ifndef SURICATA_DETECT_SNMP_COMMUNITY_H
+#define SURICATA_DETECT_SNMP_COMMUNITY_H
 
 void DetectSNMPCommunityRegister(void);
 
-#endif /* __DETECT_SNMP_COMMUNITY_H__ */
+#endif /* SURICATA_DETECT_SNMP_COMMUNITY_H */

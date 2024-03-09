@@ -21,8 +21,8 @@
  * \author Endace Technology Limited - Jason Ish <jason.ish@endace.com>
  */
 
-#ifndef __CONF_YAML_LOADER_H__
-#define __CONF_YAML_LOADER_H__
+#ifndef SURICATA_CONF_YAML_LOADER_H
+#define SURICATA_CONF_YAML_LOADER_H
 
 #include "conf.h"
 
@@ -33,4 +33,4 @@ int ConfYamlHandleInclude(ConfNode *parent, const char *filename);
 
 void ConfYamlRegisterTests(void);
 
-#endif /* !__CONF_YAML_LOADER_H__ */
+#endif /* !SURICATA_CONF_YAML_LOADER_H */

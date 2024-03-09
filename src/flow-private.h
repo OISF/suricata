@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __FLOW_PRIVATE_H__
-#define __FLOW_PRIVATE_H__
+#ifndef SURICATA_FLOW_PRIVATE_H
+#define SURICATA_FLOW_PRIVATE_H
 
 #include "flow-hash.h"
 #include "flow-queue.h"
@@ -178,4 +178,4 @@ static inline uint32_t FlowGetTimeoutPolicy(const Flow *f)
     }
     return timeout;
 }
-#endif /* __FLOW_PRIVATE_H__ */
+#endif /* SURICATA_FLOW_PRIVATE_H */

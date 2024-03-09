@@ -21,8 +21,8 @@
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
  */
 
-#ifndef __APP_LAYER_KRB5_H__
-#define __APP_LAYER_KRB5_H__
+#ifndef SURICATA_APP_LAYER_KRB5_H
+#define SURICATA_APP_LAYER_KRB5_H
 
 void RegisterKRB5Parsers(void);
 void KRB5ParserRegisterTests(void);
@@ -31,4 +31,4 @@ void KRB5ParserRegisterTests(void);
 typedef struct KRB5State_ KRB5State;
 typedef struct KRB5Transaction_ KRB5Transaction;
 
-#endif /* __APP_LAYER_KRB5_H__ */
+#endif /* SURICATA_APP_LAYER_KRB5_H */

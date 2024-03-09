@@ -21,9 +21,9 @@
  * \author Sascha Steinbiss <sascha.steinbiss@dcso.de>
  */
 
-#ifndef __APP_LAYER_RFB_H__
-#define __APP_LAYER_RFB_H__
+#ifndef SURICATA_APP_LAYER_RFB_H
+#define SURICATA_APP_LAYER_RFB_H
 
 void RegisterRFBParsers(void);
 
-#endif /* __APP_LAYER_RFB_H__ */
+#endif /* SURICATA_APP_LAYER_RFB_H */

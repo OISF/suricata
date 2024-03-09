@@ -22,9 +22,8 @@
  *  \author Matt Keeler <mk@npulsetech.com>
  */
 
-
-#ifndef __RUNMODE_NAPATECH_H__
-#define __RUNMODE_NAPATECH_H__
+#ifndef SURICATA_RUNMODE_NAPATECH_H
+#define SURICATA_RUNMODE_NAPATECH_H
 
 #ifdef HAVE_NAPATECH
 #include <nt.h>
@@ -41,5 +40,4 @@ uint16_t NapatechGetNumLastStream(void);
 bool NapatechIsAutoConfigEnabled(void);
 bool NapatechUseHWBypass(void);
 
-
-#endif /* __RUNMODE_NAPATECH_H__ */
+#endif /* SURICATA_RUNMODE_NAPATECH_H */

@@ -23,8 +23,8 @@
  * AppLayer File Logger Output registration functions
  */
 
-#ifndef __OUTPUT_FILE_H__
-#define __OUTPUT_FILE_H__
+#ifndef SURICATA_OUTPUT_FILE_H
+#define SURICATA_OUTPUT_FILE_H
 
 #include "rust.h"
 
@@ -56,4 +56,4 @@ void OutputFileLoggerRegister(void);
 
 void OutputFileShutdown(void);
 
-#endif /* __OUTPUT_FILE_H__ */
+#endif /* SURICATA_OUTPUT_FILE_H */

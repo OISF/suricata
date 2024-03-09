@@ -22,8 +22,8 @@
  * \author Bill Meeks <billmeeks8@gmail.com>
  */
 
-#ifndef __DETECT_GEOIP_H__
-#define __DETECT_GEOIP_H__
+#ifndef SURICATA_DETECT_GEOIP_H
+#define SURICATA_DETECT_GEOIP_H
 
 #ifdef HAVE_GEOIP
 

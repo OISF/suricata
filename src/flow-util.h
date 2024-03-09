@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __FLOW_UTIL_H__
-#define __FLOW_UTIL_H__
+#ifndef SURICATA_FLOW_UTIL_H
+#define SURICATA_FLOW_UTIL_H
 
 #include "flow.h"
 #include "stream-tcp-private.h"
@@ -165,4 +165,4 @@ static inline void FlowEndCountersUpdate(ThreadVars *tv, FlowEndCounters *fec, F
 
 void FlowEndCountersRegister(ThreadVars *t, FlowEndCounters *fec);
 
-#endif /* __FLOW_UTIL_H__ */
+#endif /* SURICATA_FLOW_UTIL_H */

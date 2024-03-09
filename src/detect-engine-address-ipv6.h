@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_ADDRESS_IPV6_H__
-#define __DETECT_ENGINE_ADDRESS_IPV6_H__
+#ifndef SURICATA_DETECT_ENGINE_ADDRESS_IPV6_H
+#define SURICATA_DETECT_ENGINE_ADDRESS_IPV6_H
 
 int AddressIPv6Lt(Address *, Address *);
 int AddressIPv6Gt(Address *, Address *);
@@ -44,5 +44,4 @@ int DetectAddressCutIPv6(DetectEngineCtx *, DetectAddress *, DetectAddress *,
 
 void DetectAddressIPv6Tests(void);
 
-#endif /* __DETECT_ENGINE_ADDRESS_IPV6_H__ */
-
+#endif /* SURICATA_DETECT_ENGINE_ADDRESS_IPV6_H */

@@ -21,10 +21,10 @@
  * \author Sascha Steinbiss <sascha@steinbiss.name>
  */
 
-#ifndef __OUTPUT_JSON_MQTT_H__
-#define __OUTPUT_JSON_MQTT_H__
+#ifndef SURICATA_OUTPUT_JSON_MQTT_H
+#define SURICATA_OUTPUT_JSON_MQTT_H
 
 void JsonMQTTLogRegister(void);
 bool JsonMQTTAddMetadata(void *vtx, JsonBuilder *js);
 
-#endif /* __OUTPUT_JSON_MQTT_H__ */
+#endif /* SURICATA_OUTPUT_JSON_MQTT_H */

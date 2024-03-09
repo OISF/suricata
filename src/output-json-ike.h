@@ -21,11 +21,11 @@
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
  */
 
-#ifndef __OUTPUT_JSON_IKE_H__
-#define __OUTPUT_JSON_IKE_H__
+#ifndef SURICATA_OUTPUT_JSON_IKE_H
+#define SURICATA_OUTPUT_JSON_IKE_H
 
 void JsonIKELogRegister(void);
 
 bool EveIKEAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *js);
 
-#endif /* __OUTPUT_JSON_IKE_H__ */
+#endif /* SURICATA_OUTPUT_JSON_IKE_H */

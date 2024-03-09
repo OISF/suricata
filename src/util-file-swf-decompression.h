@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef __UTIL_FILE_SWF_DECOMPRESSION_H__
-#define __UTIL_FILE_SWF_DECOMPRESSION_H__
+#ifndef SURICATA_UTIL_FILE_SWF_DECOMPRESSION_H
+#define SURICATA_UTIL_FILE_SWF_DECOMPRESSION_H
 
 /* If we don't have the decompressed data len,
  * we use a default value.
@@ -39,4 +39,4 @@ int FileSwfLzmaDecompression(DetectEngineThreadCtx *det_ctx,
                              uint8_t *compressed_data, uint32_t compressed_data_len,
                              uint8_t *decompressed_data, uint32_t decompressed_data_len);
 
-#endif /* __UTIL_FILE_SWF_DECOMPRESSION_H__ */
+#endif /* SURICATA_UTIL_FILE_SWF_DECOMPRESSION_H */

@@ -23,8 +23,8 @@
  *
  */
 
-#ifndef __UTIL_DETECT_FILE_HASH_H__
-#define __UTIL_DETECT_FILE_HASH_H__
+#ifndef SURICATA_UTIL_DETECT_FILE_HASH_H
+#define SURICATA_UTIL_DETECT_FILE_HASH_H
 
 #include "util-rohash.h"
 
@@ -42,4 +42,4 @@ int DetectFileHashMatch(DetectEngineThreadCtx *, Flow *, uint8_t,
 int DetectFileHashSetup(DetectEngineCtx *, Signature *, const char *, uint16_t, int);
 void DetectFileHashFree(DetectEngineCtx *, void *);
 
-#endif /* __UTIL_DETECT_FILE_HASH_H__ */
+#endif /* SURICATA_UTIL_DETECT_FILE_HASH_H */

@@ -21,9 +21,9 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_HTTP_HEADER_NAMES_H__
-#define __DETECT_HTTP_HEADER_NAMES_H__
+#ifndef SURICATA_DETECT_HTTP_HEADER_NAMES_H
+#define SURICATA_DETECT_HTTP_HEADER_NAMES_H
 
 void DetectHttpHeaderNamesRegister(void);
 
-#endif /* __DETECT_HTTP_HEADER_NAMES_H__ */
+#endif /* SURICATA_DETECT_HTTP_HEADER_NAMES_H */

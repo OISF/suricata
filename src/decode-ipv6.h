@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DECODE_IPV6_H__
-#define __DECODE_IPV6_H__
+#ifndef SURICATA_DECODE_IPV6_H
+#define SURICATA_DECODE_IPV6_H
 
 #define IPV6_HEADER_LEN            40
 #define	IPV6_MAXPACKET	           65535 /* maximum packet size */
@@ -242,4 +242,4 @@ typedef struct IPV6ExtHdrs_
 
 void DecodeIPV6RegisterTests(void);
 
-#endif /* __DECODE_IPV6_H__ */
+#endif /* SURICATA_DECODE_IPV6_H */

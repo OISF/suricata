@@ -20,11 +20,10 @@
  *  \author Eric Leblond <eric@regit.org>
  */
 
-
-#ifndef __UTIL_RUNMODE_UNITTESTS_H__
-#define __UTIL_RUNMODE_UNITTESTS_H__
+#ifndef SURICATA_UTIL_RUNMODE_UNITTESTS_H
+#define SURICATA_UTIL_RUNMODE_UNITTESTS_H
 
 __attribute__((noreturn))
 void RunUnittests(int list_unittests, const char *regex_arg);
 
-#endif /* __UTIL_RUNMODE_UNITTESTS_H__ */
+#endif /* SURICATA_UTIL_RUNMODE_UNITTESTS_H */

@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DECODE_TEREDO_H__
-#define __DECODE_TEREDO_H__
+#ifndef SURICATA_DECODE_TEREDO_H
+#define SURICATA_DECODE_TEREDO_H
 
 int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                  const uint8_t *pkt, uint16_t len);

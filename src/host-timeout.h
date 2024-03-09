@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __HOST_TIMEOUT_H__
-#define __HOST_TIMEOUT_H__
+#ifndef SURICATA_HOST_TIMEOUT_H
+#define SURICATA_HOST_TIMEOUT_H
 
 uint32_t HostTimeoutHash(SCTime_t ts);
 

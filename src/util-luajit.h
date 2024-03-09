@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_LUAJIT_H__
-#define __UTIL_LUAJIT_H__
+#ifndef SURICATA_UTIL_LUAJIT_H
+#define SURICATA_UTIL_LUAJIT_H
 
 #ifdef HAVE_LUAJIT
 
@@ -35,4 +35,4 @@ void LuajitReturnState(lua_State *s);
 
 #endif /* HAVE_LUAJIT */
 
-#endif /* __UTIL_LUAJIT_H__ */
+#endif /* SURICATA_UTIL_LUAJIT_H */

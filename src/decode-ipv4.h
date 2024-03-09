@@ -22,8 +22,8 @@
  * \author Brian Rectanus <brectanu@gmail.com>
  */
 
-#ifndef __DECODE_IPV4_H__
-#define __DECODE_IPV4_H__
+#ifndef SURICATA_DECODE_IPV4_H
+#define SURICATA_DECODE_IPV4_H
 
 #define IPV4_HEADER_LEN           20    /**< Header length */
 #define IPV4_OPTMAX               40    /**< Max options length */
@@ -243,4 +243,4 @@ static inline uint16_t IPV4Checksum(const uint16_t *pkt, uint16_t hlen, uint16_t
     return (uint16_t) ~csum;
 }
 
-#endif /* __DECODE_IPV4_H__ */
+#endif /* SURICATA_DECODE_IPV4_H */

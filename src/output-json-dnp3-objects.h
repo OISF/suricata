@@ -15,12 +15,12 @@
  * 02110-1301, USA.
  */
 
-#ifndef __OUTPUT_JSON_DNP3_OBJECTS_H__
-#define __OUTPUT_JSON_DNP3_OBJECTS_H__
+#ifndef SURICATA_OUTPUT_JSON_DNP3_OBJECTS_H
+#define SURICATA_OUTPUT_JSON_DNP3_OBJECTS_H
 
 #include "rust-bindings.h"
 
 void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
     DNP3Point *item);
 
-#endif /* __OUTPUT_JSON_DNP3_OBJECTS_H__ */
+#endif /* SURICATA_OUTPUT_JSON_DNP3_OBJECTS_H */

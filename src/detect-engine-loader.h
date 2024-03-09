@@ -24,8 +24,8 @@
  * that can load multiple detection engines in parallel.
  */
 
-#ifndef __DETECT_ENGINE_LOADER_H__
-#define __DETECT_ENGINE_LOADER_H__
+#ifndef SURICATA_DETECT_ENGINE_LOADER_H
+#define SURICATA_DETECT_ENGINE_LOADER_H
 
 /**
  * \param ctx function specific data
@@ -61,4 +61,4 @@ void TmThreadContinueDetectLoaderThreads(void);
 void DetectLoaderThreadSpawn(void);
 void TmModuleDetectLoaderRegister (void);
 
-#endif /* __DETECT_ENGINE_LOADER_H__ */
+#endif /* SURICATA_DETECT_ENGINE_LOADER_H */

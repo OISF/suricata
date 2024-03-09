@@ -22,8 +22,8 @@
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
  */
 
-#ifndef __UTIL_SPM_BS__
-#define __UTIL_SPM_BS__
+#ifndef SURICATA_UTIL_SPM_BS
+#define SURICATA_UTIL_SPM_BS
 
 #include "suricata-common.h"
 
@@ -31,5 +31,4 @@ uint8_t *BasicSearch(const uint8_t *, uint32_t, const uint8_t *, uint16_t);
 uint8_t *BasicSearchNocase(const uint8_t *, uint32_t, const uint8_t *, uint16_t);
 void BasicSearchInit (void);
 
-#endif /* __UTIL_SPM_BS__ */
-
+#endif /* SURICATA_UTIL_SPM_BS */

@@ -23,8 +23,8 @@
  * Packet Logger Output registration functions
  */
 
-#ifndef __OUTPUT_PACKET_H__
-#define __OUTPUT_PACKET_H__
+#ifndef SURICATA_OUTPUT_PACKET_H
+#define SURICATA_OUTPUT_PACKET_H
 
 /** packet logger function pointer type */
 typedef int (*PacketLogger)(ThreadVars *, void *thread_data, const Packet *);
@@ -42,4 +42,4 @@ void OutputPacketLoggerRegister(void);
 
 void OutputPacketShutdown(void);
 
-#endif /* __OUTPUT_PACKET_H__ */
+#endif /* SURICATA_OUTPUT_PACKET_H */

@@ -20,12 +20,12 @@
  *  \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __RUNMODE_PCAP_FILE_H__
-#define __RUNMODE_PCAP_FILE_H__
+#ifndef SURICATA_RUNMODE_PCAP_FILE_H
+#define SURICATA_RUNMODE_PCAP_FILE_H
 
 int RunModeFilePcapSingle(void);
 int RunModeFilePcapAutoFp(void);
 void RunModeFilePcapRegister(void);
 const char *RunModeFilePcapGetDefaultMode(void);
 
-#endif /* __RUNMODE_PCAP_FILE_H__ */
+#endif /* SURICATA_RUNMODE_PCAP_FILE_H */

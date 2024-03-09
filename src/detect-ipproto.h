@@ -21,8 +21,8 @@
  * \author Brian Rectanus <brectanu@gmail.com>
  */
 
-#ifndef __DETECT_IPPROTO_H__
-#define __DETECT_IPPROTO_H__
+#ifndef SURICATA_DETECT_IPPROTO_H
+#define SURICATA_DETECT_IPPROTO_H
 
 /** IPProto Operators */
 #define DETECT_IPPROTO_OP_EQ     '=' /**< "equals" operator (default) */
@@ -44,5 +44,4 @@ typedef struct DetectIPProtoData_ {
 void DetectIPProtoRegister (void);
 void DetectIPProtoRemoveAllSMs(DetectEngineCtx *, Signature *);
 
-#endif /* __DETECT_IPPROTO_H__ */
-
+#endif /* SURICATA_DETECT_IPPROTO_H */

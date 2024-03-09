@@ -21,9 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __UTIL_MISC_H__
-#define __UTIL_MISC_H__
-
+#ifndef SURICATA_UTIL_MISC_H
+#define SURICATA_UTIL_MISC_H
 
 /**
  * \brief Generic API that can be used by all to log an
@@ -57,4 +56,4 @@ void ParseSizeDeinit(void);
 void ShortenString(const char *input,
     char *output, size_t output_size, char c);
 
-#endif /* __UTIL_MISC_H__ */
+#endif /* SURICATA_UTIL_MISC_H */

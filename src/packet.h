@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-#ifndef __PACKET_H__
-#define __PACKET_H__
+#ifndef SURICATA_PACKET_H
+#define SURICATA_PACKET_H
 
 #include "decode.h"
 

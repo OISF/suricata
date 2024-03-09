@@ -23,8 +23,8 @@
  * thash -> thread hash. Hash table with locking handling.
  */
 
-#ifndef __THASH_H__
-#define __THASH_H__
+#ifndef SURICATA_THASH_H
+#define SURICATA_THASH_H
 
 #include "threads.h"
 
@@ -198,4 +198,4 @@ int THashRemoveFromHash (THashTableContext *ctx, void *data);
 void THashConsolidateMemcap(THashTableContext *ctx);
 void THashDataMoveToSpare(THashTableContext *ctx, THashData *h);
 
-#endif /* __THASH_H__ */
+#endif /* SURICATA_THASH_H */

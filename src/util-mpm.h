@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_MPM_H__
-#define __UTIL_MPM_H__
+#ifndef SURICATA_UTIL_MPM_H
+#define SURICATA_UTIL_MPM_H
 
 #include "app-layer-protos.h"
 #include "util-prefilter.h"
@@ -200,4 +200,4 @@ int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                             uint16_t offset, uint16_t depth, uint32_t pid,
                             SigIntId sid, uint8_t flags);
 
-#endif /* __UTIL_MPM_H__ */
+#endif /* SURICATA_UTIL_MPM_H */

@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DECODE_ETHERNET_H__
-#define __DECODE_ETHERNET_H__
+#ifndef SURICATA_DECODE_ETHERNET_H
+#define SURICATA_DECODE_ETHERNET_H
 
 #define ETHERNET_HEADER_LEN           14
 
@@ -59,5 +59,4 @@ typedef struct EthernetHdr_ {
 
 void DecodeEthernetRegisterTests(void);
 
-#endif /* __DECODE_ETHERNET_H__ */
-
+#endif /* SURICATA_DECODE_ETHERNET_H */

@@ -22,8 +22,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_TAG_H__
-#define __DETECT_TAG_H__
+#ifndef SURICATA_DETECT_TAG_H
+#define SURICATA_DETECT_TAG_H
 
 #include "suricata-common.h"
 
@@ -98,5 +98,4 @@ void DetectTagRegister(void);
 void DetectTagDataFree(struct DetectEngineCtx_ *, void *ptr);
 void DetectTagDataListFree(void *ptr);
 
-#endif /* __DETECT_TAG_H__ */
-
+#endif /* SURICATA_DETECT_TAG_H */

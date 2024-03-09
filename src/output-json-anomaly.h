@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef __OUTPUT_JSON_ANOMALY_H__
-#define __OUTPUT_JSON_ANOMALY_H__
+#ifndef SURICATA_OUTPUT_JSON_ANOMALY_H
+#define SURICATA_OUTPUT_JSON_ANOMALY_H
 
 void JsonAnomalyLogRegister(void);
 

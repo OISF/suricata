@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __IPPAIR_BIT_H__
-#define __IPPAIR_BIT_H__
+#ifndef SURICATA_IPPAIR_BIT_H
+#define SURICATA_IPPAIR_BIT_H
 
 #include "ippair.h"
 
@@ -38,4 +38,4 @@ void IPPairBitToggle(IPPair *, uint32_t, uint32_t);
 int IPPairBitIsset(IPPair *, uint32_t, uint32_t);
 int IPPairBitIsnotset(IPPair *, uint32_t, uint32_t);
 
-#endif /* __IPPAIR_BIT_H__ */
+#endif /* SURICATA_IPPAIR_BIT_H */

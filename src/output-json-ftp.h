@@ -21,10 +21,10 @@
  * \author Jeff Lucovsky <jeff@lucovsky.org>
  */
 
-#ifndef __OUTPUT_JSON_FTP_H__
-#define __OUTPUT_JSON_FTP_H__
+#ifndef SURICATA_OUTPUT_JSON_FTP_H
+#define SURICATA_OUTPUT_JSON_FTP_H
 
 void JsonFTPLogRegister(void);
 bool EveFTPLogCommand(void *vtx, JsonBuilder *js);
 
-#endif /* __OUTPUT_JSON_FTP_H__ */
+#endif /* SURICATA_OUTPUT_JSON_FTP_H */

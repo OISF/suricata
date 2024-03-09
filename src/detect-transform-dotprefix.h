@@ -21,10 +21,10 @@
  * \author Jeff Lucovsky <jeff@lucovsky.org>
  */
 
-#ifndef __DETECT_TRANSFORM_DOTPREFIX_H__
-#define __DETECT_TRANSFORM_DOTPREFIX_H__
+#ifndef SURICATA_DETECT_TRANSFORM_DOTPREFIX_H
+#define SURICATA_DETECT_TRANSFORM_DOTPREFIX_H
 
 /* prototypes */
 void DetectTransformDotPrefixRegister (void);
 
-#endif /* __DETECT_TRANSFORM_DOTPREFIX_H__ */
+#endif /* SURICATA_DETECT_TRANSFORM_DOTPREFIX_H */

@@ -23,8 +23,8 @@
  * Isolation for WMI/COM functionality
  */
 
-#ifndef __WIN32_SYSCALL_H__
-#define __WIN32_SYSCALL_H__
+#ifndef SURICATA_WIN32_SYSCALL_H
+#define SURICATA_WIN32_SYSCALL_H
 #ifdef OS_WIN32
 
 #include <inttypes.h>
@@ -50,4 +50,4 @@ int RestoreIfaceOffloadingWin32(LiveDevice *ldev);
 void Win32SyscallRegisterTests(void);
 
 #endif /* OS_WIN32 */
-#endif /* __WIN32_SYSCALL_H__ */
+#endif /* SURICATA_WIN32_SYSCALL_H */

@@ -21,10 +21,9 @@
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
  */
 
-#ifndef __DETECT_SNMP_PDU_TYPE_H__
-#define __DETECT_SNMP_PDU_TYPE_H__
-
+#ifndef SURICATA_DETECT_SNMP_PDU_TYPE_H
+#define SURICATA_DETECT_SNMP_PDU_TYPE_H
 
 void DetectSNMPPduTypeRegister(void);
 
-#endif /* __DETECT_SNMP_PDU_TYPE_H__ */
+#endif /* SURICATA_DETECT_SNMP_PDU_TYPE_H */

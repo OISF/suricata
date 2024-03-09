@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef __UTIL_PATH_H__
-#define __UTIL_PATH_H__
+#ifndef SURICATA_UTIL_PATH_H
+#define SURICATA_UTIL_PATH_H
 
 #ifdef OS_WIN32
 typedef struct _stat SCStat;
@@ -61,4 +61,4 @@ char *SCRealPath(const char *path, char *resolved_path);
 const char *SCBasename(const char *path);
 bool SCPathContainsTraversal(const char *path);
 
-#endif /* __UTIL_PATH_H__ */
+#endif /* SURICATA_UTIL_PATH_H */

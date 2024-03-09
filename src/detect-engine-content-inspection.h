@@ -22,8 +22,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_CONTENT_INSPECTION_H__
-#define __DETECT_ENGINE_CONTENT_INSPECTION_H__
+#ifndef SURICATA_DETECT_ENGINE_CONTENT_INSPECTION_H
+#define SURICATA_DETECT_ENGINE_CONTENT_INSPECTION_H
 
 /** indication to content engine what type of data
  *  we're inspecting
@@ -70,4 +70,4 @@ bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineTh
 
 void DetectEngineContentInspectionRegisterTests(void);
 
-#endif /* __DETECT_ENGINE_CONTENT_INSPECTION_H__ */
+#endif /* SURICATA_DETECT_ENGINE_CONTENT_INSPECTION_H */

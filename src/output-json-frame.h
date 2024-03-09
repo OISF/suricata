@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef __OUTPUT_JSON_FRAME_H__
-#define __OUTPUT_JSON_FRAME_H__
+#ifndef SURICATA_OUTPUT_JSON_FRAME_H
+#define SURICATA_OUTPUT_JSON_FRAME_H
 
 #include "app-layer-frames.h"
 #include "stream-tcp-private.h"
@@ -34,4 +34,4 @@ void FrameJsonLogOneFrame(const uint8_t ipproto, const Frame *frame, const Flow 
         const TcpStream *stream, const Packet *p, JsonBuilder *jb);
 void JsonFrameLogRegister(void);
 
-#endif /* __OUTPUT_JSON_FRAME_H__ */
+#endif /* SURICATA_OUTPUT_JSON_FRAME_H */

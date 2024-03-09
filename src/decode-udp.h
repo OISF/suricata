@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DECODE_UDP_H__
-#define __DECODE_UDP_H__
+#ifndef SURICATA_DECODE_UDP_H
+#define SURICATA_DECODE_UDP_H
 
 #define UDP_HEADER_LEN         8
 
@@ -191,4 +191,4 @@ static inline uint16_t UDPV6Checksum(
         return csum_u16;
 }
 
-#endif /* __DECODE_UDP_H__ */
+#endif /* SURICATA_DECODE_UDP_H */

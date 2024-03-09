@@ -15,12 +15,12 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DETECT_FLOW_PKTS_H__
-#define __DETECT_FLOW_PKTS_H__
+#ifndef SURICATA_DETECT_FLOW_PKTS_H
+#define SURICATA_DETECT_FLOW_PKTS_H
 
 void DetectFlowPktsToClientRegister(void);
 void DetectFlowPktsToServerRegister(void);
 void DetectFlowBytesToClientRegister(void);
 void DetectFlowBytesToServerRegister(void);
 
-#endif /* __DETECT_FLOW_PKTS_H__ */
+#endif /* SURICATA_DETECT_FLOW_PKTS_H */

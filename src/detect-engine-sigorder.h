@@ -21,8 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __DETECT_ENGINE_SIGORDER_H__
-#define __DETECT_ENGINE_SIGORDER_H__
+#ifndef SURICATA_DETECT_ENGINE_SIGORDER_H
+#define SURICATA_DETECT_ENGINE_SIGORDER_H
 
 /**
  * \brief Different kinds of helper data that can be used by the signature
@@ -68,4 +68,4 @@ void SCSigRegisterSignatureOrderingFuncs(DetectEngineCtx *);
 void SCSigRegisterSignatureOrderingTests(void);
 void SCSigSignatureOrderingModuleCleanup(DetectEngineCtx *);
 
-#endif /* __DETECT_ENGINE_SIGORDER_H__ */
+#endif /* SURICATA_DETECT_ENGINE_SIGORDER_H */

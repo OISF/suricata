@@ -21,8 +21,8 @@
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  */
 
-#ifndef __DETECT_TLS_VALIDITY_H__
-#define __DETECT_TLS_VALIDITY_H__
+#ifndef SURICATA_DETECT_TLS_VALIDITY_H
+#define SURICATA_DETECT_TLS_VALIDITY_H
 
 #define DETECT_TLS_VALIDITY_EQ (1)    /* equal */
 #define DETECT_TLS_VALIDITY_LT (1<<1) /* less than */
@@ -48,4 +48,4 @@ typedef struct DetectTlsValidityData_ {
 /* prototypes */
 void DetectTlsValidityRegister (void);
 
-#endif /* __DETECT_TLS_VALIDITY_H__ */
+#endif /* SURICATA_DETECT_TLS_VALIDITY_H */

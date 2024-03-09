@@ -21,10 +21,10 @@
  * \author Gerardo Iglesias <iglesiasg@gmail.com>
  */
 
-#ifndef __DETECT_ITYPE_H__
-#define __DETECT_ITYPE_H__
+#ifndef SURICATA_DETECT_ITYPE_H
+#define SURICATA_DETECT_ITYPE_H
 
 /* prototypes */
 void DetectITypeRegister(void);
 
-#endif /* __DETECT_ITYPE_H__ */
+#endif /* SURICATA_DETECT_ITYPE_H */

@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_FILESIZE_H__
-#define	__DETECT_FILESIZE_H__
+#ifndef SURICATA_DETECT_FILESIZE_H
+#define SURICATA_DETECT_FILESIZE_H
 
 void DetectFilesizeRegister(void);
 

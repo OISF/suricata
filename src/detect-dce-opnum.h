@@ -21,10 +21,9 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __DETECT_DCE_OPNUM_H__
-#define __DETECT_DCE_OPNUM_H__
-
+#ifndef SURICATA_DETECT_DCE_OPNUM_H
+#define SURICATA_DETECT_DCE_OPNUM_H
 
 void DetectDceOpnumRegister(void);
 
-#endif /* __DETECT_DCE_OPNUM_H__ */
+#endif /* SURICATA_DETECT_DCE_OPNUM_H */

@@ -23,8 +23,8 @@
  * Stats Logger Output registration functions
  */
 
-#ifndef __OUTPUT_STATS_H__
-#define __OUTPUT_STATS_H__
+#ifndef SURICATA_OUTPUT_STATS_H
+#define SURICATA_OUTPUT_STATS_H
 
 #include "tm-modules.h"
 
@@ -59,4 +59,4 @@ int OutputStatsLoggersRegistered(void);
 
 void OutputStatsShutdown(void);
 
-#endif /* __OUTPUT_STATS_H__ */
+#endif /* SURICATA_OUTPUT_STATS_H */

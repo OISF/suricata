@@ -21,10 +21,10 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_TRANSFORM_COMPRESS_WHITESPACE_H__
-#define __DETECT_TRANSFORM_COMPRESS_WHITESPACE_H__
+#ifndef SURICATA_DETECT_TRANSFORM_COMPRESS_WHITESPACE_H
+#define SURICATA_DETECT_TRANSFORM_COMPRESS_WHITESPACE_H
 
 /* prototypes */
 void DetectTransformCompressWhitespaceRegister (void);
 
-#endif /* __DETECT_TRANSFORM_COMPRESS_WHITESPACE_H__ */
+#endif /* SURICATA_DETECT_TRANSFORM_COMPRESS_WHITESPACE_H */

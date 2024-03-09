@@ -21,8 +21,8 @@
  *  \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __UTIL_RULE_VARS_H__
-#define __UTIL_RULE_VARS_H__
+#ifndef SURICATA_UTIL_RULE_VARS_H
+#define SURICATA_UTIL_RULE_VARS_H
 
 #include "detect.h"
 
@@ -35,4 +35,4 @@ typedef enum {
 const char *SCRuleVarsGetConfVar(const DetectEngineCtx *, const char *, SCRuleVarsType);
 void SCRuleVarsRegisterTests(void);
 
-#endif /* __UTIL_RULE_VARS_H__ */
+#endif /* SURICATA_UTIL_RULE_VARS_H */

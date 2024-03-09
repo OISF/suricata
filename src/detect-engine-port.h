@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_PORT_H__
-#define __DETECT_PORT_H__
+#ifndef SURICATA_DETECT_PORT_H
+#define SURICATA_DETECT_PORT_H
 
 #include "interval-tree.h"
 #include "detect.h"
@@ -80,5 +80,4 @@ int DetectPortHashInit(DetectEngineCtx *de_ctx);
 void DetectPortTests(void);
 #endif
 
-#endif /* __DETECT_PORT_H__ */
-
+#endif /* SURICATA_DETECT_PORT_H */

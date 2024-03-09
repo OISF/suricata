@@ -24,13 +24,12 @@
  *
  */
 
-#ifndef __OUTPUT_JSON_ALERT_H__
-#define __OUTPUT_JSON_ALERT_H__
+#ifndef SURICATA_OUTPUT_JSON_ALERT_H
+#define SURICATA_OUTPUT_JSON_ALERT_H
 
 void JsonAlertLogRegister(void);
 void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, JsonBuilder *js,
         uint16_t flags, JsonAddrInfo *addr, char *xff_buffer);
 void EveAddVerdict(JsonBuilder *jb, const Packet *p);
 
-#endif /* __OUTPUT_JSON_ALERT_H__ */
-
+#endif /* SURICATA_OUTPUT_JSON_ALERT_H */

@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __LOG_STATS_H__
-#define __LOG_STATS_H__
+#ifndef SURICATA_LOG_STATS_H
+#define SURICATA_LOG_STATS_H
 
 void LogStatsLogRegister(void);
 

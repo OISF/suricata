@@ -21,9 +21,9 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __DETECT_APP_LAYER_EVENT_H__
-#define __DETECT_APP_LAYER_EVENT_H__
+#ifndef SURICATA_DETECT_APP_LAYER_EVENT_H
+#define SURICATA_DETECT_APP_LAYER_EVENT_H
 
 void DetectAppLayerEventRegister(void);
 
-#endif /* __DETECT_APP_LAYER_EVENT_H__ */
+#endif /* SURICATA_DETECT_APP_LAYER_EVENT_H */

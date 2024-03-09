@@ -21,8 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __FLOW_TIMEOUT_H__
-#define __FLOW_TIMEOUT_H__
+#ifndef SURICATA_FLOW_TIMEOUT_H
+#define SURICATA_FLOW_TIMEOUT_H
 
 #include "stream-tcp-private.h"
 
@@ -31,4 +31,4 @@ int FlowForceReassemblyNeedReassembly(Flow *f);
 void FlowForceReassembly(void);
 Packet *FlowForceReassemblyPseudoPacketGet(int direction, Flow *f, const TcpSession *ssn);
 
-#endif /* __FLOW_TIMEOUT_H__ */
+#endif /* SURICATA_FLOW_TIMEOUT_H */

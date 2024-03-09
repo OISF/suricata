@@ -21,12 +21,12 @@
  * \author Richard McConnell <richard_mcconnell@rapid7.com>
  */
 
-#ifndef __RUNMODE_AFXDP_H__
-#define __RUNMODE_AFXDP_H__
+#ifndef SURICATA_RUNMODE_AFXDP_H
+#define SURICATA_RUNMODE_AFXDP_H
 
 int RunModeIdsAFXDPSingle(void);
 int RunModeIdsAFXDPWorkers(void);
 void RunModeIdsAFXDPRegister(void);
 const char *RunModeAFXDPGetDefaultMode(void);
 
-#endif /* __RUNMODE_AFXDP_H__ */
+#endif /* SURICATA_RUNMODE_AFXDP_H */

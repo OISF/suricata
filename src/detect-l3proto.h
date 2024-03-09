@@ -22,12 +22,12 @@
  *
  */
 
-#ifndef __DETECT_L3PROTO_H__
-#define __DETECT_L3PROTO_H__
+#ifndef SURICATA_DETECT_L3PROTO_H
+#define SURICATA_DETECT_L3PROTO_H
 
 /**
  * \brief Registration function for ip_proto keyword.
  */
 void DetectL3ProtoRegister (void);
 
-#endif /* __DETECT_L3PROTO_H__ */
+#endif /* SURICATA_DETECT_L3PROTO_H */

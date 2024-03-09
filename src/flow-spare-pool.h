@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __FLOW_SPARE_POOL_H__
-#define __FLOW_SPARE_POOL_H__
+#ifndef SURICATA_FLOW_SPARE_POOL_H
+#define SURICATA_FLOW_SPARE_POOL_H
 
 #include "suricata-common.h"
 #include "flow.h"
@@ -38,4 +38,4 @@ FlowQueuePrivate FlowSpareGetFromPool(void);
 void FlowSparePoolReturnFlow(Flow *f);
 void FlowSparePoolReturnFlows(FlowQueuePrivate *fqp);
 
-#endif /* __FLOW_SPARE_POOL_H__ */
+#endif /* SURICATA_FLOW_SPARE_POOL_H */

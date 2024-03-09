@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DATASETS_MD5_H__
-#define __DATASETS_MD5_H__
+#ifndef SURICATA_DATASETS_MD5_H
+#define SURICATA_DATASETS_MD5_H
 
 #include "datasets-reputation.h"
 
@@ -36,4 +36,4 @@ bool Md5StrCompare(void *a, void *b);
 uint32_t Md5StrHash(void *s);
 void Md5StrFree(void *s);
 
-#endif /* __DATASETS_MD5_H__ */
+#endif /* SURICATA_DATASETS_MD5_H */

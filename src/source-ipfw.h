@@ -22,8 +22,8 @@
  * \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __SOURCE_IPFW_H__
-#define __SOURCE_IPFW_H__
+#ifndef SURICATA_SOURCE_IPFW_H
+#define SURICATA_SOURCE_IPFW_H
 
 #define IPFW_MAX_QUEUE 16
 
@@ -66,5 +66,4 @@ void TmModuleReceiveIPFWRegister (void);
 void TmModuleVerdictIPFWRegister (void);
 void TmModuleDecodeIPFWRegister (void);
 
-
-#endif /* __SOURCE_IPFW_H__ */
+#endif /* SURICATA_SOURCE_IPFW_H */

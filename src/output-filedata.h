@@ -23,8 +23,8 @@
  * AppLayer Filedata Logger Output registration functions
  */
 
-#ifndef __OUTPUT_FILEDATA_H__
-#define __OUTPUT_FILEDATA_H__
+#ifndef SURICATA_OUTPUT_FILEDATA_H
+#define SURICATA_OUTPUT_FILEDATA_H
 
 #define OUTPUT_FILEDATA_FLAG_OPEN  0x01
 #define OUTPUT_FILEDATA_FLAG_CLOSE 0x02
@@ -58,4 +58,4 @@ void OutputFiledataLoggerRegister(void);
 
 void OutputFiledataShutdown(void);
 
-#endif /* __OUTPUT_FILEDATA_H__ */
+#endif /* SURICATA_OUTPUT_FILEDATA_H */

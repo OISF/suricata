@@ -21,8 +21,8 @@
  * \author Eric Leblond <el@stamus-networks.com>
  */
 
-#ifndef __DATASETS_IPV6_H__
-#define __DATASETS_IPV6_H__
+#ifndef SURICATA_DATASETS_IPV6_H
+#define SURICATA_DATASETS_IPV6_H
 
 #include "datasets-reputation.h"
 

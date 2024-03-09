@@ -21,9 +21,9 @@
  * \author Sascha Steinbiss <sascha@steinbiss.name>
  */
 
-#ifndef __DETECT_MQTT_CONNECT_WILLTOPIC_H__
-#define __DETECT_MQTT_CONNECT_WILLTOPIC_H__
+#ifndef SURICATA_DETECT_MQTT_CONNECT_WILLTOPIC_H
+#define SURICATA_DETECT_MQTT_CONNECT_WILLTOPIC_H
 
 void DetectMQTTConnectWillTopicRegister(void);
 
-#endif /* __DETECT_MQTT_CONNECT_WILLTOPIC_H__ */
+#endif /* SURICATA_DETECT_MQTT_CONNECT_WILLTOPIC_H */

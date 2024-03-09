@@ -21,10 +21,10 @@
  * \author Philippe Antoine <contact@catenacyber.fr>
  */
 
-#ifndef __DETECT_TRANSFORM_STRIP_PSEUDOHEADERS_H__
-#define __DETECT_TRANSFORM_STRIP_PSEUDOHEADERS_H__
+#ifndef SURICATA_DETECT_TRANSFORM_STRIP_PSEUDOHEADERS_H
+#define SURICATA_DETECT_TRANSFORM_STRIP_PSEUDOHEADERS_H
 
 /* prototypes */
 void DetectTransformStripPseudoHeadersRegister(void);
 
-#endif /* __DETECT_TRANSFORM_STRIP_PSEUDOHEADERS_H__ */
+#endif /* SURICATA_DETECT_TRANSFORM_STRIP_PSEUDOHEADERS_H */

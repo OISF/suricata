@@ -20,8 +20,8 @@
  *  \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __RUNMODE_PFRING_H__
-#define __RUNMODE_PFRING_H__
+#ifndef SURICATA_RUNMODE_PFRING_H
+#define SURICATA_RUNMODE_PFRING_H
 
 #include "suricata-common.h"
 
@@ -31,4 +31,4 @@ int RunModeIdsPfringWorkers(void);
 void RunModeIdsPfringRegister(void);
 const char *RunModeIdsPfringGetDefaultMode(void);
 
-#endif /* __RUNMODE_PFRING_H__ */
+#endif /* SURICATA_RUNMODE_PFRING_H */

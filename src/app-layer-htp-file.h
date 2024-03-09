@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef __APP_LAYER_HTP_FILE_H__
-#define __APP_LAYER_HTP_FILE_H__
+#ifndef SURICATA_APP_LAYER_HTP_FILE_H
+#define SURICATA_APP_LAYER_HTP_FILE_H
 
 #include "app-layer-htp.h"
 
@@ -41,4 +41,4 @@ int HTPFileClose(HtpState *, HtpTxUserData *tx, const uint8_t *data, uint32_t da
 
 void HTPFileParserRegisterTests(void);
 
-#endif /* __APP_LAYER_HTP_FILE_H__ */
+#endif /* SURICATA_APP_LAYER_HTP_FILE_H */
