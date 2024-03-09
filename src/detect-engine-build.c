@@ -1312,6 +1312,7 @@ error:
     return -1;
 }
 
+#define UNDEFINED_PORT 0
 #define RANGE_PORT  1
 #define SINGLE_PORT 2
 
@@ -1335,18 +1336,23 @@ typedef struct UniquePortPoint_ {
 static inline uint32_t SetUniquePortPoints(
         const DetectPort *p, uint8_t *unique_list, uint32_t size_list)
 {
-    if (unique_list[p->port] == 0) {
+    if (unique_list[p->port] == UNDEFINED_PORT) {
         if (p->port == p->port2) {
             unique_list[p->port] = SINGLE_PORT;
         } else {
             unique_list[p->port] = RANGE_PORT;
         }
         size_list++;
+    } else if ((unique_list[p->port] == SINGLE_PORT) && (p->port != p->port2)) {
+        if (unique_list[p->port + 1] == UNDEFINED_PORT) {
+            size_list++;
+        }
+        unique_list[p->port + 1] = RANGE_PORT;
     }
 
     /* Treat right boundary as single point to avoid creating unneeded
      * ranges later on */
-    if (unique_list[p->port2] == 0) {
+    if (unique_list[p->port2] == UNDEFINED_PORT) {
         size_list++;
     }
     unique_list[p->port2] = SINGLE_PORT;
