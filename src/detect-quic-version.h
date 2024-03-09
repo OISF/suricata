@@ -20,9 +20,9 @@
  *
  */
 
-#ifndef __DETECT_QUIC_VERSION_H__
-#define __DETECT_QUIC_VERSION_H__
+#ifndef SURICATA_DETECT_QUIC_VERSION_H
+#define SURICATA_DETECT_QUIC_VERSION_H
 
 void DetectQuicVersionRegister(void);
 
-#endif /* __DETECT_QUIC_VERSION_H__ */
+#endif /* SURICATA_DETECT_QUIC_VERSION_H */

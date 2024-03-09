@@ -21,8 +21,8 @@
  * \author Brian Rectanus <brectanu@gmail.com>
  */
 
-#ifndef __DETECT_BYTETEST_H__
-#define __DETECT_BYTETEST_H__
+#ifndef SURICATA_DETECT_BYTETEST_H
+#define SURICATA_DETECT_BYTETEST_H
 
 /** Bytetest Operators */
 #define DETECT_BYTETEST_OP_LT     1 /**< "less than" operator */
@@ -74,4 +74,4 @@ void DetectBytetestRegister (void);
 int DetectBytetestDoMatch(DetectEngineThreadCtx *, const Signature *, const SigMatchCtx *ctx,
         const uint8_t *, uint32_t, uint16_t, int32_t, int32_t, uint64_t);
 
-#endif /* __DETECT_BYTETEST_H__ */
+#endif /* SURICATA_DETECT_BYTETEST_H */

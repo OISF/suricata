@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef __UTIL_FILE_DECOMPRESSION_H__
-#define __UTIL_FILE_DECOMPRESSION_H__
+#ifndef SURICATA_UTIL_FILE_DECOMPRESSION_H
+#define SURICATA_UTIL_FILE_DECOMPRESSION_H
 
 #include "detect.h"
 
@@ -41,4 +41,4 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
                          int swf_type,
                          uint32_t decompress_depth, uint32_t compress_depth);
 
-#endif /* __UTIL_FILE_DECOMPRESSION_H__ */
+#endif /* SURICATA_UTIL_FILE_DECOMPRESSION_H */

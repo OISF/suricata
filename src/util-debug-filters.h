@@ -21,8 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __DEBUG_FILTERS_H__
-#define __DEBUG_FILTERS_H__
+#ifndef SURICATA_DEBUG_FILTERS_H
+#define SURICATA_DEBUG_FILTERS_H
 
 // pthread_t
 #include "threads.h"
@@ -132,4 +132,4 @@ void SCLogAddToFGFLineList(SCLogFGFilterFunc *,
                                          int);
 
 void SCLogReleaseFDFilter(SCLogFDFilter *);
-#endif /* __DEBUG_FILTERS_H__ */
+#endif /* SURICATA_DEBUG_FILTERS_H */

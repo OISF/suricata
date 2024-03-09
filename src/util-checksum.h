@@ -21,8 +21,8 @@
  * \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __UTIL_CHECKSUM_H__
-#define __UTIL_CHECKSUM_H__
+#ifndef SURICATA_UTIL_CHECKSUM_H
+#define SURICATA_UTIL_CHECKSUM_H
 
 #include "decode.h"
 

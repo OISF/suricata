@@ -21,8 +21,8 @@
  * \author Vadym Malakhatko <v.malakhatko@sirinsoftware.com>
  */
 
-#ifndef __UTIL_LUA_HASSH_H__
-#define __UTIL_LUA_HASSH_H__
+#ifndef SURICATA_UTIL_LUA_HASSH_H
+#define SURICATA_UTIL_LUA_HASSH_H
 
 #ifdef HAVE_LUA
 
@@ -30,4 +30,4 @@ int LuaRegisterHasshFunctions(lua_State *luastate);
 
 #endif /* HAVE_LUA */
 
-#endif /* __UTIL_LUA_HASSH_H__ */
+#endif /* SURICATA_UTIL_LUA_HASSH_H */

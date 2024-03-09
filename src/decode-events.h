@@ -22,8 +22,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __DECODE_EVENTS_H__
-#define __DECODE_EVENTS_H__
+#ifndef SURICATA_DECODE_EVENTS_H
+#define SURICATA_DECODE_EVENTS_H
 
 /* packet decoder events */
 enum {
@@ -313,4 +313,4 @@ struct DecodeEvents_ {
 /* +1 for the end of table marker */
 extern const struct DecodeEvents_ DEvents[DECODE_EVENT_MAX + 1];
 
-#endif /* __DECODE_EVENTS_H__ */
+#endif /* SURICATA_DECODE_EVENTS_H */

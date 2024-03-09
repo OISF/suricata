@@ -20,8 +20,8 @@
  *  \author Kevin Wong <kwong@solananetworks.com>
  */
 
-#ifndef __DETECT_ENGINE_ENIP_H__
-#define __DETECT_ENGINE_ENIP_H__
+#ifndef SURICATA_DETECT_ENGINE_ENIP_H
+#define SURICATA_DETECT_ENGINE_ENIP_H
 
 uint8_t DetectEngineInspectCIP(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
         const struct DetectEngineAppInspectionEngine_ *, const Signature *, Flow *, uint8_t, void *,
@@ -31,4 +31,4 @@ uint8_t DetectEngineInspectENIP(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         const struct DetectEngineAppInspectionEngine_ *, const Signature *, Flow *, uint8_t, void *,
         void *, uint64_t);
 
-#endif /* __DETECT_ENGINE_ENIP_H__ */
+#endif /* SURICATA_DETECT_ENGINE_ENIP_H */

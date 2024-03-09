@@ -21,10 +21,10 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_TRANSFORM_MD5_H__
-#define __DETECT_TRANSFORM_MD5_H__
+#ifndef SURICATA_DETECT_TRANSFORM_MD5_H
+#define SURICATA_DETECT_TRANSFORM_MD5_H
 
 /* prototypes */
 void DetectTransformMd5Register (void);
 
-#endif /* __DETECT_TRANSFORM_MD5_H__ */
+#endif /* SURICATA_DETECT_TRANSFORM_MD5_H */

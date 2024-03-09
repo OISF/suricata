@@ -21,8 +21,8 @@
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  */
 
-#ifndef __ACTION_ORDER_H__
-#define __ACTION_ORDER_H__
+#ifndef SURICATA_ACTION_ORDER_H
+#define SURICATA_ACTION_ORDER_H
 
 #include "suricata-common.h"
 
@@ -31,4 +31,4 @@ uint8_t ActionOrderVal(uint8_t);
 #ifdef UNITTESTS
 void UtilActionRegisterTests(void);
 #endif
-#endif /* __ACTION_ORDER_H__ */
+#endif /* SURICATA_ACTION_ORDER_H */

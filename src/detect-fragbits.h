@@ -21,9 +21,8 @@
  * \author Breno Silva <breno.silva@gmail.com>
  */
 
-#ifndef __DETECT_FRAGBITS_H__
-#define __DETECT_FRAGBITS_H__
-
+#ifndef SURICATA_DETECT_FRAGBITS_H
+#define SURICATA_DETECT_FRAGBITS_H
 
 /**
  * \struct DetectFragBitsData_
@@ -46,4 +45,4 @@ typedef struct DetectFragBitsData_ {
 
 void DetectFragBitsRegister (void);
 
-#endif /*__DETECT_FRAGBITS_H__ */
+#endif /*SURICATA_DETECT_FRAGBITS_H */

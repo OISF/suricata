@@ -21,11 +21,10 @@
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  */
 
-#ifndef __DETECT_FTPBOUNCE_H__
-#define __DETECT_FTPBOUNCE_H__
+#ifndef SURICATA_DETECT_FTPBOUNCE_H
+#define SURICATA_DETECT_FTPBOUNCE_H
 
 /* prototypes */
 void DetectFtpbounceRegister (void);
 
-#endif /* __DETECT_FTPBOUNCE_H__ */
-
+#endif /* SURICATA_DETECT_FTPBOUNCE_H */

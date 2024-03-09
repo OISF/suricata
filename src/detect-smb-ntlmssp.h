@@ -21,10 +21,10 @@
  * \author Eric Leblond <el@stamus-networks.com>
  */
 
-#ifndef __DETECT_SMB_NTLMSSP_H__
-#define __DETECT_SMB_NTLMSSP_H__
+#ifndef SURICATA_DETECT_SMB_NTLMSSP_H
+#define SURICATA_DETECT_SMB_NTLMSSP_H
 
 void DetectSmbNtlmsspUserRegister(void);
 void DetectSmbNtlmsspDomainRegister(void);
 
-#endif /* __DETECT_SMB_NTLMSSP_H__ */
+#endif /* SURICATA_DETECT_SMB_NTLMSSP_H */

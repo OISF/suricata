@@ -21,9 +21,9 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __OUTPUT_JSON_SSH_H__
-#define __OUTPUT_JSON_SSH_H__
+#ifndef SURICATA_OUTPUT_JSON_SSH_H
+#define SURICATA_OUTPUT_JSON_SSH_H
 
 void JsonSshLogRegister(void);
 
-#endif /* __OUTPUT_JSON_SSH_H__ */
+#endif /* SURICATA_OUTPUT_JSON_SSH_H */

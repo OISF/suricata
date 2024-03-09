@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DATASETS_H__
-#define __DATASETS_H__
+#ifndef SURICATA_DATASETS_H
+#define SURICATA_DATASETS_H
 
 #include "util-thash.h"
 #include "datasets-reputation.h"
@@ -64,4 +64,4 @@ int DatasetAddSerialized(Dataset *set, const char *string);
 int DatasetRemoveSerialized(Dataset *set, const char *string);
 int DatasetLookupSerialized(Dataset *set, const char *string);
 
-#endif /* __DATASETS_H__ */
+#endif /* SURICATA_DATASETS_H */

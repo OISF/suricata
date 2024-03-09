@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_CONTENT_H__
-#define __DETECT_CONTENT_H__
+#ifndef SURICATA_DETECT_CONTENT_H
+#define SURICATA_DETECT_CONTENT_H
 
 /* Flags affecting this content */
 
@@ -134,4 +134,4 @@ void SigParseRequiredContentSize(
         const Signature *s, const int max, const SigMatch *sm, int *len, int *offset);
 int DetectContentConvertToNocase(DetectEngineCtx *de_ctx, DetectContentData *cd);
 
-#endif /* __DETECT_CONTENT_H__ */
+#endif /* SURICATA_DETECT_CONTENT_H */

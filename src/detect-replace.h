@@ -21,8 +21,8 @@
  * \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __DETECT_REPLACE_H__
-#define __DETECT_REPLACE_H__
+#ifndef SURICATA_DETECT_REPLACE_H
+#define SURICATA_DETECT_REPLACE_H
 
 #include "detect-content.h"
 

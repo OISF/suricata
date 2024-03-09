@@ -27,8 +27,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_POOL_H__
-#define __UTIL_POOL_H__
+#ifndef SURICATA_UTIL_POOL_H
+#define SURICATA_UTIL_POOL_H
 
 #define POOL_BUCKET_PREALLOCATED    (1 << 0)
 
@@ -82,7 +82,7 @@ void PoolReturn(Pool *, void *);
 
 void PoolRegisterTests(void);
 
-#endif /* __UTIL_POOL_H__ */
+#endif /* SURICATA_UTIL_POOL_H */
 
 /**
  * @}

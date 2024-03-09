@@ -21,10 +21,9 @@
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  */
 
-#ifndef __DETECT_TLS_SUBJECT_H__
-#define __DETECT_TLS_SUBJECT_H__
-
+#ifndef SURICATA_DETECT_TLS_SUBJECT_H
+#define SURICATA_DETECT_TLS_SUBJECT_H
 
 void DetectTlsSubjectRegister(void);
 
-#endif /* __DETECT_TLS_SUBJECT_H__ */
+#endif /* SURICATA_DETECT_TLS_SUBJECT_H */

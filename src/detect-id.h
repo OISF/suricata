@@ -21,9 +21,8 @@
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
  */
 
-#ifndef __DETECT_ID_H__
-#define __DETECT_ID_H__
-
+#ifndef SURICATA_DETECT_ID_H
+#define SURICATA_DETECT_ID_H
 
 #define DETECT_IPID_MIN 0
 #define DETECT_IPID_MAX 65536
@@ -35,5 +34,4 @@ typedef struct DetectIdData_ {
 /* prototypes */
 void DetectIdRegister (void);
 
-#endif /* __DETECT_ID_H__ */
-
+#endif /* SURICATA_DETECT_ID_H */

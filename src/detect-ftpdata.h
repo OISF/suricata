@@ -21,8 +21,8 @@
  * \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __DETECT_FTPDATA_H__
-#define __DETECT_FTPDATA_H__
+#ifndef SURICATA_DETECT_FTPDATA_H
+#define SURICATA_DETECT_FTPDATA_H
 
 #include "app-layer-ftp.h"
 
@@ -39,4 +39,4 @@ typedef struct DetectFtpdataData_ {
  *         detect.c::SigTableSetup() */
 void DetectFtpdataRegister(void);
 
-#endif /* __DETECT_FTPDATA_H__ */
+#endif /* SURICATA_DETECT_FTPDATA_H */

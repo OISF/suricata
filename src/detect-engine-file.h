@@ -21,11 +21,11 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_FILE_H__
-#define __DETECT_ENGINE_FILE_H__
+#ifndef SURICATA_DETECT_ENGINE_FILE_H
+#define SURICATA_DETECT_ENGINE_FILE_H
 
 uint8_t DetectFileInspectGeneric(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *_alstate, void *tx, uint64_t tx_id);
 
-#endif /* __DETECT_ENGINE_FILE_H__ */
+#endif /* SURICATA_DETECT_ENGINE_FILE_H */

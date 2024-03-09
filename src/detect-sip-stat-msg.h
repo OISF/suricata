@@ -21,9 +21,9 @@
  * \author Giuseppe Longo <giuseppe@glongo.it>
  */
 
-#ifndef __DETECT_SIP_STAT_MSG_H__
-#define __DETECT_SIP_STAT_MSG_H__
+#ifndef SURICATA_DETECT_SIP_STAT_MSG_H
+#define SURICATA_DETECT_SIP_STAT_MSG_H
 
 void DetectSipStatMsgRegister(void);
 
-#endif /* __DETECT_SIP_STAT_MSG_H__ */
+#endif /* SURICATA_DETECT_SIP_STAT_MSG_H */

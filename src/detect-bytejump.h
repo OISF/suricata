@@ -21,8 +21,8 @@
  * \author Brian Rectanus <brectanu@gmail.com>
  */
 
-#ifndef __DETECT_BYTEJUMP_H__
-#define __DETECT_BYTEJUMP_H__
+#ifndef SURICATA_DETECT_BYTEJUMP_H
+#define SURICATA_DETECT_BYTEJUMP_H
 
 /** Bytejump Base */
 #define DETECT_BYTEJUMP_BASE_UNSET  0 /**< Unset type value string (automatic)*/
@@ -75,5 +75,4 @@ void DetectBytejumpRegister (void);
 bool DetectBytejumpDoMatch(DetectEngineThreadCtx *, const Signature *, const SigMatchCtx *,
         const uint8_t *, uint32_t, uint16_t, int32_t, int32_t);
 
-#endif /* __DETECT_BYTEJUMP_H__ */
-
+#endif /* SURICATA_DETECT_BYTEJUMP_H */

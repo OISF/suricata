@@ -20,12 +20,12 @@
  *  \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __RUNMODE_ERF_FILE_H__
-#define __RUNMODE_ERF_FILE_H__
+#ifndef SURICATA_RUNMODE_ERF_FILE_H
+#define SURICATA_RUNMODE_ERF_FILE_H
 
 int RunModeErfFileSingle(void);
 int RunModeErfFileAutoFp(void);
 void RunModeErfFileRegister(void);
 const char *RunModeErfFileGetDefaultMode(void);
 
-#endif /* __RUNMODE_ERF_FILE_H__ */
+#endif /* SURICATA_RUNMODE_ERF_FILE_H */

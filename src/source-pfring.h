@@ -21,8 +21,8 @@
  * \author William Metcalf <william.metcalf@gmail.com>
  */
 
-#ifndef __SOURCE_PFRING_H__
-#define __SOURCE_PFRING_H__
+#ifndef SURICATA_SOURCE_PFRING_H
+#define SURICATA_SOURCE_PFRING_H
 
 #define PFRING_IFACE_NAME_LENGTH 48
 
@@ -81,4 +81,4 @@ void PfringLoadConfig(void);
 #define CLUSTER_INNER_FLOW_2_TUPLE 7
 #define CLUSTER_INNER_FLOW_4_TUPLE 8
 #define CLUSTER_INNER_FLOW_5_TUPLE 9
-#endif /* __SOURCE_PFRING_H__ */
+#endif /* SURICATA_SOURCE_PFRING_H */

@@ -21,12 +21,12 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __OUTPUT_JSON_NFS_H__
-#define __OUTPUT_JSON_NFS_H__
+#ifndef SURICATA_OUTPUT_JSON_NFS_H
+#define SURICATA_OUTPUT_JSON_NFS_H
 
 void JsonNFSLogRegister(void);
 
 bool EveNFSAddMetadataRPC(const Flow *f, uint64_t tx_id, JsonBuilder *jb);
 bool EveNFSAddMetadata(const Flow *f, uint64_t tx_id, JsonBuilder *jb);
 
-#endif /* __OUTPUT_JSON_NFS_H__ */
+#endif /* SURICATA_OUTPUT_JSON_NFS_H */

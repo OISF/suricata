@@ -20,9 +20,9 @@
  * \author Frank Honza <frank.honza@dcso.de>
  */
 
-#ifndef __DETECT_IKE_SPI_H__
-#define __DETECT_IKE_SPI_H__
+#ifndef SURICATA_DETECT_IKE_SPI_H
+#define SURICATA_DETECT_IKE_SPI_H
 
 void DetectIkeSpiRegister(void);
 
-#endif /* __DETECT_IKE_SPI_H__ */
+#endif /* SURICATA_DETECT_IKE_SPI_H */

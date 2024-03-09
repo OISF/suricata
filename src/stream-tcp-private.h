@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __STREAM_TCP_PRIVATE_H__
-#define __STREAM_TCP_PRIVATE_H__
+#ifndef SURICATA_STREAM_TCP_PRIVATE_H
+#define SURICATA_STREAM_TCP_PRIVATE_H
 
 #include "util-pool-thread.h"
 #include "util-streaming-buffer.h"
@@ -323,4 +323,4 @@ typedef struct TcpSession_ {
 
 #define STREAM_PKT_FLAG_SET(p, f) (p)->tcpvars.stream_pkt_flags |= (f)
 
-#endif /* __STREAM_TCP_PRIVATE_H__ */
+#endif /* SURICATA_STREAM_TCP_PRIVATE_H */

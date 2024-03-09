@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DETECT_DNS_RCODE_H__
-#define __DETECT_DNS_RCODE_H__
+#ifndef SURICATA_DETECT_DNS_RCODE_H
+#define SURICATA_DETECT_DNS_RCODE_H
 
 void DetectDnsRcodeRegister(void);
 
-#endif /* __DETECT_DNS_RCODE_H__ */
+#endif /* SURICATA_DETECT_DNS_RCODE_H */

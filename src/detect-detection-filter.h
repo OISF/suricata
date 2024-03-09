@@ -21,8 +21,8 @@
  * \author Gerardo Iglesias <iglesiasg@gmail.com>
  */
 
-#ifndef __DETECT_DETECTION_FILTER_H__
-#define __DETECT_DETECTION_FILTER_H__
+#ifndef SURICATA_DETECT_DETECTION_FILTER_H
+#define SURICATA_DETECT_DETECTION_FILTER_H
 
 /**
  * Registration function for detection_filter: keyword
@@ -30,5 +30,4 @@
 
 void DetectDetectionFilterRegister (void);
 
-#endif /*__DETECT_DETECTION_FILTER_H__ */
-
+#endif /*SURICATA_DETECT_DETECTION_FILTER_H */

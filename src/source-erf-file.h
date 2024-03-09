@@ -21,10 +21,10 @@
  * \author Endace Technology Limited
  */
 
-#ifndef __SOURCE_ERF_H__
-#define __SOURCE_ERF_H__
+#ifndef SURICATA_SOURCE_ERF_H
+#define SURICATA_SOURCE_ERF_H
 
 void TmModuleReceiveErfFileRegister(void);
 void TmModuleDecodeErfFileRegister(void);
 
-#endif /* __SOURCE_ERF_H__ */
+#endif /* SURICATA_SOURCE_ERF_H */

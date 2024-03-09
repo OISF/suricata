@@ -21,9 +21,9 @@
  * \author Sascha Steinbiss <sascha@steinbiss.name>
  */
 
-#ifndef __DETECT_MQTT_QOS_H__
-#define __DETECT_MQTT_QOS_H__
+#ifndef SURICATA_DETECT_MQTT_QOS_H
+#define SURICATA_DETECT_MQTT_QOS_H
 
 void DetectMQTTQosRegister(void);
 
-#endif /* __DETECT_MQTT_QOS_H__ */
+#endif /* SURICATA_DETECT_MQTT_QOS_H */

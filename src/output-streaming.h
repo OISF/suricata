@@ -23,9 +23,8 @@
  * Streaming Logger Output registration functions
  */
 
-#ifndef __OUTPUT_STREAMING_H__
-#define __OUTPUT_STREAMING_H__
-
+#ifndef SURICATA_OUTPUT_STREAMING_H
+#define SURICATA_OUTPUT_STREAMING_H
 
 #define OUTPUT_STREAMING_FLAG_OPEN          0x01
 #define OUTPUT_STREAMING_FLAG_CLOSE         0x02
@@ -52,4 +51,4 @@ void OutputStreamingLoggerRegister (void);
 
 void OutputStreamingShutdown(void);
 
-#endif /* __OUTPUT_STREAMING_H__ */
+#endif /* SURICATA_OUTPUT_STREAMING_H */

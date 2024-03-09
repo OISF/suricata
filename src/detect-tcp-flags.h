@@ -21,9 +21,8 @@
  * \author Breno Silva <breno.silva@gmail.com>
  */
 
-#ifndef __DETECT_FLAGS_H__
-#define __DETECT_FLAGS_H__
-
+#ifndef SURICATA_DETECT_FLAGS_H
+#define SURICATA_DETECT_FLAGS_H
 
 /**
  * \struct DetectFlagsData_
@@ -50,4 +49,4 @@ void DetectFlagsRegister (void);
 int DetectFlagsSignatureNeedsSynPackets(const Signature *s);
 int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s);
 
-#endif /*__DETECT_FLAGS_H__ */
+#endif /*SURICATA_DETECT_FLAGS_H */

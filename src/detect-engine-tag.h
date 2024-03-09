@@ -24,8 +24,8 @@
  * tag keyword
  */
 
-#ifndef __DETECT_ENGINE_TAG_H__
-#define __DETECT_ENGINE_TAG_H__
+#ifndef SURICATA_DETECT_ENGINE_TAG_H
+#define SURICATA_DETECT_ENGINE_TAG_H
 
 #include "host.h"
 #include "detect.h"
@@ -56,6 +56,4 @@ int TagHostHasTag(Host *host);
 
 void DetectEngineTagRegisterTests(void);
 
-#endif /* __DETECT_ENGINE_TAG_H__ */
-
-
+#endif /* SURICATA_DETECT_ENGINE_TAG_H */

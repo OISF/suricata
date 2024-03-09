@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_NETMASK_H__
-#define __UTIL_NETMASK_H__
+#ifndef SURICATA_UTIL_NETMASK_H
+#define SURICATA_UTIL_NETMASK_H
 
 int CIDRFromMask(uint32_t netmask);
 uint32_t CIDRGet(int);
@@ -30,5 +30,4 @@ void CIDRGetIPv6(int cidr, struct in6_addr *in6);
 
 void UtilCIDRTests(void);
 
-#endif /* __UTIL_NETMASK_H__ */
-
+#endif /* SURICATA_UTIL_NETMASK_H */

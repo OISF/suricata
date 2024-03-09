@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_PROTO_H__
-#define __DETECT_PROTO_H__
+#ifndef SURICATA_DETECT_PROTO_H
+#define SURICATA_DETECT_PROTO_H
 
 #define DETECT_PROTO_ANY            (1 << 0) /**< Indicate that given protocol
                                               is considered as IP */
@@ -44,5 +44,4 @@ int DetectProtoContainsProto(const DetectProto *, int);
 
 void DetectProtoTests(void);
 
-#endif /* __DETECT_PROTO_H__ */
-
+#endif /* SURICATA_DETECT_PROTO_H */

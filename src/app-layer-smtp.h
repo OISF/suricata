@@ -21,8 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __APP_LAYER_SMTP_H__
-#define __APP_LAYER_SMTP_H__
+#ifndef SURICATA_APP_LAYER_SMTP_H
+#define SURICATA_APP_LAYER_SMTP_H
 
 #include "util-decode-mime.h"
 #include "util-streaming-buffer.h"
@@ -164,4 +164,4 @@ void RegisterSMTPParsers(void);
 void SMTPParserCleanup(void);
 void SMTPParserRegisterTests(void);
 
-#endif /* __APP_LAYER_SMTP_H__ */
+#endif /* SURICATA_APP_LAYER_SMTP_H */

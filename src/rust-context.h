@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-#ifndef __RUST_CONTEXT_H__
-#define __RUST_CONTEXT_H__
+#ifndef SURICATA_RUST_CONTEXT_H
+#define SURICATA_RUST_CONTEXT_H
 
 #include "flow.h"
 #include "detect.h"
@@ -74,4 +74,4 @@ typedef struct SuricataFileContext_ {
 
 const SuricataContext *SCGetContext(void);
 
-#endif /* !__RUST_CONTEXT_H__ */
+#endif /* !SURICATA_RUST_CONTEXT_H */

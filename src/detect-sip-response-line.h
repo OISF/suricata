@@ -21,9 +21,9 @@
  * \author Giuseppe Longo <giuseppe@glongo.it>
  */
 
-#ifndef __DETECT_SIP_RESPONSE_LINE_H__
-#define __DETECT_SIP_RESPONSE_LINE_H__
+#ifndef SURICATA_DETECT_SIP_RESPONSE_LINE_H
+#define SURICATA_DETECT_SIP_RESPONSE_LINE_H
 
 void DetectSipResponseLineRegister(void);
 
-#endif /* __DETECT_SIP_RESPONSE_LINE_H__ */
+#endif /* SURICATA_DETECT_SIP_RESPONSE_LINE_H */

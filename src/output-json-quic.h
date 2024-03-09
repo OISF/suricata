@@ -19,9 +19,9 @@
  * \file
  */
 
-#ifndef __OUTPUT_JSON_QUIC_H__
-#define __OUTPUT_JSON_QUIC_H__
+#ifndef SURICATA_OUTPUT_JSON_QUIC_H
+#define SURICATA_OUTPUT_JSON_QUIC_H
 
 void JsonQuicLogRegister(void);
 
-#endif /* __OUTPUT_JSON_QUIC_H__ */
+#endif /* SURICATA_OUTPUT_JSON_QUIC_H */

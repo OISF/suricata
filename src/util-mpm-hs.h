@@ -24,8 +24,8 @@
  * MPM pattern matcher that calls the Hyperscan regex matcher.
  */
 
-#ifndef __UTIL_MPM_HS__H__
-#define __UTIL_MPM_HS__H__
+#ifndef SURICATA_UTIL_MPM_HS__H
+#define SURICATA_UTIL_MPM_HS__H
 
 typedef struct SCHSPattern_ {
     /* length of the pattern */
@@ -73,4 +73,4 @@ void MpmHSRegister(void);
 
 void MpmHSGlobalCleanup(void);
 
-#endif /* __UTIL_MPM_HS__H__ */
+#endif /* SURICATA_UTIL_MPM_HS__H */

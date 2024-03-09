@@ -21,12 +21,11 @@
  * \author Kevin Wong <kwong@solananetworks.com>
  */
 
-#ifndef __APP_LAYER_ENIP_H__
-#define __APP_LAYER_ENIP_H__
-
+#ifndef SURICATA_APP_LAYER_ENIP_H
+#define SURICATA_APP_LAYER_ENIP_H
 
 void RegisterENIPUDPParsers(void);
 void RegisterENIPTCPParsers(void);
 void ENIPParserRegisterTests(void);
 
-#endif /* __APP_LAYER_ENIP_H__ */
+#endif /* SURICATA_APP_LAYER_ENIP_H */

@@ -23,9 +23,9 @@
  * Single pattern matcher that uses the Hyperscan regex matcher.
  */
 
-#ifndef __UTIL_SPM_HS_H__
-#define __UTIL_SPM_HS_H__
+#ifndef SURICATA_UTIL_SPM_HS_H
+#define SURICATA_UTIL_SPM_HS_H
 
 void SpmHSRegister(void);
 
-#endif /* __UTIL_SPM_HS_H__ */
+#endif /* SURICATA_UTIL_SPM_HS_H */

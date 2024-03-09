@@ -21,8 +21,8 @@
  * \author Tom DeCanio <td@npulsetech.com>
  */
 
-#ifndef __OUTPUT_JSON_H__
-#define __OUTPUT_JSON_H__
+#ifndef SURICATA_OUTPUT_JSON_H
+#define SURICATA_OUTPUT_JSON_H
 
 #include "suricata-common.h"
 #include "util-buffer.h"
@@ -119,4 +119,4 @@ int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 OutputJsonThreadCtx *CreateEveThreadCtx(ThreadVars *t, OutputJsonCtx *ctx);
 void FreeEveThreadCtx(OutputJsonThreadCtx *ctx);
 
-#endif /* __OUTPUT_JSON_H__ */
+#endif /* SURICATA_OUTPUT_JSON_H */

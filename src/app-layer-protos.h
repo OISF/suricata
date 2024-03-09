@@ -22,8 +22,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __APP_LAYER_PROTOS_H__
-#define __APP_LAYER_PROTOS_H__
+#ifndef SURICATA_APP_LAYER_PROTOS_H
+#define SURICATA_APP_LAYER_PROTOS_H
 
 enum AppProtoEnum {
     ALPROTO_UNKNOWN = 0,
@@ -117,4 +117,4 @@ const char *AppProtoToString(AppProto alproto);
  */
 AppProto StringToAppProto(const char *proto_name);
 
-#endif /* __APP_LAYER_PROTOS_H__ */
+#endif /* SURICATA_APP_LAYER_PROTOS_H */

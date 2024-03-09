@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-#ifndef __SURICATA_PLUGIN_H__
-#define __SURICATA_PLUGIN_H__
+#ifndef SURICATA_SURICATA_PLUGIN_H
+#define SURICATA_SURICATA_PLUGIN_H
 
 #include <stdint.h>
 #include <stdbool.h>

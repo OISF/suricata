@@ -21,12 +21,12 @@
  * \author Eileen Donlon <emdonlo@gmail.com>
  */
 
-#ifndef __COREDUMP_CONFIG_H__
-#define __COREDUMP_CONFIG_H__
+#ifndef SURICATA_COREDUMP_CONFIG_H
+#define SURICATA_COREDUMP_CONFIG_H
 
 #include "suricata-common.h"
 
 int32_t CoredumpLoadConfig(void);
 void CoredumpEnable(void);
 
-#endif /* __COREDUMP_CONFIG_H__ */
+#endif /* SURICATA_COREDUMP_CONFIG_H */

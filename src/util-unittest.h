@@ -30,8 +30,8 @@
  * @{
  */
 
-#ifndef __UTIL_UNITTEST_H__
-#define __UTIL_UNITTEST_H__
+#ifndef SURICATA_UTIL_UNITTEST_H
+#define SURICATA_UTIL_UNITTEST_H
 
 #ifdef UNITTESTS
 
@@ -108,7 +108,7 @@ extern int unittests_fatal;
 
 #endif
 
-#endif /* __UTIL_UNITTEST_H__ */
+#endif /* SURICATA_UTIL_UNITTEST_H */
 
 /**
  * @}

@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_DSIZE_H__
-#define __DETECT_DSIZE_H__
+#ifndef SURICATA_DETECT_DSIZE_H
+#define SURICATA_DETECT_DSIZE_H
 
 #include "detect-engine-uint.h"
 
@@ -50,5 +50,4 @@ static inline bool SigDsizePrefilter(const Packet *p, const Signature *s, uint32
     return false;
 }
 
-#endif /* __DETECT_DSIZE_H__ */
-
+#endif /* SURICATA_DETECT_DSIZE_H */

@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_ADDRESS_IPV4_H__
-#define __DETECT_ENGINE_ADDRESS_IPV4_H__
+#ifndef SURICATA_DETECT_ENGINE_ADDRESS_IPV4_H
+#define SURICATA_DETECT_ENGINE_ADDRESS_IPV4_H
 
 int DetectAddressCutNotIPv4(DetectAddress *, DetectAddress **);
 int DetectAddressCmpIPv4(DetectAddress *a, DetectAddress *b);
@@ -33,5 +33,4 @@ int DetectAddressIsCompleteIPSpaceIPv4(DetectAddress *);
 
 void DetectAddressIPv4Tests(void);
 
-#endif /* __DETECT_ENGINE_ADDRESS_IPV4_H__ */
-
+#endif /* SURICATA_DETECT_ENGINE_ADDRESS_IPV4_H */

@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-#ifndef __APP_LAYER_HTP_RANGE_H__
-#define __APP_LAYER_HTP_RANGE_H__
+#ifndef SURICATA_APP_LAYER_HTP_RANGE_H
+#define SURICATA_APP_LAYER_HTP_RANGE_H
 
 #include "suricata-common.h"
 
@@ -111,4 +111,4 @@ HttpRangeContainerBlock *HttpRangeContainerOpenFile(const unsigned char *key, ui
 
 void HttpRangeFreeBlock(HttpRangeContainerBlock *b);
 
-#endif /* __APP_LAYER_HTP_RANGE_H__ */
+#endif /* SURICATA_APP_LAYER_HTP_RANGE_H */

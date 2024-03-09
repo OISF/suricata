@@ -22,8 +22,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __APP_LAYER_PARSER_H__
-#define __APP_LAYER_PARSER_H__
+#ifndef SURICATA_APP_LAYER_PARSER_H
+#define SURICATA_APP_LAYER_PARSER_H
 
 #include "app-layer-events.h"
 #include "util-file.h"
@@ -334,4 +334,4 @@ void UTHAppLayerParserStateGetIds(void *ptr, uint64_t *i1, uint64_t *i2, uint64_
 void AppLayerFramesFreeContainer(Flow *f);
 void FileApplyTxFlags(const AppLayerTxData *txd, const uint8_t direction, File *file);
 
-#endif /* __APP_LAYER_PARSER_H__ */
+#endif /* SURICATA_APP_LAYER_PARSER_H */

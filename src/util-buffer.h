@@ -21,8 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __UTIL_BUFFER_H__
-#define __UTIL_BUFFER_H__
+#ifndef SURICATA_UTIL_BUFFER_H
+#define SURICATA_UTIL_BUFFER_H
 
 typedef struct MemBuffer_ {
    uint8_t *buffer;
@@ -174,4 +174,4 @@ void MemBufferFree(MemBuffer *buffer);
         }                                                               \
     } while (0)
 
-#endif /* __UTIL_BUFFER_H__ */
+#endif /* SURICATA_UTIL_BUFFER_H */

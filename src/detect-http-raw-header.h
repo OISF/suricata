@@ -21,9 +21,9 @@
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  */
 
-#ifndef __DETECT_HTTP_RAW_HEADER_H__
-#define __DETECT_HTTP_RAW_HEADER_H__
+#ifndef SURICATA_DETECT_HTTP_RAW_HEADER_H
+#define SURICATA_DETECT_HTTP_RAW_HEADER_H
 
 void DetectHttpRawHeaderRegister(void);
 
-#endif /* __DETECT_HTTP_RAW_HEADER_H__ */
+#endif /* SURICATA_DETECT_HTTP_RAW_HEADER_H */

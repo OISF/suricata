@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DETECT_BASE64_DATA_H__
-#define __DETECT_BASE64_DATA_H__
+#ifndef SURICATA_DETECT_BASE64_DATA_H
+#define SURICATA_DETECT_BASE64_DATA_H
 
 void DetectBase64DataRegister(void);
 
-#endif /* __DETECT_BASE64_DATA_H__ */
+#endif /* SURICATA_DETECT_BASE64_DATA_H */

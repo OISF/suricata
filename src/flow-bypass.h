@@ -21,8 +21,8 @@
  * \author Eric Leblond <eleblond@stamus-networks.com>
  */
 
-#ifndef __FLOW_BYPASS_H__
-#define __FLOW_BYPASS_H__
+#ifndef SURICATA_FLOW_BYPASS_H
+#define SURICATA_FLOW_BYPASS_H
 
 #include "flow.h"
 

@@ -21,8 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __UTIL_REFERENCE_CONFIG_H__
-#define __UTIL_REFERENCE_CONFIG_H__
+#ifndef SURICATA_UTIL_REFERENCE_CONFIG_H
+#define SURICATA_UTIL_REFERENCE_CONFIG_H
 
 #include "detect.h"
 
@@ -56,4 +56,4 @@ FILE *SCRConfGenerateInvalidDummyReferenceConfigFD03(void);
 void SCReferenceConfInit(DetectEngineCtx *de_ctx);
 void SCReferenceConfDeinit(DetectEngineCtx *de_ctx);
 
-#endif /* __UTIL_REFERENCE_CONFIG_H__ */
+#endif /* SURICATA_UTIL_REFERENCE_CONFIG_H */

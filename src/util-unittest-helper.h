@@ -21,8 +21,8 @@
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
  */
 
-#ifndef __UTIL_UNITTEST_HELPER__
-#define __UTIL_UNITTEST_HELPER__
+#ifndef SURICATA_UTIL_UNITTEST_HELPER
+#define SURICATA_UTIL_UNITTEST_HELPER
 
 #if defined(UNITTESTS)
 #include "flow.h"
@@ -78,4 +78,4 @@ int UTHParseSignature(const char *str, bool expect);
 
 void UTHRegisterTests(void);
 
-#endif /* __UTIL_UNITTEST_HELPER__ */
+#endif /* SURICATA_UTIL_UNITTEST_HELPER */

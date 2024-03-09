@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __APP_LAYER_FRAMES_H__
-#define __APP_LAYER_FRAMES_H__
+#ifndef SURICATA_APP_LAYER_FRAMES_H
+#define SURICATA_APP_LAYER_FRAMES_H
 
 #include "rust.h"
 

@@ -21,9 +21,9 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_HTTP_START_H__
-#define __DETECT_HTTP_START_H__
+#ifndef SURICATA_DETECT_HTTP_START_H
+#define SURICATA_DETECT_HTTP_START_H
 
 void DetectHttpStartRegister(void);
 
-#endif /* __DETECT_HTTP_START_H__ */
+#endif /* SURICATA_DETECT_HTTP_START_H */

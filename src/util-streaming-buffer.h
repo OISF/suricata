@@ -55,9 +55,8 @@
  * +-----------+-----------+
  */
 
-
-#ifndef __UTIL_STREAMING_BUFFER_H__
-#define __UTIL_STREAMING_BUFFER_H__
+#ifndef SURICATA_UTIL_STREAMING_BUFFER_H
+#define SURICATA_UTIL_STREAMING_BUFFER_H
 
 #include "tree.h"
 
@@ -200,4 +199,4 @@ int StreamingBufferSegmentIsBeforeWindow(const StreamingBuffer *sb,
 
 void StreamingBufferRegisterTests(void);
 
-#endif /* __UTIL_STREAMING_BUFFER_H__ */
+#endif /* SURICATA_UTIL_STREAMING_BUFFER_H */

@@ -21,9 +21,9 @@
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
  */
 
-#ifndef __DETECT_KRB5_CNAME_H__
-#define __DETECT_KRB5_CNAME_H__
+#ifndef SURICATA_DETECT_KRB5_CNAME_H
+#define SURICATA_DETECT_KRB5_CNAME_H
 
 void DetectKrb5CNameRegister(void);
 
-#endif /* __DETECT_KRB5_CNAME_H__ */
+#endif /* SURICATA_DETECT_KRB5_CNAME_H */

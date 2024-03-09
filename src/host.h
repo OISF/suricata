@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __HOST_H__
-#define __HOST_H__
+#ifndef SURICATA_HOST_H
+#define SURICATA_HOST_H
 
 #include "decode.h"
 #include "util-storage.h"
@@ -157,5 +157,4 @@ int HostSetMemcap(uint64_t);
 uint64_t HostGetMemcap(void);
 uint64_t HostGetMemuse(void);
 
-#endif /* __HOST_H__ */
-
+#endif /* SURICATA_HOST_H */

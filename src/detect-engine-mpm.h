@@ -21,9 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_MPM_H__
-#define __DETECT_ENGINE_MPM_H__
-
+#ifndef SURICATA_DETECT_ENGINE_MPM_H
+#define SURICATA_DETECT_ENGINE_MPM_H
 
 #include "detect.h"
 
@@ -135,5 +134,4 @@ struct MpmListIdDataArgs {
 
 void EngineAnalysisAddAllRulePatterns(DetectEngineCtx *de_ctx, const Signature *s);
 
-#endif /* __DETECT_ENGINE_MPM_H__ */
-
+#endif /* SURICATA_DETECT_ENGINE_MPM_H */

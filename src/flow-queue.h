@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __FLOW_QUEUE_H__
-#define __FLOW_QUEUE_H__
+#ifndef SURICATA_FLOW_QUEUE_H
+#define SURICATA_FLOW_QUEUE_H
 
 #include "suricata-common.h"
 #include "flow.h"
@@ -94,5 +94,4 @@ void FlowQueuePrivateAppendPrivate(FlowQueuePrivate *dest, FlowQueuePrivate *src
 FlowQueuePrivate FlowQueueExtractPrivate(FlowQueue *fq);
 Flow *FlowQueuePrivateGetFromTop(FlowQueuePrivate *fqp);
 
-#endif /* __FLOW_QUEUE_H__ */
-
+#endif /* SURICATA_FLOW_QUEUE_H */

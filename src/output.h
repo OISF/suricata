@@ -21,8 +21,8 @@
  * \author Endace Technology Limited, Jason Ish <jason.ish@endace.com>
  */
 
-#ifndef __OUTPUT_H__
-#define __OUTPUT_H__
+#ifndef SURICATA_OUTPUT_H
+#define SURICATA_OUTPUT_H
 
 #include "decode.h"
 #include "tm-modules.h"
@@ -217,4 +217,4 @@ typedef struct EveJsonSimpleAppLayerLogger {
 
 EveJsonSimpleAppLayerLogger *SCEveJsonSimpleGetLogger(AppProto alproto);
 
-#endif /* ! __OUTPUT_H__ */
+#endif /* ! SURICATA_OUTPUT_H */

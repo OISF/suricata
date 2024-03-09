@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __BLOOMFILTER_H__
-#define __BLOOMFILTER_H__
+#ifndef SURICATA_BLOOMFILTER_H
+#define SURICATA_BLOOMFILTER_H
 
 /* Bloom Filter structure */
 typedef struct BloomFilter_ {
@@ -63,5 +63,4 @@ static inline int BloomFilterTest(const BloomFilter *bf, const void *data, uint1
     return hit;
 }
 
-#endif /* __BLOOMFILTER_H__ */
-
+#endif /* SURICATA_BLOOMFILTER_H */

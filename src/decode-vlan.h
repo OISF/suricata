@@ -21,8 +21,8 @@
  * \author Breno Silva <breno.silva@gmail.com>
  */
 
-#ifndef __DECODE_VLAN_H__
-#define __DECODE_VLAN_H__
+#ifndef SURICATA_DECODE_VLAN_H
+#define SURICATA_DECODE_VLAN_H
 
 /* return vlan id in host byte order */
 uint16_t DecodeVLANGetId(const struct Packet_ *, uint8_t layer);
@@ -51,5 +51,4 @@ void DecodeVLANRegisterTests(void);
 #define VLAN_MAX_LAYERS    3
 #define VLAN_MAX_LAYER_IDX (VLAN_MAX_LAYERS - 1)
 
-#endif /* __DECODE_VLAN_H__ */
-
+#endif /* SURICATA_DECODE_VLAN_H */

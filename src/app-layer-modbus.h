@@ -31,9 +31,9 @@
  * \author David DIALLO <diallo@et.esiea.fr>
  */
 
-#ifndef __APP_LAYER_MODBUS_H__
-#define __APP_LAYER_MODBUS_H__
+#ifndef SURICATA_APP_LAYER_MODBUS_H
+#define SURICATA_APP_LAYER_MODBUS_H
 
 void RegisterModbusParsers(void);
 
-#endif /* __APP_LAYER_MODBUS_H__ */
+#endif /* SURICATA_APP_LAYER_MODBUS_H */

@@ -21,9 +21,9 @@
  * SMB protocol handling
  */
 
-#ifndef __APP_LAYER_SMB_H__
-#define __APP_LAYER_SMB_H__
+#ifndef SURICATA_APP_LAYER_SMB_H
+#define SURICATA_APP_LAYER_SMB_H
 
 void RegisterSMBParsers(void);
 
-#endif /* !__APP_LAYER_SMB_H__ */
+#endif /* !SURICATA_APP_LAYER_SMB_H */

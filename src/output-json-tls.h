@@ -21,8 +21,8 @@
  * \author Tom DeCanio <td@npulsetech.com>
  */
 
-#ifndef __OUTPUT_JSON_TLS_H__
-#define __OUTPUT_JSON_TLS_H__
+#ifndef SURICATA_OUTPUT_JSON_TLS_H
+#define SURICATA_OUTPUT_JSON_TLS_H
 
 void JsonTlsLogRegister(void);
 
@@ -31,4 +31,4 @@ void JsonTlsLogRegister(void);
 void JsonTlsLogJSONBasic(JsonBuilder *js, SSLState *ssl_state);
 bool JsonTlsLogJSONExtended(void *vtx, JsonBuilder *js);
 
-#endif /* __OUTPUT_JSON_TLS_H__ */
+#endif /* SURICATA_OUTPUT_JSON_TLS_H */

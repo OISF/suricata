@@ -21,8 +21,8 @@
  * \author Breno Silva Pinto <breno.silva@gmail.com>
  */
 
-#ifndef __DECODE_PPP_H__
-#define __DECODE_PPP_H__
+#ifndef SURICATA_DECODE_PPP_H
+#define SURICATA_DECODE_PPP_H
 
 /** Point to Point Protocol RFC1331 - Supported tyes */
 #define PPP_IP         0x0021       /* Internet Protocol */
@@ -72,5 +72,4 @@ typedef struct PPPHdr_ {
 
 void DecodePPPRegisterTests(void);
 
-#endif /* __DECODE_PPP_H__ */
-
+#endif /* SURICATA_DECODE_PPP_H */

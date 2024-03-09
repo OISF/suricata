@@ -22,8 +22,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __TM_THREADS_H__
-#define __TM_THREADS_H__
+#ifndef SURICATA_TM_THREADS_H
+#define SURICATA_TM_THREADS_H
 
 #include "tmqh-packetpool.h"
 #include "tm-threads-common.h"
@@ -288,4 +288,4 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts);
 uint16_t TmThreadsGetWorkerThreadMax(void);
 bool TmThreadsTimeSubsysIsReady(void);
 
-#endif /* __TM_THREADS_H__ */
+#endif /* SURICATA_TM_THREADS_H */

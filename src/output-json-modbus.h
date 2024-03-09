@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-#ifndef __OUTPUT_JSON_MODBUS_H__
-#define __OUTPUT_JSON_MODBUS_H__
+#ifndef SURICATA_OUTPUT_JSON_MODBUS_H
+#define SURICATA_OUTPUT_JSON_MODBUS_H
 
 void JsonModbusLogRegister(void);
 
-#endif /* __OUTPUT_JSON_MODBUS_H__ */
+#endif /* SURICATA_OUTPUT_JSON_MODBUS_H */

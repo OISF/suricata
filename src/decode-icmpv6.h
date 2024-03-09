@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DECODE_ICMPV6_H__
-#define __DECODE_ICMPV6_H__
+#ifndef SURICATA_DECODE_ICMPV6_H
+#define SURICATA_DECODE_ICMPV6_H
 
 #include "decode-tcp.h"
 #include "decode-udp.h"
@@ -267,4 +267,4 @@ static inline uint16_t ICMPV6CalculateChecksum(
     return (uint16_t) ~csum;
 }
 
-#endif /* __DECODE_ICMPV6_H__ */
+#endif /* SURICATA_DECODE_ICMPV6_H */

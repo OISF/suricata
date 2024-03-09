@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_PKTVAR_H__
-#define __DETECT_PKTVAR_H__
+#ifndef SURICATA_DETECT_PKTVAR_H
+#define SURICATA_DETECT_PKTVAR_H
 
 typedef struct DetectPktvarData_ {
     uint32_t id;
@@ -34,5 +34,4 @@ typedef struct DetectPktvarData_ {
 /* prototypes */
 void DetectPktvarRegister (void);
 
-#endif /* __DETECT_PKTVAR_H__ */
-
+#endif /* SURICATA_DETECT_PKTVAR_H */

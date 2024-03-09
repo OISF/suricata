@@ -20,8 +20,8 @@
 *  \author Aleksey Katargin <gureedo@gmail.com>
 */
 
-#ifndef __RUNMODE_NETMAP_H__
-#define __RUNMODE_NETMAP_H__
+#ifndef SURICATA_RUNMODE_NETMAP_H
+#define SURICATA_RUNMODE_NETMAP_H
 
 int RunModeIdsNetmapSingle(void);
 int RunModeIdsNetmapAutoFp(void);
@@ -29,4 +29,4 @@ int RunModeIdsNetmapWorkers(void);
 void RunModeIdsNetmapRegister(void);
 const char *RunModeNetmapGetDefaultMode(void);
 
-#endif /* __RUNMODE_NETMAP_H__ */
+#endif /* SURICATA_RUNMODE_NETMAP_H */

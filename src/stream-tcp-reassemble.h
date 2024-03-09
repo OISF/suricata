@@ -22,8 +22,8 @@
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  */
 
-#ifndef __STREAM_TCP_REASSEMBLE_H__
-#define __STREAM_TCP_REASSEMBLE_H__
+#ifndef SURICATA_STREAM_TCP_REASSEMBLE_H
+#define SURICATA_STREAM_TCP_REASSEMBLE_H
 
 #include "suricata.h"
 #include "flow.h"
@@ -156,5 +156,4 @@ static inline bool STREAM_LASTACK_GT_BASESEQ(const TcpStream *stream)
 
 uint32_t StreamDataAvailableForProtoDetect(TcpStream *stream);
 
-#endif /* __STREAM_TCP_REASSEMBLE_H__ */
-
+#endif /* SURICATA_STREAM_TCP_REASSEMBLE_H */

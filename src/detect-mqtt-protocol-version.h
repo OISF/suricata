@@ -21,9 +21,9 @@
  * \author Sascha Steinbiss <sascha@steinbiss.name>
  */
 
-#ifndef __DETECT_MQTT_PROTOCOL_VERSION_H__
-#define __DETECT_MQTT_PROTOCOL_VERSION_H__
+#ifndef SURICATA_DETECT_MQTT_PROTOCOL_VERSION_H
+#define SURICATA_DETECT_MQTT_PROTOCOL_VERSION_H
 
 void DetectMQTTProtocolVersionRegister(void);
 
-#endif /* __DETECT_MQTT_PROTOCOL_VERSION_H__ */
+#endif /* SURICATA_DETECT_MQTT_PROTOCOL_VERSION_H */

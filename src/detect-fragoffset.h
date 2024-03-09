@@ -21,8 +21,8 @@
  * \author Breno Silva <breno.silva@gmail.com>
  */
 
-#ifndef __DETECT_FRAGOFFSET_H__
-#define __DETECT_FRAGOFFSET_H__
+#ifndef SURICATA_DETECT_FRAGOFFSET_H
+#define SURICATA_DETECT_FRAGOFFSET_H
 
 #define FRAG_LESS 1
 #define FRAG_MORE 2
@@ -35,4 +35,4 @@ typedef struct DetectFragOffsetData_ {
 /* prototypes */
 void DetectFragOffsetRegister(void);
 
-#endif /* __DETECT_FRAGOFFSET_H__ */
+#endif /* SURICATA_DETECT_FRAGOFFSET_H */

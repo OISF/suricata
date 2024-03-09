@@ -22,8 +22,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_PROFILE_H__
-#define __UTIL_PROFILE_H__
+#ifndef SURICATA_UTIL_PROFILE_H
+#define SURICATA_UTIL_PROFILE_H
 
 #include "util-cpu.h"
 
@@ -432,4 +432,4 @@ void SCProfilingRuleThreatAggregate(DetectEngineThreadCtx *det_ctx);
 
 #endif /* PROFILE_RULES */
 
-#endif /* ! __UTIL_PROFILE_H__ */
+#endif /* ! SURICATA_UTIL_PROFILE_H */

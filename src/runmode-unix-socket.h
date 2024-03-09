@@ -20,8 +20,8 @@
  *  \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __RUNMODE_UNIX_SOCKET_H__
-#define __RUNMODE_UNIX_SOCKET_H__
+#ifndef SURICATA_RUNMODE_UNIX_SOCKET_H
+#define SURICATA_RUNMODE_UNIX_SOCKET_H
 
 void RunModeUnixSocketRegister(void);
 const char *RunModeUnixSocketGetDefaultMode(void);
@@ -53,4 +53,4 @@ TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data);
 TmEcode UnixSocketGetFlowStatsById(json_t *cmd, json_t *answer, void *data);
 #endif
 
-#endif /* __RUNMODE_UNIX_SOCKET_H__ */
+#endif /* SURICATA_RUNMODE_UNIX_SOCKET_H */

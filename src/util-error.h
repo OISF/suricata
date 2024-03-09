@@ -19,8 +19,8 @@
  * \file
  */
 
-#ifndef __UTIL_ERROR_H__
-#define __UTIL_ERROR_H__
+#ifndef SURICATA_UTIL_ERROR_H
+#define SURICATA_UTIL_ERROR_H
 
 /* different error types */
 typedef enum {
@@ -41,4 +41,4 @@ const char *SCErrorToString(SCError);
 
 extern thread_local SCError sc_errno;
 
-#endif /* __UTIL_ERROR_H__ */
+#endif /* SURICATA_UTIL_ERROR_H */

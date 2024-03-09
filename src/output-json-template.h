@@ -21,9 +21,9 @@
  * \author FirstName LastName <name@domain>
  */
 
-#ifndef __OUTPUT_JSON_TEMPLATE_RUST_H__
-#define __OUTPUT_JSON_TEMPLATE_RUST_H__
+#ifndef SURICATA_OUTPUT_JSON_TEMPLATE_RUST_H
+#define SURICATA_OUTPUT_JSON_TEMPLATE_RUST_H
 
 void JsonTemplateLogRegister(void);
 
-#endif /* __OUTPUT_JSON_TEMPLATE_RUST_H__ */
+#endif /* SURICATA_OUTPUT_JSON_TEMPLATE_RUST_H */

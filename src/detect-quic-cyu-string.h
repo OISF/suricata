@@ -20,9 +20,9 @@
  *
  */
 
-#ifndef __DETECT_QUIC_CYU_STRING_H__
-#define __DETECT_QUIC_CYU_STRING_H__
+#ifndef SURICATA_DETECT_QUIC_CYU_STRING_H
+#define SURICATA_DETECT_QUIC_CYU_STRING_H
 
 void DetectQuicCyuStringRegister(void);
 
-#endif /* __DETECT_QUIC_CYU_STRING_H__ */
+#endif /* SURICATA_DETECT_QUIC_CYU_STRING_H */

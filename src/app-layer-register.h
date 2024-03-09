@@ -21,8 +21,8 @@
  * \author Pierre Chifflier <chifflier@wzdftpd.net>
  */
 
-#ifndef __APP_LAYER_REGISTER_H__
-#define __APP_LAYER_REGISTER_H__
+#ifndef SURICATA_APP_LAYER_REGISTER_H
+#define SURICATA_APP_LAYER_REGISTER_H
 
 #include "app-layer-detect-proto.h"
 
@@ -100,4 +100,4 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto);
 
 int AppLayerRegisterParserAlias(const char *proto_name, const char *proto_alias);
 
-#endif /* __APP_LAYER_REGISTER_H__ */
+#endif /* SURICATA_APP_LAYER_REGISTER_H */

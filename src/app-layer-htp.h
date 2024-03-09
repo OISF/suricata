@@ -30,8 +30,8 @@
  * This file provides a HTTP protocol support for the engine using HTP library.
  */
 
-#ifndef __APP_LAYER_HTP_H__
-#define __APP_LAYER_HTP_H__
+#ifndef SURICATA_APP_LAYER_HTP_H
+#define SURICATA_APP_LAYER_HTP_H
 
 #include "rust.h"
 #include "app-layer-frames.h"
@@ -297,7 +297,7 @@ void HtpConfigRestoreBackup(void);
 
 void *HtpGetTxForH2(void *);
 
-#endif	/* __APP_LAYER_HTP_H__ */
+#endif /* SURICATA_APP_LAYER_HTP_H */
 
 /**
  * @}

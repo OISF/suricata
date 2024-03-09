@@ -23,8 +23,8 @@
  *
  */
 
-#ifndef __APP_LAYER_SSL_H__
-#define __APP_LAYER_SSL_H__
+#ifndef SURICATA_APP_LAYER_SSL_H
+#define SURICATA_APP_LAYER_SSL_H
 
 #include "util-ja3.h"
 #include "rust.h"
@@ -308,4 +308,4 @@ void SSLVersionToString(uint16_t, char *);
 void SSLEnableJA3(void);
 bool SSLJA3IsEnabled(void);
 
-#endif /* __APP_LAYER_SSL_H__ */
+#endif /* SURICATA_APP_LAYER_SSL_H */

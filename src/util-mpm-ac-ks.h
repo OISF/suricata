@@ -23,8 +23,8 @@
  *
  */
 
-#ifndef __UTIL_MPM_AC_KS__H__
-#define __UTIL_MPM_AC_KS__H__
+#ifndef SURICATA_UTIL_MPM_AC_KS__H
+#define SURICATA_UTIL_MPM_AC_KS__H
 
 typedef struct SCACTilePatternList_ {
     uint8_t *cs;
@@ -147,4 +147,4 @@ typedef struct SCACTileSearchCtx_ {
 
 void MpmACTileRegister(void);
 
-#endif /* __UTIL_MPM_AC_KS__H__ */
+#endif /* SURICATA_UTIL_MPM_AC_KS__H */

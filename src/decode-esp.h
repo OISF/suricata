@@ -19,8 +19,8 @@
  * \file
  */
 
-#ifndef __DECODE_ESP_H__
-#define __DECODE_ESP_H__
+#ifndef SURICATA_DECODE_ESP_H
+#define SURICATA_DECODE_ESP_H
 
 /** \brief size of the ESP header */
 #define ESP_HEADER_LEN 8
@@ -48,4 +48,4 @@ typedef struct ESPHdr_ {
 
 void DecodeESPRegisterTests(void);
 
-#endif /* __DECODE_ESP_H__ */
+#endif /* SURICATA_DECODE_ESP_H */

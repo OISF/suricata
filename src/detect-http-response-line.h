@@ -21,9 +21,9 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_HTTP_RESPONSE_LINE_H__
-#define __DETECT_HTTP_RESPONSE_LINE_H__
+#ifndef SURICATA_DETECT_HTTP_RESPONSE_LINE_H
+#define SURICATA_DETECT_HTTP_RESPONSE_LINE_H
 
 void DetectHttpResponseLineRegister(void);
 
-#endif /* __DETECT_HTTP_RESPONSE_LINE_H__ */
+#endif /* SURICATA_DETECT_HTTP_RESPONSE_LINE_H */

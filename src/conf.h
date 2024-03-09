@@ -21,8 +21,8 @@
  * \author Endace Technology Limited - Jason Ish <jason.ish@endace.com>
  */
 
-#ifndef __CONF_H__
-#define __CONF_H__
+#ifndef SURICATA_CONF_H
+#define SURICATA_CONF_H
 
 #include "queue.h"
 
@@ -98,4 +98,4 @@ ConfNode *ConfSetIfaceNode(const char *ifaces_node_name, const char *iface);
 int ConfSetRootAndDefaultNodes(
         const char *ifaces_node_name, const char *iface, ConfNode **if_root, ConfNode **if_default);
 ConfNode *ConfNodeGetNodeOrCreate(ConfNode *parent, const char *name, int final);
-#endif /* ! __CONF_H__ */
+#endif /* ! SURICATA_CONF_H */

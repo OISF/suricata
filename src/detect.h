@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_H__
-#define __DETECT_H__
+#ifndef SURICATA_DETECT_H
+#define SURICATA_DETECT_H
 
 #include "suricata-common.h"
 #include "flow.h"
@@ -1594,6 +1594,4 @@ AppLayerDecoderEvents *DetectEngineGetEvents(DetectEngineThreadCtx *det_ctx);
 
 void DumpPatterns(DetectEngineCtx *de_ctx);
 
-
-#endif /* __DETECT_H__ */
-
+#endif /* SURICATA_DETECT_H */

@@ -20,9 +20,9 @@
  *
  */
 
-#ifndef __DETECT_QUIC_CYU_HASH_H__
-#define __DETECT_QUIC_CYU_HASH_H__
+#ifndef SURICATA_DETECT_QUIC_CYU_HASH_H
+#define SURICATA_DETECT_QUIC_CYU_HASH_H
 
 void DetectQuicCyuHashRegister(void);
 
-#endif /* __DETECT_QUIC_CYU_HASH_H__ */
+#endif /* SURICATA_DETECT_QUIC_CYU_HASH_H */

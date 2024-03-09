@@ -15,10 +15,10 @@
  * 02110-1301, USA.
  */
 
-#ifndef __OUTPUT_FILESTORE_H__
-#define __OUTPUT_FILESTORE_H__
+#ifndef SURICATA_OUTPUT_FILESTORE_H
+#define SURICATA_OUTPUT_FILESTORE_H
 
 void OutputFilestoreRegister(void);
 void OutputFilestoreRegisterGlobalCounters(void);
 
-#endif /* __OUTPUT_FILESTORE_H__ */
+#endif /* SURICATA_OUTPUT_FILESTORE_H */

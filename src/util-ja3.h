@@ -21,8 +21,8 @@
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  */
 
-#ifndef __UTIL_JA3_H__
-#define __UTIL_JA3_H__
+#ifndef SURICATA_UTIL_JA3_H
+#define SURICATA_UTIL_JA3_H
 
 #define JA3_BUFFER_INITIAL_SIZE 128
 
@@ -49,5 +49,4 @@ InspectionBuffer *Ja3DetectGetString(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
         const int list_id);
 
-#endif /* __UTIL_JA3_H__ */
-
+#endif /* SURICATA_UTIL_JA3_H */

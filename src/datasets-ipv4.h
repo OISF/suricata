@@ -21,8 +21,8 @@
  * \author Eric Leblond <el@stamus-networks.com>
  */
 
-#ifndef __DATASETS_IPV4_H__
-#define __DATASETS_IPV4_H__
+#ifndef SURICATA_DATASETS_IPV4_H
+#define SURICATA_DATASETS_IPV4_H
 
 #include "datasets-reputation.h"
 
@@ -36,4 +36,4 @@ bool IPv4Compare(void *a, void *b);
 uint32_t IPv4Hash(void *s);
 void IPv4Free(void *s);
 
-#endif /* __DATASETS_IPV4_H__ */
+#endif /* SURICATA_DATASETS_IPV4_H */

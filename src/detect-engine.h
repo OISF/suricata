@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_H__
-#define __DETECT_ENGINE_H__
+#ifndef SURICATA_DETECT_ENGINE_H
+#define SURICATA_DETECT_ENGINE_H
 
 #include "detect.h"
 #include "suricata.h"
@@ -206,4 +206,4 @@ void DetectEngineStateResetTxs(Flow *f);
 
 void DeStateRegisterTests(void);
 
-#endif /* __DETECT_ENGINE_H__ */
+#endif /* SURICATA_DETECT_ENGINE_H */

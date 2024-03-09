@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_PCRE_H__
-#define __DETECT_PCRE_H__
+#ifndef SURICATA_DETECT_PCRE_H
+#define SURICATA_DETECT_PCRE_H
 
 #include "detect-parse.h"
 
@@ -57,5 +57,4 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *,
 
 void DetectPcreRegister (void);
 
-#endif /* __DETECT_PCRE_H__ */
-
+#endif /* SURICATA_DETECT_PCRE_H */

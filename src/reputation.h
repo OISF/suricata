@@ -23,8 +23,8 @@
  *         Original Idea by Matt Jonkman
  */
 
-#ifndef __REPUTATION_H__
-#define __REPUTATION_H__
+#ifndef SURICATA_REPUTATION_H
+#define SURICATA_REPUTATION_H
 
 #include "host.h"
 #include "util-radix-tree.h"
@@ -57,4 +57,4 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp);
 
 void SCReputationRegisterTests(void);
 
-#endif /* __REPUTATION_H__ */
+#endif /* SURICATA_REPUTATION_H */

@@ -19,10 +19,10 @@
  * \file
  */
 
-#ifndef __DETECT_FRAME_H__
-#define __DETECT_FRAME_H__
+#ifndef SURICATA_DETECT_FRAME_H
+#define SURICATA_DETECT_FRAME_H
 
 /* Prototypes */
 void DetectFrameRegister(void);
 
-#endif /* __DETECT_FRAME_H__ */
+#endif /* SURICATA_DETECT_FRAME_H */

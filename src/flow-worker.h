@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-#ifndef __FLOW_WORKER_H__
-#define __FLOW_WORKER_H__
+#ifndef SURICATA_FLOW_WORKER_H
+#define SURICATA_FLOW_WORKER_H
 
 enum ProfileFlowWorkerId {
     PROFILE_FLOWWORKER_FLOW = 0,
@@ -35,4 +35,4 @@ void *FlowWorkerGetDetectCtxPtr(void *flow_worker);
 
 void TmModuleFlowWorkerRegister (void);
 
-#endif /* __FLOW_WORKER_H__ */
+#endif /* SURICATA_FLOW_WORKER_H */

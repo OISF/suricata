@@ -22,9 +22,8 @@
  *
  */
 
-#ifndef __DECODE_ERSPAN_H__
-#define __DECODE_ERSPAN_H__
-
+#ifndef SURICATA_DECODE_ERSPAN_H
+#define SURICATA_DECODE_ERSPAN_H
 
 typedef struct ErspanHdr_ {
     uint16_t ver_vlan;
@@ -33,4 +32,4 @@ typedef struct ErspanHdr_ {
 } __attribute__((__packed__)) ErspanHdr;
 
 void DecodeERSPANConfig(void);
-#endif /* __DECODE_ERSPAN_H__ */
+#endif /* SURICATA_DECODE_ERSPAN_H */

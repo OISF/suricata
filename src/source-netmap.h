@@ -22,8 +22,8 @@
 * \author Victor Julien <victor@inliniac.net>
 */
 
-#ifndef __SOURCE_NETMAP_H__
-#define __SOURCE_NETMAP_H__
+#ifndef SURICATA_SOURCE_NETMAP_H
+#define SURICATA_SOURCE_NETMAP_H
 
 /* copy modes */
 enum {
@@ -78,4 +78,4 @@ int NetmapGetRSSCount(const char *ifname);
 void TmModuleReceiveNetmapRegister (void);
 void TmModuleDecodeNetmapRegister (void);
 
-#endif /* __SOURCE_NETMAP_H__ */
+#endif /* SURICATA_SOURCE_NETMAP_H */

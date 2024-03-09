@@ -21,11 +21,10 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_NOCASE_H__
-#define __DETECT_NOCASE_H__
+#ifndef SURICATA_DETECT_NOCASE_H
+#define SURICATA_DETECT_NOCASE_H
 
 /* prototypes */
 void DetectNocaseRegister (void);
 
-#endif /* __DETECT_NOCASE_H__ */
-
+#endif /* SURICATA_DETECT_NOCASE_H */

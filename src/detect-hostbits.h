@@ -21,8 +21,8 @@
  *  \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_HOSTBITS_H__
-#define __DETECT_HOSTBITS_H__
+#ifndef SURICATA_DETECT_HOSTBITS_H
+#define SURICATA_DETECT_HOSTBITS_H
 
 #include "detect-xbits.h"
 
@@ -31,4 +31,4 @@ int DetectXbitMatchHost(Packet *p, const DetectXbitsData *xd);
 /* prototypes */
 void DetectHostbitsRegister (void);
 
-#endif /* __DETECT_HOSTBITS_H__ */
+#endif /* SURICATA_DETECT_HOSTBITS_H */

@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DECODE_SLL_H__
-#define __DECODE_SLL_H__
+#ifndef SURICATA_DECODE_SLL_H
+#define SURICATA_DECODE_SLL_H
 
 #define SLL_HEADER_LEN                16
 
@@ -34,5 +34,4 @@ typedef struct SllHdr_ {
     uint16_t sll_protocol;     /* protocol */
 } __attribute__((__packed__)) SllHdr;
 
-#endif /* __DECODE_SLL_H__ */
-
+#endif /* SURICATA_DECODE_SLL_H */

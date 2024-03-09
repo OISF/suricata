@@ -21,10 +21,9 @@
  * \author Mats Klepsland <mats.klepsland@gmail.com>
  */
 
-#ifndef __DETECT_TLS_ISSUER_H__
-#define __DETECT_TLS_ISSUER_H__
-
+#ifndef SURICATA_DETECT_TLS_ISSUER_H
+#define SURICATA_DETECT_TLS_ISSUER_H
 
 void DetectTlsIssuerRegister(void);
 
-#endif /* __DETECT_TLS_ISSUER_H__ */
+#endif /* SURICATA_DETECT_TLS_ISSUER_H */

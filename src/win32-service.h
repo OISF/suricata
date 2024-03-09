@@ -21,8 +21,8 @@
  * \author Ondrej Slanina <oslanina@kerio.com>
  */
 
-#ifndef __WIN32_SERVICE_H__
-#define __WIN32_SERVICE_H__
+#ifndef SURICATA_WIN32_SERVICE_H
+#define SURICATA_WIN32_SERVICE_H
 
 #ifdef OS_WIN32
 int SCRunningAsService(void);

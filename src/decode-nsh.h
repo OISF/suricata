@@ -22,9 +22,8 @@
  *
  */
 
-#ifndef __DECODE_NSH_H__
-#define __DECODE_NSH_H__
-
+#ifndef SURICATA_DECODE_NSH_H
+#define SURICATA_DECODE_NSH_H
 
 #define NSH_NEXT_PROTO_UNASSIGNED  0x0
 #define NSH_NEXT_PROTO_IPV4        0x1
@@ -47,4 +46,4 @@ typedef struct NshHdr_ {
 
 void DecodeNSHRegisterTests(void);
 
-#endif /* __DECODE_NSH_H__ */
+#endif /* SURICATA_DECODE_NSH_H */

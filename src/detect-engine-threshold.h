@@ -22,8 +22,8 @@
  *  \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_THRESHOLD_H__
-#define __DETECT_ENGINE_THRESHOLD_H__
+#ifndef SURICATA_DETECT_ENGINE_THRESHOLD_H
+#define SURICATA_DETECT_ENGINE_THRESHOLD_H
 
 #include "detect.h"
 #include "host.h"
@@ -51,4 +51,4 @@ int ThresholdHostTimeoutCheck(Host *, SCTime_t);
 int ThresholdIPPairTimeoutCheck(IPPair *, SCTime_t);
 void ThresholdListFree(void *ptr);
 
-#endif /* __DETECT_ENGINE_THRESHOLD_H__ */
+#endif /* SURICATA_DETECT_ENGINE_THRESHOLD_H */

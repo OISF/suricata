@@ -22,8 +22,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __APP_LAYER_DETECT_PROTO__H__
-#define __APP_LAYER_DETECT_PROTO__H__
+#ifndef SURICATA_APP_LAYER_DETECT_PROTO__H
+#define SURICATA_APP_LAYER_DETECT_PROTO__H
 
 #include "flow.h"
 #include "app-layer-protos.h"
@@ -228,4 +228,4 @@ void AppLayerProtoDetectUnittestsRegister(void);
 
 #endif /* UNITTESTS */
 
-#endif /* __APP_LAYER_DETECT_PROTO__H__ */
+#endif /* SURICATA_APP_LAYER_DETECT_PROTO__H */

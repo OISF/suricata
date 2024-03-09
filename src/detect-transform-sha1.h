@@ -21,10 +21,10 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_TRANSFORM_SHA1_H__
-#define __DETECT_TRANSFORM_SHA1_H__
+#ifndef SURICATA_DETECT_TRANSFORM_SHA1_H
+#define SURICATA_DETECT_TRANSFORM_SHA1_H
 
 /* prototypes */
 void DetectTransformSha1Register (void);
 
-#endif /* __DETECT_TRANSFORM_SHA1_H__ */
+#endif /* SURICATA_DETECT_TRANSFORM_SHA1_H */

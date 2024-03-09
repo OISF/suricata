@@ -23,8 +23,8 @@
  * Flow Logger Output registration functions
  */
 
-#ifndef __OUTPUT_FLOW_H__
-#define __OUTPUT_FLOW_H__
+#ifndef SURICATA_OUTPUT_FLOW_H
+#define SURICATA_OUTPUT_FLOW_H
 
 #include "tm-modules.h"
 
@@ -42,4 +42,4 @@ TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data);
 TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data);
 void OutputFlowLogExitPrintStats(ThreadVars *tv, void *thread_data);
 
-#endif /* __OUTPUT_FLOW_H__ */
+#endif /* SURICATA_OUTPUT_FLOW_H */

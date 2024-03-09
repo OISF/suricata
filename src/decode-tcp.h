@@ -22,8 +22,8 @@
  * \todo RAW* macro's should be returning the raw value, not the host order
  */
 
-#ifndef __DECODE_TCP_H__
-#define __DECODE_TCP_H__
+#ifndef SURICATA_DECODE_TCP_H
+#define SURICATA_DECODE_TCP_H
 
 #define TCP_HEADER_LEN                       20
 #define TCP_OPTLENMAX                        40
@@ -308,4 +308,4 @@ static inline uint16_t TCPV6Checksum(
     return (uint16_t)~csum;
 }
 
-#endif /* __DECODE_TCP_H__ */
+#endif /* SURICATA_DECODE_TCP_H */

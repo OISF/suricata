@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_METADATA_H__
-#define __DETECT_METADATA_H__
+#ifndef SURICATA_DETECT_METADATA_H
+#define SURICATA_DETECT_METADATA_H
 
 /**
  * \brief Signature metadata list.
@@ -46,5 +46,4 @@ void DetectMetadataRegister (void);
 
 void DetectMetadataFree(DetectMetadata *mdata);
 
-#endif /* __DETECT_METADATA_H__ */
-
+#endif /* SURICATA_DETECT_METADATA_H */

@@ -28,8 +28,8 @@
  * free, but there are more.
  */
 
-#ifndef __UTIL_MEM_H__
-#define __UTIL_MEM_H__
+#ifndef SURICATA_UTIL_MEM_H
+#define SURICATA_UTIL_MEM_H
 
 #if CPPCHECK==1 || defined(__clang_analyzer__)
 #define SCMalloc malloc
@@ -78,5 +78,4 @@ void SCFreeAlignedFunc(void *ptr);
 
 #endif /* CPPCHECK */
 
-#endif /* __UTIL_MEM_H__ */
-
+#endif /* SURICATA_UTIL_MEM_H */

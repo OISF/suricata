@@ -21,8 +21,8 @@
  * \author Jeff Lucovsky <jeff@lucovsky.org>
  */
 
-#ifndef __DECODE_VNTAG_H__
-#define __DECODE_VNTAG_H__
+#ifndef SURICATA_DECODE_VNTAG_H
+#define SURICATA_DECODE_VNTAG_H
 
 /* https://www.ieee802.org/1/files/public/docs2009/new-pelissier-vntag-seminar-0508.pdf */
 /** VNTag macros to access VNTag direction, dst vif_id, dest, looped, version, src vif_id **/
@@ -45,4 +45,4 @@ typedef struct VNTagHdr_ {
 
 void DecodeVNTagRegisterTests(void);
 
-#endif /* __DECODE_VNTAG_H__ */
+#endif /* SURICATA_DECODE_VNTAG_H */

@@ -23,8 +23,8 @@
  * Flow wrapper around storage api
  */
 
-#ifndef __FLOW_STORAGE_H__
-#define __FLOW_STORAGE_H__
+#ifndef SURICATA_FLOW_STORAGE_H
+#define SURICATA_FLOW_STORAGE_H
 
 #include "flow.h"
 
@@ -46,4 +46,4 @@ void RegisterFlowStorageTests(void);
 FlowStorageId FlowStorageRegister(const char *name, const unsigned int size,
         void *(*Alloc)(unsigned int), void (*Free)(void *));
 
-#endif /* __FLOW_STORAGE_H__ */
+#endif /* SURICATA_FLOW_STORAGE_H */

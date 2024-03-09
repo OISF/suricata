@@ -21,10 +21,9 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __DETECT_DCE_STUB_DATA_H__
-#define __DETECT_DCE_STUB_DATA_H__
-
+#ifndef SURICATA_DETECT_DCE_STUB_DATA_H
+#define SURICATA_DETECT_DCE_STUB_DATA_H
 
 void DetectDceStubDataRegister(void);
 
-#endif /* __DETECT_DCE_STUB_DATA_H__ */
+#endif /* SURICATA_DETECT_DCE_STUB_DATA_H */

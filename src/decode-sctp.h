@@ -21,8 +21,8 @@
  * \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __DECODE_SCTP_H__
-#define __DECODE_SCTP_H__
+#ifndef SURICATA_DECODE_SCTP_H
+#define SURICATA_DECODE_SCTP_H
 
 /** size of the packet header without any chunk headers */
 #define SCTP_HEADER_LEN                       12
@@ -48,4 +48,4 @@ typedef struct SCTPHdr_
 
 void DecodeSCTPRegisterTests(void);
 
-#endif /* __DECODE_SCTP_H__ */
+#endif /* SURICATA_DECODE_SCTP_H */

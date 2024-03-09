@@ -23,12 +23,12 @@
  * MPLS decoder.
  */
 
-#ifndef __DECODE_MPLS_H__
-#define __DECODE_MPLS_H__
+#ifndef SURICATA_DECODE_MPLS_H
+#define SURICATA_DECODE_MPLS_H
 
 #define ETHERNET_TYPE_MPLS_UNICAST   0x8847
 #define ETHERNET_TYPE_MPLS_MULTICAST 0x8848
 
 void DecodeMPLSRegisterTests(void);
 
-#endif /* !__DECODE_MPLS_H__ */
+#endif /* !SURICATA_DECODE_MPLS_H */

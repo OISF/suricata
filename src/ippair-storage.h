@@ -23,8 +23,8 @@
  * IPPair wrapper around storage api
  */
 
-#ifndef __IPPAIR_STORAGE_H__
-#define __IPPAIR_STORAGE_H__
+#ifndef SURICATA_IPPAIR_STORAGE_H
+#define SURICATA_IPPAIR_STORAGE_H
 
 #include "ippair.h"
 
@@ -46,4 +46,4 @@ void RegisterIPPairStorageTests(void);
 IPPairStorageId IPPairStorageRegister(const char *name, const unsigned int size,
         void *(*Alloc)(unsigned int), void (*Free)(void *));
 
-#endif /* __IPPAIR_STORAGE_H__ */
+#endif /* SURICATA_IPPAIR_STORAGE_H */

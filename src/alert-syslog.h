@@ -24,10 +24,9 @@
  *
  */
 
-#ifndef __ALERT_SYSLOG_H__
-#define __ALERT_SYSLOG_H__
+#ifndef SURICATA_ALERT_SYSLOG_H
+#define SURICATA_ALERT_SYSLOG_H
 
 void AlertSyslogRegister(void);
 
-#endif /* __ALERT_SYSLOG_H__ */
-
+#endif /* SURICATA_ALERT_SYSLOG_H */

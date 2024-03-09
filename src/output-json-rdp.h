@@ -21,9 +21,9 @@
  * \author Zach Kelly <zach.kelly@lmco.com>
  */
 
-#ifndef __OUTPUT_JSON_RDP_H__
-#define __OUTPUT_JSON_RDP_H__
+#ifndef SURICATA_OUTPUT_JSON_RDP_H
+#define SURICATA_OUTPUT_JSON_RDP_H
 
 void JsonRdpLogRegister(void);
 
-#endif /* __OUTPUT_JSON_RDP_H__ */
+#endif /* SURICATA_OUTPUT_JSON_RDP_H */

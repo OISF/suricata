@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_LUA_EXT_H__
-#define __DETECT_LUA_EXT_H__
+#ifndef SURICATA_DETECT_LUA_EXT_H
+#define SURICATA_DETECT_LUA_EXT_H
 
 #ifdef HAVE_LUA
 int LuaRegisterExtensions(lua_State *);

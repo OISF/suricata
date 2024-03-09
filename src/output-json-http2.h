@@ -21,9 +21,9 @@
  * \author Philippe Antoine <p.antoine@catenacyber.fr>
  */
 
-#ifndef __OUTPUT_JSON_HTTP2_H__
-#define __OUTPUT_JSON_HTTP2_H__
+#ifndef SURICATA_OUTPUT_JSON_HTTP2_H
+#define SURICATA_OUTPUT_JSON_HTTP2_H
 
 void JsonHttp2LogRegister(void);
 
-#endif /* __OUTPUT_JSON_HTTP2_H__ */
+#endif /* SURICATA_OUTPUT_JSON_HTTP2_H */

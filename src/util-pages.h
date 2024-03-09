@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef __UTIL_PAGES_H__
-#define __UTIL_PAGES_H__
+#ifndef SURICATA_UTIL_PAGES_H
+#define SURICATA_UTIL_PAGES_H
 
 #include "suricata-common.h"
 
@@ -41,4 +41,4 @@
     #endif /* HAVE_SYS_MMAN_H */
 #endif
 
-#endif /* __UTIL_PAGES_H__ */
+#endif /* SURICATA_UTIL_PAGES_H */

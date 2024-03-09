@@ -21,11 +21,10 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_WITHIN_H__
-#define __DETECT_WITHIN_H__
+#ifndef SURICATA_DETECT_WITHIN_H
+#define SURICATA_DETECT_WITHIN_H
 
 /* prototypes */
 void DetectWithinRegister (void);
 
-#endif /* __DETECT_WITHIN_H__ */
-
+#endif /* SURICATA_DETECT_WITHIN_H */

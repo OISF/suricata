@@ -22,11 +22,10 @@
  * \author Jason MacLulich <jason.maclulich@endace.com>
  */
 
-#ifndef __SOURCE_ERF_DAG_H__
-#define __SOURCE_ERF_DAG_H__
+#ifndef SURICATA_SOURCE_ERF_DAG_H
+#define SURICATA_SOURCE_ERF_DAG_H
 
 void TmModuleReceiveErfDagRegister(void);
 void TmModuleDecodeErfDagRegister(void);
 
-#endif /* __SOURCE_ERF_DAG_H__ */
-
+#endif /* SURICATA_SOURCE_ERF_DAG_H */

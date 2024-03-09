@@ -21,10 +21,10 @@
  * \author Philippe Antoine <contact@catenacyber.fr>
  */
 
-#ifndef __DETECT_TRANSFORM_HEADER_LOWERCASE_H__
-#define __DETECT_TRANSFORM_HEADER_LOWERCASE_H__
+#ifndef SURICATA_DETECT_TRANSFORM_HEADER_LOWERCASE_H
+#define SURICATA_DETECT_TRANSFORM_HEADER_LOWERCASE_H
 
 /* prototypes */
 void DetectTransformHeaderLowercaseRegister(void);
 
-#endif /* __DETECT_TRANSFORM_HEADER_LOWERCASE_H__ */
+#endif /* SURICATA_DETECT_TRANSFORM_HEADER_LOWERCASE_H */

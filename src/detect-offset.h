@@ -21,11 +21,10 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_OFFSET_H__
-#define __DETECT_OFFSET_H__
+#ifndef SURICATA_DETECT_OFFSET_H
+#define SURICATA_DETECT_OFFSET_H
 
 /* prototypes */
 void DetectOffsetRegister (void);
 
-#endif /* __DETECT_OFFSET_H__ */
-
+#endif /* SURICATA_DETECT_OFFSET_H */

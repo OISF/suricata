@@ -21,11 +21,11 @@
  * \author Jeff Lucovsky <jlucovsky@oisf.net>
  */
 
-#ifndef __DETECT_TRANSFORM_CASECHANGE_H
-#define __DETECT_TRANSFORM_CASECHANGE_H
+#ifndef SURICATA_DETECT_TRANSFORM_CASECHANGE_H
+#define SURICATA_DETECT_TRANSFORM_CASECHANGE_H
 
 /* prototypes */
 void DetectTransformToLowerRegister(void);
 void DetectTransformToUpperRegister(void);
 
-#endif /* __DETECT_TRANSFORM_CASECHANGE_H */
+#endif /* SURICATA_DETECT_TRANSFORM_CASECHANGE_H */

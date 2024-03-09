@@ -15,11 +15,11 @@
  * 02110-1301, USA.
  */
 
-#ifndef __UTIL_DATALINK_H__
-#define __UTIL_DATALINK_H__
+#ifndef SURICATA_UTIL_DATALINK_H
+#define SURICATA_UTIL_DATALINK_H
 
 void DatalinkSetGlobalType(int datalink);
 int DatalinkGetGlobalType(void);
 bool DatalinkHasMultipleValues(void);
 
-#endif /* __UTIL_DATALINK_H__ */
+#endif /* SURICATA_UTIL_DATALINK_H */

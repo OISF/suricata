@@ -21,11 +21,11 @@
  * \author Jacob Masen-Smith <jacob@evengx.com>
  */
 
-#ifndef __SOURCE_WINDIVERT_PROTOTYPES_H__
-#define __SOURCE_WINDIVERT_PROTOTYPES_H__
+#ifndef SURICATA_SOURCE_WINDIVERT_PROTOTYPES_H
+#define SURICATA_SOURCE_WINDIVERT_PROTOTYPES_H
 
 void TmModuleReceiveWinDivertRegister(void);
 void TmModuleVerdictWinDivertRegister(void);
 void TmModuleDecodeWinDivertRegister(void);
 
-#endif /* __SOURCE_WINDIVERT_PROTOTYPES_H__ */
+#endif /* SURICATA_SOURCE_WINDIVERT_PROTOTYPES_H */

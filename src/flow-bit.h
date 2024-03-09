@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __FLOW_BIT_H__
-#define __FLOW_BIT_H__
+#ifndef SURICATA_FLOW_BIT_H
+#define SURICATA_FLOW_BIT_H
 
 #include "flow.h"
 #include "util-var.h"
@@ -44,5 +44,4 @@ void FlowBitUnset(Flow *, uint32_t);
 void FlowBitToggle(Flow *, uint32_t);
 int FlowBitIsset(Flow *, uint32_t);
 int FlowBitIsnotset(Flow *, uint32_t);
-#endif /* __FLOW_BIT_H__ */
-
+#endif /* SURICATA_FLOW_BIT_H */

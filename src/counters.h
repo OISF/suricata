@@ -22,8 +22,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __COUNTERS_H__
-#define __COUNTERS_H__
+#ifndef SURICATA_COUNTERS_H
+#define SURICATA_COUNTERS_H
 
 #include "threads.h"
 
@@ -143,5 +143,4 @@ TmEcode StatsOutputCounterSocket(json_t *cmd,
                                  json_t *answer, void *data);
 #endif
 
-#endif /* __COUNTERS_H__ */
-
+#endif /* SURICATA_COUNTERS_H */

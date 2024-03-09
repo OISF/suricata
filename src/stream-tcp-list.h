@@ -21,12 +21,11 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __STREAM_TCP_LIST_H__
-#define __STREAM_TCP_LIST_H__
-
+#ifndef SURICATA_STREAM_TCP_LIST_H
+#define SURICATA_STREAM_TCP_LIST_H
 
 #ifdef UNITTESTS
 void StreamTcpListRegisterTests(void);
 #endif
 
-#endif /* __STREAM_TCP_LIST_H__ */
+#endif /* SURICATA_STREAM_TCP_LIST_H */

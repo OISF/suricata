@@ -21,10 +21,10 @@
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  */
 
-#ifndef __DETECT_FILENAME_H__
-#define __DETECT_FILENAME_H__
+#ifndef SURICATA_DETECT_FILENAME_H
+#define SURICATA_DETECT_FILENAME_H
 
 /* prototypes */
 void DetectFilenameRegister (void);
 
-#endif /* __DETECT_FILENAME_H__ */
+#endif /* SURICATA_DETECT_FILENAME_H */

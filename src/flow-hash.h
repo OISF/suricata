@@ -21,8 +21,8 @@
  *  \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __FLOW_HASH_H__
-#define __FLOW_HASH_H__
+#ifndef SURICATA_FLOW_HASH_H
+#define SURICATA_FLOW_HASH_H
 
 #include "flow.h"
 
@@ -102,5 +102,4 @@ static inline void RemoveFromHash(Flow *f, Flow *prev_f)
     f->fb = NULL;
 }
 
-#endif /* __FLOW_HASH_H__ */
-
+#endif /* SURICATA_FLOW_HASH_H */

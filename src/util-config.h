@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_CONFIG_H__
-#define __UTIL_CONFIG_H__
+#ifndef SURICATA_UTIL_CONFIG_H
+#define SURICATA_UTIL_CONFIG_H
 
 enum ConfigAction {
     CONFIG_ACTION_SET = 1,
