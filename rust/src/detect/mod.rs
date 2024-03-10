@@ -21,10 +21,10 @@ pub mod byte_math;
 pub mod error;
 pub mod iprep;
 pub mod parser;
+pub mod requires;
 pub mod stream_size;
 pub mod uint;
 pub mod uri;
-pub mod requires;
 pub mod tojson;
 
 /// EnumString trait that will be implemented on enums that
@@ -41,6 +41,45 @@ pub trait EnumString<T> {
 
     /// Get an enum variant from parsing a string.
     fn from_str(s: &str) -> Option<Self> where Self: Sized;
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+// endian <big|little|dce>
+pub enum ByteEndian {
+    BigEndian = 1,
+    LittleEndian = 2,
+    EndianDCE = 3,
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum ByteBase {
+    BaseOct = 8,
+    BaseDec = 10,
+    BaseHex = 16,
+}
+
+fn get_string_value(value: &str) -> Result<ByteBase, ()> {
+    let res = match value {
+        "hex" => ByteBase::BaseHex,
+        "oct" => ByteBase::BaseOct,
+        "dec" => ByteBase::BaseDec,
+        _ => return Err(()),
+    };
+
+    Ok(res)
+}
+
+fn get_endian_value(value: &str) -> Result<ByteEndian, ()> {
+    let res = match value {
+        "big" => ByteEndian::BigEndian,
+        "little" => ByteEndian::LittleEndian,
+        "dce" => ByteEndian::EndianDCE,
+        _ => return Err(()),
+    };
+
+    Ok(res)
 }
 
 #[cfg(test)]
