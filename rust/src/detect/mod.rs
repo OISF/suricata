@@ -21,10 +21,10 @@ pub mod byte_math;
 pub mod error;
 pub mod iprep;
 pub mod parser;
+pub mod requires;
 pub mod stream_size;
 pub mod uint;
 pub mod uri;
-pub mod requires;
 pub mod tojson;
 
 use crate::core::AppProto;
@@ -102,6 +102,44 @@ extern {
     pub fn SigMatchAppendSMToList(
         de: *mut c_void, s: *mut c_void, kwid: c_int, ctx: *const c_void, bufid: c_int,
     ) -> *mut c_void;
+}
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+// endian <big|little|dce>
+pub enum ByteEndian {
+    BigEndian = 1,
+    LittleEndian = 2,
+    EndianDCE = 3,
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum ByteBase {
+    BaseOct = 8,
+    BaseDec = 10,
+    BaseHex = 16,
+}
+
+fn get_string_value(value: &str) -> Result<ByteBase, ()> {
+    let res = match value {
+        "hex" => ByteBase::BaseHex,
+        "oct" => ByteBase::BaseOct,
+        "dec" => ByteBase::BaseDec,
+        _ => return Err(()),
+    };
+
+    Ok(res)
+}
+
+fn get_endian_value(value: &str) -> Result<ByteEndian, ()> {
+    let res = match value {
+        "big" => ByteEndian::BigEndian,
+        "little" => ByteEndian::LittleEndian,
+        "dce" => ByteEndian::EndianDCE,
+        _ => return Err(()),
+    };
+
+    Ok(res)
 }
 
 #[cfg(test)]
