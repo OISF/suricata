@@ -64,7 +64,7 @@ typedef struct Context_ {
  * configuration for the eve instance, not just a node named after the plugin.
  * This allows the plugin to get more context about what it is logging.
  */
-static int FiletypeInit(ConfNode *conf, bool threaded, void **data)
+static int FiletypeInit(const ConfNode *conf, const bool threaded, void **data)
 {
     SCLogNotice("Initializing template eve output plugin: threaded=%d", threaded);
     Context *context = SCCalloc(1, sizeof(Context));
@@ -125,7 +125,7 @@ static void FiletypeDeinit(void *data)
  * In the case of non-threaded EVE logging this function is called
  * once with a thread_id of 0.
  */
-static int FiletypeThreadInit(void *ctx, ThreadId thread_id, void **thread_data)
+static int FiletypeThreadInit(const void *ctx, const ThreadId thread_id, void **thread_data)
 {
     SCLogNotice("thread_id=%d", thread_id);
     ThreadData *tdata = SCCalloc(1, sizeof(ThreadData));
@@ -146,7 +146,7 @@ static int FiletypeThreadInit(void *ctx, ThreadId thread_id, void **thread_data)
  * This is where any cleanup per thread should be done including free'ing of the
  * thread_data if needed.
  */
-static void FiletypeThreadDeinit(void *ctx, void *thread_data)
+static void FiletypeThreadDeinit(const void *ctx, void *thread_data)
 {
     SCLogNotice("thread_data=%p", thread_data);
     if (thread_data == NULL) {
@@ -171,9 +171,10 @@ static void FiletypeThreadDeinit(void *ctx, void *thread_data)
  * to any resource that may block it might be best to enqueue the buffers for
  * further processing which will require copying of the provided buffer.
  */
-static int FiletypeWrite(const char *buffer, int buffer_len, void *data, void *thread_data)
+static int FiletypeWrite(
+        const char *buffer, const int buffer_len, const void *data, void *thread_data)
 {
-    Context *ctx = data;
+    const Context *ctx = data;
     ThreadData *thread = thread_data;
 
     SCLogNotice("thread_id=%d, data=%p, thread_data=%p", thread->thread_id, data, thread_data);

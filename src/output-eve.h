@@ -100,7 +100,7 @@ typedef struct SCEveFileType_ {
      *
      * \retval 0 on success, -1 on failure
      */
-    int (*Init)(ConfNode *conf, bool threaded, void **init_data);
+    int (*Init)(const ConfNode *conf, const bool threaded, void **init_data);
 
     /**
      * \brief Called for each EVE log record.
@@ -119,7 +119,8 @@ typedef struct SCEveFileType_ {
      *
      * \retval 0 on success, -1 on failure
      */
-    int (*Write)(const char *buffer, int buffer_len, void *init_data, void *thread_data);
+    int (*Write)(
+            const char *buffer, const int buffer_len, const void *init_data, void *thread_data);
 
     /**
      * \brief Final call to deinitialize this filetype.
@@ -150,7 +151,7 @@ typedef struct SCEveFileType_ {
      *
      * \retval 0 on success, -1 on failure
      */
-    int (*ThreadInit)(void *init_data, ThreadId thread_id, void **thread_data);
+    int (*ThreadInit)(const void *init_data, const ThreadId thread_id, void **thread_data);
 
     /**
      * \brief Called to deinitialize each thread.
@@ -162,7 +163,7 @@ typedef struct SCEveFileType_ {
      *
      * \param thread_data The data setup in ThreadInit
      */
-    void (*ThreadDeinit)(void *init_data, void *thread_data);
+    void (*ThreadDeinit)(const void *init_data, void *thread_data);
 
     /* Internal list management. */
     TAILQ_ENTRY(SCEveFileType_) entries;
