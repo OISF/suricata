@@ -24,40 +24,10 @@
 #ifndef SURICATA_DETECT_BYTEEXTRACT_H
 #define SURICATA_DETECT_BYTEEXTRACT_H
 
-/* flags */
-#define DETECT_BYTE_EXTRACT_FLAG_RELATIVE   0x01
-#define DETECT_BYTE_EXTRACT_FLAG_MULTIPLIER 0x02
-#define DETECT_BYTE_EXTRACT_FLAG_STRING     0x04
-#define DETECT_BYTE_EXTRACT_FLAG_ALIGN      0x08
-#define DETECT_BYTE_EXTRACT_FLAG_ENDIAN     0x10
-
 /* endian value to be used.  Would be stored in DetectByteParseData->endian */
-#define DETECT_BYTE_EXTRACT_ENDIAN_NONE    0
-#define DETECT_BYTE_EXTRACT_ENDIAN_BIG     1
-#define DETECT_BYTE_EXTRACT_ENDIAN_LITTLE  2
-#define DETECT_BYTE_EXTRACT_ENDIAN_DCE     3
-
-/**
- * \brief Holds data related to byte_extract keyword.
- */
-typedef struct DetectByteExtractData_ {
-    /* local id used by other keywords in the sig to reference this */
-    uint8_t local_id;
-
-    uint8_t nbytes;
-    int16_t pad;
-    int32_t offset;
-    const char *name;
-    uint8_t flags;
-    uint8_t endian;
-    uint8_t base;
-    uint8_t align_value;
-
-    uint16_t multiplier_value;
-    /* unique id used to reference this byte_extract keyword */
-    uint16_t id;
-
-} DetectByteExtractData;
+#define DETECT_BYTE_EXTRACT_ENDIAN_BIG    (uint8_t) BigEndian
+#define DETECT_BYTE_EXTRACT_ENDIAN_LITTLE (uint8_t) LittleEndian
+#define DETECT_BYTE_EXTRACT_ENDIAN_DCE    (uint8_t) EndianDCE
 
 void DetectByteExtractRegister(void);
 
