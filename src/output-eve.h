@@ -161,10 +161,8 @@ typedef struct SCEveFileType_ {
      * \param init_data The data setup in Init
      *
      * \param thread_data The data setup in ThreadInit
-     *
-     * \retval 0 on success, -1 on failure
      */
-    int (*ThreadDeinit)(void *init_data, void *thread_data);
+    void (*ThreadDeinit)(void *init_data, void *thread_data);
 
     /* Internal list management. */
     TAILQ_ENTRY(SCEveFileType_) entries;
