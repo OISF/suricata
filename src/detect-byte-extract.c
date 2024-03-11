@@ -22,14 +22,10 @@
  */
 
 #include "suricata-common.h"
-#include "threads.h"
 #include "decode.h"
 
 #include "detect.h"
-#include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "detect-engine-state.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-bytejump.h"
@@ -38,27 +34,24 @@
 #include "detect-isdataat.h"
 #include "detect-engine-build.h"
 
-#include "app-layer-protos.h"
+#include "rust.h"
 
-#include "flow.h"
-#include "flow-var.h"
-#include "flow-util.h"
+#include "app-layer-protos.h"
 
 #include "util-byte.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include "util-spm.h"
 
 /* the default value of endianness to be used, if none's specified */
-#define DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT DETECT_BYTE_EXTRACT_ENDIAN_BIG
+#define DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT (uint8_t) BigEndian
 
 /* the base to be used if string mode is specified.  These options would be
  * specified in DetectByteParseData->base */
 #define DETECT_BYTE_EXTRACT_BASE_NONE 0
-#define DETECT_BYTE_EXTRACT_BASE_HEX  16
-#define DETECT_BYTE_EXTRACT_BASE_DEC  10
-#define DETECT_BYTE_EXTRACT_BASE_OCT   8
+#define DETECT_BYTE_EXTRACT_BASE_HEX  (uint8_t) BaseHex
+#define DETECT_BYTE_EXTRACT_BASE_DEC  (uint8_t) BaseDec
+#define DETECT_BYTE_EXTRACT_BASE_OCT  (uint8_t) BaseOct
 
 /* the default value for multiplier.  Either ways we always store a
  * multiplier, 1 or otherwise, so that we can always multiply the extracted
@@ -75,19 +68,6 @@
 #define STRING_MAX_BYTES_TO_EXTRACT_FOR_HEX 14
 /* the max no of bytes that can be extracted in non-string mode */
 #define NO_STRING_MAX_BYTES_TO_EXTRACT 8
-
-#define PARSE_REGEX "^"                                                  \
-    "\\s*([0-9]+)\\s*"                                                   \
-    ",\\s*(-?[0-9]+)\\s*"                                               \
-    ",\\s*([^\\s,]+)\\s*"                                                \
-    "(?:(?:,\\s*([^\\s,]+)\\s*)|(?:,\\s*([^\\s,]+)\\s+([^\\s,]+)\\s*))?" \
-    "(?:(?:,\\s*([^\\s,]+)\\s*)|(?:,\\s*([^\\s,]+)\\s+([^\\s,]+)\\s*))?" \
-    "(?:(?:,\\s*([^\\s,]+)\\s*)|(?:,\\s*([^\\s,]+)\\s+([^\\s,]+)\\s*))?" \
-    "(?:(?:,\\s*([^\\s,]+)\\s*)|(?:,\\s*([^\\s,]+)\\s+([^\\s,]+)\\s*))?" \
-    "(?:(?:,\\s*([^\\s,]+)\\s*)|(?:,\\s*([^\\s,]+)\\s+([^\\s,]+)\\s*))?" \
-    "$"
-
-static DetectParseRegex parse_regex;
 
 static int DetectByteExtractSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
@@ -109,19 +89,12 @@ void DetectByteExtractRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_BYTE_EXTRACT].RegisterTests = DetectByteExtractRegisterTests;
 #endif
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *smd,
         const Signature *s, const uint8_t *payload, uint32_t payload_len, uint64_t *value,
         uint8_t endian)
 {
-    DetectByteExtractData *data = (DetectByteExtractData *)smd->ctx;
-    const uint8_t *ptr = NULL;
-    int32_t len = 0;
-    uint64_t val = 0;
-    int extbytes;
-
     if (payload_len == 0) {
         return 0;
     }
@@ -129,6 +102,9 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
     /* Calculate the ptr value for the bytetest and length remaining in
      * the packet from that point.
      */
+    const uint8_t *ptr;
+    int32_t len;
+    SCDetectByteExtractData *data = (SCDetectByteExtractData *)smd->ctx;
     if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
         SCLogDebug("relative, working with det_ctx->buffer_offset %"PRIu32", "
                    "data->offset %"PRIu32"", det_ctx->buffer_offset, data->offset);
@@ -159,6 +135,8 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
     }
 
     /* Extract the byte data */
+    uint64_t val = 0;
+    int extbytes;
     if (data->flags & DETECT_BYTE_EXTRACT_FLAG_STRING) {
         extbytes = ByteExtractStringUint64(&val, data->base,
                                            data->nbytes, (const char *)ptr);
@@ -211,255 +189,20 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
  * \param bed On success an instance containing the parsed data.
  *            On failure, NULL.
  */
-static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_ctx, const char *arg)
+static inline SCDetectByteExtractData *DetectByteExtractParse(
+        DetectEngineCtx *de_ctx, const char *arg)
 {
-    DetectByteExtractData *bed = NULL;
-    int res = 0;
-    size_t pcre2len;
-    int i = 0;
-    pcre2_match_data *match = NULL;
-
-    int ret = DetectParsePcreExec(&parse_regex, &match, arg, 0, 0);
-    if (ret < 3 || ret > 19) {
-        SCLogError("parse error, ret %" PRId32 ", string \"%s\"", ret, arg);
-        SCLogError("Invalid arg to byte_extract : %s "
-                   "for byte_extract",
-                arg);
+    SCDetectByteExtractData *bed = SCByteExtractParse(arg);
+    if (bed == NULL) {
+        SCLogError("invalid byte_extract values");
         goto error;
     }
 
-    bed = SCCalloc(1, sizeof(DetectByteExtractData));
-    if (unlikely(bed == NULL))
-        goto error;
-
-    /* no of bytes to extract */
-    char nbytes_str[64] = "";
-    pcre2len = sizeof(nbytes_str);
-    res = pcre2_substring_copy_bynumber(match, 1, (PCRE2_UCHAR8 *)nbytes_str, &pcre2len);
-    if (res < 0) {
-        SCLogError("pcre2_substring_copy_bynumber failed "
-                   "for arg 1 for byte_extract");
+    if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_SLICE) {
+        SCLogError("byte_extract slice not yet supported");
         goto error;
     }
-    if (StringParseUint8(&bed->nbytes, 10, 0,
-                               (const char *)nbytes_str) < 0) {
-        SCLogError("Invalid value for number of bytes"
-                   " to be extracted: \"%s\".",
-                nbytes_str);
-        goto error;
-    }
-
-    /* offset */
-    char offset_str[64] = "";
-    pcre2len = sizeof(offset_str);
-    res = pcre2_substring_copy_bynumber(match, 2, (PCRE2_UCHAR8 *)offset_str, &pcre2len);
-    if (res < 0) {
-        SCLogError("pcre2_substring_copy_bynumber failed "
-                   "for arg 2 for byte_extract");
-        goto error;
-    }
-    int32_t offset;
-    if (StringParseI32RangeCheck(&offset, 10, 0, (const char *)offset_str, -65535, 65535) < 0) {
-        SCLogError("Invalid value for offset: \"%s\".", offset_str);
-        goto error;
-    }
-    bed->offset = offset;
-
-    /* var name */
-    char varname_str[256] = "";
-    pcre2len = sizeof(varname_str);
-    res = pcre2_substring_copy_bynumber(match, 3, (PCRE2_UCHAR8 *)varname_str, &pcre2len);
-    if (res < 0) {
-        SCLogError("pcre2_substring_copy_bynumber failed "
-                   "for arg 3 for byte_extract");
-        goto error;
-    }
-    bed->name = SCStrdup(varname_str);
-    if (bed->name == NULL)
-        goto error;
-
-    /* check out other optional args */
-    for (i = 4; i < ret; i++) {
-        char opt_str[64] = "";
-        pcre2len = sizeof(opt_str);
-        res = SC_Pcre2SubstringCopy(match, i, (PCRE2_UCHAR8 *)opt_str, &pcre2len);
-        if (res < 0) {
-            SCLogError("pcre2_substring_copy_bynumber failed "
-                       "for arg %d for byte_extract with %d",
-                    i, res);
-            goto error;
-        }
-
-        if (strcmp("relative", opt_str) == 0) {
-            if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
-                SCLogError("relative specified more "
-                           "than once for byte_extract");
-                goto error;
-            }
-            bed->flags |= DETECT_BYTE_EXTRACT_FLAG_RELATIVE;
-        } else if (strcmp("multiplier", opt_str) == 0) {
-            if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_MULTIPLIER) {
-                SCLogError("multiplier specified more "
-                           "than once for byte_extract");
-                goto error;
-            }
-            bed->flags |= DETECT_BYTE_EXTRACT_FLAG_MULTIPLIER;
-            i++;
-
-            char multiplier_str[16] = "";
-            pcre2len = sizeof(multiplier_str);
-            res = pcre2_substring_copy_bynumber(
-                    match, i, (PCRE2_UCHAR8 *)multiplier_str, &pcre2len);
-            if (res < 0) {
-                SCLogError("pcre2_substring_copy_bynumber failed "
-                           "for arg %d for byte_extract",
-                        i);
-                goto error;
-            }
-            uint16_t multiplier;
-            if (StringParseU16RangeCheck(&multiplier, 10, 0, (const char *)multiplier_str,
-                        DETECT_BYTE_EXTRACT_MULTIPLIER_MIN_LIMIT,
-                        DETECT_BYTE_EXTRACT_MULTIPLIER_MAX_LIMIT) < 0) {
-                SCLogError("Invalid value for"
-                           "multiplier: \"%s\".",
-                        multiplier_str);
-                goto error;
-            }
-            bed->multiplier_value = multiplier;
-        } else if (strcmp("big", opt_str) == 0) {
-            if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) {
-                SCLogError("endian option specified "
-                           "more than once for byte_extract");
-                goto error;
-            }
-            bed->flags |= DETECT_BYTE_EXTRACT_FLAG_ENDIAN;
-            bed->endian = DETECT_BYTE_EXTRACT_ENDIAN_BIG;
-        } else if (strcmp("little", opt_str) == 0) {
-            if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) {
-                SCLogError("endian option specified "
-                           "more than once for byte_extract");
-                goto error;
-            }
-            bed->flags |= DETECT_BYTE_EXTRACT_FLAG_ENDIAN;
-            bed->endian = DETECT_BYTE_EXTRACT_ENDIAN_LITTLE;
-        } else if (strcmp("dce", opt_str) == 0) {
-            if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) {
-                SCLogError("endian option specified "
-                           "more than once for byte_extract");
-                goto error;
-            }
-            bed->flags |= DETECT_BYTE_EXTRACT_FLAG_ENDIAN;
-            bed->endian = DETECT_BYTE_EXTRACT_ENDIAN_DCE;
-        } else if (strcmp("string", opt_str) == 0) {
-            if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_STRING) {
-                SCLogError("string specified more "
-                           "than once for byte_extract");
-                goto error;
-            }
-            if (bed->base != DETECT_BYTE_EXTRACT_BASE_NONE) {
-                SCLogError("The right way to specify "
-                           "base is (string, base) and not (base, string) "
-                           "for byte_extract");
-                goto error;
-            }
-            bed->flags |= DETECT_BYTE_EXTRACT_FLAG_STRING;
-        } else if (strcmp("hex", opt_str) == 0) {
-            if (!(bed->flags & DETECT_BYTE_EXTRACT_FLAG_STRING)) {
-                SCLogError("Base(hex) specified "
-                           "without specifying string.  The right way is "
-                           "(string, base) and not (base, string)");
-                goto error;
-            }
-            if (bed->base != DETECT_BYTE_EXTRACT_BASE_NONE) {
-                SCLogError("More than one base "
-                           "specified for byte_extract");
-                goto error;
-            }
-            bed->base = DETECT_BYTE_EXTRACT_BASE_HEX;
-        } else if (strcmp("oct", opt_str) == 0) {
-            if (!(bed->flags & DETECT_BYTE_EXTRACT_FLAG_STRING)) {
-                SCLogError("Base(oct) specified "
-                           "without specifying string.  The right way is "
-                           "(string, base) and not (base, string)");
-                goto error;
-            }
-            if (bed->base != DETECT_BYTE_EXTRACT_BASE_NONE) {
-                SCLogError("More than one base "
-                           "specified for byte_extract");
-                goto error;
-            }
-            bed->base = DETECT_BYTE_EXTRACT_BASE_OCT;
-        } else if (strcmp("dec", opt_str) == 0) {
-            if (!(bed->flags & DETECT_BYTE_EXTRACT_FLAG_STRING)) {
-                SCLogError("Base(dec) specified "
-                           "without specifying string.  The right way is "
-                           "(string, base) and not (base, string)");
-                goto error;
-            }
-            if (bed->base != DETECT_BYTE_EXTRACT_BASE_NONE) {
-                SCLogError("More than one base "
-                           "specified for byte_extract");
-                goto error;
-            }
-            bed->base = DETECT_BYTE_EXTRACT_BASE_DEC;
-        } else if (strcmp("align", opt_str) == 0) {
-            if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_ALIGN) {
-                SCLogError("Align specified more "
-                           "than once for byte_extract");
-                goto error;
-            }
-            bed->flags |= DETECT_BYTE_EXTRACT_FLAG_ALIGN;
-            i++;
-
-            char align_str[16] = "";
-            pcre2len = sizeof(align_str);
-            res = pcre2_substring_copy_bynumber(match, i, (PCRE2_UCHAR8 *)align_str, &pcre2len);
-            if (res < 0) {
-                SCLogError("pcre2_substring_copy_bynumber failed "
-                           "for arg %d in byte_extract",
-                        i);
-                goto error;
-            }
-            if (StringParseUint8(&bed->align_value, 10, 0,
-                                       (const char *)align_str) < 0) {
-                SCLogError("Invalid align_value: "
-                           "\"%s\".",
-                        align_str);
-                goto error;
-            }
-            if (!(bed->align_value == 2 || bed->align_value == 4)) {
-                SCLogError("Invalid align_value for "
-                           "byte_extract - \"%d\"",
-                        bed->align_value);
-                goto error;
-            }
-        } else if (strcmp("", opt_str) == 0) {
-            ;
-        } else {
-            SCLogError("Invalid option - \"%s\" "
-                       "specified in byte_extract",
-                    opt_str);
-            goto error;
-        }
-    } /* for (i = 4; i < ret; i++) */
-
-    /* validation */
-    if (!(bed->flags & DETECT_BYTE_EXTRACT_FLAG_MULTIPLIER)) {
-        /* default value */
-        bed->multiplier_value = DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT;
-    }
-
     if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_STRING) {
-        if (bed->base == DETECT_BYTE_EXTRACT_BASE_NONE) {
-            /* Default to decimal if base not specified. */
-            bed->base = DETECT_BYTE_EXTRACT_BASE_DEC;
-        }
-        if (bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE) {
-            SCLogError("byte_extract can't have "
-                       "endian \"big\" or \"little\" specified along with "
-                       "\"string\"");
-            goto error;
-        }
         if (bed->base == DETECT_BYTE_EXTRACT_BASE_OCT) {
             /* if are dealing with octal nos, the max no that can fit in a 8
              * byte value is 01777777777777777777777 */
@@ -502,16 +245,11 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
         if (!(bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN))
             bed->endian = DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT;
     }
-
-    pcre2_match_data_free(match);
-
     return bed;
+
  error:
     if (bed != NULL)
         DetectByteExtractFree(de_ctx, bed);
-    if (match) {
-        pcre2_match_data_free(match);
-    }
     return NULL;
 }
 
@@ -531,7 +269,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_
 static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     SigMatch *prev_pm = NULL;
-    DetectByteExtractData *data = NULL;
+    SCDetectByteExtractData *data = NULL;
     int ret = -1;
 
     data = DetectByteExtractParse(de_ctx, arg);
@@ -585,10 +323,8 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const c
         if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
             goto error;
 
-        if ((data->flags & DETECT_BYTE_EXTRACT_FLAG_STRING) ||
-            (data->base == DETECT_BYTE_EXTRACT_BASE_DEC) ||
-            (data->base == DETECT_BYTE_EXTRACT_BASE_HEX) ||
-            (data->base == DETECT_BYTE_EXTRACT_BASE_OCT) ) {
+        if ((DETECT_BYTE_EXTRACT_FLAG_BASE | DETECT_BYTE_EXTRACT_FLAG_STRING) ==
+                (data->flags & (DETECT_BYTE_EXTRACT_FLAG_BASE | DETECT_BYTE_EXTRACT_FLAG_STRING))) {
             SCLogError("Invalid option. "
                        "A byte_jump keyword with dce holds other invalid modifiers.");
             goto error;
@@ -600,7 +336,7 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     if (prev_bed_sm == NULL)
         data->local_id = 0;
     else
-        data->local_id = ((DetectByteExtractData *)prev_bed_sm->ctx)->local_id + 1;
+        data->local_id = ((SCDetectByteExtractData *)prev_bed_sm->ctx)->local_id + 1;
     if (data->local_id > de_ctx->byte_extract_max_local_id)
         de_ctx->byte_extract_max_local_id = data->local_id;
 
@@ -632,20 +368,13 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 }
 
 /**
- * \brief Used to free instances of DetectByteExtractData.
+ * \brief Used to free instances of SCDetectByteExtractData.
  *
- * \param ptr Instance of DetectByteExtractData to be freed.
+ * \param ptr Instance of SCDetectByteExtractData to be freed.
  */
 static void DetectByteExtractFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    if (ptr != NULL) {
-        DetectByteExtractData *bed = ptr;
-        if (bed->name != NULL)
-            SCFree((void *)bed->name);
-        SCFree(bed);
-    }
-
-    return;
+    SCByteExtractFree(ptr);
 }
 
 /**
@@ -662,7 +391,7 @@ SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, const Signature *s)
         SigMatch *sm = s->init_data->buffers[x].head;
         while (sm != NULL) {
             if (sm->type == DETECT_BYTE_EXTRACT) {
-                const DetectByteExtractData *bed = (const DetectByteExtractData *)sm->ctx;
+                const SCDetectByteExtractData *bed = (const SCDetectByteExtractData *)sm->ctx;
                 if (strcmp(bed->name, arg) == 0) {
                     return sm;
                 }
@@ -675,7 +404,7 @@ SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, const Signature *s)
         SigMatch *sm = s->init_data->smlists[list];
         while (sm != NULL) {
             if (sm->type == DETECT_BYTE_EXTRACT) {
-                const DetectByteExtractData *bed = (const DetectByteExtractData *)sm->ctx;
+                const SCDetectByteExtractData *bed = (const SCDetectByteExtractData *)sm->ctx;
                 if (strcmp(bed->name, arg) == 0) {
                     return sm;
                 }
@@ -698,18 +427,13 @@ static int DetectByteExtractTest01(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != 0 ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 || bed->flags != 0 ||
+            bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -724,18 +448,14 @@ static int DetectByteExtractTest02(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, relative");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, relative");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_RELATIVE ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->flags != DETECT_BYTE_EXTRACT_FLAG_RELATIVE ||
+            bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -750,18 +470,14 @@ static int DetectByteExtractTest03(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, multiplier 10");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, multiplier 10");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_MULTIPLIER ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != 10) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->flags != DETECT_BYTE_EXTRACT_FLAG_MULTIPLIER ||
+            bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT || bed->align_value != 0 ||
+            bed->multiplier_value != 10) {
         goto end;
     }
 
@@ -776,19 +492,16 @@ static int DetectByteExtractTest04(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, relative, multiplier 10");
+    SCDetectByteExtractData *bed =
+            DetectByteExtractParse(NULL, "4, 2, one, relative, multiplier 10");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != (DETECT_BYTE_EXTRACT_FLAG_RELATIVE |
-                       DETECT_BYTE_EXTRACT_FLAG_MULTIPLIER) ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != 10) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->flags !=
+                    (DETECT_BYTE_EXTRACT_FLAG_RELATIVE | DETECT_BYTE_EXTRACT_FLAG_MULTIPLIER) ||
+            bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT || bed->align_value != 0 ||
+            bed->multiplier_value != 10) {
         goto end;
     }
 
@@ -803,18 +516,14 @@ static int DetectByteExtractTest05(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, big");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, big");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_ENDIAN ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_BIG ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->flags != DETECT_BYTE_EXTRACT_FLAG_ENDIAN ||
+            bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_BIG || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -829,18 +538,14 @@ static int DetectByteExtractTest06(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, little");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, little");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_ENDIAN ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_LITTLE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->flags != DETECT_BYTE_EXTRACT_FLAG_ENDIAN ||
+            bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_LITTLE || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -855,18 +560,14 @@ static int DetectByteExtractTest07(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, dce");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, dce");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_ENDIAN ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DCE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->flags != DETECT_BYTE_EXTRACT_FLAG_ENDIAN ||
+            bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DCE || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -881,18 +582,14 @@ static int DetectByteExtractTest08(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, string, hex");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, string, hex");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_BASE | DETECT_BYTE_EXTRACT_FLAG_STRING) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -907,18 +604,14 @@ static int DetectByteExtractTest09(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, string, oct");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, string, oct");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_OCT ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_BASE | DETECT_BYTE_EXTRACT_FLAG_STRING) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_OCT || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -933,18 +626,13 @@ static int DetectByteExtractTest10(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, string, dec");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, string, dec");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_DEC ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_DEC || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -959,18 +647,14 @@ static int DetectByteExtractTest11(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_ALIGN ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
-        bed->align_value != 4 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->flags != DETECT_BYTE_EXTRACT_FLAG_ALIGN ||
+            bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT || bed->align_value != 4 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -985,19 +669,14 @@ static int DetectByteExtractTest12(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, relative");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, relative");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != (DETECT_BYTE_EXTRACT_FLAG_ALIGN |
-                       DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
-        bed->align_value != 4 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_ALIGN | DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
+            bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT || bed->align_value != 4 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -1012,20 +691,16 @@ static int DetectByteExtractTest13(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, relative, big");
+    SCDetectByteExtractData *bed =
+            DetectByteExtractParse(NULL, "4, 2, one, align 4, relative, big");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != (DETECT_BYTE_EXTRACT_FLAG_ALIGN |
-                       DETECT_BYTE_EXTRACT_FLAG_ENDIAN |
-                       DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_BIG ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
-        bed->align_value != 4 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_ALIGN | DETECT_BYTE_EXTRACT_FLAG_ENDIAN |
+                                  DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
+            bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_BIG || bed->align_value != 4 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -1040,20 +715,16 @@ static int DetectByteExtractTest14(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, relative, dce");
+    SCDetectByteExtractData *bed =
+            DetectByteExtractParse(NULL, "4, 2, one, align 4, relative, dce");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != (DETECT_BYTE_EXTRACT_FLAG_ALIGN |
-                       DETECT_BYTE_EXTRACT_FLAG_ENDIAN |
-                       DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DCE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
-        bed->align_value != 4 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_ALIGN | DETECT_BYTE_EXTRACT_FLAG_ENDIAN |
+                                  DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
+            bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DCE || bed->align_value != 4 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -1068,20 +739,16 @@ static int DetectByteExtractTest15(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, relative, little");
+    SCDetectByteExtractData *bed =
+            DetectByteExtractParse(NULL, "4, 2, one, align 4, relative, little");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != (DETECT_BYTE_EXTRACT_FLAG_ALIGN |
-                       DETECT_BYTE_EXTRACT_FLAG_ENDIAN |
-                       DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_LITTLE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
-        bed->align_value != 4 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_ALIGN | DETECT_BYTE_EXTRACT_FLAG_ENDIAN |
+                                  DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
+            bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_LITTLE || bed->align_value != 4 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -1096,21 +763,17 @@ static int DetectByteExtractTest16(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, relative, little, multiplier 2");
+    SCDetectByteExtractData *bed =
+            DetectByteExtractParse(NULL, "4, 2, one, align 4, relative, little, multiplier 2");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != (DETECT_BYTE_EXTRACT_FLAG_ALIGN |
-                       DETECT_BYTE_EXTRACT_FLAG_RELATIVE |
-                       DETECT_BYTE_EXTRACT_FLAG_ENDIAN |
-                       DETECT_BYTE_EXTRACT_FLAG_MULTIPLIER) ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_LITTLE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
-        bed->align_value != 4 ||
-        bed->multiplier_value != 2) {
+    if (bed->nbytes != 4 || bed->offset != 2 || strcmp(bed->name, "one") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_ALIGN | DETECT_BYTE_EXTRACT_FLAG_RELATIVE |
+                                  DETECT_BYTE_EXTRACT_FLAG_ENDIAN |
+                                  DETECT_BYTE_EXTRACT_FLAG_MULTIPLIER) ||
+            bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_LITTLE || bed->align_value != 4 ||
+            bed->multiplier_value != 2) {
         goto end;
     }
 
@@ -1125,9 +788,9 @@ static int DetectByteExtractTest17(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
-                                                        "relative, little, "
-                                                        "multiplier 2, string hex");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
+                                                                "relative, little, "
+                                                                "multiplier 2, string hex");
     if (bed != NULL)
         goto end;
 
@@ -1142,10 +805,10 @@ static int DetectByteExtractTest18(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
-                                                        "relative, little, "
-                                                        "multiplier 2, "
-                                                        "relative");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
+                                                                "relative, little, "
+                                                                "multiplier 2, "
+                                                                "relative");
     if (bed != NULL)
         goto end;
 
@@ -1160,10 +823,10 @@ static int DetectByteExtractTest19(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
-                                                        "relative, little, "
-                                                        "multiplier 2, "
-                                                        "little");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
+                                                                "relative, little, "
+                                                                "multiplier 2, "
+                                                                "little");
     if (bed != NULL)
         goto end;
 
@@ -1178,10 +841,10 @@ static int DetectByteExtractTest20(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
-                                                        "relative, "
-                                                        "multiplier 2, "
-                                                        "align 2");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
+                                                                "relative, "
+                                                                "multiplier 2, "
+                                                                "align 2");
     if (bed != NULL)
         goto end;
 
@@ -1196,10 +859,10 @@ static int DetectByteExtractTest21(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
-                                                        "multiplier 2, "
-                                                        "relative, "
-                                                        "multiplier 2");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
+                                                                "multiplier 2, "
+                                                                "relative, "
+                                                                "multiplier 2");
     if (bed != NULL)
         goto end;
 
@@ -1214,10 +877,10 @@ static int DetectByteExtractTest22(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
-                                                        "string hex, "
-                                                        "relative, "
-                                                        "string hex");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
+                                                                "string hex, "
+                                                                "relative, "
+                                                                "string hex");
     if (bed != NULL)
         goto end;
 
@@ -1232,10 +895,10 @@ static int DetectByteExtractTest23(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
-                                                        "string hex, "
-                                                        "relative, "
-                                                        "string oct");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
+                                                                "string hex, "
+                                                                "relative, "
+                                                                "string oct");
     if (bed != NULL)
         goto end;
 
@@ -1250,9 +913,9 @@ static int DetectByteExtractTest24(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "24, 2, one, align 4, "
-                                                        "string hex, "
-                                                        "relative");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "24, 2, one, align 4, "
+                                                                "string hex, "
+                                                                "relative");
     if (bed != NULL)
         goto end;
 
@@ -1267,9 +930,9 @@ static int DetectByteExtractTest25(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "9, 2, one, align 4, "
-                                                        "little, "
-                                                        "relative");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "9, 2, one, align 4, "
+                                                                "little, "
+                                                                "relative");
     if (bed != NULL)
         goto end;
 
@@ -1284,10 +947,10 @@ static int DetectByteExtractTest26(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
-                                                        "little, "
-                                                        "relative, "
-                                                        "multiplier 65536");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
+                                                                "little, "
+                                                                "relative, "
+                                                                "multiplier 65536");
     if (bed != NULL)
         goto end;
 
@@ -1302,10 +965,10 @@ static int DetectByteExtractTest27(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
-                                                        "little, "
-                                                        "relative, "
-                                                        "multiplier 0");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
+                                                                "little, "
+                                                                "relative, "
+                                                                "multiplier 0");
     if (bed != NULL)
         goto end;
 
@@ -1320,7 +983,7 @@ static int DetectByteExtractTest28(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "23, 2, one, string, oct");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "23, 2, one, string, oct");
     if (bed == NULL)
         goto end;
 
@@ -1335,7 +998,7 @@ static int DetectByteExtractTest29(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "24, 2, one, string, oct");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "24, 2, one, string, oct");
     if (bed != NULL)
         goto end;
 
@@ -1350,7 +1013,7 @@ static int DetectByteExtractTest30(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "20, 2, one, string, dec");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "20, 2, one, string, dec");
     if (bed == NULL)
         goto end;
 
@@ -1365,7 +1028,7 @@ static int DetectByteExtractTest31(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "21, 2, one, string, dec");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "21, 2, one, string, dec");
     if (bed != NULL)
         goto end;
 
@@ -1380,7 +1043,7 @@ static int DetectByteExtractTest32(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "14, 2, one, string, hex");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "14, 2, one, string, hex");
     if (bed == NULL)
         goto end;
 
@@ -1395,7 +1058,7 @@ static int DetectByteExtractTest33(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "15, 2, one, string, hex");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "15, 2, one, string, hex");
     if (bed != NULL)
         goto end;
 
@@ -1413,7 +1076,7 @@ static int DetectByteExtractTest34(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed = NULL;
+    SCDetectByteExtractData *bed = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1459,16 +1122,12 @@ static int DetectByteExtractTest34(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strncmp(bed->name, "two", cd->content_len) != 0 ||
-        bed->flags != (DETECT_BYTE_EXTRACT_FLAG_RELATIVE |
-                       DETECT_BYTE_EXTRACT_FLAG_STRING) ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 2 || strncmp(bed->name, "two", cd->content_len) != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_RELATIVE | DETECT_BYTE_EXTRACT_FLAG_BASE |
+                                  DETECT_BYTE_EXTRACT_FLAG_STRING) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -1490,7 +1149,7 @@ static int DetectByteExtractTest35(void)
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
     DetectPcreData *pd = NULL;
-    DetectByteExtractData *bed = NULL;
+    SCDetectByteExtractData *bed = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1547,16 +1206,12 @@ static int DetectByteExtractTest35(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "two") != 0 ||
-        bed->flags != (DETECT_BYTE_EXTRACT_FLAG_RELATIVE |
-                       DETECT_BYTE_EXTRACT_FLAG_STRING) ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "two") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_RELATIVE | DETECT_BYTE_EXTRACT_FLAG_BASE |
+                                  DETECT_BYTE_EXTRACT_FLAG_STRING) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -1601,12 +1256,12 @@ static int DetectByteExtractTest36(void)
     FAIL_IF(bjd->flags != 0);
     sm = sm->next;
     FAIL_IF(sm->type != DETECT_BYTE_EXTRACT);
-    DetectByteExtractData *bed = (DetectByteExtractData *)sm->ctx;
+    SCDetectByteExtractData *bed = (SCDetectByteExtractData *)sm->ctx;
     FAIL_IF(bed->nbytes != 4);
     FAIL_IF(bed->offset != 0);
     FAIL_IF(strcmp(bed->name, "two") != 0);
-    FAIL_IF(bed->flags != (DETECT_BYTE_EXTRACT_FLAG_RELATIVE | DETECT_BYTE_EXTRACT_FLAG_STRING));
-    FAIL_IF(bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE);
+    FAIL_IF(bed->flags != (DETECT_BYTE_EXTRACT_FLAG_RELATIVE | DETECT_BYTE_EXTRACT_FLAG_BASE |
+                                  DETECT_BYTE_EXTRACT_FLAG_STRING));
     FAIL_IF(bed->base != DETECT_BYTE_EXTRACT_BASE_HEX);
     FAIL_IF(bed->align_value != 0);
     FAIL_IF(bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT);
@@ -1623,7 +1278,7 @@ static int DetectByteExtractTest37(void)
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
     DetectContentData *ud = NULL;
-    DetectByteExtractData *bed = NULL;
+    SCDetectByteExtractData *bed = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1693,16 +1348,12 @@ static int DetectByteExtractTest37(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "two") != 0 ||
-        bed->flags != (DETECT_BYTE_EXTRACT_FLAG_RELATIVE |
-                       DETECT_BYTE_EXTRACT_FLAG_STRING) ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "two") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_RELATIVE | DETECT_BYTE_EXTRACT_FLAG_BASE |
+                                  DETECT_BYTE_EXTRACT_FLAG_STRING) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -1724,7 +1375,7 @@ static int DetectByteExtractTest38(void)
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
     DetectContentData *ud = NULL;
-    DetectByteExtractData *bed = NULL;
+    SCDetectByteExtractData *bed = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1770,15 +1421,11 @@ static int DetectByteExtractTest38(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "two") != 0 ||
-        bed->flags !=DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "two") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_BASE | DETECT_BYTE_EXTRACT_FLAG_STRING) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -1824,7 +1471,7 @@ static int DetectByteExtractTest39(void)
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
     DetectContentData *ud = NULL;
-    DetectByteExtractData *bed = NULL;
+    SCDetectByteExtractData *bed = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1894,16 +1541,12 @@ static int DetectByteExtractTest39(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "two") != 0 ||
-        bed->flags != (DETECT_BYTE_EXTRACT_FLAG_RELATIVE |
-                       DETECT_BYTE_EXTRACT_FLAG_STRING) ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "two") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_RELATIVE | DETECT_BYTE_EXTRACT_FLAG_BASE |
+                                  DETECT_BYTE_EXTRACT_FLAG_STRING) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -1925,7 +1568,7 @@ static int DetectByteExtractTest40(void)
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
     DetectContentData *ud = NULL;
-    DetectByteExtractData *bed = NULL;
+    SCDetectByteExtractData *bed = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1971,15 +1614,11 @@ static int DetectByteExtractTest40(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "two") != 0 ||
-        bed->flags !=DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "two") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -2024,7 +1663,7 @@ static int DetectByteExtractTest41(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed = NULL;
+    SCDetectByteExtractData *bed = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2071,15 +1710,11 @@ static int DetectByteExtractTest41(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "two") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "two") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed->local_id != 0) {
@@ -2092,15 +1727,11 @@ static int DetectByteExtractTest41(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "three") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "three") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed->local_id != 1) {
@@ -2126,7 +1757,7 @@ static int DetectByteExtractTest42(void)
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
     DetectContentData *ud = NULL;
-    DetectByteExtractData *bed = NULL;
+    SCDetectByteExtractData *bed = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2175,15 +1806,11 @@ static int DetectByteExtractTest42(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "two") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "two") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed->local_id != 0) {
@@ -2196,15 +1823,11 @@ static int DetectByteExtractTest42(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "five") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "five") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed->local_id != 1) {
@@ -2239,16 +1862,12 @@ static int DetectByteExtractTest42(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "four") != 0 ||
-        bed->flags != (DETECT_BYTE_EXTRACT_FLAG_RELATIVE |
-                       DETECT_BYTE_EXTRACT_FLAG_STRING) ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "four") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_RELATIVE | DETECT_BYTE_EXTRACT_FLAG_BASE |
+                                  DETECT_BYTE_EXTRACT_FLAG_STRING) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed->local_id != 0) {
@@ -2276,7 +1895,7 @@ static int DetectByteExtractTest43(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed = NULL;
+    SCDetectByteExtractData *bed = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2323,15 +1942,11 @@ static int DetectByteExtractTest43(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "two") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "two") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_BASE | DETECT_BYTE_EXTRACT_FLAG_STRING) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed->local_id != 0) {
@@ -2374,8 +1989,8 @@ static int DetectByteExtractTest44(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed1 = NULL;
-    DetectByteExtractData *bed2 = NULL;
+    SCDetectByteExtractData *bed1 = NULL;
+    SCDetectByteExtractData *bed2 = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2424,15 +2039,11 @@ static int DetectByteExtractTest44(void)
         result = 0;
         goto end;
     }
-    bed1 = (DetectByteExtractData *)sm->ctx;
-    if (bed1->nbytes != 4 ||
-        bed1->offset != 0 ||
-        strcmp(bed1->name, "two") != 0 ||
-        bed1->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed1->align_value != 0 ||
-        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed1 = (SCDetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 || bed1->offset != 0 || strcmp(bed1->name, "two") != 0 ||
+            bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed1->align_value != 0 ||
+            bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed1->local_id != 0) {
@@ -2445,7 +2056,7 @@ static int DetectByteExtractTest44(void)
         result = 0;
         goto end;
     }
-    bed2 = (DetectByteExtractData *)sm->ctx;
+    bed2 = (SCDetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_CONTENT) {
@@ -2497,7 +2108,7 @@ static int DetectByteExtractTest45(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed = NULL;
+    SCDetectByteExtractData *bed = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2544,15 +2155,11 @@ static int DetectByteExtractTest45(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "two") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "two") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed->local_id != 0) {
@@ -2596,8 +2203,8 @@ static int DetectByteExtractTest46(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed1 = NULL;
-    DetectByteExtractData *bed2 = NULL;
+    SCDetectByteExtractData *bed1 = NULL;
+    SCDetectByteExtractData *bed2 = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2646,15 +2253,11 @@ static int DetectByteExtractTest46(void)
         result = 0;
         goto end;
     }
-    bed1 = (DetectByteExtractData *)sm->ctx;
-    if (bed1->nbytes != 4 ||
-        bed1->offset != 0 ||
-        strcmp(bed1->name, "two") != 0 ||
-        bed1->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed1->align_value != 0 ||
-        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed1 = (SCDetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 || bed1->offset != 0 || strcmp(bed1->name, "two") != 0 ||
+            bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed1->align_value != 0 ||
+            bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed1->local_id != 0) {
@@ -2667,7 +2270,7 @@ static int DetectByteExtractTest46(void)
         result = 0;
         goto end;
     }
-    bed2 = (DetectByteExtractData *)sm->ctx;
+    bed2 = (SCDetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_CONTENT) {
@@ -2719,7 +2322,7 @@ static int DetectByteExtractTest47(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed = NULL;
+    SCDetectByteExtractData *bed = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2766,15 +2369,11 @@ static int DetectByteExtractTest47(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "two") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "two") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed->local_id != 0) {
@@ -2819,8 +2418,8 @@ static int DetectByteExtractTest48(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed1 = NULL;
-    DetectByteExtractData *bed2 = NULL;
+    SCDetectByteExtractData *bed1 = NULL;
+    SCDetectByteExtractData *bed2 = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2869,15 +2468,11 @@ static int DetectByteExtractTest48(void)
         result = 0;
         goto end;
     }
-    bed1 = (DetectByteExtractData *)sm->ctx;
-    if (bed1->nbytes != 4 ||
-        bed1->offset != 0 ||
-        strcmp(bed1->name, "two") != 0 ||
-        bed1->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed1->align_value != 0 ||
-        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed1 = (SCDetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 || bed1->offset != 0 || strcmp(bed1->name, "two") != 0 ||
+            bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed1->align_value != 0 ||
+            bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed1->local_id != 0) {
@@ -2890,7 +2485,7 @@ static int DetectByteExtractTest48(void)
         result = 0;
         goto end;
     }
-    bed2 = (DetectByteExtractData *)sm->ctx;
+    bed2 = (SCDetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_CONTENT) {
@@ -2947,7 +2542,7 @@ static int DetectByteExtractTest49(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed = NULL;
+    SCDetectByteExtractData *bed = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2994,15 +2589,11 @@ static int DetectByteExtractTest49(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "two") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "two") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed->local_id != 0) {
@@ -3048,8 +2639,8 @@ static int DetectByteExtractTest50(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed1 = NULL;
-    DetectByteExtractData *bed2 = NULL;
+    SCDetectByteExtractData *bed1 = NULL;
+    SCDetectByteExtractData *bed2 = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -3098,15 +2689,11 @@ static int DetectByteExtractTest50(void)
         result = 0;
         goto end;
     }
-    bed1 = (DetectByteExtractData *)sm->ctx;
-    if (bed1->nbytes != 4 ||
-        bed1->offset != 0 ||
-        strcmp(bed1->name, "two") != 0 ||
-        bed1->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed1->align_value != 0 ||
-        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed1 = (SCDetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 || bed1->offset != 0 || strcmp(bed1->name, "two") != 0 ||
+            bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed1->align_value != 0 ||
+            bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed1->local_id != 0) {
@@ -3119,7 +2706,7 @@ static int DetectByteExtractTest50(void)
         result = 0;
         goto end;
     }
-    bed2 = (DetectByteExtractData *)sm->ctx;
+    bed2 = (SCDetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_CONTENT) {
@@ -3178,7 +2765,7 @@ static int DetectByteExtractTest51(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed = NULL;
+    SCDetectByteExtractData *bed = NULL;
     DetectBytetestData *btd = NULL;
 
     de_ctx = DetectEngineCtxInit();
@@ -3226,15 +2813,11 @@ static int DetectByteExtractTest51(void)
         result = 0;
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 0 ||
-        strcmp(bed->name, "two") != 0 ||
-        bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 0 || strcmp(bed->name, "two") != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed->local_id != 0) {
@@ -3276,7 +2859,7 @@ static int DetectByteExtractTest52(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed1 = NULL;
+    SCDetectByteExtractData *bed1 = NULL;
     DetectBytetestData *btd = NULL;
 
     de_ctx = DetectEngineCtxInit();
@@ -3326,15 +2909,11 @@ static int DetectByteExtractTest52(void)
         result = 0;
         goto end;
     }
-    bed1 = (DetectByteExtractData *)sm->ctx;
-    if (bed1->nbytes != 4 ||
-        bed1->offset != 0 ||
-        strcmp(bed1->name, "two") != 0 ||
-        bed1->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed1->align_value != 0 ||
-        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed1 = (SCDetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 || bed1->offset != 0 || strcmp(bed1->name, "two") != 0 ||
+            bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed1->align_value != 0 ||
+            bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed1->local_id != 0) {
@@ -3412,13 +2991,12 @@ static int DetectByteExtractTest53(void)
     sm = sm->next;
     FAIL_IF_NULL(sm);
     FAIL_IF(sm->type != DETECT_BYTE_EXTRACT);
-    DetectByteExtractData *bed = (DetectByteExtractData *)sm->ctx;
+    SCDetectByteExtractData *bed = (SCDetectByteExtractData *)sm->ctx;
 
     FAIL_IF(bed->nbytes != 4);
     FAIL_IF(bed->offset != 0);
     FAIL_IF(strcmp(bed->name, "two") != 0);
-    FAIL_IF(bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING);
-    FAIL_IF(bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE);
+    FAIL_IF(bed->flags != (DETECT_BYTE_EXTRACT_FLAG_BASE | DETECT_BYTE_EXTRACT_FLAG_STRING));
     FAIL_IF(bed->base != DETECT_BYTE_EXTRACT_BASE_HEX);
     FAIL_IF(bed->align_value != 0);
     FAIL_IF(bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT);
@@ -3444,7 +3022,7 @@ static int DetectByteExtractTest54(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed1 = NULL;
+    SCDetectByteExtractData *bed1 = NULL;
     DetectBytejumpData *bjd = NULL;
 
     de_ctx = DetectEngineCtxInit();
@@ -3494,15 +3072,11 @@ static int DetectByteExtractTest54(void)
         result = 0;
         goto end;
     }
-    bed1 = (DetectByteExtractData *)sm->ctx;
-    if (bed1->nbytes != 4 ||
-        bed1->offset != 0 ||
-        strcmp(bed1->name, "two") != 0 ||
-        bed1->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed1->align_value != 0 ||
-        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed1 = (SCDetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 || bed1->offset != 0 || strcmp(bed1->name, "two") != 0 ||
+            bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed1->align_value != 0 ||
+            bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed1->local_id != 0) {
@@ -3560,8 +3134,8 @@ static int DetectByteExtractTest55(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed1 = NULL;
-    DetectByteExtractData *bed2 = NULL;
+    SCDetectByteExtractData *bed1 = NULL;
+    SCDetectByteExtractData *bed2 = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -3606,15 +3180,11 @@ static int DetectByteExtractTest55(void)
     if (sm->type != DETECT_BYTE_EXTRACT) {
         goto end;
     }
-    bed1 = (DetectByteExtractData *)sm->ctx;
-    if (bed1->nbytes != 4 ||
-        bed1->offset != 0 ||
-        strcmp(bed1->name, "two") != 0 ||
-        bed1->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed1->align_value != 0 ||
-        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed1 = (SCDetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 || bed1->offset != 0 || strcmp(bed1->name, "two") != 0 ||
+            bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed1->align_value != 0 ||
+            bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed1->local_id != 0) {
@@ -3625,7 +3195,7 @@ static int DetectByteExtractTest55(void)
     if (sm->type != DETECT_BYTE_EXTRACT) {
         goto end;
     }
-    bed2 = (DetectByteExtractData *)sm->ctx;
+    bed2 = (SCDetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_BYTE_EXTRACT) {
@@ -3674,8 +3244,8 @@ static int DetectByteExtractTest56(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed1 = NULL;
-    DetectByteExtractData *bed2 = NULL;
+    SCDetectByteExtractData *bed1 = NULL;
+    SCDetectByteExtractData *bed2 = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -3748,15 +3318,11 @@ static int DetectByteExtractTest56(void)
         result = 0;
         goto end;
     }
-    bed1 = (DetectByteExtractData *)sm->ctx;
-    if (bed1->nbytes != 4 ||
-        bed1->offset != 0 ||
-        strcmp(bed1->name, "two") != 0 ||
-        bed1->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed1->align_value != 0 ||
-        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed1 = (SCDetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 || bed1->offset != 0 || strcmp(bed1->name, "two") != 0 ||
+            bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed1->align_value != 0 ||
+            bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed1->local_id != 0) {
@@ -3769,7 +3335,7 @@ static int DetectByteExtractTest56(void)
         result = 0;
         goto end;
     }
-    bed2 = (DetectByteExtractData *)sm->ctx;
+    bed2 = (SCDetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_BYTE_EXTRACT) {
@@ -3822,10 +3388,10 @@ static int DetectByteExtractTest57(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed1 = NULL;
-    DetectByteExtractData *bed2 = NULL;
-    DetectByteExtractData *bed3 = NULL;
-    DetectByteExtractData *bed4 = NULL;
+    SCDetectByteExtractData *bed1 = NULL;
+    SCDetectByteExtractData *bed2 = NULL;
+    SCDetectByteExtractData *bed3 = NULL;
+    SCDetectByteExtractData *bed4 = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -3898,16 +3464,12 @@ static int DetectByteExtractTest57(void)
         result = 0;
         goto end;
     }
-    bed1 = (DetectByteExtractData *)sm->ctx;
-    if (bed1->nbytes != 4 ||
-        bed1->offset != 0 ||
-        strcmp(bed1->name, "two") != 0 ||
-        bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING |
-                        DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
-        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed1->align_value != 0 ||
-        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed1 = (SCDetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 || bed1->offset != 0 || strcmp(bed1->name, "two") != 0 ||
+            bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE |
+                                   DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
+            bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed1->align_value != 0 ||
+            bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed1->local_id != 0) {
@@ -3920,7 +3482,7 @@ static int DetectByteExtractTest57(void)
         result = 0;
         goto end;
     }
-    bed2 = (DetectByteExtractData *)sm->ctx;
+    bed2 = (SCDetectByteExtractData *)sm->ctx;
     if (bed2->local_id != 1) {
         result = 0;
         goto end;
@@ -3931,7 +3493,7 @@ static int DetectByteExtractTest57(void)
         result = 0;
         goto end;
     }
-    bed3 = (DetectByteExtractData *)sm->ctx;
+    bed3 = (SCDetectByteExtractData *)sm->ctx;
     if (bed3->local_id != 2) {
         result = 0;
         goto end;
@@ -3942,7 +3504,7 @@ static int DetectByteExtractTest57(void)
         result = 0;
         goto end;
     }
-    bed4 = (DetectByteExtractData *)sm->ctx;
+    bed4 = (SCDetectByteExtractData *)sm->ctx;
     if (bed4->local_id != 3) {
         result = 0;
         goto end;
@@ -3987,7 +3549,7 @@ static int DetectByteExtractTest58(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed1 = NULL;
+    SCDetectByteExtractData *bed1 = NULL;
     DetectBytejumpData *bjd = NULL;
     DetectIsdataatData *isdd = NULL;
 
@@ -4039,15 +3601,11 @@ static int DetectByteExtractTest58(void)
         result = 0;
         goto end;
     }
-    bed1 = (DetectByteExtractData *)sm->ctx;
-    if (bed1->nbytes != 4 ||
-        bed1->offset != 0 ||
-        strcmp(bed1->name, "two") != 0 ||
-        bed1->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
-        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed1->align_value != 0 ||
-        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed1 = (SCDetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 || bed1->offset != 0 || strcmp(bed1->name, "two") != 0 ||
+            bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE) ||
+            bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed1->align_value != 0 ||
+            bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed1->local_id != 0) {
@@ -4145,12 +3703,13 @@ static int DetectByteExtractTest59(void)
     FAIL_IF_NULL(sm);
     FAIL_IF(sm->type != DETECT_BYTE_EXTRACT);
 
-    DetectByteExtractData *bed1 = (DetectByteExtractData *)sm->ctx;
+    SCDetectByteExtractData *bed1 = (SCDetectByteExtractData *)sm->ctx;
     FAIL_IF(bed1->nbytes != 4);
     FAIL_IF(bed1->offset != 0);
     FAIL_IF(strcmp(bed1->name, "two") != 0);
-    FAIL_IF(bed1->flags != DETECT_BYTE_EXTRACT_FLAG_STRING);
-    FAIL_IF(bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE);
+    printf("a\n");
+    FAIL_IF(bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_BASE | DETECT_BYTE_EXTRACT_FLAG_STRING));
+    printf("b\n");
     FAIL_IF(bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX);
     FAIL_IF(bed1->align_value != 0);
     FAIL_IF(bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT);
@@ -4197,7 +3756,7 @@ static int DetectByteExtractTest60(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed1 = NULL;
+    SCDetectByteExtractData *bed1 = NULL;
     DetectIsdataatData *isdd = NULL;
 
     de_ctx = DetectEngineCtxInit();
@@ -4247,16 +3806,12 @@ static int DetectByteExtractTest60(void)
         result = 0;
         goto end;
     }
-    bed1 = (DetectByteExtractData *)sm->ctx;
-    if (bed1->nbytes != 4 ||
-        bed1->offset != 0 ||
-        strcmp(bed1->name, "two") != 0 ||
-        bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING |
-                        DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
-        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed1->align_value != 0 ||
-        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed1 = (SCDetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 || bed1->offset != 0 || strcmp(bed1->name, "two") != 0 ||
+            bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE |
+                                   DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
+            bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed1->align_value != 0 ||
+            bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed1->local_id != 0) {
@@ -4302,16 +3857,12 @@ static int DetectByteExtractTest60(void)
         result = 0;
         goto end;
     }
-    bed1 = (DetectByteExtractData *)sm->ctx;
-    if (bed1->nbytes != 4 ||
-        bed1->offset != 0 ||
-        strcmp(bed1->name, "four") != 0 ||
-        bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING |
-                        DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
-        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed1->align_value != 0 ||
-        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed1 = (SCDetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 || bed1->offset != 0 || strcmp(bed1->name, "four") != 0 ||
+            bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE |
+                                   DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
+            bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed1->align_value != 0 ||
+            bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed1->local_id != 0) {
@@ -4339,7 +3890,7 @@ static int DetectByteExtractTest61(void)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
-    DetectByteExtractData *bed1 = NULL;
+    SCDetectByteExtractData *bed1 = NULL;
     DetectIsdataatData *isdd = NULL;
 
     de_ctx = DetectEngineCtxInit();
@@ -4389,16 +3940,12 @@ static int DetectByteExtractTest61(void)
         result = 0;
         goto end;
     }
-    bed1 = (DetectByteExtractData *)sm->ctx;
-    if (bed1->nbytes != 4 ||
-        bed1->offset != 0 ||
-        strcmp(bed1->name, "two") != 0 ||
-        bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING |
-                        DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
-        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed1->align_value != 0 ||
-        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed1 = (SCDetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 || bed1->offset != 0 || strcmp(bed1->name, "two") != 0 ||
+            bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE |
+                                   DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
+            bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed1->align_value != 0 ||
+            bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed1->local_id != 0) {
@@ -4431,16 +3978,12 @@ static int DetectByteExtractTest61(void)
         result = 0;
         goto end;
     }
-    bed1 = (DetectByteExtractData *)sm->ctx;
-    if (bed1->nbytes != 4 ||
-        bed1->offset != 0 ||
-        strcmp(bed1->name, "four") != 0 ||
-        bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING |
-                        DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
-        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed1->align_value != 0 ||
-        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed1 = (SCDetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 || bed1->offset != 0 || strcmp(bed1->name, "four") != 0 ||
+            bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE |
+                                   DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
+            bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed1->align_value != 0 ||
+            bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
     if (bed1->local_id != 0) {
@@ -4481,7 +4024,7 @@ static int DetectByteExtractTest62(void)
     int result = 0;
     Signature *s = NULL;
     SigMatch *sm = NULL;
-    DetectByteExtractData *bed = NULL;
+    SCDetectByteExtractData *bed = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -4502,15 +4045,12 @@ static int DetectByteExtractTest62(void)
     if (sm->type != DETECT_BYTE_EXTRACT) {
         goto end;
     }
-    bed = (DetectByteExtractData *)sm->ctx;
-    if (bed->nbytes != 4 ||
-        bed->offset != 2 ||
-        strncmp(bed->name, "two", 3) != 0 ||
-        bed->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    bed = (SCDetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 || bed->offset != 2 || strncmp(bed->name, "two", 3) != 0 ||
+            bed->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING | DETECT_BYTE_EXTRACT_FLAG_BASE |
+                                  DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
+            bed->base != DETECT_BYTE_EXTRACT_BASE_HEX || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -4528,18 +4068,13 @@ static int DetectByteExtractTest63(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, -2, one");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, -2, one");
     if (bed == NULL)
         goto end;
 
-    if (bed->nbytes != 4 ||
-        bed->offset != -2 ||
-        strcmp(bed->name, "one") != 0 ||
-        bed->flags != 0 ||
-        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT ||
-        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
-        bed->align_value != 0 ||
-        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+    if (bed->nbytes != 4 || bed->offset != -2 || strcmp(bed->name, "one") != 0 || bed->flags != 0 ||
+            bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT || bed->align_value != 0 ||
+            bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
 
@@ -4554,7 +4089,7 @@ static int DetectByteExtractTestParseNoBase(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, string");
+    SCDetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, string");
     if (bed == NULL)
         goto end;
 
@@ -4568,9 +4103,6 @@ static int DetectByteExtractTestParseNoBase(void)
         goto end;
     }
     if (bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING) {
-        goto end;
-    }
-    if (bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE) {
         goto end;
     }
     if (bed->base != DETECT_BYTE_EXTRACT_BASE_DEC) {

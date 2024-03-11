@@ -543,7 +543,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
     } else if (smd->type == DETECT_BYTE_EXTRACT) {
 
-        const DetectByteExtractData *bed = (const DetectByteExtractData *)smd->ctx;
+        const SCDetectByteExtractData *bed = (const SCDetectByteExtractData *)smd->ctx;
         uint8_t endian = bed->endian;
 
         /* if we have dce enabled we will have to use the endianness
