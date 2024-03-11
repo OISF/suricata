@@ -167,6 +167,7 @@ SCEnumCharMap http_decoder_event_table[] = {
 
     { "RANGE_INVALID", HTTP_DECODER_EVENT_RANGE_INVALID },
     { "REQUEST_CHUNK_EXTENSION", HTTP_DECODER_EVENT_REQUEST_CHUNK_EXTENSION },
+    { "REQUEST_LINE_MISSING_PROTOCOL", HTTP_DECODER_EVENT_REQUEST_LINE_MISSING_PROTOCOL },
 
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR", HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR },
@@ -642,6 +643,7 @@ struct {
     { "Ambiguous response C-L value",
             HTTP_DECODER_EVENT_DUPLICATE_CONTENT_LENGTH_FIELD_IN_RESPONSE },
     { "Request chunk extension", HTTP_DECODER_EVENT_REQUEST_CHUNK_EXTENSION },
+    { "Request line: missing protocol", HTTP_DECODER_EVENT_REQUEST_LINE_MISSING_PROTOCOL },
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
