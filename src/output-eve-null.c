@@ -37,24 +37,25 @@ void NullLogInitialize(void)
 
 #define OUTPUT_NAME "nullsink"
 
-static int NullLogInit(ConfNode *conf, bool threaded, void **init_data)
+static int NullLogInit(const ConfNode *conf, const bool threaded, void **init_data)
 {
     *init_data = NULL;
     return 0;
 }
 
-static int NullLogWrite(const char *buffer, int buffer_len, void *init_data, void *thread_data)
+static int NullLogWrite(
+        const char *buffer, const int buffer_len, const void *init_data, void *thread_data)
 {
     return 0;
 }
 
-static int NullLogThreadInit(void *init_data, ThreadId thread_id, void **thread_data)
+static int NullLogThreadInit(const void *init_data, const ThreadId thread_id, void **thread_data)
 {
     *thread_data = NULL;
     return 0;
 }
 
-static void NullLogThreadDeInit(void *init_data, void *thread_data)
+static void NullLogThreadDeInit(const void *init_data, void *thread_data)
 {
 }
 
