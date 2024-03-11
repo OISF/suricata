@@ -9,3 +9,4 @@ Suricata Developer Guide
    internals/index.rst
    extending/index.rst
    libsuricata/index.rst
+   upgrading/index.rst
