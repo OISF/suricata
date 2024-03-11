@@ -808,7 +808,8 @@ static inline void DetectRulePacketRules(
 #endif
         DetectRunPostMatch(tv, det_ctx, p, s);
 
-        AlertQueueAppend(det_ctx, s, p, 0, alert_flags);
+        // UINT64_MAX means notx
+        AlertQueueAppend(det_ctx, s, p, UINT64_MAX, alert_flags);
 next:
         DetectVarProcessList(det_ctx, pflow, p);
         DetectReplaceFree(det_ctx);

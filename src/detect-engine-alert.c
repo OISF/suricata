@@ -272,7 +272,7 @@ static inline PacketAlert PacketAlertSet(
     pa.s = (Signature *)s;
     pa.flags = alert_flags;
     /* Set tx_id if the frame has it */
-    pa.tx_id = (tx_id == UINT64_MAX) ? 0 : tx_id;
+    pa.tx_id = tx_id;
     pa.frame_id = (alert_flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;
     return pa;
 }
@@ -317,8 +317,9 @@ static int AlertQueueSortHelper(const void *a, const void *b)
 {
     const PacketAlert *pa0 = a;
     const PacketAlert *pa1 = b;
+    // use tx_id + 1 because notx = UINT64_MAX
     if (pa1->num == pa0->num)
-        return pa0->tx_id < pa1->tx_id ? 1 : -1;
+        return ((pa0->tx_id + 1) < (pa1->tx_id + 1)) ? 1 : -1;
     return pa0->num > pa1->num ? 1 : -1;
 }
 
