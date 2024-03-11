@@ -54,9 +54,8 @@ static int NullLogThreadInit(void *init_data, ThreadId thread_id, void **thread_
     return 0;
 }
 
-static int NullLogThreadDeInit(void *init_data, void *thread_data)
+static void NullLogThreadDeInit(void *init_data, void *thread_data)
 {
-    return 0;
 }
 
 static void NullLogDeInit(void *init_data)
