@@ -317,9 +317,14 @@ static int AlertQueueSortHelper(const void *a, const void *b)
 {
     const PacketAlert *pa0 = a;
     const PacketAlert *pa1 = b;
-    // use tx_id + 1 because notx = UINT64_MAX
-    if (pa1->num == pa0->num)
-        return ((pa0->tx_id + 1) < (pa1->tx_id + 1)) ? 1 : -1;
+    if (pa1->num == pa0->num) {
+        if (pa1->tx_id == PACKET_ALERT_NOTX) {
+            return -1;
+        } else if (pa0->tx_id == PACKET_ALERT_NOTX) {
+            return 1;
+        }
+        return pa0->tx_id < pa1->tx_id ? 1 : -1;
+    }
     return pa0->num > pa1->num ? 1 : -1;
 }
 
