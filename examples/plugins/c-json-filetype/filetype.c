@@ -23,9 +23,6 @@
 
 #define FILETYPE_NAME "json-filetype-plugin"
 
-static int FiletypeThreadInit(void *ctx, ThreadId thread_id, void **thread_data);
-static int FiletypeThreadDeinit(void *ctx, void *thread_data);
-
 /**
  * Per thread context data for each logging thread.
  */
@@ -149,19 +146,18 @@ static int FiletypeThreadInit(void *ctx, ThreadId thread_id, void **thread_data)
  * This is where any cleanup per thread should be done including free'ing of the
  * thread_data if needed.
  */
-static int FiletypeThreadDeinit(void *ctx, void *thread_data)
+static void FiletypeThreadDeinit(void *ctx, void *thread_data)
 {
     SCLogNotice("thread_data=%p", thread_data);
     if (thread_data == NULL) {
         // Nothing to do.
-        return 0;
+        return;
     }
 
     ThreadData *tdata = thread_data;
     SCLogNotice(
             "Deinitializing thread %d: records written: %" PRIu64, tdata->thread_id, tdata->count);
     SCFree(tdata);
-    return 0;
 }
 
 /**
