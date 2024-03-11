@@ -103,36 +103,6 @@ typedef struct SCEveFileType_ {
     int (*Init)(const ConfNode *conf, const bool threaded, void **init_data);
 
     /**
-     * \brief Called for each EVE log record.
-     *
-     * The Write function is called for each log EVE log record. The
-     * provided buffer contains a fully formatted EVE record in JSON
-     * format.
-     *
-     * \param buffer The fully formatted JSON EVE log record
-     *
-     * \param buffer_len The length of the buffer
-     *
-     * \param init_data The data setup in the call to Init
-     *
-     * \param thread_data The data setup in the call to ThreadInit
-     *
-     * \retval 0 on success, -1 on failure
-     */
-    int (*Write)(
-            const char *buffer, const int buffer_len, const void *init_data, void *thread_data);
-
-    /**
-     * \brief Final call to deinitialize this filetype.
-     *
-     * Called, usually on exit to deinitialize and free any resources
-     * allocated during Init.
-     *
-     * \param init_data Data setup in the call to Init.
-     */
-    void (*Deinit)(void *init_data);
-
-    /**
      * \brief Initiaize thread specific data.
      *
      * Initialize any thread specific data. For example, if
@@ -154,6 +124,26 @@ typedef struct SCEveFileType_ {
     int (*ThreadInit)(const void *init_data, const ThreadId thread_id, void **thread_data);
 
     /**
+     * \brief Called for each EVE log record.
+     *
+     * The Write function is called for each log EVE log record. The
+     * provided buffer contains a fully formatted EVE record in JSON
+     * format.
+     *
+     * \param buffer The fully formatted JSON EVE log record
+     *
+     * \param buffer_len The length of the buffer
+     *
+     * \param init_data The data setup in the call to Init
+     *
+     * \param thread_data The data setup in the call to ThreadInit
+     *
+     * \retval 0 on success, -1 on failure
+     */
+    int (*Write)(
+            const char *buffer, const int buffer_len, const void *init_data, void *thread_data);
+
+    /**
      * \brief Called to deinitialize each thread.
      *
      * This function will be called for each thread. It is where any
@@ -164,6 +154,16 @@ typedef struct SCEveFileType_ {
      * \param thread_data The data setup in ThreadInit
      */
     void (*ThreadDeinit)(const void *init_data, void *thread_data);
+
+    /**
+     * \brief Final call to deinitialize this filetype.
+     *
+     * Called, usually on exit to deinitialize and free any resources
+     * allocated during Init.
+     *
+     * \param init_data Data setup in the call to Init.
+     */
+    void (*Deinit)(void *init_data);
 
     /* Internal list management. */
     TAILQ_ENTRY(SCEveFileType_) entries;
