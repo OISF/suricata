@@ -813,7 +813,18 @@ static inline void DetectRulePacketRules(
 #endif
         DetectRunPostMatch(tv, det_ctx, p, s);
 
-        AlertQueueAppend(det_ctx, s, p, 0, alert_flags);
+        uint64_t txid = PACKET_ALERT_NOTX;
+        if ((alert_flags & PACKET_ALERT_FLAG_STREAM_MATCH) ||
+                (s->alproto != ALPROTO_UNKNOWN && pflow->proto == IPPROTO_UDP)) {
+            // if there is a stream match (TCP), or
+            // a UDP specific app-layer signature,
+            // try to use the last tx
+            if (pflow->alstate) {
+                txid = AppLayerParserGetTxCnt(pflow, pflow->alstate) - 1;
+                alert_flags |= PACKET_ALERT_FLAG_TX;
+            }
+        }
+        AlertQueueAppend(det_ctx, s, p, txid, alert_flags);
 next:
         DetectVarProcessList(det_ctx, pflow, p);
         DetectReplaceFree(det_ctx);
