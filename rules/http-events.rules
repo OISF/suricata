@@ -91,4 +91,6 @@ alert http any any -> any any (msg:"SURICATA HTTP failed protocol change"; flow:
 
 #alert http any any -> any any (msg:"SURICATA HTTP request chunk extension"; flow:established; app-layer-event:http.request_chunk_extension; classtype:protocol-command-decode; sid:2221054; rev:1;)
 
-# next sid 2221055
+alert http any any -> any any (msg:"SURICATA HTTP request missing protocol"; flow:established; app-layer-event:http.request_line_missing_protocol; classtype:protocol-command-decode; sid:2221055; rev:1;)
+
+# next sid 2221056
