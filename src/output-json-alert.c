@@ -609,12 +609,14 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         }
 
         if (p->flow != NULL) {
-            if (json_output_ctx->flags & LOG_JSON_APP_LAYER) {
-                AlertAddAppLayer(p, jb, pa->tx_id, json_output_ctx->flags);
-            }
-            /* including fileinfo data is configured by the metadata setting */
-            if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
-                AlertAddFiles(p, jb, pa->tx_id);
+            if (pa->flags & PACKET_ALERT_FLAG_TX) {
+                if (json_output_ctx->flags & LOG_JSON_APP_LAYER) {
+                    AlertAddAppLayer(p, jb, pa->tx_id, json_output_ctx->flags);
+                }
+                /* including fileinfo data is configured by the metadata setting */
+                if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
+                    AlertAddFiles(p, jb, pa->tx_id);
+                }
             }
 
             EveAddAppProto(p->flow, jb);
