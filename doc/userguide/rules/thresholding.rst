@@ -118,7 +118,7 @@ again.
 
 Syntax::
 
-  detection_filter: track <by_src|by_dst|by_rule|by_both>, count <N>, seconds <T>
+  detection_filter: track <by_src|by_dst|by_rule|by_both|by_flow>, count <N>, seconds <T>
 
 Example::
 
