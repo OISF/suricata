@@ -80,6 +80,8 @@ typedef struct PcapFileFileVars_
     const u_char *first_pkt_data;
     struct pcap_pkthdr *first_pkt_hdr;
     struct timeval first_pkt_ts;
+
+    char buffer[131072];
 } PcapFileFileVars;
 
 /**
