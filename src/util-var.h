@@ -46,6 +46,7 @@ enum VarTypes {
     VAR_TYPE_IPPAIR_VAR,
 };
 
+/** \todo see ticket #6855. The type field should be 16 bits. */
 typedef struct GenericVar_ {
     uint8_t type; /**< variable type, uses detection sm_type */
     uint8_t pad[3];
