@@ -333,6 +333,7 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
     if (s->init_data->negated == true) {
         cd->flags |= DETECT_CONTENT_NEGATED;
     }
+    cd->flags &= ~DETECT_CONTENT_BASE64_DATA;
 
     DetectContentPrint(cd);
 
@@ -351,6 +352,10 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
             SCLogError("content string \"%s\" incompatible with %s transform", contentstr, tstr);
             goto error;
         }
+    }
+
+    if (s->init_data->list == DETECT_SM_LIST_BASE64_DATA) {
+        cd->flags |= DETECT_CONTENT_BASE64_DATA;
     }
 
     if (SigMatchAppendSMToList(de_ctx, s, DETECT_CONTENT, (SigMatchCtx *)cd, sm_list) == NULL) {
