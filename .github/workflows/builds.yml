@@ -1471,6 +1471,9 @@ jobs:
   ubuntu-22-04-cov-fuzz:
     name: Ubuntu 22.04 (fuzz corpus coverage)
     runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+      options: --privileged
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
@@ -1734,6 +1737,9 @@ jobs:
   ubuntu-22-04-debug-validation:
     name: Ubuntu 22.04 (Debug Validation)
     runs-on: ubuntu-22.04
+    container:
+      image: ubuntu:22.04
+      options: --privileged
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
