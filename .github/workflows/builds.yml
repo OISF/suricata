@@ -1473,7 +1473,9 @@ jobs:
   ubuntu-22-04-cov-fuzz:
     name: Ubuntu 22.04 (fuzz corpus coverage)
     runs-on: ubuntu-latest
-    container: ubuntu:22.04
+    container:
+      image: ubuntu:22.04
+      options: --privileged
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
@@ -1519,6 +1521,7 @@ jobs:
                 parallel \
                 python3-yaml \
                 software-properties-common \
+                sudo \
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags \
@@ -1542,6 +1545,11 @@ jobs:
           cp prep/cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Fix kernel mmap rnd bits
+      # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
+      # high-entropy ASLR in much newer kernels that GitHub runners are
+      # using leading to random crashes: https://github.com/actions/runner-images/issues/9491
+        run: sudo sysctl vm.mmap_rnd_bits=28
       - run: ./autogen.sh
       - run: ./configure --with-gnu-ld --enable-fuzztargets --disable-shared --enable-gccprotect
         env:
@@ -1717,7 +1725,9 @@ jobs:
   ubuntu-22-04-debug-validation:
     name: Ubuntu 22.04 (Debug Validation)
     runs-on: ubuntu-22.04
-    container: ubuntu:22.04
+    container:
+      image: ubuntu:22.04
+      options: --privileged
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -1762,6 +1772,7 @@ jobs:
                 python3-yaml \
                 rustc \
                 software-properties-common \
+                sudo \
                 zlib1g \
                 zlib1g-dev \
                 exuberant-ctags
@@ -1777,6 +1788,11 @@ jobs:
           cp prep/cbindgen $HOME/.cargo/bin
           chmod 755 $HOME/.cargo/bin/cbindgen
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Fix kernel mmap rnd bits
+      # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
+      # high-entropy ASLR in much newer kernels that GitHub runners are
+      # using leading to random crashes: https://github.com/actions/runner-images/issues/9491
+        run: sudo sysctl vm.mmap_rnd_bits=28
       - run: ./autogen.sh
       - run: ./configure --enable-debug-validation
         env:
