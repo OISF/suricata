@@ -23,6 +23,8 @@
  * Basic detection engine
  */
 
+// nothing
+
 #include "suricata-common.h"
 #include "suricata.h"
 #include "conf.h"
