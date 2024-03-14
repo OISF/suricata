@@ -272,6 +272,10 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
                 }
             }
         }
+        if (SigMatchListSMBelongsTo(s, pm) == DETECT_SM_LIST_BASE64_DATA) {
+            SCLogError("fast_pattern cannot be used with base64_data");
+            goto error;
+        }
         cd->flags |= DETECT_CONTENT_FAST_PATTERN;
         return 0;
     }
