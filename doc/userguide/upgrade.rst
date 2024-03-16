@@ -52,6 +52,9 @@ Major changes
   for the ``stats`` event.
 - Stats counters that are 0 can now be hidden from EVE logs. Default behavior
   still logs those (see :ref:`EVE Output - Stats <eve-json-output-stats>` for configuration setting).
+- SDP parser and logger have been introduced.
+  Due to SDP being encapsulated within other protocols, such as SIP, they cannot be directly enabled or disabled.
+  Instead, both the SDP parser and logger depend on being invoked by another parser (or logger).
 
 Upgrading 6.0 to 7.0
 --------------------
