@@ -18,6 +18,7 @@
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use crate::sdp::logger::sdp_log;
 use crate::sip::sip::SIPTransaction;
 
 fn log(tx: &SIPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
@@ -27,6 +28,10 @@ fn log(tx: &SIPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
         js.set_string("method", &req.method)?
             .set_string("uri", &req.path)?
             .set_string("version", &req.version)?;
+
+        if let Some(sdp_body) = &req.body {
+            let _ = sdp_log(sdp_body, js);
+        }
     }
 
     if let Some(req_line) = &tx.request_line {
@@ -37,6 +42,9 @@ fn log(tx: &SIPTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
         js.set_string("version", &resp.version)?
             .set_string("code", &resp.code)?
             .set_string("reason", &resp.reason)?;
+        if let Some(sdp_body) = &resp.body {
+            let _ = sdp_log(sdp_body, js);
+        }
     }
 
     if let Some(resp_line) = &tx.response_line {
