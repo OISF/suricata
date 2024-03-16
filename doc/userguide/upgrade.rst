@@ -50,6 +50,9 @@ Major changes
 - ``SIP_PORTS`` variable has been introduced in suricata.yaml
 - Application layer's ``sip`` counter has been split into ``sip_tcp`` and ``sip_udp``
   for the ``stats`` event.
+- SDP parser and logger has been introduced.
+  Due to SDP being encapsulated within other protocols, such as SIP, they cannot be directly enabled or disabled.
+  Instead, both the SDP parser and logger depend on being invoked by another parser (or logger).
 
 Upgrading 6.0 to 7.0
 --------------------
