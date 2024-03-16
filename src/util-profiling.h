@@ -423,6 +423,7 @@ void SCProfilingRuleThreatAggregate(DetectEngineThreadCtx *det_ctx);
                 ctx, r->profiling_id, profile_rule_end_ - profile_rule_start_, m);                 \
         profiling_rules_entered--;                                                                 \
         BUG_ON(profiling_rules_entered < 0);                                                       \
+        (p)->flags &= ~PKT_PROFILE;                                                                \
     }
 
 #else /* PROFILE_RULES */
