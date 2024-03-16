@@ -417,7 +417,7 @@ void SCProfilingRuleThreatAggregate(DetectEngineThreadCtx *det_ctx);
     }
 
 #define RULE_PROFILING_END(ctx, r, m, p)                                                           \
-    if (profiling_rules_enabled && ((p)->flags & PKT_PROFILE)) {                                   \
+    if (profiling_rules_enabled && profiling_rules_entered) {                                      \
         profile_rule_end_ = UtilCpuGetTicks();                                                     \
         SCProfilingRuleUpdateCounter(                                                              \
                 ctx, r->profiling_id, profile_rule_end_ - profile_rule_start_, m);                 \
