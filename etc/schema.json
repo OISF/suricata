@@ -3309,6 +3309,135 @@
                 },
                 "version": {
                     "type": "string"
+                },
+                "sdp": {
+                    "type": "object",
+                    "description": "SDP message body",
+                    "optional": true,
+                    "properties": {
+                        "version": {
+                            "type": "integer",
+                            "description": "SDP protocol version"
+                        },
+                        "origin": {
+                            "type": "string",
+                            "description": "Owner of the session"
+                        },
+                        "session_name": {
+                            "type": "string",
+                            "description": "Session name"
+                        },
+                        "session_info": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Textual information about the session"
+                        },
+                        "uri": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "A pointer to additional information about the session"
+                        },
+                        "email": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Email address for the person responsible for the conference"
+                        },
+                        "phone_number": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Phone number for the person responsible for the conference"
+                        },
+                        "connection_data": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Connection data"
+                        },
+                        "bandwidths": {
+                            "type": "array",
+                            "optional": true,
+                            "description": "Proposed bandwidths to be used by the session or media",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "time": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Start and stop times for a session"
+                        },
+                        "repeat_time": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Specify repeat times for a session"
+                        },
+                        "timezone": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Timezone to specify adjustments for times and offsets from the base time"
+                        },
+                        "encryption_key": {
+                            "type": "string",
+                            "optional": true,
+                            "description": "Field used to convey encryption keys if SDP is used over a secure channel"
+                        },
+                        "attributes": {
+                            "type": "array",
+                            "optional": true,
+                            "description": "A list of attributes to extend SDP",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string",
+                                "description": "Attribute's name and value"
+                            }
+                        },
+                        "media_descriptions": {
+                            "type": "array",
+                            "description": "A list of media descriptions for a session",
+                            "minItems": 1,
+                            "items": {
+                                "type": "object",
+                                "optional": true,
+                                "properties": {
+                                    "media": {
+                                        "type": "string",
+                                        "description": "Media description"
+                                    },
+                                    "media_info": {
+                                        "type": "string",
+                                        "optional": true,
+                                        "description": "Media information primarily intended for labelling media streams"
+                                    },
+                                    "bandwidths": {
+                                        "type": "array",
+                                        "optional": true,
+                                        "description": "A list of bandwidth proposed for a media",
+                                        "minItems": 1,
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "connection_data": {
+                                        "type": "string",
+                                        "optional": true,
+                                        "description": "Connection data per media description"
+                                    },
+                                    "attributes": {
+                                        "type": "array",
+                                        "description": "A list of attributes specified for a media description",
+                                        "optional": true,
+                                        "minItems": 1,
+                                        "items": {
+                                            "type": "string",
+                                            "description": "Attribute's name and value"
+                                        }
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false
