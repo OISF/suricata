@@ -274,6 +274,16 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
             break;
         }
 
+        case ETHERNET_TYPE_ARP: {
+            Packet *tp = PacketTunnelPktSetup(
+                    tv, dtv, p, pkt + header_len, len - header_len, DECODE_TUNNEL_ARP);
+            if (tp != NULL) {
+                PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
+                PacketEnqueueNoLock(&tv->decode_pq, tp);
+            }
+            break;
+        }
+
         default:
             return TM_ECODE_OK;
     }
