@@ -1091,6 +1091,7 @@ enum DecodeTunnelProto {
     DECODE_TUNNEL_IPV6_TEREDO, /**< separate protocol for stricter error handling */
     DECODE_TUNNEL_PPP,
     DECODE_TUNNEL_NSH,
+    DECODE_TUNNEL_ARP,
     DECODE_TUNNEL_UNSET
 };
 
