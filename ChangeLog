@@ -1,3 +1,13 @@
+6.0.17 -- 2024-03-19
+
+Security #6867: eve: excessive ssh long banner logging (6.0.x backport)(CVE 2024-28870)
+Security #6800: ssh: quadratic complexity in overlong banner (6.0.x backport)(CVE 2024-28870)
+Security #6758: libhtp: quadratic complexity checking after request line mission protocol (6.0.x backport)(CVE 2024-28871)
+Bug #6783: util/mime: Memory leak at util-decode-mime.c:MimeDecInitParser (6.0.x backport)
+Bug #6767: multi-tenancy: dead lock during tenant loading (6.0.x backport)
+Bug #6530: drop: assertion failed !(PKT_IS_PSEUDOPKT(p)) && !PacketCheckAction(p, ACTION_DROP) (6.0.x backport)
+Task #6869: libhtp 0.5.47 (6.0.x backport)
+
 6.0.16 -- 2024-02-08
 
 Security #6751: http2: evasion by splitting header fields over frames (6.0.x backport)
