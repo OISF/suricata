@@ -1429,6 +1429,7 @@ void SCProfilingInit(void)
     SC_ATOMIC_INIT(profiling_rules_active);
     SC_ATOMIC_INIT(samples);
     intmax_t rate_v = 0;
+    ConfNode *conf;
 
     (void)ConfGetInt("profiling.sample-rate", &rate_v);
     if (rate_v > 0 && rate_v < INT_MAX) {
@@ -1445,11 +1446,19 @@ void SCProfilingInit(void)
         else
             SCLogInfo("profiling runs for every packet");
     }
+
+    conf = ConfGetNode("profiling.rules");
+    if (ConfNodeChildValueIsTrue(conf, "active")) {
+        SC_ATOMIC_SET(profiling_rules_active, 1);
+    }
 }
 
 /* see if we want to profile rules for this packet */
 int SCProfileRuleStart(Packet *p)
 {
+    if (p->flags & PKT_PROFILE)
+        return 1;
+
     if (!SC_ATOMIC_GET(profiling_rules_active)) {
         return 0;
     }
@@ -1458,9 +1467,6 @@ int SCProfileRuleStart(Packet *p)
         p->flags |= PKT_PROFILE;
         return 1;
     }
-
-    if (p->flags & PKT_PROFILE)
-        return 1;
     return 0;
 }
 
