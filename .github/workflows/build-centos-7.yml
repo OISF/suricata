@@ -29,13 +29,13 @@ jobs:
     container: centos:7
     steps:
       - name: Cache cargo registry
-        uses: actions/cache@v3.3.3
+        uses: actions/cache@v4.0.1
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
 
       - name: Cache RPMs
-        uses: actions/cache@v3.3.3
+        uses: actions/cache@v4.0.1
         with:
           path: /var/cache/yum
           key: ${{ github.job }}-yum
