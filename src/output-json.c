@@ -566,8 +566,10 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
         case IPPROTO_SCTP:
             addr->sp = sp;
             addr->dp = dp;
+            addr->log_port = true;
             break;
         default:
+            addr->log_port = false;
             break;
     }
 
@@ -830,11 +832,21 @@ JsonBuilder *CreateEveHeader(const Packet *p, enum OutputJsonLogDirection dir,
         JsonAddrInfoInit(p, dir, &addr_info);
         addr = &addr_info;
     }
-    jb_set_string(js, "src_ip", addr->src_ip);
-    jb_set_uint(js, "src_port", addr->sp);
-    jb_set_string(js, "dest_ip", addr->dst_ip);
-    jb_set_uint(js, "dest_port", addr->dp);
-    jb_set_string(js, "proto", addr->proto);
+    if (addr->src_ip[0] != '\0') {
+        jb_set_string(js, "src_ip", addr->src_ip);
+    }
+    if (addr->log_port) {
+        jb_set_uint(js, "src_port", addr->sp);
+    }
+    if (addr->src_ip[0] != '\0') {
+        jb_set_string(js, "dest_ip", addr->dst_ip);
+    }
+    if (addr->log_port) {
+        jb_set_uint(js, "dest_port", addr->dp);
+    }
+    if (addr->proto[0] != '\0') {
+        jb_set_string(js, "proto", addr->proto);
+    }
 
     /* icmp */
     switch (p->proto) {
