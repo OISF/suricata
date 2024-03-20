@@ -28,9 +28,6 @@ env:
   # could cause some steps to fail.
   RUST_VERSION_KNOWN: "1.70.0"
 
-  # The minimum version of Rust supported.
-  RUST_VERSION_MIN: "1.63.0"
-
 jobs:
 
   prepare-deps:
@@ -2280,14 +2277,14 @@ jobs:
               texlive-latex-extra \
               zlib1g \
               zlib1g-dev
-      - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION_MIN} -y
-      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: actions/checkout@v3.5.3
       - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: prep
           path: prep
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $(grep rust-version rust/Cargo.toml.in|sed 's/\"//g'|awk '{print $3}') -y
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Setup cbindgen
         run: |
           mkdir -p $HOME/.cargo/bin
