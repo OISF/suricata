@@ -50,6 +50,8 @@ typedef struct JsonAddrInfo_ {
     Port sp;
     Port dp;
     char proto[JSON_PROTO_LEN];
+    // Ports are logged only when provided by the transport protocol.
+    bool log_port;
 } JsonAddrInfo;
 
 extern const JsonAddrInfo json_addr_info_zero;
