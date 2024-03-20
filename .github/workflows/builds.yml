@@ -1221,15 +1221,15 @@ jobs:
                 python3-yaml \
                 zlib1g \
                 zlib1g-dev
-      - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION_MIN} -y
-      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Download suricata.tar.gz
         uses: actions/download-artifact@v2
         with:
           name: dist
       - name: Extract
         run: tar zxvf suricata-*.tar.gz --strip-components=1
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $(grep rust-version rust/Cargo.toml.in|sed 's/\"//g'|awk '{print $3}') -y
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Configure
         run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - name: Build
