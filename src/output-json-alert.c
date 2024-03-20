@@ -656,8 +656,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             int stream = (p->proto == IPPROTO_TCP) ?
                          (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH) ?
                          1 : 0) : 0;
-            DEBUG_VALIDATE_BUG_ON(
-                    p->flow == NULL); // should be impossible, but scan-build got confused
+            // should be impossible, as stream implies flow
+            DEBUG_VALIDATE_BUG_ON(stream && p->flow == NULL);
 
             /* Is this a stream?  If so, pack part of it into the payload field */
             if (stream && p->flow != NULL) {
