@@ -749,10 +749,12 @@ static TcpSession *StreamTcpNewSession (Packet *p, int id)
             ssn->client.tcp_flags = p->tcph ? p->tcph->th_flags : 0;
             ssn->client.tcp_init_flags = p->tcph->th_flags;
             ssn->server.tcp_flags = 0;
+            ssn->server.tcp_init_flags = 0;
         } else if (PKT_IS_TOCLIENT(p)) {
             ssn->server.tcp_flags = p->tcph ? p->tcph->th_flags : 0;
             ssn->server.tcp_init_flags = p->tcph->th_flags;
             ssn->client.tcp_flags = 0;
+            ssn->client.tcp_init_flags = 0;
         }
     }
 
