@@ -69,8 +69,9 @@ argsd = {
             "required": 1,
         },
         {
-            "name": "hargs",
+            "name": "hargs_tuple",
             "type": int,
+            "variable": 1,
             "required": 0,
         },
     ],
@@ -85,8 +86,9 @@ argsd = {
             "required": 1,
         },
         {
-            "name": "hargs",
+            "name": "hargs_tuple",
             "type": int,
+            "variable": 1,
             "required": 0,
         },
     ],

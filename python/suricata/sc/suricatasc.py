@@ -220,6 +220,7 @@ class SuricataSC:
         arguments = dict()
         for c, spec in enumerate(cmd_specs, 1):
             spec_type = str if "type" not in spec else spec["type"]
+            variable =  False if "variable" not in spec else spec["variable"]
             if spec["required"]:
                 if spec.get("val"):
                     arguments[spec["name"]] = spec_type(spec["val"])
@@ -233,7 +234,12 @@ class SuricataSC:
                 except ValueError as ve:
                     raise SuricataCommandException("L{}: Erroneous arguments: {}".format(get_linenumber(), ve))
             elif c < len(full_cmd):
-                arguments[spec["name"]] = spec_type(full_cmd[c])
+                if variable:
+                    arguments[spec["name"]] = []
+                    for var in full_cmd[c:]:
+                        arguments[spec["name"]].append(spec_type(var))
+                else:
+                    arguments[spec["name"]] = spec_type(full_cmd[c])
         return cmd, arguments
 
     def parse_command(self, command):
@@ -279,7 +285,7 @@ class SuricataSC:
                         continue
                     cmdret = self.send_command(cmd, arguments)
                 except (SuricataCommandException, SuricataReturnException) as err:
-                    print("An exception occured: " + str(err.value))
+                    print("An exception occurred: " + str(err.value))
                     continue
                 #decode json message
                 if cmdret["return"] == "NOK":
