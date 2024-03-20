@@ -17,7 +17,6 @@
 
 #![allow(clippy::missing_safety_doc)]
 
-use std::collections::TryReserveError;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::str::Utf8Error;
@@ -28,7 +27,6 @@ const INIT_SIZE: usize = 4096;
 pub enum JsonError {
     InvalidState,
     Utf8Error(Utf8Error),
-    Memory,
 }
 
 impl std::error::Error for JsonError {}
@@ -38,14 +36,7 @@ impl std::fmt::Display for JsonError {
         match self {
             JsonError::InvalidState => write!(f, "invalid state"),
             JsonError::Utf8Error(ref e) => e.fmt(f),
-            JsonError::Memory => write!(f, "memory error"),
         }
-    }
-}
-
-impl From<TryReserveError> for JsonError {
-    fn from(_: TryReserveError) -> Self {
-        JsonError::Memory
     }
 }
 
@@ -448,7 +439,7 @@ impl JsonBuilder {
         };
         match std::str::from_utf8(val) {
             Ok(s) => self.set_string(key, s),
-            Err(_) => self.set_string(key, &try_string_from_bytes(val)?),
+            Err(_) => self.set_string(key, &string_from_bytes(val)),
         }
     }
 
@@ -593,26 +584,6 @@ fn string_from_bytes(input: &[u8]) -> String {
         }
     }
     return out;
-}
-
-/// A Suricata specific function to create a string from bytes when UTF-8 decoding fails.
-///
-/// For bytes over 0x0f, we encode as hex like "\xf2".
-fn try_string_from_bytes(input: &[u8]) -> Result<String, JsonError> {
-    let mut out = String::new();
-
-    // Allocate enough data to handle the worst case scenario of every
-    // byte needing to be presented as a byte.
-    out.try_reserve(input.len() * 4)?;
-
-    for b in input.iter() {
-        if *b < 128 {
-            out.push(*b as char);
-        } else {
-            out.push_str(&format!("\\x{:02x}", *b));
-        }
-    }
-    return Ok(out);
 }
 
 #[no_mangle]
