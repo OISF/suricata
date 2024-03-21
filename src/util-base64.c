@@ -107,7 +107,7 @@ static inline void DecodeBase64Block(uint8_t ascii[ASCII_BLOCK], uint8_t b64[B64
  * \return Error code indicating success or failures with parsing
  */
 Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, uint32_t len,
-        uint32_t *consumed_bytes, uint32_t *decoded_bytes, Base64Mode mode)
+        uint32_t *consumed_bytes, uint32_t *decoded_bytes, DetectBase64Mode mode)
 {
     int val;
     uint32_t padding = 0, bbidx = 0, sp = 0, leading_sp = 0;
@@ -122,7 +122,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
         /* Get decimal representation */
         val = GetBase64Value(src[i]);
         if (val < 0) {
-            if (mode == BASE64_MODE_RFC2045 && src[i] != '=') {
+            if (mode == Base64ModeRFC2045 && src[i] != '=') {
                 if (bbidx == 0) {
                     /* Special case where last block of data has a leading space or invalid char */
                     leading_sp++;
@@ -134,7 +134,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
             if (src[i] != '=') {
                 valid = false;
                 ecode = BASE64_ECODE_ERR;
-                if (mode == BASE64_MODE_STRICT) {
+                if (mode == Base64ModeStrict) {
                     *decoded_bytes = 0;
                 }
                 break;
@@ -173,7 +173,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
         }
     }
 
-    if (bbidx > 0 && bbidx < 4 && ((!valid && mode == BASE64_MODE_RFC4648))) {
+    if (bbidx > 0 && bbidx < 4 && ((!valid && mode == Base64ModeRFC4648))) {
         /* Decoded bytes for 1 or 2 base64 encoded bytes is 1 */
         padding = bbidx > 1 ? B64_BLOCK - bbidx : 2;
         uint32_t numDecoded_blk = ASCII_BLOCK - (padding < B64_BLOCK ? padding : ASCII_BLOCK);
@@ -193,7 +193,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
     }
 
     /* Finish remaining b64 bytes by padding */
-    if (valid && bbidx > 0 && (mode != BASE64_MODE_RFC2045)) {
+    if (valid && bbidx > 0 && (mode != Base64ModeRFC2045)) {
         /* Decode remaining */
         if (dest_size - *decoded_bytes < ASCII_BLOCK)
             return BASE64_ECODE_BUF;
@@ -216,7 +216,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
         uint32_t consumed_bytes = 0, num_decoded = 0;                                              \
         uint8_t dst[dest_size];                                                                    \
         Base64Ecode code = DecodeBase64(dst, dest_size, (const uint8_t *)src, strlen(src),         \
-                &consumed_bytes, &num_decoded, BASE64_MODE_RFC2045);                               \
+                &consumed_bytes, &num_decoded, Base64ModeRFC2045);                                 \
         FAIL_IF(code != ecode);                                                                    \
         FAIL_IF(memcmp(dst, fin_str, strlen(fin_str)) != 0);                                       \
         FAIL_IF(num_decoded != exp_decoded);                                                       \
@@ -228,7 +228,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
         uint32_t consumed_bytes = 0, num_decoded = 0;                                              \
         uint8_t dst[dest_size];                                                                    \
         Base64Ecode code = DecodeBase64(dst, dest_size, (const uint8_t *)src, strlen(src),         \
-                &consumed_bytes, &num_decoded, BASE64_MODE_RFC4648);                               \
+                &consumed_bytes, &num_decoded, Base64ModeRFC4648);                                 \
         FAIL_IF(code != ecode);                                                                    \
         FAIL_IF(memcmp(dst, fin_str, strlen(fin_str)) != 0);                                       \
         FAIL_IF(num_decoded != exp_decoded);                                                       \
@@ -302,7 +302,7 @@ static int B64DecodeStringEndingSpaces(void)
     uint32_t consumed_bytes = 0, num_decoded = 0;
     uint8_t dst[10];
     Base64Ecode code = DecodeBase64(dst, sizeof(dst), (const uint8_t *)src, strlen(src),
-            &consumed_bytes, &num_decoded, BASE64_MODE_RFC2045);
+            &consumed_bytes, &num_decoded, Base64ModeRFC2045);
     FAIL_IF(code != BASE64_ECODE_OK);
     FAIL_IF(num_decoded != 3);
     FAIL_IF(consumed_bytes != 4);
