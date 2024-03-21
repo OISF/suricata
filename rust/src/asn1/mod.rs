@@ -30,7 +30,7 @@ pub struct Asn1<'a>(Vec<BerObject<'a>>);
 enum Asn1DecodeError {
     InvalidKeywordParameter,
     MaxFrames,
-    BerError(nom::Err<der_parser::error::BerError>),
+    BerError,
 }
 
 /// Enumeration of Asn1 checks
@@ -276,8 +276,8 @@ impl From<std::num::TryFromIntError> for Asn1DecodeError {
 }
 
 impl From<nom::Err<der_parser::error::BerError>> for Asn1DecodeError {
-    fn from(e: nom::Err<der_parser::error::BerError>) -> Asn1DecodeError {
-        Asn1DecodeError::BerError(e)
+    fn from(_e: nom::Err<der_parser::error::BerError>) -> Asn1DecodeError {
+        Asn1DecodeError::BerError
     }
 }
 
