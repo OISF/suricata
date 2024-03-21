@@ -274,19 +274,19 @@ static inline Base64Ecode DecodeBase64RFC4648(uint8_t *dest, uint32_t dest_size,
  * \return Error code indicating success or failures with parsing
  */
 Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, uint32_t len,
-        uint32_t *consumed_bytes, uint32_t *decoded_bytes, Base64Mode mode)
+        uint32_t *consumed_bytes, uint32_t *decoded_bytes, DetectBase64Mode mode)
 {
     *decoded_bytes = 0;
     Base64Ecode ret = BASE64_ECODE_OK;
     switch (mode) {
-        case BASE64_MODE_RFC4648:
+        case Base64ModeRFC4648:
             ret = DecodeBase64RFC4648(
                     dest, dest_size, src, len, consumed_bytes, decoded_bytes, false);
             break;
-        case BASE64_MODE_RFC2045:
+        case Base64ModeRFC2045:
             ret = DecodeBase64RFC2045(dest, dest_size, src, len, consumed_bytes, decoded_bytes);
             break;
-        case BASE64_MODE_STRICT:
+        case Base64ModeStrict:
             ret = DecodeBase64RFC4648(
                     dest, dest_size, src, len, consumed_bytes, decoded_bytes, true);
             break;
@@ -303,7 +303,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
         uint32_t consumed_bytes = 0, num_decoded = 0;                                              \
         uint8_t dst[dest_size];                                                                    \
         Base64Ecode code = DecodeBase64(dst, dest_size, (const uint8_t *)src, strlen(src),         \
-                &consumed_bytes, &num_decoded, BASE64_MODE_RFC2045);                               \
+                &consumed_bytes, &num_decoded, Base64ModeRFC2045);                                 \
         FAIL_IF(code != ecode);                                                                    \
         FAIL_IF(memcmp(dst, fin_str, strlen(fin_str)) != 0);                                       \
         FAIL_IF(num_decoded != exp_decoded);                                                       \
@@ -315,7 +315,7 @@ Base64Ecode DecodeBase64(uint8_t *dest, uint32_t dest_size, const uint8_t *src, 
         uint32_t consumed_bytes = 0, num_decoded = 0;                                              \
         uint8_t dst[dest_size];                                                                    \
         Base64Ecode code = DecodeBase64(dst, dest_size, (const uint8_t *)src, strlen(src),         \
-                &consumed_bytes, &num_decoded, BASE64_MODE_RFC4648);                               \
+                &consumed_bytes, &num_decoded, Base64ModeRFC4648);                                 \
         FAIL_IF(code != ecode);                                                                    \
         FAIL_IF(memcmp(dst, fin_str, strlen(fin_str)) != 0);                                       \
         FAIL_IF(num_decoded != exp_decoded);                                                       \
@@ -387,7 +387,7 @@ static int B64DecodeStringEndingSpaces(void)
     uint32_t consumed_bytes = 0, num_decoded = 0;
     uint8_t dst[10];
     Base64Ecode code = DecodeBase64(dst, sizeof(dst), (const uint8_t *)src, 9, &consumed_bytes,
-            &num_decoded, BASE64_MODE_RFC2045);
+            &num_decoded, Base64ModeRFC2045);
     FAIL_IF(code != BASE64_ECODE_OK);
     FAIL_IF(num_decoded != 3);
     FAIL_IF(consumed_bytes != 4);
