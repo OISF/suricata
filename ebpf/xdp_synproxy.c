@@ -151,9 +151,9 @@ static int syncookie_open_bpf_maps(__u32 prog_id, int *values_map_fd, int *ports
     };
     info_len = sizeof(prog_info);
 
-    err = bpf_prog_get_info_by_fd(prog_fd, &prog_info, &info_len);
+    err = bpf_obj_get_info_by_fd(prog_fd, &prog_info, &info_len);
     if (err != 0) {
-        fprintf(stderr, "Error: bpf_prog_get_info_by_fd: %s\n", strerror(-err));
+        fprintf(stderr, "Error: bpf_obj_get_info_by_fd: %s\n", strerror(-err));
         goto out;
     }
 
@@ -175,9 +175,9 @@ static int syncookie_open_bpf_maps(__u32 prog_id, int *values_map_fd, int *ports
         map_fd = err;
 
         info_len = sizeof(map_info);
-        err = bpf_map_get_info_by_fd(map_fd, &map_info, &info_len);
+        err = bpf_obj_get_info_by_fd(map_fd, &map_info, &info_len);
         if (err != 0) {
-            fprintf(stderr, "Error: bpf_map_get_info_by_fd: %s\n", strerror(-err));
+            fprintf(stderr, "Error: bpf_obj_get_info_by_fd: %s\n", strerror(-err));
             close(map_fd);
             goto err_close_map_fds;
         }
@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
     parse_options(argc, argv, &ifindex, &prog_id, &tcpipopts, &ports);
 
     if (prog_id == 0) {
-        err = bpf_xdp_query_id(ifindex, 0, &prog_id);
+        err = bpf_get_link_xdp_id(ifindex, &prog_id, 0);
         if (err < 0) {
             fprintf(stderr, "Error: bpf_get_link_xdp_id: %s\n", strerror(-err));
             goto out;
