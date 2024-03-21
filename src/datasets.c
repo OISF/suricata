@@ -23,6 +23,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
+#include "rust.h"
 #include "conf.h"
 #include "datasets.h"
 #include "datasets-string.h"
@@ -522,7 +523,7 @@ static int DatasetLoadString(Dataset *set)
             uint8_t decoded[strlen(line)];
             uint32_t consumed = 0, num_decoded = 0;
             Base64Ecode code = DecodeBase64(decoded, strlen(line), (const uint8_t *)line,
-                    strlen(line), &consumed, &num_decoded, BASE64_MODE_STRICT);
+                    strlen(line), &consumed, &num_decoded, ModeStrict);
             if (code == BASE64_ECODE_ERR) {
                 FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
                 continue;
@@ -543,7 +544,7 @@ static int DatasetLoadString(Dataset *set)
             uint8_t decoded[strlen(line)];
             uint32_t consumed = 0, num_decoded = 0;
             Base64Ecode code = DecodeBase64(decoded, strlen(line), (const uint8_t *)line,
-                    strlen(line), &consumed, &num_decoded, BASE64_MODE_STRICT);
+                    strlen(line), &consumed, &num_decoded, ModeStrict);
             if (code == BASE64_ECODE_ERR) {
                 FatalErrorOnInit("bad base64 encoding %s/%s", set->name, set->load);
                 continue;
@@ -1601,7 +1602,7 @@ static int DatasetOpSerialized(Dataset *set, const char *string, DatasetOpFunc D
             uint8_t decoded[strlen(string)];
             uint32_t consumed = 0, num_decoded = 0;
             Base64Ecode code = DecodeBase64(decoded, strlen(string), (const uint8_t *)string,
-                    strlen(string), &consumed, &num_decoded, BASE64_MODE_STRICT);
+                    strlen(string), &consumed, &num_decoded, ModeStrict);
             if (code == BASE64_ECODE_ERR) {
                 return -2;
             }
