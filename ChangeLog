@@ -1,3 +1,7 @@
+6.0.18 -- 2024-03-21
+
+Bug #6876: rust: MSRV unintentionally bumped
+
 6.0.17 -- 2024-03-19
 
 Security #6867: eve: excessive ssh long banner logging (6.0.x backport)(CVE 2024-28870)
