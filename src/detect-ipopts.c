@@ -25,15 +25,9 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "decode.h"
 
 #include "detect.h"
 #include "detect-parse.h"
-
-#include "flow-var.h"
-#include "decode-events.h"
-
-#include "util-debug.h"
 
 #include "detect-ipopts.h"
 #include "util-unittest.h"
@@ -193,7 +187,7 @@ static DetectIpOptsData *DetectIpOptsParse (const char *rawstr)
 {
     int i;
     DetectIpOptsData *de = NULL;
-    int found = 0;
+    bool found = false;
 
     pcre2_match_data *match = NULL;
     int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
@@ -204,13 +198,15 @@ static DetectIpOptsData *DetectIpOptsParse (const char *rawstr)
 
     for(i = 0; ipopts[i].ipopt_name != NULL; i++)  {
         if((strcasecmp(ipopts[i].ipopt_name,rawstr)) == 0) {
-            found = 1;
+            found = true;
             break;
         }
     }
 
-    if(found == 0)
+    if (!found) {
+        SCLogError("unknown IP option specified \"%s\"", rawstr);
         goto error;
+    }
 
     de = SCMalloc(sizeof(DetectIpOptsData));
     if (unlikely(de == NULL))
@@ -242,10 +238,8 @@ error:
  */
 static int DetectIpOptsSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectIpOptsData *de = NULL;
     SigMatch *sm = NULL;
-
-    de = DetectIpOptsParse(rawstr);
+    DetectIpOptsData *de = DetectIpOptsParse(rawstr);
     if (de == NULL)
         goto error;
 
@@ -275,8 +269,9 @@ error:
  */
 void DetectIpOptsFree(DetectEngineCtx *de_ctx, void *de_ptr)
 {
-    DetectIpOptsData *de = (DetectIpOptsData *)de_ptr;
-    if(de) SCFree(de);
+    if (de_ptr) {
+        SCFree(de_ptr);
+    }
 }
 
 /*
