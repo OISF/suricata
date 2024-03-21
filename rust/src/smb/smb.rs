@@ -1045,7 +1045,7 @@ impl SMBState {
 
     pub fn get_service_for_guid(&self, guid: &[u8]) -> (&'static str, bool)
     {
-        let (name, is_dcerpc) = match self.guid2name_map.get(&guid.to_vec()) {
+        let (name, is_dcerpc) = match self.guid2name_map.get(guid) {
             Some(n) => {
                 let mut s = n.as_slice();
                 // skip leading \ if we have it

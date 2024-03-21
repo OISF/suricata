@@ -482,7 +482,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                     state.ssn2vec_map.insert(name_key, name_val);
 
                     let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-                    let tx = state.new_create_tx(&cr.file_name.to_vec(),
+                    let tx = state.new_create_tx(&cr.file_name,
                             cr.disposition, del, dir, tx_hdr);
                     tx.vercmd.set_smb1_cmd(command);
                     SCLogDebug!("TS CREATE TX {} created", tx.id);

@@ -89,7 +89,7 @@ impl DHCPLogger {
         
         js.set_uint("id", header.txid as u64)?;
         js.set_string("client_mac",
-                      &format_addr_hex(&header.clienthw.to_vec()))?;
+                      &format_addr_hex(&header.clienthw))?;
         js.set_string("assigned_ip", &dns_print_addr(&header.yourip))?;
 
         if self.extended {
