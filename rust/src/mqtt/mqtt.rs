@@ -749,8 +749,7 @@ export_state_data_get!(rs_mqtt_get_state_data, MQTTState);
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
     let default_port = CString::new("[1883]").unwrap();
-    let max_msg_len = &mut MAX_MSG_LEN;
-    *max_msg_len = cfg_max_msg_len;
+    MAX_MSG_LEN = cfg_max_msg_len;
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
