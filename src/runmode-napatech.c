@@ -216,6 +216,8 @@ static int NapatechInit(int runmode)
         exit(EXIT_FAILURE);
     }
 
+    NapatechGetAdapter(0); /* initialize port to adapter mapping */
+
     status = NapatechRegisterDeviceStreams();
     if (status < 0 || num_configured_streams <= 0) {
         FatalError("Unable to find existing Napatech Streams");

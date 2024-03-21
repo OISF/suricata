@@ -1580,14 +1580,21 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
     if (bypass_supported) {
         if (is_inline) {
             char inline_setup_cmd[512];
+            /*
+             * https://supportportal.napatech.com/index.php?/selfhelp/view-article/how-to-configure-txport-in-inline-mode/340
+             * If the descriptor is Dyn3, TxPortPos=28 should be used, which is the color_lo field
+             * in Dyn3. The TX port configuration will be done in the field from bit 28 of Dyn3.
+             */
             if (first_stream == last_stream) {
-                snprintf(inline_setup_cmd, sizeof (ntpl_cmd),
-                    "Setup[TxDescriptor=Dyn;TxPorts=%s;RxCRC=False;TxPortPos=112;UseWL=True] = StreamId == %d",
-                    ports_spec.str, first_stream);
+                snprintf(inline_setup_cmd, sizeof(ntpl_cmd),
+                        "Setup[TxDescriptor=Dyn;TxPorts=%s;RxCRC=False;TxPortPos=28;UseWL=True] = "
+                        "StreamId == %d",
+                        ports_spec.str, first_stream);
             } else {
-                snprintf(inline_setup_cmd, sizeof (ntpl_cmd),
-                    "Setup[TxDescriptor=Dyn;TxPorts=%s;RxCRC=False;TxPortPos=112;UseWL=True] = StreamId == (%d..%d)",
-                    ports_spec.str, first_stream, last_stream);
+                snprintf(inline_setup_cmd, sizeof(ntpl_cmd),
+                        "Setup[TxDescriptor=Dyn;TxPorts=%s;RxCRC=False;TxPortPos=28;UseWL=True] = "
+                        "StreamId == (%d..%d)",
+                        ports_spec.str, first_stream, last_stream);
             }
             NapatechSetFilter(hconfig, inline_setup_cmd);
         }
