@@ -1235,7 +1235,7 @@ static uint32_t ProcessBase64Remainder(
         const uint32_t avail_space = DATA_CHUNK_SIZE - state->data_chunk_len;
         PrintChars(SC_LOG_DEBUG, "BASE64 INPUT (bvremain)", state->bvremain, state->bvr_len);
         Base64Ecode code = DecodeBase64(state->data_chunk + state->data_chunk_len, avail_space,
-                state->bvremain, state->bvr_len, &consumed_bytes, &remdec, BASE64_MODE_RFC2045);
+                state->bvremain, state->bvr_len, &consumed_bytes, &remdec, Base64ModeRFC2045);
         SCLogDebug("DecodeBase64 result %u", code);
         if (remdec > 0 && (code == BASE64_ECODE_OK || code == BASE64_ECODE_BUF)) {
             PrintChars(SC_LOG_DEBUG, "BASE64 DECODED (bvremain)",
@@ -1341,7 +1341,7 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
         uint32_t avail_space = DATA_CHUNK_SIZE - state->data_chunk_len;
         PrintChars(SC_LOG_DEBUG, "BASE64 INPUT (line)", buf + offset, remaining);
         Base64Ecode code = DecodeBase64(state->data_chunk + state->data_chunk_len, avail_space,
-                buf + offset, remaining, &consumed_bytes, &numDecoded, BASE64_MODE_RFC2045);
+                buf + offset, remaining, &consumed_bytes, &numDecoded, Base64ModeRFC2045);
         SCLogDebug("DecodeBase64 result %u", code);
         DEBUG_VALIDATE_BUG_ON(consumed_bytes > remaining);
         if (consumed_bytes > remaining)
@@ -3172,7 +3172,7 @@ static int MimeBase64DecodeTest01(void)
         return 0;
 
     ret = DecodeBase64(dst, strlen(msg) + 1, (const uint8_t *)base64msg, strlen(base64msg),
-            &consumed_bytes, &num_decoded, BASE64_MODE_RFC2045);
+            &consumed_bytes, &num_decoded, Base64ModeRFC2045);
 
     if (memcmp(dst, msg, strlen(msg)) == 0) {
         ret = 1;
