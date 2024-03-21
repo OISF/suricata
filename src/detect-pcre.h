@@ -42,6 +42,8 @@
 typedef struct DetectPcreData_ {
     DetectParseRegex parse_regex;
     int thread_ctx_id;
+    /* String for logging */
+    char *pcre_str;
 
     uint16_t flags;
     uint8_t idx;

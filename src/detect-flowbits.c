@@ -57,6 +57,7 @@ int DetectFlowbitMatch (DetectEngineThreadCtx *, Packet *,
 static int DetectFlowbitSetup (DetectEngineCtx *, Signature *, const char *);
 static int FlowbitOrAddData(DetectEngineCtx *, DetectFlowbitsData *, char *);
 void DetectFlowbitFree (DetectEngineCtx *, void *);
+static void DetectFlowbitDump (JsonBuilder *, const void *);
 #ifdef UNITTESTS
 void FlowBitsRegisterTests(void);
 #endif
@@ -69,6 +70,7 @@ void DetectFlowbitsRegister (void)
     sigmatch_table[DETECT_FLOWBITS].Match = DetectFlowbitMatch;
     sigmatch_table[DETECT_FLOWBITS].Setup = DetectFlowbitSetup;
     sigmatch_table[DETECT_FLOWBITS].Free  = DetectFlowbitFree;
+    sigmatch_table[DETECT_FLOWBITS].JsonDump = DetectFlowbitDump;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FLOWBITS].RegisterTests = FlowBitsRegisterTests;
 #endif
@@ -385,6 +387,47 @@ void DetectFlowbitFree (DetectEngineCtx *de_ctx, void *ptr)
         SCFree(fd->or_list);
     }
     SCFree(fd);
+}
+
+static void DetectFlowbitDump(JsonBuilder *js, const void *gcd)
+{
+    DetectFlowbitsData *cd = (DetectFlowbitsData *)gcd;
+
+    jb_open_object(js, "flowbits");
+    switch (cd->cmd) {
+        case DETECT_FLOWBITS_CMD_ISSET:
+            jb_set_string(js, "cmd", "isset");
+            break;
+        case DETECT_FLOWBITS_CMD_ISNOTSET:
+            jb_set_string(js, "cmd", "isnotset");
+            break;
+        case DETECT_FLOWBITS_CMD_SET:
+            jb_set_string(js, "cmd", "set");
+            break;
+        case DETECT_FLOWBITS_CMD_UNSET:
+            jb_set_string(js, "cmd", "unset");
+            break;
+        case DETECT_FLOWBITS_CMD_TOGGLE:
+            jb_set_string(js, "cmd", "toggle");
+            break;
+    }
+    bool is_or = false;
+    jb_open_array(js, "names");
+    if (cd->or_list_size == 0) {
+        jb_append_string(js, VarNameStoreSetupLookup(cd->idx, VAR_TYPE_FLOW_BIT));
+    } else if (cd->or_list_size > 0) {
+        is_or = true;
+        for (uint8_t i = 0; i < cd->or_list_size; i++) {
+            const char *varname =
+                VarNameStoreSetupLookup(cd->or_list[i], VAR_TYPE_FLOW_BIT);
+            jb_append_string(js, varname);
+        }
+    }
+    jb_close(js); // array
+    if (is_or) {
+        jb_set_string(js, "operator", "or");
+    }
+    jb_close(js); // object
 }
 
 struct FBAnalyze {

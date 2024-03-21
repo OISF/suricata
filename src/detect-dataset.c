@@ -45,6 +45,7 @@ int DetectDatasetMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectDatasetSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectDatasetFree (DetectEngineCtx *, void *);
+static void DetectDatasetDump (JsonBuilder *, const void *);
 
 void DetectDatasetRegister (void)
 {
@@ -53,6 +54,7 @@ void DetectDatasetRegister (void)
     sigmatch_table[DETECT_DATASET].url = "/rules/dataset-keywords.html#dataset";
     sigmatch_table[DETECT_DATASET].Setup = DetectDatasetSetup;
     sigmatch_table[DETECT_DATASET].Free  = DetectDatasetFree;
+    sigmatch_table[DETECT_DATASET].JsonDump = DetectDatasetDump;
 }
 
 /*
@@ -442,4 +444,52 @@ void DetectDatasetFree (DetectEngineCtx *de_ctx, void *ptr)
         return;
 
     SCFree(fd);
+}
+
+static void DumpDataset(JsonBuilder *js, const DetectDatasetData *cd)
+{
+    jb_set_string(js, "name", cd->set->name);
+    switch (cd->set->type) {
+        case DATASET_TYPE_STRING:
+            jb_set_string(js, "type", "string");
+            break;
+        case DATASET_TYPE_MD5:
+            jb_set_string(js, "type", "md5");
+            break;
+        case DATASET_TYPE_SHA256:
+            jb_set_string(js, "type", "string");
+            break;
+        case DATASET_TYPE_IPV4:
+            jb_set_string(js, "type", "ipv4");
+            break;
+        case DATASET_TYPE_IPV6:
+            jb_set_string(js, "type", "ipv6");
+            break;
+    }
+    if (strlen(cd->set->load) != 0)
+        jb_set_string(js, "load", cd->set->load);
+    if (strlen(cd->set->save) != 0)
+        jb_set_string(js, "save", cd->set->save);
+    switch (cd->cmd) {
+        case DETECT_DATASET_CMD_SET:
+            jb_set_string(js, "cmd", "set");
+            break;
+        case DETECT_DATASET_CMD_UNSET:
+            jb_set_string(js, "cmd", "unset");
+            break;
+        case DETECT_DATASET_CMD_ISNOTSET:
+            jb_set_string(js, "cmd", "isnotset");
+            break;
+        case DETECT_DATASET_CMD_ISSET:
+            jb_set_string(js, "cmd", "isset");
+            break;
+    }
+}
+
+static void DetectDatasetDump (JsonBuilder *js, const void *gcd)
+{
+    DetectDatasetData *cd = (DetectDatasetData *) gcd;
+    jb_open_object(js, "dataset");
+    DumpDataset(js, cd);
+    jb_close(js);
 }

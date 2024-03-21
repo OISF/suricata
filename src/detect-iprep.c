@@ -56,6 +56,7 @@ static int DetectIPRepMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIPRepSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectIPRepFree (DetectEngineCtx *, void *);
+static void DetectIPRepDump (JsonBuilder *, const void *);
 #ifdef UNITTESTS
 static void IPRepRegisterTests(void);
 #endif
@@ -68,6 +69,7 @@ void DetectIPRepRegister (void)
     sigmatch_table[DETECT_IPREP].Match = DetectIPRepMatch;
     sigmatch_table[DETECT_IPREP].Setup = DetectIPRepSetup;
     sigmatch_table[DETECT_IPREP].Free  = DetectIPRepFree;
+    sigmatch_table[DETECT_IPREP].JsonDump = DetectIPRepDump;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_IPREP].RegisterTests = IPRepRegisterTests;
 #endif
@@ -246,6 +248,13 @@ void DetectIPRepFree (DetectEngineCtx *de_ctx, void *ptr)
         return;
 
     rs_detect_iprep_free(fd);
+}
+
+static void DetectIPRepDump (JsonBuilder *js, const void *gcd)
+{
+    //DetectIPRepData *cd = (DetectIPRepData *) gcd;
+    jb_open_object(js, "iprep");
+    jb_close(js);
 }
 
 #ifdef UNITTESTS

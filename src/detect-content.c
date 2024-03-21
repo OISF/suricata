@@ -55,6 +55,8 @@
 static void DetectContentRegisterTests(void);
 #endif
 
+static void DetectContentDump(JsonBuilder *js, const void *gcd);
+
 void DetectContentRegister (void)
 {
     sigmatch_table[DETECT_CONTENT].name = "content";
@@ -63,6 +65,7 @@ void DetectContentRegister (void)
     sigmatch_table[DETECT_CONTENT].Match = NULL;
     sigmatch_table[DETECT_CONTENT].Setup = DetectContentSetup;
     sigmatch_table[DETECT_CONTENT].Free  = DetectContentFree;
+    sigmatch_table[DETECT_CONTENT].JsonDump = DetectContentDump;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_CONTENT].RegisterTests = DetectContentRegisterTests;
 #endif
@@ -381,6 +384,43 @@ void DetectContentFree(DetectEngineCtx *de_ctx, void *ptr)
 
     SCFree(cd);
     SCReturn;
+}
+
+static void DumpContent(JsonBuilder *js, const DetectContentData *cd)
+{
+    char pattern_str[1024] = "";
+    DetectContentPatternPrettyPrint(cd, pattern_str, sizeof(pattern_str));
+
+    jb_set_string(js, "pattern", pattern_str);
+    jb_set_uint(js, "length", cd->content_len);
+    jb_set_bool(js, "nocase", cd->flags & DETECT_CONTENT_NOCASE);
+    jb_set_bool(js, "negated", cd->flags & DETECT_CONTENT_NEGATED);
+    jb_set_bool(js, "starts_with", cd->flags & DETECT_CONTENT_STARTS_WITH);
+    jb_set_bool(js, "ends_with", cd->flags & DETECT_CONTENT_ENDS_WITH);
+    jb_set_bool(js, "is_mpm", cd->flags & DETECT_CONTENT_MPM);
+    jb_set_bool(js, "no_double_inspect", cd->flags & DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED);
+    if (cd->flags & DETECT_CONTENT_OFFSET) {
+        jb_set_uint(js, "offset", cd->offset);
+    }
+    if (cd->flags & DETECT_CONTENT_DEPTH) {
+        jb_set_uint(js, "depth", cd->depth);
+    }
+    if (cd->flags & DETECT_CONTENT_DISTANCE) {
+        jb_set_int(js, "distance", cd->distance);
+    }
+    if (cd->flags & DETECT_CONTENT_WITHIN) {
+        jb_set_int(js, "within", cd->within);
+    }
+    jb_set_bool(js, "fast_pattern", cd->flags & DETECT_CONTENT_FAST_PATTERN);
+    jb_set_bool(js, "relative_next", cd->flags & DETECT_CONTENT_RELATIVE_NEXT);
+}
+
+static void DetectContentDump(JsonBuilder *js, const void *gcd)
+{
+    DetectContentData *cd = (DetectContentData *) gcd;
+    jb_open_object(js, "content");
+    DumpContent(js, cd);
+    jb_close(js);
 }
 
 /**

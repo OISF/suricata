@@ -19,7 +19,6 @@
 #define SURICATA_RUST_CONTEXT_H
 
 #include "flow.h"
-#include "detect.h"
 #include "detect-engine-state.h" //DetectEngineState
 
 #include "app-layer-krb5.h" //KRB5State, KRB5Transaction

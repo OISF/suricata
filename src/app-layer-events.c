@@ -24,6 +24,7 @@
 
 #include "suricata-common.h"
 #include "decode.h"
+#include "detect.h"
 #include "flow.h"
 #include "app-layer-events.h"
 #include "app-layer-parser.h"

@@ -48,6 +48,7 @@ int DetectDatarepMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectDatarepSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectDatarepFree (DetectEngineCtx *, void *);
+static void DetectDatarepDump (JsonBuilder *, const void *);
 
 void DetectDatarepRegister (void)
 {
@@ -56,6 +57,7 @@ void DetectDatarepRegister (void)
     sigmatch_table[DETECT_DATAREP].url = "/rules/dataset-keywords.html#datarep";
     sigmatch_table[DETECT_DATAREP].Setup = DetectDatarepSetup;
     sigmatch_table[DETECT_DATAREP].Free  = DetectDatarepFree;
+    sigmatch_table[DETECT_DATAREP].JsonDump = DetectDatarepDump;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
@@ -371,4 +373,48 @@ void DetectDatarepFree (DetectEngineCtx *de_ctx, void *ptr)
         return;
 
     SCFree(fd);
+}
+
+static void DumpDatarep(JsonBuilder *js, const DetectDatarepData *cd)
+{
+    jb_set_string(js, "name", cd->set->name);
+    switch (cd->set->type) {
+        case DATASET_TYPE_STRING:
+            jb_set_string(js, "type", "string");
+            break;
+        case DATASET_TYPE_MD5:
+            jb_set_string(js, "type", "md5");
+            break;
+        case DATASET_TYPE_SHA256:
+            jb_set_string(js, "type", "string");
+            break;
+        case DATASET_TYPE_IPV4:
+            jb_set_string(js, "type", "ipv4");
+            break;
+        case DATASET_TYPE_IPV6:
+            jb_set_string(js, "type", "ipv6");
+            break;
+    }
+    switch (cd->op) {
+        case DATAREP_OP_GT:
+            jb_set_string(js, "operator", "gt");
+            break;
+        case DATAREP_OP_LT:
+            jb_set_string(js, "operator", "lt");
+            break;
+        case DATAREP_OP_EQ:
+            jb_set_string(js, "operator", "eq");
+            break;
+    }
+    jb_set_uint(js, "value", cd->rep.value);
+    if (strlen(cd->set->load) != 0)
+        jb_set_string(js, "load", cd->set->load);
+}
+
+static void DetectDatarepDump (JsonBuilder *js, const void *gcd)
+{
+    DetectDatarepData *cd = (DetectDatarepData *) gcd;
+    jb_open_object(js, "datarep");
+    DumpDatarep(js, cd);
+    jb_close(js);
 }

@@ -55,6 +55,7 @@ static int DetectFlowSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFlowRegisterTests(void);
 #endif
 void DetectFlowFree(DetectEngineCtx *, void *);
+static void DetectFlowDump (JsonBuilder *, const void *);
 
 static int PrefilterSetupFlow(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterFlowIsPrefilterable(const Signature *s);
@@ -70,6 +71,7 @@ void DetectFlowRegister (void)
     sigmatch_table[DETECT_FLOW].Match = DetectFlowMatch;
     sigmatch_table[DETECT_FLOW].Setup = DetectFlowSetup;
     sigmatch_table[DETECT_FLOW].Free  = DetectFlowFree;
+    sigmatch_table[DETECT_FLOW].JsonDump = DetectFlowDump;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_FLOW].RegisterTests = DetectFlowRegisterTests;
 #endif
@@ -441,6 +443,24 @@ void DetectFlowFree(DetectEngineCtx *de_ctx, void *ptr)
     DetectFlowData *fd = (DetectFlowData *)ptr;
     SCFree(fd);
 }
+
+static void DetectFlowDump (JsonBuilder *js, const void *gcd)
+{
+    DetectFlowData *cd = (DetectFlowData *) gcd;
+    jb_open_object(js, "flow");
+    if (cd->flags & DETECT_FLOW_FLAG_ESTABLISHED) {
+        jb_set_bool(js, "established", true);
+    } else {
+        jb_set_bool(js, "established", false);
+    }
+    if (cd->flags & DETECT_FLOW_FLAG_TOSERVER) {
+        jb_set_bool(js, "to_server", true);
+    } else {
+        jb_set_bool(js, "to_server", false);
+    }
+    jb_close(js);
+}
+
 
 static void
 PrefilterPacketFlowMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)

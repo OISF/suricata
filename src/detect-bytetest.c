@@ -70,6 +70,7 @@ static DetectParseRegex parse_regex;
 
 static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr);
 static void DetectBytetestFree(DetectEngineCtx *, void *ptr);
+static void DetectBytetestDump(JsonBuilder *, const void *);
 #ifdef UNITTESTS
 static void DetectBytetestRegisterTests(void);
 #endif
@@ -81,6 +82,7 @@ void DetectBytetestRegister (void)
     sigmatch_table[DETECT_BYTETEST].url = "/rules/payload-keywords.html#byte-test";
     sigmatch_table[DETECT_BYTETEST].Setup = DetectBytetestSetup;
     sigmatch_table[DETECT_BYTETEST].Free  = DetectBytetestFree;
+    sigmatch_table[DETECT_BYTETEST].JsonDump = DetectBytetestDump;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_BYTETEST].RegisterTests = DetectBytetestRegisterTests;
 #endif
@@ -730,6 +732,42 @@ static void DetectBytetestFree(DetectEngineCtx *de_ctx, void *ptr)
     SCFree(data);
 }
 
+
+static void DetectBytetestDump(JsonBuilder *js, const void *gcd)
+{
+    const DetectBytetestData *cd = (const DetectBytetestData *)gcd;
+
+    jb_open_object(js, "byte_test");
+    jb_set_uint(js, "nbytes", cd->nbytes);
+    jb_set_int(js, "offset", cd->offset);
+    switch (cd->base) {
+        case DETECT_BYTETEST_BASE_UNSET:
+            jb_set_string(js, "base", "unset");
+            break;
+        case DETECT_BYTETEST_BASE_OCT:
+            jb_set_string(js, "base", "oct");
+            break;
+        case DETECT_BYTETEST_BASE_DEC:
+            jb_set_string(js, "base", "dec");
+            break;
+        case DETECT_BYTETEST_BASE_HEX:
+            jb_set_string(js, "base", "hex");
+            break;
+    }
+    jb_open_array(js, "flags");
+    if (cd->flags & DETECT_BYTETEST_LITTLE)
+        jb_append_string(js, "little_endian");
+    if (cd->flags & DETECT_BYTETEST_BIG)
+        jb_append_string(js, "big_endian");
+    if (cd->flags & DETECT_BYTETEST_STRING)
+        jb_append_string(js, "string");
+    if (cd->flags & DETECT_BYTETEST_RELATIVE)
+        jb_append_string(js, "relative");
+    if (cd->flags & DETECT_BYTETEST_DCE)
+        jb_append_string(js, "dce");
+    jb_close(js);
+    jb_close(js);
+}
 
 /* UNITTESTS */
 #ifdef UNITTESTS
