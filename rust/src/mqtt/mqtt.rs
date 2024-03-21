@@ -28,6 +28,7 @@ use nom7::Err;
 use std;
 use std::collections::VecDeque;
 use std::ffi::CString;
+use std::ptr::addr_of_mut;
 
 // Used as a special pseudo packet identifier to denote the first CONNECT
 // packet in a connection. Note that there is no risk of collision with a
@@ -749,7 +750,7 @@ export_state_data_get!(rs_mqtt_get_state_data, MQTTState);
 #[no_mangle]
 pub unsafe extern "C" fn rs_mqtt_register_parser(cfg_max_msg_len: u32) {
     let default_port = CString::new("[1883]").unwrap();
-    let max_msg_len = &mut MAX_MSG_LEN;
+    let max_msg_len = addr_of_mut!(MAX_MSG_LEN);
     *max_msg_len = cfg_max_msg_len;
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
