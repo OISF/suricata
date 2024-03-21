@@ -20,7 +20,7 @@ static void Base64FuzzTest(const uint8_t *src, size_t len, size_t dest_size)
     if (dest == NULL)
         return;
 
-    for (uint8_t mode = BASE64_MODE_RELAX; mode <= BASE64_MODE_RFC4648; mode++) {
+    for (uint8_t mode = Base64ModeRelax; mode <= Base64ModeRFC4648; mode++) {
         uint32_t consumed_bytes = 0;
         uint32_t decoded_bytes = 0;
 
