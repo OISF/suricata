@@ -4250,6 +4250,9 @@
                         "bytes": {
                             "type": "integer"
                         },
+                        "bytes_per_sec": {
+                            "type": "integer"
+                        },
                         "chdlc": {
                             "type": "integer"
                         },
@@ -4317,6 +4320,9 @@
                             "type": "integer"
                         },
                         "pkts": {
+                            "type": "integer"
+                        },
+                        "pkts_per_sec": {
                             "type": "integer"
                         },
                         "ppp": {

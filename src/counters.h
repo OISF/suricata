@@ -121,6 +121,7 @@ void StatsReleaseResources(void);
 uint16_t StatsRegisterCounter(const char *, struct ThreadVars_ *);
 uint16_t StatsRegisterAvgCounter(const char *, struct ThreadVars_ *);
 uint16_t StatsRegisterMaxCounter(const char *, struct ThreadVars_ *);
+uint16_t StatsRegisterTmdCounter(const char *, struct ThreadVars_ *);
 uint16_t StatsRegisterGlobalCounter(const char *cname, uint64_t (*Func)(void));
 
 /* functions used to update local counter values */
