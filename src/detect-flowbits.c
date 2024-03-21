@@ -26,6 +26,7 @@
 
 #include "suricata-common.h"
 #include "decode.h"
+#include "action-globals.h"
 #include "detect.h"
 #include "threads.h"
 #include "flow.h"
@@ -287,7 +288,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
     if (strcmp(fb_cmd_str,"noalert") == 0) {
         if (strlen(fb_name) != 0)
             goto error;
-        s->flags |= SIG_FLAG_NOALERT;
+        s->action &= ~ACTION_ALERT;
         return 0;
     } else if (strcmp(fb_cmd_str,"isset") == 0) {
         fb_cmd = DETECT_FLOWBITS_CMD_ISSET;
@@ -927,7 +928,7 @@ static int FlowBitsTestSig05(void)
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Noalert\"; flowbits:noalert; content:\"GET \"; sid:1;)");
     FAIL_IF_NULL(s);
-    FAIL_IF((s->flags & SIG_FLAG_NOALERT) != SIG_FLAG_NOALERT);
+    FAIL_IF((s->action & ACTION_ALERT) != 0);
 
     SigGroupBuild(de_ctx);
     DetectEngineCtxFree(de_ctx);

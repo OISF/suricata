@@ -208,7 +208,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
             // nothing to set in the packet
         } else if (pa->action & (ACTION_ALERT | ACTION_CONFIG)) {
             // nothing to set in the packet
-        } else {
+        } else if (pa->action != 0) {
             DEBUG_VALIDATE_BUG_ON(1); // should be unreachable
         }
 
@@ -371,10 +371,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     qsort(det_ctx->alert_queue, det_ctx->alert_queue_size, sizeof(PacketAlert),
             AlertQueueSortHelper);
 
-    uint16_t i = 0;
-    uint16_t max_pos = det_ctx->alert_queue_size;
-
-    while (i < max_pos) {
+    for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
         PacketAlert *pa = &det_ctx->alert_queue[i];
         const Signature *s = de_ctx->sig_array[pa->num];
         int res = PacketAlertHandle(de_ctx, det_ctx, s, p, pa);
@@ -406,22 +403,30 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         }
 
         /* Thresholding removes this alert */
-        if (res == 0 || res == 2 || (s->flags & SIG_FLAG_NOALERT)) {
+        if (res == 0 || res == 2 || (s->action & (ACTION_ALERT | ACTION_PASS)) == 0) {
+            SCLogDebug("sid:%u: skipping alert because of thresholding (res=%d) or NOALERT (%02x)",
+                    s->id, res, s->action);
             /* we will not copy this to the AlertQueue */
             p->alerts.suppressed++;
         } else if (p->alerts.cnt < packet_alert_max) {
             p->alerts.alerts[p->alerts.cnt] = *pa;
             SCLogDebug("Appending sid %" PRIu32 " alert to Packet::alerts at pos %u", s->id, i);
 
-            /* pass "alert" found, we're done */
-            if (pa->action & ACTION_PASS) {
+            /* pass-alert found, we're done. Alert is not logged. */
+            if ((pa->action & (ACTION_PASS | ACTION_ALERT)) == ACTION_PASS) {
+                SCLogDebug("sid:%u: is a pass rule, so break out of out loop", s->id);
                 break;
             }
             p->alerts.cnt++;
+
+            /* pass+alert, we're done. Alert is logged. */
+            if (pa->action & ACTION_PASS) {
+                SCLogDebug("sid:%u: is a pass rule, so break out of out loop", s->id);
+                break;
+            }
         } else {
             p->alerts.discarded++;
         }
-        i++;
     }
 
     /* At this point, we should have all the new alerts. Now check the tag
