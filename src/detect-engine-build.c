@@ -1425,7 +1425,13 @@ static inline int CreatePortList(DetectEngineCtx *de_ctx, const uint8_t *unique_
                 port = port2 + 1;
             } else if (p1 && p1->single) {
                 SCPortIntervalFindOverlappingRanges(de_ctx, port, port, &it->tree, list);
-                port = port + 1;
+                if ((port2 > port + 1)) {
+                    SCPortIntervalFindOverlappingRanges(
+                            de_ctx, port + 1, port2 - 1, &it->tree, list);
+                    port = port2;
+                } else {
+                    port = port + 1;
+                }
             } else if (p2->single) {
                 /* If port2 is boundary and less or equal to port + 1, create a range
                  * keeping the boundary away as it is single port */
