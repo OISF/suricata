@@ -32,10 +32,6 @@
 #include "detect-ipopts.h"
 #include "util-unittest.h"
 
-#define PARSE_REGEX "\\S[A-z]"
-
-static DetectParseRegex parse_regex;
-
 static int DetectIpOptsMatch (DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectIpOptsSetup (DetectEngineCtx *, Signature *, const char *);
@@ -58,7 +54,6 @@ void DetectIpOptsRegister (void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_IPOPTS].RegisterTests = IpOptsRegisterTests;
 #endif
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
 
 /**
@@ -167,11 +162,7 @@ static int DetectIpOptsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     if (!de || !PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p))
         return 0;
 
-    if (p->ip4vars.opts_set & de->ipopt) {
-        return 1;
-    }
-
-    return 0;
+    return p->ip4vars.opts_set & de->ipopt;
 }
 
 /**
@@ -185,17 +176,11 @@ static int DetectIpOptsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
  */
 static DetectIpOptsData *DetectIpOptsParse (const char *rawstr)
 {
+    if (rawstr == NULL || strlen(rawstr) == 0)
+        return NULL;
+
     int i;
-    DetectIpOptsData *de = NULL;
     bool found = false;
-
-    pcre2_match_data *match = NULL;
-    int ret = DetectParsePcreExec(&parse_regex, &match, rawstr, 0, 0);
-    if (ret < 1) {
-        SCLogError("pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
-        goto error;
-    }
-
     for(i = 0; ipopts[i].ipopt_name != NULL; i++)  {
         if((strcasecmp(ipopts[i].ipopt_name,rawstr)) == 0) {
             found = true;
@@ -205,24 +190,16 @@ static DetectIpOptsData *DetectIpOptsParse (const char *rawstr)
 
     if (!found) {
         SCLogError("unknown IP option specified \"%s\"", rawstr);
-        goto error;
+        return NULL;
     }
 
-    de = SCMalloc(sizeof(DetectIpOptsData));
+    DetectIpOptsData *de = SCMalloc(sizeof(DetectIpOptsData));
     if (unlikely(de == NULL))
-        goto error;
+        return NULL;
 
     de->ipopt = ipopts[i].code;
 
-    pcre2_match_data_free(match);
     return de;
-
-error:
-    if (match) {
-        pcre2_match_data_free(match);
-    }
-    if (de) SCFree(de);
-    return NULL;
 }
 
 /**
@@ -371,6 +348,20 @@ static int IpOptsTestParse04 (void)
 }
 
 /**
+ * \test IpOptsTestParse05 tests the NULL and empty string
+ */
+static int IpOptsTestParse05(void)
+{
+    DetectIpOptsData *de = DetectIpOptsParse("");
+    FAIL_IF_NOT_NULL(de);
+
+    de = DetectIpOptsParse(NULL);
+    FAIL_IF_NOT_NULL(de);
+
+    PASS;
+}
+
+/**
  * \brief this function registers unit tests for IpOpts
  */
 void IpOptsRegisterTests(void)
@@ -379,5 +370,6 @@ void IpOptsRegisterTests(void)
     UtRegisterTest("IpOptsTestParse02", IpOptsTestParse02);
     UtRegisterTest("IpOptsTestParse03", IpOptsTestParse03);
     UtRegisterTest("IpOptsTestParse04", IpOptsTestParse04);
+    UtRegisterTest("IpOptsTestParse05", IpOptsTestParse05);
 }
 #endif /* UNITTESTS */
