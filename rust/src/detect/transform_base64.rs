@@ -32,9 +32,39 @@ use std::str;
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum DetectBase64Mode {
     Base64ModeRelax = 0,
-    Base64ModeRFC2045,
+    /* If the following strings were to be passed to the decoder with RFC2045 mode,
+     * the results would be as follows. See the unittest B64TestVectorsRFC2045 in
+     * src/util-base64.c
+     *
+     * BASE64("") = ""
+     * BASE64("f") = "Zg=="
+     * BASE64("fo") = "Zm8="
+     * BASE64("foo") = "Zm9v"
+     * BASE64("foob") = "Zm9vYg=="
+     * BASE64("fooba") = "Zm9vYmE="
+     * BASE64("foobar") = "Zm9vYmFy"
+     * BASE64("foobar") = "Zm 9v Ym Fy"   <-- Notice how the spaces are ignored
+     * BASE64("foobar") = "Zm$9vYm.Fy"    # According to RFC 2045, All line breaks or *other
+     * characters* not found in base64 alphabet must be ignored by decoding software
+     * */
+    Base64ModeRFC2045, /* SPs are allowed during transfer but must be skipped by Decoder */
     Base64ModeStrict,
-    Base64ModeRFC4648,
+    /* If the following strings were to be passed to the decoder with RFC4648 mode,
+     * the results would be as follows. See the unittest B64TestVectorsRFC4648 in
+     * src/util-base64.c
+     *
+     * BASE64("") = ""
+     * BASE64("f") = "Zg=="
+     * BASE64("fo") = "Zm8="
+     * BASE64("foo") = "Zm9v"
+     * BASE64("foob") = "Zm9vYg=="
+     * BASE64("fooba") = "Zm9vYmE="
+     * BASE64("foobar") = "Zm9vYmFy"
+     * BASE64("f") = "Zm 9v Ym Fy"   <-- Notice how the processing stops once space is encountered
+     * BASE64("f") = "Zm$9vYm.Fy"    <-- Notice how the processing stops once an invalid char is
+     * encountered
+     * */
+    Base64ModeRFC4648, /* reject the encoded data if it contains characters outside the base alphabet */
 }
 
 pub const TRANSFORM_FROM_BASE64_MODE_DEFAULT: DetectBase64Mode = DetectBase64Mode::Base64ModeRFC4648;
@@ -120,8 +150,7 @@ fn parse_transform_base64(
     )(input)?;
 
     // Too many options?
-    if values.len() > DETECT_TRANSFORM_BASE64_MAX_PARAM_COUNT
-    {
+    if values.len() > DETECT_TRANSFORM_BASE64_MAX_PARAM_COUNT {
         return Err(make_error(format!("Incorrect argument string; at least 1 value must be specified but no more than {}: {:?}",
             DETECT_TRANSFORM_BASE64_MAX_PARAM_COUNT, input)));
     }
@@ -155,7 +184,8 @@ fn parse_transform_base64(
                             transform_base64.offset = val as u32
                         } else {
                             return Err(make_error(format!(
-                                "invalid offset value: must be between 0 and 65535 {}", val
+                                "invalid offset value: must be between 0 and 65535 {}",
+                                val
                             )));
                         }
                     }
