@@ -746,6 +746,11 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
             break;
     }
 
+    if (set->hash && SC_ATOMIC_GET(set->hash->memcap_reached)) {
+        SCLogError("dataset too large for set memcap");
+        goto out_err;
+    }
+
     SCLogDebug("set %p/%s type %u save %s load %s",
             set, set->name, set->type, set->save, set->load);
 
