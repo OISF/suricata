@@ -259,11 +259,10 @@ fn parse_bytemath(input: &str) -> IResult<&str, DetectByteMathData, RuleParseErr
                 if 0 != (byte_math.flags & DETECT_BYTEMATH_FLAG_ENDIAN) {
                     return Err(make_error("endianess already set".to_string()));
                 }
-                byte_math.endian = match get_endian_value(val) {
-                    Ok(val) => val,
-                    Err(_) => {
-                        return Err(make_error(format!("invalid endian value: {}", val)));
-                    }
+                if let Some(endian) = get_endian_value(val) {
+                    byte_math.endian = endian;
+                } else {
+                    return Err(make_error(format!("invalid endian value: {}", val)));
                 };
                 byte_math.flags |= DETECT_BYTEMATH_FLAG_ENDIAN;
             }
@@ -278,11 +277,10 @@ fn parse_bytemath(input: &str) -> IResult<&str, DetectByteMathData, RuleParseErr
                 if 0 != (byte_math.flags & DETECT_BYTEMATH_FLAG_STRING) {
                     return Err(make_error("string already set".to_string()));
                 }
-                byte_math.base = match get_string_value(val) {
-                    Ok(val) => val,
-                    Err(_) => {
-                        return Err(make_error(format!("invalid string value: {}", val)));
-                    }
+                if let Some(base) = get_string_value(val) {
+                    byte_math.base = base;
+                } else {
+                    return Err(make_error(format!("invalid string value: {}", val)));
                 };
                 byte_math.flags |= DETECT_BYTEMATH_FLAG_STRING;
             }
