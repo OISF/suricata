@@ -58,9 +58,6 @@
 #define HTP_CONFIG_DEFAULT_RANDOMIZE                    1
 #define HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE              10
 
-/** a boundary should be smaller in size */
-#define HTP_BOUNDARY_MAX                            200U
-
 // 0x0001 not used
 #define HTP_FLAG_STATE_CLOSED_TS    0x0002    /**< Flag to indicate that HTTP
                                              connection is closed */
@@ -212,8 +209,6 @@ typedef struct HtpTxUserData_ {
     uint8_t request_has_trailers;
     uint8_t response_has_trailers;
 
-    uint8_t boundary_len;
-
     uint8_t tsflags;
     uint8_t tcflags;
 
@@ -229,10 +224,7 @@ typedef struct HtpTxUserData_ {
     uint32_t request_headers_raw_len;
     uint32_t response_headers_raw_len;
 
-    /** Holds the boundary identification string if any (used on
-     *  multipart/form-data only)
-     */
-    uint8_t *boundary;
+    MimeStateHTTP *mime_state;
 
     HttpRangeContainerBlock *file_range; /**< used to assign track ids to range file */
 
@@ -269,10 +261,7 @@ typedef struct HtpState_ {
 } HtpState;
 
 /** part of the engine needs the request body (e.g. http_client_body keyword) */
-#define HTP_REQUIRE_REQUEST_BODY        (1 << 0)
-/** part of the engine needs the request body multipart header (e.g. filename
- *  and / or fileext keywords) */
-#define HTP_REQUIRE_REQUEST_MULTIPART   (1 << 1)
+#define HTP_REQUIRE_REQUEST_BODY (1 << 0)
 /** part of the engine needs the request file (e.g. log-file module) */
 #define HTP_REQUIRE_REQUEST_FILE        (1 << 2)
 /** part of the engine needs the request body (e.g. file_data keyword) */
