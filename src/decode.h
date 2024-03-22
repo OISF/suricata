@@ -676,7 +676,7 @@ extern uint32_t default_packet_size;
 #define SIZE_OF_PACKET (default_packet_size + sizeof(Packet))
 
 /* Retrieve proto regardless of IP version */
-static inline uint8_t IP_GET_IPPROTO(const Packet *p)
+static inline uint8_t PacketGetIPProto(const Packet *p)
 {
     if (p->proto != 0) {
         return p->proto;
