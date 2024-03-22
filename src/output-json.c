@@ -571,10 +571,10 @@ void JsonAddrInfoInit(const Packet *p, enum OutputJsonLogDirection dir, JsonAddr
             break;
     }
 
-    if (SCProtoNameValid(IP_GET_IPPROTO(p))) {
-        strlcpy(addr->proto, known_proto[IP_GET_IPPROTO(p)], sizeof(addr->proto));
+    if (SCProtoNameValid(PacketGetIPProto(p))) {
+        strlcpy(addr->proto, known_proto[PacketGetIPProto(p)], sizeof(addr->proto));
     } else {
-        snprintf(addr->proto, sizeof(addr->proto), "%" PRIu32, IP_GET_IPPROTO(p));
+        snprintf(addr->proto, sizeof(addr->proto), "%" PRIu32, PacketGetIPProto(p));
     }
 }
 
