@@ -254,11 +254,6 @@ typedef uint16_t Port;
 
 #define IPH_IS_VALID(p) (PKT_IS_IPV4((p)) || PKT_IS_IPV6((p)))
 
-/* Retrieve proto regardless of IP version */
-#define IP_GET_IPPROTO(p) \
-    (p->proto ? p->proto : \
-    (PKT_IS_IPV4((p))? IPV4_GET_IPPROTO((p)) : (PKT_IS_IPV6((p))? IPV6_GET_L4PROTO((p)) : 0)))
-
 /* structure to store the sids/gids/etc the detection engine
  * found in this packet */
 typedef struct PacketAlert_ {
@@ -679,6 +674,21 @@ typedef struct Packet_
 #define MAX_PAYLOAD_SIZE (IPV6_HEADER_LEN + 65536 + 28)
 extern uint32_t default_packet_size;
 #define SIZE_OF_PACKET (default_packet_size + sizeof(Packet))
+
+/* Retrieve proto regardless of IP version */
+static inline uint8_t IP_GET_IPPROTO(const Packet *p)
+{
+    if (p->proto != 0) {
+        return p->proto;
+    }
+    if (PKT_IS_IPV4(p)) {
+        return IPV4_GET_IPPROTO(p);
+    } else if (PKT_IS_IPV6(p)) {
+        return IPV6_GET_L4PROTO(p);
+    } else {
+        return 0;
+    }
+}
 
 /** \brief Structure to hold thread specific data for all decode modules */
 typedef struct DecodeThreadVars_
